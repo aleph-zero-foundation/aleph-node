@@ -1,8 +1,7 @@
 [workspace]
 
 members = [
+    "finality-aleph",
     "node",
-    "client",
-    "pallet",
-    "primitives",
+    "pallet"
 ]
