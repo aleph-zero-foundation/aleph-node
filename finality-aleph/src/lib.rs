@@ -1,6 +1,8 @@
 #![allow(clippy::type_complexity)]
+use temp::*;
 
 pub(crate) mod communication;
+pub mod config;
 pub(crate) mod environment;
 
 mod key_types {
@@ -130,5 +132,3 @@ pub(crate) mod temp {
         }
     }
 }
-
-use temp::*;
