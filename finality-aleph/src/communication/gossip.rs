@@ -17,10 +17,7 @@ use sc_telemetry::{telemetry, CONSENSUS_DEBUG};
 use sp_application_crypto::RuntimeAppPublic;
 use sp_runtime::traits::Block;
 use sp_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnboundedSender};
-use std::{
-    collections::{HashMap, HashSet},
-    marker::PhantomData,
-};
+use std::{collections::HashSet, marker::PhantomData};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 /// As `PeerId` does not implement `Hash`, we need to turn it into bytes.
@@ -203,7 +200,7 @@ impl<B: Block> GossipValidator<B> {
 
     /// Notes pending fetch requests so that the gossip validator is aware of
     /// incoming fetch responses to watch out for.
-    pub(crate) fn note_pending_fetch_request(&mut self, peer: PeerId, mut request: FetchRequest) {
+    pub(crate) fn note_pending_fetch_request(&self, peer: PeerId, mut request: FetchRequest) {
         let mut pending_request = self.pending_requests.write();
         request.coords.sort();
         pending_request.insert((PeerIdBytes::from(peer), request.coords));
@@ -211,7 +208,7 @@ impl<B: Block> GossipValidator<B> {
 
     /// Sets the current authorities which are used to ensure that the incoming
     /// messages are indeed signed by these authorities.
-    pub(crate) fn set_authorities<I>(&mut self, authorities: I)
+    pub(crate) fn set_authorities<I>(&self, authorities: I)
     where
         I: IntoIterator<Item = AuthorityId>,
     {
@@ -221,7 +218,7 @@ impl<B: Block> GossipValidator<B> {
     }
 
     /// Removes a single authority in case they had been forked out.
-    pub(crate) fn remove_authority(&mut self, authority: &AuthorityId) {
+    pub(crate) fn remove_authority(&self, authority: &AuthorityId) {
         let mut authorities = self.authority_set.write();
         authorities.remove(authority);
     }
