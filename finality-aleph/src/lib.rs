@@ -1,3 +1,6 @@
+// TEMP allow as everything gets plugged into each other.
+// TODO: Remove before we do a release to ensure there is no hanging code.
+#![allow(dead_code)]
 #![allow(clippy::type_complexity)]
 use temp::*;
 
