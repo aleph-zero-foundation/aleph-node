@@ -1,4 +1,4 @@
-use crate::EpochId;
+use rush::EpochId;
 use sc_network::{ObservedRole, PeerId};
 use std::collections::HashMap;
 
