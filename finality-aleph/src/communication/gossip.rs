@@ -357,7 +357,6 @@ impl<B: Block, H: Hash> Validator<B> for GossipValidator<B, H> {
                 self.validate_fetch_response(sender, message)
             }
             Ok(GossipMessage::Alert(ref _message)) => {
-                message_name = Some("fetch_response");
                 todo!()
             }
             Err(e) => {
@@ -547,7 +546,7 @@ mod tests {
         for x in 0..10 {
             let unit_coord = UnitCoord {
                 creator: NodeIndex(x),
-                round: (x + 1),
+                round: (x + 1) as u64,
             };
             coords.push(unit_coord);
         }
@@ -627,7 +626,7 @@ mod tests {
         for x in 0..10 {
             let unit_coord = UnitCoord {
                 creator: NodeIndex(x),
-                round: (x + 1),
+                round: (x + 1) as u64,
             };
             coords.push(unit_coord);
         }
@@ -655,7 +654,7 @@ mod tests {
         for x in 0..10 {
             let unit_coord = UnitCoord {
                 creator: NodeIndex(x),
-                round: (x + 1),
+                round: (x + 1) as u64,
             };
             coords.push(unit_coord);
         }
@@ -710,7 +709,7 @@ mod tests {
         for x in 0..10 {
             let unit_coord = UnitCoord {
                 creator: NodeIndex(x),
-                round: x + 1,
+                round: (x + 1) as u64,
             };
             coords.push(unit_coord);
         }
