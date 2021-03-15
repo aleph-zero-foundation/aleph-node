@@ -8,6 +8,15 @@ use codec::{Decode, Encode};
 use rush::{nodes::NodeIndex, HashT, Unit};
 use std::fmt::Debug;
 
+use sp_consensus::BlockImport;
+
+use sc_client_api::{
+    backend::{AuxStore, Backend},
+    BlockchainEvents, ExecutorProvider, Finalizer, LockImportRun, TransactionFor,
+};
+use sp_api::ProvideRuntimeApi;
+use sp_runtime::traits::Block as BlockT;
+
 pub(crate) mod communication;
 pub mod config;
 pub(crate) mod environment;
@@ -30,6 +39,18 @@ pub type AuthorityId = app::Public;
 pub type AuthoritySignature = app::Signature;
 
 pub type AuthorityPair = app::Pair;
+
+#[derive(Clone, Debug, Eq, Hash, Encode, Decode, PartialEq)]
+pub struct NodeId {
+    auth: AuthorityId,
+    index: NodeIndex,
+}
+
+impl rush::MyIndex for NodeId {
+    fn my_index(&self) -> Option<NodeIndex> {
+        unimplemented!()
+    }
+}
 
 /// Ties an authority identification and a cryptography keystore together for use in
 /// signing that requires an authority.
@@ -86,4 +107,32 @@ impl<B: HashT, H: HashT> From<&Unit<B, H>> for UnitCoord {
             round: unit.round() as u64,
         }
     }
+}
+
+pub trait ClientForAleph<B, BE>:
+    LockImportRun<B, BE>
+    + Finalizer<B, BE>
+    + AuxStore
+    + BlockchainEvents<B>
+    + ProvideRuntimeApi<B>
+    + ExecutorProvider<B>
+    + BlockImport<B, Transaction = TransactionFor<BE, B>, Error = sp_consensus::Error>
+where
+    BE: Backend<B>,
+    B: BlockT,
+{
+}
+
+impl<B, BE, T> ClientForAleph<B, BE> for T
+where
+    BE: Backend<B>,
+    B: BlockT,
+    T: LockImportRun<B, BE>
+        + Finalizer<B, BE>
+        + AuxStore
+        + BlockchainEvents<B>
+        + ProvideRuntimeApi<B>
+        + ExecutorProvider<B>
+        + BlockImport<B, Transaction = TransactionFor<BE, B>, Error = sp_consensus::Error>,
+{
 }
