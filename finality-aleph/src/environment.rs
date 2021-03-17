@@ -8,11 +8,11 @@ use rush::{Hashing, NotificationIn, NotificationOut};
 
 use crate::NodeId;
 
-pub struct Environment<C, N, B: BlockT, BE> {
-    client: Arc<C>,
-    network: N,
-    _phantom_block: std::marker::PhantomData<B>,
-    _phantom_backend: std::marker::PhantomData<BE>,
+pub(crate) struct Environment<C, N, B: BlockT, BE> {
+    pub(crate) client: Arc<C>,
+    pub(crate) network: N,
+    pub(crate) _phantom_block: std::marker::PhantomData<B>,
+    pub(crate) _phantom_backend: std::marker::PhantomData<BE>,
 }
 
 impl<C, N, B: BlockT, BE> rush::Environment for Environment<C, N, B, BE>
@@ -32,7 +32,7 @@ where
     >;
     type Error = ();
 
-    fn finalize_block(&mut self, _h: Self::BlockHash) {
+    fn finalize_block(&self, _h: Self::BlockHash) {
         todo!()
     }
 
