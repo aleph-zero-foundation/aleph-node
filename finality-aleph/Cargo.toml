@@ -1,34 +1,34 @@
 [package]
 name = "finality-aleph"
 version = "0.1.0"
-authors = ["Joshua J. Bouw <dev@joshuajbouw.com>"]
+authors = ["Cardinal Cryptography"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 tokio = { version="1", features=["sync", "rt"]}
-codec = { package = "parity-scale-codec", version = "1.3", default-features = false, features = ["derive"] }
-futures = "0.3"
+codec = { package = "parity-scale-codec", version = "2", default-features = false, features = ["derive"] }
 log = "0.4"
-parity-util-mem = "0.7"
+futures = "0.3"
+parity-util-mem = "0.9"
 parking_lot = "0.11"
-prometheus-endpoint = { package = "substrate-prometheus-endpoint", version = "0.8.0" }
+prometheus-endpoint = { package = "substrate-prometheus-endpoint", version = "0.9.0"}
 rand = "0.8"
 rush = { git = "ssh://git@github.com/Cardinal-Cryptography/rush.git", branch = "main" }
-sc-keystore = "2.0"
-sc-network = "0.8"
-sc-network-gossip = "0.8"
-sc-telemetry = "2.0"
+sc-keystore = "3"
+sc-network = "0.9"
+sc-network-gossip = "0.9"
+sc-telemetry = "3"
 serde = "1.0"
-sc-service = "0.8"
-sp-application-crypto = "2.0"
-sp-core = "2.0"
-sp-runtime = "2.0"
-sp-utils = "2.0"
-sp-api = "2.0"
-sp-blockchain = "2.0"
-sp-consensus= "0.8"
-sc-client-api = "2.0"
-sp-io="2.0"
+sc-service = "0.9"
+sp-application-crypto = "3"
+sp-core = "3"
+sp-runtime = "3"
+sp-utils = "3"
+sp-api = "3"
+sp-blockchain = "3"
+sp-consensus= "0.9"
+sc-client-api = "3"
+sp-io="3"
 derive_more = "0.99.7"

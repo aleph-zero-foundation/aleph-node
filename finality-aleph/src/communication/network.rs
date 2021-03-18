@@ -6,7 +6,7 @@ use crate::{
     },
     config::Config,
     hash::Hash,
-    AuthorityCryptoStore, UnitCoord,
+    AuthorityKeystore, UnitCoord,
 };
 use codec::{Decode, Encode};
 use futures::{channel::mpsc, prelude::*};
@@ -16,7 +16,7 @@ use prometheus_endpoint::Registry;
 use rush::{EpochId, NotificationIn, NotificationOut};
 use sc_network::PeerId;
 use sc_network_gossip::{GossipEngine, Network as GossipNetwork};
-use sp_runtime::{traits::Block, ConsensusEngineId};
+use sp_runtime::traits::Block;
 use sp_utils::mpsc::TracingUnboundedReceiver;
 use std::{
     pin::Pin,
@@ -29,15 +29,13 @@ use std::{
 /// own network.
 pub(crate) const ALEPH_PROTOCOL_NAME: &str = "/cardinals/aleph/1";
 
-pub(crate) const ALEPH_ENGINE_ID: ConsensusEngineId = *b"ALPH";
-
 pub(crate) trait Network<B: Block>: GossipNetwork<B> + Clone + Send + 'static {}
 
 pub struct NotificationOutSender<B: Block, H: Hash> {
     network: Arc<Mutex<GossipEngine<B>>>,
     sender: mpsc::Sender<NotificationIn<B::Hash, H>>,
     epoch_id: EpochId,
-    auth_cryptostore: AuthorityCryptoStore,
+    auth_cryptostore: AuthorityKeystore,
 }
 
 unsafe impl<B: Block, H: Hash> Send for NotificationOutSender<B, H> {}
@@ -123,9 +121,9 @@ impl<B: Block, H: Hash, N: Network<B>> NetworkBridge<B, H, N> {
         };
         let gossip_engine = Arc::new(Mutex::new(GossipEngine::new(
             network_service.clone(),
-            ALEPH_ENGINE_ID,
             ALEPH_PROTOCOL_NAME,
             gossip_validator.clone(),
+            None,
         )));
 
         NetworkBridge {
@@ -145,7 +143,7 @@ impl<B: Block, H: Hash, N: Network<B>> NetworkBridge<B, H, N> {
     pub(crate) fn communication(
         &self,
         epoch_id: EpochId,
-        auth_cryptostore: AuthorityCryptoStore,
+        auth_cryptostore: AuthorityKeystore,
     ) -> (
         impl Stream<Item = NotificationIn<B::Hash, H>> + Unpin,
         impl Sink<NotificationOut<B::Hash, H>> + Unpin,

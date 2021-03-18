@@ -34,15 +34,15 @@ impl Peers {
     }
 
     pub(crate) fn remove(&mut self, peer: &PeerId) {
-        self.authorities.remove(peer.as_ref());
-        self.others.remove(peer.as_ref());
+        self.authorities.remove(peer);
+        self.others.remove(peer);
     }
 
     pub(crate) fn contains(&self, peer: &PeerId) -> bool {
-        self.authorities.contains_key(peer.as_ref()) || self.others.contains_key(peer.as_ref())
+        self.authorities.contains_key(peer) || self.others.contains_key(peer)
     }
 
     pub(crate) fn contains_authority(&self, peer: &PeerId) -> bool {
-        self.authorities.contains_key(peer.as_ref())
+        self.authorities.contains_key(peer)
     }
 }

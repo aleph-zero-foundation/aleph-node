@@ -1,4 +1,3 @@
-use sp_core::traits::BareCryptoStorePtr;
 use std::time::Duration;
 
 /// Configuration for the Aleph protocol service.
@@ -10,7 +9,7 @@ pub struct Config {
     /// The name of this particular node.
     pub name: Option<String>,
     /// The keystore which stores the keys.
-    pub keystore: Option<BareCryptoStorePtr>,
+    pub keystore: Option<sc_keystore::LocalKeystore>,
 }
 
 impl Config {
