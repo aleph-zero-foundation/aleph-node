@@ -10,8 +10,10 @@ use futures::Future;
 use codec::{Decode, Encode};
 use rush::{nodes::NodeIndex, HashT, Unit};
 use sc_service::SpawnTaskHandle;
+use sp_blockchain::{HeaderBackend, HeaderMetadata};
+use std::fmt::Debug;
 
-use sp_consensus::BlockImport;
+use sp_consensus::{BlockImport, SelectChain};
 
 use sc_client_api::{
     backend::{AuxStore, Backend},
@@ -121,6 +123,8 @@ pub trait ClientForAleph<B, BE>:
     + ProvideRuntimeApi<B>
     + ExecutorProvider<B>
     + BlockImport<B, Transaction = TransactionFor<BE, B>, Error = sp_consensus::Error>
+    + HeaderBackend<B>
+    + HeaderMetadata<B, Error = sp_blockchain::Error>
 where
     BE: Backend<B>,
     B: Block,
@@ -137,6 +141,8 @@ where
         + BlockchainEvents<B>
         + ProvideRuntimeApi<B>
         + ExecutorProvider<B>
+        + HeaderBackend<B>
+        + HeaderMetadata<B, Error = sp_blockchain::Error>
         + BlockImport<B, Transaction = TransactionFor<BE, B>, Error = sp_consensus::Error>,
 {
 }
@@ -155,26 +161,29 @@ impl rush::SpawnHandle for SpawnHandle {
     }
 }
 
-pub struct AlephConfig<N, C> {
+pub struct AlephConfig<N, C, SC> {
     pub network: N,
     pub party_conf: party::Config,
     pub client: Arc<C>,
+    pub select_chain: SC,
     pub spawn_handle: SpawnTaskHandle,
 }
 
-pub async fn run_aleph_consensus<B: Block, BE, C, N>(config: AlephConfig<N, C>)
+pub async fn run_aleph_consensus<B: Block, BE, C, N, SC>(config: AlephConfig<N, C, SC>)
 where
     BE: Backend<B> + 'static,
     N: Send + Sync + 'static,
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
+    SC: SelectChain<B> + 'static,
 {
     let AlephConfig {
         network,
         party_conf,
         client,
+        select_chain,
         spawn_handle,
     } = config;
-    let consensus = party::ConsensusParty::new(party_conf, client, network);
+    let consensus = party::ConsensusParty::new(party_conf, client, network, select_chain);
 
     consensus.run(spawn_handle.into()).await
 }
