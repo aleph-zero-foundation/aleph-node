@@ -1,20 +1,17 @@
-use futures::{Sink, Stream};
+use crate::{communication::network::NotificationOutSender, NodeId};
+use futures::Stream;
 use log::debug;
+use rush::{Hashing, NotificationIn};
 use sc_client_api::backend::Backend;
-
 use sp_consensus::SelectChain;
 use sp_core::{blake2_256, H256};
 use sp_runtime::{
     generic::BlockId,
-    traits::{Block as BlockT, Header as HeaderT},
+    traits::{Block, Header},
 };
 use std::{marker::PhantomData, sync::Arc};
 
-use rush::{Hashing, NotificationIn, NotificationOut};
-
-use crate::NodeId;
-
-pub struct Environment<C, N, B: BlockT, BE, SC> {
+pub struct Environment<C, N, B: Block, BE, SC> {
     pub(crate) client: Arc<C>,
     pub(crate) network: N,
     pub(crate) select_chain: SC,
@@ -22,9 +19,9 @@ pub struct Environment<C, N, B: BlockT, BE, SC> {
     pub(crate) _phantom_backend: std::marker::PhantomData<BE>,
 }
 
-impl<C, N, B: BlockT, BE, SC> Environment<C, N, B, BE, SC>
+impl<C, N, B, BE, SC> Environment<C, N, B, BE, SC>
 where
-    B: BlockT,
+    B: Block,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
@@ -41,8 +38,9 @@ where
     }
 }
 
-impl<C, N, B: BlockT, BE, SC> rush::Environment for Environment<C, N, B, BE, SC>
+impl<C, N, B, BE, SC> rush::Environment for Environment<C, N, B, BE, SC>
 where
+    B: Block,
     BE: Backend<B>,
     C: crate::ClientForAleph<B, BE>,
     SC: SelectChain<B> + 'static,
@@ -54,9 +52,7 @@ where
 
     type Crypto = ();
     type In = Box<dyn Stream<Item = NotificationIn<Self::BlockHash, Self::Hash>> + Send + Unpin>;
-    type Out = Box<
-        dyn Sink<NotificationOut<Self::BlockHash, Self::Hash>, Error = Self::Error> + Send + Unpin,
-    >;
+    type Out = Box<NotificationOutSender<B, Self::Hash>>;
     type Error = ();
 
     fn finalize_block(&self, h: Self::BlockHash) {
@@ -85,7 +81,7 @@ where
 
 pub(crate) fn finalize_block<BE, B, C>(client: Arc<C>, hash: B::Hash)
 where
-    B: BlockT,
+    B: Block,
     BE: Backend<B>,
     C: crate::ClientForAleph<B, BE>,
 {

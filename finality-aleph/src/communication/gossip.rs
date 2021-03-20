@@ -5,7 +5,7 @@ use crate::{
         Peers,
     },
     hash::Hash,
-    AuthorityId, AuthoritySignature, UnitCoord,
+    AuthorityCryptoStore, AuthorityId, AuthoritySignature, UnitCoord,
 };
 use codec::{Decode, Encode};
 use log::debug;
@@ -15,10 +15,11 @@ use rush::{nodes::NodeIndex, Unit};
 use sc_network::{ObservedRole, PeerId, ReputationChange};
 use sc_network_gossip::{MessageIntent, ValidationResult, Validator, ValidatorContext};
 use sc_telemetry::{telemetry, CONSENSUS_DEBUG};
-use sp_application_crypto::RuntimeAppPublic;
+use sp_application_crypto::{Public, RuntimeAppPublic};
+
 use sp_runtime::traits::Block;
 use sp_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnboundedSender};
-use std::{collections::HashSet, marker::PhantomData};
+use std::{collections::HashSet, convert::TryInto, marker::PhantomData};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 /// As `PeerId` does not implement `Hash`, we need to turn it into bytes.
@@ -37,9 +38,9 @@ impl AsRef<[u8]> for PeerIdBytes {
 }
 
 /// A wrapped unit which contains both an authority public key and signature.
-#[derive(Debug, Encode, Decode)]
+#[derive(Debug, Clone, Encode, Decode)]
 pub(crate) struct SignedUnit<B: Block, H: Hash> {
-    unit: Unit<H, B::Hash>,
+    pub(crate) unit: Unit<B::Hash, H>,
     signature: AuthoritySignature,
     // NOTE: This will likely be changed to a usize to get the authority out of
     // a map in the future to reduce data sizes of packets.
@@ -71,6 +72,30 @@ impl<B: Block, H: Hash> SignedUnit<B, H> {
     }
 }
 
+pub(crate) fn sign_unit<B: Block, H: Hash>(
+    auth_crypto_store: &AuthorityCryptoStore,
+    unit: Unit<B::Hash, H>,
+) -> Option<SignedUnit<B, H>> {
+    let encoded = unit.encode();
+    let crypto_store = &auth_crypto_store.crypto_store;
+    let signature = crypto_store
+        .read()
+        .sign_with(
+            AuthorityId::ID,
+            &auth_crypto_store.authority_id.to_public_crypto_pair(),
+            &encoded[..],
+        )
+        .ok()?
+        .try_into()
+        .ok()?;
+
+    Some(SignedUnit {
+        unit,
+        signature,
+        id: auth_crypto_store.authority_id.clone(),
+    })
+}
+
 /// Actions for incoming messages.
 #[derive(Debug)]
 enum MessageAction<H> {
@@ -87,38 +112,38 @@ enum MessageAction<H> {
 /// Multicast sends a message to all peers.
 #[derive(Debug, Encode, Decode)]
 pub(crate) struct Multicast<B: Block, H: Hash> {
-    signed_unit: SignedUnit<B, H>,
+    pub(crate) signed_unit: SignedUnit<B, H>,
 }
 
 /// A fetch request which asks for units from coordinates.
 #[derive(Debug, Encode, Decode)]
 pub(crate) struct FetchRequest {
-    coords: Vec<UnitCoord>,
-    peer_id: NodeIndex,
+    pub(crate) coords: Vec<UnitCoord>,
+    pub(crate) peer_id: NodeIndex,
 }
 
 /// A fetch response which returns units from requested coordinates.
 #[derive(Debug, Encode, Decode)]
 pub(crate) struct FetchResponse<B: Block, H: Hash> {
-    signed_units: Vec<SignedUnit<B, H>>,
-    peer_id: NodeIndex,
+    pub(crate) signed_units: Vec<SignedUnit<B, H>>,
+    pub(crate) peer_id: NodeIndex,
 }
 
 // TODO
-#[derive(Debug, Encode, Decode)]
-struct Alert {}
+// #[derive(Debug, Encode, Decode)]
+// pub(crate) struct Alert {}
 
 /// The kind of message that is being sent.
 #[derive(Debug, Encode, Decode)]
-enum GossipMessage<B: Block, H: Hash> {
+pub(crate) enum GossipMessage<B: Block, H: Hash> {
     /// A multicast message kind.
     Multicast(Multicast<B, H>),
     /// A fetch request message kind.
     FetchRequest(FetchRequest),
     /// A fetch response message kind.
     FetchResponse(FetchResponse<B, H>),
-    /// An alert message kind.
-    Alert(Alert),
+    // /// An alert message kind.
+    // Alert(Alert),
 }
 
 /// Reports a peer with a reputation change.
@@ -255,10 +280,8 @@ impl<B: Block, H: Hash> GossipValidator<B, H> {
     fn validate_multicast(&self, message: &Multicast<B, H>) -> MessageAction<B::Hash> {
         match self.validate_signed_unit(&message.signed_unit) {
             Ok(_) => {
-                let topic: <B as Block>::Hash = super::multicast_topic::<B>(
-                    message.signed_unit.unit.round(),
-                    message.signed_unit.unit.epoch_id(),
-                );
+                let topic: <B as Block>::Hash =
+                    super::epoch_topic::<B>(message.signed_unit.unit.epoch_id());
                 MessageAction::Keep(topic, PeerGoodBehavior::Multicast.into())
             }
             Err(e) => e,
@@ -300,7 +323,7 @@ impl<B: Block, H: Hash> GossipValidator<B, H> {
                 }
             }
 
-            let topic: <B as Block>::Hash = super::index_topic::<B>(message.peer_id);
+            let topic: <B as Block>::Hash = super::request_topic::<B>();
             MessageAction::ProcessAndDiscard(topic, PeerGoodBehavior::FetchResponse.into())
         } else {
             MessageAction::Discard(Reputation::from(PeerMisbehavior::OutOfScopeResponse))
@@ -316,10 +339,10 @@ impl<B: Block, H: Hash> GossipValidator<B, H> {
     fn validate_fetch_request(
         &self,
         sender: &PeerId,
-        message: &FetchRequest,
+        _message: &FetchRequest,
     ) -> MessageAction<B::Hash> {
         if self.peers.read().contains_authority(sender) {
-            let topic: <B as Block>::Hash = super::index_topic::<B>(message.peer_id);
+            let topic: <B as Block>::Hash = super::request_topic::<B>();
             MessageAction::ProcessAndDiscard(topic, PeerGoodBehavior::FetchRequest.into())
         } else {
             MessageAction::Discard(PeerMisbehavior::NotAuthority.into())
@@ -356,9 +379,10 @@ impl<B: Block, H: Hash> Validator<B> for GossipValidator<B, H> {
                 message_name = Some("fetch_response");
                 self.validate_fetch_response(sender, message)
             }
-            Ok(GossipMessage::Alert(ref _message)) => {
-                todo!()
-            }
+            // Ok(GossipMessage::Alert(ref _message)) => {
+            //     message_name = Some("fetch_response");
+            //     // TODO
+            // }
             Err(e) => {
                 message_name = None;
                 debug!(target: "afa", "Error decoding message: {}", e.what());

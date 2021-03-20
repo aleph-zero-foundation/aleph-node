@@ -2,25 +2,20 @@
 // TODO: Remove before we do a release to ensure there is no hanging code.
 #![allow(dead_code)]
 #![allow(clippy::type_complexity)]
-use sp_core::traits::BareCryptoStorePtr;
-use std::sync::Arc;
-
-use futures::Future;
-
 use codec::{Decode, Encode};
+use futures::Future;
 use rush::{nodes::NodeIndex, HashT, Unit};
-use sc_service::SpawnTaskHandle;
-use sp_blockchain::{HeaderBackend, HeaderMetadata};
-use std::fmt::Debug;
-
-use sp_consensus::{BlockImport, SelectChain};
-
 use sc_client_api::{
     backend::{AuxStore, Backend},
     BlockchainEvents, ExecutorProvider, Finalizer, LockImportRun, TransactionFor,
 };
+use sc_service::SpawnTaskHandle;
 use sp_api::ProvideRuntimeApi;
+use sp_blockchain::{HeaderBackend, HeaderMetadata};
+use sp_consensus::{BlockImport, SelectChain};
+use sp_core::traits::BareCryptoStorePtr;
 use sp_runtime::traits::Block;
+use std::{fmt::Debug, sync::Arc};
 
 pub(crate) mod communication;
 pub mod config;
@@ -111,6 +106,15 @@ impl<B: HashT, H: HashT> From<&Unit<B, H>> for UnitCoord {
         UnitCoord {
             creator: unit.creator(),
             round: unit.round() as u64,
+        }
+    }
+}
+
+impl From<(usize, NodeIndex)> for UnitCoord {
+    fn from(coord: (usize, NodeIndex)) -> Self {
+        UnitCoord {
+            creator: coord.1,
+            round: coord.0 as u64,
         }
     }
 }
