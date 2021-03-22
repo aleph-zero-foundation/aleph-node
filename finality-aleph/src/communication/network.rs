@@ -14,7 +14,7 @@ use log::{debug, trace};
 use parking_lot::Mutex;
 use prometheus_endpoint::Registry;
 use rush::{EpochId, NotificationIn, NotificationOut};
-use sc_network::PeerId;
+use sc_network::{NetworkService, PeerId};
 use sc_network_gossip::{GossipEngine, Network as GossipNetwork};
 use sp_runtime::traits::Block;
 use sp_utils::mpsc::TracingUnboundedReceiver;
@@ -29,7 +29,9 @@ use std::{
 /// own network.
 pub(crate) const ALEPH_PROTOCOL_NAME: &str = "/cardinals/aleph/1";
 
-pub(crate) trait Network<B: Block>: GossipNetwork<B> + Clone + Send + 'static {}
+pub trait Network<B: Block>: GossipNetwork<B> + Clone + Send + Sync + 'static {}
+
+impl<B: Block> Network<B> for Arc<NetworkService<B, B::Hash>> {}
 
 pub struct NotificationOutSender<B: Block, H: Hash> {
     network: Arc<Mutex<GossipEngine<B>>>,
@@ -112,7 +114,11 @@ pub(crate) struct NetworkBridge<B: Block, H, N: Network<B>> {
 }
 
 impl<B: Block, H: Hash, N: Network<B>> NetworkBridge<B, H, N> {
-    pub(crate) fn new(network_service: N, _config: Config, registry: Option<&Registry>) -> Self {
+    pub(crate) fn new(
+        network_service: N,
+        _config: Option<Config>,
+        registry: Option<&Registry>,
+    ) -> Self {
         let (gossip_validator, peer_report_handle) = {
             let (validator, peer_report_handle) = GossipValidator::<B, H>::new(registry);
             let validator = Arc::new(validator);
@@ -145,8 +151,8 @@ impl<B: Block, H: Hash, N: Network<B>> NetworkBridge<B, H, N> {
         epoch_id: EpochId,
         auth_cryptostore: AuthorityKeystore,
     ) -> (
-        impl Stream<Item = NotificationIn<B::Hash, H>> + Unpin,
-        impl Sink<NotificationOut<B::Hash, H>> + Unpin,
+        NotificationOutSender<B, H>,
+        Box<dyn Stream<Item = NotificationIn<B::Hash, H>> + Unpin + Send + 'static>,
     ) {
         let topic = epoch_topic::<B>(epoch_id);
         let gossip_engine = self.gossip_engine.clone();
@@ -214,6 +220,6 @@ impl<B: Block, H: Hash, N: Network<B>> NetworkBridge<B, H, N> {
         let external_incoming = stream::select(incoming_units, incoming_requests);
         let incoming = stream::select(external_incoming, rx);
 
-        (incoming, outgoing)
+        (outgoing, Box::new(incoming))
     }
 }

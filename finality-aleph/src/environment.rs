@@ -1,7 +1,10 @@
-use crate::{communication::network::NotificationOutSender, NodeId};
+use crate::{
+    communication::network::{Network, NetworkBridge, NotificationOutSender},
+    AuthorityKeystore, NodeId,
+};
 use futures::Stream;
 use log::debug;
-use rush::{Hashing, NotificationIn};
+use rush::{EpochId, Hashing, NotificationIn};
 use sc_client_api::backend::Backend;
 use sp_consensus::SelectChain;
 use sp_core::{blake2_256, H256};
@@ -11,38 +14,47 @@ use sp_runtime::{
 };
 use std::{marker::PhantomData, sync::Arc};
 
-pub struct Environment<C, N, B: Block, BE, SC> {
+pub(crate) struct Environment<B: Block, N: Network<B>, C, BE, SC> {
     pub(crate) client: Arc<C>,
-    pub(crate) network: N,
+    pub(crate) network: NetworkBridge<B, H256, N>,
     pub(crate) select_chain: SC,
-    pub(crate) _phantom_block: std::marker::PhantomData<B>,
-    pub(crate) _phantom_backend: std::marker::PhantomData<BE>,
+    pub(crate) epoch_id: EpochId,
+    pub(crate) auth_keystore: AuthorityKeystore,
+    pub(crate) _phantom: std::marker::PhantomData<(B, BE)>,
 }
 
-impl<C, N, B, BE, SC> Environment<C, N, B, BE, SC>
+impl<B, N, C, BE, SC> Environment<B, N, C, BE, SC>
 where
     B: Block,
+    N: Network<B>,
+    C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
-    C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
-    N: Send + Sync + 'static,
 {
-    pub fn new(client: Arc<C>, network: N, select_chain: SC) -> Self {
+    pub fn new(
+        client: Arc<C>,
+        network: NetworkBridge<B, H256, N>,
+        auth_keystore: AuthorityKeystore,
+        select_chain: SC,
+        epoch_id: EpochId,
+    ) -> Self {
         Environment {
             client,
             network,
             select_chain,
-            _phantom_block: PhantomData,
-            _phantom_backend: PhantomData,
+            epoch_id,
+            auth_keystore,
+            _phantom: PhantomData,
         }
     }
 }
 
-impl<C, N, B, BE, SC> rush::Environment for Environment<C, N, B, BE, SC>
+impl<B, N, C, BE, SC> rush::Environment for Environment<B, N, C, BE, SC>
 where
     B: Block,
-    BE: Backend<B>,
-    C: crate::ClientForAleph<B, BE>,
+    N: Network<B>,
+    C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
+    BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
 {
     type NodeId = NodeId;
@@ -52,7 +64,7 @@ where
 
     type Crypto = ();
     type In = Box<dyn Stream<Item = NotificationIn<Self::BlockHash, Self::Hash>> + Send + Unpin>;
-    type Out = Box<NotificationOutSender<B, Self::Hash>>;
+    type Out = NotificationOutSender<B, Self::Hash>;
     type Error = ();
 
     fn finalize_block(&self, h: Self::BlockHash) {
@@ -71,7 +83,8 @@ where
     }
 
     fn consensus_data(&self) -> (Self::Out, Self::In) {
-        todo!()
+        self.network
+            .communication(self.epoch_id, self.auth_keystore.clone())
     }
 
     fn hashing() -> Hashing<Self::Hash> {
