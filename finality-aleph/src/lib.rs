@@ -2,8 +2,11 @@
 // TODO: Remove before we do a release to ensure there is no hanging code.
 #![allow(dead_code)]
 #![allow(clippy::type_complexity)]
-use codec::{Decode, Encode};
+use sc_keystore::LocalKeystore;
+
 use futures::Future;
+
+use codec::{Decode, Encode};
 use rush::{nodes::NodeIndex, HashT, Unit};
 use sc_client_api::{
     backend::{AuxStore, Backend},
@@ -13,7 +16,6 @@ use sc_service::SpawnTaskHandle;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{HeaderBackend, HeaderMetadata};
 use sp_consensus::{BlockImport, SelectChain};
-use sp_core::traits::BareCryptoStorePtr;
 use sp_runtime::traits::Block;
 use std::{fmt::Debug, sync::Arc};
 
@@ -55,17 +57,17 @@ impl rush::MyIndex for NodeId {
 
 /// Ties an authority identification and a cryptography keystore together for use in
 /// signing that requires an authority.
-pub struct AuthorityCryptoStore {
+pub struct AuthorityKeystore {
     authority_id: AuthorityId,
-    crypto_store: BareCryptoStorePtr,
+    keystore: LocalKeystore,
 }
 
-impl AuthorityCryptoStore {
+impl AuthorityKeystore {
     /// Constructs a new authority cryptography keystore.
-    pub fn new(authority_id: AuthorityId, crypto_store: BareCryptoStorePtr) -> Self {
-        AuthorityCryptoStore {
+    pub fn new(authority_id: AuthorityId, keystore: LocalKeystore) -> Self {
+        AuthorityKeystore {
             authority_id,
-            crypto_store,
+            keystore,
         }
     }
 
@@ -75,14 +77,8 @@ impl AuthorityCryptoStore {
     }
 
     /// Returns a reference to the cryptography keystore.
-    pub fn crypto_store(&self) -> &BareCryptoStorePtr {
-        &self.crypto_store
-    }
-}
-
-impl AsRef<BareCryptoStorePtr> for AuthorityCryptoStore {
-    fn as_ref(&self) -> &BareCryptoStorePtr {
-        self.crypto_store()
+    pub fn keystore(&self) -> &LocalKeystore {
+        &self.keystore
     }
 }
 
