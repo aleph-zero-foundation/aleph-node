@@ -1,0 +1,49 @@
+[package]
+name = "aleph-node"
+version = "0.1.0"
+authors = ["Cardinal Cryptography"]
+description = "Aleph node binary"
+edition = "2018"
+license = "Apache 2.0"
+build = "build.rs"
+homepage = "https://alephzero.org"
+repository = "https://github.com/aleph-zero-foundation/aleph-node"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[[bin]]
+name = "aleph-node"
+
+[dependencies]
+structopt = "0.3.8"
+log = "0.4"
+
+codec = { package = "parity-scale-codec", version = "2", default-features = false, features = ["derive"] }
+
+sc-cli = { version = "0.9.0"}
+sp-core = { version = "3.0.0"}
+sc-executor = { version = "0.9.0"}
+sc-service = { version = "0.9.0"}
+sc-telemetry = { version = "3.0.0"}
+sc-keystore = { version = "3.0.0"}
+sp-keystore = { version = "0.9.0"}
+sp-inherents = { version = "3.0.0"}
+sc-basic-authorship = { version = "0.9.0"}
+sc-transaction-pool = { version = "3.0.0"}
+sp-transaction-pool = { version = "3.0.0"}
+sc-consensus-aura = { version = "0.9.0"}
+sp-consensus-aura = { version = "0.9.0"}
+sp-consensus = { version = "0.9.0"}
+sc-consensus = { version = "0.9.0"}
+sc-client-api = { version = "3.0.0"}
+sp-runtime = { version = "3.0.0"}
+
+aleph-runtime = {version = "0.1.0", path = "../runtime"}
+finality-aleph = {version = "0.1.0", path = "../../finality-aleph"}
+
+[build-dependencies]
+substrate-build-script-utils = { version = "3.0.0"}
+
+[features]
+default = []
