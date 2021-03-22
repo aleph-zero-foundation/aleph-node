@@ -9,7 +9,7 @@ pub struct Config {
     /// The name of this particular node.
     pub name: Option<String>,
     /// The keystore which stores the keys.
-    pub keystore: Option<sc_keystore::LocalKeystore>,
+    pub keystore: Option<sp_keystore::SyncCryptoStorePtr>,
 }
 
 impl Config {

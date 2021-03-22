@@ -5,7 +5,7 @@ use crate::{
         Peers,
     },
     hash::Hash,
-    AuthorityId, AuthorityKeystore, AuthorityPair, AuthoritySignature, UnitCoord,
+    AuthorityId, AuthorityKeystore, AuthoritySignature, UnitCoord,
 };
 use codec::{Decode, Encode};
 use log::debug;
@@ -16,7 +16,6 @@ use sc_network::{ObservedRole, PeerId, ReputationChange};
 use sc_network_gossip::{MessageIntent, ValidationResult, Validator, ValidatorContext};
 use sc_telemetry::{telemetry, CONSENSUS_DEBUG};
 use sp_application_crypto::RuntimeAppPublic;
-use sp_core::Pair;
 
 use sp_runtime::traits::Block;
 use sp_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnboundedSender};
@@ -62,11 +61,7 @@ pub(crate) fn sign_unit<B: Block, H: Hash>(
     unit: Unit<B::Hash, H>,
 ) -> Option<SignedUnit<B, H>> {
     let encoded = unit.encode();
-    let signature = auth_crypto_store
-        .keystore()
-        .key_pair::<AuthorityPair>(&auth_crypto_store.authority_id())
-        .ok()?
-        .sign(&encoded[..]);
+    let signature = auth_crypto_store.sign(&encoded[..]);
 
     Some(SignedUnit {
         unit,

@@ -1,37 +1,51 @@
-use crate::{environment::Environment, NodeId, SpawnHandle};
-use rush::{Config as ConsensusConfig, Consensus};
+use crate::{
+    communication::network::{Network, NetworkBridge},
+    environment::Environment,
+    AuthorityKeystore, NodeId, SpawnHandle,
+};
+use rush::{Config as ConsensusConfig, Consensus, EpochId};
 use sc_client_api::backend::Backend;
 use sp_consensus::SelectChain;
-use sp_runtime::traits::Block as BlockT;
+use sp_runtime::traits::Block;
 use std::sync::Arc;
 
-pub struct Config {
-    pub consensus: ConsensusConfig<NodeId>,
-}
-
-pub(crate) struct ConsensusParty<C, N, B, BE, SC>
+pub(crate) struct ConsensusParty<B, N, C, BE, SC>
 where
-    B: BlockT,
-    BE: Backend<B> + 'static,
-    SC: SelectChain<B> + 'static,
-    C: crate::ClientForAleph<B, BE> + 'static,
-    N: 'static,
-{
-    env: Arc<Environment<C, N, B, BE, SC>>,
-    consensus: Consensus<Environment<C, N, B, BE, SC>>,
-}
-
-impl<C, N, B, BE, SC> ConsensusParty<C, N, B, BE, SC>
-where
-    B: BlockT,
-    BE: Backend<B> + 'static,
-    SC: SelectChain<B> + 'static,
+    B: Block,
+    N: Network<B>,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
-    N: Send + Sync + 'static,
+    BE: Backend<B> + 'static,
+    SC: SelectChain<B> + 'static,
 {
-    pub(crate) fn new(conf: Config, client: Arc<C>, network: N, select_chain: SC) -> Self {
-        let env = Arc::new(Environment::new(client, network, select_chain));
-        let consensus = Consensus::new(conf.consensus, env.clone());
+    env: Arc<Environment<B, N, C, BE, SC>>,
+    consensus: Consensus<Environment<B, N, C, BE, SC>>,
+}
+
+impl<B, N, C, BE, SC> ConsensusParty<B, N, C, BE, SC>
+where
+    B: Block,
+    N: Network<B> + 'static,
+    C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
+    BE: Backend<B> + 'static,
+    SC: SelectChain<B> + 'static,
+{
+    pub(crate) fn new(
+        conf: ConsensusConfig<NodeId>,
+        client: Arc<C>,
+        network: N,
+        select_chain: SC,
+        auth_keystore: AuthorityKeystore,
+        epoch_id: EpochId,
+    ) -> Self {
+        let network_bridge = NetworkBridge::new(network, None, None);
+        let env = Arc::new(Environment::new(
+            client,
+            network_bridge,
+            auth_keystore,
+            select_chain,
+            epoch_id,
+        ));
+        let consensus = Consensus::new(conf, env.clone());
 
         ConsensusParty { env, consensus }
     }

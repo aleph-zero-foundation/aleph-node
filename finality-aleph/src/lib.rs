@@ -1,13 +1,13 @@
-// TEMP allow as everything gets plugged into each other.
-// TODO: Remove before we do a release to ensure there is no hanging code.
-#![allow(dead_code)]
 #![allow(clippy::type_complexity)]
-use sc_keystore::LocalKeystore;
+use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
+use sp_runtime::KeyTypeId;
 
 use futures::Future;
 
 use codec::{Decode, Encode};
 use rush::{nodes::NodeIndex, HashT, Unit};
+pub use rush::{Config as ConsensusConfig, EpochId};
+
 use sc_client_api::{
     backend::{AuxStore, Backend},
     BlockchainEvents, ExecutorProvider, Finalizer, LockImportRun, TransactionFor,
@@ -17,7 +17,7 @@ use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{HeaderBackend, HeaderMetadata};
 use sp_consensus::{BlockImport, SelectChain};
 use sp_runtime::traits::Block;
-use std::{fmt::Debug, sync::Arc};
+use std::{convert::TryInto, fmt::Debug, sync::Arc};
 
 pub(crate) mod communication;
 pub mod config;
@@ -25,47 +25,52 @@ pub(crate) mod environment;
 pub mod hash;
 mod party;
 
-mod key_types {
-    use sp_runtime::KeyTypeId;
+// NOTE until we have our own pallet, we need to use Aura authorities
+// mod key_types {
+//     use sp_runtime::KeyTypeId;
 
-    pub const ALEPH: KeyTypeId = KeyTypeId(*b"alph");
-}
+//     pub const ALEPH: KeyTypeId = KeyTypeId(*b"alph");
+// }
 
-mod app {
-    use crate::key_types::ALEPH;
-    use sp_application_crypto::{app_crypto, ed25519};
-    app_crypto!(ed25519, ALEPH);
-}
+// mod app {
+//     use crate::key_types::ALEPH;
+//     use sp_application_crypto::{app_crypto, ed25519};
+//     app_crypto!(ed25519, ALEPH);
+// }
 
-pub type AuthorityId = app::Public;
+// pub type AuthorityId = app::Public;
+// pub type AuthoritySignature = app::Signature;
+// pub type AuthorityPair = app::Pair;
 
-pub type AuthoritySignature = app::Signature;
-
-pub type AuthorityPair = app::Pair;
+use sp_application_crypto::key_types::AURA;
+pub use sp_consensus_aura::sr25519::{AuthorityId, AuthorityPair, AuthoritySignature};
 
 #[derive(Clone, Debug, Default, Eq, Hash, Encode, Decode, PartialEq)]
 pub struct NodeId {
-    auth: AuthorityId,
-    index: NodeIndex,
+    pub auth: AuthorityId,
+    pub index: NodeIndex,
 }
 
 impl rush::MyIndex for NodeId {
     fn my_index(&self) -> Option<NodeIndex> {
-        unimplemented!()
+        Some(self.index)
     }
 }
 
 /// Ties an authority identification and a cryptography keystore together for use in
 /// signing that requires an authority.
+#[derive(Clone)]
 pub struct AuthorityKeystore {
+    key_type_id: KeyTypeId,
     authority_id: AuthorityId,
-    keystore: LocalKeystore,
+    keystore: SyncCryptoStorePtr,
 }
 
 impl AuthorityKeystore {
     /// Constructs a new authority cryptography keystore.
-    pub fn new(authority_id: AuthorityId, keystore: LocalKeystore) -> Self {
+    pub fn new(authority_id: AuthorityId, keystore: SyncCryptoStorePtr) -> Self {
         AuthorityKeystore {
+            key_type_id: AURA,
             authority_id,
             keystore,
         }
@@ -77,8 +82,22 @@ impl AuthorityKeystore {
     }
 
     /// Returns a reference to the cryptography keystore.
-    pub fn keystore(&self) -> &LocalKeystore {
+    pub fn keystore(&self) -> &SyncCryptoStorePtr {
         &self.keystore
+    }
+
+    pub fn sign(&self, msg: &[u8]) -> AuthoritySignature {
+        SyncCryptoStore::sign_with(
+            &*self.keystore,
+            self.key_type_id,
+            &self.authority_id.clone().into(),
+            msg,
+        )
+        .ok()
+        .expect("key is in store")
+        .try_into()
+        .ok()
+        .unwrap()
     }
 }
 
@@ -163,27 +182,38 @@ impl rush::SpawnHandle for SpawnHandle {
 
 pub struct AlephConfig<N, C, SC> {
     pub network: N,
-    pub party_conf: party::Config,
+    pub consensus_config: ConsensusConfig<NodeId>,
     pub client: Arc<C>,
     pub select_chain: SC,
     pub spawn_handle: SpawnTaskHandle,
+    pub auth_keystore: AuthorityKeystore,
 }
 
-pub async fn run_aleph_consensus<B: Block, BE, C, N, SC>(config: AlephConfig<N, C, SC>)
+pub fn run_aleph_consensus<B: Block, BE, C, N, SC>(
+    config: AlephConfig<N, C, SC>,
+) -> impl Future<Output = ()>
 where
     BE: Backend<B> + 'static,
-    N: Send + Sync + 'static,
+    N: communication::network::Network<B>,
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
     SC: SelectChain<B> + 'static,
 {
     let AlephConfig {
         network,
-        party_conf,
+        consensus_config,
         client,
         select_chain,
         spawn_handle,
+        auth_keystore,
     } = config;
-    let consensus = party::ConsensusParty::new(party_conf, client, network, select_chain);
+    let consensus = party::ConsensusParty::new(
+        consensus_config,
+        client,
+        network,
+        select_chain,
+        auth_keystore,
+        EpochId(0),
+    );
 
-    consensus.run(spawn_handle.into()).await
+    consensus.run(spawn_handle.into())
 }

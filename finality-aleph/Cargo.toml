@@ -16,7 +16,7 @@ parking_lot = "0.11"
 prometheus-endpoint = { package = "substrate-prometheus-endpoint", version = "0.9.0"}
 rand = "0.8"
 rush = { git = "ssh://git@github.com/Cardinal-Cryptography/rush.git", branch = "main" }
-sc-keystore = "3"
+sp-keystore = "0.9"
 sc-network = "0.9"
 sc-network-gossip = "0.9"
 sc-telemetry = "3"
@@ -32,3 +32,5 @@ sp-consensus= "0.9"
 sc-client-api = "3"
 sp-io="3"
 derive_more = "0.99.7"
+# we need aura authorites till we have our own pallet
+sp-consensus-aura = "0.9"
