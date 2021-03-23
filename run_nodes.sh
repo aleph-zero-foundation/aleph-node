@@ -26,5 +26,7 @@ for i in ${!authorities[@]}; do
     --ws-port $(expr 9944 + $i) \
     --port $(expr 30334 + $i) \
     --execution Native \
+    -lrush=debug \
+    -lafa=debug \
     2> $auth.log   & \
 done

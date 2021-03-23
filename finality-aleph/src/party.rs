@@ -17,7 +17,6 @@ where
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
 {
-    env: Arc<Environment<B, N, C, BE, SC>>,
     consensus: Consensus<Environment<B, N, C, BE, SC>>,
 }
 
@@ -47,12 +46,15 @@ where
         ));
         let consensus = Consensus::new(conf, env.clone());
 
-        ConsensusParty { env, consensus }
+        ConsensusParty { consensus }
     }
 
     pub(crate) async fn run(self, spawn_handle: SpawnHandle) {
         // TODO now it runs just a single instance of consensus but later it will
         // orchestrate managing multiple instances for differents epochs
-        self.consensus.run(spawn_handle).await
+        let (_exit, exit) = tokio::sync::oneshot::channel();
+        log::debug!(target: "afa", "Consensus party has started");
+        self.consensus.run(spawn_handle, exit).await;
+        log::debug!(target: "afa", "Consensus party has stopped");
     }
 }
