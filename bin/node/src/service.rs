@@ -12,6 +12,7 @@ pub use sc_executor::NativeExecutor;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 use sp_inherents::InherentDataProviders;
+use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 use sp_runtime::{generic::BlockId, traits::Zero};
 use std::sync::Arc;
 
@@ -84,15 +85,16 @@ pub fn new_partial(
     })
 }
 
-fn get_authority(seed: &str) -> finality_aleph::AuthorityId {
-    // TODO this is a dirty hack, we generate the same key as is generated for boot_nodes in chain_spec
-    let seed = &format!("//{}", seed);
-    use sp_core::Pair;
-    <sp_consensus_aura::sr25519::AuthorityPair as Pair>::from_string(seed, None)
-        .ok()
-        .expect("all strings are valid")
-        .public()
-        .into()
+fn get_authority(keystore: SyncCryptoStorePtr) -> AuthorityId {
+    let key_type_id = sp_application_crypto::key_types::AURA;
+    let keys = SyncCryptoStore::sr25519_public_keys(&*keystore, key_type_id);
+    if keys.is_empty() {
+        SyncCryptoStore::sr25519_generate_new(&*keystore, key_type_id, None)
+            .unwrap()
+            .into()
+    } else {
+        keys[0].into()
+    }
 }
 
 fn consensus_config(
@@ -122,10 +124,10 @@ fn consensus_config(
         .ok()
         .map(|call_result| Vec::<AuthorityId>::decode(&mut &call_result[..]))
         .unwrap()
+        .unwrap()
         .iter()
         .count()
         .into();
-    println!("n_member {:?}", n_members);
 
     ConsensusConfig::new(
         node_id,
@@ -160,7 +162,6 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
             block_announce_validator_builder: None,
         })?;
 
-    let name = config.network.node_name.clone();
     let role = config.role.clone();
     let force_authoring = config.force_authoring;
     let backoff_authoring_blocks: Option<()> = None;
@@ -195,7 +196,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
             .spawn_essential_handle()
             .spawn_blocking("aura", aura);
 
-        let authority_id = get_authority(&name);
+        let authority_id = get_authority(keystore_container.sync_keystore());
         let consensus_config = consensus_config(&config, authority_id.clone(), client.clone());
         let aleph_config = AlephConfig {
             network,
