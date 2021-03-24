@@ -34,6 +34,11 @@ sp-std = { version = "3.0.0", default-features = false}
 sp-transaction-pool = { version = "3.0.0", default-features = false}
 sp-version = { version = "3.0.0", default-features = false}
 
+frame-system-rpc-runtime-api = { version = "3.0.0", default-features = false}
+pallet-transaction-payment-rpc-runtime-api = { version = "3.0.0", default-features = false}
+
+sp-offchain = { version = "3.0.0", default-features = false}
+
 [build-dependencies]
 substrate-wasm-builder = { version = "4.0.0"}
 
@@ -61,4 +66,7 @@ std = [
 	"sp-transaction-pool/std",
 	"sp-version/std",
 	"frame-system/std",
+    "sp-offchain/std",
+    "pallet-transaction-payment-rpc-runtime-api/std",
+    "frame-system-rpc-runtime-api/std",
 ]
