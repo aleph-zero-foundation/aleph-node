@@ -141,7 +141,8 @@ fn consensus_config(
 pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> {
     let sc_service::PartialComponents {
         client,
-        task_manager,
+        backend,
+        mut task_manager,
         import_queue,
         keystore_container,
         select_chain,
@@ -156,7 +157,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
         .extra_sets
         .push(finality_aleph::peers_set_config());
 
-    let (network, _, _, network_starter) =
+    let (network, network_status_sinks, system_rpc_tx, network_starter) =
         sc_service::build_network(sc_service::BuildNetworkParams {
             config: &config,
             client: client.clone(),
@@ -171,6 +172,39 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
     let force_authoring = config.force_authoring;
     let backoff_authoring_blocks: Option<()> = None;
     let prometheus_registry = config.prometheus_registry().cloned();
+    let authority_id = get_authority(keystore_container.sync_keystore());
+    let consensus_config = consensus_config(&config, authority_id.clone(), client.clone());
+
+    let rpc_extensions_builder = {
+        let client = client.clone();
+        let pool = transaction_pool.clone();
+
+        Box::new(move |deny_unsafe, _| {
+            let deps = crate::rpc::FullDeps {
+                client: client.clone(),
+                pool: pool.clone(),
+                deny_unsafe,
+            };
+
+            crate::rpc::create_full(deps)
+        })
+    };
+
+    let (_rpc_handlers, _maybe_telemetry) =
+        sc_service::spawn_tasks(sc_service::SpawnTasksParams {
+            config,
+            client: client.clone(),
+            backend,
+            task_manager: &mut task_manager,
+            keystore: keystore_container.sync_keystore(),
+            on_demand: None,
+            transaction_pool: transaction_pool.clone(),
+            rpc_extensions_builder,
+            remote_blockchain: None,
+            network: network.clone(),
+            network_status_sinks,
+            system_rpc_tx,
+        })?;
 
     if role.is_authority() {
         let proposer_factory = sc_basic_authorship::ProposerFactory::new(
@@ -190,7 +224,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
             block_import,
             proposer_factory,
             network.clone(),
-            inherent_data_providers.clone(),
+            inherent_data_providers,
             force_authoring,
             backoff_authoring_blocks,
             keystore_container.sync_keystore(),
@@ -201,8 +235,6 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
             .spawn_essential_handle()
             .spawn_blocking("aura", aura);
 
-        let authority_id = get_authority(keystore_container.sync_keystore());
-        let consensus_config = consensus_config(&config, authority_id.clone(), client.clone());
         let aleph_config = AlephConfig {
             network,
             consensus_config,
