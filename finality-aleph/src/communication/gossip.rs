@@ -122,8 +122,8 @@ pub(crate) enum GossipMessage<B: Block, H: Hash> {
 
 /// Reports a peer with a reputation change.
 pub(crate) struct PeerReport {
-    who: PeerId,
-    change: ReputationChange,
+    pub(crate) who: PeerId,
+    pub(crate) change: ReputationChange,
 }
 
 /// A prometheus result.
@@ -210,7 +210,7 @@ impl<B: Block, H: Hash> GossipValidator<B, H> {
 
     /// Sets the current authorities which are used to ensure that the incoming
     /// messages are indeed signed by these authorities.
-    pub(crate) fn set_authorities<I>(&self, authorities: I)
+    pub(crate) fn _set_authorities<I>(&self, authorities: I)
     where
         I: IntoIterator<Item = AuthorityId>,
     {
@@ -220,7 +220,7 @@ impl<B: Block, H: Hash> GossipValidator<B, H> {
     }
 
     /// Removes a single authority in case they had been forked out.
-    pub(crate) fn remove_authority(&self, authority: &AuthorityId) {
+    pub(crate) fn _remove_authority(&self, authority: &AuthorityId) {
         let mut authorities = self.authority_set.write();
         authorities.remove(authority);
     }

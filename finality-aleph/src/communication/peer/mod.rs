@@ -38,7 +38,7 @@ impl Peers {
         self.others.remove(peer);
     }
 
-    pub(crate) fn contains(&self, peer: &PeerId) -> bool {
+    pub(crate) fn _contains(&self, peer: &PeerId) -> bool {
         self.authorities.contains_key(peer) || self.others.contains_key(peer)
     }
 

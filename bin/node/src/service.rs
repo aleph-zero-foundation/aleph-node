@@ -86,7 +86,7 @@ pub fn new_partial(
 }
 
 fn get_authority(keystore: SyncCryptoStorePtr) -> AuthorityId {
-    let key_type_id = sp_application_crypto::key_types::AURA;
+    let key_type_id = finality_aleph::KEY_TYPE;
     let keys = SyncCryptoStore::sr25519_public_keys(&*keystore, key_type_id);
     if keys.is_empty() {
         SyncCryptoStore::sr25519_generate_new(&*keystore, key_type_id, None)
@@ -138,7 +138,7 @@ fn consensus_config(
 }
 
 /// Builds a new service for a full client.
-pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
+pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> {
     let sc_service::PartialComponents {
         client,
         task_manager,
@@ -150,6 +150,11 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
         other: block_import,
         ..
     } = new_partial(&config)?;
+
+    config
+        .network
+        .extra_sets
+        .push(finality_aleph::peers_set_config());
 
     let (network, _, _, network_starter) =
         sc_service::build_network(sc_service::BuildNetworkParams {
