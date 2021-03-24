@@ -1,6 +1,5 @@
 #![allow(clippy::type_complexity)]
 use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
-use sp_runtime::KeyTypeId;
 
 use futures::Future;
 
@@ -17,7 +16,11 @@ use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{HeaderBackend, HeaderMetadata};
 use sp_consensus::{BlockImport, SelectChain};
 use sp_runtime::traits::Block;
-use std::{convert::TryInto, fmt::Debug, sync::Arc};
+use std::{
+    convert::TryInto,
+    fmt::{Debug, Display},
+    sync::Arc,
+};
 
 pub(crate) mod communication;
 pub mod config;
@@ -42,13 +45,34 @@ mod party;
 // pub type AuthoritySignature = app::Signature;
 // pub type AuthorityPair = app::Pair;
 
-use sp_application_crypto::key_types::AURA;
+pub fn peers_set_config() -> sc_network::config::NonDefaultSetConfig {
+    sc_network::config::NonDefaultSetConfig {
+        notifications_protocol: communication::network::ALEPH_PROTOCOL_NAME.into(),
+        max_notification_size: 1024 * 1024,
+        set_config: sc_network::config::SetConfig {
+            in_peers: 0,
+            out_peers: 0,
+            reserved_nodes: vec![],
+            non_reserved_mode: sc_network::config::NonReservedPeerMode::Accept,
+        },
+    }
+}
+
+use sp_core::crypto::KeyTypeId;
+pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"alp0");
+// use sp_application_crypto::key_types::AURA;
 pub use sp_consensus_aura::sr25519::{AuthorityId, AuthorityPair, AuthoritySignature};
 
 #[derive(Clone, Debug, Default, Eq, Hash, Encode, Decode, PartialEq)]
 pub struct NodeId {
     pub auth: AuthorityId,
     pub index: NodeIndex,
+}
+
+impl Display for NodeId {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        Display::fmt(&self.auth, f)
+    }
 }
 
 impl rush::MyIndex for NodeId {
@@ -70,7 +94,7 @@ impl AuthorityKeystore {
     /// Constructs a new authority cryptography keystore.
     pub fn new(authority_id: AuthorityId, keystore: SyncCryptoStorePtr) -> Self {
         AuthorityKeystore {
-            key_type_id: AURA,
+            key_type_id: KEY_TYPE,
             authority_id,
             keystore,
         }
@@ -166,6 +190,7 @@ where
 {
 }
 
+#[derive(Clone)]
 struct SpawnHandle(SpawnTaskHandle);
 
 impl From<SpawnTaskHandle> for SpawnHandle {

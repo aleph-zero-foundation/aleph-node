@@ -13,7 +13,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub(crate) fn name(&self) -> &str {
+    pub(crate) fn _name(&self) -> &str {
         self.name.as_deref().unwrap_or("<unknown>")
     }
 }

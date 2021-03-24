@@ -9,8 +9,8 @@ use crate::{
     AuthorityKeystore, UnitCoord,
 };
 use codec::{Decode, Encode};
-use futures::{channel::mpsc, prelude::*};
-use log::{debug, trace};
+use futures::{channel::mpsc, prelude::*, Future};
+use log::debug;
 use parking_lot::Mutex;
 use prometheus_endpoint::Registry;
 use rush::{EpochId, NotificationIn, NotificationOut};
@@ -106,8 +106,9 @@ impl<B: Block, H: Hash> Sink<NotificationOut<B::Hash, H>> for NotificationOutSen
     }
 }
 
+#[derive(Clone)]
 pub(crate) struct NetworkBridge<B: Block, H, N: Network<B>> {
-    network_service: N,
+    _network_service: N,
     gossip_engine: Arc<Mutex<GossipEngine<B>>>,
     gossip_validator: Arc<GossipValidator<B, H>>,
     peer_report_handle: Arc<Mutex<TracingUnboundedReceiver<PeerReport>>>,
@@ -133,7 +134,7 @@ impl<B: Block, H: Hash, N: Network<B>> NetworkBridge<B, H, N> {
         )));
 
         NetworkBridge {
-            network_service,
+            _network_service: network_service,
             gossip_engine,
             gossip_validator,
             peer_report_handle,
@@ -180,7 +181,7 @@ impl<B: Block, H: Hash, N: Network<B>> NetworkBridge<B, H, N> {
                     futures::future::ready(notification)
                 } else {
                     // NOTE: This should be unreachable due to the validator.
-                    trace!(target: "afa", "Skipping malformed incoming message: {:?}", notification);
+                    debug!(target: "afa", "Skipping malformed incoming message: {:?}", notification);
                     futures::future::ready(None)
                 }
             });
@@ -201,7 +202,7 @@ impl<B: Block, H: Hash, N: Network<B>> NetworkBridge<B, H, N> {
                     futures::future::ready(notification)
                 } else {
                     // NOTE: This should be unreachable due to the validator.
-                    trace!(target: "afa", "Skipping malformed incoming message: {:?}", notification);
+                    debug!(target: "afa", "Skipping malformed incoming message: {:?}", notification);
                     futures::future::ready(None)
                 }
             });
@@ -221,5 +222,28 @@ impl<B: Block, H: Hash, N: Network<B>> NetworkBridge<B, H, N> {
         let incoming = stream::select(external_incoming, rx);
 
         (outgoing, Box::new(incoming))
+    }
+}
+
+impl<B: Block, H: Hash, N: Network<B>> Future for NetworkBridge<B, H, N> {
+    type Output = ();
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        loop {
+            match self.peer_report_handle.lock().poll_next_unpin(cx) {
+                Poll::Ready(Some(PeerReport { who, change })) => {
+                    self.gossip_engine.lock().report(who, change);
+                }
+                Poll::Ready(None) => {
+                    debug!(target: "afa", "Gossip validator report stream closed.");
+                    return Poll::Ready(());
+                }
+                Poll::Pending => break,
+            }
+        }
+
+        self.gossip_engine.lock().poll_unpin(cx).map(|_| {
+            debug!(target: "afa", "Gossip engine future finished");
+            ()
+        })
     }
 }
