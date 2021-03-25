@@ -9,7 +9,11 @@ use crate::{
     AuthorityKeystore, UnitCoord,
 };
 use codec::{Decode, Encode};
-use futures::{channel::mpsc, prelude::*, Future};
+use futures::{
+    channel::{mpsc, mpsc::SendError},
+    prelude::*,
+    Future, FutureExt, StreamExt,
+};
 use log::debug;
 use parking_lot::Mutex;
 use prometheus_endpoint::Registry;
@@ -19,10 +23,57 @@ use sc_network_gossip::{GossipEngine, Network as GossipNetwork};
 use sp_runtime::traits::Block;
 use sp_utils::mpsc::TracingUnboundedReceiver;
 use std::{
+    error::Error,
+    fmt::{Display, Formatter, Result as FmtResult},
     pin::Pin,
     sync::Arc,
     task::{Context, Poll},
 };
+
+#[derive(Debug)]
+enum ErrorKind {
+    StartSendFail(SendError),
+}
+
+impl Display for ErrorKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        use ErrorKind::*;
+        match self {
+            StartSendFail(e) => write!(f, "failed to send on channel: {}", e),
+        }
+    }
+}
+
+impl Error for ErrorKind {}
+
+#[derive(Debug)]
+pub struct NetworkError(Box<ErrorKind>);
+
+impl Display for NetworkError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl Error for NetworkError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        Some(&self.0)
+    }
+}
+
+impl From<ErrorKind> for NetworkError {
+    fn from(e: ErrorKind) -> Self {
+        NetworkError(Box::new(e))
+    }
+}
+
+impl From<SendError> for NetworkError {
+    fn from(e: SendError) -> Self {
+        NetworkError(Box::new(ErrorKind::StartSendFail(e)))
+    }
+}
+
+pub type NetworkResult<T> = Result<T, NetworkError>;
 
 /// Name of the notifications protocol used by Aleph Zero. This is how messages
 /// are subscribed to to ensure that we are gossiping and communicating with our
@@ -43,8 +94,7 @@ pub struct NotificationOutSender<B: Block, H: Hash> {
 unsafe impl<B: Block, H: Hash> Send for NotificationOutSender<B, H> {}
 
 impl<B: Block, H: Hash> Sink<NotificationOut<B::Hash, H>> for NotificationOutSender<B, H> {
-    // TODO! error
-    type Error = ();
+    type Error = NetworkError;
 
     fn poll_ready(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         Poll::Ready(Ok(()))
@@ -53,14 +103,11 @@ impl<B: Block, H: Hash> Sink<NotificationOut<B::Hash, H>> for NotificationOutSen
     fn start_send(
         mut self: Pin<&mut Self>,
         item: NotificationOut<B::Hash, H>,
-    ) -> Result<(), Self::Error> {
+    ) -> NetworkResult<()> {
         return match item {
             NotificationOut::CreatedUnit(u) => {
-                let signed_unit = match super::gossip::sign_unit::<B, H>(&self.auth_cryptostore, u)
-                {
-                    Some(s) => s,
-                    None => return Err(()),
-                };
+                let signed_unit = super::gossip::sign_unit::<B, H>(&self.auth_cryptostore, u);
+
                 let message = GossipMessage::Multicast(Multicast {
                     signed_unit: signed_unit.clone(),
                 });
@@ -71,7 +118,7 @@ impl<B: Block, H: Hash> Sink<NotificationOut<B::Hash, H>> for NotificationOutSen
                     .gossip_message(topic, message.encode(), false);
 
                 let notification = NotificationIn::NewUnits(vec![signed_unit.unit]);
-                self.sender.start_send(notification).map_err(|_e| ())
+                self.sender.start_send(notification).map_err(|e| e.into())
             }
             NotificationOut::MissingUnits(coords, aux) => {
                 let n_coords = {
@@ -97,12 +144,12 @@ impl<B: Block, H: Hash> Sink<NotificationOut<B::Hash, H>> for NotificationOutSen
         };
     }
 
-    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<NetworkResult<()>> {
         Poll::Ready(Ok(()))
     }
 
-    fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        Sink::poll_close(Pin::new(&mut self.sender), cx).map(|elem| elem.map_err(|_e| ()))
+    fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<NetworkResult<()>> {
+        Sink::poll_close(Pin::new(&mut self.sender), cx).map(|elem| elem.map_err(|e| e.into()))
     }
 }
 

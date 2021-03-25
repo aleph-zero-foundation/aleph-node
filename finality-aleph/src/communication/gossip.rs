@@ -59,15 +59,15 @@ impl<B: Block, H: Hash> SignedUnit<B, H> {
 pub(crate) fn sign_unit<B: Block, H: Hash>(
     auth_crypto_store: &AuthorityKeystore,
     unit: Unit<B::Hash, H>,
-) -> Option<SignedUnit<B, H>> {
+) -> SignedUnit<B, H> {
     let encoded = unit.encode();
     let signature = auth_crypto_store.sign(&encoded[..]);
 
-    Some(SignedUnit {
+    SignedUnit {
         unit,
         signature,
         id: auth_crypto_store.authority_id.clone(),
-    })
+    }
 }
 
 /// Actions for incoming messages.

@@ -1,12 +1,10 @@
 #![allow(clippy::type_complexity)]
 use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 
-use futures::Future;
-
 use codec::{Decode, Encode};
+use futures::Future;
 use rush::{nodes::NodeIndex, HashT, Unit};
 pub use rush::{Config as ConsensusConfig, EpochId};
-
 use sc_client_api::{
     backend::{AuxStore, Backend},
     BlockchainEvents, ExecutorProvider, Finalizer, LockImportRun, TransactionFor,
@@ -25,6 +23,7 @@ use std::{
 pub(crate) mod communication;
 pub mod config;
 pub(crate) mod environment;
+mod error;
 pub mod hash;
 mod party;
 
