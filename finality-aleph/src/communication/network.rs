@@ -82,7 +82,7 @@ pub(crate) const ALEPH_PROTOCOL_NAME: &str = "/cardinals/aleph/1";
 
 pub trait Network<B: Block>: GossipNetwork<B> + Clone + Send + Sync + 'static {}
 
-impl<B: Block> Network<B> for Arc<NetworkService<B, B::Hash>> {}
+impl<B: Block, H: Hash> Network<B> for Arc<NetworkService<B, H>> {}
 
 pub struct NotificationOutSender<B: Block, H: Hash> {
     network: Arc<Mutex<GossipEngine<B>>>,
