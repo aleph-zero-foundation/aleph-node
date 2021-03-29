@@ -6,7 +6,7 @@ use crate::{
     },
     config::Config,
     hash::Hash,
-    AuthorityKeystore, UnitCoord,
+    AuthorityId, AuthorityKeystore, UnitCoord,
 };
 use codec::{Decode, Encode};
 use futures::{
@@ -113,6 +113,7 @@ impl<B: Block, H: Hash> Sink<NotificationOut<B::Hash, H>> for NotificationOutSen
                 });
 
                 let topic: <B as Block>::Hash = super::epoch_topic::<B>(self.epoch_id);
+                debug!(target: "afa", "Sending a unit over network.");
                 self.network
                     .lock()
                     .gossip_message(topic, message.encode(), false);
@@ -166,6 +167,7 @@ impl<B: Block, H: Hash, N: Network<B>> NetworkBridge<B, H, N> {
         network_service: N,
         _config: Option<Config>,
         registry: Option<&Registry>,
+        authorities: Vec<AuthorityId>,
     ) -> Self {
         let (gossip_validator, peer_report_handle) = {
             let (validator, peer_report_handle) = GossipValidator::<B, H>::new(registry);
@@ -179,6 +181,7 @@ impl<B: Block, H: Hash, N: Network<B>> NetworkBridge<B, H, N> {
             gossip_validator.clone(),
             None,
         )));
+        gossip_validator.set_authorities(authorities);
 
         NetworkBridge {
             _network_service: network_service,
@@ -209,6 +212,7 @@ impl<B: Block, H: Hash, N: Network<B>> NetworkBridge<B, H, N> {
             .lock()
             .messages_for(topic)
             .filter_map(move |notification| {
+                debug!(target: "afa", "New incoming message: {:?}", notification);
                 let decoded = GossipMessage::<B, H>::decode(&mut &notification.message[..]);
                 if let Ok(message) = decoded {
                     let notification = match message {
@@ -290,7 +294,6 @@ impl<B: Block, H: Hash, N: Network<B>> Future for NetworkBridge<B, H, N> {
 
         self.gossip_engine.lock().poll_unpin(cx).map(|_| {
             debug!(target: "afa", "Gossip engine future finished");
-            ()
         })
     }
 }

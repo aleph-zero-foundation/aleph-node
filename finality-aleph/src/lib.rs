@@ -210,6 +210,7 @@ pub struct AlephConfig<N, C, SC> {
     pub select_chain: SC,
     pub spawn_handle: SpawnTaskHandle,
     pub auth_keystore: AuthorityKeystore,
+    pub authorities: Vec<AuthorityId>,
 }
 
 pub fn run_aleph_consensus<B: Block, BE, C, N, SC>(
@@ -228,6 +229,7 @@ where
         select_chain,
         spawn_handle,
         auth_keystore,
+        authorities,
     } = config;
     let consensus = party::ConsensusParty::new(
         consensus_config,
@@ -235,6 +237,7 @@ where
         network,
         select_chain,
         auth_keystore,
+        authorities,
         EpochId(0),
     );
 

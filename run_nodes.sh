@@ -13,7 +13,7 @@ authorities=("${authorities[@]::$1}")
 
 for i in ${!authorities[@]}; do
   auth=${authorities[$i]}
-  ./target/debug/aleph-node purge-chain --base-path /tmp/$auth --chain local -y
+  rm -rf /tmp/$auth
 done
 
 for i in ${!authorities[@]}; do

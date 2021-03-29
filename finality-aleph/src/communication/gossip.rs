@@ -210,7 +210,7 @@ impl<B: Block, H: Hash> GossipValidator<B, H> {
 
     /// Sets the current authorities which are used to ensure that the incoming
     /// messages are indeed signed by these authorities.
-    pub(crate) fn _set_authorities<I>(&self, authorities: I)
+    pub(crate) fn set_authorities<I>(&self, authorities: I)
     where
         I: IntoIterator<Item = AuthorityId>,
     {
@@ -258,7 +258,10 @@ impl<B: Block, H: Hash> GossipValidator<B, H> {
                     super::epoch_topic::<B>(message.signed_unit.unit.epoch_id());
                 MessageAction::Keep(topic, PeerGoodBehavior::Multicast.into())
             }
-            Err(e) => e,
+            Err(e) => {
+                debug!(target: "afa", "Validation error: {:?}", e);
+                e
+            }
         }
     }
 

@@ -1,7 +1,7 @@
 use crate::{
     communication::network::{Network, NetworkBridge},
     environment::Environment,
-    AuthorityKeystore, NodeId, SpawnHandle,
+    AuthorityId, AuthorityKeystore, NodeId, SpawnHandle,
 };
 use rush::{Config as ConsensusConfig, Consensus, EpochId};
 use sc_client_api::backend::Backend;
@@ -35,9 +35,10 @@ where
         network: N,
         select_chain: SC,
         auth_keystore: AuthorityKeystore,
+        authorities: Vec<AuthorityId>,
         epoch_id: EpochId,
     ) -> Self {
-        let network_bridge = NetworkBridge::new(network, None, None);
+        let network_bridge = NetworkBridge::new(network, None, None, authorities);
         let env = Arc::new(Environment::new(
             client,
             network_bridge,
