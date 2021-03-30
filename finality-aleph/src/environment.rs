@@ -3,7 +3,7 @@ use crate::{
     AuthorityKeystore, NodeId,
 };
 use futures::Stream;
-use log::debug;
+use log::{debug, error};
 use rush::{EpochId, Hashing, NotificationIn};
 use sc_client_api::backend::Backend;
 use sp_consensus::SelectChain;
@@ -73,6 +73,9 @@ where
 
     fn check_extends_finalized(&self, h: Self::BlockHash) -> bool {
         let head_finalized = self.client.info().finalized_hash;
+        if h == head_finalized {
+            return false;
+        }
         let lca = sp_blockchain::lowest_common_ancestor(self.client.as_ref(), h, head_finalized)
             .expect("No lowest common ancestor");
         lca.hash == head_finalized
@@ -101,6 +104,21 @@ where
     BE: Backend<B>,
     C: crate::ClientForAleph<B, BE>,
 {
+    let block_number = match client.number(hash) {
+        Ok(Some(number)) => number,
+        _ => {
+            error!(target: "env", "a block with hash {} should already be in chain", hash);
+            return;
+        }
+    };
+    let info = client.info();
+
+    if info.finalized_number >= block_number {
+        error!(target: "env", "trying to finalized a block with hash {} and number {}
+               that is not greater than already finalized {}", hash, block_number, info.finalized_number);
+        return;
+    }
+
     let status = client.info();
     debug!(target: "env", "Finalizing block with hash {:?}. Previous best: #{:?}.", hash, status.finalized_number);
 

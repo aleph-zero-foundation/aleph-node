@@ -458,10 +458,6 @@ mod tests {
         }
     }
 
-    fn new_control_hash() -> ControlHash<Hash> {
-        ControlHash::default()
-    }
-
     impl SignedUnit<Block, Hash> {
         fn new_dummy() -> Self {
             SignedUnit {
