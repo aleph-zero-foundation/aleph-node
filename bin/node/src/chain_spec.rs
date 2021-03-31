@@ -1,11 +1,20 @@
+use std::collections::HashMap;
+
 use aleph_runtime::{
     AccountId, AuraConfig, BalancesConfig, GenesisConfig, Signature, SudoConfig, SystemConfig,
     WASM_BINARY,
 };
 use sc_service::ChainType;
+use sp_application_crypto::key_types;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
+
+pub(crate) const LOCAL_AUTHORITIES: [&str; 8] = [
+    "Damian", "Tomasz", "Zbyszko", "Hansu", "Adam", "Matt", "Antoni", "Michal",
+];
+
+pub(crate) const KEY_PATH: &str = "/tmp/authorities_keys";
 
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
@@ -20,24 +29,29 @@ pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Pu
 type AccountPublic = <Signature as Verify>::Signer;
 
 /// Generate an account ID from seed.
-pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
+pub fn get_account_id_from_seed<TPublic: Public>(seed: &&str) -> AccountId
 where
     AccountPublic: From<<TPublic::Pair as Pair>::Public>,
 {
     AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
-/// Generate an Aura authority key.
-pub fn authority_keys_from_seed(s: &str) -> (AuraId,) {
-    (get_from_seed::<AuraId>(s),)
-}
-
 pub fn development_config() -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
+    let n_members = std::fs::read_to_string("/tmp/n_members")
+        .expect("Committee size is not specified")
+        .trim()
+        .parse::<usize>()
+        .expect("Wrong committee size");
+
+    let auth_keys = std::fs::read_to_string(KEY_PATH).expect("keys were not generated");
+    let auth_keys: HashMap<u32, Vec<(AuraId,)>> =
+        serde_json::from_str(&auth_keys).expect("should contain list of keys");
+
     Ok(ChainSpec::from_genesis(
         // Name
-        "Development",
+        "AlephZero Development",
         // ID
         "dev",
         ChainType::Development,
@@ -45,66 +59,14 @@ pub fn development_config() -> Result<ChainSpec, String> {
             testnet_genesis(
                 wasm_binary,
                 // Initial PoA authorities
-                vec![authority_keys_from_seed("Alice")],
+                auth_keys.get(&key_types::AURA.into()).unwrap()[..n_members].to_vec(),
                 // Sudo account
-                get_account_id_from_seed::<sr25519::Public>("Alice"),
+                get_account_id_from_seed::<sr25519::Public>(&"Alice"),
                 // Pre-funded accounts
-                vec![
-                    get_account_id_from_seed::<sr25519::Public>("Alice"),
-                    get_account_id_from_seed::<sr25519::Public>("Bob"),
-                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                ],
-                true,
-            )
-        },
-        // Bootnodes
-        vec![],
-        // Telemetry
-        None,
-        // Protocol ID
-        None,
-        // Properties
-        None,
-        // Extensions
-        None,
-    ))
-}
-
-pub fn local_testnet_config() -> Result<ChainSpec, String> {
-    let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
-
-    Ok(ChainSpec::from_genesis(
-        // Name
-        "Local Testnet",
-        // ID
-        "local_testnet",
-        ChainType::Local,
-        move || {
-            testnet_genesis(
-                wasm_binary,
-                // Initial PoA authorities
-                vec![
-                    authority_keys_from_seed("Alice"),
-                    authority_keys_from_seed("Bob"),
-                ],
-                // Sudo account
-                get_account_id_from_seed::<sr25519::Public>("Alice"),
-                // Pre-funded accounts
-                vec![
-                    get_account_id_from_seed::<sr25519::Public>("Alice"),
-                    get_account_id_from_seed::<sr25519::Public>("Bob"),
-                    get_account_id_from_seed::<sr25519::Public>("Charlie"),
-                    get_account_id_from_seed::<sr25519::Public>("Dave"),
-                    get_account_id_from_seed::<sr25519::Public>("Eve"),
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-                    get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-                    get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-                ],
+                LOCAL_AUTHORITIES
+                    .iter()
+                    .map(get_account_id_from_seed::<sr25519::Public>)
+                    .collect(),
                 true,
             )
         },

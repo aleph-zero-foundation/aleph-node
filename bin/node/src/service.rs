@@ -1,18 +1,19 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
 use aleph_runtime::{self, opaque::Block, RuntimeApi};
+use codec::Decode;
 use finality_aleph::{
     run_aleph_consensus, AlephConfig, AuthorityId, AuthorityKeystore, ConsensusConfig, EpochId,
     NodeId,
 };
-use sc_client_api::ExecutorProvider;
+use sc_client_api::{CallExecutor, ExecutionStrategy, ExecutorProvider};
 use sc_executor::native_executor_instance;
 pub use sc_executor::NativeExecutor;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
-use sp_core::{Pair, Public};
 use sp_inherents::InherentDataProviders;
 use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
+use sp_runtime::{generic::BlockId, traits::Zero};
 use std::sync::Arc;
 
 // Our native executor instance.
@@ -84,51 +85,31 @@ pub fn new_partial(
     })
 }
 
-pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
-    TPublic::Pair::from_string(&format!("//{}", seed), None)
-        .expect("static values are valid; qed")
-        .public()
-}
-
 fn get_authorities(
-    config: &Configuration,
+    client: Arc<FullClient>,
     keystore: SyncCryptoStorePtr,
 ) -> (AuthorityId, Vec<AuthorityId>) {
-    let key_type_id = finality_aleph::KEY_TYPE;
-    let name = config.network.node_name.clone();
-    let seed = format!("//{}", name);
-    let keys = SyncCryptoStore::sr25519_public_keys(&*keystore, key_type_id);
-
-    let our_key = if keys.is_empty() {
-        SyncCryptoStore::sr25519_generate_new(&*keystore, key_type_id, Some(&seed))
-            .unwrap()
-            .into()
-    } else {
-        panic!(
-            "For some reason the key is already in the keystore. Make sure you clear the keystore."
+    let auth = SyncCryptoStore::sr25519_public_keys(&*keystore, finality_aleph::KEY_TYPE)[0];
+    let authorities = client
+        .executor()
+        .call(
+            &BlockId::Number(Zero::zero()),
+            "AuraApi_authorities",
+            &[],
+            ExecutionStrategy::NativeElseWasm,
+            None,
         )
-    };
-    (
-        our_key,
-        vec![
-            get_from_seed::<AuthorityId>("Alice"),
-            get_from_seed::<AuthorityId>("Bob"),
-        ],
-    )
+        .ok()
+        .map(|call_result| Vec::<AuthorityId>::decode(&mut &call_result[..]).unwrap())
+        .unwrap();
+
+    (auth.into(), authorities)
 }
 
-fn consensus_config(config: &Configuration, auth: AuthorityId) -> ConsensusConfig<NodeId> {
-    let name = config.network.node_name.clone();
-    let node_id = NodeId {
-        auth,
-        // TODO add index calculation based on order on keys
-        index: match name.as_str() {
-            "Alice" => 0.into(),
-            "Bob" => 1.into(),
-            _ => panic!("unknown identity"),
-        },
-    };
-    let n_members = 2.into();
+fn consensus_config(auth: AuthorityId, authorities: &Vec<AuthorityId>) -> ConsensusConfig<NodeId> {
+    let index = authorities.iter().position(|a| a == &auth).unwrap().into();
+    let node_id = NodeId { auth, index };
+    let n_members = authorities.len().into();
 
     ConsensusConfig::new(
         node_id,
@@ -173,8 +154,8 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
     let force_authoring = config.force_authoring;
     let backoff_authoring_blocks: Option<()> = None;
     let prometheus_registry = config.prometheus_registry().cloned();
-    let (authority_id, authorities) = get_authorities(&config, keystore_container.sync_keystore());
-    let consensus_config = consensus_config(&config, authority_id.clone());
+    let (authority_id, authorities) =
+        get_authorities(client.clone(), keystore_container.sync_keystore());
 
     let rpc_extensions_builder = {
         let client = client.clone();
@@ -238,7 +219,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 
         let aleph_config = AlephConfig {
             network,
-            consensus_config,
+            consensus_config: consensus_config(authority_id.clone(), &authorities),
             client,
             select_chain,
             spawn_handle: task_manager.spawn_handle(),
