@@ -1,8 +1,8 @@
 [workspace]
 
 members = [
+    "bin/node",
     "bin/runtime",
     "finality-aleph",
-    "bin/node",
     "pallet"
 ]

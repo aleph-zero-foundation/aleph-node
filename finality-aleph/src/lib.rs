@@ -58,8 +58,8 @@ pub fn peers_set_config() -> sc_network::config::NonDefaultSetConfig {
 }
 
 use sp_core::crypto::KeyTypeId;
-pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"alp0");
-// use sp_application_crypto::key_types::AURA;
+// pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"alp0");
+pub const KEY_TYPE: KeyTypeId = sp_application_crypto::key_types::AURA;
 pub use sp_consensus_aura::sr25519::{AuthorityId, AuthorityPair, AuthoritySignature};
 
 #[derive(Clone, Debug, Default, Eq, Hash, Encode, Decode, PartialEq)]
