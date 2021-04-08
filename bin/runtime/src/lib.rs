@@ -15,6 +15,7 @@ use sp_runtime::{
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, MultiSignature,
 };
+
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -30,6 +31,8 @@ pub use frame_support::{
     },
     StorageValue,
 };
+use primitives::AuthorityId as AlephId;
+
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::CurrencyAdapter;
@@ -233,6 +236,10 @@ impl pallet_sudo::Config for Runtime {
     type Call = Call;
 }
 
+impl pallet_aleph::Config for Runtime {
+    type AuthorityId = AlephId;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -247,6 +254,7 @@ construct_runtime!(
         Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
         TransactionPayment: pallet_transaction_payment::{Module, Storage},
         Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
+        Aleph: pallet_aleph::{Module, Call, Config<T>, Storage},
     }
 );
 
@@ -383,6 +391,12 @@ impl_runtime_apis! {
             len: u32,
         ) -> pallet_transaction_payment::FeeDetails<Balance> {
             TransactionPayment::query_fee_details(uxt, len)
+        }
+    }
+
+    impl primitives::AlephApi<Block> for Runtime {
+        fn authorities() -> Vec<AlephId> {
+            Aleph::authorities()
         }
     }
 }

@@ -40,6 +40,7 @@ impl CLiDevKeys {
             .iter()
             .map(|kt| KeyTypeId::try_from(kt.as_str()).expect("wrong key type"))
             .collect();
+        // A hashmap from a key type to a 32-byte representation of a sr25519 or ed25519 key.
         let mut auth_keys: HashMap<_, _> = key_types
             .iter()
             .zip(vec![vec![]].into_iter().cycle())
@@ -47,15 +48,28 @@ impl CLiDevKeys {
         for authority in &crate::chain_spec::LOCAL_AUTHORITIES {
             let keystore = self.open_keystore(authority)?;
             for &key_type in &key_types {
-                // TODO match key_type to crypto_type
-                let keys = SyncCryptoStore::sr25519_public_keys(&*keystore, key_type);
-                let key = if keys.is_empty() {
-                    SyncCryptoStore::sr25519_generate_new(&*keystore, key_type, None)
-                        .map_err(|_| Error::KeyStoreOperation)?
-                } else {
-                    keys[0]
-                };
-                auth_keys.get_mut(&key_type).unwrap().push((key,));
+                use sp_core::crypto::key_types;
+                match key_type {
+                    key_types::AURA => {
+                        let keys = SyncCryptoStore::sr25519_public_keys(&*keystore, key_type);
+                        let key = keys.into_iter().next().map_or_else(|| {
+                            SyncCryptoStore::sr25519_generate_new(&*keystore, key_type, None)
+                                .map_err(|_| Error::KeyStoreOperation)
+                        }, Ok)?;
+                        auth_keys.get_mut(&key_type).unwrap().push(key.as_array_ref().clone());
+                    }
+                    aleph_primitives::KEY_TYPE => {
+                        let keys = SyncCryptoStore::ed25519_public_keys(&*keystore, key_type);
+                        let key = keys.into_iter().next().map_or_else(|| {
+                            SyncCryptoStore::ed25519_generate_new(&*keystore, key_type, None)
+                                .map_err(|_| Error::KeyStoreOperation)
+                        }, Ok)?;
+                        auth_keys.get_mut(&key_type).unwrap().push(key.as_array_ref().clone());
+                    }
+                    _ => {
+                        return Err(Error::Input("Unsupported key type".into()))
+                    }
+                }
             }
         }
 

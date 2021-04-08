@@ -23,7 +23,7 @@ cargo build -p aleph-node
 authorities=(Damian Tomasz Zbyszko Hansu Adam Matt Antoni Michal)
 authorities=("${authorities[@]::$1}")
 
-./target/debug/aleph-node dev-keys  --base-path /tmp --chain dev --key-types aura
+./target/debug/aleph-node dev-keys  --base-path /tmp --chain dev --key-types aura alp0
 
 for i in ${!authorities[@]}; do
   auth=${authorities[$i]}

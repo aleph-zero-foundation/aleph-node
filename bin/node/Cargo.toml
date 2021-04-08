@@ -43,6 +43,7 @@ sp-runtime = { version = "3.0.0"}
 
 aleph-runtime = {version = "0.1.0", path = "../runtime"}
 finality-aleph = {version = "0.1.0", path = "../../finality-aleph"}
+aleph-primitives = { package = "primitives", version = "0.1.0", path = "../../primitives"}
 
 # These dependencies are used for the node template's RPCs
 jsonrpc-core = "15.1.0"

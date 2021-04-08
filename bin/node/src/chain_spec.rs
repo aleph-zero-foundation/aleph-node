@@ -1,13 +1,14 @@
 use std::collections::HashMap;
 
 use aleph_runtime::{
-    AccountId, AuraConfig, BalancesConfig, GenesisConfig, Signature, SudoConfig, SystemConfig,
+    AccountId, AlephConfig, AuraConfig, BalancesConfig, GenesisConfig, Signature, SudoConfig, SystemConfig,
     WASM_BINARY,
 };
 use sc_service::ChainType;
 use sp_application_crypto::key_types;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::{sr25519, Pair, Public};
+use aleph_primitives::AuthorityId as AlephId;
+use sp_core::{ed25519, sr25519, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
 pub(crate) const LOCAL_AUTHORITIES: [&str; 8] = [
@@ -46,8 +47,26 @@ pub fn development_config() -> Result<ChainSpec, String> {
         .expect("Wrong committee size");
 
     let auth_keys = std::fs::read_to_string(KEY_PATH).expect("keys were not generated");
-    let auth_keys: HashMap<u32, Vec<(AuraId,)>> =
+    let auth_keys: HashMap<u32, Vec<[u8; 32]>> =
         serde_json::from_str(&auth_keys).expect("should contain list of keys");
+
+    let aura_keys: Vec<_> = auth_keys
+        .get(&key_types::AURA.into())
+        .unwrap()
+        .iter()
+        .take(n_members)
+        .copied()
+        .map(|bytes| {AuraId::from(sr25519::Public::from_raw(bytes))})
+        .collect();
+
+    let aleph_keys: Vec<_> = auth_keys
+        .get(&aleph_primitives::KEY_TYPE.into())
+        .unwrap()
+        .iter()
+        .take(n_members)
+        .copied()
+        .map(|bytes| {AlephId::from(ed25519::Public::from_raw(bytes))})
+        .collect();
 
     Ok(ChainSpec::from_genesis(
         // Name
@@ -59,7 +78,8 @@ pub fn development_config() -> Result<ChainSpec, String> {
             testnet_genesis(
                 wasm_binary,
                 // Initial PoA authorities
-                auth_keys.get(&key_types::AURA.into()).unwrap()[..n_members].to_vec(),
+                aura_keys.clone(),
+                aleph_keys.clone(),
                 // Sudo account
                 get_account_id_from_seed::<sr25519::Public>(&"Alice"),
                 // Pre-funded accounts
@@ -86,7 +106,8 @@ pub fn development_config() -> Result<ChainSpec, String> {
 /// Configure initial storage state for FRAME modules.
 fn testnet_genesis(
     wasm_binary: &[u8],
-    initial_authorities: Vec<(AuraId,)>,
+    aura_authorities: Vec<AuraId>,
+    aleph_authorities: Vec<AlephId>,
     root_key: AccountId,
     endowed_accounts: Vec<AccountId>,
     _enable_println: bool,
@@ -106,11 +127,14 @@ fn testnet_genesis(
                 .collect(),
         }),
         pallet_aura: Some(AuraConfig {
-            authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),
+            authorities: aura_authorities,
         }),
         pallet_sudo: Some(SudoConfig {
             // Assign network admin rights.
             key: root_key,
         }),
+        pallet_aleph: Some(AlephConfig {
+            authorities: aleph_authorities,
+        })
     }
 }

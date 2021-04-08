@@ -12,7 +12,9 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
+primitives = { path = "../../primitives", version = "0.1.0", default-features = false }
 
+pallet-aleph = { package = "pallet", path = "../../pallet", version = "0.1.0", default-features = false}
 pallet-aura = { version = "3.0.0", default-features = false}
 pallet-balances = { version = "3.0.0", default-features = false}
 frame-support = { version = "3.0.0", default-features = false}
@@ -48,6 +50,7 @@ std = [
 	"codec/std",
 	"frame-executive/std",
 	"frame-support/std",
+	"pallet-aleph/std",
 	"pallet-aura/std",
 	"pallet-balances/std",
 	"pallet-randomness-collective-flip/std",
@@ -69,4 +72,5 @@ std = [
     "sp-offchain/std",
     "pallet-transaction-payment-rpc-runtime-api/std",
     "frame-system-rpc-runtime-api/std",
+	"primitives/std",
 ]
