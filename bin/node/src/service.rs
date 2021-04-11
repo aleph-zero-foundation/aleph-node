@@ -106,7 +106,7 @@ fn get_authorities(
     (auth.into(), authorities)
 }
 
-fn consensus_config(auth: AuthorityId, authorities: &Vec<AuthorityId>) -> ConsensusConfig<NodeId> {
+fn consensus_config(auth: AuthorityId, authorities: &[AuthorityId]) -> ConsensusConfig<NodeId> {
     let index = authorities.iter().position(|a| a == &auth).unwrap().into();
     let node_id = NodeId { auth, index };
     let n_members = authorities.len().into();

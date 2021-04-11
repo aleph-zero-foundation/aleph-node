@@ -52,23 +52,33 @@ impl CLiDevKeys {
                 match key_type {
                     key_types::AURA => {
                         let keys = SyncCryptoStore::sr25519_public_keys(&*keystore, key_type);
-                        let key = keys.into_iter().next().map_or_else(|| {
-                            SyncCryptoStore::sr25519_generate_new(&*keystore, key_type, None)
-                                .map_err(|_| Error::KeyStoreOperation)
-                        }, Ok)?;
-                        auth_keys.get_mut(&key_type).unwrap().push(key.as_array_ref().clone());
+                        let key = keys.into_iter().next().map_or_else(
+                            || {
+                                SyncCryptoStore::sr25519_generate_new(&*keystore, key_type, None)
+                                    .map_err(|_| Error::KeyStoreOperation)
+                            },
+                            Ok,
+                        )?;
+                        auth_keys
+                            .get_mut(&key_type)
+                            .unwrap()
+                            .push(*key.as_array_ref());
                     }
                     aleph_primitives::KEY_TYPE => {
                         let keys = SyncCryptoStore::ed25519_public_keys(&*keystore, key_type);
-                        let key = keys.into_iter().next().map_or_else(|| {
-                            SyncCryptoStore::ed25519_generate_new(&*keystore, key_type, None)
-                                .map_err(|_| Error::KeyStoreOperation)
-                        }, Ok)?;
-                        auth_keys.get_mut(&key_type).unwrap().push(key.as_array_ref().clone());
+                        let key = keys.into_iter().next().map_or_else(
+                            || {
+                                SyncCryptoStore::ed25519_generate_new(&*keystore, key_type, None)
+                                    .map_err(|_| Error::KeyStoreOperation)
+                            },
+                            Ok,
+                        )?;
+                        auth_keys
+                            .get_mut(&key_type)
+                            .unwrap()
+                            .push(*key.as_array_ref());
                     }
-                    _ => {
-                        return Err(Error::Input("Unsupported key type".into()))
-                    }
+                    _ => return Err(Error::Input("Unsupported key type".into())),
                 }
             }
         }
@@ -76,7 +86,7 @@ impl CLiDevKeys {
         let keys_path = crate::chain_spec::KEY_PATH;
         let auth_keys: HashMap<_, _> = auth_keys.iter().map(|(k, v)| (u32::from(**k), v)).collect();
         let auth_keys = serde_json::to_string(&auth_keys).map_err(|e| Error::Io(e.into()))?;
-        std::fs::write(keys_path, &auth_keys).map_err(|e| Error::Io(e))?;
+        std::fs::write(keys_path, &auth_keys).map_err(Error::Io)?;
 
         Ok(())
     }

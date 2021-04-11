@@ -1,10 +1,10 @@
 use crate::{
     communication::network::{Network, NetworkBridge, NetworkError, NotificationOutSender},
-    AuthorityKeystore, NodeId,
+    NodeId,
 };
-use futures::Stream;
+use futures::channel::mpsc;
 use log::{debug, error};
-use rush::{EpochId, Hashing, NotificationIn};
+use rush::{Hashing, NotificationIn};
 use sc_client_api::backend::Backend;
 use sp_consensus::SelectChain;
 use sp_core::{blake2_256, H256};
@@ -18,8 +18,6 @@ pub(crate) struct Environment<B: Block, N: Network<B>, C, BE, SC> {
     pub(crate) client: Arc<C>,
     pub(crate) network: NetworkBridge<B, H256, N>,
     pub(crate) select_chain: SC,
-    pub(crate) epoch_id: EpochId,
-    pub(crate) auth_keystore: AuthorityKeystore,
     pub(crate) _phantom: std::marker::PhantomData<(B, BE)>,
 }
 
@@ -31,19 +29,11 @@ where
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
 {
-    pub fn new(
-        client: Arc<C>,
-        network: NetworkBridge<B, H256, N>,
-        auth_keystore: AuthorityKeystore,
-        select_chain: SC,
-        epoch_id: EpochId,
-    ) -> Self {
+    pub fn new(client: Arc<C>, network: NetworkBridge<B, H256, N>, select_chain: SC) -> Self {
         Environment {
             client,
             network,
             select_chain,
-            epoch_id,
-            auth_keystore,
             _phantom: PhantomData,
         }
     }
@@ -63,7 +53,7 @@ where
     type InstanceId = H256;
 
     type Crypto = ();
-    type In = Box<dyn Stream<Item = NotificationIn<Self::BlockHash, Self::Hash>> + Send + Unpin>;
+    type In = mpsc::UnboundedReceiver<NotificationIn<Self::BlockHash, Self::Hash>>;
     type Out = NotificationOutSender<B, Self::Hash>;
     type Error = NetworkError;
 
@@ -89,8 +79,7 @@ where
     }
 
     fn consensus_data(&self) -> (Self::Out, Self::In) {
-        self.network
-            .communication(self.epoch_id, self.auth_keystore.clone())
+        self.network.communication()
     }
 
     fn hashing() -> Hashing<Self::Hash> {

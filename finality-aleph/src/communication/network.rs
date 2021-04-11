@@ -1,8 +1,10 @@
 use crate::{
     communication::{
-        epoch_topic,
-        gossip::{FetchRequest, GossipMessage, GossipValidator, Multicast, PeerReport},
-        request_topic,
+        dummy_topic,
+        gossip::{
+            FetchRequest, FetchResponse, GossipMessage, GossipValidator, Multicast, PeerReport,
+            SignedUnit,
+        },
     },
     config::Config,
     hash::Hash,
@@ -14,21 +16,29 @@ use futures::{
     prelude::*,
     Future, FutureExt, StreamExt,
 };
-use log::debug;
+
+use log::{debug, error};
 use parking_lot::Mutex;
 use prometheus_endpoint::Registry;
-use rush::{EpochId, NotificationIn, NotificationOut};
+use rush::{NotificationIn, NotificationOut};
 use sc_network::{NetworkService, PeerId};
-use sc_network_gossip::{GossipEngine, Network as GossipNetwork};
+use sc_network_gossip::{GossipEngine, Network as GossipNetwork, TopicNotification};
 use sp_runtime::traits::Block;
 use sp_utils::mpsc::TracingUnboundedReceiver;
 use std::{
+    collections::{BinaryHeap, HashMap, HashSet},
     error::Error,
     fmt::{Display, Formatter, Result as FmtResult},
     pin::Pin,
     sync::Arc,
     task::{Context, Poll},
 };
+
+use std::cmp::Ordering;
+use tokio::time;
+
+pub const FETCH_INTERVAL: time::Duration = time::Duration::from_secs(4);
+pub const TICK_INTERVAL: time::Duration = time::Duration::from_millis(100);
 
 #[derive(Debug)]
 enum ErrorKind {
@@ -84,14 +94,11 @@ pub trait Network<B: Block>: GossipNetwork<B> + Clone + Send + Sync + 'static {}
 
 impl<B: Block, H: Hash> Network<B> for Arc<NetworkService<B, H>> {}
 
+// Just a wrapper around UnboundedSender -- not sure how to get rid of it.
+// It makes the Error type compatible with the Environment trait in rush.
 pub struct NotificationOutSender<B: Block, H: Hash> {
-    network: Arc<Mutex<GossipEngine<B>>>,
-    sender: mpsc::Sender<NotificationIn<B::Hash, H>>,
-    epoch_id: EpochId,
-    auth_cryptostore: AuthorityKeystore,
+    tx: mpsc::UnboundedSender<NotificationOut<B::Hash, H>>,
 }
-
-unsafe impl<B: Block, H: Hash> Send for NotificationOutSender<B, H> {}
 
 impl<B: Block, H: Hash> Sink<NotificationOut<B::Hash, H>> for NotificationOutSender<B, H> {
     type Error = NetworkError;
@@ -104,45 +111,7 @@ impl<B: Block, H: Hash> Sink<NotificationOut<B::Hash, H>> for NotificationOutSen
         mut self: Pin<&mut Self>,
         item: NotificationOut<B::Hash, H>,
     ) -> NetworkResult<()> {
-        return match item {
-            NotificationOut::CreatedUnit(u) => {
-                let signed_unit = super::gossip::sign_unit::<B, H>(&self.auth_cryptostore, u);
-
-                let message = GossipMessage::Multicast(Multicast {
-                    signed_unit: signed_unit.clone(),
-                });
-
-                let topic: <B as Block>::Hash = super::epoch_topic::<B>(self.epoch_id);
-                debug!(target: "afa", "Sending a unit over network.");
-                self.network
-                    .lock()
-                    .gossip_message(topic, message.encode(), false);
-
-                let notification = NotificationIn::NewUnits(vec![signed_unit.unit]);
-                self.sender.start_send(notification).map_err(|e| e.into())
-            }
-            NotificationOut::MissingUnits(coords, aux) => {
-                let n_coords = {
-                    let mut n_coords: Vec<UnitCoord> = Vec::with_capacity(coords.len());
-                    for coord in coords {
-                        n_coords.push(coord.into());
-                    }
-                    n_coords
-                };
-                let message: GossipMessage<B, H> = GossipMessage::FetchRequest(FetchRequest {
-                    coords: n_coords,
-                    peer_id: aux.child_creator(),
-                });
-
-                debug!(target: "afa", "Sending out message to our peers for epoch {}", self.epoch_id.0);
-                let topic: <B as Block>::Hash = super::request_topic::<B>();
-                self.network
-                    .lock()
-                    .gossip_message(topic, message.encode(), false);
-
-                Ok(())
-            }
-        };
+        self.tx.start_send(item).map_err(|e| e.into())
     }
 
     fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<NetworkResult<()>> {
@@ -150,16 +119,84 @@ impl<B: Block, H: Hash> Sink<NotificationOut<B::Hash, H>> for NotificationOutSen
     }
 
     fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<NetworkResult<()>> {
-        Sink::poll_close(Pin::new(&mut self.sender), cx).map(|elem| elem.map_err(|e| e.into()))
+        Sink::poll_close(Pin::new(&mut self.tx), cx).map(|elem| elem.map_err(|e| e.into()))
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+struct ScheduledRequest {
+    coord: UnitCoord,
+    scheduled_time: time::Instant,
+}
+
+impl ScheduledRequest {
+    fn new(coord: UnitCoord, scheduled_time: time::Instant) -> Self {
+        ScheduledRequest {
+            coord,
+            scheduled_time,
+        }
+    }
+}
+
+impl Ord for ScheduledRequest {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // we want earlier times to come first when used in max-heap, hence the below:
+        other.scheduled_time.cmp(&self.scheduled_time)
+    }
+}
+
+impl PartialOrd for ScheduledRequest {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+pub(crate) struct UnitStore<B: Block, H: Hash> {
+    by_coord: HashMap<UnitCoord, SignedUnit<B, H>>,
+    by_hash: HashSet<H>,
+}
+
+impl<B: Block, H: Hash> UnitStore<B, H> {
+    pub(crate) fn new() -> Self {
+        UnitStore {
+            by_coord: HashMap::new(),
+            by_hash: HashSet::new(),
+        }
+    }
+
+    pub(crate) fn unit_by_coord(&self, coord: UnitCoord) -> Option<&SignedUnit<B, H>> {
+        self.by_coord.get(&coord)
+    }
+
+    pub(crate) fn contains_hash(&self, hash: &H) -> bool {
+        self.by_hash.contains(hash)
+    }
+
+    pub(crate) fn contains_coord(&self, coord: &UnitCoord) -> bool {
+        self.by_coord.contains_key(coord)
+    }
+
+    pub(crate) fn add_unit(&mut self, su: SignedUnit<B, H>) {
+        self.by_hash.insert(su.unit.hash());
+        let coord = (&su.unit).into();
+        self.by_coord.insert(coord, su);
     }
 }
 
 #[derive(Clone)]
-pub(crate) struct NetworkBridge<B: Block, H, N: Network<B>> {
+pub(crate) struct NetworkBridge<B: Block, H: Hash, N: Network<B>> {
     _network_service: N,
     gossip_engine: Arc<Mutex<GossipEngine<B>>>,
     gossip_validator: Arc<GossipValidator<B, H>>,
     peer_report_handle: Arc<Mutex<TracingUnboundedReceiver<PeerReport>>>,
+    rx_consensus: Arc<Mutex<Option<mpsc::UnboundedReceiver<NotificationOut<B::Hash, H>>>>>,
+    tx_consensus: Arc<Mutex<Option<mpsc::UnboundedSender<NotificationIn<B::Hash, H>>>>>,
+    rx_network: Arc<Mutex<mpsc::Receiver<TopicNotification>>>,
+    auth_cryptostore: AuthorityKeystore,
+    // TODO: one can try optimizing: instead of Mutex use RwLocks on internal structures inside of UnitStore
+    store: Arc<Mutex<UnitStore<B, H>>>,
+    requests: Arc<Mutex<BinaryHeap<ScheduledRequest>>>,
+    request_ticker: Arc<Mutex<time::Interval>>,
 }
 
 impl<B: Block, H: Hash, N: Network<B>> NetworkBridge<B, H, N> {
@@ -168,6 +205,7 @@ impl<B: Block, H: Hash, N: Network<B>> NetworkBridge<B, H, N> {
         _config: Option<Config>,
         registry: Option<&Registry>,
         authorities: Vec<AuthorityId>,
+        auth_cryptostore: AuthorityKeystore,
     ) -> Self {
         let (gossip_validator, peer_report_handle) = {
             let (validator, peer_report_handle) = GossipValidator::<B, H>::new(registry);
@@ -183,96 +221,193 @@ impl<B: Block, H: Hash, N: Network<B>> NetworkBridge<B, H, N> {
         )));
         gossip_validator.set_authorities(authorities);
 
+        let topic = dummy_topic::<B>();
+        let rx_network = Arc::new(Mutex::new(gossip_engine.lock().messages_for(topic)));
+
         NetworkBridge {
             _network_service: network_service,
             gossip_engine,
             gossip_validator,
             peer_report_handle,
+            rx_consensus: Arc::new(Mutex::new(None)),
+            tx_consensus: Arc::new(Mutex::new(None)),
+            rx_network,
+            auth_cryptostore,
+            store: Arc::new(Mutex::new(UnitStore::new())),
+            requests: Arc::new(Mutex::new(BinaryHeap::new())),
+            request_ticker: Arc::new(Mutex::new(time::interval(TICK_INTERVAL))),
         }
     }
 
-    pub(crate) fn note_pending_fetch_request(&mut self, peer: PeerId, fetch_request: FetchRequest) {
+    pub(crate) fn note_pending_fetch_request(&self, peer: PeerId, coord: UnitCoord) {
         self.gossip_validator
-            .note_pending_fetch_request(peer, fetch_request)
+            .note_pending_fetch_request(peer, coord)
     }
 
-    // TODO: keystore should be optional later.
     pub(crate) fn communication(
         &self,
-        epoch_id: EpochId,
-        auth_cryptostore: AuthorityKeystore,
     ) -> (
         NotificationOutSender<B, H>,
-        Box<dyn Stream<Item = NotificationIn<B::Hash, H>> + Unpin + Send + 'static>,
+        mpsc::UnboundedReceiver<NotificationIn<B::Hash, H>>,
     ) {
-        let topic = epoch_topic::<B>(epoch_id);
-        let gossip_engine = self.gossip_engine.clone();
+        let (tx_out, rx_out) = mpsc::unbounded();
+        // NOTE: can this be done without mutexes? How?
+        self.rx_consensus.lock().replace(rx_out);
+        // NOTE: it should be possible to get rid of NotificationOutSender -- this is only a wrapper around
+        // a channel endpoint with a suitable Error type (required by rush).
+        let tx_out = NotificationOutSender::<B, H> { tx: tx_out };
+        let (tx_in, rx_in) = mpsc::unbounded();
+        self.tx_consensus.lock().replace(tx_in);
+        (tx_out, rx_in)
+    }
 
-        let incoming_units = gossip_engine
+    fn send_consensus_notification(&self, notification: NotificationIn<B::Hash, H>) {
+        if let Err(e) = self
+            .tx_consensus
             .lock()
-            .messages_for(topic)
-            .filter_map(move |notification| {
-                debug!(target: "afa", "New incoming message: {:?}", notification);
-                let decoded = GossipMessage::<B, H>::decode(&mut &notification.message[..]);
-                if let Ok(message) = decoded {
-                    let notification = match message {
-                        GossipMessage::Multicast(m) => {
-                            let s_unit = m.signed_unit;
-                            Some(NotificationIn::NewUnits(vec![s_unit.unit]))
-                        }
-                        GossipMessage::FetchResponse(m) => {
-                            let mut units = Vec::with_capacity(m.signed_units.len());
-                            for s_unit in m.signed_units {
-                                units.push(s_unit.unit);
-                            }
-                            Some(NotificationIn::NewUnits(units))
-                        }
-                        _ => None,
-                    };
-                    futures::future::ready(notification)
-                } else {
-                    // NOTE: This should be unreachable due to the validator.
-                    debug!(target: "afa", "Skipping malformed incoming message: {:?}", notification);
-                    futures::future::ready(None)
-                }
-            });
+            .as_ref()
+            .expect("Channel to consensus must be open.")
+            .unbounded_send(notification)
+        {
+            debug!(target: "afa", "Error when sending notification {:?}.", e);
+        }
+    }
 
-        let request_topic = request_topic::<B>();
-        let incoming_requests = gossip_engine
+    fn on_create_notification(&self, u: rush::Unit<B::Hash, H>) {
+        let signed_unit = super::gossip::sign_unit::<B, H>(&self.auth_cryptostore, u);
+        let message = GossipMessage::Multicast(Multicast {
+            signed_unit: signed_unit.clone(),
+        });
+        self.store.lock().add_unit(signed_unit);
+
+        let topic: <B as Block>::Hash = dummy_topic::<B>();
+        debug!(target: "afa", "Sending a unit over network.");
+        self.gossip_engine
             .lock()
-            .messages_for(request_topic)
-            .filter_map(move |notification| {
-                let decoded = GossipMessage::<B, H>::decode(&mut &notification.message[..]);
-                if let Ok(message) = decoded {
-                    let notification = match message {
-                        GossipMessage::FetchRequest(_m) => {
-                            todo!()
-                        }
-                        _ => None,
-                    };
-                    futures::future::ready(notification)
+            .gossip_message(topic, message.encode(), false);
+    }
+
+    // Pulls requests from the priority queue (sorted by scheduled time) and sends them to random peers
+    // as long as they are scheduled at time <= curr_time
+    pub(crate) fn trigger_requests(&self) {
+        loop {
+            let curr_time = time::Instant::now();
+            let maybe_coord = {
+                let mut requests = self.requests.lock();
+                if requests.is_empty() || requests.peek().unwrap().scheduled_time > curr_time {
+                    None
                 } else {
-                    // NOTE: This should be unreachable due to the validator.
-                    debug!(target: "afa", "Skipping malformed incoming message: {:?}", notification);
-                    futures::future::ready(None)
+                    Some(requests.pop().unwrap().coord)
                 }
-            });
+            };
 
-        let (tx, rx) = mpsc::channel(0);
-        let outgoing = NotificationOutSender::<B, H> {
-            network: self.gossip_engine.clone(),
-            sender: tx,
-            epoch_id,
-            auth_cryptostore,
-        };
+            if let Some(coord) = maybe_coord {
+                debug!(target: "afa", "Starting request for {:?}", coord);
+                // If we already have a unit with such a coord in our store then there is no need to request it.
+                // It will be sent to consensus soon (or have already been sent).
+                if !self.store.lock().contains_coord(&coord) {
+                    let maybe_peer_id = self.gossip_validator.get_random_peer();
+                    if let Some(peer_id) = maybe_peer_id {
+                        let message =
+                            GossipMessage::<B, H>::FetchRequest(FetchRequest { coord }).encode();
+                        self.gossip_engine
+                            .lock()
+                            .send_message(vec![peer_id], message);
+                        self.note_pending_fetch_request(peer_id, coord);
+                        debug!(target: "afa", "Fetch request sent {:?} to peer {:?}.", coord, peer_id);
+                    } else {
+                        debug!(target: "afa", "Trying to request {:?} but no peer is available.", coord);
+                    }
+                    // Schedule a new request in case this one gets no answer.
+                    self.requests
+                        .lock()
+                        .push(ScheduledRequest::new(coord, curr_time + FETCH_INTERVAL));
+                } else {
+                    debug!(target: "afa", "Request dropped as the unit is in store already {:?}", coord);
+                }
+            } else {
+                break;
+            }
+        }
+    }
 
-        // NOTE: From how I understand this code and documentation, this should
-        // be ok. If you whatever reason we are getting no incoming, this might
-        // be the culprit.
-        let external_incoming = stream::select(incoming_units, incoming_requests);
-        let incoming = stream::select(external_incoming, rx);
+    pub(crate) fn on_missing_notification(&self, coords: Vec<UnitCoord>) {
+        debug!(target: "afa", "Dealing with missing notification {:?}.", coords);
+        let curr_time = time::Instant::now();
+        for coord in coords {
+            if !self.store.lock().contains_coord(&coord) {
+                self.requests
+                    .lock()
+                    .push(ScheduledRequest::new(coord, curr_time));
+            }
+        }
+        self.trigger_requests();
+    }
 
-        (outgoing, Box::new(incoming))
+    fn on_consensus_notification(&self, notification: NotificationOut<B::Hash, H>) {
+        match notification {
+            NotificationOut::CreatedUnit(u) => {
+                self.on_create_notification(u);
+            }
+            NotificationOut::MissingUnits(coords, _aux) => {
+                let n_coords = {
+                    let mut n_coords: Vec<UnitCoord> = Vec::with_capacity(coords.len());
+                    for coord in coords {
+                        n_coords.push(coord.into());
+                    }
+                    n_coords
+                };
+                self.on_missing_notification(n_coords);
+            }
+        }
+    }
+
+    fn on_unit_received(&self, su: SignedUnit<B, H>) {
+        let mut store = self.store.lock();
+        if !store.contains_hash(&su.unit.hash()) {
+            self.send_consensus_notification(NotificationIn::NewUnits(vec![su.unit.clone()]));
+            store.add_unit(su);
+        }
+    }
+
+    fn on_fetch_request(&self, peer_id: PeerId, coord: UnitCoord) {
+        debug!(target: "afa", "Received fetch request for coord {:?} from {:?}.", coord, peer_id);
+        let maybe_su = (self.store.lock().unit_by_coord(coord)).cloned();
+
+        if let Some(su) = maybe_su {
+            debug!(target: "afa", "Answering fetch request for coord {:?} from {:?}.", coord, peer_id);
+            let message =
+                GossipMessage::<B, H>::FetchResponse(FetchResponse { signed_unit: su }).encode();
+            self.gossip_engine
+                .lock()
+                .send_message(vec![peer_id], message);
+        }
+    }
+
+    fn on_network_message(&self, notification: TopicNotification) {
+        let who = notification.sender;
+        let decoded = GossipMessage::<B, H>::decode(&mut &notification.message[..]);
+        match decoded {
+            Ok(message) => match message {
+                GossipMessage::Multicast(m) => {
+                    self.on_unit_received(m.signed_unit);
+                }
+                GossipMessage::FetchRequest(m) => {
+                    if let Some(peer_id) = who {
+                        self.on_fetch_request(peer_id, m.coord);
+                    } else {
+                        error!(target: "afa", "Fetch request from unknown peer {:?}.", m);
+                    }
+                }
+                GossipMessage::FetchResponse(m) => {
+                    debug!(target: "afa", "Fetch response received {:?}.", m);
+                    self.on_unit_received(m.signed_unit);
+                }
+            },
+            Err(e) => {
+                error!(target: "afa", "Error in decoding a message in network bridge {:?}.", e);
+            }
+        }
     }
 }
 
@@ -286,12 +421,46 @@ impl<B: Block, H: Hash, N: Network<B>> Future for NetworkBridge<B, H, N> {
                 }
                 Poll::Ready(None) => {
                     debug!(target: "afa", "Gossip validator report stream closed.");
+                    break;
+                }
+                Poll::Pending => break,
+            }
+        }
+
+        loop {
+            let mut maybe_rx = self.rx_consensus.lock();
+            if maybe_rx.is_some() {
+                match maybe_rx.as_mut().unwrap().poll_next_unpin(cx) {
+                    Poll::Ready(Some(notification)) => {
+                        self.on_consensus_notification(notification);
+                    }
+                    Poll::Ready(None) => {
+                        error!(target: "afa", "Consensus notification stream closed.");
+                        return Poll::Ready(());
+                    }
+                    Poll::Pending => break,
+                }
+            }
+        }
+
+        loop {
+            let mut rx = self.rx_network.lock();
+            match rx.poll_next_unpin(cx) {
+                Poll::Ready(Some(message)) => {
+                    self.on_network_message(message);
+                }
+                Poll::Ready(None) => {
+                    error!(target: "afa", "Network message stream closed.");
                     return Poll::Ready(());
                 }
                 Poll::Pending => break,
             }
         }
 
+        // this is to make sure requests are triggered frequently
+        while self.request_ticker.lock().poll_next_unpin(cx).is_ready() {
+            self.trigger_requests();
+        }
         self.gossip_engine.lock().poll_unpin(cx).map(|_| {
             debug!(target: "afa", "Gossip engine future finished");
         })

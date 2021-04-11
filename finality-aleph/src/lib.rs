@@ -238,7 +238,6 @@ where
         select_chain,
         auth_keystore,
         authorities,
-        EpochId(0),
     );
 
     consensus.run(spawn_handle.into())

@@ -3,7 +3,7 @@ use crate::{
     environment::Environment,
     AuthorityId, AuthorityKeystore, NodeId, SpawnHandle,
 };
-use rush::{Config as ConsensusConfig, Consensus, EpochId};
+use rush::{Config as ConsensusConfig, Consensus};
 use sc_client_api::backend::Backend;
 use sp_consensus::SelectChain;
 use sp_runtime::traits::Block;
@@ -36,16 +36,9 @@ where
         select_chain: SC,
         auth_keystore: AuthorityKeystore,
         authorities: Vec<AuthorityId>,
-        epoch_id: EpochId,
     ) -> Self {
-        let network_bridge = NetworkBridge::new(network, None, None, authorities);
-        let env = Arc::new(Environment::new(
-            client,
-            network_bridge,
-            auth_keystore,
-            select_chain,
-            epoch_id,
-        ));
+        let network_bridge = NetworkBridge::new(network, None, None, authorities, auth_keystore);
+        let env = Arc::new(Environment::new(client, network_bridge, select_chain));
         let consensus = Consensus::new(conf, env.clone());
 
         ConsensusParty { env, consensus }
