@@ -1,4 +1,3 @@
-#![allow(clippy::type_complexity)]
 use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 
 use codec::{Decode, Encode};
