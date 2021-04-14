@@ -35,3 +35,4 @@ sp-io="3"
 derive_more = "0.99.7"
 # we need aura authorites till we have our own pallet
 sp-consensus-aura = "0.9"
+env_logger = "0.8.3"

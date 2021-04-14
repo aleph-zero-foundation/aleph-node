@@ -1,5 +1,4 @@
 use rand::{seq::SliceRandom, thread_rng};
-use rush::EpochId;
 use sc_network::{ObservedRole, PeerId};
 use std::collections::HashMap;
 
@@ -7,16 +6,12 @@ pub(crate) mod rep;
 
 #[derive(Debug, Clone)]
 pub struct PeerInfo {
-    epoch_id: EpochId,
     role: ObservedRole,
 }
 
 impl PeerInfo {
     fn new(role: ObservedRole) -> Self {
-        PeerInfo {
-            epoch_id: EpochId::default(),
-            role,
-        }
+        PeerInfo { role }
     }
 }
 

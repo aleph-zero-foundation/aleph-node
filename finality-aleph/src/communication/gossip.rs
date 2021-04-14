@@ -14,7 +14,7 @@ use codec::{Decode, Encode};
 use log::debug;
 use parking_lot::RwLock;
 use prometheus_endpoint::{CounterVec, Opts, PrometheusError, Registry, U64};
-use rush::Unit;
+use rush::{PreUnit};
 use sc_network::{ObservedRole, PeerId, ReputationChange};
 use sc_network_gossip::{MessageIntent, ValidationResult, Validator, ValidatorContext};
 use sc_telemetry::{telemetry, CONSENSUS_DEBUG};
@@ -25,9 +25,16 @@ use sp_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnbound
 use std::{collections::HashSet, marker::PhantomData};
 
 /// A wrapped unit which contains both an authority public key and signature.
+
+#[derive(Debug, Clone, Encode, Decode)]
+pub(crate) struct FullUnit<B: Block, H: Hash> {
+    pub(crate) inner: PreUnit<H>,
+    pub(crate) block_hash: B::Hash,
+}
+
 #[derive(Debug, Clone, Encode, Decode)]
 pub(crate) struct SignedUnit<B: Block, H: Hash> {
-    pub(crate) unit: Unit<B::Hash, H>,
+    pub(crate) unit: FullUnit<B, H>,
     signature: AuthoritySignature,
     // TODO: This *must* be changed ASAP to NodeIndex to reduce data size of packets.
     id: AuthorityId,
@@ -46,7 +53,7 @@ impl<B: Block, H: Hash> SignedUnit<B, H> {
 
         let valid = self.id.verify(&buf, &self.signature);
         if !valid {
-            debug!(target: "afa", "Bad signature message from {:?}", self.unit.creator());
+            debug!(target: "afa", "Bad signature message from {:?}", self.unit.inner.creator());
         }
 
         valid
@@ -56,11 +63,15 @@ impl<B: Block, H: Hash> SignedUnit<B, H> {
     pub(crate) fn verify_unit_signature(&self) -> bool {
         self.verify_unit_signature_with_buffer(&mut Vec::new())
     }
+
+    pub(crate) fn hash(&self, hashing: impl Fn(&[u8]) -> H) -> H {
+        hashing(&self.unit.encode())
+    }
 }
 
 pub(crate) fn sign_unit<B: Block, H: Hash>(
     auth_crypto_store: &AuthorityKeystore,
-    unit: Unit<B::Hash, H>,
+    unit: FullUnit<B, H>,
 ) -> SignedUnit<B, H> {
     let encoded = unit.encode();
     let signature = auth_crypto_store.sign(&encoded[..]);
@@ -149,7 +160,7 @@ impl Metrics {
 /// When we receive a message it is first checked here to see if it passes
 /// basic validation rules that are not part of consensus but related to the
 /// message itself.
-pub(super) struct GossipValidator<B: Block, H: rush::HashT> {
+pub struct GossipValidator<B: Block, H: rush::HashT> {
     peers: RwLock<Peers>,
     authority_set: RwLock<HashSet<AuthorityId>>,
     report_sender: TracingUnboundedSender<PeerReport>,
@@ -260,7 +271,8 @@ impl<B: Block, H: rush::HashT + Hash> GossipValidator<B, H> {
         sender: &PeerId,
         message: &FetchResponse<B, H>,
     ) -> MessageAction<B::Hash> {
-        let coord: UnitCoord = (&message.signed_unit.unit).into();
+        let unit = &message.signed_unit.unit.inner;
+        let coord: UnitCoord = (unit.round(), unit.creator()).into();
         debug!(target: "afa", "Validating fetch response: {:?} from {:?}", message, sender);
         if !self.pending_requests.write().remove(&(*sender, coord)) {
             // This means that this is a response to a request we did not send.
@@ -373,7 +385,7 @@ impl<B: Block, H: Hash> Validator<B> for GossipValidator<B, H> {
 mod tests {
     use super::*;
     use crate::{AuthorityPair, AuthoritySignature};
-    use rush::{nodes::NodeIndex, ControlHash, EpochId};
+    use rush::{nodes::NodeIndex, ControlHash};
     use sp_core::{Pair, H256};
     use sp_runtime::traits::Extrinsic as ExtrinsicT;
 
@@ -397,6 +409,7 @@ mod tests {
 
     pub type Block = sp_runtime::generic::Block<Header, Extrinsic>;
 
+
     impl GossipValidator<Block, Hash> {
         fn new_dummy() -> Self {
             GossipValidator::<Block, Hash>::new(None).0
@@ -417,10 +430,19 @@ mod tests {
         }
     }
 
+    impl FullUnit<Block, Hash> {
+        fn new_dummy() -> Self {
+            FullUnit {
+                inner: PreUnit::default(),
+                block_hash: Hash::default(),
+            }
+        }
+    }
+
     impl SignedUnit<Block, Hash> {
         fn new_dummy() -> Self {
             SignedUnit {
-                unit: Unit::default(),
+                unit: FullUnit::new_dummy(),
                 signature: AuthoritySignature::default(),
                 id: AuthorityId::default(),
             }
@@ -430,7 +452,7 @@ mod tests {
     #[test]
     fn good_multicast() {
         let keypair = AuthorityPair::from_seed_slice(&[1u8; 32]).unwrap();
-        let unit = Unit::default();
+        let unit = FullUnit::new_dummy();
         let signature = keypair.sign(&unit.encode());
         let message = Multicast {
             signed_unit: SignedUnit {
@@ -473,7 +495,7 @@ mod tests {
     #[test]
     fn unknown_authority_multicast() {
         let keypair = AuthorityPair::from_seed_slice(&[1u8; 32]).unwrap();
-        let unit = Unit::default();
+        let unit = FullUnit::new_dummy();
         let signature = keypair.sign(&unit.encode());
         let message: Multicast<Block, Hash> = Multicast {
             signed_unit: SignedUnit {
@@ -502,14 +524,14 @@ mod tests {
                 creator: NodeIndex(x),
                 round: (x + 1) as u64,
             };
-            let unit = Unit::new(
+            let unit = PreUnit::new(
                 NodeIndex(x),
                 (x + 1) as usize,
-                EpochId(0),
-                Hash::default(),
                 ControlHash::default(),
-                Hash::default(),
             );
+
+            let unit = FullUnit {inner: unit, block_hash: Hash::default()};
+
             let signature = keypair.sign(&unit.encode());
 
             let signed_unit = SignedUnit {
@@ -528,6 +550,7 @@ mod tests {
             val.note_pending_fetch_request(peer, coord);
 
             let res = val.validate_fetch_response(&peer, &fetch_response);
+            debug!("res {:?}", res);
             assert!(matches!(res, MessageAction::ProcessAndDiscard(..)))
         }
     }
@@ -540,14 +563,13 @@ mod tests {
                 round: (x + 1) as u64,
             };
 
-            let unit = Unit::new(
+            let unit = PreUnit::new(
                 NodeIndex(x),
                 (x + 1) as usize,
-                EpochId(0),
-                Hash::default(),
                 ControlHash::default(),
-                Hash::default(),
             );
+
+            let unit = FullUnit {inner: unit, block_hash: Hash::default()};
 
             let signed_unit = SignedUnit {
                 unit,
@@ -574,9 +596,10 @@ mod tests {
     // be a test for it.
     #[test]
     fn good_fetch_request() {
+
         let coord = UnitCoord {
             creator: NodeIndex(0),
-            round: 0 as u64,
+            round: 0_u64,
         };
         let fetch_request = FetchRequest { coord };
 

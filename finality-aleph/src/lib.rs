@@ -2,8 +2,8 @@ use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 
 use codec::{Decode, Encode};
 use futures::Future;
-use rush::{nodes::NodeIndex, HashT, Unit};
-pub use rush::{Config as ConsensusConfig, EpochId};
+pub use rush::Config as ConsensusConfig;
+use rush::{nodes::NodeIndex, UnitCoord};
 use sc_client_api::{
     backend::{AuxStore, Backend},
     BlockchainEvents, ExecutorProvider, Finalizer, LockImportRun, TransactionFor,
@@ -22,7 +22,6 @@ use std::{
 pub(crate) mod communication;
 pub mod config;
 pub(crate) mod environment;
-mod error;
 pub mod hash;
 mod party;
 
@@ -45,7 +44,7 @@ mod party;
 
 pub fn peers_set_config() -> sc_network::config::NonDefaultSetConfig {
     sc_network::config::NonDefaultSetConfig {
-        notifications_protocol: communication::network::ALEPH_PROTOCOL_NAME.into(),
+        notifications_protocol: environment::ALEPH_PROTOCOL_NAME.into(),
         max_notification_size: 1024 * 1024,
         set_config: sc_network::config::SetConfig {
             in_peers: 0,
@@ -122,39 +121,6 @@ impl AuthorityKeystore {
     }
 }
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Encode, Decode)]
-pub struct UnitCoord {
-    pub creator: NodeIndex,
-    pub round: u64,
-}
-
-impl<B: HashT, H: HashT> From<Unit<B, H>> for UnitCoord {
-    fn from(unit: Unit<B, H>) -> Self {
-        UnitCoord {
-            creator: unit.creator(),
-            round: unit.round() as u64,
-        }
-    }
-}
-
-impl<B: HashT, H: HashT> From<&Unit<B, H>> for UnitCoord {
-    fn from(unit: &Unit<B, H>) -> Self {
-        UnitCoord {
-            creator: unit.creator(),
-            round: unit.round() as u64,
-        }
-    }
-}
-
-impl From<(usize, NodeIndex)> for UnitCoord {
-    fn from(coord: (usize, NodeIndex)) -> Self {
-        UnitCoord {
-            creator: coord.1,
-            round: coord.0 as u64,
-        }
-    }
-}
-
 pub trait ClientForAleph<B, BE>:
     LockImportRun<B, BE>
     + Finalizer<B, BE>
@@ -217,7 +183,7 @@ pub fn run_aleph_consensus<B: Block, BE, C, N, SC>(
 ) -> impl Future<Output = ()>
 where
     BE: Backend<B> + 'static,
-    N: communication::network::Network<B>,
+    N: environment::Network<B>,
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
     SC: SelectChain<B> + 'static,
 {

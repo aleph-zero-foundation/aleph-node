@@ -3,8 +3,7 @@
 use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use codec::Decode;
 use finality_aleph::{
-    run_aleph_consensus, AlephConfig, AuthorityId, AuthorityKeystore, ConsensusConfig, EpochId,
-    NodeId,
+    run_aleph_consensus, AlephConfig, AuthorityId, AuthorityKeystore, ConsensusConfig, NodeId,
 };
 use sc_client_api::{CallExecutor, ExecutionStrategy, ExecutorProvider};
 use sc_executor::native_executor_instance;
@@ -111,12 +110,7 @@ fn consensus_config(auth: AuthorityId, authorities: &[AuthorityId]) -> Consensus
     let node_id = NodeId { auth, index };
     let n_members = authorities.len().into();
 
-    ConsensusConfig::new(
-        node_id,
-        n_members,
-        EpochId(0),
-        std::time::Duration::from_millis(500),
-    )
+    ConsensusConfig::new(node_id, n_members, std::time::Duration::from_millis(500))
 }
 
 /// Builds a new service for a full client.
