@@ -115,9 +115,10 @@ impl AuthorityKeystore {
             &self.authority_id.clone().into(),
             msg,
         )
-        .expect("key is in store")
-        .try_into()
         .ok()
+        .flatten()
+            .unwrap()
+        .try_into()
         .unwrap()
     }
 }

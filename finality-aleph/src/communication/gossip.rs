@@ -327,7 +327,7 @@ impl<B: Block, H: Hash> Validator<B> for GossipValidator<B, H> {
             Err(e) => {
                 message_name = None;
                 debug!(target: "afa", "Error decoding message: {}", e);
-                telemetry!(CONSENSUS_DEBUG; "afa.err_decoding_msg"; "" => "");
+                // telemetry!(self.telemetry; CONSENSUS_DEBUG; "afa.err_decoding_msg"; "" => "");
 
                 let len = std::cmp::min(i32::max_value() as usize, data.len()) as i32;
                 MessageAction::Discard(PeerMisbehavior::UndecodablePacket(len).into())

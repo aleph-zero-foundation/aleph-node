@@ -9,12 +9,14 @@ use finality_aleph::{
 use sc_client_api::{CallExecutor, ExecutionStrategy, ExecutorProvider};
 use sc_executor::native_executor_instance;
 pub use sc_executor::NativeExecutor;
-use sc_service::{error::Error as ServiceError, Configuration, TaskManager};
+use sc_service::{error::Error as ServiceError, Configuration, TaskManager, TFullClient};
+use sc_telemetry::{Telemetry, TelemetryWorker};
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 use sp_inherents::InherentDataProviders;
 use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 use sp_runtime::{generic::BlockId, traits::Zero};
 use std::sync::Arc;
+use sc_consensus_aura::{ImportQueueParams, StartAuraParams, SlotProportion};
 
 // Our native executor instance.
 native_executor_instance!(
@@ -42,9 +44,18 @@ pub fn new_partial(
 > {
     let inherent_data_providers = InherentDataProviders::new();
 
+    let telemetry = config.telemetry_endpoints.clone()
+        .filter(|x| !x.is_empty())
+        .map(|endpoints| -> Result<_, sc_telemetry::Error> {
+            let worker = TelemetryWorker::new(16)?;
+            let telemetry = worker.handle().new_telemetry(endpoints);
+            Ok((worker, telemetry))
+        })
+        .transpose()?;
+
     let (client, backend, keystore_container, task_manager) =
-        sc_service::new_full_parts::<Block, RuntimeApi, Executor>(&config)?;
-    let client = Arc::new(client);
+        sc_service::new_full_parts::<Block, RuntimeApi, Executor>(&config, telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()))?;
+    let client: Arc<TFullClient<_, _, _>> = Arc::new(client);
 
     let select_chain = sc_consensus::LongestChain::new(backend.clone());
 
@@ -61,15 +72,19 @@ pub fn new_partial(
         client.clone(),
     );
 
-    let import_queue = sc_consensus_aura::import_queue::<_, _, _, AuraPair, _, _>(
-        sc_consensus_aura::slot_duration(&*client)?,
-        aura_block_import.clone(),
-        None,
-        client.clone(),
-        inherent_data_providers.clone(),
-        &task_manager.spawn_handle(),
-        config.prometheus_registry(),
-        sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone()),
+    let import_queue = sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _>(
+        ImportQueueParams {
+            block_import: aura_block_import.clone(),
+            justification_import: None,
+            client: client.clone(),
+            inherent_data_providers: inherent_data_providers.clone(),
+            spawner: &task_manager.spawn_essential_handle(),
+            registry: config.prometheus_registry(),
+            can_author_with: sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone()),
+            check_for_equivocation: Default::default(),
+            slot_duration: sc_consensus_aura::slot_duration(&*client)?,
+            telemetry: telemetry.as_ref().map(|(_, x)| x.handle())
+        }
     )?;
 
     Ok(sc_service::PartialComponents {
@@ -172,7 +187,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
         })
     };
 
-    let (_rpc_handlers, _maybe_telemetry) =
+    let _rpc_handlers =
         sc_service::spawn_tasks(sc_service::SpawnTasksParams {
             config,
             client: client.clone(),
@@ -186,6 +201,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
             network: network.clone(),
             network_status_sinks,
             system_rpc_tx,
+            telemetry: None
         })?;
 
     if role.is_authority() {
@@ -194,23 +210,28 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
             client.clone(),
             transaction_pool,
             prometheus_registry.as_ref(),
+            None
         );
 
         let can_author_with =
             sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
 
-        let aura = sc_consensus_aura::start_aura::<_, _, _, _, _, AuraPair, _, _, _, _>(
-            sc_consensus_aura::slot_duration(&*client)?,
-            client.clone(),
-            select_chain.clone(),
-            block_import,
-            proposer_factory,
-            network.clone(),
-            inherent_data_providers,
-            force_authoring,
-            backoff_authoring_blocks,
-            keystore_container.sync_keystore(),
-            can_author_with,
+        let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _, _, _, _>(
+            StartAuraParams {
+                slot_duration: sc_consensus_aura::slot_duration(&*client)?,
+                client: client.clone(),
+                select_chain: select_chain.clone(),
+                block_import,
+                proposer_factory,
+                sync_oracle: network.clone(),
+                inherent_data_providers,
+                force_authoring,
+                backoff_authoring_blocks,
+                keystore: keystore_container.sync_keystore(),
+                can_author_with,
+                block_proposal_slot_portion: SlotProportion::new(2f32 / 3f32),
+                telemetry: None
+            }
         )?;
 
         task_manager
