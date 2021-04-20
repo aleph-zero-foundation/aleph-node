@@ -15,8 +15,8 @@ parity-util-mem = "0.9"
 parking_lot = "0.11"
 prometheus-endpoint = { package = "substrate-prometheus-endpoint", version = "0.9.0"}
 rand = "0.8"
-# rush = { git = "ssh://git@github.com/Cardinal-Cryptography/rush.git", branch = "main" }
-rush = {path = "../../rush"}
+rush = { git = "https://github.com/Cardinal-Cryptography/rush.git", branch = "main" }
+# rush = {path = "../../rush"}
 sp-keystore = "0.9"
 sc-network = "0.9"
 sc-network-gossip = "0.9"
