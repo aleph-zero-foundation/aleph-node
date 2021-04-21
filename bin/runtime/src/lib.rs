@@ -256,7 +256,7 @@ impl_opaque_keys! {
 }
 
 parameter_types! {
-    pub const Period: u32 = 10;
+    pub const Period: u32 = 50;
     pub const Offset: u32 = 0;
 }
 
@@ -309,7 +309,7 @@ mod curve {
     pub const REWARD_CURVE: crate::PiecewiseLinear<'static> = REWARD_CURVE0;
 }
 parameter_types! {
-    pub const SessionsPerEra: sp_staking::SessionIndex = 6;
+    pub const SessionsPerEra: sp_staking::SessionIndex = 1;
     pub const BondingDuration: pallet_staking::EraIndex = 24 * 28;
     pub const SlashDeferDuration: pallet_staking::EraIndex = 24 * 7; // 1/4 the bonding duration.
     pub const RewardCurve: &'static PiecewiseLinear<'static> = &curve::REWARD_CURVE;
