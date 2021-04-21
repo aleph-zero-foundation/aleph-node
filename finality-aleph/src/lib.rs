@@ -59,6 +59,7 @@ pub fn peers_set_config() -> sc_network::config::NonDefaultSetConfig {
 use sp_core::crypto::KeyTypeId;
 // pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"alp0");
 pub const KEY_TYPE: KeyTypeId = sp_application_crypto::key_types::AURA;
+use sc_telemetry::TelemetryHandle;
 pub use sp_consensus_aura::sr25519::{AuthorityId, AuthorityPair, AuthoritySignature};
 
 #[derive(Clone, Debug, Default, Eq, Hash, Encode, Decode, PartialEq)]
@@ -117,7 +118,7 @@ impl AuthorityKeystore {
         )
         .ok()
         .flatten()
-            .unwrap()
+        .unwrap()
         .try_into()
         .unwrap()
     }
@@ -211,6 +212,7 @@ pub struct AlephConfig<N, C, SC> {
     pub spawn_handle: SpawnTaskHandle,
     pub auth_keystore: AuthorityKeystore,
     pub authorities: Vec<AuthorityId>,
+    pub telemetry: Option<TelemetryHandle>,
 }
 
 pub fn run_aleph_consensus<B: Block, BE, C, N, SC>(
@@ -230,6 +232,7 @@ where
         spawn_handle,
         auth_keystore,
         authorities,
+        telemetry,
     } = config;
     let consensus = party::ConsensusParty::new(
         consensus_config,
@@ -238,6 +241,7 @@ where
         select_chain,
         auth_keystore,
         authorities,
+        telemetry,
     );
 
     consensus.run(spawn_handle.into())
