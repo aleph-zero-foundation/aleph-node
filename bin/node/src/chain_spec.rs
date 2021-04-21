@@ -131,7 +131,7 @@ fn testnet_genesis(
                 .collect(),
         },
         pallet_aura: AuraConfig {
-            authorities: aura_authorities.clone(),
+            authorities: vec![],
         },
         pallet_sudo: SudoConfig {
             // Assign network admin rights.
