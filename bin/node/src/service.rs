@@ -3,14 +3,14 @@
 use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use codec::Decode;
 use finality_aleph::{
-    run_aleph_consensus, AlephConfig, AuthorityId, AuthorityKeystore, ConsensusConfig, EpochId,
-    NodeId,
+    run_aleph_consensus, AlephBlockImport, AlephConfig, AuthorityId, AuthorityKeystore,
+    ConsensusConfig, NodeId,
 };
 use sc_client_api::{CallExecutor, ExecutionStrategy, ExecutorProvider};
 use sc_executor::native_executor_instance;
 pub use sc_executor::NativeExecutor;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager, TFullClient};
-use sc_telemetry::{Telemetry, TelemetryWorker};
+use sc_telemetry::TelemetryWorker;
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 use sp_inherents::InherentDataProviders;
 use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
@@ -29,6 +29,7 @@ type FullClient = sc_service::TFullClient<Block, RuntimeApi, Executor>;
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 
+#[allow(clippy::type_complexity)]
 pub fn new_partial(
     config: &Configuration,
 ) -> Result<
@@ -38,7 +39,10 @@ pub fn new_partial(
         FullSelectChain,
         sp_consensus::DefaultImportQueue<Block, FullClient>,
         sc_transaction_pool::FullPool<Block, FullClient>,
-        sc_consensus_aura::AuraBlockImport<Block, FullClient, Arc<FullClient>, AuraPair>,
+        AlephBlockImport<
+            Block,
+            sc_consensus_aura::AuraBlockImport<Block, FullClient, Arc<FullClient>, AuraPair>,
+        >,
     >,
     ServiceError,
 > {
@@ -72,9 +76,11 @@ pub fn new_partial(
         client.clone(),
     );
 
+    let aleph_block_import = AlephBlockImport::new(aura_block_import);
+
     let import_queue = sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _>(
         ImportQueueParams {
-            block_import: aura_block_import.clone(),
+            block_import: aleph_block_import.clone(),
             justification_import: None,
             client: client.clone(),
             inherent_data_providers: inherent_data_providers.clone(),
@@ -96,7 +102,7 @@ pub fn new_partial(
         select_chain,
         transaction_pool,
         inherent_data_providers,
-        other: aura_block_import,
+        other: aleph_block_import,
     })
 }
 
@@ -126,12 +132,7 @@ fn consensus_config(auth: AuthorityId, authorities: &[AuthorityId]) -> Consensus
     let node_id = NodeId { auth, index };
     let n_members = authorities.len().into();
 
-    ConsensusConfig::new(
-        node_id,
-        n_members,
-        EpochId(0),
-        std::time::Duration::from_millis(500),
-    )
+    ConsensusConfig::new(node_id, n_members, std::time::Duration::from_millis(500))
 }
 
 /// Builds a new service for a full client.

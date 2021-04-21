@@ -13,14 +13,14 @@ log = "0.4"
 futures = "0.3"
 parity-util-mem = "0.9"
 parking_lot = "0.11"
-prometheus-endpoint = { package = "substrate-prometheus-endpoint", version = "0.9.0"}
+prometheus-endpoint = { package = "substrate-prometheus-endpoint", git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 rand = "0.8"
-# rush = { git = "ssh://git@github.com/Cardinal-Cryptography/rush.git", branch = "main" }
-rush = {path = "../../rush"}
+rush = { git = "https://github.com/Cardinal-Cryptography/rush.git", branch = "main" }
 sp-keystore = {version = "0.9", git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 sc-network = {version = "0.9", git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 sc-network-gossip = {version = "0.9", git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 sc-telemetry = {version = "3", git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+
 serde = "1.0"
 sc-service = {version = "0.9", git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 sp-application-crypto = {version = "3", git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
@@ -35,3 +35,5 @@ sp-io= {version = "3", git = "https://github.com/paritytech/substrate.git", rev 
 derive_more = "0.99.7"
 # we need aura authorites till we have our own pallet
 sp-consensus-aura = {version = "0.9", git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+env_logger = "0.8.3"
+async-trait = "0.1.42"
