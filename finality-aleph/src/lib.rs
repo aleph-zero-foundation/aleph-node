@@ -122,7 +122,7 @@ impl AuthorityKeystore {
         )
         .ok()
         .flatten()
-            .unwrap()
+        .unwrap()
         .try_into()
         .unwrap()
     }

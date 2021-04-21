@@ -25,19 +25,25 @@ impl<Block: BlockT, I: BlockImport<Block> + Clone> Clone for AlephBlockImport<Bl
     }
 }
 
-impl<Block: BlockT, I: BlockImport<Block>> BlockImport<Block> for AlephBlockImport<Block, I> {
+#[async_trait::async_trait]
+impl<Block: BlockT, I: BlockImport<Block> + Send> BlockImport<Block>
+    for AlephBlockImport<Block, I>
+{
     type Error = I::Error;
     type Transaction = I::Transaction;
 
-    fn check_block(&mut self, block: BlockCheckParams<Block>) -> Result<ImportResult, Self::Error> {
-        self.inner.check_block(block)
+    async fn check_block(
+        &mut self,
+        block: BlockCheckParams<Block>,
+    ) -> Result<ImportResult, Self::Error> {
+        self.inner.check_block(block).await
     }
 
-    fn import_block(
+    async fn import_block(
         &mut self,
         block: BlockImportParams<Block, Self::Transaction>,
         cache: HashMap<[u8; 4], Vec<u8>>,
     ) -> Result<ImportResult, Self::Error> {
-        self.inner.import_block(block, cache)
+        self.inner.import_block(block, cache).await
     }
 }
