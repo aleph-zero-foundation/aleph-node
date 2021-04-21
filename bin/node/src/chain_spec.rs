@@ -89,6 +89,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
                 // Pre-funded accounts
                 LOCAL_AUTHORITIES
                     .iter()
+                    .take(n_members)
                     .map(get_account_id_from_seed::<sr25519::Public>)
                     .collect(),
                 true,
