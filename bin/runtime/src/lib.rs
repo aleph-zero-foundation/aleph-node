@@ -11,7 +11,10 @@ use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
-    traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, Verify},
+    traits::{
+        AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, IdentifyAccount, OpaqueKeys,
+        Verify,
+    },
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, MultiSignature,
 };
@@ -24,7 +27,11 @@ use sp_version::RuntimeVersion;
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
     construct_runtime, parameter_types,
-    traits::{KeyOwnerProofSystem, Randomness},
+    sp_runtime::curve::PiecewiseLinear,
+    traits::{
+        Currency, Imbalance, KeyOwnerProofSystem, LockIdentifier, OnUnbalanced, Randomness,
+        U128CurrencyToVote,
+    },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
         IdentityFee, Weight,
@@ -36,6 +43,7 @@ use primitives::AuthorityId as AlephId;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::CurrencyAdapter;
+use sp_consensus_aura::SlotDuration;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
@@ -185,6 +193,7 @@ impl frame_system::Config for Runtime {
     type SystemWeightInfo = ();
     /// This is used as an identifier of the chain. 42 is the generic substrate prefix.
     type SS58Prefix = SS58Prefix;
+    type OnSetCode = ();
 }
 
 impl pallet_aura::Config for Runtime {
@@ -240,6 +249,117 @@ impl pallet_aleph::Config for Runtime {
     type AuthorityId = AlephId;
 }
 
+impl_opaque_keys! {
+    pub struct SessionKeys {
+        pub aura: Aura,
+    }
+}
+
+parameter_types! {
+    pub const Period: u32 = 50;
+    pub const Offset: u32 = 0;
+}
+
+parameter_types! {
+    pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(30);
+}
+
+impl pallet_session::Config for Runtime {
+    type Event = Event;
+    type ValidatorId = <Self as frame_system::Config>::AccountId;
+    type ValidatorIdOf = ConvertInto;
+    type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
+    type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
+    type SessionManager = pallet_session::historical::NoteHistoricalRoot<Self, Staking>;
+    type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
+    type Keys = SessionKeys;
+    type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
+    type WeightInfo = ();
+}
+
+impl pallet_session::historical::Config for Runtime {
+    type FullIdentification = pallet_staking::Exposure<AccountId, Balance>;
+    type FullIdentificationOf = pallet_staking::ExposureOf<Runtime>;
+}
+
+impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
+where
+    Call: From<C>,
+{
+    type Extrinsic = UncheckedExtrinsic;
+    type OverarchingCall = Call;
+}
+
+// The curve is wrapped in a module to suppress the `non_fmt_panic` warning only in the `build!` macro.
+mod curve {
+    #![allow(non_fmt_panic)]
+
+    // TODO: ensure that the parameters copied from the substrate node are reasonable for our use case.
+
+    pallet_staking_reward_curve::build! {
+        const REWARD_CURVE0: crate::PiecewiseLinear<'static> = curve!(
+            min_inflation: 0_025_000,
+            max_inflation: 0_100_000,
+            ideal_stake: 0_500_000,
+            falloff: 0_050_000,
+            max_piece_count: 40,
+            test_precision: 0_005_000,
+        );
+    }
+    pub const REWARD_CURVE: crate::PiecewiseLinear<'static> = REWARD_CURVE0;
+}
+parameter_types! {
+    pub const SessionsPerEra: sp_staking::SessionIndex = 1;
+    pub const BondingDuration: pallet_staking::EraIndex = 24 * 28;
+    pub const SlashDeferDuration: pallet_staking::EraIndex = 24 * 7; // 1/4 the bonding duration.
+    pub const RewardCurve: &'static PiecewiseLinear<'static> = &curve::REWARD_CURVE;
+    pub const MaxNominatorRewardedPerValidator: u32 = 256;
+    // the following are uneducated guesses
+    pub const ElectionLookahead: u32 = 0;
+    pub const MaxIterations: u32 = 1;
+
+}
+
+sp_npos_elections::generate_solution_type!(
+    #[compact]
+    pub struct NposCompactSolution16::<
+        VoterIndex = u32,
+        TargetIndex = u16,
+        Accuracy = sp_runtime::PerU16,
+    >(16)
+);
+
+impl pallet_staking::Config for Runtime {
+    type Currency = Balances;
+    type UnixTime = Timestamp;
+    type CurrencyToVote = U128CurrencyToVote;
+    type RewardRemainder = (); // Treasury
+    type Event = Event;
+    type Slash = ();
+    type Reward = ();
+    type SessionsPerEra = SessionsPerEra;
+    type BondingDuration = BondingDuration;
+    type SlashDeferDuration = SlashDeferDuration;
+    type SlashCancelOrigin = frame_system::EnsureRoot<Self::AccountId>;
+    type SessionInterface = Self;
+    type NextNewSession = Session;
+    type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
+    type WeightInfo = pallet_staking::weights::SubstrateWeight<Runtime>;
+    type ElectionProvider =
+        frame_election_provider_support::onchain::OnChainSequentialPhragmen<Runtime>;
+    const MAX_NOMINATIONS: u32 =
+        <NposCompactSolution16 as sp_npos_elections::CompactSolution>::LIMIT as u32;
+    type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
+}
+
+impl frame_election_provider_support::onchain::Config for Runtime {
+    type BlockWeights = BlockWeights;
+    type AccountId = AccountId;
+    type BlockNumber = BlockNumber;
+    type Accuracy = Perbill;
+    type DataProvider = Staking;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -247,14 +367,16 @@ construct_runtime!(
         NodeBlock = opaque::Block,
         UncheckedExtrinsic = UncheckedExtrinsic
     {
-        System: frame_system::{Module, Call, Config, Storage, Event<T>},
-        RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Module, Call, Storage},
-        Timestamp: pallet_timestamp::{Module, Call, Storage, Inherent},
-        Aura: pallet_aura::{Module, Config<T>},
-        Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-        TransactionPayment: pallet_transaction_payment::{Module, Storage},
-        Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
-        Aleph: pallet_aleph::{Module, Call, Config<T>, Storage},
+        System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+        RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Call, Storage},
+        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
+        Aura: pallet_aura::{Pallet, Config<T>},
+        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+        TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
+        Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
+        Aleph: pallet_aleph::{Pallet, Call, Config<T>, Storage},
+        Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
+        Staking: pallet_staking::{Pallet, Call, Storage, Event<T>, Config<T>},
     }
 );
 
@@ -288,7 +410,7 @@ pub type Executive = frame_executive::Executive<
     Block,
     frame_system::ChainContext<Runtime>,
     Runtime,
-    AllModules,
+    AllPallets,
 >;
 
 impl_runtime_apis! {
@@ -333,7 +455,7 @@ impl_runtime_apis! {
         }
 
         fn random_seed() -> <Block as BlockT>::Hash {
-            RandomnessCollectiveFlip::random_seed()
+            RandomnessCollectiveFlip::random_seed().0
         }
     }
 
@@ -347,8 +469,8 @@ impl_runtime_apis! {
     }
 
     impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
-        fn slot_duration() -> u64 {
-            Aura::slot_duration()
+        fn slot_duration() -> SlotDuration {
+            SlotDuration::from_millis(Aura::slot_duration())
         }
 
         fn authorities() -> Vec<AuraId> {

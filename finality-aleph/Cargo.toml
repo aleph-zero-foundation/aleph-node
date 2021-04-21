@@ -13,26 +13,27 @@ log = "0.4"
 futures = "0.3"
 parity-util-mem = "0.9"
 parking_lot = "0.11"
-prometheus-endpoint = { package = "substrate-prometheus-endpoint", version = "0.9.0"}
+prometheus-endpoint = { package = "substrate-prometheus-endpoint", git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 rand = "0.8"
 rush = { git = "https://github.com/Cardinal-Cryptography/rush.git", branch = "main" }
-# rush = {path = "../../rush"}
-sp-keystore = "0.9"
-sc-network = "0.9"
-sc-network-gossip = "0.9"
-sc-telemetry = "3"
+sp-keystore = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+sc-network = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+sc-network-gossip = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+sc-telemetry = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+
 serde = "1.0"
-sc-service = "0.9"
-sp-application-crypto = "3"
-sp-core = "3"
-sp-runtime = "3"
-sp-utils = "3"
-sp-api = "3"
-sp-blockchain = "3"
-sp-consensus= "0.9"
-sc-client-api = "3"
-sp-io="3"
+sc-service = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+sp-application-crypto = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+sp-core = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+sp-runtime = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+sp-utils = {  git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+sp-api = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+sp-blockchain = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+sp-consensus= { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+sc-client-api = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+sp-io= { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 derive_more = "0.99.7"
 # we need aura authorites till we have our own pallet
-sp-consensus-aura = "0.9"
+sp-consensus-aura = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 env_logger = "0.8.3"
+async-trait = "0.1.42"

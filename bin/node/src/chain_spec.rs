@@ -2,14 +2,18 @@ use std::collections::HashMap;
 
 use aleph_primitives::AuthorityId as AlephId;
 use aleph_runtime::{
-    AccountId, AlephConfig, AuraConfig, BalancesConfig, GenesisConfig, Signature, SudoConfig,
-    SystemConfig, WASM_BINARY,
+    AccountId, AlephConfig, AuraConfig, BalancesConfig, GenesisConfig, SessionConfig, SessionKeys,
+    Signature, StakingConfig, SudoConfig, SystemConfig, WASM_BINARY,
 };
+use pallet_staking::StakerStatus;
 use sc_service::ChainType;
 use sp_application_crypto::key_types;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{ed25519, sr25519, Pair, Public};
-use sp_runtime::traits::{IdentifyAccount, Verify};
+use sp_runtime::{
+    traits::{IdentifyAccount, Verify},
+    Perbill,
+};
 
 pub(crate) const LOCAL_AUTHORITIES: [&str; 8] = [
     "Damian", "Tomasz", "Zbyszko", "Hansu", "Adam", "Matt", "Antoni", "Michal",
@@ -85,6 +89,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
                 // Pre-funded accounts
                 LOCAL_AUTHORITIES
                     .iter()
+                    .take(n_members)
                     .map(get_account_id_from_seed::<sr25519::Public>)
                     .collect(),
                 true,
@@ -113,28 +118,54 @@ fn testnet_genesis(
     _enable_println: bool,
 ) -> GenesisConfig {
     GenesisConfig {
-        frame_system: Some(SystemConfig {
+        frame_system: SystemConfig {
             // Add Wasm runtime to storage.
             code: wasm_binary.to_vec(),
             changes_trie_config: Default::default(),
-        }),
-        pallet_balances: Some(BalancesConfig {
+        },
+        pallet_balances: BalancesConfig {
             // Configure endowed accounts with initial balance of 1 << 60.
             balances: endowed_accounts
                 .iter()
                 .cloned()
                 .map(|k| (k, 1 << 60))
                 .collect(),
-        }),
-        pallet_aura: Some(AuraConfig {
-            authorities: aura_authorities,
-        }),
-        pallet_sudo: Some(SudoConfig {
+        },
+        pallet_aura: AuraConfig {
+            authorities: vec![],
+        },
+        pallet_sudo: SudoConfig {
             // Assign network admin rights.
             key: root_key,
-        }),
-        pallet_aleph: Some(AlephConfig {
+        },
+        pallet_aleph: AlephConfig {
             authorities: aleph_authorities,
-        }),
+        },
+        pallet_session: SessionConfig {
+            keys: endowed_accounts
+                .iter()
+                .zip(aura_authorities.iter())
+                .map(|(account_id, aura_id)| {
+                    (
+                        account_id.clone(),
+                        account_id.clone(),
+                        SessionKeys {
+                            aura: aura_id.clone(),
+                        },
+                    )
+                })
+                .collect(),
+        },
+        pallet_staking: StakingConfig {
+            validator_count: endowed_accounts.len() as u32 * 2,
+            minimum_validator_count: endowed_accounts.len() as u32,
+            stakers: endowed_accounts
+                .iter()
+                .map(|x| (x.clone(), x.clone(), 1 << 50, StakerStatus::Validator))
+                .collect(),
+            invulnerables: endowed_accounts.clone(),
+            slash_reward_fraction: Perbill::from_percent(10),
+            ..Default::default()
+        },
     }
 }
