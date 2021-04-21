@@ -17,7 +17,7 @@ use prometheus_endpoint::{CounterVec, Opts, PrometheusError, Registry, U64};
 use rush::Unit;
 use sc_network::{ObservedRole, PeerId, ReputationChange};
 use sc_network_gossip::{MessageIntent, ValidationResult, Validator, ValidatorContext};
-use sc_telemetry::{telemetry, TelemetryHandle, CONSENSUS_DEBUG};
+use sc_telemetry::{telemetry, CONSENSUS_DEBUG};
 use sp_application_crypto::RuntimeAppPublic;
 
 use sp_runtime::traits::Block;
@@ -157,7 +157,6 @@ pub(super) struct GossipValidator<B: Block, H: rush::HashT> {
     pending_requests: RwLock<HashSet<(PeerId, UnitCoord)>>,
     block_phantom: PhantomData<B>,
     hash_phantom: PhantomData<H>,
-    telemetry: Option<TelemetryHandle>,
 }
 
 impl<B: Block, H: rush::HashT + Hash> GossipValidator<B, H> {
@@ -165,7 +164,6 @@ impl<B: Block, H: rush::HashT + Hash> GossipValidator<B, H> {
     /// channel with an optional prometheus registry.
     pub(crate) fn new(
         prometheus_registry: Option<&Registry>,
-        telemetry: Option<TelemetryHandle>,
     ) -> (GossipValidator<B, H>, TracingUnboundedReceiver<PeerReport>) {
         let metrics: Option<Metrics> = prometheus_registry.and_then(|reg| {
             Metrics::register(reg)
@@ -182,7 +180,6 @@ impl<B: Block, H: rush::HashT + Hash> GossipValidator<B, H> {
             pending_requests: RwLock::new(HashSet::new()),
             block_phantom: PhantomData::default(),
             hash_phantom: PhantomData::default(),
-            telemetry,
         };
 
         (val, rx_report)
@@ -330,7 +327,7 @@ impl<B: Block, H: Hash> Validator<B> for GossipValidator<B, H> {
             Err(e) => {
                 message_name = None;
                 debug!(target: "afa", "Error decoding message: {}", e);
-                telemetry!(self.telemetry; CONSENSUS_DEBUG; "afa.err_decoding_msg"; "" => "");
+                // telemetry!(self.telemetry; CONSENSUS_DEBUG; "afa.err_decoding_msg"; "" => "");
 
                 let len = std::cmp::min(i32::max_value() as usize, data.len()) as i32;
                 MessageAction::Discard(PeerMisbehavior::UndecodablePacket(len).into())
@@ -402,7 +399,7 @@ mod tests {
 
     impl GossipValidator<Block, Hash> {
         fn new_dummy() -> Self {
-            GossipValidator::<Block, Hash>::new(None, None).0
+            GossipValidator::<Block, Hash>::new(None).0
         }
 
         fn with_dummy_authorities(self, authorities: Vec<AuthorityId>) -> Self {

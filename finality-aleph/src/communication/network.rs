@@ -34,7 +34,6 @@ use std::{
     task::{Context, Poll},
 };
 
-use sc_telemetry::TelemetryHandle;
 use std::cmp::Ordering;
 use tokio::time;
 
@@ -207,10 +206,9 @@ impl<B: Block, H: Hash, N: Network<B>> NetworkBridge<B, H, N> {
         registry: Option<&Registry>,
         authorities: Vec<AuthorityId>,
         auth_cryptostore: AuthorityKeystore,
-        telemetry: Option<TelemetryHandle>,
     ) -> Self {
         let (gossip_validator, peer_report_handle) = {
-            let (validator, peer_report_handle) = GossipValidator::<B, H>::new(registry, telemetry);
+            let (validator, peer_report_handle) = GossipValidator::<B, H>::new(registry);
             let validator = Arc::new(validator);
             let peer_report_handle = Arc::new(Mutex::new(peer_report_handle));
             (validator, peer_report_handle)

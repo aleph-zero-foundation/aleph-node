@@ -7,16 +7,16 @@ use finality_aleph::{
     NodeId,
 };
 use sc_client_api::{CallExecutor, ExecutionStrategy, ExecutorProvider};
-use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
 use sc_executor::native_executor_instance;
 pub use sc_executor::NativeExecutor;
-use sc_service::{error::Error as ServiceError, Configuration, TFullClient, TaskManager};
+use sc_service::{error::Error as ServiceError, Configuration, TaskManager, TFullClient};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 use sp_inherents::InherentDataProviders;
 use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 use sp_runtime::{generic::BlockId, traits::Zero};
 use std::sync::Arc;
+use sc_consensus_aura::{ImportQueueParams, StartAuraParams, SlotProportion};
 
 // Our native executor instance.
 native_executor_instance!(
@@ -38,18 +38,13 @@ pub fn new_partial(
         FullSelectChain,
         sp_consensus::DefaultImportQueue<Block, FullClient>,
         sc_transaction_pool::FullPool<Block, FullClient>,
-        (
-            sc_consensus_aura::AuraBlockImport<Block, FullClient, Arc<FullClient>, AuraPair>,
-            Option<Telemetry>,
-        ),
+        sc_consensus_aura::AuraBlockImport<Block, FullClient, Arc<FullClient>, AuraPair>,
     >,
     ServiceError,
 > {
     let inherent_data_providers = InherentDataProviders::new();
 
-    let telemetry = config
-        .telemetry_endpoints
-        .clone()
+    let telemetry = config.telemetry_endpoints.clone()
         .filter(|x| !x.is_empty())
         .map(|endpoints| -> Result<_, sc_telemetry::Error> {
             let worker = TelemetryWorker::new(16)?;
@@ -59,10 +54,7 @@ pub fn new_partial(
         .transpose()?;
 
     let (client, backend, keystore_container, task_manager) =
-        sc_service::new_full_parts::<Block, RuntimeApi, Executor>(
-            &config,
-            telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
-        )?;
+        sc_service::new_full_parts::<Block, RuntimeApi, Executor>(&config, telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()))?;
     let client: Arc<TFullClient<_, _, _>> = Arc::new(client);
 
     let select_chain = sc_consensus::LongestChain::new(backend.clone());
@@ -80,23 +72,20 @@ pub fn new_partial(
         client.clone(),
     );
 
-    let import_queue =
-        sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _>(ImportQueueParams {
+    let import_queue = sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _>(
+        ImportQueueParams {
             block_import: aura_block_import.clone(),
             justification_import: None,
             client: client.clone(),
             inherent_data_providers: inherent_data_providers.clone(),
             spawner: &task_manager.spawn_essential_handle(),
             registry: config.prometheus_registry(),
-            can_author_with: sp_consensus::CanAuthorWithNativeVersion::new(
-                client.executor().clone(),
-            ),
+            can_author_with: sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone()),
             check_for_equivocation: Default::default(),
             slot_duration: sc_consensus_aura::slot_duration(&*client)?,
-            telemetry: telemetry.as_ref().map(|(_, x)| x.handle()),
-        })?;
-
-    let telemetry = telemetry.map(|(_, t)| t);
+            telemetry: telemetry.as_ref().map(|(_, x)| x.handle())
+        }
+    )?;
 
     Ok(sc_service::PartialComponents {
         client,
@@ -107,7 +96,7 @@ pub fn new_partial(
         select_chain,
         transaction_pool,
         inherent_data_providers,
-        other: (aura_block_import, telemetry),
+        other: aura_block_import,
     })
 }
 
@@ -156,7 +145,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
         select_chain,
         transaction_pool,
         inherent_data_providers,
-        other: (block_import, mut telemetry),
+        other: block_import,
         ..
     } = new_partial(&config)?;
 
@@ -198,21 +187,22 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
         })
     };
 
-    let _rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
-        config,
-        client: client.clone(),
-        backend,
-        task_manager: &mut task_manager,
-        keystore: keystore_container.sync_keystore(),
-        on_demand: None,
-        transaction_pool: transaction_pool.clone(),
-        rpc_extensions_builder,
-        remote_blockchain: None,
-        network: network.clone(),
-        network_status_sinks,
-        system_rpc_tx,
-        telemetry: telemetry.as_mut(),
-    })?;
+    let _rpc_handlers =
+        sc_service::spawn_tasks(sc_service::SpawnTasksParams {
+            config,
+            client: client.clone(),
+            backend,
+            task_manager: &mut task_manager,
+            keystore: keystore_container.sync_keystore(),
+            on_demand: None,
+            transaction_pool: transaction_pool.clone(),
+            rpc_extensions_builder,
+            remote_blockchain: None,
+            network: network.clone(),
+            network_status_sinks,
+            system_rpc_tx,
+            telemetry: None
+        })?;
 
     if role.is_authority() {
         let proposer_factory = sc_basic_authorship::ProposerFactory::new(
@@ -220,7 +210,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
             client.clone(),
             transaction_pool,
             prometheus_registry.as_ref(),
-            telemetry.as_ref().map(|x| x.handle()),
+            None
         );
 
         let can_author_with =
@@ -240,8 +230,8 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
                 keystore: keystore_container.sync_keystore(),
                 can_author_with,
                 block_proposal_slot_portion: SlotProportion::new(2f32 / 3f32),
-                telemetry: telemetry.as_ref().map(|x| x.handle()),
-            },
+                telemetry: None
+            }
         )?;
 
         task_manager
@@ -256,7 +246,6 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
             spawn_handle: task_manager.spawn_handle(),
             auth_keystore: AuthorityKeystore::new(authority_id, keystore_container.sync_keystore()),
             authorities,
-            telemetry: telemetry.as_ref().map(|x| x.handle()),
         };
         task_manager
             .spawn_essential_handle()

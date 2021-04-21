@@ -5,7 +5,6 @@ use crate::{
 };
 use rush::{Config as ConsensusConfig, Consensus};
 use sc_client_api::backend::Backend;
-use sc_telemetry::TelemetryHandle;
 use sp_consensus::SelectChain;
 use sp_runtime::traits::Block;
 use std::sync::Arc;
@@ -37,10 +36,8 @@ where
         select_chain: SC,
         auth_keystore: AuthorityKeystore,
         authorities: Vec<AuthorityId>,
-        telemetry: Option<TelemetryHandle>,
     ) -> Self {
-        let network_bridge =
-            NetworkBridge::new(network, None, None, authorities, auth_keystore, telemetry);
+        let network_bridge = NetworkBridge::new(network, None, None, authorities, auth_keystore);
         let env = Arc::new(Environment::new(client, network_bridge, select_chain));
         let consensus = Consensus::new(conf, env.clone());
 
