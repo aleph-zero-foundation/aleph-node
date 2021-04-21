@@ -54,6 +54,7 @@ sp-blockchain = { version = "3.0.0", git = "https://github.com/paritytech/substr
 sp-block-builder = { version = "3.0.0", git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 substrate-frame-rpc-system = { version = "3.0.0", git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 pallet-transaction-payment-rpc = { version = "3.0.0", git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+pallet-staking = { version = "3.0.0", git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 
 [build-dependencies]
 substrate-build-script-utils = { version = "3.0.0", git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
