@@ -1,9 +1,12 @@
+use aleph_primitives::ALEPH_ENGINE_ID;
+use codec::Encode;
 use log::{debug, error};
 use sc_client_api::backend::Backend;
 use sp_consensus::SelectChain;
 use sp_runtime::{
     generic::BlockId,
     traits::{Block, Header},
+    Justification,
 };
 use std::{marker::PhantomData, sync::Arc};
 
@@ -24,6 +27,8 @@ use std::{
 };
 
 use futures::stream::Fuse;
+use crate::justification::AlephJustification;
+use sp_api::NumberFor;
 use std::cmp::Ordering;
 use tokio::time;
 
@@ -274,7 +279,7 @@ where
             .unit_by_hash(&hash)
             .expect("Our units are in store.")
             .clone();
-        let message = self.form_network_message(ConsensusMessage::NewUnit(signed_unit.clone()));
+        let message = self.form_network_message(ConsensusMessage::NewUnit(signed_unit));
         debug!(target: "env", "Sending a unit {:?} over network after delay {:?}.", hash, interval);
         let command = NetworkCommand::SendToAll(message);
         if let Err(e) = self.tx_network.unbounded_send(command) {
@@ -399,7 +404,22 @@ where
     }
 
     fn finalize_block(&self, h: B::Hash) {
-        finalize_block(self.client.clone(), h);
+        let block_number = match self.client.number(h) {
+            Ok(Some(number)) => number,
+            _ => {
+                error!(target: "env", "a block with hash {} should already be in chain", h);
+                return;
+            }
+        };
+        finalize_block(
+            self.client.clone(),
+            h,
+            block_number,
+            Some((
+                ALEPH_ENGINE_ID,
+                AlephJustification::new::<B>(&self.auth_cryptostore, h).encode(),
+            )),
+        );
     }
 
     pub(crate) async fn run_epoch(mut self) {
@@ -434,21 +454,16 @@ where
     }
 }
 
-
-
-pub(crate) fn finalize_block<BE, B, C>(client: Arc<C>, hash: B::Hash)
-where
+pub(crate) fn finalize_block<BE, B, C>(
+    client: Arc<C>,
+    hash: B::Hash,
+    block_number: NumberFor<B>,
+    justification: Option<Justification>,
+) where
     B: Block,
     BE: Backend<B>,
     C: crate::ClientForAleph<B, BE>,
 {
-    let block_number = match client.number(hash) {
-        Ok(Some(number)) => number,
-        _ => {
-            error!(target: "env", "a block with hash {} should already be in chain", hash);
-            return;
-        }
-    };
     let info = client.info();
 
     if info.finalized_number >= block_number {
@@ -462,9 +477,9 @@ where
 
     let _update_res = client.lock_import_and_run(|import_op| {
         // NOTE: all other finalization logic should come here, inside the lock
-        client.apply_finality(import_op, BlockId::Hash(hash), None, true)
+        client.apply_finality(import_op, BlockId::Hash(hash), justification, true)
     });
 
     let status = client.info();
-    debug!(target: "env", "Finalized block with hash {:?}. Current best: #{:?}.", hash,status.finalized_number);
+    debug!(target: "env", "Finalized block with hash {:?}. Current best: #{:?}.", hash, status.finalized_number);
 }

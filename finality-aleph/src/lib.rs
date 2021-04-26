@@ -22,6 +22,7 @@ pub mod config;
 pub(crate) mod environment;
 pub mod hash;
 mod import;
+mod justification;
 mod messages;
 mod network;
 mod party;
