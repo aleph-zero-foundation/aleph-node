@@ -26,8 +26,8 @@ use std::{
     task::{Context, Poll},
 };
 
-use futures::stream::Fuse;
 use crate::justification::AlephJustification;
+use futures::stream::Fuse;
 use sp_api::NumberFor;
 use std::cmp::Ordering;
 use tokio::time;
@@ -144,7 +144,6 @@ pub(crate) struct Environment<B: Block, H: Hash, C, BE, SC> {
     auth_cryptostore: AuthorityKeystore,
     store: UnitStore<B, H>,
     requests: BinaryHeap<ScheduledTask<H>>,
-    request_ticker: Fuse<time::Interval>,
     hashing: Box<dyn Fn(&[u8]) -> H + Send>,
     epoch_id: EpochId,
     _phantom: PhantomData<BE>,
@@ -181,7 +180,6 @@ where
             auth_cryptostore,
             store: UnitStore::new(),
             requests: BinaryHeap::new(),
-            request_ticker: time::interval(TICK_INTERVAL).fuse(),
             hashing: Box::new(hashing),
             epoch_id,
             _phantom: PhantomData,
@@ -423,6 +421,7 @@ where
     }
 
     pub(crate) async fn run_epoch(mut self) {
+        let mut request_ticker = time::interval(TICK_INTERVAL).fuse();
         loop {
             futures::select! {
                 notification = self.rx_consensus.next() => match notification {
@@ -448,7 +447,7 @@ where
                         return;
                     }
                 },
-                _ = self.request_ticker.next() => self.trigger_tasks(),
+                _ = request_ticker.next() => self.trigger_tasks(),
             }
         }
     }

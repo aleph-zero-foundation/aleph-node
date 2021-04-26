@@ -2,13 +2,12 @@ use crate::{
     environment::Environment, network, network::ConsensusNetwork, EpochId, NodeId, SpawnHandle,
 };
 
-use futures::channel::mpsc;
+use futures::{channel::mpsc, SinkExt};
 use rush::Consensus;
 use sc_client_api::backend::Backend;
 use sp_consensus::SelectChain;
 use sp_core::{Blake2Hasher, Hasher, H256};
 use sp_runtime::traits::Block;
-use futures::SinkExt;
 
 pub struct AlephParams<N, C, SC> {
     pub config: crate::AlephConfig<N, C, SC>,
