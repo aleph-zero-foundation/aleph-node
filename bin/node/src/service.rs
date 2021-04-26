@@ -39,9 +39,11 @@ pub fn new_partial(
         FullSelectChain,
         sp_consensus::DefaultImportQueue<Block, FullClient>,
         sc_transaction_pool::FullPool<Block, FullClient>,
-        AlephBlockImport<
+        sc_consensus_aura::AuraBlockImport<
             Block,
-            sc_consensus_aura::AuraBlockImport<Block, FullClient, Arc<FullClient>, AuraPair>,
+            FullClient,
+            AlephBlockImport<Block, FullBackend, FullClient>,
+            AuraPair,
         >,
     >,
     ServiceError,
@@ -76,17 +78,18 @@ pub fn new_partial(
         client.clone(),
     );
 
+    let (_, authorities) = get_authorities(client.clone(), keystore_container.sync_keystore());
+    let aleph_block_import = AlephBlockImport::new(client.clone() as Arc<_>, authorities);
+
     let aura_block_import = sc_consensus_aura::AuraBlockImport::<_, _, _, AuraPair>::new(
-        client.clone(),
+        aleph_block_import.clone(),
         client.clone(),
     );
 
-    let aleph_block_import = AlephBlockImport::new(aura_block_import);
-
     let import_queue =
         sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _>(ImportQueueParams {
-            block_import: aleph_block_import.clone(),
-            justification_import: None,
+            block_import: aura_block_import.clone(),
+            justification_import: Some(Box::new(aleph_block_import)),
             client: client.clone(),
             inherent_data_providers: inherent_data_providers.clone(),
             spawner: &task_manager.spawn_essential_handle(),
@@ -108,7 +111,7 @@ pub fn new_partial(
         select_chain,
         transaction_pool,
         inherent_data_providers,
-        other: aleph_block_import,
+        other: aura_block_import,
     })
 }
 
