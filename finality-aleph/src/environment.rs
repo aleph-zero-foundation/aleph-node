@@ -157,6 +157,7 @@ where
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
 {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         client: Arc<C>,
         select_chain: SC,

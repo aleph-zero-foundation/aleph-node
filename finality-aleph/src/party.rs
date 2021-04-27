@@ -39,7 +39,6 @@ where
     let spawn_handle: SpawnHandle = spawn_handle.into();
 
     let (net_command_tx, net_command_rx) = mpsc::unbounded();
-    let network = network.clone();
     let task = {
         let network = network.clone();
         async move { network.run(net_command_rx).await }
