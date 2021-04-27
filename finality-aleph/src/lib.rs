@@ -65,6 +65,7 @@ pub struct EpochId(pub u32);
 use sp_core::crypto::KeyTypeId;
 // pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"alp0");
 pub const KEY_TYPE: KeyTypeId = sp_application_crypto::key_types::AURA;
+use crate::party::{run_consensus_party, AlephParams};
 pub use sp_consensus_aura::sr25519::{AuthorityId, AuthorityPair, AuthoritySignature};
 
 #[derive(Clone, Debug, Default, Eq, Hash, Encode, Decode, PartialEq)]
@@ -195,19 +196,5 @@ where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
     SC: SelectChain<B> + 'static,
 {
-    let AlephConfig {
-        network,
-        consensus_config,
-        client,
-        select_chain,
-        spawn_handle,
-        auth_keystore,
-        authorities,
-    } = config;
-    let consensus = party::ConsensusParty::new(client, network, select_chain, auth_keystore);
-    async move {
-        consensus
-            .run(authorities, consensus_config, spawn_handle.into())
-            .await;
-    }
+    run_consensus_party(AlephParams { config })
 }

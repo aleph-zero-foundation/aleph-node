@@ -11,13 +11,12 @@ use sp_runtime::{
 use std::{marker::PhantomData, sync::Arc};
 
 use crate::{
-    config::Config,
     hash::Hash,
     messages::{sign_unit, ConsensusMessage, FullUnit, NetworkMessage, SignedUnit},
     network::{NetworkCommand, NetworkEvent},
-    AuthorityId, AuthorityKeystore, EpochId,
+    AuthorityKeystore, EpochId,
 };
-use futures::{channel::mpsc, prelude::*, Future, StreamExt};
+use futures::{channel::mpsc, prelude::*, StreamExt};
 
 use rush::{NotificationIn, NotificationOut, Unit, UnitCoord};
 use sc_network::PeerId;
@@ -28,6 +27,7 @@ use std::{
 };
 
 use crate::justification::AlephJustification;
+use futures::stream::Fuse;
 use sp_api::NumberFor;
 use std::cmp::Ordering;
 use tokio::time;
@@ -136,18 +136,17 @@ impl<B: Block, H: Hash> UnitStore<B, H> {
 pub(crate) struct Environment<B: Block, H: Hash, C, BE, SC> {
     client: Arc<C>,
     select_chain: SC,
-    tx_consensus: Option<mpsc::UnboundedSender<NotificationIn<H>>>,
-    rx_consensus: Option<mpsc::UnboundedReceiver<NotificationOut<H>>>,
+    tx_consensus: mpsc::UnboundedSender<NotificationIn<H>>,
+    rx_consensus: mpsc::UnboundedReceiver<NotificationOut<H>>,
     tx_network: mpsc::UnboundedSender<NetworkCommand<B, H>>,
     rx_network: mpsc::UnboundedReceiver<NetworkEvent<B, H>>,
-    rx_order: Option<tokio::sync::mpsc::UnboundedReceiver<Vec<H>>>,
+    rx_order: Fuse<tokio::sync::mpsc::UnboundedReceiver<Vec<H>>>,
     auth_cryptostore: AuthorityKeystore,
     store: UnitStore<B, H>,
     requests: BinaryHeap<ScheduledTask<H>>,
-    request_ticker: time::Interval,
     hashing: Box<dyn Fn(&[u8]) -> H + Send>,
     epoch_id: EpochId,
-    _phantom: std::marker::PhantomData<(B, BE)>,
+    _phantom: PhantomData<BE>,
 }
 
 impl<B, H, C, BE, SC> Environment<B, H, C, BE, SC>
@@ -158,13 +157,15 @@ where
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
 {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         client: Arc<C>,
         select_chain: SC,
+        tx_consensus: mpsc::UnboundedSender<NotificationIn<H>>,
+        rx_consensus: mpsc::UnboundedReceiver<NotificationOut<H>>,
         tx_network: mpsc::UnboundedSender<NetworkCommand<B, H>>,
         rx_network: mpsc::UnboundedReceiver<NetworkEvent<B, H>>,
-        _config: Option<Config>,
-        _authorities: Vec<AuthorityId>,
+        rx_order: tokio::sync::mpsc::UnboundedReceiver<Vec<H>>,
         auth_cryptostore: AuthorityKeystore,
         hashing: impl Fn(&[u8]) -> H + Send + Copy + 'static,
         epoch_id: EpochId,
@@ -172,45 +173,22 @@ where
         Environment {
             client,
             select_chain,
-            tx_consensus: None,
-            rx_consensus: None,
+            tx_consensus,
+            rx_consensus,
             tx_network,
             rx_network,
-            rx_order: None,
+            rx_order: rx_order.fuse(),
             auth_cryptostore,
             store: UnitStore::new(),
             requests: BinaryHeap::new(),
-            request_ticker: time::interval(TICK_INTERVAL),
             hashing: Box::new(hashing),
             epoch_id,
             _phantom: PhantomData,
         }
     }
 
-    pub(crate) fn consensus_data(
-        &mut self,
-    ) -> (
-        NotificationOutSender<H>,
-        mpsc::UnboundedReceiver<NotificationIn<H>>,
-        tokio::sync::mpsc::UnboundedSender<Vec<H>>,
-    ) {
-        let (tx_out, rx_out) = mpsc::unbounded();
-        self.rx_consensus.replace(rx_out);
-        let tx_out = NotificationOutSender::<H> { tx: tx_out };
-        let (tx_in, rx_in) = mpsc::unbounded();
-        self.tx_consensus.replace(tx_in);
-        let (tx_order, rx_order) = tokio::sync::mpsc::unbounded_channel();
-        self.rx_order.replace(rx_order);
-        (tx_out, rx_in, tx_order)
-    }
-
     fn send_consensus_notification(&mut self, notification: NotificationIn<H>) {
-        if let Err(e) = self
-            .tx_consensus
-            .as_mut()
-            .expect("Channel to consensus must be open.")
-            .start_send(notification)
-        {
+        if let Err(e) = self.tx_consensus.unbounded_send(notification) {
             debug!(target: "env", "Error when sending notification {:?}.", e);
         }
     }
@@ -252,53 +230,65 @@ where
     // Pulls requests from the priority queue (sorted by scheduled time) and sends them to random peers
     // as long as they are scheduled at time <= curr_time
     pub(crate) fn trigger_tasks(&mut self) {
-        loop {
+        while let Some(request) = self.requests.peek() {
             let curr_time = time::Instant::now();
-            if self.requests.is_empty() || self.requests.peek().unwrap().scheduled_time > curr_time
-            {
+            if request.scheduled_time > curr_time {
                 break;
             }
-            let task = self.requests.pop().expect("Queue must be non-empty").task;
+            let request = self.requests.pop().expect("The element was peeked");
+            let task = request.task;
+
             match task {
                 Task::CoordRequest(coord) => {
-                    debug!(target: "env", "Starting request for {:?}", coord);
-                    // If we already have a unit with such a coord in our store then there is no need to request it.
-                    // It will be sent to consensus soon (or have already been sent).
-                    if !self.store.contains_coord(&coord) {
-                        let message =
-                            self.form_network_message(ConsensusMessage::FetchRequest(coord));
-                        let command = NetworkCommand::SendToRandPeer(message);
-                        self.place_network_command(command);
-                        debug!(target: "env", "Fetch request for {:?} sent.", coord);
-                        self.requests.push(ScheduledTask::new(
-                            Task::CoordRequest(coord),
-                            curr_time + FETCH_INTERVAL,
-                        ));
-                    } else {
-                        debug!(target: "env", "Request dropped as the unit is in store already {:?}", coord);
-                    }
+                    self.schedule_coord_request(coord, curr_time);
                 }
                 Task::UnitMulticast(hash, interval) => {
-                    let signed_unit = self
-                        .store
-                        .unit_by_hash(&hash)
-                        .expect("Our units are in store.")
-                        .clone();
-                    let message =
-                        self.form_network_message(ConsensusMessage::NewUnit(signed_unit.clone()));
-                    debug!(target: "env", "Sending a unit {:?} over network after delay {:?}.", hash, interval);
-                    let command = NetworkCommand::SendToAll(message);
-                    if let Err(e) = self.tx_network.unbounded_send(command) {
-                        debug!(target: "env", "Failed to place a multicast command in the network channel {:?}.", e);
-                    }
-                    //NOTE: we double the delay each time
-                    self.requests.push(ScheduledTask::new(
-                        Task::UnitMulticast(hash, interval * 2),
-                        curr_time + interval,
-                    ));
+                    self.schedule_unit_multicast(hash, interval, curr_time);
                 }
             }
         }
+    }
+
+    fn schedule_coord_request(&mut self, coord: UnitCoord, curr_time: time::Instant) {
+        debug!(target: "env", "Starting request for {:?}", coord);
+        // If we already have a unit with such a coord in our store then there is no need to request it.
+        // It will be sent to consensus soon (or have already been sent).
+        if self.store.contains_coord(&coord) {
+            debug!(target: "env", "Request dropped as the unit is in store already {:?}", coord);
+            return;
+        }
+        let message = self.form_network_message(ConsensusMessage::FetchRequest(coord));
+        let command = NetworkCommand::SendToRandPeer(message);
+        self.place_network_command(command);
+        debug!(target: "env", "Fetch request for {:?} sent.", coord);
+        self.requests.push(ScheduledTask::new(
+            Task::CoordRequest(coord),
+            curr_time + FETCH_INTERVAL,
+        ));
+    }
+
+    fn schedule_unit_multicast(
+        &mut self,
+        hash: H,
+        interval: time::Duration,
+        curr_time: time::Instant,
+    ) {
+        let signed_unit = self
+            .store
+            .unit_by_hash(&hash)
+            .expect("Our units are in store.")
+            .clone();
+        let message = self.form_network_message(ConsensusMessage::NewUnit(signed_unit));
+        debug!(target: "env", "Sending a unit {:?} over network after delay {:?}.", hash, interval);
+        let command = NetworkCommand::SendToAll(message);
+        if let Err(e) = self.tx_network.unbounded_send(command) {
+            debug!(target: "env", "Failed to place a multicast command in the network channel {:?}.", e);
+        }
+        //NOTE: we double the delay each time
+        self.requests.push(ScheduledTask::new(
+            Task::UnitMulticast(hash, interval * 2),
+            curr_time + interval,
+        ));
     }
 
     pub(crate) fn on_missing_notification(&mut self, coords: Vec<UnitCoord>) {
@@ -430,80 +420,37 @@ where
             )),
         );
     }
-}
 
-impl<B, H, C, BE, SC> Unpin for Environment<B, H, C, BE, SC>
-where
-    B: Block,
-    H: Hash,
-    C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
-    BE: Backend<B> + 'static,
-    SC: SelectChain<B> + 'static,
-{
-}
-
-impl<B: Block, H: Hash, C, BE, SC> Future for Environment<B, H, C, BE, SC>
-where
-    B: Block,
-    H: Hash,
-    C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
-    BE: Backend<B> + 'static,
-    SC: SelectChain<B> + 'static,
-{
-    type Output = ();
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        debug!(target: "env", "Polling environment.");
-        if self.rx_consensus.is_some() {
-            loop {
-                match self.rx_consensus.as_mut().unwrap().poll_next_unpin(cx) {
-                    Poll::Ready(Some(notification)) => {
-                        self.on_consensus_notification(notification);
-                    }
-                    Poll::Ready(None) => {
-                        error!(target: "env", "Consensus notification stream closed.");
-                        return Poll::Ready(());
-                    }
-                    Poll::Pending => break,
-                }
-            }
-        }
-
-        // NOTE: the loop below finalizes blocks based on the ordered units received from consensus,
-        // for efficiency it might be necessary to run this in a separate thread, although then self.store
-        // would need to be synchronized (or perhaps a copy could be stored in the finalizer thread).
-        if self.rx_order.is_some() {
-            loop {
-                match self.rx_order.as_mut().unwrap().poll_next_unpin(cx) {
-                    Poll::Ready(Some(batch)) => {
-                        self.on_ordered_batch(batch);
-                    }
-                    Poll::Ready(None) => {
-                        error!(target: "env", "Consensus order stream closed.");
-                        return Poll::Ready(());
-                    }
-                    Poll::Pending => break,
-                }
-            }
-        }
-
+    pub(crate) async fn run_epoch(mut self) {
+        let mut request_ticker = time::interval(TICK_INTERVAL).fuse();
         loop {
-            match self.rx_network.poll_next_unpin(cx) {
-                Poll::Ready(Some(event)) => {
-                    self.on_network_event(event);
-                }
-                Poll::Ready(None) => {
-                    error!(target: "env", "Network event stream closed.");
-                    return Poll::Ready(());
-                }
-                Poll::Pending => break,
+            futures::select! {
+                notification = self.rx_consensus.next() => match notification {
+                        Some(notification) => self.on_consensus_notification(notification),
+                        None => {
+                            error!(target: "env", "Consensus notification stream closed.");
+                            return;
+                        }
+                },
+
+                batch = self.rx_order.next() => match batch {
+                        Some(batch) => self.on_ordered_batch(batch),
+                        None => {
+                        error!(target: "env", "Consensus notification stream closed.");
+                        return;
+                    }
+                },
+
+                event = self.rx_network.next() => match event {
+                    Some(event) => self.on_network_event(event),
+                    None => {
+                        error!(target: "env", "Network event stream closed.");
+                        return;
+                    }
+                },
+                _ = request_ticker.next() => self.trigger_tasks(),
             }
         }
-
-        // this is to make sure requests are triggered frequently
-        while self.request_ticker.poll_next_unpin(cx).is_ready() {
-            self.trigger_tasks();
-        }
-        Poll::Pending
     }
 }
 
