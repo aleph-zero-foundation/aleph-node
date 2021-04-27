@@ -10,6 +10,7 @@ use sp_runtime::traits::Block;
 pub(crate) struct FullUnit<B: Block, H: Hash> {
     pub(crate) inner: PreUnit<H>,
     pub(crate) block_hash: B::Hash,
+    pub(crate) epoch_id: EpochId,
 }
 
 #[derive(Debug, Encode, Decode, Clone)]
@@ -67,12 +68,16 @@ pub(crate) fn sign_unit<B: Block, H: Hash>(
 /// The kind of message that is being sent.
 #[derive(Debug, Encode, Decode, Clone)]
 pub(crate) enum ConsensusMessage<B: Block, H: Hash> {
-    /// A multicast message kind.
+    /// Fo disseminating newly created units.
     NewUnit(SignedUnit<B, H>),
-    /// A fetch request message kind.
-    FetchRequest(UnitCoord),
-    /// A fetch response message kind.
-    FetchResponse(SignedUnit<B, H>),
+    /// Request for a unit by its coord.
+    RequestCoord(UnitCoord),
+    /// Response to a request by coord.
+    ResponseCoord(SignedUnit<B, H>),
+    /// Request for the full list of parents of a unit.
+    RequestParents(H),
+    /// Response to a request for a full list of parents.
+    ResponseParents(H, Vec<SignedUnit<B, H>>),
 }
 
 /// The kind of message that is being sent.

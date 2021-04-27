@@ -36,5 +36,5 @@ for i in ${!authorities[@]}; do
     --ws-port $(expr 9944 + $i) \
     --port $(expr 30334 + $i) \
     --execution Native \
-    2> $auth-$i.log   & \
+    2> $auth-$i.log  & \
 done

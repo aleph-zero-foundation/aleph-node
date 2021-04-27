@@ -63,6 +63,7 @@ where
         net_command_tx,
         network_event_rx,
         order_rx,
+        authorities,
         auth_keystore,
         hashing,
         epoch_id,

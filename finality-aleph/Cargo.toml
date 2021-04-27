@@ -16,12 +16,12 @@ parity-util-mem = "0.9"
 parking_lot = "0.11"
 prometheus-endpoint = { package = "substrate-prometheus-endpoint", git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 rand = "0.8"
-rush = { git = "https://github.com/Cardinal-Cryptography/rush.git", branch = "main" }
 sp-keystore = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 sc-network = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 sc-network-gossip = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 sc-telemetry = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-
+rush = { git = "https://github.com/Cardinal-Cryptography/rush.git", branch = "main" }
+# rush = {path = "../../rush"}
 serde = "1.0"
 sc-service = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 sp-application-crypto = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
