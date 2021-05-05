@@ -1,4 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+use codec::{Decode, Encode};
 use sp_core::crypto::KeyTypeId;
 use sp_runtime::ConsensusEngineId;
 use sp_std::vec::Vec;
@@ -21,4 +22,17 @@ sp_api::decl_runtime_apis! {
     pub trait AlephApi {
         fn authorities() -> Vec<AuthorityId>;
     }
+}
+
+#[derive(Decode, Encode, PartialEq, Eq, Clone)]
+pub enum AuthoritiesLog<Id, Number>
+where
+    Id: Encode + Decode,
+    Number: Encode + Decode,
+{
+    WillChange {
+        session_id: u64,
+        when: Number,
+        next_authorities: Vec<Id>,
+    },
 }

@@ -93,6 +93,7 @@ pub mod opaque {
     impl_opaque_keys! {
         pub struct SessionKeys {
             pub aura: Aura,
+            pub aleph: Aleph,
         }
     }
 }
@@ -252,6 +253,7 @@ impl pallet_aleph::Config for Runtime {
 impl_opaque_keys! {
     pub struct SessionKeys {
         pub aura: Aura,
+        pub aleph: Aleph,
     }
 }
 

@@ -139,18 +139,20 @@ fn testnet_genesis(
             key: root_key,
         },
         pallet_aleph: AlephConfig {
-            authorities: aleph_authorities,
+            authorities: aleph_authorities.to_vec(),
         },
         pallet_session: SessionConfig {
             keys: endowed_accounts
                 .iter()
                 .zip(aura_authorities.iter())
-                .map(|(account_id, aura_id)| {
+                .zip(aleph_authorities.iter())
+                .map(|((account_id, aura_id), aleph_id)| {
                     (
                         account_id.clone(),
                         account_id.clone(),
                         SessionKeys {
                             aura: aura_id.clone(),
+                            aleph: aleph_id.clone(),
                         },
                     )
                 })

@@ -1,5 +1,5 @@
 use crate::{environment::finalize_block, justification::AlephJustification, AuthorityId};
-use aleph_primitives::ALEPH_ENGINE_ID;
+use aleph_primitives::{AuthoritiesLog, ALEPH_ENGINE_ID};
 use codec::Encode;
 use sc_client_api::backend::Backend;
 use sp_api::TransactionFor;
@@ -8,6 +8,7 @@ use sp_consensus::{
     JustificationImport,
 };
 use sp_runtime::{
+    generic::OpaqueDigestItemId,
     traits::{Block as BlockT, Header, NumberFor},
     Justification,
 };
@@ -35,6 +36,29 @@ where
             inner,
             authorities,
             _phantom: PhantomData,
+        }
+    }
+
+    fn log_change(header: &Block::Header) {
+        let id = OpaqueDigestItemId::Consensus(&ALEPH_ENGINE_ID);
+
+        let log = header.digest().convert_first(|l| {
+            l.try_to(id).map(
+                |log: AuthoritiesLog<AuthorityId, NumberFor<Block>>| match log {
+                    AuthoritiesLog::WillChange {
+                        session_id,
+                        when,
+                        next_authorities,
+                    } => (session_id, when, next_authorities),
+                },
+            )
+        });
+
+        if let Some((session_id, when, _)) = log {
+            log::debug!(
+                target: "afa",
+                "Got new authorities for session #{:?} scheduled for block #{:?}", session_id, when
+            );
         }
     }
 }
@@ -83,7 +107,9 @@ where
         let hash = block.header.hash();
         let justifications = block.justifications.take();
 
-        log::debug!(target: "afg", "Importing block #{:?}", number);
+        Self::log_change(&block.header);
+
+        log::debug!(target: "afa", "Importing block #{:?}", number);
         let import_result = self.inner.import_block(block, cache).await;
 
         let mut imported_aux = match import_result {
@@ -115,7 +141,7 @@ where
     type Error = ConsensusError;
 
     fn on_start(&mut self) -> Vec<(Block::Hash, NumberFor<Block>)> {
-        log::debug!(target: "afg", "On start called");
+        log::debug!(target: "afa", "On start called");
         Vec::new()
     }
 
@@ -125,7 +151,7 @@ where
         number: NumberFor<Block>,
         justification: Justification,
     ) -> Result<(), Self::Error> {
-        log::debug!(target: "afg", "Importing justification for block #{:?}", number);
+        log::debug!(target: "afa", "Importing justification for block #{:?}", number);
         if justification.0 != ALEPH_ENGINE_ID {
             return Err(ConsensusError::ClientImport(
                 "Aleph can import only Aleph justifications.".into(),
@@ -138,7 +164,7 @@ where
             &self.authorities,
             number,
         ) {
-            log::debug!(target: "afg", "Finalizing block #{:?} from justification import", number);
+            log::debug!(target: "afa", "Finalizing block #{:?} from justification import", number);
             finalize_block(
                 Arc::clone(&self.inner),
                 hash,
