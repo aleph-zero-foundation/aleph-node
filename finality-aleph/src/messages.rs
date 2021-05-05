@@ -1,7 +1,7 @@
 use crate::{hash::Hash, AuthorityId, AuthorityKeystore, AuthoritySignature, EpochId, UnitCoord};
 use codec::{Decode, Encode};
 use log::debug;
-use rush::PreUnit;
+use rush::{NodeCount, NodeIndex, PreUnit};
 use sp_application_crypto::RuntimeAppPublic;
 
 use sp_runtime::traits::Block;
@@ -49,6 +49,26 @@ impl<B: Block, H: Hash> SignedUnit<B, H> {
     pub(crate) fn hash(&self, hashing: impl Fn(&[u8]) -> H) -> H {
         hashing(&self.unit.encode())
     }
+
+    pub(crate) fn coord(&self) -> UnitCoord {
+        (self.unit.inner.round(), self.unit.inner.creator()).into()
+    }
+
+    pub(crate) fn round(&self) -> usize {
+        self.unit.inner.round()
+    }
+
+    pub(crate) fn creator(&self) -> NodeIndex {
+        self.unit.inner.creator()
+    }
+
+    pub(crate) fn n_parents(&self) -> NodeCount {
+        self.unit.inner.n_parents()
+    }
+
+    pub(crate) fn n_members(&self) -> NodeCount {
+        self.unit.inner.n_members()
+    }
 }
 
 pub(crate) fn sign_unit<B: Block, H: Hash>(
@@ -65,6 +85,20 @@ pub(crate) fn sign_unit<B: Block, H: Hash>(
     }
 }
 
+#[derive(Debug, Encode, Decode, Clone)]
+pub(crate) struct ForkProof<B: Block, H: Hash> {
+    pub(crate) u1: SignedUnit<B, H>,
+    pub(crate) u2: SignedUnit<B, H>,
+}
+
+#[derive(Debug, Encode, Decode, Clone)]
+pub(crate) struct Alert<B: Block, H: Hash> {
+    pub(crate) sender: NodeIndex,
+    pub(crate) forker: NodeIndex,
+    pub(crate) proof: ForkProof<B, H>,
+    pub(crate) legit_units: Vec<SignedUnit<B, H>>,
+}
+
 /// The kind of message that is being sent.
 #[derive(Debug, Encode, Decode, Clone)]
 pub(crate) enum ConsensusMessage<B: Block, H: Hash> {
@@ -78,6 +112,8 @@ pub(crate) enum ConsensusMessage<B: Block, H: Hash> {
     RequestParents(H),
     /// Response to a request for a full list of parents.
     ResponseParents(H, Vec<SignedUnit<B, H>>),
+    /// Alert regarding forks,
+    ForkAlert(Alert<B, H>),
 }
 
 /// The kind of message that is being sent.

@@ -47,6 +47,7 @@ where
     spawn_handle.0.spawn("aleph/network", task);
 
     let epoch_id = EpochId(0);
+    let node_ix = consensus_config.node_id().index;
     let network_event_rx = network.start_epoch(epoch_id, authorities.clone());
     let hashing = Blake2Hasher::hash;
 
@@ -67,6 +68,7 @@ where
         auth_keystore,
         hashing,
         epoch_id,
+        node_ix,
     );
 
     let consensus: Consensus<H256, NodeId> = Consensus::new(

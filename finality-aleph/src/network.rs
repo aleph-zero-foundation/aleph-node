@@ -140,6 +140,7 @@ pub(crate) enum NetworkCommand<B: BlockT, H: Hash> {
     SendToAll(NetworkMessage<B, H>),
     SendToPeer(NetworkMessage<B, H>, PeerId),
     SendToRandPeer(NetworkMessage<B, H>),
+    ReliableBroadcast(NetworkMessage<B, H>),
 }
 
 #[derive(Clone, Debug)]
@@ -241,6 +242,13 @@ impl<B: BlockT + 'static, H: Hash, N: Network<B> + Clone> ConsensusNetwork<B, H,
         match command {
             NetworkCommand::SendToAll(message) => {
                 debug!(target: "network", "Sending message to {} peers.", self.peers.lock().peers.len());
+                for (peer_id, _) in self.peers.lock().iter() {
+                    self.send_message(*peer_id, message.encode());
+                }
+            }
+            NetworkCommand::ReliableBroadcast(message) => {
+                //TODO!!!!! This should be a real RBC, not multicast like now
+                debug!(target: "network", "Sending RBC message to {} peers.", self.peers.lock().peers.len());
                 for (peer_id, _) in self.peers.lock().iter() {
                     self.send_message(*peer_id, message.encode());
                 }
