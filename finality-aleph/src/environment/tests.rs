@@ -27,7 +27,6 @@ async fn generate_authority_keystore(s: &str) -> AuthorityKeystore {
 /// A simple scenario with three nodes: Alice, Bob and Charlie. We create an Environment for Alice
 /// and simulate the behavior of Bob and Charlie by passing appropriate messages to the sinks
 /// from the environment. Three blocks are proposed in the same order by all nodes.
-#[ignore]
 #[test]
 fn test_simple_scenario() {
     // Channels creation
@@ -100,6 +99,9 @@ fn test_simple_scenario() {
                     .block;
                 let hash = block.hash();
                 client.import(BlockOrigin::Own, block).await.unwrap();
+                if round != 0 {
+                    assert!(prev_hash.is_some());
+                }
 
                 let node_map = vec![prev_hash; 3].into();
                 let pre_unit =
@@ -141,6 +143,7 @@ fn test_simple_scenario() {
             .send(NetworkEvent::PeerConnected(charlie_peer_id))
             .await
             .unwrap();
+        let mut prev_hash = None;
         for round in 0..n_rounds {
             let signed_unit = match network_command_rx.next().await {
                 Some(NetworkCommand::SendToAll(NetworkMessage::Consensus(
@@ -151,7 +154,7 @@ fn test_simple_scenario() {
             };
             assert!(signed_unit.verify_unit_signature());
             let pre_unit = signed_unit.unit.inner;
-            // assert_eq!(pre_unit.round(), round as usize);
+            assert_eq!(pre_unit.round(), round as usize);
             assert_eq!(pre_unit.creator(), alice_node_index);
 
             let bob_and_charlie = [
@@ -169,7 +172,7 @@ fn test_simple_scenario() {
                 let pre_unit = PreUnit::new_from_parents(
                     *node_index,
                     round as usize,
-                    vec![None; 3].into(),
+                    vec![prev_hash; 3].into(),
                     BlakeTwo256::hash,
                 );
                 let full_unit = FullUnit {
@@ -187,6 +190,7 @@ fn test_simple_scenario() {
                     .await
                     .unwrap();
             }
+            prev_hash = Some(hash);
         }
         // we return the sender because it has to outlive the epoch thread
         network_event_tx
