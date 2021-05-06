@@ -32,6 +32,9 @@ use sp_api::NumberFor;
 use std::cmp::Ordering;
 use tokio::time;
 
+#[cfg(test)]
+mod tests;
+
 pub const FETCH_INTERVAL: time::Duration = time::Duration::from_secs(4);
 pub const TICK_INTERVAL: time::Duration = time::Duration::from_millis(100);
 pub const INITIAL_MULTICAST_DELAY: time::Duration = time::Duration::from_secs(10);

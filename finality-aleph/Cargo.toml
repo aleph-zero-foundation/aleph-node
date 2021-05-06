@@ -10,6 +10,7 @@ edition = "2018"
 aleph-primitives = { package = "primitives", version = "0.1.0", path = "../primitives"}
 tokio = { version = "0.2.21", features = [ "sync" ]}
 codec = { package = "parity-scale-codec", version = "2", default-features = false, features = ["derive"] }
+hash-db = { version = "0.15.2", default-features = false }
 log = "0.4"
 futures = "0.3"
 parity-util-mem = "0.9"
@@ -27,6 +28,8 @@ sc-service = { git = "https://github.com/paritytech/substrate.git", rev = "681f1
 sp-application-crypto = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 sp-core = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 sp-runtime = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+sp-state-machine = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+sp-trie = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 sp-utils = {  git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 sp-api = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 sp-blockchain = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
@@ -38,3 +41,8 @@ derive_more = "0.99.7"
 sp-consensus-aura = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 env_logger = "0.8.3"
 async-trait = "0.1.42"
+
+[dev-dependencies]
+substrate-test-runtime-client = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+substrate-test-runtime = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+sc-block-builder = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}

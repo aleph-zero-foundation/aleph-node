@@ -4,10 +4,7 @@ use codec::{Decode, Encode};
 use futures::Future;
 pub use rush::Config as ConsensusConfig;
 use rush::{nodes::NodeIndex, UnitCoord};
-use sc_client_api::{
-    backend::{AuxStore, Backend},
-    BlockchainEvents, ExecutorProvider, Finalizer, LockImportRun, TransactionFor,
-};
+use sc_client_api::{backend::Backend, Finalizer, LockImportRun, TransactionFor};
 use sc_service::SpawnTaskHandle;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{HeaderBackend, HeaderMetadata};
@@ -122,8 +119,7 @@ impl AuthorityKeystore {
             &self.authority_id.clone().into(),
             msg,
         )
-        .ok()
-        .flatten()
+        .unwrap()
         .unwrap()
         .try_into()
         .unwrap()
@@ -133,10 +129,7 @@ impl AuthorityKeystore {
 pub trait ClientForAleph<B, BE>:
     LockImportRun<B, BE>
     + Finalizer<B, BE>
-    + AuxStore
-    + BlockchainEvents<B>
     + ProvideRuntimeApi<B>
-    + ExecutorProvider<B>
     + BlockImport<B, Transaction = TransactionFor<BE, B>, Error = sp_consensus::Error>
     + HeaderBackend<B>
     + HeaderMetadata<B, Error = sp_blockchain::Error>
@@ -152,10 +145,7 @@ where
     B: Block,
     T: LockImportRun<B, BE>
         + Finalizer<B, BE>
-        + AuxStore
-        + BlockchainEvents<B>
         + ProvideRuntimeApi<B>
-        + ExecutorProvider<B>
         + HeaderBackend<B>
         + HeaderMetadata<B, Error = sp_blockchain::Error>
         + BlockImport<B, Transaction = TransactionFor<BE, B>, Error = sp_consensus::Error>,

@@ -23,6 +23,7 @@ serde_json = "1"
 
 codec = { package = "parity-scale-codec", version = "2", default-features = false, features = ["derive"] }
 sp-application-crypto = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+sc-block-builder = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 sc-cli = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 sp-core = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 sc-executor = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}

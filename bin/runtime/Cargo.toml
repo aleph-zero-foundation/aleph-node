@@ -15,7 +15,7 @@ codec = { package = "parity-scale-codec", version = "2.0.0", default-features = 
 serde = { version = "1.0.101", optional = true, features = ["derive"] }
 
 primitives = { path = "../../primitives", version = "0.1.0", default-features = false }
-pallet-aleph = { package = "pallet", path = "../../pallet", version = "0.1.0", default-features = false}
+pallet-aleph = { path = "../../pallet", version = "0.1.0", default-features = false}
 
 
 

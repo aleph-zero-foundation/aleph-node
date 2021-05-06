@@ -1,5 +1,5 @@
 use crate::{hash::Hash, AuthorityId, AuthorityKeystore, AuthoritySignature, EpochId, UnitCoord};
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, Error, Input, Output};
 use log::debug;
 use rush::{NodeCount, NodeIndex, PreUnit};
 use sp_application_crypto::RuntimeAppPublic;
@@ -13,37 +13,56 @@ pub(crate) struct FullUnit<B: Block, H: Hash> {
     pub(crate) epoch_id: EpochId,
 }
 
-#[derive(Debug, Encode, Decode, Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct SignedUnit<B: Block, H: Hash> {
     pub(crate) unit: FullUnit<B, H>,
     signature: AuthoritySignature,
     // TODO: This *must* be changed ASAP to NodeIndex to reduce data size of packets.
     id: AuthorityId,
 }
-
-//TODO: refactor the below, not sure what the buffors are for
-impl<B: Block, H: Hash> SignedUnit<B, H> {
-    /// Encodes the unit with a buffer vector.
-    pub(crate) fn encode_unit_with_buffer(&self, buf: &mut Vec<u8>) {
-        buf.clear();
-        self.unit.encode_to(buf);
+/// We use a custom implementation of Codec, which verifies the signature on Encode
+impl<B: Block, H: Hash> Encode for SignedUnit<B, H> {
+    fn size_hint(&self) -> usize {
+        self.unit.size_hint() + self.signature.size_hint() + self.id.size_hint()
     }
 
-    /// Verifies the unit's signature with a buffer.
-    pub(crate) fn verify_unit_signature_with_buffer(&self, buf: &mut Vec<u8>) -> bool {
-        self.encode_unit_with_buffer(buf);
+    fn encode_to<W: Output + ?Sized>(&self, dest: &mut W) {
+        self.unit.encode_to(dest);
+        self.signature.encode_to(dest);
+        self.id.encode_to(dest);
+    }
+}
 
-        let valid = self.id.verify(&buf, &self.signature);
-        if !valid {
-            debug!(target: "afa", "Bad signature message from {:?}", self.unit.inner.creator());
+impl<B: Block, H: Hash> Decode for SignedUnit<B, H> {
+    fn decode<I: Input>(input: &mut I) -> Result<Self, Error> {
+        let unit_size = <FullUnit<B, H> as Decode>::encoded_fixed_size()
+            .ok_or(Error::from("FullUnit should be fixed size"))?;
+        let mut unit = vec![0; unit_size];
+        input.read(&mut unit)?;
+
+        let signature = AuthoritySignature::decode(input)?;
+        let id = AuthorityId::decode(input)?;
+        if !id.verify(&unit, &signature) {
+            return Err(Error::from("Bad signature"));
         }
-
-        valid
+        let unit = Decode::decode(&mut unit.as_slice())?;
+        Ok(SignedUnit {
+            unit,
+            signature,
+            id,
+        })
     }
+}
 
-    /// Verifies the unit's signature.
+impl<B: Block, H: Hash> SignedUnit<B, H> {
+    /// Verifies the unit's signature. The signature is verified on creation, so this should always
+    /// return true, but the method can be used to check integrity.
     pub(crate) fn verify_unit_signature(&self) -> bool {
-        self.verify_unit_signature_with_buffer(&mut Vec::new())
+        if !self.id.verify(&self.unit.encode(), &self.signature) {
+            debug!(target: "afa", "Bad signature in a unit from {:?}", self.unit.inner.creator());
+            return false;
+        }
+        true
     }
 
     pub(crate) fn hash(&self, hashing: impl Fn(&[u8]) -> H) -> H {
