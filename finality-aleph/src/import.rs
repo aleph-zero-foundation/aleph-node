@@ -1,4 +1,4 @@
-use crate::{environment::finalize_block, justification::AlephJustification, AuthorityId};
+use crate::{data_io::finalize_block, justification::AlephJustification, AuthorityId};
 use aleph_primitives::{AuthoritiesLog, ALEPH_ENGINE_ID};
 use codec::Encode;
 use sc_client_api::backend::Backend;

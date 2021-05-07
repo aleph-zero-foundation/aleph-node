@@ -2,25 +2,23 @@ use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 
 use codec::{Decode, Encode};
 use futures::Future;
-pub use rush::Config as ConsensusConfig;
-use rush::{nodes::NodeIndex, UnitCoord};
+pub use rush::{nodes::NodeIndex, Config as ConsensusConfig};
 use sc_client_api::{backend::Backend, Finalizer, LockImportRun, TransactionFor};
 use sc_service::SpawnTaskHandle;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{HeaderBackend, HeaderMetadata};
 use sp_consensus::{BlockImport, SelectChain};
-use sp_runtime::traits::Block;
+use sp_runtime::{traits::Block, RuntimeAppPublic};
 use std::{
     convert::TryInto,
     fmt::{Debug, Display},
     sync::Arc,
 };
 pub mod config;
-pub(crate) mod environment;
+mod data_io;
 pub mod hash;
 mod import;
 mod justification;
-mod messages;
 mod network;
 mod party;
 
@@ -43,6 +41,11 @@ pub use import::AlephBlockImport;
 // pub type AuthoritySignature = app::Signature;
 // pub type AuthorityPair = app::Pair;
 
+#[derive(Debug)]
+enum Error {
+    SendData,
+}
+
 pub fn peers_set_config() -> sc_network::config::NonDefaultSetConfig {
     sc_network::config::NonDefaultSetConfig {
         notifications_protocol: network::ALEPH_PROTOCOL_NAME.into(),
@@ -57,7 +60,7 @@ pub fn peers_set_config() -> sc_network::config::NonDefaultSetConfig {
 }
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
-pub struct EpochId(pub u32);
+pub struct SessionId(pub u64);
 
 use sp_core::crypto::KeyTypeId;
 // pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"alp0");
@@ -77,8 +80,8 @@ impl Display for NodeId {
     }
 }
 
-impl rush::MyIndex for NodeId {
-    fn my_index(&self) -> Option<NodeIndex> {
+impl rush::Index for NodeId {
+    fn index(&self) -> Option<NodeIndex> {
         Some(self.index)
     }
 }
@@ -150,6 +153,36 @@ where
         + HeaderMetadata<B, Error = sp_blockchain::Error>
         + BlockImport<B, Transaction = TransactionFor<BE, B>, Error = sp_consensus::Error>,
 {
+}
+
+#[derive(Clone, Default, Debug, Decode, Encode)]
+struct Signature {
+    id: NodeIndex,
+    sgn: AuthoritySignature,
+}
+
+struct KeyBox {
+    id: NodeIndex,
+    auth_keystore: AuthorityKeystore,
+    authorities: Vec<AuthorityId>,
+}
+
+impl rush::Index for KeyBox {
+    fn index(&self) -> Option<NodeIndex> {
+        Some(self.id)
+    }
+}
+
+impl rush::KeyBox<Signature> for KeyBox {
+    fn sign(&self, msg: &Vec<u8>) -> Signature {
+        Signature {
+            id: self.id,
+            sgn: self.auth_keystore.sign(msg),
+        }
+    }
+    fn verify(&self, msg: &Vec<u8>, sgn: &Signature, index: NodeIndex) -> bool {
+        self.authorities[index.0].verify(msg, &sgn.sgn)
+    }
 }
 
 #[derive(Clone)]

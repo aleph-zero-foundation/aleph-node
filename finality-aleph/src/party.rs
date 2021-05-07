@@ -1,12 +1,15 @@
 use crate::{
-    environment::Environment, network, network::ConsensusNetwork, EpochId, NodeId, SpawnHandle,
+    data_io::{BlockFinalizer, DataIO},
+    network,
+    network::ConsensusNetwork,
+    KeyBox, SessionId, SpawnHandle,
 };
 
-use futures::{channel::mpsc, SinkExt};
-use rush::Consensus;
+use futures::channel::mpsc;
+use log::debug;
 use sc_client_api::backend::Backend;
 use sp_consensus::SelectChain;
-use sp_core::{Blake2Hasher, Hasher, H256};
+use sp_core::{Blake2Hasher, Hasher};
 use sp_runtime::traits::Block;
 
 pub struct AlephParams<N, C, SC> {
@@ -22,7 +25,7 @@ where
     SC: SelectChain<B> + 'static,
 {
     // TODO now it runs just a single instance of consensus but later it will
-    // orchestrate managing multiple instances for differents epoch
+    // orchestrate managing multiple instances for differents session
     let AlephParams {
         config:
             crate::AlephConfig {
@@ -36,54 +39,38 @@ where
             },
     } = aleph_params;
     let network = ConsensusNetwork::new(network, "/cardinals/aleph/1");
+    let session_manager = network.session_manager();
     let spawn_handle: SpawnHandle = spawn_handle.into();
 
-    let (net_command_tx, net_command_rx) = mpsc::unbounded();
-    let task = {
-        let network = network.clone();
-        async move { network.run(net_command_rx).await }
+    let task = async move { network.run().await };
+    spawn_handle.0.spawn("aleph/network", task);
+    debug!(target: "afa", "Consensus network has started.");
+
+    let session_id = SessionId(0);
+    let id = consensus_config.node_id.index;
+    let session_network = session_manager.start_session(session_id, authorities.clone());
+    let hashing = Blake2Hasher::hash;
+    let (ordered_batch_tx, ordered_batch_rx) = mpsc::unbounded();
+    let block_finalizer = BlockFinalizer::new(client, auth_keystore.clone(), ordered_batch_rx);
+    let data_io = DataIO {
+        select_chain,
+        ordered_batch_tx,
+    };
+    let keybox = KeyBox {
+        id,
+        auth_keystore,
+        authorities,
     };
 
-    spawn_handle.0.spawn("aleph/network", task);
-
-    let epoch_id = EpochId(0);
-    let node_ix = consensus_config.node_id().index;
-    let network_event_rx = network.start_epoch(epoch_id, authorities.clone());
-    let hashing = Blake2Hasher::hash;
-
-    let (notification_in_tx, notification_in_rx) = mpsc::unbounded();
-    let (notification_out_tx, notification_out_rx) = mpsc::unbounded();
-    // Making `rush::Consensus` accept only tokio sender sinks seems a questionable choice...
-    let (order_tx, order_rx) = tokio::sync::mpsc::unbounded_channel();
-
-    let env: Environment<B, H256, C, BE, SC> = Environment::new(
-        client,
-        select_chain,
-        notification_in_tx,
-        notification_out_rx,
-        net_command_tx,
-        network_event_rx,
-        order_rx,
-        authorities,
-        auth_keystore,
-        hashing,
-        epoch_id,
-        node_ix,
-    );
-
-    let consensus: Consensus<H256, NodeId> = Consensus::new(
-        consensus_config,
-        notification_in_rx,
-        notification_out_tx.sink_map_err(|e| e.into()),
-        order_tx,
-        hashing,
-    );
-
-    rush::SpawnHandle::spawn(&spawn_handle.clone(), "aleph/environment", env.run_epoch());
-    log::debug!(target: "afa", "Environment has started");
+    let task = async move { block_finalizer.run().await };
+    spawn_handle.0.spawn("aleph/finalizer", task);
+    debug!(target: "afa", "Block finalizer has started.");
 
     let (_exit, exit) = tokio::sync::oneshot::channel();
-    log::debug!(target: "afa", "Consensus party has started");
-    consensus.run(spawn_handle, exit).await;
-    log::debug!(target: "afa", "Consensus party has stopped");
+    let member = rush::Member::new(data_io, keybox, session_network, consensus_config, hashing);
+
+    debug!(target: "afa", "Consensus party has started");
+    member.run_session(spawn_handle, exit).await;
+
+    debug!(target: "afa", "Consensus party has stopped");
 }
