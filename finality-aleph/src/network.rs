@@ -1,17 +1,14 @@
 use codec::{Decode, Encode};
 use futures::{channel::mpsc, stream::Stream, StreamExt};
 use parking_lot::Mutex;
+use rush::{NetworkCommand, NetworkEvent};
 use sc_network::{multiaddr, Event, ExHashT, NetworkService, PeerId, ReputationChange};
 use sp_runtime::traits::Block as BlockT;
-use std::{borrow::Cow, collections::HashMap, iter, pin::Pin, sync::Arc};
+use std::{borrow::Cow, collections::HashMap, iter, marker::PhantomData, pin::Pin, sync::Arc};
 
 use log::debug;
 
-use crate::{
-    hash::Hash,
-    messages::{ConsensusMessage, NetworkMessage},
-    AuthorityId, EpochId,
-};
+use crate::{AuthorityId, Error, SessionId};
 
 /// Name of the network protocol used by Aleph Zero. This is how messages
 /// are subscribed to to ensure that we are gossiping and communicating with our
@@ -71,7 +68,7 @@ impl<B: BlockT, H: ExHashT> Network<B> for Arc<NetworkService<B, H>> {
         let result =
             NetworkService::add_peers_to_reserved_set(self, protocol, iter::once(addr).collect());
         if let Err(e) = result {
-            log::error!(target: "network", "add_set_reserved failed: {}", e);
+            log::error!(target: "afa", "add_set_reserved failed: {}", e);
         }
     }
 
@@ -84,7 +81,7 @@ impl<B: BlockT, H: ExHashT> Network<B> for Arc<NetworkService<B, H>> {
             iter::once(addr).collect(),
         );
         if let Err(e) = result {
-            log::error!(target: "network", "remove_set_reserved failed: {}", e);
+            log::error!(target: "afa", "remove_set_reserved failed: {}", e);
         }
     }
 }
@@ -101,7 +98,7 @@ impl PeerInfo {
 }
 
 #[derive(Debug)]
-pub(crate) struct Peers {
+struct Peers {
     pub(crate) peers: HashMap<PeerId, PeerInfo>,
 }
 
@@ -135,132 +132,190 @@ impl Peers {
     }
 }
 
-#[derive(Clone, Debug)]
-pub(crate) enum NetworkCommand<B: BlockT, H: Hash> {
-    SendToAll(NetworkMessage<B, H>),
-    SendToPeer(NetworkMessage<B, H>, PeerId),
-    SendToRandPeer(NetworkMessage<B, H>),
-    ReliableBroadcast(NetworkMessage<B, H>),
-}
-
-#[derive(Clone, Debug)]
-pub(crate) enum NetworkEvent<B: BlockT, H: Hash> {
-    MessageReceived(ConsensusMessage<B, H>, PeerId),
-    PeerConnected(PeerId),
-    PeerDisconnected(PeerId),
-}
-
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub(crate) enum EpochStatus {
+enum SessionStatus {
     InProgress,
     Terminated,
 }
 
-pub(crate) struct EpochData<B: BlockT, H: Hash> {
-    pub(crate) tx: mpsc::UnboundedSender<NetworkEvent<B, H>>,
-    pub(crate) status: EpochStatus,
+struct SessionData {
+    pub(crate) net_event_tx: mpsc::UnboundedSender<NetworkEvent>,
+    pub(crate) status: SessionStatus,
     pub(crate) _authorities: Vec<AuthorityId>,
 }
 
-#[derive(Clone)]
-pub(crate) struct ConsensusNetwork<B: BlockT, H: Hash, N: Network<B> + Clone> {
+#[derive(Debug, Clone, Encode, Decode)]
+struct SessionCommand {
+    session_id: SessionId,
+    command: NetworkCommand,
+}
+
+#[derive(Debug, Encode, Decode)]
+struct SessionMessage {
+    session_id: SessionId,
+    message: Vec<u8>,
+}
+
+pub(crate) struct RushNetwork {
+    session_id: SessionId,
+    net_event_rx: mpsc::UnboundedReceiver<NetworkEvent>,
+    net_command_tx: mpsc::UnboundedSender<SessionCommand>,
+}
+
+#[async_trait::async_trait]
+impl rush::Network for RushNetwork {
+    type Error = Error;
+
+    fn send(&self, command: NetworkCommand) -> Result<(), Self::Error> {
+        let sc = SessionCommand {
+            session_id: self.session_id,
+            command,
+        };
+        // TODO add better error conversion
+        self.net_command_tx
+            .unbounded_send(sc)
+            .map_err(|_| Error::SendData)
+    }
+
+    async fn next_event(&mut self) -> Option<NetworkEvent> {
+        self.net_event_rx.next().await
+    }
+}
+
+pub(crate) struct ConsensusNetwork<B: BlockT, N: Network<B> + Clone> {
     //TODO: some optimizations can be made by changing Mutex to RwLock
     network: N,
     protocol: Cow<'static, str>,
 
     /// Outgoing events to the consumer.
-    epochs: Arc<Mutex<HashMap<EpochId, EpochData<B, H>>>>,
+    sessions: Arc<Mutex<HashMap<SessionId, SessionData>>>,
+
+    net_command_tx: mpsc::UnboundedSender<SessionCommand>,
+    net_command_rx: mpsc::UnboundedReceiver<SessionCommand>,
 
     peers: Arc<Mutex<Peers>>,
+    phantom: PhantomData<B>,
 }
 
-impl<B: BlockT + 'static, H: Hash, N: Network<B> + Clone> ConsensusNetwork<B, H, N> {
+pub(crate) struct SessionManagar {
+    sessions: Arc<Mutex<HashMap<SessionId, SessionData>>>,
+    net_command_tx: mpsc::UnboundedSender<SessionCommand>,
+}
+
+impl SessionManagar {
+    // NOTE: later this will also need access to KeyStore :/ (for Reliable Broadcast)
+    pub(crate) fn start_session(
+        &self,
+        session_id: SessionId,
+        _authorities: Vec<AuthorityId>,
+    ) -> RushNetwork {
+        let (net_event_tx, net_event_rx) = mpsc::unbounded();
+        let session_data = SessionData {
+            net_event_tx,
+            status: SessionStatus::InProgress,
+            _authorities,
+        };
+        self.sessions.lock().insert(session_id, session_data);
+        RushNetwork {
+            session_id,
+            net_event_rx,
+            net_command_tx: self.net_command_tx.clone(),
+        }
+    }
+}
+
+impl<B: BlockT + 'static, N: Network<B> + Clone> ConsensusNetwork<B, N> {
     /// Create a new instance.
-    pub fn new(network: N, protocol: impl Into<Cow<'static, str>>) -> Self {
+    pub(crate) fn new(network: N, protocol: impl Into<Cow<'static, str>>) -> Self {
         let protocol = protocol.into();
+        let (net_command_tx, net_command_rx) = mpsc::unbounded();
         ConsensusNetwork {
             network,
             protocol,
-            epochs: Arc::new(Mutex::new(HashMap::new())),
+            sessions: Arc::new(Mutex::new(HashMap::new())),
+            net_command_tx,
+            net_command_rx,
             peers: Arc::new(Mutex::new(Peers::new())),
+            phantom: PhantomData,
         }
     }
 
-    // NOTE: later this will also need access to KeyStore :/ (for Reliable Broadcast)
-    pub fn start_epoch(
-        &self,
-        epoch_id: EpochId,
-        _authorities: Vec<AuthorityId>,
-    ) -> mpsc::UnboundedReceiver<NetworkEvent<B, H>> {
-        let (tx_out, rx_out) = mpsc::unbounded();
-        let epoch_data = EpochData {
-            tx: tx_out,
-            status: EpochStatus::InProgress,
-            _authorities,
-        };
-        self.epochs.lock().insert(epoch_id, epoch_data);
-        rx_out
+    pub(crate) fn session_manager(&self) -> SessionManagar {
+        SessionManagar {
+            sessions: self.sessions.clone(),
+            net_command_tx: self.net_command_tx.clone(),
+        }
     }
 
     fn sample_random_peer(&self) -> Option<PeerId> {
         self.peers.lock().sample_random()
     }
 
-    fn send_message(&self, peer_id: PeerId, message: Vec<u8>) {
-        self.network
-            .send_message(peer_id, self.protocol.clone(), message);
+    fn send_message(&self, peer_id: PeerId, session_id: SessionId, message: &Vec<u8>) {
+        self.network.send_message(
+            peer_id,
+            self.protocol.clone(),
+            (session_id, message).encode(),
+        );
     }
 
     fn on_incoming_message(&self, peer_id: PeerId, raw_message: Vec<u8>) {
-        let mut raw_message = raw_message.as_slice();
-        match NetworkMessage::<B, H>::decode(&mut raw_message) {
-            Ok(NetworkMessage::Consensus(message, epoch_id)) => {
-                let mut epochs = self.epochs.lock();
-                let maybe_data = epochs.get_mut(&epoch_id);
-                if let Some(epoch_data) = maybe_data {
-                    if epoch_data.status == EpochStatus::InProgress {
-                        if let Err(e) = epoch_data
-                            .tx
-                            .unbounded_send(NetworkEvent::MessageReceived(message, peer_id))
+        match <(SessionId, Vec<u8>)>::decode(&mut &raw_message[..]) {
+            Ok((session_id, message)) => {
+                let mut sessions = self.sessions.lock();
+                let maybe_data = sessions.get_mut(&session_id);
+                if let Some(session_data) = maybe_data {
+                    if session_data.status == SessionStatus::InProgress {
+                        if let Err(e) =
+                            session_data
+                                .net_event_tx
+                                .unbounded_send(NetworkEvent::MessageReceived(
+                                    message,
+                                    peer_id.to_bytes(),
+                                ))
                         {
-                            //TODO: need to write some logic on when an epoch should be terminated and make sure
+                            //TODO: need to write some logic on when an session should be terminated and make sure
                             // that there are no issues with synchronization when terminating.
-                            epoch_data.status = EpochStatus::Terminated;
-                            debug!(target: "network", "Error {:?} when passing a message event to epoch {:?}.", e, epoch_id);
+                            session_data.status = SessionStatus::Terminated;
+                            debug!(target: "afa", "Error {:?} when passing a message event to session {:?}.", e, session_id);
                         }
                     }
                 }
             }
             Err(e) => {
-                debug!(target: "network", "Error decoding message: {}", e);
+                debug!(target: "afa", "Error decoding message: {}", e);
             }
         }
     }
 
-    fn on_command(&self, command: NetworkCommand<B, H>) {
-        debug!(target: "network", "Received command {:?}", command);
-        match command {
+    fn on_command(&self, sc: SessionCommand) {
+        match sc.command {
             NetworkCommand::SendToAll(message) => {
-                debug!(target: "network", "Sending message to {} peers.", self.peers.lock().peers.len());
+                debug!(target: "afa", "Sending message to {} peers.", self.peers.lock().peers.len());
                 for (peer_id, _) in self.peers.lock().iter() {
-                    self.send_message(*peer_id, message.encode());
+                    self.send_message(*peer_id, sc.session_id, &message);
                 }
             }
             NetworkCommand::ReliableBroadcast(message) => {
                 //TODO!!!!! This should be a real RBC, not multicast like now
-                debug!(target: "network", "Sending RBC message to {} peers.", self.peers.lock().peers.len());
+                debug!(target: "afa", "Sending RBC message to {} peers.", self.peers.lock().peers.len());
                 for (peer_id, _) in self.peers.lock().iter() {
-                    self.send_message(*peer_id, message.encode());
+                    self.send_message(*peer_id, sc.session_id, &message);
                 }
             }
-            NetworkCommand::SendToPeer(message, peer_id) => {
-                self.send_message(peer_id, message.encode());
+            NetworkCommand::SendToPeer(message, peer_id_bytes) => {
+                self.send_message(
+                    PeerId::from_bytes(&peer_id_bytes[..])
+                        .expect("peer_id was encoded with `to_bytes`"),
+                    sc.session_id,
+                    &message,
+                );
             }
             NetworkCommand::SendToRandPeer(message) => {
                 if let Some(peer_id) = self.sample_random_peer() {
-                    self.send_message(peer_id, message.encode());
+                    self.send_message(peer_id, sc.session_id, &message);
                 } else {
-                    debug!(target: "network", "Attempting to send a message, but no connected peers.");
+                    debug!(target: "afa", "Attempting to send a message, but no connected peers.");
                 }
             }
         }
@@ -268,39 +323,18 @@ impl<B: BlockT + 'static, H: Hash, N: Network<B> + Clone> ConsensusNetwork<B, H,
 
     fn on_peer_connected(&self, peer_id: PeerId) {
         self.peers.lock().insert(peer_id);
-        for (id, epoch_data) in self.epochs.lock().iter() {
-            if epoch_data.status == EpochStatus::InProgress {
-                if let Err(e) = epoch_data
-                    .tx
-                    .unbounded_send(NetworkEvent::PeerConnected(peer_id))
-                {
-                    debug!(target: "network", "Error {:?} when passing connect event to epoch {:?}.", e, id);
-                }
-            }
-        }
     }
 
-    fn on_peer_disconnected(&self, peer_id: PeerId) {
-        self.peers.lock().remove(&peer_id);
-        for (id, epoch_data) in self.epochs.lock().iter() {
-            if epoch_data.status == EpochStatus::InProgress {
-                if let Err(e) = epoch_data
-                    .tx
-                    .unbounded_send(NetworkEvent::PeerDisconnected(peer_id))
-                {
-                    debug!(target: "network", "Error {:?} when passing disconnect event to epoch {:?}.", e, id);
-                }
-            }
-        }
+    fn on_peer_disconnected(&self, peer_id: &PeerId) {
+        self.peers.lock().remove(peer_id);
     }
 
-    pub async fn run(&self, mut net_command_rx: mpsc::UnboundedReceiver<NetworkCommand<B, H>>) {
+    pub async fn run(mut self) {
         let mut network_event_stream = self.network.event_stream();
 
         loop {
             tokio::select! {
-                maybe_event = network_event_stream.next() =>
-                     {
+                maybe_event = network_event_stream.next() => {
                         if let Some(event) = maybe_event {
                             match event {
                                 Event::SyncConnected { remote } => {
@@ -326,7 +360,7 @@ impl<B: BlockT + 'static, H: Hash, N: Network<B> + Clone> ConsensusNetwork<B, H,
                                     if protocol != self.protocol {
                                         continue;
                                     }
-                                    self.on_peer_disconnected(remote);
+                                    self.on_peer_disconnected(&remote);
                                 }
                                 Event::NotificationsReceived { remote, messages } => {
                                     for (protocol, data) in messages.into_iter() {
@@ -344,21 +378,19 @@ impl<B: BlockT + 'static, H: Hash, N: Network<B> + Clone> ConsensusNetwork<B, H,
                             //TODO: The network event stream closed, what shall we do?
                             break;
                         }
-
                 },
-                maybe_cmd = net_command_rx.next() => {
+                maybe_cmd = self.net_command_rx.next() => {
                     if let Some(cmd) = maybe_cmd {
                         self.on_command(cmd);
                     } else {
-                        //TODO: The environment event stream closed, what shall we do?
                         break;
                     }
                 }
             }
 
-            self.epochs
+            self.sessions
                 .lock()
-                .retain(|_, data| data.status == EpochStatus::InProgress);
+                .retain(|_, data| data.status == SessionStatus::InProgress);
         }
     }
 }

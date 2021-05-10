@@ -1,6 +1,6 @@
 [package]
 name = "aleph-node"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Cardinal Cryptography"]
 description = "Aleph node binary"
 edition = "2018"
@@ -43,7 +43,7 @@ sc-client-api = { git = "https://github.com/paritytech/substrate.git", rev = "68
 sp-runtime = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
 
 aleph-runtime = {version = "0.1.0", path = "../runtime"}
-finality-aleph = {version = "0.1.0", path = "../../finality-aleph"}
+finality-aleph = {version = "0.2.0", path = "../../finality-aleph"}
 aleph-primitives = { package = "primitives", version = "0.1.0", path = "../../primitives"}
 
 # These dependencies are used for the node template's RPCs
