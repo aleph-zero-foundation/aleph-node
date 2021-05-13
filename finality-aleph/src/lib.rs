@@ -174,14 +174,14 @@ impl rush::Index for KeyBox {
 }
 
 impl rush::KeyBox<Signature> for KeyBox {
-    fn sign(&self, msg: &Vec<u8>) -> Signature {
+    fn sign(&self, msg: &[u8]) -> Signature {
         Signature {
             id: self.id,
             sgn: self.auth_keystore.sign(msg),
         }
     }
-    fn verify(&self, msg: &Vec<u8>, sgn: &Signature, index: NodeIndex) -> bool {
-        self.authorities[index.0].verify(msg, &sgn.sgn)
+    fn verify(&self, msg: &[u8], sgn: &Signature, index: NodeIndex) -> bool {
+        self.authorities[index.0].verify(&msg.to_vec(), &sgn.sgn)
     }
 }
 

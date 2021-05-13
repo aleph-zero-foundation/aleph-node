@@ -10,6 +10,9 @@ use log::debug;
 
 use crate::{AuthorityId, Error, SessionId};
 
+#[cfg(test)]
+mod tests;
+
 /// Name of the network protocol used by Aleph Zero. This is how messages
 /// are subscribed to to ensure that we are gossiping and communicating with our
 /// own network.
