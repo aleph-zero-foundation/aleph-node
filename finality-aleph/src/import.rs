@@ -1,6 +1,7 @@
 use crate::{data_io::finalize_block, justification::AlephJustification, AuthorityId};
 use aleph_primitives::{AuthoritiesLog, ALEPH_ENGINE_ID};
 use codec::Encode;
+use futures::channel::mpsc;
 use sc_client_api::backend::Backend;
 use sp_api::TransactionFor;
 use sp_consensus::{
@@ -22,7 +23,8 @@ where
 {
     inner: Arc<I>,
     authorities: Vec<AuthorityId>,
-    _phantom: PhantomData<(Be, Block)>,
+    justification_rx: mpsc::UnboundedSender<JustificationNotification<Block>>,
+    _phantom: PhantomData<Be>,
 }
 
 impl<Block, Be, I> AlephBlockImport<Block, Be, I>
@@ -31,10 +33,15 @@ where
     Be: Backend<Block>,
     I: crate::ClientForAleph<Block, Be>,
 {
-    pub fn new(inner: Arc<I>, authorities: Vec<AuthorityId>) -> AlephBlockImport<Block, Be, I> {
+    pub fn new(
+        inner: Arc<I>,
+        authorities: Vec<AuthorityId>,
+        justification_rx: mpsc::UnboundedSender<JustificationNotification<Block>>,
+    ) -> AlephBlockImport<Block, Be, I> {
         AlephBlockImport {
             inner,
             authorities,
+            justification_rx,
             _phantom: PhantomData,
         }
     }
@@ -73,6 +80,7 @@ where
         AlephBlockImport {
             inner: self.inner.clone(),
             authorities: self.authorities.clone(),
+            justification_rx: self.justification_rx.clone(),
             _phantom: PhantomData,
         }
     }
@@ -176,4 +184,12 @@ where
             Err(ConsensusError::ClientImport("Bad justification".into()))
         }
     }
+}
+
+pub struct JustificationNotification<Block>
+where
+    Block: BlockT,
+{
+    pub justification: Vec<u8>,
+    pub hash: Block::Hash,
 }

@@ -4,8 +4,9 @@ use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use codec::Decode;
 use finality_aleph::{
     run_aleph_consensus, AlephBlockImport, AlephConfig, AuthorityId, AuthorityKeystore,
-    ConsensusConfig,
+    ConsensusConfig, JustificationNotification
 };
+use futures::channel::mpsc;
 use sc_client_api::{CallExecutor, ExecutionStrategy, ExecutorProvider};
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
 use sc_executor::native_executor_instance;
@@ -39,12 +40,15 @@ pub fn new_partial(
         FullSelectChain,
         sp_consensus::DefaultImportQueue<Block, FullClient>,
         sc_transaction_pool::FullPool<Block, FullClient>,
-        sc_consensus_aura::AuraBlockImport<
-            Block,
-            FullClient,
-            AlephBlockImport<Block, FullBackend, FullClient>,
-            AuraPair,
-        >,
+        (
+            sc_consensus_aura::AuraBlockImport<
+                Block,
+                FullClient,
+                AlephBlockImport<Block, FullBackend, FullClient>,
+                AuraPair,
+            >,
+            mpsc::UnboundedReceiver<JustificationNotification<Block>>,
+        ),
     >,
     ServiceError,
 > {
@@ -79,7 +83,9 @@ pub fn new_partial(
     );
 
     let (_, authorities) = get_authorities(client.clone(), keystore_container.sync_keystore());
-    let aleph_block_import = AlephBlockImport::new(client.clone() as Arc<_>, authorities);
+    let (justification_tx, justification_rx) = mpsc::unbounded();
+    let aleph_block_import =
+        AlephBlockImport::new(client.clone() as Arc<_>, authorities, justification_tx);
 
     let aura_block_import = sc_consensus_aura::AuraBlockImport::<_, _, _, AuraPair>::new(
         aleph_block_import.clone(),
@@ -111,7 +117,7 @@ pub fn new_partial(
         select_chain,
         transaction_pool,
         inherent_data_providers,
-        other: aura_block_import,
+        other: (aura_block_import, justification_rx),
     })
 }
 
@@ -159,7 +165,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
         select_chain,
         transaction_pool,
         inherent_data_providers,
-        other: block_import,
+        other: (block_import, _receiver),
         ..
     } = new_partial(&config)?;
 

@@ -40,3 +40,15 @@ where
         next_authorities: Vec<Id>,
     },
 }
+
+#[derive(Decode, Encode, PartialEq, Eq, Clone)]
+pub struct Session<Id, Number>
+where
+    Id: Encode + Decode,
+    Number: Encode + Decode,
+{
+    session_id: u64,
+    start_h: Number,
+    stop_h: Number,
+    authorities: Vec<Id>,
+}
