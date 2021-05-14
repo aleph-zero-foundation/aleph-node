@@ -1,16 +1,41 @@
-use rush::Hash as HashT;
-use sp_core::{H160, H256, H512};
-use sp_runtime::traits::{
-    MaybeDisplay, MaybeMallocSizeOf, MaybeSerializeDeserialize, Member, SimpleBitOps,
-};
+use codec::{Decode, Encode};
+use rush::Hasher;
+use sp_runtime::traits::Hash;
+use std::{cmp::Ordering, fmt::Debug, hash::Hash as StdHash, marker::PhantomData};
 
-pub trait Hash:
-    Member + MaybeSerializeDeserialize + MaybeDisplay + SimpleBitOps + MaybeMallocSizeOf + HashT
+#[derive(Debug, PartialEq, Eq, Clone, Copy, StdHash, Encode, Decode)]
+pub struct OrdForHash<O: Eq + Copy + Clone + Send + Debug + StdHash + Encode + Decode + AsRef<[u8]>>
 {
+    inner: O,
 }
 
-impl Hash for H160 {}
+impl<O: Eq + Copy + Clone + Send + Sync + Debug + StdHash + Encode + Decode + AsRef<[u8]>>
+    PartialOrd for OrdForHash<O>
+{
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
 
-impl Hash for H256 {}
+impl<O: Eq + Copy + Clone + Send + Sync + Debug + StdHash + Encode + Decode + AsRef<[u8]>> Ord
+    for OrdForHash<O>
+{
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.inner.as_ref().cmp(other.inner.as_ref())
+    }
+}
 
-impl Hash for H512 {}
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Wrapper<H: Hash> {
+    phantom: PhantomData<H>,
+}
+
+impl<H: Hash> Hasher for Wrapper<H> {
+    type Hash = OrdForHash<H::Output>;
+
+    fn hash(s: &[u8]) -> Self::Hash {
+        Self::Hash {
+            inner: <H as Hash>::hash(s),
+        }
+    }
+}

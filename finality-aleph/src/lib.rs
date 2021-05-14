@@ -16,7 +16,7 @@ use std::{
 };
 pub mod config;
 mod data_io;
-pub mod hash;
+mod hash;
 mod import;
 mod justification;
 mod network;

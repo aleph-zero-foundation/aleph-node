@@ -1,6 +1,6 @@
 use crate::{
     data_io::{BlockFinalizer, DataIO},
-    network,
+    hash, network,
     network::ConsensusNetwork,
     KeyBox, SessionId, SpawnHandle,
 };
@@ -9,8 +9,7 @@ use futures::channel::mpsc;
 use log::debug;
 use sc_client_api::backend::Backend;
 use sp_consensus::SelectChain;
-use sp_core::{Blake2Hasher, Hasher};
-use sp_runtime::traits::Block;
+use sp_runtime::traits::{BlakeTwo256, Block};
 
 pub struct AlephParams<N, C, SC> {
     pub config: crate::AlephConfig<N, C, SC>,
@@ -49,7 +48,6 @@ where
     let session_id = SessionId(0);
     let id = consensus_config.node_id.index;
     let session_network = session_manager.start_session(session_id, authorities.clone());
-    let hashing = Blake2Hasher::hash;
     let (ordered_batch_tx, ordered_batch_rx) = mpsc::unbounded();
     let block_finalizer = BlockFinalizer::new(client, auth_keystore.clone(), ordered_batch_rx);
     let data_io = DataIO {
@@ -67,7 +65,12 @@ where
     debug!(target: "afa", "Block finalizer has started.");
 
     let (_exit, exit) = tokio::sync::oneshot::channel();
-    let member = rush::Member::new(data_io, keybox, session_network, consensus_config, hashing);
+    let member = rush::Member::<hash::Wrapper<BlakeTwo256>, _, _, _, _, _, _>::new(
+        data_io,
+        keybox,
+        session_network,
+        consensus_config,
+    );
 
     debug!(target: "afa", "Consensus party has started");
     member.run_session(spawn_handle, exit).await;
