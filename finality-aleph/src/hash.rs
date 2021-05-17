@@ -25,6 +25,14 @@ impl<O: Eq + Copy + Clone + Send + Sync + Debug + StdHash + Encode + Decode + As
     }
 }
 
+impl<O: Eq + Copy + Clone + Send + Sync + Debug + StdHash + Encode + Decode + AsRef<[u8]>>
+    AsRef<[u8]> for OrdForHash<O>
+{
+    fn as_ref(&self) -> &[u8] {
+        self.inner.as_ref()
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Wrapper<H: Hash> {
     phantom: PhantomData<H>,

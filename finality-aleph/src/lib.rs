@@ -81,8 +81,8 @@ impl Display for NodeId {
 }
 
 impl rush::Index for NodeId {
-    fn index(&self) -> Option<NodeIndex> {
-        Some(self.index)
+    fn index(&self) -> NodeIndex {
+        self.index
     }
 }
 
@@ -168,12 +168,13 @@ struct KeyBox {
 }
 
 impl rush::Index for KeyBox {
-    fn index(&self) -> Option<NodeIndex> {
-        Some(self.id)
+    fn index(&self) -> NodeIndex {
+        self.id
     }
 }
 
-impl rush::KeyBox<Signature> for KeyBox {
+impl rush::KeyBox for KeyBox {
+    type Signature = Signature;
     fn sign(&self, msg: &[u8]) -> Signature {
         Signature {
             id: self.id,

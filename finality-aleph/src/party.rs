@@ -65,9 +65,9 @@ where
     debug!(target: "afa", "Block finalizer has started.");
 
     let (_exit, exit) = tokio::sync::oneshot::channel();
-    let member = rush::Member::<hash::Wrapper<BlakeTwo256>, _, _, _, _, _, _>::new(
+    let member = rush::Member::<hash::Wrapper<BlakeTwo256>, _, _, _, _, _>::new(
         data_io,
-        keybox,
+        &keybox,
         session_network,
         consensus_config,
     );
