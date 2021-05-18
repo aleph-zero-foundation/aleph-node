@@ -46,7 +46,7 @@ where
     debug!(target: "afa", "Consensus network has started.");
 
     let session_id = SessionId(0);
-    let id = consensus_config.node_id.index;
+    let id = consensus_config.node_id;
     let session_network = session_manager.start_session(session_id, authorities.clone());
     let (ordered_batch_tx, ordered_batch_rx) = mpsc::unbounded();
     let block_finalizer = BlockFinalizer::new(client, auth_keystore.clone(), ordered_batch_rx);
@@ -65,7 +65,7 @@ where
     debug!(target: "afa", "Block finalizer has started.");
 
     let (_exit, exit) = tokio::sync::oneshot::channel();
-    let member = rush::Member::<hash::Wrapper<BlakeTwo256>, _, _, _, _, _>::new(
+    let member = rush::Member::<hash::Wrapper<BlakeTwo256>, _, _, _, _>::new(
         data_io,
         &keybox,
         session_network,

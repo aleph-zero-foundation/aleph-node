@@ -9,11 +9,7 @@ use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{HeaderBackend, HeaderMetadata};
 use sp_consensus::{BlockImport, SelectChain};
 use sp_runtime::{traits::Block, RuntimeAppPublic};
-use std::{
-    convert::TryInto,
-    fmt::{Debug, Display},
-    sync::Arc,
-};
+use std::{convert::TryInto, fmt::Debug, sync::Arc};
 pub mod config;
 mod data_io;
 mod hash;
@@ -67,24 +63,6 @@ use sp_core::crypto::KeyTypeId;
 pub const KEY_TYPE: KeyTypeId = sp_application_crypto::key_types::AURA;
 use crate::party::{run_consensus_party, AlephParams};
 pub use sp_consensus_aura::sr25519::{AuthorityId, AuthorityPair, AuthoritySignature};
-
-#[derive(Clone, Debug, Default, Eq, Hash, Encode, Decode, PartialEq)]
-pub struct NodeId {
-    pub auth: AuthorityId,
-    pub index: NodeIndex,
-}
-
-impl Display for NodeId {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        Display::fmt(&self.auth, f)
-    }
-}
-
-impl rush::Index for NodeId {
-    fn index(&self) -> NodeIndex {
-        self.index
-    }
-}
 
 /// Ties an authority identification and a cryptography keystore together for use in
 /// signing that requires an authority.
@@ -203,7 +181,7 @@ impl rush::SpawnHandle for SpawnHandle {
 
 pub struct AlephConfig<N, C, SC> {
     pub network: N,
-    pub consensus_config: ConsensusConfig<NodeId>,
+    pub consensus_config: ConsensusConfig,
     pub client: Arc<C>,
     pub select_chain: SC,
     pub spawn_handle: SpawnTaskHandle,

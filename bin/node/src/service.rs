@@ -4,7 +4,7 @@ use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use codec::Decode;
 use finality_aleph::{
     run_aleph_consensus, AlephBlockImport, AlephConfig, AuthorityId, AuthorityKeystore,
-    ConsensusConfig, NodeId,
+    ConsensusConfig,
 };
 use sc_client_api::{CallExecutor, ExecutionStrategy, ExecutorProvider};
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
@@ -136,9 +136,8 @@ fn get_authorities(
     (auth.into(), authorities)
 }
 
-fn consensus_config(auth: AuthorityId, authorities: &[AuthorityId]) -> ConsensusConfig<NodeId> {
-    let index = authorities.iter().position(|a| a == &auth).unwrap().into();
-    let node_id = NodeId { auth, index };
+fn consensus_config(auth: AuthorityId, authorities: &[AuthorityId]) -> ConsensusConfig {
+    let node_id = authorities.iter().position(|a| a == &auth).unwrap().into();
     let n_members = authorities.len().into();
 
     ConsensusConfig {
