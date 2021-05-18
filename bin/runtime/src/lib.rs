@@ -29,8 +29,8 @@ pub use frame_support::{
     construct_runtime, parameter_types,
     sp_runtime::curve::PiecewiseLinear,
     traits::{
-        Currency, Imbalance, KeyOwnerProofSystem, LockIdentifier, OnUnbalanced, Randomness,
-        U128CurrencyToVote,
+        Currency, EstimateNextNewSession, Imbalance, KeyOwnerProofSystem, LockIdentifier,
+        OnUnbalanced, Randomness, U128CurrencyToVote, ValidatorSet,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -38,7 +38,7 @@ pub use frame_support::{
     },
     StorageValue,
 };
-use primitives::AuthorityId as AlephId;
+use primitives::{ApiError as AlephApiError, AuthorityId as AlephId, Session as AuthoritySession};
 
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
@@ -518,9 +518,13 @@ impl_runtime_apis! {
         }
     }
 
-    impl primitives::AlephApi<Block> for Runtime {
-        fn authorities() -> Vec<AlephId> {
-            Aleph::authorities()
+    impl primitives::AlephSessionApi<Block, AlephId, BlockNumber> for Runtime {
+        fn current_session() -> AuthoritySession<AlephId, BlockNumber> {
+            Aleph::current_session()
+        }
+
+        fn next_session() -> Result<AuthoritySession<AlephId, BlockNumber>, AlephApiError> {
+            Aleph::next_session()
         }
     }
 }

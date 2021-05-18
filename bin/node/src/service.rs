@@ -4,7 +4,7 @@ use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use codec::Decode;
 use finality_aleph::{
     run_aleph_consensus, AlephBlockImport, AlephConfig, AuthorityId, AuthorityKeystore,
-    ConsensusConfig, JustificationNotification
+    ConsensusConfig, JustificationNotification,
 };
 use futures::channel::mpsc;
 use sc_client_api::{CallExecutor, ExecutionStrategy, ExecutorProvider};
