@@ -64,7 +64,7 @@ where
     spawn_handle.0.spawn("aleph/finalizer", task);
     debug!(target: "afa", "Block finalizer has started.");
 
-    let (_exit, exit) = tokio::sync::oneshot::channel();
+    let (_exit, exit) = futures::channel::oneshot::channel();
     let member = rush::Member::<hash::Wrapper<BlakeTwo256>, _, _, _, _>::new(
         data_io,
         &keybox,
