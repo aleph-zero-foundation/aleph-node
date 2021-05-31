@@ -12,10 +12,14 @@ pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"alp0");
 pub const ALEPH_ENGINE_ID: ConsensusEngineId = *b"FRNK";
 
 mod app {
-    use sp_application_crypto::{app_crypto, ed25519};
-    app_crypto!(ed25519, crate::KEY_TYPE);
+    use sp_application_crypto::{app_crypto, sr25519};
+    app_crypto!(sr25519, crate::KEY_TYPE);
 }
 
+sp_application_crypto::with_pair! {
+    pub type AuthorityPair = app::Pair;
+}
+pub type AuthoritySignature = app::Signature;
 pub type AuthorityId = app::Public;
 
 sp_api::decl_runtime_apis! {

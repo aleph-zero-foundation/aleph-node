@@ -1,10 +1,10 @@
 #!/bin/bash
 
-if [ -z "$1" ]
+if [ -z "$1" ] || (("$1" < 2 || "$1" > 8))
 then
     echo "The committee size is missing, usage:
 
-    ./run_nodes.sh SIZE
+    ./run_nodes.sh SIZE [Additional Arguments to ./target/debug/aleph-node]
 
 where 2 <= SIZE <= 8"
     exit
@@ -16,18 +16,20 @@ set -e
 
 clear
 
-echo "$1" > /tmp/n_members
+n_members="$1"
+echo "$n_members" > /tmp/n_members
+shift
 
 cargo build -p aleph-node
 
 authorities=(Damian Tomasz Zbyszko Hansu Adam Matt Antoni Michal)
-authorities=("${authorities[@]::$1}")
+authorities=("${authorities[@]::$n_members}")
 
 ./target/debug/aleph-node dev-keys  --base-path /tmp --chain dev --key-types aura alp0
 
 for i in ${!authorities[@]}; do
   auth=${authorities[$i]}
-  ./target/debug/aleph-node purge-chain --base-path /tmp/$auth --chain dev -y
+  ./target/debug/aleph-node purge-chain --base-path /tmp/"$auth" --chain dev -y
   ./target/debug/aleph-node \
     --validator \
     --chain dev \
@@ -36,5 +38,6 @@ for i in ${!authorities[@]}; do
     --ws-port $(expr 9944 + $i) \
     --port $(expr 30334 + $i) \
     --execution Native \
+    "$@" \
     2> $auth-$i.log  & \
 done
