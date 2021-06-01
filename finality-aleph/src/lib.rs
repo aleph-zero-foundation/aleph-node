@@ -18,7 +18,7 @@ mod justification;
 mod network;
 mod party;
 
-pub use import::AlephBlockImport;
+pub use import::{AlephBlockImport, JustificationNotification};
 
 // NOTE until we have our own pallet, we need to use Aura authorities
 // mod key_types {

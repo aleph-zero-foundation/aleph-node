@@ -22,21 +22,29 @@ sp_application_crypto::with_pair! {
 pub type AuthoritySignature = app::Signature;
 pub type AuthorityId = app::Public;
 
+#[derive(codec::Encode, codec::Decode, PartialEq, Eq, sp_std::fmt::Debug)]
+pub enum ApiError {
+    DecodeKey,
+}
+
 sp_api::decl_runtime_apis! {
-    pub trait AlephApi {
-        fn authorities() -> Vec<AuthorityId>;
+    pub trait AlephSessionApi<Id, BlockNumber>
+    where
+        Id: Encode + Decode,
+        BlockNumber: Encode + Decode,
+    {
+        fn current_session() -> Session<Id, BlockNumber>;
+        fn next_session() -> Result<Session<Id, BlockNumber>, ApiError>;
     }
 }
 
-#[derive(Decode, Encode, PartialEq, Eq, Clone)]
-pub enum AuthoritiesLog<Id, Number>
+#[derive(Decode, Encode, PartialEq, Eq, Clone, sp_std::fmt::Debug)]
+pub struct Session<Id, BlockNumber>
 where
     Id: Encode + Decode,
-    Number: Encode + Decode,
+    BlockNumber: Encode + Decode,
 {
-    WillChange {
-        session_id: u64,
-        when: Number,
-        next_authorities: Vec<Id>,
-    },
+    pub session_id: u32,
+    pub stop_h: BlockNumber,
+    pub authorities: Vec<Id>,
 }

@@ -251,9 +251,9 @@ pub fn new_test_ext(authorities: &[(u64, u64)]) -> sp_io::TestExternalities {
 
 pub(crate) fn run_session(n: u64) {
     while System::block_number() < n {
-        Aleph::on_finalize(System::block_number());
         Staking::on_finalize(System::block_number());
         Session::on_finalize(System::block_number());
+        Aleph::on_finalize(System::block_number());
         System::on_finalize(System::block_number());
 
         System::initialize(
@@ -262,11 +262,24 @@ pub(crate) fn run_session(n: u64) {
             &Default::default(),
             Default::default(),
         );
-        System::set_block_number(System::block_number() + 1);
 
         System::on_initialize(System::block_number());
         Session::on_initialize(System::block_number());
         Staking::on_initialize(System::block_number());
         Aleph::on_initialize(System::block_number());
     }
+}
+
+pub(crate) fn initialize_session() {
+    System::initialize(
+        &1,
+        &System::parent_hash(),
+        &Default::default(),
+        Default::default(),
+    );
+
+    System::on_initialize(System::block_number());
+    Session::on_initialize(System::block_number());
+    Staking::on_initialize(System::block_number());
+    Aleph::on_initialize(System::block_number());
 }
