@@ -23,25 +23,26 @@ serde_json = "1"
 futures = "0.3"
 
 codec = { package = "parity-scale-codec", version = "2", default-features = false, features = ["derive"] }
-sp-application-crypto = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sc-block-builder = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sc-cli = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sp-core = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sc-executor = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sc-service = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sc-telemetry = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sc-keystore = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sp-keystore = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sp-inherents = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sc-basic-authorship = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sc-transaction-pool = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sp-transaction-pool = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sc-consensus-aura = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sp-consensus-aura = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sp-consensus = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sc-consensus = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sc-client-api = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sp-runtime = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+sp-application-crypto = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sc-block-builder = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sc-cli = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-core = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sc-executor = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sc-service = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sc-telemetry = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sc-keystore = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-keystore = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-inherents = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sc-basic-authorship = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sc-transaction-pool = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-transaction-pool = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sc-consensus-aura = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-consensus-aura = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-consensus = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sc-consensus = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sc-client-api = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-runtime = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-timestamp = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7" }
 
 aleph-runtime = {version = "0.1.0", path = "../runtime"}
 finality-aleph = {version = "0.2.0", path = "../../finality-aleph"}
@@ -49,17 +50,17 @@ aleph-primitives = { package = "primitives", version = "0.1.0", path = "../../pr
 
 # These dependencies are used for the node template's RPCs
 jsonrpc-core = "15.1.0"
-sc-rpc = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sp-api = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sc-rpc-api = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sp-blockchain = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sp-block-builder = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-substrate-frame-rpc-system = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-pallet-staking = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+sc-rpc = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-api = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sc-rpc-api = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-blockchain = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-block-builder = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+substrate-frame-rpc-system = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+pallet-staking = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 
 [build-dependencies]
-substrate-build-script-utils = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+substrate-build-script-utils = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 
 [features]
 default = []

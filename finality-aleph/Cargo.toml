@@ -15,31 +15,31 @@ log = "0.4"
 futures = "0.3"
 parity-util-mem = "0.9"
 parking_lot = "0.11"
-prometheus-endpoint = { package = "substrate-prometheus-endpoint", git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+prometheus-endpoint = { package = "substrate-prometheus-endpoint", git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 rand = "0.8"
-sp-keystore = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sc-network = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sc-network-gossip = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sc-telemetry = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+sp-keystore = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sc-network = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sc-network-gossip = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sc-telemetry = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 rush = { git = "https://github.com/Cardinal-Cryptography/rush.git", rev = "caed0da" }
 serde = "1.0"
-sc-service = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sp-application-crypto = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sp-core = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sp-runtime = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sp-state-machine = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sp-trie = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sp-utils = {  git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sp-api = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sp-blockchain = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sp-consensus= { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sc-client-api = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sp-io= { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+sc-service = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-application-crypto = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-core = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-runtime = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-state-machine = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-trie = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-utils = {  git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-api = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-blockchain = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-consensus= { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sc-client-api = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-io= { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 derive_more = "0.99.7"
 env_logger = "0.8.3"
 async-trait = "0.1.42"
 
 [dev-dependencies]
-substrate-test-runtime-client = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-substrate-test-runtime = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
-sc-block-builder = { git = "https://github.com/paritytech/substrate.git", rev = "681f188"}
+substrate-test-runtime-client = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+substrate-test-runtime = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sc-block-builder = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}

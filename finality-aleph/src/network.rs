@@ -353,6 +353,7 @@ impl<B: BlockT + 'static, N: Network<B> + Clone> ConsensusNetwork<B, N> {
                                     remote,
                                     protocol,
                                     role: _,
+                                    negotiated_fallback: _,
                                 } => {
                                     if protocol != self.protocol {
                                         continue;

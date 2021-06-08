@@ -1,6 +1,7 @@
 use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 
 use codec::{Decode, Encode};
+
 use futures::Future;
 pub use rush::{nodes::NodeIndex, Config as ConsensusConfig};
 use sc_client_api::{backend::Backend, Finalizer, LockImportRun, TransactionFor};
@@ -52,6 +53,7 @@ pub fn peers_set_config() -> sc_network::config::NonDefaultSetConfig {
             reserved_nodes: vec![],
             non_reserved_mode: sc_network::config::NonReservedPeerMode::Accept,
         },
+        fallback_names: Vec::new(),
     }
 }
 

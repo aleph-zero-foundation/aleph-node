@@ -269,11 +269,13 @@ async fn test_network_commands() {
         remote: data.bob.peer_id,
         protocol: PROTOCOL_NAME.into(),
         role: ObservedRole::Authority,
+        negotiated_fallback: None,
     });
     data.network.emit_event(Event::NotificationStreamOpened {
         remote: data.charlie.peer_id,
         protocol: PROTOCOL_NAME.into(),
         role: ObservedRole::Authority,
+        negotiated_fallback: None,
     });
 
     println!("send to peer");
