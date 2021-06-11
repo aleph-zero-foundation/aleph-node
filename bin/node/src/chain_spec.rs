@@ -9,7 +9,7 @@ use pallet_staking::StakerStatus;
 use sc_service::ChainType;
 use sp_application_crypto::key_types;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::{sr25519, Pair, Public};
+use sp_core::{ed25519, sr25519, Pair, Public};
 use sp_runtime::{
     traits::{IdentifyAccount, Verify},
     Perbill,
@@ -69,7 +69,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
         .iter()
         .take(n_members)
         .copied()
-        .map(|bytes| AlephId::from(sr25519::Public::from_raw(bytes)))
+        .map(|bytes| AlephId::from(ed25519::Public::from_raw(bytes)))
         .collect();
 
     Ok(ChainSpec::from_genesis(

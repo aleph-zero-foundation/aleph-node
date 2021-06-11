@@ -524,5 +524,9 @@ impl_runtime_apis! {
         fn next_session() -> Result<AuthoritySession<AlephId, BlockNumber>, AlephApiError> {
             Aleph::next_session()
         }
+
+        fn authorities() -> Vec<AlephId> {
+            Aleph::authorities()
+        }
     }
 }

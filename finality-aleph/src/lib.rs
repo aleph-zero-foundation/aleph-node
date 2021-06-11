@@ -6,13 +6,14 @@ use futures::Future;
 pub use rush::{nodes::NodeIndex, Config as ConsensusConfig};
 use sc_client_api::{backend::Backend, Finalizer, LockImportRun, TransactionFor};
 use sc_service::SpawnTaskHandle;
-use sp_api::ProvideRuntimeApi;
+use sp_api::{NumberFor, ProvideRuntimeApi};
 use sp_blockchain::{HeaderBackend, HeaderMetadata};
 use sp_consensus::{BlockImport, SelectChain};
 use sp_runtime::{traits::Block, RuntimeAppPublic};
 use std::{convert::TryInto, fmt::Debug, sync::Arc};
 pub mod config;
 mod data_io;
+mod finalization;
 mod hash;
 mod import;
 mod justification;
@@ -61,10 +62,11 @@ pub fn peers_set_config() -> sc_network::config::NonDefaultSetConfig {
 pub struct SessionId(pub u64);
 
 use sp_core::crypto::KeyTypeId;
-// pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"alp0");
-pub const KEY_TYPE: KeyTypeId = sp_application_crypto::key_types::AURA;
+pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"alp0");
+// pub const KEY_TYPE: KeyTypeId = sp_application_crypto::key_types::AURA;
 use crate::party::{run_consensus_party, AlephParams};
 pub use aleph_primitives::{AuthorityId, AuthorityPair, AuthoritySignature};
+use futures::channel::mpsc;
 
 /// Ties an authority identification and a cryptography keystore together for use in
 /// signing that requires an authority.
@@ -181,23 +183,25 @@ impl rush::SpawnHandle for SpawnHandle {
     }
 }
 
-pub struct AlephConfig<N, C, SC> {
+pub struct AlephConfig<B: Block, N, C, SC> {
     pub network: N,
     pub consensus_config: ConsensusConfig,
     pub client: Arc<C>,
     pub select_chain: SC,
     pub spawn_handle: SpawnTaskHandle,
     pub auth_keystore: AuthorityKeystore,
-    pub authorities: Vec<AuthorityId>,
+    pub authority: AuthorityId,
+    pub justification_rx: mpsc::UnboundedReceiver<JustificationNotification<B>>,
 }
 
 pub fn run_aleph_consensus<B: Block, BE, C, N, SC>(
-    config: AlephConfig<N, C, SC>,
+    config: AlephConfig<B, N, C, SC>,
 ) -> impl Future<Output = ()>
 where
     BE: Backend<B> + 'static,
     N: network::Network<B> + 'static,
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
+    C::Api: aleph_primitives::AlephSessionApi<B, AuthorityId, NumberFor<B>>,
     SC: SelectChain<B> + 'static,
 {
     run_consensus_party(AlephParams { config })

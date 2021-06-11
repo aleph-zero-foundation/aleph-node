@@ -200,12 +200,12 @@ pub(crate) struct ConsensusNetwork<B: BlockT, N: Network<B> + Clone> {
     phantom: PhantomData<B>,
 }
 
-pub(crate) struct SessionManagar {
+pub(crate) struct SessionManager {
     sessions: Arc<Mutex<HashMap<SessionId, SessionData>>>,
     net_command_tx: mpsc::UnboundedSender<SessionCommand>,
 }
 
-impl SessionManagar {
+impl SessionManager {
     // NOTE: later this will also need access to KeyStore :/ (for Reliable Broadcast)
     pub(crate) fn start_session(
         &self,
@@ -243,8 +243,8 @@ impl<B: BlockT + 'static, N: Network<B> + Clone> ConsensusNetwork<B, N> {
         }
     }
 
-    pub(crate) fn session_manager(&self) -> SessionManagar {
-        SessionManagar {
+    pub(crate) fn session_manager(&self) -> SessionManager {
+        SessionManager {
             sessions: self.sessions.clone(),
             net_command_tx: self.net_command_tx.clone(),
         }

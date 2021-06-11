@@ -130,12 +130,12 @@ fn get_authorities(
     client: Arc<FullClient>,
     keystore: SyncCryptoStorePtr,
 ) -> (AuthorityId, Vec<AuthorityId>) {
-    let auth = SyncCryptoStore::sr25519_public_keys(&*keystore, finality_aleph::KEY_TYPE)[0];
+    let auth = SyncCryptoStore::ed25519_public_keys(&*keystore, finality_aleph::KEY_TYPE)[0];
     let authorities = client
         .executor()
         .call(
             &BlockId::Number(Zero::zero()),
-            "AuraApi_authorities",
+            "AlephSessionApi_authorities",
             &[],
             ExecutionStrategy::NativeElseWasm,
             None,
@@ -169,7 +169,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
         keystore_container,
         select_chain,
         transaction_pool,
-        other: (block_import, _receiver, mut telemetry),
+        other: (block_import, justification_rx, mut telemetry),
     } = new_partial(&config)?;
 
     config
@@ -279,8 +279,12 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
             client,
             select_chain,
             spawn_handle: task_manager.spawn_handle(),
-            auth_keystore: AuthorityKeystore::new(authority_id, keystore_container.sync_keystore()),
-            authorities,
+            auth_keystore: AuthorityKeystore::new(
+                authority_id.clone(),
+                keystore_container.sync_keystore(),
+            ),
+            authority: authority_id,
+            justification_rx,
         };
         task_manager
             .spawn_essential_handle()

@@ -145,7 +145,7 @@ struct Authority {
 async fn generate_authority(s: &str) -> Authority {
     let key_store = Arc::new(KeyStore::new());
     let pk = key_store
-        .sr25519_generate_new(KEY_TYPE, Some(s))
+        .ed25519_generate_new(KEY_TYPE, Some(s))
         .await
         .unwrap();
     assert_eq!(key_store.keys(KEY_TYPE).await.unwrap().len(), 3);
