@@ -21,7 +21,7 @@ sp-keystore = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8
 sc-network = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 sc-network-gossip = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 sc-telemetry = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-rush = { git = "https://github.com/Cardinal-Cryptography/rush.git", rev = "caed0da" }
+rush = { git = "https://github.com/Cardinal-Cryptography/AlephBFT.git", rev = "381d388" }
 serde = "1.0"
 sc-service = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 sp-application-crypto = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}

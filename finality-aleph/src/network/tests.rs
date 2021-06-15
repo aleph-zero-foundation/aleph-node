@@ -1,13 +1,9 @@
 use super::*;
-use crate::KEY_TYPE;
-use futures::{
-    channel::{mpsc, oneshot},
-    SinkExt,
-};
-use sc_network::{Event, ObservedRole, PeerId, ReputationChange};
+use crate::{AuthorityId, AuthorityKeystore, KEY_TYPE};
+use futures::channel::{mpsc, oneshot};
+use sc_network::{Event, ObservedRole, PeerId as ScPeerId, ReputationChange};
 use sp_keystore::{testing::KeyStore, CryptoStore};
 use sp_runtime::traits::Block as BlockT;
-use std::{collections::HashSet, time::Duration};
 use substrate_test_runtime::Block;
 
 type Channel<T> = (
@@ -30,10 +26,11 @@ struct TestNetwork<B: BlockT> {
     announce: Channel<(B::Hash, Option<Vec<u8>>)>,
     add_set_reserved: Channel<(PeerId, Cow<'static, str>)>,
     remove_set_reserved: Channel<(PeerId, Cow<'static, str>)>,
+    peer_id: PeerId,
 }
 
 impl<B: BlockT> TestNetwork<B> {
-    fn new(tx: oneshot::Sender<()>) -> Self {
+    fn new(peer_id: PeerId, tx: oneshot::Sender<()>) -> Self {
         TestNetwork {
             event_sinks: Arc::new(Mutex::new(vec![])),
             oneshot_sender: Arc::new(Mutex::new(Some(tx))),
@@ -43,6 +40,7 @@ impl<B: BlockT> TestNetwork<B> {
             announce: channel(),
             add_set_reserved: channel(),
             remove_set_reserved: channel(),
+            peer_id,
         }
     }
 }
@@ -104,6 +102,10 @@ impl<B: BlockT> Network<B> for TestNetwork<B> {
             .unbounded_send((who, protocol))
             .unwrap();
     }
+
+    fn peer_id(&self) -> PeerId {
+        self.peer_id
+    }
 }
 
 impl<B: BlockT> TestNetwork<B> {
@@ -138,28 +140,41 @@ impl<B: BlockT> TestNetwork<B> {
 }
 
 struct Authority {
-    id: AuthorityId,
     peer_id: PeerId,
+    keychain: KeyBox,
 }
 
-async fn generate_authority(s: &str) -> Authority {
+async fn generate_authorities(ss: &[String]) -> Vec<Authority> {
     let key_store = Arc::new(KeyStore::new());
-    let pk = key_store
-        .ed25519_generate_new(KEY_TYPE, Some(s))
-        .await
-        .unwrap();
-    assert_eq!(key_store.keys(KEY_TYPE).await.unwrap().len(), 3);
-    let id = AuthorityId::from(pk);
-    let peer_id = PeerId::random();
-    Authority { id, peer_id }
+    let mut auth_ids = Vec::with_capacity(ss.len());
+    for s in ss {
+        let pk = key_store
+            .ed25519_generate_new(KEY_TYPE, Some(s))
+            .await
+            .unwrap();
+        auth_ids.push(AuthorityId::from(pk));
+    }
+    let mut result = Vec::with_capacity(ss.len());
+    for i in 0..ss.len() {
+        result.push(Authority {
+            peer_id: ScPeerId::random().into(),
+            keychain: KeyBox {
+                id: NodeIndex(i),
+                auth_keystore: AuthorityKeystore::new(auth_ids[i].clone(), key_store.clone()),
+                authorities: auth_ids.clone(),
+            },
+        });
+    }
+    assert_eq!(key_store.keys(KEY_TYPE).await.unwrap().len(), 3 * ss.len());
+    result
 }
+
+type MockData = Vec<u8>;
 
 struct TestData {
     network: TestNetwork<Block>,
-    _alice: Authority,
-    bob: Authority,
-    charlie: Authority,
-    rush_network: RushNetwork,
+    authorities: Vec<Authority>,
+    rush_network: GenericNetwork<MockData>,
     consensus_network_handle: tokio::task::JoinHandle<()>,
 }
 
@@ -168,8 +183,8 @@ impl TestData {
     // and awaits for the consensus_network task.
     async fn complete(mut self) {
         self.network.close_channels();
-        self.rush_network.net_command_tx.close_channel();
-        assert!(self.rush_network.net_event_rx.try_next().is_err());
+        self.rush_network.commands_for_session.close_channel();
+        assert!(self.rush_network.data_from_network.try_next().is_err());
         self.consensus_network_handle.await.unwrap();
     }
 }
@@ -177,24 +192,25 @@ impl TestData {
 const PROTOCOL_NAME: &str = "/test/1";
 
 async fn prepare_one_session_test_data() -> TestData {
-    let (oneshot_tx, oneshot_rx) = oneshot::channel();
-    let network = TestNetwork::<Block>::new(oneshot_tx);
-    let consensus_network =
-        ConsensusNetwork::<Block, TestNetwork<Block>>::new(network.clone(), PROTOCOL_NAME);
-
-    let _alice = generate_authority("//Alice").await;
-    let bob = generate_authority("//Bob").await;
-    let charlie = generate_authority("//Charlie").await;
-
-    let authorities: Vec<_> = [&_alice, &bob, &charlie]
+    let authority_names: Vec<_> = ["//Alice", "//Bob", "//Charlie"]
         .iter()
-        .map(|auth| auth.id.clone())
+        .map(|s| s.to_string())
         .collect();
+    let authorities = generate_authorities(authority_names.as_slice()).await;
+    let peer_id = authorities[0].peer_id;
+
+    let (oneshot_tx, oneshot_rx) = oneshot::channel();
+    let network = TestNetwork::<Block>::new(peer_id, oneshot_tx);
+    let consensus_network = ConsensusNetwork::<MockData, Block, TestNetwork<Block>>::new(
+        network.clone(),
+        PROTOCOL_NAME.into(),
+    );
+
     let session_id = SessionId(0);
 
     let rush_network = consensus_network
         .session_manager()
-        .start_session(session_id, authorities);
+        .start_session(session_id, authorities[0].keychain.clone());
     let consensus_network_handle = tokio::spawn(async move { consensus_network.run().await });
 
     // wait till consensus_network takes the event_stream
@@ -202,9 +218,7 @@ async fn prepare_one_session_test_data() -> TestData {
 
     TestData {
         network,
-        _alice,
-        bob,
-        charlie,
+        authorities,
         rush_network,
         consensus_network_handle,
     }
@@ -213,19 +227,22 @@ async fn prepare_one_session_test_data() -> TestData {
 #[tokio::test]
 async fn test_network_event_sync_connnected() {
     let data = prepare_one_session_test_data().await;
+    let bob_peer_id = data.authorities[1].peer_id;
     data.network.emit_event(Event::SyncConnected {
-        remote: data.bob.peer_id,
+        remote: bob_peer_id.into(),
     });
     let (peer_id, protocol) = data.network.add_set_reserved.1.lock().next().await.unwrap();
-    assert_eq!(peer_id, data.bob.peer_id);
+    assert_eq!(peer_id, bob_peer_id);
     assert_eq!(protocol, PROTOCOL_NAME);
     data.complete().await;
 }
+
 #[tokio::test]
 async fn test_network_event_sync_disconnected() {
     let data = prepare_one_session_test_data().await;
+    let charlie_peer_id = data.authorities[2].peer_id;
     data.network.emit_event(Event::SyncDisconnected {
-        remote: data.charlie.peer_id,
+        remote: charlie_peer_id.into(),
     });
     let (peer_id, protocol) = data
         .network
@@ -235,73 +252,174 @@ async fn test_network_event_sync_disconnected() {
         .next()
         .await
         .unwrap();
-    assert_eq!(peer_id, data.charlie.peer_id);
+    assert_eq!(peer_id, charlie_peer_id);
     assert_eq!(protocol, PROTOCOL_NAME);
     data.complete().await;
 }
 
 #[tokio::test]
-async fn test_network_event_notifications_received() {
-    let bytes: Vec<u8> = (0..=255).collect();
-    let mut data = prepare_one_session_test_data().await;
-    let encoded_message: Vec<u8> =
-        <(SessionId, Vec<u8>) as Encode>::encode(&(data.rush_network.session_id, bytes.clone()));
-    let messages = vec![(PROTOCOL_NAME.into(), encoded_message.into())];
-
-    data.network.emit_event(Event::NotificationsReceived {
-        remote: data.bob.peer_id,
-        messages,
+async fn authenticates_to_connected() {
+    let data = prepare_one_session_test_data().await;
+    let bob_peer_id = data.authorities[1].peer_id;
+    data.network.emit_event(Event::NotificationStreamOpened {
+        remote: bob_peer_id.into(),
+        protocol: Cow::Borrowed(PROTOCOL_NAME),
+        role: ObservedRole::Authority,
+        negotiated_fallback: None,
     });
-    if let Some(NetworkEvent::MessageReceived(message, peer_id_bytes)) =
-        data.rush_network.net_event_rx.next().await
-    {
-        assert_eq!(message, bytes);
-        assert_eq!(peer_id_bytes, data.bob.peer_id.to_bytes());
+    let (peer_id, protocol, message) = data
+        .network
+        .send_message
+        .1
+        .lock()
+        .next()
+        .await
+        .expect("got auth message");
+    let alice_peer_id = data.authorities[0].peer_id;
+    assert_eq!(peer_id, bob_peer_id);
+    assert_eq!(protocol, PROTOCOL_NAME);
+    let message =
+        InternalMessage::<MockData>::decode(&mut message.as_slice()).expect("a correct message");
+    if let InternalMessage::Meta(auth_data, _) = message {
+        assert_eq!(auth_data.peer_id, alice_peer_id);
     } else {
-        panic!("expected message received network event")
+        panic!("Expected an authentication message.")
     }
     data.complete().await;
 }
+
 #[tokio::test]
-async fn test_network_commands() {
+async fn test_network_event_notifications_received() {
     let mut data = prepare_one_session_test_data().await;
+    let bob_peer_id = data.authorities[1].peer_id;
+    let bob_node_id = data.authorities[1].keychain.index();
+    let auth_data = AuthData {
+        session_id: SessionId(0),
+        peer_id: bob_peer_id,
+        node_id: bob_node_id,
+    };
+    let signature = data.authorities[1].keychain.sign(&auth_data.encode());
+    let auth_message = InternalMessage::<MockData>::Meta(auth_data, signature).encode();
+    let note = vec![157];
+    let message = InternalMessage::Data(SessionId(0), note.clone()).encode();
+    let messages = vec![
+        (PROTOCOL_NAME.into(), auth_message.into()),
+        (PROTOCOL_NAME.into(), message.clone().into()),
+    ];
+
+    data.network.emit_event(Event::NotificationsReceived {
+        remote: bob_peer_id.into(),
+        messages,
+    });
+    if let Some(incoming_data) = data.rush_network.next_event().await {
+        assert_eq!(incoming_data, note);
+    } else {
+        panic!("expected message received nothing")
+    }
+    data.complete().await;
+}
+
+#[tokio::test]
+async fn test_send() {
+    let data = prepare_one_session_test_data().await;
+    let bob_peer_id = data.authorities[1].peer_id;
+    let bob_node_id = data.authorities[1].keychain.index();
+    let cur_session_id = SessionId(0);
+    let auth_data = AuthData {
+        session_id: cur_session_id,
+        peer_id: bob_peer_id,
+        node_id: bob_node_id,
+    };
+    let signature = data.authorities[1].keychain.sign(&auth_data.encode());
+    let auth_message = InternalMessage::<MockData>::Meta(auth_data, signature).encode();
+    let messages = vec![(PROTOCOL_NAME.into(), auth_message.into())];
+
+    data.network.emit_event(Event::NotificationsReceived {
+        remote: bob_peer_id.into(),
+        messages,
+    });
     data.network.emit_event(Event::NotificationStreamOpened {
-        remote: data.bob.peer_id,
-        protocol: PROTOCOL_NAME.into(),
+        remote: bob_peer_id.into(),
+        protocol: Cow::Borrowed(PROTOCOL_NAME),
         role: ObservedRole::Authority,
         negotiated_fallback: None,
     });
-    data.network.emit_event(Event::NotificationStreamOpened {
-        remote: data.charlie.peer_id,
-        protocol: PROTOCOL_NAME.into(),
-        role: ObservedRole::Authority,
-        negotiated_fallback: None,
-    });
+    // Wait for acknowledgement that Alice noted Bob's presence.
+    data.network
+        .send_message
+        .1
+        .lock()
+        .next()
+        .await
+        .expect("got auth message");
+    let note = vec![157];
+    data.rush_network
+        .send(note.clone(), bob_node_id)
+        .expect("sending works");
+    match data.network.send_message.1.lock().next().await {
+        Some((peer_id, protocol, message)) => {
+            assert_eq!(peer_id, bob_peer_id);
+            assert_eq!(protocol, PROTOCOL_NAME);
+            match InternalMessage::<MockData>::decode(&mut message.as_slice()) {
+                Ok(InternalMessage::Data(session_id, data)) => {
+                    assert_eq!(session_id, cur_session_id);
+                    assert_eq!(data, note);
+                }
+                _ => panic!("Expected a properly encoded message"),
+            }
+        }
+        _ => panic!("Expecting a message"),
+    }
+    data.complete().await;
+}
 
-    println!("send to peer");
+#[tokio::test]
+async fn test_broadcast() {
+    let data = prepare_one_session_test_data().await;
+    let cur_session_id = SessionId(0);
+    for i in 1..2 {
+        let peer_id = data.authorities[i].peer_id;
+        let node_id = data.authorities[i].keychain.index();
+        let auth_data = AuthData {
+            session_id: cur_session_id,
+            peer_id,
+            node_id,
+        };
+        let signature = data.authorities[1].keychain.sign(&auth_data.encode());
+        let auth_message = InternalMessage::<MockData>::Meta(auth_data, signature).encode();
+        let messages = vec![(PROTOCOL_NAME.into(), auth_message.into())];
 
-    // SendToPeer
-    {
-        let fake_message: Vec<u8> = vec![157];
-        data.rush_network
-            .net_command_tx
-            .send(SessionCommand {
-                session_id: data.rush_network.session_id,
-                command: NetworkCommand::SendToPeer(
-                    fake_message.clone(),
-                    data.bob.peer_id.to_bytes(),
-                ),
-            })
+        data.network.emit_event(Event::NotificationsReceived {
+            remote: peer_id.0,
+            messages,
+        });
+        data.network.emit_event(Event::NotificationStreamOpened {
+            remote: peer_id.0,
+            protocol: Cow::Borrowed(PROTOCOL_NAME),
+            role: ObservedRole::Authority,
+            negotiated_fallback: None,
+        });
+        // Wait for acknowledgement that Alice noted the nodes presence.
+        data.network
+            .send_message
+            .1
+            .lock()
+            .next()
             .await
-            .unwrap();
+            .expect("got auth message");
+    }
+    let note = vec![157];
+    data.rush_network
+        .broadcast(note.clone())
+        .expect("broadcasting works");
+    for _ in 1..2_usize {
         match data.network.send_message.1.lock().next().await {
-            Some((peer_id, protocol, message)) => {
-                assert_eq!(peer_id, data.bob.peer_id);
+            Some((_, protocol, message)) => {
                 assert_eq!(protocol, PROTOCOL_NAME);
-                match <(SessionId, Vec<u8>) as Decode>::decode(&mut message.as_slice()) {
-                    Ok((session_id_, message)) => {
-                        assert_eq!(session_id_.0, 0);
-                        assert_eq!(message, fake_message);
+                match InternalMessage::<MockData>::decode(&mut message.as_slice()) {
+                    Ok(InternalMessage::Data(session_id, data)) => {
+                        assert_eq!(session_id, cur_session_id);
+                        assert_eq!(data, note);
                     }
                     _ => panic!("Expected a properly encoded message"),
                 }
@@ -309,104 +427,5 @@ async fn test_network_commands() {
             _ => panic!("Expecting a message"),
         }
     }
-
-    println!("send to all");
-
-    // SendToAll
-    {
-        let fake_message: Vec<u8> = vec![205];
-        data.rush_network
-            .net_command_tx
-            .send(SessionCommand {
-                session_id: data.rush_network.session_id,
-                command: NetworkCommand::SendToAll(fake_message.clone()),
-            })
-            .await
-            .unwrap();
-        let mut peer_ids = HashSet::<PeerId>::new();
-        for _ in 0..2_u8 {
-            match data.network.send_message.1.lock().next().await {
-                Some((peer_id, protocol, message)) => {
-                    peer_ids.insert(peer_id);
-                    assert_eq!(protocol, PROTOCOL_NAME);
-                    match <(SessionId, Vec<u8>)>::decode(&mut message.as_slice()) {
-                        Ok((session_id, message)) => {
-                            assert_eq!(session_id.0, 0);
-                            assert_eq!(message, fake_message);
-                        }
-                        _ => panic!("Expected a properly encoded message"),
-                    }
-                }
-                _ => panic!("Expected two messages"),
-            }
-        }
-        let expected_peer_ids: HashSet<_> = [data.bob.peer_id, data.charlie.peer_id]
-            .iter()
-            .cloned()
-            .collect();
-        assert_eq!(peer_ids, expected_peer_ids);
-    }
-
-    // SendToRandPeer
-    {
-        let fake_message = vec![74];
-        data.rush_network
-            .net_command_tx
-            .send(SessionCommand {
-                session_id: data.rush_network.session_id,
-                command: NetworkCommand::SendToRandPeer(fake_message.clone()),
-            })
-            .await
-            .unwrap();
-        match data.network.send_message.1.lock().next().await {
-            Some((peer_id, protocol, message)) => {
-                assert!(peer_id == data.bob.peer_id || peer_id == data.charlie.peer_id);
-                assert_eq!(protocol, PROTOCOL_NAME);
-                match <(SessionId, Vec<u8>)>::decode(&mut message.as_slice()) {
-                    Ok((session_id, message)) => {
-                        assert_eq!(session_id.0, 0);
-                        assert_eq!(message, fake_message);
-                    }
-                    _ => panic!("Expected a properly encoded message"),
-                }
-            }
-            _ => panic!("Expected a message"),
-        }
-    }
-
-    // SendToRandPeer after bob disconnects
-    {
-        println!("{:?}", data.bob.peer_id);
-        data.network.emit_event(Event::NotificationStreamClosed {
-            remote: data.bob.peer_id,
-            protocol: PROTOCOL_NAME.into(),
-        });
-        let fake_message = vec![180];
-        data.rush_network
-            .net_command_tx
-            .send(SessionCommand {
-                session_id: data.rush_network.session_id,
-                command: NetworkCommand::SendToRandPeer(fake_message.clone()),
-            })
-            .await
-            .unwrap();
-        // wait for a moment to make sure that bob is disconnected.
-        tokio::time::delay_for(Duration::from_millis(500)).await;
-        match data.network.send_message.1.lock().next().await {
-            Some((peer_id, protocol, message)) => {
-                assert_eq!(peer_id, data.charlie.peer_id);
-                assert_eq!(protocol, PROTOCOL_NAME);
-                match <(SessionId, Vec<u8>)>::decode(&mut message.as_slice()) {
-                    Ok((session_id, message)) => {
-                        assert_eq!(session_id.0, 0);
-                        assert_eq!(message, fake_message);
-                    }
-                    _ => panic!("Expected a properly encoded message"),
-                }
-            }
-            _ => panic!("Expected a message"),
-        }
-    }
-
     data.complete().await;
 }

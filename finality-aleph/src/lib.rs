@@ -3,13 +3,17 @@ use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 use codec::{Decode, Encode};
 
 use futures::Future;
-pub use rush::{nodes::NodeIndex, Config as ConsensusConfig};
+use rush::NodeIndex;
+pub use rush::{default_config as default_aleph_config, Config as ConsensusConfig};
 use sc_client_api::{backend::Backend, Finalizer, LockImportRun, TransactionFor};
 use sc_service::SpawnTaskHandle;
 use sp_api::{NumberFor, ProvideRuntimeApi};
 use sp_blockchain::{HeaderBackend, HeaderMetadata};
 use sp_consensus::{BlockImport, SelectChain};
-use sp_runtime::{traits::Block, RuntimeAppPublic};
+use sp_runtime::{
+    traits::{BlakeTwo256, Block},
+    RuntimeAppPublic,
+};
 use std::{convert::TryInto, fmt::Debug, sync::Arc};
 pub mod config;
 mod data_io;
@@ -137,12 +141,15 @@ where
 {
 }
 
-#[derive(Clone, Default, Debug, Decode, Encode)]
+type Hasher = hash::Wrapper<BlakeTwo256>;
+
+#[derive(Clone, Debug, Decode, Encode)]
 struct Signature {
     id: NodeIndex,
     sgn: AuthoritySignature,
 }
 
+#[derive(Clone)]
 struct KeyBox {
     id: NodeIndex,
     auth_keystore: AuthorityKeystore,
