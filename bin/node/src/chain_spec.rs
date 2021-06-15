@@ -72,6 +72,20 @@ pub fn development_config() -> Result<ChainSpec, String> {
         .map(|bytes| AlephId::from(ed25519::Public::from_raw(bytes)))
         .collect();
 
+    let rich_accounts: Vec<_> = [
+        "Alice",
+        "Alice//stash",
+        "Bob",
+        "Bob//stash",
+        "Charlie",
+        "Dave",
+        "Eve",
+        "Ferdie",
+    ]
+    .iter()
+    .map(get_account_id_from_seed::<sr25519::Public>)
+    .collect();
+    let sudo_account = rich_accounts[0].clone();
     Ok(ChainSpec::from_genesis(
         // Name
         "AlephZero Development",
@@ -85,13 +99,14 @@ pub fn development_config() -> Result<ChainSpec, String> {
                 aura_keys.clone(),
                 aleph_keys.clone(),
                 // Sudo account
-                get_account_id_from_seed::<sr25519::Public>(&"Alice"),
+                sudo_account.clone(),
                 // Pre-funded accounts
                 LOCAL_AUTHORITIES
                     .iter()
                     .take(n_members)
                     .map(get_account_id_from_seed::<sr25519::Public>)
                     .collect(),
+                rich_accounts.clone(),
                 true,
             )
         },
@@ -115,6 +130,7 @@ fn testnet_genesis(
     aleph_authorities: Vec<AlephId>,
     root_key: AccountId,
     endowed_accounts: Vec<AccountId>,
+    rich_accounts: Vec<AccountId>,
     _enable_println: bool,
 ) -> GenesisConfig {
     GenesisConfig {
@@ -128,6 +144,7 @@ fn testnet_genesis(
             balances: endowed_accounts
                 .iter()
                 .cloned()
+                .chain(rich_accounts.into_iter())
                 .map(|k| (k, 1 << 60))
                 .collect(),
         },
