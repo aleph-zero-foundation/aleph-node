@@ -2,9 +2,9 @@ use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 
 use codec::{Decode, Encode};
 
+pub use aleph_bft::{default_config as default_aleph_config, Config as ConsensusConfig};
+use aleph_bft::{DefaultMultiKeychain, NodeCount, NodeIndex};
 use futures::Future;
-use rush::NodeIndex;
-pub use rush::{default_config as default_aleph_config, Config as ConsensusConfig};
 use sc_client_api::{backend::Backend, Finalizer, LockImportRun, TransactionFor};
 use sc_service::SpawnTaskHandle;
 use sp_api::{NumberFor, ProvideRuntimeApi};
@@ -43,7 +43,7 @@ pub use import::{AlephBlockImport, JustificationNotification};
 // pub type AuthoritySignature = app::Signature;
 // pub type AuthorityPair = app::Pair;
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Encode, Decode)]
 enum Error {
     SendData,
 }
@@ -156,15 +156,21 @@ struct KeyBox {
     authorities: Vec<AuthorityId>,
 }
 
-impl rush::Index for KeyBox {
+impl aleph_bft::Index for KeyBox {
     fn index(&self) -> NodeIndex {
         self.id
     }
 }
 
-impl rush::KeyBox for KeyBox {
+#[async_trait::async_trait]
+impl aleph_bft::KeyBox for KeyBox {
     type Signature = Signature;
-    fn sign(&self, msg: &[u8]) -> Signature {
+
+    fn node_count(&self) -> NodeCount {
+        self.authorities.len().into()
+    }
+
+    async fn sign(&self, msg: &[u8]) -> Signature {
         Signature {
             id: self.id,
             sgn: self.auth_keystore.sign(msg),
@@ -175,6 +181,8 @@ impl rush::KeyBox for KeyBox {
     }
 }
 
+type MultiKeychain = DefaultMultiKeychain<KeyBox>;
+
 #[derive(Clone)]
 struct SpawnHandle(SpawnTaskHandle);
 
@@ -184,7 +192,7 @@ impl From<SpawnTaskHandle> for SpawnHandle {
     }
 }
 
-impl rush::SpawnHandle for SpawnHandle {
+impl aleph_bft::SpawnHandle for SpawnHandle {
     fn spawn(&self, name: &'static str, task: impl Future<Output = ()> + Send + 'static) {
         self.0.spawn(name, task)
     }

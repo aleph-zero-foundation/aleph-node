@@ -1,5 +1,5 @@
+use aleph_bft::Hasher;
 use codec::{Decode, Encode};
-use rush::Hasher;
 use sp_runtime::traits::Hash;
 use std::{cmp::Ordering, fmt::Debug, hash::Hash as StdHash, marker::PhantomData};
 

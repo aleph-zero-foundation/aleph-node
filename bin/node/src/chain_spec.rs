@@ -5,12 +5,12 @@ use aleph_runtime::{
     AccountId, AlephConfig, AuraConfig, BalancesConfig, GenesisConfig, SessionConfig, SessionKeys,
     Signature, StakingConfig, SudoConfig, SystemConfig, WASM_BINARY,
 };
+use hex_literal::hex;
 use pallet_staking::StakerStatus;
 use sc_service::ChainType;
 use sp_application_crypto::key_types;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{ed25519, sr25519, Pair, Public};
-use hex_literal::hex;
 use sp_runtime::{
     traits::{IdentifyAccount, Verify},
     Perbill,
@@ -86,7 +86,8 @@ pub fn development_config() -> Result<ChainSpec, String> {
     .map(get_account_id_from_seed::<sr25519::Public>)
     .collect();
     // Also give money to the faucet account.
-    rich_accounts.push(hex!["eaefd9d9b42915bda608154f17bb03e407cbf244318a0499912c2fb1cd879b74"].into());
+    rich_accounts
+        .push(hex!["eaefd9d9b42915bda608154f17bb03e407cbf244318a0499912c2fb1cd879b74"].into());
     let sudo_account = rich_accounts[0].clone();
     Ok(ChainSpec::from_genesis(
         // Name

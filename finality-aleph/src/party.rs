@@ -2,19 +2,17 @@ use crate::{
     data_io::DataIO,
     default_aleph_config,
     finalization::{
-        check_extends_last_finalized, finalize_block, finalize_block_as_authority,
-        reduce_block_up_to,
+        chain_extension, finalize_block, finalize_block_as_authority, BlockSignatureAggregator,
     },
     justification::JustificationHandler,
     network,
-    network::{ConsensusNetwork, RushNetwork, RushNetworkData, SessionManager},
-    AuthorityId, AuthorityKeystore, JustificationNotification, KeyBox, NodeIndex, SessionId,
-    SpawnHandle,
+    network::{split_network, ConsensusNetwork, NetworkData, SessionManager},
+    AuthorityId, AuthorityKeystore, JustificationNotification, KeyBox, MultiKeychain, NodeIndex,
+    SessionId, SpawnHandle,
 };
 use aleph_primitives::{AlephSessionApi, Session, ALEPH_ENGINE_ID};
-use futures::{channel::mpsc, select, stream::SelectAll, StreamExt};
+use futures::{channel::mpsc, stream::FuturesUnordered, FutureExt, StreamExt};
 use log::{debug, error};
-use rush::OrderedBatch;
 use sc_client_api::backend::Backend;
 use sc_service::SpawnTaskHandle;
 use sp_api::{BlockId, NumberFor};
@@ -65,74 +63,6 @@ where
     error!(target: "afa", "Consensus party has finished unexpectedly.");
 }
 
-type OrderedHashesReceiver<B> = mpsc::UnboundedReceiver<OrderedBatch<<B as Block>::Hash>>;
-
-fn create_session<B, SC>(
-    authority: AuthorityId,
-    auth_keystore: AuthorityKeystore,
-    select_chain: SC,
-    spawn_handle: SpawnHandle,
-    session: Session<AuthorityId, NumberFor<B>>,
-    session_manager: &SessionManager<RushNetworkData<B>>,
-) -> (SessionInstance<B>, Option<OrderedHashesReceiver<B>>)
-where
-    B: Block,
-    SC: SelectChain<B> + 'static,
-{
-    // If we are in session authorities run consensus.
-    let node_id = match get_node_index(&session.authorities, &authority) {
-        Some(node_id) => node_id,
-        None => {
-            return (
-                SessionInstance {
-                    session,
-                    exit_tx: None,
-                },
-                None,
-            )
-        }
-    };
-    let (ordered_batch_tx, ordered_batch_rx) = mpsc::unbounded();
-    let (exit_tx, exit_rx) = futures::channel::oneshot::channel();
-
-    let keybox = KeyBox {
-        auth_keystore,
-        authorities: session.authorities.clone(),
-        id: node_id,
-    };
-    let session_id = session.session_id as u64;
-    let session_network =
-        RushNetwork::<B>::new(session_manager.start_session(SessionId(session_id), keybox.clone()));
-
-    let consensus_config =
-        default_aleph_config(session.authorities.len().into(), node_id, session_id);
-    let data_io = DataIO {
-        select_chain,
-        ordered_batch_tx,
-    };
-
-    let spawn_clone = spawn_handle.clone();
-
-    let task = async move {
-        let member = rush::Member::new(data_io, &keybox, consensus_config);
-
-        member
-            .run_session(session_network, spawn_clone, exit_rx)
-            .await;
-    };
-
-    spawn_handle.0.spawn("aleph/consensus_session", task);
-    debug!(target: "afa", "Consensus party #{} has started.", session.session_id);
-
-    (
-        SessionInstance {
-            session,
-            exit_tx: Some(exit_tx),
-        },
-        Some(ordered_batch_rx),
-    )
-}
-
 fn get_node_index(authorities: &[AuthorityId], my_id: &AuthorityId) -> Option<NodeIndex> {
     authorities
         .iter()
@@ -162,7 +92,6 @@ where
     B: Block,
 {
     pub(crate) session: Session<AuthorityId, NumberFor<B>>,
-    pub(crate) exit_tx: Option<futures::channel::oneshot::Sender<()>>,
 }
 
 struct ConsensusParty<B, N, C, BE, SC>
@@ -184,6 +113,98 @@ where
     authority: AuthorityId,
     phantom: PhantomData<BE>,
     finalization_proposals_rx: mpsc::UnboundedReceiver<JustificationNotification<B>>,
+}
+
+async fn maybe_run_session_as_authority<B, C, BE, SC>(
+    authority: AuthorityId,
+    auth_keystore: AuthorityKeystore,
+    client: Arc<C>,
+    session_manager: &SessionManager<NetworkData<B>>,
+    session: Session<AuthorityId, NumberFor<B>>,
+    spawn_handle: SpawnHandle,
+    select_chain: SC,
+) -> bool
+where
+    B: Block,
+    C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
+    C::Api: aleph_primitives::AlephSessionApi<B, AuthorityId, NumberFor<B>>,
+    BE: Backend<B> + 'static,
+    SC: SelectChain<B> + 'static,
+{
+    let node_id = match get_node_index(&session.authorities, &authority) {
+        Some(node_id) => node_id,
+        None => return false,
+    };
+    let current_stop_h = session.stop_h;
+    let (ordered_batch_tx, ordered_batch_rx) = mpsc::unbounded();
+    let (exit_tx, exit_rx) = futures::channel::oneshot::channel();
+
+    let keybox = KeyBox {
+        auth_keystore: auth_keystore.clone(),
+        authorities: session.authorities.clone(),
+        id: node_id,
+    };
+    let multikeychain = MultiKeychain::new(keybox);
+    let session_id = SessionId(session.session_id as u64);
+
+    let data_network = session_manager
+        .start_session(session_id, multikeychain.clone())
+        .await;
+
+    let (aleph_network, rmc_network, forwarder) = split_network(data_network);
+
+    spawn_handle.0.spawn("forward-data", forwarder);
+
+    let consensus_config = default_aleph_config(
+        session.authorities.len().into(),
+        node_id,
+        session_id.0 as u64,
+    );
+    let data_io = DataIO {
+        select_chain: select_chain.clone(),
+        ordered_batch_tx,
+    };
+    let aleph_task = {
+        let multikeychain = multikeychain.clone();
+        let spawn_handle = spawn_handle.clone();
+        async move {
+            let member =
+                aleph_bft::Member::new(data_io, &multikeychain, consensus_config, spawn_handle);
+            member.run_session(aleph_network, exit_rx).await;
+        }
+    };
+    spawn_handle.0.spawn("aleph/consensus_session", aleph_task);
+
+    debug!(target: "afa", "Consensus party #{} has started.", session_id.0);
+
+    let mut aggregator = BlockSignatureAggregator::new(rmc_network, &multikeychain);
+
+    let ordered_hashes = ordered_batch_rx.map(futures::stream::iter).flatten();
+    let mut finalizable_chain =
+        chain_extension(ordered_hashes, client.clone(), current_stop_h).fuse();
+
+    loop {
+        tokio::select! {
+            hash = finalizable_chain.next(), if !finalizable_chain.is_done() => {
+                if let Some(hash) = hash {
+                    aggregator.start_aggregation(hash).await;
+                } else {
+                    aggregator.finish().await;
+                    debug!(target: "afa", "hashes to sign ended");
+                }
+            },
+            multisigned_hash = aggregator.next_multisigned_hash(), if !aggregator.is_finished() => {
+                if let Some((hash, _multisignature)) = multisigned_hash {
+                    // TODO: justify with the multisignature.
+                    finalize_block_as_authority(client.clone(), hash, &auth_keystore);
+                } else {
+                    break;
+                }
+            },
+        }
+    }
+    exit_tx.send(()).expect("consensus task should not fail");
+    true
 }
 
 impl<B, N, C, BE, SC> ConsensusParty<B, N, C, BE, SC>
@@ -217,25 +238,25 @@ where
             phantom: PhantomData,
         }
     }
-
-    async fn run(mut self) {
-        // Prepare and start the network
-        let network = ConsensusNetwork::new(self.network.clone(), "/cardinals/aleph/1".into());
-        let session_manager = network.session_manager();
-
-        let task = async move { network.run().await };
-        self.spawn_handle.0.spawn("aleph/network", task);
-        debug!(target: "afa", "Consensus network has started.");
-
-        // a set of streams of (u32, OrderedBatch<B::Hash>>) pairs
-        let mut proposition_select = SelectAll::new();
-
-        let mut waiting_blocks = HashMap::<u32, Vec<B::Hash>>::new();
-
-        let genesis_session = match self
+    async fn run_session(
+        &mut self,
+        session_manger: &SessionManager<NetworkData<B>>,
+        session_id: u32,
+    ) {
+        let prev_block_number = match session_id.checked_sub(1) {
+            None => 0.into(),
+            Some(prev_id) => {
+                self.sessions
+                    .get(&prev_id)
+                    .expect("The current session should be known already")
+                    .session
+                    .stop_h
+            }
+        };
+        let session = match self
             .client
             .runtime_api()
-            .current_session(&BlockId::Number(0.into()))
+            .current_session(&BlockId::Number(prev_block_number))
         {
             Ok(session) => session,
             _ => {
@@ -244,126 +265,63 @@ where
             }
         };
 
-        // Start new session if we are in the authority set.
-        let (instance, proposition_rx) = create_session(
-            self.authority.clone(),
-            self.auth_keystore.clone(),
-            self.select_chain.clone(),
-            self.spawn_handle.clone(),
-            genesis_session,
-            &session_manager,
-        );
-        self.sessions.insert(0, instance);
-        if let Some(proposition_rx) = proposition_rx {
-            proposition_select.push(futures::stream::repeat(0).zip(proposition_rx));
-        }
-
-        for curr_id in 0.. {
-            // Stopping block is the last before the new session kick ins
-            let current_stop_h = self
-                .sessions
-                .get(&curr_id)
-                .expect("The current session should be known already")
-                .session
-                .stop_h;
-
-            if let Some(hashes) = waiting_blocks.remove(&curr_id) {
-                for hash in hashes {
-                    self.handle_proposal(hash, current_stop_h);
-                }
-            }
-
-            while self.client.info().finalized_number < current_stop_h {
-                select! {
-                    x = proposition_select.next() => {
-                        match x {
-                            Some((id, batch)) if id == curr_id => {
-                                for hash in batch {
-                                    self.handle_proposal(hash, current_stop_h);
-                                }
-                            },
-                            Some((id, _)) if id < curr_id => {
-                                debug!(target: "afa", "Received finalization proposal for past round #{}", id);
-                            },
-                            Some((id, batch)) => {
-                                debug!(target: "afa", "Received finalization proposal for future round #{}, storing it for later consideration", id);
-                                waiting_blocks.entry(id).or_insert_with(Vec::new).extend(batch);
-                            },
-                            None => {},
-                        };
-                    },
-                    x = self.finalization_proposals_rx.next() => {
-                        if let Some(proposal) = x {
-                            // TODO: check if we should do this
-                            finalize_block(self.client.clone(), proposal.hash, proposal.number, Some((
-                                ALEPH_ENGINE_ID,
-                                proposal.justification
-                            )));
-                        }
-                    },
-                    complete => {
-                        error!(target: "afa", "Proposal channel and proposition_select channels finished");
-
-                        // if this condition is false no hopes for restarting.
-                        if self.client.info().finalized_number != current_stop_h {
-                            return;
-                        }
+        let current_stop_h = session.stop_h;
+        let client = self.client.clone();
+        let finalization_proposals_rx = &mut self.finalization_proposals_rx;
+        let proposals_task = {
+            let client = self.client.clone();
+            async move {
+                while client.info().finalized_number < current_stop_h {
+                    if let Some(proposal) = finalization_proposals_rx.next().await {
+                        // TODO: check if we should do this
+                        finalize_block(
+                            client.clone(),
+                            proposal.hash,
+                            proposal.number,
+                            Some((ALEPH_ENGINE_ID, proposal.justification)),
+                        );
+                    } else {
+                        debug!(target: "afa", "the channel of proposed blocks closed unexpectedly");
+                        return true;
                     }
                 }
+                true
             }
+        };
 
-            if let Some(instance) = self.sessions.remove(&curr_id) {
-                if let Some(exit_tx) = instance.exit_tx {
-                    // Signal the end of the session
-                    debug!(target: "afa", "Signaling end of the consensus party #{}.", curr_id);
-                    exit_tx.send(()).expect("Closing member session");
-                }
+        let session_task = maybe_run_session_as_authority(
+            self.authority.clone(),
+            self.auth_keystore.clone(),
+            client.clone(),
+            session_manger,
+            session,
+            self.spawn_handle.clone(),
+            self.select_chain.clone(),
+        );
 
-                self.sessions.insert(
-                    curr_id,
-                    SessionInstance {
-                        session: instance.session,
-                        exit_tx: None,
-                    },
-                );
-            }
-
-            debug!(target: "afa", "Moving to new session #{}.", curr_id + 1);
-
-            // We are asking for the next_session on the last block, which we know that is finalized, of the current session.
-            // We are calling the `current_session` function not the `next_session` the sessions rotates on the last blocks of the session.
-            let next_session = match self
-                .client
-                .runtime_api()
-                .current_session(&BlockId::Number(current_stop_h))
-            {
-                Ok(session) => session,
-                _ => {
-                    error!(target: "afa", "No next session found for current block #{}", current_stop_h);
-                    return;
-                }
-            };
-            // Start new session if we are in the authority set.
-            let (instance, proposition_rx) = create_session(
-                self.authority.clone(),
-                self.auth_keystore.clone(),
-                self.select_chain.clone(),
-                self.spawn_handle.clone(),
-                next_session,
-                &session_manager,
-            );
-            self.sessions.insert(curr_id + 1, instance);
-            if let Some(proposition_rx) = proposition_rx {
-                proposition_select.push(futures::stream::repeat(curr_id + 1).zip(proposition_rx));
-            }
-        }
+        let mut tasks: FuturesUnordered<_> =
+            vec![proposals_task.left_future(), session_task.right_future()]
+                .into_iter()
+                .collect();
+        // wait for the first task returning true
+        tasks.next().await;
+        //tasks.filter(|b| std::future::ready(*b)).next().await;
     }
 
-    fn handle_proposal(&mut self, h: B::Hash, max_height: NumberFor<B>) {
-        if let Some(reduced) = reduce_block_up_to(self.client.clone(), h, max_height) {
-            if check_extends_last_finalized(self.client.clone(), reduced) {
-                finalize_block_as_authority(self.client.clone(), reduced, &self.auth_keystore);
-            }
+    async fn run(mut self) {
+        // Prepare and start the network
+        let network = ConsensusNetwork::<NetworkData<B>, _, _>::new(
+            self.network.clone(),
+            "/cardinals/aleph/1".into(),
+        );
+        let session_manager = network.session_manager();
+
+        let task = async move { network.run().await };
+        self.spawn_handle.0.spawn("aleph/network", task);
+        debug!(target: "afa", "Consensus network has started.");
+
+        for curr_id in 0.. {
+            self.run_session(&session_manager, curr_id).await
         }
     }
 }

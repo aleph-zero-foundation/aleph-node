@@ -1,8 +1,8 @@
-use codec::{Decode, Encode};
-use futures::{channel::mpsc, stream::Stream, StreamExt};
+use aleph_bft::{Index, KeyBox as _, NodeIndex, SignatureSet};
+use codec::{Codec, Decode, Encode};
+use futures::{channel::mpsc, stream::Stream, FutureExt, StreamExt};
 use lru::LruCache;
 use parking_lot::Mutex;
-use rush::{nodes::NodeIndex, Index, KeyBox as _};
 use sc_network::{multiaddr, Event, ExHashT, NetworkService, PeerId as ScPeerId, ReputationChange};
 use sp_runtime::traits::Block as BlockT;
 use std::{
@@ -15,9 +15,10 @@ use std::{
     sync::Arc,
 };
 
-use log::{debug, trace};
+use log::{debug, trace, warn};
 
-use crate::{Error, Hasher, KeyBox, SessionId, Signature};
+use crate::{finalization::SignableHash, Error, Hasher, MultiKeychain, SessionId, Signature};
+use std::{fmt::Debug, future::Future};
 
 #[cfg(test)]
 mod tests;
@@ -252,8 +253,8 @@ enum SessionStatus {
     Terminated,
 }
 
-#[derive(Clone, Encode, Decode)]
-enum Recipient<T: Clone + Encode + Decode> {
+#[derive(Clone, Copy, Encode, Decode)]
+pub(crate) enum Recipient<T: Clone + Encode + Decode> {
     All,
     Target(T),
 }
@@ -302,10 +303,10 @@ enum InternalMessage<D: Clone + Encode + Decode> {
     Data(DataMessage<D>),
 }
 
-struct SessionData<D: Clone + Encode + Decode> {
+struct SessionData<D> {
     pub(crate) data_for_user: mpsc::UnboundedSender<D>,
     pub(crate) status: SessionStatus,
-    pub(crate) keychain: KeyBox,
+    pub(crate) keychain: MultiKeychain,
     messages: LruCache<DataMessage<D>, ()>,
     messages_index: MessageIndex,
     auth_data: AuthData,
@@ -318,53 +319,35 @@ enum SessionCommand<D: Clone + Encode + Decode> {
     Data(SessionId, D, Recipient<NodeIndex>),
 }
 
-pub(crate) struct GenericNetwork<D: Clone + Encode + Decode> {
-    session_id: SessionId,
-    data_from_network: mpsc::UnboundedReceiver<D>,
-    commands_for_session: mpsc::UnboundedSender<SessionCommand<D>>,
-}
-
-impl<D: Clone + Encode + Decode> GenericNetwork<D> {
-    fn send(&self, data: D, node: NodeIndex) -> Result<(), Error> {
-        let sc = SessionCommand::Data(self.session_id, data, Recipient::Target(node));
-        // TODO add better error conversion
-        self.commands_for_session
-            .unbounded_send(sc)
-            .map_err(|_| Error::SendData)
-    }
-
-    fn broadcast(&self, data: D) -> Result<(), Error> {
-        let sc = SessionCommand::Data(self.session_id, data, Recipient::All);
-        // TODO add better error conversion
-        self.commands_for_session
-            .unbounded_send(sc)
-            .map_err(|_| Error::SendData)
-    }
-
-    async fn next_event(&mut self) -> Option<D> {
-        self.data_from_network.next().await
+impl<D: Clone + Codec> SessionCommand<D> {
+    fn map<E: Clone + Codec, F: FnOnce(D) -> E>(self, f: F) -> SessionCommand<E> {
+        use SessionCommand::*;
+        match self {
+            Meta(message, recipient) => Meta(message, recipient),
+            Data(session_id, data, recipient) => Data(session_id, f(data), recipient),
+        }
     }
 }
 
-pub(crate) struct SessionManager<D: Clone + Encode + Decode> {
+pub(crate) struct SessionManager<D: Clone + Codec> {
     peer_id: PeerId,
     sessions: Arc<Mutex<HashMap<SessionId, SessionData<D>>>>,
     commands_for_session: mpsc::UnboundedSender<SessionCommand<D>>,
 }
 
-impl<D: Clone + Encode + Decode> SessionManager<D> {
-    pub(crate) fn start_session(
+impl<D: Clone + Codec> SessionManager<D> {
+    pub(crate) async fn start_session(
         &self,
         session_id: SessionId,
-        keychain: KeyBox,
-    ) -> GenericNetwork<D> {
-        let (data_for_user, data_from_network) = mpsc::unbounded();
+        keychain: MultiKeychain,
+    ) -> DataNetwork<D> {
         let auth_data = AuthData {
             session_id,
             peer_id: self.peer_id,
             node_id: keychain.index(),
         };
-        let signature = keychain.sign(&auth_data.encode());
+        let signature = keychain.sign(&auth_data.encode()).await;
+        let (data_for_user, data_from_network) = mpsc::unbounded();
         let session_data = SessionData {
             data_for_user,
             status: SessionStatus::InProgress,
@@ -384,11 +367,11 @@ impl<D: Clone + Encode + Decode> SessionManager<D> {
         {
             log::error!(target: "afa", "sending auth command failed in new session: {}", e);
         }
-        GenericNetwork {
+        DataNetwork::new(
             session_id,
             data_from_network,
-            commands_for_session: self.commands_for_session.clone(),
-        }
+            self.commands_for_session.clone(),
+        )
     }
 }
 
@@ -463,20 +446,15 @@ where
         }
     }
 
-    fn forward_to_peers(
-        &self,
-        session_id: SessionId,
-        index: MessageIndex,
-        data: D,
-        recipient: Recipient<NodeIndex>,
-    ) {
-        let data_message = DataMessage {
+    fn forward_to_peers(&self, message: DataMessage<D>) {
+        let DataMessage {
             session_id,
             index,
-            data,
-            recipient: recipient.clone(),
-        };
-        let message = InternalMessage::Data(data_message);
+            recipient,
+            ..
+        } = message;
+        let message = InternalMessage::Data(message);
+
         match recipient {
             Recipient::All => {
                 self.send_message_rand(session_id, message, GOSSIP_FORWARD, index as usize)
@@ -499,6 +477,7 @@ where
             debug!(target: "afa", "Error {:?} when passing a message event to session {:?}.", e, session_id);
         }
     }
+
     fn authenticate_to(&self, session_data: &SessionData<D>, peer_id: PeerId) {
         self.commands_for_session
             .unbounded_send(SessionCommand::Meta(
@@ -533,19 +512,8 @@ where
         }
     }
 
-    fn on_incoming_data(
-        &self,
-        session_id: SessionId,
-        index: MessageIndex,
-        data: D,
-        recipient: Recipient<NodeIndex>,
-    ) {
-        let message = DataMessage {
-            session_id,
-            index,
-            data: data.clone(),
-            recipient: recipient.clone(),
-        };
+    fn on_incoming_data(&self, message: DataMessage<D>) {
+        let session_id = message.session_id;
         let mut sessions = self.sessions.lock();
         if let Some(session_data) = sessions.get_mut(&session_id) {
             if session_data.status == SessionStatus::InProgress {
@@ -553,18 +521,18 @@ where
                     trace!(target: "afa", "Received data with old index in session {:?}.", session_id);
                     return;
                 } else {
-                    session_data.messages.put(message, ());
+                    session_data.messages.put(message.clone(), ());
                 }
-                match recipient {
+                match message.recipient {
                     Recipient::Target(node_id) if node_id == session_data.auth_data.node_id => {
-                        self.send_to_user(session_id, data, session_data);
+                        self.send_to_user(session_id, message.data, session_data);
                     }
                     Recipient::All => {
-                        self.send_to_user(session_id, data.clone(), session_data);
-                        self.forward_to_peers(session_id, index, data, recipient);
+                        self.send_to_user(session_id, message.data.clone(), session_data);
+                        self.forward_to_peers(message);
                     }
                     _ => {
-                        self.forward_to_peers(session_id, index, data, recipient);
+                        self.forward_to_peers(message);
                     }
                 }
             }
@@ -593,17 +561,13 @@ where
     fn on_incoming_message(&self, peer_id: PeerId, raw_message: Vec<u8>) {
         use InternalMessage::*;
         match InternalMessage::<D>::decode(&mut &raw_message[..]) {
-            Ok(Data(DataMessage {
-                session_id,
-                index,
-                data,
-                recipient,
-            })) => {
+            Ok(Data(message)) => {
+                let session_id = message.session_id;
                 // Accept data only from authenticated peers. Rush is robust enough that this is
                 // not strictly necessary, but it doesn't hurt.
                 // TODO we may relax this condition if we want to allow nonvalidators to help in gossip
                 if self.peers.lock().is_authenticated(&peer_id, &session_id) {
-                    self.on_incoming_data(session_id, index, data, recipient);
+                    self.on_incoming_data(message);
                 } else {
                     trace!(target: "afa", "Received unauthenticated message from {:?} for session {:?}, requesting authentication.", peer_id, session_id);
                     self.commands_for_session
@@ -643,7 +607,7 @@ where
                     session_id,
                     index,
                     data,
-                    recipient: recipient.clone(),
+                    recipient,
                 };
                 let message = InternalMessage::Data(data_message);
                 if let Recipient::Target(node_id) = recipient {
@@ -737,31 +701,156 @@ where
     }
 }
 
-pub(crate) type RushNetworkData<B> = rush::NetworkData<Hasher, <B as BlockT>::Hash, Signature>;
+pub(crate) type AlephNetworkData<B> =
+    aleph_bft::NetworkData<Hasher, <B as BlockT>::Hash, Signature, SignatureSet<Signature>>;
 
-pub(crate) struct RushNetwork<B: BlockT> {
-    inner: GenericNetwork<RushNetworkData<B>>,
+pub(crate) type RmcNetworkData<B> =
+    aleph_bft::rmc::Message<SignableHash<<B as BlockT>::Hash>, Signature, SignatureSet<Signature>>;
+
+#[derive(Clone, Encode, Decode)]
+pub(crate) enum NetworkData<B: BlockT> {
+    Aleph(AlephNetworkData<B>),
+    Rmc(RmcNetworkData<B>),
 }
 
-impl<B: BlockT> RushNetwork<B> {
-    pub(crate) fn new(inner: GenericNetwork<RushNetworkData<B>>) -> Self {
-        RushNetwork { inner }
+pub(crate) struct DataNetwork<D: Clone + Codec> {
+    session_id: SessionId,
+    data_from_consensus_network: mpsc::UnboundedReceiver<D>,
+    commands_for_consensus_network: mpsc::UnboundedSender<SessionCommand<D>>,
+}
+
+impl<D: Clone + Codec> DataNetwork<D> {
+    fn new(
+        session_id: SessionId,
+        data_from_consensus_network: mpsc::UnboundedReceiver<D>,
+        commands_for_consensus_network: mpsc::UnboundedSender<SessionCommand<D>>,
+    ) -> Self {
+        DataNetwork {
+            session_id,
+            data_from_consensus_network,
+            commands_for_consensus_network,
+        }
+    }
+
+    pub(crate) fn send(&self, data: D, recipient: Recipient<NodeIndex>) -> Result<(), Error> {
+        let sc = SessionCommand::Data(self.session_id, data, recipient);
+        self.commands_for_consensus_network
+            .unbounded_send(sc)
+            .map_err(|_| Error::SendData)
+    }
+
+    pub(crate) async fn next(&mut self) -> Option<D> {
+        self.data_from_consensus_network.next().await
+    }
+}
+
+pub(crate) struct AlephNetwork<B: BlockT> {
+    inner: DataNetwork<AlephNetworkData<B>>,
+}
+
+impl<B: BlockT> AlephNetwork<B> {
+    pub(crate) fn new(inner: DataNetwork<AlephNetworkData<B>>) -> Self {
+        AlephNetwork { inner }
     }
 }
 
 #[async_trait::async_trait]
-impl<B: BlockT> rush::Network<Hasher, B::Hash, Signature> for RushNetwork<B> {
+impl<B: BlockT> aleph_bft::Network<Hasher, B::Hash, Signature, SignatureSet<Signature>>
+    for AlephNetwork<B>
+{
     type Error = Error;
 
-    fn send(&self, data: RushNetworkData<B>, node: NodeIndex) -> Result<(), Self::Error> {
-        self.inner.send(data, node)
+    fn send(&self, data: AlephNetworkData<B>, node: NodeIndex) -> Result<(), Self::Error> {
+        self.inner.send(data, Recipient::Target(node))
     }
 
-    fn broadcast(&self, data: RushNetworkData<B>) -> Result<(), Self::Error> {
-        self.inner.broadcast(data)
+    fn broadcast(&self, data: AlephNetworkData<B>) -> Result<(), Self::Error> {
+        self.inner.send(data, Recipient::All)
     }
 
-    async fn next_event(&mut self) -> Option<RushNetworkData<B>> {
-        self.inner.next_event().await
+    async fn next_event(&mut self) -> Option<AlephNetworkData<B>> {
+        self.inner.next().await
     }
+}
+
+pub(crate) struct RmcNetwork<B: BlockT> {
+    inner: DataNetwork<RmcNetworkData<B>>,
+}
+
+impl<B: BlockT> RmcNetwork<B> {
+    pub(crate) fn new(inner: DataNetwork<RmcNetworkData<B>>) -> Self {
+        RmcNetwork { inner }
+    }
+    pub(crate) fn send(
+        &self,
+        data: RmcNetworkData<B>,
+        recipient: Recipient<NodeIndex>,
+    ) -> Result<(), Error> {
+        self.inner.send(data, recipient)
+    }
+    pub(crate) async fn next(&mut self) -> Option<RmcNetworkData<B>> {
+        self.inner.next().await
+    }
+}
+
+pub(crate) fn split_network<B: BlockT>(
+    data_network: DataNetwork<NetworkData<B>>,
+) -> (AlephNetwork<B>, RmcNetwork<B>, impl Future<Output = ()>) {
+    let (aleph_data_tx, aleph_data_rx) = mpsc::unbounded();
+    let (rmc_data_tx, rmc_data_rx) = mpsc::unbounded();
+    let (aleph_cmd_tx, aleph_cmd_rx) = mpsc::unbounded();
+    let (rmc_cmd_tx, rmc_cmd_rx) = mpsc::unbounded();
+    let aleph_network = AlephNetwork::new(DataNetwork::new(
+        data_network.session_id,
+        aleph_data_rx,
+        aleph_cmd_tx,
+    ));
+    let rmc_network = RmcNetwork::new(DataNetwork::new(
+        data_network.session_id,
+        rmc_data_rx,
+        rmc_cmd_tx,
+    ));
+    let mut data_from_consensus_network = data_network.data_from_consensus_network;
+    let forward_data = async move {
+        loop {
+            match data_from_consensus_network.next().await {
+                None => break,
+                Some(NetworkData::Aleph(data)) => {
+                    if let Err(e) = aleph_data_tx.unbounded_send(data) {
+                        warn!(target: "afa", "unable to send data via aleph network {}", e);
+                    }
+                }
+                Some(NetworkData::Rmc(data)) => {
+                    if let Err(e) = rmc_data_tx.unbounded_send(data) {
+                        warn!(target: "afa", "unable to send data via rmc network {}", e);
+                    }
+                }
+            }
+        }
+    };
+    let cmd_tx = data_network.commands_for_consensus_network;
+    let forward_aleph_cmd = {
+        let cmd_tx = cmd_tx.clone();
+        aleph_cmd_rx
+            .map(|cmd| Ok(cmd.map(NetworkData::Aleph)))
+            .forward(cmd_tx)
+            .map(|res| {
+                if let Err(e) = res {
+                    warn!(target: "afa", "error forwarding aleph commands: {}", e);
+                }
+            })
+    };
+    let forward_rmc_cmd = {
+        rmc_cmd_rx
+            .map(|cmd| Ok(cmd.map(NetworkData::Rmc)))
+            .forward(cmd_tx)
+            .map(|res| {
+                if let Err(e) = res {
+                    warn!(target: "afa", "error forwarding rmc commands: {}", e);
+                }
+            })
+    };
+    let forwards = futures::future::join3(forward_data, forward_aleph_cmd, forward_rmc_cmd)
+        .map(|((), (), ())| ());
+    (aleph_network, rmc_network, forwards)
 }
