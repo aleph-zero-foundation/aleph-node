@@ -1,4 +1,3 @@
-use crate::AuthorityId;
 use aleph_primitives::ALEPH_ENGINE_ID;
 use futures::channel::mpsc::{TrySendError, UnboundedSender};
 use sc_client_api::backend::Backend;
@@ -20,7 +19,6 @@ where
     I: crate::ClientForAleph<Block, Be>,
 {
     inner: Arc<I>,
-    authorities: Vec<AuthorityId>,
     justification_tx: UnboundedSender<JustificationNotification<Block>>,
     _phantom: PhantomData<Be>,
 }
@@ -41,12 +39,10 @@ where
 {
     pub fn new(
         inner: Arc<I>,
-        authorities: Vec<AuthorityId>,
         justification_tx: UnboundedSender<JustificationNotification<Block>>,
     ) -> AlephBlockImport<Block, Be, I> {
         AlephBlockImport {
             inner,
-            authorities,
             justification_tx,
             _phantom: PhantomData,
         }
@@ -83,7 +79,6 @@ where
     fn clone(&self) -> Self {
         AlephBlockImport {
             inner: self.inner.clone(),
-            authorities: self.authorities.clone(),
             justification_tx: self.justification_tx.clone(),
             _phantom: PhantomData,
         }

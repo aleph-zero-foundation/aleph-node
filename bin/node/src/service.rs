@@ -3,8 +3,8 @@
 use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use codec::Decode;
 use finality_aleph::{
-    default_aleph_config, run_aleph_consensus, AlephBlockImport, AlephConfig, AuthorityId,
-    AuthorityKeystore, ConsensusConfig, JustificationNotification,
+    run_aleph_consensus, AlephBlockImport, AlephConfig, AuthorityId, AuthorityKeystore,
+    JustificationNotification,
 };
 use futures::channel::mpsc;
 use sc_client_api::{CallExecutor, ExecutionStrategy, ExecutorProvider};
@@ -82,10 +82,8 @@ pub fn new_partial(
         client.clone(),
     );
 
-    let (_, authorities) = get_authorities(client.clone(), keystore_container.sync_keystore());
     let (justification_tx, justification_rx) = mpsc::unbounded();
-    let aleph_block_import =
-        AlephBlockImport::new(client.clone() as Arc<_>, authorities, justification_tx);
+    let aleph_block_import = AlephBlockImport::new(client.clone() as Arc<_>, justification_tx);
 
     let slot_duration = sc_consensus_aura::slot_duration(&*client)?.slot_duration();
 
@@ -147,13 +145,6 @@ fn get_authorities(
     (auth.into(), authorities)
 }
 
-fn consensus_config(auth: AuthorityId, authorities: &[AuthorityId]) -> ConsensusConfig {
-    let node_id = authorities.iter().position(|a| a == &auth).unwrap().into();
-    let n_members = authorities.len().into();
-
-    default_aleph_config(n_members, node_id, 0)
-}
-
 /// Builds a new service for a full client.
 pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> {
     let sc_service::PartialComponents {
@@ -187,8 +178,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
     let force_authoring = config.force_authoring;
     let backoff_authoring_blocks: Option<()> = None;
     let prometheus_registry = config.prometheus_registry().cloned();
-    let (authority_id, authorities) =
-        get_authorities(client.clone(), keystore_container.sync_keystore());
+    let (authority_id, _) = get_authorities(client.clone(), keystore_container.sync_keystore());
 
     let rpc_extensions_builder = {
         let client = client.clone();
@@ -270,7 +260,6 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 
         let aleph_config = AlephConfig {
             network,
-            consensus_config: consensus_config(authority_id.clone(), &authorities),
             client,
             select_chain,
             spawn_handle: task_manager.spawn_handle(),

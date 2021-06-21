@@ -192,7 +192,6 @@ impl rush::SpawnHandle for SpawnHandle {
 
 pub struct AlephConfig<B: Block, N, C, SC> {
     pub network: N,
-    pub consensus_config: ConsensusConfig,
     pub client: Arc<C>,
     pub select_chain: SC,
     pub spawn_handle: SpawnTaskHandle,
