@@ -228,8 +228,14 @@ struct AuthData {
 }
 
 #[derive(Clone, Encode, Decode)]
+enum MetaMessage {
+    Authentication(AuthData, Signature),
+    AuthenticationRequest(SessionId),
+}
+
+#[derive(Clone, Encode, Decode)]
 enum InternalMessage<D: Clone + Encode + Decode> {
-    Meta(AuthData, Signature),
+    Meta(MetaMessage),
     Data(SessionId, D),
 }
 
@@ -243,7 +249,7 @@ struct SessionData<D: Clone + Encode + Decode> {
 
 #[derive(Clone, Encode, Decode)]
 enum SessionCommand<D: Clone + Encode + Decode> {
-    Meta(AuthData, Signature, Option<PeerId>),
+    Meta(MetaMessage, Option<PeerId>),
     Data(SessionId, D, Option<NodeIndex>),
 }
 
@@ -319,7 +325,10 @@ impl<D: Clone + Encode + Decode> SessionManager<D> {
         self.sessions.lock().insert(session_id, session_data);
         if let Err(e) = self
             .commands_for_session
-            .unbounded_send(SessionCommand::Meta(auth_data, signature, None))
+            .unbounded_send(SessionCommand::Meta(
+                MetaMessage::Authentication(auth_data, signature),
+                None,
+            ))
         {
             log::error!(target: "afa", "sending auth command failed in new session: {}", e);
         }
@@ -359,6 +368,38 @@ impl<D: Clone + Encode + Decode, B: BlockT + 'static, N: Network<B> + Clone>
     fn send_message(&self, peer_id: &PeerId, message: InternalMessage<D>) {
         self.network
             .send_message(*peer_id, self.protocol.clone(), message.encode());
+    }
+
+    fn authenticate_to(&self, session_data: &SessionData<D>, peer_id: PeerId) {
+        self.commands_for_session
+            .unbounded_send(SessionCommand::Meta(
+                MetaMessage::Authentication(
+                    session_data.auth_data.clone(),
+                    session_data.auth_signature.clone(),
+                ),
+                Some(peer_id),
+            ))
+            .expect("Sending commands to session should work.");
+    }
+
+    fn on_incoming_meta(&self, message: MetaMessage, peer_id: PeerId) {
+        use MetaMessage::*;
+        match message {
+            Authentication(auth_data, signature) => {
+                // Avoids peers claiming other peers represent their node, which could lead to a
+                // DDoS.
+                if peer_id == auth_data.peer_id {
+                    self.on_incoming_authentication(auth_data, signature);
+                }
+            }
+            AuthenticationRequest(session_id) => {
+                if let Some(session_data) = self.sessions.lock().get(&session_id) {
+                    self.authenticate_to(session_data, peer_id);
+                } else {
+                    debug!(target: "afa", "Received authentication request for unknown session: {:?}.", session_id);
+                }
+            }
+        }
     }
 
     fn on_incoming_data(&self, session_id: SessionId, data: D) {
@@ -402,14 +443,18 @@ impl<D: Clone + Encode + Decode, B: BlockT + 'static, N: Network<B> + Clone>
                 // not strictly necessary, but it doesn't hurt.
                 if self.peers.lock().is_authenticated(&peer_id, &session_id) {
                     self.on_incoming_data(session_id, data);
+                } else {
+                    debug!(target: "afa", "Received unauthenticated message from {:?} for session {:?}, requesting authentication.", peer_id, session_id);
+                    self.commands_for_session
+                        .unbounded_send(SessionCommand::Meta(
+                            MetaMessage::AuthenticationRequest(session_id),
+                            Some(peer_id),
+                        ))
+                        .expect("Sending commands to session should work.");
                 }
             }
-            Ok(Meta(auth_data, signature)) => {
-                // Avoids peers claiming other peers represent their node, which could lead to a
-                // DDoS.
-                if peer_id == auth_data.peer_id {
-                    self.on_incoming_authentication(auth_data, signature);
-                }
+            Ok(Meta(message)) => {
+                self.on_incoming_meta(message, peer_id);
             }
             Err(e) => {
                 debug!(target: "afa", "Error decoding message: {}", e);
@@ -420,8 +465,8 @@ impl<D: Clone + Encode + Decode, B: BlockT + 'static, N: Network<B> + Clone>
     fn on_command(&self, sc: SessionCommand<D>) {
         use SessionCommand::*;
         match sc {
-            Meta(auth_data, signature, recipient) => {
-                let message = InternalMessage::Meta(auth_data, signature);
+            Meta(message, recipient) => {
+                let message = InternalMessage::Meta(message);
                 match recipient {
                     None => {
                         for (peer_id, _) in self.peers.lock().all_peers.iter() {
@@ -452,16 +497,7 @@ impl<D: Clone + Encode + Decode, B: BlockT + 'static, N: Network<B> + Clone>
     fn on_peer_connected(&self, peer_id: PeerId) {
         self.peers.lock().insert(peer_id);
         for (_, session_data) in self.sessions.lock().iter() {
-            if let Err(e) = self
-                .commands_for_session
-                .unbounded_send(SessionCommand::Meta(
-                    session_data.auth_data.clone(),
-                    session_data.auth_signature.clone(),
-                    Some(peer_id),
-                ))
-            {
-                log::error!(target: "afa", "sending auth command to {:?} failed: {}", peer_id, e);
-            }
+            self.authenticate_to(session_data, peer_id);
         }
     }
 

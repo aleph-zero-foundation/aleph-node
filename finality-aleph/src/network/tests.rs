@@ -280,7 +280,41 @@ async fn authenticates_to_connected() {
     assert_eq!(protocol, PROTOCOL_NAME);
     let message =
         InternalMessage::<MockData>::decode(&mut message.as_slice()).expect("a correct message");
-    if let InternalMessage::Meta(auth_data, _) = message {
+    if let InternalMessage::Meta(MetaMessage::Authentication(auth_data, _)) = message {
+        assert_eq!(auth_data.peer_id, alice_peer_id);
+    } else {
+        panic!("Expected an authentication message.")
+    }
+    data.complete().await;
+}
+
+#[tokio::test]
+async fn authenticates_when_requested() {
+    let data = prepare_one_session_test_data().await;
+    let bob_peer_id = data.authorities[1].peer_id;
+    let auth_message =
+        InternalMessage::<MockData>::Meta(MetaMessage::AuthenticationRequest(SessionId(0)))
+            .encode();
+    let messages = vec![(PROTOCOL_NAME.into(), auth_message.into())];
+
+    data.network.emit_event(Event::NotificationsReceived {
+        remote: bob_peer_id.into(),
+        messages,
+    });
+    let (peer_id, protocol, message) = data
+        .network
+        .send_message
+        .1
+        .lock()
+        .next()
+        .await
+        .expect("got auth message");
+    let alice_peer_id = data.authorities[0].peer_id;
+    assert_eq!(peer_id, bob_peer_id);
+    assert_eq!(protocol, PROTOCOL_NAME);
+    let message =
+        InternalMessage::<MockData>::decode(&mut message.as_slice()).expect("a correct message");
+    if let InternalMessage::Meta(MetaMessage::Authentication(auth_data, _)) = message {
         assert_eq!(auth_data.peer_id, alice_peer_id);
     } else {
         panic!("Expected an authentication message.")
@@ -299,7 +333,9 @@ async fn test_network_event_notifications_received() {
         node_id: bob_node_id,
     };
     let signature = data.authorities[1].keychain.sign(&auth_data.encode());
-    let auth_message = InternalMessage::<MockData>::Meta(auth_data, signature).encode();
+    let auth_message =
+        InternalMessage::<MockData>::Meta(MetaMessage::Authentication(auth_data, signature))
+            .encode();
     let note = vec![157];
     let message = InternalMessage::Data(SessionId(0), note.clone()).encode();
     let messages = vec![
@@ -320,6 +356,39 @@ async fn test_network_event_notifications_received() {
 }
 
 #[tokio::test]
+async fn requests_authentication_from_unauthenticated() {
+    let data = prepare_one_session_test_data().await;
+    let bob_peer_id = data.authorities[1].peer_id;
+    let cur_session_id = SessionId(0);
+    let note = vec![157];
+    let message = InternalMessage::Data(cur_session_id, note).encode();
+    let messages = vec![(PROTOCOL_NAME.into(), message.into())];
+
+    data.network.emit_event(Event::NotificationsReceived {
+        remote: bob_peer_id.into(),
+        messages,
+    });
+    let (peer_id, protocol, message) = data
+        .network
+        .send_message
+        .1
+        .lock()
+        .next()
+        .await
+        .expect("got auth request");
+    assert_eq!(peer_id, bob_peer_id);
+    assert_eq!(protocol, PROTOCOL_NAME);
+    let message =
+        InternalMessage::<MockData>::decode(&mut message.as_slice()).expect("a correct message");
+    if let InternalMessage::Meta(MetaMessage::AuthenticationRequest(session_id)) = message {
+        assert_eq!(session_id, cur_session_id);
+    } else {
+        panic!("Expected an authentication request.")
+    }
+    data.complete().await;
+}
+
+#[tokio::test]
 async fn test_send() {
     let data = prepare_one_session_test_data().await;
     let bob_peer_id = data.authorities[1].peer_id;
@@ -331,7 +400,9 @@ async fn test_send() {
         node_id: bob_node_id,
     };
     let signature = data.authorities[1].keychain.sign(&auth_data.encode());
-    let auth_message = InternalMessage::<MockData>::Meta(auth_data, signature).encode();
+    let auth_message =
+        InternalMessage::<MockData>::Meta(MetaMessage::Authentication(auth_data, signature))
+            .encode();
     let messages = vec![(PROTOCOL_NAME.into(), auth_message.into())];
 
     data.network.emit_event(Event::NotificationsReceived {
@@ -386,7 +457,9 @@ async fn test_broadcast() {
             node_id,
         };
         let signature = data.authorities[1].keychain.sign(&auth_data.encode());
-        let auth_message = InternalMessage::<MockData>::Meta(auth_data, signature).encode();
+        let auth_message =
+            InternalMessage::<MockData>::Meta(MetaMessage::Authentication(auth_data, signature))
+                .encode();
         let messages = vec![(PROTOCOL_NAME.into(), auth_message.into())];
 
         data.network.emit_event(Event::NotificationsReceived {
