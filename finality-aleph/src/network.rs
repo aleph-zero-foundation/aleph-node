@@ -390,6 +390,8 @@ impl<D: Clone + Encode + Decode, B: BlockT + 'static, N: Network<B> + Clone>
                 // DDoS.
                 if peer_id == auth_data.peer_id {
                     self.on_incoming_authentication(auth_data, signature);
+                } else {
+                    debug!(target: "afa", "Peer {:?} attempting to authenticate as peer {:?}.", peer_id, auth_data.peer_id);
                 }
             }
             AuthenticationRequest(session_id) => {
