@@ -35,6 +35,7 @@ for i in ${!authorities[@]}; do
     --chain dev \
     --base-path /tmp/$auth \
     --name $auth \
+    --rpc-port $(expr 9933 + $i) \
     --ws-port $(expr 9944 + $i) \
     --port $(expr 30334 + $i) \
     --execution Native \
