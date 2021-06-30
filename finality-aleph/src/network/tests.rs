@@ -1,5 +1,6 @@
 use super::*;
-use crate::{AuthorityId, AuthorityKeystore, KEY_TYPE};
+use crate::{AuthorityId, AuthorityKeystore, KeyBox, KEY_TYPE};
+use codec::DecodeAll;
 use futures::channel::{mpsc, oneshot};
 use sc_network::{Event, ObservedRole, PeerId as ScPeerId, ReputationChange};
 use sp_keystore::{testing::KeyStore, CryptoStore};
@@ -141,7 +142,7 @@ impl<B: BlockT> TestNetwork<B> {
 
 struct Authority {
     peer_id: PeerId,
-    keychain: KeyBox,
+    keychain: MultiKeychain,
 }
 
 async fn generate_authorities(ss: &[String]) -> Vec<Authority> {
@@ -156,13 +157,15 @@ async fn generate_authorities(ss: &[String]) -> Vec<Authority> {
     }
     let mut result = Vec::with_capacity(ss.len());
     for i in 0..ss.len() {
+        let keybox = KeyBox {
+            id: NodeIndex(i),
+            auth_keystore: AuthorityKeystore::new(auth_ids[i].clone(), key_store.clone()),
+            authorities: auth_ids.clone(),
+        };
+        let keychain = MultiKeychain::new(keybox);
         result.push(Authority {
             peer_id: ScPeerId::random().into(),
-            keychain: KeyBox {
-                id: NodeIndex(i),
-                auth_keystore: AuthorityKeystore::new(auth_ids[i].clone(), key_store.clone()),
-                authorities: auth_ids.clone(),
-            },
+            keychain,
         });
     }
     assert_eq!(key_store.keys(KEY_TYPE).await.unwrap().len(), 3 * ss.len());
@@ -174,8 +177,8 @@ type MockData = Vec<u8>;
 struct TestData {
     network: TestNetwork<Block>,
     authorities: Vec<Authority>,
-    rush_network: GenericNetwork<MockData>,
     consensus_network_handle: tokio::task::JoinHandle<()>,
+    data_network: DataNetwork<MockData>,
 }
 
 impl TestData {
@@ -183,8 +186,7 @@ impl TestData {
     // and awaits for the consensus_network task.
     async fn complete(mut self) {
         self.network.close_channels();
-        self.rush_network.commands_for_session.close_channel();
-        assert!(self.rush_network.data_from_network.try_next().is_err());
+        assert!(self.data_network.next().await.is_none());
         self.consensus_network_handle.await.unwrap();
     }
 }
@@ -208,9 +210,10 @@ async fn prepare_one_session_test_data() -> TestData {
 
     let session_id = SessionId(0);
 
-    let rush_network = consensus_network
+    let data_network = consensus_network
         .session_manager()
-        .start_session(session_id, authorities[0].keychain.clone());
+        .start_session(session_id, authorities[0].keychain.clone())
+        .await;
     let consensus_network_handle = tokio::spawn(async move { consensus_network.run().await });
 
     // wait till consensus_network takes the event_stream
@@ -219,8 +222,8 @@ async fn prepare_one_session_test_data() -> TestData {
     TestData {
         network,
         authorities,
-        rush_network,
         consensus_network_handle,
+        data_network,
     }
 }
 
@@ -279,7 +282,7 @@ async fn authenticates_to_connected() {
     assert_eq!(peer_id, bob_peer_id);
     assert_eq!(protocol, PROTOCOL_NAME);
     let message =
-        InternalMessage::<MockData>::decode(&mut message.as_slice()).expect("a correct message");
+        InternalMessage::<MockData>::decode_all(message.as_slice()).expect("a correct message");
     if let InternalMessage::Meta(MetaMessage::Authentication(auth_data, _)) = message {
         assert_eq!(auth_data.peer_id, alice_peer_id);
     } else {
@@ -313,7 +316,7 @@ async fn authenticates_when_requested() {
     assert_eq!(peer_id, bob_peer_id);
     assert_eq!(protocol, PROTOCOL_NAME);
     let message =
-        InternalMessage::<MockData>::decode(&mut message.as_slice()).expect("a correct message");
+        InternalMessage::<MockData>::decode_all(message.as_slice()).expect("a correct message");
     if let InternalMessage::Meta(MetaMessage::Authentication(auth_data, _)) = message {
         assert_eq!(auth_data.peer_id, alice_peer_id);
     } else {
@@ -333,7 +336,7 @@ async fn test_network_event_notifications_received() {
         peer_id: bob_peer_id,
         node_id: bob_node_id,
     };
-    let signature = data.authorities[1].keychain.sign(&auth_data.encode());
+    let signature = data.authorities[1].keychain.sign(&auth_data.encode()).await;
     let auth_message =
         InternalMessage::<MockData>::Meta(MetaMessage::Authentication(auth_data, signature))
             .encode();
@@ -354,7 +357,7 @@ async fn test_network_event_notifications_received() {
         remote: bob_peer_id.into(),
         messages,
     });
-    if let Some(incoming_data) = data.rush_network.next_event().await {
+    if let Some(incoming_data) = data.data_network.next().await {
         assert_eq!(incoming_data, note);
     } else {
         panic!("expected message received nothing")
@@ -390,10 +393,11 @@ async fn requests_authentication_from_unauthenticated() {
         .next()
         .await
         .expect("got auth request");
+    println!("ta-daa");
     assert_eq!(peer_id, bob_peer_id);
     assert_eq!(protocol, PROTOCOL_NAME);
     let message =
-        InternalMessage::<MockData>::decode(&mut message.as_slice()).expect("a correct message");
+        InternalMessage::<MockData>::decode_all(message.as_slice()).expect("a correct message");
     if let InternalMessage::Meta(MetaMessage::AuthenticationRequest(session_id)) = message {
         assert_eq!(session_id, cur_session_id);
     } else {
@@ -413,7 +417,7 @@ async fn test_send() {
         peer_id: bob_peer_id,
         node_id: bob_node_id,
     };
-    let signature = data.authorities[1].keychain.sign(&auth_data.encode());
+    let signature = data.authorities[1].keychain.sign(&auth_data.encode()).await;
     let auth_message =
         InternalMessage::<MockData>::Meta(MetaMessage::Authentication(auth_data, signature))
             .encode();
@@ -438,14 +442,14 @@ async fn test_send() {
         .await
         .expect("got auth message");
     let note = vec![157];
-    data.rush_network
-        .send(note.clone(), bob_node_id)
+    data.data_network
+        .send(note.clone(), Recipient::Target(bob_node_id))
         .expect("sending works");
     match data.network.send_message.1.lock().next().await {
         Some((peer_id, protocol, message)) => {
             assert_eq!(peer_id, bob_peer_id);
             assert_eq!(protocol, PROTOCOL_NAME);
-            match InternalMessage::<MockData>::decode(&mut message.as_slice()) {
+            match InternalMessage::<MockData>::decode_all(message.as_slice()) {
                 Ok(InternalMessage::Data(DataMessage {
                     session_id,
                     index,
@@ -477,7 +481,7 @@ async fn test_broadcast() {
             peer_id,
             node_id,
         };
-        let signature = data.authorities[1].keychain.sign(&auth_data.encode());
+        let signature = data.authorities[1].keychain.sign(&auth_data.encode()).await;
         let auth_message =
             InternalMessage::<MockData>::Meta(MetaMessage::Authentication(auth_data, signature))
                 .encode();
@@ -503,14 +507,14 @@ async fn test_broadcast() {
             .expect("got auth message");
     }
     let note = vec![157];
-    data.rush_network
-        .broadcast(note.clone())
+    data.data_network
+        .send(note.clone(), Recipient::All)
         .expect("broadcasting works");
     for _ in 1..2_usize {
         match data.network.send_message.1.lock().next().await {
             Some((_, protocol, message)) => {
                 assert_eq!(protocol, PROTOCOL_NAME);
-                match InternalMessage::<MockData>::decode(&mut message.as_slice()) {
+                match InternalMessage::<MockData>::decode_all(message.as_slice()) {
                     Ok(InternalMessage::Data(DataMessage {
                         session_id,
                         index,

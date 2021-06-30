@@ -40,5 +40,5 @@ for i in ${!authorities[@]}; do
     --port $(expr 30334 + $i) \
     --execution Native \
     "$@" \
-    2> $auth-$i.log  & \
+    2> $auth-$i.log  > aleph-node.out & \
 done
