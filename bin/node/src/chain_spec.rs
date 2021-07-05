@@ -3,18 +3,14 @@ use std::collections::HashMap;
 use aleph_primitives::AuthorityId as AlephId;
 use aleph_runtime::{
     AccountId, AlephConfig, AuraConfig, BalancesConfig, GenesisConfig, SessionConfig, SessionKeys,
-    Signature, StakingConfig, SudoConfig, SystemConfig, WASM_BINARY,
+    Signature, SudoConfig, SystemConfig, WASM_BINARY,
 };
 use hex_literal::hex;
-use pallet_staking::StakerStatus;
 use sc_service::ChainType;
 use sp_application_crypto::key_types;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{ed25519, sr25519, Pair, Public};
-use sp_runtime::{
-    traits::{IdentifyAccount, Verify},
-    Perbill,
-};
+use sp_runtime::traits::{IdentifyAccount, Verify};
 
 pub(crate) const LOCAL_AUTHORITIES: [&str; 8] = [
     "Damian", "Tomasz", "Zbyszko", "Hansu", "Adam", "Matt", "Antoni", "Michal",
@@ -177,17 +173,6 @@ fn testnet_genesis(
                     )
                 })
                 .collect(),
-        },
-        pallet_staking: StakingConfig {
-            validator_count: endowed_accounts.len() as u32 * 2,
-            minimum_validator_count: endowed_accounts.len() as u32,
-            stakers: endowed_accounts
-                .iter()
-                .map(|x| (x.clone(), x.clone(), 1 << 50, StakerStatus::Validator))
-                .collect(),
-            invulnerables: endowed_accounts.clone(),
-            slash_reward_fraction: Perbill::from_percent(10),
-            ..Default::default()
         },
     }
 }

@@ -12,7 +12,7 @@ use crate::{
 };
 use aleph_primitives::{AlephSessionApi, Session, ALEPH_ENGINE_ID};
 use futures::{channel::mpsc, stream::FuturesUnordered, FutureExt, StreamExt};
-use log::{debug, error};
+use log::{debug, error, info};
 use sc_client_api::backend::Backend;
 use sc_service::SpawnTaskHandle;
 use sp_api::{BlockId, NumberFor};
@@ -287,8 +287,9 @@ where
                 }
             }
         };
-
         // returns true if we participated in the session
+        debug!(target: "afa", "Starting session nr {:?} -- {:?}", session_id, session);
+
         let session_task = maybe_run_session_as_authority(
             self.authority.clone(),
             self.auth_keystore.clone(),
@@ -326,6 +327,7 @@ where
         debug!(target: "afa", "Consensus network has started.");
 
         for curr_id in 0.. {
+            info!(target: "afa", "Running session {:?}.", curr_id);
             self.run_session(&session_manager, curr_id).await
         }
     }
