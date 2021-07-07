@@ -29,8 +29,6 @@ pallet-aura = { default-features = false, git = "https://github.com/paritytech/s
 pallet-balances = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 pallet-randomness-collective-flip = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 pallet-session = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-pallet-staking = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-pallet-staking-reward-curve = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 pallet-sudo = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 pallet-timestamp = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 pallet-transaction-payment = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
@@ -40,11 +38,9 @@ sp-block-builder = { default-features = false, version = "3.0.0", git = "https:/
 sp-consensus-aura = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 sp-inherents = { default-features = false, version = "3.0.0", git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sp-npos-elections = { default-features = false, version = "3.0.0", git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 sp-offchain = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 sp-session = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sp-staking = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 sp-transaction-pool = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 sp-version = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
@@ -66,7 +62,6 @@ std = [
 	"pallet-balances/std",
 	"pallet-randomness-collective-flip/std",
 	"pallet-session/std",
-	"pallet-staking/std",
 	"pallet-sudo/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment/std",
