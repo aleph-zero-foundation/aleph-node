@@ -20,17 +20,17 @@ n_members="$1"
 echo "$n_members" > /tmp/n_members
 shift
 
-cargo build -p aleph-node
+# cargo build --release -p aleph-node
 
 authorities=(Damian Tomasz Zbyszko Hansu Adam Matt Antoni Michal)
 authorities=("${authorities[@]::$n_members}")
 
-./target/debug/aleph-node dev-keys  --base-path /tmp --chain dev --key-types aura alp0
+./target/release/aleph-node dev-keys  --base-path /tmp --chain dev --key-types aura alp0
 
 for i in ${!authorities[@]}; do
   auth=${authorities[$i]}
-  ./target/debug/aleph-node purge-chain --base-path /tmp/"$auth" --chain dev -y
-  ./target/debug/aleph-node \
+  ./target/release/aleph-node purge-chain --base-path /tmp/"$auth" --chain dev -y
+  ./target/release/aleph-node \
     --validator \
     --chain dev \
     --base-path /tmp/$auth \
