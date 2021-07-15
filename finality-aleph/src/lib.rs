@@ -51,8 +51,14 @@ enum Error {
 pub fn peers_set_config() -> sc_network::config::NonDefaultSetConfig {
     sc_network::config::NonDefaultSetConfig {
         notifications_protocol: network::ALEPH_PROTOCOL_NAME.into(),
+        // max_notification_size should be larger than the maximum possible honest message size (in bytes).
+        // Max size of alert is UNIT_SIZE * MAX_UNITS_IN_ALERT ~ 100 * 5000 = 50000 bytes
+        // Max size of parents response UNIT_SIZE * N_MEMBERS ~ 100 * N_MEMBERS
+        // When adding other (large) message types we need to make sure this limit is fine.
         max_notification_size: 1024 * 1024,
         set_config: sc_network::config::SetConfig {
+            // This seems to be a way to configure the AlephBFT network to have a prespecified set of nodes or at least
+            // set suitable limits on the number of nodes we should connect to.
             in_peers: 0,
             out_peers: 0,
             reserved_nodes: vec![],
