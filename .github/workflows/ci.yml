@@ -1,109 +1,62 @@
 name: CI
 
-on:
-  push:
-    branches:
-      - "*"
-  pull_request:
-    branches:
-      - "*"
-
-env:
-  CARGO_TERM_COLOR: always
-
-defaults:
-  run:
-    shell: bash
+on: [push, pull_request]
 
 jobs:
-  pr:
-    name: pull_request
-    if: "github.event_name == 'pull_request'"
-    strategy:
-      matrix:
-        os:
-          - ubuntu-20.04
-        toolchain:
-          - stable
-          - nightly
-    runs-on: ${{ matrix.os }}
-    needs: lint
+  check-test-and-lint:
+    name: Run check, test and lints
+    runs-on: ubuntu-latest
+    env:
+      RUST_TOOLCHAIN_VERSION: nightly-2021-07-05
     steps:
-      - name: checkout the source code
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.0
+        with:
+          access_token: ${{ github.token }}
+      - name: Checkout Source code
         uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - name: Print Toolchain Version
+        run: echo running with "$RUST_TOOLCHAIN_VERSION"
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: ${{ matrix.toolchain }}
-          override: true
-      - name: check
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-      - name: test
-        if: ${{ matrix.toolchain == 'stable' }}
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-  master:
-    name: push
-    if: "github.event_name == 'push'"
-    strategy:
-      matrix:
-        os:
-          - ubuntu-20.04
-          - windows-2019
-          - macos-10.15
-        toolchain:
-          - stable
-          - beta
-          - nightly
-    runs-on: ${{ matrix.os }}
-    needs: lint
-    steps:
-      - name: checkout the source code
-        uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ matrix.toolchain }}
-          override: true
-      - name: check
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-      - name: test
-        if: ${{ matrix.toolchain == 'stable' }}
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-  lint:
-    name: lint
-    strategy:
-      matrix:
-        os:
-          - ubuntu-20.04
-        toolchain:
-          - nightly
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: checkout the source code
-        uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ matrix.toolchain }}
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
           override: true
           components: rustfmt, clippy
-      - name: fmt
-        if: ${{ matrix.toolchain == 'nightly' }}
+      - name: Restore Cargo Cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install WASM target
+        run: rustup target add wasm32-unknown-unknown --toolchain "$RUST_TOOLCHAIN_VERSION"
+      - name: Run Check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+      - name: Run Unit Test Suite
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --lib
+      - name: Run Format Checks
         uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --all -- --check
-      - name: clippy
-        if: ${{ matrix.toolchain == 'nightly' }}
+      - name: Run Linter
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --all-targets --all-features
+          args: -- -D warnings
+      - name: Send Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
