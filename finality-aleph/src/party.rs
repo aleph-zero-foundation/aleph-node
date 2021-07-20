@@ -191,7 +191,11 @@ where
             multisigned_hash = aggregator.next_multisigned_hash(), if !aggregator.is_finished() => {
                 if let Some((hash, _multisignature)) = multisigned_hash {
                     // TODO: justify with the multisignature.
-                    finalize_block_as_authority(client.clone(), hash, &auth_keystore);
+                    let finalization_result = finalize_block_as_authority(client.clone(), hash, &auth_keystore);
+                    if let Err(err) = finalization_result {
+                        error!(target: "afa", "failed to finalize a block: {:?}", err);
+                    }
+
                 } else {
                     break;
                 }
@@ -274,12 +278,15 @@ where
                 while client.info().finalized_number < current_stop_h {
                     if let Some(proposal) = finalization_proposals_rx.next().await {
                         // TODO: check if we should do this
-                        finalize_block(
+                        let finalization_result = finalize_block(
                             client.clone(),
                             proposal.hash,
                             proposal.number,
                             Some((ALEPH_ENGINE_ID, proposal.justification)),
                         );
+                        if let Err(err) = finalization_result {
+                            error!(target: "afa", "failed to finalize a block using some received justification: {:?}", err);
+                        }
                     } else {
                         debug!(target: "afa", "the channel of proposed blocks closed unexpectedly");
                         break;

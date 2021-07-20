@@ -24,11 +24,19 @@ use std::{
 };
 use tokio::time::Duration;
 
+#[deny(clippy::large_enum_variant)]
+#[derive(Debug)]
+pub(crate) enum Error {
+    Internal(sp_blockchain::Error),
+    MissingBlock,
+}
+
 pub(crate) fn finalize_block_as_authority<BE, B, C>(
     client: Arc<C>,
     h: B::Hash,
     auth_keystore: &AuthorityKeystore,
-) where
+) -> core::result::Result<(), Error>
+where
     B: Block,
     BE: Backend<B>,
     C: crate::ClientForAleph<B, BE>,
@@ -37,7 +45,7 @@ pub(crate) fn finalize_block_as_authority<BE, B, C>(
         Ok(Some(number)) => number,
         _ => {
             error!(target: "afa", "a block with hash {} should already be in chain", h);
-            return;
+            return Err(Error::MissingBlock);
         }
     };
     finalize_block(
@@ -48,7 +56,7 @@ pub(crate) fn finalize_block_as_authority<BE, B, C>(
             ALEPH_ENGINE_ID,
             AlephJustification::new::<B>(auth_keystore, h).encode(),
         )),
-    );
+    )
 }
 
 pub(crate) fn finalize_block<BE, B, C>(
@@ -56,27 +64,29 @@ pub(crate) fn finalize_block<BE, B, C>(
     hash: B::Hash,
     block_number: NumberFor<B>,
     justification: Option<Justification>,
-) where
+) -> core::result::Result<(), Error>
+where
     B: Block,
     BE: Backend<B>,
     C: crate::ClientForAleph<B, BE>,
 {
     let status = client.info();
     if status.finalized_number >= block_number {
-        error!(target: "afa", "trying to finalize a block with hash {} and number {}
+        warn!(target: "afa", "trying to finalize a block with hash {} and number {}
                that is not greater than already finalized {}", hash, block_number, status.finalized_number);
-        return;
+        return Ok(());
     }
 
     debug!(target: "afa", "Finalizing block with hash {:?}. Previous best: #{:?}.", hash, status.finalized_number);
 
-    let _update_res = client.lock_import_and_run(|import_op| {
+    let update_res = client.lock_import_and_run(|import_op| {
         // NOTE: all other finalization logic should come here, inside the lock
         client.apply_finality(import_op, BlockId::Hash(hash), justification, true)
     });
 
     let status = client.info();
-    debug!(target: "afa", "Finalized block with hash {:?}. Current best: #{:?}.", hash, status.finalized_number);
+    debug!(target: "afa", "Attempted to finalize block with hash {:?}. Current best: #{:?}.", hash, status.finalized_number);
+    update_res.map_err(Error::Internal)
 }
 
 /// Given hashes `last_finalized` and `new_hash` of two block, returns
