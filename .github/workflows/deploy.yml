@@ -21,8 +21,10 @@ jobs:
         uses: styfle/cancel-workflow-action@0.9.0
         with:
           access_token: ${{ github.token }}
+
       - name: Checkout Source code
         uses: actions/checkout@v2
+
       - name: Install sccache for ubuntu-latest
         env:
           LINK: https://github.com/mozilla/sccache/releases/download
@@ -32,6 +34,7 @@ jobs:
           curl -L "$LINK/$SCCACHE_VERSION/$SCCACHE_FILE.tar.gz" | tar xz
           mv -f $SCCACHE_FILE/sccache $HOME/.local/bin/sccache
           echo "$HOME/.local/bin" >> $GITHUB_PATH
+
       - name: Restore Cargo Cache
         uses: actions/cache@v2
         with:
@@ -42,30 +45,38 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Install Rust Toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
           override: true
+
       - name: Install WASM target
         run: rustup target add wasm32-unknown-unknown --toolchain "$RUST_TOOLCHAIN_VERSION"
+
       - name: Save sccache
         uses: actions/cache@v2
         continue-on-error: false
         with:
           path: ${{ env.SCCACHE_PATH }}
           key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Start sccache server
         run: sccache --start-server
+
       - name: Build Binary
         run: |
           export RUSTC_WRAPPER=$HOME/.local/bin/sccache
           cargo build --release
+
       - name: Print sccache stats
         run: sccache --show-stats
+
       - name: Stop sccache server
         run: sccache --stop-server || true
+
       - name: Upload Binary
         uses: actions/upload-artifact@v2
         with:
@@ -73,15 +84,69 @@ jobs:
           path: target/release/aleph-node
           if-no-files-found: error
           retention-days: 20
+
       - name: Send Slack Notification
         uses: rtCamp/action-slack-notify@v2
         continue-on-error: true
         env:
           SLACK_COLOR: ${{ job.status }}
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_USERNAME: GithubActions
+          MSG_MINIMAL: actions url
 
-# TODO: deploy job
-# -> get the build artifact
-# -> build docker image
-# -> push to ECR in every region
-# -> update ECS tasks in every region
+  deploy:
+    name: Build and push docker image
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        AWS_REGION: [eu-west-1] # NOTE: you can add all regions that need the image here
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Checkout Source code
+        uses: actions/checkout@v2
+
+      - name: Download artifact with aleph-node binary
+        uses: actions/download-artifact@v2
+        with:
+          name: aleph-node
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@13d241b293754004c80624b5567555c4a39ffbe3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ matrix.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@aaf69d68aa3fb14c1d5a6be9ac61fe15b48453a2
+
+      - name: Build, tag, and push image to ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: latest
+          ECR_REPOSITORY: aleph-node
+        run: |
+          mkdir -p target/release/
+          # copy artifact
+          cp aleph-node target/release/aleph-node
+          # Build and tag a docker container
+          docker build --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f ./docker/Dockerfile .
+          # push it to ECR
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Send Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        continue-on-error: true
+        env:
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_USERNAME: GithubActions
+          MSG_MINIMAL: actions url

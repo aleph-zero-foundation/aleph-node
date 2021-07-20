@@ -1,6 +1,6 @@
 name: CI
 
-on: [push, pull_request]
+on: pull_request
 
 jobs:
   check-test-and-lint:
@@ -13,10 +13,13 @@ jobs:
         uses: styfle/cancel-workflow-action@0.9.0
         with:
           access_token: ${{ github.token }}
+
       - name: Checkout Source code
         uses: actions/checkout@v2
+
       - name: Print Toolchain Version
         run: echo running with "$RUST_TOOLCHAIN_VERSION"
+
       - name: Install Rust Toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -24,6 +27,7 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
           override: true
           components: rustfmt, clippy
+
       - name: Restore Cargo Cache
         uses: actions/cache@v2
         with:
@@ -34,30 +38,38 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Install WASM target
         run: rustup target add wasm32-unknown-unknown --toolchain "$RUST_TOOLCHAIN_VERSION"
+
       - name: Run Check
         uses: actions-rs/cargo@v1
         with:
           command: check
+
       - name: Run Unit Test Suite
         uses: actions-rs/cargo@v1
         with:
           command: test
           args: --lib
+
       - name: Run Format Checks
         uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --all -- --check
+
       - name: Run Linter
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: -- -D warnings
+
       - name: Send Slack Notification
         uses: rtCamp/action-slack-notify@v2
         continue-on-error: true
         env:
           SLACK_COLOR: ${{ job.status }}
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_USERNAME: GithubActions
+          MSG_MINIMAL: actions url
