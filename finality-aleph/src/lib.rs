@@ -21,27 +21,11 @@ mod finalization;
 mod hash;
 mod import;
 mod justification;
+pub mod metrics;
 mod network;
 mod party;
 
 pub use import::{AlephBlockImport, JustificationNotification};
-
-// NOTE until we have our own pallet, we need to use Aura authorities
-// mod key_types {
-//     use sp_runtime::KeyTypeId;
-
-//     pub const ALEPH: KeyTypeId = KeyTypeId(*b"alph");
-// }
-
-// mod app {
-//     use crate::key_types::ALEPH;
-//     use sp_application_crypto::{app_crypto, ed25519};
-//     app_crypto!(ed25519, ALEPH);
-// }
-
-// pub type AuthorityId = app::Public;
-// pub type AuthoritySignature = app::Signature;
-// pub type AuthorityPair = app::Pair;
 
 #[derive(Clone, Debug, Encode, Decode)]
 enum Error {
@@ -73,7 +57,7 @@ pub struct SessionId(pub u64);
 
 use sp_core::crypto::KeyTypeId;
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"alp0");
-// pub const KEY_TYPE: KeyTypeId = sp_application_crypto::key_types::AURA;
+pub use crate::metrics::Metrics;
 use crate::party::{run_consensus_party, AlephParams};
 pub use aleph_primitives::{AuthorityId, AuthorityPair, AuthoritySignature};
 use futures::channel::mpsc;
@@ -210,8 +194,8 @@ pub struct AlephConfig<B: Block, N, C, SC> {
     pub select_chain: SC,
     pub spawn_handle: SpawnTaskHandle,
     pub auth_keystore: AuthorityKeystore,
-    pub authority: AuthorityId,
     pub justification_rx: mpsc::UnboundedReceiver<JustificationNotification<B>>,
+    pub metrics: Option<Metrics<B::Header>>,
 }
 
 pub fn run_aleph_consensus<B: Block, BE, C, N, SC>(

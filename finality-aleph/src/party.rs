@@ -7,8 +7,8 @@ use crate::{
     justification::JustificationHandler,
     network,
     network::{split_network, ConsensusNetwork, NetworkData, SessionManager},
-    AuthorityId, AuthorityKeystore, JustificationNotification, KeyBox, MultiKeychain, NodeIndex,
-    SessionId, SpawnHandle,
+    AuthorityId, AuthorityKeystore, JustificationNotification, KeyBox, Metrics, MultiKeychain,
+    NodeIndex, SessionId, SpawnHandle,
 };
 use aleph_primitives::{AlephSessionApi, Session, ALEPH_ENGINE_ID};
 use futures::{channel::mpsc, stream::FuturesUnordered, FutureExt, StreamExt};
@@ -41,8 +41,8 @@ where
                 select_chain,
                 spawn_handle,
                 auth_keystore,
-                authority,
                 justification_rx,
+                metrics,
                 ..
             },
     } = aleph_params;
@@ -54,8 +54,8 @@ where
         select_chain,
         spawn_handle,
         auth_keystore,
-        authority,
         handler_rx,
+        metrics,
     );
 
     debug!(target: "afa", "Consensus party has started.");
@@ -103,21 +103,21 @@ where
     client: Arc<C>,
     select_chain: SC,
     auth_keystore: AuthorityKeystore,
-    authority: AuthorityId,
     phantom: PhantomData<BE>,
     finalization_proposals_rx: mpsc::UnboundedReceiver<JustificationNotification<B>>,
+    metrics: Option<Metrics<B::Header>>,
 }
 
 /// If we are on the authority list for the given session, runs an
 /// AlephBFT task and returns `true` upon completion. Otherwise, immediately returns `false`.
 async fn maybe_run_session_as_authority<B, C, BE, SC>(
-    authority: AuthorityId,
     auth_keystore: AuthorityKeystore,
     client: Arc<C>,
     session_manager: &SessionManager<NetworkData<B>>,
     session: Session<AuthorityId, NumberFor<B>>,
     spawn_handle: SpawnHandle,
     select_chain: SC,
+    metrics: Option<Metrics<B::Header>>,
 ) -> bool
 where
     B: Block,
@@ -126,7 +126,8 @@ where
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
 {
-    let node_id = match get_node_index(&session.authorities, &authority) {
+    let authority = auth_keystore.authority_id();
+    let node_id = match get_node_index(&session.authorities, authority) {
         Some(node_id) => node_id,
         None => return false,
     };
@@ -157,6 +158,7 @@ where
     );
     let data_io = DataIO {
         select_chain: select_chain.clone(),
+        metrics: metrics.clone(),
         ordered_batch_tx,
     };
     let aleph_task = {
@@ -182,6 +184,9 @@ where
         tokio::select! {
             hash = finalizable_chain.next(), if !finalizable_chain.is_done() => {
                 if let Some(hash) = hash {
+                    if let Some(ref m) = metrics {
+                        m.report_block(hash, std::time::Instant::now(), "aggregation-start");
+                    };
                     aggregator.start_aggregation(hash).await;
                 } else {
                     aggregator.finish().await;
@@ -191,11 +196,13 @@ where
             multisigned_hash = aggregator.next_multisigned_hash(), if !aggregator.is_finished() => {
                 if let Some((hash, _multisignature)) = multisigned_hash {
                     // TODO: justify with the multisignature.
+                    if let Some(ref m) = metrics {
+                        m.report_block(hash, std::time::Instant::now(), "finalize");
+                    };
                     let finalization_result = finalize_block_as_authority(client.clone(), hash, &auth_keystore);
                     if let Err(err) = finalization_result {
                         error!(target: "afa", "failed to finalize a block: {:?}", err);
                     }
-
                 } else {
                     break;
                 }
@@ -226,16 +233,16 @@ where
         select_chain: SC,
         spawn_handle: SpawnTaskHandle,
         auth_keystore: AuthorityKeystore,
-        authority: AuthorityId,
         finalization_proposals_rx: mpsc::UnboundedReceiver<JustificationNotification<B>>,
+        metrics: Option<Metrics<B::Header>>,
     ) -> Self {
         Self {
             network,
             client,
             auth_keystore,
             select_chain,
-            authority,
             finalization_proposals_rx,
+            metrics,
             spawn_handle: spawn_handle.into(),
             sessions: HashMap::new(),
             phantom: PhantomData,
@@ -298,13 +305,13 @@ where
         debug!(target: "afa", "Starting session nr {:?} -- {:?}", session_id, session);
 
         let session_task = maybe_run_session_as_authority(
-            self.authority.clone(),
             self.auth_keystore.clone(),
             self.client.clone(),
             session_manger,
             session,
             self.spawn_handle.clone(),
             self.select_chain.clone(),
+            self.metrics.clone(),
         );
 
         // We run concurrently `proposal_task` and `session_task` until either

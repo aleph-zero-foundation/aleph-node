@@ -1,3 +1,4 @@
+use crate::metrics::Metrics;
 use aleph_primitives::ALEPH_ENGINE_ID;
 use futures::channel::mpsc::{TrySendError, UnboundedSender};
 use sc_client_api::backend::Backend;
@@ -10,7 +11,7 @@ use sp_runtime::{
     traits::{Block as BlockT, Header, NumberFor},
     Justification,
 };
-use std::{collections::HashMap, marker::PhantomData, sync::Arc};
+use std::{collections::HashMap, marker::PhantomData, sync::Arc, time::Instant};
 
 pub struct AlephBlockImport<Block, Be, I>
 where
@@ -20,6 +21,7 @@ where
 {
     inner: Arc<I>,
     justification_tx: UnboundedSender<JustificationNotification<Block>>,
+    metrics: Option<Metrics<Block::Header>>,
     _phantom: PhantomData<Be>,
 }
 
@@ -40,10 +42,12 @@ where
     pub fn new(
         inner: Arc<I>,
         justification_tx: UnboundedSender<JustificationNotification<Block>>,
+        metrics: Option<Metrics<Block::Header>>,
     ) -> AlephBlockImport<Block, Be, I> {
         AlephBlockImport {
             inner,
             justification_tx,
+            metrics,
             _phantom: PhantomData,
         }
     }
@@ -80,6 +84,7 @@ where
         AlephBlockImport {
             inner: self.inner.clone(),
             justification_tx: self.justification_tx.clone(),
+            metrics: self.metrics.clone(),
             _phantom: PhantomData,
         }
     }
@@ -111,8 +116,12 @@ where
         cache: HashMap<[u8; 4], Vec<u8>>,
     ) -> Result<ImportResult, Self::Error> {
         let number = *block.header.number();
-        let hash = block.header.hash();
+        let hash = block.post_hash();
         let justifications = block.justifications.take();
+
+        if let Some(m) = &self.metrics {
+            m.report_block(hash, Instant::now(), "importing");
+        };
 
         log::debug!(target: "afa", "Importing block #{:?}", number);
         let import_result = self.inner.import_block(block, cache).await;
@@ -139,6 +148,10 @@ where
         } else {
             imported_aux.needs_justification = true;
         }
+
+        if let Some(m) = &self.metrics {
+            m.report_block(hash, Instant::now(), "imported");
+        };
 
         Ok(ImportResult::Imported(imported_aux))
     }

@@ -34,7 +34,7 @@ impl AlephJustification {
             };
         }
 
-        log::debug!(target: "afg", "Bad justification decoded for block number #{:?}", number);
+        log::debug!(target: "afa", "Bad justification decoded for block number #{:?}", number);
         Err(Error::BadJustification(String::from(
             "No known AuthorityId was used to sign justification",
         )))
