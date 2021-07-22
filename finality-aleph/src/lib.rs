@@ -2,9 +2,11 @@ use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 
 use codec::{Decode, Encode};
 
-pub use aleph_bft::{default_config as default_aleph_config, Config as ConsensusConfig};
+pub use aleph_bft::{
+    default_config as default_aleph_config, Config as ConsensusConfig, TaskHandle,
+};
 use aleph_bft::{DefaultMultiKeychain, NodeCount, NodeIndex};
-use futures::Future;
+use futures::{channel::oneshot, Future, TryFutureExt};
 use sc_client_api::{backend::Backend, Finalizer, LockImportRun, TransactionFor};
 use sc_service::SpawnTaskHandle;
 use sp_api::{NumberFor, ProvideRuntimeApi};
@@ -15,6 +17,7 @@ use sp_runtime::{
     RuntimeAppPublic,
 };
 use std::{convert::TryInto, fmt::Debug, sync::Arc};
+mod aggregator;
 pub mod config;
 mod data_io;
 mod finalization;
@@ -25,7 +28,8 @@ pub mod metrics;
 mod network;
 mod party;
 
-pub use import::{AlephBlockImport, JustificationNotification};
+pub use import::AlephBlockImport;
+pub use justification::JustificationNotification;
 
 #[derive(Clone, Debug, Encode, Decode)]
 enum Error {
@@ -53,7 +57,10 @@ pub fn peers_set_config() -> sc_network::config::NonDefaultSetConfig {
 }
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
-pub struct SessionId(pub u64);
+pub struct SessionId(pub u32);
+
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
+pub struct SessionPeriod(pub u32);
 
 use sp_core::crypto::KeyTypeId;
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"alp0");
@@ -186,6 +193,32 @@ impl aleph_bft::SpawnHandle for SpawnHandle {
     fn spawn(&self, name: &'static str, task: impl Future<Output = ()> + Send + 'static) {
         self.0.spawn(name, task)
     }
+    fn spawn_essential(
+        &self,
+        name: &'static str,
+        task: impl Future<Output = ()> + Send + 'static,
+    ) -> TaskHandle {
+        let (tx, rx) = oneshot::channel();
+        self.0.spawn(name, async move {
+            task.await;
+            let _ = tx.send(());
+        });
+        Box::pin(rx.map_err(|_| ()))
+    }
+}
+
+pub fn last_block_of_session<B: Block>(
+    session_id: SessionId,
+    period: SessionPeriod,
+) -> NumberFor<B> {
+    ((session_id.0 + 1) * period.0 - 1).into()
+}
+
+pub fn session_id_from_block_num<B: Block>(num: NumberFor<B>, period: SessionPeriod) -> SessionId
+where
+    NumberFor<B>: Into<u32>,
+{
+    SessionId(num.into() / period.0)
 }
 
 pub struct AlephConfig<B: Block, N, C, SC> {
@@ -196,6 +229,7 @@ pub struct AlephConfig<B: Block, N, C, SC> {
     pub auth_keystore: AuthorityKeystore,
     pub justification_rx: mpsc::UnboundedReceiver<JustificationNotification<B>>,
     pub metrics: Option<Metrics<B::Header>>,
+    pub period: SessionPeriod,
 }
 
 pub fn run_aleph_consensus<B: Block, BE, C, N, SC>(
@@ -207,6 +241,7 @@ where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
     C::Api: aleph_primitives::AlephSessionApi<B, AuthorityId, NumberFor<B>>,
     SC: SelectChain<B> + 'static,
+    NumberFor<B>: Into<u32>,
 {
     run_consensus_party(AlephParams { config })
 }

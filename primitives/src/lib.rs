@@ -38,6 +38,7 @@ sp_api::decl_runtime_apis! {
         fn current_session() -> Session<Id, BlockNumber>;
         fn next_session() -> Result<Session<Id, BlockNumber>, ApiError>;
         fn authorities() -> Vec<AuthorityId>;
+        fn session_period() -> u32;
     }
 }
 

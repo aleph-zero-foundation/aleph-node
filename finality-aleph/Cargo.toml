@@ -15,13 +15,14 @@ log = "0.4"
 lru = "0.6"
 rand = "0.8"
 futures = "0.3"
+futures-timer = "3.0"
 parking_lot = "0.11"
 parity-util-mem = "0.9"
 prometheus-endpoint = { package = "substrate-prometheus-endpoint", git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 sp-keystore = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 sc-network = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 sc-telemetry = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-aleph-bft = { git = "https://github.com/Cardinal-Cryptography/AlephBFT.git", rev = "3e2a0d0" }
+aleph-bft = { git = "https://github.com/Cardinal-Cryptography/AlephBFT/", rev = "ffff285"}
 serde = "1.0"
 sc-service = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
 sp-application-crypto = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}

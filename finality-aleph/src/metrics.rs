@@ -1,3 +1,4 @@
+use log::debug;
 use parking_lot::Mutex;
 use prometheus_endpoint::{register, Gauge, PrometheusError, Registry, U64};
 use sc_service::Arc;
@@ -14,7 +15,7 @@ struct Inner<H: Header> {
 
 impl<H: Header> Inner<H> {
     fn report_block(&mut self, hash: H::Hash, checkpoint: Instant, checkpoint_name: &'static str) {
-        log::debug!(target: "afa", "Reporting block stage: {} (hash: {:?}, at: {:?}", checkpoint_name, hash, checkpoint);
+        debug!(target: "afa", "Reporting block stage: {} (hash: {:?}, at: {:?}", checkpoint_name, hash, checkpoint);
 
         self.starts.entry(checkpoint_name).and_modify(|starts| {
             starts.entry(hash).or_insert(checkpoint);

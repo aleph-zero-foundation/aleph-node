@@ -1,18 +1,21 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
+use aleph_primitives::AlephSessionApi;
 use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use codec::Decode;
 use finality_aleph::{
     run_aleph_consensus, AlephBlockImport, AlephConfig, AuthorityId, AuthorityKeystore,
-    JustificationNotification, Metrics,
+    JustificationNotification, Metrics, SessionPeriod,
 };
 use futures::channel::mpsc;
+use log::warn;
 use sc_client_api::{CallExecutor, ExecutionStrategy, ExecutorProvider};
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
 use sc_executor::native_executor_instance;
 pub use sc_executor::NativeExecutor;
 use sc_service::{error::Error as ServiceError, Configuration, TFullClient, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
+use sp_api::ProvideRuntimeApi;
 use sp_consensus::SlotData;
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
@@ -89,7 +92,7 @@ pub fn new_partial(
     let metrics = config.prometheus_registry().cloned().and_then(|r| {
         Metrics::register(&r)
             .map_err(|_err| {
-                log::warn!("Failed to register Prometheus metrics");
+                warn!("Failed to register Prometheus metrics");
             })
             .ok()
     });
@@ -187,6 +190,13 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
             block_announce_validator_builder: None,
         })?;
 
+    let period = SessionPeriod(
+        client
+            .runtime_api()
+            .session_period(&BlockId::Number(Zero::zero()))
+            .unwrap(),
+    );
+
     let role = config.role.clone();
     let force_authoring = config.force_authoring;
     let backoff_authoring_blocks: Option<()> = None;
@@ -275,6 +285,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
             network,
             client,
             select_chain,
+            period,
             spawn_handle: task_manager.spawn_handle(),
             auth_keystore: AuthorityKeystore::new(authority_id, keystore_container.sync_keystore()),
             justification_rx,

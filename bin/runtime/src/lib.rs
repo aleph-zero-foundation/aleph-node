@@ -260,7 +260,7 @@ impl_opaque_keys! {
 }
 
 parameter_types! {
-    pub const Period: u32 = 50;
+    pub const Period: u32 = 500;
     pub const Offset: u32 = 0;
 }
 
@@ -452,6 +452,10 @@ impl_runtime_apis! {
 
         fn authorities() -> Vec<AlephId> {
             Aleph::authorities()
+        }
+
+        fn session_period() -> u32 {
+            Period::get()
         }
     }
 }

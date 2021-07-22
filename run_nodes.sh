@@ -41,5 +41,5 @@ for i in ${!authorities[@]}; do
     --execution Native \
     -lafa=debug \
     "$@" \
-    2> $auth-$i.log  > aleph-node.out & \
+    2> $auth-$i.log  > aleph-node.log & \
 done
