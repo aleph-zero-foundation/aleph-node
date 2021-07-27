@@ -15,7 +15,7 @@ jobs:
       SCCACHE_VERSION: 0.2.13
       SCCACHE_CACHE_SIZE: 2G
       SCCACHE_PATH: /home/runner/.cache/sccache
-      # SCCACHE_RECACHE: 1 # to clear cache uncomment this, let the workflow run once, then comment it out
+      # SCCACHE_RECACHE: 1 # to clear cache uncomment this, let the workflow run once, then comment it out again
     steps:
       - name: Cancel Previous Runs
         uses: styfle/cancel-workflow-action@0.9.0
@@ -85,22 +85,12 @@ jobs:
           if-no-files-found: error
           retention-days: 20
 
-      - name: Send Slack Notification
-        uses: rtCamp/action-slack-notify@v2
-        continue-on-error: true
-        env:
-          SLACK_COLOR: ${{ job.status }}
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_USERNAME: GithubActions
-          MSG_MINIMAL: actions url
-
   deploy:
     name: Build and push docker image
     needs: build
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        AWS_REGION: [eu-west-1] # NOTE: you can add all regions that need the image here
+    env:
+      AWS_REGION: us-east-1 # this region is used by all public ECR repos
     steps:
       - name: Cancel Previous Runs
         uses: styfle/cancel-workflow-action@0.9.0
@@ -120,24 +110,22 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ matrix.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@aaf69d68aa3fb14c1d5a6be9ac61fe15b48453a2
+          aws-region:  ${{ env.AWS_REGION }}
 
       - name: Build, tag, and push image to ECR
         id: build-image
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: latest
+          ECR_REGISTRY: public.ecr.aws/x2t8a1o3
           ECR_REPOSITORY: aleph-node
+          IMAGE_TAG: latest
         run: |
           mkdir -p target/release/
           # copy artifact
           cp aleph-node target/release/aleph-node
           # Build and tag a docker container
           docker build --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f ./docker/Dockerfile .
+          # Login to Amazon ECR
+          aws ecr-public get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
           # push it to ECR
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"

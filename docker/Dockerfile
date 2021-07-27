@@ -1,8 +1,7 @@
-FROM debian:stretch-slim
+FROM ubuntu:latest
 
 WORKDIR node
 
 COPY target/release/aleph-node /node/aleph-node
-RUN mkdir /node/tmp/
 
-ENTRYPOINT ["./aleph-node"]
+ENTRYPOINT ["./node/aleph-node"]
