@@ -85,7 +85,7 @@ pub fn new_partial(
         config.transaction_pool.clone(),
         config.role.is_authority().into(),
         config.prometheus_registry(),
-        task_manager.spawn_handle(),
+        task_manager.spawn_essential_handle(),
         client.clone(),
     );
 
@@ -273,6 +273,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
                 sync_oracle: network.clone(),
                 justification_sync_link: network.clone(),
                 block_proposal_slot_portion: SlotProportion::new(2f32 / 3f32),
+                max_block_proposal_slot_portion: None,
                 telemetry: telemetry.as_ref().map(|x| x.handle()),
             },
         )?;

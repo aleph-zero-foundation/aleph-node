@@ -8,7 +8,7 @@ use sp_core::H256;
 use frame_election_provider_support::onchain;
 use frame_support::{
     construct_runtime, parameter_types, sp_io,
-    traits::{OnFinalize, OnInitialize},
+    traits::{GenesisBuild, OnFinalize, OnInitialize},
 };
 use pallet_staking::EraIndex;
 use primitives::AuthorityId;
@@ -54,7 +54,7 @@ parameter_types! {
 }
 
 impl frame_system::Config for Test {
-    type BaseCallFilter = ();
+    type BaseCallFilter = frame_support::traits::AllowAll;
     type BlockWeights = ();
     type BlockLength = ();
     type Origin = Origin;
@@ -186,6 +186,7 @@ impl pallet_staking::Config for Test {
     type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
     type NextNewSession = Session;
     type ElectionProvider = onchain::OnChainSequentialPhragmen<Self>;
+    type GenesisElectionProvider = Self::ElectionProvider;
     type WeightInfo = ();
 }
 

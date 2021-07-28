@@ -1,6 +1,6 @@
 [package]
 name = "aleph-node"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Cardinal Cryptography"]
 description = "Aleph node binary"
 edition = "2018"
@@ -24,44 +24,45 @@ futures = "0.3"
 hex-literal = "0.3.1"
 
 codec = { package = "parity-scale-codec", version = "2", default-features = false, features = ["derive"] }
-sp-application-crypto = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sc-block-builder = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sc-cli = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sp-core = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sc-executor = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sc-service = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sc-telemetry = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sc-keystore = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sp-keystore = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sp-inherents = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sc-basic-authorship = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sc-transaction-pool = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sp-transaction-pool = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sc-consensus-aura = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sp-consensus-aura = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sp-consensus = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sc-consensus = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sc-client-api = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sp-runtime = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sp-timestamp = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7" }
+sp-application-crypto = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sc-block-builder = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sc-cli = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sp-core = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sc-executor = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sc-service = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sc-telemetry = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sc-keystore = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sp-keystore = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sp-inherents = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sc-basic-authorship = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sc-transaction-pool = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sp-transaction-pool = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sc-transaction-pool-api = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sc-consensus-aura = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sp-consensus-aura = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sp-consensus = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sc-consensus = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sc-client-api = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sp-runtime = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sp-timestamp = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5" }
 
-aleph-runtime = {version = "0.1.0", path = "../runtime"}
-finality-aleph = {version = "0.2.0", path = "../../finality-aleph"}
-aleph-primitives = { package = "primitives", version = "0.1.0", path = "../../primitives"}
+aleph-runtime = { path = "../runtime"}
+finality-aleph = { path = "../../finality-aleph"}
+aleph-primitives = { package = "primitives", path = "../../primitives"}
 
 # These dependencies are used for the node template's RPCs
 jsonrpc-core = "15.1.0"
-sc-rpc = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sp-api = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sc-rpc-api = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sp-blockchain = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-sp-block-builder = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-substrate-frame-rpc-system = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
-pallet-staking = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sc-rpc = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sp-api = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sc-rpc-api = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sp-blockchain = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sp-block-builder = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+substrate-frame-rpc-system = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+pallet-staking = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
 
 [build-dependencies]
-substrate-build-script-utils = { git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+substrate-build-script-utils = { git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
 
 [features]
 default = []

@@ -164,6 +164,7 @@ where
     }
 }
 
+#[async_trait::async_trait]
 impl<Block, Be, I> JustificationImport<Block> for AlephBlockImport<Block, Be, I>
 where
     Block: BlockT,
@@ -172,12 +173,12 @@ where
 {
     type Error = ConsensusError;
 
-    fn on_start(&mut self) -> Vec<(Block::Hash, NumberFor<Block>)> {
+    async fn on_start(&mut self) -> Vec<(Block::Hash, NumberFor<Block>)> {
         debug!(target: "afa", "On start called");
         Vec::new()
     }
 
-    fn import_justification(
+    async fn import_justification(
         &mut self,
         hash: Block::Hash,
         number: NumberFor<Block>,

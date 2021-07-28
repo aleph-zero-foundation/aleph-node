@@ -1,18 +1,18 @@
 [package]
 name = "primitives"
-version = "0.1.0"
+version = "0.3.0"
 authors = ["Cardinal Cryptography"]
 edition = "2018"
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
-sp-api = { version = "3.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7" }
-sp-application-crypto = { version = "3.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7" }
-sp-core = { version = "3.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7" }
-sp-runtime = { version = "3.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7" }
-sp-std = { version = "3.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7" }
+sp-api = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5" }
+sp-application-crypto = {default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5" }
+sp-core = {default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5" }
+sp-runtime = {default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5" }
+sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5" }
 # we need aura authorites till we have our own pallet
-sp-consensus-aura = { version = "0.9.0", default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "1fa8cf7"}
+sp-consensus-aura = {default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
 
 [features]
 default = ["std"]
