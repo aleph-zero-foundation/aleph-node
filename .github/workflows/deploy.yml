@@ -122,8 +122,8 @@ jobs:
           mkdir -p target/release/
           # copy artifact
           cp aleph-node target/release/aleph-node
-          # Build and tag a docker container
-          docker build --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f ./docker/Dockerfile .
+          # Build and tag a docker container, we use two tags: `latest` and the sha of the commit that triggered the build
+          docker build --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --tag $ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA -f ./docker/Dockerfile .
           # Login to Amazon ECR
           aws ecr-public get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
           # push it to ECR
