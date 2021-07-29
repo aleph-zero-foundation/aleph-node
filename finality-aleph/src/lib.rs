@@ -2,10 +2,8 @@ use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 
 use codec::{Decode, Encode};
 
-pub use aleph_bft::{
-    default_config as default_aleph_config, Config as ConsensusConfig, TaskHandle,
-};
-use aleph_bft::{DefaultMultiKeychain, NodeCount, NodeIndex};
+pub use aleph_bft::default_config as default_aleph_config;
+use aleph_bft::{DefaultMultiKeychain, NodeCount, NodeIndex, TaskHandle};
 use futures::{channel::oneshot, Future, TryFutureExt};
 use sc_client_api::{backend::Backend, Finalizer, LockImportRun, TransactionFor};
 use sc_service::SpawnTaskHandle;
@@ -193,13 +191,14 @@ impl aleph_bft::SpawnHandle for SpawnHandle {
     fn spawn(&self, name: &'static str, task: impl Future<Output = ()> + Send + 'static) {
         self.0.spawn(name, task)
     }
+
     fn spawn_essential(
         &self,
         name: &'static str,
         task: impl Future<Output = ()> + Send + 'static,
     ) -> TaskHandle {
         let (tx, rx) = oneshot::channel();
-        self.0.spawn(name, async move {
+        self.spawn(name, async move {
             task.await;
             let _ = tx.send(());
         });
