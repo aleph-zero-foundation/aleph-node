@@ -203,8 +203,16 @@ impl pallet_aura::Config for Runtime {
     type AuthorityId = AuraId;
 }
 
-parameter_types! {
-    pub const MinimumPeriod: u64 = SLOT_DURATION / 2;
+pub struct MinimumPeriod;
+impl MinimumPeriod {
+    pub fn get() -> u64 {
+        Aleph::millisecs_per_block() / 2
+    }
+}
+impl<I: From<u64>> ::frame_support::traits::Get<I> for MinimumPeriod {
+    fn get() -> I {
+        I::from(Self::get())
+    }
 }
 
 impl pallet_timestamp::Config for Runtime {
@@ -261,8 +269,35 @@ impl_opaque_keys! {
     }
 }
 
+pub struct SessionPeriod;
+
+impl SessionPeriod {
+    pub fn get() -> u32 {
+        Aleph::session_period()
+    }
+}
+
+impl<I: From<u32>> ::frame_support::traits::Get<I> for SessionPeriod {
+    fn get() -> I {
+        I::from(Self::get())
+    }
+}
+
+pub struct MillisecsPerBlock;
+
+impl MillisecsPerBlock {
+    pub fn get() -> u64 {
+        Aleph::millisecs_per_block()
+    }
+}
+
+impl<I: From<u64>> ::frame_support::traits::Get<I> for MillisecsPerBlock {
+    fn get() -> I {
+        I::from(Self::get())
+    }
+}
+
 parameter_types! {
-    pub const Period: u32 = 500;
     pub const Offset: u32 = 0;
 }
 
@@ -274,8 +309,8 @@ impl pallet_session::Config for Runtime {
     type Event = Event;
     type ValidatorId = <Self as frame_system::Config>::AccountId;
     type ValidatorIdOf = ConvertInto;
-    type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
-    type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
+    type ShouldEndSession = pallet_session::PeriodicSessions<SessionPeriod, Offset>;
+    type NextSessionRotation = pallet_session::PeriodicSessions<SessionPeriod, Offset>;
     // The () SessionManager makes always a new session with the same set of validators as before.
     type SessionManager = ();
     type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
@@ -458,7 +493,11 @@ impl_runtime_apis! {
         }
 
         fn session_period() -> u32 {
-            Period::get()
+            SessionPeriod::get()
+        }
+
+        fn millisecs_per_block() -> u64 {
+            MillisecsPerBlock::get()
         }
     }
 }

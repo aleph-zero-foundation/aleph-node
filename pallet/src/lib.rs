@@ -22,7 +22,10 @@ pub mod pallet {
     };
     use frame_system::{pallet_prelude::*, Pallet as System};
     use pallet_session::Pallet as Session;
-    use primitives::{ApiError as AlephApiError, Session as AuthoritySession};
+    use primitives::{
+        ApiError as AlephApiError, Session as AuthoritySession, DEFAULT_MILLISECS_PER_BLOCK,
+        DEFAULT_SESSION_PERIOD,
+    };
 
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_session::Config {
@@ -46,9 +49,31 @@ pub mod pallet {
     #[pallet::getter(fn authorities)]
     pub(super) type Authorities<T: Config> = StorageValue<_, Vec<T::AuthorityId>, ValueQuery>;
 
+    #[pallet::type_value]
+    pub(super) fn DefaultForSessionPeriod() -> u32 {
+        DEFAULT_SESSION_PERIOD
+    }
+
+    #[pallet::storage]
+    #[pallet::getter(fn session_period)]
+    pub(super) type SessionPeriod<T: Config> =
+        StorageValue<_, u32, ValueQuery, DefaultForSessionPeriod>;
+
+    #[pallet::type_value]
+    pub(super) fn DefaultForMillisecsPerBlock() -> u64 {
+        DEFAULT_MILLISECS_PER_BLOCK
+    }
+
+    #[pallet::storage]
+    #[pallet::getter(fn millisecs_per_block)]
+    pub(super) type MillisecsPerBlock<T: Config> =
+        StorageValue<_, u64, ValueQuery, DefaultForMillisecsPerBlock>;
+
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
         pub authorities: Vec<T::AuthorityId>,
+        pub session_period: u32,
+        pub millisecs_per_block: u64,
     }
 
     #[cfg(feature = "std")]
@@ -56,13 +81,18 @@ pub mod pallet {
         fn default() -> Self {
             Self {
                 authorities: Vec::new(),
+                session_period: DEFAULT_SESSION_PERIOD,
+                millisecs_per_block: DEFAULT_MILLISECS_PER_BLOCK,
             }
         }
     }
 
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
-        fn build(&self) {}
+        fn build(&self) {
+            <SessionPeriod<T>>::put(&self.session_period);
+            <MillisecsPerBlock<T>>::put(&self.millisecs_per_block);
+        }
     }
 
     impl<T: Config> Pallet<T> {

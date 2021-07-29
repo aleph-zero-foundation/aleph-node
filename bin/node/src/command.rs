@@ -14,7 +14,7 @@
 
 use crate::{
     chain_spec,
-    cli::{Cli, Subcommand},
+    cli::{Cli, ExtraParams, Subcommand},
     service,
 };
 use sc_cli::{ChainSpec, RuntimeVersion, SubstrateCli};
@@ -46,9 +46,14 @@ impl SubstrateCli for Cli {
     }
 
     fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
+        let ExtraParams {
+            session_period,
+            millisecs_per_block,
+        } = self.extra;
+        let chain_params = chain_spec::ChainParams::from_cli(session_period, millisecs_per_block);
         Ok(match id {
-            "testnet1" => Box::new(chain_spec::testnet1_config()?),
-            "dev" => Box::new(chain_spec::development_config()?),
+            "testnet1" => Box::new(chain_spec::testnet1_config(chain_params)?),
+            "dev" => Box::new(chain_spec::development_config(chain_params)?),
             path => Box::new(chain_spec::ChainSpec::from_json_file(
                 std::path::PathBuf::from(path),
             )?),

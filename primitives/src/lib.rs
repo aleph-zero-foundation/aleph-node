@@ -24,6 +24,9 @@ sp_application_crypto::with_pair! {
 pub type AuthoritySignature = app::Signature;
 pub type AuthorityId = app::Public;
 
+pub const DEFAULT_SESSION_PERIOD: u32 = 5;
+pub const DEFAULT_MILLISECS_PER_BLOCK: u64 = 4000;
+
 #[derive(codec::Encode, codec::Decode, PartialEq, Eq, sp_std::fmt::Debug)]
 pub enum ApiError {
     DecodeKey,
@@ -39,6 +42,7 @@ sp_api::decl_runtime_apis! {
         fn next_session() -> Result<Session<Id, BlockNumber>, ApiError>;
         fn authorities() -> Vec<AuthorityId>;
         fn session_period() -> u32;
+        fn millisecs_per_block() -> u64;
     }
 }
 
