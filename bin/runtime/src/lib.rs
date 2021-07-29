@@ -38,7 +38,7 @@ pub use frame_support::{
     },
     StorageValue,
 };
-use primitives::{ApiError as AlephApiError, AuthorityId as AlephId, Session as AuthoritySession};
+use primitives::{ApiError as AlephApiError, AuthorityId as AlephId};
 
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
@@ -479,13 +479,9 @@ impl_runtime_apis! {
         }
     }
 
-    impl primitives::AlephSessionApi<Block, AlephId, BlockNumber> for Runtime {
-        fn current_session() -> AuthoritySession<AlephId, BlockNumber> {
-            Aleph::current_session()
-        }
-
-        fn next_session() -> Result<AuthoritySession<AlephId, BlockNumber>, AlephApiError> {
-            Aleph::next_session()
+    impl primitives::AlephSessionApi<Block> for Runtime {
+        fn next_session_authorities() -> Result<Vec<AlephId>, AlephApiError> {
+            Aleph::next_session_authorities()
         }
 
         fn authorities() -> Vec<AlephId> {

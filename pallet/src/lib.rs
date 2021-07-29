@@ -18,13 +18,11 @@ pub mod pallet {
         pallet_prelude::*,
         sp_runtime::{traits::OpaqueKeys, RuntimeAppPublic},
         sp_std,
-        traits::{EstimateNextNewSession, ValidatorSet},
     };
-    use frame_system::{pallet_prelude::*, Pallet as System};
+    use frame_system::pallet_prelude::*;
     use pallet_session::Pallet as Session;
     use primitives::{
-        ApiError as AlephApiError, Session as AuthoritySession, DEFAULT_MILLISECS_PER_BLOCK,
-        DEFAULT_SESSION_PERIOD,
+        ApiError as AlephApiError, DEFAULT_MILLISECS_PER_BLOCK, DEFAULT_SESSION_PERIOD,
     };
 
     #[pallet::config]
@@ -106,35 +104,15 @@ pub mod pallet {
             }
         }
 
-        fn estimate_end_of_session(now: T::BlockNumber) -> T::BlockNumber {
-            Session::<T>::estimate_next_new_session(now).0.unwrap() - 1u32.into()
-        }
-
         pub(crate) fn update_authorities(authorities: &[T::AuthorityId]) {
             <Authorities<T>>::put(authorities);
         }
 
-        pub fn current_session() -> AuthoritySession<T::AuthorityId, T::BlockNumber> {
-            AuthoritySession {
-                session_id: Session::<T>::session_index(),
-                authorities: Self::authorities(),
-                stop_h: Self::estimate_end_of_session(System::<T>::block_number()),
-            }
-        }
-
-        pub fn next_session(
-        ) -> Result<AuthoritySession<T::AuthorityId, T::BlockNumber>, AlephApiError> {
-            let next_session_start =
-                Self::estimate_end_of_session(System::<T>::block_number()) + 1u32.into();
+        pub fn next_session_authorities() -> Result<Vec<T::AuthorityId>, AlephApiError> {
             Session::<T>::queued_keys()
                 .iter()
                 .map(|(_, key)| key.get(T::AuthorityId::ID).ok_or(AlephApiError::DecodeKey))
                 .collect::<Result<Vec<T::AuthorityId>, AlephApiError>>()
-                .map(|authorities| AuthoritySession {
-                    session_id: Session::<T>::session_index() + 1,
-                    authorities,
-                    stop_h: Self::estimate_end_of_session(next_session_start),
-                })
         }
     }
 

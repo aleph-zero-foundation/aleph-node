@@ -1,9 +1,9 @@
 use crate::{
     finalization::finalize_block, last_block_of_session, network, session_id_from_block_num,
-    AuthorityKeystore, KeyBox, SessionId, SessionPeriod, Signature,
+    AuthorityKeystore, KeyBox, SessionId, SessionMap, SessionPeriod, Signature,
 };
 use aleph_bft::{MultiKeychain, NodeIndex, SignatureSet};
-use aleph_primitives::{AuthorityId, Session, ALEPH_ENGINE_ID};
+use aleph_primitives::ALEPH_ENGINE_ID;
 use codec::{Decode, Encode};
 use futures::{channel::mpsc, StreamExt};
 use futures_timer::Delay;
@@ -13,7 +13,6 @@ use sc_client_api::backend::Backend;
 use sp_api::{BlockId, BlockT, NumberFor};
 use sp_runtime::traits::Header;
 use std::{
-    collections::HashMap,
     marker::PhantomData,
     sync::Arc,
     time::{Duration, Instant},
@@ -54,8 +53,6 @@ where
     pub hash: Block::Hash,
     pub number: NumberFor<Block>,
 }
-
-type SessionMap<Block> = HashMap<SessionId, Session<AuthorityId, NumberFor<Block>>>;
 
 pub struct JustificationHandler<B, N, C, BE>
 where

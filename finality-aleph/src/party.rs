@@ -8,12 +8,12 @@ use crate::{
     network::{
         split_network, ConsensusNetwork, DataNetwork, NetworkData, RmcNetwork, SessionManager,
     },
-    AuthorityId, AuthorityKeystore, KeyBox, Metrics, MultiKeychain, NodeIndex, SessionId,
-    SessionPeriod,
+    AuthorityId, AuthorityKeystore, AuthoritySession, KeyBox, Metrics, MultiKeychain, NodeIndex,
+    SessionId, SessionMap, SessionPeriod,
 };
 
 use aleph_bft::{DelayConfig, OrderedBatch, SpawnHandle};
-use aleph_primitives::{AlephSessionApi, Session};
+use aleph_primitives::AlephSessionApi;
 use futures_timer::Delay;
 
 use futures::{
@@ -40,7 +40,7 @@ where
     B: Block,
     N: network::Network<B> + 'static,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: aleph_primitives::AlephSessionApi<B, AuthorityId, NumberFor<B>>,
+    C::Api: aleph_primitives::AlephSessionApi<B>,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
     NumberFor<B>: Into<u32>,
@@ -106,8 +106,6 @@ fn get_node_index(authorities: &[AuthorityId], my_id: &AuthorityId) -> Option<No
         .map(|id| id.into())
 }
 
-type SessionMap<Block> = HashMap<SessionId, Session<AuthorityId, NumberFor<Block>>>;
-
 fn run_justification_handler<B, N, C, BE>(
     spawn_handle: &crate::SpawnHandle,
     import_justification_rx: mpsc::UnboundedReceiver<JustificationNotification<B>>,
@@ -142,7 +140,7 @@ struct ConsensusParty<B, C, BE, SC>
 where
     B: Block,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: aleph_primitives::AlephSessionApi<B, AuthorityId, NumberFor<B>>,
+    C::Api: aleph_primitives::AlephSessionApi<B>,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
     NumberFor<B>: From<u32>,
@@ -166,12 +164,12 @@ async fn run_aggregator<B, C, BE>(
     mut ordered_batch_rx: mpsc::UnboundedReceiver<OrderedBatch<B::Hash>>,
     justification_tx: mpsc::UnboundedSender<JustificationNotification<B>>,
     client: Arc<C>,
-    session: Session<AuthorityId, NumberFor<B>>,
+    session: AuthoritySession<B>,
     mut exit_rx: futures::channel::oneshot::Receiver<()>,
 ) where
     B: Block,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: aleph_primitives::AlephSessionApi<B, AuthorityId, NumberFor<B>>,
+    C::Api: aleph_primitives::AlephSessionApi<B>,
     BE: Backend<B> + 'static,
 {
     let mut aggregator = BlockSignatureAggregator::new(rmc_network, &multikeychain);
@@ -241,7 +239,7 @@ async fn run_session_as_authority<B, C, BE, SC>(
     auth_keystore: AuthorityKeystore,
     client: Arc<C>,
     data_network: DataNetwork<NetworkData<B>>,
-    session: Session<AuthorityId, NumberFor<B>>,
+    session: AuthoritySession<B>,
     spawn_handle: crate::SpawnHandle,
     select_chain: SC,
     metrics: Option<Metrics<B::Header>>,
@@ -250,7 +248,7 @@ async fn run_session_as_authority<B, C, BE, SC>(
 ) where
     B: Block,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: aleph_primitives::AlephSessionApi<B, AuthorityId, NumberFor<B>>,
+    C::Api: aleph_primitives::AlephSessionApi<B>,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
 {
@@ -264,7 +262,7 @@ async fn run_session_as_authority<B, C, BE, SC>(
         id: node_id,
     };
     let multikeychain = MultiKeychain::new(keybox);
-    let session_id = SessionId(session.session_id);
+    let session_id = session.session_id;
 
     let (aleph_network, rmc_network, forwarder) = split_network(data_network);
 
@@ -364,7 +362,7 @@ impl<B, C, BE, SC> ConsensusParty<B, C, BE, SC>
 where
     B: Block,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: aleph_primitives::AlephSessionApi<B, AuthorityId, NumberFor<B>>,
+    C::Api: aleph_primitives::AlephSessionApi<B>,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
     NumberFor<B>: From<u32>,
@@ -396,38 +394,40 @@ where
             phantom: PhantomData,
         }
     }
+
     async fn run_session(&mut self, session_id: SessionId) {
-        let prev_block_number = match session_id.0.checked_sub(1) {
-            None => 0.into(),
-            Some(prev_id) => {
-                self.sessions
-                    .lock()
-                    .get(&SessionId(prev_id))
-                    .expect("The current session should be known already")
-                    .stop_h
+        let authorities = {
+            if session_id == SessionId(0) {
+                self.client
+                    .runtime_api()
+                    .authorities(&BlockId::Number(0.into()))
+                    .unwrap()
+            } else {
+                let last_prev =
+                    last_block_of_session::<B>(SessionId(session_id.0 - 1), self.period);
+                // We must read the authorities for next session of the latest block of the previous session.
+                // The reason is that we are not guaranteed to have the first block of new session available yet.
+                match self
+                    .client
+                    .runtime_api()
+                    .next_session_authorities(&BlockId::Number(last_prev))
+                {
+                    Ok(authorities) => authorities
+                        .expect("authorities must be available at last block of previous session"),
+                    Err(e) => {
+                        error!(target: "afa", "Error when getting authorities for session {:?} {:?}", session_id, e);
+                        return;
+                    }
+                }
             }
         };
-        let session = match self
-            .client
-            .runtime_api()
-            .current_session(&BlockId::Number(prev_block_number))
-        {
-            Ok(session) => {
-                self.sessions.lock().insert(session_id, session.clone());
-                session
-            }
-            _ => {
-                error!(target: "afa", "No session found for current block #{}", 0);
-                return;
-            }
+        let session = AuthoritySession {
+            session_id,
+            stop_h: last_block_of_session::<B>(session_id, self.period),
+            authorities,
         };
-        assert_eq!(
-            session.stop_h,
-            last_block_of_session::<B>(session_id, self.period),
-            "Inconsistent computation of session bounds in the pallet and the client {:?} {:?}.",
-            session.stop_h,
-            last_block_of_session::<B>(session_id, self.period)
-        );
+
+        self.sessions.lock().insert(session_id, session.clone());
 
         let maybe_node_id = get_node_index(&session.authorities, &self.authority);
 

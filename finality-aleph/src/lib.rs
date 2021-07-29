@@ -14,7 +14,7 @@ use sp_runtime::{
     traits::{BlakeTwo256, Block},
     RuntimeAppPublic,
 };
-use std::{convert::TryInto, fmt::Debug, sync::Arc};
+use std::{collections::HashMap, convert::TryInto, fmt::Debug, sync::Arc};
 mod aggregator;
 pub mod config;
 mod data_io;
@@ -206,6 +206,15 @@ impl aleph_bft::SpawnHandle for SpawnHandle {
     }
 }
 
+#[derive(Decode, Encode, PartialEq, Eq, Clone)]
+pub struct AuthoritySession<B: Block> {
+    pub session_id: SessionId,
+    pub stop_h: NumberFor<B>,
+    pub authorities: Vec<AuthorityId>,
+}
+
+pub type SessionMap<Block> = HashMap<SessionId, AuthoritySession<Block>>;
+
 pub fn last_block_of_session<B: Block>(
     session_id: SessionId,
     period: SessionPeriod,
@@ -238,7 +247,7 @@ where
     BE: Backend<B> + 'static,
     N: network::Network<B> + 'static,
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: aleph_primitives::AlephSessionApi<B, AuthorityId, NumberFor<B>>,
+    C::Api: aleph_primitives::AlephSessionApi<B>,
     SC: SelectChain<B> + 'static,
     NumberFor<B>: Into<u32>,
 {
