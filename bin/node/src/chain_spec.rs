@@ -226,7 +226,12 @@ pub fn development_config(chain_params: ChainParams) -> Result<ChainSpec, String
 pub fn testnet1_config(chain_params: ChainParams) -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
-    let n_members = 6;
+    let n_members = std::fs::read_to_string("/tmp/n_members")
+        .expect("Committee size is not specified")
+        .trim()
+        .parse::<usize>()
+        .expect("Wrong committee size");
+
     let authorities = read_keys(n_members);
 
     let sudo_public: sr25519::Public = authorities[0].aura_key.clone().into();
