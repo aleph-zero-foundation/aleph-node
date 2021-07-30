@@ -8,8 +8,8 @@ use crate::{
     network::{
         split_network, ConsensusNetwork, DataNetwork, NetworkData, RmcNetwork, SessionManager,
     },
-    AuthorityId, AuthorityKeystore, AuthoritySession, KeyBox, Metrics, MultiKeychain, NodeIndex,
-    SessionId, SessionMap, SessionPeriod,
+    AuthorityId, AuthorityKeystore, AuthoritySession, Future, KeyBox, Metrics, MultiKeychain,
+    NodeIndex, SessionId, SessionMap, SessionPeriod,
 };
 
 use aleph_bft::{DelayConfig, OrderedBatch, SpawnHandle};
@@ -25,7 +25,6 @@ use log::{debug, error, info, trace};
 
 use parking_lot::Mutex;
 use sc_client_api::backend::Backend;
-use sc_service::SpawnTaskHandle;
 use sp_api::{BlockId, NumberFor};
 use sp_consensus::SelectChain;
 use sp_runtime::traits::{Block, Header};
@@ -82,17 +81,18 @@ where
 
     debug!(target: "afa", "Consensus network has started.");
 
-    let party = ConsensusParty::new(
+    let party = ConsensusParty {
         session_manager,
         client,
-        select_chain,
-        spawn_handle,
         auth_keystore,
-        authority_justification_tx,
+        select_chain,
         metrics,
-        sessions.clone(),
+        authority_justification_tx,
+        sessions,
         period,
-    );
+        spawn_handle: spawn_handle.into(),
+        phantom: PhantomData,
+    };
 
     debug!(target: "afa", "Consensus party has started.");
     party.run().await;
@@ -151,7 +151,6 @@ where
     spawn_handle: crate::SpawnHandle,
     client: Arc<C>,
     select_chain: SC,
-    authority: AuthorityId,
     auth_keystore: AuthorityKeystore,
     phantom: PhantomData<BE>,
     metrics: Option<Metrics<B::Header>>,
@@ -233,131 +232,6 @@ async fn run_aggregator<B, C, BE>(
     let _ = exit_rx.await;
 }
 
-#[allow(clippy::too_many_arguments)]
-async fn run_session_as_authority<B, C, BE, SC>(
-    node_id: NodeIndex,
-    auth_keystore: AuthorityKeystore,
-    client: Arc<C>,
-    data_network: DataNetwork<NetworkData<B>>,
-    session: AuthoritySession<B>,
-    spawn_handle: crate::SpawnHandle,
-    select_chain: SC,
-    metrics: Option<Metrics<B::Header>>,
-    justification_tx: mpsc::UnboundedSender<JustificationNotification<B>>,
-    exit_rx: futures::channel::oneshot::Receiver<()>,
-) where
-    B: Block,
-    C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: aleph_primitives::AlephSessionApi<B>,
-    BE: Backend<B> + 'static,
-    SC: SelectChain<B> + 'static,
-{
-    debug!(target: "afa", "Authority task {:?}", session.session_id);
-
-    let (ordered_batch_tx, ordered_batch_rx) = mpsc::unbounded();
-
-    let keybox = KeyBox {
-        auth_keystore: auth_keystore.clone(),
-        authorities: session.authorities.clone(),
-        id: node_id,
-    };
-    let multikeychain = MultiKeychain::new(keybox);
-    let session_id = session.session_id;
-
-    let (aleph_network, rmc_network, forwarder) = split_network(data_network);
-
-    let consensus_config = create_aleph_config(session.authorities.len(), node_id, session_id);
-
-    let best_chain = select_chain
-        .best_chain()
-        .await
-        .expect("No best chain.")
-        .hash();
-    let best_chain = Arc::new(Mutex::new(best_chain));
-    let data_io = DataIO::<B> {
-        ordered_batch_tx,
-        best_chain: best_chain.clone(),
-        metrics: metrics.clone(),
-    };
-
-    let (exit_member_tx, exit_member_rx) = futures::channel::oneshot::channel();
-    let (exit_aggregator_tx, exit_aggregator_rx) = futures::channel::oneshot::channel();
-    let (exit_refresher_tx, exit_refresher_rx) = oneshot::channel();
-    let (exit_forwarder_tx, exit_forwarder_rx) = futures::channel::oneshot::channel();
-
-    let member_task = {
-        let spawn_handle = spawn_handle.clone();
-        let multikeychain = multikeychain.clone();
-        async move {
-            debug!(target: "afa", "Running the member task for {:?}", session_id.0);
-            let member =
-                aleph_bft::Member::new(data_io, &multikeychain, consensus_config, spawn_handle);
-            member.run_session(aleph_network, exit_member_rx).await;
-            debug!(target: "afa", "Member task stopped for {:?}", session_id.0);
-        }
-    };
-
-    let aggregator_task = {
-        async move {
-            debug!(target: "afa", "Running the aggregator task for {:?}", session_id.0);
-            run_aggregator(
-                rmc_network,
-                multikeychain,
-                ordered_batch_rx,
-                justification_tx,
-                client.clone(),
-                session,
-                exit_aggregator_rx,
-            )
-            .await;
-            debug!(target: "afa", "Aggregator task stopped for {:?}", session_id.0);
-        }
-    };
-
-    let forwarder_task = async move {
-        debug!(target: "afa", "Running the forwarder task for {:?}", session_id.0);
-        pin_mut!(forwarder);
-        select(forwarder, exit_forwarder_rx).await;
-        debug!(target: "afa", "Forwarder task stopped for {:?}", session_id.0);
-    };
-
-    let refresher_task = refresh_best_chain(select_chain.clone(), best_chain, exit_refresher_rx);
-
-    let member_handle = spawn_handle.spawn_essential("aleph/consensus_session_member", member_task);
-    let aggregator_handle =
-        spawn_handle.spawn_essential("aleph/consensus_session_aggregator", aggregator_task);
-    let forwarder_handle =
-        spawn_handle.spawn_essential("aleph/consensus_session_forwarder", forwarder_task);
-    let refresher_handle =
-        spawn_handle.spawn_essential("aleph/consensus_session_refresher", refresher_task);
-
-    let _ = exit_rx.await;
-    info!(target: "afa", "Shutting down authority session {}", session_id.0);
-    // both member and aggregator are implicitly using forwarder,
-    // so we should force them to exit first to avoid any panics, i.e. `send on closed channel`
-    if let Err(e) = exit_member_tx.send(()) {
-        debug!(target: "afa", "member was closed before terminating it manually: {:?}", e)
-    }
-    let _ = member_handle.await;
-
-    if let Err(e) = exit_aggregator_tx.send(()) {
-        debug!(target: "afa", "aggregator was closed before terminating it manually: {:?}", e)
-    }
-    let _ = aggregator_handle.await;
-
-    if let Err(e) = exit_forwarder_tx.send(()) {
-        debug!(target: "afa", "forwarder was closed before terminating it manually: {:?}", e)
-    }
-    let _ = forwarder_handle.await;
-
-    if let Err(e) = exit_refresher_tx.send(()) {
-        debug!(target: "afa", "refresh was closed before terminating it manually: {:?}", e)
-    }
-    let _ = refresher_handle.await;
-
-    info!(target: "afa", "Authority session {} ended", session_id.0);
-}
-
 impl<B, C, BE, SC> ConsensusParty<B, C, BE, SC>
 where
     B: Block,
@@ -367,31 +241,124 @@ where
     SC: SelectChain<B> + 'static,
     NumberFor<B>: From<u32>,
 {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
-        session_manager: SessionManager<NetworkData<B>>,
-        client: Arc<C>,
-        select_chain: SC,
-        spawn_handle: SpawnTaskHandle,
-        auth_keystore: AuthorityKeystore,
-        authority_justification_tx: mpsc::UnboundedSender<JustificationNotification<B>>,
-        metrics: Option<Metrics<B::Header>>,
-        sessions: Arc<Mutex<SessionMap<B>>>,
-        period: SessionPeriod,
-    ) -> Self {
-        let authority = auth_keystore.authority_id().clone();
-        Self {
-            session_manager,
-            client,
-            auth_keystore,
-            select_chain,
-            metrics,
-            authority,
-            authority_justification_tx,
-            sessions,
-            period,
-            spawn_handle: spawn_handle.into(),
-            phantom: PhantomData,
+    async fn run_session_as_authority(
+        &self,
+        node_id: NodeIndex,
+        data_network: DataNetwork<NetworkData<B>>,
+        session: AuthoritySession<B>,
+        exit_rx: futures::channel::oneshot::Receiver<()>,
+    ) -> impl Future<Output = ()> {
+        debug!(target: "afa", "Authority task {:?}", session.session_id);
+
+        let (ordered_batch_tx, ordered_batch_rx) = mpsc::unbounded();
+
+        let keybox = KeyBox {
+            auth_keystore: self.auth_keystore.clone(),
+            authorities: session.authorities.clone(),
+            id: node_id,
+        };
+        let multikeychain = MultiKeychain::new(keybox);
+        let session_id = session.session_id;
+
+        let (aleph_network, rmc_network, forwarder) = split_network(data_network);
+
+        let consensus_config = create_aleph_config(session.authorities.len(), node_id, session_id);
+
+        let best_chain = self
+            .select_chain
+            .best_chain()
+            .await
+            .expect("No best chain.")
+            .hash();
+        let best_chain = Arc::new(Mutex::new(best_chain));
+        let data_io = DataIO::<B> {
+            ordered_batch_tx,
+            best_chain: best_chain.clone(),
+            metrics: self.metrics.clone(),
+        };
+
+        let (exit_member_tx, exit_member_rx) = oneshot::channel();
+        let (exit_aggregator_tx, exit_aggregator_rx) = oneshot::channel();
+        let (exit_refresher_tx, exit_refresher_rx) = oneshot::channel();
+        let (exit_forwarder_tx, exit_forwarder_rx) = oneshot::channel();
+
+        let member_task = {
+            let spawn_handle = self.spawn_handle.clone();
+            let multikeychain = multikeychain.clone();
+            async move {
+                debug!(target: "afa", "Running the member task for {:?}", session_id.0);
+                let member =
+                    aleph_bft::Member::new(data_io, &multikeychain, consensus_config, spawn_handle);
+                member.run_session(aleph_network, exit_member_rx).await;
+                debug!(target: "afa", "Member task stopped for {:?}", session_id.0);
+            }
+        };
+
+        let aggregator_task = {
+            let client = self.client.clone();
+            let justification_tx = self.authority_justification_tx.clone();
+            async move {
+                debug!(target: "afa", "Running the aggregator task for {:?}", session_id.0);
+                run_aggregator(
+                    rmc_network,
+                    multikeychain,
+                    ordered_batch_rx,
+                    justification_tx,
+                    client,
+                    session,
+                    exit_aggregator_rx,
+                )
+                .await;
+                debug!(target: "afa", "Aggregator task stopped for {:?}", session_id.0);
+            }
+        };
+
+        let forwarder_task = async move {
+            debug!(target: "afa", "Running the forwarder task for {:?}", session_id.0);
+            pin_mut!(forwarder);
+            select(forwarder, exit_forwarder_rx).await;
+            debug!(target: "afa", "Forwarder task stopped for {:?}", session_id.0);
+        };
+
+        let refresher_task =
+            refresh_best_chain(self.select_chain.clone(), best_chain, exit_refresher_rx);
+
+        let member_handle = self
+            .spawn_handle
+            .spawn_essential("aleph/consensus_session_member", member_task);
+        let aggregator_handle = self
+            .spawn_handle
+            .spawn_essential("aleph/consensus_session_aggregator", aggregator_task);
+        let forwarder_handle = self
+            .spawn_handle
+            .spawn_essential("aleph/consensus_session_forwarder", forwarder_task);
+        let refresher_handle = self
+            .spawn_handle
+            .spawn_essential("aleph/consensus_session_refresher", refresher_task);
+
+        async move {
+            let _ = exit_rx.await;
+            // both member and aggregator are implicitly using forwarder,
+            // so we should force them to exit first to avoid any panics, i.e. `send on closed channel`
+            if let Err(e) = exit_member_tx.send(()) {
+                debug!(target: "afa", "member was closed before terminating it manually: {:?}", e)
+            }
+            let _ = member_handle.await;
+
+            if let Err(e) = exit_aggregator_tx.send(()) {
+                debug!(target: "afa", "aggregator was closed before terminating it manually: {:?}", e)
+            }
+            let _ = aggregator_handle.await;
+
+            if let Err(e) = exit_forwarder_tx.send(()) {
+                debug!(target: "afa", "forwarder was closed before terminating it manually: {:?}", e)
+            }
+            let _ = forwarder_handle.await;
+
+            if let Err(e) = exit_refresher_tx.send(()) {
+                debug!(target: "afa", "refresh was closed before terminating it manually: {:?}", e)
+            }
+            let _ = refresher_handle.await;
         }
     }
 
@@ -429,7 +396,10 @@ where
 
         self.sessions.lock().insert(session_id, session.clone());
 
-        let maybe_node_id = get_node_index(&session.authorities, &self.authority);
+        let maybe_node_id = get_node_index(
+            &session.authorities,
+            &self.auth_keystore.authority_id().clone(),
+        );
 
         let (exit_authority_tx, exit_authority_rx) = futures::channel::oneshot::channel();
         if let Some(node_id) = maybe_node_id {
@@ -445,18 +415,9 @@ where
                 .start_session(session_id, multikeychain)
                 .await;
 
-            let authority_task = run_session_as_authority(
-                node_id,
-                self.auth_keystore.clone(),
-                self.client.clone(),
-                data_network,
-                session.clone(),
-                self.spawn_handle.clone(),
-                self.select_chain.clone(),
-                self.metrics.clone(),
-                self.authority_justification_tx.clone(),
-                exit_authority_rx,
-            );
+            let authority_task = self
+                .run_session_as_authority(node_id, data_network, session.clone(), exit_authority_rx)
+                .await;
             self.spawn_handle
                 .spawn("aleph/session_authority", authority_task);
         } else {

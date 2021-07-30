@@ -150,9 +150,9 @@ fn read_keys(n_members: usize) -> Vec<AuthorityKeys> {
         .zip(account_ids)
         .take(n_members)
         .map(|((aura_key, aleph_key), account_id)| AuthorityKeys {
+            account_id,
             aura_key,
             aleph_key,
-            account_id,
         })
         .collect()
 }
