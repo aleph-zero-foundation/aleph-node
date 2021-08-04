@@ -1,0 +1,160 @@
+name: integration-tests
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build binary artifact
+    runs-on: ubuntu-latest
+    env:
+      RUST_TOOLCHAIN_VERSION: nightly-2021-07-05
+      RUST_BACKTRACE: full
+      SCCACHE_VERSION: 0.2.13
+      SCCACHE_CACHE_SIZE: 2G
+      SCCACHE_PATH: /home/runner/.cache/sccache
+      # SCCACHE_RECACHE: 1 # to clear cache uncomment this, let the workflow run once, then comment it out again
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Checkout Source code
+        uses: actions/checkout@v2
+
+      - name: Install sccache for ubuntu-latest
+        env:
+          LINK: https://github.com/mozilla/sccache/releases/download
+        run: |
+          SCCACHE_FILE=sccache-$SCCACHE_VERSION-x86_64-unknown-linux-musl
+          mkdir -p $HOME/.local/bin
+          curl -L "$LINK/$SCCACHE_VERSION/$SCCACHE_FILE.tar.gz" | tar xz
+          mv -f $SCCACHE_FILE/sccache $HOME/.local/bin/sccache
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Restore Cargo Cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+          override: true
+
+      - name: Install WASM target
+        run: rustup target add wasm32-unknown-unknown --toolchain "$RUST_TOOLCHAIN_VERSION"
+
+      - name: Save sccache
+        uses: actions/cache@v2
+        continue-on-error: false
+        with:
+          path: ${{ env.SCCACHE_PATH }}
+          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Start sccache server
+        run: sccache --start-server
+
+      - name: Build Binary
+        run: |
+          export RUSTC_WRAPPER=$HOME/.local/bin/sccache
+          cargo build --release
+
+      - name: Print sccache stats
+        run: sccache --show-stats
+
+      - name: Stop sccache server
+        run: sccache --stop-server || true
+
+      - name: Upload Binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: aleph-node
+          path: target/release/aleph-node
+          if-no-files-found: error
+          retention-days: 20
+
+  integration-tests:
+    needs: build
+    name: Run integration tests suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Checkout Source code
+        uses: actions/checkout@v2
+
+      - name: Download artifact with aleph-node binary
+        uses: actions/download-artifact@v2
+        with:
+          name: aleph-node
+
+      - name: Build docker image
+        id: build-image
+        run: |
+          mkdir -p target/release/
+          # copy artifact
+          cp aleph-node target/release/aleph-node
+          # Build and tag a docker container
+          docker build --tag aleph-node:latest -f ./docker/Dockerfile .
+
+      - name: Run consensus party
+        run: |
+          docker-compose -f docker/docker-compose.yml up &
+
+      # NOTE: this step contacts every node in the comittee by their container id and sends a simple RPC request
+      # that lists all the RPC methods that they expose.
+      # Once they respond we know all nodes are online
+      - name: Verify nodes respond
+        run: |
+          validators=( damian tomasz zbyszko hansu )
+
+          for validator in "${validators[@]}"; do
+            docker run --network container:$validator appropriate/curl:latest \
+                       --retry 3 \
+                       --retry-delay 10 \
+                       -H "Content-Type: application/json" \
+                       -d '{"id":1, "jsonrpc":"2.0", "method": "rpc_methods"}' http://127.0.0.1:9933
+          done
+
+      # NOTE: more complex test scenarios can be run from here on out
+
+      - name: Save docker image
+        run: |
+          docker save -o aleph-node.tar aleph-node:latest
+
+      # NOTE: stores the final artifacts if tests completed successfully
+      - name: Upload docker image
+        uses: actions/upload-artifact@v2
+        with:
+          name: aleph-node-image
+          path: aleph-node.tar
+          if-no-files-found: error
+          retention-days: 20
+
+      - name: Send Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        continue-on-error: true
+        env:
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_USERNAME: GithubActions
+          SLACK_TITLE: integration tests job has finished
+          MSG_MINIMAL: actions url

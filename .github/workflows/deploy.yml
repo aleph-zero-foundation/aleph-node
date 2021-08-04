@@ -1,93 +1,18 @@
 name: deploy
 
 on:
-  push:
+  workflow_run:
+    workflows: ["integration-tests"]
     branches:
       - main
+    types:
+      - completed
 
 jobs:
-  build:
-    name: Build Binary Artifact
-    runs-on: ubuntu-latest
-    env:
-      RUST_TOOLCHAIN_VERSION: nightly-2021-07-05
-      RUST_BACKTRACE: full
-      SCCACHE_VERSION: 0.2.13
-      SCCACHE_CACHE_SIZE: 2G
-      SCCACHE_PATH: /home/runner/.cache/sccache
-      # SCCACHE_RECACHE: 1 # to clear cache uncomment this, let the workflow run once, then comment it out again
-    steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.9.0
-        with:
-          access_token: ${{ github.token }}
-
-      - name: Checkout Source code
-        uses: actions/checkout@v2
-
-      - name: Install sccache for ubuntu-latest
-        env:
-          LINK: https://github.com/mozilla/sccache/releases/download
-        run: |
-          SCCACHE_FILE=sccache-$SCCACHE_VERSION-x86_64-unknown-linux-musl
-          mkdir -p $HOME/.local/bin
-          curl -L "$LINK/$SCCACHE_VERSION/$SCCACHE_FILE.tar.gz" | tar xz
-          mv -f $SCCACHE_FILE/sccache $HOME/.local/bin/sccache
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Restore Cargo Cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Install Rust Toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
-          override: true
-
-      - name: Install WASM target
-        run: rustup target add wasm32-unknown-unknown --toolchain "$RUST_TOOLCHAIN_VERSION"
-
-      - name: Save sccache
-        uses: actions/cache@v2
-        continue-on-error: false
-        with:
-          path: ${{ env.SCCACHE_PATH }}
-          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Start sccache server
-        run: sccache --start-server
-
-      - name: Build Binary
-        run: |
-          export RUSTC_WRAPPER=$HOME/.local/bin/sccache
-          cargo build --release
-
-      - name: Print sccache stats
-        run: sccache --show-stats
-
-      - name: Stop sccache server
-        run: sccache --stop-server || true
-
-      - name: Upload Binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: aleph-node
-          path: target/release/aleph-node
-          if-no-files-found: error
-          retention-days: 20
-
-  deploy:
-    name: Build and push docker image
-    needs: build
+  deploy-devnet:
+    name: Push latest docker image
+    environment:
+      name: devnet
     runs-on: ubuntu-latest
     env:
       AWS_REGION: us-east-1 # this region is used by all public ECR repos
@@ -97,13 +22,12 @@ jobs:
         with:
           access_token: ${{ github.token }}
 
-      - name: Checkout Source code
-        uses: actions/checkout@v2
-
-      - name: Download artifact with aleph-node binary
-        uses: actions/download-artifact@v2
+      # NOTE this step will download the last succesfully built artifact from the integration-tests workflow
+      - name: Download artifact
+        uses: dawidd6/action-download-artifact@v2
         with:
-          name: aleph-node
+          workflow: integration-tests
+          name: aleph-node-image
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@13d241b293754004c80624b5567555c4a39ffbe3
@@ -112,23 +36,22 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:  ${{ env.AWS_REGION }}
 
-      - name: Build, tag, and push image to ECR
+      # NOTE: this step deploys image tagged as latest and used by the devnet environment
+      - name: Load, tag, and push latest image
         id: build-image
         env:
           ECR_REGISTRY: public.ecr.aws/x2t8a1o3
           ECR_REPOSITORY: aleph-node
-          IMAGE_TAG: latest
         run: |
-          mkdir -p target/release/
-          # copy artifact
-          cp aleph-node target/release/aleph-node
-          # Build and tag a docker container, we use two tags: `latest` and the sha of the commit that triggered the build
-          docker build --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --tag $ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA -f ./docker/Dockerfile .
+          # load docker image
+          docker load -i aleph-node.tar
+          # tag docker image, use two tags: `latest` and the sha of the commit that triggered the build
+          docker tag aleph-node:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker tag aleph-node:latest $ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA
           # Login to Amazon ECR
           aws ecr-public get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
-          # push it to ECR
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          # push all tagged images to ECR
+          docker push --all-tags $ECR_REGISTRY/$ECR_REPOSITORY
 
       - name: Send Slack Notification
         uses: rtCamp/action-slack-notify@v2
@@ -137,4 +60,55 @@ jobs:
           SLACK_COLOR: ${{ job.status }}
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_USERNAME: GithubActions
+          SLACK_TITLE: deploy-devnet job has finished
+          MSG_MINIMAL: actions url
+
+  deploy-testnet:
+    name: Push testnet docker image
+    # NOTE: this is a protected environment, this job needs a manual approval from one of the team members
+    environment:
+      name: testnet
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Download artifact
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: integration_tests.yml
+          workflow_conclusion: success
+          name: aleph-node-image
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@13d241b293754004c80624b5567555c4a39ffbe3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:  ${{ env.AWS_REGION }}
+
+      - name: Load, tag, and push testnet image
+        id: build-image
+        env:
+          ECR_REGISTRY: public.ecr.aws/x2t8a1o3
+          ECR_REPOSITORY: aleph-node
+        run: |
+          docker load -i aleph-node.tar
+          docker tag aleph-node:testnet $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker tag aleph-node:testnet $ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA
+          aws ecr-public get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+          docker push --all-tags $ECR_REGISTRY/$ECR_REPOSITORY
+
+      - name: Send Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        continue-on-error: true
+        env:
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_USERNAME: GithubActions
+          SLACK_TITLE: deploy-testnet job has finished
           MSG_MINIMAL: actions url

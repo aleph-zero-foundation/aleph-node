@@ -1,4 +1,4 @@
-name: CI
+name: unit-tests
 
 on: pull_request
 
@@ -72,4 +72,5 @@ jobs:
           SLACK_COLOR: ${{ job.status }}
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_USERNAME: GithubActions
+          SLACK_TITLE: unit tests job has finished
           MSG_MINIMAL: actions url
