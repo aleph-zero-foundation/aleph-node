@@ -42,6 +42,18 @@ jobs:
       - name: Install WASM target
         run: rustup target add wasm32-unknown-unknown --toolchain "$RUST_TOOLCHAIN_VERSION"
 
+      - name: Run Format Checks
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all
+
+      - name: Run Linter
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -- -D warnings
+
       - name: Run Check
         uses: actions-rs/cargo@v1
         with:
@@ -52,18 +64,6 @@ jobs:
         with:
           command: test
           args: --lib
-
-      - name: Run Format Checks
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
-
-      - name: Run Linter
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
 
       - name: Send Slack Notification
         uses: rtCamp/action-slack-notify@v2

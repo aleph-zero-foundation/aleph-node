@@ -1,5 +1,9 @@
 # [aleph-node](https://alephzero.org/)
 
-[![CI](https://github.com/Cardinal-Cryptography/aleph-node/actions/workflows/ci.yml/badge.svg)](https://github.com/Cardinal-Cryptography/aleph-node/actions/workflows/ci.yml)
+[![unit-tests](https://github.com/Cardinal-Cryptography/aleph-node/actions/workflows/unit_tests.yml/badge.svg)](https://github.com/Cardinal-Cryptography/aleph-node/actions/workflows/unit_tests.yml)
+
+[![integration-tests](https://github.com/Cardinal-Cryptography/aleph-node/actions/workflows/integration_tests.yml/badge.svg)](https://github.com/Cardinal-Cryptography/aleph-node/actions/workflows/integration_tests.yml)
+
+[![deploy](https://github.com/Cardinal-Cryptography/aleph-node/actions/workflows/deploy.yml/badge.svg)](https://github.com/Cardinal-Cryptography/aleph-node/actions/workflows/deploy.yml)
 
 Node implementation for aleph blockchain built with Substrate framework.

@@ -59,7 +59,7 @@ jobs:
       - name: Install WASM target
         run: rustup target add wasm32-unknown-unknown --toolchain "$RUST_TOOLCHAIN_VERSION"
 
-      - name: Save sccache
+      - name: Restore sccache
         uses: actions/cache@v2
         continue-on-error: false
         with:
