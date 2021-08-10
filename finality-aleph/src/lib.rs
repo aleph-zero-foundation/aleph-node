@@ -5,7 +5,7 @@ use codec::{Decode, Encode};
 pub use aleph_bft::default_config as default_aleph_config;
 use aleph_bft::{DefaultMultiKeychain, NodeCount, NodeIndex, TaskHandle};
 use futures::{channel::oneshot, Future, TryFutureExt};
-use sc_client_api::{backend::Backend, Finalizer, LockImportRun, TransactionFor};
+use sc_client_api::{backend::Backend, BlockchainEvents, Finalizer, LockImportRun, TransactionFor};
 use sc_service::SpawnTaskHandle;
 use sp_api::{NumberFor, ProvideRuntimeApi};
 use sp_blockchain::{HeaderBackend, HeaderMetadata};
@@ -25,6 +25,8 @@ mod justification;
 pub mod metrics;
 mod network;
 mod party;
+#[cfg(test)]
+pub mod testing;
 
 pub use import::AlephBlockImport;
 pub use justification::JustificationNotification;
@@ -117,6 +119,7 @@ pub trait ClientForAleph<B, BE>:
     + BlockImport<B, Transaction = TransactionFor<BE, B>, Error = sp_consensus::Error>
     + HeaderBackend<B>
     + HeaderMetadata<B, Error = sp_blockchain::Error>
+    + BlockchainEvents<B>
 where
     BE: Backend<B>,
     B: Block,
@@ -132,6 +135,7 @@ where
         + ProvideRuntimeApi<B>
         + HeaderBackend<B>
         + HeaderMetadata<B, Error = sp_blockchain::Error>
+        + BlockchainEvents<B>
         + BlockImport<B, Transaction = TransactionFor<BE, B>, Error = sp_consensus::Error>,
 {
 }

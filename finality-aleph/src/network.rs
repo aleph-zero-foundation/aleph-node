@@ -10,14 +10,15 @@ use std::{
 
 use log::{debug, error, trace, warn};
 
-use crate::{aggregator::SignableHash, Error, Hasher, MultiKeychain, SessionId, Signature};
+use crate::{
+    aggregator::SignableHash, data_io::AlephNetworkMessage, Error, Hasher, MultiKeychain,
+    SessionId, Signature,
+};
 use sp_api::NumberFor;
 use std::{fmt::Debug, future::Future};
-#[cfg(test)]
-mod tests;
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
-pub struct PeerId(ScPeerId);
+pub struct PeerId(pub(crate) ScPeerId);
 
 impl From<PeerId> for ScPeerId {
     fn from(wrapper: PeerId) -> Self {
@@ -238,20 +239,20 @@ pub(crate) enum Recipient<T: Clone + Encode + Decode + Eq + PartialEq> {
 }
 
 #[derive(Clone, Encode, Decode, Debug)]
-struct AuthData {
-    session_id: SessionId,
-    peer_id: PeerId,
-    node_id: NodeIndex,
+pub(crate) struct AuthData {
+    pub(crate) session_id: SessionId,
+    pub(crate) peer_id: PeerId,
+    pub(crate) node_id: NodeIndex,
 }
 
 #[derive(Clone, Encode, Decode, Debug)]
-enum MetaMessage {
+pub(crate) enum MetaMessage {
     Authentication(AuthData, Signature),
     AuthenticationRequest(SessionId),
 }
 
 #[derive(Clone, Encode, Decode, Debug)]
-enum InternalMessage<D: Clone + Encode + Decode> {
+pub(crate) enum InternalMessage<D: Clone + Encode + Decode> {
     Meta(MetaMessage),
     Data(SessionId, D),
 }
@@ -600,6 +601,12 @@ where
 pub(crate) type AlephNetworkData<B> =
     aleph_bft::NetworkData<Hasher, <B as BlockT>::Hash, Signature, SignatureSet<Signature>>;
 
+impl<B: BlockT> AlephNetworkMessage<B> for AlephNetworkData<B> {
+    fn included_blocks(&self) -> Vec<B::Hash> {
+        self.included_data()
+    }
+}
+
 pub(crate) type RmcNetworkData<B> =
     aleph_bft::rmc::Message<SignableHash<<B as BlockT>::Hash>, Signature, SignatureSet<Signature>>;
 
@@ -691,14 +698,15 @@ impl<B: BlockT> RmcNetwork<B> {
 
 pub(crate) fn split_network<B: BlockT>(
     data_network: DataNetwork<NetworkData<B>>,
+    data_store_tx: mpsc::UnboundedSender<AlephNetworkData<B>>,
+    data_store_rx: mpsc::UnboundedReceiver<AlephNetworkData<B>>,
 ) -> (AlephNetwork<B>, RmcNetwork<B>, impl Future<Output = ()>) {
-    let (aleph_data_tx, aleph_data_rx) = mpsc::unbounded();
     let (rmc_data_tx, rmc_data_rx) = mpsc::unbounded();
     let (aleph_cmd_tx, aleph_cmd_rx) = mpsc::unbounded();
     let (rmc_cmd_tx, rmc_cmd_rx) = mpsc::unbounded();
     let aleph_network = AlephNetwork::new(DataNetwork::new(
         data_network.session_id,
-        aleph_data_rx,
+        data_store_rx,
         aleph_cmd_tx,
     ));
     let rmc_network = RmcNetwork::new(DataNetwork::new(
@@ -714,7 +722,7 @@ pub(crate) fn split_network<B: BlockT>(
                 None => break,
                 Some(NetworkData::Aleph(data)) => {
                     trace!(target: "afa", "Forwarding a message to aleph {:?} {:?}", session_id, data);
-                    if let Err(e) = aleph_data_tx.unbounded_send(data) {
+                    if let Err(e) = data_store_tx.unbounded_send(data) {
                         debug!(target: "afa", "unable to send data for {:?} to aleph network {}", session_id, e);
                     }
                 }
