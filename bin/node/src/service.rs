@@ -5,7 +5,7 @@ use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use codec::Decode;
 use finality_aleph::{
     run_aleph_consensus, AlephBlockImport, AlephConfig, AuthorityId, AuthorityKeystore,
-    JustificationNotification, Metrics, SessionPeriod,
+    JustificationNotification, Metrics, MillisecsPerBlock, SessionPeriod,
 };
 use futures::channel::mpsc;
 use log::warn;
@@ -190,10 +190,17 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
             block_announce_validator_builder: None,
         })?;
 
-    let period = SessionPeriod(
+    let session_period = SessionPeriod(
         client
             .runtime_api()
             .session_period(&BlockId::Number(Zero::zero()))
+            .unwrap(),
+    );
+
+    let millisecs_per_block = MillisecsPerBlock(
+        client
+            .runtime_api()
+            .millisecs_per_block(&BlockId::Number(Zero::zero()))
             .unwrap(),
     );
 
@@ -286,7 +293,8 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
             network,
             client,
             select_chain,
-            period,
+            session_period,
+            millisecs_per_block,
             spawn_handle: task_manager.spawn_handle(),
             auth_keystore: AuthorityKeystore::new(authority_id, keystore_container.sync_keystore()),
             justification_rx,

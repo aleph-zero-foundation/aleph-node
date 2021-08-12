@@ -45,6 +45,11 @@ impl AlephJustification {
     }
 }
 
+pub struct ChainCadence {
+    pub session_period: SessionPeriod,
+    pub justifications_cadence: Duration,
+}
+
 pub struct JustificationNotification<Block>
 where
     Block: BlockT,
@@ -63,7 +68,7 @@ where
 {
     sessions: Arc<Mutex<SessionMap<B>>>,
     auth_keystore: AuthorityKeystore,
-    session_period: SessionPeriod,
+    chain_cadence: ChainCadence,
     network: N,
     client: Arc<C>,
     last_request_time: Instant,
@@ -82,14 +87,14 @@ where
     pub(crate) fn new(
         sessions: Arc<Mutex<SessionMap<B>>>,
         auth_keystore: AuthorityKeystore,
-        session_period: SessionPeriod,
+        chain_cadence: ChainCadence,
         network: N,
         client: Arc<C>,
     ) -> Self {
         Self {
             sessions,
             auth_keystore,
-            session_period,
+            chain_cadence,
             network,
             client,
             last_request_time: Instant::now(),
@@ -139,13 +144,20 @@ where
 
     pub(crate) fn request_justification(&mut self, num: NumberFor<B>) {
         let current_time = Instant::now();
-        if current_time - self.last_finalization_time > Duration::from_secs(20)
-            && current_time - self.last_request_time > Duration::from_secs(5)
+
+        let ChainCadence {
+            justifications_cadence,
+            ..
+        } = self.chain_cadence;
+
+        if current_time - self.last_finalization_time > justifications_cadence
+            && current_time - self.last_request_time > 2 * justifications_cadence
         {
-            self.last_request_time = current_time;
             debug!(target: "afa", "Trying to request block {:?}", num);
+
             if let Ok(Some(header)) = self.client.header(BlockId::Number(num)) {
                 debug!(target: "afa", "We have block {:?} with hash {:?}. Requesting justification.", num, header.hash());
+                self.last_request_time = current_time;
                 self.network
                     .request_justification(&header.hash(), *header.number());
             } else {
@@ -179,14 +191,13 @@ where
 
         let mut notification_stream = futures::stream::select(import_stream, authority_stream);
 
+        let ChainCadence { session_period, .. } = self.chain_cadence;
+
         loop {
             let last_finalized_number = self.client.info().finalized_number;
-            let current_session = session_id_from_block_num::<B>(
-                last_finalized_number + 1u32.into(),
-                self.session_period,
-            );
-            let stop_h: NumberFor<B> =
-                last_block_of_session::<B>(current_session, self.session_period);
+            let current_session =
+                session_id_from_block_num::<B>(last_finalized_number + 1u32.into(), session_period);
+            let stop_h: NumberFor<B> = last_block_of_session::<B>(current_session, session_period);
             let keybox = self.session_keybox(current_session);
             if keybox.is_none() {
                 debug!(target: "afa", "Keybox for session {:?} not yet available. Waiting 500ms and will try again ...", current_session);

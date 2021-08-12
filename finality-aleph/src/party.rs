@@ -3,7 +3,9 @@ use crate::{
     data_io::{refresh_best_chain, DataIO, DataStore},
     default_aleph_config,
     finalization::chain_extension_step,
-    justification::{AlephJustification, JustificationHandler, JustificationNotification},
+    justification::{
+        AlephJustification, ChainCadence, JustificationHandler, JustificationNotification,
+    },
     last_block_of_session, network,
     network::{
         split_network, AlephNetworkData, ConsensusNetwork, DataNetwork, NetworkData, RmcNetwork,
@@ -29,7 +31,7 @@ use sc_client_api::backend::Backend;
 use sp_api::{BlockId, NumberFor};
 use sp_consensus::SelectChain;
 use sp_runtime::traits::{Block, Header};
-use std::{collections::HashMap, marker::PhantomData, sync::Arc, time::Duration};
+use std::{cmp::min, collections::HashMap, marker::PhantomData, sync::Arc, time::Duration};
 
 pub struct AlephParams<B: Block, N, C, SC> {
     pub config: crate::AlephConfig<B, N, C, SC>,
@@ -55,12 +57,24 @@ where
                 auth_keystore,
                 justification_rx,
                 metrics,
-                period,
+                session_period,
+                millisecs_per_block,
                 ..
             },
     } = aleph_params;
 
     let sessions = Arc::new(Mutex::new(HashMap::new()));
+
+    // NOTE: justifications are requested every so often
+    let cadence = min(
+        millisecs_per_block.0 * 2,
+        millisecs_per_block.0 * session_period.0 as u64 / 10,
+    );
+
+    let chain_cadence = ChainCadence {
+        session_period,
+        justifications_cadence: Duration::from_millis(cadence),
+    };
 
     let authority_justification_tx = run_justification_handler(
         &spawn_handle.clone().into(),
@@ -69,7 +83,7 @@ where
         auth_keystore.clone(),
         network.clone(),
         client.clone(),
-        period,
+        chain_cadence,
     );
 
     // Prepare and start the network
@@ -90,7 +104,7 @@ where
         metrics,
         authority_justification_tx,
         sessions,
-        period,
+        session_period,
         spawn_handle: spawn_handle.into(),
         phantom: PhantomData,
     };
@@ -114,7 +128,7 @@ fn run_justification_handler<B, N, C, BE>(
     auth_keystore: AuthorityKeystore,
     network: N,
     client: Arc<C>,
-    period: SessionPeriod,
+    chain_cadence: ChainCadence,
 ) -> mpsc::UnboundedSender<JustificationNotification<B>>
 where
     N: network::Network<B> + 'static,
@@ -125,7 +139,8 @@ where
 {
     let (authority_justification_tx, authority_justification_rx) = mpsc::unbounded();
 
-    let handler = JustificationHandler::new(sessions, auth_keystore, period, network, client);
+    let handler =
+        JustificationHandler::new(sessions, auth_keystore, chain_cadence, network, client);
 
     debug!(target: "afa", "JustificationHandler started");
     spawn_handle.spawn("aleph/justification_handler", async move {
@@ -148,7 +163,7 @@ where
 {
     session_manager: SessionManager<NetworkData<B>>,
     sessions: Arc<Mutex<SessionMap<B>>>,
-    period: SessionPeriod,
+    session_period: SessionPeriod,
     spawn_handle: crate::SpawnHandle,
     client: Arc<C>,
     select_chain: SC,
@@ -397,7 +412,7 @@ where
                     .unwrap()
             } else {
                 let last_prev =
-                    last_block_of_session::<B>(SessionId(session_id.0 - 1), self.period);
+                    last_block_of_session::<B>(SessionId(session_id.0 - 1), self.session_period);
                 // We must read the authorities for next session of the latest block of the previous session.
                 // The reason is that we are not guaranteed to have the first block of new session available yet.
                 match self
@@ -416,7 +431,7 @@ where
         };
         let session = AuthoritySession {
             session_id,
-            stop_h: last_block_of_session::<B>(session_id, self.period),
+            stop_h: last_block_of_session::<B>(session_id, self.session_period),
             authorities,
         };
 
