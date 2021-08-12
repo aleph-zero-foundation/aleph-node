@@ -721,9 +721,9 @@ pub(crate) fn split_network<B: BlockT>(
             match data_from_consensus_network.next().await {
                 None => break,
                 Some(NetworkData::Aleph(data)) => {
-                    trace!(target: "afa", "Forwarding a message to aleph {:?} {:?}", session_id, data);
+                    trace!(target: "afa", "Forwarding a message to DataStore {:?} {:?}", session_id, data);
                     if let Err(e) = data_store_tx.unbounded_send(data) {
-                        debug!(target: "afa", "unable to send data for {:?} to aleph network {}", session_id, e);
+                        debug!(target: "afa", "unable to send data for {:?} to DataStore {}", session_id, e);
                     }
                 }
                 Some(NetworkData::Rmc(data)) => {

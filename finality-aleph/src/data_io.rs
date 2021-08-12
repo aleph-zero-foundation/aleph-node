@@ -16,7 +16,7 @@ const REFRESH_INTERVAL: u64 = 100;
 use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
 use futures_timer::Delay;
 use log::{debug, trace};
-use sc_client_api::{backend::Backend};
+use sc_client_api::backend::Backend;
 use sp_runtime::generic::BlockId;
 use tokio::stream::StreamExt;
 
@@ -165,9 +165,9 @@ where
 
         if requirements.is_empty() {
             trace!(target: "afa", "Sending message from DataStore {:?}", message);
-            self.ready_messages_tx
-                .unbounded_send(message)
-                .expect("Member channel should be open");
+            if let Err(e) = self.ready_messages_tx.unbounded_send(message) {
+                debug!(target: "afa", "Unable to send a ready message from DataStore {}", e);
+            }
         } else {
             self.add_pending_message(message, requirements);
         }
@@ -185,9 +185,9 @@ where
                         .pending_messages
                         .remove(message_id)
                         .expect("there is a pending message");
-                    self.ready_messages_tx
-                        .unbounded_send(message)
-                        .expect("Member channel should be open");
+                    if let Err(e) = self.ready_messages_tx.unbounded_send(message) {
+                        debug!(target: "afa", "Unable to send a ready message from DataStore {}", e);
+                    }
                     self.message_requirements.remove(message_id);
                 }
             }
