@@ -18,13 +18,9 @@ pallet-session = { default-features = false, git = "https://github.com/paritytec
 [dev-dependencies]
 
 pallet-balances = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5" }
-pallet-staking = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5" }
-pallet-staking-reward-curve = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5" }
 pallet-timestamp = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5" }
 sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5" }
 sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5" }
-sp-staking = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5" }
-frame-election-provider-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5" }
 
 [features]
 default = ["std"]

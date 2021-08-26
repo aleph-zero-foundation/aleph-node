@@ -17,7 +17,6 @@ serde = { version = "1.0.101", optional = true, features = ["derive"] }
 primitives = { path = "../../primitives", default-features = false }
 pallet-aleph = { path = "../../pallet", default-features = false}
 
-frame-election-provider-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
 frame-executive = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
 frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
 frame-system = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
@@ -27,6 +26,7 @@ pallet-aura = { default-features = false, git = "https://github.com/paritytech/s
 pallet-balances = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
 pallet-randomness-collective-flip = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
 pallet-session = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+pallet-scheduler = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
 pallet-sudo = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
 pallet-timestamp = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
 pallet-transaction-payment = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
@@ -60,6 +60,7 @@ std = [
 	"pallet-balances/std",
 	"pallet-randomness-collective-flip/std",
 	"pallet-session/std",
+	"pallet-scheduler/std",
 	"pallet-sudo/std",
 	"pallet-timestamp/std",
 	"pallet-transaction-payment/std",
