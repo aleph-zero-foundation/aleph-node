@@ -1,3 +1,4 @@
+use crate::data_io::AlephDataFor;
 use core::result::Result;
 use log::{debug, error, warn};
 use sc_client_api::Backend;
@@ -6,7 +7,6 @@ use sp_runtime::{
     traits::{Block, Header},
     Justification,
 };
-
 use std::{collections::VecDeque, sync::Arc};
 
 pub(crate) fn finalize_block<BE, B, C>(
@@ -37,13 +37,13 @@ where
     update_res
 }
 
-/// Given hashes `last_finalized` and `new_hash` of two block, returns
-/// the sequence of headers of the blocks on the path from `last_finalized` to `new_hash`
+/// Given hash `last_finalized` and `AlephDataFor` `new_data` of two blocks, returns
+/// the sequence of headers of the blocks on the path from `last_finalized` to `new_data`
 /// excluding the header corresponding to `last_finalized`, or an empty sequence if
-/// `new_hash` is not a descendant of `last_finalized`.
+/// `new_data` is not a descendant of `last_finalized`.
 pub(crate) fn chain_extension_step<BE, B, C>(
     last_finalized: B::Hash,
-    new_hash: B::Hash,
+    new_data: AlephDataFor<B>,
     client: &C,
 ) -> VecDeque<B::Header>
 where
@@ -52,7 +52,7 @@ where
     C: crate::ClientForAleph<B, BE>,
 {
     // this early return is for optimization reasons only.
-    if new_hash == last_finalized {
+    if new_data.hash == last_finalized {
         return VecDeque::new();
     }
 
@@ -64,15 +64,25 @@ where
         }
     };
 
+    if let Ok(Some(header)) = client.header(BlockId::Hash(new_data.hash)) {
+        if *header.number() != new_data.number {
+            warn!(target: "afa", "Incorrect number for hash {}. Got {}, should be {}", new_data.hash, new_data.number, header.number());
+            return VecDeque::new();
+        }
+    } else {
+        warn!(target: "afa", "No header for hash {}", new_data.hash);
+        return VecDeque::new();
+    }
+
     let mut extension = VecDeque::new();
     // iterate ancestors of `new_hash` and push their headers to the front of `extension`
     // until reaching a block with number <= last_finalized_number.
-    let mut hash = new_hash;
+    let mut hash = new_data.hash;
     loop {
         let header = match client.header(BlockId::Hash(hash)) {
             Ok(Some(header)) => header,
             _ => {
-                error!(target: "afa", "no header for hash {}", hash);
+                error!(target: "afa", "No header for hash {}", hash);
                 return VecDeque::new();
             }
         };
@@ -93,6 +103,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::data_io::AlephData;
     use sc_block_builder::BlockBuilderProvider;
     use sp_consensus::BlockOrigin;
     use substrate_test_runtime::Extrinsic;
@@ -127,7 +138,11 @@ mod tests {
         let blocks = create_chain(&mut client, n as u64);
         for i in 0..n {
             for j in i..n {
-                let extension = chain_extension_step(blocks[i], blocks[j], client.as_ref());
+                let extension = chain_extension_step(
+                    blocks[i],
+                    AlephData::new(blocks[j], j as u64),
+                    client.as_ref(),
+                );
                 assert!(extension
                     .iter()
                     .map(|header| header.hash())
@@ -145,7 +160,11 @@ mod tests {
 
         for i in 0..=n {
             for j in 0..i {
-                let extension = chain_extension_step(blocks[i], blocks[j], client.as_ref());
+                let extension = chain_extension_step(
+                    blocks[i],
+                    AlephData::new(blocks[j], j as u64),
+                    client.as_ref(),
+                );
                 assert!(extension.is_empty());
             }
         }
@@ -170,10 +189,32 @@ mod tests {
         for i in 0..=n {
             for j in 0..=n {
                 if i != j {
-                    let extension =
-                        chain_extension_step(extra_children[i], extra_children[j], client.as_ref());
+                    let extension = chain_extension_step(
+                        extra_children[i],
+                        AlephData::new(extra_children[j], j as u64),
+                        client.as_ref(),
+                    );
                     assert!(extension.is_empty());
                 }
+            }
+        }
+    }
+
+    #[test]
+    fn chain_extenstion_step_for_incorrect_aleph_data() {
+        let mut client = Arc::new(TestClientBuilder::new().build());
+
+        let n = 5;
+        let blocks = create_chain(&mut client, n as u64);
+
+        for i in 0..n {
+            for j in i..n {
+                let extension = chain_extension_step(
+                    blocks[i],
+                    AlephData::new(blocks[j], (j + 1) as u64),
+                    client.as_ref(),
+                );
+                assert!(extension.is_empty());
             }
         }
     }

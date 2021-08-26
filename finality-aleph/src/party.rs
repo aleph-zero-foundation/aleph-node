@@ -1,6 +1,6 @@
 use crate::{
     aggregator::BlockSignatureAggregator,
-    data_io::{refresh_best_chain, DataIO, DataStore},
+    data_io::{refresh_best_chain, AlephData, AlephDataFor, DataIO, DataStore},
     default_aleph_config,
     finalization::chain_extension_step,
     justification::{
@@ -176,7 +176,7 @@ where
 async fn run_aggregator<B, C, BE>(
     rmc_network: RmcNetwork<B>,
     multikeychain: MultiKeychain,
-    mut ordered_batch_rx: mpsc::UnboundedReceiver<OrderedBatch<B::Hash>>,
+    mut ordered_batch_rx: mpsc::UnboundedReceiver<OrderedBatch<AlephDataFor<B>>>,
     justification_tx: mpsc::UnboundedSender<JustificationNotification<B>>,
     client: Arc<C>,
     session: AuthoritySession<B>,
@@ -200,8 +200,8 @@ async fn run_aggregator<B, C, BE>(
                         //This is only for optimization purposes.
                         continue;
                     }
-                    for new_hash in batch {
-                        let to_finalize_headers = chain_extension_step(last_finalized, new_hash, client.as_ref());
+                    for new_block_data in batch {
+                        let to_finalize_headers = chain_extension_step(last_finalized, new_block_data, client.as_ref());
                         for header in to_finalize_headers.iter() {
                             if *header.number() <= current_stop_h {
                                 aggregator.start_aggregation(header.hash()).await;
@@ -288,13 +288,15 @@ where
 
         let consensus_config = create_aleph_config(session.authorities.len(), node_id, session_id);
 
-        let best_chain = self
+        let best_chain_header = self
             .select_chain
             .best_chain()
             .await
-            .expect("No best chain.")
-            .hash();
-        let best_chain = Arc::new(Mutex::new(best_chain));
+            .expect("No best chain.");
+        let best_chain = Arc::new(Mutex::new(AlephData::new(
+            best_chain_header.hash(),
+            *best_chain_header.number(),
+        )));
         let data_io = DataIO::<B> {
             ordered_batch_tx,
             best_chain: best_chain.clone(),

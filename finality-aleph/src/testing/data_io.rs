@@ -1,4 +1,4 @@
-use crate::data_io::{AlephNetworkMessage, DataStore};
+use crate::data_io::{AlephData, AlephDataFor, AlephNetworkMessage, DataStore};
 use futures::{
     channel::{
         mpsc::{self, UnboundedReceiver, UnboundedSender},
@@ -7,7 +7,9 @@ use futures::{
     StreamExt,
 };
 use sc_block_builder::BlockBuilderProvider;
+use sp_api::BlockId;
 use sp_consensus::BlockOrigin;
+use sp_runtime::Digest;
 use std::{future::Future, sync::Arc};
 use substrate_test_runtime_client::{
     runtime::{Block, Hash},
@@ -17,11 +19,11 @@ use substrate_test_runtime_client::{
 
 #[derive(Debug)]
 struct TestNetworkData {
-    data: Vec<Hash>,
+    data: Vec<AlephDataFor<Block>>,
 }
 
 impl AlephNetworkMessage<Block> for TestNetworkData {
-    fn included_blocks(&self) -> Vec<Hash> {
+    fn included_blocks(&self) -> Vec<AlephDataFor<Block>> {
         self.data.clone()
     }
 }
@@ -55,7 +57,11 @@ fn prepare_data_store() -> (
     )
 }
 
-async fn import_blocks(client: &mut Arc<TestClient>, n: u32) -> Vec<Hash> {
+async fn import_blocks(
+    client: &mut Arc<TestClient>,
+    n: u32,
+    finalize: bool,
+) -> Vec<AlephDataFor<Block>> {
     let mut blocks = vec![];
     for _ in 0..n {
         let block = client
@@ -64,11 +70,18 @@ async fn import_blocks(client: &mut Arc<TestClient>, n: u32) -> Vec<Hash> {
             .build()
             .unwrap()
             .block;
-        client
-            .import(BlockOrigin::Own, block.clone())
-            .await
-            .unwrap();
-        blocks.push(block.header.hash());
+        if finalize {
+            client
+                .import_as_final(BlockOrigin::Own, block.clone())
+                .await
+                .unwrap();
+        } else {
+            client
+                .import(BlockOrigin::Own, block.clone())
+                .await
+                .unwrap();
+        }
+        blocks.push(AlephData::new(block.header.hash(), block.header.number));
     }
     blocks
 }
@@ -80,7 +93,7 @@ async fn sends_messages_with_imported_blocks() {
 
     let data_store_handle = tokio::spawn(task_handle);
 
-    let blocks = import_blocks(&mut client, 4).await;
+    let blocks = import_blocks(&mut client, 4, false).await;
 
     store_tx
         .unbounded_send(TestNetworkData {
@@ -108,10 +121,11 @@ async fn sends_messages_after_import() {
         .build()
         .unwrap()
         .block;
+
+    let data = AlephData::new(block.header.hash(), block.header.number);
+
     store_tx
-        .unbounded_send(TestNetworkData {
-            data: vec![block.header.hash()],
-        })
+        .unbounded_send(TestNetworkData { data: vec![data] })
         .unwrap();
     client
         .import(BlockOrigin::Own, block.clone())
@@ -119,7 +133,41 @@ async fn sends_messages_after_import() {
         .unwrap();
 
     let message = store_rx.next().await.expect("We own the tx");
-    assert_eq!(message.included_blocks(), vec![block.header.hash()]);
+    assert_eq!(message.included_blocks(), vec![data]);
+
+    exit_data_store_tx.send(()).unwrap();
+    data_store_handle.await.unwrap();
+}
+
+#[tokio::test]
+async fn sends_messages_with_number_lower_than_finalized() {
+    let (task_handle, mut client, store_tx, mut store_rx, exit_data_store_tx) =
+        prepare_data_store();
+
+    let data_store_handle = tokio::spawn(task_handle);
+
+    import_blocks(&mut client, 4, true).await;
+
+    let mut digest = Digest::default();
+    digest.push(sp_runtime::generic::DigestItem::Other::<Hash>(
+        1u32.to_le_bytes().to_vec(),
+    ));
+
+    let block = client
+        .new_block_at(&BlockId::Number(1), digest, false)
+        .unwrap()
+        .build()
+        .unwrap()
+        .block;
+
+    let data = AlephData::new(block.header.hash(), block.header.number);
+
+    store_tx
+        .unbounded_send(TestNetworkData { data: vec![data] })
+        .unwrap();
+
+    let message = store_rx.next().await.expect("We own the tx");
+    assert_eq!(message.included_blocks(), vec![data]);
 
     exit_data_store_tx.send(()).unwrap();
     data_store_handle.await.unwrap();
@@ -153,21 +201,20 @@ async fn does_not_send_messages_without_import() {
 
     store_tx
         .unbounded_send(TestNetworkData {
-            data: vec![not_imported_block.header.hash()],
+            data: vec![AlephData::new(
+                not_imported_block.header.hash(),
+                not_imported_block.header.number,
+            )],
         })
         .unwrap();
 
+    let data = AlephData::new(imported_block.header.hash(), imported_block.header.number);
     store_tx
-        .unbounded_send(TestNetworkData {
-            data: vec![imported_block.header.hash()],
-        })
+        .unbounded_send(TestNetworkData { data: vec![data] })
         .unwrap();
 
     let message = store_rx.next().await.expect("We own the tx");
-    assert_eq!(
-        message.included_blocks(),
-        vec![imported_block.header.hash()]
-    );
+    assert_eq!(message.included_blocks(), vec![data]);
 
     let message = store_rx.try_next();
     assert!(message.is_err());
