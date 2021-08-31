@@ -1,6 +1,7 @@
 # IDEs
 /.idea
 /.vscode
+.projectile
 
 # Rust
 .cargo/config

@@ -101,8 +101,9 @@ jobs:
           ECR_REPOSITORY: aleph-node
         run: |
           docker load -i aleph-node.tar
-          docker tag aleph-node:testnet $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker tag aleph-node:testnet $ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA
+          # tag docker image, use two tags: `testnet` and the sha of the commit that triggered the build
+          docker tag aleph-node:latest $ECR_REGISTRY/$ECR_REPOSITORY:testnet
+          docker tag aleph-node:latest $ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA
           aws ecr-public get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
           docker push --all-tags $ECR_REGISTRY/$ECR_REPOSITORY
 

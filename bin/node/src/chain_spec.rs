@@ -287,7 +287,11 @@ fn testnet_genesis(
 ) -> GenesisConfig {
     let session_period = chain_params.session_period;
     let millisecs_per_block = chain_params.millisecs_per_block;
-    log::debug!("{} {}", session_period, millisecs_per_block);
+    log::debug!(
+        "session-period: {}, millisecs-per-block: {}",
+        session_period,
+        millisecs_per_block
+    );
     GenesisConfig {
         system: SystemConfig {
             // Add Wasm runtime to storage.

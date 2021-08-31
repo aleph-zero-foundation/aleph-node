@@ -117,7 +117,11 @@ jobs:
 
       - name: Run consensus party
         run: |
-          docker-compose -f docker/docker-compose.yml up &
+          docker-compose -f docker/docker-compose.yml up -d
+
+      - name: Consensus party logs
+        run: |
+          docker logs damian --follow &
 
       # NOTE: this step contacts every node in the comittee by their container id and sends a simple RPC request
       # that lists all the RPC methods that they expose.
@@ -125,16 +129,18 @@ jobs:
       - name: Verify nodes respond
         run: |
           validators=( damian tomasz zbyszko hansu )
+          rpc_port=9933
 
           for validator in "${validators[@]}"; do
             docker run --network container:$validator appropriate/curl:latest \
                        --retry 3 \
                        --retry-delay 10 \
                        -H "Content-Type: application/json" \
-                       -d '{"id":1, "jsonrpc":"2.0", "method": "rpc_methods"}' http://127.0.0.1:9933
+                       -d '{"id":1, "jsonrpc":"2.0", "method": "rpc_methods"}' http://127.0.0.1:$rpc_port
+            let rpc_port=$rpc_port+1
           done
 
-      # NOTE: more complex test scenarios can be run from here on out
+      # note: more complex test scenarios can be run from here on out
 
       - name: Save docker image
         run: |

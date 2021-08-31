@@ -1,79 +1,63 @@
 version: '3'
 services:
 
+  # bootnode
   damian:
     image: aleph-node:latest
     container_name: damian
+    privileged: true
+    network_mode: host
     entrypoint: ["/bin/sh","-c"]
     command:
       - |
          ./aleph-node purge-chain --chain testnet1 --base-path /tmp/Damian -y
-         ./aleph-node --validator --chain testnet1 --base-path /tmp/Damian --name Damian --node-key-file /tmp/Damian/libp2p_secret --rpc-port 9933 --ws-port 9944 --port 30334 --rpc-cors all --rpc-methods Safe --execution Native --no-prometheus --no-telemetry --reserved-only --reserved-nodes /ip4/172.28.1.1/tcp/30334/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm /ip4/172.28.1.2/tcp/30334/p2p/12D3KooWQdQW1Laeq869b4pdDGSVZebbjY9h9wmdNnauFeFWUKup /ip4/172.28.1.3/tcp/30334/p2p/12D3KooWD4UoT2euDnFwnSRhfUjMt6DWkMTGWV8hQm2tuNgX4j3V /ip4/172.28.1.4/tcp/30334/p2p/12D3KooWQzGBGxYx3Su9EaFMS1qtVHc2zSYdTmgRTeRGjGXj9uNg --session-period 25 --millisecs-per-block 1000
+         ./aleph-node --validator --chain testnet1 --base-path /tmp/Damian --name Damian --node-key-file /tmp/Damian/libp2p_secret --rpc-port 9933 --ws-port 9943 --port 30333 --rpc-cors all --rpc-methods Safe --execution Native --no-prometheus --no-telemetry --session-period 5 --millisecs-per-block 1000 --no-mdns
     environment:
       - RUST_LOG=info
     volumes:
       - ./data/:/tmp/
-    networks:
-      dev_net:
-        ipv4_address: 172.28.1.1
 
   tomasz:
     image: aleph-node:latest
     container_name: tomasz
+    privileged: true
+    network_mode: host
     entrypoint: ["/bin/sh","-c"]
     command:
       - |
          ./aleph-node purge-chain --chain testnet1 --base-path /tmp/Tomasz -y
-         ./aleph-node --validator --chain testnet1 --base-path /tmp/Tomasz --name Tomasz --node-key-file /tmp/Tomasz/libp2p_secret --rpc-port 9933 --ws-port 9944 --port 30334 --rpc-cors all --rpc-methods Safe --execution Native --no-prometheus --no-telemetry --reserved-only --reserved-nodes /ip4/172.28.1.1/tcp/30334/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm /ip4/172.28.1.2/tcp/30334/p2p/12D3KooWQdQW1Laeq869b4pdDGSVZebbjY9h9wmdNnauFeFWUKup /ip4/172.28.1.3/tcp/30334/p2p/12D3KooWD4UoT2euDnFwnSRhfUjMt6DWkMTGWV8hQm2tuNgX4j3V /ip4/172.28.1.4/tcp/30334/p2p/12D3KooWQzGBGxYx3Su9EaFMS1qtVHc2zSYdTmgRTeRGjGXj9uNg --session-period 25 --millisecs-per-block 1000
+         ./aleph-node --validator --chain testnet1 --base-path /tmp/Tomasz --name Tomasz --node-key-file /tmp/Tomasz/libp2p_secret --rpc-port 9934 --ws-port 9944 --port 30334 --rpc-cors all --rpc-methods Safe --execution Native --no-prometheus --no-telemetry --session-period 5 --millisecs-per-block 1000 --no-mdns --bootnodes '/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm'
     environment:
       - RUST_LOG=info
     volumes:
       - ./data/:/tmp/
-    links:
-      - "damian:damian"
-    networks:
-      dev_net:
-        ipv4_address: 172.28.1.2
 
   zbyszko:
     image: aleph-node:latest
     container_name: zbyszko
+    privileged: true
+    network_mode: host
     entrypoint: ["/bin/sh","-c"]
     command:
       - |
          ./aleph-node purge-chain --chain testnet1 --base-path /tmp/Zbyszko -y
-         ./aleph-node --validator --chain testnet1 --base-path /tmp/Zbyszko --name Zbyszko --node-key-file /tmp/Zbyszko/libp2p_secret --rpc-port 9933 --ws-port 9944 --port 30334 --rpc-cors all --rpc-methods Safe --execution Native --no-prometheus --no-telemetry --reserved-only --reserved-nodes /ip4/172.28.1.1/tcp/30334/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm /ip4/172.28.1.2/tcp/30334/p2p/12D3KooWQdQW1Laeq869b4pdDGSVZebbjY9h9wmdNnauFeFWUKup /ip4/172.28.1.3/tcp/30334/p2p/12D3KooWD4UoT2euDnFwnSRhfUjMt6DWkMTGWV8hQm2tuNgX4j3V /ip4/172.28.1.4/tcp/30334/p2p/12D3KooWQzGBGxYx3Su9EaFMS1qtVHc2zSYdTmgRTeRGjGXj9uNg --session-period 25 --millisecs-per-block 1000
+         ./aleph-node --validator --chain testnet1 --base-path /tmp/Zbyszko --name Zbyszko --node-key-file /tmp/Zbyszko/libp2p_secret --rpc-port 9935 --ws-port 9945 --port 30335 --rpc-cors all --rpc-methods Safe --execution Native --no-prometheus --no-telemetry --session-period 5 --millisecs-per-block 1000 --no-mdns --bootnodes '/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm'
     environment:
       - RUST_LOG=info
     volumes:
       - ./data/:/tmp/
-    links:
-      - "tomasz:tomasz"
-    networks:
-      dev_net:
-        ipv4_address: 172.28.1.3
 
   hansu:
     image: aleph-node:latest
     container_name: hansu
+    privileged: true
+    network_mode: host
     entrypoint: ["/bin/sh","-c"]
     command:
       - |
          ./aleph-node purge-chain --chain testnet1 --base-path /tmp/Hansu -y
-         ./aleph-node --validator --chain testnet1 --base-path /tmp/Hansu --name Hansu --node-key-file /tmp/Hansu/libp2p_secret --rpc-port 9933 --ws-port 9944 --port 30334 --rpc-cors all --rpc-methods Safe --execution Native --no-prometheus --no-telemetry --reserved-only --reserved-nodes /ip4/172.28.1.1/tcp/30334/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm /ip4/172.28.1.2/tcp/30334/p2p/12D3KooWQdQW1Laeq869b4pdDGSVZebbjY9h9wmdNnauFeFWUKup /ip4/172.28.1.3/tcp/30334/p2p/12D3KooWD4UoT2euDnFwnSRhfUjMt6DWkMTGWV8hQm2tuNgX4j3V /ip4/172.28.1.4/tcp/30334/p2p/12D3KooWQzGBGxYx3Su9EaFMS1qtVHc2zSYdTmgRTeRGjGXj9uNg --session-period 25 --millisecs-per-block 1000
+         ./aleph-node --validator --chain testnet1 --base-path /tmp/Hansu --name Hansu --node-key-file /tmp/Hansu/libp2p_secret --rpc-port 9936 --ws-port 9946 --port 30336 --rpc-cors all --rpc-methods Safe --execution Native --no-prometheus --no-telemetry --session-period 5 --millisecs-per-block 1000 --no-mdns --bootnodes '/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm'
     environment:
       - RUST_LOG=info
     volumes:
       - ./data/:/tmp/
-    links:
-      - "zbyszko:zbyszko"
-    networks:
-      dev_net:
-        ipv4_address: 172.28.1.4
-
-networks:
-  dev_net:
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.28.0.0/16

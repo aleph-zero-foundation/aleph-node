@@ -49,7 +49,7 @@ impl Decode for PeerId {
 }
 
 /// Name of the network protocol used by Aleph Zero. This is how messages
-/// are subscribed to to ensure that we are gossiping and communicating with our
+/// are subscribed to ensure that we are gossiping and communicating with our
 /// own network.
 pub(crate) const ALEPH_PROTOCOL_NAME: &str = "/cardinals/aleph/1";
 
@@ -386,7 +386,7 @@ where
     fn send_to_user(&self, session_id: SessionId, data: D, session_data: &mut SessionData<D>) {
         trace!(target: "afa", "Passing message {:?} to {:?}.", data, session_id);
         if let Err(e) = session_data.data_for_user.unbounded_send(data) {
-            //TODO: need to write some logic on when an session should be terminated and make sure
+            // TODO: need to write some logic on when an session should be terminated and make sure
             // that there are no issues with synchronization when terminating.
             session_data.status = SessionStatus::Terminated;
             debug!(target: "afa", "Error {:?} when passing a message event to session {:?}.", e, session_id);
