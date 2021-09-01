@@ -5,7 +5,7 @@ use aleph_primitives::{
 };
 use aleph_runtime::{
     AccountId, AlephConfig, AuraConfig, BalancesConfig, GenesisConfig, SessionConfig, SessionKeys,
-    Signature, SudoConfig, SystemConfig, WASM_BINARY,
+    Signature, SudoConfig, SystemConfig, VestingConfig, WASM_BINARY,
 };
 use hex_literal::hex;
 use sc_service::ChainType;
@@ -341,5 +341,6 @@ fn testnet_genesis(
                 })
                 .collect(),
         },
+        vesting: VestingConfig { vesting: vec![] },
     }
 }

@@ -343,6 +343,18 @@ where
     type OverarchingCall = Call;
 }
 
+parameter_types! {
+    pub const MinVestedTransfer: Balance = 1_000_000;
+}
+
+impl pallet_vesting::Config for Runtime {
+    type Event = Event;
+    type Currency = Balances;
+    type BlockNumberToBalance = ConvertInto;
+    type MinVestedTransfer = MinVestedTransfer;
+    type WeightInfo = pallet_vesting::weights::SubstrateWeight<Runtime>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -360,6 +372,7 @@ construct_runtime!(
         Aleph: pallet_aleph::{Pallet, Call, Config<T>, Storage},
         Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
         Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
+        Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>},
     }
 );
 

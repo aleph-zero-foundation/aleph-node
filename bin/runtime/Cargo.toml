@@ -30,6 +30,7 @@ pallet-scheduler = { default-features = false, git = "https://github.com/parityt
 pallet-sudo = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
 pallet-timestamp = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
 pallet-transaction-payment = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+pallet-vesting = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
 
 sp-api = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
 sp-block-builder = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
@@ -63,6 +64,7 @@ std = [
         "pallet-sudo/std",
         "pallet-timestamp/std",
         "pallet-transaction-payment/std",
+        "pallet-vesting/std",
         "serde",
         "sp-api/std",
         "sp-block-builder/std",
