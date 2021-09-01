@@ -73,6 +73,7 @@ jobs:
         run: |
           export RUSTC_WRAPPER=$HOME/.local/bin/sccache
           cargo build --release
+          chmod +x target/release/aleph-node
 
       - name: Print sccache stats
         run: sccache --show-stats
@@ -114,6 +115,15 @@ jobs:
           cp aleph-node target/release/aleph-node
           # Build and tag a docker container
           docker build --tag aleph-node:latest -f ./docker/Dockerfile .
+
+      - name: Generate chainspec
+        run: |
+          # NOTE : remove this step after keys are moved to a separate JSON file
+          cp docker/data/n_members /tmp/n_members
+          # generate keys and chainspec
+          chmod +x target/release/aleph-node
+          ./target/release/aleph-node dev-keys --base-path docker/data --chain a0tnet1 --key-types aura alp0
+          ./target/release/aleph-node build-spec --disable-default-bootnode  --chain a0tnet1 > docker/data/chainspec.json
 
       - name: Run consensus party
         run: |

@@ -2,14 +2,13 @@
 
 use aleph_primitives::AlephSessionApi;
 use aleph_runtime::{self, opaque::Block, RuntimeApi};
-use codec::Decode;
 use finality_aleph::{
     run_aleph_consensus, AlephBlockImport, AlephConfig, AuthorityId, AuthorityKeystore,
     JustificationNotification, Metrics, MillisecsPerBlock, SessionPeriod,
 };
 use futures::channel::mpsc;
 use log::warn;
-use sc_client_api::{CallExecutor, ExecutionStrategy, ExecutorProvider};
+use sc_client_api::ExecutorProvider;
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
 use sc_executor::native_executor_instance;
 pub use sc_executor::NativeExecutor;
@@ -140,25 +139,8 @@ pub fn new_partial(
     })
 }
 
-fn get_authorities(
-    client: Arc<FullClient>,
-    keystore: SyncCryptoStorePtr,
-) -> (AuthorityId, Vec<AuthorityId>) {
-    let auth = SyncCryptoStore::ed25519_public_keys(&*keystore, finality_aleph::KEY_TYPE)[0];
-    let authorities = client
-        .executor()
-        .call(
-            &BlockId::Number(Zero::zero()),
-            "AlephSessionApi_authorities",
-            &[],
-            ExecutionStrategy::NativeElseWasm,
-            None,
-        )
-        .ok()
-        .map(|call_result| Vec::<AuthorityId>::decode(&mut &call_result[..]).unwrap())
-        .unwrap();
-
-    (auth.into(), authorities)
+fn get_authority_id(keystore: SyncCryptoStorePtr) -> AuthorityId {
+    SyncCryptoStore::ed25519_public_keys(&*keystore, finality_aleph::KEY_TYPE)[0].into()
 }
 
 /// Builds a new service for a full client.
@@ -208,7 +190,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
     let force_authoring = config.force_authoring;
     let backoff_authoring_blocks: Option<()> = None;
     let prometheus_registry = config.prometheus_registry().cloned();
-    let (authority_id, _) = get_authorities(client.clone(), keystore_container.sync_keystore());
+    let authority_id = get_authority_id(keystore_container.sync_keystore());
 
     let rpc_extensions_builder = {
         let client = client.clone();

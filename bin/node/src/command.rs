@@ -52,8 +52,8 @@ impl SubstrateCli for Cli {
         } = self.extra;
         let chain_params = chain_spec::ChainParams::from_cli(session_period, millisecs_per_block);
         Ok(match id {
-            "testnet1" => Box::new(chain_spec::testnet1_config(chain_params)?),
-            "dev" => Box::new(chain_spec::development_config(chain_params)?),
+            chain_spec::TESTNET_ID => Box::new(chain_spec::testnet1_config(chain_params)?),
+            chain_spec::DEVNET_ID => Box::new(chain_spec::development_config(chain_params)?),
             path => Box::new(chain_spec::ChainSpec::from_json_file(
                 std::path::PathBuf::from(path),
             )?),
@@ -137,7 +137,7 @@ pub fn run() -> sc_cli::Result<()> {
                 Ok((cmd.run(client, backend), task_manager))
             })
         }
-        Some(Subcommand::DevKeys(cmd)) => cmd.run(&cli),
+        Some(Subcommand::DevKeys(cmd)) => cmd.run(),
         None => {
             let runner = cli.create_runner(&cli.run)?;
             runner.run_node_until_exit(|config| async move {

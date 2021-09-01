@@ -24,6 +24,9 @@ pub(crate) const LOCAL_AUTHORITIES: [&str; 8] = [
 
 pub(crate) const KEY_PATH: &str = "/tmp/authorities_keys";
 
+pub(crate) const TESTNET_ID: &str = "a0tnet1";
+pub(crate) const DEVNET_ID: &str = "dev";
+
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
 
@@ -189,7 +192,7 @@ pub fn development_config(chain_params: ChainParams) -> Result<ChainSpec, String
         // Name
         "AlephZero Development",
         // ID
-        "dev",
+        DEVNET_ID,
         ChainType::Development,
         move || {
             testnet_genesis(
@@ -244,7 +247,7 @@ pub fn testnet1_config(chain_params: ChainParams) -> Result<ChainSpec, String> {
         // Name
         "Aleph Zero",
         // ID
-        "a0tnet1",
+        TESTNET_ID,
         ChainType::Live,
         move || {
             testnet_genesis(

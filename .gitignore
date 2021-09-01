@@ -11,3 +11,8 @@
 # Substrate
 *.log
 *.out
+
+# docker
+db/
+keystore/
+chainspec.json

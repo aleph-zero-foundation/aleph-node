@@ -3765,7 +3765,6 @@ name = "pallet-scheduler"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?rev=8bbad73f5#8bbad73f5462028f82b5d72311a5743781230ce3"
 dependencies = [
- "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",
