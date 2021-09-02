@@ -322,10 +322,7 @@ fn testnet_genesis(
             key: root_key,
         },
         aleph: AlephConfig {
-            authorities: authorities
-                .iter()
-                .map(|auth| auth.aleph_key.clone())
-                .collect(),
+            authorities: vec![],
             session_period,
             millisecs_per_block,
         },
