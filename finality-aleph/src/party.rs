@@ -11,8 +11,8 @@ use crate::{
         split_network, AlephNetworkData, ConsensusNetwork, DataNetwork, NetworkData, RmcNetwork,
         SessionManager,
     },
-    AuthorityId, AuthorityKeystore, AuthoritySession, Future, KeyBox, Metrics, MultiKeychain,
-    NodeIndex, SessionId, SessionMap, SessionPeriod,
+    session_id_from_block_num, AuthorityId, AuthorityKeystore, Future, KeyBox, Metrics,
+    MultiKeychain, NodeIndex, SessionId, SessionMap, SessionPeriod,
 };
 
 use aleph_bft::{DelayConfig, OrderedBatch, SpawnHandle};
@@ -45,7 +45,6 @@ where
     C::Api: aleph_primitives::AlephSessionApi<B>,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
-    NumberFor<B>: Into<u32>,
 {
     let AlephParams {
         config:
@@ -63,7 +62,7 @@ where
             },
     } = aleph_params;
 
-    let sessions = Arc::new(Mutex::new(HashMap::new()));
+    let session_authorities = Arc::new(Mutex::new(HashMap::new()));
 
     // NOTE: justifications are requested every so often
     let cadence = min(
@@ -79,7 +78,7 @@ where
     let authority_justification_tx = run_justification_handler(
         &spawn_handle.clone().into(),
         justification_rx,
-        sessions.clone(),
+        session_authorities.clone(),
         auth_keystore.clone(),
         network.clone(),
         client.clone(),
@@ -103,7 +102,7 @@ where
         select_chain,
         metrics,
         authority_justification_tx,
-        sessions,
+        session_authorities,
         session_period,
         spawn_handle: spawn_handle.into(),
         phantom: PhantomData,
@@ -124,7 +123,7 @@ fn get_node_index(authorities: &[AuthorityId], my_id: &AuthorityId) -> Option<No
 fn run_justification_handler<B, N, C, BE>(
     spawn_handle: &crate::SpawnHandle,
     import_justification_rx: mpsc::UnboundedReceiver<JustificationNotification<B>>,
-    sessions: Arc<Mutex<SessionMap<B>>>,
+    sessions: Arc<Mutex<SessionMap>>,
     auth_keystore: AuthorityKeystore,
     network: N,
     client: Arc<C>,
@@ -135,7 +134,6 @@ where
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
     B: Block,
-    NumberFor<B>: Into<u32>,
 {
     let (authority_justification_tx, authority_justification_rx) = mpsc::unbounded();
 
@@ -162,7 +160,7 @@ where
     NumberFor<B>: From<u32>,
 {
     session_manager: SessionManager<NetworkData<B>>,
-    sessions: Arc<Mutex<SessionMap<B>>>,
+    session_authorities: Arc<Mutex<SessionMap>>,
     session_period: SessionPeriod,
     spawn_handle: crate::SpawnHandle,
     client: Arc<C>,
@@ -179,7 +177,7 @@ async fn run_aggregator<B, C, BE>(
     mut ordered_batch_rx: mpsc::UnboundedReceiver<OrderedBatch<AlephDataFor<B>>>,
     justification_tx: mpsc::UnboundedSender<JustificationNotification<B>>,
     client: Arc<C>,
-    session: AuthoritySession<B>,
+    last_block_in_session: NumberFor<B>,
     mut exit_rx: futures::channel::oneshot::Receiver<()>,
 ) where
     B: Block,
@@ -190,7 +188,6 @@ async fn run_aggregator<B, C, BE>(
     let mut aggregator = BlockSignatureAggregator::new(rmc_network, &multikeychain);
     let mut last_finalized = client.info().finalized_hash;
     let mut last_block_seen = false;
-    let current_stop_h = session.stop_h;
     loop {
         tokio::select! {
             maybe_batch = ordered_batch_rx.next() => {
@@ -203,11 +200,11 @@ async fn run_aggregator<B, C, BE>(
                     for new_block_data in batch {
                         let to_finalize_headers = chain_extension_step(last_finalized, new_block_data, client.as_ref());
                         for header in to_finalize_headers.iter() {
-                            if *header.number() <= current_stop_h {
+                            if *header.number() <= last_block_in_session {
                                 aggregator.start_aggregation(header.hash()).await;
                                 last_finalized = header.hash();
                             }
-                            if *header.number() >= current_stop_h {
+                            if *header.number() >= last_block_in_session {
                                 aggregator.notify_last_hash();
                                 last_block_seen = true;
                                 break;
@@ -261,20 +258,20 @@ where
         &self,
         node_id: NodeIndex,
         data_network: DataNetwork<NetworkData<B>>,
-        session: AuthoritySession<B>,
+        session_id: SessionId,
+        authorities: Vec<AuthorityId>,
         exit_rx: futures::channel::oneshot::Receiver<()>,
     ) -> impl Future<Output = ()> {
-        debug!(target: "afa", "Authority task {:?}", session.session_id);
+        debug!(target: "afa", "Authority task {:?}", session_id);
 
         let (ordered_batch_tx, ordered_batch_rx) = mpsc::unbounded();
 
         let keybox = KeyBox {
             auth_keystore: self.auth_keystore.clone(),
-            authorities: session.authorities.clone(),
+            authorities: authorities.clone(),
             id: node_id,
         };
         let multikeychain = MultiKeychain::new(keybox);
-        let session_id = session.session_id;
 
         let (aleph_network_tx, data_store_rx) = mpsc::unbounded();
         let (data_store_tx, aleph_network_rx) = mpsc::unbounded();
@@ -286,7 +283,7 @@ where
         let (aleph_network, rmc_network, forwarder) =
             split_network(data_network, aleph_network_tx, aleph_network_rx);
 
-        let consensus_config = create_aleph_config(session.authorities.len(), node_id, session_id);
+        let consensus_config = create_aleph_config(authorities.len(), node_id, session_id);
 
         let best_chain_header = self
             .select_chain
@@ -332,6 +329,7 @@ where
         let aggregator_task = {
             let client = self.client.clone();
             let justification_tx = self.authority_justification_tx.clone();
+            let last_block = last_block_of_session::<B>(session_id, self.session_period);
             async move {
                 debug!(target: "afa", "Running the aggregator task for {:?}", session_id.0);
                 run_aggregator(
@@ -340,7 +338,7 @@ where
                     ordered_batch_rx,
                     justification_tx,
                     client,
-                    session,
+                    last_block,
                     exit_aggregator_rx,
                 )
                 .await;
@@ -431,25 +429,38 @@ where
                 }
             }
         };
-        let session = AuthoritySession {
-            session_id,
-            stop_h: last_block_of_session::<B>(session_id, self.session_period),
-            authorities,
-        };
+        self.session_authorities
+            .lock()
+            .insert(session_id, authorities.clone());
+        let last_block = last_block_of_session::<B>(session_id, self.session_period);
 
-        self.sessions.lock().insert(session_id, session.clone());
+        // Early skip attempt -- this will trigger during catching up (initial sync).
+        if self.client.info().best_number >= last_block {
+            // We need to give the JustificationHandler some time to pick up the keybox for the new session,
+            // validate justifications and finalize blocks. We wait 2000ms in total, checking every 200ms
+            // if the last block has been finalized.
+            for attempt in 0..10 {
+                // We don't wait before the first attempt.
+                if attempt != 0 {
+                    Delay::new(Duration::from_millis(200)).await;
+                }
+                let last_finalized_number = self.client.info().finalized_number;
+                if last_finalized_number >= last_block {
+                    debug!(target: "afa", "Skipping session {:?} early because block {:?} is already finalized", session_id, last_finalized_number);
+                    return;
+                }
+            }
+        }
 
-        let maybe_node_id = get_node_index(
-            &session.authorities,
-            &self.auth_keystore.authority_id().clone(),
-        );
+        let maybe_node_id =
+            get_node_index(&authorities, &self.auth_keystore.authority_id().clone());
 
         let (exit_authority_tx, exit_authority_rx) = futures::channel::oneshot::channel();
         if let Some(node_id) = maybe_node_id {
             debug!(target: "afa", "Running session {:?} as authority id {:?}", session_id, node_id);
             let keybox = KeyBox {
                 auth_keystore: self.auth_keystore.clone(),
-                authorities: session.authorities.clone(),
+                authorities: authorities.clone(),
                 id: node_id,
             };
             let multikeychain = MultiKeychain::new(keybox);
@@ -459,18 +470,23 @@ where
                 .await;
 
             let authority_task = self
-                .run_session_as_authority(node_id, data_network, session.clone(), exit_authority_rx)
+                .run_session_as_authority(
+                    node_id,
+                    data_network,
+                    session_id,
+                    authorities,
+                    exit_authority_rx,
+                )
                 .await;
             self.spawn_handle
                 .spawn("aleph/session_authority", authority_task);
         } else {
             debug!(target: "afa", "Running session {:?} as non-authority", session_id);
         }
-
         loop {
             let last_finalized_number = self.client.info().finalized_number;
             debug!(target: "afa", "Highest finalized: {:?} session {:?}", last_finalized_number, session_id);
-            if last_finalized_number >= session.stop_h {
+            if last_finalized_number >= last_block {
                 debug!(target: "afa", "Terminating session {:?}", session_id);
                 break;
             }
@@ -482,10 +498,25 @@ where
         }
     }
 
+    fn prune_session_data(&self, prune_below: SessionId) {
+        // In this method we make sure that the amount of data we keep in RAM in finality-aleph
+        // does not grow with the size of the blockchain.
+        debug!(target: "afa", "Pruning session data below {:?}.", prune_below);
+        self.session_authorities
+            .lock()
+            .retain(|&s, _| s >= prune_below);
+    }
+
     async fn run(mut self) {
-        for curr_id in 0.. {
+        let last_finalized_number = self.client.info().finalized_number;
+        let starting_session =
+            session_id_from_block_num::<B>(last_finalized_number, self.session_period).0;
+        for curr_id in starting_session.. {
             info!(target: "afa", "Running session {:?}.", curr_id);
-            self.run_session(SessionId(curr_id)).await
+            self.run_session(SessionId(curr_id)).await;
+            if curr_id >= 10 && curr_id % 10 == 0 {
+                self.prune_session_data(SessionId(curr_id - 10));
+            }
         }
     }
 }

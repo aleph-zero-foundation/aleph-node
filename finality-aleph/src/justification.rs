@@ -66,14 +66,14 @@ where
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
 {
-    sessions: Arc<Mutex<SessionMap<B>>>,
+    session_authorities: Arc<Mutex<SessionMap>>,
     auth_keystore: AuthorityKeystore,
     chain_cadence: ChainCadence,
     network: N,
     client: Arc<C>,
     last_request_time: Instant,
     last_finalization_time: Instant,
-    phantom: PhantomData<BE>,
+    phantom: PhantomData<(B, BE)>,
 }
 
 impl<B, N, C, BE> JustificationHandler<B, N, C, BE>
@@ -82,17 +82,16 @@ where
     N: network::Network<B> + 'static,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
-    NumberFor<B>: Into<u32>,
 {
     pub(crate) fn new(
-        sessions: Arc<Mutex<SessionMap<B>>>,
+        session_authorities: Arc<Mutex<SessionMap>>,
         auth_keystore: AuthorityKeystore,
         chain_cadence: ChainCadence,
         network: N,
         client: Arc<C>,
     ) -> Self {
         Self {
-            sessions,
+            session_authorities,
             auth_keystore,
             chain_cadence,
             network,
@@ -229,8 +228,8 @@ where
     }
 
     fn session_keybox(&self, session_id: SessionId) -> Option<KeyBox> {
-        let authorities = match self.sessions.lock().get(&session_id) {
-            Some(session) => session.authorities.to_vec(),
+        let authorities = match self.session_authorities.lock().get(&session_id) {
+            Some(authorities) => authorities.to_vec(),
             None => return None,
         };
 
