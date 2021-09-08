@@ -3,8 +3,8 @@
 use aleph_primitives::AlephSessionApi;
 use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use finality_aleph::{
-    run_aleph_consensus, AlephBlockImport, AlephConfig, AuthorityId, AuthorityKeystore,
-    JustificationNotification, Metrics, MillisecsPerBlock, SessionPeriod,
+    run_aleph_consensus, AlephBlockImport, AlephConfig, JustificationNotification, Metrics,
+    MillisecsPerBlock, SessionPeriod,
 };
 use futures::channel::mpsc;
 use log::warn;
@@ -17,7 +17,6 @@ use sc_telemetry::{Telemetry, TelemetryWorker};
 use sp_api::ProvideRuntimeApi;
 use sp_consensus::SlotData;
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
-use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 use sp_runtime::{
     generic::BlockId,
     traits::{Block as BlockT, Zero},
@@ -139,10 +138,6 @@ pub fn new_partial(
     })
 }
 
-fn get_authority_id(keystore: SyncCryptoStorePtr) -> AuthorityId {
-    SyncCryptoStore::ed25519_public_keys(&*keystore, finality_aleph::KEY_TYPE)[0].into()
-}
-
 /// Builds a new service for a full client.
 pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> {
     let sc_service::PartialComponents {
@@ -190,7 +185,6 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
     let force_authoring = config.force_authoring;
     let backoff_authoring_blocks: Option<()> = None;
     let prometheus_registry = config.prometheus_registry().cloned();
-    let authority_id = get_authority_id(keystore_container.sync_keystore());
 
     let rpc_extensions_builder = {
         let client = client.clone();
@@ -278,7 +272,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
             session_period,
             millisecs_per_block,
             spawn_handle: task_manager.spawn_handle(),
-            auth_keystore: AuthorityKeystore::new(authority_id, keystore_container.sync_keystore()),
+            keystore: keystore_container.sync_keystore(),
             justification_rx,
             metrics,
         };

@@ -11,9 +11,10 @@ use crate::{
         split_network, AlephNetworkData, ConsensusNetwork, DataNetwork, NetworkData, RmcNetwork,
         SessionManager,
     },
-    session_id_from_block_num, AuthorityId, AuthorityKeystore, Future, KeyBox, Metrics,
-    MultiKeychain, NodeIndex, SessionId, SessionMap, SessionPeriod,
+    session_id_from_block_num, AuthorityId, Future, KeyBox, Metrics, MultiKeychain, NodeIndex,
+    SessionId, SessionMap, SessionPeriod, KEY_TYPE,
 };
+use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 
 use aleph_bft::{DelayConfig, OrderedBatch, SpawnHandle};
 use aleph_primitives::AlephSessionApi;
@@ -31,7 +32,13 @@ use sc_client_api::backend::Backend;
 use sp_api::{BlockId, NumberFor};
 use sp_consensus::SelectChain;
 use sp_runtime::traits::{Block, Header};
-use std::{cmp::min, collections::HashMap, marker::PhantomData, sync::Arc, time::Duration};
+use std::{
+    cmp::min,
+    collections::{HashMap, HashSet},
+    marker::PhantomData,
+    sync::Arc,
+    time::Duration,
+};
 
 pub struct AlephParams<B: Block, N, C, SC> {
     pub config: crate::AlephConfig<B, N, C, SC>,
@@ -53,7 +60,7 @@ where
                 client,
                 select_chain,
                 spawn_handle,
-                auth_keystore,
+                keystore,
                 justification_rx,
                 metrics,
                 session_period,
@@ -79,7 +86,7 @@ where
         &spawn_handle.clone().into(),
         justification_rx,
         session_authorities.clone(),
-        auth_keystore.clone(),
+        keystore.clone(),
         network.clone(),
         client.clone(),
         chain_cadence,
@@ -98,7 +105,7 @@ where
     let party = ConsensusParty {
         session_manager,
         client,
-        auth_keystore,
+        keystore,
         select_chain,
         metrics,
         authority_justification_tx,
@@ -113,10 +120,15 @@ where
     error!(target: "afa", "Consensus party has finished unexpectedly.");
 }
 
-fn get_node_index(authorities: &[AuthorityId], my_id: &AuthorityId) -> Option<NodeIndex> {
+fn get_node_index(authorities: &[AuthorityId], keystore: &SyncCryptoStorePtr) -> Option<NodeIndex> {
+    let our_consensus_keys: HashSet<_> = SyncCryptoStore::keys(&**keystore, KEY_TYPE)
+        .unwrap()
+        .into_iter()
+        .collect();
+    trace!(target: "afa", "Found {:?} consensus keys in our local keystore {:?}", our_consensus_keys.len(), our_consensus_keys);
     authorities
         .iter()
-        .position(|a| a == my_id)
+        .position(|pkey| our_consensus_keys.contains(&pkey.into()))
         .map(|id| id.into())
 }
 
@@ -124,7 +136,7 @@ fn run_justification_handler<B, N, C, BE>(
     spawn_handle: &crate::SpawnHandle,
     import_justification_rx: mpsc::UnboundedReceiver<JustificationNotification<B>>,
     sessions: Arc<Mutex<SessionMap>>,
-    auth_keystore: AuthorityKeystore,
+    keystore: SyncCryptoStorePtr,
     network: N,
     client: Arc<C>,
     chain_cadence: ChainCadence,
@@ -137,8 +149,7 @@ where
 {
     let (authority_justification_tx, authority_justification_rx) = mpsc::unbounded();
 
-    let handler =
-        JustificationHandler::new(sessions, auth_keystore, chain_cadence, network, client);
+    let handler = JustificationHandler::new(sessions, keystore, chain_cadence, network, client);
 
     debug!(target: "afa", "JustificationHandler started");
     spawn_handle.spawn("aleph/justification_handler", async move {
@@ -165,7 +176,7 @@ where
     spawn_handle: crate::SpawnHandle,
     client: Arc<C>,
     select_chain: SC,
-    auth_keystore: AuthorityKeystore,
+    keystore: SyncCryptoStorePtr,
     phantom: PhantomData<BE>,
     metrics: Option<Metrics<B::Header>>,
     authority_justification_tx: mpsc::UnboundedSender<JustificationNotification<B>>,
@@ -257,6 +268,7 @@ where
     async fn run_session_as_authority(
         &self,
         node_id: NodeIndex,
+        multikeychain: MultiKeychain,
         data_network: DataNetwork<NetworkData<B>>,
         session_id: SessionId,
         authorities: Vec<AuthorityId>,
@@ -265,13 +277,6 @@ where
         debug!(target: "afa", "Authority task {:?}", session_id);
 
         let (ordered_batch_tx, ordered_batch_rx) = mpsc::unbounded();
-
-        let keybox = KeyBox {
-            auth_keystore: self.auth_keystore.clone(),
-            authorities: authorities.clone(),
-            id: node_id,
-        };
-        let multikeychain = MultiKeychain::new(keybox);
 
         let (aleph_network_tx, data_store_rx) = mpsc::unbounded();
         let (data_store_tx, aleph_network_rx) = mpsc::unbounded();
@@ -457,27 +462,23 @@ where
                 }
             }
         }
-
-        let maybe_node_id =
-            get_node_index(&authorities, &self.auth_keystore.authority_id().clone());
+        trace!(target: "afa", "Authorities for session {:?}: {:?}", session_id, authorities);
+        let maybe_node_id = get_node_index(&authorities, &self.keystore);
 
         let (exit_authority_tx, exit_authority_rx) = futures::channel::oneshot::channel();
         if let Some(node_id) = maybe_node_id {
             debug!(target: "afa", "Running session {:?} as authority id {:?}", session_id, node_id);
-            let keybox = KeyBox {
-                auth_keystore: self.auth_keystore.clone(),
-                authorities: authorities.clone(),
-                id: node_id,
-            };
+            let keybox = KeyBox::new(node_id, authorities.clone(), self.keystore.clone());
             let multikeychain = MultiKeychain::new(keybox);
             let data_network = self
                 .session_manager
-                .start_session(session_id, multikeychain)
+                .start_session(session_id, multikeychain.clone())
                 .await;
 
             let authority_task = self
                 .run_session_as_authority(
                     node_id,
+                    multikeychain,
                     data_network,
                     session_id,
                     authorities,

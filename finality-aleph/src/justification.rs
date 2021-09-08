@@ -1,6 +1,6 @@
 use crate::{
     finalization::finalize_block, last_block_of_session, network, session_id_from_block_num,
-    AuthorityKeystore, KeyBox, SessionId, SessionMap, SessionPeriod, Signature,
+    KeyBox, SessionId, SessionMap, SessionPeriod, Signature,
 };
 use aleph_bft::{MultiKeychain, NodeIndex, SignatureSet};
 use aleph_primitives::ALEPH_ENGINE_ID;
@@ -11,6 +11,7 @@ use log::{debug, error, warn};
 use parking_lot::Mutex;
 use sc_client_api::backend::Backend;
 use sp_api::{BlockId, BlockT, NumberFor};
+use sp_keystore::SyncCryptoStorePtr;
 use sp_runtime::traits::Header;
 use std::{
     marker::PhantomData,
@@ -67,7 +68,7 @@ where
     BE: Backend<B> + 'static,
 {
     session_authorities: Arc<Mutex<SessionMap>>,
-    auth_keystore: AuthorityKeystore,
+    keystore: SyncCryptoStorePtr,
     chain_cadence: ChainCadence,
     network: N,
     client: Arc<C>,
@@ -85,14 +86,14 @@ where
 {
     pub(crate) fn new(
         session_authorities: Arc<Mutex<SessionMap>>,
-        auth_keystore: AuthorityKeystore,
+        keystore: SyncCryptoStorePtr,
         chain_cadence: ChainCadence,
         network: N,
         client: Arc<C>,
     ) -> Self {
         Self {
             session_authorities,
-            auth_keystore,
+            keystore,
             chain_cadence,
             network,
             client,
@@ -232,11 +233,12 @@ where
             Some(authorities) => authorities.to_vec(),
             None => return None,
         };
-
-        Some(KeyBox {
+        // Below we use a fake index 0 of a node -- we never use this keybox for signing so that's OK.
+        // TODO: consider refactoring this in the future so that verification and signing are separate (not combined within a KeyBox).
+        Some(KeyBox::new(
+            NodeIndex(0),
             authorities,
-            auth_keystore: self.auth_keystore.clone(),
-            id: NodeIndex(0),
-        })
+            self.keystore.clone(),
+        ))
     }
 }

@@ -158,6 +158,17 @@ struct KeyBox {
     authorities: Vec<AuthorityId>,
 }
 
+impl KeyBox {
+    fn new(id: NodeIndex, authorities: Vec<AuthorityId>, key_store: SyncCryptoStorePtr) -> Self {
+        let auth_keystore = AuthorityKeystore::new(authorities[id.0].clone(), key_store);
+        KeyBox {
+            id,
+            auth_keystore,
+            authorities,
+        }
+    }
+}
+
 impl aleph_bft::Index for KeyBox {
     fn index(&self) -> NodeIndex {
         self.id
@@ -231,7 +242,7 @@ pub struct AlephConfig<B: Block, N, C, SC> {
     pub client: Arc<C>,
     pub select_chain: SC,
     pub spawn_handle: SpawnTaskHandle,
-    pub auth_keystore: AuthorityKeystore,
+    pub keystore: SyncCryptoStorePtr,
     pub justification_rx: mpsc::UnboundedReceiver<JustificationNotification<B>>,
     pub metrics: Option<Metrics<B::Header>>,
     pub session_period: SessionPeriod,
