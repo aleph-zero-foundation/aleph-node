@@ -6,10 +6,11 @@ pub use aleph_bft::default_config as default_aleph_config;
 use aleph_bft::{DefaultMultiKeychain, NodeCount, NodeIndex, TaskHandle};
 use futures::{channel::oneshot, Future, TryFutureExt};
 use sc_client_api::{backend::Backend, BlockchainEvents, Finalizer, LockImportRun, TransactionFor};
+use sc_consensus::BlockImport;
 use sc_service::SpawnTaskHandle;
 use sp_api::{NumberFor, ProvideRuntimeApi};
 use sp_blockchain::{HeaderBackend, HeaderMetadata};
-use sp_consensus::{BlockImport, SelectChain};
+use sp_consensus::SelectChain;
 use sp_runtime::{
     traits::{BlakeTwo256, Block},
     RuntimeAppPublic, SaturatedConversion,

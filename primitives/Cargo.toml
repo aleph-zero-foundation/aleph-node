@@ -6,13 +6,13 @@ edition = "2018"
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
-sp-api = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5" }
-sp-application-crypto = {default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5" }
-sp-core = {default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5" }
-sp-runtime = {default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5" }
-sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5" }
+sp-api = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9" }
+sp-application-crypto = {default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9" }
+sp-core = {default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9" }
+sp-runtime = {default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9" }
+sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9" }
 # we need aura authorites till we have our own pallet
-sp-consensus-aura = {default-features = false, git = "https://github.com/paritytech/substrate.git", rev = "8bbad73f5"}
+sp-consensus-aura = {default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9"}
 
 [features]
 default = ["std"]

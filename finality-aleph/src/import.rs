@@ -7,11 +7,11 @@ use codec::Decode;
 use futures::channel::mpsc::{TrySendError, UnboundedSender};
 use log::debug;
 use sc_client_api::backend::Backend;
-use sp_api::TransactionFor;
-use sp_consensus::{
-    BlockCheckParams, BlockImport, BlockImportParams, Error as ConsensusError, ImportResult,
-    JustificationImport,
+use sc_consensus::{
+    BlockCheckParams, BlockImport, BlockImportParams, ImportResult, JustificationImport,
 };
+use sp_api::TransactionFor;
+use sp_consensus::Error as ConsensusError;
 use sp_runtime::{
     traits::{Block as BlockT, Header, NumberFor},
     Justification,
