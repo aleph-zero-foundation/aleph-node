@@ -19,6 +19,8 @@ use sp_runtime::{
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
+/// The AccountId alias in this test module.
+pub(crate) type AccountId = u64;
 
 // Based on grandpa mock
 
@@ -31,7 +33,7 @@ construct_runtime!(
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
         Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
-        Aleph: pallet_aleph::{Pallet, Call, Config<T>, Storage},
+        Aleph: pallet_aleph::{Pallet, Call, Config<T>, Storage, Event<T>},
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
     }
 );
@@ -102,7 +104,7 @@ impl pallet_session::Config for Test {
     type ValidatorIdOf = ConvertInto;
     type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
     type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
-    type SessionManager = ();
+    type SessionManager = pallet_aleph::AlephSessionManager<Self>;
     type SessionHandler = <TestSessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = TestSessionKeys;
     type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
@@ -132,6 +134,7 @@ parameter_types! {}
 
 impl Config for Test {
     type AuthorityId = AuthorityId;
+    type Event = Event;
 }
 
 pub fn to_authorities(authorities: &[u64]) -> Vec<AuthorityId> {

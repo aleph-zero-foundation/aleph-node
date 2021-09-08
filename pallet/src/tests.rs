@@ -1,6 +1,7 @@
 #![cfg(test)]
 
 use crate::mock::*;
+use frame_support::assert_ok;
 
 #[test]
 fn test_update_authorities() {
@@ -18,6 +19,26 @@ fn test_update_authorities() {
 fn test_initialize_authorities() {
     new_test_ext(&[(1u64, 1u64), (2u64, 2u64)]).execute_with(|| {
         assert_eq!(Aleph::authorities(), to_authorities(&[1, 2]));
+    });
+}
+
+#[test]
+fn test_validators_should_be_none() {
+    new_test_ext(&[(1u64, 1u64), (2u64, 2u64)]).execute_with(|| {
+        assert_eq!(Aleph::validators(), None);
+    });
+}
+
+#[test]
+fn test_change_validators() {
+    new_test_ext(&[(1u64, 1u64), (2u64, 2u64)]).execute_with(|| {
+        assert_ok!(Aleph::change_validators(
+            Origin::root(),
+            vec![AccountId::default()],
+            0
+        ));
+
+        assert_eq!(Aleph::validators(), Some(vec![AccountId::default()]));
     });
 }
 
