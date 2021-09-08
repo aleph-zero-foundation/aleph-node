@@ -13,68 +13,18 @@
 // limitations under the License.
 
 use crate::{
-    chain_spec,
-    cli::{Cli, ExtraParams, Subcommand},
+    cli::{Cli, Subcommand},
     service,
 };
-use sc_cli::{ChainSpec, RuntimeVersion, SubstrateCli};
+use sc_cli::SubstrateCli;
 use sc_service::PartialComponents;
-
-impl SubstrateCli for Cli {
-    fn impl_name() -> String {
-        "Substrate Node".into()
-    }
-
-    fn impl_version() -> String {
-        env!("SUBSTRATE_CLI_IMPL_VERSION").into()
-    }
-
-    fn description() -> String {
-        env!("CARGO_PKG_DESCRIPTION").into()
-    }
-
-    fn author() -> String {
-        env!("CARGO_PKG_AUTHORS").into()
-    }
-
-    fn support_url() -> String {
-        "support.anonymous.an".into()
-    }
-
-    fn copyright_start_year() -> i32 {
-        2021
-    }
-
-    fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
-        let ExtraParams {
-            session_period,
-            millisecs_per_block,
-        } = self.extra;
-        let chain_params = chain_spec::ChainParams::from_cli(session_period, millisecs_per_block);
-        Ok(match id {
-            chain_spec::TESTNET_ID => Box::new(chain_spec::testnet1_config(chain_params)?),
-            chain_spec::DEVNET_ID => Box::new(chain_spec::development_config(chain_params)?),
-            path => Box::new(chain_spec::ChainSpec::from_json_file(
-                std::path::PathBuf::from(path),
-            )?),
-        })
-    }
-
-    fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-        &aleph_runtime::VERSION
-    }
-}
 
 /// Parse and run command line arguments
 pub fn run() -> sc_cli::Result<()> {
     let cli = Cli::from_args();
-
     match &cli.subcommand {
+        Some(Subcommand::BootstrapChain(cmd)) => cmd.run(),
         Some(Subcommand::Key(cmd)) => cmd.run(&cli),
-        Some(Subcommand::BuildSpec(cmd)) => {
-            let runner = cli.create_runner(cmd)?;
-            runner.sync_run(|config| cmd.run(config.chain_spec, config.network))
-        }
         Some(Subcommand::CheckBlock(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             runner.async_run(|config| {
@@ -137,7 +87,6 @@ pub fn run() -> sc_cli::Result<()> {
                 Ok((cmd.run(client, backend), task_manager))
             })
         }
-        Some(Subcommand::DevKeys(cmd)) => cmd.run(),
         None => {
             let runner = cli.create_runner(&cli.run)?;
             runner.run_node_until_exit(|config| async move {

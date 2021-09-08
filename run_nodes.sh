@@ -25,14 +25,14 @@ shift
 authorities=(Damian Tomasz Zbyszko Hansu Adam Matt Antoni Michal)
 authorities=("${authorities[@]::$n_members}")
 
-./target/release/aleph-node dev-keys  --base-path /tmp --chain dev --key-types aura alp0
+./target/release/aleph-node bootstrap-chain --base-path docker/data --chain-id dev > docker/data/chainspec.json
 
 for i in ${!authorities[@]}; do
   auth=${authorities[$i]}
-  ./target/release/aleph-node purge-chain --base-path /tmp/"$auth" --chain dev -y
+  ./target/release/aleph-node purge-chain --base-path /tmp/"$auth" --chain docker/data/chainspec.json -y
   ./target/release/aleph-node \
     --validator \
-    --chain dev \
+    --chain docker/data/chainspec.json \
     --base-path /tmp/$auth \
     --name $auth \
     --rpc-port $(expr 9933 + $i) \

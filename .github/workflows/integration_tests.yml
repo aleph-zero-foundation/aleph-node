@@ -118,12 +118,9 @@ jobs:
 
       - name: Generate chainspec
         run: |
-          # NOTE : remove this step after keys are moved to a separate JSON file
-          cp docker/data/n_members /tmp/n_members
-          # generate keys and chainspec
+          # populate validators keystore and generate chainspec
           chmod +x target/release/aleph-node
-          ./target/release/aleph-node dev-keys --base-path docker/data --chain a0tnet1 --key-types aura alp0
-          ./target/release/aleph-node build-spec --disable-default-bootnode  --chain a0tnet1 > docker/data/chainspec.json
+          ./target/release/aleph-node bootstrap-chain --base-path docker/data --chain-id a0tnet1 > docker/data/chainspec.json
 
       - name: Run consensus party
         run: |

@@ -1,10 +1,5 @@
-use sc_cli::{Error, KeystoreParams, RunCmd, SharedParams};
-use sc_service::config::{BasePath, KeystoreConfig};
-use std::{collections::HashMap, convert::TryFrom, sync::Arc};
-
-use sc_keystore::LocalKeystore;
-use sp_core::crypto::KeyTypeId;
-use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
+use crate::{chain_spec, commands::BootstrapChainCmd};
+use sc_cli::{ChainSpec, RunCmd, RuntimeVersion, SubstrateCli};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -14,112 +9,41 @@ pub struct Cli {
 
     #[structopt(flatten)]
     pub run: RunCmd,
-
-    #[structopt(flatten)]
-    pub extra: ExtraParams,
 }
 
-#[derive(Clone, Copy, Debug, Default, StructOpt)]
-pub struct ExtraParams {
-    #[structopt(long)]
-    pub(crate) session_period: Option<u32>,
-
-    #[structopt(long)]
-    pub(crate) millisecs_per_block: Option<u64>,
-}
-
-#[derive(Debug, StructOpt)]
-pub struct GenerateKeysCmd {
-    /// List of genesis authorities
-    #[structopt(long)]
-    pub authorities: Vec<String>,
-
-    /// Key types, examples: "aura", or "alp0"
-    #[structopt(long)]
-    pub key_types: Vec<String>,
-
-    #[structopt(flatten)]
-    pub keystore_params: KeystoreParams,
-
-    #[structopt(flatten)]
-    pub shared_params: SharedParams,
-}
-
-impl GenerateKeysCmd {
-    pub fn run(&self) -> Result<(), Error> {
-        let key_types: Vec<_> = self
-            .key_types
-            .iter()
-            .map(|kt| KeyTypeId::try_from(kt.as_str()).expect("wrong key type"))
-            .collect();
-        // A hashmap from a key type to a 32-byte representation of a sr25519 or ed25519 key.
-        let mut auth_keys: HashMap<_, _> = key_types
-            .iter()
-            .zip(vec![vec![]].into_iter().cycle())
-            .collect();
-        for authority in &crate::chain_spec::LOCAL_AUTHORITIES {
-            let keystore = self.open_keystore(authority)?;
-            for &key_type in &key_types {
-                use sp_core::crypto::key_types;
-                match key_type {
-                    key_types::AURA => {
-                        let keys = SyncCryptoStore::sr25519_public_keys(&*keystore, key_type);
-                        let key = keys.into_iter().next().map_or_else(
-                            || {
-                                SyncCryptoStore::sr25519_generate_new(&*keystore, key_type, None)
-                                    .map_err(|_| Error::KeyStoreOperation)
-                            },
-                            Ok,
-                        )?;
-                        auth_keys
-                            .get_mut(&key_type)
-                            .unwrap()
-                            .push(*key.as_array_ref());
-                    }
-                    aleph_primitives::KEY_TYPE => {
-                        let keys = SyncCryptoStore::ed25519_public_keys(&*keystore, key_type);
-                        let key = keys.into_iter().next().map_or_else(
-                            || {
-                                SyncCryptoStore::ed25519_generate_new(&*keystore, key_type, None)
-                                    .map_err(|_| Error::KeyStoreOperation)
-                            },
-                            Ok,
-                        )?;
-                        auth_keys
-                            .get_mut(&key_type)
-                            .unwrap()
-                            .push(*key.as_array_ref());
-                    }
-                    _ => return Err(Error::Input("Unsupported key type".into())),
-                }
-            }
-        }
-
-        let keys_path = crate::chain_spec::KEY_PATH;
-        let auth_keys: HashMap<_, _> = auth_keys.iter().map(|(k, v)| (u32::from(**k), v)).collect();
-        let auth_keys = serde_json::to_string(&auth_keys).map_err(|e| Error::Io(e.into()))?;
-        std::fs::write(keys_path, &auth_keys).map_err(Error::Io)?;
-
-        Ok(())
+impl SubstrateCli for Cli {
+    fn impl_name() -> String {
+        "Substrate Node".into()
     }
 
-    fn open_keystore(&self, authority: &str) -> Result<SyncCryptoStorePtr, Error> {
-        let base_path: BasePath = self
-            .shared_params
-            .base_path()
-            .unwrap()
-            .path()
-            .join(authority)
-            .into();
-        let chain_id = self.shared_params.chain_id(self.shared_params.is_dev());
-        let config_dir = base_path.config_dir(&chain_id);
+    fn impl_version() -> String {
+        env!("SUBSTRATE_CLI_IMPL_VERSION").into()
+    }
 
-        match self.keystore_params.keystore_config(&config_dir)? {
-            (_, KeystoreConfig::Path { path, password }) => {
-                Ok(Arc::new(LocalKeystore::open(path, password)?))
-            }
-            _ => unreachable!("keystore_config always returns path and password; qed"),
-        }
+    fn description() -> String {
+        env!("CARGO_PKG_DESCRIPTION").into()
+    }
+
+    fn author() -> String {
+        env!("CARGO_PKG_AUTHORS").into()
+    }
+
+    fn support_url() -> String {
+        "support.anonymous.an".into()
+    }
+
+    fn copyright_start_year() -> i32 {
+        2021
+    }
+
+    fn load_spec(&self, path: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
+        Ok(Box::new(chain_spec::ChainSpec::from_json_file(
+            std::path::PathBuf::from(path),
+        )?))
+    }
+
+    fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
+        &aleph_runtime::VERSION
     }
 }
 
@@ -127,8 +51,12 @@ impl GenerateKeysCmd {
 pub enum Subcommand {
     /// Key management cli utilities
     Key(sc_cli::KeySubcommand),
-    /// Build a chain specification.
-    BuildSpec(sc_cli::BuildSpecCmd),
+
+    // NOTE: similarly we could have a BootstrapNode command that takes a node-name parameter
+    // and writes aura, aleph and (optionally) libp2p private keys to the base-path of a single node
+    // and prints accountId and peerId to the stdout
+    /// Populate authorities keystore and generate JSON chainspec (printed to stdout)    
+    BootstrapChain(BootstrapChainCmd),
 
     /// Validate blocks.
     CheckBlock(sc_cli::CheckBlockCmd),
@@ -147,7 +75,4 @@ pub enum Subcommand {
 
     /// Revert the chain to a previous state.
     Revert(sc_cli::RevertCmd),
-
-    /// Generate keys for local tests
-    DevKeys(GenerateKeysCmd),
 }
