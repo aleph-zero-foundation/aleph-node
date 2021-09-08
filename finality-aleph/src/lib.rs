@@ -145,7 +145,7 @@ where
 
 type Hasher = hash::Wrapper<BlakeTwo256>;
 
-#[derive(Clone, Debug, Decode, Encode)]
+#[derive(PartialEq, Eq, Clone, Debug, Decode, Encode)]
 struct Signature {
     id: NodeIndex,
     sgn: AuthoritySignature,

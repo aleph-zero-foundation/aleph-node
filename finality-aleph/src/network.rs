@@ -239,6 +239,15 @@ pub(crate) enum Recipient<T: Clone + Encode + Decode + Eq + PartialEq> {
     Target(T),
 }
 
+impl From<aleph_bft::Recipient> for Recipient<NodeIndex> {
+    fn from(recipient: aleph_bft::Recipient) -> Self {
+        match recipient {
+            aleph_bft::Recipient::Everyone => Recipient::All,
+            aleph_bft::Recipient::Node(node) => Recipient::Target(node),
+        }
+    }
+}
+
 #[derive(Clone, Encode, Decode, Debug)]
 pub(crate) struct AuthData {
     pub(crate) session_id: SessionId,
@@ -662,14 +671,11 @@ impl<B: BlockT> AlephNetwork<B> {
 impl<B: BlockT> aleph_bft::Network<Hasher, AlephDataFor<B>, Signature, SignatureSet<Signature>>
     for AlephNetwork<B>
 {
-    type Error = Error;
-
-    fn send(&self, data: AlephNetworkData<B>, node: NodeIndex) -> Result<(), Self::Error> {
-        self.inner.send(data, Recipient::Target(node))
-    }
-
-    fn broadcast(&self, data: AlephNetworkData<B>) -> Result<(), Self::Error> {
-        self.inner.send(data, Recipient::All)
+    fn send(&self, data: AlephNetworkData<B>, recipient: aleph_bft::Recipient) {
+        let recipient = recipient.into();
+        if self.inner.send(data, recipient).is_err() {
+            error!(target: "afa", "error sending a message to {:?}", recipient);
+        }
     }
 
     async fn next_event(&mut self) -> Option<AlephNetworkData<B>> {

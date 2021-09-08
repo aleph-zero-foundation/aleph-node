@@ -311,9 +311,15 @@ where
             let multikeychain = multikeychain.clone();
             async move {
                 debug!(target: "afa", "Running the member task for {:?}", session_id.0);
-                let member =
-                    aleph_bft::Member::new(data_io, &multikeychain, consensus_config, spawn_handle);
-                member.run_session(aleph_network, exit_member_rx).await;
+                aleph_bft::run_session(
+                    consensus_config,
+                    aleph_network,
+                    data_io,
+                    multikeychain,
+                    spawn_handle,
+                    exit_member_rx,
+                )
+                .await;
                 debug!(target: "afa", "Member task stopped for {:?}", session_id.0);
             }
         };
