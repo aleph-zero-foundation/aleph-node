@@ -3,98 +3,77 @@ services:
 
   # bootnode
   damian:
-    image: aleph-node:latest
+    image: aleph-node:${VERSION}
     container_name: damian
     privileged: true
     network_mode: host
-    entrypoint: ["/bin/sh","-c"]
-    command:
-      - |
-         ./aleph-node purge-chain --chain /tmp/chainspec.json --base-path /tmp/Damian -y
-         ./aleph-node --validator \
-                      --name Damian \
-                      --base-path /tmp/Damian \
-                      --node-key-file /tmp/Damian/libp2p_secret \
-                      --rpc-port 9933 --ws-port 9943 --port 30333 \
-                      --rpc-cors all --rpc-methods Safe \
-                      --execution Native \
-                      --no-mdns --no-prometheus --no-telemetry \
-                      --chain /tmp/chainspec.json \
-                      --bootnodes '/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm'
     environment:
       - RUST_LOG=info
+      - RPC_PORT=9933
+      - WS_PORT=9943
+      - PORT=30333
+      - PURGE_BEFORE_START=true
+      - NAME=Damian
+      - BASE_PATH=/tmp/Damian
+      - NODE_KEY_PATH=/tmp/Damian/libp2p_secret
+      - CHAIN=/tmp/chainspec.json
+      - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm
     volumes:
       - ./data/:/tmp/
 
   tomasz:
-    image: aleph-node:latest
+    image: aleph-node:${VERSION}
     container_name: tomasz
     privileged: true
     network_mode: host
-    entrypoint: ["/bin/sh","-c"]
-    command:
-      - |
-         ./aleph-node purge-chain --chain /tmp/chainspec.json --base-path /tmp/Tomasz -y
-         ./aleph-node --validator \
-                      --name Tomasz \
-                      --base-path /tmp/Tomasz \
-                      --node-key-file /tmp/Tomasz/libp2p_secret \
-                      --rpc-port 9934 --ws-port 9944 --port 30334 \
-                      --rpc-cors all --rpc-methods Safe \
-                      --execution Native \
-                      --no-mdns --no-prometheus --no-telemetry \
-                      --chain /tmp/chainspec.json \
-                      --bootnodes '/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm'
     environment:
       - RUST_LOG=info
+      - RPC_PORT=9934
+      - WS_PORT=9944
+      - PORT=30334
+      - PURGE_BEFORE_START=true
+      - NAME=Tomasz
+      - BASE_PATH=/tmp/Tomasz
+      - NODE_KEY_PATH=/tmp/Tomasz/libp2p_secret
+      - CHAIN=/tmp/chainspec.json
+      - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm
     volumes:
       - ./data/:/tmp/
 
   zbyszko:
-    image: aleph-node:latest
+    image: aleph-node:${VERSION}
     container_name: zbyszko
     privileged: true
     network_mode: host
-    entrypoint: ["/bin/sh","-c"]
-    command:
-      - |
-         ./aleph-node purge-chain --chain /tmp/chainspec.json --base-path /tmp/Zbyszko -y
-         ./aleph-node --validator \
-                      --name Zbyszko \
-                      --base-path /tmp/Zbyszko \
-                      --node-key-file /tmp/Zbyszko/libp2p_secret \
-                      --rpc-port 9935 --ws-port 9945 --port 30335 \
-                      --rpc-cors all --rpc-methods Safe \
-                      --execution Native \
-                      --no-mdns --no-prometheus --no-telemetry \
-                      --chain /tmp/chainspec.json \
-                      --bootnodes '/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm'
     environment:
       - RUST_LOG=info
+      - RPC_PORT=9935
+      - WS_PORT=9945
+      - PORT=30335
+      - PURGE_BEFORE_START=true
+      - NAME=Zbyszko
+      - BASE_PATH=/tmp/Zbyszko
+      - NODE_KEY_PATH=/tmp/Zbyszko/libp2p_secret
+      - CHAIN=/tmp/chainspec.json
+      - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm
     volumes:
       - ./data/:/tmp/
 
   hansu:
-    image: aleph-node:latest
+    image: aleph-node:${VERSION}
     container_name: hansu
     privileged: true
     network_mode: host
-    entrypoint: ["/bin/sh","-c"]
-    command:
-      - |
-         ./aleph-node purge-chain --chain /tmp/chainspec.json --base-path /tmp/Hansu -y
-         ./aleph-node --validator \
-                      --name Hansu \
-                      --base-path /tmp/Hansu \
-                      --node-key-file /tmp/Hansu/libp2p_secret \
-                      --rpc-port 9936 --ws-port 9946 --port 30336 \
-                      --rpc-cors all --rpc-methods Safe \
-                      --execution Native \
-                      --no-mdns --no-prometheus --no-telemetry \
-                      --chain /tmp/chainspec.json \
-                      --bootnodes '/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm'
     environment:
       - RUST_LOG=info
+      - RPC_PORT=9936
+      - WS_PORT=9946
+      - PORT=30336
+      - PURGE_BEFORE_START=true
+      - NAME=Hansu
+      - BASE_PATH=/tmp/Hansu
+      - NODE_KEY_PATH=/tmp/Hansu/libp2p_secret
+      - CHAIN=/tmp/chainspec.json
+      - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm
     volumes:
       - ./data/:/tmp/
-      

@@ -127,7 +127,7 @@ jobs:
 
       - name: Run consensus party
         run: |
-          docker-compose -f docker/docker-compose.yml up -d
+          docker-compose --env-file docker/.env -f docker/docker-compose.yml up -d
 
       - name: Consensus party logs
         run: |
