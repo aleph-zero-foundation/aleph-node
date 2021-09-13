@@ -1,6 +1,4 @@
-use crate::chain_spec::{
-    self, get_account_id_from_seed, AuthorityKeys, ChainParams, LOCAL_AUTHORITIES,
-};
+use crate::chain_spec::{self, AuthorityKeys, ChainParams};
 use aleph_primitives::AuthorityId as AlephId;
 use log::info;
 use sc_cli::{Error, KeystoreParams};
@@ -8,7 +6,6 @@ use sc_keystore::LocalKeystore;
 use sc_service::config::{BasePath, KeystoreConfig};
 use sp_application_crypto::key_types;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::sr25519;
 use sp_keystore::SyncCryptoStore;
 use std::io::Write;
 use std::ops::Deref;
@@ -57,17 +54,20 @@ impl BootstrapChainCmd {
     pub fn run(&self) -> Result<(), Error> {
         let chain_id = self.chain_params.chain_id();
 
-        let genesis_authorities = LOCAL_AUTHORITIES
+        let genesis_authorities = self
+            .chain_params
+            .account_ids()
             .iter()
-            .map(|authority| {
+            .map(|account_id| {
+                let authority = account_id.to_string();
+
                 let authority_keystore = self
-                    .open_keystore(authority, chain_id)
+                    .open_keystore(&authority, chain_id)
                     .unwrap_or_else(|_| panic!("Cannot open keystore for {}", authority));
 
                 let aura_key = aura_key(Deref::deref(&authority_keystore));
                 let aleph_key = aleph_key(Deref::deref(&authority_keystore));
-                // NOTE : the account_id's should definitely not be generated from seed in case of testnet and mainnet
-                let account_id = get_account_id_from_seed::<sr25519::Public>(authority);
+                let account_id = account_id.to_owned();
 
                 AuthorityKeys {
                     account_id,

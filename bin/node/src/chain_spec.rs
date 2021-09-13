@@ -8,6 +8,7 @@ use aleph_runtime::{
 use hex_literal::hex;
 use sc_service::config::BasePath;
 use sc_service::ChainType;
+use sp_application_crypto::Ss58Codec;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
@@ -16,10 +17,6 @@ use structopt::StructOpt;
 
 const FAUCET_HASH: [u8; 32] =
     hex!("eaefd9d9b42915bda608154f17bb03e407cbf244318a0499912c2fb1cd879b74");
-
-pub const LOCAL_AUTHORITIES: [&str; 8] = [
-    "Damian", "Tomasz", "Zbyszko", "Hansu", "Adam", "Matt", "Antoni", "Michal",
-];
 
 pub const DEVNET_ID: &str = "dev";
 
@@ -55,8 +52,8 @@ pub struct ChainParams {
     /// Pass the chain id.
     ///
     /// It can be a predefined one (dev) or an arbitrary chain id passed to the genesis block
-    #[structopt(long, value_name = "CHAIN_SPEC")]
-    pub chain_id: Option<String>,
+    #[structopt(long, value_name = "CHAIN_SPEC", default_value = "a0dnet1")]
+    pub chain_id: String,
 
     /// Specify custom base path.
     #[structopt(long, short = "d", value_name = "PATH", parse(from_os_str))]
@@ -73,14 +70,20 @@ pub struct ChainParams {
 
     #[structopt(long)]
     pub token_symbol: Option<String>,
+
+    /// Pass the AccountIds of authorities forming the committe at the genesis
+    ///
+    /// Expects a delimited collection of accountIds
+    #[structopt(long, require_delimiter = true)]
+    account_ids: Option<Vec<String>>,
+
+    #[structopt(long)]
+    n_members: Option<u32>,
 }
 
 impl ChainParams {
     pub fn chain_id(&self) -> &str {
-        match &self.chain_name {
-            Some(id) => id,
-            None => "a0dnet1",
-        }
+        &self.chain_id
     }
 
     pub fn base_path(&self) -> BasePath {
@@ -107,6 +110,31 @@ impl ChainParams {
         match &self.chain_name {
             Some(name) => name,
             None => "Aleph Zero Development",
+        }
+    }
+
+    pub fn account_ids(&self) -> Vec<AccountId> {
+        match &self.account_ids {
+            Some(ids) => ids
+                .iter()
+                .map(|id| {
+                    AccountId::from_string(id.as_str())
+                        .expect("Passed string is not a hex encoding of a public key")
+                })
+                .collect(),
+            None => {
+                let n_members = self
+                    .n_members
+                    .expect("Pass account-ids or n-members argument");
+
+                (0..n_members)
+                    .into_iter()
+                    .map(|id| {
+                        let seed = id.to_string();
+                        get_account_id_from_seed::<sr25519::Public>(&seed.as_str())
+                    })
+                    .collect()
+            }
         }
     }
 }

@@ -14,8 +14,8 @@ services:
       - PORT=30333
       - PURGE_BEFORE_START=true
       - NAME=Damian
-      - BASE_PATH=/tmp/Damian
-      - NODE_KEY_PATH=/tmp/Damian/libp2p_secret
+      - BASE_PATH=/tmp/5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH
+      - NODE_KEY_PATH=/tmp/5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH/libp2p_secret
       - CHAIN=/tmp/chainspec.json
       - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm
     volumes:
@@ -33,8 +33,8 @@ services:
       - PORT=30334
       - PURGE_BEFORE_START=true
       - NAME=Tomasz
-      - BASE_PATH=/tmp/Tomasz
-      - NODE_KEY_PATH=/tmp/Tomasz/libp2p_secret
+      - BASE_PATH=/tmp/5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK
+      - NODE_KEY_PATH=/tmp/5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK/libp2p_secret
       - CHAIN=/tmp/chainspec.json
       - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm
     volumes:
@@ -52,8 +52,8 @@ services:
       - PORT=30335
       - PURGE_BEFORE_START=true
       - NAME=Zbyszko
-      - BASE_PATH=/tmp/Zbyszko
-      - NODE_KEY_PATH=/tmp/Zbyszko/libp2p_secret
+      - BASE_PATH=/tmp/5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9
+      - NODE_KEY_PATH=/tmp/5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9/libp2p_secret
       - CHAIN=/tmp/chainspec.json
       - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm
     volumes:
@@ -71,8 +71,8 @@ services:
       - PORT=30336
       - PURGE_BEFORE_START=true
       - NAME=Hansu
-      - BASE_PATH=/tmp/Hansu
-      - NODE_KEY_PATH=/tmp/Hansu/libp2p_secret
+      - BASE_PATH=/tmp/5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o
+      - NODE_KEY_PATH=/tmp/5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o/libp2p_secret
       - CHAIN=/tmp/chainspec.json
       - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm
     volumes:

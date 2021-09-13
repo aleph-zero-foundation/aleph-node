@@ -120,7 +120,7 @@ jobs:
         run: |
           # populate validators keystore and generate chainspec
           chmod +x target/release/aleph-node
-          ./target/release/aleph-node bootstrap-chain --base-path docker/data --chain-id a0tnet1 > docker/data/chainspec.json
+          ./target/release/aleph-node bootstrap-chain --base-path docker/data --chain-id a0dnet1 --n-members 4 > docker/data/chainspec.json
 
       - name: Run consensus party
         run: |
