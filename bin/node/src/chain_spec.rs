@@ -8,6 +8,7 @@ use aleph_runtime::{
 use hex_literal::hex;
 use sc_service::config::BasePath;
 use sc_service::ChainType;
+use serde::{Deserialize, Serialize};
 use sp_application_crypto::Ss58Codec;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
@@ -40,7 +41,7 @@ where
     AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct AuthorityKeys {
     pub account_id: AccountId,
     pub aura_key: AuraId,
@@ -57,7 +58,7 @@ pub struct ChainParams {
 
     /// Specify custom base path.
     #[structopt(long, short = "d", value_name = "PATH", parse(from_os_str))]
-    pub base_path: Option<PathBuf>,
+    pub base_path: PathBuf,
 
     #[structopt(long)]
     pub session_period: Option<u32>,
@@ -73,7 +74,9 @@ pub struct ChainParams {
 
     /// Pass the AccountIds of authorities forming the committe at the genesis
     ///
-    /// Expects a delimited collection of accountIds
+    /// Expects a delimited collection of AccountIds
+    /// If this argument is not found n_members is used instead to generate a collection of size `n_members`
+    /// filled with randomly generated Ids
     #[structopt(long, require_delimiter = true)]
     account_ids: Option<Vec<String>>,
 
@@ -87,7 +90,7 @@ impl ChainParams {
     }
 
     pub fn base_path(&self) -> BasePath {
-        self.base_path.clone().unwrap().into()
+        self.base_path.clone().into()
     }
 
     pub fn millisecs_per_block(&self) -> u64 {

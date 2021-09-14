@@ -1,3 +1,4 @@
+use crate::commands::BootstrapNodeCmd;
 use crate::{chain_spec, commands::BootstrapChainCmd};
 use sc_cli::{ChainSpec, RunCmd, RuntimeVersion, SubstrateCli};
 use structopt::StructOpt;
@@ -57,6 +58,9 @@ pub enum Subcommand {
     // and prints accountId and peerId to the stdout
     /// Populate authorities keystore and generate JSON chainspec (printed to stdout)    
     BootstrapChain(BootstrapChainCmd),
+
+    /// Generate and print to stdout keys for a single node
+    BootstrapNode(BootstrapNodeCmd),
 
     /// Validate blocks.
     CheckBlock(sc_cli::CheckBlockCmd),

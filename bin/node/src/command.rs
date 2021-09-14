@@ -24,6 +24,7 @@ pub fn run() -> sc_cli::Result<()> {
     let cli = Cli::from_args();
     match &cli.subcommand {
         Some(Subcommand::BootstrapChain(cmd)) => cmd.run(),
+        Some(Subcommand::BootstrapNode(cmd)) => cmd.run(),
         Some(Subcommand::Key(cmd)) => cmd.run(&cli),
         Some(Subcommand::CheckBlock(cmd)) => {
             let runner = cli.create_runner(cmd)?;
