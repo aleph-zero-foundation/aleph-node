@@ -1,0 +1,184 @@
+name: integration-tests-main-devnet_test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build binary artifact
+    runs-on: ubuntu-latest
+    env:
+      RUST_TOOLCHAIN_VERSION: nightly-2021-07-05
+      RUST_BACKTRACE: full
+      SCCACHE_VERSION: 0.2.13
+      SCCACHE_CACHE_SIZE: 2G
+      SCCACHE_PATH: /home/runner/.cache/sccache
+      # SCCACHE_RECACHE: 1 # to clear cache uncomment this, let the workflow run once, then comment it out again
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Checkout Source code
+        uses: actions/checkout@v2
+
+      - name: Install sccache for ubuntu-latest
+        env:
+          LINK: https://github.com/mozilla/sccache/releases/download
+        run: |
+          SCCACHE_FILE=sccache-$SCCACHE_VERSION-x86_64-unknown-linux-musl
+          mkdir -p $HOME/.local/bin
+          curl -L "$LINK/$SCCACHE_VERSION/$SCCACHE_FILE.tar.gz" | tar xz
+          mv -f $SCCACHE_FILE/sccache $HOME/.local/bin/sccache
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Restore Cargo Cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+          override: true
+
+      - name: Install WASM target
+        run: rustup target add wasm32-unknown-unknown --toolchain "$RUST_TOOLCHAIN_VERSION"
+
+      - name: Restore sccache
+        uses: actions/cache@v2
+        continue-on-error: false
+        with:
+          path: ${{ env.SCCACHE_PATH }}
+          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Start sccache server
+        run: sccache --start-server
+
+      - name: Build Binary
+        run: |
+          export RUSTC_WRAPPER=$HOME/.local/bin/sccache
+          cargo build --release
+          chmod +x target/release/aleph-node
+
+      - name: Print sccache stats
+        run: sccache --show-stats
+
+      - name: Stop sccache server
+        run: sccache --stop-server || true
+
+      - name: Upload Binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: aleph-node
+          path: target/release/aleph-node
+          if-no-files-found: error
+          retention-days: 20
+
+  integration-tests:
+    needs: build
+    name: Run integration tests suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: GIT | Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: GIT | Checkout Source code
+        uses: actions/checkout@v2
+
+      - name: GIT | Get branch info & current commit sha.
+        id: vars
+        shell: bash
+        run: |
+          echo "##[set-output name=branch;]$(echo ${GITHUB_REF##*/})"
+          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+
+      - name: Download artifact with aleph-node binary
+        uses: actions/download-artifact@v2
+        with:
+          name: aleph-node
+
+      - name: Build docker image
+        id: build-image
+        run: |
+          mkdir -p target/release/
+          # copy artifact
+          cp aleph-node target/release/aleph-node
+          # Build and tag a docker container
+          docker build --tag aleph-node:latest -f ./docker/Dockerfile .
+
+      - name: Generate chainspec
+        run: |
+          # populate validators keystore and generate chainspec
+          chmod +x target/release/aleph-node
+          ./target/release/aleph-node bootstrap-chain --base-path docker/data --chain-id a0dnet1 --n-members 4 > docker/data/chainspec.json
+
+      - name: Run consensus party
+        run: |
+          docker-compose --env-file docker/.env -f docker/docker-compose.yml up -d
+
+      - name: Consensus party logs
+        run: |
+          docker logs damian --follow &
+
+      # NOTE: this step contacts every node in the comittee by their container id and sends a simple RPC request
+      # that lists all the RPC methods that they expose.
+      # Once they respond we know all nodes are online
+      - name: Verify nodes respond
+        run: |
+          validators=( damian tomasz zbyszko hansu )
+          rpc_port=9933
+
+          for validator in "${validators[@]}"; do
+            docker run --network container:$validator appropriate/curl:latest \
+                       --retry 3 \
+                       --retry-delay 10 \
+                       -H "Content-Type: application/json" \
+                       -d '{"id":1, "jsonrpc":"2.0", "method": "rpc_methods"}' http://127.0.0.1:$rpc_port
+            let rpc_port=$rpc_port+1
+          done
+
+      # note: more complex test scenarios can be run from here on out
+
+      - name: Configure AWS credentials
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: aws-actions/configure-aws-credentials@v1           
+        with:                                                    
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}      
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
+      - name: Login to Amazon ECR
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        id: login-ecr                        
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Push aleph-node Current Image to ECR
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:                                                       
+          CURRENT_IMAGE: aleph-node:latest
+          ECR_PUSH_IMAGE: ${{ steps.login-ecr.outputs.registry }}/aleph-node:${{ steps.vars.outputs.sha_short }}
+        run: |
+          docker tag ${{ env.CURRENT_IMAGE }} ${{ env.ECR_PUSH_IMAGE }}
+          docker push ${{ env.ECR_PUSH_IMAGE }}
+
+      - name: Send Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        continue-on-error: true
+        env:
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_USERNAME: GithubActions
+          SLACK_TITLE: integration tests job has finished
+          MSG_MINIMAL: actions url
