@@ -2,6 +2,12 @@ name: Deploy to main Devnet
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["integration-tests-main-devnet_test"]
+    branches:
+      - task/A0-306
+    types:
+      - completed
 
 jobs:
   deploy-devnet:
