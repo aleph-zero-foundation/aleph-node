@@ -1,0 +1,155 @@
+name: Deploy to main Devnet
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-devnet:
+    if: github.ref == 'refs/heads/main' && github.event.workflow_run.conclusion == 'success'
+    name: Push latest docker image
+    environment:
+      name: devnet
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1 # this region is used by all public ECR repos
+    steps:
+      - name: GIT | Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: GIT | Checkout                                  
+        uses: actions/checkout@v2
+        
+      - name: GIT | Get branch info & current commit sha.
+        id: vars
+        shell: bash
+        run: |
+          echo "##[set-output name=branch;]$(echo ${GITHUB_REF##*/})"
+          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)" 
+
+      - name: Configure AWS credentials                          
+        uses: aws-actions/configure-aws-credentials@v1           
+        with:                                                    
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}      
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR            
+        id: login-ecr                        
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Create GitHub deployment
+        uses: chrnorm/deployment-action@releases/v1
+        id: deployment
+        with:
+          token: "${{ secrets.GH_TOKEN }}"
+          environment: devnet
+
+      - name: GIT | Checkout aleph-apps repo
+        uses: actions/checkout@master
+        with:
+          repository: Cardinal-Cryptography/aleph-apps
+          token: ${{ secrets.GH_TOKEN }}
+          path: "aleph-apps"
+
+      - name: Init kustomize
+        uses: imranismail/setup-kustomize@v1
+        with:
+          kustomize-version: "3.8.6"
+
+      - name: Update aleph-node docker image and trigger ArgoCD deploy                                                                        
+        env:                                                                                                          
+          RELEASE_IMAGE: ${{ steps.login-ecr.outputs.registry }}/aleph-node:${{ steps.vars.outputs.sha_short }}
+        run: |
+          cd aleph-apps/aleph-node/overlays/maindevnet
+          kustomize edit set image ${{ env.RELEASE_IMAGE }}
+
+      - name: GIT | Commit changes to aleph-apps repository.
+        uses: EndBug/add-and-commit@v5.1.0
+        with:
+          author_name: AlephZero Automation
+          author_email: alephzero@10clouds.com
+          message: "Updating Devnet docker image tag to: ${{ steps.vars.outputs.sha_short }}"
+          add: "*.yaml"
+          cwd: "aleph-apps"
+          branch: main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Update deployment status (success)
+        if: success()
+        uses: chrnorm/deployment-status@releases/v1
+        with:
+          token: "${{ secrets.GH_TOKEN }}"
+          state: "success"
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+
+      - name: Update deployment status (failure)
+        if: failure()
+        uses: chrnorm/deployment-status@releases/v1
+        with:
+          token: "${{ secrets.GH_TOKEN }}"
+          state: "failure"
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+
+      - name: Send Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        continue-on-error: true
+        env:
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_USERNAME: GithubActions
+          SLACK_TITLE: deploy-devnet-new-test job has finished
+          MSG_MINIMAL: actions url
+
+
+  # deploy-testnet:
+  #   name: Push testnet docker image
+  #   # NOTE: this is a protected environment, this job needs a manual approval from one of the team members
+  #   environment:
+  #     name: testnet
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     AWS_REGION: us-east-1
+  #   steps:
+  #     - name: Cancel Previous Runs
+  #       uses: styfle/cancel-workflow-action@0.9.0
+  #       with:
+  #         access_token: ${{ github.token }}
+
+  #     - name: Download artifact
+  #       uses: dawidd6/action-download-artifact@v2
+  #       with:
+  #         github_token: ${{secrets.GH_TOKEN}}
+  #         workflow: integration_tests.yml
+  #         name: aleph-node-image
+
+  #     - name: Configure AWS credentials
+  #       uses: aws-actions/configure-aws-credentials@13d241b293754004c80624b5567555c4a39ffbe3
+  #       with:
+  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #         aws-region:  ${{ env.AWS_REGION }}
+
+  #     - name: Load, tag, and push testnet image
+  #       id: build-image
+  #       env:
+  #         ECR_REGISTRY: public.ecr.aws/x2t8a1o3
+  #         ECR_REPOSITORY: aleph-node
+  #       run: |
+  #         docker load -i aleph-node.tar
+  #         # tag docker image, use two tags: `testnet` and the sha of the commit that triggered the build
+  #         docker tag aleph-node:latest $ECR_REGISTRY/$ECR_REPOSITORY:testnet
+  #         docker tag aleph-node:latest $ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA
+  #         aws ecr-public get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+  #         docker push --all-tags $ECR_REGISTRY/$ECR_REPOSITORY
+  #     - name: Send Slack Notification
+  #       uses: rtCamp/action-slack-notify@v2
+  #       continue-on-error: true
+  #       env:
+  #         SLACK_COLOR: ${{ job.status }}
+  #         SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+  #         SLACK_USERNAME: GithubActions
+  #         SLACK_TITLE: deploy-testnet job has finished
+  #         MSG_MINIMAL: actions url
