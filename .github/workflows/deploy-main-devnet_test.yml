@@ -45,13 +45,6 @@ jobs:
         id: login-ecr                        
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Create GitHub deployment
-        uses: chrnorm/deployment-action@releases/v1
-        id: deployment
-        with:
-          token: "${{ secrets.GH_TOKEN }}"
-          environment: devnet
-
       - name: GIT | Checkout aleph-apps repo
         uses: actions/checkout@master
         with:
@@ -82,22 +75,6 @@ jobs:
           branch: main
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-
-      - name: Update deployment status (success)
-        if: success()
-        uses: chrnorm/deployment-status@releases/v1
-        with:
-          token: "${{ secrets.GH_TOKEN }}"
-          state: "success"
-          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
-
-      - name: Update deployment status (failure)
-        if: failure()
-        uses: chrnorm/deployment-status@releases/v1
-        with:
-          token: "${{ secrets.GH_TOKEN }}"
-          state: "failure"
-          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
 
       - name: Send Slack Notification
         uses: rtCamp/action-slack-notify@v2
