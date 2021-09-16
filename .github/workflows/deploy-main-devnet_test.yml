@@ -1,7 +1,6 @@
 name: Deploy to main Devnet
 
 on:
-  workflow_dispatch:
   workflow_run:
     workflows: ["integration-tests-main-devnet_test"]
     branches:
@@ -12,7 +11,7 @@ on:
 jobs:
   deploy-devnet:
     if: github.event.workflow_run.conclusion == 'success'
-    name: Push latest docker image
+    name: Deploy new aleph-node image to EKS
     environment:
       name: devnet
     runs-on: ubuntu-latest
@@ -33,7 +32,6 @@ jobs:
         run: |
           echo "##[set-output name=branch;]$(echo ${GITHUB_REF##*/})"
           echo "::set-output name=sha_short::$(git rev-parse --short HEAD)" 
-
       - name: Configure AWS credentials                          
         uses: aws-actions/configure-aws-credentials@v1           
         with:                                                    
@@ -41,40 +39,50 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to Amazon ECR            
-        id: login-ecr                        
-        uses: aws-actions/amazon-ecr-login@v1
+      - name: Login to Public Amazon ECR
+        id: login-public-ecr                        
+        uses: docker/login-action@v1
+        with:
+          registry: public.ecr.aws
+          username: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        env:
+          AWS_REGION: us-east-1
 
       - name: GIT | Checkout aleph-apps repo
         uses: actions/checkout@master
         with:
           repository: Cardinal-Cryptography/aleph-apps
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.CI_GH_TOKEN }}
           path: "aleph-apps"
 
       - name: Init kustomize
         uses: imranismail/setup-kustomize@v1
         with:
           kustomize-version: "3.8.6"
-
-      - name: Update aleph-node docker image and trigger ArgoCD deploy                                                                        
-        env:                                                                                                          
-          RELEASE_IMAGE: ${{ steps.login-ecr.outputs.registry }}/aleph-node:${{ steps.vars.outputs.sha_short }}
+          
+      - name: Check directories
         run: |
-          cd aleph-apps/aleph-node/overlays/maindevnet
-          kustomize edit set image ${{ env.RELEASE_IMAGE }}
+          cd aleph-apps
+          ls -alF
+#       - name: Update aleph-node docker image and trigger ArgoCD deploy                                                                        
+#         env:                                                                                                          
+#           RELEASE_IMAGE: ${{ steps.login-ecr.outputs.registry }}/aleph-node:${{ steps.vars.outputs.sha_short }}
+#         run: |
+#           cd aleph-apps/aleph-node/overlays/maindevnet
+#           kustomize edit set image ${{ env.RELEASE_IMAGE }}
 
-      - name: GIT | Commit changes to aleph-apps repository.
-        uses: EndBug/add-and-commit@v5.1.0
-        with:
-          author_name: AlephZero Automation
-          author_email: alephzero@10clouds.com
-          message: "Updating Devnet docker image tag to: ${{ steps.vars.outputs.sha_short }}"
-          add: "*.yaml"
-          cwd: "aleph-apps"
-          branch: main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+#       - name: GIT | Commit changes to aleph-apps repository.
+#         uses: EndBug/add-and-commit@v5.1.0
+#         with:
+#           author_name: AlephZero Automation
+#           author_email: alephzero@10clouds.com
+#           message: "Updating Devnet docker image tag to: ${{ steps.vars.outputs.sha_short }}"
+#           add: "*.yaml"
+#           cwd: "aleph-apps"
+#           branch: main
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Send Slack Notification
         uses: rtCamp/action-slack-notify@v2
