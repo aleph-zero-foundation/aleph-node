@@ -43,7 +43,6 @@ jobs:
           curl -L "$LINK/$SCCACHE_VERSION/$SCCACHE_FILE.tar.gz" | tar xz
           mv -f $SCCACHE_FILE/sccache $HOME/.local/bin/sccache
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-
       - name: Restore Cargo Cache
         uses: actions/cache@v2
         with:
@@ -80,7 +79,6 @@ jobs:
           export RUSTC_WRAPPER=$HOME/.local/bin/sccache
           cargo build --release
           chmod +x target/release/aleph-node
-
       - name: Print sccache stats
         run: sccache --show-stats
 

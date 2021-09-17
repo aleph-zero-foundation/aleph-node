@@ -1,7 +1,18 @@
 name: integration-tests-main-devnet
 
 on:
-  workflow_dispatch:
+  pull_request:
+    paths-ignore:
+        - ".github/**"
+        - "*.md"
+    branches:
+      - main
+  push:
+    paths-ignore:
+        - ".github/**"
+        - "*.md"
+    branches:
+      - main
 
 jobs:
   build:
@@ -32,7 +43,6 @@ jobs:
           curl -L "$LINK/$SCCACHE_VERSION/$SCCACHE_FILE.tar.gz" | tar xz
           mv -f $SCCACHE_FILE/sccache $HOME/.local/bin/sccache
           echo "$HOME/.local/bin" >> $GITHUB_PATH
-
       - name: Restore Cargo Cache
         uses: actions/cache@v2
         with:
@@ -69,7 +79,6 @@ jobs:
           export RUSTC_WRAPPER=$HOME/.local/bin/sccache
           cargo build --release
           chmod +x target/release/aleph-node
-
       - name: Print sccache stats
         run: sccache --show-stats
 
@@ -103,7 +112,6 @@ jobs:
         run: |
           echo "##[set-output name=branch;]$(echo ${GITHUB_REF##*/})"
           echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
-
       - name: Download artifact with aleph-node binary
         uses: actions/download-artifact@v2
         with:
@@ -112,42 +120,29 @@ jobs:
       - name: Build docker image
         id: build-image
         run: |
+          # copy downloaded artifact to the path that the scripts expect
           mkdir -p target/release/
-          # copy artifact
           cp aleph-node target/release/aleph-node
-          # Build and tag a docker container
           docker build --tag aleph-node:latest -f ./docker/Dockerfile .
-
-      - name: Generate chainspec
+      - name: Generate chainspec and populate comittee keystores
+        shell: bash
         run: |
-          # populate validators keystore and generate chainspec
-          chmod +x target/release/aleph-node
-          ./target/release/aleph-node bootstrap-chain --base-path docker/data --chain-id a0dnet1 --n-members 4 > docker/data/chainspec.json
-
+          chmod +x ./.github/scripts/generate_chainspec.sh ./.github/scripts/check_finalization.sh
+          ./.github/scripts/generate_chainspec.sh
       - name: Run consensus party
-        run: |
-          docker-compose --env-file docker/.env -f docker/docker-compose.yml up -d
+        run: docker-compose -f docker/docker-compose.yml up -d
 
-      - name: Consensus party logs
-        run: |
-          docker logs damian --follow &
+      - name: Display bootnode logs
+        run: docker logs damian --follow &
 
-      # NOTE: this step contacts every node in the comittee by their container id and sends a simple RPC request
-      # that lists all the RPC methods that they expose.
-      # Once they respond we know all nodes are online
-      - name: Verify nodes respond
-        run: |
-          validators=( damian tomasz zbyszko hansu )
-          rpc_port=9933
+      # - name: Setup upterm session
+      #   uses: lhotari/action-upterm@v1
 
-          for validator in "${validators[@]}"; do
-            docker run --network container:$validator appropriate/curl:latest \
-                       --retry 3 \
-                       --retry-delay 10 \
-                       -H "Content-Type: application/json" \
-                       -d '{"id":1, "jsonrpc":"2.0", "method": "rpc_methods"}' http://127.0.0.1:$rpc_port
-            let rpc_port=$rpc_port+1
-          done
+      # NOTE: this step waits until chain starts finalizing blocks
+      - name: Wait for consensus
+        shell: bash
+        timeout-minutes: 5
+        run: ./.github/scripts/check_finalization.sh
 
       # note: more complex test scenarios can be run from here on out
 
@@ -159,20 +154,25 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-central-1
 
-      - name: Login to Amazon ECR
+      - name: Login to Public Amazon ECR
         if: github.event_name == 'push'
-        id: login-ecr                        
-        uses: aws-actions/amazon-ecr-login@v1
+        id: login-public-ecr                        
+        uses: docker/login-action@v1
+        with:
+          registry: public.ecr.aws
+          username: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        env:
+          AWS_REGION: us-east-1
 
-      - name: Push aleph-node Current Image to ECR
+      - name: Push aleph-node Current Image to Public ECR
         if: github.event_name == 'push'
         env:                                                       
           CURRENT_IMAGE: aleph-node:latest
-          ECR_PUSH_IMAGE: ${{ steps.login-ecr.outputs.registry }}/aleph-node:${{ steps.vars.outputs.sha_short }}
+          ECR_PUSH_IMAGE: public.ecr.aws/x2t8a1o3/aleph-node:${{ steps.vars.outputs.sha_short }}
         run: |
           docker tag ${{ env.CURRENT_IMAGE }} ${{ env.ECR_PUSH_IMAGE }}
           docker push ${{ env.ECR_PUSH_IMAGE }}
-
       - name: Send Slack Notification
         uses: rtCamp/action-slack-notify@v2
         continue-on-error: true
