@@ -3,10 +3,8 @@ services:
 
   # bootnode
   damian:
-    image: aleph-node:${VERSION}
+    image: aleph-node:latest
     container_name: damian
-    privileged: true
-    network_mode: host
     environment:
       - RUST_LOG=info
       - RPC_PORT=9933
@@ -14,66 +12,95 @@ services:
       - PORT=30333
       - PURGE_BEFORE_START=true
       - NAME=Damian
-      - BASE_PATH=/tmp/5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH
-      - NODE_KEY_PATH=/tmp/5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH/libp2p_secret
-      - CHAIN=/tmp/chainspec.json
-      - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm
+      - BASE_PATH=/data/5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH
+      - NODE_KEY_PATH=/data/5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH/libp2p_secret
+      - CHAIN=/data/chainspec.json
+      # - PUBLIC_ADDR=/ip4/172.28.1.1/tcp/30333
+      - PUBLIC_ADDR=/dns4/damian/tcp/30333
     volumes:
-      - ./data/:/tmp/
+      - ./data/:/data/
+    networks:
+      dev_net:
+        ipv4_address: 172.28.1.1
 
   tomasz:
-    image: aleph-node:${VERSION}
+    image: aleph-node:latest
     container_name: tomasz
-    privileged: true
-    network_mode: host
     environment:
       - RUST_LOG=info
-      - RPC_PORT=9934
-      - WS_PORT=9944
-      - PORT=30334
+      - RPC_PORT=9933
+      - WS_PORT=9943
+      - PORT=30333
       - PURGE_BEFORE_START=true
       - NAME=Tomasz
-      - BASE_PATH=/tmp/5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK
-      - NODE_KEY_PATH=/tmp/5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK/libp2p_secret
-      - CHAIN=/tmp/chainspec.json
-      - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm
+      - BASE_PATH=/data/5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK
+      - NODE_KEY_PATH=/data/5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK/libp2p_secret
+      - CHAIN=/data/chainspec.json
+      # - PUBLIC_ADDR=/ip4/172.28.1.2/tcp/30333
+      # - BOOT_NODES=/ip4/172.28.1.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm
+      - PUBLIC_ADDR=/dns4/tomasz/tcp/30333
+      - BOOT_NODES=/dns4/damian/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm
     volumes:
-      - ./data/:/tmp/
+      - ./data/:/data/
+    links:
+      - "damian:damian" # service damian is reachable as hostname damian
+    networks:
+      dev_net:
+        ipv4_address: 172.28.1.2
 
   zbyszko:
-    image: aleph-node:${VERSION}
+    image: aleph-node:latest
     container_name: zbyszko
-    privileged: true
-    network_mode: host
     environment:
       - RUST_LOG=info
-      - RPC_PORT=9935
-      - WS_PORT=9945
-      - PORT=30335
+      - RPC_PORT=9933
+      - WS_PORT=9943
+      - PORT=30333
       - PURGE_BEFORE_START=true
       - NAME=Zbyszko
-      - BASE_PATH=/tmp/5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9
-      - NODE_KEY_PATH=/tmp/5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9/libp2p_secret
-      - CHAIN=/tmp/chainspec.json
-      - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm
+      - BASE_PATH=/data/5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9
+      - NODE_KEY_PATH=/data/5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9/libp2p_secret
+      - CHAIN=/data/chainspec.json
+      # - PUBLIC_ADDR=/ip4/172.28.1.3/tcp/30333
+      # - BOOT_NODES=/ip4/172.28.1.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm
+      - PUBLIC_ADDR=/dns4/zbyszko/tcp/30333
+      - BOOT_NODES=/dns4/damian/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm
     volumes:
-      - ./data/:/tmp/
+      - ./data/:/data/
+    links:
+      - "damian:damian"
+    networks:
+      dev_net:
+        ipv4_address: 172.28.1.3
 
   hansu:
-    image: aleph-node:${VERSION}
+    image: aleph-node:latest
     container_name: hansu
-    privileged: true
-    network_mode: host
     environment:
       - RUST_LOG=info
-      - RPC_PORT=9936
-      - WS_PORT=9946
-      - PORT=30336
+      - RPC_PORT=9933
+      - WS_PORT=9943
+      - PORT=30333
       - PURGE_BEFORE_START=true
       - NAME=Hansu
-      - BASE_PATH=/tmp/5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o
-      - NODE_KEY_PATH=/tmp/5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o/libp2p_secret
-      - CHAIN=/tmp/chainspec.json
-      - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm
+      - BASE_PATH=/data/5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o
+      - NODE_KEY_PATH=/data/5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o/libp2p_secret
+      - CHAIN=/data/chainspec.json
+      # - PUBLIC_ADDR=/ip4/172.28.1.4/tcp/30333
+      # - BOOT_NODES=/ip4/172.28.1.1/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm
+      - PUBLIC_ADDR=/dns4/hansu/tcp/30333
+      - BOOT_NODES=/dns4/damian/tcp/30333/p2p/12D3KooWAbWDCsZiA6EXrXh33E7hBYUFK53b5CSajoPsYL5n2Zdm
     volumes:
-      - ./data/:/tmp/
+      - ./data/:/data/
+    links:
+      - "damian:damian"
+    networks:
+      dev_net:
+        ipv4_address: 172.28.1.4
+
+networks:
+  dev_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16

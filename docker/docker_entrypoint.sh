@@ -50,4 +50,8 @@ if [[ -n "${FLAG_L_ALEPH_BFT:-}" ]]; then
   ARGS+=(-lAlephBFT=debug)
 fi
 
+if [[ -n "${PUBLIC_ADDR:-}" ]]; then
+  ARGS+=(--public-addr "${PUBLIC_ADDR}")
+fi
+
 aleph-node "${ARGS[@]}"
