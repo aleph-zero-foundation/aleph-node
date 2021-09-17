@@ -1,4 +1,4 @@
-name: integration-tests-main-devnet_test
+name: integration-tests-main-devnet
 
 on:
   workflow_dispatch:
