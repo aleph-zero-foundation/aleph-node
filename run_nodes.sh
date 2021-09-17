@@ -1,14 +1,32 @@
 #!/bin/bash
 
-if [ -z "$1" ] || (("$1" < 2 || "$1" > 8))
-then
-    echo "The committee size is missing, usage:
+function usage(){
+  echo "Usage:
+      ./run_nodes.sh [-v N_VALIDATORS] [-n N_NON_VALIDATORS] [-b false] [-p BASE_PATH] [ALEPH_NODE_ARG]...
+  where 2 <= N_VALIDATORS <= N_VALIDATORS + N_NON_VALIDATORS <= 10
+  (by default, N_VALIDATORS=4, N_NON_VALIDATORS=0 and BASE_PATH=/tmp)"
+}
 
-    ./run_nodes.sh SIZE [Additional Arguments to ./target/debug/aleph-node]
+N_VALIDATORS=4
+N_NON_VALIDATORS=0
+BUILD_ALEPH_NODE='true'
+BASE_PATH='/tmp'
 
-where 2 <= SIZE <= 8"
-    exit
-fi
+while getopts "v:n:b:p:" flag
+do
+  case "${flag}" in
+    v) N_VALIDATORS=${OPTARG};;
+    n) N_NON_VALIDATORS=${OPTARG};;
+    b) BUILD_ALEPH_NODE=${OPTARG};;
+    p) BASE_PATH=${OPTARG};;
+    *)
+      usage
+      exit
+      ;;
+  esac
+done
+
+shift $((OPTIND-1))
 
 killall -9 aleph-node
 
@@ -16,30 +34,51 @@ set -e
 
 clear
 
-n_members="$1"
-echo "$n_members" > /tmp/n_members
-shift
+if $BUILD_ALEPH_NODE ; then
+  cargo build --release -p aleph-node
+fi
 
-# cargo build --release -p aleph-node
+account_ids=(
+    "5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH"
+    "5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o" \
+    "5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9" \
+    "5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK" \
+    "5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW" \
+    "5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR" \
+    "5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY" \
+    "5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ" \
+    "5CUnSsgAyLND3bxxnfNhgWXSe9Wn676JzLpGLgyJv858qhoX" \
+    "5CVKn7HAZW1Ky4r7Vkgsr7VEW88C2sHgUNDiwHY9Ct2hjU8q")
+validator_ids=("${account_ids[@]::N_VALIDATORS}")
+# space separated ids
+validator_ids_string="${validator_ids[*]}"
+# comma separated ids
+validator_ids_string="${validator_ids_string//${IFS:0:1}/,}"
 
-authorities=(Damian Tomasz Zbyszko Hansu Adam Matt Antoni Michal)
-authorities=("${authorities[@]::$n_members}")
 
-./target/release/aleph-node bootstrap-chain --base-path docker/data --chain-id dev > docker/data/chainspec.json
+echo "Bootstrapping chain for nodes 0..$((N_VALIDATORS - 1))"
+./target/release/aleph-node bootstrap-chain --base-path "$BASE_PATH" --chain-id dev --account-ids "$validator_ids_string" > "$BASE_PATH/chainspec.json"
 
-for i in ${!authorities[@]}; do
-  auth=${authorities[$i]}
-  ./target/release/aleph-node purge-chain --base-path /tmp/"$auth" --chain docker/data/chainspec.json -y
+for i in $(seq "$N_VALIDATORS" "$(( N_VALIDATORS + N_NON_VALIDATORS - 1 ))"); do
+  echo "Bootstrapping node $i"
+  account_id=${account_ids[$i]}
+  ./target/release/aleph-node bootstrap-node --base-path "$BASE_PATH" --chain-id dev --account-id "$account_id"
+done
+
+for i in $(seq 0 "$(( N_VALIDATORS + N_NON_VALIDATORS - 1 ))"); do
+  auth="node-$i"
+  account_id=${account_ids[$i]}
+  ./target/release/aleph-node purge-chain --base-path "$BASE_PATH/$account_id" --chain "$BASE_PATH/chainspec.json" -y
   ./target/release/aleph-node \
     --validator \
-    --chain docker/data/chainspec.json \
-    --base-path /tmp/$auth \
-    --name $auth \
-    --rpc-port $(expr 9933 + $i) \
-    --ws-port $(expr 9944 + $i) \
-    --port $(expr 30334 + $i) \
+    --chain "$BASE_PATH/chainspec.json" \
+    --base-path "$BASE_PATH/$account_id" \
+    --name "$auth" \
+    --rpc-port "$((9933 + i))" \
+    --ws-port "$((9944 + i))" \
+    --port "$((30334 + i))" \
     --execution Native \
     -lafa=debug \
     "$@" \
-    2> $auth-$i.log  > aleph-node.log & \
+    2> "$auth.log" > /dev/null & \
 done
