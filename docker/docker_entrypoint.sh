@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# load env variables from a file if ENV_FILE is set
+if [[ -n "${ENV_FILE:-}" ]] && [[ -f "${ENV_FILE}" ]]; then
+  set -o allexport
+  source ${ENV_FILE}
+  set +o allexport
+fi
+
 # script env variables
 PURGE_BEFORE_START=${PURGE_BEFORE_START:-}
 
@@ -11,6 +18,7 @@ BASE_PATH=${BASE_PATH:?'Base path should be specified'}
 RPC_PORT=${RPC_PORT:-9933}
 WS_PORT=${WS_PORT:-9943}
 PORT=${PORT:-30333}
+EXTERNAL_PORT=${EXTERNAL_PORT:-${PORT}}
 
 if [[ "true" == "$PURGE_BEFORE_START" ]]; then
   echo "Purging chain (${CHAIN}) at path ${BASE_PATH}"
