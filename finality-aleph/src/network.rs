@@ -8,7 +8,8 @@ use std::{
     borrow::Cow, collections::HashMap, hash::Hash, iter, marker::PhantomData, pin::Pin, sync::Arc,
 };
 
-use log::{debug, error, trace, warn};
+use log::{debug, error, info, trace, warn};
+use std::time::Duration;
 
 use crate::{
     aggregator::SignableHash,
@@ -508,7 +509,6 @@ where
                 }
             }
             Data(session_id, data, recipient) => {
-                trace!(target: "afa", "Number of authenticated peers per session {:?} -- {:?}", session_id, self.peers.peers_authenticated_for(session_id).count());
                 trace!(target: "afa", "Sending data {:?} -- {:?} to {:?}", session_id, data, recipient);
 
                 let message = InternalMessage::Data(session_id, data);
@@ -531,6 +531,7 @@ where
     }
 
     fn on_peer_connected(&mut self, peer_id: PeerId) {
+        trace!(target: "afa", "Peer {:?} connected.", peer_id);
         self.peers.insert(peer_id);
         for (_, session_data) in self.sessions.lock().iter() {
             self.authenticate_to(session_data, peer_id);
@@ -538,11 +539,13 @@ where
     }
 
     fn on_peer_disconnected(&mut self, peer_id: &PeerId) {
+        trace!(target: "afa", "Peer {:?} disconnected.", peer_id);
         self.peers.remove(peer_id);
     }
 
     pub async fn run(mut self) {
         let mut network_event_stream = self.network.event_stream();
+        let mut status_ticker = tokio::time::interval(Duration::from_secs(10));
 
         loop {
             tokio::select! {
@@ -551,10 +554,12 @@ where
                             match event {
                                 Event::SyncConnected { remote } => {
                                     // TODO: understand what does this do
+                                    trace!(target: "afa", "SyncConnected {:?}", remote);
                                     self.network.add_set_reserved(remote.into(), self.protocol.clone());
                                 }
                                 Event::SyncDisconnected { remote } => {
                                     // TODO: understand what does this do
+                                    trace!(target: "afa", "SyncDisconnected {:?}", remote);
                                     self.network
                                         .remove_set_reserved(remote.into(), self.protocol.clone());
                                 }
@@ -597,6 +602,15 @@ where
                         self.on_command(cmd);
                     } else {
                         break;
+                    }
+                }
+                _ = status_ticker.next() => {
+                    debug!(target: "afa", "Total peers in aleph network {:?}", self.peers.all_peers.len());
+                    for (session_id, session_data) in self.sessions.lock().iter() {
+                        let authenticated: Vec<usize> = self.peers.to_peer.get(session_id).into_iter().map(|hm| hm.keys()).flatten().map(|x| x.0).collect();
+                        let n_members:usize = session_data.keychain.node_count().into();
+                        info!(target: "afa", "Network nodes in session {:?}: {:?}/{:?}", session_id, authenticated.len(), n_members);
+                        debug!(target: "afa", "Authenticated nodes in session: {:?}", authenticated);
                     }
                 }
             }
