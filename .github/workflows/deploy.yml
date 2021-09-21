@@ -2,7 +2,7 @@ name: deploy
 
 on:
   workflow_run:
-    workflows: ["integration-tests"]
+    workflows: ["e2e-tests"]
     branches:
       - main
     types:
@@ -22,14 +22,14 @@ jobs:
         with:
           access_token: ${{ github.token }}
 
-      # NOTE this step will download the last succesfully built artifact from the integration-tests workflow
+      # NOTE this step will download the last succesfully built artifact from the e2e-tests workflow
       - name: Download artifact
         uses: dawidd6/action-download-artifact@v2
         with:
           # NOTE: this is optional according to the documentation, but pipeline is broken w-out the token
           # this is a generated GH personal access token with `public-repo` in it's scope
           github_token: ${{secrets.GH_TOKEN}}
-          workflow: integration_tests.yml
+          workflow: e2e_tests.yml
           name: aleph-node-image
 
       - name: Configure AWS credentials
@@ -84,7 +84,7 @@ jobs:
         uses: dawidd6/action-download-artifact@v2
         with:
           github_token: ${{secrets.GH_TOKEN}}
-          workflow: integration_tests.yml
+          workflow: e2e_tests.yml
           name: aleph-node-image
 
       - name: Configure AWS credentials

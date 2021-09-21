@@ -2,7 +2,7 @@ name: Deploy to main Devnet
 
 on:
   workflow_run:
-    workflows: ["integration-tests-main-devnet"]
+    workflows: ["e2e-tests-main-devnet"]
     branches:
       - main
     types:

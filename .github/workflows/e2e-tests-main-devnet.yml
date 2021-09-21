@@ -1,4 +1,4 @@
-name: integration-tests-main-devnet
+name: e2e-tests-main-devnet
 
 on:
   pull_request:
@@ -93,9 +93,9 @@ jobs:
           if-no-files-found: error
           retention-days: 20
 
-  integration-tests:
+  e2e-tests:
     needs: build
-    name: Run integration tests suite
+    name: Run e2e tests suite
     runs-on: ubuntu-latest
     steps:
       - name: GIT | Cancel Previous Runs
@@ -180,5 +180,5 @@ jobs:
           SLACK_COLOR: ${{ job.status }}
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SLACK_USERNAME: GithubActions
-          SLACK_TITLE: integration tests job has finished
+          SLACK_TITLE: e2e tests job has finished
           MSG_MINIMAL: actions url
