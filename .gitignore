@@ -16,3 +16,4 @@
 db/
 keystore/
 chainspec.json
+p2p_secret

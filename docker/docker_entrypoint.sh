@@ -10,6 +10,8 @@ fi
 
 # script env variables
 PURGE_BEFORE_START=${PURGE_BEFORE_START:-}
+ALLOW_PRIVATE_IPV4=${ALLOW_PRIVATE_IPV4:-}
+DISCOVER_LOCAL=${DISCOVER_LOCAL:-}
 
 # aleph_node cli options to env variables
 CHAIN=${CHAIN:?'Chain should be specified'}
@@ -60,6 +62,14 @@ fi
 
 if [[ -n "${PUBLIC_ADDR:-}" ]]; then
   ARGS+=(--public-addr "${PUBLIC_ADDR}")
+fi
+
+if [[ "true" == "$ALLOW_PRIVATE_IPV4" ]]; then
+  ARGS+=(--allow-private-ipv4 )
+fi
+
+if [[ "true" == "$DISCOVER_LOCAL" ]]; then
+  ARGS+=(--discover-local)
 fi
 
 aleph-node "${ARGS[@]}"

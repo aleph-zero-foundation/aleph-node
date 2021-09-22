@@ -124,19 +124,12 @@ jobs:
           mkdir -p target/release/
           cp aleph-node target/release/aleph-node
           docker build --tag aleph-node:latest -f ./docker/Dockerfile .
-      - name: Generate chainspec and populate comittee keystores
-        shell: bash
-        run: |
-          chmod +x ./.github/scripts/generate_chainspec.sh ./.github/scripts/check_finalization.sh
-          ./.github/scripts/generate_chainspec.sh
+
       - name: Run consensus party
-        run: docker-compose -f docker/docker-compose.yml up -d
+        run:  ./.github/scripts/run_consensus.sh
 
       - name: Display bootnode logs
         run: docker logs damian --follow &
-
-      # - name: Setup upterm session
-      #   uses: lhotari/action-upterm@v1
 
       # NOTE: this step waits until chain starts finalizing blocks
       - name: Wait for consensus
@@ -148,15 +141,15 @@ jobs:
 
       - name: Configure AWS credentials
         if: github.event_name == 'push'
-        uses: aws-actions/configure-aws-credentials@v1           
-        with:                                                    
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}      
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-central-1
 
       - name: Login to Public Amazon ECR
         if: github.event_name == 'push'
-        id: login-public-ecr                        
+        id: login-public-ecr
         uses: docker/login-action@v1
         with:
           registry: public.ecr.aws
@@ -167,7 +160,7 @@ jobs:
 
       - name: Push aleph-node Current Image to Public ECR
         if: github.event_name == 'push'
-        env:                                                       
+        env:
           CURRENT_IMAGE: aleph-node:latest
           ECR_PUSH_IMAGE: public.ecr.aws/x2t8a1o3/aleph-node:${{ steps.vars.outputs.sha_short }}
         run: |

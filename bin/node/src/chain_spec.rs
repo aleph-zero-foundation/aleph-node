@@ -6,14 +6,16 @@ use aleph_runtime::{
     Signature, SudoConfig, SystemConfig, VestingConfig, WASM_BINARY,
 };
 use hex_literal::hex;
+use libp2p::PeerId;
 use sc_service::config::BasePath;
 use sc_service::ChainType;
-use serde::{Deserialize, Serialize};
+use serde::de::Error;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sp_application_crypto::Ss58Codec;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
-use std::path::PathBuf;
+use std::{path::PathBuf, str::FromStr};
 use structopt::StructOpt;
 
 const FAUCET_HASH: [u8; 32] =
@@ -33,6 +35,39 @@ pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Pu
 
 type AccountPublic = <Signature as Verify>::Signer;
 
+#[derive(Clone)]
+pub struct SerializablePeerId {
+    inner: PeerId,
+}
+
+impl SerializablePeerId {
+    pub fn new(inner: PeerId) -> SerializablePeerId {
+        SerializablePeerId { inner }
+    }
+}
+
+impl Serialize for SerializablePeerId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let s: String = format!("{}", self.inner);
+        serializer.serialize_str(&s)
+    }
+}
+
+impl<'de> Deserialize<'de> for SerializablePeerId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        let inner = PeerId::from_str(&s)
+            .map_err(|_| D::Error::custom(format!("Could not deserialize as PeerId: {}", s)))?;
+        Ok(SerializablePeerId { inner })
+    }
+}
+
 /// Generate an account ID from seed.
 pub fn get_account_id_from_seed<TPublic: Public>(seed: &&str) -> AccountId
 where
@@ -46,6 +81,7 @@ pub struct AuthorityKeys {
     pub account_id: AccountId,
     pub aura_key: AuraId,
     pub aleph_key: AlephId,
+    pub peer_id: SerializablePeerId,
 }
 
 #[derive(Debug, StructOpt, Clone)]
@@ -59,6 +95,11 @@ pub struct ChainParams {
     /// Specify custom base path.
     #[structopt(long, short = "d", value_name = "PATH", parse(from_os_str))]
     pub base_path: PathBuf,
+
+    /// Specify filename to write node private p2p keys to
+    /// Resulting keys will be stored at: base_path/account_id/node_key_file for each node
+    #[structopt(long, default_value = "p2p_secret")]
+    pub node_key_file: String,
 
     #[structopt(long)]
     pub session_period: Option<u32>,

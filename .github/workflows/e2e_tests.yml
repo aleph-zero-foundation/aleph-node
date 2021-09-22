@@ -119,18 +119,11 @@ jobs:
           cp aleph-node target/release/aleph-node
           docker build --tag aleph-node:latest -f ./docker/Dockerfile .
 
-      - name: Generate chainspec and populate comittee keystores
-        shell: bash
-        run: ./.github/scripts/generate_chainspec.sh
-
       - name: Run consensus party
-        run: docker-compose -f docker/docker-compose.yml up -d
+        run:  ./.github/scripts/run_consensus.sh
 
       - name: Display bootnode logs
         run: docker logs damian --follow &
-
-      # - name: Setup upterm session
-      #   uses: lhotari/action-upterm@v1
 
       # NOTE: this step waits until chain starts finalizing blocks
       - name: Wait for consensus

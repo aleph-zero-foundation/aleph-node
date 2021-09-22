@@ -1,7 +1,9 @@
-use crate::chain_spec::{self, get_account_id_from_seed, AuthorityKeys, ChainParams};
+use crate::chain_spec::{
+    self, get_account_id_from_seed, AuthorityKeys, ChainParams, SerializablePeerId,
+};
 use aleph_primitives::AuthorityId as AlephId;
 use aleph_runtime::AccountId;
-use log::info;
+use libp2p::identity::{ed25519 as libp2p_ed25519, PublicKey};
 use sc_cli::{Error, KeystoreParams};
 use sc_keystore::LocalKeystore;
 use sc_service::config::{BasePath, KeystoreConfig};
@@ -10,6 +12,7 @@ use sp_application_crypto::Ss58Codec;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::sr25519;
 use sp_keystore::SyncCryptoStore;
+use std::fs;
 use std::io::Write;
 use structopt::StructOpt;
 
@@ -35,18 +38,42 @@ fn aleph_key(keystore: &impl SyncCryptoStore) -> AlephId {
         .into()
 }
 
+/// Returns peer id, if not p2p key found under base_path/account-id/node-key-file a new provate key gets generated
+fn p2p_key(chain_params: &ChainParams, account_id: &AccountId) -> SerializablePeerId {
+    let authority = account_id.to_string();
+    let file = chain_params
+        .base_path()
+        .path()
+        .join(authority)
+        .join(&chain_params.node_key_file);
+
+    if file.exists() {
+        let mut file_content =
+            hex::decode(fs::read(&file).unwrap()).expect("failed to decode secret as hex");
+        let secret =
+            libp2p_ed25519::SecretKey::from_bytes(&mut file_content).expect("Bad node key file");
+        let keypair = libp2p_ed25519::Keypair::from(secret);
+        SerializablePeerId::new(PublicKey::Ed25519(keypair.public()).into_peer_id())
+    } else {
+        let keypair = libp2p_ed25519::Keypair::generate();
+        let secret = keypair.secret();
+        let secret_hex = hex::encode(secret.as_ref());
+        fs::write(file, secret_hex).expect("Could not write p2p secret");
+        SerializablePeerId::new(PublicKey::Ed25519(keypair.public()).into_peer_id())
+    }
+}
+
 fn open_keystore(
     keystore_params: &KeystoreParams,
     chain_params: &ChainParams,
-    authority: &str,
+    account_id: &AccountId,
 ) -> impl SyncCryptoStore {
     let chain_id = chain_params.chain_id();
-    let base_path: BasePath = chain_params.base_path().path().join(authority).into();
-
-    info!(
-        "Writing to keystore for authority {} and chain id {} under path {:?}",
-        authority, chain_id, base_path
-    );
+    let base_path: BasePath = chain_params
+        .base_path()
+        .path()
+        .join(account_id.to_string())
+        .into();
 
     let config_dir = base_path.config_dir(chain_id);
     match keystore_params
@@ -60,15 +87,21 @@ fn open_keystore(
     }
 }
 
-fn authority_keys(keystore: &impl SyncCryptoStore, account_id: &AccountId) -> AuthorityKeys {
+fn authority_keys(
+    keystore: &impl SyncCryptoStore,
+    chain_params: &ChainParams,
+    account_id: &AccountId,
+) -> AuthorityKeys {
     let aura_key = aura_key(keystore);
     let aleph_key = aleph_key(keystore);
-    let account_id = account_id.clone();
+    let peer_id = p2p_key(chain_params, account_id);
 
+    let account_id = account_id.clone();
     AuthorityKeys {
         account_id,
         aura_key,
         aleph_key,
+        peer_id,
     }
 }
 
@@ -95,13 +128,10 @@ impl BootstrapChainCmd {
             .account_ids()
             .iter()
             .map(|account_id| {
-                let authority = account_id.to_string();
-                let keystore = open_keystore(&self.keystore_params, &self.chain_params, &authority);
-                authority_keys(&keystore, account_id)
+                let keystore = open_keystore(&self.keystore_params, &self.chain_params, account_id);
+                authority_keys(&keystore, &self.chain_params, account_id)
             })
             .collect();
-
-        info!("Building chain spec");
 
         let chain_spec = match self.chain_params.chain_id() {
             chain_spec::DEVNET_ID => {
@@ -147,10 +177,9 @@ pub struct BootstrapNodeCmd {
 impl BootstrapNodeCmd {
     pub fn run(&self) -> Result<(), Error> {
         let account_id = &self.account_id();
-        let authority = account_id.to_string();
-        let keystore = open_keystore(&self.keystore_params, &self.chain_params, &authority);
+        let keystore = open_keystore(&self.keystore_params, &self.chain_params, account_id);
 
-        let authority_keys = authority_keys(&keystore, account_id);
+        let authority_keys = authority_keys(&keystore, &self.chain_params, account_id);
         let keys_json = serde_json::to_string_pretty(&authority_keys)
             .expect("serialization of authority keys should have succeed");
         println!("{}", keys_json);
