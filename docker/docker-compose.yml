@@ -5,12 +5,16 @@ services:
   damian:
     image: aleph-node:latest
     container_name: damian
+    ports:
+      - 30333:30333
+      - 9933:9933
+      - 9943:9943
     environment:
+      - PURGE_BEFORE_START=true
       - RUST_LOG=info
       - RPC_PORT=9933
       - WS_PORT=9943
       - PORT=30333
-      - PURGE_BEFORE_START=true
       - NAME=Damian
       - BASE_PATH=/data/5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH
       - NODE_KEY_PATH=/data/5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH/p2p_secret
@@ -27,11 +31,11 @@ services:
     image: aleph-node:latest
     container_name: tomasz
     environment:
+      - PURGE_BEFORE_START=true
       - RUST_LOG=info
       - RPC_PORT=9933
       - WS_PORT=9943
       - PORT=30333
-      - PURGE_BEFORE_START=true
       - NAME=Tomasz
       - BASE_PATH=/data/5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK
       - NODE_KEY_PATH=/data/5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK/p2p_secret
@@ -52,11 +56,11 @@ services:
     image: aleph-node:latest
     container_name: zbyszko
     environment:
+      - PURGE_BEFORE_START=true
       - RUST_LOG=info
       - RPC_PORT=9933
       - WS_PORT=9943
       - PORT=30333
-      - PURGE_BEFORE_START=true
       - NAME=Zbyszko
       - BASE_PATH=/data/5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9
       - NODE_KEY_PATH=/data/5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9/p2p_secret
@@ -77,11 +81,11 @@ services:
     image: aleph-node:latest
     container_name: hansu
     environment:
+      - PURGE_BEFORE_START=true
       - RUST_LOG=info
       - RPC_PORT=9933
       - WS_PORT=9943
       - PORT=30333
-      - PURGE_BEFORE_START=true
       - NAME=Hansu
       - BASE_PATH=/data/5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o
       - NODE_KEY_PATH=/data/5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o/p2p_secret

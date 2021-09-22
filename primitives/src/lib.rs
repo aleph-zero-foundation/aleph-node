@@ -25,6 +25,8 @@ pub type AuthorityId = app::Public;
 
 pub const DEFAULT_SESSION_PERIOD: u32 = 5;
 pub const DEFAULT_MILLISECS_PER_BLOCK: u64 = 4000;
+pub const TOKEN_DECIMALS: u32 = 12;
+pub const ADDRESSES_ENCODING: u32 = 42;
 
 #[derive(codec::Encode, codec::Decode, PartialEq, Eq, sp_std::fmt::Debug)]
 pub enum ApiError {

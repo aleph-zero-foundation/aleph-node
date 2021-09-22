@@ -1,5 +1,6 @@
 use aleph_primitives::{
-    AuthorityId as AlephId, DEFAULT_MILLISECS_PER_BLOCK, DEFAULT_SESSION_PERIOD,
+    AuthorityId as AlephId, ADDRESSES_ENCODING, DEFAULT_MILLISECS_PER_BLOCK,
+    DEFAULT_SESSION_PERIOD, TOKEN_DECIMALS,
 };
 use aleph_runtime::{
     AccountId, AlephConfig, AuraConfig, BalancesConfig, GenesisConfig, SessionConfig, SessionKeys,
@@ -11,6 +12,7 @@ use sc_service::config::BasePath;
 use sc_service::ChainType;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde_json::{Number, Value};
 use sp_application_crypto::Ss58Codec;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
@@ -183,6 +185,23 @@ impl ChainParams {
     }
 }
 
+fn system_properties(token_symbol: String) -> serde_json::map::Map<String, Value> {
+    [
+        ("tokenSymbol".to_string(), Value::String(token_symbol)),
+        (
+            "tokenDecimals".to_string(),
+            Value::Number(Number::from(TOKEN_DECIMALS)),
+        ),
+        (
+            "ss58Format".to_string(),
+            Value::Number(Number::from(ADDRESSES_ENCODING)),
+        ),
+    ]
+    .iter()
+    .cloned()
+    .collect()
+}
+
 pub fn development_config(
     chain_params: ChainParams,
     authorities: Vec<AuthorityKeys>,
@@ -232,15 +251,7 @@ pub fn development_config(
         // Protocol ID
         None,
         // Properties
-        Some(
-            [(
-                "tokenSymbol".to_string(),
-                serde_json::Value::String(token_symbol),
-            )]
-            .iter()
-            .cloned()
-            .collect(),
-        ),
+        Some(system_properties(token_symbol)),
         // Extensions
         None,
     ))
@@ -290,15 +301,7 @@ pub fn config(
         // Protocol ID
         None,
         // Properties
-        Some(
-            [(
-                "tokenSymbol".to_string(),
-                serde_json::Value::String(token_symbol),
-            )]
-            .iter()
-            .cloned()
-            .collect(),
-        ),
+        Some(system_properties(token_symbol)),
         // Extensions
         None,
     ))
