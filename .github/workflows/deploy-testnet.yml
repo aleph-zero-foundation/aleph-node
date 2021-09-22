@@ -1,0 +1,94 @@
+name: Deploy to Testnet
+
+on:
+  release:
+    types: [prereleased]
+
+jobs:
+  deploy-testnet:
+    name: Deploy new aleph-node image to Testnet EKS
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1 # this region is used by all public ECR repos
+    steps:
+      - name: GIT | Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: GIT | Checkout                                  
+        uses: actions/checkout@v2
+        
+      - name: GIT | Get branch info & current commit sha.
+        id: vars
+        shell: bash
+        run: |
+          echo "##[set-output name=branch;]$(echo ${GITHUB_REF##*/})"
+          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+          
+      - name: Configure AWS credentials                          
+        uses: aws-actions/configure-aws-credentials@v1           
+        with:                                                    
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Public Amazon ECR
+        id: login-public-ecr                        
+        uses: docker/login-action@v1
+        with:
+          registry: public.ecr.aws
+          username: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        env:
+          AWS_REGION: us-east-1
+      
+      - name: Tag and push image for Testnet
+        env:
+          DEVNET_IMAGE: public.ecr.aws/x2t8a1o3/aleph-node:${{ steps.vars.outputs.sha_short }}
+          TESTNET_IMAGE: public.ecr.aws/x2t8a1o3/aleph-node:${{ steps.vars.outputs.branch }}
+        run: |
+          docker pull ${{ env.DEVNET_IMAGE }}
+          docker tag ${{ env.DEVNET_IMAGE }} ${{ env.TESTNET_IMAGE }}
+          docker push ${{ env.TESTNET_IMAGE }}
+          
+      - name: GIT | Checkout aleph-apps repo
+        uses: actions/checkout@master
+        with:
+          repository: Cardinal-Cryptography/aleph-apps
+          token: ${{ secrets.CI_GH_TOKEN }}
+          path: "aleph-apps"
+
+      - name: Init kustomize
+        uses: imranismail/setup-kustomize@v1
+        with:
+          kustomize-version: "3.8.6"
+          
+      - name: Update aleph-node docker image and trigger ArgoCD deploy for Testnet                                                                      
+        env:                                                                                                          
+          TESTNET_IMAGE: public.ecr.aws/x2t8a1o3/aleph-node:${{ steps.vars.outputs.branch }}
+        run: |
+          cd aleph-apps/aleph-node/overlays/testnet
+          kustomize edit set image ${{ env.TESTNET_IMAGE }}
+
+      - name: GIT | Commit changes to aleph-apps repository.
+        uses: EndBug/add-and-commit@v5.1.0
+        with:
+          author_name: AlephZero Automation
+          author_email: alephzero@10clouds.com
+          message: "Updating Testnet docker image tag for pre-release: ${{ steps.vars.outputs.branch }}"
+          add: "*.yaml"
+          cwd: "aleph-apps"
+          branch: main
+        env:
+          GITHUB_TOKEN: ${{ secrets.CI_GH_TOKEN }}
+
+      - name: Send Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        continue-on-error: true
+        env:
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_USERNAME: GithubActions
+          SLACK_TITLE: deploy-testnet job has finished
+          MSG_MINIMAL: actions url
