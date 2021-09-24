@@ -7,7 +7,7 @@ use sp_runtime::{
     traits::{Block, Header},
     Justification,
 };
-use std::{collections::VecDeque, sync::Arc};
+use std::sync::Arc;
 
 pub(crate) fn finalize_block<BE, B, C>(
     client: Arc<C>,
@@ -38,14 +38,14 @@ where
 }
 
 /// Given hash `last_finalized` and `AlephDataFor` `new_data` of two blocks, returns
-/// the sequence of headers of the blocks on the path from `last_finalized` to `new_data`
-/// excluding the header corresponding to `last_finalized`, or an empty sequence if
-/// `new_data` is not a descendant of `last_finalized`.
-pub(crate) fn chain_extension_step<BE, B, C>(
+/// Some(new_data) if the block hash represented by new_data is a descendant of last_finalized
+/// (and the new_data.number is correct). Otherwise it outputs None.
+pub(crate) fn should_finalize<BE, B, C>(
     last_finalized: B::Hash,
     new_data: AlephDataFor<B>,
     client: &C,
-) -> VecDeque<B::Header>
+    last_block_in_session: NumberFor<B>,
+) -> Option<AlephDataFor<B>>
 where
     B: Block,
     BE: Backend<B>,
@@ -53,51 +53,53 @@ where
 {
     // this early return is for optimization reasons only.
     if new_data.hash == last_finalized {
-        return VecDeque::new();
+        return None;
+    }
+
+    if new_data.number > last_block_in_session {
+        return None;
     }
 
     let last_finalized_number = match client.number(last_finalized) {
         Ok(Some(number)) => number,
         _ => {
             error!(target: "afa", "No block number for {}", last_finalized);
-            return VecDeque::new();
+            return None;
         }
     };
 
     if let Ok(Some(header)) = client.header(BlockId::Hash(new_data.hash)) {
         if *header.number() != new_data.number {
             warn!(target: "afa", "Incorrect number for hash {}. Got {}, should be {}", new_data.hash, new_data.number, header.number());
-            return VecDeque::new();
+            return None;
         }
     } else {
         warn!(target: "afa", "No header for hash {}", new_data.hash);
-        return VecDeque::new();
+        return None;
     }
 
-    let mut extension = VecDeque::new();
-    // iterate ancestors of `new_hash` and push their headers to the front of `extension`
-    // until reaching a block with number <= last_finalized_number.
+    // Iterate ancestors of `new_hash` until reaching a block with number <= last_finalized_number
+    // in order to check if new_data.hash is an ancestor of last_finalized
     let mut hash = new_data.hash;
     loop {
         let header = match client.header(BlockId::Hash(hash)) {
             Ok(Some(header)) => header,
             _ => {
                 error!(target: "afa", "No header for hash {}", hash);
-                return VecDeque::new();
+                return None;
             }
         };
 
         if header.number() <= &last_finalized_number {
             if hash != last_finalized {
                 // `new_hash` is not an ancestor of `last_finalized`
-                return VecDeque::new();
+                return None;
             }
             break;
         }
         hash = *header.parent_hash();
-        extension.push_front(header);
     }
-    extension
+    Some(new_data)
 }
 
 #[cfg(test)]
@@ -131,28 +133,31 @@ mod tests {
     }
 
     #[test]
-    fn chain_extenstion_step_for_descendant() {
+    fn should_finalize_for_descendant() {
         let mut client = Arc::new(TestClientBuilder::new().build());
 
         let n = 5;
         let blocks = create_chain(&mut client, n as u64);
         for i in 0..n {
             for j in i..n {
-                let extension = chain_extension_step(
+                let maybe_data = should_finalize(
                     blocks[i],
                     AlephData::new(blocks[j], j as u64),
                     client.as_ref(),
+                    100u64,
                 );
-                assert!(extension
-                    .iter()
-                    .map(|header| header.hash())
-                    .eq(blocks[i + 1..j + 1].iter().cloned()));
+                let correct_result = if i == j {
+                    None
+                } else {
+                    Some(AlephData::new(blocks[j], j as u64))
+                };
+                assert!(maybe_data == correct_result);
             }
         }
     }
 
     #[test]
-    fn chain_extenstion_step_for_non_descendant() {
+    fn should_finalize_for_non_descendant() {
         let mut client = Arc::new(TestClientBuilder::new().build());
 
         let n = 5;
@@ -160,12 +165,13 @@ mod tests {
 
         for i in 0..=n {
             for j in 0..i {
-                let extension = chain_extension_step(
+                let maybe_data = should_finalize(
                     blocks[i],
                     AlephData::new(blocks[j], j as u64),
                     client.as_ref(),
+                    100u64,
                 );
-                assert!(extension.is_empty());
+                assert!(maybe_data.is_none());
             }
         }
 
@@ -189,19 +195,20 @@ mod tests {
         for i in 0..=n {
             for j in 0..=n {
                 if i != j {
-                    let extension = chain_extension_step(
+                    let maybe_data = should_finalize(
                         extra_children[i],
                         AlephData::new(extra_children[j], j as u64),
                         client.as_ref(),
+                        100u64,
                     );
-                    assert!(extension.is_empty());
+                    assert!(maybe_data.is_none());
                 }
             }
         }
     }
 
     #[test]
-    fn chain_extenstion_step_for_incorrect_aleph_data() {
+    fn should_finalize_for_incorrect_aleph_data() {
         let mut client = Arc::new(TestClientBuilder::new().build());
 
         let n = 5;
@@ -209,12 +216,13 @@ mod tests {
 
         for i in 0..n {
             for j in i..n {
-                let extension = chain_extension_step(
+                let maybe_data = should_finalize(
                     blocks[i],
                     AlephData::new(blocks[j], (j + 1) as u64),
                     client.as_ref(),
+                    100u64,
                 );
-                assert!(extension.is_empty());
+                assert!(maybe_data.is_none());
             }
         }
     }

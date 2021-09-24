@@ -2,7 +2,7 @@ use crate::{
     aggregator::BlockSignatureAggregator,
     data_io::{refresh_best_chain, AlephData, AlephDataFor, DataIO, DataStore},
     default_aleph_config,
-    finalization::chain_extension_step,
+    finalization::should_finalize,
     justification::{
         AlephJustification, ChainCadence, JustificationHandler, JustificationNotification,
     },
@@ -209,13 +209,10 @@ async fn run_aggregator<B, C, BE>(
                         continue;
                     }
                     for new_block_data in batch {
-                        let to_finalize_headers = chain_extension_step(last_finalized, new_block_data, client.as_ref());
-                        for header in to_finalize_headers.iter() {
-                            if *header.number() <= last_block_in_session {
-                                aggregator.start_aggregation(header.hash()).await;
-                                last_finalized = header.hash();
-                            }
-                            if *header.number() >= last_block_in_session {
+                        if let Some(data) = should_finalize(last_finalized, new_block_data, client.as_ref(), last_block_in_session) {
+                            aggregator.start_aggregation(data.hash).await;
+                            last_finalized = data.hash;
+                            if data.number == last_block_in_session {
                                 aggregator.notify_last_hash();
                                 last_block_seen = true;
                                 break;
@@ -364,8 +361,16 @@ where
             debug!(target: "afa", "Forwarder task stopped for {:?}", session_id.0);
         };
 
-        let refresher_task =
-            refresh_best_chain(self.select_chain.clone(), best_chain, exit_refresher_rx);
+        let refresher_task = {
+            let last_block = last_block_of_session::<B>(session_id, self.session_period);
+            refresh_best_chain(
+                self.select_chain.clone(),
+                self.client.clone(),
+                best_chain,
+                last_block,
+                exit_refresher_rx,
+            )
+        };
 
         let member_handle = self
             .spawn_handle

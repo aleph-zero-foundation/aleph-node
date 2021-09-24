@@ -239,11 +239,43 @@ pub(crate) struct DataIO<B: BlockT> {
     pub(crate) metrics: Option<Metrics<B::Header>>,
 }
 
-pub(crate) async fn refresh_best_chain<B: BlockT, SC: SelectChain<B>>(
+// Reduce block header to the level given by num, by traversing down via parents.
+fn reduce_header_to_num<B, BE, C>(client: Arc<C>, header: B::Header, num: NumberFor<B>) -> B::Header
+where
+    B: BlockT,
+    C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
+    BE: Backend<B> + 'static,
+{
+    let mut curr_header = header;
+    while curr_header.number() > &num {
+        curr_header = client
+            .header(BlockId::Hash(*curr_header.parent_hash()))
+            .expect("client must respond")
+            .expect("parent hash is known by the client");
+    }
+    curr_header
+}
+
+pub(crate) async fn refresh_best_chain<B, BE, SC, C>(
     select_chain: SC,
-    best_chain: Arc<Mutex<AlephDataFor<B>>>,
+    client: Arc<C>,
+    data: Arc<Mutex<AlephDataFor<B>>>,
+    max_block_num: NumberFor<B>,
     mut exit: oneshot::Receiver<()>,
-) {
+) where
+    B: BlockT,
+    C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
+    BE: Backend<B> + 'static,
+    SC: SelectChain<B> + 'static,
+{
+    // We would like data to contain the highest ancestor of the `best_block` (this is what
+    // `select_chain` provides us with) up to the maximal height of `max_block_num`. This task periodically
+    // queries `select_chain` for the `best_block` and updates data accordingly. One optimization that it
+    // uses is that once the block in `data` reaches the height of `max_block_num`, and the just queried
+    // `best_block` is a `descendant` of the previous query, then we don't need to update data, as it is
+    // already correct.
+    let mut prev_best_hash: B::Hash = data.lock().hash;
+    let mut prev_best_number: NumberFor<B> = data.lock().number;
     loop {
         let delay = futures_timer::Delay::new(Duration::from_millis(REFRESH_INTERVAL));
         tokio::select! {
@@ -252,7 +284,24 @@ pub(crate) async fn refresh_best_chain<B: BlockT, SC: SelectChain<B>>(
                     .best_chain()
                     .await
                     .expect("No best chain");
-                *best_chain.lock() = AlephData::new(new_best_header.hash(), *new_best_header.number());
+                if *new_best_header.number() <= max_block_num {
+                    *data.lock() = AlephData::new(new_best_header.hash(), *new_best_header.number());
+                } else {
+                    // we check if prev_best_header is an ancestor of new_best_header:
+                    if data.lock().number < max_block_num {
+                        let reduced_header = reduce_header_to_num(client.clone(), new_best_header.clone(), max_block_num);
+                        *data.lock() = AlephData::new(reduced_header.hash(), *reduced_header.number());
+                    } else {
+                        let reduced_header = reduce_header_to_num(client.clone(), new_best_header.clone(), prev_best_number);
+                        if reduced_header.hash() != prev_best_hash {
+                            // the new best block is not a descendant of previous best
+                            let reduced_header = reduce_header_to_num(client.clone(), new_best_header.clone(), max_block_num);
+                            *data.lock() = AlephData::new(reduced_header.hash(), *reduced_header.number());
+                        }
+                    }
+                }
+                prev_best_hash = new_best_header.hash();
+                prev_best_number = *new_best_header.number();
             }
             _ = &mut exit => {
                 debug!(target: "afa", "Task for refreshing best chain received exit signal. Terminating.");
