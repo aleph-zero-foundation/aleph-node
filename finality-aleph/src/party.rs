@@ -1,6 +1,8 @@
 use crate::{
     aggregator::BlockSignatureAggregator,
-    data_io::{refresh_best_chain, AlephData, AlephDataFor, DataIO, DataStore},
+    data_io::{
+        reduce_header_to_num, refresh_best_chain, AlephData, AlephDataFor, DataIO, DataStore,
+    },
     default_aleph_config,
     finalization::should_finalize,
     justification::{
@@ -272,9 +274,8 @@ where
         exit_rx: futures::channel::oneshot::Receiver<()>,
     ) -> impl Future<Output = ()> {
         debug!(target: "afa", "Authority task {:?}", session_id);
-
+        let last_block = last_block_of_session::<B>(session_id, self.session_period);
         let (ordered_batch_tx, ordered_batch_rx) = mpsc::unbounded();
-
         let (aleph_network_tx, data_store_rx) = mpsc::unbounded();
         let (data_store_tx, aleph_network_rx) = mpsc::unbounded();
         let mut data_store = DataStore::<B, C, BE, AlephNetworkData<B>>::new(
@@ -287,18 +288,19 @@ where
 
         let consensus_config = create_aleph_config(authorities.len(), node_id, session_id);
 
-        let best_chain_header = self
+        let best_header = self
             .select_chain
             .best_chain()
             .await
             .expect("No best chain.");
-        let best_chain = Arc::new(Mutex::new(AlephData::new(
-            best_chain_header.hash(),
-            *best_chain_header.number(),
+        let reduced_header = reduce_header_to_num(self.client.clone(), best_header, last_block);
+        let proposed_block = Arc::new(Mutex::new(AlephData::new(
+            reduced_header.hash(),
+            *reduced_header.number(),
         )));
         let data_io = DataIO::<B> {
             ordered_batch_tx,
-            best_chain: best_chain.clone(),
+            proposed_block: proposed_block.clone(),
             metrics: self.metrics.clone(),
         };
 
@@ -362,11 +364,10 @@ where
         };
 
         let refresher_task = {
-            let last_block = last_block_of_session::<B>(session_id, self.session_period);
             refresh_best_chain(
                 self.select_chain.clone(),
                 self.client.clone(),
-                best_chain,
+                proposed_block,
                 last_block,
                 exit_refresher_rx,
             )

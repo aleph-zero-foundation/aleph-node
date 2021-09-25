@@ -234,13 +234,17 @@ where
 
 #[derive(Clone)]
 pub(crate) struct DataIO<B: BlockT> {
-    pub(crate) best_chain: Arc<Mutex<AlephDataFor<B>>>,
+    pub(crate) proposed_block: Arc<Mutex<AlephDataFor<B>>>,
     pub(crate) ordered_batch_tx: mpsc::UnboundedSender<OrderedBatch<AlephDataFor<B>>>,
     pub(crate) metrics: Option<Metrics<B::Header>>,
 }
 
 // Reduce block header to the level given by num, by traversing down via parents.
-fn reduce_header_to_num<B, BE, C>(client: Arc<C>, header: B::Header, num: NumberFor<B>) -> B::Header
+pub(crate) fn reduce_header_to_num<B, BE, C>(
+    client: Arc<C>,
+    header: B::Header,
+    num: NumberFor<B>,
+) -> B::Header
 where
     B: BlockT,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
@@ -259,7 +263,7 @@ where
 pub(crate) async fn refresh_best_chain<B, BE, SC, C>(
     select_chain: SC,
     client: Arc<C>,
-    data: Arc<Mutex<AlephDataFor<B>>>,
+    proposed_block: Arc<Mutex<AlephDataFor<B>>>,
     max_block_num: NumberFor<B>,
     mut exit: oneshot::Receiver<()>,
 ) where
@@ -268,14 +272,14 @@ pub(crate) async fn refresh_best_chain<B, BE, SC, C>(
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
 {
-    // We would like data to contain the highest ancestor of the `best_block` (this is what
+    // We would like proposed_block to contain the highest ancestor of the `best_block` (this is what
     // `select_chain` provides us with) up to the maximal height of `max_block_num`. This task periodically
-    // queries `select_chain` for the `best_block` and updates data accordingly. One optimization that it
-    // uses is that once the block in `data` reaches the height of `max_block_num`, and the just queried
-    // `best_block` is a `descendant` of the previous query, then we don't need to update data, as it is
+    // queries `select_chain` for the `best_block` and updates proposed_block accordingly. One optimization that it
+    // uses is that once the block in `proposed_block` reaches the height of `max_block_num`, and the just queried
+    // `best_block` is a `descendant` of the previous query, then we don't need to update proposed_block, as it is
     // already correct.
-    let mut prev_best_hash: B::Hash = data.lock().hash;
-    let mut prev_best_number: NumberFor<B> = data.lock().number;
+    let mut prev_best_hash: B::Hash = proposed_block.lock().hash;
+    let mut prev_best_number: NumberFor<B> = proposed_block.lock().number;
     loop {
         let delay = futures_timer::Delay::new(Duration::from_millis(REFRESH_INTERVAL));
         tokio::select! {
@@ -285,18 +289,18 @@ pub(crate) async fn refresh_best_chain<B, BE, SC, C>(
                     .await
                     .expect("No best chain");
                 if *new_best_header.number() <= max_block_num {
-                    *data.lock() = AlephData::new(new_best_header.hash(), *new_best_header.number());
+                    *proposed_block.lock() = AlephData::new(new_best_header.hash(), *new_best_header.number());
                 } else {
                     // we check if prev_best_header is an ancestor of new_best_header:
-                    if data.lock().number < max_block_num {
+                    if proposed_block.lock().number < max_block_num {
                         let reduced_header = reduce_header_to_num(client.clone(), new_best_header.clone(), max_block_num);
-                        *data.lock() = AlephData::new(reduced_header.hash(), *reduced_header.number());
+                        *proposed_block.lock() = AlephData::new(reduced_header.hash(), *reduced_header.number());
                     } else {
                         let reduced_header = reduce_header_to_num(client.clone(), new_best_header.clone(), prev_best_number);
                         if reduced_header.hash() != prev_best_hash {
                             // the new best block is not a descendant of previous best
                             let reduced_header = reduce_header_to_num(client.clone(), new_best_header.clone(), max_block_num);
-                            *data.lock() = AlephData::new(reduced_header.hash(), *reduced_header.number());
+                            *proposed_block.lock() = AlephData::new(reduced_header.hash(), *reduced_header.number());
                         }
                     }
                 }
@@ -315,7 +319,7 @@ impl<B: BlockT> aleph_bft::DataIO<AlephDataFor<B>> for DataIO<B> {
     type Error = Error;
 
     fn get_data(&self) -> AlephDataFor<B> {
-        let best = *self.best_chain.lock();
+        let best = *self.proposed_block.lock();
 
         if let Some(m) = &self.metrics {
             m.report_block(best.hash, std::time::Instant::now(), "get_data");
