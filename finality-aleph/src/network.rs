@@ -161,6 +161,10 @@ impl PeerInfo {
     fn iter(&self) -> impl Iterator<Item = (&SessionId, &NodeIndex)> {
         self.authentications.iter()
     }
+
+    fn remove_session(&mut self, session_id: &SessionId) {
+        self.authentications.remove(session_id);
+    }
 }
 
 struct Peers {
@@ -201,7 +205,7 @@ impl Peers {
             .insert(node_id, *peer);
     }
 
-    fn remove(&mut self, peer: &PeerId) {
+    fn remove_peer(&mut self, peer: &PeerId) {
         if let Some(peer_info) = self.all_peers.remove(peer) {
             for (session_id, node_id) in peer_info.iter() {
                 self.to_peer.entry(*session_id).and_modify(|hm| {
@@ -210,6 +214,13 @@ impl Peers {
             }
         }
         self.to_peer.retain(|_, hm| !hm.is_empty());
+    }
+
+    fn remove_session(&mut self, session_id: &SessionId) {
+        self.to_peer.remove(session_id);
+        for (_, peer_info) in self.all_peers.iter_mut() {
+            peer_info.remove_session(session_id);
+        }
     }
 
     fn peers_authenticated_for(
@@ -268,6 +279,11 @@ pub(crate) enum InternalMessage<D: Clone + Encode + Decode> {
     Data(SessionId, D),
 }
 
+#[derive(Clone, Encode, Decode, Debug)]
+pub(crate) enum ControlCommand {
+    Terminate(SessionId),
+}
+
 struct SessionData<D> {
     pub(crate) data_for_user: mpsc::UnboundedSender<D>,
     pub(crate) status: SessionStatus,
@@ -280,6 +296,7 @@ struct SessionData<D> {
 enum SessionCommand<D: Clone + Encode + Decode> {
     Meta(MetaMessage, Recipient<PeerId>),
     Data(SessionId, D, Recipient<NodeIndex>),
+    Control(ControlCommand),
 }
 
 impl<D: Clone + Codec> SessionCommand<D> {
@@ -288,6 +305,7 @@ impl<D: Clone + Codec> SessionCommand<D> {
         match self {
             Meta(message, recipient) => Meta(message, recipient),
             Data(session_id, data, recipient) => Data(session_id, f(data), recipient),
+            Control(cc) => Control(cc),
         }
     }
 }
@@ -299,6 +317,17 @@ pub(crate) struct SessionManager<D: Clone + Codec> {
 }
 
 impl<D: Clone + Codec> SessionManager<D> {
+    pub(crate) fn stop_session(&self, session_id: SessionId) {
+        debug!(target: "afa", "Terminating network session {:?}", session_id);
+        if let Err(e) = self
+            .commands_for_session
+            .unbounded_send(SessionCommand::Control(ControlCommand::Terminate(
+                session_id,
+            )))
+        {
+            error!(target: "afa", "sending terminate command failed for session: {}", e);
+        }
+    }
     pub(crate) async fn start_session(
         &self,
         session_id: SessionId,
@@ -494,7 +523,7 @@ where
         }
     }
 
-    fn on_command(&self, sc: SessionCommand<D>) {
+    fn on_command(&mut self, sc: SessionCommand<D>) {
         use SessionCommand::*;
         match sc {
             Meta(message, recipient) => {
@@ -527,11 +556,17 @@ where
                     }
                 }
             }
+            Control(control_command) => match control_command {
+                ControlCommand::Terminate(session_id) => {
+                    debug!(target: "afa", "Cleaning up after session {:?} in aleph network", session_id);
+                    self.clean_up_session(session_id);
+                }
+            },
         }
     }
 
     fn on_peer_connected(&mut self, peer_id: PeerId) {
-        trace!(target: "afa", "Peer {:?} connected.", peer_id);
+        debug!(target: "afa", "Peer {:?} connected.", peer_id);
         self.peers.insert(peer_id);
         for (_, session_data) in self.sessions.lock().iter() {
             self.authenticate_to(session_data, peer_id);
@@ -539,8 +574,13 @@ where
     }
 
     fn on_peer_disconnected(&mut self, peer_id: &PeerId) {
-        trace!(target: "afa", "Peer {:?} disconnected.", peer_id);
-        self.peers.remove(peer_id);
+        debug!(target: "afa", "Peer {:?} disconnected.", peer_id);
+        self.peers.remove_peer(peer_id);
+    }
+
+    fn clean_up_session(&mut self, session_id: SessionId) {
+        self.sessions.lock().remove(&session_id);
+        self.peers.remove_session(&session_id);
     }
 
     pub async fn run(mut self) {
@@ -554,12 +594,12 @@ where
                             match event {
                                 Event::SyncConnected { remote } => {
                                     // TODO: understand what does this do
-                                    trace!(target: "afa", "SyncConnected {:?}", remote);
+                                    debug!(target: "afa", "SyncConnected event for peer {:?}", remote);
                                     self.network.add_set_reserved(remote.into(), self.protocol.clone());
                                 }
                                 Event::SyncDisconnected { remote } => {
                                     // TODO: understand what does this do
-                                    trace!(target: "afa", "SyncDisconnected {:?}", remote);
+                                    debug!(target: "afa", "SyncDisconnected event for peer {:?}", remote);
                                     self.network
                                         .remove_set_reserved(remote.into(), self.protocol.clone());
                                 }
@@ -614,10 +654,6 @@ where
                     }
                 }
             }
-
-            self.sessions
-                .lock()
-                .retain(|_, data| data.status == SessionStatus::InProgress);
         }
     }
 }

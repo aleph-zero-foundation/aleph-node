@@ -417,6 +417,7 @@ where
                 debug!(target: "afa", "data store was closed before terminating it manually: {:?}", e)
             }
             let _ = data_store_handle.await;
+            info!(target: "afa", "Terminated authority run of session {:?}", session_id);
         }
     }
 
@@ -508,6 +509,7 @@ where
         if maybe_node_id.is_some() {
             debug!(target: "afa", "Sending exit signal to the authority task.");
             let _ = exit_authority_tx.send(());
+            self.session_manager.stop_session(session_id);
         }
     }
 
