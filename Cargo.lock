@@ -138,8 +138,8 @@ dependencies = [
 
 [[package]]
 name = "aleph-bft"
-version = "0.6.2"
-source = "git+https://github.com/Cardinal-Cryptography/AlephBFT/?rev=485d9eb#485d9eb126813020a6fa4d78948b1c22c4fb5d07"
+version = "0.6.4"
+source = "git+https://github.com/Cardinal-Cryptography/AlephBFT/?rev=1227231#1227231cbdf98ca393dd4aad4266aebeaeb39482"
 dependencies = [
  "async-trait",
  "bit-vec",
@@ -213,6 +213,7 @@ dependencies = [
  "pallet-aleph",
  "pallet-aura",
  "pallet-balances",
+ "pallet-multisig",
  "pallet-randomness-collective-flip",
  "pallet-scheduler",
  "pallet-session",
@@ -4397,6 +4398,20 @@ dependencies = [
  "frame-system",
  "log",
  "parity-scale-codec",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-multisig"
+version = "4.0.0-dev"
+source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.9#91061a7d925b5bc597804293da283477512ba4ff"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "parity-scale-codec",
+ "sp-core",
+ "sp-io",
  "sp-runtime",
  "sp-std",
 ]
