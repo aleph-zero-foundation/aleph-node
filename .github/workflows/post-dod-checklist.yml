@@ -1,0 +1,15 @@
+name: Post DoD checklist
+on: [pull_request]
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: wow-actions/auto-comment@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          pullRequestOpened: |
+            Please make sure the following happened
+            - [ ] Appropriate tests created
+            - [ ] Infrastructure updated accordingly
+            - [ ] Updated existing documentation
+            - [ ] New documentation created
