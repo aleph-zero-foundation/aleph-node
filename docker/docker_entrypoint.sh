@@ -21,6 +21,7 @@ RPC_PORT=${RPC_PORT:-9933}
 WS_PORT=${WS_PORT:-9943}
 PORT=${PORT:-30333}
 EXTERNAL_PORT=${EXTERNAL_PORT:-${PORT}}
+VALIDATOR=${VALIDATOR:-true}
 
 if [[ "true" == "$PURGE_BEFORE_START" ]]; then
   echo "Purging chain (${CHAIN}) at path ${BASE_PATH}"
@@ -28,7 +29,6 @@ if [[ "true" == "$PURGE_BEFORE_START" ]]; then
 fi
 
 ARGS=(
-  --validator
   --execution Native
   --name "${NAME}"
   --base-path "${BASE_PATH}"
@@ -70,6 +70,10 @@ fi
 
 if [[ "true" == "$DISCOVER_LOCAL" ]]; then
   ARGS+=(--discover-local)
+fi
+
+if [[ "true " == "${VALIDATOR}" ]]; then
+    ARGS+=(--validator)
 fi
 
 aleph-node "${ARGS[@]}"
