@@ -72,7 +72,7 @@ if [[ "true" == "$DISCOVER_LOCAL" ]]; then
   ARGS+=(--discover-local)
 fi
 
-if [[ "true " == "${VALIDATOR}" ]]; then
+if [[ "true" == "${VALIDATOR}" ]]; then
     ARGS+=(--validator)
 fi
 
