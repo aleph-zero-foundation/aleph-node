@@ -22,6 +22,7 @@ WS_PORT=${WS_PORT:-9943}
 PORT=${PORT:-30333}
 EXTERNAL_PORT=${EXTERNAL_PORT:-${PORT}}
 VALIDATOR=${VALIDATOR:-true}
+WS_MAX_CONNECTIONS=${WS_MAX_CONNECTIONS:-100}
 
 if [[ "true" == "$PURGE_BEFORE_START" ]]; then
   echo "Purging chain (${CHAIN}) at path ${BASE_PATH}"
@@ -35,9 +36,10 @@ ARGS=(
   --chain "${CHAIN}"
   --node-key-file "${NODE_KEY_PATH}"
   --rpc-port "${RPC_PORT}" --ws-port "${WS_PORT}" --port "${PORT}"
-  --rpc-cors all --rpc-methods Safe # TODO: should we allow to specify them?
+  --rpc-cors all
   --no-prometheus --no-telemetry # Currently not using. plan to start as soon as capacity is available
   --no-mdns
+  --ws-max-connections "${WS_MAX_CONNECTIONS}"
 )
 
 if [[ -n "${BOOT_NODES:-}" ]]; then
@@ -73,7 +75,11 @@ if [[ "true" == "$DISCOVER_LOCAL" ]]; then
 fi
 
 if [[ "true" == "${VALIDATOR}" ]]; then
-    ARGS+=(--validator)
+    ARGS+=(--validator --unsafe-ws-external --unsafe-rpc-external --rpc-methods Unsafe)
+fi
+
+if [[ "false" == "${VALIDATOR}" ]]; then
+    ARGS+=(--ws-external --rpc-external --rpc-methods Safe)
 fi
 
 aleph-node "${ARGS[@]}"
