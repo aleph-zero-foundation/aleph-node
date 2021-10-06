@@ -8,10 +8,11 @@ use crate::{
     justification::{
         AlephJustification, ChainCadence, JustificationHandler, JustificationNotification,
     },
-    last_block_of_session, network,
+    last_block_of_session,
+    metrics::Checkpoint,
+    network,
     network::{
-        split_network, AlephNetworkData, ConsensusNetwork, DataNetwork, NetworkData, RmcNetwork,
-        SessionManager,
+        split_network, AlephNetworkData, ConsensusNetwork, DataNetwork, NetworkData, SessionManager,
     },
     session_id_from_block_num, AuthorityId, Future, KeyBox, Metrics, MultiKeychain, NodeIndex,
     SessionId, SessionMap, SessionPeriod, KEY_TYPE,
@@ -84,15 +85,17 @@ where
         justifications_cadence: Duration::from_millis(cadence),
     };
 
-    let authority_justification_tx = run_justification_handler(
-        &spawn_handle.clone().into(),
-        justification_rx,
+    let handler = JustificationHandler::new(
         session_authorities.clone(),
         keystore.clone(),
+        chain_cadence,
         network.clone(),
         client.clone(),
-        chain_cadence,
+        metrics.clone(),
     );
+
+    let authority_justification_tx =
+        run_justification_handler(handler, &spawn_handle.clone().into(), justification_rx);
 
     // Prepare and start the network
     let network =
@@ -135,13 +138,9 @@ fn get_node_index(authorities: &[AuthorityId], keystore: &SyncCryptoStorePtr) ->
 }
 
 fn run_justification_handler<B, N, C, BE>(
+    handler: JustificationHandler<B, N, C, BE>,
     spawn_handle: &crate::SpawnHandle,
     import_justification_rx: mpsc::UnboundedReceiver<JustificationNotification<B>>,
-    sessions: Arc<Mutex<SessionMap>>,
-    keystore: SyncCryptoStorePtr,
-    network: N,
-    client: Arc<C>,
-    chain_cadence: ChainCadence,
 ) -> mpsc::UnboundedSender<JustificationNotification<B>>
 where
     N: network::Network<B> + 'static,
@@ -150,8 +149,6 @@ where
     B: Block,
 {
     let (authority_justification_tx, authority_justification_rx) = mpsc::unbounded();
-
-    let handler = JustificationHandler::new(sessions, keystore, chain_cadence, network, client);
 
     debug!(target: "afa", "JustificationHandler started");
     spawn_handle.spawn("aleph/justification_handler", async move {
@@ -185,12 +182,12 @@ where
 }
 
 async fn run_aggregator<B, C, BE>(
-    rmc_network: RmcNetwork<B>,
-    multikeychain: MultiKeychain,
+    mut aggregator: BlockSignatureAggregator<'_, B, MultiKeychain>,
     mut ordered_batch_rx: mpsc::UnboundedReceiver<OrderedBatch<AlephDataFor<B>>>,
     justification_tx: mpsc::UnboundedSender<JustificationNotification<B>>,
     client: Arc<C>,
     last_block_in_session: NumberFor<B>,
+    metrics: Option<Metrics<B::Header>>,
     mut exit_rx: futures::channel::oneshot::Receiver<()>,
 ) where
     B: Block,
@@ -198,7 +195,6 @@ async fn run_aggregator<B, C, BE>(
     C::Api: aleph_primitives::AlephSessionApi<B>,
     BE: Backend<B> + 'static,
 {
-    let mut aggregator = BlockSignatureAggregator::new(rmc_network, &multikeychain);
     let mut last_finalized = client.info().finalized_hash;
     let mut last_block_seen = false;
     loop {
@@ -211,6 +207,9 @@ async fn run_aggregator<B, C, BE>(
                         continue;
                     }
                     for new_block_data in batch {
+                        if let Some(metrics) = &metrics {
+                            metrics.report_block(new_block_data.hash, std::time::Instant::now(), Checkpoint::Ordered);
+                        }
                         if let Some(data) = should_finalize(last_finalized, new_block_data, client.as_ref(), last_block_in_session) {
                             aggregator.start_aggregation(data.hash).await;
                             last_finalized = data.hash;
@@ -340,15 +339,19 @@ where
             let client = self.client.clone();
             let justification_tx = self.authority_justification_tx.clone();
             let last_block = last_block_of_session::<B>(session_id, self.session_period);
+            let metrics = self.metrics.clone();
+            let multikeychain = multikeychain.clone();
             async move {
+                let aggregator =
+                    BlockSignatureAggregator::new(rmc_network, &multikeychain, metrics.clone());
                 debug!(target: "afa", "Running the aggregator task for {:?}", session_id.0);
                 run_aggregator(
-                    rmc_network,
-                    multikeychain,
+                    aggregator,
                     ordered_batch_rx,
                     justification_tx,
                     client,
                     last_block,
+                    metrics,
                     exit_aggregator_rx,
                 )
                 .await;

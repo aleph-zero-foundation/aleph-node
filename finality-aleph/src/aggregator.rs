@@ -1,6 +1,7 @@
 use crate::{
+    metrics::Checkpoint,
     network::{Recipient, RmcNetwork},
-    Signature,
+    Metrics, Signature,
 };
 use aleph_bft::{
     rmc::{DoublingDelayScheduler, Message, ReliableMulticast},
@@ -39,6 +40,7 @@ pub(crate) struct BlockSignatureAggregator<'a, B: Block, MK: MultiKeychain> {
     rmc: ReliableMulticast<'a, SignableHash<B::Hash>, MK>,
     last_hash_placed: bool,
     started_hashes: HashSet<B::Hash>,
+    metrics: Option<Metrics<B::Header>>,
 }
 
 impl<
@@ -47,7 +49,11 @@ impl<
         MK: MultiKeychain<Signature = Signature, PartialMultisignature = SignatureSet<Signature>>,
     > BlockSignatureAggregator<'a, B, MK>
 {
-    pub(crate) fn new(network: RmcNetwork<B>, keychain: &'a MK) -> Self {
+    pub(crate) fn new(
+        network: RmcNetwork<B>,
+        keychain: &'a MK,
+        metrics: Option<Metrics<B::Header>>,
+    ) -> Self {
         let (messages_for_rmc, messages_from_network) = mpsc::unbounded();
         let (messages_for_network, messages_from_rmc) = mpsc::unbounded();
         let scheduler = DoublingDelayScheduler::new(Duration::from_millis(500));
@@ -67,6 +73,7 @@ impl<
             rmc,
             last_hash_placed: false,
             started_hashes: HashSet::new(),
+            metrics,
         }
     }
 
@@ -74,6 +81,9 @@ impl<
         debug!(target: "afa", "Started aggregation for block hash {:?}", hash);
         if !self.started_hashes.insert(hash) {
             return;
+        }
+        if let Some(metrics) = &self.metrics {
+            metrics.report_block(hash, std::time::Instant::now(), Checkpoint::Aggregating);
         }
         self.hash_queue.push_back(hash);
         self.rmc.start_rmc(SignableHash { hash }).await;

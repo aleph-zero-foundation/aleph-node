@@ -1,4 +1,4 @@
-use crate::{Error, Metrics};
+use crate::{metrics::Checkpoint, Error, Metrics};
 use aleph_bft::OrderedBatch;
 use codec::{Decode, Encode};
 use futures::channel::{mpsc, oneshot};
@@ -322,7 +322,7 @@ impl<B: BlockT> aleph_bft::DataIO<AlephDataFor<B>> for DataIO<B> {
         let best = *self.proposed_block.lock();
 
         if let Some(m) = &self.metrics {
-            m.report_block(best.hash, std::time::Instant::now(), "get_data");
+            m.report_block(best.hash, std::time::Instant::now(), Checkpoint::Ordering);
         }
         debug!(target: "afa", "Outputting {:?} in get_data", best);
         best

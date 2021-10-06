@@ -1,6 +1,6 @@
 use crate::{
     justification::{AlephJustification, JustificationNotification},
-    metrics::Metrics,
+    metrics::{Checkpoint, Metrics},
 };
 use aleph_primitives::ALEPH_ENGINE_ID;
 use codec::Decode;
@@ -129,7 +129,7 @@ where
         let number = *block.header.number();
         let post_hash = block.post_hash();
         if let Some(m) = &self.metrics {
-            m.report_block(post_hash, Instant::now(), "importing");
+            m.report_block(post_hash, Instant::now(), Checkpoint::Importing);
         };
 
         let justifications = block.justifications.take();
@@ -157,7 +157,7 @@ where
         }
 
         if let Some(m) = &self.metrics {
-            m.report_block(post_hash, Instant::now(), "imported");
+            m.report_block(post_hash, Instant::now(), Checkpoint::Imported);
         };
 
         Ok(ImportResult::Imported(imported_aux))
