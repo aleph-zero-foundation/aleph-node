@@ -71,7 +71,7 @@ impl<H: Header> Metrics<H> {
         let prev: HashMap<_, _> = keys[1..]
             .iter()
             .cloned()
-            .zip(keys[..4].iter().cloned())
+            .zip(keys.iter().cloned())
             .collect();
 
         let mut gauges = HashMap::new();
