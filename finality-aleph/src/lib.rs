@@ -53,17 +53,12 @@ pub fn peers_set_config() -> sc_network::config::NonDefaultSetConfig {
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
 pub struct SessionId(pub u32);
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
-pub struct SessionPeriod(pub u32);
-
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
-pub struct MillisecsPerBlock(pub u64);
-
 use sp_core::crypto::KeyTypeId;
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"alp0");
 pub use crate::metrics::Metrics;
 use crate::party::{run_consensus_party, AlephParams};
 pub use aleph_primitives::{AuthorityId, AuthorityPair, AuthoritySignature};
+use aleph_primitives::{MillisecsPerBlock, SessionPeriod, UnitCreationDelay};
 use futures::channel::mpsc;
 
 /// Ties an authority identification and a cryptography keystore together for use in
@@ -241,6 +236,7 @@ pub struct AlephConfig<B: Block, N, C, SC> {
     pub metrics: Option<Metrics<B::Header>>,
     pub session_period: SessionPeriod,
     pub millisecs_per_block: MillisecsPerBlock,
+    pub unit_creation_delay: UnitCreationDelay,
 }
 
 pub fn run_aleph_consensus<B: Block, BE, C, N, SC>(

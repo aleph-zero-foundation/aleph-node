@@ -1,7 +1,8 @@
 use aleph_primitives::{
     AuthorityId as AlephId, ADDRESSES_ENCODING, DEFAULT_MILLISECS_PER_BLOCK,
-    DEFAULT_SESSION_PERIOD, TOKEN_DECIMALS,
+    DEFAULT_SESSION_PERIOD, DEFAULT_UNIT_CREATION_DELAY, TOKEN_DECIMALS,
 };
+use aleph_primitives::{MillisecsPerBlock, SessionPeriod, UnitCreationDelay};
 use aleph_runtime::{
     AccountId, AlephConfig, AuraConfig, BalancesConfig, GenesisConfig, SessionConfig, SessionKeys,
     Signature, SudoConfig, SystemConfig, VestingConfig, WASM_BINARY,
@@ -110,6 +111,9 @@ pub struct ChainParams {
     pub millisecs_per_block: Option<u64>,
 
     #[structopt(long)]
+    pub unit_creation_delay: Option<u64>,
+
+    #[structopt(long)]
     pub chain_name: Option<String>,
 
     #[structopt(long)]
@@ -136,13 +140,22 @@ impl ChainParams {
         self.base_path.clone().into()
     }
 
-    pub fn millisecs_per_block(&self) -> u64 {
-        self.millisecs_per_block
-            .unwrap_or(DEFAULT_MILLISECS_PER_BLOCK)
+    pub fn millisecs_per_block(&self) -> MillisecsPerBlock {
+        MillisecsPerBlock(
+            self.millisecs_per_block
+                .unwrap_or(DEFAULT_MILLISECS_PER_BLOCK),
+        )
     }
 
-    pub fn session_period(&self) -> u32 {
-        self.session_period.unwrap_or(DEFAULT_SESSION_PERIOD)
+    pub fn unit_creation_delay(&self) -> UnitCreationDelay {
+        UnitCreationDelay(
+            self.unit_creation_delay
+                .unwrap_or(DEFAULT_UNIT_CREATION_DELAY),
+        )
+    }
+
+    pub fn session_period(&self) -> SessionPeriod {
+        SessionPeriod(self.session_period.unwrap_or(DEFAULT_SESSION_PERIOD))
     }
 
     pub fn token_symbol(&self) -> &str {
@@ -317,6 +330,7 @@ fn genesis(
 ) -> GenesisConfig {
     let session_period = chain_params.session_period();
     let millisecs_per_block = chain_params.millisecs_per_block();
+    let unit_creation_delay = chain_params.unit_creation_delay();
 
     log::debug!("chain parameters {:?}", &chain_params);
 
@@ -351,6 +365,7 @@ fn genesis(
                 .iter()
                 .map(|auth| auth.account_id.clone())
                 .collect(),
+            unit_creation_delay,
         },
         session: SessionConfig {
             keys: authorities

@@ -1,9 +1,9 @@
 use crate::{
     finalization::finalize_block, last_block_of_session, metrics::Checkpoint, network,
-    session_id_from_block_num, KeyBox, Metrics, SessionId, SessionMap, SessionPeriod, Signature,
+    session_id_from_block_num, KeyBox, Metrics, SessionId, SessionMap, Signature,
 };
 use aleph_bft::{MultiKeychain, NodeIndex, SignatureSet};
-use aleph_primitives::ALEPH_ENGINE_ID;
+use aleph_primitives::{SessionPeriod, ALEPH_ENGINE_ID};
 use codec::{Decode, Encode};
 use futures::{channel::mpsc, StreamExt};
 use futures_timer::Delay;

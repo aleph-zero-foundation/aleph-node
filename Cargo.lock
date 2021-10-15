@@ -5014,6 +5014,7 @@ name = "primitives"
 version = "0.3.0"
 dependencies = [
  "parity-scale-codec",
+ "serde",
  "sp-api",
  "sp-application-crypto",
  "sp-consensus-aura",

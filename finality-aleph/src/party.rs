@@ -15,12 +15,12 @@ use crate::{
         split_network, AlephNetworkData, ConsensusNetwork, DataNetwork, NetworkData, SessionManager,
     },
     session_id_from_block_num, AuthorityId, Future, KeyBox, Metrics, MultiKeychain, NodeIndex,
-    SessionId, SessionMap, SessionPeriod, KEY_TYPE,
+    SessionId, SessionMap, KEY_TYPE,
 };
 use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 
 use aleph_bft::{DelayConfig, OrderedBatch, SpawnHandle};
-use aleph_primitives::AlephSessionApi;
+use aleph_primitives::{AlephSessionApi, SessionPeriod, UnitCreationDelay};
 use futures_timer::Delay;
 
 use futures::{
@@ -68,6 +68,7 @@ where
                 metrics,
                 session_period,
                 millisecs_per_block,
+                unit_creation_delay,
                 ..
             },
     } = aleph_params;
@@ -118,6 +119,7 @@ where
         session_period,
         spawn_handle: spawn_handle.into(),
         phantom: PhantomData,
+        unit_creation_delay,
     };
 
     debug!(target: "afa", "Consensus party has started.");
@@ -179,6 +181,7 @@ where
     phantom: PhantomData<BE>,
     metrics: Option<Metrics<B::Header>>,
     authority_justification_tx: mpsc::UnboundedSender<JustificationNotification<B>>,
+    unit_creation_delay: UnitCreationDelay,
 }
 
 async fn run_aggregator<B, C, BE>(
@@ -285,7 +288,12 @@ where
         let (aleph_network, rmc_network, forwarder) =
             split_network(data_network, aleph_network_tx, aleph_network_rx);
 
-        let consensus_config = create_aleph_config(authorities.len(), node_id, session_id);
+        let consensus_config = create_aleph_config(
+            authorities.len(),
+            node_id,
+            session_id,
+            self.unit_creation_delay,
+        );
 
         let best_header = self
             .select_chain
@@ -543,14 +551,15 @@ pub(crate) fn create_aleph_config(
     n_members: usize,
     node_id: NodeIndex,
     session_id: SessionId,
+    unit_creation_delay: UnitCreationDelay,
 ) -> aleph_bft::Config {
     let mut consensus_config = default_aleph_config(n_members.into(), node_id, session_id.0 as u64);
     consensus_config.max_round = 7000;
-    let unit_creation_delay = Arc::new(|t| {
+    let unit_creation_delay = Arc::new(move |t| {
         if t == 0 {
             Duration::from_millis(2000)
         } else {
-            exponential_slowdown(t, 300.0, 5000, 1.005)
+            exponential_slowdown(t, unit_creation_delay.0 as f64, 5000, 1.005)
         }
     });
     let unit_broadcast_delay = Arc::new(|t| exponential_slowdown(t, 4000., 0, 2.));

@@ -4,7 +4,6 @@ use aleph_primitives::AlephSessionApi;
 use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use finality_aleph::{
     run_aleph_consensus, AlephBlockImport, AlephConfig, JustificationNotification, Metrics,
-    MillisecsPerBlock, SessionPeriod,
 };
 use futures::channel::mpsc;
 use log::warn;
@@ -168,19 +167,20 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
             warp_sync: None,
         })?;
 
-    let session_period = SessionPeriod(
-        client
-            .runtime_api()
-            .session_period(&BlockId::Number(Zero::zero()))
-            .unwrap(),
-    );
+    let session_period = client
+        .runtime_api()
+        .session_period(&BlockId::Number(Zero::zero()))
+        .unwrap();
 
-    let millisecs_per_block = MillisecsPerBlock(
-        client
-            .runtime_api()
-            .millisecs_per_block(&BlockId::Number(Zero::zero()))
-            .unwrap(),
-    );
+    let millisecs_per_block = client
+        .runtime_api()
+        .millisecs_per_block(&BlockId::Number(Zero::zero()))
+        .unwrap();
+
+    let unit_creation_delay = client
+        .runtime_api()
+        .unit_creation_delay(&BlockId::Number(Zero::zero()))
+        .unwrap();
 
     let role = config.role.clone();
     let force_authoring = config.force_authoring;
@@ -276,6 +276,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
             keystore: keystore_container.sync_keystore(),
             justification_rx,
             metrics,
+            unit_creation_delay,
         };
         task_manager
             .spawn_essential_handle()
