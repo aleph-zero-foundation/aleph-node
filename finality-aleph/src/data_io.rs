@@ -122,8 +122,8 @@ where
                     self.add_block(AlephData::new(block.hash, *block.header.number()));
                 }
                 _ = &mut maintenance_timeout => {
-                    trace!(target: "afa", "Data Store maintenance timeout");
                     let keys : Vec<_> = self.dependent_messages.keys().cloned().collect();
+                    debug!(target: "afa", "Data Store maintanance timeout. Awaiting {:?} blocks: {:?}", keys.len(), keys);
                     let finalized_number = self.client.info().finalized_number;
                     for block_data in keys {
                         if let Ok(Some(_)) = self.client.header(BlockId::Hash(block_data.hash)) {
@@ -226,7 +226,7 @@ where
     }
 
     fn add_block(&mut self, block_data: AlephDataFor<B>) {
-        trace!(target: "afa", "Adding block {:?} to Data Store", block_data);
+        debug!(target: "afa", "Adding block {:?} to Data Store", block_data);
         self.available_blocks.put(block_data, ());
         self.push_messages(block_data);
     }
