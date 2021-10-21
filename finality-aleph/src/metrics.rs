@@ -1,4 +1,4 @@
-use log::debug;
+use log::trace;
 use parking_lot::Mutex;
 use prometheus_endpoint::{register, Gauge, PrometheusError, Registry, U64};
 use sc_service::Arc;
@@ -20,7 +20,7 @@ impl<H: Header> Inner<H> {
         checkpoint_time: Instant,
         checkpoint_type: Checkpoint,
     ) {
-        debug!(target: "afa", "Reporting block stage: {:?} (hash: {:?}, at: {:?}", checkpoint_type, hash, checkpoint_time);
+        trace!(target: "afa", "Reporting block stage: {:?} (hash: {:?}, at: {:?}", checkpoint_type, hash, checkpoint_time);
 
         self.starts.entry(checkpoint_type).and_modify(|starts| {
             starts.entry(hash).or_insert(checkpoint_time);
