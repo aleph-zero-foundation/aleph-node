@@ -23,6 +23,7 @@ PORT=${PORT:-30333}
 EXTERNAL_PORT=${EXTERNAL_PORT:-${PORT}}
 VALIDATOR=${VALIDATOR:-true}
 WS_MAX_CONNECTIONS=${WS_MAX_CONNECTIONS:-100}
+POOL_LIMIT=${POOL_LIMIT:-1024}
 
 if [[ "true" == "$PURGE_BEFORE_START" ]]; then
   echo "Purging chain (${CHAIN}) at path ${BASE_PATH}"
@@ -30,9 +31,11 @@ if [[ "true" == "$PURGE_BEFORE_START" ]]; then
 fi
 
 ARGS=(
+  --validator
   --execution Native
   --name "${NAME}"
   --base-path "${BASE_PATH}"
+  --pool-limit "${POOL_LIMIT}"
   --chain "${CHAIN}"
   --node-key-file "${NODE_KEY_PATH}"
   --rpc-port "${RPC_PORT}" --ws-port "${WS_PORT}" --port "${PORT}"
@@ -75,7 +78,7 @@ if [[ "true" == "$DISCOVER_LOCAL" ]]; then
 fi
 
 if [[ "true" == "${VALIDATOR}" ]]; then
-    ARGS+=(--validator --unsafe-ws-external --unsafe-rpc-external --rpc-methods Unsafe)
+    ARGS+=(--unsafe-ws-external --unsafe-rpc-external --rpc-methods Unsafe)
 fi
 
 if [[ "false" == "${VALIDATOR}" ]]; then
