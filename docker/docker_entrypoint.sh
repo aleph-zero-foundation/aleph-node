@@ -24,6 +24,8 @@ EXTERNAL_PORT=${EXTERNAL_PORT:-${PORT}}
 VALIDATOR=${VALIDATOR:-true}
 WS_MAX_CONNECTIONS=${WS_MAX_CONNECTIONS:-100}
 POOL_LIMIT=${POOL_LIMIT:-1024}
+PROMETHEUS_ENABLED=${PROMETHEUS_ENABLED:-true}
+TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-false}
 
 if [[ "true" == "$PURGE_BEFORE_START" ]]; then
   echo "Purging chain (${CHAIN}) at path ${BASE_PATH}"
@@ -40,7 +42,6 @@ ARGS=(
   --node-key-file "${NODE_KEY_PATH}"
   --rpc-port "${RPC_PORT}" --ws-port "${WS_PORT}" --port "${PORT}"
   --rpc-cors all
-  --no-prometheus --no-telemetry # Currently not using. plan to start as soon as capacity is available
   --no-mdns
   --ws-max-connections "${WS_MAX_CONNECTIONS}"
   --unsafe-ws-external --unsafe-rpc-external
@@ -71,19 +72,27 @@ if [[ -n "${PUBLIC_ADDR:-}" ]]; then
 fi
 
 if [[ "true" == "$ALLOW_PRIVATE_IPV4" ]]; then
-  ARGS+=(--allow-private-ipv4 )
+  ARGS+=(--allow-private-ipv4)
 fi
 
 if [[ "true" == "$DISCOVER_LOCAL" ]]; then
   ARGS+=(--discover-local)
 fi
 
+if [[ "false" == "${PROMETHEUS_ENABLED}" ]]; then
+  ARGS+=(--no-prometheus)
+fi
+
+if [[ "false" == "${TELEMETRY_ENABLED}" ]]; then
+  ARGS+=(--no-telemetry)
+fi
+
 if [[ "true" == "${VALIDATOR}" ]]; then
-    ARGS+=(--rpc-methods Unsafe)
+  ARGS+=(--rpc-methods Unsafe)
 fi
 
 if [[ "false" == "${VALIDATOR}" ]]; then
-    ARGS+=(--rpc-methods Safe)
+  ARGS+=(--rpc-methods Safe)
 fi
 
 aleph-node "${ARGS[@]}"
