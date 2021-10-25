@@ -48,7 +48,7 @@ ARGS=(
 )
 
 if [[ -n "${BOOT_NODES:-}" ]]; then
-  ARGS+=(--bootnodes "${BOOT_NODES}")
+  ARGS+=(--bootnodes ${BOOT_NODES})
 fi
 
 if [[ -n "${RESERVED_NODES:-}" ]]; then
