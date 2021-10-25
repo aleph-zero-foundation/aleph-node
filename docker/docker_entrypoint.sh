@@ -95,4 +95,8 @@ if [[ "false" == "${VALIDATOR}" ]]; then
   ARGS+=(--rpc-methods Safe)
 fi
 
+if [[ -n "${CUSTOM_ARGS:-}" ]]; then
+  ARGS+=("${CUSTOM_ARGS}")
+fi
+
 aleph-node "${ARGS[@]}"
