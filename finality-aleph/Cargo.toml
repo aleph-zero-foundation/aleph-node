@@ -22,7 +22,7 @@ prometheus-endpoint = { package = "substrate-prometheus-endpoint", git = "https:
 sp-keystore = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9"}
 sc-network = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9"}
 sc-telemetry = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9"}
-aleph-bft = { git = "https://github.com/Cardinal-Cryptography/AlephBFT/", rev = "1227231" }
+aleph-bft = "0.7"
 serde = "1.0"
 sc-service = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9"}
 sp-application-crypto = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9"}

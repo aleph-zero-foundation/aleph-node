@@ -1,7 +1,8 @@
 use crate::{
+    crypto::Signature,
     metrics::Checkpoint,
     network::{Recipient, RmcNetwork},
-    Metrics, Signature,
+    Metrics,
 };
 use aleph_bft::{
     rmc::{DoublingDelayScheduler, Message, ReliableMulticast},

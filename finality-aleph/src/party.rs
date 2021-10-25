@@ -1,5 +1,6 @@
 use crate::{
     aggregator::BlockSignatureAggregator,
+    crypto::{AuthorityPen, AuthorityVerifier, KeyBox},
     data_io::{
         reduce_header_to_num, refresh_best_chain, AlephData, AlephDataFor, DataIO, DataStore,
     },
@@ -14,13 +15,12 @@ use crate::{
     network::{
         split_network, AlephNetworkData, ConsensusNetwork, DataNetwork, NetworkData, SessionManager,
     },
-    session_id_from_block_num, AuthorityId, Future, KeyBox, Metrics, MultiKeychain, NodeIndex,
-    SessionId, SessionMap, KEY_TYPE,
+    session_id_from_block_num, AuthorityId, Future, Metrics, NodeIndex, SessionId, SessionMap,
 };
-use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
+use sp_keystore::CryptoStore;
 
 use aleph_bft::{DelayConfig, OrderedBatch, SpawnHandle};
-use aleph_primitives::{AlephSessionApi, SessionPeriod, UnitCreationDelay};
+use aleph_primitives::{AlephSessionApi, SessionPeriod, UnitCreationDelay, KEY_TYPE};
 use futures_timer::Delay;
 
 use futures::{
@@ -88,7 +88,6 @@ where
 
     let handler = JustificationHandler::new(
         session_authorities.clone(),
-        keystore.clone(),
         chain_cadence,
         network.clone(),
         client.clone(),
@@ -127,11 +126,12 @@ where
     error!(target: "afa", "Consensus party has finished unexpectedly.");
 }
 
-fn get_node_index(authorities: &[AuthorityId], keystore: &SyncCryptoStorePtr) -> Option<NodeIndex> {
-    let our_consensus_keys: HashSet<_> = SyncCryptoStore::keys(&**keystore, KEY_TYPE)
-        .unwrap()
-        .into_iter()
-        .collect();
+async fn get_node_index(
+    authorities: &[AuthorityId],
+    keystore: Arc<dyn CryptoStore>,
+) -> Option<NodeIndex> {
+    let our_consensus_keys: HashSet<_> =
+        keystore.keys(KEY_TYPE).await.unwrap().into_iter().collect();
     trace!(target: "afa", "Found {:?} consensus keys in our local keystore {:?}", our_consensus_keys.len(), our_consensus_keys);
     authorities
         .iter()
@@ -177,7 +177,7 @@ where
     spawn_handle: crate::SpawnHandle,
     client: Arc<C>,
     select_chain: SC,
-    keystore: SyncCryptoStorePtr,
+    keystore: Arc<dyn CryptoStore>,
     phantom: PhantomData<BE>,
     metrics: Option<Metrics<B::Header>>,
     authority_justification_tx: mpsc::UnboundedSender<JustificationNotification<B>>,
@@ -185,7 +185,7 @@ where
 }
 
 async fn run_aggregator<B, C, BE>(
-    mut aggregator: BlockSignatureAggregator<'_, B, MultiKeychain>,
+    mut aggregator: BlockSignatureAggregator<'_, B, KeyBox>,
     mut ordered_batch_rx: mpsc::UnboundedReceiver<OrderedBatch<AlephDataFor<B>>>,
     justification_tx: mpsc::UnboundedSender<JustificationNotification<B>>,
     client: Arc<C>,
@@ -269,7 +269,7 @@ where
     async fn run_session_as_authority(
         &self,
         node_id: NodeIndex,
-        multikeychain: MultiKeychain,
+        multikeychain: KeyBox,
         data_network: DataNetwork<NetworkData<B>>,
         session_id: SessionId,
         authorities: Vec<AuthorityId>,
@@ -481,22 +481,27 @@ where
             }
         }
         trace!(target: "afa", "Authorities for session {:?}: {:?}", session_id, authorities);
-        let maybe_node_id = get_node_index(&authorities, &self.keystore);
+        let maybe_node_id = get_node_index(&authorities, self.keystore.clone()).await;
 
         let (exit_authority_tx, exit_authority_rx) = futures::channel::oneshot::channel();
         if let Some(node_id) = maybe_node_id {
             debug!(target: "afa", "Running session {:?} as authority id {:?}", session_id, node_id);
-            let keybox = KeyBox::new(node_id, authorities.clone(), self.keystore.clone());
-            let multikeychain = MultiKeychain::new(keybox);
+            let keybox = KeyBox::new(
+                node_id,
+                AuthorityVerifier::new(authorities.clone()),
+                AuthorityPen::new(authorities[node_id.0].clone(), self.keystore.clone())
+                    .await
+                    .expect("The keys should sign successfully"),
+            );
             let data_network = self
                 .session_manager
-                .start_session(session_id, multikeychain.clone())
+                .start_session(session_id, keybox.clone())
                 .await;
 
             let authority_task = self
                 .run_session_as_authority(
                     node_id,
-                    multikeychain,
+                    keybox,
                     data_network,
                     session_id,
                     authorities,

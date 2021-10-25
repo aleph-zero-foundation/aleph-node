@@ -1,9 +1,7 @@
-use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
-
 use codec::{Decode, Encode};
 
 pub use aleph_bft::default_config as default_aleph_config;
-use aleph_bft::{DefaultMultiKeychain, NodeCount, NodeIndex, TaskHandle};
+use aleph_bft::{NodeIndex, TaskHandle};
 use futures::{channel::oneshot, Future, TryFutureExt};
 use sc_client_api::{backend::Backend, BlockchainEvents, Finalizer, LockImportRun, TransactionFor};
 use sc_consensus::BlockImport;
@@ -11,13 +9,15 @@ use sc_service::SpawnTaskHandle;
 use sp_api::{NumberFor, ProvideRuntimeApi};
 use sp_blockchain::{HeaderBackend, HeaderMetadata};
 use sp_consensus::SelectChain;
+use sp_keystore::CryptoStore;
 use sp_runtime::{
     traits::{BlakeTwo256, Block},
-    RuntimeAppPublic, SaturatedConversion,
+    SaturatedConversion,
 };
-use std::{collections::HashMap, convert::TryInto, fmt::Debug, sync::Arc};
+use std::{collections::HashMap, fmt::Debug, sync::Arc};
 mod aggregator;
 pub mod config;
+mod crypto;
 mod data_io;
 mod finalization;
 mod hash;
@@ -53,56 +53,11 @@ pub fn peers_set_config() -> sc_network::config::NonDefaultSetConfig {
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
 pub struct SessionId(pub u32);
 
-use sp_core::crypto::KeyTypeId;
-pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"alp0");
 pub use crate::metrics::Metrics;
 use crate::party::{run_consensus_party, AlephParams};
 pub use aleph_primitives::{AuthorityId, AuthorityPair, AuthoritySignature};
 use aleph_primitives::{MillisecsPerBlock, SessionPeriod, UnitCreationDelay};
 use futures::channel::mpsc;
-
-/// Ties an authority identification and a cryptography keystore together for use in
-/// signing that requires an authority.
-#[derive(Clone)]
-pub struct AuthorityKeystore {
-    key_type_id: KeyTypeId,
-    authority_id: AuthorityId,
-    keystore: SyncCryptoStorePtr,
-}
-
-impl AuthorityKeystore {
-    /// Constructs a new authority cryptography keystore.
-    pub fn new(authority_id: AuthorityId, keystore: SyncCryptoStorePtr) -> Self {
-        AuthorityKeystore {
-            key_type_id: KEY_TYPE,
-            authority_id,
-            keystore,
-        }
-    }
-
-    /// Returns a references to the authority id.
-    pub fn authority_id(&self) -> &AuthorityId {
-        &self.authority_id
-    }
-
-    /// Returns a reference to the cryptography keystore.
-    pub fn keystore(&self) -> &SyncCryptoStorePtr {
-        &self.keystore
-    }
-
-    pub fn sign(&self, msg: &[u8]) -> AuthoritySignature {
-        SyncCryptoStore::sign_with(
-            &*self.keystore,
-            self.key_type_id,
-            &self.authority_id.clone().into(),
-            msg,
-        )
-        .unwrap()
-        .unwrap()
-        .try_into()
-        .unwrap()
-    }
-}
 
 pub trait ClientForAleph<B, BE>:
     LockImportRun<B, BE>
@@ -133,57 +88,6 @@ where
 }
 
 type Hasher = hash::Wrapper<BlakeTwo256>;
-
-#[derive(PartialEq, Eq, Clone, Debug, Decode, Encode)]
-struct Signature {
-    id: NodeIndex,
-    sgn: AuthoritySignature,
-}
-
-#[derive(Clone)]
-struct KeyBox {
-    id: NodeIndex,
-    auth_keystore: AuthorityKeystore,
-    authorities: Vec<AuthorityId>,
-}
-
-impl KeyBox {
-    fn new(id: NodeIndex, authorities: Vec<AuthorityId>, key_store: SyncCryptoStorePtr) -> Self {
-        let auth_keystore = AuthorityKeystore::new(authorities[id.0].clone(), key_store);
-        KeyBox {
-            id,
-            auth_keystore,
-            authorities,
-        }
-    }
-}
-
-impl aleph_bft::Index for KeyBox {
-    fn index(&self) -> NodeIndex {
-        self.id
-    }
-}
-
-#[async_trait::async_trait]
-impl aleph_bft::KeyBox for KeyBox {
-    type Signature = Signature;
-
-    fn node_count(&self) -> NodeCount {
-        self.authorities.len().into()
-    }
-
-    async fn sign(&self, msg: &[u8]) -> Signature {
-        Signature {
-            id: self.id,
-            sgn: self.auth_keystore.sign(msg),
-        }
-    }
-    fn verify(&self, msg: &[u8], sgn: &Signature, index: NodeIndex) -> bool {
-        self.authorities[index.0].verify(&msg.to_vec(), &sgn.sgn)
-    }
-}
-
-type MultiKeychain = DefaultMultiKeychain<KeyBox>;
 
 #[derive(Clone)]
 struct SpawnHandle(SpawnTaskHandle);
@@ -231,7 +135,7 @@ pub struct AlephConfig<B: Block, N, C, SC> {
     pub client: Arc<C>,
     pub select_chain: SC,
     pub spawn_handle: SpawnTaskHandle,
-    pub keystore: SyncCryptoStorePtr,
+    pub keystore: Arc<dyn CryptoStore>,
     pub justification_rx: mpsc::UnboundedReceiver<JustificationNotification<B>>,
     pub metrics: Option<Metrics<B::Header>>,
     pub session_period: SessionPeriod,

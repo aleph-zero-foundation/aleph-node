@@ -273,7 +273,7 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
             session_period,
             millisecs_per_block,
             spawn_handle: task_manager.spawn_handle(),
-            keystore: keystore_container.sync_keystore(),
+            keystore: keystore_container.keystore(),
             justification_rx,
             metrics,
             unit_creation_delay,
