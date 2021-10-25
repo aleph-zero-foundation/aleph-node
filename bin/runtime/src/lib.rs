@@ -346,12 +346,18 @@ impl pallet_vesting::Config for Runtime {
     type WeightInfo = pallet_vesting::weights::SubstrateWeight<Runtime>;
 }
 
-pub const MILLICENTS: Balance = 1_000_000_000;
-pub const CENTS: Balance = 1_000 * MILLICENTS; // assume this is worth about a cent.
-                                               // This value is copied from polkadot, we should do our own calculations
+pub const MILLICENTS: Balance = 100_000_000;
+pub const CENTS: Balance = 1_000 * MILLICENTS; // 10^12 is one token, which for now is worth $0.1
+
+// at a fixed cost $0.01 per byte, the constants are selected so that
+// the base cost of starting a multisig action is $5
+pub const ALLOCATION_COST: Balance = 412 * CENTS;
+pub const BYTE_COST: Balance = CENTS;
+
 pub const fn deposit(items: u32, bytes: u32) -> Balance {
-    items as Balance * 15 * CENTS + (bytes as Balance) * 6 * CENTS
+    (items as Balance) * ALLOCATION_COST + (bytes as Balance) * BYTE_COST
 }
+
 parameter_types! {
     // One storage item; key size is 32; value is size 4+4+16+32 bytes = 56 bytes.
     pub const DepositBase: Balance = deposit(1, 88);
