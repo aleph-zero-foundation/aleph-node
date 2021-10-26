@@ -29,6 +29,8 @@ use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
 // A few exports that help ease life for downstream crates.
+use frame_support::sp_runtime::traits::Convert;
+use frame_support::sp_runtime::Perquintill;
 pub use frame_support::{
     construct_runtime, parameter_types,
     sp_runtime::curve::PiecewiseLinear,
@@ -46,8 +48,9 @@ use primitives::{ApiError as AlephApiError, AuthorityId as AlephId};
 
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
-use pallet_transaction_payment::CurrencyAdapter;
+use pallet_transaction_payment::{CurrencyAdapter, Multiplier, MultiplierUpdate};
 use sp_consensus_aura::SlotDuration;
+use sp_runtime::traits::{One, Zero};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
@@ -106,7 +109,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 1,
+    spec_version: 2,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -251,11 +254,33 @@ parameter_types! {
     pub const TransactionByteFee: Balance = 1;
 }
 
+pub struct ConstantFeeMultiplierUpdate;
+
+impl Convert<Multiplier, Multiplier> for ConstantFeeMultiplierUpdate {
+    fn convert(m: Multiplier) -> Multiplier {
+        m
+    }
+}
+
+impl MultiplierUpdate for ConstantFeeMultiplierUpdate {
+    fn min() -> Multiplier {
+        Multiplier::one()
+    }
+
+    fn target() -> Perquintill {
+        Default::default()
+    }
+
+    fn variability() -> Multiplier {
+        Multiplier::zero()
+    }
+}
+
 impl pallet_transaction_payment::Config for Runtime {
     type OnChargeTransaction = CurrencyAdapter<Balances, ()>;
     type TransactionByteFee = TransactionByteFee;
     type WeightToFee = IdentityFee<Balance>;
-    type FeeMultiplierUpdate = ();
+    type FeeMultiplierUpdate = ConstantFeeMultiplierUpdate;
 }
 
 parameter_types! {
