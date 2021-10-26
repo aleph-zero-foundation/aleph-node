@@ -83,6 +83,10 @@ if [[ "false" == "${PROMETHEUS_ENABLED}" ]]; then
   ARGS+=(--no-prometheus)
 fi
 
+if [[ "true" == "${PROMETHEUS_ENABLED}" ]]; then
+  ARGS+=(--prometheus-external)
+fi
+
 if [[ "false" == "${TELEMETRY_ENABLED}" ]]; then
   ARGS+=(--no-telemetry)
 fi
