@@ -4,6 +4,7 @@ mod service;
 mod cli;
 mod command;
 mod commands;
+mod executor;
 mod rpc;
 
 fn main() -> sc_cli::Result<()> {

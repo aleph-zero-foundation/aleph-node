@@ -5,6 +5,7 @@ use crate as pallet_aleph;
 
 use sp_core::H256;
 
+use crate::mock::sp_api_hidden_includes_construct_runtime::hidden_include::traits::GenesisBuild;
 use frame_support::{
     construct_runtime, parameter_types, sp_io,
     traits::{OnFinalize, OnInitialize},
@@ -107,7 +108,6 @@ impl pallet_session::Config for Test {
     type SessionManager = pallet_aleph::AlephSessionManager<Self>;
     type SessionHandler = <TestSessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = TestSessionKeys;
-    type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
     type WeightInfo = ();
 }
 

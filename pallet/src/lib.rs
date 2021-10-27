@@ -61,7 +61,6 @@ pub mod pallet {
     }
 
     #[pallet::event]
-    #[pallet::metadata(T::AccountId = "AccountId")]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         ChangeValidators(Vec<T::AccountId>, u32),
@@ -238,6 +237,6 @@ pub mod pallet {
             Self::update_authorities(authorities.as_slice());
         }
 
-        fn on_disabled(_validator_index: usize) {}
+        fn on_disabled(_validator_index: u32) {}
     }
 }

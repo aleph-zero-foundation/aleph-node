@@ -7,13 +7,14 @@ edition = "2018"
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
-sp-api = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9" }
-sp-application-crypto = {default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9" }
-sp-core = {default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9" }
-sp-runtime = {default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9" }
-sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9" }
+sp-api = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.12" }
+sp-application-crypto = {default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.12" }
+sp-core = {default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.12" }
+sp-runtime = {default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.12" }
+sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.12" }
+scale-info = { version = "1.0", default-features = false, features = ["derive"] }
 # we need aura authorites till we have our own pallet
-sp-consensus-aura = {default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9"}
+sp-consensus-aura = {default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.12"}
 
 [features]
 default = ["std"]
@@ -25,6 +26,7 @@ std = [
     "sp-core/std",
     "sp-runtime/std",
     "sp-std/std",
+    "scale-info/std",
     "sp-consensus-aura/std",
 ]
 
