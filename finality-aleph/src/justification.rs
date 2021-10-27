@@ -64,16 +64,16 @@ where
     pub number: NumberFor<Block>,
 }
 
-pub(crate) struct JustificationHandler<B, N, C, BE>
+pub(crate) struct JustificationHandler<B, RB, C, BE>
 where
     B: BlockT,
-    N: network::Network<B> + 'static,
+    RB: network::RequestBlocks<B> + 'static,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
 {
     session_authorities: Arc<Mutex<SessionMap>>,
     chain_cadence: ChainCadence,
-    network: N,
+    block_requester: RB,
     client: Arc<C>,
     last_request_time: Instant,
     last_finalization_time: Instant,
@@ -81,24 +81,24 @@ where
     phantom: PhantomData<BE>,
 }
 
-impl<B, N, C, BE> JustificationHandler<B, N, C, BE>
+impl<B, RB, C, BE> JustificationHandler<B, RB, C, BE>
 where
     B: BlockT,
-    N: network::Network<B> + 'static,
+    RB: network::RequestBlocks<B> + 'static,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
 {
     pub(crate) fn new(
         session_authorities: Arc<Mutex<SessionMap>>,
         chain_cadence: ChainCadence,
-        network: N,
+        block_requester: RB,
         client: Arc<C>,
         metrics: Option<Metrics<B::Header>>,
     ) -> Self {
         Self {
             session_authorities,
             chain_cadence,
-            network,
+            block_requester,
             client,
             last_request_time: Instant::now(),
             last_finalization_time: Instant::now(),
@@ -169,7 +169,7 @@ where
             if let Ok(Some(header)) = self.client.header(BlockId::Number(num)) {
                 debug!(target: "afa", "We have block {:?} with hash {:?}. Requesting justification.", num, header.hash());
                 self.last_request_time = current_time;
-                self.network
+                self.block_requester
                     .request_justification(&header.hash(), *header.number());
             } else {
                 debug!(target: "afa", "Cancelling request, because we don't have block {:?}.", num);

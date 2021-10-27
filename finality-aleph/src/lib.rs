@@ -148,7 +148,7 @@ pub fn run_aleph_consensus<B: Block, BE, C, N, SC>(
 ) -> impl Future<Output = ()>
 where
     BE: Backend<B> + 'static,
-    N: network::Network<B> + 'static,
+    N: network::Network<B> + network::RequestBlocks<B> + 'static,
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
     C::Api: aleph_primitives::AlephSessionApi<B>,
     SC: SelectChain<B> + 'static,

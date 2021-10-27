@@ -125,14 +125,6 @@ impl<B: BlockT> Network<B> for TestNetwork<B> {
     fn peer_id(&self) -> PeerId {
         self.peer_id
     }
-
-    fn request_justification(&self, hash: &B::Hash, number: NumberFor<B>) {
-        self.request_justification
-            .0
-            .lock()
-            .unbounded_send((*hash, number))
-            .unwrap();
-    }
 }
 
 impl<B: BlockT> TestNetwork<B> {

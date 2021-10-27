@@ -1,4 +1,4 @@
-use crate::{metrics::Checkpoint, Error, Metrics};
+use crate::{metrics::Checkpoint, network, Error, Metrics};
 use aleph_bft::OrderedBatch;
 use codec::{Decode, Encode};
 use futures::channel::{mpsc, oneshot};
@@ -6,12 +6,13 @@ use lru::LruCache;
 use parking_lot::Mutex;
 use sp_consensus::SelectChain;
 use sp_runtime::traits::{Block as BlockT, Header as HeaderT, NumberFor};
+use std::default::Default;
 use std::{
     collections::{hash_map::Entry, HashMap, HashSet},
     hash::Hash,
     marker::PhantomData,
     sync::Arc,
-    time::Duration,
+    time::{self, Duration},
 };
 
 const REFRESH_INTERVAL: u64 = 100;
@@ -25,7 +26,8 @@ use tokio::stream::StreamExt;
 type MessageId = u64;
 const AVAILABLE_BLOCKS_CACHE_SIZE: usize = 1000;
 const MESSAGE_ID_BOUNDARY: MessageId = 100_000;
-const PERIODIC_MAINTENANCE_INTERVAL: Duration = Duration::from_millis(60000);
+const PERIODIC_MAINTENANCE_INTERVAL: Duration = Duration::from_secs(60);
+const REQUEST_FORK_AFTER: Duration = Duration::from_secs(100);
 
 #[derive(Copy, PartialEq, Eq, Clone, Debug, Encode, Decode, Hash)]
 pub(crate) struct AlephData<H, N> {
@@ -48,48 +50,91 @@ pub(crate) trait AlephNetworkMessage<B: BlockT> {
     fn included_blocks(&self) -> Vec<AlephDataFor<B>>;
 }
 
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub(crate) struct MissingBlockInfo {
+    // Which messages are being held because of a missing block.
+    messages: HashSet<MessageId>,
+    // When was the first message containing this block encountered.
+    first_occurence: time::SystemTime,
+}
+
+impl MissingBlockInfo {
+    fn new() -> Self {
+        MissingBlockInfo {
+            messages: HashSet::new(),
+            first_occurence: time::SystemTime::now(),
+        }
+    }
+}
+
+pub struct DataStoreConfig {
+    pub available_blocks_cache_capacity: usize,
+    pub message_id_boundary: MessageId,
+    pub periodic_maintenance_interval: Duration,
+    pub request_block_after: Duration,
+}
+
+impl Default for DataStoreConfig {
+    fn default() -> DataStoreConfig {
+        DataStoreConfig {
+            available_blocks_cache_capacity: AVAILABLE_BLOCKS_CACHE_SIZE,
+            message_id_boundary: MESSAGE_ID_BOUNDARY,
+            periodic_maintenance_interval: PERIODIC_MAINTENANCE_INTERVAL,
+            request_block_after: REQUEST_FORK_AFTER,
+        }
+    }
+}
+
 /// This component is used for filtering available data for Aleph Network.
 /// It receives new messages for network by `messages_rx` and sends available messages
 /// (messages with all blocks already imported by client) by `ready_messages_tx`
-pub(crate) struct DataStore<B, C, BE, Message>
+pub(crate) struct DataStore<B, C, BE, RB, Message>
 where
     B: BlockT,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
+    RB: network::RequestBlocks<B> + 'static,
     Message: AlephNetworkMessage<B> + std::fmt::Debug,
 {
     next_message_id: MessageId,
     ready_messages_tx: UnboundedSender<Message>,
     messages_rx: UnboundedReceiver<Message>,
-    dependent_messages: HashMap<AlephDataFor<B>, HashSet<MessageId>>,
+    missing_blocks: HashMap<AlephDataFor<B>, MissingBlockInfo>,
     available_blocks: LruCache<AlephDataFor<B>, ()>,
     message_requirements: HashMap<MessageId, usize>,
     pending_messages: HashMap<MessageId, Message>,
     client: Arc<C>,
+    block_requester: RB,
+    config: DataStoreConfig,
     _phantom: PhantomData<BE>,
 }
 
-impl<B, C, BE, Message> DataStore<B, C, BE, Message>
+impl<B, C, BE, RB, Message> DataStore<B, C, BE, RB, Message>
 where
     B: BlockT,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
+    RB: network::RequestBlocks<B> + 'static,
     Message: AlephNetworkMessage<B> + std::fmt::Debug,
 {
     pub(crate) fn new(
         client: Arc<C>,
+        block_requester: RB,
         ready_messages_tx: UnboundedSender<Message>,
         messages_rx: UnboundedReceiver<Message>,
+        config: DataStoreConfig,
     ) -> Self {
         DataStore {
             next_message_id: 0,
             client,
+            block_requester,
             message_requirements: HashMap::new(),
-            dependent_messages: HashMap::new(),
+            missing_blocks: HashMap::new(),
             pending_messages: HashMap::new(),
-            available_blocks: LruCache::new(AVAILABLE_BLOCKS_CACHE_SIZE),
+            available_blocks: LruCache::new(config.available_blocks_cache_capacity),
             ready_messages_tx,
             messages_rx,
+            config,
             _phantom: PhantomData,
         }
     }
@@ -101,11 +146,13 @@ where
     /// 4. Waits for exit signal
     /// This component on each new imported block stores it in cache. There is no guarantee, that all blocks will
     /// be received from notification stream, so there is a periodic check for all needed blocks.
-    /// It keeps `AVAILABLE_BLOCKS_CACHE_SIZE` blocks in cache, remembers messages with
-    /// `message_id > highest_message_id - MESSAGE_ID_BOUNDARY` and does periodic check once in
-    /// `PERIODIC_MAINTENANCE_INTERVAL`
+    /// It keeps `config.available_blocks_cache_capacity` blocks in cache, remembers messages with
+    /// `message_id > highest_message_id - config.message_id_boundary` and does periodic check once in
+    /// `config.periodic_maintenance_interval`
+    /// In case a block is missing for more than `config.request_block_after` then we request it via a
+    /// `request_stale_block` call -- this happens in the periodic maintenance.
     pub(crate) async fn run(&mut self, mut exit: oneshot::Receiver<()>) {
-        let mut maintenance_timeout = Delay::new(PERIODIC_MAINTENANCE_INTERVAL);
+        let mut maintenance_clock = Delay::new(self.config.periodic_maintenance_interval);
         let mut import_stream = self.client.import_notification_stream();
         loop {
             tokio::select! {
@@ -121,21 +168,40 @@ where
                     // forward if client has imported `hash`
                     self.add_block(AlephData::new(block.hash, *block.header.number()));
                 }
-                _ = &mut maintenance_timeout => {
-                    let keys : Vec<_> = self.dependent_messages.keys().cloned().collect();
-                    debug!(target: "afa", "Data Store maintanance timeout. Awaiting {:?} blocks: {:?}", keys.len(), keys);
-                    let finalized_number = self.client.info().finalized_number;
-                    for block_data in keys {
-                        if let Ok(Some(_)) = self.client.header(BlockId::Hash(block_data.hash)) {
-                            self.add_block(block_data);
-                        } else if finalized_number >= block_data.number {
-                            self.add_block(block_data);
-                        }
-                    }
-                    maintenance_timeout = Delay::new(PERIODIC_MAINTENANCE_INTERVAL);
+                _ = &mut maintenance_clock => {
+                    self.run_maintenance();
+
+                    maintenance_clock = Delay::new(self.config.periodic_maintenance_interval);
                 }
                 _ = &mut exit => {
                     break;
+                }
+            }
+        }
+    }
+
+    fn run_maintenance(&mut self) {
+        let blocks_with_timestamps: Vec<_> = self
+            .missing_blocks
+            .iter()
+            .map(|(block, info)| (*block, info.first_occurence))
+            .collect();
+        debug!(target: "afa", "Data Store maintanance. Awaiting {:?} blocks: {:?}", blocks_with_timestamps.len(), blocks_with_timestamps);
+        let finalized_number = self.client.info().finalized_number;
+        let now = time::SystemTime::now();
+        for (block_data, first_occurence) in blocks_with_timestamps {
+            if let Ok(Some(_)) = self.client.header(BlockId::Hash(block_data.hash)) {
+                self.add_block(block_data);
+            } else if finalized_number >= block_data.number {
+                self.add_block(block_data);
+            } else if let Ok(time_waiting) = now.duration_since(first_occurence) {
+                if time_waiting >= self.config.request_block_after {
+                    debug!(target: "afa", "Requesting a stale block {:?} after it has been missing for {:?} secs.", block_data, time_waiting.as_secs());
+                    // Requesting a block multiple times is fine -- duplicate requests are not registered internally,
+                    // the old request is only updated. However, the substrate documentation suggests to not request
+                    // recent blocks this way (only stale forks), hence we wait at least 100 secs before attempting one.
+                    self.block_requester
+                        .request_stale_block(block_data.hash, block_data.number);
                 }
             }
         }
@@ -145,9 +211,9 @@ where
         self.message_requirements.remove(&message_id);
         if let Some(message) = self.pending_messages.remove(&message_id) {
             for block_data in message.included_blocks() {
-                if let Entry::Occupied(mut entry) = self.dependent_messages.entry(block_data) {
-                    entry.get_mut().remove(&message_id);
-                    if entry.get().is_empty() {
+                if let Entry::Occupied(mut entry) = self.missing_blocks.entry(block_data) {
+                    entry.get_mut().messages.remove(&message_id);
+                    if entry.get().messages.is_empty() {
                         entry.remove_entry();
                     }
                 }
@@ -159,17 +225,22 @@ where
         let message_id = self.next_message_id;
         self.next_message_id += 1;
         for block_data in requirements.iter() {
-            self.dependent_messages
+            self.missing_blocks
                 .entry(*block_data)
-                .or_insert_with(HashSet::new)
+                .or_insert_with(MissingBlockInfo::new)
+                .messages
                 .insert(message_id);
         }
         self.message_requirements
             .insert(message_id, requirements.len());
         self.pending_messages.insert(message_id, message);
 
-        if message_id >= MESSAGE_ID_BOUNDARY {
-            self.forget_message(message_id - MESSAGE_ID_BOUNDARY)
+        // Below we remove the message with id `self.next_message_id - self.config.message_id_boundary` to keep the invariant
+        // that the set of messages kept are the ones with ids in the interval
+        // [self.next_message_id - self.config.message_id_boundary, self.next_message_id-1].
+        // Note that `add_pending_message` is the only method that modifies `self.next_message_id`, this works as expected.
+        if message_id >= self.config.message_id_boundary {
+            self.forget_message(message_id - self.config.message_id_boundary)
         }
     }
 
@@ -205,7 +276,11 @@ where
     }
 
     fn push_messages(&mut self, block_data: AlephDataFor<B>) {
-        if let Some(ids) = self.dependent_messages.remove(&block_data) {
+        if let Some(MissingBlockInfo {
+            messages: ids,
+            first_occurence: _,
+        }) = self.missing_blocks.remove(&block_data)
+        {
             for message_id in ids.iter() {
                 *self
                     .message_requirements

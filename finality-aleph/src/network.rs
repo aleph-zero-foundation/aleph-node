@@ -81,9 +81,28 @@ pub trait Network<B: BlockT>: Clone + Send + Sync + 'static {
 
     /// The PeerId of this node.
     fn peer_id(&self) -> PeerId;
+}
 
+pub trait RequestBlocks<B: BlockT>: Clone + Send + Sync + 'static {
     /// Request the justification for the given block
     fn request_justification(&self, hash: &B::Hash, number: NumberFor<B>);
+
+    /// Request the given block -- this is supposed to be used only for "old forks".
+    fn request_stale_block(&self, hash: B::Hash, number: NumberFor<B>);
+}
+
+impl<B: BlockT, H: ExHashT> RequestBlocks<B> for Arc<NetworkService<B, H>> {
+    fn request_justification(&self, hash: &B::Hash, number: NumberFor<B>) {
+        NetworkService::request_justification(self, hash, number)
+    }
+
+    fn request_stale_block(&self, hash: B::Hash, number: NumberFor<B>) {
+        // The below comment is adapted from substrate:
+        // Notifies the sync service to try and sync the given block from the given peers. If the given vector
+        // of peers is empty (as in our case) then the underlying implementation should make a best effort to fetch
+        // the block from any peers it is connected to.
+        NetworkService::set_sync_fork_request(self, Vec::new(), hash, number)
+    }
 }
 
 impl<B: BlockT, H: ExHashT> Network<B> for Arc<NetworkService<B, H>> {
@@ -132,10 +151,6 @@ impl<B: BlockT, H: ExHashT> Network<B> for Arc<NetworkService<B, H>> {
 
     fn peer_id(&self) -> PeerId {
         (*self.local_peer_id()).into()
-    }
-
-    fn request_justification(&self, hash: &B::Hash, number: NumberFor<B>) {
-        NetworkService::request_justification(self, hash, number)
     }
 }
 
