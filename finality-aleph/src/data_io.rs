@@ -1,20 +1,11 @@
 use crate::{metrics::Checkpoint, network, Error, Metrics};
 use aleph_bft::OrderedBatch;
 use codec::{Decode, Encode};
-use futures::{
-    channel::{
-        mpsc::{self, UnboundedReceiver, UnboundedSender},
-        oneshot,
-    },
-    StreamExt,
-};
+use futures::channel::{mpsc, oneshot};
 use lru::LruCache;
 use parking_lot::Mutex;
 use sp_consensus::SelectChain;
-use sp_runtime::{
-    generic::BlockId,
-    traits::{Block as BlockT, Header as HeaderT, NumberFor},
-};
+use sp_runtime::traits::{Block as BlockT, Header as HeaderT, NumberFor};
 use std::default::Default;
 use std::{
     collections::{hash_map::Entry, HashMap, HashSet},
@@ -25,9 +16,12 @@ use std::{
 };
 
 const REFRESH_INTERVAL: u64 = 100;
+use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
 use futures_timer::Delay;
 use log::{debug, trace};
 use sc_client_api::backend::Backend;
+use sp_runtime::generic::BlockId;
+use tokio::stream::StreamExt;
 
 type MessageId = u64;
 const AVAILABLE_BLOCKS_CACHE_SIZE: usize = 1000;
