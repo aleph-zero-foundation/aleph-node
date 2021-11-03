@@ -112,6 +112,7 @@ jobs:
         run: |
           echo "##[set-output name=branch;]$(echo ${GITHUB_REF##*/})"
           echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+          
       - name: Download artifact with aleph-node binary
         uses: actions/download-artifact@v2
         with:
@@ -126,7 +127,7 @@ jobs:
           docker build --tag aleph-node:latest -f ./docker/Dockerfile .
 
       - name: Run consensus party
-        run:  ./.github/scripts/run_consensus.sh
+        run: ./.github/scripts/run_consensus.sh
 
       - name: Display bootnode logs
         run: docker logs damian --follow &

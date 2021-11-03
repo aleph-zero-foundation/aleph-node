@@ -5,14 +5,16 @@
 
 # Rust
 .cargo/config
-/target
+target/
 **/*.rs.bk
+tests/
 
 # Substrate
 *.log
 *.out
 
 # docker
+docker/data/
 db/
 keystore/
 chainspec.json

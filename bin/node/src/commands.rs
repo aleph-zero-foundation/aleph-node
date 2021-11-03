@@ -133,17 +133,13 @@ impl BootstrapChainCmd {
             })
             .collect();
 
-        let chain_spec = match self.chain_params.chain_id() {
-            chain_spec::DEVNET_ID => {
-                chain_spec::development_config(self.chain_params.clone(), genesis_authorities)
-            }
-            chain_id => {
-                chain_spec::config(self.chain_params.clone(), genesis_authorities, chain_id)
-            }
-        };
+        let chain_spec = chain_spec::config(
+            self.chain_params.clone(),
+            genesis_authorities,
+            self.chain_params.chain_id(),
+        )?;
 
-        let spec = chain_spec?;
-        let json = sc_service::chain_ops::build_spec(&spec, self.raw)?;
+        let json = sc_service::chain_ops::build_spec(&chain_spec, self.raw)?;
         if std::io::stdout().write_all(json.as_bytes()).is_err() {
             let _ = std::io::stderr().write_all(b"Error writing to stdout\n");
         }
@@ -158,12 +154,12 @@ impl BootstrapChainCmd {
 pub struct BootstrapNodeCmd {
     /// Pass the AccountId of a new node
     ///
-    /// Expects a string with an AccountId
-    /// If this argument is not passed a random Id will be generated using account-seed argument as seed
+    /// Expects a string with an AccountId (hex encoding of an sr2559 public key)
+    /// If this argument is not passed a random AccountId will be generated using account-seed argument as a seed
     #[structopt(long)]
     account_id: Option<String>,
 
-    /// human-readable authority name used as a seed to generate the AccountId
+    /// Pass seed used to generate the account pivate key (sr2559) and the corresponding AccountId
     #[structopt(long, required_unless = "account-id")]
     pub account_seed: Option<String>,
 
@@ -181,12 +177,12 @@ impl BootstrapNodeCmd {
 
         let authority_keys = authority_keys(&keystore, &self.chain_params, account_id);
         let keys_json = serde_json::to_string_pretty(&authority_keys)
-            .expect("serialization of authority keys should have succeed");
+            .expect("serialization of authority keys should have succeeded");
         println!("{}", keys_json);
         Ok(())
     }
 
-    pub fn account_id(&self) -> AccountId {
+    fn account_id(&self) -> AccountId {
         match &self.account_id {
             Some(id) => AccountId::from_string(id.as_str())
                 .expect("Passed string is not a hex encoding of a public key"),
@@ -194,7 +190,7 @@ impl BootstrapNodeCmd {
                 &self
                     .account_seed
                     .clone()
-                    .expect("Pass account-id or node-name argument")
+                    .expect("Pass account-seed argument")
                     .as_str(),
             ),
         }
