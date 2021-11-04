@@ -1,0 +1,24 @@
+[package]
+name = "flooder"
+version = "0.1.0"
+edition = "2018"
+
+# client
+[dependencies.substrate-api-client]
+git = "https://github.com/scs/substrate-api-client"
+rev = "f9d3a773bb5c76a0c0689b012fc08599beb90ab7"
+
+[dependencies]
+# Substrate dependencies
+sp-core = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master", features = ["full_crypto"] }
+sp-runtime = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master" }
+
+# other dependencies
+anyhow = "^1.0"
+clap = {version = "3.0.0-beta.5", features = ["derive"]}
+codec = { package = 'parity-scale-codec', version = "2.0.0", features = ['derive']}
+env_logger = "0.8"
+futures = { version = "0.3", features = ["alloc"] }
+hdrhistogram = "7.3.0"
+log = "0.4"
+rayon = "1.5.1"

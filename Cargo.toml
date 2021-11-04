@@ -7,3 +7,7 @@ members = [
     "pallet",
     "primitives",
 ]
+
+exclude = [
+  "flooder"
+]
