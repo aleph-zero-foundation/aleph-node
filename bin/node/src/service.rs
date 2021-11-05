@@ -88,8 +88,8 @@ pub fn new_partial(
 
     let metrics = config.prometheus_registry().cloned().and_then(|r| {
         Metrics::register(&r)
-            .map_err(|_err| {
-                warn!("Failed to register Prometheus metrics");
+            .map_err(|err| {
+                warn!("Failed to register Prometheus metrics\n{:?}", err);
             })
             .ok()
     });

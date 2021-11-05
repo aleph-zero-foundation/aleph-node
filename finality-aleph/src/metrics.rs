@@ -7,7 +7,6 @@ use std::{collections::HashMap, time::Instant};
 
 #[derive(Clone)]
 struct Inner<H: Header> {
-    keys: [Checkpoint; 6],
     prev: HashMap<Checkpoint, Checkpoint>,
     gauges: HashMap<Checkpoint, Gauge<U64>>,
     starts: HashMap<Checkpoint, HashMap<H::Hash, Instant>>,
@@ -83,7 +82,6 @@ impl<H: Header> Metrics<H> {
         }
 
         let inner = Arc::new(Mutex::new(Inner {
-            keys,
             prev,
             gauges,
             starts: keys.iter().map(|k| (*k, HashMap::new())).collect(),
