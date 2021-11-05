@@ -28,10 +28,10 @@ hex = "0.4.2"
 codec = { package = "parity-scale-codec", version = "2", default-features = false, features = ["derive"] }
 sp-application-crypto = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9"}
 sc-block-builder = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9"}
-sc-cli = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9"}
+sc-cli = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9", features = ["wasmtime"]}
 sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9"}
-sc-executor = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9"}
-sc-service = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9"}
+sc-executor = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9", features = ["wasmtime"]}
+sc-service = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9", features = ["wasmtime"]}
 sc-telemetry = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9"}
 sc-keystore = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9"}
 sp-keystore = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9"}
