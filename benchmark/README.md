@@ -5,7 +5,8 @@
 _Remark: The instructions are valid when working in the `benchmark` directory._
 
 1. You will need `docker` (version `20.10+`) and `docker-compose` installed.
-2. Specify where Prometheus should be fetching metrics from, i.e. add IPs of the machines running the protocol 
+2. Install `fabric` and `parallel`.
+3. Specify where Prometheus should be fetching metrics from, i.e. add IPs of the machines running the protocol 
 (together with the port, usually `9615`) to the `targets` entry in `prometheus.yml`, e.g.:
 ```yml
 ...
