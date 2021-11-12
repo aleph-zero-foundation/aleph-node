@@ -39,8 +39,8 @@ pub struct MillisecsPerBlock(pub u64);
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
 pub struct UnitCreationDelay(pub u64);
 
-pub const DEFAULT_SESSION_PERIOD: u32 = 5;
-pub const DEFAULT_MILLISECS_PER_BLOCK: u64 = 4000;
+pub const DEFAULT_SESSION_PERIOD: u32 = 900;
+pub const DEFAULT_MILLISECS_PER_BLOCK: u64 = 1000;
 pub const TOKEN_DECIMALS: u32 = 12;
 pub const ADDRESSES_ENCODING: u32 = 42;
 pub const DEFAULT_UNIT_CREATION_DELAY: u64 = 300;
