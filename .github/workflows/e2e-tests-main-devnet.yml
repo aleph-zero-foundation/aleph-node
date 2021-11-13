@@ -15,8 +15,8 @@ on:
       - main
 
 jobs:
-  build:
-    name: Build binary artifact
+  build-node:
+    name: Build binary artifact and docker image of the node
     runs-on: ubuntu-latest
     env:
       RUST_TOOLCHAIN_VERSION: nightly-2021-07-05
@@ -43,6 +43,7 @@ jobs:
           curl -L "$LINK/$SCCACHE_VERSION/$SCCACHE_FILE.tar.gz" | tar xz
           mv -f $SCCACHE_FILE/sccache $HOME/.local/bin/sccache
           echo "$HOME/.local/bin" >> $GITHUB_PATH
+
       - name: Restore Cargo Cache
         uses: actions/cache@v2
         with:
@@ -78,23 +79,74 @@ jobs:
         run: |
           export RUSTC_WRAPPER=$HOME/.local/bin/sccache
           cargo build --release
-          chmod +x target/release/aleph-node
+
       - name: Print sccache stats
         run: sccache --show-stats
 
       - name: Stop sccache server
         run: sccache --stop-server || true
 
-      - name: Upload Binary
+      - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
           name: aleph-node
           path: target/release/aleph-node
           if-no-files-found: error
-          retention-days: 20
+          retention-days: 7
 
-  e2e-tests:
-    needs: build
+      - name: Build docker image
+        id: build-image
+        run: |
+          docker build --tag aleph-node:latest -f ./docker/Dockerfile .
+          docker save -o aleph-node.tar aleph-node:latest
+
+      - name: Upload docker image
+        uses: actions/upload-artifact@v2
+        with:
+          name: aleph-node
+          path: aleph-node.tar
+          if-no-files-found: error
+          retention-days: 7
+
+  build-test-client:
+    name: Build e2e test client suite
+    runs-on: ubuntu-latest
+    env:
+      RUST_TOOLCHAIN_VERSION: nightly-2021-07-05
+      RUST_BACKTRACE: full
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Checkout Source code
+        uses: actions/checkout@v2
+
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+          override: true
+
+      - name: Build binary and docker image
+        run: |
+          cd e2e-tests/
+          cargo build --release
+          docker build --tag aleph-e2e-client:latest -f Dockerfile .
+          docker save -o aleph-e2e-client.tar aleph-e2e-client:latest
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: aleph-e2e-client
+          path: e2e-tests/aleph-e2e-client.tar
+          if-no-files-found: error
+          retention-days: 7
+
+  run-e2e-tests:
+    needs: [build-node, build-test-client]
     name: Run e2e tests suite
     runs-on: ubuntu-latest
     steps:
@@ -106,25 +158,15 @@ jobs:
       - name: GIT | Checkout Source code
         uses: actions/checkout@v2
 
-      - name: GIT | Get branch info & current commit sha.
-        id: vars
-        shell: bash
-        run: |
-          echo "##[set-output name=branch;]$(echo ${GITHUB_REF##*/})"
-          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
-          
-      - name: Download artifact with aleph-node binary
+      - name: Download artifact with docker image
         uses: actions/download-artifact@v2
         with:
           name: aleph-node
 
-      - name: Build docker image
-        id: build-image
-        run: |
-          # copy downloaded artifact to the path that the scripts expect
-          mkdir -p target/release/
-          cp aleph-node target/release/aleph-node
-          docker build --tag aleph-node:latest -f ./docker/Dockerfile .
+      - name: Load node docker image
+        shell: bash
+        timeout-minutes: 5
+        run: docker load -i aleph-node.tar
 
       - name: Run consensus party
         run: ./.github/scripts/run_consensus.sh
@@ -132,13 +174,45 @@ jobs:
       - name: Display bootnode logs
         run: docker logs damian --follow &
 
-      # NOTE: this step waits until chain starts finalizing blocks
-      - name: Wait for consensus
+      - name: Download artifact with the test suite image
+        uses: actions/download-artifact@v2
+        with:
+          name: aleph-e2e-client
+
+      - name: Load test suite docker image
+        shell: bash
+        run: docker load -i aleph-e2e-client.tar
+
+      - name: Run e2e test suite
         shell: bash
         timeout-minutes: 5
-        run: ./.github/scripts/check_finalization.sh
+        run: |
+          ./.github/scripts/run_e2e_tests.sh
 
-      # note: more complex test scenarios can be run from here on out
+  push-image:
+    needs: [run-e2e-tests]
+    name: Push node image to the ECR repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: GIT | Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: GIT | Checkout Source code
+        if: github.event_name == 'push'
+        uses: actions/checkout@v2
+
+      - name: Download artifact with docker image
+        if: github.event_name == 'push'
+        uses: actions/download-artifact@v2
+        with:
+          name: aleph-node
+
+      - name: Load node docker image
+        if: github.event_name == 'push'
+        shell: bash
+        run: docker load -i aleph-node.tar
 
       - name: Configure AWS credentials
         if: github.event_name == 'push'
@@ -159,6 +233,13 @@ jobs:
         env:
           AWS_REGION: us-east-1
 
+      - name: GIT | Get branch info & current commit sha.
+        id: vars
+        shell: bash
+        run: |
+          echo "##[set-output name=branch;]$(echo ${GITHUB_REF##*/})"
+          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+
       - name: Push aleph-node Current Image to Public ECR
         if: github.event_name == 'push'
         env:
@@ -167,7 +248,9 @@ jobs:
         run: |
           docker tag ${{ env.CURRENT_IMAGE }} ${{ env.ECR_PUSH_IMAGE }}
           docker push ${{ env.ECR_PUSH_IMAGE }}
+
       - name: Send Slack Notification
+        if: github.event_name == 'push'
         uses: rtCamp/action-slack-notify@v2
         continue-on-error: true
         env:

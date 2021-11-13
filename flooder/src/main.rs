@@ -2,15 +2,15 @@ mod config;
 
 use clap::Parser;
 use codec::{Compact, Encode};
+use common::create_connection;
 use config::Config;
 use hdrhistogram::Histogram as HdrHistogram;
-use log::{debug, info, warn};
+use log::{debug, info};
 use rayon::prelude::*;
 use sp_core::{sr25519, DeriveJunction, Pair};
 use sp_runtime::{generic, traits::BlakeTwo256, MultiAddress, OpaqueExtrinsic};
 use std::sync::{Arc, Mutex};
-use std::thread::sleep;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use substrate_api_client::rpc::WsRpcClient;
 use substrate_api_client::{
     compose_call, compose_extrinsic_offline, AccountId, Api, GenericAddress, UncheckedExtrinsicV4,
@@ -277,20 +277,8 @@ fn send_tx<Call>(
 fn create_connection_pool(nodes: Vec<String>) -> Vec<Api<sr25519::Pair, WsRpcClient>> {
     nodes
         .into_iter()
-        .map(|url| create_connection(format!("ws://{}", &url)))
+        .map(|url| create_connection(url))
         .collect()
-}
-
-fn create_connection(url: String) -> Api<sr25519::Pair, WsRpcClient> {
-    let client = WsRpcClient::new(&url);
-    match Api::<sr25519::Pair, _>::new(client) {
-        Ok(api) => api,
-        Err(_) => {
-            warn!("[+] Can't create_connection atm, will try again in 1s");
-            sleep(Duration::from_millis(1000));
-            create_connection(url)
-        }
-    }
 }
 
 fn get_nonce(connection: Api<sr25519::Pair, WsRpcClient>, account: &AccountId) -> u32 {

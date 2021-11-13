@@ -5,10 +5,12 @@
 
 # Rust
 .cargo/config
+
 target/
 **/*.rs.bk
 flooder/target/
-tests/
+e2e-tests/target/
+common/target/
 
 # Substrate
 *.log

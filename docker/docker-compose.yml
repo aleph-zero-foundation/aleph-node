@@ -7,6 +7,7 @@ services:
     container_name: damian
     network_mode: host
     environment:
+      - CUSTOM_ARGS=-lpallet_aleph=debug,runtime=debug
       - PURGE_BEFORE_START=true
       - RUST_LOG=info
       - RPC_PORT=9933

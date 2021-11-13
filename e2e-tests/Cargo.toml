@@ -1,0 +1,24 @@
+[package]
+name = "aleph-e2e-client"
+version = "0.1.0"
+edition = "2018"
+
+# client
+[dependencies.substrate-api-client]
+git = "https://github.com/scs/substrate-api-client"
+rev = "f9d3a773bb5c76a0c0689b012fc08599beb90ab7"
+
+[dependencies]
+# Substrate dependencies
+sp-core = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false, features = ["full_crypto"] }
+sp-runtime = { version = "4.0.0-dev",  git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
+system = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master", package = "frame-system" }
+
+# other dependencies
+anyhow = "1.0"
+clap = {version = "3.0.0-beta.5", features = ["derive"]}
+common = {path = "../common" }
+env_logger = "0.8"
+log = "0.4"
+serde_json = "1.0"
+codec = { package = 'parity-scale-codec', version = "2.0.0", default-features = false,  features = ['derive']}
