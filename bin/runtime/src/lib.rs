@@ -6,10 +6,6 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use primitives::{
-    MillisecsPerBlock as MillisecsPerBlockPrimitive, SessionPeriod as SessionPeriodPrimitive,
-    UnitCreationDelay as UnitCreationDelayPrimitive,
-};
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -110,10 +106,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 2,
+    spec_version: 4,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 1,
+    transaction_version: 2,
 };
 
 /// This determines the average expected block time that we are targetting.
@@ -219,7 +215,7 @@ impl pallet_aura::Config for Runtime {
 pub struct MinimumPeriod;
 impl MinimumPeriod {
     pub fn get() -> u64 {
-        Aleph::millisecs_per_block().0 / 2
+        Aleph::millisecs_per_block() / 2
     }
 }
 impl<I: From<u64>> ::frame_support::traits::Get<I> for MinimumPeriod {
@@ -321,11 +317,33 @@ impl_opaque_keys! {
     }
 }
 
+parameter_types! {
+    pub const Offset: u32 = 0;
+}
+
+parameter_types! {
+    pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(30);
+}
+
+pub struct MillisecsPerBlock;
+
+impl MillisecsPerBlock {
+    pub fn get() -> u64 {
+        Aleph::millisecs_per_block()
+    }
+}
+
+impl<I: From<u64>> ::frame_support::traits::Get<I> for MillisecsPerBlock {
+    fn get() -> I {
+        I::from(Self::get())
+    }
+}
+
 pub struct SessionPeriod;
 
 impl SessionPeriod {
     pub fn get() -> u32 {
-        Aleph::session_period().0
+        Aleph::session_period()
     }
 }
 
@@ -333,14 +351,6 @@ impl<I: From<u32>> ::frame_support::traits::Get<I> for SessionPeriod {
     fn get() -> I {
         I::from(Self::get())
     }
-}
-
-parameter_types! {
-    pub const Offset: u32 = 0;
-}
-
-parameter_types! {
-    pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(30);
 }
 
 impl pallet_session::Config for Runtime {
@@ -570,16 +580,13 @@ impl_runtime_apis! {
             Aleph::authorities()
         }
 
-        fn session_period() -> SessionPeriodPrimitive {
+        fn session_period() -> u32 {
             Aleph::session_period()
         }
 
-        fn millisecs_per_block() -> MillisecsPerBlockPrimitive {
+        fn millisecs_per_block() -> u64 {
             Aleph::millisecs_per_block()
         }
 
-        fn unit_creation_delay() -> UnitCreationDelayPrimitive {
-            Aleph::unit_creation_delay()
-        }
     }
 }

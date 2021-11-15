@@ -1,5 +1,5 @@
 use crate::commands::BootstrapNodeCmd;
-use crate::{chain_spec, commands::BootstrapChainCmd};
+use crate::{aleph_cli::AlephCli, chain_spec, commands::BootstrapChainCmd};
 use sc_cli::{ChainSpec, RunCmd, RuntimeVersion, SubstrateCli};
 use structopt::StructOpt;
 
@@ -7,6 +7,9 @@ use structopt::StructOpt;
 pub struct Cli {
     #[structopt(subcommand)]
     pub subcommand: Option<Subcommand>,
+
+    #[structopt(flatten)]
+    pub aleph: AlephCli,
 
     #[structopt(flatten)]
     pub run: RunCmd,

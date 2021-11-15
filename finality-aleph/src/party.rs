@@ -16,11 +16,12 @@ use crate::{
         split_network, AlephNetworkData, ConsensusNetwork, DataNetwork, NetworkData, SessionManager,
     },
     session_id_from_block_num, AuthorityId, Future, Metrics, NodeIndex, SessionId, SessionMap,
+    SessionPeriod, UnitCreationDelay,
 };
 use sp_keystore::CryptoStore;
 
 use aleph_bft::{DelayConfig, OrderedBatch, SpawnHandle};
-use aleph_primitives::{AlephSessionApi, SessionPeriod, UnitCreationDelay, KEY_TYPE};
+use aleph_primitives::{AlephSessionApi, KEY_TYPE};
 use futures_timer::Delay;
 
 use futures::{

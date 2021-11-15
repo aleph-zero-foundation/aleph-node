@@ -1,9 +1,11 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
+use crate::aleph_cli::AlephCli;
 use aleph_primitives::AlephSessionApi;
 use aleph_runtime::{self, opaque::Block, RuntimeApi, MAX_BLOCK_SIZE};
 use finality_aleph::{
     run_aleph_consensus, AlephBlockImport, AlephConfig, JustificationNotification, Metrics,
+    MillisecsPerBlock, SessionPeriod,
 };
 use futures::channel::mpsc;
 use log::warn;
@@ -138,7 +140,10 @@ pub fn new_partial(
 }
 
 /// Builds a new service for a full client.
-pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> {
+pub fn new_full(
+    mut config: Configuration,
+    aleph_config: AlephCli,
+) -> Result<TaskManager, ServiceError> {
     let sc_service::PartialComponents {
         client,
         backend,
@@ -167,20 +172,21 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
             warp_sync: None,
         })?;
 
-    let session_period = client
-        .runtime_api()
-        .session_period(&BlockId::Number(Zero::zero()))
-        .unwrap();
+    let session_period = SessionPeriod(
+        client
+            .runtime_api()
+            .session_period(&BlockId::Number(Zero::zero()))
+            .unwrap(),
+    );
 
-    let millisecs_per_block = client
-        .runtime_api()
-        .millisecs_per_block(&BlockId::Number(Zero::zero()))
-        .unwrap();
+    let millisecs_per_block = MillisecsPerBlock(
+        client
+            .runtime_api()
+            .millisecs_per_block(&BlockId::Number(Zero::zero()))
+            .unwrap(),
+    );
 
-    let unit_creation_delay = client
-        .runtime_api()
-        .unit_creation_delay(&BlockId::Number(Zero::zero()))
-        .unwrap();
+    let unit_creation_delay = aleph_config.unit_creation_delay();
 
     let role = config.role.clone();
     let force_authoring = config.force_authoring;

@@ -3,10 +3,10 @@ use crate::{
     finalization::finalize_block,
     last_block_of_session,
     metrics::Checkpoint,
-    network, session_id_from_block_num, Metrics, SessionId, SessionMap,
+    network, session_id_from_block_num, Metrics, SessionId, SessionMap, SessionPeriod,
 };
 use aleph_bft::SignatureSet;
-use aleph_primitives::{SessionPeriod, ALEPH_ENGINE_ID};
+use aleph_primitives::ALEPH_ENGINE_ID;
 use codec::{Decode, Encode};
 use futures::{channel::mpsc, StreamExt};
 use futures_timer::Delay;

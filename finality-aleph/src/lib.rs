@@ -16,7 +16,6 @@ use sp_runtime::{
 };
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 mod aggregator;
-pub mod config;
 mod crypto;
 mod data_io;
 mod finalization;
@@ -53,10 +52,18 @@ pub fn peers_set_config() -> sc_network::config::NonDefaultSetConfig {
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
 pub struct SessionId(pub u32);
 
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
+pub struct SessionPeriod(pub u32);
+
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
+pub struct MillisecsPerBlock(pub u64);
+
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
+pub struct UnitCreationDelay(pub u64);
+
 pub use crate::metrics::Metrics;
 use crate::party::{run_consensus_party, AlephParams};
 pub use aleph_primitives::{AuthorityId, AuthorityPair, AuthoritySignature};
-use aleph_primitives::{MillisecsPerBlock, SessionPeriod, UnitCreationDelay};
 use futures::channel::mpsc;
 
 pub trait ClientForAleph<B, BE>:
