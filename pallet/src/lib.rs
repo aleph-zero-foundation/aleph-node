@@ -1,3 +1,11 @@
+//! Aleph session manager.
+//!
+//! This pallet manages the changes in the committee responsible for establishing consensus.
+//! Currently, it's PoA where the validators are set by the root account. In the future, a new
+//! pallet for PoS elections will replace this one.
+//!
+//! For full integration with Aleph finality gadget, the `primitives::AlephSessionApi` should be implemented.
+
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(test)]
