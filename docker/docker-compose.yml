@@ -19,6 +19,7 @@ services:
       - CHAIN=/data/chainspec.json
       - ALLOW_PRIVATE_IPV4=true
       - DISCOVER_LOCAL=true
+      - UNIT_CREATION_DELAY=500
     volumes:
       - ./data/:/data/
 
@@ -39,6 +40,7 @@ services:
       - ALLOW_PRIVATE_IPV4=true
       - DISCOVER_LOCAL=true
       - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/$BOOTNODE_PEER_ID
+      - UNIT_CREATION_DELAY=500
     volumes:
       - ./data/:/data/
 
@@ -59,6 +61,7 @@ services:
       - ALLOW_PRIVATE_IPV4=true
       - DISCOVER_LOCAL=true
       - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/$BOOTNODE_PEER_ID
+      - UNIT_CREATION_DELAY=500
     volumes:
       - ./data/:/data/
 
@@ -79,5 +82,6 @@ services:
       - ALLOW_PRIVATE_IPV4=true
       - DISCOVER_LOCAL=true
       - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/$BOOTNODE_PEER_ID
+      - UNIT_CREATION_DELAY=500
     volumes:
       - ./data/:/data/

@@ -26,6 +26,7 @@ WS_MAX_CONNECTIONS=${WS_MAX_CONNECTIONS:-100}
 POOL_LIMIT=${POOL_LIMIT:-1024}
 PROMETHEUS_ENABLED=${PROMETHEUS_ENABLED:-true}
 TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-false}
+UNIT_CREATION_DELAY=${UNIT_CREATION_DELAY:-500}
 
 if [[ "true" == "$PURGE_BEFORE_START" ]]; then
   echo "Purging chain (${CHAIN}) at path ${BASE_PATH}"
@@ -97,6 +98,10 @@ fi
 
 if [[ "false" == "${VALIDATOR}" ]]; then
   ARGS+=(--rpc-methods Safe)
+fi
+
+if [[ -n "${UNIT_CREATION_DELAY:-}" ]]; then
+  ARGS+=(--unit-creation-delay="${UNIT_CREATION_DELAY}")
 fi
 
 if [[ -n "${CUSTOM_ARGS:-}" ]]; then

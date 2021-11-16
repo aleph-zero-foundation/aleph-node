@@ -13,7 +13,7 @@ jobs:
     name: Build binary artifact and docker image of the node
     runs-on: ubuntu-latest
     env:
-      RUST_TOOLCHAIN_VERSION: nightly-2021-07-05
+      RUST_TOOLCHAIN_VERSION: nightly-2021-10-24
       RUST_BACKTRACE: full
       SCCACHE_VERSION: 0.2.13
       SCCACHE_CACHE_SIZE: 2G
@@ -106,7 +106,7 @@ jobs:
     name: Build e2e test client suite
     runs-on: ubuntu-latest
     env:
-      RUST_TOOLCHAIN_VERSION: nightly-2021-07-05
+      RUST_TOOLCHAIN_VERSION: nightly-2021-10-24
       RUST_BACKTRACE: full
     steps:
       - name: Cancel Previous Runs
@@ -159,7 +159,6 @@ jobs:
 
       - name: Load node docker image
         shell: bash
-        timeout-minutes: 5
         run: docker load -i aleph-node.tar
 
       - name: Run consensus party
@@ -179,7 +178,7 @@ jobs:
 
       - name: Run e2e test suite
         shell: bash
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
           ./.github/scripts/run_e2e_tests.sh
 

@@ -1,12 +1,12 @@
 [package]
 name = "aleph-e2e-client"
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
 
 # client
 [dependencies.substrate-api-client]
 git = "https://github.com/scs/substrate-api-client"
-rev = "f9d3a773bb5c76a0c0689b012fc08599beb90ab7"
+rev = "aa4b84f8775f972e5967aca3d96dd163619f65d5"
 
 [dependencies]
 # Substrate dependencies
