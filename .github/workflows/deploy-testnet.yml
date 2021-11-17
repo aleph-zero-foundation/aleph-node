@@ -67,9 +67,19 @@ jobs:
       - name: Update aleph-node docker image and trigger ArgoCD deploy for Testnet                                                                      
         env:                                                                                                          
           TESTNET_IMAGE: public.ecr.aws/x2t8a1o3/aleph-node:${{ steps.vars.outputs.branch }}
+          REGIONS_AWS: 'eu-central-1,eu-west-1,eu-west-2,us-east-1,us-east-2'
         run: |
-          cd aleph-apps/aleph-node/overlays/testnet
-          kustomize edit set image ${{ env.TESTNET_IMAGE }}
+          IFS="," read -a region_array <<< ${{ env.REGIONS_AWS }}
+          export aleph_path=$(pwd)
+          for i in "${region_array[@]}"; do
+            # Deploy new image version for archivist 
+            cd ${aleph_path}/aleph-apps/aleph-node-archivists/overlays/testnet/${i}
+            kustomize edit set image ${{ env.TESTNET_IMAGE }}
+
+            # Deploy new image version for validator
+            cd ${aleph_path}/aleph-apps/aleph-node-validators/overlays/testnet/${i}
+            kustomize edit set image ${{ env.TESTNET_IMAGE }}
+          done
 
       - name: GIT | Commit changes to aleph-apps repository.
         uses: EndBug/add-and-commit@v5.1.0
