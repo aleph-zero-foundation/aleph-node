@@ -1,0 +1,4 @@
+*/__pycache__/
+*.zip
+/bin
+/key_pairs

@@ -1,16 +1,16 @@
-import logging
 import os
-import stat
+import logging
 import webbrowser
 from argparse import Namespace
 from pathlib import Path
-from shutil import copyfile
 from time import sleep
 from typing import List, Optional
 
 import yaml
 from shell import setup_benchmark, instances_ip_in_region, run_task
 from utils import default_region
+
+from .utils import copy_binary
 
 
 def run_experiment(nparties: int, tag: str, unit_creation_delay: Optional[int]) -> List[str]:
@@ -46,18 +46,6 @@ def create_prometheus_configuration(targets: List[str]):
     logging.info('Prometheus configuration saved to `prometheus.yml`.')
 
 
-def copy_binary(aleph_node_binary: Path):
-    logging.info(f'Copying aleph-node binary from {aleph_node_binary}...')
-
-    os.makedirs('bin', exist_ok=True)
-    target = Path('bin/aleph-node')
-    copyfile(aleph_node_binary, target)
-    st = os.stat(target)
-    os.chmod(target, st.st_mode | stat.S_IEXEC)
-
-    logging.info(f'Copying aleph-node binary succeeded.')
-
-
 def run_monitoring_in_docker():
     os.system('docker-compose up -d')
 
@@ -68,7 +56,7 @@ def view_dashboard():
 
 
 def run(args: Namespace):
-    copy_binary(args.aleph_node_binary)
+    copy_binary(args.aleph_node_binary, 'aleph-node')
     ips = run_experiment(args.nparties, args.tag, args.unit_creation_delay)
     targets = convert_to_targets(ips)
     create_prometheus_configuration(targets)

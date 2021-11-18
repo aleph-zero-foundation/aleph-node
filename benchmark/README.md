@@ -76,6 +76,46 @@ one with Prometheus and the second one with Grafana servers.
 They are available at `localhost:9090` and `localhost:3000` respectively.
 At the end, the dashboard will be automatically displayed in the default browser.
 
+
+### Running flooder
+```
+usage: benchmark.py flood [-h] [--flooder-binary FLOODER_BINARY] [--phrase PHRASE | --seed SEED] [--addresses ADDRESSES] [--transactions TRANSACTIONS]
+                          [--throughput THROUGHPUT] [--tag TAG]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --flooder-binary FLOODER_BINARY
+                        flooder executable
+  --phrase PHRASE       secret phrase of the account
+  --seed SEED           secret seed of the account
+  --addresses ADDRESSES
+                        File with URL address(es) of the nodes to send transactions to
+  --transactions TRANSACTIONS, --tx TRANSACTIONS
+                        how many transactions to send
+  --throughput THROUGHPUT
+                        what throughput to use (transactions/s)
+  --tag TAG             tag for the machines
+```
+
+For example:
+```bash
+./benchmark.py flood --flooder-binary ../flooder/target/release/flooder --addresses ./addresses --transactions=100 --phrase="..."
+```
+
+
+### Stopping the flooder
+```
+usage: benchmark.py flooder-clean [-h] [--tag TAG]
+
+optional arguments:
+  -h, --help  show this help message and exit
+  --tag TAG   tag for the machines
+```
+So just run
+```bash
+./benchmark.py flooder-clean
+```
+
 ### Stopping the experiment
 
 ```
