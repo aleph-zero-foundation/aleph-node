@@ -22,7 +22,7 @@ def get_args() -> argparse.Namespace:
     parser_run.add_argument('nparties', type=int, help='number of nodes in the experiment')
     parser_run.add_argument('aleph_node_binary', type=Path, help='aleph-node executable')
     parser_run.add_argument('--tag', type=str, help='tag for the machines', default='b2')
-    parser_run.add_argument('--unit-creation-delay', type=int, help='corresponding flag to the one for chainspec')
+    parser_run.add_argument('--unit-creation-delay', type=int, help='corresponding flag to the one for aleph-node')
     parser_run.set_defaults(func=run)
 
     parser_clean = subparsers.add_parser('clean')

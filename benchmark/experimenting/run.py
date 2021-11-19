@@ -2,7 +2,6 @@ import os
 import logging
 import webbrowser
 from argparse import Namespace
-from pathlib import Path
 from time import sleep
 from typing import List, Optional
 
@@ -16,7 +15,7 @@ from .utils import copy_binary
 def run_experiment(nparties: int, tag: str, unit_creation_delay: Optional[int]) -> List[str]:
     logging.info('Setting up nodes...')
     flags = {'--unit-creation-delay': unit_creation_delay} if unit_creation_delay else dict()
-    setup_benchmark(nparties, 'test', [default_region()], tag=tag, **flags)
+    setup_benchmark(nparties, 'test', [default_region()], tag=tag, node_flags=flags)
     logging.info('Obtaining machine IPs...')
     ips = instances_ip_in_region(tag=tag)
     logging.info(f'Machine IPs: {ips}.')

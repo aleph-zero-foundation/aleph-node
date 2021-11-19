@@ -21,7 +21,7 @@ def remove_file(filename: str):
 
 def remove_files():
     for filename in ['addresses', 'aleph-node.zip', 'chainspec.json', 'libp2p_public_keys',
-                     'validator_accounts', 'validator_phrases', 'x']:
+                     'node_flags.json', 'validator_accounts', 'validator_phrases', 'x']:
         remove_file(filename)
 
     shutil.rmtree('accounts', ignore_errors=True)
