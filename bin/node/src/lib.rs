@@ -1,4 +1,9 @@
 mod aleph_cli;
-pub mod chain_spec;
-pub mod rpc;
-pub mod service;
+mod chain_spec;
+mod cli;
+mod commands;
+mod rpc;
+mod service;
+
+pub use cli::{Cli, Subcommand};
+pub use service::{new_full, new_partial};
