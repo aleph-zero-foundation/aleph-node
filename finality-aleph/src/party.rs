@@ -35,7 +35,10 @@ use parking_lot::Mutex;
 use sc_client_api::backend::Backend;
 use sp_api::{BlockId, NumberFor};
 use sp_consensus::SelectChain;
-use sp_runtime::traits::{Block, Header};
+use sp_runtime::{
+    traits::{Block, Header},
+    SaturatedConversion,
+};
 use std::default::Default;
 use std::{
     cmp::min,
@@ -175,7 +178,6 @@ where
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
     RB: network::RequestBlocks<B> + 'static,
-    NumberFor<B>: From<u32>,
 {
     session_manager: SessionManager<NetworkData<B>>,
     session_authorities: Arc<Mutex<SessionMap>>,
@@ -272,7 +274,6 @@ where
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
     RB: network::RequestBlocks<B> + 'static,
-    NumberFor<B>: From<u32>,
 {
     async fn run_session_as_authority(
         &self,
@@ -447,7 +448,7 @@ where
             if session_id == SessionId(0) {
                 self.client
                     .runtime_api()
-                    .authorities(&BlockId::Number(0.into()))
+                    .authorities(&BlockId::Number(<NumberFor<B>>::saturated_from(0u32)))
                     .unwrap()
             } else {
                 let last_prev =
