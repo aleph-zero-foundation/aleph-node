@@ -1,4 +1,4 @@
-name: Deploy to main Devnet
+name: Deploy to Devnet
 
 on:
   workflow_run:
@@ -36,8 +36,8 @@ jobs:
       - name: Configure AWS credentials                          
         uses: aws-actions/configure-aws-credentials@v1           
         with:                                                    
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}      
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}      
+          aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Public Amazon ECR
@@ -45,8 +45,8 @@ jobs:
         uses: docker/login-action@v1
         with:
           registry: public.ecr.aws
-          username: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+          password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
         env:
           AWS_REGION: us-east-1
 
@@ -62,12 +62,30 @@ jobs:
         with:
           kustomize-version: "3.8.6"
           
-      - name: Update aleph-node docker image and trigger ArgoCD deploy                                                                        
+      # - name: Update aleph-node docker image and trigger ArgoCD deploy                                                                        
+      #   env:                                                                                                          
+      #     RELEASE_IMAGE: public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.vars.outputs.sha_short }}
+      #   run: |
+      #     cd aleph-apps/aleph-node/overlays/maindevnet
+      #     kustomize edit set image ${{ env.RELEASE_IMAGE }}
+
+      - name: Update aleph-node docker image and trigger ArgoCD deploy for Devnet                                                                      
         env:                                                                                                          
           RELEASE_IMAGE: public.ecr.aws/x2t8a1o3/aleph-node:${{ steps.vars.outputs.sha_short }}
+          REGIONS_AWS: 'eu-central-1'
         run: |
-          cd aleph-apps/aleph-node/overlays/maindevnet
-          kustomize edit set image ${{ env.RELEASE_IMAGE }}
+          IFS="," read -a region_array <<< ${{ env.REGIONS_AWS }}
+          export aleph_path=$(pwd)
+          for i in "${region_array[@]}"; do
+            # Deploy new image version for archivist 
+            cd ${aleph_path}/aleph-apps/aleph-node-archivists/overlays/devnet/${i}
+            kustomize edit set image ${{ env.RELEASE_IMAGE }}
+
+            # Deploy new image version for validator
+            cd ${aleph_path}/aleph-apps/aleph-node-validators/overlays/devnet/${i}
+            kustomize edit set image ${{ env.RELEASE_IMAGE }}
+          done
+
       - name: GIT | Commit changes to aleph-apps repository.
         uses: EndBug/add-and-commit@v5.1.0
         with:
