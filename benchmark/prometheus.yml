@@ -5,3 +5,8 @@ scrape_configs:
 
     static_configs:
       - targets: ["host.docker.internal:9615"]
+
+
+  - job_name: "node"
+    static_configs:
+      - targets: ["host.docker.internal:9100"]

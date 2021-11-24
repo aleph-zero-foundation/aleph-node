@@ -1238,7 +1238,7 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "8.2.0",
+      "pluginVersion": "8.2.1",
       "targets": [
         {
           "expr": "substrate_block_height{status=\"best\"}",
@@ -1292,7 +1292,7 @@
         "text": {},
         "textMode": "value"
       },
-      "pluginVersion": "8.2.0",
+      "pluginVersion": "8.2.1",
       "targets": [
         {
           "expr": "substrate_block_height{status=\"finalized\"}",
@@ -1350,7 +1350,7 @@
         "text": {},
         "textMode": "auto"
       },
-      "pluginVersion": "8.2.0",
+      "pluginVersion": "8.2.1",
       "targets": [
         {
           "exemplar": true,
@@ -1414,7 +1414,7 @@
         "text": {},
         "textMode": "value"
       },
-      "pluginVersion": "8.2.0",
+      "pluginVersion": "8.2.1",
       "targets": [
         {
           "expr": "substrate_state_cache_bytes",
@@ -1428,6 +1428,113 @@
       "timeShift": null,
       "title": "State Cashe (bytes)",
       "type": "stat"
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Prometheus",
+      "description": "",
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 49
+      },
+      "hiddenSeries": false,
+      "id": 50,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "8.2.1",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [
+        {
+          "$$hashKey": "object:983",
+          "alias": "number of transactions",
+          "yaxis": 2
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "avg(substrate_proposer_number_of_transactions)",
+          "hide": false,
+          "interval": "",
+          "legendFormat": "number of transactions",
+          "refId": "A"
+        },
+        {
+          "exemplar": true,
+          "expr": "histogram_quantile(0.90, sum(rate(substrate_proposer_block_constructed_bucket[5m])) by (le))",
+          "interval": "",
+          "legendFormat": "construction time",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "construction time x txs",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:955",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:956",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     },
     {
       "aliasColors": {},
@@ -1469,7 +1576,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.0",
+      "pluginVersion": "8.2.1",
       "pointradius": 2,
       "points": true,
       "renderer": "flot",
@@ -1563,7 +1670,7 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "8.2.0",
+      "pluginVersion": "8.2.1",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
