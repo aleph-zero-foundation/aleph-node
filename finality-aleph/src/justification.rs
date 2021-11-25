@@ -1,13 +1,13 @@
 use crate::{
-    crypto::{AuthorityVerifier, Signature},
+    crypto::{AuthorityVerifier, Signature, SignatureV1},
     finalization::finalize_block,
     last_block_of_session,
     metrics::Checkpoint,
     network, session_id_from_block_num, Metrics, SessionId, SessionMap, SessionPeriod,
 };
-use aleph_bft::SignatureSet;
+use aleph_bft::{PartialMultisignature, SignatureSet};
 use aleph_primitives::ALEPH_ENGINE_ID;
-use codec::{Decode, Encode};
+use codec::{Decode, DecodeAll, Encode};
 use futures::{channel::mpsc, StreamExt};
 use futures_timer::Delay;
 use log::{debug, error, warn};
@@ -23,7 +23,7 @@ use std::{
 use tokio::time::timeout;
 
 /// A proof of block finality, currently in the form of a sufficiently long list of signatures.
-#[derive(Clone, Encode, Decode, Debug)]
+#[derive(Clone, Encode, Decode, Debug, PartialEq)]
 pub struct AlephJustification {
     pub(crate) signature: SignatureSet<Signature>,
 }
@@ -243,5 +243,43 @@ where
         Some(AuthorityVerifier::new(
             self.session_authorities.lock().get(&session_id)?.to_vec(),
         ))
+    }
+}
+
+/// Old format of justifications, needed for backwards compatibility.
+#[derive(Clone, Encode, Decode, Debug, PartialEq)]
+pub(crate) struct AlephJustificationV1 {
+    pub(crate) signature: SignatureSet<SignatureV1>,
+}
+
+impl From<AlephJustificationV1> for AlephJustification {
+    fn from(just_v1: AlephJustificationV1) -> AlephJustification {
+        let size = just_v1.signature.size();
+        let just_drop_id: SignatureSet<Signature> = just_v1
+            .signature
+            .into_iter()
+            .fold(SignatureSet::with_size(size), |sig_set, (id, sgn)| {
+                sig_set.add_signature(&sgn.into(), id)
+            });
+        AlephJustification {
+            signature: just_drop_id,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum JustificationDecoding {
+    V1(AlephJustificationV1),
+    V2(AlephJustification),
+    Err,
+}
+
+pub(crate) fn backwards_compatible_decode(justification_raw: Vec<u8>) -> JustificationDecoding {
+    if let Ok(justification) = AlephJustification::decode_all(&justification_raw) {
+        JustificationDecoding::V2(justification)
+    } else if let Ok(justification) = AlephJustificationV1::decode_all(&justification_raw) {
+        JustificationDecoding::V1(justification)
+    } else {
+        JustificationDecoding::Err
     }
 }
