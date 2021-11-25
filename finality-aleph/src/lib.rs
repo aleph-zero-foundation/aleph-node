@@ -24,6 +24,7 @@ mod import;
 mod justification;
 pub mod metrics;
 mod network;
+mod new_network;
 mod party;
 #[cfg(test)]
 pub mod testing;
