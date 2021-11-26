@@ -23,24 +23,37 @@ _Remark: Use `host.docker.internal` instead of `localhost`_.
 
 **Important: Run `aleph-node` with `--prometheus-external` flag.**
 
-You can run multiple instances of docker-compose images for prometheus and grafana in parallel. For this, you need to provide
-an alternative port for grafana and an alternative `prometheus.yml` configuration file for prometheus. 
+## Running multiple instances in parallel
+
+You can run multiple instances of docker-compose images for prometheus and grafana in parallel. For this, you need to provide an alternative port for grafana and an alternative `prometheus.yml` configuration file for prometheus. 
 Example command line invocation:
 ```
-PROMETHEUS_YAML=./prometheus_alternative.yml GRAFANA_PORT=3001 docker-compose -p alternative up
+PROMETHEUS_YAML=./prometheus_alternative.yml GRAFANA_PORT=3001 docker-compose -p alternative_name up
+``` 
+
+## Export/import of collected stats
+
+Collected data can be easily saved and then imported on some different machine by the means of `docker`.
+
+Exporting data:
+```
+docker commit <prometheus_container_id> prometheus:exported_data
+docker save -o prometheus.tar prometheus:exported_data
 ```
 
-Collected data can be easily saved by the means of `docker`. You simply need to call
-`docker commit <container_id> <image_name>` (or `docker export ...`). In case where you are attempting
-to load some external data, you need first import an image containing backup of prometheus data, i.e. `docker load prometheus.tar prometheus:custom_data`.
-Then you need to update the `docker-compose.yml` file accordingly,
-so it uses your saved instances. Example:
+Importing data:
+```
+docker load -i prometheus.tar
+```
+
+Then, in order to run provided image locally, you need to update the `docker-compose.yml` file accordingly,
+so it uses your saved `prometheus` instance. Example configuration:
 ```
 version: '3.2'
 
 services:
   prometheus:
-    image: prometheus:custom_data
+    image: prometheus:exported_data
     extra_hosts:
       - host.docker.internal:host-gateway
     volumes:
