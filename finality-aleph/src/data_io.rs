@@ -1,10 +1,18 @@
-use crate::{metrics::Checkpoint, network, Error, Metrics};
-use aleph_bft::OrderedBatch;
+use crate::{metrics::Checkpoint, network, Metrics};
+use async_trait::async_trait;
 use codec::{Decode, Encode};
-use futures::channel::{mpsc, oneshot};
+use futures::channel::{
+    mpsc,
+    mpsc::{UnboundedReceiver, UnboundedSender},
+    oneshot,
+};
+use futures_timer::Delay;
+use log::{debug, error, trace};
 use lru::LruCache;
 use parking_lot::Mutex;
+use sc_client_api::backend::Backend;
 use sp_consensus::SelectChain;
+use sp_runtime::generic::BlockId;
 use sp_runtime::traits::{Block as BlockT, Header as HeaderT, NumberFor};
 use std::default::Default;
 use std::{
@@ -14,16 +22,10 @@ use std::{
     sync::Arc,
     time::{self, Duration},
 };
-
-const REFRESH_INTERVAL: u64 = 100;
-use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
-use futures_timer::Delay;
-use log::{debug, trace};
-use sc_client_api::backend::Backend;
-use sp_runtime::generic::BlockId;
 use tokio::stream::StreamExt;
 
 type MessageId = u64;
+const REFRESH_INTERVAL: u64 = 100;
 const AVAILABLE_BLOCKS_CACHE_SIZE: usize = 1000;
 const MESSAGE_ID_BOUNDARY: MessageId = 100_000;
 const PERIODIC_MAINTENANCE_INTERVAL: Duration = Duration::from_secs(60);
@@ -308,9 +310,8 @@ where
 }
 
 #[derive(Clone)]
-pub(crate) struct DataIO<B: BlockT> {
+pub(crate) struct DataProvider<B: BlockT> {
     pub(crate) proposed_block: Arc<Mutex<AlephDataFor<B>>>,
-    pub(crate) ordered_batch_tx: mpsc::UnboundedSender<OrderedBatch<AlephDataFor<B>>>,
     pub(crate) metrics: Option<Metrics<B::Header>>,
 }
 
@@ -390,10 +391,9 @@ pub(crate) async fn refresh_best_chain<B, BE, SC, C>(
     }
 }
 
-impl<B: BlockT> aleph_bft::DataIO<AlephDataFor<B>> for DataIO<B> {
-    type Error = Error;
-
-    fn get_data(&self) -> AlephDataFor<B> {
+#[async_trait]
+impl<B: BlockT> aleph_bft::DataProvider<AlephDataFor<B>> for DataProvider<B> {
+    async fn get_data(&mut self) -> AlephDataFor<B> {
         let best = *self.proposed_block.lock();
 
         if let Some(m) = &self.metrics {
@@ -402,14 +402,17 @@ impl<B: BlockT> aleph_bft::DataIO<AlephDataFor<B>> for DataIO<B> {
         debug!(target: "afa", "Outputting {:?} in get_data", best);
         best
     }
+}
 
-    fn send_ordered_batch(
-        &mut self,
-        batch: OrderedBatch<AlephDataFor<B>>,
-    ) -> Result<(), Self::Error> {
-        // TODO: add better conversion
-        self.ordered_batch_tx
-            .unbounded_send(batch)
-            .map_err(|_| Error::SendData)
+pub(crate) struct FinalizationHandler<B: BlockT> {
+    pub(crate) ordered_units_tx: mpsc::UnboundedSender<AlephDataFor<B>>,
+}
+
+#[async_trait]
+impl<B: BlockT> aleph_bft::FinalizationHandler<AlephDataFor<B>> for FinalizationHandler<B> {
+    async fn data_finalized(&mut self, data: AlephDataFor<B>) {
+        if let Err(err) = self.ordered_units_tx.unbounded_send(data) {
+            error!(target: "afa", "Error in sending data from FinalizationHandler, {}", err);
+        }
     }
 }

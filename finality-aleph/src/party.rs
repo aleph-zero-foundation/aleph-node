@@ -2,7 +2,7 @@ use crate::{
     aggregator::BlockSignatureAggregator,
     crypto::{AuthorityPen, AuthorityVerifier, KeyBox},
     data_io::{
-        reduce_header_to_num, refresh_best_chain, AlephData, AlephDataFor, DataIO, DataStore,
+        reduce_header_to_num, refresh_best_chain, AlephData, AlephDataFor, DataProvider, DataStore,
     },
     default_aleph_config,
     finalization::should_finalize,
@@ -20,7 +20,7 @@ use crate::{
 };
 use sp_keystore::CryptoStore;
 
-use aleph_bft::{DelayConfig, OrderedBatch, SpawnHandle};
+use aleph_bft::{DelayConfig, SpawnHandle};
 use aleph_primitives::{AlephSessionApi, KEY_TYPE};
 use futures_timer::Delay;
 
@@ -31,6 +31,7 @@ use futures::{
 };
 use log::{debug, error, info, trace};
 
+use crate::data_io::FinalizationHandler;
 use parking_lot::Mutex;
 use sc_client_api::backend::Backend;
 use sp_api::{BlockId, NumberFor};
@@ -195,7 +196,7 @@ where
 
 async fn run_aggregator<B, C, BE>(
     mut aggregator: BlockSignatureAggregator<'_, B, KeyBox>,
-    mut ordered_batch_rx: mpsc::UnboundedReceiver<OrderedBatch<AlephDataFor<B>>>,
+    mut ordered_units_rx: mpsc::UnboundedReceiver<AlephDataFor<B>>,
     justification_tx: mpsc::UnboundedSender<JustificationNotification<B>>,
     client: Arc<C>,
     last_block_in_session: NumberFor<B>,
@@ -211,29 +212,26 @@ async fn run_aggregator<B, C, BE>(
     let mut last_block_seen = false;
     loop {
         tokio::select! {
-            maybe_batch = ordered_batch_rx.next() => {
-                if let Some(batch) = maybe_batch {
-                    trace!(target: "afa", "Received batch {:?} in aggregator.", batch);
+            maybe_unit = ordered_units_rx.next() => {
+                if let Some(new_block_data) = maybe_unit {
+                    trace!(target: "afa", "Received unit {:?} in aggregator.", new_block_data);
                     if last_block_seen {
                         //This is only for optimization purposes.
                         continue;
                     }
-                    for new_block_data in batch {
-                        if let Some(metrics) = &metrics {
-                            metrics.report_block(new_block_data.hash, std::time::Instant::now(), Checkpoint::Ordered);
-                        }
-                        if let Some(data) = should_finalize(last_finalized, new_block_data, client.as_ref(), last_block_in_session) {
-                            aggregator.start_aggregation(data.hash).await;
-                            last_finalized = data.hash;
-                            if data.number == last_block_in_session {
-                                aggregator.notify_last_hash();
-                                last_block_seen = true;
-                                break;
-                            }
+                    if let Some(metrics) = &metrics {
+                        metrics.report_block(new_block_data.hash, std::time::Instant::now(), Checkpoint::Ordered);
+                    }
+                    if let Some(data) = should_finalize(last_finalized, new_block_data, client.as_ref(), last_block_in_session) {
+                        aggregator.start_aggregation(data.hash).await;
+                        last_finalized = data.hash;
+                        if data.number == last_block_in_session {
+                            aggregator.notify_last_hash();
+                            last_block_seen = true;
                         }
                     }
                 } else {
-                    debug!(target: "afa", "Batches ended in aggregator. Terminating.");
+                    debug!(target: "afa", "Units ended in aggregator. Terminating.");
                     break;
                 }
             }
@@ -286,7 +284,7 @@ where
     ) -> impl Future<Output = ()> {
         debug!(target: "afa", "Authority task {:?}", session_id);
         let last_block = last_block_of_session::<B>(session_id, self.session_period);
-        let (ordered_batch_tx, ordered_batch_rx) = mpsc::unbounded();
+        let (ordered_units_tx, ordered_units_rx) = mpsc::unbounded();
         let (aleph_network_tx, data_store_rx) = mpsc::unbounded();
         let (data_store_tx, aleph_network_rx) = mpsc::unbounded();
         let mut data_store = DataStore::<B, C, BE, RB, AlephNetworkData<B>>::new(
@@ -316,11 +314,12 @@ where
             reduced_header.hash(),
             *reduced_header.number(),
         )));
-        let data_io = DataIO::<B> {
-            ordered_batch_tx,
+        let data_provider = DataProvider::<B> {
             proposed_block: proposed_block.clone(),
             metrics: self.metrics.clone(),
         };
+
+        let finalization_handler = FinalizationHandler::<B> { ordered_units_tx };
 
         let (exit_member_tx, exit_member_rx) = oneshot::channel();
         let (exit_data_store_tx, exit_data_store_rx) = oneshot::channel();
@@ -336,7 +335,8 @@ where
                 aleph_bft::run_session(
                     consensus_config,
                     aleph_network,
-                    data_io,
+                    data_provider,
+                    finalization_handler,
                     multikeychain,
                     spawn_handle,
                     exit_member_rx,
@@ -366,7 +366,7 @@ where
                 debug!(target: "afa", "Running the aggregator task for {:?}", session_id.0);
                 run_aggregator(
                     aggregator,
-                    ordered_batch_rx,
+                    ordered_units_rx,
                     justification_tx,
                     client,
                     last_block,
