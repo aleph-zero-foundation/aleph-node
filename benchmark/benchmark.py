@@ -28,6 +28,8 @@ def get_args() -> argparse.Namespace:
                             help='aleph-node executable')
     parser_run.add_argument(
         '--tag', type=str, help='tag for the machines', default='b2')
+    parser_run.add_argument(
+        '--instance', type=str, help='instance type', default='t2.micro')
     parser_run.add_argument('--unit-creation-delay', type=int,
                             help='corresponding flag to the one for aleph-node')
     parser_run.set_defaults(func=run)

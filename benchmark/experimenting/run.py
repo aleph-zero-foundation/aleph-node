@@ -12,11 +12,12 @@ from utils import default_region
 from .utils import copy_binary
 
 
-def run_experiment(nparties: int, regions: List[str], tag: str, unit_creation_delay: Optional[int]) -> List[str]:
+def run_experiment(nparties: int, regions: List[str], tag: str,
+                  unit_creation_delay: Optional[int], instance_type: str) -> List[str]:
     logging.info('Setting up nodes...')
     flags = {
         '--unit-creation-delay': unit_creation_delay} if unit_creation_delay else dict()
-    setup_benchmark(nparties, 'test', regions, tag=tag, node_flags=flags)
+    setup_benchmark(nparties, 'test', regions, tag=tag, instance_type=instance_type, node_flags=flags)
     logging.info('Obtaining machine IPs...')
     ips = instances_ip_in_region(tag=tag)
     logging.info(f'Machine IPs: {ips}.')
@@ -59,7 +60,7 @@ def run(args: Namespace):
     args.regions = args.regions.split(',')
     copy_binary(args.aleph_node_binary, 'aleph-node')
     ips = run_experiment(args.nparties, args.regions,
-                         args.tag, args.unit_creation_delay)
+                         args.tag, args.unit_creation_delay, args.instance)
     targets = convert_to_targets(ips)
     create_prometheus_configuration(targets)
     run_monitoring_in_docker()
