@@ -40,6 +40,7 @@ sp-io= { git = "https://github.com/paritytech/substrate.git", branch = "polkadot
 derive_more = "0.99.7"
 env_logger = "0.8.3"
 async-trait = "0.1.42"
+ip_network = "0.4"
 
 [dev-dependencies]
 substrate-test-runtime-client = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9"}

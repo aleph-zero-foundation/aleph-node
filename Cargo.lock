@@ -1681,6 +1681,7 @@ dependencies = [
  "futures 0.3.17",
  "futures-timer 3.0.2",
  "hash-db",
+ "ip_network 0.4.1",
  "log",
  "lru",
  "parity-scale-codec",
@@ -2683,6 +2684,12 @@ name = "ip_network"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2ee15951c035f79eddbef745611ec962f63f4558f1dadf98ab723cc603487c6f"
+
+[[package]]
+name = "ip_network"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa2f047c0a98b2f299aa5d6d7088443570faae494e9ae1305e48be000c9e0eb1"
 
 [[package]]
 name = "ipconfig"
@@ -4713,7 +4720,6 @@ source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.9
 dependencies = [
  "frame-support",
  "frame-system",
- "log",
  "parity-scale-codec",
  "serde",
  "smallvec 1.7.0",
@@ -6349,7 +6355,7 @@ dependencies = [
  "futures 0.3.17",
  "futures-timer 3.0.2",
  "hex",
- "ip_network",
+ "ip_network 0.3.4",
  "libp2p 0.37.1",
  "linked-hash-map",
  "linked_hash_set",
