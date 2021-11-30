@@ -74,11 +74,11 @@ jobs:
           for i in "${region_array[@]}"; do
             # Deploy new image version for archivist 
             cd ${aleph_path}/aleph-apps/aleph-node-archivists/overlays/testnet/${i}
-            kustomize edit set image ${{ env.TESTNET_IMAGE }}
+            kustomize edit set image "aleph-node-archivist-image-placeholder=${{ env.TESTNET_IMAGE }}"
 
             # Deploy new image version for validator
             cd ${aleph_path}/aleph-apps/aleph-node-validators/overlays/testnet/${i}
-            kustomize edit set image ${{ env.TESTNET_IMAGE }}
+            kustomize edit set image "aleph-node-validator-image-placeholder=${{ env.TESTNET_IMAGE }}"
           done
 
       - name: GIT | Commit changes to aleph-apps repository.

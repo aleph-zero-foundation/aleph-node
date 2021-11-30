@@ -61,29 +61,20 @@ jobs:
         uses: imranismail/setup-kustomize@v1
         with:
           kustomize-version: "3.8.6"
-          
-      # - name: Update aleph-node docker image and trigger ArgoCD deploy                                                                        
-      #   env:                                                                                                          
-      #     RELEASE_IMAGE: public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.vars.outputs.sha_short }}
-      #   run: |
-      #     cd aleph-apps/aleph-node/overlays/maindevnet
-      #     kustomize edit set image ${{ env.RELEASE_IMAGE }}
 
       - name: Update aleph-node docker image and trigger ArgoCD deploy for Devnet                                                                      
         env:                                                                                                          
-          RELEASE_IMAGE: public.ecr.aws/x2t8a1o3/aleph-node:${{ steps.vars.outputs.sha_short }}
+          RELEASE_IMAGE: public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.vars.outputs.sha_short }}
           REGIONS_AWS: 'eu-central-1'
         run: |
           IFS="," read -a region_array <<< ${{ env.REGIONS_AWS }}
           export aleph_path=$(pwd)
           for i in "${region_array[@]}"; do
-            # Deploy new image version for archivist 
-            cd ${aleph_path}/aleph-apps/aleph-node-archivists/overlays/devnet/${i}
-            kustomize edit set image ${{ env.RELEASE_IMAGE }}
-
+            
             # Deploy new image version for validator
             cd ${aleph_path}/aleph-apps/aleph-node-validators/overlays/devnet/${i}
-            kustomize edit set image ${{ env.RELEASE_IMAGE }}
+            kustomize edit set image "aleph-node-validator-image-placeholder=${{ env.RELEASE_IMAGE }}"
+
           done
 
       - name: GIT | Commit changes to aleph-apps repository.
