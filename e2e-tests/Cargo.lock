@@ -83,6 +83,7 @@ dependencies = [
  "clap",
  "common",
  "env_logger",
+ "frame-support",
  "frame-system",
  "log",
  "parity-scale-codec",

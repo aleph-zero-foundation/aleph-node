@@ -27,7 +27,9 @@ use sp_version::RuntimeVersion;
 // A few exports that help ease life for downstream crates.
 use frame_support::sp_runtime::traits::Convert;
 use frame_support::sp_runtime::Perquintill;
+use frame_support::traits::SortedMembers;
 use frame_support::weights::constants::WEIGHT_PER_MILLIS;
+use frame_support::PalletId;
 pub use frame_support::{
     construct_runtime, parameter_types,
     sp_runtime::curve::PiecewiseLinear,
@@ -41,6 +43,7 @@ pub use frame_support::{
     },
     StorageValue,
 };
+use frame_system::EnsureSignedBy;
 use primitives::{ApiError as AlephApiError, AuthorityId as AlephId};
 
 pub use pallet_balances::Call as BalancesCall;
@@ -106,10 +109,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 4,
+    spec_version: 5,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 2,
+    transaction_version: 3,
 };
 
 /// This determines the average expected block time that we are targetting.
@@ -277,8 +280,22 @@ impl MultiplierUpdate for ConstantFeeMultiplierUpdate {
     }
 }
 
+type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
+
+pub struct EverythingToTheTreasury;
+impl OnUnbalanced<NegativeImbalance> for EverythingToTheTreasury {
+    fn on_unbalanceds<B>(mut fees_then_tips: impl Iterator<Item = NegativeImbalance>) {
+        if let Some(fees) = fees_then_tips.next() {
+            Treasury::on_unbalanced(fees);
+            if let Some(tips) = fees_then_tips.next() {
+                Treasury::on_unbalanced(tips);
+            }
+        }
+    }
+}
+
 impl pallet_transaction_payment::Config for Runtime {
-    type OnChargeTransaction = CurrencyAdapter<Balances, ()>;
+    type OnChargeTransaction = CurrencyAdapter<Balances, EverythingToTheTreasury>;
     type TransactionByteFee = TransactionByteFee;
     type WeightToFee = IdentityFee<Balance>;
     type FeeMultiplierUpdate = ConstantFeeMultiplierUpdate;
@@ -416,6 +433,51 @@ impl pallet_multisig::Config for Runtime {
     type WeightInfo = pallet_multisig::weights::SubstrateWeight<Runtime>;
 }
 
+// We do not burn any money within treasury.
+pub const TREASURY_BURN: u32 = 0;
+// The percentage of the amount of the proposal that the proposer should deposit.
+// We agreed on non-progressive deposit.
+pub const TREASURY_PROPOSAL_BOND: u32 = 0;
+// The proposer should deposit max{`TREASURY_PROPOSAL_BOND`% of the proposal value, $10}.
+pub const TREASURY_MINIMUM_BOND: Balance = 1000 * CENTS;
+// Every 4h we implement accepted proposals.
+pub const TREASURY_SPEND_PERIOD: BlockNumber = 4 * HOURS;
+// We allow at most 20 approvals in the queue at once.
+pub const TREASURY_MAX_APPROVALS: u32 = 20;
+
+parameter_types! {
+    pub const Burn: Permill = Permill::from_percent(TREASURY_BURN);
+    pub const ProposalBond: Permill = Permill::from_percent(TREASURY_PROPOSAL_BOND);
+    pub const ProposalBondMinimum: Balance = TREASURY_MINIMUM_BOND;
+    pub const MaxApprovals: u32 = TREASURY_MAX_APPROVALS;
+    pub const SpendPeriod: BlockNumber = TREASURY_SPEND_PERIOD;
+    pub const TreasuryPalletId: PalletId = PalletId(*b"a0/trsry");
+}
+
+pub struct TreasuryGovernance;
+impl SortedMembers<AccountId> for TreasuryGovernance {
+    fn sorted_members() -> Vec<AccountId> {
+        vec![pallet_sudo::Pallet::<Runtime>::key()]
+    }
+}
+
+impl pallet_treasury::Config for Runtime {
+    type ApproveOrigin = EnsureSignedBy<TreasuryGovernance, AccountId>;
+    type Burn = Burn;
+    type BurnDestination = ();
+    type Currency = Balances;
+    type Event = Event;
+    type MaxApprovals = MaxApprovals;
+    type OnSlash = ();
+    type PalletId = TreasuryPalletId;
+    type ProposalBond = ProposalBond;
+    type ProposalBondMinimum = ProposalBondMinimum;
+    type RejectOrigin = EnsureSignedBy<TreasuryGovernance, AccountId>;
+    type SpendFunds = ();
+    type SpendPeriod = SpendPeriod;
+    type WeightInfo = pallet_treasury::weights::SubstrateWeight<Runtime>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -433,6 +495,7 @@ construct_runtime!(
         Aleph: pallet_aleph::{Pallet, Call, Config<T>, Storage, Event<T>},
         Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
         Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>},
+        Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>},
         Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>},
         Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>},
     }

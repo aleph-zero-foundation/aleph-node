@@ -356,6 +356,7 @@ fn genesis(
                 })
                 .collect(),
         },
+        treasury: Default::default(),
         vesting: VestingConfig { vesting: vec![] },
     }
 }

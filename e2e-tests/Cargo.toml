@@ -12,6 +12,7 @@ rev = "aa4b84f8775f972e5967aca3d96dd163619f65d5"
 # Substrate dependencies
 sp-core = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false, features = ["full_crypto"] }
 sp-runtime = { version = "4.0.0-dev",  git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false }
+frame-support = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false}
 system = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master", package = "frame-system" }
 
 # other dependencies
