@@ -7,7 +7,8 @@ use crate::{
     default_aleph_config,
     finalization::should_finalize,
     justification::{
-        AlephJustification, ChainCadence, JustificationHandler, JustificationNotification,
+        AlephJustification, JustificationHandler, JustificationNotification,
+        JustificationRequestDelay, SessionInfo, SessionInfoProvider,
     },
     last_block_of_session,
     metrics::Checkpoint,
@@ -15,8 +16,8 @@ use crate::{
     network::{
         split_network, AlephNetworkData, ConsensusNetwork, DataNetwork, NetworkData, SessionManager,
     },
-    session_id_from_block_num, AuthorityId, Future, Metrics, NodeIndex, SessionId, SessionMap,
-    SessionPeriod, UnitCreationDelay,
+    session_id_from_block_num, AuthorityId, Future, Metrics, MillisecsPerBlock, NodeIndex,
+    SessionId, SessionMap, SessionPeriod, UnitCreationDelay,
 };
 use sp_keystore::CryptoStore;
 
@@ -32,8 +33,10 @@ use futures::{
 use log::{debug, error, info, trace};
 
 use crate::data_io::FinalizationHandler;
+use crate::finalization::{AlephFinalizer, BlockFinalizer};
+use crate::justification::JustificationHandlerConfig;
 use parking_lot::Mutex;
-use sc_client_api::backend::Backend;
+use sc_client_api::{Backend, Finalizer, HeaderBackend, LockImportRun};
 use sp_api::{BlockId, NumberFor};
 use sp_consensus::SelectChain;
 use sp_runtime::{
@@ -41,6 +44,7 @@ use sp_runtime::{
     SaturatedConversion,
 };
 use std::default::Default;
+use std::time::Instant;
 use std::{
     cmp::min,
     collections::{HashMap, HashSet},
@@ -51,6 +55,61 @@ use std::{
 
 pub struct AlephParams<B: Block, N, C, SC> {
     pub config: crate::AlephConfig<B, N, C, SC>,
+}
+
+struct JustificationRequestDelayImpl {
+    last_request_time: Instant,
+    last_finalization_time: Instant,
+    delay: Duration,
+}
+
+impl JustificationRequestDelayImpl {
+    fn new(session_period: &SessionPeriod, millisecs_per_block: &MillisecsPerBlock) -> Self {
+        Self {
+            last_request_time: Instant::now(),
+            last_finalization_time: Instant::now(),
+            delay: Duration::from_millis(min(
+                millisecs_per_block.0 * 2,
+                millisecs_per_block.0 * session_period.0 as u64 / 10,
+            )),
+        }
+    }
+}
+
+impl JustificationRequestDelay for JustificationRequestDelayImpl {
+    fn can_request_now(&self) -> bool {
+        let now = Instant::now();
+        now - self.last_finalization_time > self.delay
+            && now - self.last_request_time > 2 * self.delay
+    }
+
+    fn on_block_finalized(&mut self) {
+        self.last_finalization_time = Instant::now();
+    }
+
+    fn on_request_sent(&mut self) {
+        self.last_request_time = Instant::now();
+    }
+}
+
+fn get_session_info_provider<B: Block>(
+    session_authorities: Arc<Mutex<HashMap<SessionId, Vec<AuthorityId>>>>,
+    session_period: SessionPeriod,
+) -> impl SessionInfoProvider<B> {
+    move |block_num| {
+        let current_session = session_id_from_block_num::<B>(block_num, session_period);
+        let last_block_height = last_block_of_session::<B>(current_session, session_period);
+        let verifier = session_authorities
+            .lock()
+            .get(&current_session)
+            .map(|sa: &Vec<AuthorityId>| AuthorityVerifier::new(sa.to_vec()));
+
+        SessionInfo {
+            current_session,
+            last_block_height,
+            verifier,
+        }
+    }
 }
 
 pub async fn run_consensus_party<B, N, C, BE, SC>(aleph_params: AlephParams<B, N, C, SC>)
@@ -80,26 +139,22 @@ where
     } = aleph_params;
 
     let session_authorities = Arc::new(Mutex::new(HashMap::new()));
-
-    // NOTE: justifications are requested every so often
-    let cadence = min(
-        millisecs_per_block.0 * 2,
-        millisecs_per_block.0 * session_period.0 as u64 / 10,
-    );
-
-    let chain_cadence = ChainCadence {
-        session_period,
-        justifications_cadence: Duration::from_millis(cadence),
-    };
-
     let block_requester = network.clone();
 
     let handler = JustificationHandler::new(
-        session_authorities.clone(),
-        chain_cadence,
+        get_session_info_provider(session_authorities.clone(), session_period),
         block_requester.clone(),
         client.clone(),
-        metrics.clone(),
+        AlephFinalizer {},
+        JustificationHandlerConfig {
+            justification_request_delay: JustificationRequestDelayImpl::new(
+                &session_period,
+                &millisecs_per_block,
+            ),
+            metrics: metrics.clone(),
+            verifier_timeout: Duration::from_millis(500),
+            notification_timeout: Duration::from_millis(1000),
+        },
     );
 
     let authority_justification_tx =
@@ -148,16 +203,19 @@ async fn get_node_index(
         .map(|id| id.into())
 }
 
-fn run_justification_handler<B, N, C, BE>(
-    handler: JustificationHandler<B, N, C, BE>,
+fn run_justification_handler<B, N, C, BE, D, SI, F>(
+    handler: JustificationHandler<B, N, C, BE, D, SI, F>,
     spawn_handle: &crate::SpawnHandle,
     import_justification_rx: mpsc::UnboundedReceiver<JustificationNotification<B>>,
 ) -> mpsc::UnboundedSender<JustificationNotification<B>>
 where
     N: network::Network<B> + network::RequestBlocks<B> + 'static,
-    C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
+    C: HeaderBackend<B> + LockImportRun<B, BE> + Finalizer<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
     B: Block,
+    D: JustificationRequestDelay + Send + 'static,
+    SI: SessionInfoProvider<B> + Send + 'static,
+    F: BlockFinalizer<BE, B, C> + Send + 'static,
 {
     let (authority_justification_tx, authority_justification_rx) = mpsc::unbounded();
 
@@ -240,7 +298,7 @@ async fn run_aggregator<B, C, BE>(
                     let number = client.number(hash).unwrap().unwrap();
                     // The unwrap might actually fail if data availability is not implemented correctly.
                     let notification = JustificationNotification {
-                        justification: AlephJustification::new::<B>(multisignature),
+                        justification: AlephJustification{signature: multisignature},
                         hash,
                         number
                     };

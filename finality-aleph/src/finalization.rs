@@ -1,46 +1,69 @@
-use crate::data_io::AlephDataFor;
 use core::result::Result;
+use std::sync::Arc;
+
 use log::{debug, error, warn};
-use sc_client_api::Backend;
+use sc_client_api::{Backend, Finalizer, HeaderBackend, LockImportRun};
 use sp_api::{BlockId, NumberFor};
+use sp_blockchain::Error;
 use sp_runtime::{
     traits::{Block, Header},
     Justification,
 };
-use std::sync::Arc;
 
-pub(crate) fn finalize_block<BE, B, C>(
-    client: Arc<C>,
-    hash: B::Hash,
-    block_number: NumberFor<B>,
-    justification: Option<Justification>,
-) -> Result<(), sp_blockchain::Error>
+use crate::data_io::AlephDataFor;
+
+pub(crate) trait BlockFinalizer<BE, B, C>
 where
     B: Block,
     BE: Backend<B>,
-    C: crate::ClientForAleph<B, BE>,
+    C: HeaderBackend<B> + LockImportRun<B, BE> + Finalizer<B, BE>,
 {
-    let status = client.info();
-    if status.finalized_number >= block_number {
-        warn!(target: "afa", "trying to finalize a block with hash {} and number {}
+    fn finalize_block(
+        &self,
+        client: Arc<C>,
+        hash: B::Hash,
+        block_number: NumberFor<B>,
+        justification: Option<Justification>,
+    ) -> Result<(), Error>;
+}
+
+pub(crate) struct AlephFinalizer;
+
+impl<BE, B, C> BlockFinalizer<BE, B, C> for AlephFinalizer
+where
+    B: Block,
+    BE: Backend<B>,
+    C: HeaderBackend<B> + LockImportRun<B, BE> + Finalizer<B, BE>,
+{
+    fn finalize_block(
+        &self,
+        client: Arc<C>,
+        hash: B::Hash,
+        block_number: NumberFor<B>,
+        justification: Option<Justification>,
+    ) -> Result<(), Error> {
+        let status = client.info();
+        if status.finalized_number >= block_number {
+            warn!(target: "afa", "trying to finalize a block with hash {} and number {}
                that is not greater than already finalized {}", hash, block_number, status.finalized_number);
+        }
+
+        debug!(target: "afa", "Finalizing block with hash {:?} and number {:?}. Previous best: #{:?}.", hash, block_number, status.finalized_number);
+
+        let update_res = client.lock_import_and_run(|import_op| {
+            // NOTE: all other finalization logic should come here, inside the lock
+            client.apply_finality(import_op, BlockId::Hash(hash), justification, true)
+        });
+        let status = client.info();
+        debug!(target: "afa", "Attempted to finalize block with hash {:?}. Current best: #{:?}.", hash, status.finalized_number);
+        update_res
     }
-
-    debug!(target: "afa", "Finalizing block with hash {:?} and number {:?}. Previous best: #{:?}.", hash, block_number, status.finalized_number);
-
-    let update_res = client.lock_import_and_run(|import_op| {
-        // NOTE: all other finalization logic should come here, inside the lock
-        client.apply_finality(import_op, BlockId::Hash(hash), justification, true)
-    });
-    let status = client.info();
-    debug!(target: "afa", "Attempted to finalize block with hash {:?}. Current best: #{:?}.", hash, status.finalized_number);
-    update_res
 }
 
 /// Given hash `last_finalized` and `AlephDataFor` `new_data` of two blocks, returns
 /// Some(new_data) if the block hash represented by new_data is a descendant of last_finalized
 /// (and the new_data.number is correct). Otherwise it outputs None.
-pub(crate) fn should_finalize<BE, B, C>(
+pub(crate) fn should_finalize<B, C>(
     last_finalized: B::Hash,
     new_data: AlephDataFor<B>,
     client: &C,
@@ -48,8 +71,7 @@ pub(crate) fn should_finalize<BE, B, C>(
 ) -> Option<AlephDataFor<B>>
 where
     B: Block,
-    BE: Backend<B>,
-    C: crate::ClientForAleph<B, BE>,
+    C: HeaderBackend<B>,
 {
     // this early return is for optimization reasons only.
     if new_data.hash == last_finalized {
@@ -104,8 +126,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::data_io::AlephData;
     use sc_block_builder::BlockBuilderProvider;
     use sp_consensus::BlockOrigin;
     use substrate_test_runtime::Extrinsic;
@@ -113,6 +133,10 @@ mod tests {
         ClientBlockImportExt, ClientExt, DefaultTestClientBuilderExt, TestClient,
         TestClientBuilder, TestClientBuilderExt,
     };
+
+    use crate::data_io::AlephData;
+
+    use super::*;
 
     fn create_chain(client: &mut Arc<TestClient>, n: u64) -> Vec<sp_core::H256> {
         let mut blocks = vec![client.genesis_hash()];

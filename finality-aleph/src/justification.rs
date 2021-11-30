@@ -1,25 +1,20 @@
 use crate::{
     crypto::{AuthorityVerifier, Signature, SignatureV1},
-    finalization::finalize_block,
-    last_block_of_session,
+    finalization::BlockFinalizer,
     metrics::Checkpoint,
-    network, session_id_from_block_num, Metrics, SessionId, SessionMap, SessionPeriod,
+    network, Metrics, SessionId,
 };
 use aleph_bft::{PartialMultisignature, SignatureSet};
 use aleph_primitives::ALEPH_ENGINE_ID;
 use codec::{Decode, DecodeAll, Encode};
-use futures::{channel::mpsc, StreamExt};
+use futures::{channel::mpsc, Stream, StreamExt};
 use futures_timer::Delay;
 use log::{debug, error, warn};
-use parking_lot::Mutex;
-use sc_client_api::backend::Backend;
+use sc_client_api::{Backend, Finalizer, HeaderBackend, LockImportRun};
 use sp_api::{BlockId, BlockT, NumberFor};
 use sp_runtime::traits::Header;
-use std::{
-    marker::PhantomData,
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::time::Instant;
+use std::{marker::PhantomData, sync::Arc, time::Duration};
 use tokio::time::timeout;
 
 /// A proof of block finality, currently in the form of a sufficiently long list of signatures.
@@ -29,26 +24,48 @@ pub struct AlephJustification {
 }
 
 impl AlephJustification {
-    pub(crate) fn new<Block: BlockT>(signature: SignatureSet<Signature>) -> Self {
-        Self { signature }
-    }
-
     pub(crate) fn verify<Block: BlockT>(
-        aleph_justification: &AlephJustification,
+        &self,
         block_hash: Block::Hash,
         multi_verifier: &AuthorityVerifier,
     ) -> bool {
-        if !multi_verifier.is_complete(&block_hash.encode()[..], &aleph_justification.signature) {
-            debug!(target: "afa", "Bad justification for block hash #{:?} {:?}", block_hash, aleph_justification);
+        if !multi_verifier.is_complete(&block_hash.encode()[..], &self.signature) {
+            debug!(target: "afa", "Bad justification for block hash #{:?} {:?}", block_hash, self);
             return false;
         }
         true
     }
 }
 
-pub(crate) struct ChainCadence {
-    pub session_period: SessionPeriod,
-    pub justifications_cadence: Duration,
+/// Bunch of methods for managing frequency of sending justification requests.
+pub(crate) trait JustificationRequestDelay {
+    /// Decides whether enough time has elapsed.
+    fn can_request_now(&self) -> bool;
+    /// Notice block finalization.
+    fn on_block_finalized(&mut self);
+    /// Notice request sending.
+    fn on_request_sent(&mut self);
+}
+
+pub(crate) struct SessionInfo<B: BlockT> {
+    pub(crate) current_session: SessionId,
+    pub(crate) last_block_height: NumberFor<B>,
+    pub(crate) verifier: Option<AuthorityVerifier>,
+}
+
+/// Returns `SessionInfo` for the session regarding block with no. `number`.
+pub(crate) trait SessionInfoProvider<B: BlockT> {
+    fn for_block_num(&self, number: NumberFor<B>) -> SessionInfo<B>;
+}
+
+impl<F, B> SessionInfoProvider<B> for F
+where
+    B: BlockT,
+    F: Fn(NumberFor<B>) -> SessionInfo<B>,
+{
+    fn for_block_num(&self, number: NumberFor<B>) -> SessionInfo<B> {
+        self(number)
+    }
 }
 
 /// A notification for sending justifications over the network.
@@ -64,111 +81,111 @@ where
     pub number: NumberFor<Block>,
 }
 
-pub(crate) struct JustificationHandler<B, RB, C, BE>
+pub(crate) struct JustificationHandlerConfig<B: BlockT, D: JustificationRequestDelay> {
+    pub(crate) justification_request_delay: D,
+    pub(crate) metrics: Option<Metrics<B::Header>>,
+    /// How long should we wait when the session verifier is not yet available.
+    pub(crate) verifier_timeout: Duration,
+    /// How long should we wait for any notification.
+    pub(crate) notification_timeout: Duration,
+}
+
+pub(crate) struct JustificationHandler<B, RB, C, BE, D, SI, F>
 where
     B: BlockT,
     RB: network::RequestBlocks<B> + 'static,
-    C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
+    C: HeaderBackend<B> + LockImportRun<B, BE> + Finalizer<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
+    D: JustificationRequestDelay,
+    SI: SessionInfoProvider<B>,
+    F: BlockFinalizer<BE, B, C>,
 {
-    session_authorities: Arc<Mutex<SessionMap>>,
-    chain_cadence: ChainCadence,
+    session_info_provider: SI,
     block_requester: RB,
     client: Arc<C>,
-    last_request_time: Instant,
-    last_finalization_time: Instant,
-    metrics: Option<Metrics<B::Header>>,
+    finalizer: F,
+    config: JustificationHandlerConfig<B, D>,
     phantom: PhantomData<BE>,
 }
 
-impl<B, RB, C, BE> JustificationHandler<B, RB, C, BE>
+impl<B, RB, C, BE, D, SI, F> JustificationHandler<B, RB, C, BE, D, SI, F>
 where
     B: BlockT,
     RB: network::RequestBlocks<B> + 'static,
-    C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
+    C: HeaderBackend<B> + LockImportRun<B, BE> + Finalizer<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
+    D: JustificationRequestDelay,
+    SI: SessionInfoProvider<B>,
+    F: BlockFinalizer<BE, B, C>,
 {
     pub(crate) fn new(
-        session_authorities: Arc<Mutex<SessionMap>>,
-        chain_cadence: ChainCadence,
+        session_info_provider: SI,
         block_requester: RB,
         client: Arc<C>,
-        metrics: Option<Metrics<B::Header>>,
+        finalizer: F,
+        config: JustificationHandlerConfig<B, D>,
     ) -> Self {
         Self {
-            session_authorities,
-            chain_cadence,
+            session_info_provider,
             block_requester,
             client,
-            last_request_time: Instant::now(),
-            last_finalization_time: Instant::now(),
-            metrics,
+            finalizer,
+            config,
             phantom: PhantomData,
         }
     }
 
-    pub(crate) fn handle_justification_notification(
+    fn handle_justification_notification(
         &mut self,
         notification: JustificationNotification<B>,
         verifier: AuthorityVerifier,
         last_finalized: NumberFor<B>,
         stop_h: NumberFor<B>,
     ) {
-        let num = notification.number;
-        let block_hash = notification.hash;
-        if AlephJustification::verify::<B>(
-            &notification.justification,
-            notification.hash,
-            &verifier,
-        ) {
-            if num > last_finalized && num <= stop_h {
-                debug!(target: "afa", "Finalizing block {:?} {:?}", num, block_hash);
-                let finalization_res = finalize_block(
-                    self.client.clone(),
-                    block_hash,
-                    num,
-                    Some((ALEPH_ENGINE_ID, notification.justification.encode())),
-                );
-                match finalization_res {
-                    Ok(()) => {
-                        self.last_finalization_time = Instant::now();
-                        debug!(target: "afa", "Successfully finalized {:?}", num);
-                        if let Some(metrics) = &self.metrics {
-                            metrics.report_block(
-                                block_hash,
-                                self.last_finalization_time,
-                                Checkpoint::Finalized,
-                            );
-                        }
-                    }
-                    Err(e) => {
-                        warn!(target: "afa", "Fail in finalization of {:?} {:?} -- {:?}", num, block_hash, e);
-                    }
+        let JustificationNotification {
+            justification,
+            number,
+            hash,
+        } = notification;
+
+        if number <= last_finalized || number > stop_h {
+            debug!(target: "afa", "Not finalizing block {:?}. Last finalized {:?}, stop_h {:?}", number, last_finalized, stop_h);
+            return;
+        };
+
+        if !(justification.verify::<B>(hash, &verifier)) {
+            warn!(target: "afa", "Error when verifying justification for block {:?} {:?}", number, hash);
+            return;
+        };
+
+        debug!(target: "afa", "Finalizing block {:?} {:?}", number, hash);
+        let finalization_res = self.finalizer.finalize_block(
+            self.client.clone(),
+            hash,
+            number,
+            Some((ALEPH_ENGINE_ID, justification.encode())),
+        );
+        match finalization_res {
+            Ok(()) => {
+                self.config.justification_request_delay.on_block_finalized();
+                debug!(target: "afa", "Successfully finalized {:?}", number);
+                if let Some(metrics) = &self.config.metrics {
+                    metrics.report_block(hash, Instant::now(), Checkpoint::Finalized);
                 }
-            } else {
-                debug!(target: "afa", "Not finalizing block {:?}. Last finalized {:?}, stop_h {:?}", num, last_finalized, stop_h);
             }
-        } else {
-            error!(target: "afa", "Error when verifying justification for block {:?} {:?}", num, block_hash);
+            Err(e) => {
+                error!(target: "afa", "Fail in finalization of {:?} {:?} -- {:?}", number, hash, e);
+            }
         }
     }
 
     fn request_justification(&mut self, num: NumberFor<B>) {
-        let current_time = Instant::now();
-
-        let ChainCadence {
-            justifications_cadence,
-            ..
-        } = self.chain_cadence;
-
-        if current_time - self.last_finalization_time > justifications_cadence
-            && current_time - self.last_request_time > 2 * justifications_cadence
-        {
+        if self.config.justification_request_delay.can_request_now() {
             debug!(target: "afa", "Trying to request block {:?}", num);
 
             if let Ok(Some(header)) = self.client.header(BlockId::Number(num)) {
                 debug!(target: "afa", "We have block {:?} with hash {:?}. Requesting justification.", num, header.hash());
-                self.last_request_time = current_time;
+                self.config.justification_request_delay.on_request_sent();
                 self.block_requester
                     .request_justification(&header.hash(), *header.number());
             } else {
@@ -182,42 +199,27 @@ where
         authority_justification_rx: mpsc::UnboundedReceiver<JustificationNotification<B>>,
         import_justification_rx: mpsc::UnboundedReceiver<JustificationNotification<B>>,
     ) {
-        let import_stream = import_justification_rx
-            .inspect(|_| {
-                debug!(target: "afa", "Got justification (import)");
-            })
-            .chain(futures::stream::iter(std::iter::from_fn(|| {
-                error!(target: "afa", "Justification (import) stream ended.");
-                None
-            })));
-
-        let authority_stream = authority_justification_rx
-            .inspect(|_| {
-                debug!(target: "afa", "Got justification (aggregator)");
-            })
-            .chain(futures::stream::iter(std::iter::from_fn(|| {
-                error!(target: "afa", "Justification (aggregator) stream ended.");
-                None
-            })));
-
+        let import_stream = wrap_channel_with_logging(import_justification_rx, "import");
+        let authority_stream = wrap_channel_with_logging(authority_justification_rx, "aggregator");
         let mut notification_stream = futures::stream::select(import_stream, authority_stream);
-
-        let ChainCadence { session_period, .. } = self.chain_cadence;
 
         loop {
             let last_finalized_number = self.client.info().finalized_number;
-            let current_session =
-                session_id_from_block_num::<B>(last_finalized_number + 1u32.into(), session_period);
-            let stop_h: NumberFor<B> = last_block_of_session::<B>(current_session, session_period);
-            let verifier = self.session_verifier(current_session);
+            let SessionInfo {
+                verifier,
+                last_block_height: stop_h,
+                current_session,
+            } = self
+                .session_info_provider
+                .for_block_num(last_finalized_number + 1u32.into());
             if verifier.is_none() {
-                debug!(target: "afa", "Verifier for session {:?} not yet available. Waiting 500ms and will try again ...", current_session);
-                Delay::new(Duration::from_millis(500)).await;
+                debug!(target: "afa", "Verifier for session {:?} not yet available. Waiting {}ms and will try again ...", current_session, self.config.verifier_timeout.as_millis());
+                Delay::new(self.config.verifier_timeout).await;
                 continue;
             }
             let verifier = verifier.expect("We loop until this is some.");
 
-            match timeout(Duration::from_millis(1000), notification_stream.next()).await {
+            match timeout(self.config.notification_timeout, notification_stream.next()).await {
                 Ok(Some(notification)) => {
                     self.handle_justification_notification(
                         notification,
@@ -226,24 +228,27 @@ where
                         stop_h,
                     );
                 }
-                Ok(None) => {
-                    error!(target: "afa", "Justification stream ended.");
-                    return;
-                }
-                Err(_) => {
-                    //Timeout passed
-                }
+                Ok(None) => panic!("Justification stream ended."),
+                Err(_) => {} //Timeout passed
             }
 
             self.request_justification(stop_h);
         }
     }
+}
 
-    fn session_verifier(&self, session_id: SessionId) -> Option<AuthorityVerifier> {
-        Some(AuthorityVerifier::new(
-            self.session_authorities.lock().get(&session_id)?.to_vec(),
-        ))
-    }
+fn wrap_channel_with_logging<B: BlockT>(
+    channel: mpsc::UnboundedReceiver<JustificationNotification<B>>,
+    label: &'static str,
+) -> impl Stream<Item = JustificationNotification<B>> {
+    channel
+        .inspect(move |_| {
+            debug!(target: "afa", "Got justification ({})", label);
+        })
+        .chain(futures::stream::iter(std::iter::from_fn(move || {
+            error!(target: "afa", "Justification ({}) stream ended.", label);
+            None
+        })))
 }
 
 /// Old format of justifications, needed for backwards compatibility.
