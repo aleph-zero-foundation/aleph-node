@@ -2,9 +2,15 @@ name: e2e-tests-main-devnet
 
 on:
   pull_request:
+    paths-ignore:
+      - ".github/**"
+      - "*.md"
     branches:
       - main
   push:
+    paths-ignore:
+      - ".github/**"
+      - "*.md"
     branches:
       - main
 
