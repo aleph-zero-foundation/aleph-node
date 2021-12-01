@@ -34,6 +34,8 @@ pub const WELL_KNOWNS_ACCOUNTS: [&str; 7] = [
     "Eve",
 ];
 
+pub const DEFAULT_SUDO_ACCOUNT: &str = "5F4SvwaUEQubiqkPF8YnRfcN77cLsT2DfG4vFeQmSXNjR7hD";
+
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
 
@@ -87,6 +89,11 @@ where
     AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
+/// Generate AccountId based on string command line argument.
+fn parse_account_id(s: &str) -> AccountId {
+    AccountId::from_string(s).expect("Passed string is not a hex encoding of a public key")
+}
+
 #[derive(Clone, Deserialize, Serialize)]
 pub struct AuthorityKeys {
     pub account_id: AccountId,
@@ -103,6 +110,9 @@ pub struct ChainParams {
     /// `dev` chain id means that a set of known accounts will be used to form a comittee
     #[structopt(long, value_name = "CHAIN_SPEC", default_value = "a0dnet1")]
     pub chain_id: String,
+
+    #[structopt(long, default_value_if("chain-id", Some(DEVNET_ID), "true"), conflicts_with_all(&["account-ids", "sudo-account-id"]))]
+    pub dev_chain: bool,
 
     /// Specify custom base path.
     #[structopt(long, short = "d", value_name = "PATH", parse(from_os_str))]
@@ -125,24 +135,24 @@ pub struct ChainParams {
     #[structopt(long)]
     pub millisecs_per_block: Option<u64>,
 
-    #[structopt(long)]
-    pub chain_name: Option<String>,
+    #[structopt(long, default_value = "Aleph Zero Development")]
+    pub chain_name: String,
 
-    #[structopt(long)]
-    pub token_symbol: Option<String>,
+    #[structopt(long, default_value = "DZERO")]
+    pub token_symbol: String,
 
     /// Pass the AccountIds of authorities forming the committe at the genesis
     ///
     /// Expects a delimited collection of AccountIds
-    #[structopt(long, require_delimiter = true)]
-    account_ids: Option<Vec<String>>,
+    #[structopt(long, require_delimiter = true, parse(from_str = parse_account_id), required_unless("dev-chain"))]
+    account_ids: Vec<AccountId>,
 
     /// Pass the AccountId of the sudo account
     ///
     /// If the chain-id is "dev" it will default to the first generated account (Alice)
     /// and use a default pre-defined id in any other case
-    #[structopt(long)]
-    sudo_account_id: Option<String>,
+    #[structopt(long, parse(from_str = parse_account_id), default_value(DEFAULT_SUDO_ACCOUNT))]
+    sudo_account_id: AccountId,
 }
 
 impl ChainParams {
@@ -154,6 +164,10 @@ impl ChainParams {
         self.base_path.clone().into()
     }
 
+    pub fn session_period(&self) -> SessionPeriod {
+        SessionPeriod(self.session_period.unwrap_or(DEFAULT_SESSION_PERIOD))
+    }
+
     pub fn millisecs_per_block(&self) -> MillisecsPerBlock {
         MillisecsPerBlock(
             self.millisecs_per_block
@@ -161,63 +175,30 @@ impl ChainParams {
         )
     }
 
-    pub fn session_period(&self) -> SessionPeriod {
-        SessionPeriod(self.session_period.unwrap_or(DEFAULT_SESSION_PERIOD))
+    pub fn chain_name(&self) -> &str {
+        &self.chain_name
     }
 
     pub fn token_symbol(&self) -> &str {
-        match &self.token_symbol {
-            Some(symbol) => symbol,
-            None => "DZERO",
-        }
-    }
-
-    pub fn chain_name(&self) -> &str {
-        match &self.chain_name {
-            Some(name) => name,
-            None => "Aleph Zero Development",
-        }
+        &self.token_symbol
     }
 
     pub fn account_ids(&self) -> Vec<AccountId> {
-        match &self.account_ids {
-            Some(ids) => ids
+        if self.dev_chain {
+            WELL_KNOWNS_ACCOUNTS
                 .iter()
-                .map(|id| {
-                    AccountId::from_string(id.as_str())
-                        .expect("Passed string is not a hex encoding of a public key")
-                })
-                .collect(),
-            None => {
-                // NOTE : chain id "dev" means that a set of known accounts is generated from KNOWN_ACCOUNTS seed values
-                // this follows the default Substrate behaviour
-                match self.chain_id() {
-                    DEVNET_ID => WELL_KNOWNS_ACCOUNTS
-                        .iter()
-                        .map(get_account_id_from_seed::<sr25519::Public>)
-                        .collect(),
-                    _ => panic!("Pass account-ids or use chain-id dev"),
-                }
-            }
+                .map(get_account_id_from_seed::<sr25519::Public>)
+                .collect()
+        } else {
+            self.account_ids.clone()
         }
     }
 
     pub fn sudo_account_id(&self) -> AccountId {
-        match &self.sudo_account_id {
-            // account is passed explicitely as a CLI argument
-            Some(id) => AccountId::from_string(id)
-                .expect("Passed string is not a hex encoding of a public key"),
-            // provide some sensible defaults
-            None => match self.chain_id() {
-                // defaults to the first account if chain is "dev", this is the same as substarte default behaviour
-                DEVNET_ID => get_account_id_from_seed::<sr25519::Public>(&WELL_KNOWNS_ACCOUNTS[0]),
-                // hardcoded account for any other chain
-                _ => hex![
-                    // 5F4SvwaUEQubiqkPF8YnRfcN77cLsT2DfG4vFeQmSXNjR7hD
-                    "848274306fea52dc528eabc8e14e6ae78ea275bc4247a5d6e2882ac8e948fe68"
-                ]
-                .into(),
-            },
+        if self.dev_chain {
+            get_account_id_from_seed::<sr25519::Public>(&WELL_KNOWNS_ACCOUNTS[0])
+        } else {
+            self.sudo_account_id.clone()
         }
     }
 }
@@ -253,9 +234,9 @@ pub fn config(
     let faucet_account: AccountId =
         hex!["eaefd9d9b42915bda608154f17bb03e407cbf244318a0499912c2fb1cd879b74"].into();
 
-    let chain_type = match chain_id {
-        DEVNET_ID => ChainType::Development,
-        _ => ChainType::Live,
+    let chain_type = match chain_params.dev_chain {
+        true => ChainType::Development,
+        false => ChainType::Live,
     };
 
     Ok(ChainSpec::from_genesis(
