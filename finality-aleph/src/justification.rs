@@ -10,11 +10,11 @@ use codec::{Decode, DecodeAll, Encode};
 use futures::{channel::mpsc, Stream, StreamExt};
 use futures_timer::Delay;
 use log::{debug, error, warn};
-use sc_client_api::{Backend, Finalizer, HeaderBackend, LockImportRun};
+use sc_client_api::HeaderBackend;
 use sp_api::{BlockId, BlockT, NumberFor};
 use sp_runtime::traits::Header;
 use std::time::Instant;
-use std::{marker::PhantomData, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 use tokio::time::timeout;
 
 /// A proof of block finality, currently in the form of a sufficiently long list of signatures.
@@ -90,33 +90,30 @@ pub(crate) struct JustificationHandlerConfig<B: BlockT, D: JustificationRequestD
     pub(crate) notification_timeout: Duration,
 }
 
-pub(crate) struct JustificationHandler<B, RB, C, BE, D, SI, F>
+pub(crate) struct JustificationHandler<B, RB, C, D, SI, F>
 where
     B: BlockT,
     RB: network::RequestBlocks<B> + 'static,
-    C: HeaderBackend<B> + LockImportRun<B, BE> + Finalizer<B, BE> + Send + Sync + 'static,
-    BE: Backend<B> + 'static,
+    C: HeaderBackend<B> + Send + Sync + 'static,
     D: JustificationRequestDelay,
     SI: SessionInfoProvider<B>,
-    F: BlockFinalizer<BE, B, C>,
+    F: BlockFinalizer<B>,
 {
     session_info_provider: SI,
     block_requester: RB,
     client: Arc<C>,
     finalizer: F,
     config: JustificationHandlerConfig<B, D>,
-    phantom: PhantomData<BE>,
 }
 
-impl<B, RB, C, BE, D, SI, F> JustificationHandler<B, RB, C, BE, D, SI, F>
+impl<B, RB, C, D, SI, F> JustificationHandler<B, RB, C, D, SI, F>
 where
     B: BlockT,
     RB: network::RequestBlocks<B> + 'static,
-    C: HeaderBackend<B> + LockImportRun<B, BE> + Finalizer<B, BE> + Send + Sync + 'static,
-    BE: Backend<B> + 'static,
+    C: HeaderBackend<B> + Send + Sync + 'static,
     D: JustificationRequestDelay,
     SI: SessionInfoProvider<B>,
-    F: BlockFinalizer<BE, B, C>,
+    F: BlockFinalizer<B>,
 {
     pub(crate) fn new(
         session_info_provider: SI,
@@ -131,7 +128,6 @@ where
             client,
             finalizer,
             config,
-            phantom: PhantomData,
         }
     }
 
@@ -160,7 +156,6 @@ where
 
         debug!(target: "afa", "Finalizing block {:?} {:?}", number, hash);
         let finalization_res = self.finalizer.finalize_block(
-            self.client.clone(),
             hash,
             number,
             Some((ALEPH_ENGINE_ID, justification.encode())),
