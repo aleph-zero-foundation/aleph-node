@@ -83,7 +83,7 @@ where
 
 pub(crate) struct JustificationHandlerConfig<B: BlockT, D: JustificationRequestDelay> {
     pub(crate) justification_request_delay: D,
-    pub(crate) metrics: Option<Metrics<B::Header>>,
+    pub(crate) metrics: Option<Metrics<<B::Header as Header>::Hash>>,
     /// How long should we wait when the session verifier is not yet available.
     pub(crate) verifier_timeout: Duration,
     /// How long should we wait for any notification.

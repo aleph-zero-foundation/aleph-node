@@ -312,7 +312,7 @@ where
 #[derive(Clone)]
 pub(crate) struct DataProvider<B: BlockT> {
     pub(crate) proposed_block: Arc<Mutex<AlephDataFor<B>>>,
-    pub(crate) metrics: Option<Metrics<B::Header>>,
+    pub(crate) metrics: Option<Metrics<<B::Header as HeaderT>::Hash>>,
 }
 
 // Reduce block header to the level given by num, by traversing down via parents.

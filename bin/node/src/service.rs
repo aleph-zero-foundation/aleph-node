@@ -20,7 +20,7 @@ use sp_consensus::SlotData;
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 use sp_runtime::{
     generic::BlockId,
-    traits::{Block as BlockT, Zero},
+    traits::{Block as BlockT, Header as HeaderT, Zero},
 };
 use std::sync::Arc;
 
@@ -49,7 +49,7 @@ pub fn new_partial(
             AlephBlockImport<Block, FullBackend, FullClient>,
             mpsc::UnboundedReceiver<JustificationNotification<Block>>,
             Option<Telemetry>,
-            Option<Metrics<<Block as BlockT>::Header>>,
+            Option<Metrics<<<Block as BlockT>::Header as HeaderT>::Hash>>,
         ),
     >,
     ServiceError,

@@ -27,7 +27,7 @@ where
 {
     inner: Arc<I>,
     justification_tx: UnboundedSender<JustificationNotification<Block>>,
-    metrics: Option<Metrics<Block::Header>>,
+    metrics: Option<Metrics<<Block::Header as Header>::Hash>>,
     _phantom: PhantomData<Be>,
 }
 
@@ -50,7 +50,7 @@ where
     pub fn new(
         inner: Arc<I>,
         justification_tx: UnboundedSender<JustificationNotification<Block>>,
-        metrics: Option<Metrics<Block::Header>>,
+        metrics: Option<Metrics<<Block::Header as Header>::Hash>>,
     ) -> AlephBlockImport<Block, Be, I> {
         AlephBlockImport {
             inner,

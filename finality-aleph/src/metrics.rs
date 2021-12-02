@@ -1,34 +1,40 @@
+use std::fmt::Debug;
+use std::hash::Hash;
+use std::{collections::HashMap, time::Instant};
+
 use log::trace;
+use lru::LruCache;
 use parking_lot::Mutex;
 use prometheus_endpoint::{register, Gauge, PrometheusError, Registry, U64};
 use sc_service::Arc;
-use sp_runtime::traits::Header;
-use std::{collections::HashMap, time::Instant};
 
-#[derive(Clone)]
-struct Inner<H: Header> {
+// How many entries (block hash + timestamp) we keep in memory per one checkpoint type.
+// Each entry takes 32B (Hash) + 16B (Instant), so a limit of 5000 gives ~234kB (per checkpoint).
+// Notice that some issues like finalization stall may lead to incomplete metrics
+// (e.g. when the gap between checkpoints for a block grows over `MAX_BLOCKS_PER_CHECKPOINT`).
+const MAX_BLOCKS_PER_CHECKPOINT: usize = 5000;
+
+pub trait Key: Hash + Eq + Debug + Copy {}
+impl<T: Hash + Eq + Debug + Copy> Key for T {}
+
+struct Inner<H: Key> {
     prev: HashMap<Checkpoint, Checkpoint>,
     gauges: HashMap<Checkpoint, Gauge<U64>>,
-    starts: HashMap<Checkpoint, HashMap<H::Hash, Instant>>,
+    starts: HashMap<Checkpoint, LruCache<H, Instant>>,
 }
 
-impl<H: Header> Inner<H> {
-    fn report_block(
-        &mut self,
-        hash: H::Hash,
-        checkpoint_time: Instant,
-        checkpoint_type: Checkpoint,
-    ) {
+impl<H: Key> Inner<H> {
+    fn report_block(&mut self, hash: H, checkpoint_time: Instant, checkpoint_type: Checkpoint) {
         trace!(target: "afa", "Reporting block stage: {:?} (hash: {:?}, at: {:?}", checkpoint_type, hash, checkpoint_time);
 
         self.starts.entry(checkpoint_type).and_modify(|starts| {
-            starts.entry(hash).or_insert(checkpoint_time);
+            starts.put(hash, checkpoint_time);
         });
 
         if let Some(prev_checkpoint_type) = self.prev.get(&checkpoint_type) {
             if let Some(start) = self
                 .starts
-                .get(prev_checkpoint_type)
+                .get_mut(prev_checkpoint_type)
                 .expect("All checkpoint types were initialized")
                 .get(&hash)
             {
@@ -52,11 +58,11 @@ pub(crate) enum Checkpoint {
 }
 
 #[derive(Clone)]
-pub struct Metrics<H: Header> {
+pub struct Metrics<H: Key> {
     inner: Arc<Mutex<Inner<H>>>,
 }
 
-impl<H: Header> Metrics<H> {
+impl<H: Key> Metrics<H> {
     pub fn register(registry: &Registry) -> Result<Self, PrometheusError> {
         use Checkpoint::*;
         let keys = [
@@ -84,7 +90,10 @@ impl<H: Header> Metrics<H> {
         let inner = Arc::new(Mutex::new(Inner {
             prev,
             gauges,
-            starts: keys.iter().map(|k| (*k, HashMap::new())).collect(),
+            starts: keys
+                .iter()
+                .map(|k| (*k, LruCache::new(MAX_BLOCKS_PER_CHECKPOINT)))
+                .collect(),
         }));
 
         Ok(Self { inner })
@@ -92,12 +101,46 @@ impl<H: Header> Metrics<H> {
 
     pub(crate) fn report_block(
         &self,
-        hash: H::Hash,
+        hash: H,
         checkpoint_time: Instant,
         checkpoint_type: Checkpoint,
     ) {
         self.inner
             .lock()
             .report_block(hash, checkpoint_time, checkpoint_type);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cmp::min;
+
+    use super::*;
+
+    fn starts_for<H: Key>(m: &Metrics<H>, c: Checkpoint) -> usize {
+        m.inner.lock().starts.get(&c).unwrap().len()
+    }
+
+    fn check_reporting_with_memory_excess(metrics: &Metrics<usize>, checkpoint: Checkpoint) {
+        for i in 1..(MAX_BLOCKS_PER_CHECKPOINT + 10) {
+            metrics.report_block(i, Instant::now(), checkpoint);
+            assert_eq!(
+                min(i, MAX_BLOCKS_PER_CHECKPOINT),
+                starts_for(metrics, checkpoint)
+            )
+        }
+    }
+
+    #[test]
+    fn should_keep_entries_up_to_defined_limit() {
+        let m = Metrics::<usize>::register(&Registry::new()).unwrap();
+        check_reporting_with_memory_excess(&m, Checkpoint::Ordered);
+    }
+
+    #[test]
+    fn should_manage_space_for_checkpoints_independently() {
+        let m = Metrics::<usize>::register(&Registry::new()).unwrap();
+        check_reporting_with_memory_excess(&m, Checkpoint::Ordered);
+        check_reporting_with_memory_excess(&m, Checkpoint::Imported);
     }
 }

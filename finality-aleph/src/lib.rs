@@ -66,6 +66,7 @@ pub use crate::metrics::Metrics;
 use crate::party::{run_consensus_party, AlephParams};
 pub use aleph_primitives::{AuthorityId, AuthorityPair, AuthoritySignature};
 use futures::channel::mpsc;
+use sp_runtime::traits::Header;
 
 pub trait ClientForAleph<B, BE>:
     LockImportRun<B, BE>
@@ -145,7 +146,7 @@ pub struct AlephConfig<B: Block, N, C, SC> {
     pub spawn_handle: SpawnTaskHandle,
     pub keystore: Arc<dyn CryptoStore>,
     pub justification_rx: mpsc::UnboundedReceiver<JustificationNotification<B>>,
-    pub metrics: Option<Metrics<B::Header>>,
+    pub metrics: Option<Metrics<<B::Header as Header>::Hash>>,
     pub session_period: SessionPeriod,
     pub millisecs_per_block: MillisecsPerBlock,
     pub unit_creation_delay: UnitCreationDelay,

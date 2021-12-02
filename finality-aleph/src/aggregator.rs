@@ -11,7 +11,7 @@ use aleph_bft::{
 use codec::{Codec, Decode, Encode};
 use futures::{channel::mpsc, StreamExt};
 use log::{debug, trace, warn};
-use sp_runtime::traits::Block;
+use sp_runtime::traits::{Block, Header};
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     hash::Hash,
@@ -41,7 +41,7 @@ pub(crate) struct BlockSignatureAggregator<'a, B: Block, MK: MultiKeychain> {
     rmc: ReliableMulticast<'a, SignableHash<B::Hash>, MK>,
     last_hash_placed: bool,
     started_hashes: HashSet<B::Hash>,
-    metrics: Option<Metrics<B::Header>>,
+    metrics: Option<Metrics<<B::Header as Header>::Hash>>,
 }
 
 impl<
@@ -53,7 +53,7 @@ impl<
     pub(crate) fn new(
         network: RmcNetwork<B>,
         keychain: &'a MK,
-        metrics: Option<Metrics<B::Header>>,
+        metrics: Option<Metrics<<B::Header as Header>::Hash>>,
     ) -> Self {
         let (messages_for_rmc, messages_from_network) = mpsc::unbounded();
         let (messages_for_network, messages_from_rmc) = mpsc::unbounded();
