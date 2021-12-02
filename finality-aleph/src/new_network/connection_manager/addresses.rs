@@ -82,7 +82,7 @@ fn peer_id(protocol: &Protocol<'_>) -> Option<PeerId> {
 }
 
 /// Returns the peer id associated with this multiaddress if it exists and is unique.
-fn get_peer_id(address: &Multiaddr) -> Option<PeerId> {
+pub fn get_peer_id(address: &Multiaddr) -> Option<PeerId> {
     address
         .0
         .iter()

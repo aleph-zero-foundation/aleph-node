@@ -4,6 +4,7 @@ use sc_network::Multiaddr as ScMultiaddr;
 use std::convert::TryFrom;
 
 mod addresses;
+mod connections;
 mod session;
 
 use addresses::{get_common_peer_id, is_p2p};

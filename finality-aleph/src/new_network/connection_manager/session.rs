@@ -74,7 +74,8 @@ impl Handler {
         self.keychain.index()
     }
 
-    fn node_count(&self) -> NodeCount {
+    /// Returns the number of nodes we should try being connected to.
+    pub fn node_count(&self) -> NodeCount {
         self.keychain.node_count()
     }
 

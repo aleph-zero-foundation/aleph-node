@@ -1,4 +1,4 @@
-use crate::new_network::{Network, NetworkEventStream, PeerId, RequestBlocks};
+use crate::new_network::{Network, NetworkEventStream, NetworkIdentity, PeerId, RequestBlocks};
 use log::{debug, error};
 use sc_network::{
     multiaddr, ExHashT, Multiaddr, NetworkService, NetworkStateInfo, NotificationSender,
@@ -53,7 +53,9 @@ impl<B: Block, H: ExHashT> Network for Arc<NetworkService<B, H>> {
             error!(target: "aleph-network", "remove_reserved failed: {}", e);
         }
     }
+}
 
+impl<B: Block, H: ExHashT> NetworkIdentity for Arc<NetworkService<B, H>> {
     fn identity(&self) -> (Vec<Multiaddr>, PeerId) {
         (self.external_addresses(), (*self.local_peer_id()).into())
     }

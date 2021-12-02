@@ -85,7 +85,10 @@ pub trait Network: Clone + Send + Sync + 'static {
 
     /// Remove peers from one of the reserved sets.
     fn remove_reserved(&self, peers: HashSet<PeerId>, protocol: Cow<'static, str>);
+}
 
+/// Abstraction for requesting own network addresses and PeerId.
+pub trait NetworkIdentity {
     /// The external identity of this node, consisting of addresses and the PeerId.
     fn identity(&self) -> (Vec<Multiaddr>, PeerId);
 }
