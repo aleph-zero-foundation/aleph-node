@@ -1,5 +1,10 @@
 FROM ubuntu:focal-20210827
 
+RUN apt update && \
+        apt install curl -y && \
+        apt clean && \
+        rm -rf /var/lib/apt/lists/*
+
 EXPOSE 30333 9933 9944
 
 WORKDIR node
