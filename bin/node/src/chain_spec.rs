@@ -7,7 +7,6 @@ use aleph_runtime::{
     Signature, SudoConfig, SystemConfig, VestingConfig, WASM_BINARY,
 };
 use finality_aleph::{MillisecsPerBlock, SessionPeriod};
-use hex_literal::hex;
 use libp2p::PeerId;
 use sc_service::config::BasePath;
 use sc_service::ChainType;
@@ -16,25 +15,18 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Number, Value};
 use sp_application_crypto::Ss58Codec;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::{sr25519, Pair, Public};
+use sp_core::{Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 use std::collections::HashSet;
 use std::{path::PathBuf, str::FromStr};
 use structopt::StructOpt;
 
-pub const DEVNET_ID: &str = "dev";
+pub const CHAINTYPE_DEV: &str = "dev";
+pub const CHAINTYPE_LOCAL: &str = "local";
+pub const CHAINTYPE_LIVE: &str = "live";
 
-pub const WELL_KNOWNS_ACCOUNTS: [&str; 7] = [
-    "Alice",
-    "Alice//stash",
-    "Bob",
-    "Bob//stash",
-    "Charlie",
-    "Dave",
-    "Eve",
-];
-
-pub const DEFAULT_SUDO_ACCOUNT: &str = "5F4SvwaUEQubiqkPF8YnRfcN77cLsT2DfG4vFeQmSXNjR7hD";
+// Alice is the default sudo holder.
+pub const DEFAULT_SUDO_ACCOUNT: &str = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
 
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
@@ -94,6 +86,15 @@ fn parse_account_id(s: &str) -> AccountId {
     AccountId::from_string(s).expect("Passed string is not a hex encoding of a public key")
 }
 
+fn parse_chaintype(s: &str) -> ChainType {
+    match s {
+        CHAINTYPE_DEV => ChainType::Development,
+        CHAINTYPE_LOCAL => ChainType::Local,
+        CHAINTYPE_LIVE => ChainType::Live,
+        s => panic!("Wrong chain type {} Possible values: dev local live", s),
+    }
+}
+
 #[derive(Clone, Deserialize, Serialize)]
 pub struct AuthorityKeys {
     pub account_id: AccountId,
@@ -104,55 +105,50 @@ pub struct AuthorityKeys {
 
 #[derive(Debug, StructOpt, Clone)]
 pub struct ChainParams {
-    /// Pass the chain id.
-    ///
-    /// It can be a predefined one (dev) or an arbitrary chain id passed to the genesis block
-    /// `dev` chain id means that a set of known accounts will be used to form a comittee
-    #[structopt(long, value_name = "CHAIN_SPEC", default_value = "a0dnet1")]
-    pub chain_id: String,
+    /// Chain ID is a short identifier of the chain
+    #[structopt(long, value_name = "ID", default_value = "a0dnet1")]
+    chain_id: String,
 
-    #[structopt(long, default_value_if("chain-id", Some(DEVNET_ID), "true"), conflicts_with_all(&["account-ids", "sudo-account-id"]))]
-    pub dev_chain: bool,
+    /// The type of the chain. Possible values: "dev", "local", "live" (default)
+    #[structopt(long, value_name = "TYPE", parse(from_str = parse_chaintype), default_value = CHAINTYPE_LIVE)]
+    chain_type: ChainType,
 
-    /// Specify custom base path.
+    /// Specify custom base path
     #[structopt(long, short = "d", value_name = "PATH", parse(from_os_str))]
-    pub base_path: PathBuf,
+    base_path: PathBuf,
 
     /// Specify filename to write node private p2p keys to
     /// Resulting keys will be stored at: base_path/account_id/node_key_file for each node
     #[structopt(long, default_value = "p2p_secret")]
-    pub node_key_file: String,
+    node_key_file: String,
 
-    /// Specify filename to write the nodes private key to
-    /// Used in conjunction with `--n-members` argument
-    /// Resulting keys will be stored at: base_path/account_id/account_key_file for each node
-    #[structopt(long, default_value = "account_secret")]
-    pub account_key_file: String,
-
+    /// The length of a session (in seconds). Default is 900 s
     #[structopt(long)]
-    pub session_period: Option<u32>,
+    session_period: Option<u32>,
 
+    /// Time interval (in milliseconds) between blocks. Default is 1000 ms
     #[structopt(long)]
-    pub millisecs_per_block: Option<u64>,
+    millisecs_per_block: Option<u64>,
 
+    /// Chain name. Default is "Aleph Zero Development"
     #[structopt(long, default_value = "Aleph Zero Development")]
-    pub chain_name: String,
+    chain_name: String,
 
+    /// Token symbol. Default is DZERO
     #[structopt(long, default_value = "DZERO")]
-    pub token_symbol: String,
+    token_symbol: String,
 
-    /// Pass the AccountIds of authorities forming the committe at the genesis
-    ///
-    /// Expects a delimited collection of AccountIds
-    #[structopt(long, require_delimiter = true, parse(from_str = parse_account_id), required_unless("dev-chain"))]
+    /// AccountIds of authorities forming the committee at the genesis (comma delimited)
+    #[structopt(long, require_delimiter = true, parse(from_str = parse_account_id))]
     account_ids: Vec<AccountId>,
 
-    /// Pass the AccountId of the sudo account
-    ///
-    /// If the chain-id is "dev" it will default to the first generated account (Alice)
-    /// and use a default pre-defined id in any other case
+    /// AccountId of the sudo account
     #[structopt(long, parse(from_str = parse_account_id), default_value(DEFAULT_SUDO_ACCOUNT))]
     sudo_account_id: AccountId,
+
+    /// AccountId of the optional faucet account
+    #[structopt(long, parse(from_str = parse_account_id))]
+    faucet_account_id: Option<AccountId>,
 }
 
 impl ChainParams {
@@ -160,8 +156,16 @@ impl ChainParams {
         &self.chain_id
     }
 
+    pub fn chain_type(&self) -> ChainType {
+        self.chain_type.clone()
+    }
+
     pub fn base_path(&self) -> BasePath {
         self.base_path.clone().into()
+    }
+
+    pub fn node_key_file(&self) -> &str {
+        &self.node_key_file
     }
 
     pub fn session_period(&self) -> SessionPeriod {
@@ -184,22 +188,15 @@ impl ChainParams {
     }
 
     pub fn account_ids(&self) -> Vec<AccountId> {
-        if self.dev_chain {
-            WELL_KNOWNS_ACCOUNTS
-                .iter()
-                .map(get_account_id_from_seed::<sr25519::Public>)
-                .collect()
-        } else {
-            self.account_ids.clone()
-        }
+        self.account_ids.clone()
     }
 
     pub fn sudo_account_id(&self) -> AccountId {
-        if self.dev_chain {
-            get_account_id_from_seed::<sr25519::Public>(&WELL_KNOWNS_ACCOUNTS[0])
-        } else {
-            self.sudo_account_id.clone()
-        }
+        self.sudo_account_id.clone()
+    }
+
+    pub fn faucet_account_id(&self) -> Option<AccountId> {
+        self.faucet_account_id.clone()
     }
 }
 
@@ -223,33 +220,26 @@ fn system_properties(token_symbol: String) -> serde_json::map::Map<String, Value
 pub fn config(
     chain_params: ChainParams,
     authorities: Vec<AuthorityKeys>,
-    chain_id: &str,
 ) -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
     let token_symbol = String::from(chain_params.token_symbol());
     let chain_name = String::from(chain_params.chain_name());
+    let chain_id = String::from(chain_params.chain_id());
+    let chain_type = chain_params.chain_type();
     let sudo_account = chain_params.sudo_account_id();
-
-    // NOTE: this could be passed as a CLI argument similar to the sudo-account id
-    let faucet_account: AccountId =
-        hex!["eaefd9d9b42915bda608154f17bb03e407cbf244318a0499912c2fb1cd879b74"].into();
-
-    let chain_type = match chain_params.dev_chain {
-        true => ChainType::Development,
-        false => ChainType::Live,
-    };
+    let faucet_account = chain_params.faucet_account_id();
 
     Ok(ChainSpec::from_genesis(
         // Name
         &chain_name,
         // ID
-        chain_id,
+        &chain_id,
         chain_type,
         move || {
             genesis(
                 wasm_binary,
                 authorities.clone(), // Initial PoA authorities, will receive funds
-                sudo_account.clone(), // Root account, will also be pre funded
+                sudo_account.clone(), // Sudo account, will also be pre funded
                 faucet_account.clone(), // Pre-funded faucet account
                 chain_params.clone(),
             )
@@ -277,22 +267,27 @@ fn deduplicate(accounts: Vec<AccountId>) -> Vec<AccountId> {
 fn genesis(
     wasm_binary: &[u8],
     authorities: Vec<AuthorityKeys>,
-    root_key: AccountId,
-    faucet_account: AccountId,
+    sudo_account: AccountId,
+    faucet_account: Option<AccountId>,
     chain_params: ChainParams,
 ) -> GenesisConfig {
     let session_period = chain_params.session_period();
     let millisecs_per_block = chain_params.millisecs_per_block();
 
+    let special_accounts = match faucet_account {
+        Some(faucet_id) => vec![sudo_account.clone(), faucet_id],
+        None => vec![sudo_account.clone()],
+    };
+
     // NOTE: some combinations of bootstrap chain arguments can potentially
-    // lead to duplicated rich accounts, e.g. if a root account is also an authority
+    // lead to duplicated rich accounts, e.g. if a sudo account is also an authority
     // which is why we remove the duplicates if any here
     let unique_accounts: Vec<AccountId> = deduplicate(
         authorities
             .iter()
             .map(|auth| &auth.account_id)
             .cloned()
-            .chain(vec![root_key.clone(), faucet_account])
+            .chain(special_accounts)
             .collect(),
     );
 
@@ -311,7 +306,7 @@ fn genesis(
         },
         sudo: SudoConfig {
             // Assign network admin rights.
-            key: root_key,
+            key: sudo_account,
         },
         aleph: AlephConfig {
             authorities: vec![],

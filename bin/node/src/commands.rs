@@ -45,7 +45,7 @@ fn p2p_key(chain_params: &ChainParams, account_id: &AccountId) -> SerializablePe
         .base_path()
         .path()
         .join(authority)
-        .join(&chain_params.node_key_file);
+        .join(chain_params.node_key_file());
 
     if file.exists() {
         let mut file_content =
@@ -133,11 +133,7 @@ impl BootstrapChainCmd {
             })
             .collect();
 
-        let chain_spec = chain_spec::config(
-            self.chain_params.clone(),
-            genesis_authorities,
-            self.chain_params.chain_id(),
-        )?;
+        let chain_spec = chain_spec::config(self.chain_params.clone(), genesis_authorities)?;
 
         let json = sc_service::chain_ops::build_spec(&chain_spec, self.raw)?;
         if std::io::stdout().write_all(json.as_bytes()).is_err() {
