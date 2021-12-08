@@ -13,11 +13,19 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+mod migrations;
+
 use frame_support::Parameter;
 use sp_std::prelude::*;
 
-use frame_support::{sp_runtime::BoundToRuntimeAppPublic, traits::OneSessionHandler};
+use frame_support::{
+    sp_runtime::BoundToRuntimeAppPublic,
+    traits::{OneSessionHandler, StorageVersion},
+};
 pub use pallet::*;
+
+/// The current storage version.
+const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -33,25 +41,13 @@ pub mod pallet {
         ApiError as AlephApiError, DEFAULT_MILLISECS_PER_BLOCK, DEFAULT_SESSION_PERIOD,
     };
 
-    #[pallet::type_value]
-    pub fn DefaultValidators<T: Config>() -> Option<Vec<T::AccountId>> {
-        None
-    }
-
     #[pallet::storage]
     #[pallet::getter(fn validators)]
-    pub type Validators<T: Config> =
-        StorageValue<_, Option<Vec<T::AccountId>>, ValueQuery, DefaultValidators<T>>;
-
-    #[pallet::type_value]
-    pub fn DefaultSessionForValidatorsChange<T: Config>() -> Option<u32> {
-        None
-    }
+    pub type Validators<T: Config> = StorageValue<_, Vec<T::AccountId>, OptionQuery>;
 
     #[pallet::storage]
     #[pallet::getter(fn session_for_validators_change)]
-    pub type SessionForValidatorsChange<T: Config> =
-        StorageValue<_, Option<u32>, ValueQuery, DefaultSessionForValidatorsChange<T>>;
+    pub type SessionForValidatorsChange<T: Config> = StorageValue<_, u32, OptionQuery>;
 
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_session::Config {
@@ -73,10 +69,15 @@ pub mod pallet {
     pub struct AlephSessionManager<T>(sp_std::marker::PhantomData<T>);
 
     #[pallet::pallet]
-    pub struct Pallet<T>(sp_std::marker::PhantomData<T>);
+    #[pallet::storage_version(STORAGE_VERSION)]
+    pub struct Pallet<T>(_);
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_runtime_upgrade() -> frame_support::weights::Weight {
+            migrations::v0_to_v1::migrate::<T, Self>()
+        }
+    }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
@@ -87,8 +88,8 @@ pub mod pallet {
             session_for_validators_change: u32,
         ) -> DispatchResult {
             ensure_root(origin)?;
-            Validators::<T>::put(Some(validators.clone()));
-            SessionForValidatorsChange::<T>::put(Some(session_for_validators_change));
+            Validators::<T>::put(validators.clone());
+            SessionForValidatorsChange::<T>::put(session_for_validators_change);
             Self::deposit_event(Event::ChangeValidators(
                 validators,
                 session_for_validators_change,
@@ -146,8 +147,6 @@ pub mod pallet {
         fn build(&self) {
             <SessionPeriod<T>>::put(&self.session_period);
             <MillisecsPerBlock<T>>::put(&self.millisecs_per_block);
-            <Validators<T>>::put(Some(&self.validators));
-            <SessionForValidatorsChange<T>>::put(Some(0));
         }
     }
 
@@ -180,11 +179,9 @@ pub mod pallet {
                 Pallet::<T>::session_for_validators_change()
             {
                 if session_for_validators_change <= session {
-                    let validators = Pallet::<T>::validators().expect(
-                        "Validators also should be Some(), when session_for_validators_change is",
-                    );
-                    Validators::<T>::put(None::<Vec<T::AccountId>>);
-                    SessionForValidatorsChange::<T>::put(None::<u32>);
+                    let validators = Validators::<T>::take()
+                        .expect("When SessionForValidatorsChange is Some so should be Validators");
+                    let _ = SessionForValidatorsChange::<T>::take().unwrap();
                     return Some(validators);
                 }
             }

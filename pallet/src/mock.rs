@@ -3,13 +3,13 @@
 use super::*;
 use crate as pallet_aleph;
 
-use sp_core::H256;
-
 use frame_support::{
     construct_runtime, parameter_types, sp_io,
     traits::{OnFinalize, OnInitialize},
+    weights::RuntimeDbWeight,
 };
 use primitives::AuthorityId;
+use sp_core::H256;
 use sp_runtime::{
     impl_opaque_keys,
     testing::{Header, TestXt, UintAuthorityId},
@@ -48,6 +48,10 @@ parameter_types! {
     pub const BlockHashCount: u64 = 250;
     pub BlockWeights: frame_system::limits::BlockWeights =
         frame_system::limits::BlockWeights::simple_max(1024);
+    pub const TestDbWeight: RuntimeDbWeight = RuntimeDbWeight {
+        read: 25,
+        write: 100
+    };
 }
 
 impl frame_system::Config for Test {
@@ -65,7 +69,7 @@ impl frame_system::Config for Test {
     type Header = Header;
     type Event = Event;
     type BlockHashCount = BlockHashCount;
-    type DbWeight = ();
+    type DbWeight = TestDbWeight;
     type Version = ();
     type PalletInfo = PalletInfo;
     type AccountData = pallet_balances::AccountData<u128>;

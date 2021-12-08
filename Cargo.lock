@@ -4518,7 +4518,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-aleph"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4529,6 +4529,7 @@ dependencies = [
  "primitives",
  "serde",
  "sp-core",
+ "sp-io",
  "sp-runtime",
  "sp-std",
 ]

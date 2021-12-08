@@ -13,6 +13,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "ac-node-api"
+version = "0.1.0"
+source = "git+https://github.com/scs/substrate-api-client?rev=aa4b84f8775f972e5967aca3d96dd163619f65d5#aa4b84f8775f972e5967aca3d96dd163619f65d5"
+dependencies = [
+ "ac-primitives",
+ "frame-metadata 14.0.0 (git+https://github.com/paritytech/frame-metadata.git?branch=main)",
+ "frame-support",
+ "frame-system",
+ "hex",
+ "log",
+ "parity-scale-codec",
+ "serde",
+ "serde_json",
+ "sp-core",
+ "sp-runtime",
+ "thiserror",
+]
+
+[[package]]
+name = "ac-primitives"
+version = "0.1.0"
+source = "git+https://github.com/scs/substrate-api-client?rev=aa4b84f8775f972e5967aca3d96dd163619f65d5#aa4b84f8775f972e5967aca3d96dd163619f65d5"
+dependencies = [
+ "parity-scale-codec",
+ "sp-core",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2380,8 +2408,10 @@ dependencies = [
 [[package]]
 name = "substrate-api-client"
 version = "0.6.0"
-source = "git+https://github.com/scs/substrate-api-client?rev=f9d3a773bb5c76a0c0689b012fc08599beb90ab7#f9d3a773bb5c76a0c0689b012fc08599beb90ab7"
+source = "git+https://github.com/scs/substrate-api-client?rev=aa4b84f8775f972e5967aca3d96dd163619f65d5#aa4b84f8775f972e5967aca3d96dd163619f65d5"
 dependencies = [
+ "ac-node-api",
+ "ac-primitives",
  "frame-metadata 14.0.0 (git+https://github.com/paritytech/frame-metadata.git?branch=main)",
  "frame-support",
  "frame-system",

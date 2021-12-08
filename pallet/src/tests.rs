@@ -1,7 +1,64 @@
 #![cfg(test)]
 
-use crate::mock::*;
+use crate::{migrations, mock::*, pallet};
 use frame_support::assert_ok;
+use frame_support::traits::{GetStorageVersion, StorageVersion};
+
+#[test]
+fn migration_from_v0_to_v1_works() {
+    new_test_ext(&[(1u64, 1u64), (2u64, 2u64)]).execute_with(|| {
+        frame_support::migration::put_storage_value(
+            b"Aleph",
+            b"SessionForValidatorsChange",
+            &[],
+            1u32,
+        );
+
+        frame_support::migration::put_storage_value(
+            b"Aleph",
+            b"Validators",
+            &[],
+            vec![AccountId::default()],
+        );
+
+        let v0 = <pallet::Pallet<Test> as GetStorageVersion>::on_chain_storage_version();
+
+        assert_eq!(
+            v0,
+            StorageVersion::default(),
+            "Storage version before applying migration should be default"
+        );
+
+        let _weight = migrations::v0_to_v1::migrate::<Test, Aleph>();
+
+        let v1 = <pallet::Pallet<Test> as GetStorageVersion>::on_chain_storage_version();
+
+        assert_ne!(
+            v1,
+            StorageVersion::default(),
+            "Storage version after applying migration should be incremented"
+        );
+
+        assert_eq!(
+            Aleph::session_for_validators_change(),
+            Some(1u32),
+            "Migration should preserve ongoing session change with respect to the session number"
+        );
+
+        assert_eq!(
+            Aleph::validators(),
+            Some(vec![AccountId::default()]),
+            "Migration should preserve ongoing session change with respect to the validators set"
+        );
+
+        let noop_weight = migrations::v0_to_v1::migrate::<Test, Aleph>();
+        assert_eq!(
+            noop_weight,
+            TestDbWeight::get().reads(1),
+            "Migration cannot be run twice"
+        );
+    })
+}
 
 #[test]
 fn test_update_authorities() {
@@ -38,6 +95,7 @@ fn test_change_validators() {
             0
         ));
 
+        assert_eq!(Aleph::session_for_validators_change(), Some(0));
         assert_eq!(Aleph::validators(), Some(vec![AccountId::default()]));
     });
 }

@@ -1,10 +1,8 @@
 [package]
 name = "pallet-aleph"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Cardinal Cryptography"]
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
@@ -14,9 +12,9 @@ sp-std = { default-features = false, git = "https://github.com/paritytech/substr
 serde = "1.0"
 primitives = { path = "../primitives", default-features = false}
 pallet-session = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9" }
+sp-io = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9" }
 
 [dev-dependencies]
-
 pallet-balances = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9" }
 pallet-timestamp = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9" }
 sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9" }
