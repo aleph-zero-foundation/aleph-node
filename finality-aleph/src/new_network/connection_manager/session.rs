@@ -88,6 +88,14 @@ impl Handler {
         self.own_authentication.clone()
     }
 
+    /// Returns the authentication for the node with the given index, if we have it.
+    pub fn authentication_for(&self, node_id: &NodeIndex) -> Option<Authentication> {
+        self.peer_id(node_id)
+            .map(|peer_id| self.authentications.get(&peer_id))
+            .flatten()
+            .map(|(auth, _)| auth.clone())
+    }
+
     /// Returns a vector of indices of nodes for which the handler has no authentication.
     pub fn missing_nodes(&self) -> Vec<NodeIndex> {
         let node_count = self.node_count().0;
@@ -191,6 +199,7 @@ mod tests {
         AuthorityId, NodeIndex, SessionId,
     };
     use aleph_primitives::KEY_TYPE;
+    use codec::Encode;
     use sc_network::Multiaddr as ScMultiaddr;
     use sp_keystore::{testing::KeyStore, CryptoStore};
     use std::sync::Arc;
@@ -295,6 +304,19 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn does_not_keep_own_peer_id_or_authentication() {
+        let handler0 = Handler::new(
+            keyboxes().await.pop().unwrap(),
+            SessionId(43),
+            correct_addresses_0(),
+        )
+        .await
+        .unwrap();
+        assert!(handler0.peer_id(&NodeIndex(0)).is_none());
+        assert!(handler0.authentication_for(&NodeIndex(0)).is_none());
+    }
+
+    #[tokio::test]
     async fn misses_all_other_nodes_initially() {
         let handler0 = Handler::new(
             keyboxes().await.pop().unwrap(),
@@ -325,6 +347,10 @@ mod tests {
         let peer_id1 = get_common_peer_id(&correct_addresses_1());
         assert_eq!(handler0.peer_id(&NodeIndex(1)), peer_id1);
         assert_eq!(handler0.node_id(&peer_id1.unwrap()), Some(NodeIndex(1)));
+        assert_eq!(
+            handler0.authentication_for(&NodeIndex(1)).unwrap().encode(),
+            handler1.authentication().encode()
+        );
     }
 
     #[tokio::test]
@@ -342,6 +368,7 @@ mod tests {
         let missing_nodes = handler0.missing_nodes();
         let expected_missing: Vec<_> = (1..NUM_NODES).map(NodeIndex).collect();
         assert_eq!(missing_nodes, expected_missing);
+        assert!(handler0.authentication_for(&NodeIndex(1)).is_none());
     }
 
     #[tokio::test]
@@ -357,6 +384,7 @@ mod tests {
         let missing_nodes = handler0.missing_nodes();
         let expected_missing: Vec<_> = (1..NUM_NODES).map(NodeIndex).collect();
         assert_eq!(missing_nodes, expected_missing);
+        assert!(handler0.authentication_for(&NodeIndex(1)).is_none());
     }
 
     #[tokio::test]
@@ -396,6 +424,7 @@ mod tests {
         let expected_missing: Vec<_> = (1..NUM_NODES).map(NodeIndex).collect();
         assert_eq!(missing_nodes, expected_missing);
         assert!(handler0.peer_id(&NodeIndex(1)).is_none());
+        assert!(handler0.authentication_for(&NodeIndex(1)).is_none());
     }
 
     #[tokio::test]
@@ -425,6 +454,10 @@ mod tests {
         assert_eq!(
             handler0.peer_id(&NodeIndex(1)),
             get_common_peer_id(&correct_addresses_1())
+        );
+        assert_eq!(
+            handler0.authentication_for(&NodeIndex(1)).unwrap().encode(),
+            handler1.authentication().encode()
         );
     }
 }

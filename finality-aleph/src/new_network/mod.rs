@@ -50,7 +50,11 @@ pub(crate) const ALEPH_PROTOCOL_NAME: &str = "/cardinals/aleph/2";
 /// ALEPH_PROTOCOL_NAME, but only used by validators that authenticated to each other.
 pub(crate) const ALEPH_VALIDATOR_PROTOCOL_NAME: &str = "/cardinals/aleph_validator/1";
 
-enum Protocol {
+/// The Generic protocol is used for validator discovery.
+/// The Validator protocol is used for validator-specific messages, i.e. ones needed for
+/// finalization.
+#[derive(Debug, PartialEq)]
+pub enum Protocol {
     Generic,
     Validator,
 }
@@ -102,7 +106,10 @@ pub trait RequestBlocks<B: Block>: Clone + Send + Sync + 'static {
     fn request_stale_block(&self, hash: B::Hash, number: NumberFor<B>);
 }
 
-enum DataCommand {
+/// What do do with a specific piece of data.
+/// Note that broadcast does not specify the protocol, as we only broadcast Generic messages in this sense.
+#[derive(Debug, PartialEq)]
+pub enum DataCommand {
     Broadcast,
     SendTo(PeerId, Protocol),
 }
