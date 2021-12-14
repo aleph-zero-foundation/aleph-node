@@ -93,7 +93,7 @@ impl AuthorityVerifier {
         }
     }
 
-    fn node_count(&self) -> NodeCount {
+    pub fn node_count(&self) -> NodeCount {
         self.authorities.len().into()
     }
 
