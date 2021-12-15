@@ -1,5 +1,5 @@
 use crate::{
-    crypto::{AuthorityVerifier, Signature, SignatureV1},
+    crypto::{Signature, SignatureV1},
     finalization::BlockFinalizer,
     metrics::Checkpoint,
     network, Metrics, SessionId,
@@ -13,6 +13,7 @@ use log::{debug, error, warn};
 use sc_client_api::HeaderBackend;
 use sp_api::{BlockId, BlockT, NumberFor};
 use sp_runtime::traits::Header;
+use std::marker::PhantomData;
 use std::time::Instant;
 use std::{sync::Arc, time::Duration};
 use tokio::time::timeout;
@@ -23,18 +24,8 @@ pub struct AlephJustification {
     pub(crate) signature: SignatureSet<Signature>,
 }
 
-impl AlephJustification {
-    pub(crate) fn verify<Block: BlockT>(
-        &self,
-        block_hash: Block::Hash,
-        multi_verifier: &AuthorityVerifier,
-    ) -> bool {
-        if !multi_verifier.is_complete(&block_hash.encode()[..], &self.signature) {
-            debug!(target: "afa", "Bad justification for block hash #{:?} {:?}", block_hash, self);
-            return false;
-        }
-        true
-    }
+pub(crate) trait Verifier<B: BlockT> {
+    fn verify(&self, justification: &AlephJustification, hash: B::Hash) -> bool;
 }
 
 /// Bunch of methods for managing frequency of sending justification requests.
@@ -47,32 +38,31 @@ pub(crate) trait JustificationRequestDelay {
     fn on_request_sent(&mut self);
 }
 
-pub(crate) struct SessionInfo<B: BlockT> {
+pub(crate) struct SessionInfo<B: BlockT, V: Verifier<B>> {
     pub(crate) current_session: SessionId,
     pub(crate) last_block_height: NumberFor<B>,
-    pub(crate) verifier: Option<AuthorityVerifier>,
+    pub(crate) verifier: Option<V>,
 }
 
 /// Returns `SessionInfo` for the session regarding block with no. `number`.
-pub(crate) trait SessionInfoProvider<B: BlockT> {
-    fn for_block_num(&self, number: NumberFor<B>) -> SessionInfo<B>;
+pub(crate) trait SessionInfoProvider<B: BlockT, V: Verifier<B>> {
+    fn for_block_num(&self, number: NumberFor<B>) -> SessionInfo<B, V>;
 }
 
-impl<F, B> SessionInfoProvider<B> for F
+impl<F, B, V> SessionInfoProvider<B, V> for F
 where
     B: BlockT,
-    F: Fn(NumberFor<B>) -> SessionInfo<B>,
+    V: Verifier<B>,
+    F: Fn(NumberFor<B>) -> SessionInfo<B, V>,
 {
-    fn for_block_num(&self, number: NumberFor<B>) -> SessionInfo<B> {
+    fn for_block_num(&self, number: NumberFor<B>) -> SessionInfo<B, V> {
         self(number)
     }
 }
 
 /// A notification for sending justifications over the network.
-pub struct JustificationNotification<Block>
-where
-    Block: BlockT,
-{
+#[derive(Clone)]
+pub struct JustificationNotification<Block: BlockT> {
     /// The justification itself.
     pub justification: AlephJustification,
     /// The hash of the finalized block.
@@ -90,13 +80,14 @@ pub(crate) struct JustificationHandlerConfig<B: BlockT, D: JustificationRequestD
     pub(crate) notification_timeout: Duration,
 }
 
-pub(crate) struct JustificationHandler<B, RB, C, D, SI, F>
+pub(crate) struct JustificationHandler<B, V, RB, C, D, SI, F>
 where
     B: BlockT,
+    V: Verifier<B>,
     RB: network::RequestBlocks<B> + 'static,
     C: HeaderBackend<B> + Send + Sync + 'static,
     D: JustificationRequestDelay,
-    SI: SessionInfoProvider<B>,
+    SI: SessionInfoProvider<B, V>,
     F: BlockFinalizer<B>,
 {
     session_info_provider: SI,
@@ -104,15 +95,17 @@ where
     client: Arc<C>,
     finalizer: F,
     config: JustificationHandlerConfig<B, D>,
+    phantom: PhantomData<V>,
 }
 
-impl<B, RB, C, D, SI, F> JustificationHandler<B, RB, C, D, SI, F>
+impl<B, V, RB, C, D, SI, F> JustificationHandler<B, V, RB, C, D, SI, F>
 where
     B: BlockT,
+    V: Verifier<B>,
     RB: network::RequestBlocks<B> + 'static,
     C: HeaderBackend<B> + Send + Sync + 'static,
     D: JustificationRequestDelay,
-    SI: SessionInfoProvider<B>,
+    SI: SessionInfoProvider<B, V>,
     F: BlockFinalizer<B>,
 {
     pub(crate) fn new(
@@ -128,13 +121,14 @@ where
             client,
             finalizer,
             config,
+            phantom: PhantomData,
         }
     }
 
     fn handle_justification_notification(
         &mut self,
         notification: JustificationNotification<B>,
-        verifier: AuthorityVerifier,
+        verifier: V,
         last_finalized: NumberFor<B>,
         stop_h: NumberFor<B>,
     ) {
@@ -149,7 +143,7 @@ where
             return;
         };
 
-        if !(justification.verify::<B>(hash, &verifier)) {
+        if !(verifier.verify(&justification, hash)) {
             warn!(target: "afa", "Error when verifying justification for block {:?} {:?}", number, hash);
             return;
         };

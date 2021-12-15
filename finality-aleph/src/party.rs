@@ -30,11 +30,12 @@ use futures::{
     future::select,
     pin_mut, StreamExt,
 };
-use log::{debug, error, info, trace};
+use log::{debug, error, info, trace, warn};
 
 use crate::data_io::FinalizationHandler;
 use crate::finalization::{AlephFinalizer, BlockFinalizer};
-use crate::justification::JustificationHandlerConfig;
+use crate::justification::{JustificationHandlerConfig, Verifier};
+use codec::Encode;
 use parking_lot::Mutex;
 use sc_client_api::{Backend, HeaderBackend};
 use sp_api::{BlockId, NumberFor};
@@ -92,10 +93,20 @@ impl JustificationRequestDelay for JustificationRequestDelayImpl {
     }
 }
 
+impl<B: Block> Verifier<B> for AuthorityVerifier {
+    fn verify(&self, justification: &AlephJustification, hash: B::Hash) -> bool {
+        if !self.is_complete(&hash.encode()[..], &justification.signature) {
+            warn!(target: "afa", "Bad justification for block hash #{:?} {:?}", hash, justification);
+            return false;
+        }
+        true
+    }
+}
+
 fn get_session_info_provider<B: Block>(
     session_authorities: Arc<Mutex<HashMap<SessionId, Vec<AuthorityId>>>>,
     session_period: SessionPeriod,
-) -> impl SessionInfoProvider<B> {
+) -> impl SessionInfoProvider<B, AuthorityVerifier> {
     move |block_num| {
         let current_session = session_id_from_block_num::<B>(block_num, session_period);
         let last_block_height = last_block_of_session::<B>(current_session, session_period);
@@ -203,17 +214,18 @@ async fn get_node_index(
         .map(|id| id.into())
 }
 
-fn run_justification_handler<B, N, C, D, SI, F>(
-    handler: JustificationHandler<B, N, C, D, SI, F>,
+fn run_justification_handler<B, V, RB, C, D, SI, F>(
+    handler: JustificationHandler<B, V, RB, C, D, SI, F>,
     spawn_handle: &crate::SpawnHandle,
     import_justification_rx: mpsc::UnboundedReceiver<JustificationNotification<B>>,
 ) -> mpsc::UnboundedSender<JustificationNotification<B>>
 where
-    N: network::Network<B> + network::RequestBlocks<B> + 'static,
     C: HeaderBackend<B> + Send + Sync + 'static,
     B: Block,
+    RB: network::RequestBlocks<B> + 'static,
+    V: Verifier<B> + Send + 'static,
     D: JustificationRequestDelay + Send + 'static,
-    SI: SessionInfoProvider<B> + Send + 'static,
+    SI: SessionInfoProvider<B, V> + Send + 'static,
     F: BlockFinalizer<B> + Send + 'static,
 {
     let (authority_justification_tx, authority_justification_rx) = mpsc::unbounded();

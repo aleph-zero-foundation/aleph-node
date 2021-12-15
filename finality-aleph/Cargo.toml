@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 aleph-primitives = { package = "primitives", path = "../primitives" }
-tokio = { version = "0.2.21", features = [ "sync", "macros" ] }
+tokio = { version = "0.2.21", features = [ "sync", "macros", "time", "rt-threaded", "rt-core" ] }
 codec = { package = "parity-scale-codec", version = "2", default-features = false, features = ["derive"] }
 hash-db = { version = "0.15.2", default-features = false }
 log = "0.4"
