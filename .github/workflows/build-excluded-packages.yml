@@ -1,0 +1,47 @@
+name: Check excluded packages
+
+on: pull_request
+
+jobs:
+  build:
+    name: Check excluded packages
+    runs-on: ubuntu-latest
+    env:
+      RUST_TOOLCHAIN_VERSION: nightly-2021-10-24
+      CARGO_INCREMENTAL: 0
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Print toolchain version
+        run: echo running with "$RUST_TOOLCHAIN_VERSION"
+
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+          override: true
+
+      - name: Read excluded packages from Cargo.toml
+        id: read_excluded
+        uses: SebRollen/toml-action@v1.0.0
+        with:
+          file: 'Cargo.toml'
+          field: 'workspace.exclude'
+
+      - name: Check excluded packages
+        run: |
+          packages=($(echo ${{ steps.read_excluded.outputs.value }} | sed 's/[][,]/ /g' | tr ' ' "\n"))
+          for p in ${packages[@]}
+          do
+            echo "Compiling package $p..."
+            pushd "$p"
+            cargo check --all-targets --all-features
+            popd
+          done
