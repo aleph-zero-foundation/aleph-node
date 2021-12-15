@@ -1,6 +1,6 @@
 use crate::{
     new_network::{
-        connection_manager::{Authentication, Multiaddr, SessionHandler},
+        manager::{Authentication, Multiaddr, SessionHandler},
         DataCommand, PeerId, Protocol,
     },
     NodeCount, NodeIndex, SessionId,
@@ -166,7 +166,7 @@ impl Discovery {
                 if let Some(handler_authentication) = handler.authentication() {
                     messages.push(response(vec![handler_authentication], peer_id));
                 }
-            },
+            }
             None => {
                 warn!(target: "aleph-network", "Id of correctly authenticated peer not present.")
             }
@@ -267,22 +267,17 @@ impl Discovery {
 mod tests {
     use super::{Discovery, DiscoveryMessage};
     use crate::{
-        crypto::{AuthorityPen, AuthorityVerifier},
         new_network::{
-            connection_manager::{Authentication, SessionHandler},
+            manager::{testing::crypto_basics, Authentication, SessionHandler},
             DataCommand, Multiaddr, Protocol,
         },
         NodeIndex, SessionId,
     };
-    use aleph_primitives::{AuthorityId, KEY_TYPE};
     use codec::Encode;
     use sc_network::{
         multiaddr::Protocol as ScProtocol, Multiaddr as ScMultiaddr, PeerId as ScPeerId,
     };
-    use sp_keystore::{testing::KeyStore, CryptoStore};
-    use std::{
-        collections::HashSet, iter, net::Ipv4Addr, sync::Arc, thread::sleep, time::Duration,
-    };
+    use std::{collections::HashSet, iter, net::Ipv4Addr, thread::sleep, time::Duration};
 
     const NUM_NODES: u8 = 7;
     const MS_COOLDOWN: u64 = 200;
@@ -298,28 +293,8 @@ mod tests {
             .collect()
     }
 
-    async fn crypto_basics() -> (Vec<(NodeIndex, AuthorityPen)>, AuthorityVerifier) {
-        let num_crypto_basics = NUM_NODES.into();
-        let keystore = Arc::new(KeyStore::new());
-        let mut auth_ids = Vec::with_capacity(num_crypto_basics);
-        for _ in 0..num_crypto_basics {
-            let pk = keystore.ed25519_generate_new(KEY_TYPE, None).await.unwrap();
-            auth_ids.push(AuthorityId::from(pk));
-        }
-        let mut result = Vec::with_capacity(num_crypto_basics);
-        for i in 0..num_crypto_basics {
-            result.push((
-                NodeIndex(i),
-                AuthorityPen::new(auth_ids[i].clone(), keystore.clone())
-                    .await
-                    .expect("The keys should sign successfully"),
-            ));
-        }
-        (result, AuthorityVerifier::new(auth_ids))
-    }
-
     async fn build() -> (Discovery, Vec<SessionHandler>, SessionHandler) {
-        let crypto_basics = crypto_basics().await;
+        let crypto_basics = crypto_basics(NUM_NODES.into()).await;
         let mut handlers = Vec::new();
         for (authority_index_and_pen, address) in crypto_basics.0.into_iter().zip(addresses()) {
             handlers.push(
@@ -334,19 +309,27 @@ mod tests {
             );
         }
         let non_validator = SessionHandler::new(
-                None,
-                crypto_basics.1.clone(),
-                SessionId(43),
-                vec![
-                    ScMultiaddr::empty()
-                        .with(ScProtocol::Ip4(Ipv4Addr::new(192, 168, 1, (handlers.len() - 1) as u8)))
-                        .with(ScProtocol::Tcp(30333))
-                        .with(ScProtocol::P2p(ScPeerId::random().into())).into()
-                ],
-            )
-            .await
-            .unwrap();
-        (Discovery::new(Duration::from_millis(MS_COOLDOWN)), handlers, non_validator)
+            None,
+            crypto_basics.1.clone(),
+            SessionId(43),
+            vec![ScMultiaddr::empty()
+                .with(ScProtocol::Ip4(Ipv4Addr::new(
+                    192,
+                    168,
+                    1,
+                    (handlers.len() - 1) as u8,
+                )))
+                .with(ScProtocol::Tcp(30333))
+                .with(ScProtocol::P2p(ScPeerId::random().into()))
+                .into()],
+        )
+        .await
+        .unwrap();
+        (
+            Discovery::new(Duration::from_millis(MS_COOLDOWN)),
+            handlers,
+            non_validator,
+        )
     }
 
     #[tokio::test]
@@ -367,8 +350,8 @@ mod tests {
 
     #[tokio::test]
     async fn non_validator_discover_authorities_returns_empty_vector() {
-        let (mut discovery, _, mut non_validator) = build().await;
-        let messages = discovery.discover_authorities(&mut non_validator);
+        let (mut discovery, _, non_validator) = build().await;
+        let messages = discovery.discover_authorities(&non_validator);
         assert!(messages.is_empty());
     }
 

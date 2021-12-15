@@ -1,7 +1,7 @@
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
     new_network::{
-        connection_manager::{get_common_peer_id, is_p2p, AuthData, Authentication, Multiaddr},
+        manager::{get_common_peer_id, is_p2p, AuthData, Authentication, Multiaddr},
         PeerId,
     },
     NodeIndex, SessionId,
@@ -235,41 +235,15 @@ impl Handler {
 mod tests {
     use super::{get_common_peer_id, Handler, HandlerError};
     use crate::{
-        crypto::{AuthorityPen, AuthorityVerifier},
-        new_network::connection_manager::Multiaddr,
-        AuthorityId, NodeIndex, SessionId,
+        new_network::manager::{
+            testing::{address, crypto_basics},
+            Multiaddr,
+        },
+        NodeIndex, SessionId,
     };
-    use aleph_primitives::KEY_TYPE;
     use codec::Encode;
-    use sc_network::Multiaddr as ScMultiaddr;
-    use sp_keystore::{testing::KeyStore, CryptoStore};
-    use std::sync::Arc;
 
     const NUM_NODES: usize = 7;
-
-    async fn crypto_basics() -> (Vec<(NodeIndex, AuthorityPen)>, AuthorityVerifier) {
-        let num_crypto_basics = NUM_NODES;
-        let keystore = Arc::new(KeyStore::new());
-        let mut auth_ids = Vec::with_capacity(num_crypto_basics);
-        for _ in 0..num_crypto_basics {
-            let pk = keystore.ed25519_generate_new(KEY_TYPE, None).await.unwrap();
-            auth_ids.push(AuthorityId::from(pk));
-        }
-        let mut result = Vec::with_capacity(num_crypto_basics);
-        for i in 0..num_crypto_basics {
-            result.push((
-                NodeIndex(i),
-                AuthorityPen::new(auth_ids[i].clone(), keystore.clone())
-                    .await
-                    .expect("The keys should sign successfully"),
-            ));
-        }
-        (result, AuthorityVerifier::new(auth_ids))
-    }
-
-    fn address(text: &str) -> ScMultiaddr {
-        text.parse().unwrap()
-    }
 
     fn correct_addresses_0() -> Vec<Multiaddr> {
         vec![
@@ -303,7 +277,7 @@ mod tests {
 
     #[tokio::test]
     async fn creates_with_correct_data() {
-        let mut crypto_basics = crypto_basics().await;
+        let mut crypto_basics = crypto_basics(NUM_NODES).await;
         assert!(Handler::new(
             Some(crypto_basics.0.pop().unwrap()),
             crypto_basics.1,
@@ -316,7 +290,7 @@ mod tests {
 
     #[tokio::test]
     async fn creates_with_local_address() {
-        let mut crypto_basics = crypto_basics().await;
+        let mut crypto_basics = crypto_basics(NUM_NODES).await;
         assert!(Handler::new(
             Some(crypto_basics.0.pop().unwrap()),
             crypto_basics.1,
@@ -329,7 +303,7 @@ mod tests {
 
     #[tokio::test]
     async fn creates_without_node_index_nor_authority_pen() {
-        let crypto_basics = crypto_basics().await;
+        let crypto_basics = crypto_basics(NUM_NODES).await;
         assert!(
             Handler::new(None, crypto_basics.1, SessionId(43), correct_addresses_0())
                 .await
@@ -339,7 +313,7 @@ mod tests {
 
     #[tokio::test]
     async fn non_validator_handler_returns_none_for_authentication() {
-        let crypto_basics = crypto_basics().await;
+        let crypto_basics = crypto_basics(NUM_NODES).await;
         assert!(
             Handler::new(None, crypto_basics.1, SessionId(43), correct_addresses_0())
                 .await
@@ -351,7 +325,7 @@ mod tests {
 
     #[tokio::test]
     async fn fails_to_create_with_no_addresses() {
-        let mut crypto_basics = crypto_basics().await;
+        let mut crypto_basics = crypto_basics(NUM_NODES).await;
         assert!(matches!(
             Handler::new(
                 Some(crypto_basics.0.pop().unwrap()),
@@ -366,7 +340,7 @@ mod tests {
 
     #[tokio::test]
     async fn fails_to_create_with_non_unique_peer_id() {
-        let mut crypto_basics = crypto_basics().await;
+        let mut crypto_basics = crypto_basics(NUM_NODES).await;
         let addresses = correct_addresses_0()
             .into_iter()
             .chain(correct_addresses_1())
@@ -385,7 +359,7 @@ mod tests {
 
     #[tokio::test]
     async fn fails_to_update_from_validator_to_non_validator() {
-        let mut crypto_basics = crypto_basics().await;
+        let mut crypto_basics = crypto_basics(NUM_NODES).await;
         let mut handler0 = Handler::new(
             Some(crypto_basics.0.pop().unwrap()),
             crypto_basics.1.clone(),
@@ -404,7 +378,7 @@ mod tests {
 
     #[tokio::test]
     async fn fails_to_update_from_non_validator_to_validator() {
-        let mut crypto_basics = crypto_basics().await;
+        let mut crypto_basics = crypto_basics(NUM_NODES).await;
         let mut handler0 = Handler::new(
             None,
             crypto_basics.1.clone(),
@@ -427,7 +401,7 @@ mod tests {
 
     #[tokio::test]
     async fn does_not_keep_own_peer_id_or_authentication() {
-        let mut crypto_basics = crypto_basics().await;
+        let mut crypto_basics = crypto_basics(NUM_NODES).await;
         let handler0 = Handler::new(
             Some(crypto_basics.0.pop().unwrap()),
             crypto_basics.1,
@@ -442,7 +416,7 @@ mod tests {
 
     #[tokio::test]
     async fn misses_all_other_nodes_initially() {
-        let mut crypto_basics = crypto_basics().await;
+        let mut crypto_basics = crypto_basics(NUM_NODES).await;
         let handler0 = Handler::new(
             Some(crypto_basics.0.pop().unwrap()),
             crypto_basics.1,
@@ -459,7 +433,7 @@ mod tests {
 
     #[tokio::test]
     async fn accepts_correct_authentication() {
-        let crypto_basics = crypto_basics().await;
+        let crypto_basics = crypto_basics(NUM_NODES).await;
         let mut handler0 = Handler::new(
             Some(crypto_basics.0[0].clone()),
             crypto_basics.1.clone(),
@@ -491,7 +465,7 @@ mod tests {
 
     #[tokio::test]
     async fn non_validator_accepts_correct_authentication() {
-        let crypto_basics = crypto_basics().await;
+        let crypto_basics = crypto_basics(NUM_NODES).await;
         let mut handler0 = Handler::new(
             None,
             crypto_basics.1.clone(),
@@ -520,7 +494,7 @@ mod tests {
 
     #[tokio::test]
     async fn ignores_badly_signed_authentication() {
-        let crypto_basics = crypto_basics().await;
+        let crypto_basics = crypto_basics(NUM_NODES).await;
         let mut handler0 = Handler::new(
             Some(crypto_basics.0[0].clone()),
             crypto_basics.1.clone(),
@@ -548,7 +522,7 @@ mod tests {
 
     #[tokio::test]
     async fn ignores_wrong_session_authentication() {
-        let crypto_basics = crypto_basics().await;
+        let crypto_basics = crypto_basics(NUM_NODES).await;
         let mut handler0 = Handler::new(
             Some(crypto_basics.0[0].clone()),
             crypto_basics.1.clone(),
@@ -574,7 +548,7 @@ mod tests {
 
     #[tokio::test]
     async fn ignores_own_authentication() {
-        let awaited_crypto_basics = crypto_basics().await;
+        let awaited_crypto_basics = crypto_basics(NUM_NODES).await;
         let mut handler0 = Handler::new(
             Some(awaited_crypto_basics.0[0].clone()),
             awaited_crypto_basics.1.clone(),
@@ -591,7 +565,7 @@ mod tests {
 
     #[tokio::test]
     async fn invalidates_obsolete_authentication() {
-        let awaited_crypto_basics = crypto_basics().await;
+        let awaited_crypto_basics = crypto_basics(NUM_NODES).await;
         let mut handler0 = Handler::new(
             Some(awaited_crypto_basics.0[0].clone()),
             awaited_crypto_basics.1.clone(),
@@ -609,7 +583,7 @@ mod tests {
         .await
         .unwrap();
         assert!(handler0.handle_authentication(handler1.authentication().unwrap()));
-        let new_crypto_basics = crypto_basics().await;
+        let new_crypto_basics = crypto_basics(NUM_NODES).await;
         print!(
             "{:?}",
             handler0
@@ -630,7 +604,7 @@ mod tests {
 
     #[tokio::test]
     async fn uses_cached_authentication() {
-        let awaited_crypto_basics = crypto_basics().await;
+        let awaited_crypto_basics = crypto_basics(NUM_NODES).await;
         let mut handler0 = Handler::new(
             Some(awaited_crypto_basics.0[0].clone()),
             awaited_crypto_basics.1.clone(),
@@ -648,7 +622,7 @@ mod tests {
         .await
         .unwrap();
         assert!(handler0.handle_authentication(handler1.authentication().unwrap()));
-        let new_crypto_basics = crypto_basics().await;
+        let new_crypto_basics = crypto_basics(NUM_NODES).await;
         assert!(handler1
             .update(
                 Some(new_crypto_basics.0[1].clone()),
