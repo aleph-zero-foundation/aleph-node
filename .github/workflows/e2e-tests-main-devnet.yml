@@ -3,13 +3,11 @@ name: e2e-tests-main-devnet
 on:
   pull_request:
     paths-ignore:
-      - ".github/**"
       - "*.md"
     branches:
       - main
   push:
     paths-ignore:
-      - ".github/**"
       - "*.md"
     branches:
       - main
@@ -80,6 +78,11 @@ jobs:
           export RUSTC_WRAPPER=$HOME/.local/bin/sccache
           cargo build --release
 
+      - name: Build runtime
+        run: |
+          export RUSTC_WRAPPER=$HOME/.local/bin/sccache
+          cargo build --release -p aleph-runtime
+
       - name: Print sccache stats
         run: sccache --show-stats
 
@@ -91,6 +94,14 @@ jobs:
         with:
           name: aleph-node
           path: target/release/aleph-node
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload runtime
+        uses: actions/upload-artifact@v2
+        with:
+          name: aleph-runtime
+          path: target/release/wbuild/aleph-runtime/aleph_runtime.compact.wasm
           if-no-files-found: error
           retention-days: 7
 
