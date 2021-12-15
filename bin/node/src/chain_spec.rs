@@ -312,10 +312,6 @@ fn genesis(
             authorities: vec![],
             session_period: session_period.0,
             millisecs_per_block: millisecs_per_block.0,
-            validators: authorities
-                .iter()
-                .map(|auth| auth.account_id.clone())
-                .collect(),
         },
         session: SessionConfig {
             keys: authorities

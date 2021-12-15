@@ -127,7 +127,6 @@ pub mod pallet {
         pub authorities: Vec<T::AuthorityId>,
         pub session_period: u32,
         pub millisecs_per_block: u64,
-        pub validators: Vec<T::AccountId>,
     }
 
     #[cfg(feature = "std")]
@@ -137,7 +136,6 @@ pub mod pallet {
                 authorities: Vec::new(),
                 session_period: DEFAULT_SESSION_PERIOD,
                 millisecs_per_block: DEFAULT_MILLISECS_PER_BLOCK,
-                validators: Vec::new(),
             }
         }
     }
