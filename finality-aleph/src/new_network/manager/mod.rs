@@ -17,6 +17,8 @@ use connections::Connections;
 use discovery::{Discovery, DiscoveryMessage};
 use session::{Handler as SessionHandler, HandlerError as SessionHandlerError};
 
+pub use service::SessionCommand;
+
 /// A wrapper for the Substrate multiaddress to allow encoding & decoding.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Multiaddr(pub(crate) ScMultiaddr);
