@@ -31,8 +31,9 @@ const MESSAGE_ID_BOUNDARY: MessageId = 100_000;
 const PERIODIC_MAINTENANCE_INTERVAL: Duration = Duration::from_secs(60);
 const REQUEST_FORK_AFTER: Duration = Duration::from_secs(100);
 
+/// The data ordered by the Aleph consensus.
 #[derive(Copy, PartialEq, Eq, Clone, Debug, Encode, Decode, Hash)]
-pub(crate) struct AlephData<H, N> {
+pub struct AlephData<H, N> {
     pub hash: H,
     pub number: N,
 }

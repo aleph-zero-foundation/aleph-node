@@ -12,13 +12,15 @@ use log::{debug, error, info, trace, warn};
 use std::time::Duration;
 
 use crate::{
-    aggregator::SignableHash,
     crypto::{KeyBox, Signature},
-    data_io::{AlephDataFor, AlephNetworkMessage},
+    data_io::AlephDataFor,
     Error, Hasher, SessionId,
 };
 use sp_api::NumberFor;
 use std::{fmt::Debug, future::Future};
+
+pub use crate::new_network::AlephNetworkData;
+use crate::new_network::RmcNetworkData;
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
 pub struct PeerId(pub(crate) ScPeerId);
@@ -673,18 +675,6 @@ where
         }
     }
 }
-
-pub(crate) type AlephNetworkData<B> =
-    aleph_bft::NetworkData<Hasher, AlephDataFor<B>, Signature, SignatureSet<Signature>>;
-
-impl<B: BlockT> AlephNetworkMessage<B> for AlephNetworkData<B> {
-    fn included_blocks(&self) -> Vec<AlephDataFor<B>> {
-        self.included_data()
-    }
-}
-
-pub(crate) type RmcNetworkData<B> =
-    aleph_bft::rmc::Message<SignableHash<<B as BlockT>::Hash>, Signature, SignatureSet<Signature>>;
 
 #[derive(Clone, Encode, Decode, Debug)]
 pub(crate) enum NetworkData<B: BlockT> {

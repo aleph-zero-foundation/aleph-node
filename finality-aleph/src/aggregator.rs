@@ -18,8 +18,9 @@ use std::{
 };
 use tokio::time::Duration;
 
+/// A wrapper allowing block hashes to be signed.
 #[derive(PartialEq, Eq, Hash, Clone, Debug, Encode, Decode)]
-pub(crate) struct SignableHash<H: Codec> {
+pub struct SignableHash<H: Codec> {
     hash: H,
 }
 

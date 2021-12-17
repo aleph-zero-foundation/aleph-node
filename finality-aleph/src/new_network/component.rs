@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 /// For sending arbitrary messages.
-pub trait Sender<D: Data>: Sync + Clone {
+pub trait Sender<D: Data>: Sync + Send + Clone {
     fn send(&self, data: D, recipient: Recipient) -> Result<(), SendError>;
 }
 
@@ -16,7 +16,7 @@ pub trait Receiver<D: Data>: Sync + Send {
 }
 
 /// A bare version of network components.
-pub trait Network<D: Data>: Sync {
+pub trait Network<D: Data>: Sync + Send {
     type S: Sender<D>;
     type R: Receiver<D>;
     fn sender(&self) -> &Self::S;
