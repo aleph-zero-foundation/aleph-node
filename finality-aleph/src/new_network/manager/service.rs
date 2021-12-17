@@ -5,12 +5,11 @@ use crate::{
             get_peer_id, Connections, Discovery, DiscoveryMessage, Multiaddr, NetworkData,
             SessionHandler, SessionHandlerError,
         },
-        ConnectionCommand, DataCommand, NetworkIdentity, PeerId, Protocol,
+        ConnectionCommand, Data, DataCommand, NetworkIdentity, PeerId, Protocol,
     },
     NodeIndex, SessionId,
 };
 use aleph_bft::Recipient;
-use codec::Codec;
 use futures::{channel::mpsc, StreamExt};
 use log::{debug, warn};
 use std::{
@@ -24,7 +23,7 @@ const MAINTENANCE_PERIOD_SECONDS: u64 = 120;
 
 /// Commands for manipulating sessions, stopping them and starting both validator and non-validator
 /// sessions.
-pub enum SessionCommand<D: Clone + Codec> {
+pub enum SessionCommand<D: Data> {
     StartValidator(
         SessionId,
         AuthorityVerifier,
@@ -36,20 +35,20 @@ pub enum SessionCommand<D: Clone + Codec> {
     Stop(SessionId),
 }
 
-struct Session<D: Clone + Codec> {
+struct Session<D: Data> {
     handler: SessionHandler,
     discovery: Discovery,
     data_for_user: Option<mpsc::UnboundedSender<D>>,
 }
 
 /// The connection manager service.
-pub struct Service<NI: NetworkIdentity, D: Clone + Codec> {
+pub struct Service<NI: NetworkIdentity, D: Data> {
     network_identity: NI,
     connections: Connections,
     sessions: HashMap<SessionId, Session<D>>,
 }
 
-impl<NI: NetworkIdentity, D: Clone + Codec> Service<NI, D> {
+impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
     /// Create a new connection manager service.
     pub fn new(network_identity: NI) -> Self {
         Service {
@@ -350,7 +349,7 @@ impl<NI: NetworkIdentity, D: Clone + Codec> Service<NI, D> {
 }
 
 /// Input/output interface for the connectiona manager service.
-pub struct IO<D: Clone + Codec> {
+pub struct IO<D: Data> {
     commands_for_network: mpsc::UnboundedSender<ConnectionCommand>,
     messages_for_network: mpsc::UnboundedSender<(NetworkData<D>, DataCommand)>,
     commands_from_user: mpsc::UnboundedReceiver<SessionCommand<D>>,
@@ -372,7 +371,7 @@ pub enum Error {
     NetworkChannel,
 }
 
-impl<D: Clone + Codec> IO<D> {
+impl<D: Data> IO<D> {
     fn send_data(&self, to_send: (NetworkData<D>, DataCommand)) -> Result<(), Error> {
         self.messages_for_network
             .unbounded_send(to_send)

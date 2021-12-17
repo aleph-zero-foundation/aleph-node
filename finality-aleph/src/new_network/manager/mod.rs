@@ -1,5 +1,5 @@
-use crate::{crypto::Signature, NodeIndex, SessionId};
-use codec::{Codec, Decode, Encode};
+use crate::{crypto::Signature, new_network::Data, NodeIndex, SessionId};
+use codec::{Decode, Encode};
 use sc_network::Multiaddr as ScMultiaddr;
 use std::convert::TryFrom;
 
@@ -72,7 +72,7 @@ pub type Authentication = (AuthData, Signature);
 
 /// The data that should be sent to the network service.
 #[derive(Clone, Debug, PartialEq, Encode, Decode)]
-pub enum NetworkData<D: Clone + Codec> {
+pub enum NetworkData<D: Data> {
     Meta(DiscoveryMessage),
     Data(D, SessionId),
 }

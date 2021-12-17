@@ -12,9 +12,12 @@ mod component;
 mod manager;
 mod service;
 mod session;
+mod split;
 mod substrate;
 
-use component::{Network as ComponentNetwork, Sender as SenderComponent};
+use component::{
+    Network as ComponentNetwork, Receiver as ReceiverComponent, Sender as SenderComponent,
+};
 use manager::SessionCommand;
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
@@ -132,9 +135,14 @@ pub enum SendError {
     SendFailed,
 }
 
+/// What the data sent using the network has to satisfy.
+pub trait Data: Clone + Codec + Send + Sync {}
+
+impl<D: Clone + Codec + Send + Sync> Data for D {}
+
 /// A generic interface for sending and receiving data.
 #[async_trait::async_trait]
-pub trait DataNetwork<D: Clone + Codec> {
+pub trait DataNetwork<D: Data> {
     fn send(&self, data: D, recipient: Recipient) -> Result<(), SendError>;
     async fn next(&self) -> Option<D>;
 }

@@ -1,23 +1,22 @@
-use crate::new_network::{DataNetwork, SendError};
+use crate::new_network::{Data, DataNetwork, SendError};
 use aleph_bft::Recipient;
-use codec::Codec;
 use futures::channel::mpsc;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
 /// For sending arbitrary messages.
-pub trait Sender<D: Clone + Codec + Send>: Clone {
+pub trait Sender<D: Data>: Sync + Clone {
     fn send(&self, data: D, recipient: Recipient) -> Result<(), SendError>;
 }
 
 /// For receiving arbitrary messages.
 #[async_trait::async_trait]
-pub trait Receiver<D: Clone + Codec + Send>: Sync + Send {
+pub trait Receiver<D: Data>: Sync + Send {
     async fn next(&mut self) -> Option<D>;
 }
 
 /// A bare version of network components.
-pub trait Network<D: Clone + Codec + Send>: Sync {
+pub trait Network<D: Data>: Sync {
     type S: Sender<D>;
     type R: Receiver<D>;
     fn sender(&self) -> &Self::S;
@@ -25,7 +24,7 @@ pub trait Network<D: Clone + Codec + Send>: Sync {
 }
 
 #[async_trait::async_trait]
-impl<D: Clone + Codec + Send, CN: Network<D>> DataNetwork<D> for CN {
+impl<D: Data, CN: Network<D>> DataNetwork<D> for CN {
     fn send(&self, data: D, recipient: Recipient) -> Result<(), SendError> {
         self.sender().send(data, recipient)
     }
@@ -35,7 +34,7 @@ impl<D: Clone + Codec + Send, CN: Network<D>> DataNetwork<D> for CN {
 }
 
 #[async_trait::async_trait]
-impl<D: Clone + Codec + Send> Receiver<D> for mpsc::UnboundedReceiver<D> {
+impl<D: Data> Receiver<D> for mpsc::UnboundedReceiver<D> {
     async fn next(&mut self) -> Option<D> {
         self.next().await
     }

@@ -1,8 +1,7 @@
 use crate::new_network::{
-    ConnectionCommand, DataCommand, Network, PeerId, Protocol, ALEPH_PROTOCOL_NAME,
+    ConnectionCommand, Data, DataCommand, Network, PeerId, Protocol, ALEPH_PROTOCOL_NAME,
     ALEPH_VALIDATOR_PROTOCOL_NAME,
 };
-use codec::Codec;
 use futures::{channel::mpsc, StreamExt};
 use log::{debug, error, trace, warn};
 use sc_network::{multiaddr, Event, NotificationSender};
@@ -12,7 +11,7 @@ use std::{
     iter,
 };
 
-struct Service<N: Network, D: Clone + Codec> {
+struct Service<N: Network, D: Data> {
     network: N,
     messages_from_user: mpsc::UnboundedReceiver<(D, DataCommand)>,
     messages_for_user: mpsc::UnboundedSender<D>,
@@ -21,13 +20,13 @@ struct Service<N: Network, D: Clone + Codec> {
     to_send: VecDeque<(D, PeerId, Protocol)>,
 }
 
-pub struct IO<D: Clone + Codec> {
+pub struct IO<D: Data> {
     messages_from_user: mpsc::UnboundedReceiver<(D, DataCommand)>,
     messages_for_user: mpsc::UnboundedSender<D>,
     commands_from_manager: mpsc::UnboundedReceiver<ConnectionCommand>,
 }
 
-impl<N: Network, D: Clone + Codec> Service<N, D> {
+impl<N: Network, D: Data> Service<N, D> {
     pub fn new(network: N, io: IO<D>) -> Service<N, D> {
         let IO {
             messages_from_user,

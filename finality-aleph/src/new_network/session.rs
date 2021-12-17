@@ -1,22 +1,21 @@
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
-    new_network::{ComponentNetwork, SendError, SenderComponent, SessionCommand},
+    new_network::{ComponentNetwork, Data, SendError, SenderComponent, SessionCommand},
     NodeIndex, SessionId,
 };
 use aleph_bft::Recipient;
-use codec::Codec;
 use futures::channel::mpsc;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
 /// Sends data within a single session.
 #[derive(Clone)]
-pub struct Sender<D: Clone + Codec + Send> {
+pub struct Sender<D: Data> {
     session_id: SessionId,
     messages_for_network: mpsc::UnboundedSender<(D, SessionId, Recipient)>,
 }
 
-impl<D: Clone + Codec + Send> SenderComponent<D> for Sender<D> {
+impl<D: Data> SenderComponent<D> for Sender<D> {
     fn send(&self, data: D, recipient: Recipient) -> Result<(), SendError> {
         self.messages_for_network
             .unbounded_send((data, self.session_id, recipient))
@@ -25,12 +24,12 @@ impl<D: Clone + Codec + Send> SenderComponent<D> for Sender<D> {
 }
 
 /// Sends and receives data within a single session.
-pub struct Network<D: Clone + Codec + Send> {
+pub struct Network<D: Data> {
     sender: Sender<D>,
     receiver: Arc<Mutex<mpsc::UnboundedReceiver<D>>>,
 }
 
-impl<D: Clone + Codec + Send> ComponentNetwork<D> for Network<D> {
+impl<D: Data> ComponentNetwork<D> for Network<D> {
     type S = Sender<D>;
     type R = mpsc::UnboundedReceiver<D>;
     fn sender(&self) -> &Self::S {
@@ -42,7 +41,7 @@ impl<D: Clone + Codec + Send> ComponentNetwork<D> for Network<D> {
 }
 
 /// Manages sessions for which the network should be active.
-pub struct Manager<D: Clone + Codec + Send> {
+pub struct Manager<D: Data> {
     commands_for_service: mpsc::UnboundedSender<SessionCommand<D>>,
     messages_for_service: mpsc::UnboundedSender<(D, SessionId, Recipient)>,
 }
@@ -52,7 +51,7 @@ pub enum ManagerError {
     CommandSendFailed,
 }
 
-impl<D: Clone + Codec + Send> Manager<D> {
+impl<D: Data> Manager<D> {
     /// Create a new manager with the given channels to the service.
     pub fn new(
         commands_for_service: mpsc::UnboundedSender<SessionCommand<D>>,
