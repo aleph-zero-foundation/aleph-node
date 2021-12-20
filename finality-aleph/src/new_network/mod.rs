@@ -149,5 +149,9 @@ impl<D: Clone + Codec + Send + Sync> Data for D {}
 #[async_trait::async_trait]
 pub trait DataNetwork<D: Data>: Send + Sync {
     fn send(&self, data: D, recipient: Recipient) -> Result<(), SendError>;
-    async fn next(&self) -> Option<D>;
+    async fn next(&mut self) -> Option<D>;
 }
+
+// This should be removed after compatibility with the old network is no longer needed.
+mod compatibility;
+pub use compatibility::*;

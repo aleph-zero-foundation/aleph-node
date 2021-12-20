@@ -28,7 +28,7 @@ impl<D: Data, CN: Network<D>> DataNetwork<D> for CN {
     fn send(&self, data: D, recipient: Recipient) -> Result<(), SendError> {
         self.sender().send(data, recipient)
     }
-    async fn next(&self) -> Option<D> {
+    async fn next(&mut self) -> Option<D> {
         self.receiver().clone().lock_owned().await.next().await
     }
 }
