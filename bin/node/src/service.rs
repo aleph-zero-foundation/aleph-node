@@ -158,7 +158,7 @@ pub fn new_full(
     config
         .network
         .extra_sets
-        .push(finality_aleph::peers_set_config());
+        .push(finality_aleph::peers_set_config(None));
 
     let (network, system_rpc_tx, network_starter) =
         sc_service::build_network(sc_service::BuildNetworkParams {

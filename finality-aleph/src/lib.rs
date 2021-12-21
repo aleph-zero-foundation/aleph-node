@@ -37,16 +37,32 @@ enum Error {
     SendData,
 }
 
-pub fn peers_set_config() -> sc_network::config::NonDefaultSetConfig {
+pub fn peers_set_config(protocol: Option<new_network::Protocol>) -> sc_network::config::NonDefaultSetConfig {
+    let name = match protocol {
+        Some(ref p) => p.name(),
+        _ => network::ALEPH_PROTOCOL_NAME.into(),
+    };
+
     let mut config = sc_network::config::NonDefaultSetConfig::new(
-        network::ALEPH_PROTOCOL_NAME.into(),
+        name,
         // max_notification_size should be larger than the maximum possible honest message size (in bytes).
         // Max size of alert is UNIT_SIZE * MAX_UNITS_IN_ALERT ~ 100 * 5000 = 50000 bytes
         // Max size of parents response UNIT_SIZE * N_MEMBERS ~ 100 * N_MEMBERS
         // When adding other (large) message types we need to make sure this limit is fine.
         1024 * 1024,
     );
-    config.set_config = sc_network::config::SetConfig::default();
+
+    config.set_config = match protocol {
+        Some(new_network::Protocol::Validator) => {
+            sc_network::config::SetConfig {
+                in_peers: 25,
+                out_peers: 0,
+                reserved_nodes: Vec::new(),
+                non_reserved_mode: sc_network::config::NonReservedPeerMode::Accept,
+            }
+        },
+        _ => sc_network::config::SetConfig::default()
+    };
     config
 }
 

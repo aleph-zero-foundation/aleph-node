@@ -74,7 +74,7 @@ pub enum Protocol {
 }
 
 impl Protocol {
-    fn name(&self) -> Cow<'static, str> {
+    pub fn name(&self) -> Cow<'static, str> {
         use Protocol::*;
         match self {
             Generic => Cow::Borrowed(ALEPH_PROTOCOL_NAME),
