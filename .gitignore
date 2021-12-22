@@ -22,3 +22,7 @@ db/
 keystore/
 chainspec.json
 p2p_secret
+
+# Python
+__pycache__/
+*.py[cod]

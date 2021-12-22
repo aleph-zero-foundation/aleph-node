@@ -1,0 +1,95 @@
+import json
+import os.path as op
+import re
+import requests
+import jsonrpcclient as rpc
+import subprocess
+
+from .utils import flags_from_dict
+
+class Node:
+    """A class representing a single node of a running blockchain.
+    `binary` should be a path to a file with aleph-node binary.
+    `chainspec` should be a path to a file with chainspec,
+    `path` should point to a folder where the node's base path is."""
+    def __init__(self, binary, chainspec, path, logdir=None):
+        self.chainspec = chainspec
+        self.binary = binary
+        self.path = path
+        self.logdir = logdir or path
+        self.logfile = None
+        self.process = None
+        self.flags = {}
+        self.running = False
+
+
+    def _stdargs(self):
+        return ['--base-path', self.path, '--chain', self.chainspec]
+
+
+    def start(self, name):
+        """Start the node. `name` is used to name of the logfile and for --name flag."""
+        cmd = [self.binary, '--name', name] + self._stdargs() + flags_from_dict(self.flags)
+        self.logfile = op.join(self.logdir, name+'.log')
+        self.process = subprocess.Popen(cmd, stderr=open(self.logfile, 'w'), stdout=subprocess.DEVNULL)
+        self.running = True
+
+
+    def stop(self):
+        """Stop the node by sending SIGKILL."""
+        if self.running:
+            self.process.kill()
+            self.running = False
+
+
+    def purge(self):
+        """Purge chain (delete the database of the node)."""
+        cmd = [self.binary, 'purge-chain', '-y'] + self._stdargs()
+        subprocess.run(cmd, stdout=subprocess.DEVNULL).check_returncode()
+
+
+    def greplog(self, regexp):
+        """Find in the logs all occurrences of the given regexp. Returns a list of matches."""
+        if not self.logfile: return []
+        with open(self.logfile) as f:
+            log = f.read()
+        return re.findall(regexp, log)
+
+
+    def highest_block(self):
+        """Find in the logs the height of the most recent block.
+        Returns two ints: highest block and highest finalized block."""
+        results = self.greplog(r'best: #(\d+) .+ finalized #(\d+)')
+        if results:
+            a,b = results[-1]
+            return int(a), int(b)
+        return -1,-1
+
+
+    def state(self, block=None):
+        """Return a JSON representation of the chain state after the given block.
+        If `block` is `None`, the most recent state (after the highest seen block) is returned.
+        Node must not be running, empty result is returned if called on a running node."""
+        if self.running:
+            print("cannot export state of a running node")
+            return {}
+        cmd = [self.binary, 'export-state', '--pruning', 'archive'] + self._stdargs()
+        if block is not None:
+            cmd.append(str(block))
+        proc = subprocess.run(cmd, capture_output=True)
+        proc.check_returncode()
+        return json.loads(proc.stdout)
+
+
+    def rpc(self, method, params=None):
+        """Make an RPC call to the node with the given method and params.
+        `params` should be a tuple for positional arguments, or a dict for keyword arguments."""
+        if not self.running:
+            print("cannot RPC because node is not running")
+            return None
+        port = self.flags.get('rpc_port', self.flags.get('rpc-port', -1))
+        if port == -1:
+            print("RPC port unknown, please set rpc_port flag")
+            return None
+        resp = requests.post(f'http://localhost:{port}/', json=rpc.request(method, params))
+        return rpc.parse(resp.json())

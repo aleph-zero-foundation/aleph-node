@@ -1,0 +1,10 @@
+[package]
+name = "send_runtime"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+structopt = "0.3.8"
+common = {path = "../../common" }
+sp-core = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master", default-features = false, features = ["full_crypto"] }
+substrate-api-client = { git = "https://github.com/scs/substrate-api-client", rev = "aa4b84f8775f972e5967aca3d96dd163619f65d5"}

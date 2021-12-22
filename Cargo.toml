@@ -11,5 +11,6 @@ members = [
 exclude = [
   "flooder",
   "e2e-tests",
-  "common"
+  "common",
+  "local-tests/send-runtime"
 ]
