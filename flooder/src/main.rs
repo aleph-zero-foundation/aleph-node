@@ -26,6 +26,8 @@ type Header = generic::Header<BlockNumber, BlakeTwo256>;
 type Block = generic::Block<Header, OpaqueExtrinsic>;
 
 fn main() -> Result<(), anyhow::Error> {
+    let time_stats = Instant::now();
+
     env_logger::init();
     let config: Config = Config::parse();
     info!("Starting benchmark with config {:#?}", &config);
@@ -59,105 +61,172 @@ fn main() -> Result<(), anyhow::Error> {
         true => XtStatus::SubmitOnly,
         false => XtStatus::Ready,
     };
+
+    info!(
+        "initializing thread pool: {}ms",
+        time_stats.elapsed().as_millis()
+    );
     let mut thread_pool_builder = rayon::ThreadPoolBuilder::new();
     if let Some(threads) = config.threads {
         let threads = threads.try_into().expect("threads within usize range");
         thread_pool_builder = thread_pool_builder.num_threads(threads);
     }
     let thread_pool = thread_pool_builder.build().expect("thread pool created");
-    let threads = thread_pool.current_num_threads();
 
-    let accounts = (first_account_in_range..first_account_in_range + total_users)
-        .map(derive_user_account)
-        .collect();
-
-    if initialize_accounts_flag {
-        let account = account();
-        info!(
-            "Using account {} to derive and fund accounts",
-            &account.public()
-        );
-        let source_account_id = AccountId::from(account.public());
-        let source_account_nonce = get_nonce(&connection, &source_account_id);
-        let total_amount =
-            estimate_amount(&connection, &account, source_account_nonce, transfer_amount);
-
-        assert!(
-            get_funds(&connection, &source_account_id).ge(&(total_amount * total_users as u128)),
-            "Account is too poor"
-        );
-        initialize_accounts(
-            &connection,
-            &account,
-            source_account_nonce,
-            &accounts,
-            total_amount,
-        );
-        debug!("all accounts have received funds");
-    }
-    let nonces: Vec<_> = match config.download_nonces {
-        false => repeat(0).take(accounts.len()).collect(),
-        true => accounts
-            .par_iter()
-            .map(|account| get_nonce(&connection, &AccountId::from(account.public())))
-            .collect(),
-    };
-
-    let receiver = accounts
-        .first()
-        .expect("we should be using some accounts for this test, but the list is empty")
-        .clone();
-    let txs = sign_transactions(
-        &connection,
-        receiver,
-        (accounts, nonces),
-        config.transactions,
-        transfer_amount,
+    info!(
+        "thread pool initialized: {}ms",
+        time_stats.elapsed().as_millis()
     );
-
-    let histogram = Arc::new(Mutex::new(
-        HdrHistogram::<u64>::new_with_bounds(1, u64::MAX, 3).unwrap(),
-    ));
-
-    let tick = Instant::now();
 
     thread_pool.install(|| {
-        flood(&pool, txs, threads, tx_status, &histogram);
+        info!(
+            "deriving accounts: {}ms",
+            time_stats.elapsed().as_millis()
+        );
+
+        let accounts = (first_account_in_range..first_account_in_range + total_users)
+            .into_par_iter()
+            .map(derive_user_account)
+            .collect();
+
+        info!(
+            "accounts derived: {}ms",
+            time_stats.elapsed().as_millis()
+        );
+
+        if initialize_accounts_flag {
+            let account = account();
+            let source_account_id = AccountId::from(account.public());
+
+            info!(
+                "downloading source-nonce: {}ms",
+                time_stats.elapsed().as_millis()
+            );
+
+            let source_account_nonce = get_nonce(&connection, &source_account_id);
+
+            info!(
+                "source-nonce downloaded: {}ms",
+                time_stats.elapsed().as_millis()
+            );
+
+            info!(
+                "estimating required amount: {}ms",
+                time_stats.elapsed().as_millis()
+            );
+
+            let total_amount =
+                estimate_amount(&connection, &account, source_account_nonce, transfer_amount);
+
+            info!(
+                "amount estimated: {}ms",
+                time_stats.elapsed().as_millis()
+            );
+
+            assert!(
+                get_funds(&connection, &source_account_id)
+                    .ge(&(total_amount * total_users as u128)),
+                "Account is too poor"
+            );
+
+            info!(
+                "initializing accounts: {}ms",
+                time_stats.elapsed().as_millis()
+            );
+
+            initialize_accounts(
+                &connection,
+                &account,
+                source_account_nonce,
+                &accounts,
+                total_amount,
+            );
+
+            info!(
+                "accounts initialized: {}ms",
+                time_stats.elapsed().as_millis()
+            );
+
+            debug!("all accounts have received funds");
+        }
+
+        info!(
+            "initializing nonces: {}ms",
+            time_stats.elapsed().as_millis()
+        );
+
+        let nonces: Vec<_> = match config.download_nonces {
+            false => repeat(0).take(accounts.len()).collect(),
+            true => accounts
+                .par_iter()
+                .map(|account| get_nonce(&connection, &AccountId::from(account.public())))
+                .collect(),
+        };
+
+        info!(
+            "nonces initialized: {}ms",
+            time_stats.elapsed().as_millis()
+        );
+
+        let receiver = accounts
+            .first()
+            .expect("we should be some accounts available for this test, but the list is empty")
+            .clone();
+
+        info!(
+            "signing transactions: {}ms",
+            time_stats.elapsed().as_millis()
+        );
+
+        let txs = sign_transactions(
+            &connection,
+            receiver,
+            accounts.into_par_iter().zip(nonces),
+            transfer_amount,
+        );
+
+        info!(
+            "transactions signed: {}ms",
+            time_stats.elapsed().as_millis()
+        );
+
+        let histogram = Arc::new(Mutex::new(
+            HdrHistogram::<u64>::new_with_bounds(1, u64::MAX, 3).unwrap(),
+        ));
+
+        info!(
+            "flooding: {}ms",
+            time_stats.elapsed().as_millis()
+        );
+        let tick = Instant::now();
+
+        flood(&pool, txs.into_par_iter(), tx_status, &histogram);
+
+        let tock = tick.elapsed().as_millis();
+        let histogram = histogram.lock().unwrap();
+
+        println!("Summary:\n TransferTransactions sent: {}\n Total time:        {} ms\n Slowest tx:        {} ms\n Fastest tx:        {} ms\n Average:           {:.1} ms\n Throughput:        {:.1} tx/s",
+                 histogram.len (),
+                 tock,
+                 histogram.max (),
+                 histogram.min (),
+                 histogram.mean (),
+                 1000.0 * histogram.len () as f64 / tock as f64
+        );
     });
-
-    let tock = tick.elapsed().as_millis();
-    let histogram = histogram.lock().unwrap();
-
-    println!("Summary:\n TransferTransactions sent: {}\n Total time:        {} ms\n Slowest tx:        {} ms\n Fastest tx:        {} ms\n Average:           {:.1} ms\n Throughput:        {:.1} tx/s",
-             histogram.len (),
-             tock,
-             histogram.max (),
-             histogram.min (),
-             histogram.mean (),
-             1000.0 * histogram.len () as f64 / tock as f64
-    );
 
     Ok(())
 }
 
 fn flood(
     pool: &Vec<Api<sr25519::Pair, WsRpcClient>>,
-    txs: Vec<TransferTransaction>,
-    num_threads: usize,
+    txs: impl IndexedParallelIterator<Item = TransferTransaction>,
     status: XtStatus,
     histogram: &Arc<Mutex<HdrHistogram<u64>>>,
 ) {
-    let transactions_per_batch = txs.len() / num_threads;
-    txs.par_chunks(transactions_per_batch).for_each(|batch| {
-        println!("Sending a batch of {} transactions", &batch.len());
-        batch.iter().enumerate().for_each(|(index, tx)| {
-            send_tx(
-                pool.get(index % pool.len()).unwrap(),
-                tx,
-                status,
-                Arc::clone(histogram),
-            )
-        })
+    txs.enumerate().into_par_iter().for_each(|(ix, tx)| {
+        let api = pool.get(ix % pool.len()).unwrap();
+        send_tx(api, &tx, status, Arc::clone(histogram));
     });
 }
 
@@ -178,14 +247,14 @@ fn sign_tx(
     connection: &Api<sr25519::Pair, WsRpcClient>,
     signer: &sr25519::Pair,
     nonce: u32,
-    to: AccountId,
+    to: &AccountId,
     amount: u128,
 ) -> TransferTransaction {
     let call = compose_call!(
         connection.metadata,
         "Balances",
         "transfer",
-        GenericAddress::Id(to),
+        GenericAddress::Id(to.clone()),
         Compact(amount)
     );
 
@@ -205,35 +274,17 @@ fn sign_tx(
 fn sign_transactions(
     connection: &Api<sr25519::Pair, WsRpcClient>,
     account: sr25519::Pair,
-    users_and_nonces: (Vec<sr25519::Pair>, Vec<u32>),
-    total_transactions: u64,
+    users_and_nonces: impl IntoParallelIterator<Item = (sr25519::Pair, u32)>,
     transfer_amount: u128,
 ) -> Vec<TransferTransaction> {
-    let total_transactions = usize::try_from(total_transactions)
-        .expect("total_transactions should be in the range of usize");
-
-    let (users, initial_nonces) = users_and_nonces;
-    let mut nonces = initial_nonces;
-
-    let mut result = Vec::with_capacity(total_transactions);
-    for index in 0..total_transactions {
-        // NOTE : assumes one tx per derived user account
-        // but we could create less accounts and send them round robin fashion
-        // (will need to seed them with more funds as well, tx_per_account times more to be exact)
-        let from = users.get(index).unwrap().to_owned();
-
-        let tx = sign_tx(
-            connection,
-            &from,
-            nonces[index],
-            AccountId::from(account.public()),
-            transfer_amount,
-        );
-
-        nonces[index] += 1;
-        result.push(tx);
-    }
-    result
+    let to = AccountId::from(account.public());
+    // NOTE : assumes one tx per derived user account
+    // but we could create less accounts and send them round robin fashion
+    // (will need to seed them with more funds as well, tx_per_account times more to be exact)
+    users_and_nonces
+        .into_par_iter()
+        .map(move |(from, nonce)| sign_tx(&connection, &from, nonce, &to, transfer_amount))
+        .collect()
 }
 
 fn estimate_amount(
@@ -250,7 +301,7 @@ fn estimate_amount(
         connection,
         account,
         account_nonce,
-        AccountId::from(account.public()),
+        &AccountId::from(account.public()),
         total_amount,
     );
 
@@ -296,7 +347,7 @@ fn initialize_account(
         connection,
         account,
         account_nonce,
-        AccountId::from(derived.public()),
+        &AccountId::from(derived.public()),
         total_amount,
     );
 
