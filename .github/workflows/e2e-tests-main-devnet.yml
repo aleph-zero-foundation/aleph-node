@@ -119,6 +119,51 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+
+  check-determinism:
+    needs: [build-node]
+    name: Verify runtime build determinism
+    runs-on: ubuntu-latest
+    env:
+      RUST_TOOLCHAIN_VERSION: nightly-2021-10-24
+      RUST_BACKTRACE: full
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.9.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Checkout Source code
+        uses: actions/checkout@v2
+
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
+          override: true
+
+      - name: Install WASM target
+        run: rustup target add wasm32-unknown-unknown --toolchain "$RUST_TOOLCHAIN_VERSION"
+
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: aleph-runtime
+
+      - name: Build runtime and compare checksum with artifact
+        env:
+          ARTIFACT: aleph_runtime.compact.wasm
+          TARGET_DIR: target/release/wbuild/aleph-runtime
+        run: |
+          mkdir -p "$TARGET_DIR"
+          mv "$ARTIFACT" "$TARGET_DIR"
+          sha256sum "$TARGET_DIR/$ARTIFACT" > checksum.sha256
+          cargo clean
+          cargo build --release -p aleph-runtime
+          sha256sum -c checksum.sha256
+
+
   build-test-client:
     name: Build e2e test client suite
     runs-on: ubuntu-latest
@@ -155,6 +200,7 @@ jobs:
           path: e2e-tests/aleph-e2e-client.tar
           if-no-files-found: error
           retention-days: 7
+
 
   run-e2e-tests:
     needs: [build-node, build-test-client]
@@ -198,6 +244,7 @@ jobs:
         timeout-minutes: 10
         run: |
           ./.github/scripts/run_e2e_tests.sh
+
 
   push-image:
     needs: [run-e2e-tests]
