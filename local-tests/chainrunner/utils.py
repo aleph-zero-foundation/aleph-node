@@ -35,7 +35,7 @@ def flag(s):
 def flags_from_dict(d):
     """Turn a dictionary of flags into a list of strings required by subprocess methods."""
     res = []
-    for k,v in d.items():
+    for k, v in d.items():
         res.append(flag(k))
         if v is not True:
             res.append(str(v))

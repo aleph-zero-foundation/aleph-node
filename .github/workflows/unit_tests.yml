@@ -66,6 +66,27 @@ jobs:
           command: test
           args: --lib
 
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: Install pylint and pycodestyle
+        run: |
+          python -m pip install --upgrade pip
+          pip install pylint pycodestyle
+
+      - name: Run pylint and pycodestyle
+        run: |
+          echo "Checking package local-tests..."
+
+          pip install -r local-tests/requirements.txt
+
+          export PYLINTRC=local-tests/.pylintrc
+          pylint local-tests/
+
+          pycodestyle --config=local-tests/.pycodestyle local-tests/
+
       - name: Send Slack Notification
         uses: rtCamp/action-slack-notify@v2
         continue-on-error: true

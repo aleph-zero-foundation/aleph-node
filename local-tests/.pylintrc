@@ -1,0 +1,19 @@
+[MASTER]
+
+init-hook="from pylint.config import find_pylintrc;
+           import os, sys;
+           print(os.path.dirname(os.path.abspath(find_pylintrc())));
+           sys.path.append(os.path.dirname(os.path.abspath(find_pylintrc())))"
+
+[MESSAGES CONTROL]
+
+disable=missing-docstring,
+        too-many-instance-attributes,
+        duplicate-code
+
+# Allow for any 1/2-symbol variable names
+good-names-rgxs=^[_a-z][_a-z0-9]?$
+
+[BASIC]
+
+module-naming-style=any

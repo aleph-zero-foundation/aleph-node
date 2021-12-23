@@ -6,32 +6,42 @@
 # using an interactive environment (Python console, Jupyter notebook etc.)
 
 from time import sleep
+
 from chainrunner import Chain, Seq, generate_keys
 
-nodes = 4
-workdir = '.'
-binary = '../target/release/aleph-node'
+NODES = 4
+WORKDIR = '.'
+BINARY = '../target/release/aleph-node'
 
-phrases = ['//Alice','//Bob','//Cedric','//Dick', '//Ezekiel', '//Fanny', '//George', '//Hugo']
-keys_dict = generate_keys(binary, phrases)
+phrases = ['//Alice', '//Bob', '//Cedric', '//Dick', '//Ezekiel', '//Fanny', '//George', '//Hugo']
+keys_dict = generate_keys(BINARY, phrases)
 keys = list(keys_dict.values())
-nodes = min(nodes, len(phrases))
+NODES = min(NODES, len(phrases))
 
-chain = Chain(workdir)
+chain = Chain(WORKDIR)
 
-print(f'Bootstrapping chain for {nodes} nodes')
-chain.bootstrap(binary, keys[:nodes], chain_type='local', millisecs_per_block=2000, session_period=40)
-chain.set_flags('validator', port=Seq(30334), ws_port=Seq(9944), rpc_port=Seq(9933), unit_creation_delay=200, execution='Native')
+print(f'Bootstrapping chain for {NODES} nodes')
+chain.bootstrap(BINARY,
+                keys[:NODES],
+                chain_type='local',
+                millisecs_per_block=2000,
+                session_period=40)
+chain.set_flags('validator',
+                port=Seq(30334),
+                ws_port=Seq(9944),
+                rpc_port=Seq(9933),
+                unit_creation_delay=200,
+                execution='Native')
 
-print(f'Starting the chain')
+print('Starting the chain')
 chain.start('node')
 
-print(f'Waiting a minute')
+print('Waiting a minute')
 sleep(60)
 
 print('Blocks seen by nodes:')
 for node in chain:
-    h,f = node.highest_block()
+    h, f = node.highest_block()
     print(f'highest:{h} finalized:{f}')
 
 print('Exiting script, leaving nodes running in the background')
