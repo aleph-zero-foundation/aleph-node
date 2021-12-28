@@ -28,6 +28,14 @@ pub struct Config {
     #[clap(long, default_value = "0")]
     pub first_account_in_range: u64,
 
+    /// generate thx or read them from file
+    #[clap(long)]
+    pub generate_txs: bool,
+
+    /// path to encoded txs
+    #[clap(long)]
+    pub tx_store_path: Option<String>,
+
     /// number of threads spawn during the flooding process
     #[clap(long)]
     pub threads: Option<u64>,
@@ -39,6 +47,10 @@ pub struct Config {
     /// changes the awaited status of every transaction from Ready to SubmitOnly
     #[clap(long)]
     pub submit_only: bool,
+
+    /// store txs after generation
+    #[clap(long)]
+    pub store_txs: bool,
 
     /// How many transactions to put in the interval
     #[clap(long)]
