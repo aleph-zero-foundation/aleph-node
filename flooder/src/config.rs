@@ -39,6 +39,14 @@ pub struct Config {
     /// changes the awaited status of every transaction from Ready to SubmitOnly
     #[clap(long)]
     pub submit_only: bool,
+
+    /// How many transactions to put in the interval
+    #[clap(long)]
+    pub transactions_in_interval: Option<u64>,
+
+    /// How long the interval is (in secs)
+    #[clap(long)]
+    pub interval_secs: Option<u64>,
 }
 
 pub fn read_phrase(phrase: String) -> String {
