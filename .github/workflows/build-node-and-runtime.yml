@@ -1,0 +1,112 @@
+name: Build aleph-node and aleph-runtime
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: 'The `ref` argument for `actions/checkout@v2`'
+        required: false
+        type: string
+      rust-toolchain-version:
+        description: 'Rust toolchain version'
+        required: true
+        type: string
+      artifact-prefix:
+        description: 'A string that will be prepended to the artifact names'
+        required: false
+        type: string
+
+
+jobs:
+  build:
+    name: Build binary artifacts
+    runs-on: ubuntu-latest
+    env:
+      RUST_BACKTRACE: full
+      SCCACHE_VERSION: 0.2.13
+      SCCACHE_CACHE_SIZE: 2G
+      SCCACHE_PATH: /home/runner/.cache/sccache
+      # SCCACHE_RECACHE: 1 # to clear cache uncomment this, let the workflow run once, then comment it out again
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@0.9.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Checkout source code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Install sccache for ubuntu-latest
+        env:
+          LINK: https://github.com/mozilla/sccache/releases/download
+        run: |
+          SCCACHE_FILE=sccache-$SCCACHE_VERSION-x86_64-unknown-linux-musl
+          mkdir -p $HOME/.local/bin
+          curl -L "$LINK/$SCCACHE_VERSION/$SCCACHE_FILE.tar.gz" | tar xz
+          mv -f $SCCACHE_FILE/sccache $HOME/.local/bin/sccache
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Restore cargo cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ inputs.rust-toolchain-version }}
+          override: true
+
+      - name: Install WASM target
+        run: rustup target add wasm32-unknown-unknown --toolchain "${{ inputs.rust-toolchain-version }}"
+
+      - name: Restore sccache
+        uses: actions/cache@v2
+        continue-on-error: false
+        with:
+          path: ${{ env.SCCACHE_PATH }}
+          key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Start sccache server
+        run: sccache --start-server
+
+      - name: Build binary
+        run: |
+          export RUSTC_WRAPPER=$HOME/.local/bin/sccache
+          cargo build --release
+
+      - name: Build runtime
+        run: |
+          export RUSTC_WRAPPER=$HOME/.local/bin/sccache
+          cargo build --release -p aleph-runtime
+
+      - name: Print sccache stats
+        run: sccache --show-stats
+
+      - name: Stop sccache server
+        run: sccache --stop-server || true
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ inputs.artifact-prefix }}aleph-node
+          path: target/release/aleph-node
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload runtime
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ inputs.artifact-prefix }}aleph-runtime
+          path: target/release/wbuild/aleph-runtime/aleph_runtime.compact.wasm
+          if-no-files-found: error
+          retention-days: 7
