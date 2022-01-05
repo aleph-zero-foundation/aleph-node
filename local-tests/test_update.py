@@ -1,5 +1,5 @@
 #!/bin/env python
-
+import os
 import subprocess
 from os.path import join
 from time import sleep
@@ -7,13 +7,13 @@ from time import sleep
 from chainrunner import Chain, Seq, generate_keys
 
 # Path to working directory, where chainspec, logs and nodes' dbs are written:
-WORKDIR = '/tmp/workdir'
+workdir = os.getenv('WORKDIR', '/tmp/workdir')
 # Path to the pre-update aleph-node binary:
-oldbin = join(WORKDIR, 'aleph-node-old')
+oldbin = os.getenv('OLD_BINARY', join(workdir, 'aleph-node-old'))
 # Path to the post-update aleph-node binary:
-newbin = join(WORKDIR, 'aleph-node-new')
+newbin = os.getenv('NEW_BINARY', join(workdir, 'aleph-node-new'))
 # Path to the post-update compiled runtime:
-runtime = join(WORKDIR, 'aleph_runtime.compact.wasm')
+runtime = os.getenv('NEW_RUNTIME', join(workdir, 'aleph_runtime.compact.wasm'))
 # Path to the send-runtime binary (which lives in aleph-node/local-tests/send-runtime):
 SEND_RUNTIME = 'send-runtime/target/release/send_runtime'
 
@@ -37,7 +37,7 @@ def check_highest(nodes):
 phrases = ['//Cartman', '//Stan', '//Kyle', '//Kenny']
 keys = generate_keys(newbin, phrases)
 
-chain = Chain(WORKDIR)
+chain = Chain(workdir)
 print('Bootstraping the chain with old binary')
 chain.bootstrap(oldbin,
                 keys.values(),
