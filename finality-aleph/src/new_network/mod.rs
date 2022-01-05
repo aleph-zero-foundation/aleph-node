@@ -1,9 +1,10 @@
 // Everything here is dead code, but I don't want to create one enormous PR.
 #![allow(dead_code)]
 use aleph_bft::Recipient;
+use async_trait::async_trait;
 use codec::{Codec, Decode, Encode};
 use futures::stream::Stream;
-use sc_network::{Event, Multiaddr, NotificationSender, PeerId as ScPeerId};
+use sc_network::{Event, Multiaddr, PeerId as ScPeerId};
 use sp_api::NumberFor;
 use sp_runtime::traits::Block;
 use std::{borrow::Cow, collections::HashSet, pin::Pin};
@@ -11,6 +12,8 @@ use std::{borrow::Cow, collections::HashSet, pin::Pin};
 mod aleph;
 mod component;
 mod manager;
+#[cfg(test)]
+mod mock;
 mod rmc;
 mod service;
 mod session;
@@ -86,17 +89,19 @@ impl Protocol {
 type NetworkEventStream = Pin<Box<dyn Stream<Item = Event> + Send>>;
 
 /// Abstraction over a network.
+#[async_trait]
 pub trait Network: Clone + Send + Sync + 'static {
+    type SendError: std::error::Error;
     /// Returns a stream of events representing what happens on the network.
     fn event_stream(&self) -> NetworkEventStream;
 
-    /// A sender for sending messages to the given peer, see the substrate network docs for how to
-    /// use it. Returns None if not connected to the peer.
-    fn message_sender(
-        &self,
+    /// A method for sending data to the given peer using a given protocol. Returns Error if not connected to the peer.
+    async fn send<'a>(
+        &'a self,
+        data: impl Into<Vec<u8>> + Send + Sync + 'static,
         peer_id: PeerId,
         protocol: Cow<'static, str>,
-    ) -> Option<NotificationSender>;
+    ) -> Result<(), Self::SendError>;
 
     /// Add peers to one of the reserved sets.
     fn add_reserved(&self, addresses: HashSet<Multiaddr>, protocol: Cow<'static, str>);

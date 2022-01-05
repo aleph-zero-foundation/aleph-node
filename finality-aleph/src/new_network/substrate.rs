@@ -1,11 +1,11 @@
 use crate::new_network::{Network, NetworkEventStream, NetworkIdentity, PeerId, RequestBlocks};
-use log::{debug, error};
-use sc_network::{
-    multiaddr, ExHashT, Multiaddr, NetworkService, NetworkStateInfo, NotificationSender,
-};
+use async_trait::async_trait;
+use log::error;
+use sc_network::{multiaddr, ExHashT, Multiaddr, NetworkService, NetworkStateInfo};
 use sp_api::NumberFor;
 use sp_runtime::traits::Block;
-use std::{borrow::Cow, collections::HashSet, sync::Arc};
+use std::{borrow::Cow, collections::HashSet, fmt, sync::Arc, time::Duration};
+use tokio::time::timeout;
 
 impl<B: Block, H: ExHashT> RequestBlocks<B> for Arc<NetworkService<B, H>> {
     fn request_justification(&self, hash: &B::Hash, number: NumberFor<B>) {
@@ -21,19 +21,74 @@ impl<B: Block, H: ExHashT> RequestBlocks<B> for Arc<NetworkService<B, H>> {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
+pub enum SendError {
+    NotConnectedToPeer(PeerId),
+    LostConnectionToPeer(PeerId),
+    LostConnectionToPeerReady(PeerId),
+    SendTimeout(PeerId, u64),
+}
+
+const SEND_TO_PEER_TIMEOUT_MS: u64 = 200;
+
+impl fmt::Display for SendError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SendError::NotConnectedToPeer(peer_id) => {
+                write!(f, "Not connected to peer {:?}", peer_id)
+            }
+            SendError::LostConnectionToPeer(peer_id) => {
+                write!(
+                    f,
+                    "Lost connection to peer {:?} while preparing sender",
+                    peer_id
+                )
+            }
+            SendError::LostConnectionToPeerReady(peer_id) => {
+                write!(
+                    f,
+                    "Lost connection to peer {:?} after sender was ready",
+                    peer_id
+                )
+            }
+            SendError::SendTimeout(peer_id, timeout) => {
+                write!(
+                    f,
+                    "Timeout while sending to peer {:?} took over {:?} ms",
+                    peer_id, timeout
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for SendError {}
+
+#[async_trait]
 impl<B: Block, H: ExHashT> Network for Arc<NetworkService<B, H>> {
+    type SendError = SendError;
+
     fn event_stream(&self) -> NetworkEventStream {
         Box::pin(self.as_ref().event_stream("aleph-network"))
     }
 
-    fn message_sender(
-        &self,
+    async fn send<'a>(
+        &'a self,
+        data: impl Into<Vec<u8>> + Send + Sync + 'static,
         peer_id: PeerId,
         protocol: Cow<'static, str>,
-    ) -> Option<NotificationSender> {
-        self.notification_sender(peer_id.into(), protocol)
-            .map_err(|_| debug!(target: "aleph-network", "Attempted send to peer we are not connected to."))
-            .ok()
+    ) -> Result<(), SendError> {
+        timeout(
+            Duration::from_millis(SEND_TO_PEER_TIMEOUT_MS),
+            self.notification_sender(peer_id.into(), protocol)
+                .map_err(|_| SendError::NotConnectedToPeer(peer_id))?
+                .ready(),
+        )
+        .await
+        .map_err(|_| SendError::SendTimeout(peer_id, SEND_TO_PEER_TIMEOUT_MS))?
+        .map_err(|_| SendError::LostConnectionToPeer(peer_id))?
+        .send(data)
+        .map_err(|_| SendError::LostConnectionToPeerReady(peer_id))
     }
 
     fn add_reserved(&self, addresses: HashSet<Multiaddr>, protocol: Cow<'static, str>) {
