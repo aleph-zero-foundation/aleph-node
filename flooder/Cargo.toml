@@ -1,17 +1,18 @@
 [package]
 name = "flooder"
 version = "0.1.0"
+authors = ["Cardinal Cryptography"]
 edition = "2021"
 
 # client
 [dependencies.substrate-api-client]
-git = "https://github.com/scs/substrate-api-client"
-rev = "aa4b84f8775f972e5967aca3d96dd163619f65d5"
+git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git"
+tag = "fixed_dependencies"
 
 [dependencies]
 # Substrate dependencies
-sp-core = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master", features = ["full_crypto"] }
-sp-runtime = { version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9", features = ["full_crypto"] }
+sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9" }
 
 # other dependencies
 zip = "0.5"
