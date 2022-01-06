@@ -371,8 +371,11 @@ name = "common"
 version = "0.1.0"
 dependencies = [
  "log",
+ "mio",
+ "serde_json",
  "sp-core",
  "substrate-api-client",
+ "ws",
 ]
 
 [[package]]

@@ -14,3 +14,6 @@ sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polka
 
 # other dependencies
 log = "0.4"
+serde_json = { version = "1.0" }
+ws = { version = "0.9.1", features = ["ssl"] }
+mio = { version = "0.6.14" }

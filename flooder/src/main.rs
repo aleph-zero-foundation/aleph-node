@@ -2,7 +2,7 @@ mod config;
 
 use clap::Parser;
 use codec::{Compact, Decode, Encode};
-use common::create_connection;
+use common::{create_custom_connection, WsRpcClient};
 use config::Config;
 use hdrhistogram::Histogram as HdrHistogram;
 use log::{debug, info};
@@ -10,6 +10,7 @@ use rayon::current_thread_index;
 use rayon::prelude::*;
 use sp_core::{sr25519, Pair};
 use sp_runtime::{generic, traits::BlakeTwo256, MultiAddress, OpaqueExtrinsic};
+use std::convert::TryInto;
 use std::{
     io::{Read, Write},
     iter::{once, repeat},
@@ -18,8 +19,8 @@ use std::{
     time::{Duration, Instant},
 };
 use substrate_api_client::{
-    compose_call, compose_extrinsic_offline, rpc::WsRpcClient, AccountId, Api, GenericAddress,
-    UncheckedExtrinsicV4, XtStatus,
+    compose_call, compose_extrinsic_offline, AccountId, Api, GenericAddress, UncheckedExtrinsicV4,
+    XtStatus,
 };
 
 type TransferTransaction =
@@ -50,7 +51,7 @@ fn main() -> Result<(), anyhow::Error> {
         panic!("Needs --phrase or --seed");
     }
     let pool = create_connection_pool(&config.nodes);
-    let connection = pool.get(0).unwrap().clone();
+    let connection = pool.get(0).unwrap();
     let tx_status = match config.submit_only {
         true => XtStatus::SubmitOnly,
         false => XtStatus::Ready,
@@ -60,7 +61,7 @@ fn main() -> Result<(), anyhow::Error> {
         "Preparing transactions: {}ms",
         time_stats.elapsed().as_millis()
     );
-    let txs = prepering_txs(&config, connection);
+    let txs = preparing_txs(&config, connection);
     info!(
         "Transactions prepared: {}ms",
         time_stats.elapsed().as_millis()
@@ -160,9 +161,9 @@ fn estimate_tx_fee(connection: &Api<sr25519::Pair, WsRpcClient>, tx: &TransferTr
     fee.tip + inclusion_fee.base_fee + inclusion_fee.len_fee + inclusion_fee.adjusted_weight_fee
 }
 
-fn prepering_txs(
+fn preparing_txs(
     config: &Config,
-    connection: Api<sr25519::Pair, WsRpcClient>,
+    connection: &Api<sr25519::Pair, WsRpcClient>,
 ) -> Vec<TransferTransaction> {
     let mut thread_pool_builder = rayon::ThreadPoolBuilder::new();
     if let Some(threads) = config.threads {
@@ -258,7 +259,7 @@ fn prepering_txs(
                     )
                     .clone();
                 let txs: Vec<_> = sign_transactions(
-                    connection.clone(),
+                    &connection,
                     receiver,
                     accounts.into_par_iter().zip(nonces),
                     transfer_amount,
@@ -303,19 +304,19 @@ fn sign_tx(
 }
 
 /// prepares payload for flooding
-fn sign_transactions(
-    connection: Api<sr25519::Pair, WsRpcClient>,
+fn sign_transactions<'a>(
+    connection: &'a Api<sr25519::Pair, WsRpcClient>,
     account: sr25519::Pair,
-    users_and_nonces: impl IntoParallelIterator<Item = (sr25519::Pair, u32)>,
+    users_and_nonces: impl IntoParallelIterator<Item = (sr25519::Pair, u32)> + 'a,
     transfer_amount: u128,
-) -> impl ParallelIterator<Item = TransferTransaction> {
+) -> impl ParallelIterator<Item = TransferTransaction> + 'a {
     let to = AccountId::from(account.public());
     // NOTE : assumes one tx per derived user account
     // but we could create less accounts and send them round robin fashion
     // (will need to seed them with more funds as well, tx_per_account times more to be exact)
     users_and_nonces
         .into_par_iter()
-        .map(move |(from, nonce)| sign_tx(&connection, &from, nonce, &to, transfer_amount))
+        .map(move |(from, nonce)| sign_tx(connection, &from, nonce, &to, transfer_amount))
 }
 
 fn estimate_amount(
@@ -397,6 +398,7 @@ fn initialize_account(
 }
 
 fn derive_user_account(seed: u64) -> sr25519::Pair {
+    debug!("deriving an account from seed={}", seed);
     let seed = seed.to_string();
     sr25519::Pair::from_string(&("//".to_string() + &seed), None).unwrap()
 }
@@ -422,7 +424,10 @@ fn send_tx<Call>(
 }
 
 fn create_connection_pool(nodes: &[String]) -> Vec<Api<sr25519::Pair, WsRpcClient>> {
-    nodes.iter().cloned().map(create_connection).collect()
+    nodes
+        .iter()
+        .map(|url| create_custom_connection(&url))
+        .collect()
 }
 
 fn get_nonce(connection: &Api<sr25519::Pair, WsRpcClient>, account: &AccountId) -> u32 {
@@ -477,13 +482,13 @@ mod tests {
             interval_secs: None,
             transactions_in_interval: None,
         };
-        let conn = create_connection(url);
+        let conn = create_custom_connection(&url);
 
-        let txs_gen = prepering_txs(&config, conn.clone());
+        let txs_gen = preparing_txs(&config, &conn);
 
         config.generate_txs = false;
 
-        let txs_read = prepering_txs(&config, conn);
+        let txs_read = preparing_txs(&config, &conn);
 
         assert!(txs_gen == txs_read)
     }
