@@ -1,6 +1,7 @@
 #!/bin/env python
 import os
 import subprocess
+import sys
 from os.path import join
 from time import sleep
 
@@ -20,10 +21,15 @@ SEND_RUNTIME = 'send-runtime/target/release/send_runtime'
 
 def query_runtime_version(nodes):
     print('Current version:')
+    versions = set()
     for i, node in enumerate(nodes):
-        sys = node.rpc('system_version').result
+        sysver = node.rpc('system_version').result
         rt = node.rpc('state_getRuntimeVersion').result['specVersion']
-        print(f'  Node {i}: system: {sys}  runtime: {rt}')
+        print(f'  Node {i}: system: {sysver}  runtime: {rt}')
+        versions.add(rt)
+    if len(versions) != 1:
+        print(f'ERROR: nodes reported different runtime versions: {versions}')
+    return max(versions)
 
 
 def check_highest(nodes):
@@ -74,7 +80,7 @@ print('Waiting a minute')
 sleep(60)
 
 check_highest(chain)
-query_runtime_version(chain)
+oldver = query_runtime_version(chain)
 
 print('Submitting extrinsic with new runtime')
 subprocess.check_call(
@@ -84,7 +90,7 @@ print('Waiting a bit')
 sleep(15)
 
 check_highest(chain)
-query_runtime_version(chain)
+newver = query_runtime_version(chain)
 
 print('Restarting remaining nodes with new binary')
 chain.stop(nodes=[0, 1, 2])
@@ -107,3 +113,8 @@ if chain[0].state(hf) == chain[1].state(hf) == chain[2].state(hf) == chain[3].st
     print("The same :)")
 else:
     print("DIFFERENT!")
+    sys.exit(1)
+
+if oldver == newver:
+    print("ERROR: runtime version reported by nodes didn't change after the update")
+    sys.exit(1)

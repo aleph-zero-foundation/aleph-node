@@ -8,6 +8,6 @@ The contents are:
 
 3. `run_nodes.py` - an example script showing how to use the `chainrunner` package. It mimics the behavior of `run_nodes.sh`
 
-4. `test_update.py` - a script simulating an update of `aleph-node` binary together with updating chain's runtime. It requires two different `aleph-node` binaries (pre-update and post-update) and a compiled wasm runtime of the post-update binary. Please edit the top part and enter the correct paths before running.
+4. `test_update.py` - a script simulating an update of `aleph-node` binary together with updating chain's runtime. It requires two different `aleph-node` binaries (pre-update and post-update) and a compiled wasm runtime of the post-update binary. Please check the top part to see how to set up env variables with correct paths before running.
 
 5. `test_update.ipynb` - a Jupyter notebook with the same contents as `test_update.py`

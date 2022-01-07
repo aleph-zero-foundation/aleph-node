@@ -1,11 +1,10 @@
 #/bin/bash
 
-rm -rf aleph-node runtime
 set -e
 
 NETRC_CREDS="./_netrc"
 RUNTIME_TOOL="./send_runtime"
-SUDO_PHRASE=${RUNTIME_PHRASE} #TODO take from some safe place
+SUDO_PHRASE=${RUNTIME_PHRASE}
 
 RPC_ADDR="rpc.dev.azero.dev"
 WS_ADDR="ws.dev.azero.dev"

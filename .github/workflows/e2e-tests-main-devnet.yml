@@ -253,8 +253,41 @@ jobs:
           MSG_MINIMAL: actions url
 
 
+  check-runtime-change:
+    name: Inspect whether runtime version has been changed
+    runs-on: ubuntu-latest
+    outputs:
+      runtime-updated: ${{ steps.inspect.outputs.diff }}
+    steps:
+      - name: Cancel previous runs
+        uses: styfle/cancel-workflow-action@0.9.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Checkout old source code
+        uses: actions/checkout@v2
+        with:
+          ref: main
+          path: old-repo
+
+      - name: Checkout current source code
+        uses: actions/checkout@v2
+        with:
+          path: new-repo
+
+      - name: Inspect versions
+        id: inspect
+        run: |
+          grep "spec_version:" old-repo/bin/runtime/src/lib.rs | grep -o '[0-9]*' > old.version
+          grep "spec_version:" new-repo/bin/runtime/src/lib.rs | grep -o '[0-9]*' > new.version
+          diff old.version new.version
+          echo "::set-output name=diff::$?"
+
+
   build-old-node:
     name: Build node and runtime artifacts (main version)
+    needs: [check-runtime-change]
+    if: ${{ needs.check-runtime-change.outputs.runtime-updated != 0 }}
     uses: Cardinal-Cryptography/aleph-node/.github/workflows/build-node-and-runtime.yml@main
     with:
       rust-toolchain-version: 'nightly-2021-10-24'
