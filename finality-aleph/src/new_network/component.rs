@@ -2,7 +2,7 @@ use crate::new_network::{Data, DataNetwork, SendError};
 use aleph_bft::Recipient;
 use futures::channel::mpsc;
 use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::{stream::StreamExt, sync::Mutex};
 
 /// For sending arbitrary messages.
 pub trait Sender<D: Data>: Sync + Send + Clone {
@@ -36,6 +36,22 @@ impl<D: Data, CN: Network<D>> DataNetwork<D> for CN {
 #[async_trait::async_trait]
 impl<D: Data> Receiver<D> for mpsc::UnboundedReceiver<D> {
     async fn next(&mut self) -> Option<D> {
-        self.next().await
+        StreamExt::next(self).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Receiver;
+    use futures::channel::mpsc;
+
+    #[tokio::test]
+    async fn test_receiver_implementation() {
+        let (sender, mut receiver) = mpsc::unbounded();
+
+        let val = 1234;
+        sender.unbounded_send(val).unwrap();
+        let received = Receiver::<u64>::next(&mut receiver).await;
+        assert_eq!(Some(val), received);
     }
 }

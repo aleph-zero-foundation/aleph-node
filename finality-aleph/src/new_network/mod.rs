@@ -141,6 +141,7 @@ pub enum ConnectionCommand {
 }
 
 /// Returned when something went wrong when sending data using a DataNetwork.
+#[derive(Debug)]
 pub enum SendError {
     SendFailed,
 }
