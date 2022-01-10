@@ -49,7 +49,9 @@ impl<H, N> AlephData<H, N> {
 
 pub(crate) type AlephDataFor<B> = AlephData<<B as BlockT>::Hash, NumberFor<B>>;
 
-pub(crate) trait AlephNetworkMessage<B: BlockT> {
+/// A trait allowing to check the data contained in an AlephBFT network message, for the purpose of
+/// data availability checks.
+pub trait AlephNetworkMessage<B: BlockT> {
     fn included_blocks(&self) -> Vec<AlephDataFor<B>>;
 }
 
@@ -91,7 +93,7 @@ impl Default for DataStoreConfig {
 /// This component is used for filtering available data for Aleph Network.
 /// It receives new messages for network by `messages_rx` and sends available messages
 /// (messages with all blocks already imported by client) by `ready_messages_tx`
-pub(crate) struct DataStore<B, C, BE, RB, Message>
+pub struct DataStore<B, C, BE, RB, Message>
 where
     B: BlockT,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
@@ -310,8 +312,9 @@ where
     }
 }
 
+/// Provides data to AlephBFT for ordering.
 #[derive(Clone)]
-pub(crate) struct DataProvider<B: BlockT> {
+pub struct DataProvider<B: BlockT> {
     pub(crate) proposed_block: Arc<Mutex<AlephDataFor<B>>>,
     pub(crate) metrics: Option<Metrics<<B::Header as HeaderT>::Hash>>,
 }
@@ -405,7 +408,8 @@ impl<B: BlockT> aleph_bft::DataProvider<AlephDataFor<B>> for DataProvider<B> {
     }
 }
 
-pub(crate) struct FinalizationHandler<B: BlockT> {
+/// Accepts and forwards units ordered by AlephBFT.
+pub struct FinalizationHandler<B: BlockT> {
     pub(crate) ordered_units_tx: mpsc::UnboundedSender<AlephDataFor<B>>,
 }
 

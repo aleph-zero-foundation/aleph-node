@@ -16,7 +16,6 @@ use futures::{
 };
 use parking_lot::Mutex;
 use sc_network::{Event, ObservedRole, PeerId as ScPeerId, ReputationChange};
-use sp_api::NumberFor;
 use sp_core::Encode;
 use sp_keystore::{testing::KeyStore, CryptoStore};
 use sp_runtime::traits::Block as BlockT;
@@ -43,7 +42,6 @@ struct TestNetwork<B: BlockT> {
     announce: Channel<(B::Hash, Option<Vec<u8>>)>,
     add_set_reserved: Channel<(PeerId, Cow<'static, str>)>,
     remove_set_reserved: Channel<(PeerId, Cow<'static, str>)>,
-    request_justification: Channel<(B::Hash, NumberFor<B>)>,
     peer_id: PeerId,
 }
 
@@ -58,7 +56,6 @@ impl<B: BlockT> TestNetwork<B> {
             announce: channel(),
             add_set_reserved: channel(),
             remove_set_reserved: channel(),
-            request_justification: channel(),
             peer_id,
         }
     }
