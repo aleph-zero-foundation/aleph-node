@@ -1,0 +1,71 @@
+name: 'Restore cache'
+description: 'Restore Cargo cache and sccache for ubuntu:latest.'
+
+inputs:
+  sccache-version:
+    description: 'sccache version; by default: `0.2.13`'
+    required: false
+    default: '0.2.13'
+  sccache-cache-size:
+    description: 'sccache cache size; by default: `2G`'
+    required: false
+    default: '2G'
+  sccache-path:
+    description: 'sccache path; by default: `/home/runner/.cache/sccache`'
+    required: false
+    default: '/home/runner/.cache/sccache'
+  cargo-targets:
+    description: |
+      A list of directories to be cached and restored.
+      Already included `~/.cargo/bin/`, `~/.cargo/registry/index/`, `~/.cargo/registry/cache/`,
+      `~/.cargo/git/db/` and `target/`.
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set env
+      shell: bash
+      run: |
+        echo "SCCACHE_VERSION=${{ inputs.sccache-version }}" >> $GITHUB_ENV
+        echo "SCCACHE_CACHE_SIZE=${{ inputs.sccache-cache-size }}" >> $GITHUB_ENV
+        echo "SCCACHE_PATH=${{ inputs.sccache-path }}" >> $GITHUB_ENV
+
+    - name: Restore cargo cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+          ${{ inputs.cargo-targets }}
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Install sccache for ubuntu-latest
+      shell: bash
+      run: |
+        LINK=https://github.com/mozilla/sccache/releases/download
+        SCCACHE_FILE=sccache-${{ inputs.sccache-version }}-x86_64-unknown-linux-musl
+
+        mkdir -p $HOME/.local/bin
+        curl -L "$LINK/${{ inputs.sccache-version }}/$SCCACHE_FILE.tar.gz" | tar xz
+        mv -f $SCCACHE_FILE/sccache $HOME/.local/bin/sccache
+
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Restore sccache
+      uses: actions/cache@v2
+      with:
+        path: ${{ inputs.sccache-path }}
+        key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Start sccache server
+      shell: bash
+      run: sccache --start-server
+
+    - name: Set rustc wrapper
+      shell: bash
+      run: echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV

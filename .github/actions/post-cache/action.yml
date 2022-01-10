@@ -1,0 +1,13 @@
+name: 'Tidy cache'
+description: 'Gracefully tidy cache services. To be used with `restore-cache` action.'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Print sccache stats
+      run: sccache --show-stats
+      shell: bash
+
+    - name: Stop sccache server
+      run: sccache --stop-server || true
+      shell: bash

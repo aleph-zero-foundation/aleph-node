@@ -35,9 +35,26 @@ jobs:
           file: 'Cargo.toml'
           field: 'workspace.exclude'
 
+      - name: Format output
+        id: format_output
+        run: |
+          packages="$(echo ${{ steps.read_excluded.outputs.value }} | sed 's/[][,]/ /g' | sed 's/\s\+/\n/g' | sed '/^$/d')"
+          targets="$(echo "$packages" | sed -r 's/[A-Za-z0-9_/-]+/&\/target\//g')"
+
+          packages="${packages//$'\n'/'%0A'}"
+          targets="${targets//$'\n'/'%0A'}"
+
+          echo "::set-output name=packages::$packages"
+          echo "::set-output name=targets::$targets"
+
+      - name: Restore cache
+        uses: ./.github/actions/restore-cache
+        with:
+          cargo-targets: "${{ steps.format_output.outputs.targets }}"
+
       - name: Check excluded packages
         run: |
-          packages=($(echo ${{ steps.read_excluded.outputs.value }} | sed 's/[][,]/ /g' | tr ' ' "\n"))
+          packages="${{ steps.format_output.outputs.packages }}"
           for p in ${packages[@]}
           do
             echo "Compiling package $p..."
@@ -45,3 +62,6 @@ jobs:
             cargo check --all-targets --all-features
             popd
           done
+
+      - name: Stop cache
+        uses: ./.github/actions/post-cache

@@ -121,12 +121,20 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
           override: true
 
+      - name: Restore cache
+        uses: ./.github/actions/restore-cache
+        with:
+          cargo-targets: e2e-tests/target/
+
       - name: Build binary and docker image
         run: |
           cd e2e-tests/
           cargo build --release
           docker build --tag aleph-e2e-client:latest -f Dockerfile .
           docker save -o aleph-e2e-client.tar aleph-e2e-client:latest
+
+      - name: Stop cache
+        uses: ./.github/actions/post-cache
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
@@ -317,16 +325,10 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
           override: true
 
-      - name: Restore Cargo Cache
-        uses: actions/cache@v2
+      - name: Restore cache
+        uses: ./.github/actions/restore-cache
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          cargo-targets: local-tests/send-runtime/target/
 
       - name: Download all artifacts
         uses: actions/download-artifact@v2
@@ -345,6 +347,9 @@ jobs:
           NEW_BINARY: old-aleph-node/aleph-node
           NEW_RUNTIME: aleph-runtime/aleph_runtime.compact.wasm
         run: ./.github/scripts/test_update.sh
+
+      - name: Stop cache
+        uses: ./.github/actions/post-cache
 
 
   remove-old-artifacts:
