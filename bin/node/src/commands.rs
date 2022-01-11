@@ -1,3 +1,4 @@
+use crate::chain_spec::ChainSpec;
 use crate::chain_spec::{
     self, get_account_id_from_seed, AuthorityKeys, ChainParams, SerializablePeerId,
 };
@@ -14,6 +15,7 @@ use sp_core::sr25519;
 use sp_keystore::SyncCryptoStore;
 use std::fs;
 use std::io::Write;
+use std::path::PathBuf;
 use structopt::StructOpt;
 
 /// returns Aura key, if absent a new key is generated
@@ -190,5 +192,29 @@ impl BootstrapNodeCmd {
                     .as_str(),
             ),
         }
+    }
+}
+
+/// Command used to go from chainspec to the raw chainspec format
+#[derive(Debug, StructOpt)]
+pub struct ConvertChainspecToRawCmd {
+    /// Specify path to JSON chainspec
+    #[structopt(long, parse(from_os_str))]
+    pub chain: PathBuf,
+}
+
+impl ConvertChainspecToRawCmd {
+    pub fn run(&self) -> Result<(), Error> {
+        let spec = ChainSpec::from_json_file(self.chain.to_owned()).expect("Cannot read chainspec");
+
+        let raw_chainspec = sc_service::chain_ops::build_spec(&spec, true)?;
+        if std::io::stdout()
+            .write_all(raw_chainspec.as_bytes())
+            .is_err()
+        {
+            let _ = std::io::stderr().write_all(b"Error writing to stdout\n");
+        }
+
+        Ok(())
     }
 }

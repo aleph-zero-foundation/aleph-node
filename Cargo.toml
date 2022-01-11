@@ -12,5 +12,6 @@ exclude = [
   "flooder",
   "e2e-tests",
   "common",
-  "local-tests/send-runtime"
+  "local-tests/send-runtime",
+  "fork-off"
 ]
