@@ -2,6 +2,10 @@ name: Check excluded packages
 
 on: pull_request
 
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Check excluded packages
@@ -10,11 +14,6 @@ jobs:
       RUST_TOOLCHAIN_VERSION: nightly-2021-10-24
       CARGO_INCREMENTAL: 0
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.9.0
-        with:
-          access_token: ${{ github.token }}
-
       - name: Checkout source code
         uses: actions/checkout@v2
 

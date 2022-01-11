@@ -25,11 +25,6 @@ jobs:
       RUST_BACKTRACE: full
       # SCCACHE_RECACHE: 1 # to clear cache uncomment this, let the workflow run once, then comment it out again
     steps:
-      - name: Cancel previous runs
-        uses: styfle/cancel-workflow-action@0.9.0
-        with:
-          access_token: ${{ github.token }}
-
       - name: Checkout source code
         uses: actions/checkout@v2
         with:

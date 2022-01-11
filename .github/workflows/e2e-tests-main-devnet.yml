@@ -12,6 +12,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
 jobs:
   build-new-node:
     name: Build node and runtime artifacts (PR version)
@@ -25,11 +29,6 @@ jobs:
     name: Build docker image of the node
     runs-on: ubuntu-latest
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.9.0
-        with:
-          access_token: ${{ github.token }}
-
       - name: Checkout Source code
         uses: actions/checkout@v2
 
@@ -63,11 +62,6 @@ jobs:
       RUST_TOOLCHAIN_VERSION: nightly-2021-10-24
       RUST_BACKTRACE: full
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.9.0
-        with:
-          access_token: ${{ github.token }}
-
       - name: Checkout Source code
         uses: actions/checkout@v2
 
@@ -106,11 +100,6 @@ jobs:
       RUST_TOOLCHAIN_VERSION: nightly-2021-10-24
       RUST_BACKTRACE: full
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.9.0
-        with:
-          access_token: ${{ github.token }}
-
       - name: Checkout Source code
         uses: actions/checkout@v2
 
@@ -150,11 +139,6 @@ jobs:
     name: Run e2e tests suite
     runs-on: ubuntu-latest
     steps:
-      - name: GIT | Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.9.0
-        with:
-          access_token: ${{ github.token }}
-
       - name: GIT | Checkout Source code
         uses: actions/checkout@v2
 
@@ -194,11 +178,6 @@ jobs:
     name: Push node image to the ECR repository
     runs-on: ubuntu-latest
     steps:
-      - name: GIT | Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.9.0
-        with:
-          access_token: ${{ github.token }}
-
       - name: GIT | Checkout Source code
         if: github.event_name == 'push'
         uses: actions/checkout@v2
@@ -267,11 +246,6 @@ jobs:
     outputs:
       runtime-updated: ${{ steps.inspect.outputs.diff }}
     steps:
-      - name: Cancel previous runs
-        uses: styfle/cancel-workflow-action@0.9.0
-        with:
-          access_token: ${{ github.token }}
-
       - name: Checkout old source code
         uses: actions/checkout@v2
         with:
@@ -310,11 +284,6 @@ jobs:
     env:
       RUST_TOOLCHAIN_VERSION: nightly-2021-10-24
     steps:
-      - name: Cancel previous runs
-        uses: styfle/cancel-workflow-action@0.9.0
-        with:
-          access_token: ${{ github.token }}
-
       - name: Checkout source code
         uses: actions/checkout@v2
 

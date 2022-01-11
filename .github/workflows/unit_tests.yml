@@ -2,6 +2,10 @@ name: unit-tests
 
 on: pull_request
 
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
 jobs:
   check-test-and-lint:
     name: Run check, test and lints
@@ -10,11 +14,6 @@ jobs:
       RUST_TOOLCHAIN_VERSION: nightly-2021-07-21
       CARGO_INCREMENTAL: 0
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.9.0
-        with:
-          access_token: ${{ github.token }}
-
       - name: Checkout Source code
         uses: actions/checkout@v2
 

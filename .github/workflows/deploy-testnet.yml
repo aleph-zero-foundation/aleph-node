@@ -4,6 +4,9 @@ on:
   release:
     types: [prereleased]
 
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+
 jobs:
   deploy-testnet:
     name: Deploy new aleph-node image to Testnet EKS
@@ -11,11 +14,6 @@ jobs:
     env:
       AWS_REGION: us-east-1 # this region is used by all public ECR repos
     steps:
-      - name: GIT | Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.9.0
-        with:
-          access_token: ${{ github.token }}
-
       - name: GIT | Checkout                                  
         uses: actions/checkout@v2
         
