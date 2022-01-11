@@ -3,14 +3,14 @@ name: e2e-tests-main-devnet
 on:
   pull_request:
     paths-ignore:
-      - "*.md"
-      - ".github/workflows/**"
+      - '*.md'
+      - '.github/workflows/**'
     branches:
       - main
   push:
     paths-ignore:
-      - "*.md"
-      - ".github/workflows/**"
+      - '*.md'
+      - '.github/workflows/**'
     branches:
       - main
 
