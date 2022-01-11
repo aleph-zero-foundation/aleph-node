@@ -1,10 +1,11 @@
-name: Save send-runtime binary as an artifact
+name: Build and send to ECR postsync hook image for sending appropriate transaction after runtime change.
 
 on:
   workflow_dispatch:
   pull_request:
     paths:
       - 'local-tests/send-runtime/**'
+      - 'docker-runtime-hook/**'
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
