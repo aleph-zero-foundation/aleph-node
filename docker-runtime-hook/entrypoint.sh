@@ -18,12 +18,12 @@ echo -n $(date +"%d-%b-%y %T") "   Checking runtime version in latest source: "
 NEW_VER=$(grep "spec_version:" aleph-node/bin/runtime/src/lib.rs | grep -o '[0-9]*')
 echo "$NEW_VER"
 
-#if (( "$NEW_VER" == "$OLD_VER" )); then
-#    echo $(date +"%d-%b-%y %T") "   No update needed"
-#    exit 0
-#fi
+if (( "$NEW_VER" == "$OLD_VER" )); then
+    echo $(date +"%d-%b-%y %T") "   No update needed"
+    exit 0
+fi
 
-if (( "$NEW_VER" >= "$OLD_VER" )); then
+if (( "$NEW_VER" > "$OLD_VER" )); then
     echo -n $(date +"%d-%b-%y %T") "   Fetching latest runtime from github..."
     ALEPH_RUNTIME_URL=$(curl -sS -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/Cardinal-Cryptography/aleph-node/actions/artifacts | jq '.artifacts' | jq -r '.[] | select(.name=="aleph-runtime") | .archive_download_url' | head -n 1)
     curl -sS --netrc-file $NETRC_CREDS -L -o aleph-runtime.zip $ALEPH_RUNTIME_URL
