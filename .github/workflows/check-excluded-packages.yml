@@ -1,6 +1,9 @@
 name: Check excluded packages
 
-on: pull_request
+on: 
+  pull_request:
+    paths-ignore:
+      - ".github/workflows/**"
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}

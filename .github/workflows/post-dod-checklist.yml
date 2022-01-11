@@ -1,5 +1,8 @@
 name: Post DoD checklist
-on: [pull_request_target]
+on: 
+  pull_request_target:
+    paths-ignore:
+      - ".github/workflows/**"
 jobs:
   run:
     runs-on: ubuntu-latest
