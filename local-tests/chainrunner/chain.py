@@ -81,6 +81,15 @@ class Chain:
         for i in idx:
             self.nodes[i].chainspec = chainspec
 
+    def set_log_level(self, target, level, nodes=None):
+        """Change log verbosity of the chosen logging target. This method works on the fly
+        (performs RPCs) and should be called while the chain is running.
+        Optional `nodes` argument can be used to specify which nodes are affected and should be
+        a list of integer indices (0..N-1). Affects all nodes if omitted."""
+        idx = nodes or range(len(self.nodes))
+        for i in idx:
+            self.nodes[i].set_log_level(target, level)
+
     def start(self, name, nodes=None):
         """Start the chain. `name` will be used to name logfiles: name0.log, name1.log etc.
         Optional `nodes` argument can be used to specify which nodes are affected and should be

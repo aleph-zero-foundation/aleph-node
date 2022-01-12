@@ -31,6 +31,7 @@ class Node:
     def start(self, name):
         """Start the node. `name` is used to name of the logfile and for --name flag."""
         cmd = [self.binary, '--name', name] + self._stdargs() + flags_from_dict(self.flags)
+
         self.logfile = op.join(self.logdir, name + '.log')
         with open(self.logfile, 'w', encoding='utf-8') as logfile:
             # pylint: disable=consider-using-with
@@ -65,6 +66,10 @@ class Node:
             return int(a), int(b)
         return -1, -1
 
+    def get_hash(self, height):
+        """Find the hash of the block with the given height. Requires the node to be running."""
+        return self.rpc('chain_getBlockHash', [height]).result
+
     def state(self, block=None):
         """Return a JSON representation of the chain state after the given block.
         If `block` is `None`, the most recent state (after the highest seen block) is returned.
@@ -90,3 +95,8 @@ class Node:
             return None
         resp = requests.post(f'http://localhost:{port}/', json=rpc.request(method, params))
         return rpc.parse(resp.json())
+
+    def set_log_level(self, target, level):
+        """Change log verbosity of the chosen target.
+        This method should be called on a running node."""
+        self.rpc('system_addLogFilter', [f'{target}={level}'])
