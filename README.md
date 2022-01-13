@@ -9,7 +9,7 @@ This repository contains the Rust implementation of [Aleph Zero][aleph-homepage]
 
 Aleph Zero is an open-source layer 1 blockchain focused on privacy, scalability and energy efficiency. It is based on a unique, peer-reviewed consensus algorithm, AlephBFT (as described in our [paper][aleph-bft-paper] and implemented [here][aleph-bft-link]).
 
-Aleph node is based on a Substrate node where the default finality gadget (GRANDPA) has been replaced with AlephBFT. Block authoring is realized with Substrate's Aura. The chain is run in periodic sesssions (900 blocks each) utilizing the Session pallet. The authorities in each session serve for both Aura and AlephBFT authorities, and on top of that are responsible for running the Aggregator protocol producing multisignatures of finalized blocks.
+Aleph node is based on a Substrate node where the default finality gadget (GRANDPA) has been replaced with AlephBFT. Block authoring is realized with Substrate's Aura. The chain is run in periodic sessions (900 blocks each) utilizing the Session pallet. The authorities in each session serve for both Aura and AlephBFT authorities, and on top of that are responsible for running the Aggregator protocol producing multisignatures of finalized blocks.
 
 
 ### Installation
