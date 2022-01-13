@@ -28,9 +28,9 @@ pub struct Config {
     #[clap(long, default_value = "0")]
     pub first_account_in_range: u64,
 
-    /// generate thx or read them from file
+    /// load transactions from file or generate ad-hoc
     #[clap(long)]
-    pub generate_txs: bool,
+    pub load_txs: bool,
 
     /// path to encoded txs
     #[clap(long)]
@@ -44,9 +44,9 @@ pub struct Config {
     #[clap(long)]
     pub download_nonces: bool,
 
-    /// changes the awaited status of every transaction from Ready to SubmitOnly
+    /// changes the awaited status of every transaction from `SubmitOnly` to `Ready`
     #[clap(long)]
-    pub submit_only: bool,
+    pub wait_for_ready: bool,
 
     /// store txs after generation
     #[clap(long)]

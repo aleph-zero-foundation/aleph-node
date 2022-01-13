@@ -27,18 +27,25 @@ pub struct WsRpcClient {
     next_handler: Arc<Mutex<Option<RpcClient>>>,
     join_handle: Option<thread::JoinHandle<WsResult<()>>>,
     out: WsSender,
+    url: String,
 }
 
 impl WsRpcClient {
-    pub fn new(url: &str) -> WsRpcClient {
-        let (sender, join_handle, rpc_client) = start_rpc_client_thread(url.to_string())
-            .unwrap_or_else(|err| panic!("failed to spawn WebSocket's thread: {}", err));
-        WsRpcClient {
+    pub fn new(url: &str) -> Result<WsRpcClient, String> {
+        let (sender, join_handle, rpc_client) = start_rpc_client_thread(url.to_string())?;
+        Ok(WsRpcClient {
             next_handler: rpc_client,
             join_handle: Some(join_handle),
             out: sender,
             mux: Mutex::new(()),
-        }
+            url: url.to_string(),
+        })
+    }
+}
+
+impl Clone for WsRpcClient {
+    fn clone(&self) -> Self {
+        Self::new(&self.url).unwrap()
     }
 }
 
