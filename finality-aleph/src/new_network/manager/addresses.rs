@@ -1,15 +1,5 @@
 use crate::new_network::{manager::Multiaddr, PeerId};
-use ip_network::IpNetwork;
 use sc_network::{multiaddr::Protocol, PeerId as ScPeerId};
-
-/// Checks whether the given Multiaddr is globally accessible.
-pub fn is_global(address: &Multiaddr) -> bool {
-    address.0.iter().all(|protocol| match protocol {
-        Protocol::Ip4(ip) => IpNetwork::from(ip).is_global(),
-        Protocol::Ip6(ip) => IpNetwork::from(ip).is_global(),
-        _ => true,
-    })
-}
 
 /// Checks whether the given Multiaddr contains a libp2p component.
 pub fn is_p2p(address: &Multiaddr) -> bool {
@@ -103,27 +93,24 @@ pub fn get_common_peer_id(addresses: &[Multiaddr]) -> Option<PeerId> {
         .into_option()
 }
 
+/// Returns the address extended by the peer id, unless it already contained another peer id.
+pub fn add_matching_peer_id(mut address: Multiaddr, peer_id: PeerId) -> Option<Multiaddr> {
+    match get_peer_id(&address) {
+        Some(peer) => match peer == peer_id {
+            true => Some(address),
+            false => None,
+        },
+        None => {
+            address.0.push(Protocol::P2p(peer_id.0.into()));
+            Some(address)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{get_common_peer_id, is_global, is_p2p};
+    use super::{add_matching_peer_id, get_common_peer_id, get_peer_id, is_p2p};
     use crate::new_network::manager::testing::address;
-
-    #[test]
-    fn local_addresses_are_not_global() {
-        assert!(!is_global(&address("/ip4/127.0.0.1/udt/sctp/5678").into()));
-    }
-
-    #[test]
-    fn global_addresses_are_global() {
-        assert!(is_global(&address("/ip4/81.6.39.166/udt/sctp/5678").into()));
-    }
-
-    #[test]
-    fn dns_addresses_are_global() {
-        assert!(is_global(
-            &address("/dns4/example.com/udt/sctp/5678").into()
-        ));
-    }
 
     #[test]
     fn non_p2p_addresses_are_not_p2p() {
@@ -173,5 +160,45 @@ mod tests {
                 address("/dns4/example.com/tcp/30333/p2p/12D3KooWRkGLz4YbVmrsWK75VjFTs8NvaBu42xhAmQaP4KeJpw1L").into(),
                 address("/dns4/peer.example.com/tcp/30333/p2p/12D3KooWFVXnvJdPuGnGYMPn5qLQAQYwmRBgo6SmEQsKZSrDoo2k").into(),
         ]).is_none());
+    }
+
+    #[test]
+    fn non_p2p_address_matches_peer_id() {
+        let address = address(
+            "/dns4/example.com/tcp/30333/p2p/12D3KooWRkGLz4YbVmrsWK75VjFTs8NvaBu42xhAmQaP4KeJpw1L",
+        )
+        .into();
+        let peer_id = get_peer_id(&address).unwrap();
+        let mut peerless_address = address.clone().0;
+        peerless_address.pop();
+        let peerless_address = peerless_address.into();
+        assert!(get_peer_id(&peerless_address).is_none());
+        assert_eq!(
+            add_matching_peer_id(peerless_address, peer_id),
+            Some(address)
+        );
+    }
+
+    #[test]
+    fn p2p_address_matches_own_peer_id() {
+        let address = address(
+            "/dns4/example.com/tcp/30333/p2p/12D3KooWRkGLz4YbVmrsWK75VjFTs8NvaBu42xhAmQaP4KeJpw1L",
+        )
+        .into();
+        let peer_id = get_peer_id(&address).unwrap();
+        assert_eq!(
+            &add_matching_peer_id(address.clone(), peer_id),
+            &Some(address)
+        );
+    }
+
+    #[test]
+    fn p2p_address_does_not_match_other_peer_id() {
+        let nonmatching_address = address(
+            "/dns4/example.com/tcp/30333/p2p/12D3KooWRkGLz4YbVmrsWK75VjFTs8NvaBu42xhAmQaP4KeJpw1L",
+        )
+        .into();
+        let peer_id = get_peer_id(&address("/dns4/peer.example.com/tcp/30333/p2p/12D3KooWFVXnvJdPuGnGYMPn5qLQAQYwmRBgo6SmEQsKZSrDoo2k").into()).unwrap();
+        assert!(add_matching_peer_id(nonmatching_address, peer_id).is_none());
     }
 }

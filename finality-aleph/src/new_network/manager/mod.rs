@@ -11,7 +11,7 @@ mod session;
 #[cfg(test)]
 pub mod testing;
 
-use addresses::{get_common_peer_id, get_peer_id, is_p2p};
+use addresses::{add_matching_peer_id, get_common_peer_id, get_peer_id, is_p2p};
 
 use connections::Connections;
 use discovery::{Discovery, DiscoveryMessage};

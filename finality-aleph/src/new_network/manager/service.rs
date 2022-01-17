@@ -2,8 +2,8 @@ use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
     new_network::{
         manager::{
-            get_peer_id, Connections, Discovery, DiscoveryMessage, Multiaddr, NetworkData,
-            SessionHandler, SessionHandlerError,
+            add_matching_peer_id, get_peer_id, Connections, Discovery, DiscoveryMessage, Multiaddr,
+            NetworkData, SessionHandler, SessionHandlerError,
         },
         ConnectionCommand, Data, DataCommand, NetworkIdentity, PeerId, Protocol,
     },
@@ -106,10 +106,11 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
 
     fn addresses(&self) -> Vec<Multiaddr> {
         let (addresses, peer_id) = self.network_identity.identity();
+        debug!(target: "aleph-network", "Got addresses:\n{:?}\n and peer_id:{:?}", addresses, peer_id);
         addresses
             .into_iter()
             .map(Multiaddr)
-            .filter(|address| get_peer_id(address) == Some(peer_id))
+            .filter_map(|address| add_matching_peer_id(address, peer_id))
             .collect()
     }
 
