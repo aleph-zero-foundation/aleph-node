@@ -1,4 +1,4 @@
-use crate::new_network::{Network, NetworkEventStream, PeerId};
+use crate::new_network::{Network, NetworkEventStream, NetworkSender, PeerId};
 use async_trait::async_trait;
 use futures::channel::{mpsc, oneshot};
 use parking_lot::Mutex;
@@ -20,6 +20,29 @@ fn channel<T>() -> Channel<T> {
     (Arc::new(Mutex::new(tx)), Arc::new(Mutex::new(rx)))
 }
 
+pub struct MockNetworkSender {
+    sender: mpsc::UnboundedSender<(Vec<u8>, PeerId, Cow<'static, str>)>,
+    peer_id: PeerId,
+    protocol: Cow<'static, str>,
+    error: Result<(), MockSenderError>,
+}
+
+#[async_trait]
+impl NetworkSender for MockNetworkSender {
+    type SenderError = MockSenderError;
+
+    async fn send<'a>(
+        &'a self,
+        data: impl Into<Vec<u8>> + Send + Sync + 'static,
+    ) -> Result<(), MockSenderError> {
+        self.error?;
+        self.sender
+            .unbounded_send((data.into(), self.peer_id, self.protocol.clone()))
+            .unwrap();
+        Ok(())
+    }
+}
+
 #[derive(Clone)]
 pub struct MockNetwork {
     pub add_reserved: Channel<(HashSet<Multiaddr>, Cow<'static, str>)>,
@@ -27,29 +50,30 @@ pub struct MockNetwork {
     pub send_message: Channel<(Vec<u8>, PeerId, Cow<'static, str>)>,
     pub event_sinks: Arc<Mutex<Vec<mpsc::UnboundedSender<Event>>>>,
     event_stream_taken_oneshot: Arc<Mutex<Option<oneshot::Sender<()>>>>,
-    pub network_errors: Arc<Mutex<VecDeque<MockSendError>>>,
+    pub create_sender_errors: Arc<Mutex<VecDeque<MockSenderError>>>,
+    pub send_errors: Arc<Mutex<VecDeque<MockSenderError>>>,
 }
 
 #[derive(Debug, Copy, Clone)]
-pub enum MockSendError {
+pub enum MockSenderError {
     SomeError,
 }
 
-impl fmt::Display for MockSendError {
+impl fmt::Display for MockSenderError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            MockSendError::SomeError => {
+            MockSenderError::SomeError => {
                 write!(f, "Some error message")
             }
         }
     }
 }
 
-impl std::error::Error for MockSendError {}
+impl std::error::Error for MockSenderError {}
 
-#[async_trait]
 impl Network for MockNetwork {
-    type SendError = MockSendError;
+    type SenderError = MockSenderError;
+    type NetworkSender = MockNetworkSender;
 
     fn event_stream(&self) -> NetworkEventStream {
         let (tx, rx) = mpsc::unbounded();
@@ -61,22 +85,22 @@ impl Network for MockNetwork {
         Box::pin(rx)
     }
 
-    async fn send<'a>(
-        &'a self,
-        data: impl Into<Vec<u8>> + Send + Sync + 'static,
+    fn sender(
+        &self,
         peer_id: PeerId,
         protocol: Cow<'static, str>,
-    ) -> Result<(), MockSendError> {
-        if let Some(err) = self.network_errors.lock().pop_front() {
-            Err(err)
-        } else {
-            self.send_message
-                .0
-                .lock()
-                .unbounded_send((data.into(), peer_id, protocol))
-                .unwrap();
-            Ok(())
-        }
+    ) -> Result<Self::NetworkSender, Self::SenderError> {
+        self.create_sender_errors
+            .lock()
+            .pop_front()
+            .map_or(Ok(()), Err)?;
+        let error = self.send_errors.lock().pop_front().map_or(Ok(()), Err);
+        Ok(MockNetworkSender {
+            sender: self.send_message.0.lock().clone(),
+            peer_id,
+            protocol,
+            error,
+        })
     }
 
     fn add_reserved(&self, addresses: HashSet<Multiaddr>, protocol: Cow<'static, str>) {
@@ -104,7 +128,8 @@ impl MockNetwork {
             send_message: channel(),
             event_sinks: Arc::new(Mutex::new(vec![])),
             event_stream_taken_oneshot: Arc::new(Mutex::new(Some(oneshot_sender))),
-            network_errors: Arc::new(Mutex::new(VecDeque::new())),
+            create_sender_errors: Arc::new(Mutex::new(VecDeque::new())),
+            send_errors: Arc::new(Mutex::new(VecDeque::new())),
         }
     }
 
