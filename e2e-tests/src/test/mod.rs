@@ -4,8 +4,10 @@ pub use transfer::token_transfer;
 pub use treasury::channeling_fee;
 pub use treasury::treasury_access;
 pub use validators_change::change_validators;
+pub use utility::batch_transactions;
 
 mod finalization;
 mod transfer;
 mod treasury;
 mod validators_change;
+mod utility;

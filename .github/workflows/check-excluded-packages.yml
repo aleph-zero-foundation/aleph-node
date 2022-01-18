@@ -1,6 +1,6 @@
 name: Check excluded packages
 
-on: 
+on:
   pull_request:
     paths-ignore:
       - ".github/workflows/**"

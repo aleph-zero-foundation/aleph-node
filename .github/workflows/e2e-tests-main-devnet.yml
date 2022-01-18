@@ -111,7 +111,6 @@ jobs:
           profile: minimal
           toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
           override: true
-
       - name: Restore cache
         uses: ./.github/actions/restore-cache
         with:

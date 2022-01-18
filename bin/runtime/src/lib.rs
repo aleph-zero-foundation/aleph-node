@@ -478,6 +478,12 @@ impl pallet_treasury::Config for Runtime {
     type WeightInfo = pallet_treasury::weights::SubstrateWeight<Runtime>;
 }
 
+impl pallet_utility::Config for Runtime {
+    type Event = Event;
+    type Call = Call;
+    type WeightInfo = pallet_utility::weights::SubstrateWeight<Runtime>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -498,6 +504,7 @@ construct_runtime!(
         Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>},
         Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>},
         Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>},
+        Utility: pallet_utility::{Pallet, Call, Storage, Event},
     }
 );
 
