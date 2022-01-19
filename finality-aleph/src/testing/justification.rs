@@ -181,7 +181,7 @@ fn prepare_env(
     (jh, client, requester, finalizer, jrd)
 }
 
-#[tokio::test(threaded_scheduler)]
+#[tokio::test(flavor = "multi_thread")]
 async fn panics_and_stops_when_authority_channel_is_closed() {
     let jh = prepare_env(1u64, AlwaysReject, AlwaysReject).0;
     let (handle, auth_just_tx, _) = run_jh(jh);
@@ -194,7 +194,7 @@ async fn panics_and_stops_when_authority_channel_is_closed() {
     }
 }
 
-#[tokio::test(threaded_scheduler)]
+#[tokio::test(flavor = "multi_thread")]
 async fn panics_and_stops_when_import_channel_is_closed() {
     let jh = prepare_env(1u64, AlwaysReject, AlwaysReject).0;
     let (handle, _, imp_just_tx) = run_jh(jh);
@@ -269,7 +269,7 @@ async fn expect_not_requested(
     assert!(!jrd.has_been_requested().await);
 }
 
-#[tokio::test(threaded_scheduler)]
+#[tokio::test(flavor = "multi_thread")]
 async fn leads_to_finalization_when_appropriate_justification_comes() {
     run_test(
         prepare_env(FINALIZED_HEIGHT, AlwaysAccept, AlwaysReject),
@@ -283,7 +283,7 @@ async fn leads_to_finalization_when_appropriate_justification_comes() {
     .await;
 }
 
-#[tokio::test(threaded_scheduler)]
+#[tokio::test(flavor = "multi_thread")]
 async fn waits_for_verifier_before_finalizing() {
     let verification_policy = FromSequence(RefCell::new(VecDeque::from(vec![false, false, true])));
     run_test(
@@ -305,7 +305,7 @@ async fn waits_for_verifier_before_finalizing() {
     .await;
 }
 
-#[tokio::test(threaded_scheduler)]
+#[tokio::test(flavor = "multi_thread")]
 async fn keeps_finalizing_block_if_not_finalized_yet() {
     run_test(
         prepare_env(FINALIZED_HEIGHT, AlwaysAccept, AlwaysReject),
@@ -323,7 +323,7 @@ async fn keeps_finalizing_block_if_not_finalized_yet() {
     .await;
 }
 
-#[tokio::test(threaded_scheduler)]
+#[tokio::test(flavor = "multi_thread")]
 async fn ignores_notifications_for_old_blocks() {
     run_test(
         prepare_env(FINALIZED_HEIGHT, AlwaysAccept, AlwaysReject),
@@ -337,7 +337,7 @@ async fn ignores_notifications_for_old_blocks() {
     .await;
 }
 
-#[tokio::test(threaded_scheduler)]
+#[tokio::test(flavor = "multi_thread")]
 async fn ignores_notifications_from_future_session() {
     run_test(
         prepare_env(FINALIZED_HEIGHT, AlwaysAccept, AlwaysReject),
@@ -351,7 +351,7 @@ async fn ignores_notifications_from_future_session() {
     .await;
 }
 
-#[tokio::test(threaded_scheduler)]
+#[tokio::test(flavor = "multi_thread")]
 async fn does_not_buffer_notifications_from_future_session() {
     run_test(
         prepare_env((SESSION_PERIOD.0 - 2) as u64, AlwaysAccept, AlwaysReject),
@@ -373,7 +373,7 @@ async fn does_not_buffer_notifications_from_future_session() {
     .await;
 }
 
-#[tokio::test(threaded_scheduler)]
+#[tokio::test(flavor = "multi_thread")]
 async fn requests_for_session_ending_justification() {
     run_test(
         prepare_env((SESSION_PERIOD.0 - 2) as u64, AlwaysReject, AlwaysAccept),
@@ -394,7 +394,7 @@ async fn requests_for_session_ending_justification() {
     .await;
 }
 
-#[tokio::test(threaded_scheduler)]
+#[tokio::test(flavor = "multi_thread")]
 async fn does_not_request_for_session_ending_justification_too_often() {
     run_test(
         prepare_env((SESSION_PERIOD.0 - 2) as u64, AlwaysReject, AlwaysReject),
@@ -411,7 +411,7 @@ async fn does_not_request_for_session_ending_justification_too_often() {
     .await;
 }
 
-#[tokio::test(threaded_scheduler)]
+#[tokio::test(flavor = "multi_thread")]
 async fn does_not_request_if_header_is_not_available() {
     run_test(
         prepare_env(FINALIZED_HEIGHT, AlwaysReject, AlwaysAccept),
@@ -429,7 +429,7 @@ async fn does_not_request_if_header_is_not_available() {
     .await;
 }
 
-#[tokio::test(threaded_scheduler)]
+#[tokio::test(flavor = "multi_thread")]
 async fn does_not_request_nor_finalize_when_verifier_is_not_available() {
     run_test(
         prepare_env((SESSION_PERIOD.0 - 2) as u64, Unavailable, AlwaysAccept),

@@ -6,14 +6,14 @@ edition = "2021"
 # client
 [dependencies.substrate-api-client]
 git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git"
-tag = "fixed_dependencies"
+tag = "polkadot-v0.9.13.metav14"
 
 [dependencies]
 # Substrate dependencies
-sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9", default-features = false, features = ["full_crypto"] }
-sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9", default-features = false }
-frame-support = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9", default-features = false}
-system = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9", package = "frame-system" }
+sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", default-features = false, features = ["full_crypto"] }
+sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", default-features = false }
+frame-support = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", default-features = false}
+system = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", package = "frame-system" }
 
 # other dependencies
 anyhow = "1.0"

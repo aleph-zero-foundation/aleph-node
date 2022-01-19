@@ -131,6 +131,7 @@ impl<N: Network, D: Data> Service<N, D> {
                     let (tx, rx) = mpsc::channel(PEER_BUFFER_SIZE);
                     self.spawn_handle.spawn(
                         "aleph/network/peer_sender",
+                        None,
                         self.peer_sender(remote.into(), rx),
                     );
                     self.connected_peers.insert(remote.into());
@@ -227,7 +228,6 @@ mod tests {
         NetworkIdentity, Protocol, ALEPH_PROTOCOL_NAME, ALEPH_VALIDATOR_PROTOCOL_NAME,
     };
     use codec::Encode;
-    use futures::future::FutureExt;
     use futures::{
         channel::{mpsc, oneshot},
         StreamExt,
@@ -235,8 +235,9 @@ mod tests {
     use sc_network::{
         multiaddr::Protocol as ScProtocol, Event, Multiaddr as ScMultiaddr, ObservedRole,
     };
-    use sc_service::{TaskExecutor, TaskManager};
+    use sc_service::TaskManager;
     use std::{borrow::Cow, collections::HashSet, iter, iter::FromIterator};
+    use tokio::runtime::Handle;
     use tokio::task::JoinHandle;
 
     type MockData = Vec<u8>;
@@ -258,9 +259,8 @@ mod tests {
 
     impl TestData {
         async fn prepare() -> Self {
-            let task_executor: TaskExecutor =
-                (move |future, _task_type| tokio::spawn(future).map(|_| ())).into();
-            let task_manager = TaskManager::new(task_executor, None).unwrap();
+            let task_manager = TaskManager::new(Handle::current(), None).unwrap();
+
             // Prepare communication with service
             let (mock_messages_for_user, messages_from_user) = mpsc::unbounded();
             let (messages_for_user, mock_messages_from_user) = mpsc::unbounded();

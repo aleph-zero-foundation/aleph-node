@@ -6,5 +6,5 @@ edition = "2021"
 [dependencies]
 structopt = "0.3.8"
 common = {path = "../../common" }
-sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9", default-features = false, features = ["full_crypto"] }
-substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", tag = "fixed_dependencies"}
+sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", default-features = false, features = ["full_crypto"] }
+substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", tag = "polkadot-v0.9.13.metav14"}

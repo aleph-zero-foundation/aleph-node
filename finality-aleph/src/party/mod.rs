@@ -179,7 +179,7 @@ where
     let session_manager = network.session_manager();
 
     let network_task = async move { network.run().await };
-    spawn_handle.spawn("aleph/network", network_task);
+    spawn_handle.spawn("aleph/network", None, network_task);
 
     debug!(target: "afa", "Consensus network has started.");
 

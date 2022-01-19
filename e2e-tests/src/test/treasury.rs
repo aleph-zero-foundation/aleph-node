@@ -1,23 +1,22 @@
-use std::thread;
-use std::thread::sleep;
-use std::time::Duration;
-
-use codec::{Compact, Decode};
-use common::create_connection;
-use frame_support::PalletId;
-use log::info;
-use sp_core::Pair;
-use sp_runtime::traits::AccountIdConversion;
-use sp_runtime::MultiAddress;
-use substrate_api_client::sp_runtime::AccountId32;
-use substrate_api_client::{AccountId, UncheckedExtrinsicV4};
-
 use crate::accounts::{accounts_from_seeds, get_free_balance, get_sudo};
 use crate::config::Config;
 use crate::fee::get_tx_fee_info;
 use crate::transfer::{setup_for_transfer, transfer};
 use crate::waiting::wait_for_event;
 use crate::Connection;
+use codec::{Compact, Decode};
+use common::create_connection;
+use frame_support::PalletId;
+use log::info;
+use sp_core::Pair;
+use sp_runtime::traits::AccountIdConversion;
+use sp_runtime::AccountId32;
+use sp_runtime::MultiAddress;
+use std::thread;
+use std::thread::sleep;
+use std::time::Duration;
+use substrate_api_client::GenericAddress;
+use substrate_api_client::{AccountId, UncheckedExtrinsicV4};
 
 pub fn channeling_fee(config: Config) -> anyhow::Result<()> {
     let (connection, _, to) = setup_for_transfer(config);
@@ -93,15 +92,8 @@ fn get_total_issuance(connection: &Connection) -> u128 {
         .unwrap()
 }
 
-fn get_treasury_account(connection: &Connection) -> AccountId32 {
-    let pallet_id = connection
-        .metadata
-        .module_with_constants_by_name("Treasury")
-        .unwrap()
-        .constant_by_name("PalletId")
-        .unwrap()
-        .get_value();
-    PalletId(pallet_id.try_into().unwrap()).into_account()
+fn get_treasury_account(_connection: &Connection) -> AccountId32 {
+    PalletId(*b"a0/trsry").into_account()
 }
 
 type ProposalTransaction =

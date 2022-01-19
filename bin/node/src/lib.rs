@@ -2,6 +2,7 @@ mod aleph_cli;
 mod chain_spec;
 mod cli;
 mod commands;
+mod executor;
 mod rpc;
 mod service;
 

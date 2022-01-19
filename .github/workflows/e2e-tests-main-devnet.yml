@@ -260,11 +260,7 @@ jobs:
 
       - name: Inspect versions
         id: inspect
-        run: |
-          grep "spec_version:" old-repo/bin/runtime/src/lib.rs | grep -o '[0-9]*' > old.version
-          grep "spec_version:" new-repo/bin/runtime/src/lib.rs | grep -o '[0-9]*' > new.version
-          diff old.version new.version
-          echo "::set-output name=diff::$?"
+        run: ./new-repo/.github/scripts/check_runtime_change.sh
 
 
   build-old-node:
@@ -287,6 +283,8 @@ jobs:
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
+        with:
+          ref: 'main' # build send-runtime using code on main
 
       - name: Install rust toolchain
         uses: actions-rs/toolchain@v1
@@ -311,10 +309,11 @@ jobs:
           python-version: '3.8'
 
       - name: Test update
+        timeout-minutes: 21
         env:
           # Relative to local-tests/ directory
-          OLD_BINARY: aleph-node/aleph-node
-          NEW_BINARY: old-aleph-node/aleph-node
+          OLD_BINARY: old-aleph-node/aleph-node
+          NEW_BINARY: aleph-node/aleph-node
           NEW_RUNTIME: aleph-runtime/aleph_runtime.compact.wasm
         run: ./.github/scripts/test_update.sh
 

@@ -2,22 +2,22 @@
 import os
 import subprocess
 import sys
-from os.path import join
+from os.path import abspath, join
 from time import sleep
 import jsonrpcclient
 
 from chainrunner import Chain, Seq, generate_keys
 
 # Path to working directory, where chainspec, logs and nodes' dbs are written:
-workdir = os.getenv('WORKDIR', '/tmp/workdir')
+workdir = abspath(os.getenv('WORKDIR', '/tmp/workdir'))
 # Path to the pre-update aleph-node binary:
-oldbin = os.getenv('OLD_BINARY', join(workdir, 'aleph-node-old'))
+oldbin = abspath(os.getenv('OLD_BINARY', join(workdir, 'aleph-node-old')))
 # Path to the post-update aleph-node binary:
-newbin = os.getenv('NEW_BINARY', join(workdir, 'aleph-node-new'))
+newbin = abspath(os.getenv('NEW_BINARY', join(workdir, 'aleph-node-new')))
 # Path to the post-update compiled runtime:
-runtime = os.getenv('NEW_RUNTIME', join(workdir, 'aleph_runtime.compact.wasm'))
+runtime = abspath(os.getenv('NEW_RUNTIME', join(workdir, 'aleph_runtime.compact.wasm')))
 # Path to the send-runtime binary (which lives in aleph-node/local-tests/send-runtime):
-SEND_RUNTIME = 'send-runtime/target/release/send_runtime'
+SEND_RUNTIME = abspath('send-runtime/target/release/send_runtime')
 
 
 def query_runtime_version(nodes):
@@ -49,7 +49,6 @@ def check_highest(nodes):
 
 phrases = ['//Cartman', '//Stan', '//Kyle', '//Kenny']
 keys = generate_keys(newbin, phrases)
-
 chain = Chain(workdir)
 print('Bootstraping the chain with old binary')
 chain.bootstrap(oldbin,

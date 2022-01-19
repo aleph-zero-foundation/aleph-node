@@ -9,12 +9,12 @@ use frame_support::{
     weights::RuntimeDbWeight,
 };
 use primitives::AuthorityId;
+use sp_api_hidden_includes_construct_runtime::hidden_include::traits::GenesisBuild;
 use sp_core::H256;
 use sp_runtime::{
     impl_opaque_keys,
     testing::{Header, TestXt, UintAuthorityId},
     traits::{ConvertInto, IdentityLookup, OpaqueKeys},
-    Perbill,
 };
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
@@ -83,7 +83,6 @@ impl frame_system::Config for Test {
 parameter_types! {
     pub const Period: u64 = 1;
     pub const Offset: u64 = 0;
-    pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(17);
 }
 
 parameter_types! {
@@ -111,7 +110,6 @@ impl pallet_session::Config for Test {
     type SessionManager = pallet_aleph::AlephSessionManager<Self>;
     type SessionHandler = <TestSessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = TestSessionKeys;
-    type DisabledValidatorsThreshold = DisabledValidatorsThreshold;
     type WeightInfo = ();
 }
 

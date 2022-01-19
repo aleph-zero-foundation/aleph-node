@@ -15,9 +15,8 @@ use sp_runtime::traits::Block as BlockT;
 use sp_runtime::Digest;
 use std::{future::Future, sync::Arc, time::Duration};
 use substrate_test_runtime_client::{
-    runtime::{Block, Hash},
-    Backend, ClientBlockImportExt, DefaultTestClientBuilderExt, TestClient, TestClientBuilder,
-    TestClientBuilderExt,
+    runtime::Block, Backend, ClientBlockImportExt, DefaultTestClientBuilderExt, TestClient,
+    TestClientBuilder, TestClientBuilderExt,
 };
 
 use std::default::Default;
@@ -235,7 +234,7 @@ async fn sends_messages_with_number_lower_than_finalized() {
     import_blocks(&mut client, 4, true).await;
 
     let mut digest = Digest::default();
-    digest.push(sp_runtime::generic::DigestItem::Other::<Hash>(
+    digest.push(sp_runtime::generic::DigestItem::Other(
         1u32.to_le_bytes().to_vec(),
     ));
 

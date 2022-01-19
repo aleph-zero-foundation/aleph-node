@@ -84,6 +84,7 @@ impl HeaderBackend<TBlock> for Client {
             genesis_hash: GENESIS_HASH.into(),
             number_leaves: Default::default(),
             finalized_state: None,
+            block_gap: None,
         }
     }
 

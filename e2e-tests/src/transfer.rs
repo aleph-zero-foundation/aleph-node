@@ -1,12 +1,12 @@
-use common::create_connection;
-use log::info;
-use sp_core::Pair;
-use substrate_api_client::sp_runtime::AccountId32;
-use substrate_api_client::AccountId;
-
 use crate::accounts::accounts_from_seeds;
 use crate::config::Config;
 use crate::{Connection, TransferTransaction};
+use common::create_connection;
+use log::info;
+use sp_core::Pair;
+use sp_runtime::AccountId32;
+use substrate_api_client::AccountId;
+use substrate_api_client::GenericAddress;
 
 pub fn setup_for_transfer(config: Config) -> (Connection, AccountId32, AccountId32) {
     let Config { node, seeds, .. } = config;

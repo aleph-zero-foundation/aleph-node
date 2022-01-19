@@ -127,7 +127,7 @@ impl From<SpawnTaskHandle> for SpawnHandle {
 
 impl aleph_bft::SpawnHandle for SpawnHandle {
     fn spawn(&self, name: &'static str, task: impl Future<Output = ()> + Send + 'static) {
-        self.0.spawn(name, task)
+        self.0.spawn(name, None, task)
     }
 
     fn spawn_essential(
