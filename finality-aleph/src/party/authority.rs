@@ -3,6 +3,7 @@ use crate::{
     NodeIndex, SpawnHandle,
 };
 use futures::channel::oneshot;
+use log::{debug, trace};
 
 /// A wrapper for running the authority task within a specific session.
 pub struct Task {
@@ -37,7 +38,6 @@ pub struct Subtasks {
     exit: oneshot::Receiver<()>,
     member: PureTask,
     aggregator: PureTask,
-    forwarder: PureTask,
     refresher: PureTask,
     data_store: PureTask,
 }
@@ -48,7 +48,6 @@ impl Subtasks {
         exit: oneshot::Receiver<()>,
         member: PureTask,
         aggregator: PureTask,
-        forwarder: PureTask,
         refresher: PureTask,
         data_store: PureTask,
     ) -> Self {
@@ -56,7 +55,6 @@ impl Subtasks {
             exit,
             member,
             aggregator,
-            forwarder,
             refresher,
             data_store,
         }
@@ -65,11 +63,15 @@ impl Subtasks {
     async fn stop(self) {
         // both member and aggregator are implicitly using forwarder,
         // so we should force them to exit first to avoid any panics, i.e. `send on closed channel`
+        debug!(target: "aleph-party", "Started to stop all tasks");
         self.member.stop().await;
+        trace!(target: "aleph-party", "Member stopped");
         self.aggregator.stop().await;
-        self.forwarder.stop().await;
+        trace!(target: "aleph-party", "Aggregator stopped");
         self.refresher.stop().await;
+        trace!(target: "aleph-party", "Refresher stopped");
         self.data_store.stop().await;
+        trace!(target: "aleph-party", "DataStore stopped");
     }
 
     /// Blocks until the task is done and returns true if it quit unexpectedly.
@@ -78,11 +80,14 @@ impl Subtasks {
             _ = &mut self.exit => false,
             _ = self.member.stopped() => true,
             _ = self.aggregator.stopped() => true,
-            _ = self.forwarder.stopped() => true,
             _ = self.refresher.stopped() => true,
             _ = self.data_store.stopped() => true,
         };
+        if result {
+            debug!(target: "aleph-party", "Something died and it was unexpected");
+        }
         self.stop().await;
+        debug!(target: "aleph-party", "Stopped all processes");
         result
     }
 }

@@ -1,7 +1,7 @@
 use crate::{
     crypto::Signature,
     data_io::{AlephDataFor, AlephNetworkMessage},
-    new_network::DataNetwork,
+    network::DataNetwork,
     Hasher,
 };
 use aleph_bft::{Network as AlephNetwork, NetworkData as AlephNetworkData, SignatureSet};

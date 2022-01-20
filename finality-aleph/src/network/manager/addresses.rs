@@ -1,4 +1,4 @@
-use crate::new_network::{manager::Multiaddr, PeerId};
+use crate::network::{manager::Multiaddr, PeerId};
 use sc_network::{multiaddr::Protocol, PeerId as ScPeerId};
 
 /// Checks whether the given Multiaddr contains a libp2p component.
@@ -110,7 +110,7 @@ pub fn add_matching_peer_id(mut address: Multiaddr, peer_id: PeerId) -> Option<M
 #[cfg(test)]
 mod tests {
     use super::{add_matching_peer_id, get_common_peer_id, get_peer_id, is_p2p};
-    use crate::new_network::manager::testing::address;
+    use crate::network::manager::testing::address;
 
     #[test]
     fn non_p2p_addresses_are_not_p2p() {

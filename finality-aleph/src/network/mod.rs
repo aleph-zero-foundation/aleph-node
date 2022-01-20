@@ -1,5 +1,3 @@
-// Everything here is dead code, but I don't want to create one enormous PR.
-#![allow(dead_code)]
 use aleph_bft::Recipient;
 use async_trait::async_trait;
 use codec::{Codec, Decode, Encode};
@@ -25,8 +23,13 @@ use component::{
 };
 use manager::SessionCommand;
 
-pub use aleph::NetworkData as AlephNetworkData;
+pub use aleph::{NetworkData as AlephNetworkData, NetworkWrapper};
+pub use component::SimpleNetwork;
+pub use manager::{ConnectionIO, ConnectionManager};
 pub use rmc::NetworkData as RmcNetworkData;
+pub use service::{Service, IO};
+pub use session::{Manager as SessionManager, ManagerError, Network as SessionNetwork};
+pub use split::{split, Split};
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
 pub struct PeerId(pub(crate) ScPeerId);
@@ -169,7 +172,3 @@ pub trait DataNetwork<D: Data>: Send + Sync {
     fn send(&self, data: D, recipient: Recipient) -> Result<(), SendError>;
     async fn next(&mut self) -> Option<D>;
 }
-
-// This should be removed after compatibility with the old network is no longer needed.
-mod compatibility;
-pub use compatibility::*;

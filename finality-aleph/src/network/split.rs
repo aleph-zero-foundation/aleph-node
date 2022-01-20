@@ -1,11 +1,11 @@
 // WARNING: A lot of the code below is duplicated and cannot be easily deduplicated within the Rust
 // typesystem (perhaps somewhat with macros?). Be very careful to change all the occurences if you
 // are modyfing this file.
-use crate::new_network::{ComponentNetwork, Data, ReceiverComponent, SendError, SenderComponent};
+use crate::network::{ComponentNetwork, Data, ReceiverComponent, SendError, SenderComponent};
 use aleph_bft::Recipient;
 use codec::{Decode, Encode};
 use futures::channel::mpsc;
-use log::warn;
+use log::{trace, warn};
 use std::{marker::PhantomData, sync::Arc};
 use tokio::sync::Mutex;
 
@@ -75,21 +75,27 @@ async fn forward_or_wait<
     receiver: &Arc<Mutex<R>>,
     left_sender: &mpsc::UnboundedSender<LeftData>,
     right_sender: &mpsc::UnboundedSender<RightData>,
-) {
+) -> bool {
     match receiver.lock().await.next().await {
         Some(Split::Left(data)) => {
+            trace!(target: "aleph-network", "Forwarding left data");
             if left_sender.unbounded_send(data).is_err() {
                 warn!(target: "aleph-network", "Failed send despite controlling receiver, this shouldn't've happened.");
             }
+            true
         }
         Some(Split::Right(data)) => {
+            trace!(target: "aleph-network", "Forwarding right data");
             if right_sender.unbounded_send(data).is_err() {
                 warn!(target: "aleph-network", "Failed send despite controlling receiver, this shouldn't've happened.");
             }
+            true
         }
         None => {
+            trace!(target: "aleph-network", "Split data channel ended");
             left_sender.close_channel();
             right_sender.close_channel();
+            false
         }
     }
 }
@@ -101,8 +107,14 @@ impl<LeftData: Data, RightData: Data, R: ReceiverComponent<Split<LeftData, Right
     async fn next(&mut self) -> Option<LeftData> {
         loop {
             tokio::select! {
-                data = self.translated_receiver.next() => return data,
-                _ = forward_or_wait(&self.receiver, &self.left_sender, &self.right_sender) => (),
+                data = self.translated_receiver.next() => {
+                    return data;
+                },
+                should_go_on = forward_or_wait(&self.receiver, &self.left_sender, &self.right_sender) => {
+                    if !should_go_on {
+                        return None;
+                    }
+                },
             }
         }
     }
@@ -115,8 +127,14 @@ impl<LeftData: Data, RightData: Data, R: ReceiverComponent<Split<LeftData, Right
     async fn next(&mut self) -> Option<RightData> {
         loop {
             tokio::select! {
-                data = self.translated_receiver.next() => return data,
-                _ = forward_or_wait(&self.receiver, &self.left_sender, &self.right_sender) => (),
+                data = self.translated_receiver.next() => {
+                    return data;
+                },
+                should_go_on = forward_or_wait(&self.receiver, &self.left_sender, &self.right_sender) => {
+                    if !should_go_on {
+                        return None;
+                    }
+                },
             }
         }
     }

@@ -65,10 +65,15 @@ for i in $(seq "$N_VALIDATORS" "$(( N_VALIDATORS + N_NON_VALIDATORS - 1 ))"); do
   ./target/release/aleph-node bootstrap-node --base-path "$BASE_PATH" --account-id "$account_id" --chain-type local
 done
 
+addresses=()
+for i in $(seq 0 "$(( N_VALIDATORS + N_NON_VALIDATORS - 1 ))"); do
+    pk=$(./target/release/aleph-node key inspect-node-key --file $BASE_PATH/${account_ids[$i]}/p2p_secret)
+    addresses+=("/dns4/localhost/tcp/$((30334+i))/p2p/$pk")
+done
+
 bootnodes=""
 for i in 0 1; do
-    pk=$(./target/release/aleph-node key inspect-node-key --file $BASE_PATH/${account_ids[$i]}/p2p_secret)
-    bootnodes+="/dns4/localhost/tcp/$((30334+i))/p2p/$pk "
+    bootnodes+=${addresses[i]}
 done
 
 for i in $(seq 0 "$(( N_VALIDATORS + N_NON_VALIDATORS - 1 ))"); do
@@ -89,6 +94,8 @@ for i in $(seq 0 "$(( N_VALIDATORS + N_NON_VALIDATORS - 1 ))"); do
     --execution Native \
     --no-mdns \
     -lafa=debug \
+    -laleph-party=debug \
+    -laleph-network=debug \
     "$@" \
     2> $auth.log > /dev/null & \
 done

@@ -1,4 +1,4 @@
-use crate::new_network::{
+use crate::network::{
     Network, NetworkEventStream, NetworkIdentity, NetworkSender, PeerId, RequestBlocks,
 };
 use async_trait::async_trait;

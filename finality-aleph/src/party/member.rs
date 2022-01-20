@@ -1,7 +1,7 @@
 use crate::{
     crypto::KeyBox,
     data_io::{DataProvider, FinalizationHandler},
-    network::AlephNetwork,
+    network::{AlephNetworkData, DataNetwork, NetworkWrapper},
     party::{AuthoritySubtaskCommon, Task},
 };
 use aleph_bft::{Config, SpawnHandle};
@@ -10,11 +10,11 @@ use log::debug;
 use sp_runtime::traits::Block;
 
 /// Runs the member within a single session.
-pub fn task<B: Block>(
+pub fn task<B: Block, ADN: DataNetwork<AlephNetworkData<B>> + 'static>(
     subtask_common: AuthoritySubtaskCommon,
     multikeychain: KeyBox,
     config: Config,
-    network: AlephNetwork<B>,
+    network: NetworkWrapper<B, ADN>,
     data_provider: DataProvider<B>,
     finalization_handler: FinalizationHandler<B>,
 ) -> Task {

@@ -5,7 +5,7 @@ use crate::{
     finalization::should_finalize,
     justification::{AlephJustification, JustificationNotification},
     metrics::Checkpoint,
-    network::RmcNetwork,
+    network::{DataNetwork, RmcNetworkData},
     party::{AuthoritySubtaskCommon, Task},
     Metrics,
 };
@@ -26,8 +26,8 @@ pub struct IO<B: Block> {
     pub justifications_for_chain: mpsc::UnboundedSender<JustificationNotification<B>>,
 }
 
-async fn run_aggregator<B, C, BE>(
-    mut aggregator: BlockSignatureAggregator<'_, B, KeyBox>,
+async fn run_aggregator<B, C, N, BE>(
+    mut aggregator: BlockSignatureAggregator<'_, B, N, KeyBox>,
     io: IO<B>,
     client: Arc<C>,
     last_block_in_session: NumberFor<B>,
@@ -37,6 +37,7 @@ async fn run_aggregator<B, C, BE>(
     B: Block,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     C::Api: aleph_primitives::AlephSessionApi<B>,
+    N: DataNetwork<RmcNetworkData<B>>,
     BE: Backend<B> + 'static,
 {
     let IO {
@@ -46,6 +47,7 @@ async fn run_aggregator<B, C, BE>(
     let mut last_finalized = client.info().finalized_hash;
     let mut last_block_seen = false;
     loop {
+        trace!(target: "aleph-party", "Aggregator Loop started a next iteration");
         tokio::select! {
             maybe_unit = ordered_units_from_aleph.next() => {
                 if let Some(new_block_data) = maybe_unit {
@@ -84,7 +86,7 @@ async fn run_aggregator<B, C, BE>(
                     }
                 } else {
                     debug!(target: "aleph-party", "The stream of multisigned hashes has ended. Terminating.");
-                    break;
+                    return;
                 }
             }
             _ = &mut exit_rx => {
@@ -100,19 +102,20 @@ async fn run_aggregator<B, C, BE>(
 }
 
 /// Runs the justification signature aggregator within a single session.
-pub fn task<B, C, BE>(
+pub fn task<B, C, N, BE>(
     subtask_common: AuthoritySubtaskCommon,
     client: Arc<C>,
     io: IO<B>,
     last_block: NumberFor<B>,
     metrics: Option<Metrics<<B::Header as Header>::Hash>>,
     multikeychain: KeyBox,
-    rmc_network: RmcNetwork<B>,
+    rmc_network: N,
 ) -> Task
 where
     B: Block,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     C::Api: aleph_primitives::AlephSessionApi<B>,
+    N: DataNetwork<RmcNetworkData<B>> + 'static,
     BE: Backend<B> + 'static,
 {
     let AuthoritySubtaskCommon {

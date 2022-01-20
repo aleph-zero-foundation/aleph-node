@@ -22,8 +22,9 @@ impl Task {
     pub async fn stop(self) {
         if let Err(e) = self.exit.send(()) {
             warn!(target: "aleph-party", "Failed to send exit signal to authority: {:?}", e);
+        } else {
+            let _ = self.handle.await;
         }
-        let _ = self.handle.await;
     }
 
     /// Await the task to stop by itself. Should usually just block forever, unless something went

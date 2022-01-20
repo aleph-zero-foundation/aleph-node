@@ -1,12 +1,12 @@
 use crate::{
     crypto::Signature,
     metrics::Checkpoint,
-    network::{Recipient, RmcNetwork},
+    network::{DataNetwork, RmcNetworkData},
     Metrics,
 };
 use aleph_bft::{
     rmc::{DoublingDelayScheduler, Message, ReliableMulticast},
-    MultiKeychain, Signable, SignatureSet,
+    MultiKeychain, Recipient, Signable, SignatureSet,
 };
 use codec::{Codec, Decode, Encode};
 use futures::{channel::mpsc, StreamExt};
@@ -33,12 +33,17 @@ impl<H: AsRef<[u8]> + Hash + Clone + Codec> Signable for SignableHash<H> {
 
 type RmcMessage<B> = Message<SignableHash<<B as Block>::Hash>, Signature, SignatureSet<Signature>>;
 /// A wrapper around an RMC returning the signed hashes in the order of the [`ReliableMulticast::start_rmc`] calls.
-pub(crate) struct BlockSignatureAggregator<'a, B: Block, MK: MultiKeychain> {
+pub(crate) struct BlockSignatureAggregator<
+    'a,
+    B: Block,
+    N: DataNetwork<RmcNetworkData<B>>,
+    MK: MultiKeychain,
+> {
     messages_for_rmc: mpsc::UnboundedSender<RmcMessage<B>>,
     messages_from_rmc: mpsc::UnboundedReceiver<RmcMessage<B>>,
     signatures: HashMap<B::Hash, MK::PartialMultisignature>,
     hash_queue: VecDeque<B::Hash>,
-    network: RmcNetwork<B>,
+    network: N,
     rmc: ReliableMulticast<'a, SignableHash<B::Hash>, MK>,
     last_hash_placed: bool,
     started_hashes: HashSet<B::Hash>,
@@ -49,10 +54,11 @@ impl<
         'a,
         B: Block,
         MK: MultiKeychain<Signature = Signature, PartialMultisignature = SignatureSet<Signature>>,
-    > BlockSignatureAggregator<'a, B, MK>
+        N: DataNetwork<RmcNetworkData<B>>,
+    > BlockSignatureAggregator<'a, B, N, MK>
 {
     pub(crate) fn new(
-        network: RmcNetwork<B>,
+        network: N,
         keychain: &'a MK,
         metrics: Option<Metrics<<B::Header as Header>::Hash>>,
     ) -> Self {
@@ -129,7 +135,7 @@ impl<
                     message_from_rmc = self.messages_from_rmc.next() => {
                         trace!(target: "afa", "Our rmc message {:?}.", message_from_rmc);
                         if let Some(message_from_rmc) = message_from_rmc {
-                            self.network.send(message_from_rmc, Recipient::All).expect("sending message from rmc failed")
+                            self.network.send(message_from_rmc, Recipient::Everyone).expect("sending message from rmc failed")
                         } else {
                             warn!(target: "afa", "the channel of messages from rmc closed");
                         }

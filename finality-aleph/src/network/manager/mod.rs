@@ -1,4 +1,4 @@
-use crate::{crypto::Signature, new_network::Data, NodeIndex, SessionId};
+use crate::{crypto::Signature, network::Data, NodeIndex, SessionId};
 use codec::{Decode, Encode};
 use sc_network::Multiaddr as ScMultiaddr;
 use std::convert::TryFrom;
@@ -11,8 +11,9 @@ mod session;
 #[cfg(test)]
 pub mod testing;
 
-use addresses::{add_matching_peer_id, get_common_peer_id, get_peer_id, is_p2p};
+pub use service::{Service as ConnectionManager, IO as ConnectionIO};
 
+use addresses::{add_matching_peer_id, get_common_peer_id, get_peer_id, is_p2p};
 use connections::Connections;
 use discovery::{Discovery, DiscoveryMessage};
 use session::{Handler as SessionHandler, HandlerError as SessionHandlerError};

@@ -1,5 +1,5 @@
 use crate::{
-    new_network::{
+    network::{
         manager::{Authentication, Multiaddr, SessionHandler},
         DataCommand, PeerId, Protocol,
     },
@@ -267,7 +267,7 @@ impl Discovery {
 mod tests {
     use super::{Discovery, DiscoveryMessage};
     use crate::{
-        new_network::{
+        network::{
             manager::{testing::crypto_basics, Authentication, SessionHandler},
             DataCommand, Multiaddr, Protocol,
         },

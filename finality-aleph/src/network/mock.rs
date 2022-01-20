@@ -1,4 +1,4 @@
-use crate::new_network::{Network, NetworkEventStream, NetworkSender, PeerId};
+use crate::network::{Network, NetworkEventStream, NetworkSender, PeerId};
 use async_trait::async_trait;
 use futures::channel::{mpsc, oneshot};
 use parking_lot::Mutex;

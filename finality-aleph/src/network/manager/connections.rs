@@ -1,4 +1,4 @@
-use crate::{new_network::PeerId, SessionId};
+use crate::{network::PeerId, SessionId};
 use std::collections::{HashMap, HashSet};
 
 /// Keeps track of connections we should maintain taking into account data from many sessions.
@@ -53,7 +53,7 @@ impl Connections {
 #[cfg(test)]
 mod tests {
     use super::Connections;
-    use crate::{new_network::PeerId, SessionId};
+    use crate::{network::PeerId, SessionId};
     use sc_network::PeerId as ScPeerId;
     use std::collections::HashSet;
 

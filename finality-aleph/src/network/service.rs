@@ -1,4 +1,4 @@
-use crate::new_network::{
+use crate::network::{
     ConnectionCommand, Data, DataCommand, Network, NetworkSender, PeerId, Protocol,
     ALEPH_PROTOCOL_NAME, ALEPH_VALIDATOR_PROTOCOL_NAME,
 };
@@ -8,19 +8,18 @@ use sc_network::{multiaddr, Event};
 use sc_service::SpawnTaskHandle;
 use std::{
     borrow::Cow,
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{HashMap, HashSet},
     future::Future,
     iter,
 };
 
-struct Service<N: Network, D: Data> {
+pub struct Service<N: Network, D: Data> {
     network: N,
     messages_from_user: mpsc::UnboundedReceiver<(D, DataCommand)>,
     messages_for_user: mpsc::UnboundedSender<D>,
     commands_from_manager: mpsc::UnboundedReceiver<ConnectionCommand>,
     connected_peers: HashSet<PeerId>,
     peer_senders: HashMap<PeerId, mpsc::Sender<(D, Protocol)>>,
-    to_send: VecDeque<(D, PeerId, Protocol)>,
     spawn_handle: SpawnTaskHandle,
 }
 
@@ -30,6 +29,19 @@ pub struct IO<D: Data> {
     commands_from_manager: mpsc::UnboundedReceiver<ConnectionCommand>,
 }
 
+impl<D: Data> IO<D> {
+    pub fn new(
+        messages_from_user: mpsc::UnboundedReceiver<(D, DataCommand)>,
+        messages_for_user: mpsc::UnboundedSender<D>,
+        commands_from_manager: mpsc::UnboundedReceiver<ConnectionCommand>,
+    ) -> IO<D> {
+        IO {
+            messages_from_user,
+            messages_for_user,
+            commands_from_manager,
+        }
+    }
+}
 const PEER_BUFFER_SIZE: usize = 100;
 
 impl<N: Network, D: Data> Service<N, D> {
@@ -47,7 +59,6 @@ impl<N: Network, D: Data> Service<N, D> {
             spawn_handle,
             connected_peers: HashSet::new(),
             peer_senders: HashMap::new(),
-            to_send: VecDeque::new(),
         }
     }
 
@@ -222,7 +233,7 @@ impl<N: Network, D: Data> Service<N, D> {
 #[cfg(test)]
 mod tests {
     use super::{ConnectionCommand, DataCommand, Service, IO};
-    use crate::new_network::{
+    use crate::network::{
         manager::testing::MockNetworkIdentity,
         mock::{MockNetwork, MockSenderError},
         NetworkIdentity, Protocol, ALEPH_PROTOCOL_NAME, ALEPH_VALIDATOR_PROTOCOL_NAME,

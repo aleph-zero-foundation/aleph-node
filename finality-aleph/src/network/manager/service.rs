@@ -1,6 +1,6 @@
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
-    new_network::{
+    network::{
         manager::{
             add_matching_peer_id, get_peer_id, Connections, Discovery, DiscoveryMessage, Multiaddr,
             NetworkData, SessionHandler, SessionHandlerError,
@@ -11,7 +11,7 @@ use crate::{
 };
 use aleph_bft::Recipient;
 use futures::{channel::mpsc, StreamExt};
-use log::{debug, warn};
+use log::{debug, trace, warn};
 use std::{
     collections::{HashMap, HashSet},
     time::Duration,
@@ -373,6 +373,22 @@ pub enum Error {
 }
 
 impl<D: Data> IO<D> {
+    pub fn new(
+        commands_for_network: mpsc::UnboundedSender<ConnectionCommand>,
+        messages_for_network: mpsc::UnboundedSender<(NetworkData<D>, DataCommand)>,
+        commands_from_user: mpsc::UnboundedReceiver<SessionCommand<D>>,
+        messages_from_user: mpsc::UnboundedReceiver<(D, SessionId, Recipient)>,
+        messages_from_network: mpsc::UnboundedReceiver<NetworkData<D>>,
+    ) -> IO<D> {
+        IO {
+            commands_for_network,
+            messages_for_network,
+            commands_from_user,
+            messages_from_user,
+            messages_from_network,
+        }
+    }
+
     fn send_data(&self, to_send: (NetworkData<D>, DataCommand)) -> Result<(), Error> {
         self.messages_for_network
             .unbounded_send(to_send)
@@ -420,32 +436,45 @@ impl<D: Data> IO<D> {
     ) -> Result<(), Error> {
         let mut maintenance = interval(Duration::from_secs(MAINTENANCE_PERIOD_SECONDS));
         loop {
+            trace!(target: "aleph-network", "Manager Loop started a next iteration");
             tokio::select! {
-                maybe_command = self.commands_from_user.next() => match maybe_command {
-                    Some(command) => match service.on_command(command).await {
-                        Ok(to_send) => self.send(to_send)?,
-                        Err(e) => warn!(target: "aleph-network", "Failed to update handler: {:?}", e),
-                    },
-                    None => return Err(Error::CommandsChannel),
+                maybe_command = self.commands_from_user.next() => {
+                    trace!(target: "aleph-network", "Manager received a command from user");
+                    match maybe_command {
+                        Some(command) => match service.on_command(command).await {
+                            Ok(to_send) => self.send(to_send)?,
+                            Err(e) => warn!(target: "aleph-network", "Failed to update handler: {:?}", e),
+                        },
+                        None => return Err(Error::CommandsChannel),
+                    }
                 },
-                maybe_message = self.messages_from_user.next() => match maybe_message {
-                    Some((message, session_id, recipient)) => for message in service.on_user_message(message, session_id, recipient) {
-                         self.send_data(message)?;
-                    },
-                    None => return Err(Error::MessageChannel),
+                maybe_message = self.messages_from_user.next() => {
+                    trace!(target: "aleph-network", "Manager received a message from user");
+                    match maybe_message {
+                        Some((message, session_id, recipient)) => for message in service.on_user_message(message, session_id, recipient) {
+                            self.send_data(message)?;
+                        },
+                        None => return Err(Error::MessageChannel),
+                    }
                 },
-                maybe_message = self.messages_from_network.next() => match maybe_message {
-                    Some(message) => if let Err(e) = self.on_network_message(&mut service, message) {
-                        match e {
-                            Error::UserSend => warn!(target: "aleph-network", "Failed to send to user in session."),
-                            Error::NoSession => warn!(target: "aleph-network", "Received message for unknown session."),
-                            _ => return Err(e),
-                        }
-                    },
-                    None => return Err(Error::NetworkChannel),
+                maybe_message = self.messages_from_network.next() => {
+                    trace!(target: "aleph-network", "Manager received a message from network");
+                    match maybe_message {
+                        Some(message) => if let Err(e) = self.on_network_message(&mut service, message) {
+                            match e {
+                                Error::UserSend => warn!(target: "aleph-network", "Failed to send to user in session."),
+                                Error::NoSession => warn!(target: "aleph-network", "Received message for unknown session."),
+                                _ => return Err(e),
+                            }
+                        },
+                        None => return Err(Error::NetworkChannel),
+                    }
                 },
-                _ = maintenance.tick() => for to_send in service.discovery() {
-                    self.send_data(to_send)?;
+                _ = maintenance.tick() => {
+                    trace!(target: "aleph-network", "Manager starts maintenence");
+                    for to_send in service.discovery() {
+                        self.send_data(to_send)?;
+                    }
                 },
             }
         }
@@ -456,7 +485,7 @@ impl<D: Data> IO<D> {
 mod tests {
     use super::{Error, Service, SessionCommand};
     use crate::{
-        new_network::{
+        network::{
             manager::{
                 testing::{crypto_basics, MockNetworkIdentity},
                 DiscoveryMessage, NetworkData,

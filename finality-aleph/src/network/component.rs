@@ -1,7 +1,7 @@
-use crate::new_network::{Data, DataNetwork, SendError};
+use crate::network::{Data, DataNetwork, SendError};
 use aleph_bft::Recipient;
 use futures::{channel::mpsc, StreamExt};
-use std::sync::Arc;
+use std::{marker::PhantomData, sync::Arc};
 use tokio::sync::Mutex;
 
 /// For sending arbitrary messages.
@@ -29,7 +29,15 @@ impl<D: Data, CN: Network<D>> DataNetwork<D> for CN {
         self.sender().send(data, recipient)
     }
     async fn next(&mut self) -> Option<D> {
-        self.receiver().clone().lock_owned().await.next().await
+        self.receiver().lock_owned().await.next().await
+    }
+}
+
+#[async_trait::async_trait]
+impl<D: Data> Sender<D> for mpsc::UnboundedSender<(D, Recipient)> {
+    fn send(&self, data: D, recipient: Recipient) -> Result<(), SendError> {
+        self.unbounded_send((data, recipient))
+            .map_err(|_| SendError::SendFailed)
     }
 }
 
@@ -37,6 +45,36 @@ impl<D: Data, CN: Network<D>> DataNetwork<D> for CN {
 impl<D: Data> Receiver<D> for mpsc::UnboundedReceiver<D> {
     async fn next(&mut self) -> Option<D> {
         StreamExt::next(self).await
+    }
+}
+
+pub struct SimpleNetwork<D: Data, R: Receiver<D>, S: Sender<D>> {
+    receiver: Arc<Mutex<R>>,
+    sender: S,
+    _phantom: PhantomData<D>,
+}
+
+impl<D: Data, R: Receiver<D>, S: Sender<D>> SimpleNetwork<D, R, S> {
+    pub fn new(receiver: R, sender: S) -> Self {
+        SimpleNetwork {
+            receiver: Arc::new(Mutex::new(receiver)),
+            sender,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<D: Data, R: Receiver<D>, S: Sender<D>> Network<D> for SimpleNetwork<D, R, S> {
+    type S = S;
+
+    type R = R;
+
+    fn sender(&self) -> &Self::S {
+        &self.sender
+    }
+
+    fn receiver(&self) -> Arc<Mutex<Self::R>> {
+        self.receiver.clone()
     }
 }
 

@@ -1,6 +1,6 @@
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
-    new_network::{NetworkIdentity, PeerId},
+    network::{NetworkIdentity, PeerId},
     AuthorityId, NodeIndex,
 };
 use aleph_primitives::KEY_TYPE;

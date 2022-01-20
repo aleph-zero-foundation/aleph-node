@@ -1,6 +1,6 @@
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
-    new_network::{ComponentNetwork, Data, SendError, SenderComponent, SessionCommand},
+    network::{ComponentNetwork, Data, SendError, SenderComponent, SessionCommand},
     NodeIndex, SessionId,
 };
 use aleph_bft::Recipient;
@@ -47,6 +47,7 @@ pub struct Manager<D: Data> {
 }
 
 /// What went wrond during a session management operation.
+#[derive(Debug)]
 pub enum ManagerError {
     CommandSendFailed,
 }
