@@ -18,9 +18,6 @@ mod session;
 mod split;
 mod substrate;
 
-use component::{
-    Network as ComponentNetwork, Receiver as ReceiverComponent, Sender as SenderComponent,
-};
 use manager::SessionCommand;
 
 pub use aleph::{NetworkData as AlephNetworkData, NetworkWrapper};
@@ -30,6 +27,9 @@ pub use rmc::NetworkData as RmcNetworkData;
 pub use service::{Service, IO};
 pub use session::{Manager as SessionManager, ManagerError, Network as SessionNetwork};
 pub use split::{split, Split};
+pub use component::{
+    Network as ComponentNetwork, Receiver as ReceiverComponent, Sender as SenderComponent,
+};
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
 pub struct PeerId(pub(crate) ScPeerId);

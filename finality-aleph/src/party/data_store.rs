@@ -1,6 +1,6 @@
 use crate::{
     data_io::DataStore,
-    network::{AlephNetworkData, DataNetwork, RequestBlocks},
+    network::{AlephNetworkData, RequestBlocks, ReceiverComponent},
     party::{AuthoritySubtaskCommon, Task},
 };
 use aleph_bft::SpawnHandle;
@@ -10,9 +10,9 @@ use sc_client_api::Backend;
 use sp_runtime::traits::Block;
 
 /// Runs the data store within a single session.
-pub fn task<B, C, BE, RB, N>(
+pub fn task<B, C, BE, RB, R>(
     subtask_common: AuthoritySubtaskCommon,
-    mut data_store: DataStore<B, C, BE, RB, AlephNetworkData<B>, N>,
+    mut data_store: DataStore<B, C, BE, RB, AlephNetworkData<B>, R>,
 ) -> Task
 where
     B: Block,
@@ -20,7 +20,7 @@ where
     C::Api: aleph_primitives::AlephSessionApi<B>,
     BE: Backend<B> + 'static,
     RB: RequestBlocks<B> + 'static,
-    N: DataNetwork<AlephNetworkData<B>> + 'static,
+    R: ReceiverComponent<AlephNetworkData<B>> + 'static,
 {
     let AuthoritySubtaskCommon {
         spawn_handle,

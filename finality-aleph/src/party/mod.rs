@@ -380,12 +380,12 @@ where
             justifications_for_chain: self.authority_justification_tx.clone(),
         };
 
-        let (aleph_network, rmc_network) = split(data_network);
+        let (unfiltered_aleph_network, rmc_network) = split(data_network);
         let (data_store, aleph_network) = DataStore::new(
             self.client.clone(),
             self.block_requester.clone(),
             Default::default(),
-            aleph_network,
+            unfiltered_aleph_network,
         );
 
         AuthoritySubtasks::new(
