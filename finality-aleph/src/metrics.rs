@@ -1,8 +1,9 @@
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::{collections::HashMap, time::Instant};
+use std::time::Duration;
 
-use log::trace;
+use log::{trace, warn};
 use lru::LruCache;
 use parking_lot::Mutex;
 use prometheus_endpoint::{register, Gauge, PrometheusError, Registry, U64};
@@ -38,10 +39,19 @@ impl<H: Key> Inner<H> {
                 .expect("All checkpoint types were initialized")
                 .get(&hash)
             {
+                let duration = match checkpoint_time.checked_duration_since(*start) {
+                    Some(duration) => duration,
+                    None => {
+                        warn!(target: "afa", "Earlier metrics time {:?} is later that current one \
+                        {:?}. Checkpoint type {:?}, block: {:?}",
+                            *start, checkpoint_time, checkpoint_type, hash);
+                        Duration::new(0, 0)
+                    },
+                };
                 self.gauges
                     .get(&checkpoint_type)
                     .expect("All checkpoint types were initialized")
-                    .set(checkpoint_time.duration_since(*start).as_millis() as u64);
+                    .set(duration.as_millis() as u64);
             }
         }
     }
@@ -142,5 +152,14 @@ mod tests {
         let m = Metrics::<usize>::register(&Registry::new()).unwrap();
         check_reporting_with_memory_excess(&m, Checkpoint::Ordered);
         check_reporting_with_memory_excess(&m, Checkpoint::Imported);
+    }
+
+    #[test]
+    fn given_not_monotonic_clock_when_report_block_is_called_repeatedly_code_does_not_panic() {
+        let metrics = Metrics::<usize>::register(&Registry::new()).unwrap();
+        let earlier_timestamp = Instant::now();
+        let later_timestamp = earlier_timestamp + Duration::new(0, 5);
+        metrics.report_block(0, later_timestamp, Checkpoint::Ordering);
+        metrics.report_block(0, earlier_timestamp, Checkpoint::Ordered);
     }
 }
