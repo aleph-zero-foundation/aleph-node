@@ -13,6 +13,13 @@ use std::{
     iter,
 };
 
+/// A service managing all the direct interaction with the underlying network implementation. It
+/// handles:
+/// 1. Incoming network events
+///   1. Messages are forwarded to the user.
+///   2. Various forms of (dis)connecting, keeping track of all currently connected nodes.
+/// 2. Commands from the network manager, modifying the reserved peer set.
+/// 3. Outgoing messages, sending them out, using 1.2. to broadcast.
 pub struct Service<N: Network, D: Data> {
     network: N,
     messages_from_user: mpsc::UnboundedReceiver<(D, DataCommand)>,
@@ -23,6 +30,7 @@ pub struct Service<N: Network, D: Data> {
     spawn_handle: SpawnTaskHandle,
 }
 
+/// Input/output channels for the network service.
 pub struct IO<D: Data> {
     messages_from_user: mpsc::UnboundedReceiver<(D, DataCommand)>,
     messages_for_user: mpsc::UnboundedSender<D>,

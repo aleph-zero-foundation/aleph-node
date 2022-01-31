@@ -41,7 +41,15 @@ struct Session<D: Data> {
     data_for_user: Option<mpsc::UnboundedSender<D>>,
 }
 
-/// The connection manager service.
+/// The connection manager service. It handles the abstraction over the network we build to support
+/// separate sessions. This includes:
+/// 1. Starting and ending specific sessions on user demand.
+/// 2. Forwarding in-session user messages to the network using session handlers for address
+///    translation.
+/// 3. Handling network messages:
+///    1. In-session messages are forwarded to the user.
+///    2. Authentication messages forwarded to session handlers.
+/// 4. Running periodic maintenance, mostly related to node discovery.
 pub struct Service<NI: NetworkIdentity, D: Data> {
     network_identity: NI,
     connections: Connections,
