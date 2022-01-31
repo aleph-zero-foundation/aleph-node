@@ -11,7 +11,9 @@ mod session;
 #[cfg(test)]
 pub mod testing;
 
-pub use service::{Service as ConnectionManager, IO as ConnectionIO};
+pub use service::{
+    Config as ConnectionManagerConfig, Service as ConnectionManager, IO as ConnectionIO,
+};
 
 use addresses::{add_matching_peer_id, get_common_peer_id, get_peer_id, is_p2p};
 use connections::Connections;
