@@ -1,6 +1,6 @@
 use crate::{
     data_io::DataStore,
-    network::{AlephNetworkData, RequestBlocks, ReceiverComponent},
+    network::{AlephNetworkData, ReceiverComponent, RequestBlocks},
     party::{AuthoritySubtaskCommon, Task},
 };
 use aleph_bft::SpawnHandle;

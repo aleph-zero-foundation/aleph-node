@@ -6,7 +6,7 @@ use crate::{
     NodeCount, NodeIndex, SessionId,
 };
 use codec::{Decode, Encode};
-use log::warn;
+use log::{debug, warn};
 use std::{
     collections::{HashMap, HashSet},
     time::{Duration, Instant},
@@ -108,9 +108,11 @@ impl Discovery {
 
         let missing_authorities = handler.missing_nodes();
         if missing_authorities.is_empty() {
+            debug!(target: "aleph-network", "All authorities known for session {:?}.", handler.session_id());
             return Vec::new();
         }
         let node_count = handler.node_count();
+        debug!(target: "aleph-network", "{:?}/{:?} authorities known for session {:?}.", node_count.0-missing_authorities.len(), node_count, handler.session_id());
         if Self::should_broadcast(missing_authorities.len(), node_count) {
             // We know of fewer than 1/3 authorities, broadcast our authentication and hope others
             // respond in kind.

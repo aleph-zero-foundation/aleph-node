@@ -147,6 +147,7 @@ impl<N: Network, D: Data> Service<N, D> {
                 remote, protocol, ..
             } => {
                 if protocol == ALEPH_PROTOCOL_NAME {
+                    trace!(target: "aleph-network", "NotificationStreamOpened event for peer {:?}", remote);
                     let (tx, rx) = mpsc::channel(PEER_BUFFER_SIZE);
                     self.spawn_handle.spawn(
                         "aleph/network/peer_sender",
@@ -159,6 +160,7 @@ impl<N: Network, D: Data> Service<N, D> {
             }
             Event::NotificationStreamClosed { remote, protocol } => {
                 if protocol == ALEPH_PROTOCOL_NAME {
+                    trace!(target: "aleph-network", "NotificationStreamClosed event for peer {:?}", remote);
                     self.connected_peers.remove(&remote.into());
                     self.peer_senders.remove(&remote.into());
                 }
@@ -173,7 +175,7 @@ impl<N: Network, D: Data> Service<N, D> {
                         match D::decode(&mut &data[..]) {
                             Ok(message) => self.messages_for_user.unbounded_send(message)?,
                             Err(e) => {
-                                debug!(target: "aleph-network", "Error decoding message: {}", e)
+                                warn!(target: "aleph-network", "Error decoding message: {}", e)
                             }
                         }
                     }

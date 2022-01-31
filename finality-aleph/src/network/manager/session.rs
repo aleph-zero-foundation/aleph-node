@@ -107,7 +107,7 @@ impl Handler {
         self.authority_verifier.node_count()
     }
 
-    fn session_id(&self) -> SessionId {
+    pub fn session_id(&self) -> SessionId {
         self.session_info.session_id()
     }
 
@@ -205,15 +205,9 @@ impl Handler {
         .await?;
 
         for (_, (auth, maybe_auth)) in authentications {
-            print!(
-                "normal authentication: {:?}",
-                self.handle_authentication(auth)
-            );
+            self.handle_authentication(auth);
             if let Some(auth) = maybe_auth {
-                print!(
-                    "alternative authentication: {:?}",
-                    self.handle_authentication(auth)
-                );
+                self.handle_authentication(auth);
             }
         }
         Ok(self
@@ -566,17 +560,14 @@ mod tests {
         .unwrap();
         assert!(handler0.handle_authentication(handler1.authentication().unwrap()));
         let new_crypto_basics = crypto_basics(NUM_NODES).await;
-        print!(
-            "{:?}",
-            handler0
-                .update(
-                    Some(new_crypto_basics.0[0].clone()),
-                    new_crypto_basics.1.clone(),
-                    correct_addresses_0()
-                )
-                .await
-                .unwrap()
-        );
+        handler0
+            .update(
+                Some(new_crypto_basics.0[0].clone()),
+                new_crypto_basics.1.clone(),
+                correct_addresses_0(),
+            )
+            .await
+            .unwrap();
         let missing_nodes = handler0.missing_nodes();
         let expected_missing: Vec<_> = (1..NUM_NODES).map(NodeIndex).collect();
         assert_eq!(missing_nodes, expected_missing);

@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::{collections::HashMap, time::Instant};
 use std::time::Duration;
+use std::{collections::HashMap, time::Instant};
 
 use log::{trace, warn};
 use lru::LruCache;
@@ -46,7 +46,7 @@ impl<H: Key> Inner<H> {
                         {:?}. Checkpoint type {:?}, block: {:?}",
                             *start, checkpoint_time, checkpoint_type, hash);
                         Duration::new(0, 0)
-                    },
+                    }
                 };
                 self.gauges
                     .get(&checkpoint_type)

@@ -1,6 +1,6 @@
 use crate::{
     metrics::Checkpoint,
-    network::{DataNetwork, RequestBlocks, SimpleNetwork, ComponentNetwork, ReceiverComponent},
+    network::{ComponentNetwork, DataNetwork, ReceiverComponent, RequestBlocks, SimpleNetwork},
     Metrics,
 };
 use async_trait::async_trait;
@@ -131,7 +131,7 @@ where
     R: ReceiverComponent<Message>,
 {
     /// Returns a struct to be run and a network that outputs messages filtered as appropriate
-    pub(crate) fn new<N: ComponentNetwork<Message, R=R>>(
+    pub(crate) fn new<N: ComponentNetwork<Message, R = R>>(
         client: Arc<C>,
         block_requester: RB,
         config: DataStoreConfig,

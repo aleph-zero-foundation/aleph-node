@@ -411,6 +411,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
                 let (addresses, responses) = discovery.handle_message(message, handler);
                 let maybe_command = match addresses.is_empty() {
                     false => {
+                        debug!(target: "aleph-network", "Adding addresses for session {:?} to reserved: {:?}", session_id, addresses);
                         self.connections
                             .add_peers(session_id, addresses.iter().flat_map(get_peer_id));
                         Some(ConnectionCommand::AddReserved(
@@ -589,7 +590,7 @@ impl<D: Data> IO<D> {
                     }
                 },
                 _ = maintenance.tick() => {
-                    trace!(target: "aleph-network", "Manager starts maintenence");
+                    debug!(target: "aleph-network", "Manager starts maintenence");
                     match service.retry_session_start().await {
                         Ok(to_send) => self.send(to_send)?,
                         Err(e) => warn!(target: "aleph-network", "Retry failed to update handler: {:?}", e),
