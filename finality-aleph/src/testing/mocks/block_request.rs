@@ -39,4 +39,9 @@ impl RequestBlocks<TBlock> for MockedBlockRequester {
     fn request_stale_block(&self, _hash: THash, _number: TNumber) {
         panic!("`request_stale_block` not implemented!")
     }
+
+    /// Clear all pending justification requests.
+    fn clear_justification_requests(&self) {
+        panic!("`clear_justification_requests` not implemented!")
+    }
 }

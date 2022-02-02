@@ -60,6 +60,10 @@ impl<B: BlockT> RequestBlocks<B> for TestBlockRequester<B> {
             .unbounded_send(AlephData { hash, number })
             .unwrap();
     }
+
+    fn clear_justification_requests(&self) {
+        panic!("`clear_justification_requests` not implemented!")
+    }
 }
 
 type TestData = Vec<AlephDataFor<Block>>;

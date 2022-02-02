@@ -20,6 +20,11 @@ impl<B: Block, H: ExHashT> RequestBlocks<B> for Arc<NetworkService<B, H>> {
         // the block from any peers it is connected to.
         NetworkService::set_sync_fork_request(self, Vec::new(), hash, number)
     }
+
+    /// Clear all pending justification requests.
+    fn clear_justification_requests(&self) {
+        NetworkService::clear_justification_requests(self)
+    }
 }
 
 #[derive(Debug)]

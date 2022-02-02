@@ -13,7 +13,7 @@ use sp_runtime::{
 
 use crate::data_io::AlephDataFor;
 
-pub(crate) trait BlockFinalizer<B: Block> {
+pub trait BlockFinalizer<B: Block> {
     fn finalize_block(
         &self,
         hash: B::Hash,
@@ -22,7 +22,7 @@ pub(crate) trait BlockFinalizer<B: Block> {
     ) -> Result<(), Error>;
 }
 
-pub(crate) struct AlephFinalizer<B, BE, C>
+pub struct AlephFinalizer<B, BE, C>
 where
     B: Block,
     BE: Backend<B>,

@@ -180,9 +180,9 @@ impl MultiKeychain for KeyBox {
 
 /// Old format of signatures, needed for backwards compatibility.
 #[derive(PartialEq, Eq, Clone, Debug, Decode, Encode)]
-pub(crate) struct SignatureV1 {
-    pub(crate) _id: NodeIndex,
-    pub(crate) sgn: AuthoritySignature,
+pub struct SignatureV1 {
+    pub _id: NodeIndex,
+    pub sgn: AuthoritySignature,
 }
 
 impl From<SignatureV1> for Signature {

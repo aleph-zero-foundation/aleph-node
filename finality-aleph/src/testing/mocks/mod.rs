@@ -2,7 +2,7 @@ pub(crate) use acceptance_policy::AcceptancePolicy;
 pub(crate) use block_finalizer::MockedBlockFinalizer;
 pub(crate) use block_request::MockedBlockRequester;
 pub(crate) use header_backend::{create_block, Client};
-pub(crate) use justification_handler_config::JustificationRequestDelayImpl;
+pub(crate) use justification_handler_config::JustificationRequestSchedulerImpl;
 pub(crate) use session_info::{SessionInfoProviderImpl, VerifierWrapper};
 
 pub(crate) type TBlock = substrate_test_runtime::Block;
