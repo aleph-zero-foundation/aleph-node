@@ -28,8 +28,9 @@ impl SessionInfoProviderImpl {
     }
 }
 
+#[async_trait::async_trait]
 impl SessionInfoProvider<TBlock, VerifierWrapper> for SessionInfoProviderImpl {
-    fn for_block_num(&self, number: TNumber) -> SessionInfo<TBlock, VerifierWrapper> {
+    async fn for_block_num(&self, number: TNumber) -> SessionInfo<TBlock, VerifierWrapper> {
         let current_session = session_id_from_block_num::<TBlock>(number, self.session_period);
         SessionInfo {
             current_session,

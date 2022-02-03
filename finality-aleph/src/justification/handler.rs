@@ -82,7 +82,8 @@ where
                 current_session,
             } = self
                 .session_info_provider
-                .for_block_num(last_finalized_number + 1u32.into());
+                .for_block_num(last_finalized_number + 1u32.into())
+                .await;
             if verifier.is_none() {
                 debug!(target: "aleph-justification", "Verifier for session {:?} not yet available. Waiting {}ms and will try again ...", current_session, self.verifier_timeout.as_millis());
                 Delay::new(self.verifier_timeout).await;

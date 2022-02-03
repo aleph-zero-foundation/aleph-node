@@ -15,7 +15,6 @@ use futures::{
 use futures_timer::Delay;
 use log::{debug, error, trace};
 use lru::LruCache;
-use parking_lot::Mutex;
 use sc_client_api::backend::Backend;
 use sp_consensus::SelectChain;
 use sp_runtime::generic::BlockId;
@@ -28,6 +27,7 @@ use std::{
     sync::Arc,
     time::{self, Duration},
 };
+use tokio::sync::Mutex;
 
 type MessageId = u64;
 const REFRESH_INTERVAL: u64 = 100;
@@ -116,7 +116,7 @@ where
     block_requester: RB,
     config: DataStoreConfig,
     _phantom: PhantomData<BE>,
-    messages_from_network: Arc<tokio::sync::Mutex<R>>,
+    messages_from_network: Arc<Mutex<R>>,
     messages_for_aleph: UnboundedSender<Message>,
 }
 
@@ -377,8 +377,11 @@ pub(crate) async fn refresh_best_chain<B, BE, SC, C>(
     // uses is that once the block in `proposed_block` reaches the height of `max_block_num`, and the just queried
     // `best_block` is a `descendant` of the previous query, then we don't need to update proposed_block, as it is
     // already correct.
-    let mut prev_best_hash: B::Hash = proposed_block.lock().hash;
-    let mut prev_best_number: NumberFor<B> = proposed_block.lock().number;
+    let (mut prev_best_hash, mut prev_best_number) = async {
+        let block = proposed_block.lock().await;
+        (block.hash, block.number)
+    }
+    .await;
     loop {
         let delay = futures_timer::Delay::new(Duration::from_millis(REFRESH_INTERVAL));
         tokio::select! {
@@ -388,18 +391,18 @@ pub(crate) async fn refresh_best_chain<B, BE, SC, C>(
                     .await
                     .expect("No best chain");
                 if *new_best_header.number() <= max_block_num {
-                    *proposed_block.lock() = AlephData::new(new_best_header.hash(), *new_best_header.number());
+                    *proposed_block.lock().await = AlephData::new(new_best_header.hash(), *new_best_header.number());
                 } else {
                     // we check if prev_best_header is an ancestor of new_best_header:
-                    if proposed_block.lock().number < max_block_num {
+                    if prev_best_number < max_block_num {
                         let reduced_header = reduce_header_to_num(client.clone(), new_best_header.clone(), max_block_num);
-                        *proposed_block.lock() = AlephData::new(reduced_header.hash(), *reduced_header.number());
+                        *proposed_block.lock().await = AlephData::new(reduced_header.hash(), *reduced_header.number());
                     } else {
                         let reduced_header = reduce_header_to_num(client.clone(), new_best_header.clone(), prev_best_number);
                         if reduced_header.hash() != prev_best_hash {
                             // the new best block is not a descendant of previous best
                             let reduced_header = reduce_header_to_num(client.clone(), new_best_header.clone(), max_block_num);
-                            *proposed_block.lock() = AlephData::new(reduced_header.hash(), *reduced_header.number());
+                            *proposed_block.lock().await = AlephData::new(reduced_header.hash(), *reduced_header.number());
                         }
                     }
                 }
@@ -417,7 +420,7 @@ pub(crate) async fn refresh_best_chain<B, BE, SC, C>(
 #[async_trait]
 impl<B: BlockT> aleph_bft::DataProvider<AlephDataFor<B>> for DataProvider<B> {
     async fn get_data(&mut self) -> AlephDataFor<B> {
-        let best = *self.proposed_block.lock();
+        let best = *self.proposed_block.lock().await;
 
         if let Some(m) = &self.metrics {
             m.report_block(best.hash, std::time::Instant::now(), Checkpoint::Ordering);

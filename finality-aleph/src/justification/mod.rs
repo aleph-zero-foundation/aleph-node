@@ -32,19 +32,9 @@ pub struct SessionInfo<B: BlockT, V: Verifier<B>> {
 }
 
 /// Returns `SessionInfo` for the session regarding block with no. `number`.
+#[async_trait::async_trait]
 pub trait SessionInfoProvider<B: BlockT, V: Verifier<B>> {
-    fn for_block_num(&self, number: NumberFor<B>) -> SessionInfo<B, V>;
-}
-
-impl<F, B, V> SessionInfoProvider<B, V> for F
-where
-    B: BlockT,
-    V: Verifier<B>,
-    F: Fn(NumberFor<B>) -> SessionInfo<B, V>,
-{
-    fn for_block_num(&self, number: NumberFor<B>) -> SessionInfo<B, V> {
-        self(number)
-    }
+    async fn for_block_num(&self, number: NumberFor<B>) -> SessionInfo<B, V>;
 }
 
 /// A notification for sending justifications over the network.

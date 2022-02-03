@@ -1,6 +1,9 @@
 use crate::network::{Network, NetworkEventStream, NetworkSender, PeerId};
 use async_trait::async_trait;
-use futures::channel::{mpsc, oneshot};
+use futures::{
+    channel::{mpsc, oneshot},
+    StreamExt,
+};
 use parking_lot::Mutex;
 use sc_network::{Event, Multiaddr};
 use std::{
@@ -10,14 +13,30 @@ use std::{
     sync::Arc,
 };
 
-type Channel<T> = (
-    Arc<Mutex<mpsc::UnboundedSender<T>>>,
-    Arc<Mutex<mpsc::UnboundedReceiver<T>>>,
+#[derive(Clone)]
+pub struct Channel<T>(
+    pub mpsc::UnboundedSender<T>,
+    pub Arc<tokio::sync::Mutex<mpsc::UnboundedReceiver<T>>>,
 );
 
-fn channel<T>() -> Channel<T> {
-    let (tx, rx) = mpsc::unbounded();
-    (Arc::new(Mutex::new(tx)), Arc::new(Mutex::new(rx)))
+impl<T> Channel<T> {
+    fn new() -> Self {
+        let (tx, rx) = mpsc::unbounded();
+        Channel(tx, Arc::new(tokio::sync::Mutex::new(rx)))
+    }
+
+    fn send(&self, msg: T) {
+        self.0.unbounded_send(msg).unwrap();
+    }
+
+    pub async fn next(&mut self) -> Option<T> {
+        self.1.lock().await.next().await
+    }
+
+    async fn close(self) {
+        self.0.close_channel();
+        assert!(self.1.lock().await.try_next().unwrap().is_none());
+    }
 }
 
 pub struct MockNetworkSender {
@@ -96,7 +115,7 @@ impl Network for MockNetwork {
             .map_or(Ok(()), Err)?;
         let error = self.send_errors.lock().pop_front().map_or(Ok(()), Err);
         Ok(MockNetworkSender {
-            sender: self.send_message.0.lock().clone(),
+            sender: self.send_message.0.clone(),
             peer_id,
             protocol,
             error,
@@ -104,28 +123,20 @@ impl Network for MockNetwork {
     }
 
     fn add_reserved(&self, addresses: HashSet<Multiaddr>, protocol: Cow<'static, str>) {
-        self.add_reserved
-            .0
-            .lock()
-            .unbounded_send((addresses, protocol))
-            .unwrap();
+        self.add_reserved.send((addresses, protocol));
     }
 
     fn remove_reserved(&self, peers: HashSet<PeerId>, protocol: Cow<'static, str>) {
-        self.remove_reserved
-            .0
-            .lock()
-            .unbounded_send((peers, protocol))
-            .unwrap();
+        self.remove_reserved.send((peers, protocol));
     }
 }
 
 impl MockNetwork {
     pub fn new(oneshot_sender: oneshot::Sender<()>) -> Self {
         MockNetwork {
-            add_reserved: channel(),
-            remove_reserved: channel(),
-            send_message: channel(),
+            add_reserved: Channel::new(),
+            remove_reserved: Channel::new(),
+            send_message: Channel::new(),
             event_sinks: Arc::new(Mutex::new(vec![])),
             event_stream_taken_oneshot: Arc::new(Mutex::new(Some(oneshot_sender))),
             create_sender_errors: Arc::new(Mutex::new(VecDeque::new())),
@@ -140,14 +151,10 @@ impl MockNetwork {
     }
 
     // Consumes the network asserting there are no unreceived messages in the channels.
-    pub fn close_channels(self) {
+    pub async fn close_channels(self) {
         self.event_sinks.lock().clear();
-
-        self.add_reserved.0.lock().close_channel();
-        assert!(self.add_reserved.1.lock().try_next().unwrap().is_none());
-        self.remove_reserved.0.lock().close_channel();
-        assert!(self.remove_reserved.1.lock().try_next().unwrap().is_none());
-        self.send_message.0.lock().close_channel();
-        assert!(self.send_message.1.lock().try_next().unwrap().is_none());
+        self.add_reserved.close().await;
+        self.remove_reserved.close().await;
+        self.send_message.close().await;
     }
 }

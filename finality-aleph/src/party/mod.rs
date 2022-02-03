@@ -28,7 +28,6 @@ use futures::channel::mpsc;
 use log::{debug, error, info, trace, warn};
 
 use codec::Encode;
-use parking_lot::Mutex;
 use sc_client_api::{Backend, HeaderBackend};
 use sc_network::ExHashT;
 use sp_api::{BlockId, NumberFor};
@@ -44,6 +43,7 @@ use std::{
     sync::Arc,
     time::Duration,
 };
+use tokio::sync::Mutex;
 
 mod task;
 use task::{Handle, Task};
@@ -72,15 +72,32 @@ impl<B: Block> Verifier<B> for AuthorityVerifier {
     }
 }
 
-fn get_session_info_provider<B: Block>(
+struct SessionInfoProviderImpl {
     session_authorities: Arc<Mutex<HashMap<SessionId, Vec<AuthorityId>>>>,
     session_period: SessionPeriod,
-) -> impl SessionInfoProvider<B, AuthorityVerifier> {
-    move |block_num| {
-        let current_session = session_id_from_block_num::<B>(block_num, session_period);
-        let last_block_height = last_block_of_session::<B>(current_session, session_period);
-        let verifier = session_authorities
+}
+
+impl SessionInfoProviderImpl {
+    fn new(
+        session_authorities: Arc<Mutex<HashMap<SessionId, Vec<AuthorityId>>>>,
+        session_period: SessionPeriod,
+    ) -> Self {
+        Self {
+            session_authorities,
+            session_period,
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl<B: Block> SessionInfoProvider<B, AuthorityVerifier> for SessionInfoProviderImpl {
+    async fn for_block_num(&self, number: NumberFor<B>) -> SessionInfo<B, AuthorityVerifier> {
+        let current_session = session_id_from_block_num::<B>(number, self.session_period);
+        let last_block_height = last_block_of_session::<B>(current_session, self.session_period);
+        let verifier = self
+            .session_authorities
             .lock()
+            .await
             .get(&current_session)
             .map(|sa: &Vec<AuthorityId>| AuthorityVerifier::new(sa.to_vec()));
 
@@ -127,7 +144,7 @@ where
     let justification_handler_config = Default::default();
 
     let handler = JustificationHandler::new(
-        get_session_info_provider(session_authorities.clone(), session_period),
+        SessionInfoProviderImpl::new(session_authorities.clone(), session_period),
         block_requester.clone(),
         client.clone(),
         AlephFinalizer::new(client.clone()),
@@ -220,7 +237,7 @@ where
     RB: RequestBlocks<B> + 'static,
     V: Verifier<B> + Send + 'static,
     S: JustificationRequestScheduler + Send + 'static,
-    SI: SessionInfoProvider<B, V> + Send + 'static,
+    SI: SessionInfoProvider<B, V> + Send + Sync + 'static,
     F: BlockFinalizer<B> + Send + 'static,
 {
     let (authority_justification_tx, authority_justification_rx) = mpsc::unbounded();
@@ -430,7 +447,7 @@ where
 
     /// Returns authorities for a given session or None if the first block of this session is
     /// higher than the highest finalized block
-    fn updated_authorities_for_session(
+    async fn updated_authorities_for_session(
         &mut self,
         session_id: SessionId,
     ) -> Option<Vec<AuthorityId>> {
@@ -447,6 +464,7 @@ where
         Some(
             self.session_authorities
                 .lock()
+                .await
                 .entry(session_id)
                 .or_insert_with(|| {
                     get_authorities_for_session::<_, C>(
@@ -462,6 +480,7 @@ where
     async fn run_session(&mut self, session_id: SessionId) {
         let authorities = self
             .updated_authorities_for_session(session_id)
+            .await
             .expect("We should know authorities for the session we are starting");
         let last_block = last_block_of_session::<B>(session_id, self.session_period);
 
@@ -519,7 +538,7 @@ where
                 } => {
                     let next_session_id = SessionId(session_id.0 + 1);
                     if let Some(next_session_authorities) =
-                        self.updated_authorities_for_session(next_session_id)
+                        self.updated_authorities_for_session(next_session_id).await
                     {
                         let authority_verifier = AuthorityVerifier::new(next_session_authorities.clone());
                         match get_node_index(&authorities, self.keystore.clone()).await {
@@ -576,12 +595,13 @@ where
         }
     }
 
-    fn prune_session_data(&self, prune_below: SessionId) {
+    async fn prune_session_data(&self, prune_below: SessionId) {
         // In this method we make sure that the amount of data we keep in RAM in finality-aleph
         // does not grow with the size of the blockchain.
         debug!(target: "afa", "Pruning session data below {:?}.", prune_below);
         self.session_authorities
             .lock()
+            .await
             .retain(|&s, _| s >= prune_below);
     }
 
@@ -593,7 +613,7 @@ where
             info!(target: "afa", "Running session {:?}.", curr_id);
             self.run_session(SessionId(curr_id)).await;
             if curr_id >= 10 && curr_id % 10 == 0 {
-                self.prune_session_data(SessionId(curr_id - 10));
+                self.prune_session_data(SessionId(curr_id - 10)).await;
             }
         }
     }

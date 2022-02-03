@@ -5,12 +5,12 @@ use crate::{
 use aleph_bft::SpawnHandle;
 use futures::channel::oneshot;
 use log::debug;
-use parking_lot::Mutex;
 use sc_client_api::Backend;
 use sp_api::NumberFor;
 use sp_consensus::SelectChain;
 use sp_runtime::traits::Block;
 use std::sync::Arc;
+use tokio::sync::Mutex;
 
 /// Runs the latest block refresher within a single session.
 pub fn task<B, BE, SC, C>(

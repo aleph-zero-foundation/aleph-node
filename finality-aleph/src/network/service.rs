@@ -324,7 +324,7 @@ mod tests {
         async fn cleanup(self) {
             self.exit_tx.send(()).unwrap();
             self.service_handle.await.unwrap();
-            self.network.close_channels();
+            self.network.close_channels().await;
         }
 
         // We do this only to make sure that NotificationStreamOpened/NotificationStreamClosed events are handled
@@ -337,8 +337,6 @@ mod tests {
             assert_eq!(
                 self.network
                     .add_reserved
-                    .1
-                    .lock()
                     .next()
                     .await
                     .expect("Should receive message"),
@@ -369,8 +367,6 @@ mod tests {
             test_data
                 .network
                 .add_reserved
-                .1
-                .lock()
                 .next()
                 .await
                 .expect("Should receive message"),
@@ -399,8 +395,6 @@ mod tests {
             test_data
                 .network
                 .remove_reserved
-                .1
-                .lock()
                 .next()
                 .await
                 .expect("Should receive message"),
@@ -445,6 +439,7 @@ mod tests {
                 .send_message
                 .1
                 .lock()
+                .await
                 .by_ref()
                 .take(identities.len())
                 .collect::<Vec<_>>()
@@ -516,6 +511,7 @@ mod tests {
                 .send_message
                 .1
                 .lock()
+                .await
                 .by_ref()
                 .take(opened_authorities_n * messages.len())
                 .collect::<Vec<_>>()
@@ -576,8 +572,6 @@ mod tests {
             test_data
                 .network
                 .send_message
-                .1
-                .lock()
                 .next()
                 .await
                 .expect("Should receive message"),
@@ -638,8 +632,6 @@ mod tests {
             test_data
                 .network
                 .send_message
-                .1
-                .lock()
                 .next()
                 .await
                 .expect("Should receive message"),
@@ -699,6 +691,7 @@ mod tests {
                 .send_message
                 .1
                 .lock()
+                .await
                 .by_ref()
                 .take(all_authorities_n - closed_authorities_n)
                 .collect::<Vec<_>>()
@@ -770,8 +763,6 @@ mod tests {
             test_data
                 .network
                 .send_message
-                .1
-                .lock()
                 .next()
                 .await
                 .expect("Should receive message"),
@@ -831,6 +822,7 @@ mod tests {
                 .send_message
                 .1
                 .lock()
+                .await
                 .by_ref()
                 .take(all_authorities_n - closed_authorities_n)
                 .collect::<Vec<_>>()
@@ -891,7 +883,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_command_add_reserved() {
-        let test_data = TestData::prepare().await;
+        let mut test_data = TestData::prepare().await;
 
         let identity = MockNetworkIdentity::new().identity();
 
@@ -912,8 +904,6 @@ mod tests {
             test_data
                 .network
                 .add_reserved
-                .1
-                .lock()
                 .next()
                 .await
                 .expect("Should receive message"),
@@ -925,7 +915,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_command_remove_reserved() {
-        let test_data = TestData::prepare().await;
+        let mut test_data = TestData::prepare().await;
 
         let identity = MockNetworkIdentity::new().identity();
 
@@ -946,8 +936,6 @@ mod tests {
             test_data
                 .network
                 .remove_reserved
-                .1
-                .lock()
                 .next()
                 .await
                 .expect("Should receive message"),
