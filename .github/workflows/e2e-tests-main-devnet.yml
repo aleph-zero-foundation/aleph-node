@@ -4,13 +4,11 @@ on:
   pull_request:
     paths-ignore:
       - '*.md'
-      - '.github/workflows/**'
     branches:
       - main
   push:
     paths-ignore:
       - '*.md'
-      - '.github/workflows/**'
     branches:
       - main
 
@@ -170,32 +168,28 @@ jobs:
       - name: Run e2e test suite
         shell: bash
         timeout-minutes: 10
-        run: |
-          ./.github/scripts/run_e2e_tests.sh
+        run: ./.github/scripts/run_e2e_tests.sh
 
 
   push-image:
     needs: [run-e2e-tests]
     name: Push node image to the ECR repository
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: GIT | Checkout Source code
-        if: github.event_name == 'push'
         uses: actions/checkout@v2
 
       - name: Download artifact with docker image
-        if: github.event_name == 'push'
         uses: actions/download-artifact@v2
         with:
           name: aleph-docker
 
       - name: Load node docker image
-        if: github.event_name == 'push'
         shell: bash
         run: docker load -i aleph-node.tar
 
       - name: Configure AWS credentials
-        if: github.event_name == 'push'
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
@@ -203,7 +197,6 @@ jobs:
           aws-region: eu-central-1
 
       - name: Login to Public Amazon ECR
-        if: github.event_name == 'push'
         id: login-public-ecr
         uses: docker/login-action@v1
         with:
@@ -221,7 +214,6 @@ jobs:
           echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
 
       - name: Push aleph-node Current Image to Public ECR
-        if: github.event_name == 'push'
         env:
           CURRENT_IMAGE: aleph-node:latest
           ECR_PUSH_IMAGE: public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.vars.outputs.sha_short }}
@@ -230,7 +222,6 @@ jobs:
           docker push ${{ env.ECR_PUSH_IMAGE }}
 
       - name: Send Slack Notification
-        if: github.event_name == 'push'
         uses: rtCamp/action-slack-notify@v2
         continue-on-error: true
         env:

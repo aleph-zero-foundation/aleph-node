@@ -2,8 +2,6 @@ name: Sync Cardinal-Cryptography repo with Aleph-Zero-Foundation repo
 
 on:
   push:
-    paths-ignore:
-      - ".github/workflows/**"
     branches: [main]
 
 jobs:
