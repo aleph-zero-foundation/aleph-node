@@ -7,10 +7,6 @@ on:
         description: 'The `ref` argument for `actions/checkout@v2`'
         required: false
         type: string
-      rust-toolchain-version:
-        description: 'Rust toolchain version'
-        required: true
-        type: string
       artifact-prefix:
         description: 'A string that will be prepended to the artifact names'
         required: false
@@ -32,13 +28,9 @@ jobs:
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ inputs.rust-toolchain-version }}
-          override: true
 
       - name: Install WASM target
-        run: rustup target add wasm32-unknown-unknown --toolchain "${{ inputs.rust-toolchain-version }}"
+        run: rustup target add wasm32-unknown-unknown
 
       - name: Restore cache
         uses: ./.github/actions/restore-cache

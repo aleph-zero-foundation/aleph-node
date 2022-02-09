@@ -20,8 +20,6 @@ jobs:
   build-new-node:
     name: Build node and runtime artifacts (PR version)
     uses: Cardinal-Cryptography/aleph-node/.github/workflows/build-node-and-runtime.yml@main
-    with:
-      rust-toolchain-version: 'nightly-2021-10-24'
 
 
   build-docker:
@@ -59,7 +57,6 @@ jobs:
     name: Verify runtime build determinism
     runs-on: ubuntu-latest
     env:
-      RUST_TOOLCHAIN_VERSION: nightly-2021-10-24
       RUST_BACKTRACE: full
     steps:
       - name: Checkout Source code
@@ -67,13 +64,9 @@ jobs:
 
       - name: Install Rust Toolchain
         uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
-          override: true
 
       - name: Install WASM target
-        run: rustup target add wasm32-unknown-unknown --toolchain "$RUST_TOOLCHAIN_VERSION"
+        run: rustup target add wasm32-unknown-unknown
 
       - name: Download artifact
         uses: actions/download-artifact@v2
@@ -97,7 +90,6 @@ jobs:
     name: Build e2e test client suite
     runs-on: ubuntu-latest
     env:
-      RUST_TOOLCHAIN_VERSION: nightly-2021-10-24
       RUST_BACKTRACE: full
     steps:
       - name: Checkout Source code
@@ -105,10 +97,7 @@ jobs:
 
       - name: Install Rust Toolchain
         uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
-          override: true
+
       - name: Restore cache
         uses: ./.github/actions/restore-cache
         with:
@@ -260,7 +249,6 @@ jobs:
     if: ${{ needs.check-runtime-change.outputs.runtime-updated != 0 }}
     uses: Cardinal-Cryptography/aleph-node/.github/workflows/build-node-and-runtime.yml@main
     with:
-      rust-toolchain-version: 'nightly-2021-10-24'
       ref: 'main'
       artifact-prefix: 'old-'
 
@@ -269,8 +257,6 @@ jobs:
     name: Test runtime update
     runs-on: ubuntu-latest
     needs: [build-old-node, build-new-node]
-    env:
-      RUST_TOOLCHAIN_VERSION: nightly-2021-10-24
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -279,10 +265,6 @@ jobs:
 
       - name: Install rust toolchain
         uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
-          override: true
 
       - name: Restore cache
         uses: ./.github/actions/restore-cache

@@ -16,7 +16,6 @@ jobs:
     name: Save send-runtime binary as an artifact
     runs-on: ubuntu-latest
     env:
-      RUST_TOOLCHAIN_VERSION: nightly-2021-10-24
       CARGO_INCREMENTAL: 0
     steps:
       - name: Checkout source code
@@ -29,15 +28,8 @@ jobs:
           echo "##[set-output name=branch;]$(echo ${GITHUB_REF##*/})"
           echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
 
-      - name: Print toolchain version
-        run: echo running with "$RUST_TOOLCHAIN_VERSION"
-
       - name: Install rust toolchain
         uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
-          override: true
 
       - name: Build binary
         run: |

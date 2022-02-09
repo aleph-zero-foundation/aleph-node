@@ -1,6 +1,6 @@
 name: unit-tests
 
-on: 
+on:
   pull_request
 
 concurrency:
@@ -12,26 +12,20 @@ jobs:
     name: Run check, test and lints
     runs-on: ubuntu-latest
     env:
-      RUST_TOOLCHAIN_VERSION: nightly-2021-10-24
       CARGO_INCREMENTAL: 0
     steps:
       - name: Checkout Source code
         uses: actions/checkout@v2
 
-      - name: Print Toolchain Version
-        run: echo running with "$RUST_TOOLCHAIN_VERSION"
-
       - name: Install Rust Toolchain
         uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
-          override: true
-          components: rustfmt, clippy
+
+      - name: Install clippy and fmt
+        run: rustup component add clippy rustfmt
 
       - name: Install WASM target
-        run: rustup target add wasm32-unknown-unknown --toolchain "$RUST_TOOLCHAIN_VERSION"
-
+        run: rustup target add wasm32-unknown-unknown
+        
       - name: Restore cache
         uses: ./.github/actions/restore-cache
 
@@ -50,11 +44,6 @@ jobs:
         with:
           command: clippy
           args: -- --no-deps -D warnings
-
-      - name: Run Check
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
 
       - name: Stop cache
         uses: ./.github/actions/post-cache

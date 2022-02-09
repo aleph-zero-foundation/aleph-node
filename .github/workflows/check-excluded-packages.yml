@@ -12,21 +12,13 @@ jobs:
     name: Check excluded packages
     runs-on: ubuntu-latest
     env:
-      RUST_TOOLCHAIN_VERSION: nightly-2021-10-24
       CARGO_INCREMENTAL: 0
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
 
-      - name: Print toolchain version
-        run: echo running with "$RUST_TOOLCHAIN_VERSION"
-
       - name: Install rust toolchain
         uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ env.RUST_TOOLCHAIN_VERSION }}
-          override: true
 
       - name: Read excluded packages from Cargo.toml
         id: read_excluded
