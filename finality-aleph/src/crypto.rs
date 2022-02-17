@@ -10,7 +10,7 @@ use std::{convert::TryInto, sync::Arc};
 
 #[derive(Debug)]
 pub enum Error {
-    KeyMissing,
+    KeyMissing(AuthorityId),
     Keystore(KeystoreError),
     Conversion,
 }
@@ -47,7 +47,7 @@ impl AuthorityPen {
             .sign_with(KEY_TYPE, &authority_id.clone().into(), b"test")
             .await
             .map_err(Error::Keystore)?
-            .ok_or(Error::KeyMissing)?
+            .ok_or_else(|| Error::KeyMissing(authority_id.clone()))?
             .try_into()
             .map_err(|_| Error::Conversion)?;
         Ok(AuthorityPen {

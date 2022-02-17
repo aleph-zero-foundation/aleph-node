@@ -541,7 +541,7 @@ where
                         self.updated_authorities_for_session(next_session_id).await
                     {
                         let authority_verifier = AuthorityVerifier::new(next_session_authorities.clone());
-                        match get_node_index(&authorities, self.keystore.clone()).await {
+                        match get_node_index(&next_session_authorities, self.keystore.clone()).await {
                             Some(node_id) => {
                                 let authority_pen = AuthorityPen::new(
                                     next_session_authorities[node_id.0].clone(),
