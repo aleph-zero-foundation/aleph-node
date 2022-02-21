@@ -1,8 +1,9 @@
 use clap::Parser;
+use futures::stream::{self, StreamExt};
 use serde_json::Value;
 use std::fs::{self, File};
 use std::io::{ErrorKind, Write};
-use substrate_api_client::extrinsic::log::info;
+use substrate_api_client::extrinsic::log::{debug, info};
 
 #[derive(Debug, Parser)]
 #[clap(version = "1.0")]
@@ -21,7 +22,13 @@ pub struct Config {
     pub write_to_path: String,
 
     /// which modules to set in forked spec
-    #[clap(long, default_value = "Aura, Aleph")]
+    #[clap(
+        long,
+        multiple_occurrences = true,
+        takes_value = true,
+        value_delimiter = ',',
+        default_value = "Aura,Aleph"
+    )]
     pub prefixes: Vec<String>,
 }
 
@@ -36,63 +43,98 @@ async fn main() -> anyhow::Result<()> {
 
     env_logger::init();
 
-    info!(
-        "Running with config: \n\thttp_rpc_endpoint {}\n \tfork_spec_path: {}\n \twrite_to_path{}",
-        http_rpc_endpoint, fork_spec_path, write_to_path
+    info!(target: "fork",
+        "Running with config: \n\thttp_rpc_endpoint {}\n \tfork_spec_path: {}\n \twrite_to_path: {}\n \tprefixes: {:?}",
+        &http_rpc_endpoint, &fork_spec_path, &write_to_path, &prefixes
     );
 
     let mut fork_spec: Value = serde_json::from_str(
         &fs::read_to_string(&fork_spec_path).expect("Could not read chainspec file"),
     )?;
 
-    let storage = get_chain_state(http_rpc_endpoint).await;
-
-    info!("Succesfully retrieved chain state");
-
-    // move the desired storage values from the snapshot of the chain to the forked chain genesis spec
-    info!(
-        "Looking for the following storage items to be moved to the fork: {:?}",
-        prefixes
-    );
-
-    storage
+    let hashed_prefixes = prefixes
         .iter()
-        .filter(|pair| {
-            prefixes
-                .iter()
-                .map(|p| prefix_as_hex(p))
-                .chain(vec!["0x3a636f6465".to_string()])
-                .any(|prefix| {
-                    let pair = pair.as_array().unwrap();
-                    let storage_key = pair[0].as_str().unwrap();
-                    storage_key.starts_with(&format!("0x{}", prefix_as_hex(&prefix)))
-                })
+        .map(|prefix| {
+            let hash = format!("0x{}", prefix_as_hex(prefix));
+            info!(target: "fork", "prefix: {}, hash: {}", prefix, hash);
+            hash
         })
-        .for_each(|pair| {
-            let pair = pair.as_array().unwrap();
-            let k = &pair[0].as_str().unwrap();
-            let v = &pair[1];
-            info!("Moving {} to the fork", k);
-            fork_spec["genesis"]["raw"]["top"][k] = v.to_owned();
-        });
+        .chain([format!("0x{}", hex::encode(":code"))])
+        .collect::<Vec<String>>();
+
+    let storage = get_chain_state(&http_rpc_endpoint, &hashed_prefixes).await;
+
+    info!("Succesfully retrieved chain state {:?}", storage);
+
+    storage.into_iter().for_each(|(key, value)| {
+        info!(target: "fork","Moving {} to the fork", key);
+        fork_spec["genesis"]["raw"]["top"][key] = value.into();
+    });
 
     // write out the fork spec
     let json = serde_json::to_string(&fork_spec)?;
-    info!("Writing forked chain spec to {}", &write_to_path);
+    info!(target: "fork", "Writing forked chain spec to {}", &write_to_path);
     write_to_file(write_to_path, json.as_bytes());
 
     info!("Done!");
     Ok(())
 }
 
-async fn get_chain_state(http_rpc_endpoint: String) -> Vec<Value> {
-    let storage: Value = reqwest::Client::new()
+async fn get_key(http_rpc_endpoint: &str, key: &str, start_key: Option<&str>) -> Option<String> {
+    let body = match start_key {
+        Some(start_key) => {
+            serde_json::json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "state_getKeysPaged",
+                "params": [ key, 1, start_key ]
+            })
+        }
+        None => serde_json::json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "state_getKeysPaged",
+            "params": [ key, 1 ]
+        }),
+    };
+
+    let response: Value = reqwest::Client::new()
+        .post(http_rpc_endpoint)
+        .json(&body)
+        .send()
+        .await
+        .expect("Storage request has failed")
+        .json()
+        .await
+        .expect("Could not deserialize response as JSON");
+
+    debug!(target: "fork", "get_key response: {}", response);
+
+    let result = response["result"]
+        .as_array()
+        .expect("No result in response");
+
+    if !result.is_empty() {
+        return Some(
+            result
+                .first()
+                .expect("No key in result")
+                .as_str()
+                .expect("Not a string")
+                .to_owned(),
+        );
+    }
+    None
+}
+
+async fn get_value(http_rpc_endpoint: &str, key: &str) -> String {
+    let response: Value = reqwest::Client::new()
         .post(http_rpc_endpoint)
         .json(&serde_json::json!({
             "jsonrpc": "2.0",
-            "id": 1,
-            "method": "state_getPairs",
-            "params": ["0x"]
+            "id": 2,
+            "method": "state_getStorage",
+            "params": [ &key ]
         }))
         .send()
         .await
@@ -101,10 +143,37 @@ async fn get_chain_state(http_rpc_endpoint: String) -> Vec<Value> {
         .await
         .expect("Could not deserialize response as JSON");
 
-    storage["result"]
-        .as_array()
-        .expect("No result in response")
+    debug!(target: "fork", "get_value response: {}", response);
+
+    response["result"]
+        .as_str()
+        .expect("Not a string")
         .to_owned()
+}
+
+async fn get_chain_state(
+    http_rpc_endpoint: &str,
+    hashed_prefixes: &[String],
+) -> Vec<(String, String)> {
+    stream::iter(hashed_prefixes.to_owned())
+        .then(|prefix| async move {
+            // collect storage pairs for this prefix
+            let mut pairs = vec![];
+            let mut first_key = get_key(http_rpc_endpoint, &prefix, None).await;
+            debug!(target: "fork", "hashed prefix: {}, first key: {:?}", &prefix, &first_key);
+
+            while let Some(key) = first_key {
+                let value = get_value(http_rpc_endpoint, &key).await;
+                pairs.push((key.clone(), value));
+                first_key = get_key(http_rpc_endpoint, &prefix, Some(&key)).await;
+                debug!(target: "fork", "hashed prefix: {}, next key: {:?}", &prefix, &first_key);
+            }
+
+            stream::iter(pairs)
+        })
+        .flatten()
+        .collect()
+        .await
 }
 
 fn write_to_file(write_to_path: String, data: &[u8]) {
