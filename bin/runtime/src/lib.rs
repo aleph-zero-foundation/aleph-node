@@ -123,10 +123,14 @@ pub const MILLISECS_PER_BLOCK: u64 = 1000;
 
 pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
 
-// Time is measured by number of blocks.
-pub const MINUTES: BlockNumber = 60_000 / (MILLISECS_PER_BLOCK as BlockNumber);
-pub const HOURS: BlockNumber = MINUTES * 60;
-pub const DAYS: BlockNumber = HOURS * 24;
+pub const MILLISECS_PER_MINUTE: u64 = 60_000; // milliseconds
+pub const MILLISECS_PER_HOUR: u64 = MILLISECS_PER_MINUTE * 60;
+pub const MILLISECS_PER_DAY: u64 = MILLISECS_PER_HOUR * 24;
+
+/// Get the number of blocks produced in the period given by `hours`
+pub fn hours_as_block_num(hours: u64) -> BlockNumber {
+    (MILLISECS_PER_HOUR * hours / Aleph::millisecs_per_block()) as BlockNumber
+}
 
 /// The version information used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
@@ -453,7 +457,9 @@ pub const TREASURY_PROPOSAL_BOND: u32 = 0;
 // The proposer should deposit max{`TREASURY_PROPOSAL_BOND`% of the proposal value, $10}.
 pub const TREASURY_MINIMUM_BOND: Balance = 1000 * CENTS;
 // Every 4h we implement accepted proposals.
-pub const TREASURY_SPEND_PERIOD: BlockNumber = 4 * HOURS;
+pub fn treasury_spend_period() -> BlockNumber {
+    hours_as_block_num(4)
+}
 // We allow at most 20 approvals in the queue at once.
 pub const TREASURY_MAX_APPROVALS: u32 = 20;
 
@@ -462,7 +468,7 @@ parameter_types! {
     pub const ProposalBond: Permill = Permill::from_percent(TREASURY_PROPOSAL_BOND);
     pub const ProposalBondMinimum: Balance = TREASURY_MINIMUM_BOND;
     pub const MaxApprovals: u32 = TREASURY_MAX_APPROVALS;
-    pub const SpendPeriod: BlockNumber = TREASURY_SPEND_PERIOD;
+    pub SpendPeriod: BlockNumber = treasury_spend_period();
     pub const TreasuryPalletId: PalletId = PalletId(*b"a0/trsry");
 }
 
