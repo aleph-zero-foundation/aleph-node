@@ -78,14 +78,12 @@ async fn forward_or_wait<
 ) -> bool {
     match receiver.lock().await.next().await {
         Some(Split::Left(data)) => {
-            trace!(target: "aleph-network", "Forwarding left data");
             if left_sender.unbounded_send(data).is_err() {
                 warn!(target: "aleph-network", "Failed send despite controlling receiver, this shouldn't've happened.");
             }
             true
         }
         Some(Split::Right(data)) => {
-            trace!(target: "aleph-network", "Forwarding right data");
             if right_sender.unbounded_send(data).is_err() {
                 warn!(target: "aleph-network", "Failed send despite controlling receiver, this shouldn't've happened.");
             }

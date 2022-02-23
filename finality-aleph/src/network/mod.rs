@@ -5,7 +5,7 @@ use futures::stream::Stream;
 use sc_network::{Event, Multiaddr, PeerId as ScPeerId};
 use sp_api::NumberFor;
 use sp_runtime::traits::Block;
-use std::{borrow::Cow, collections::HashSet, pin::Pin};
+use std::{borrow::Cow, collections::HashSet, convert::TryFrom, pin::Pin};
 
 mod aleph;
 mod component;
@@ -25,7 +25,7 @@ pub use component::SimpleNetwork;
 pub use component::{
     Network as ComponentNetwork, Receiver as ReceiverComponent, Sender as SenderComponent,
 };
-pub use manager::{ConnectionIO, ConnectionManager, ConnectionManagerConfig};
+pub use manager::{get_peer_id, ConnectionIO, ConnectionManager, ConnectionManagerConfig};
 pub use rmc::NetworkData as RmcNetworkData;
 pub use service::{Service, IO};
 pub use session::{Manager as SessionManager, ManagerError, Network as SessionNetwork};
@@ -85,6 +85,18 @@ impl Protocol {
         match self {
             Generic => Cow::Borrowed(ALEPH_PROTOCOL_NAME),
             Validator => Cow::Borrowed(ALEPH_VALIDATOR_PROTOCOL_NAME),
+        }
+    }
+}
+
+impl TryFrom<&str> for Protocol {
+    type Error = &'static str;
+
+    fn try_from(item: &str) -> Result<Self, Self::Error> {
+        match item {
+            ALEPH_PROTOCOL_NAME => Ok(Protocol::Generic),
+            ALEPH_VALIDATOR_PROTOCOL_NAME => Ok(Protocol::Validator),
+            _ => Err("Unsupported conversion"),
         }
     }
 }

@@ -1,7 +1,7 @@
 use codec::{Decode, Encode};
 
 pub use aleph_bft::default_config as default_aleph_config;
-use aleph_bft::{NodeCount, NodeIndex, TaskHandle};
+use aleph_bft::{NodeIndex, TaskHandle};
 use futures::{channel::oneshot, Future, TryFutureExt};
 use sc_client_api::{backend::Backend, BlockchainEvents, Finalizer, LockImportRun, TransactionFor};
 use sc_consensus::BlockImport;

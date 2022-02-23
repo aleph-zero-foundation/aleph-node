@@ -9,6 +9,7 @@ use sc_service::SpawnTaskHandle;
 use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
+    convert::TryInto,
     future::Future,
     iter,
 };
@@ -25,8 +26,10 @@ pub struct Service<N: Network, D: Data> {
     messages_from_user: mpsc::UnboundedReceiver<(D, DataCommand)>,
     messages_for_user: mpsc::UnboundedSender<D>,
     commands_from_manager: mpsc::UnboundedReceiver<ConnectionCommand>,
-    connected_peers: HashSet<PeerId>,
-    peer_senders: HashMap<PeerId, mpsc::Sender<(D, Protocol)>>,
+    generic_connected_peers: HashSet<PeerId>,
+    validator_connected_peers: HashSet<PeerId>,
+    generic_peer_senders: HashMap<PeerId, mpsc::Sender<D>>,
+    validator_peer_senders: HashMap<PeerId, mpsc::Sender<D>>,
     spawn_handle: SpawnTaskHandle,
 }
 
@@ -52,6 +55,12 @@ impl<D: Data> IO<D> {
 }
 const PEER_BUFFER_SIZE: usize = 100;
 
+#[derive(Debug)]
+enum SendError {
+    MissingSender,
+    SendingFailed,
+}
+
 impl<N: Network, D: Data> Service<N, D> {
     pub fn new(network: N, spawn_handle: SpawnTaskHandle, io: IO<D>) -> Service<N, D> {
         let IO {
@@ -65,21 +74,31 @@ impl<N: Network, D: Data> Service<N, D> {
             messages_for_user,
             commands_from_manager,
             spawn_handle,
-            connected_peers: HashSet::new(),
-            peer_senders: HashMap::new(),
+            generic_connected_peers: HashSet::new(),
+            validator_connected_peers: HashSet::new(),
+            generic_peer_senders: HashMap::new(),
+            validator_peer_senders: HashMap::new(),
+        }
+    }
+
+    fn get_sender(&mut self, peer: &PeerId, protocol: Protocol) -> Option<&mut mpsc::Sender<D>> {
+        match protocol {
+            Protocol::Generic => self.generic_peer_senders.get_mut(peer),
+            Protocol::Validator => self.validator_peer_senders.get_mut(peer),
         }
     }
 
     fn peer_sender(
         &self,
         peer_id: PeerId,
-        mut receiver: mpsc::Receiver<(D, Protocol)>,
+        mut receiver: mpsc::Receiver<D>,
+        protocol: Protocol,
     ) -> impl Future<Output = ()> + Send + 'static {
         let network = self.network.clone();
         async move {
             let mut senders: HashMap<Cow<'static, str>, N::NetworkSender> = HashMap::new();
             loop {
-                if let Some((data, protocol)) = receiver.next().await {
+                if let Some(data) = receiver.next().await {
                     let sender = if let Some(sender) = senders.get(&protocol.name()) {
                         sender
                     } else {
@@ -103,26 +122,35 @@ impl<N: Network, D: Data> Service<N, D> {
         }
     }
 
-    fn send_to_peer(&mut self, data: D, peer: PeerId, protocol: Protocol) {
-        if let Some(sender) = self.peer_senders.get_mut(&peer) {
-            if let Err(e) = sender.try_send((data, protocol)) {
-                if e.is_full() {
-                    warn!(target: "aleph-network", "Failed sending data to peer because buffer is full: {:?}", peer);
-                }
-                // Receiver can also be dropped when thread cannot send to peer. In case receiver is dropped this entry will be removed by Event::NotificationStreamClosed
-                // No need to remove the entry here
-                if e.is_disconnected() {
-                    trace!(target: "aleph-network", "Failed sending data to peer because peer_sender receiver is dropped: {:?}", peer);
+    fn send_to_peer(&mut self, data: D, peer: PeerId, protocol: Protocol) -> Result<(), SendError> {
+        match self.get_sender(&peer, protocol) {
+            Some(sender) => {
+                match sender.try_send(data) {
+                    Err(e) => {
+                        if e.is_full() {
+                            warn!(target: "aleph-network", "Failed sending data to peer because buffer is full: {:?}", peer);
+                        }
+                        // Receiver can also be dropped when thread cannot send to peer. In case receiver is dropped this entry will be removed by Event::NotificationStreamClosed
+                        // No need to remove the entry here
+                        if e.is_disconnected() {
+                            trace!(target: "aleph-network", "Failed sending data to peer because peer_sender receiver is dropped: {:?}", peer);
+                        }
+                        Err(SendError::SendingFailed)
+                    }
+                    Ok(_) => Ok(()),
                 }
             }
+            None => Err(SendError::MissingSender),
         }
     }
 
     fn broadcast(&mut self, data: D) {
-        for peer in self.connected_peers.clone() {
+        for peer in self.generic_connected_peers.clone() {
             // We only broadcast authentication information in this sense, so we use the generic
             // Protocol.
-            self.send_to_peer(data.clone(), peer, Protocol::Generic);
+            if let Err(e) = self.send_to_peer(data.clone(), peer, Protocol::Generic) {
+                trace!(target: "aleph-network", "Failed to send broadcast to peer{:?}, {:?}", peer, e);
+            }
         }
     }
 
@@ -145,24 +173,48 @@ impl<N: Network, D: Data> Service<N, D> {
             }
             Event::NotificationStreamOpened {
                 remote, protocol, ..
-            } => {
-                if protocol == ALEPH_PROTOCOL_NAME {
-                    trace!(target: "aleph-network", "NotificationStreamOpened event for peer {:?}", remote);
+            } => match protocol.as_ref().try_into() {
+                Ok(Protocol::Generic) => {
+                    trace!(target: "aleph-network", "NotificationStreamOpened event for peer {:?} and protocol {:?}", remote, protocol);
                     let (tx, rx) = mpsc::channel(PEER_BUFFER_SIZE);
                     self.spawn_handle.spawn(
                         "aleph/network/peer_sender",
                         None,
-                        self.peer_sender(remote.into(), rx),
+                        self.peer_sender(remote.into(), rx, Protocol::Generic),
                     );
-                    self.connected_peers.insert(remote.into());
-                    self.peer_senders.insert(remote.into(), tx);
+                    self.generic_connected_peers.insert(remote.into());
+                    self.generic_peer_senders.insert(remote.into(), tx);
                 }
-            }
+                Ok(Protocol::Validator) => {
+                    trace!(target: "aleph-network", "NotificationStreamOpened event for peer {:?} and protocol {:?}", remote, protocol);
+                    let (tx, rx) = mpsc::channel(PEER_BUFFER_SIZE);
+                    self.spawn_handle.spawn(
+                        "aleph/network/peer_sender",
+                        None,
+                        self.peer_sender(remote.into(), rx, Protocol::Validator),
+                    );
+                    self.validator_connected_peers.insert(remote.into());
+                    self.validator_peer_senders.insert(remote.into(), tx);
+                }
+                Err(_) => {
+                    //Other protocols are irrelevant to us
+                }
+            },
             Event::NotificationStreamClosed { remote, protocol } => {
-                if protocol == ALEPH_PROTOCOL_NAME {
-                    trace!(target: "aleph-network", "NotificationStreamClosed event for peer {:?}", remote);
-                    self.connected_peers.remove(&remote.into());
-                    self.peer_senders.remove(&remote.into());
+                match protocol.as_ref().try_into() {
+                    Ok(Protocol::Generic) => {
+                        trace!(target: "aleph-network", "NotificationStreamClosed event for peer {:?} and protocol {:?}", remote, protocol);
+                        self.generic_connected_peers.remove(&remote.into());
+                        self.generic_peer_senders.remove(&remote.into());
+                    }
+                    Ok(Protocol::Validator) => {
+                        trace!(target: "aleph-network", "NotificationStreamClosed event for peer {:?} and protocol {:?}", remote, protocol);
+                        self.validator_connected_peers.remove(&remote.into());
+                        self.validator_peer_senders.remove(&remote.into());
+                    }
+                    Err(_) => {
+                        //Other protocols are irrelevant to us
+                    }
                 }
             }
             Event::NotificationsReceived {
@@ -190,9 +242,10 @@ impl<N: Network, D: Data> Service<N, D> {
     fn on_manager_command(&self, command: ConnectionCommand) {
         use ConnectionCommand::*;
         match command {
-            AddReserved(addresses) => self
-                .network
-                .add_reserved(addresses, Cow::Borrowed(ALEPH_VALIDATOR_PROTOCOL_NAME)),
+            AddReserved(addresses) => {
+                self.network
+                    .add_reserved(addresses, Cow::Borrowed(ALEPH_VALIDATOR_PROTOCOL_NAME));
+            }
             DelReserved(peers) => self
                 .network
                 .remove_reserved(peers, Cow::Borrowed(ALEPH_VALIDATOR_PROTOCOL_NAME)),
@@ -203,7 +256,11 @@ impl<N: Network, D: Data> Service<N, D> {
         use DataCommand::*;
         match command {
             Broadcast => self.broadcast(data),
-            SendTo(peer, protocol) => self.send_to_peer(data, peer, protocol),
+            SendTo(peer, protocol) => {
+                if let Err(e) = self.send_to_peer(data, peer, protocol.clone()) {
+                    trace!(target: "aleph-network", "Failed to send data to peer{:?} via protocol {:?}, {:?}", peer, protocol, e);
+                }
+            }
         }
     }
 
@@ -444,8 +501,7 @@ mod tests {
                 .take(identities.len())
                 .collect::<Vec<_>>()
                 .await
-                .iter()
-                .cloned(),
+                .into_iter(),
         );
 
         let expected_messages = HashSet::from_iter(identities.iter().map(|identity| {
@@ -516,8 +572,7 @@ mod tests {
                 .take(opened_authorities_n * messages.len())
                 .collect::<Vec<_>>()
                 .await
-                .iter()
-                .cloned(),
+                .into_iter(),
         );
 
         let expected_messages = HashSet::from_iter(
@@ -538,7 +593,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_data_command_send_to() {
+    async fn test_validator_data_command_send_to() {
         let mut test_data = TestData::prepare().await;
 
         let identity = MockNetworkIdentity::new().identity();
@@ -548,7 +603,7 @@ mod tests {
         test_data
             .network
             .emit_event(Event::NotificationStreamOpened {
-                protocol: Cow::Borrowed(ALEPH_PROTOCOL_NAME),
+                protocol: Cow::Borrowed(ALEPH_VALIDATOR_PROTOCOL_NAME),
                 remote: identity.1.into(),
                 negotiated_fallback: None,
                 role: ObservedRole::Authority,
@@ -582,7 +637,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_create_sender_error_one_peer() {
+    async fn test_validator_create_sender_error_one_peer() {
         let mut test_data = TestData::prepare().await;
 
         test_data
@@ -599,7 +654,7 @@ mod tests {
         test_data
             .network
             .emit_event(Event::NotificationStreamOpened {
-                protocol: Cow::Borrowed(ALEPH_PROTOCOL_NAME),
+                protocol: Cow::Borrowed(ALEPH_VALIDATOR_PROTOCOL_NAME),
                 remote: identity.1.into(),
                 negotiated_fallback: None,
                 role: ObservedRole::Authority,
@@ -642,7 +697,311 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_create_sender_error_many_peers() {
+    async fn test_validator_create_sender_error_many_peers() {
+        let mut test_data = TestData::prepare().await;
+
+        let all_authorities_n = 4;
+        let closed_authorities_n = 2;
+        for _ in 0..closed_authorities_n {
+            test_data
+                .network
+                .create_sender_errors
+                .lock()
+                .push_back(MockSenderError::SomeError);
+        }
+
+        let identities: Vec<_> = (0..4)
+            .map(|_| MockNetworkIdentity::new().identity())
+            .collect();
+        let message: Vec<u8> = vec![1, 2, 3];
+
+        identities.iter().for_each(|identity| {
+            test_data
+                .network
+                .emit_event(Event::NotificationStreamOpened {
+                    protocol: Cow::Borrowed(ALEPH_VALIDATOR_PROTOCOL_NAME),
+                    remote: identity.1.into(),
+                    negotiated_fallback: None,
+                    role: ObservedRole::Authority,
+                })
+        });
+
+        // We do this only to make sure that NotificationStreamOpened events are handled
+        test_data.wait_for_events_handled().await;
+
+        identities.iter().for_each(|identity| {
+            test_data
+                .mock_io
+                .messages_for_user
+                .unbounded_send((
+                    message.clone(),
+                    DataCommand::SendTo(identity.1, Protocol::Validator),
+                ))
+                .unwrap();
+        });
+
+        let broadcasted_messages = HashSet::<_>::from_iter(
+            test_data
+                .network
+                .send_message
+                .1
+                .lock()
+                .await
+                .by_ref()
+                .take(all_authorities_n - closed_authorities_n)
+                .collect::<Vec<_>>()
+                .await
+                .into_iter(),
+        );
+
+        let expected_messages = HashSet::from_iter(
+            identities
+                .iter()
+                .skip(closed_authorities_n)
+                .map(|identity| (message.encode(), identity.1, Protocol::Validator.name())),
+        );
+
+        assert_eq!(broadcasted_messages, expected_messages);
+
+        test_data.cleanup().await
+    }
+
+    #[tokio::test]
+    async fn test_validator_data_command_send_to_error_one_peer() {
+        let mut test_data = TestData::prepare().await;
+
+        test_data
+            .network
+            .send_errors
+            .lock()
+            .push_back(MockSenderError::SomeError);
+
+        let identity = MockNetworkIdentity::new().identity();
+
+        let message_1: Vec<u8> = vec![1, 2, 3];
+        let message_2: Vec<u8> = vec![4, 5, 6];
+
+        test_data
+            .network
+            .emit_event(Event::NotificationStreamOpened {
+                protocol: Cow::Borrowed(ALEPH_VALIDATOR_PROTOCOL_NAME),
+                remote: identity.1.into(),
+                negotiated_fallback: None,
+                role: ObservedRole::Authority,
+            });
+
+        // We do this only to make sure that NotificationStreamOpened events are handled
+        test_data.wait_for_events_handled().await;
+
+        test_data
+            .mock_io
+            .messages_for_user
+            .unbounded_send((
+                message_1.clone(),
+                DataCommand::SendTo(identity.1, Protocol::Validator),
+            ))
+            .unwrap();
+
+        test_data
+            .mock_io
+            .messages_for_user
+            .unbounded_send((
+                message_2.clone(),
+                DataCommand::SendTo(identity.1, Protocol::Validator),
+            ))
+            .unwrap();
+
+        let expected = (message_2.encode(), identity.1, Protocol::Validator.name());
+
+        assert_eq!(
+            test_data
+                .network
+                .send_message
+                .next()
+                .await
+                .expect("Should receive message"),
+            expected,
+        );
+
+        test_data.cleanup().await
+    }
+
+    #[tokio::test]
+    async fn test_validator_data_command_send_to_error_many_peers() {
+        let mut test_data = TestData::prepare().await;
+
+        let all_authorities_n = 4;
+        let closed_authorities_n = 2;
+        for _ in 0..closed_authorities_n {
+            test_data
+                .network
+                .send_errors
+                .lock()
+                .push_back(MockSenderError::SomeError);
+        }
+
+        let identities: Vec<_> = (0..4)
+            .map(|_| MockNetworkIdentity::new().identity())
+            .collect();
+        let message: Vec<u8> = vec![1, 2, 3];
+
+        identities.iter().for_each(|identity| {
+            test_data
+                .network
+                .emit_event(Event::NotificationStreamOpened {
+                    protocol: Cow::Borrowed(ALEPH_VALIDATOR_PROTOCOL_NAME),
+                    remote: identity.1.into(),
+                    negotiated_fallback: None,
+                    role: ObservedRole::Authority,
+                })
+        });
+
+        // We do this only to make sure that NotificationStreamOpened events are handled
+        test_data.wait_for_events_handled().await;
+
+        identities.iter().for_each(|identity| {
+            test_data
+                .mock_io
+                .messages_for_user
+                .unbounded_send((
+                    message.clone(),
+                    DataCommand::SendTo(identity.1, Protocol::Validator),
+                ))
+                .unwrap();
+        });
+
+        let broadcasted_messages = HashSet::<_>::from_iter(
+            test_data
+                .network
+                .send_message
+                .1
+                .lock()
+                .await
+                .by_ref()
+                .take(all_authorities_n - closed_authorities_n)
+                .collect::<Vec<_>>()
+                .await
+                .into_iter(),
+        );
+
+        let expected_messages = HashSet::from_iter(
+            identities
+                .iter()
+                .skip(closed_authorities_n)
+                .map(|identity| (message.encode(), identity.1, Protocol::Validator.name())),
+        );
+
+        assert_eq!(broadcasted_messages, expected_messages);
+
+        test_data.cleanup().await
+    }
+
+    #[tokio::test]
+    async fn test_generic_data_command_send_to() {
+        let mut test_data = TestData::prepare().await;
+
+        let identity = MockNetworkIdentity::new().identity();
+
+        let message: Vec<u8> = vec![1, 2, 3];
+
+        test_data
+            .network
+            .emit_event(Event::NotificationStreamOpened {
+                protocol: Cow::Borrowed(ALEPH_PROTOCOL_NAME),
+                remote: identity.1.into(),
+                negotiated_fallback: None,
+                role: ObservedRole::Authority,
+            });
+
+        // We do this only to make sure that NotificationStreamOpened events are handled
+        test_data.wait_for_events_handled().await;
+
+        test_data
+            .mock_io
+            .messages_for_user
+            .unbounded_send((
+                message.clone(),
+                DataCommand::SendTo(identity.1, Protocol::Generic),
+            ))
+            .unwrap();
+
+        let expected = (message.encode(), identity.1, Protocol::Generic.name());
+
+        assert_eq!(
+            test_data
+                .network
+                .send_message
+                .next()
+                .await
+                .expect("Should receive message"),
+            expected,
+        );
+
+        test_data.cleanup().await
+    }
+
+    #[tokio::test]
+    async fn test_generic_create_sender_error_one_peer() {
+        let mut test_data = TestData::prepare().await;
+
+        test_data
+            .network
+            .create_sender_errors
+            .lock()
+            .push_back(MockSenderError::SomeError);
+
+        let identity = MockNetworkIdentity::new().identity();
+
+        let message_1: Vec<u8> = vec![1, 2, 3];
+        let message_2: Vec<u8> = vec![4, 5, 6];
+
+        test_data
+            .network
+            .emit_event(Event::NotificationStreamOpened {
+                protocol: Cow::Borrowed(ALEPH_PROTOCOL_NAME),
+                remote: identity.1.into(),
+                negotiated_fallback: None,
+                role: ObservedRole::Authority,
+            });
+
+        // We do this only to make sure that NotificationStreamOpened events are handled
+        test_data.wait_for_events_handled().await;
+
+        test_data
+            .mock_io
+            .messages_for_user
+            .unbounded_send((
+                message_1.clone(),
+                DataCommand::SendTo(identity.1, Protocol::Generic),
+            ))
+            .unwrap();
+
+        test_data
+            .mock_io
+            .messages_for_user
+            .unbounded_send((
+                message_2.clone(),
+                DataCommand::SendTo(identity.1, Protocol::Generic),
+            ))
+            .unwrap();
+
+        let expected = (message_2.encode(), identity.1, Protocol::Generic.name());
+
+        assert_eq!(
+            test_data
+                .network
+                .send_message
+                .next()
+                .await
+                .expect("Should receive message"),
+            expected,
+        );
+
+        test_data.cleanup().await
+    }
+
+    #[tokio::test]
+    async fn test_generic_create_sender_error_many_peers() {
         let mut test_data = TestData::prepare().await;
 
         let all_authorities_n = 4;
@@ -680,7 +1039,7 @@ mod tests {
                 .messages_for_user
                 .unbounded_send((
                     message.clone(),
-                    DataCommand::SendTo(identity.1, Protocol::Validator),
+                    DataCommand::SendTo(identity.1, Protocol::Generic),
                 ))
                 .unwrap();
         });
@@ -696,15 +1055,14 @@ mod tests {
                 .take(all_authorities_n - closed_authorities_n)
                 .collect::<Vec<_>>()
                 .await
-                .iter()
-                .cloned(),
+                .into_iter(),
         );
 
         let expected_messages = HashSet::from_iter(
             identities
                 .iter()
                 .skip(closed_authorities_n)
-                .map(|identity| (message.encode(), identity.1, Protocol::Validator.name())),
+                .map(|identity| (message.encode(), identity.1, Protocol::Generic.name())),
         );
 
         assert_eq!(broadcasted_messages, expected_messages);
@@ -713,7 +1071,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_data_command_send_to_error_one_peer() {
+    async fn test_generic_data_command_send_to_error_one_peer() {
         let mut test_data = TestData::prepare().await;
 
         test_data
@@ -744,7 +1102,7 @@ mod tests {
             .messages_for_user
             .unbounded_send((
                 message_1.clone(),
-                DataCommand::SendTo(identity.1, Protocol::Validator),
+                DataCommand::SendTo(identity.1, Protocol::Generic),
             ))
             .unwrap();
 
@@ -753,11 +1111,11 @@ mod tests {
             .messages_for_user
             .unbounded_send((
                 message_2.clone(),
-                DataCommand::SendTo(identity.1, Protocol::Validator),
+                DataCommand::SendTo(identity.1, Protocol::Generic),
             ))
             .unwrap();
 
-        let expected = (message_2.encode(), identity.1, Protocol::Validator.name());
+        let expected = (message_2.encode(), identity.1, Protocol::Generic.name());
 
         assert_eq!(
             test_data
@@ -773,7 +1131,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_data_command_send_to_error_many_peers() {
+    async fn test_generic_data_command_send_to_error_many_peers() {
         let mut test_data = TestData::prepare().await;
 
         let all_authorities_n = 4;
@@ -811,7 +1169,7 @@ mod tests {
                 .messages_for_user
                 .unbounded_send((
                     message.clone(),
-                    DataCommand::SendTo(identity.1, Protocol::Validator),
+                    DataCommand::SendTo(identity.1, Protocol::Generic),
                 ))
                 .unwrap();
         });
@@ -827,15 +1185,14 @@ mod tests {
                 .take(all_authorities_n - closed_authorities_n)
                 .collect::<Vec<_>>()
                 .await
-                .iter()
-                .cloned(),
+                .into_iter(),
         );
 
         let expected_messages = HashSet::from_iter(
             identities
                 .iter()
                 .skip(closed_authorities_n)
-                .map(|identity| (message.encode(), identity.1, Protocol::Validator.name())),
+                .map(|identity| (message.encode(), identity.1, Protocol::Generic.name())),
         );
 
         assert_eq!(broadcasted_messages, expected_messages);

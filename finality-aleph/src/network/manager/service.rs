@@ -42,11 +42,32 @@ struct Session<D: Data> {
 }
 
 #[derive(Clone)]
-struct PreSession {
+struct PreValidatorSession {
     session_id: SessionId,
     verifier: AuthorityVerifier,
     node_id: NodeIndex,
     pen: AuthorityPen,
+}
+
+#[derive(Clone)]
+struct PreNonvalidatorSession {
+    session_id: SessionId,
+    verifier: AuthorityVerifier,
+}
+
+#[derive(Clone)]
+enum PreSession {
+    Validator(PreValidatorSession),
+    Nonvalidator(PreNonvalidatorSession),
+}
+
+impl PreSession {
+    fn session_id(&self) -> SessionId {
+        match self {
+            Self::Validator(pre_session) => pre_session.session_id,
+            Self::Nonvalidator(pre_session) => pre_session.session_id,
+        }
+    }
 }
 
 /// Configuration for the session manager service. Controls how often the maintenance and
@@ -123,7 +144,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
     fn finish_session(&mut self, session_id: SessionId) -> Option<ConnectionCommand> {
         self.sessions.remove(&session_id);
         self.to_retry
-            .retain(|(pre_session, _)| pre_session.session_id != session_id);
+            .retain(|(pre_session, _)| pre_session.session_id() != session_id);
         Self::delete_reserved(self.connections.remove_session(session_id))
     }
 
@@ -173,7 +194,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
 
     async fn start_validator_session(
         &mut self,
-        pre_session: PreSession,
+        pre_session: PreValidatorSession,
         addresses: Vec<Multiaddr>,
     ) -> Result<
         (
@@ -182,7 +203,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
         ),
         SessionHandlerError,
     > {
-        let PreSession {
+        let PreValidatorSession {
             session_id,
             verifier,
             node_id,
@@ -206,7 +227,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
 
     async fn update_validator_session(
         &mut self,
-        pre_session: PreSession,
+        pre_session: PreValidatorSession,
     ) -> Result<
         (
             Option<ConnectionCommand>,
@@ -224,7 +245,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
                 return Ok((None, data, data_from_network));
             }
         };
-        let PreSession {
+        let PreValidatorSession {
             session_id,
             verifier,
             node_id,
@@ -256,7 +277,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
 
     async fn handle_validator_presession(
         &mut self,
-        pre_session: PreSession,
+        pre_session: PreValidatorSession,
         result_for_user: Option<oneshot::Sender<mpsc::UnboundedReceiver<D>>>,
     ) -> Result<
         (
@@ -275,7 +296,8 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
                 Ok((maybe_command, data))
             }
             Err(e) => {
-                self.to_retry.push((pre_session, result_for_user));
+                self.to_retry
+                    .push((PreSession::Validator(pre_session), result_for_user));
                 Err(e)
             }
         }
@@ -283,10 +305,13 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
 
     async fn start_nonvalidator_session(
         &mut self,
-        session_id: SessionId,
-        verifier: AuthorityVerifier,
+        pre_session: PreNonvalidatorSession,
         addresses: Vec<Multiaddr>,
     ) -> Result<(), SessionHandlerError> {
+        let PreNonvalidatorSession {
+            session_id,
+            verifier,
+        } = pre_session;
         let handler = SessionHandler::new(None, verifier, session_id, addresses).await?;
         let discovery = Discovery::new(self.discovery_cooldown);
         self.sessions.insert(
@@ -302,20 +327,35 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
 
     async fn update_nonvalidator_session(
         &mut self,
-        session_id: SessionId,
-        verifier: AuthorityVerifier,
+        pre_session: PreNonvalidatorSession,
     ) -> Result<(), SessionHandlerError> {
         let addresses = self.addresses();
-        let session = match self.sessions.get_mut(&session_id) {
+        let session = match self.sessions.get_mut(&pre_session.session_id) {
             Some(session) => session,
             None => {
                 return self
-                    .start_nonvalidator_session(session_id, verifier, addresses)
+                    .start_nonvalidator_session(pre_session, addresses)
                     .await;
             }
         };
-        session.handler.update(None, verifier, addresses).await?;
+        session
+            .handler
+            .update(None, pre_session.verifier, addresses)
+            .await?;
         Ok(())
+    }
+
+    async fn handle_nonvalidator_presession(
+        &mut self,
+        pre_session: PreNonvalidatorSession,
+    ) -> Result<(), SessionHandlerError> {
+        self.update_nonvalidator_session(pre_session.clone())
+            .await
+            .map_err(|e| {
+                self.to_retry
+                    .push((PreSession::Nonvalidator(pre_session), None));
+                e
+            })
     }
 
     /// Handle a session command.
@@ -334,7 +374,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
         use SessionCommand::*;
         match command {
             StartValidator(session_id, verifier, node_id, pen, result_for_user) => {
-                let pre_session = PreSession {
+                let pre_session = PreValidatorSession {
                     session_id,
                     verifier,
                     node_id,
@@ -344,8 +384,11 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
                     .await
             }
             StartNonvalidator(session_id, verifier) => {
-                self.update_nonvalidator_session(session_id, verifier)
-                    .await?;
+                let pre_session = PreNonvalidatorSession {
+                    session_id,
+                    verifier,
+                };
+                self.handle_nonvalidator_presession(pre_session).await?;
                 Ok((None, Vec::new()))
             }
             Stop(session_id) => Ok((self.finish_session(session_id), Vec::new())),
@@ -463,8 +506,16 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
             Some(to_retry) => to_retry,
             None => return Ok((None, Vec::new())),
         };
-        self.handle_validator_presession(pre_session, result_for_user)
-            .await
+        match pre_session {
+            PreSession::Validator(pre_session) => {
+                self.handle_validator_presession(pre_session, result_for_user)
+                    .await
+            }
+            PreSession::Nonvalidator(pre_session) => {
+                self.handle_nonvalidator_presession(pre_session).await?;
+                Ok((None, Vec::new()))
+            }
+        }
     }
 }
 
