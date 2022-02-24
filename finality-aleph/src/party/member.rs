@@ -1,22 +1,27 @@
 use crate::{
     crypto::KeyBox,
-    data_io::{DataProvider, FinalizationHandler},
+    data_io::{AlephData, OrderedDataInterpreter},
     network::{AlephNetworkData, DataNetwork, NetworkWrapper},
     party::{AuthoritySubtaskCommon, Task},
 };
 use aleph_bft::{Config, SpawnHandle};
 use futures::channel::oneshot;
 use log::debug;
+use sc_client_api::HeaderBackend;
 use sp_runtime::traits::Block;
 
 /// Runs the member within a single session.
-pub fn task<B: Block, ADN: DataNetwork<AlephNetworkData<B>> + 'static>(
+pub fn task<
+    B: Block,
+    C: HeaderBackend<B> + Send + 'static,
+    ADN: DataNetwork<AlephNetworkData<B>> + 'static,
+>(
     subtask_common: AuthoritySubtaskCommon,
     multikeychain: KeyBox,
     config: Config,
     network: NetworkWrapper<B, ADN>,
-    data_provider: DataProvider<B>,
-    finalization_handler: FinalizationHandler<B>,
+    data_provider: impl aleph_bft::DataProvider<AlephData<B>> + Send + 'static,
+    ordered_data_interpreter: OrderedDataInterpreter<B, C>,
 ) -> Task {
     let AuthoritySubtaskCommon {
         spawn_handle,
@@ -31,7 +36,7 @@ pub fn task<B: Block, ADN: DataNetwork<AlephNetworkData<B>> + 'static>(
                 config,
                 network,
                 data_provider,
-                finalization_handler,
+                ordered_data_interpreter,
                 multikeychain,
                 spawn_handle,
                 exit,

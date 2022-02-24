@@ -1,6 +1,6 @@
 use crate::{
     crypto::Signature,
-    data_io::{AlephDataFor, AlephNetworkMessage},
+    data_io::{AlephData, AlephNetworkMessage},
     network::DataNetwork,
     Hasher,
 };
@@ -10,10 +10,10 @@ use sp_runtime::traits::Block;
 use std::marker::PhantomData;
 
 pub type NetworkData<B> =
-    AlephNetworkData<Hasher, AlephDataFor<B>, Signature, SignatureSet<Signature>>;
+    AlephNetworkData<Hasher, AlephData<B>, Signature, SignatureSet<Signature>>;
 
 impl<B: Block> AlephNetworkMessage<B> for NetworkData<B> {
-    fn included_blocks(&self) -> Vec<AlephDataFor<B>> {
+    fn included_data(&self) -> Vec<AlephData<B>> {
         self.included_data()
     }
 }
@@ -35,7 +35,7 @@ impl<B: Block, ADN: DataNetwork<NetworkData<B>>> From<ADN> for NetworkWrapper<B,
 
 #[async_trait::async_trait]
 impl<B: Block, ADN: DataNetwork<NetworkData<B>>>
-    AlephNetwork<Hasher, AlephDataFor<B>, Signature, SignatureSet<Signature>>
+    AlephNetwork<Hasher, AlephData<B>, Signature, SignatureSet<Signature>>
     for NetworkWrapper<B, ADN>
 {
     fn send(&self, data: NetworkData<B>, recipient: aleph_bft::Recipient) {

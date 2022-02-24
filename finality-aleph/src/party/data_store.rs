@@ -6,19 +6,17 @@ use crate::{
 use aleph_bft::SpawnHandle;
 use futures::channel::oneshot;
 use log::debug;
-use sc_client_api::Backend;
+use sc_client_api::{BlockchainEvents, HeaderBackend};
 use sp_runtime::traits::Block;
 
 /// Runs the data store within a single session.
-pub fn task<B, C, BE, RB, R>(
+pub fn task<B, C, RB, R>(
     subtask_common: AuthoritySubtaskCommon,
-    mut data_store: DataStore<B, C, BE, RB, AlephNetworkData<B>, R>,
+    mut data_store: DataStore<B, C, RB, AlephNetworkData<B>, R>,
 ) -> Task
 where
     B: Block,
-    C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: aleph_primitives::AlephSessionApi<B>,
-    BE: Backend<B> + 'static,
+    C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
     RB: RequestBlocks<B> + 'static,
     R: ReceiverComponent<AlephNetworkData<B>> + 'static,
 {

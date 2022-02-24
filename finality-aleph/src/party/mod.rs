@@ -1,6 +1,6 @@
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier, KeyBox},
-    data_io::{reduce_header_to_num, AlephData, DataProvider, DataStore, FinalizationHandler},
+    data_io::{ChainTracker, DataStore, OrderedDataInterpreter},
     default_aleph_config,
     finalization::{AlephFinalizer, BlockFinalizer},
     first_block_of_session,
@@ -15,8 +15,8 @@ use crate::{
         RequestBlocks, RmcNetworkData, Service as NetworkService, SessionManager, SessionNetwork,
         Split, IO as NetworkIO,
     },
-    session_id_from_block_num, AuthorityId, Metrics, NodeIndex, SessionId, SessionMap,
-    SessionPeriod, UnitCreationDelay,
+    session_id_from_block_num, AuthorityId, Metrics, NodeIndex, SessionBoundaries, SessionId,
+    SessionMap, SessionPeriod, UnitCreationDelay,
 };
 use sp_keystore::CryptoStore;
 
@@ -49,9 +49,9 @@ mod task;
 use task::{Handle, Task};
 mod aggregator;
 mod authority;
+mod chain_tracker;
 mod data_store;
 mod member;
-mod refresher;
 use authority::{
     SubtaskCommon as AuthoritySubtaskCommon, Subtasks as AuthoritySubtasks, Task as AuthorityTask,
 };
@@ -326,8 +326,8 @@ where
         exit_rx: futures::channel::oneshot::Receiver<()>,
     ) -> AuthoritySubtasks {
         debug!(target: "afa", "Authority task {:?}", session_id);
-        let last_block = last_block_of_session::<B>(session_id, self.session_period);
-        let (ordered_units_for_aggregator, ordered_units_from_aleph) = mpsc::unbounded();
+        let session_boundaries = SessionBoundaries::new(session_id, self.session_period);
+        let (blocks_for_aggregator, blocks_from_interpreter) = mpsc::unbounded();
 
         let consensus_config = create_aleph_config(
             authorities.len(),
@@ -336,36 +336,31 @@ where
             self.unit_creation_delay,
         );
 
-        let best_header = self
-            .select_chain
-            .best_chain()
-            .await
-            .expect("No best chain.");
-        let reduced_header = reduce_header_to_num(self.client.clone(), best_header, last_block);
-        let proposed_block = Arc::new(Mutex::new(AlephData::new(
-            reduced_header.hash(),
-            *reduced_header.number(),
-        )));
-        let data_provider = DataProvider::<B> {
-            proposed_block: proposed_block.clone(),
-            metrics: self.metrics.clone(),
-        };
+        let (chain_tracker, data_provider) = ChainTracker::new(
+            self.select_chain.clone(),
+            self.client.clone(),
+            session_boundaries.clone(),
+            self.metrics.clone(),
+        );
 
-        let finalization_handler = FinalizationHandler::<B> {
-            ordered_units_tx: ordered_units_for_aggregator,
-        };
+        let ordered_data_interpreter = OrderedDataInterpreter::<B, C>::new(
+            blocks_for_aggregator,
+            self.client.clone(),
+            session_boundaries.clone(),
+        );
 
         let subtask_common = AuthoritySubtaskCommon {
             spawn_handle: self.spawn_handle.clone(),
             session_id: session_id.0,
         };
         let aggregator_io = aggregator::IO {
-            ordered_units_from_aleph,
+            blocks_from_interpreter,
             justifications_for_chain: self.authority_justification_tx.clone(),
         };
 
         let (unfiltered_aleph_network, rmc_network) = split(data_network);
         let (data_store, aleph_network) = DataStore::new(
+            session_boundaries.clone(),
             self.client.clone(),
             self.block_requester.clone(),
             Default::default(),
@@ -380,24 +375,18 @@ where
                 consensus_config,
                 aleph_network.into(),
                 data_provider,
-                finalization_handler,
+                ordered_data_interpreter,
             ),
             aggregator::task(
                 subtask_common.clone(),
                 self.client.clone(),
                 aggregator_io,
-                last_block,
+                session_boundaries,
                 self.metrics.clone(),
-                multikeychain.clone(),
+                multikeychain,
                 rmc_network,
             ),
-            refresher::task(
-                subtask_common.clone(),
-                self.select_chain.clone(),
-                self.client.clone(),
-                proposed_block,
-                last_block,
-            ),
+            chain_tracker::task(subtask_common.clone(), chain_tracker),
             data_store::task(subtask_common, data_store),
         )
     }
