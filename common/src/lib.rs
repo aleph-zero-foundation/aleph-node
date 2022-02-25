@@ -28,10 +28,10 @@ impl FromStr for WsRpcClient {
     }
 }
 
-pub fn create_connection(
-    address: String,
-) -> Api<sr25519::Pair, substrate_api_client::rpc::ws_client::WsRpcClient> {
-    create_custom_connection(&address).expect("connection should be created")
+pub type Connection = Api<sr25519::Pair, substrate_api_client::rpc::ws_client::WsRpcClient>;
+
+pub fn create_connection(address: &str) -> Connection {
+    create_custom_connection(address).expect("connection should be created")
 }
 
 pub fn create_custom_connection<Client: FromStr + RpcClient>(

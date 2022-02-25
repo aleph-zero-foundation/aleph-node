@@ -1,13 +1,15 @@
 use aleph_primitives::{
-    AuthorityId as AlephId, ADDRESSES_ENCODING, DEFAULT_MILLISECS_PER_BLOCK,
-    DEFAULT_SESSION_PERIOD, TOKEN_DECIMALS,
+    AuthorityId as AlephId, SessionIndex, ADDRESSES_ENCODING, DEFAULT_MILLISECS_PER_BLOCK,
+    DEFAULT_SESSIONS_PER_ERA, DEFAULT_SESSION_PERIOD, TOKEN_DECIMALS,
 };
 use aleph_runtime::{
-    AccountId, AlephConfig, AuraConfig, BalancesConfig, GenesisConfig, SessionConfig, SessionKeys,
-    Signature, SudoConfig, SystemConfig, VestingConfig, WASM_BINARY,
+    AccountId, AlephConfig, AuraConfig, BalancesConfig, ElectionsConfig, GenesisConfig, Perbill,
+    SessionConfig, SessionKeys, Signature, StakingConfig, SudoConfig, SystemConfig, VestingConfig,
+    WASM_BINARY,
 };
 use finality_aleph::{MillisecsPerBlock, SessionPeriod};
 use libp2p::PeerId;
+use pallet_staking::{Forcing, StakerStatus};
 use sc_service::config::BasePath;
 use sc_service::ChainType;
 use serde::de::Error;
@@ -24,6 +26,8 @@ use structopt::StructOpt;
 pub const CHAINTYPE_DEV: &str = "dev";
 pub const CHAINTYPE_LOCAL: &str = "local";
 pub const CHAINTYPE_LIVE: &str = "live";
+
+pub const DEFAULT_CHAIN_ID: &str = "a0dnet1";
 
 // Alice is the default sudo holder.
 pub const DEFAULT_SUDO_ACCOUNT: &str = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
@@ -74,7 +78,7 @@ fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public
 }
 
 /// Generate an account ID from seed.
-pub fn get_account_id_from_seed<TPublic: Public>(seed: &&str) -> AccountId
+pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
 where
     AccountPublic: From<<TPublic::Pair as Pair>::Public>,
 {
@@ -103,10 +107,14 @@ pub struct AuthorityKeys {
     pub peer_id: SerializablePeerId,
 }
 
+fn to_account_ids(authorities: &[AuthorityKeys]) -> impl Iterator<Item = AccountId> + '_ {
+    authorities.iter().map(|auth| auth.account_id.clone())
+}
+
 #[derive(Debug, StructOpt, Clone)]
 pub struct ChainParams {
     /// Chain ID is a short identifier of the chain
-    #[structopt(long, value_name = "ID", default_value = "a0dnet1")]
+    #[structopt(long, value_name = "ID", default_value = DEFAULT_CHAIN_ID)]
     chain_id: String,
 
     /// The type of the chain. Possible values: "dev", "local", "live" (default)
@@ -122,13 +130,17 @@ pub struct ChainParams {
     #[structopt(long, default_value = "p2p_secret")]
     node_key_file: String,
 
-    /// The length of a session (in seconds). Default is 900 s
+    /// Time interval (in milliseconds) between blocks. Default is 1000ms
+    #[structopt(long)]
+    millisecs_per_block: Option<u64>,
+
+    /// The length of a session (in seconds). Default is 900s
     #[structopt(long)]
     session_period: Option<u32>,
 
-    /// Time interval (in milliseconds) between blocks. Default is 1000 ms
+    /// The length of an era (in Sessions). Default is 4 * 24 = 96, so that one era lasts one day
     #[structopt(long)]
-    millisecs_per_block: Option<u64>,
+    sessions_per_era: Option<SessionIndex>,
 
     /// Chain name. Default is "Aleph Zero Development"
     #[structopt(long, default_value = "Aleph Zero Development")]
@@ -168,15 +180,19 @@ impl ChainParams {
         &self.node_key_file
     }
 
-    pub fn session_period(&self) -> SessionPeriod {
-        SessionPeriod(self.session_period.unwrap_or(DEFAULT_SESSION_PERIOD))
-    }
-
     pub fn millisecs_per_block(&self) -> MillisecsPerBlock {
         MillisecsPerBlock(
             self.millisecs_per_block
                 .unwrap_or(DEFAULT_MILLISECS_PER_BLOCK),
         )
+    }
+
+    pub fn session_period(&self) -> SessionPeriod {
+        SessionPeriod(self.session_period.unwrap_or(DEFAULT_SESSION_PERIOD))
+    }
+
+    pub fn sessions_per_era(&self) -> SessionIndex {
+        self.sessions_per_era.unwrap_or(DEFAULT_SESSIONS_PER_ERA)
     }
 
     pub fn chain_name(&self) -> &str {
@@ -217,9 +233,25 @@ fn system_properties(token_symbol: String) -> serde_json::map::Map<String, Value
     .collect()
 }
 
+pub fn devnet_config(
+    chain_params: ChainParams,
+    authorities: Vec<AuthorityKeys>,
+) -> Result<ChainSpec, String> {
+    let stakers = to_account_ids(&authorities).collect();
+    generate_chain_spec_config(chain_params, authorities, stakers)
+}
+
 pub fn config(
     chain_params: ChainParams,
     authorities: Vec<AuthorityKeys>,
+) -> Result<ChainSpec, String> {
+    generate_chain_spec_config(chain_params, authorities, vec![])
+}
+
+fn generate_chain_spec_config(
+    chain_params: ChainParams,
+    authorities: Vec<AuthorityKeys>,
+    stakers: Vec<AccountId>,
 ) -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
     let token_symbol = String::from(chain_params.token_symbol());
@@ -236,12 +268,13 @@ pub fn config(
         &chain_id,
         chain_type,
         move || {
-            genesis(
+            generate_genesis_config(
                 wasm_binary,
                 authorities.clone(), // Initial PoA authorities, will receive funds
                 sudo_account.clone(), // Sudo account, will also be pre funded
                 faucet_account.clone(), // Pre-funded faucet account
                 chain_params.clone(),
+                stakers.clone(),
             )
         },
         // Bootnodes
@@ -264,15 +297,16 @@ fn deduplicate(accounts: Vec<AccountId>) -> Vec<AccountId> {
 }
 
 /// Configure initial storage state for FRAME modules
-fn genesis(
+fn generate_genesis_config(
     wasm_binary: &[u8],
     authorities: Vec<AuthorityKeys>,
     sudo_account: AccountId,
     faucet_account: Option<AccountId>,
     chain_params: ChainParams,
+    stakers: Vec<AccountId>,
 ) -> GenesisConfig {
-    let session_period = chain_params.session_period();
     let millisecs_per_block = chain_params.millisecs_per_block();
+    let session_period = chain_params.session_period();
 
     let special_accounts = match faucet_account {
         Some(faucet_id) => vec![sudo_account.clone(), faucet_id],
@@ -283,13 +317,15 @@ fn genesis(
     // lead to duplicated rich accounts, e.g. if a sudo account is also an authority
     // which is why we remove the duplicates if any here
     let unique_accounts: Vec<AccountId> = deduplicate(
-        authorities
-            .iter()
-            .map(|auth| &auth.account_id)
-            .cloned()
+        to_account_ids(&authorities)
             .chain(special_accounts)
+            .chain(stakers.iter().cloned())
             .collect(),
     );
+
+    const ENDOWMENT: u128 = 1_000_000_000u128 * 10u128.pow(TOKEN_DECIMALS);
+    const MIN_VALIDATOR_BOND: u128 = 25_000u128 * 10u128.pow(TOKEN_DECIMALS);
+    const MIN_NOMINATOR_BOND: u128 = 1_000u128 * 10u128.pow(TOKEN_DECIMALS);
 
     GenesisConfig {
         system: SystemConfig {
@@ -297,8 +333,16 @@ fn genesis(
             code: wasm_binary.to_vec(),
         },
         balances: BalancesConfig {
-            // Configure endowed accounts with initial balance of 1 << 60.
-            balances: unique_accounts.into_iter().map(|k| (k, 1 << 60)).collect(),
+            // Configure endowed accounts with an initial, significant balance
+            balances: unique_accounts
+                .into_iter()
+                .map(|account| (account, ENDOWMENT))
+                .collect(),
+        },
+        aleph: AlephConfig {
+            authorities: vec![],
+            millisecs_per_block: millisecs_per_block.0,
+            session_period: session_period.0,
         },
         aura: AuraConfig {
             authorities: vec![],
@@ -307,25 +351,44 @@ fn genesis(
             // Assign network admin rights.
             key: sudo_account,
         },
-        aleph: AlephConfig {
-            authorities: vec![],
-            session_period: session_period.0,
-            millisecs_per_block: millisecs_per_block.0,
+        elections: ElectionsConfig {
+            members: to_account_ids(&authorities).collect(),
         },
         session: SessionConfig {
             keys: authorities
-                .into_iter()
+                .iter()
                 .map(|auth| {
                     (
                         auth.account_id.clone(),
                         auth.account_id.clone(),
                         SessionKeys {
                             aura: auth.aura_key.clone(),
-                            aleph: auth.aleph_key,
+                            aleph: auth.aleph_key.clone(),
                         },
                     )
                 })
                 .collect(),
+        },
+        staking: StakingConfig {
+            force_era: Forcing::NotForcing,
+            validator_count: authorities.len() as u32,
+            minimum_validator_count: authorities.len() as u32,
+            invulnerables: to_account_ids(&authorities).collect(),
+            slash_reward_fraction: Perbill::from_percent(10),
+            stakers: stakers
+                .into_iter()
+                .map(|account_id| {
+                    (
+                        account_id.clone(),
+                        account_id,
+                        MIN_VALIDATOR_BOND,
+                        StakerStatus::Validator,
+                    )
+                })
+                .collect(),
+            min_validator_bond: MIN_VALIDATOR_BOND,
+            min_nominator_bond: MIN_NOMINATOR_BOND,
+            ..Default::default()
         },
         treasury: Default::default(),
         vesting: VestingConfig { vesting: vec![] },

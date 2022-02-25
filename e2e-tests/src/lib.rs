@@ -23,10 +23,11 @@ macro_rules! send_extrinsic {
 	($connection: expr,
 	$module: expr,
 	$call: expr,
+    $exit_on: expr,
     $hash_log: expr
 	$(, $args: expr) *) => {
 		{
-            use substrate_api_client::{compose_extrinsic, UncheckedExtrinsicV4, XtStatus};
+            use substrate_api_client::{compose_extrinsic, UncheckedExtrinsicV4};
 
             let tx: UncheckedExtrinsicV4<_> = compose_extrinsic!(
                 $connection,
@@ -36,8 +37,8 @@ macro_rules! send_extrinsic {
             );
 
             let tx_hash = $connection
-                .send_extrinsic(tx.hex_encode(), XtStatus::Finalized)
-                .unwrap()
+                .send_extrinsic(tx.hex_encode(), $exit_on)
+                .expect("Could not send extrinsic")
                 .expect("Could not get tx hash");
             $hash_log(tx_hash);
 

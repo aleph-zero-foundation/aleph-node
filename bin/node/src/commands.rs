@@ -1,7 +1,7 @@
-use crate::chain_spec::ChainSpec;
 use crate::chain_spec::{
     self, get_account_id_from_seed, AuthorityKeys, ChainParams, SerializablePeerId,
 };
+use crate::chain_spec::{ChainSpec, DEFAULT_CHAIN_ID};
 use aleph_primitives::AuthorityId as AlephId;
 use aleph_runtime::AccountId;
 use libp2p::identity::{ed25519 as libp2p_ed25519, PublicKey};
@@ -135,7 +135,10 @@ impl BootstrapChainCmd {
             })
             .collect();
 
-        let chain_spec = chain_spec::config(self.chain_params.clone(), genesis_authorities)?;
+        let chain_spec = match self.is_devnet() {
+            true => chain_spec::devnet_config(self.chain_params.clone(), genesis_authorities)?,
+            false => chain_spec::config(self.chain_params.clone(), genesis_authorities)?,
+        };
 
         let json = sc_service::chain_ops::build_spec(&chain_spec, self.raw)?;
         if std::io::stdout().write_all(json.as_bytes()).is_err() {
@@ -143,6 +146,10 @@ impl BootstrapChainCmd {
         }
 
         Ok(())
+    }
+
+    fn is_devnet(&self) -> bool {
+        self.chain_params.chain_id() == DEFAULT_CHAIN_ID
     }
 }
 
@@ -157,7 +164,7 @@ pub struct BootstrapNodeCmd {
     #[structopt(long)]
     account_id: Option<String>,
 
-    /// Pass seed used to generate the account pivate key (sr2559) and the corresponding AccountId
+    /// Pass seed used to generate the account private key (sr2559) and the corresponding AccountId
     #[structopt(long, required_unless = "account-id")]
     pub account_seed: Option<String>,
 
@@ -185,8 +192,7 @@ impl BootstrapNodeCmd {
             Some(id) => AccountId::from_string(id.as_str())
                 .expect("Passed string is not a hex encoding of a public key"),
             None => get_account_id_from_seed::<sr25519::Public>(
-                &self
-                    .account_seed
+                self.account_seed
                     .clone()
                     .expect("Pass account-seed argument")
                     .as_str(),

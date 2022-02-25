@@ -30,7 +30,7 @@ fn main() {
 
     let runtime = fs::read(args.runtime).expect("File not found");
     let sudo = keypair_from_string(&args.sudo_phrase);
-    let connection = create_connection(args.url).set_signer(sudo);
+    let connection = create_connection(&args.url).set_signer(sudo);
 
     let call = compose_call!(connection.metadata, "System", "set_code", runtime);
     let tx = compose_extrinsic!(connection, "Sudo", "sudo_unchecked_weight", call, 0_u64);

@@ -55,7 +55,7 @@ chain.bootstrap(oldbin,
                 keys.values(),
                 sudo_account_id=keys[phrases[0]],
                 chain_type='local',
-                millisecs_per_block=2000,
+                millisecs_per_block=1000,
                 session_period=40)
 
 chain.set_flags('validator',
@@ -68,8 +68,8 @@ chain.set_flags('validator',
 print('Starting the chain with old binary')
 chain.start('old')
 
-print('Waiting a minute')
-sleep(60)
+print('Waiting 30s')
+sleep(30)
 
 check_highest(chain)
 query_runtime_version(chain)
@@ -82,8 +82,8 @@ print('Restarting node 3 with new binary')
 chain[3].binary = newbin
 chain[3].start('new3')
 
-print('Waiting a minute')
-sleep(60)
+print('Waiting 30s')
+sleep(30)
 
 check_highest(chain)
 oldver = query_runtime_version(chain)
@@ -93,7 +93,7 @@ subprocess.check_call(
     [SEND_RUNTIME, '--url', 'localhost:9945', '--sudo-phrase', phrases[0], runtime])
 
 print('Waiting a bit')
-sleep(15)
+sleep(10)
 
 check_highest(chain)
 newver = query_runtime_version(chain)
@@ -101,16 +101,21 @@ newver = query_runtime_version(chain)
 print('Restarting remaining nodes with new binary')
 chain.stop(nodes=[0, 1, 2])
 chain.set_binary(newbin, nodes=[0, 1, 2])
+print('Waiting a bit')
+sleep(10)
 chain.start('new', nodes=[0, 1, 2])
 
-print('Waiting a minute')
-sleep(60)
+print('Waiting 30s')
+sleep(30)
 
 check_highest(chain)
 query_runtime_version(chain)
 
 print('Stopping the chain')
 chain.stop()
+
+print('Waiting a bit')
+sleep(10)
 
 hf = min(node.highest_block()[1] for node in chain)
 print(f'Sanity check: the highest finalized block is {hf}. '

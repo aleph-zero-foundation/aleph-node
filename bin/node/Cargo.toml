@@ -1,6 +1,6 @@
 [package]
 name = "aleph-node"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Cardinal Cryptography"]
 description = "Aleph node binary"
 edition = "2018"
@@ -47,6 +47,7 @@ sc-consensus = { git = "https://github.com/paritytech/substrate.git", branch = "
 sc-client-api = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13"}
 sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13"}
 sp-timestamp = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13" }
+pallet-staking = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13" }
 
 aleph-runtime = { path = "../runtime"}
 finality-aleph = { path = "../../finality-aleph"}

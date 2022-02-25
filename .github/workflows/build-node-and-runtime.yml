@@ -35,11 +35,8 @@ jobs:
       - name: Restore cache
         uses: ./.github/actions/restore-cache
 
-      - name: Build binary
-        run: cargo build --release
-
-      - name: Build runtime
-        run: cargo build --release -p aleph-runtime
+      - name: Build binary and runtime
+        run: cargo build --release -p aleph-node
 
       - name: Stop cache
         uses: ./.github/actions/post-cache

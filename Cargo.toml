@@ -5,6 +5,7 @@ members = [
     "bin/runtime",
     "finality-aleph",
     "pallet",
+    "pallets/elections",
     "primitives",
 ]
 

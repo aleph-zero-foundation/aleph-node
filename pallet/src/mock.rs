@@ -107,7 +107,7 @@ impl pallet_session::Config for Test {
     type ValidatorIdOf = ConvertInto;
     type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
     type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
-    type SessionManager = pallet_aleph::AlephSessionManager<Self>;
+    type SessionManager = ();
     type SessionHandler = <TestSessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = TestSessionKeys;
     type WeightInfo = ();

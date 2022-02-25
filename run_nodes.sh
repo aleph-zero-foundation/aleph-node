@@ -57,7 +57,7 @@ validator_ids_string="${validator_ids_string//${IFS:0:1}/,}"
 
 
 echo "Bootstrapping chain for nodes 0..$((N_VALIDATORS - 1))"
-./target/release/aleph-node bootstrap-chain --millisecs-per-block 2000 --session-period 40 --base-path "$BASE_PATH" --account-ids "$validator_ids_string" --chain-type local > "$BASE_PATH/chainspec.json"
+./target/release/aleph-node bootstrap-chain --millisecs-per-block 1000 --session-period 30 --sessions-per-era 3 --base-path "$BASE_PATH" --account-ids "$validator_ids_string" --chain-type local > "$BASE_PATH/chainspec.json"
 
 for i in $(seq "$N_VALIDATORS" "$(( N_VALIDATORS + N_NON_VALIDATORS - 1 ))"); do
   echo "Bootstrapping node $i"
@@ -92,6 +92,7 @@ for i in $(seq 0 "$(( N_VALIDATORS + N_NON_VALIDATORS - 1 ))"); do
     --node-key-file $BASE_PATH/$account_id/p2p_secret \
     --unit-creation-delay 500 \
     --execution Native \
+    --rpc-cors=all \
     --no-mdns \
     -lafa=debug \
     -laleph-party=debug \

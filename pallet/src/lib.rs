@@ -15,12 +15,12 @@ mod tests;
 
 mod migrations;
 
-use frame_support::Parameter;
 use sp_std::prelude::*;
 
 use frame_support::{
     sp_runtime::BoundToRuntimeAppPublic,
     traits::{OneSessionHandler, StorageVersion},
+    Parameter,
 };
 pub use pallet::*;
 
@@ -33,10 +33,9 @@ pub mod pallet {
     use frame_support::{
         pallet_prelude::*,
         sp_runtime::{traits::OpaqueKeys, RuntimeAppPublic},
-        sp_std,
     };
-    use frame_system::pallet_prelude::*;
-    use pallet_session::{Pallet as Session, SessionManager};
+    use frame_system::pallet_prelude::{ensure_root, BlockNumberFor, OriginFor};
+    use pallet_session::Pallet as Session;
     use primitives::{
         ApiError as AlephApiError, DEFAULT_MILLISECS_PER_BLOCK, DEFAULT_SESSION_PERIOD,
     };
@@ -64,8 +63,6 @@ pub mod pallet {
     pub enum Event<T: Config> {
         ChangeValidators(Vec<T::AccountId>, u32),
     }
-
-    pub struct AlephSessionManager<T>(sp_std::marker::PhantomData<T>);
 
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]
@@ -170,25 +167,8 @@ pub mod pallet {
         }
     }
 
-    impl<T: Config> SessionManager<T::AccountId> for AlephSessionManager<T> {
-        fn new_session(session: u32) -> Option<Vec<T::AccountId>> {
-            if let Some(session_for_validators_change) =
-                Pallet::<T>::session_for_validators_change()
-            {
-                if session_for_validators_change <= session {
-                    let validators = Validators::<T>::take()
-                        .expect("When SessionForValidatorsChange is Some so should be Validators");
-                    let _ = SessionForValidatorsChange::<T>::take().unwrap();
-                    return Some(validators);
-                }
-            }
-            None
-        }
-
-        fn start_session(_: u32) {}
-
-        fn end_session(_: u32) {}
-    }
+    #[derive(Debug)]
+    pub enum Error {}
 
     impl<T: Config> BoundToRuntimeAppPublic for Pallet<T> {
         type Public = T::AuthorityId;
@@ -202,7 +182,7 @@ pub mod pallet {
             I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
             T::AccountId: 'a,
         {
-            let authorities = validators.map(|(_, key)| key).collect::<Vec<_>>();
+            let (_, authorities): (Vec<_>, Vec<_>) = validators.unzip();
             Self::initialize_authorities(authorities.as_slice());
         }
 
@@ -211,7 +191,7 @@ pub mod pallet {
             I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
             T::AccountId: 'a,
         {
-            let authorities = validators.map(|(_, key)| key).collect::<Vec<_>>();
+            let (_, authorities): (Vec<_>, Vec<_>) = validators.unzip();
             Self::update_authorities(authorities.as_slice());
         }
 

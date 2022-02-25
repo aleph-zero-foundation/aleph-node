@@ -1,18 +1,19 @@
 use log::info;
+use substrate_api_client::XtStatus;
 
 use crate::accounts::get_free_balance;
 use crate::config::Config;
 use crate::fee::{get_tx_fee_info, FeeInfo};
 use crate::transfer::{setup_for_transfer, transfer};
 
-pub fn fee_calculation(config: Config) -> anyhow::Result<()> {
+pub fn fee_calculation(config: &Config) -> anyhow::Result<()> {
     let (connection, from, to) = setup_for_transfer(config);
 
     let balance_before = get_free_balance(&from, &connection);
     info!("[+] Account {} balance before tx: {}", to, balance_before);
 
     let transfer_value = 1000u128;
-    let tx = transfer(&to, transfer_value, &connection);
+    let tx = transfer(&to, transfer_value, &connection, XtStatus::Finalized);
 
     let balance_after = get_free_balance(&from, &connection);
     info!("[+] Account {} balance after tx: {}", to, balance_after);
@@ -45,14 +46,14 @@ pub fn fee_calculation(config: Config) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn token_transfer(config: Config) -> anyhow::Result<()> {
+pub fn token_transfer(config: &Config) -> anyhow::Result<()> {
     let (connection, _, to) = setup_for_transfer(config);
 
     let balance_before = get_free_balance(&to, &connection);
     info!("[+] Account {} balance before tx: {}", to, balance_before);
 
     let transfer_value = 1000u128;
-    transfer(&to, transfer_value, &connection);
+    transfer(&to, transfer_value, &connection, XtStatus::Finalized);
 
     let balance_after = get_free_balance(&to, &connection);
     info!("[+] Account {} balance after tx: {}", to, balance_after);

@@ -15,13 +15,33 @@ use sp_runtime::MultiAddress;
 use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
-use substrate_api_client::GenericAddress;
-use substrate_api_client::{AccountId, UncheckedExtrinsicV4};
+use substrate_api_client::{AccountId, Balance, UncheckedExtrinsicV4};
+use substrate_api_client::{GenericAddress, XtStatus};
 
-pub fn channeling_fee(config: Config) -> anyhow::Result<()> {
+fn calculate_staking_treasury_addition(connection: &Connection) -> u128 {
+    let sessions_per_era = connection
+        .get_constant::<u32>("Staking", "SessionsPerEra")
+        .unwrap();
+    let session_period = connection
+        .get_constant::<u32>("Elections", "SessionPeriod")
+        .unwrap();
+    let millisecs_per_block = 2 * connection
+        .get_constant::<u64>("Timestamp", "MinimumPeriod")
+        .unwrap();
+    let miliseconds_per_era = millisecs_per_block * session_period as u64 * sessions_per_era as u64;
+    let treasury_era_payout_from_staking = primitives::staking::era_payout(miliseconds_per_era).1;
+    info!(
+        "[+] Possible treasury gain from staking is {}",
+        treasury_era_payout_from_staking
+    );
+    treasury_era_payout_from_staking
+}
+
+pub fn channeling_fee(config: &Config) -> anyhow::Result<()> {
     let (connection, _, to) = setup_for_transfer(config);
     let treasury = get_treasury_account(&connection);
 
+    let possibly_treasury_gain_from_staking = calculate_staking_treasury_addition(&connection);
     let treasury_balance_before = get_free_balance(&treasury, &connection);
     let issuance_before = get_total_issuance(&connection);
     info!(
@@ -29,45 +49,82 @@ pub fn channeling_fee(config: Config) -> anyhow::Result<()> {
         treasury_balance_before, issuance_before
     );
 
-    let tx = transfer(&to, 1000u128, &connection);
-
+    let tx = transfer(&to, 1000u128, &connection, XtStatus::Finalized);
     let treasury_balance_after = get_free_balance(&treasury, &connection);
     let issuance_after = get_total_issuance(&connection);
-    info!(
-        "[+] Treasury balance after tx: {}. Total issuance: {}.",
-        treasury_balance_after, issuance_after
-    );
-
-    assert!(
-        issuance_after <= issuance_before,
-        "Unexpectedly {} was minted",
-        issuance_after - issuance_before
-    );
-    assert!(
-        issuance_before <= issuance_after,
-        "Unexpectedly {} was burned",
-        issuance_before - issuance_after
+    check_treasury_issuance(
+        possibly_treasury_gain_from_staking,
+        treasury_balance_after,
+        issuance_before,
+        issuance_after,
     );
 
     let fee_info = get_tx_fee_info(&connection, &tx);
     let fee = fee_info.fee_without_weight + fee_info.adjusted_weight;
-
-    assert_eq!(
-        treasury_balance_before + fee,
-        treasury_balance_after,
-        "Incorrect amount was channeled to the treasury: before = {}, after = {}, fee = {}",
+    check_treasury_balance(
+        possibly_treasury_gain_from_staking,
         treasury_balance_before,
         treasury_balance_after,
-        fee
+        fee,
     );
 
     Ok(())
 }
 
-pub fn treasury_access(config: Config) -> anyhow::Result<()> {
-    let Config { node, seeds, .. } = config.clone();
+fn check_treasury_issuance(
+    possibly_treasury_gain_from_staking: u128,
+    treasury_balance_after: Balance,
+    issuance_before: u128,
+    issuance_after: u128,
+) {
+    info!(
+        "[+] Treasury balance after tx: {}. Total issuance: {}.",
+        treasury_balance_after, issuance_after
+    );
 
-    let proposer = accounts_from_seeds(seeds)[0].to_owned();
+    if issuance_after > issuance_before {
+        let difference = issuance_after - issuance_before;
+        assert_eq!(
+            difference % possibly_treasury_gain_from_staking,
+            0,
+            "Unexpectedly {} was minted, and it's not related to staking treasury reward which is {}",
+            difference, possibly_treasury_gain_from_staking
+        );
+    }
+
+    assert!(
+        issuance_before <= issuance_after,
+        "Unexpectedly {} was burned",
+        issuance_before - issuance_after
+    );
+}
+
+fn check_treasury_balance(
+    possibly_treasury_gain_from_staking: u128,
+    treasury_balance_before: Balance,
+    treasury_balance_after: Balance,
+    fee: Balance,
+) {
+    let treasury_balance_diff = treasury_balance_after - (treasury_balance_before + fee);
+    assert_eq!(
+        treasury_balance_diff % possibly_treasury_gain_from_staking,
+        0,
+        "Incorrect amount was channeled to the treasury: before = {}, after = {}, fee = {}.  We can \
+        be different only as multiples of staking treasury reward {}, but the remainder is {}",
+        treasury_balance_before,
+        treasury_balance_after,
+        fee,
+        possibly_treasury_gain_from_staking,
+        treasury_balance_diff % possibly_treasury_gain_from_staking,
+    );
+}
+
+pub fn treasury_access(config: &Config) -> anyhow::Result<()> {
+    let Config {
+        ref node, seeds, ..
+    } = config;
+
+    let proposer = accounts_from_seeds(seeds)[0].clone();
     let beneficiary = AccountId::from(proposer.public());
     let connection = create_connection(node).set_signer(proposer);
 
@@ -107,6 +164,7 @@ fn propose_treasury_spend(
         connection,
         "Treasury",
         "propose_spend",
+        XtStatus::Finalized,
         |tx_hash| info!("[+] Treasury spend transaction hash: {}", tx_hash),
         Compact(value),
         GenericAddress::Id(beneficiary.clone())
@@ -126,6 +184,7 @@ fn send_treasury_approval(proposal_id: u32, connection: &Connection) -> Governan
         connection,
         "Treasury",
         "approve_proposal",
+        XtStatus::Finalized,
         |tx_hash| info!("[+] Treasury approval transaction hash: {}", tx_hash),
         Compact(proposal_id)
     )
@@ -141,6 +200,7 @@ fn send_treasury_rejection(proposal_id: u32, connection: &Connection) -> Governa
         connection,
         "Treasury",
         "reject_proposal",
+        XtStatus::Finalized,
         |tx_hash| info!("[+] Treasury rejection transaction hash: {}", tx_hash),
         Compact(proposal_id)
     )
