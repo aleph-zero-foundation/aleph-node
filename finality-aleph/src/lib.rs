@@ -1,6 +1,6 @@
 use aleph_bft::{NodeIndex, TaskHandle};
 use codec::{Decode, Encode};
-use futures::{channel::oneshot, Future, TryFutureExt};
+use futures::{channel::mpsc, channel::oneshot, Future, TryFutureExt};
 use sc_client_api::{backend::Backend, BlockchainEvents, Finalizer, LockImportRun, TransactionFor};
 use sc_consensus::BlockImport;
 use sc_network::{ExHashT, NetworkService};
@@ -9,7 +9,7 @@ use sp_api::{NumberFor, ProvideRuntimeApi};
 use sp_blockchain::{HeaderBackend, HeaderMetadata};
 use sp_consensus::SelectChain;
 use sp_keystore::CryptoStore;
-use sp_runtime::traits::{BlakeTwo256, Block};
+use sp_runtime::traits::{BlakeTwo256, Block, Header};
 use std::{fmt::Debug, sync::Arc};
 
 mod aggregator;
@@ -23,6 +23,7 @@ pub mod metrics;
 mod network;
 mod party;
 mod session;
+mod session_map;
 #[cfg(test)]
 pub mod testing;
 
@@ -32,7 +33,7 @@ pub use justification::JustificationNotification;
 pub use session::SessionPeriod;
 use session::{
     first_block_of_session, last_block_of_session, session_id_from_block_num, SessionBoundaries,
-    SessionId, SessionMap,
+    SessionId,
 };
 
 #[derive(Clone, Debug, Encode, Decode)]
@@ -77,8 +78,6 @@ pub struct UnitCreationDelay(pub u64);
 pub use crate::metrics::Metrics;
 use crate::party::{run_consensus_party, AlephParams};
 pub use aleph_primitives::{AuthorityId, AuthorityPair, AuthoritySignature};
-use futures::channel::mpsc;
-use sp_runtime::traits::Header;
 
 pub trait ClientForAleph<B, BE>:
     LockImportRun<B, BE>

@@ -1,8 +1,6 @@
-use crate::AuthorityId;
 use crate::NumberFor;
 use codec::{Decode, Encode};
 use sp_runtime::{traits::Block, SaturatedConversion};
-use std::collections::HashMap;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct SessionBoundaries<B: Block> {
@@ -44,8 +42,6 @@ pub fn last_block_of_session<B: Block>(
 pub fn session_id_from_block_num<B: Block>(num: NumberFor<B>, period: SessionPeriod) -> SessionId {
     SessionId(num.saturated_into::<u32>() / period.0)
 }
-
-pub type SessionMap = HashMap<SessionId, Vec<AuthorityId>>;
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
 pub struct SessionId(pub u32);
