@@ -1,6 +1,7 @@
+use codec::Encode;
 use substrate_api_client::Balance;
 
-use crate::{Connection, TransferTransaction};
+use crate::{Connection, UncheckedExtrinsicV4};
 
 #[derive(Debug)]
 pub struct FeeInfo {
@@ -9,7 +10,7 @@ pub struct FeeInfo {
     pub adjusted_weight: Balance,
 }
 
-pub fn get_tx_fee_info(connection: &Connection, tx: &TransferTransaction) -> FeeInfo {
+pub fn get_tx_fee_info<Call: Encode>(connection: &Connection, tx: &UncheckedExtrinsicV4<Call>) -> FeeInfo {
     let unadjusted_weight = connection
         .get_payment_info(&tx.hex_encode(), None)
         .unwrap()
@@ -27,4 +28,11 @@ pub fn get_tx_fee_info(connection: &Connection, tx: &TransferTransaction) -> Fee
         unadjusted_weight,
         adjusted_weight: inclusion_fee.adjusted_weight_fee,
     }
+}
+
+pub fn get_next_fee_multiplier(connection: &Connection) -> u128 {
+    connection
+        .get_storage_value("TransactionPayment", "NextFeeMultiplier", None)
+        .unwrap()
+        .unwrap()
 }

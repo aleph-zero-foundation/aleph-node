@@ -25,7 +25,6 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
-use frame_support::sp_runtime::traits::Convert;
 use frame_support::sp_runtime::Perquintill;
 use frame_support::traits::EqualPrivilegeOnly;
 use frame_support::traits::SortedMembers;
@@ -49,12 +48,12 @@ use primitives::{ApiError as AlephApiError, AuthorityId as AlephId, DEFAULT_SESS
 
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
-use pallet_transaction_payment::{CurrencyAdapter, Multiplier, MultiplierUpdate};
+use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
 use sp_consensus_aura::SlotDuration;
-use sp_runtime::traits::{One, Zero};
+use sp_runtime::traits::One;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
-pub use sp_runtime::{Perbill, Permill};
+pub use sp_runtime::{FixedPointNumber, Perbill, Permill};
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -104,7 +103,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 8,
+    spec_version: 9,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 4,
@@ -246,31 +245,10 @@ parameter_types! {
     pub const OperationalFeeMultiplier: u8 = 5;
 }
 
-pub struct ConstantFeeMultiplierUpdate;
-
-impl Convert<Multiplier, Multiplier> for ConstantFeeMultiplierUpdate {
-    fn convert(m: Multiplier) -> Multiplier {
-        m
-    }
-}
-
-impl MultiplierUpdate for ConstantFeeMultiplierUpdate {
-    fn min() -> Multiplier {
-        Multiplier::one()
-    }
-
-    fn target() -> Perquintill {
-        Default::default()
-    }
-
-    fn variability() -> Multiplier {
-        Multiplier::zero()
-    }
-}
-
 type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
 
 pub struct EverythingToTheTreasury;
+
 impl OnUnbalanced<NegativeImbalance> for EverythingToTheTreasury {
     fn on_unbalanceds<B>(mut fees_then_tips: impl Iterator<Item = NegativeImbalance>) {
         if let Some(fees) = fees_then_tips.next() {
@@ -282,11 +260,23 @@ impl OnUnbalanced<NegativeImbalance> for EverythingToTheTreasury {
     }
 }
 
+parameter_types! {
+    // We expect that on average 25% of the normal capacity will be occupied with normal txs.
+    pub TargetSaturationLevel: Perquintill = Perquintill::from_percent(25);
+    // During 20 blocks the fee may not change more than by 100%. This, together with the
+    // `TargetSaturationLevel` value, results in variability ~0.067. For the corresponding
+    // formulas please refer to Substrate code at `frame/transaction-payment/src/lib.rs`.
+    pub FeeVariability: Multiplier = Multiplier::saturating_from_rational(67, 1000);
+    // Fee should never be lower than the computational cost.
+    pub MinimumMultiplier: Multiplier = Multiplier::one();
+}
+
 impl pallet_transaction_payment::Config for Runtime {
     type OnChargeTransaction = CurrencyAdapter<Balances, EverythingToTheTreasury>;
     type TransactionByteFee = TransactionByteFee;
     type WeightToFee = IdentityFee<Balance>;
-    type FeeMultiplierUpdate = ConstantFeeMultiplierUpdate;
+    type FeeMultiplierUpdate =
+        TargetedFeeAdjustment<Self, TargetSaturationLevel, FeeVariability, MinimumMultiplier>;
     type OperationalFeeMultiplier = OperationalFeeMultiplier;
 }
 

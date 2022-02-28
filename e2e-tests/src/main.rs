@@ -14,12 +14,12 @@ fn main() -> anyhow::Result<()> {
 
     run(test::finalization, "finalization", &config)?;
     run(test::change_validators, "validators change", &config)?;
-    run(test::fee_calculation, "fee calculation", &config)?;
     run(test::token_transfer, "token transfer", &config)?;
     run(test::channeling_fee, "channeling fee", &config)?;
     run(test::treasury_access, "treasury access", &config)?;
     run(test::batch_transactions, "batch_transactions", &config)?;
     run(test::staking_test, "staking_test", &config)?;
+    run(test::fee_calculation, "fee calculation", &config)?;
 
     Ok(())
 }
