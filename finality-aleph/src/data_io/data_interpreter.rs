@@ -75,7 +75,7 @@ impl<B: BlockT, C: HeaderBackend<B>> OrderedDataInterpreter<B, C> {
                 {
                     proposal
                 } else {
-                    warn!(target:"afa", "Incorrect proposal {:?} passed through data availability, session bounds: {:?}", unvalidated_proposal, self.session_boundaries);
+                    warn!(target: "aleph-finality", "Incorrect proposal {:?} passed through data availability, session bounds: {:?}", unvalidated_proposal, self.session_boundaries);
                     return None;
                 };
 
@@ -87,7 +87,7 @@ impl<B: BlockT, C: HeaderBackend<B>> OrderedDataInterpreter<B, C> {
                 match status {
                     Finalize(block) => Some(block),
                     Ignore => {
-                        debug!(target:"afa", "HopelessFork {:?} encountered in Data. Skipping.", proposal);
+                        debug!(target: "aleph-finality", "HopelessFork {:?} encountered in Data. Skipping.", proposal);
                         None
                     }
                     Pending(pending_status) => {
@@ -113,7 +113,7 @@ impl<B: BlockT, C: HeaderBackend<B> + Send + 'static> aleph_bft::FinalizationHan
                 .inner()
                 .update_aux_finalized(block.clone());
             if let Err(err) = self.blocks_to_finalize_tx.unbounded_send(block) {
-                error!(target: "afa", "Error in sending a block from FinalizationHandler, {}", err);
+                error!(target: "aleph-finality", "Error in sending a block from FinalizationHandler, {}", err);
             }
         }
     }

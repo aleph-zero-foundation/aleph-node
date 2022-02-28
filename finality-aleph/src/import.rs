@@ -66,7 +66,7 @@ where
         number: NumberFor<Block>,
         justification: Justification,
     ) -> Result<(), SendJustificationError<Block>> {
-        debug!(target: "afa", "Importing justification for block {:?}", number);
+        debug!(target: "aleph-justification", "Importing justification for block {:?}", number);
         if justification.0 != ALEPH_ENGINE_ID {
             return Err(SendJustificationError::Consensus(Box::new(
                 ConsensusError::ClientImport("Aleph can import only Aleph justifications.".into()),
@@ -75,7 +75,7 @@ where
         let justification_raw = justification.1;
         let aleph_justification = match backwards_compatible_decode(justification_raw) {
             JustificationDecoding::V1(just) => {
-                debug!(target: "afa", "Justification for block {:?} decoded correctly as V1", number);
+                debug!(target: "aleph-justification", "Justification for block {:?} decoded correctly as V1", number);
                 just.into()
             }
             JustificationDecoding::V2(just) => just,
@@ -143,7 +143,7 @@ where
 
         let justifications = block.justifications.take();
 
-        debug!(target: "afa", "Importing block {:?} {:?} {:?}", number, block.header.hash(), block.post_hash());
+        debug!(target: "aleph-justification", "Importing block {:?} {:?} {:?}", number, block.header.hash(), block.post_hash());
         let import_result = self.inner.import_block(block, cache).await;
 
         let imported_aux = match import_result {
@@ -155,12 +155,12 @@ where
         if let Some(justification) =
             justifications.and_then(|just| just.into_justification(ALEPH_ENGINE_ID))
         {
-            debug!(target: "afa", "Got justification along imported block {:?}", number);
+            debug!(target: "aleph-justification", "Got justification along imported block {:?}", number);
 
             if let Err(e) =
                 self.send_justification(post_hash, number, (ALEPH_ENGINE_ID, justification))
             {
-                warn!(target: "afa", "Error while receiving justification for block {:?}: {:?}", post_hash, e);
+                warn!(target: "aleph-justification", "Error while receiving justification for block {:?}: {:?}", post_hash, e);
             }
         }
 
@@ -182,7 +182,7 @@ where
     type Error = ConsensusError;
 
     async fn on_start(&mut self) -> Vec<(Block::Hash, NumberFor<Block>)> {
-        debug!(target: "afa", "On start called");
+        debug!(target: "aleph-justification", "On start called");
         Vec::new()
     }
 
@@ -192,7 +192,7 @@ where
         number: NumberFor<Block>,
         justification: Justification,
     ) -> Result<(), Self::Error> {
-        debug!(target: "afa", "import_justification called on {:?}", justification);
+        debug!(target: "aleph-justification", "import_justification called on {:?}", justification);
         self.send_justification(hash, number, justification)
             .map_err(|error| match error {
                 SendJustificationError::Send(_) => ConsensusError::ClientImport(String::from(
@@ -200,7 +200,7 @@ where
                 )),
                 SendJustificationError::Consensus(e) => *e,
                 SendJustificationError::Decode => {
-                    warn!(target: "afa", "Justification for block {:?} decoded incorrectly", number);
+                    warn!(target: "aleph-justification", "Justification for block {:?} decoded incorrectly", number);
                     ConsensusError::ClientImport(String::from("Could not decode justification"))
                 }
             })

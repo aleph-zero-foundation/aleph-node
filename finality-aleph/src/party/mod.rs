@@ -58,7 +58,7 @@ pub struct AlephParams<B: Block, H: ExHashT, C, SC> {
 impl<B: Block> Verifier<B> for AuthorityVerifier {
     fn verify(&self, justification: &AlephJustification, hash: B::Hash) -> bool {
         if !self.is_complete(&hash.encode()[..], &justification.signature) {
-            warn!(target: "afa", "Bad justification for block hash #{:?} {:?}", hash, justification);
+            warn!(target: "aleph-justification", "Bad justification for block hash #{:?} {:?}", hash, justification);
             return false;
         }
         true
@@ -189,7 +189,7 @@ where
     let network_task = async move { network.run().await };
     spawn_handle.spawn("aleph/network", None, network_task);
 
-    debug!(target: "afa", "Consensus network has started.");
+    debug!(target: "aleph-party", "Consensus network has started.");
 
     let party = ConsensusParty {
         session_manager,
@@ -206,9 +206,9 @@ where
         unit_creation_delay,
     };
 
-    debug!(target: "afa", "Consensus party has started.");
+    debug!(target: "aleph-party", "Consensus party has started.");
     party.run().await;
-    error!(target: "afa", "Consensus party has finished unexpectedly.");
+    error!(target: "aleph-party", "Consensus party has finished unexpectedly.");
 }
 
 async fn get_node_index(
@@ -217,7 +217,7 @@ async fn get_node_index(
 ) -> Option<NodeIndex> {
     let our_consensus_keys: HashSet<_> =
         keystore.keys(KEY_TYPE).await.unwrap().into_iter().collect();
-    trace!(target: "afa", "Found {:?} consensus keys in our local keystore {:?}", our_consensus_keys.len(), our_consensus_keys);
+    trace!(target: "aleph-data-store", "Found {:?} consensus keys in our local keystore {:?}", our_consensus_keys.len(), our_consensus_keys);
     authorities
         .iter()
         .position(|pkey| our_consensus_keys.contains(&pkey.into()))
@@ -240,7 +240,7 @@ where
 {
     let (authority_justification_tx, authority_justification_rx) = mpsc::unbounded();
 
-    debug!(target: "afa", "JustificationHandler started");
+    debug!(target: "aleph-justification", "JustificationHandler started");
     spawn_handle.spawn("aleph/justification_handler", async move {
         handler
             .run(authority_justification_rx, import_justification_rx)
@@ -418,7 +418,7 @@ where
                 }
                 let last_finalized_number = self.client.info().finalized_number;
                 if last_finalized_number >= last_block {
-                    debug!(target: "afa", "Skipping session {:?} early because block {:?} is already finalized", session_id, last_finalized_number);
+                    debug!(target: "aleph-party", "Skipping session {:?} early because block {:?} is already finalized", session_id, last_finalized_number);
                     return;
                 }
             }
@@ -448,7 +448,7 @@ where
         let mut maybe_authority_task = if let Some(node_id) =
             get_node_index(&authorities, self.keystore.clone()).await
         {
-            debug!(target: "afa", "Running session {:?} as authority id {:?}", session_id, node_id);
+            debug!(target: "aleph-party", "Running session {:?} as authority id {:?}", session_id, node_id);
             Some(
                 self.spawn_authority_task(session_id, node_id, authorities.clone())
                     .await,
@@ -548,7 +548,7 @@ where
         let starting_session =
             session_id_from_block_num::<B>(last_finalized_number, self.session_period);
         for curr_id in starting_session.0.. {
-            info!(target: "afa", "Running session {:?}.", curr_id);
+            info!(target: "aleph-party", "Running session {:?}.", curr_id);
             self.run_session(SessionId(curr_id)).await;
         }
     }

@@ -249,15 +249,15 @@ where
                     let mut lock = self.messages_from_network.lock().await;
                     lock.next().await
                 } => {
-                    trace!(target: "afa", "Received message at Data Store {:?}", message);
+                    trace!(target: "aleph-data-store", "Received message at Data Store {:?}", message);
                     self.on_message_received(message);
                 }
                 Some(block) = &mut import_stream.next() => {
-                    trace!(target: "afa", "Block import notification at Data Store for block {:?}", block);
+                    trace!(target: "aleph-data-store", "Block import notification at Data Store for block {:?}", block);
                     self.on_block_imported((block.header.hash(), *block.header.number()).into());
                 },
                 Some(block) = &mut finality_stream.next() => {
-                    trace!(target: "afa", "Finalized block import notification at Data Store for block {:?}", block);
+                    trace!(target: "aleph-data-store", "Finalized block import notification at Data Store for block {:?}", block);
                     self.on_block_finalized((block.header.hash(), *block.header.number()).into());
                 }
                 _ = &mut maintenance_clock => {
@@ -265,7 +265,7 @@ where
                     maintenance_clock = Delay::new(self.config.periodic_maintenance_interval);
                 }
                 _ = &mut exit => {
-                    debug!(target: "afa", "Data Store task received exit signal. Terminating.");
+                    debug!(target: "aleph-data-store", "Data Store task received exit signal. Terminating.");
                     break;
                 }
             }
@@ -289,13 +289,13 @@ where
             .collect();
         match proposals_with_timestamps.len() {
             0 => {
-                trace!(target: "afa", "No pending proposals in data store during maintenance.");
+                trace!(target: "aleph-data-store", "No pending proposals in data store during maintenance.");
             }
             1..=5 => {
-                info!(target: "afa", "Data Store maintenance. Awaiting {:?} proposals: {:?}",proposals_with_timestamps.len(), proposals_with_timestamps);
+                info!(target: "aleph-data-store", "Data Store maintenance. Awaiting {:?} proposals: {:?}",proposals_with_timestamps.len(), proposals_with_timestamps);
             }
             _ => {
-                info!(target: "afa", "Data Store maintenance. Awaiting {:?} proposals: (showing 5 initial only) {:?}",proposals_with_timestamps.len(), &proposals_with_timestamps[..5]);
+                info!(target: "aleph-data-store", "Data Store maintenance. Awaiting {:?} proposals: (showing 5 initial only) {:?}",proposals_with_timestamps.len(), &proposals_with_timestamps[..5]);
             }
         }
 
@@ -307,7 +307,7 @@ where
                     if time_waiting >= self.config.request_block_after {
                         let block = proposal.top_block();
                         if !self.chain_info_provider.is_block_imported(&block) {
-                            debug!(target: "afa", "Requesting a stale block {:?} after it has been missing for {:?} secs.", block, time_waiting.as_secs());
+                            debug!(target: "aleph-data-store", "Requesting a stale block {:?} after it has been missing for {:?} secs.", block, time_waiting.as_secs());
                             self.block_requester
                                 .request_stale_block(block.hash, block.num);
                         }
@@ -504,9 +504,9 @@ where
     }
 
     fn on_message_dependencies_resolved(&self, message: Message) {
-        trace!(target: "afa", "Sending message from DataStore {:?}", message);
+        trace!(target: "aleph-data-store", "Sending message from DataStore {:?}", message);
         if let Err(e) = self.messages_for_aleph.unbounded_send(message) {
-            error!(target: "afa", "Unable to send a ready message from DataStore {}", e);
+            error!(target: "aleph-data-store", "Unable to send a ready message from DataStore {}", e);
         }
     }
 
@@ -521,7 +521,7 @@ where
         let mut message_info = match self.pending_messages.remove(&id) {
             Some(message_info) => message_info,
             None => {
-                warn!(target: "afa", "Message {:?} not found when resolving a proposal dependency {:?}.", id, proposal);
+                warn!(target: "aleph-data-store", "Message {:?} not found when resolving a proposal dependency {:?}.", id, proposal);
                 return;
             }
         };
@@ -546,7 +546,7 @@ where
                 proposal_entry.remove();
             }
         } else {
-            warn!(target:"afa", "Proposal {:?} with id {:?} referenced in message does not exist", proposal, id);
+            warn!(target: "aleph-data-store", "Proposal {:?} with id {:?} referenced in message does not exist", proposal, id);
         }
     }
 
@@ -566,7 +566,7 @@ where
                 false
             }
         } else {
-            warn!(target:"afa", "Tried to prune a message but there are none pending.");
+            warn!(target: "aleph-data-store", "Tried to prune a message but there are none pending.");
             false
         }
     }
@@ -578,7 +578,7 @@ where
             || self.pending_proposals.len() > self.config.max_proposals_pending
         {
             if !self.prune_single_message() {
-                warn!(target:"afa", "Message pruning in DataStore failed. Moving on.");
+                warn!(target: "aleph-data-store", "Message pruning in DataStore failed. Moving on.");
                 break;
             }
         }
@@ -609,7 +609,7 @@ where
                     {
                         proposals.push(proposal);
                     } else {
-                        warn!(target: "afa", "Message {:?} dropped as it contains proposal {:?} not within bounds.", message, unvalidated_proposal);
+                        warn!(target: "aleph-data-store", "Message {:?} dropped as it contains proposal {:?} not within bounds.", message, unvalidated_proposal);
                         return;
                     }
                 }

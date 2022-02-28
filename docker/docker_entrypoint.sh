@@ -61,7 +61,7 @@ if [[ -n "${RESERVED_ONLY:-}" ]]; then
 fi
 
 if [[ -n "${FLAG_LAFA:-}" ]]; then
-  ARGS+=(-lafa=debug)
+  ARGS+=(-laleph-party=debug -laleph-network=debug -laleph-finality=debug -laleph-justification=debug -laleph-data-store=debug -laleph-metrics=debug)
 fi
 
 if [[ -n "${FLAG_L_ALEPH_BFT:-}" ]]; then

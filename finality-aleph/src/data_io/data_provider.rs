@@ -50,7 +50,7 @@ where
     {
         Some((*header.parent_hash(), block.num - <NumberFor<B>>::one()).into())
     } else {
-        warn!(target: "afa", "Trying to fetch the parent of an unknown block {:?}.", block);
+        warn!(target: "aleph-data-store", "Trying to fetch the parent of an unknown block {:?}.", block);
         None
     }
 }
@@ -84,7 +84,7 @@ where
     } else {
         // By backtracking from the best block we reached a block conflicting with best finalized.
         // This is most likely a bug, or some extremely unlikely synchronization issue of the client.
-        warn!(target: "afa", "Error computing proposal. Conflicting blocks: {:?}, finalized {:?}", curr_block, finalized_block);
+        warn!(target: "aleph-data-store", "Error computing proposal. Conflicting blocks: {:?}, finalized {:?}", curr_block, finalized_block);
         Err(())
     }
 }
@@ -173,7 +173,7 @@ where
         }
         if best_block_in_session.num < finalized_block.num {
             // Because of the client synchronization, in extremely rare cases this could happen.
-            warn!(target: "afa", "Error updating data. best_block {:?} is lower than finalized {:?}.", best_block_in_session, finalized_block);
+            warn!(target: "aleph-data-store", "Error updating data. best_block {:?} is lower than finalized {:?}.", best_block_in_session, finalized_block);
             return;
         }
 
@@ -256,7 +256,7 @@ where
 
                 }
                 _ = &mut exit => {
-                    debug!(target: "afa", "Task for refreshing best chain received exit signal. Terminating.");
+                    debug!(target: "aleph-data-store", "Task for refreshing best chain received exit signal. Terminating.");
                     return;
                 }
             }
@@ -293,7 +293,7 @@ impl<B: BlockT> aleph_bft::DataProvider<AlephData<B>> for DataProvider<B> {
                 );
             }
         }
-        debug!(target: "afa", "Outputting {:?} in get_data", data);
+        debug!(target: "aleph-data-store", "Outputting {:?} in get_data", data);
         data
     }
 }

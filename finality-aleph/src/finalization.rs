@@ -55,11 +55,11 @@ where
     ) -> Result<(), Error> {
         let status = self.client.info();
         if status.finalized_number >= block_number {
-            warn!(target: "afa", "trying to finalize a block with hash {} and number {}
+            warn!(target: "aleph-finality", "trying to finalize a block with hash {} and number {}
                that is not greater than already finalized {}", hash, block_number, status.finalized_number);
         }
 
-        debug!(target: "afa", "Finalizing block with hash {:?} and number {:?}. Previous best: #{:?}.", hash, block_number, status.finalized_number);
+        debug!(target: "aleph-finality", "Finalizing block with hash {:?} and number {:?}. Previous best: #{:?}.", hash, block_number, status.finalized_number);
 
         let update_res = self.client.lock_import_and_run(|import_op| {
             // NOTE: all other finalization logic should come here, inside the lock
@@ -67,7 +67,7 @@ where
                 .apply_finality(import_op, BlockId::Hash(hash), justification, true)
         });
         let status = self.client.info();
-        debug!(target: "afa", "Attempted to finalize block with hash {:?}. Current best: #{:?}.", hash, status.finalized_number);
+        debug!(target: "aleph-finality", "Attempted to finalize block with hash {:?}. Current best: #{:?}.", hash, status.finalized_number);
         update_res
     }
 }

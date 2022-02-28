@@ -94,9 +94,12 @@ for i in $(seq 0 "$(( N_VALIDATORS + N_NON_VALIDATORS - 1 ))"); do
     --execution Native \
     --rpc-cors=all \
     --no-mdns \
-    -lafa=debug \
     -laleph-party=debug \
     -laleph-network=debug \
+    -laleph-finality=debug \
+    -laleph-justification=debug \
+    -laleph-data-store=debug \
+    -laleph-metrics=debug \
     "$@" \
     2> $auth.log > /dev/null & \
 done
