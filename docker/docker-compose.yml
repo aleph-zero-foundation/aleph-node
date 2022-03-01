@@ -85,3 +85,24 @@ services:
       - UNIT_CREATION_DELAY=50
     volumes:
       - ./data/:/data/
+
+  julia:
+    image: aleph-node:latest
+    container_name: julia
+    network_mode: host
+    environment:
+      - PURGE_BEFORE_START=true
+      - RUST_LOG=info
+      - RPC_PORT=9937
+      - WS_PORT=9947
+      - PORT=30337
+      - NAME=Julia
+      - BASE_PATH=/data/$JULIA
+      - NODE_KEY_PATH=/data/$JULIA/p2p_secret
+      - CHAIN=/data/chainspec.json
+      - ALLOW_PRIVATE_IPV4=true
+      - DISCOVER_LOCAL=true
+      - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/$BOOTNODE_PEER_ID
+      - UNIT_CREATION_DELAY=50
+    volumes:
+      - ./data/:/data/

@@ -372,7 +372,8 @@ fn generate_genesis_config(
         staking: StakingConfig {
             force_era: Forcing::NotForcing,
             validator_count: authorities.len() as u32,
-            minimum_validator_count: authorities.len() as u32,
+            // to satisfy some e2e tests as this cannot be changed during runtime
+            minimum_validator_count: 4,
             invulnerables: to_account_ids(&authorities).collect(),
             slash_reward_fraction: Perbill::from_percent(10),
             stakers: stakers

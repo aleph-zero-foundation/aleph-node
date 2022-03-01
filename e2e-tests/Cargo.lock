@@ -15,7 +15,7 @@ dependencies = [
 [[package]]
 name = "ac-compose-macros"
 version = "0.1.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate-api-client.git?tag=polkadot-v0.9.13.metav14#6d24cb59f224f089159bbd302a3325a6bafc543d"
+source = "git+https://github.com/Cardinal-Cryptography/substrate-api-client.git?tag=polkadot-v0.9.13.b2bfc0c3#22c19dccaa2cbb010fd3d984bfe1c5719c4c8b7d"
 dependencies = [
  "ac-primitives",
  "log",
@@ -27,10 +27,10 @@ dependencies = [
 [[package]]
 name = "ac-node-api"
 version = "0.1.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate-api-client.git?tag=polkadot-v0.9.13.metav14#6d24cb59f224f089159bbd302a3325a6bafc543d"
+source = "git+https://github.com/Cardinal-Cryptography/substrate-api-client.git?tag=polkadot-v0.9.13.b2bfc0c3#22c19dccaa2cbb010fd3d984bfe1c5719c4c8b7d"
 dependencies = [
  "ac-primitives",
- "frame-metadata 14.2.0 (git+https://github.com/paritytech/frame-metadata.git?branch=main)",
+ "frame-metadata 14.1.0",
  "frame-support",
  "frame-system",
  "hex",
@@ -47,7 +47,7 @@ dependencies = [
 [[package]]
 name = "ac-primitives"
 version = "0.1.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate-api-client.git?tag=polkadot-v0.9.13.metav14#6d24cb59f224f089159bbd302a3325a6bafc543d"
+source = "git+https://github.com/Cardinal-Cryptography/substrate-api-client.git?tag=polkadot-v0.9.13.b2bfc0c3#22c19dccaa2cbb010fd3d984bfe1c5719c4c8b7d"
 dependencies = [
  "hex",
  "parity-scale-codec",
@@ -102,6 +102,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
+ "pallet-balances",
  "pallet-staking",
  "parity-scale-codec",
  "primitives",
@@ -690,9 +691,8 @@ dependencies = [
 
 [[package]]
 name = "frame-metadata"
-version = "14.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37ed5e5c346de62ca5c184b4325a6600d1eaca210666e4606fe4e449574978d0"
+version = "14.1.0"
+source = "git+https://github.com/paritytech/frame-metadata.git?tag=v14.1.0#5a822bb459caa0527d7ec54c7dfc60f305c1db9e"
 dependencies = [
  "cfg-if 1.0.0",
  "parity-scale-codec",
@@ -703,7 +703,8 @@ dependencies = [
 [[package]]
 name = "frame-metadata"
 version = "14.2.0"
-source = "git+https://github.com/paritytech/frame-metadata.git?branch=main#f0c7151a950f9e1002bf40d260ec32032f76d7ed"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "37ed5e5c346de62ca5c184b4325a6600d1eaca210666e4606fe4e449574978d0"
 dependencies = [
  "cfg-if 1.0.0",
  "parity-scale-codec",
@@ -717,7 +718,7 @@ version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.13#afb74de23dfe2994e7ce38c0870efb9734e966f7"
 dependencies = [
  "bitflags",
- "frame-metadata 14.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "frame-metadata 14.2.0",
  "frame-support-procedural",
  "impl-trait-for-tuples",
  "log",
@@ -2780,12 +2781,12 @@ checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
 [[package]]
 name = "substrate-api-client"
 version = "0.6.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate-api-client.git?tag=polkadot-v0.9.13.metav14#6d24cb59f224f089159bbd302a3325a6bafc543d"
+source = "git+https://github.com/Cardinal-Cryptography/substrate-api-client.git?tag=polkadot-v0.9.13.b2bfc0c3#22c19dccaa2cbb010fd3d984bfe1c5719c4c8b7d"
 dependencies = [
  "ac-compose-macros",
  "ac-node-api",
  "ac-primitives",
- "frame-metadata 14.2.0 (git+https://github.com/paritytech/frame-metadata.git?branch=main)",
+ "frame-metadata 14.1.0",
  "frame-support",
  "frame-system",
  "hex",

@@ -6,7 +6,7 @@ edition = "2021"
 # client
 [dependencies.substrate-api-client]
 git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git"
-tag = "polkadot-v0.9.13.metav14"
+tag = "polkadot-v0.9.13.b2bfc0c3"
 features = ["staking-xt"]
 
 [dependencies]
@@ -16,7 +16,8 @@ sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polka
 sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", default-features = false }
 frame-support = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", default-features = false}
 system = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", package = "frame-system" }
-pallet-staking = {git = "https://github.com/paritytech/substrate.git",branch = "polkadot-v0.9.13", optional = true, default-features = false }
+pallet-staking = {git = "https://github.com/paritytech/substrate.git",branch = "polkadot-v0.9.13", default-features = false }
+pallet-balances = {git = "https://github.com/paritytech/substrate.git",branch = "polkadot-v0.9.13", default-features = false }
 
 # other dependencies
 anyhow = "1.0"
@@ -32,5 +33,6 @@ rayon = "1.5.1"
 default = ["std"]
 std = [
     "pallet-staking/std",
+    "pallet-balances/std",
     "primitives/std"
 ]

@@ -10,7 +10,7 @@ pub fn keypair_from_string(seed: &str) -> KeyPair {
 }
 
 pub fn default_account_seeds() -> Vec<String> {
-    ["//Damian", "//Hansu", "//Tomasz", "//Zbyszko"]
+    ["//Damian", "//Hansu", "//Tomasz", "//Zbyszko", "//Julia"]
         .into_iter()
         .map(String::from)
         .collect()

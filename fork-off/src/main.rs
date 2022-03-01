@@ -3,7 +3,7 @@ use futures::stream::{self, StreamExt};
 use serde_json::Value;
 use std::fs::{self, File};
 use std::io::{ErrorKind, Write};
-use substrate_api_client::extrinsic::log::{debug, info};
+use log::{debug, info};
 
 #[derive(Debug, Parser)]
 #[clap(version = "1.0")]

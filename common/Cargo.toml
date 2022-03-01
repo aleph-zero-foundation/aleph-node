@@ -6,7 +6,7 @@ edition = "2021"
 # client
 [dependencies.substrate-api-client]
 git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git"
-tag = "polkadot-v0.9.13.metav14"
+tag = "polkadot-v0.9.13.b2bfc0c3"
 
 [dependencies]
 # Substrate dependencies

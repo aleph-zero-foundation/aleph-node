@@ -1,125 +1,28 @@
+use crate::rpc::get_author_rotate_keys;
+use crate::session::{get_current_session, session_set_keys, wait_for_session};
+use crate::staking::{nominate, wait_for_full_era_completion};
+use crate::transfer::locks;
 use crate::{
-    accounts::{accounts_from_seeds, default_account_seeds},
+    accounts::{accounts_from_seeds, default_account_seeds, keypair_from_string},
     config::Config,
-    waiting::{wait_for_event, wait_for_finalized_block},
-    BlockNumber, Connection, Header, KeyPair,
+    session::send_change_members,
+    staking::{bond, bonded, ledger, payout_stakers, validate},
+    transfer::batch_endow_account_balances,
+    BlockNumber, Connection, KeyPair,
 };
-use codec::{Compact, Decode};
 use common::create_connection;
 use log::info;
-use pallet_staking::ValidatorPrefs;
+use pallet_staking::StakingLedger;
+use primitives::TOKEN_DECIMALS;
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
 use sp_core::Pair;
-use sp_runtime::Perbill;
-use substrate_api_client::{
-    compose_call, compose_extrinsic, extrinsic::staking::RewardDestination, AccountId,
-    GenericAddress, XtStatus,
-};
+use substrate_api_client::{AccountId, XtStatus};
 
-fn send_xt(connection: &Connection, xt: String, xt_name: &'static str) {
-    let block_hash = connection
-        .send_extrinsic(xt, XtStatus::InBlock)
-        .expect("Could not send extrinsc")
-        .expect("Could not get tx hash");
-    let block_number = connection
-        .get_header::<Header>(Some(block_hash))
-        .expect("Could not fetch header")
-        .expect("Block exists; qed")
-        .number;
-    info!(
-        "Transaction {} was included in block {}.",
-        xt_name, block_number
-    );
-}
-
-fn endow_stash_balances(connection: &Connection, keys: &[KeyPair], endowment: u128) {
-    let batch_endow: Vec<_> = keys
-        .iter()
-        .map(|key| {
-            compose_call!(
-                connection.metadata,
-                "Balances",
-                "transfer",
-                GenericAddress::Id(AccountId::from(key.public())),
-                Compact(endowment)
-            )
-        })
-        .collect();
-
-    let xt = compose_extrinsic!(connection, "Utility", "batch", batch_endow);
-    send_xt(connection, xt.hex_encode(), "batch of endow balances");
-}
-
-fn bond(address: &str, initial_stake: u128, controller: &KeyPair) {
-    let connection = create_connection(address).set_signer(controller.clone());
-    let account_id = GenericAddress::Id(AccountId::from(controller.public()));
-
-    let xt = connection.staking_bond(account_id, initial_stake, RewardDestination::Staked);
-    send_xt(&connection, xt.hex_encode(), "bond");
-}
-
-fn validate(address: &str, controller: &KeyPair) {
-    let connection = create_connection(address).set_signer(controller.clone());
-    let prefs = ValidatorPrefs {
-        blocked: false,
-        commission: Perbill::from_percent(10),
-    };
-
-    let xt = compose_extrinsic!(connection, "Staking", "validate", prefs);
-    send_xt(&connection, xt.hex_encode(), "validate");
-}
-
-fn nominate(address: &str, nominator_key_pair: &KeyPair, nominee_key_pair: &KeyPair) {
-    let nominee_account_id = AccountId::from(nominee_key_pair.public());
-    let connection = create_connection(address).set_signer(nominator_key_pair.clone());
-
-    let xt = connection.staking_nominate(vec![GenericAddress::Id(nominee_account_id)]);
-    send_xt(&connection, xt.hex_encode(), "nominate");
-}
-
-fn payout_stakers(address: &str, validator: KeyPair, era_number: BlockNumber) {
-    let account = AccountId::from(validator.public());
-    let connection = create_connection(address).set_signer(validator);
-    let xt = compose_extrinsic!(connection, "Staking", "payout_stakers", account, era_number);
-
-    send_xt(&connection, xt.hex_encode(), "payout_stakers");
-}
-
-fn wait_for_full_era_completion(connection: &Connection) -> anyhow::Result<BlockNumber> {
-    let sessions_per_era: u32 = connection
-        .get_constant("Staking", "SessionsPerEra")
-        .unwrap();
-    let current_era: u32 = connection
-        .get_storage_value("Staking", "ActiveEra", None)
-        .unwrap()
-        .unwrap();
-    let payout_era = current_era + 2;
-
-    let first_session_in_payout_era = payout_era * sessions_per_era;
-
-    info!(
-        "Current era: {}, waiting for the first session in the payout era {}",
-        current_era, first_session_in_payout_era
-    );
-
-    #[derive(Debug, Decode, Clone)]
-    struct NewSessionEvent {
-        session_index: u32,
-    }
-    wait_for_event(
-        connection,
-        ("Session", "NewSession"),
-        |e: NewSessionEvent| {
-            info!("[+] new session {}", e.session_index);
-
-            e.session_index == first_session_in_payout_era
-        },
-    )?;
-
-    Ok(payout_era)
-}
+const TOKEN: u128 = 10u128.pow(TOKEN_DECIMALS);
+const VALIDATOR_STAKE: u128 = 25_000 * TOKEN;
+const NOMINATOR_STAKE: u128 = 1_000 * TOKEN;
 
 fn get_key_pairs() -> (Vec<KeyPair>, Vec<KeyPair>) {
     let validators = default_account_seeds();
@@ -133,35 +36,38 @@ fn get_key_pairs() -> (Vec<KeyPair>, Vec<KeyPair>) {
     (stashes_accounts_key_pairs, validator_accounts_key_pairs)
 }
 
+fn convert_authorities_to_account_id(authorities: Vec<KeyPair>) -> Vec<AccountId> {
+    authorities
+        .into_iter()
+        .map(|key| AccountId::from(key.public()))
+        .collect()
+}
+
 // 1. endow stash accounts balances, controller accounts are already endowed in chainspec
 // 2. bond controller account to stash account, stash = controller and set controller to StakerStatus::Validate
 // 3. bond controller account to stash account, stash = controller and set controller to StakerStatus::Nominate
 // 4. wait for new era
 // 5. send payout stakers tx
-pub fn staking_test(config: &Config) -> anyhow::Result<()> {
-    const TOKEN: u128 = 1_000_000_000_000;
-    const VALIDATOR_STAKE: u128 = 25_000 * TOKEN;
-    const NOMINATOR_STAKE: u128 = 1_000 * TOKEN;
-
+pub fn staking_era_payouts(config: &Config) -> anyhow::Result<()> {
     let (stashes_accounts, validator_accounts) = get_key_pairs();
 
     let node = &config.node;
     let sender = validator_accounts[0].clone();
     let connection = create_connection(node).set_signer(sender);
 
-    endow_stash_balances(&connection, &stashes_accounts, VALIDATOR_STAKE);
+    batch_endow_account_balances(&connection, &stashes_accounts, VALIDATOR_STAKE);
 
     validator_accounts.par_iter().for_each(|account| {
-        bond(node, VALIDATOR_STAKE, account);
+        bond(node, VALIDATOR_STAKE, &account, &account);
     });
 
     validator_accounts
         .par_iter()
-        .for_each(|account| validate(node, account));
+        .for_each(|account| validate(node, account, XtStatus::InBlock));
 
     stashes_accounts
         .par_iter()
-        .for_each(|nominator| bond(node, NOMINATOR_STAKE, nominator));
+        .for_each(|nominator| bond(node, NOMINATOR_STAKE, &nominator, &nominator));
 
     stashes_accounts
         .par_iter()
@@ -176,22 +82,142 @@ pub fn staking_test(config: &Config) -> anyhow::Result<()> {
         current_era - 1
     );
 
-    validator_accounts
-        .into_par_iter()
-        .for_each(|account| payout_stakers(node, account, current_era - 1));
-
-    // Sanity check
-    let block_number = connection
-        .get_header::<Header>(None)
-        .unwrap()
-        .unwrap()
-        .number;
-    info!(
-        "Current block number is {}, waiting till it finalizes",
-        block_number,
-    );
-
-    wait_for_finalized_block(&connection, block_number)?;
+    validator_accounts.into_par_iter().for_each(|key_pair| {
+        check_non_zero_payouts_for_era(node, &key_pair, &connection, current_era)
+    });
 
     Ok(())
+}
+
+// 1. decrease number of validators from 4 to 3
+// 2. endow stash account balances
+// 3. bond controller account to the stash account, stash != controller and set controller to StakerStatus::Validate
+// 4. call bonded, double check bonding
+// 5. set keys for controller account from validator's rotate_keys()
+// 6. set controller to StakerStatus::Validate, call ledger to double check storage state
+// 7. add 4th validator which is the new stash account
+// 8. wait for next era
+// 9. claim rewards for the stash account
+pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
+    let controller = keypair_from_string("//Controller");
+    let controller_account = AccountId::from(controller.public());
+    let stash_seed = "//Stash";
+    let stash = keypair_from_string(stash_seed);
+    let stash_account = AccountId::from(stash.public());
+    let (_, mut validator_accounts) = get_key_pairs();
+    let node = &config.node;
+    let sender = validator_accounts.remove(0);
+    // signer of this connection is sudo, the same node which in this test is used as the new one
+    // it's essential since keys from rotate_keys() needs to be run against that node
+    let connection = create_connection(node).set_signer(sender);
+
+    send_change_members(
+        &connection,
+        convert_authorities_to_account_id(validator_accounts.clone()),
+    );
+
+    let current_session = get_current_session(&connection);
+    let _ = wait_for_session(&connection, current_session + 2)?;
+
+    // to cover tx fees as we need a bit more than VALIDATOR_STAKE
+    batch_endow_account_balances(&connection, &[stash.clone()], VALIDATOR_STAKE + TOKEN);
+    // to cover txs fees
+    batch_endow_account_balances(&connection, &[controller.clone()], TOKEN);
+
+    bond(node, VALIDATOR_STAKE, &stash, &controller);
+    let bonded_controller_account = bonded(&connection, &stash);
+    assert!(
+        bonded_controller_account.is_some(),
+        "Expected that stash account {} is bonded to some controller!",
+        &stash_account
+    );
+    let bonded_controller_account = bonded_controller_account.unwrap();
+    assert_eq!(
+        bonded_controller_account, controller_account,
+        "Expected that stash account {} is bonded to the controller account {}, got {} instead!",
+        &stash_account, &controller_account, &bonded_controller_account
+    );
+
+    let validator_keys = get_author_rotate_keys(&connection).unwrap().unwrap();
+    session_set_keys(node, &controller, validator_keys, XtStatus::InBlock);
+
+    // to be elected in next era instead of expected validator_account_id
+    validate(node, &controller, XtStatus::InBlock);
+
+    let ledger = ledger(&connection, &controller);
+    assert!(
+        ledger.is_some(),
+        "Expected controller {} configuration to be non empty",
+        controller_account
+    );
+    let ledger = ledger.unwrap();
+    assert_eq!(
+        ledger,
+        StakingLedger {
+            stash: stash_account.clone(),
+            total: VALIDATOR_STAKE,
+            active: VALIDATOR_STAKE,
+            unlocking: vec![],
+            // we don't need to compare claimed rewards as those are internals of staking pallet
+            claimed_rewards: ledger.claimed_rewards.clone()
+        }
+    );
+
+    validator_accounts.push(stash.clone());
+    send_change_members(
+        &connection,
+        convert_authorities_to_account_id(validator_accounts.clone()),
+    );
+    let current_session = get_current_session(&connection);
+    let _ = wait_for_session(&connection, current_session + 2)?;
+
+    let current_era = wait_for_full_era_completion(&connection)?;
+    info!(
+        "Era {} started, claiming rewards for era {}",
+        current_era,
+        current_era - 1
+    );
+
+    check_non_zero_payouts_for_era(node, &stash, &connection, current_era);
+
+    Ok(())
+}
+
+fn check_non_zero_payouts_for_era(
+    node: &String,
+    stash: &KeyPair,
+    connection: &Connection,
+    era: BlockNumber,
+) {
+    let stash_account = AccountId::from(stash.public());
+    let locked_stash_balance_before_payout = locks(&connection, &stash);
+    assert!(
+        locked_stash_balance_before_payout.is_some(),
+        "Expected non-empty locked balances for account {}!",
+        stash_account
+    );
+    let locked_stash_balance_before_payout = locked_stash_balance_before_payout.unwrap();
+    assert_eq!(
+        locked_stash_balance_before_payout.len(),
+        1,
+        "Expected locked balances for account {} to have exactly one entry!",
+        stash_account
+    );
+    payout_stakers(node, stash.clone(), era - 1);
+    let locked_stash_balance_after_payout = locks(&connection, &stash);
+    assert!(
+        locked_stash_balance_after_payout.is_some(),
+        "Expected non-empty locked balances for account {}!",
+        stash_account
+    );
+    let locked_stash_balance_after_payout = locked_stash_balance_after_payout.unwrap();
+    assert_eq!(
+        locked_stash_balance_after_payout.len(),
+        1,
+        "Expected non-empty locked balances for account to have exactly one entry {}!",
+        stash_account
+    );
+    assert!(locked_stash_balance_after_payout[0].amount > locked_stash_balance_before_payout[0].amount,
+            "Expected payout to be non zero in locked balance for account {}. Balance before: {}, balance after: {}",
+            stash_account, locked_stash_balance_before_payout[0].amount, locked_stash_balance_after_payout[0].amount);
 }
