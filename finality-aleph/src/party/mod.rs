@@ -21,33 +21,31 @@ use crate::{
     AuthorityId, Metrics, NodeIndex, SessionBoundaries, SessionId, SessionPeriod,
     UnitCreationDelay,
 };
-use sp_keystore::CryptoStore;
-
 use aleph_bft::{DelayConfig, SpawnHandle};
 use aleph_primitives::KEY_TYPE;
-use futures_timer::Delay;
-
-use futures::channel::mpsc;
-use log::{debug, error, info, trace, warn};
-
 use codec::Encode;
+use futures::channel::mpsc;
+use futures_timer::Delay;
+use log::{debug, error, info, trace, warn};
 use sc_client_api::{Backend, HeaderBackend};
 use sc_network::ExHashT;
 use sp_api::NumberFor;
 use sp_consensus::SelectChain;
+use sp_keystore::CryptoStore;
 use sp_runtime::traits::{Block, Header};
 use std::{collections::HashSet, default::Default, marker::PhantomData, sync::Arc, time::Duration};
 
-mod task;
-use task::{Handle, Task};
 mod aggregator;
 mod authority;
 mod chain_tracker;
 mod data_store;
 mod member;
+mod task;
+
 use authority::{
     SubtaskCommon as AuthoritySubtaskCommon, Subtasks as AuthoritySubtasks, Task as AuthorityTask,
 };
+use task::{Handle, Task};
 
 type SplitData<B> = Split<AlephNetworkData<B>, RmcNetworkData<B>>;
 
@@ -274,7 +272,6 @@ where
 }
 
 const SESSION_STATUS_CHECK_PERIOD: Duration = Duration::from_millis(1000);
-const NEXT_SESSION_NETWORK_START_ATTEMPT_PERIOD: Duration = Duration::from_secs(30);
 
 impl<B, C, BE, SC, RB> ConsensusParty<B, C, BE, SC, RB>
 where
@@ -427,23 +424,19 @@ where
         // We need to wait until session-authorities are available for current session.
         // This should only be needed for the first ever session as all other session are known
         // at least one session earlier.
-        if let Err(e) = self
+        let authorities = match self
             .session_authorities
             .subscribe_to_insertion(session_id)
             .await
             .await
         {
-            panic!(
+            Err(e) => panic!(
                 "Error while receiving the notification about current session {:?}",
                 e
-            );
-        }
+            ),
+            Ok(authorities) => authorities,
+        };
 
-        let authorities = self
-            .session_authorities
-            .get(session_id)
-            .await
-            .expect("We should know authorities for the session we are starting");
         trace!(target: "afa", "Authorities for session {:?}: {:?}", session_id, authorities);
         let mut maybe_authority_task = if let Some(node_id) =
             get_node_index(&authorities, self.keystore.clone()).await
@@ -464,8 +457,12 @@ where
             None
         };
         let mut check_session_status = Delay::new(SESSION_STATUS_CHECK_PERIOD);
-        let mut start_next_session_network =
-            Some(Delay::new(NEXT_SESSION_NETWORK_START_ATTEMPT_PERIOD));
+        let next_session_id = SessionId(session_id.0 + 1);
+        let mut start_next_session_network = Some(
+            self.session_authorities
+                .subscribe_to_insertion(next_session_id)
+                .await,
+        );
         loop {
             tokio::select! {
                 _ = &mut check_session_status => {
@@ -476,53 +473,55 @@ where
                     }
                     check_session_status = Delay::new(SESSION_STATUS_CHECK_PERIOD);
                 },
-                Some(_) = async {
+                Some(next_session_authorities) = async {
                     match &mut start_next_session_network {
-                        Some(start_next_session_network) => {
-                            start_next_session_network.await;
-                            Some(())
+                        Some(notification) => {
+                            match notification.await {
+                                Err(e) => {
+                                    warn!(target: "aleph-party", "Error with subscription {:?}", e);
+                                    start_next_session_network = Some(self.session_authorities.subscribe_to_insertion(next_session_id).await);
+                                    None
+                                },
+                                Ok(next_session_authorities) => {
+                                    Some(next_session_authorities)
+                                }
+                            }
                         },
                         None => None,
                     }
                 } => {
-                    let next_session_id = SessionId(session_id.0 + 1);
-                    if let Some(next_session_authorities) = self.session_authorities.get(next_session_id).await
-                    {
-                        let authority_verifier = AuthorityVerifier::new(next_session_authorities.clone());
-                        match get_node_index(&next_session_authorities, self.keystore.clone()).await {
-                            Some(node_id) => {
-                                let authority_pen = AuthorityPen::new(
-                                    next_session_authorities[node_id.0].clone(),
-                                    self.keystore.clone(),
-                                )
-                                .await
-                                .expect("The keys should sign successfully");
+                    let authority_verifier = AuthorityVerifier::new(next_session_authorities.clone());
+                    match get_node_index(&next_session_authorities, self.keystore.clone()).await {
+                        Some(node_id) => {
+                            let authority_pen = AuthorityPen::new(
+                                next_session_authorities[node_id.0].clone(),
+                                self.keystore.clone(),
+                            )
+                            .await
+                            .expect("The keys should sign successfully");
 
-                                if let Err(e) = self
-                                    .session_manager
-                                    .early_start_validator_session(
-                                        next_session_id,
-                                        authority_verifier,
-                                        node_id,
-                                        authority_pen,
-                                    )
-                                {
-                                    warn!(target: "aleph-party", "Failed to early start validator session{:?}:{:?}", next_session_id, e);
-                                }
-                            }
-                            None => {
-                                if let Err(e) = self
-                                    .session_manager
-                                    .start_nonvalidator_session(next_session_id, authority_verifier)
-                                {
-                                    warn!(target: "aleph-party", "Failed to early start nonvalidator session{:?}:{:?}", next_session_id, e);
-                                }
+                            if let Err(e) = self
+                                .session_manager
+                                .early_start_validator_session(
+                                    next_session_id,
+                                    authority_verifier,
+                                    node_id,
+                                    authority_pen,
+                                )
+                            {
+                                warn!(target: "aleph-party", "Failed to early start validator session{:?}:{:?}", next_session_id, e);
                             }
                         }
-                        start_next_session_network = None;
-                    } else {
-                        start_next_session_network = Some(Delay::new(NEXT_SESSION_NETWORK_START_ATTEMPT_PERIOD));
+                        None => {
+                            if let Err(e) = self
+                                .session_manager
+                                .start_nonvalidator_session(next_session_id, authority_verifier)
+                            {
+                                warn!(target: "aleph-party", "Failed to early start nonvalidator session{:?}:{:?}", next_session_id, e);
+                            }
+                        }
                     }
+                    start_next_session_network = None;
                 },
                 Some(_) = async {
                     match maybe_authority_task.as_mut() {

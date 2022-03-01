@@ -18,7 +18,7 @@ use tokio::sync::{
 };
 
 type SessionMap = HashMap<SessionId, Vec<AuthorityId>>;
-type SessionSubscribers = HashMap<SessionId, Vec<OneShotSender<()>>>;
+type SessionSubscribers = HashMap<SessionId, Vec<OneShotSender<Vec<AuthorityId>>>>;
 
 pub trait AuthorityProvider<B> {
     /// returns authorities for block
@@ -153,7 +153,7 @@ impl SharedSessionMap {
         // notify all subscribers about insertion and remove them from subscription
         if let Some(senders) = guard.1.remove(&id) {
             for sender in senders {
-                if let Err(e) = sender.send(()) {
+                if let Err(e) = sender.send(authorities.clone()) {
                     error!(target: "aleph-session-updater", "Error while sending notification: {:?}", e);
                 }
             }
@@ -183,14 +183,16 @@ impl ReadOnlySessionMap {
 
     /// returns an end of the oneshot channel that fires a message if either authorities are already
     /// known for the session with id = `id` or when the authorities are inserted for this session.
-    pub async fn subscribe_to_insertion(&self, id: SessionId) -> OneShotReceiver<()> {
+    pub async fn subscribe_to_insertion(&self, id: SessionId) -> OneShotReceiver<Vec<AuthorityId>> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
 
         let mut guard = self.inner.write().await;
 
-        if guard.0.contains_key(&id) {
+        if let Some(authorities) = guard.0.get(&id) {
             // if the value is already present notify immediately
-            sender.send(()).expect("we control both ends");
+            sender
+                .send(authorities.clone())
+                .expect("we control both ends");
         } else {
             guard.1.entry(id).or_insert_with(Vec::new).push(sender);
         }
@@ -510,7 +512,7 @@ mod tests {
         let mut receiver = readonly.subscribe_to_insertion(session).await;
 
         // we should have this immediately
-        assert_eq!(Ok(()), receiver.try_recv());
+        assert_eq!(Ok(authorities(0, 2)), receiver.try_recv());
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -523,6 +525,6 @@ mod tests {
         // does not yet have any value
         assert_eq!(Err(TryRecvError::Empty), receiver.try_recv());
         shared.update(session, authorities(0, 2)).await;
-        assert_eq!(Ok(()), receiver.await);
+        assert_eq!(Ok(authorities(0, 2)), receiver.await);
     }
 }
