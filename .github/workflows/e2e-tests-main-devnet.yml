@@ -172,7 +172,7 @@ jobs:
       - name: Download release artifact
         uses: actions/download-artifact@v2
         with:
-          name: aleph-node-release
+          name: aleph-release-node
           path: target/release/
 
       - name: Build docker image
