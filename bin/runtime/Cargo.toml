@@ -2,7 +2,7 @@
 name = "aleph-runtime"
 version = "0.4.0"
 authors = ["Cardinal Cryptography"]
-edition = "2018"
+edition = "2021"
 license = "Apache 2.0"
 homepage = "https://alephzero.org"
 repository = "https://github.com/aleph-zero-foundation/aleph-node"
@@ -15,7 +15,7 @@ codec = { package = "parity-scale-codec", version = "2.0.0", default-features = 
 serde = { version = "1.0.101", optional = true, features = ["derive"] }
 
 primitives = { path = "../../primitives", default-features = false }
-pallet-aleph = { path = "../../pallet", default-features = false}
+pallet-aleph = { path = "../../pallets/aleph", default-features = false}
 pallet-elections = { path = "../../pallets/elections", default-features = false}
 
 frame-executive = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13"}
@@ -30,7 +30,6 @@ pallet-randomness-collective-flip = { default-features = false, git = "https://g
 pallet-session = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13"}
 pallet-scheduler = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13"}
 pallet-staking = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13"}
-pallet-staking-reward-curve = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13"}
 pallet-sudo = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13"}
 pallet-timestamp = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13"}
 pallet-transaction-payment = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13"}
@@ -97,3 +96,4 @@ std = [
     "frame-system-rpc-runtime-api/std",
     "primitives/std",
 ]
+short_session = ["primitives/short_session"]

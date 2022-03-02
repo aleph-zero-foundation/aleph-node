@@ -54,9 +54,7 @@ print('Bootstraping the chain with old binary')
 chain.bootstrap(oldbin,
                 keys.values(),
                 sudo_account_id=keys[phrases[0]],
-                chain_type='local',
-                millisecs_per_block=1000,
-                session_period=40)
+                chain_type='local')
 
 chain.set_flags('validator',
                 port=Seq(30334),

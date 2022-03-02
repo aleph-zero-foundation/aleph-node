@@ -2,7 +2,7 @@
 name = "pallet-aleph"
 version = "0.2.0"
 authors = ["Cardinal Cryptography"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
@@ -10,13 +10,13 @@ frame-support = { default-features = false, git = "https://github.com/paritytech
 frame-system = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13" }
 sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13" }
 serde = "1.0"
-primitives = { path = "../primitives", default-features = false}
-pallet-session = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13" }
 sp-io = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13" }
 scale-info = { version = "1.0", default-features = false, features = ["derive"] }
+primitives = { path = "../../primitives", default-features = false}
+pallet-balances = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13" }
+pallet-session = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13" }
 
 [dev-dependencies]
-pallet-balances = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13" }
 pallet-timestamp = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13" }
 sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13" }
 sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13" }
@@ -29,5 +29,6 @@ std = [
     "frame-system/std",
     "sp-std/std",
     "primitives/std",
+    "pallet-balances/std",
     "pallet-session/std"
 ]

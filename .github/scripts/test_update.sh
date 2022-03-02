@@ -5,17 +5,17 @@ set -eu
 pushd local-tests/
 
 if [ ! -f "$OLD_BINARY" ]; then
-  echo "$OLD_BINARY does not exist."
+  echo "Old binary $OLD_BINARY does not exist."
   exit 1
 fi
 
 if [ ! -f "$NEW_BINARY" ]; then
-  echo "$NEW_BINARY does not exist."
+  echo "New binary $NEW_BINARY does not exist."
   exit 1
 fi
 
 if [ ! -f "$NEW_RUNTIME" ]; then
-  echo "$NEW_RUNTIME does not exist."
+  echo "New runtime $NEW_RUNTIME does not exist."
   exit 1
 fi
 

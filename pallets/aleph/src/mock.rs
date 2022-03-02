@@ -19,10 +19,7 @@ use sp_runtime::{
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
-/// The AccountId alias in this test module.
 pub(crate) type AccountId = u64;
-
-// Based on grandpa mock
 
 construct_runtime!(
     pub enum Test where
@@ -32,8 +29,8 @@ construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+        Aleph: pallet_aleph::{Pallet, Storage},
         Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
-        Aleph: pallet_aleph::{Pallet, Call, Config<T>, Storage, Event<T>},
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
     }
 );
@@ -64,7 +61,7 @@ impl frame_system::Config for Test {
     type BlockNumber = u64;
     type Hash = H256;
     type Hashing = sp_runtime::traits::BlakeTwo256;
-    type AccountId = u64;
+    type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
     type Event = Event;
@@ -132,11 +129,8 @@ impl pallet_timestamp::Config for Test {
     type WeightInfo = ();
 }
 
-parameter_types! {}
-
 impl Config for Test {
     type AuthorityId = AuthorityId;
-    type Event = Event;
 }
 
 pub fn to_authorities(authorities: &[u64]) -> Vec<AuthorityId> {
@@ -144,6 +138,12 @@ pub fn to_authorities(authorities: &[u64]) -> Vec<AuthorityId> {
         .iter()
         .map(|id| UintAuthorityId(*id).to_public_key::<AuthorityId>())
         .collect()
+}
+
+pub fn new_session_validators(validators: &[u64]) -> impl Iterator<Item = (&u64, AuthorityId)> {
+    validators
+        .iter()
+        .zip(to_authorities(validators).into_iter())
 }
 
 pub fn new_test_ext(authorities: &[(u64, u64)]) -> sp_io::TestExternalities {
@@ -173,18 +173,26 @@ pub fn new_test_ext(authorities: &[(u64, u64)]) -> sp_io::TestExternalities {
     t.into()
 }
 
-pub(crate) fn run_session(n: u64) {
-    while System::block_number() < n {
+pub(crate) fn run_session(n: u32) {
+    for i in Session::current_index()..n {
         Session::on_finalize(System::block_number());
         Aleph::on_finalize(System::block_number());
         System::on_finalize(System::block_number());
 
+        let parent_hash = if System::block_number() > 1 {
+            System::finalize().hash()
+        } else {
+            System::parent_hash()
+        };
+
         System::initialize(
             &(System::block_number() + 1),
-            &System::parent_hash(),
+            &parent_hash,
             &Default::default(),
             Default::default(),
         );
+        System::set_block_number((i + 1).into());
+        Timestamp::set_timestamp(System::block_number() * 1000);
 
         System::on_initialize(System::block_number());
         Session::on_initialize(System::block_number());

@@ -3,6 +3,7 @@
 use codec::{Decode, Encode};
 use sp_core::crypto::KeyTypeId;
 use sp_runtime::ConsensusEngineId;
+pub use sp_staking::SessionIndex;
 use sp_std::vec::Vec;
 
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"alp0");
@@ -25,10 +26,19 @@ pub type AuthorityId = app::Public;
 
 pub type Balance = u128;
 
-pub use sp_staking::SessionIndex;
-pub const DEFAULT_SESSIONS_PER_ERA: SessionIndex = 3;
-pub const DEFAULT_SESSION_PERIOD: u32 = 900;
 pub const DEFAULT_MILLISECS_PER_BLOCK: u64 = 1000;
+
+// Quick sessions for testing purposes
+#[cfg(feature = "short_session")]
+pub const DEFAULT_SESSION_PERIOD: u32 = 30;
+#[cfg(feature = "short_session")]
+pub const DEFAULT_SESSIONS_PER_ERA: SessionIndex = 3;
+
+// Default values outside testing
+#[cfg(not(feature = "short_session"))]
+pub const DEFAULT_SESSION_PERIOD: u32 = 900;
+#[cfg(not(feature = "short_session"))]
+pub const DEFAULT_SESSIONS_PER_ERA: SessionIndex = 96;
 
 pub const TOKEN_DECIMALS: u32 = 12;
 pub const ADDRESSES_ENCODING: u32 = 42;

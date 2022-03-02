@@ -2,7 +2,7 @@
 name = "finality-aleph"
 version = "0.3.0"
 authors = ["Cardinal Cryptography"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 aleph-primitives = { package = "primitives", path = "../primitives" }

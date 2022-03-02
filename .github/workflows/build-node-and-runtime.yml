@@ -38,21 +38,40 @@ jobs:
       - name: Build binary and runtime
         run: cargo build --release -p aleph-node
 
-      - name: Stop cache
-        uses: ./.github/actions/post-cache
-
-      - name: Upload binary
+      - name: Upload release binary
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ inputs.artifact-prefix }}aleph-node
+          name: ${{ inputs.artifact-prefix }}aleph-release-node
           path: target/release/aleph-node
           if-no-files-found: error
           retention-days: 7
 
-      - name: Upload runtime
+      - name: Upload release runtime
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ inputs.artifact-prefix }}aleph-runtime
+          name: ${{ inputs.artifact-prefix }}aleph-release-runtime
           path: target/release/wbuild/aleph-runtime/aleph_runtime.compact.wasm
           if-no-files-found: error
           retention-days: 7
+
+      - name: Build test binary
+        run: cargo build --release -p aleph-node --features "short_session"
+
+      - name: Upload test binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ inputs.artifact-prefix }}aleph-test-node
+          path: target/release/aleph-node
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload test runtime
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ inputs.artifact-prefix }}aleph-test-runtime
+          path: target/release/wbuild/aleph-runtime/aleph_runtime.compact.wasm
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Stop cache
+        uses: ./.github/actions/post-cache

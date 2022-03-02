@@ -1,13 +1,8 @@
-use aleph_primitives::{
-    AuthorityId as AlephId, SessionIndex, ADDRESSES_ENCODING, DEFAULT_MILLISECS_PER_BLOCK,
-    DEFAULT_SESSIONS_PER_ERA, DEFAULT_SESSION_PERIOD, TOKEN_DECIMALS,
-};
+use aleph_primitives::{AuthorityId as AlephId, ADDRESSES_ENCODING, TOKEN_DECIMALS};
 use aleph_runtime::{
-    AccountId, AlephConfig, AuraConfig, BalancesConfig, ElectionsConfig, GenesisConfig, Perbill,
-    SessionConfig, SessionKeys, Signature, StakingConfig, SudoConfig, SystemConfig, VestingConfig,
-    WASM_BINARY,
+    AccountId, AuraConfig, BalancesConfig, ElectionsConfig, GenesisConfig, Perbill, SessionConfig,
+    SessionKeys, Signature, StakingConfig, SudoConfig, SystemConfig, VestingConfig, WASM_BINARY,
 };
-use finality_aleph::{MillisecsPerBlock, SessionPeriod};
 use libp2p::PeerId;
 use pallet_staking::{Forcing, StakerStatus};
 use sc_service::config::BasePath;
@@ -130,18 +125,6 @@ pub struct ChainParams {
     #[structopt(long, default_value = "p2p_secret")]
     node_key_file: String,
 
-    /// Time interval (in milliseconds) between blocks. Default is 1000ms
-    #[structopt(long)]
-    millisecs_per_block: Option<u64>,
-
-    /// The length of a session (in seconds). Default is 900s
-    #[structopt(long)]
-    session_period: Option<u32>,
-
-    /// The length of an era (in Sessions). Default is 4 * 24 = 96, so that one era lasts one day
-    #[structopt(long)]
-    sessions_per_era: Option<SessionIndex>,
-
     /// Chain name. Default is "Aleph Zero Development"
     #[structopt(long, default_value = "Aleph Zero Development")]
     chain_name: String,
@@ -178,21 +161,6 @@ impl ChainParams {
 
     pub fn node_key_file(&self) -> &str {
         &self.node_key_file
-    }
-
-    pub fn millisecs_per_block(&self) -> MillisecsPerBlock {
-        MillisecsPerBlock(
-            self.millisecs_per_block
-                .unwrap_or(DEFAULT_MILLISECS_PER_BLOCK),
-        )
-    }
-
-    pub fn session_period(&self) -> SessionPeriod {
-        SessionPeriod(self.session_period.unwrap_or(DEFAULT_SESSION_PERIOD))
-    }
-
-    pub fn sessions_per_era(&self) -> SessionIndex {
-        self.sessions_per_era.unwrap_or(DEFAULT_SESSIONS_PER_ERA)
     }
 
     pub fn chain_name(&self) -> &str {
@@ -273,7 +241,6 @@ fn generate_chain_spec_config(
                 authorities.clone(), // Initial PoA authorities, will receive funds
                 sudo_account.clone(), // Sudo account, will also be pre funded
                 faucet_account.clone(), // Pre-funded faucet account
-                chain_params.clone(),
                 stakers.clone(),
             )
         },
@@ -302,12 +269,8 @@ fn generate_genesis_config(
     authorities: Vec<AuthorityKeys>,
     sudo_account: AccountId,
     faucet_account: Option<AccountId>,
-    chain_params: ChainParams,
     stakers: Vec<AccountId>,
 ) -> GenesisConfig {
-    let millisecs_per_block = chain_params.millisecs_per_block();
-    let session_period = chain_params.session_period();
-
     let special_accounts = match faucet_account {
         Some(faucet_id) => vec![sudo_account.clone(), faucet_id],
         None => vec![sudo_account.clone()],
@@ -338,11 +301,6 @@ fn generate_genesis_config(
                 .into_iter()
                 .map(|account| (account, ENDOWMENT))
                 .collect(),
-        },
-        aleph: AlephConfig {
-            authorities: vec![],
-            millisecs_per_block: millisecs_per_block.0,
-            session_period: session_period.0,
         },
         aura: AuraConfig {
             authorities: vec![],

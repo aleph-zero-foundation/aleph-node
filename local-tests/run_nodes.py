@@ -23,9 +23,7 @@ chain = Chain(WORKDIR)
 print(f'Bootstrapping chain for {NODES} nodes')
 chain.bootstrap(BINARY,
                 keys[:NODES],
-                chain_type='local',
-                millisecs_per_block=2000,
-                session_period=40)
+                chain_type='local')
 chain.set_flags('validator',
                 port=Seq(30334),
                 ws_port=Seq(9944),

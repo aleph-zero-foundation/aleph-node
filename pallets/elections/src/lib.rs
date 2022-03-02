@@ -20,7 +20,7 @@ pub mod pallet {
     use frame_election_provider_support::{
         ElectionDataProvider, ElectionProvider, Support, Supports,
     };
-    use frame_support::pallet_prelude::*;
+    use frame_support::{pallet_prelude::*, traits::Get};
     use frame_system::{
         ensure_root,
         pallet_prelude::{BlockNumberFor, OriginFor},

@@ -19,34 +19,33 @@ concurrency:
 jobs:
   build-new-node:
     name: Build node and runtime artifacts (PR version)
-    uses: Cardinal-Cryptography/aleph-node/.github/workflows/build-node-and-runtime.yml@main
+    uses: ./.github/workflows/build-node-and-runtime.yml
 
-
-  build-docker:
+  build-test-docker:
     needs: [build-new-node]
-    name: Build docker image of the node
+    name: Build docker image with the test node artifact
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source code
         uses: actions/checkout@v2
 
-      - name: Download artifact
+      - name: Download test artifact
         uses: actions/download-artifact@v2
         with:
-          name: aleph-node
+          name: aleph-test-node
           path: target/release/
 
-      - name: Build docker image
+      - name: Build test docker image
         id: build-image
         run: |
           chmod +x target/release/aleph-node
           docker build --tag aleph-node:latest -f ./docker/Dockerfile .
           docker save -o aleph-node.tar aleph-node:latest
 
-      - name: Upload docker image
+      - name: Upload test docker image
         uses: actions/upload-artifact@v2
         with:
-          name: aleph-docker
+          name: aleph-test-docker
           path: aleph-node.tar
           if-no-files-found: error
           retention-days: 7
@@ -71,7 +70,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v2
         with:
-          name: aleph-runtime
+          name: aleph-release-runtime
 
       - name: Build runtime and compare checksum with artifact
         env:
@@ -123,7 +122,7 @@ jobs:
 
 
   run-e2e-tests:
-    needs: [build-docker, build-test-client]
+    needs: [build-test-docker, build-test-client]
     name: Run e2e tests suite
     runs-on: ubuntu-latest
     steps:
@@ -133,7 +132,7 @@ jobs:
       - name: Download artifact with docker image
         uses: actions/download-artifact@v2
         with:
-          name: aleph-docker
+          name: aleph-test-docker
 
       - name: Load node docker image
         shell: bash
@@ -169,14 +168,18 @@ jobs:
       - name: GIT | Checkout Source code
         uses: actions/checkout@v2
 
-      - name: Download artifact with docker image
+      # get the release binary, build docker image
+      - name: Download release artifact
         uses: actions/download-artifact@v2
         with:
-          name: aleph-docker
+          name: aleph-node-release
+          path: target/release/
 
-      - name: Load node docker image
-        shell: bash
-        run: docker load -i aleph-node.tar
+      - name: Build docker image
+        id: build-image
+        run: |
+          chmod +x target/release/aleph-node
+          docker build --tag aleph-node:latest -f ./docker/Dockerfile .
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -282,12 +285,12 @@ jobs:
           python-version: '3.8'
 
       - name: Test update
-        timeout-minutes: 21
+        timeout-minutes: 20
         env:
           # Relative to local-tests/ directory
           OLD_BINARY: old-aleph-node/aleph-node
-          NEW_BINARY: aleph-node/aleph-node
-          NEW_RUNTIME: aleph-runtime/aleph_runtime.compact.wasm
+          NEW_BINARY: aleph-test-node/aleph-node
+          NEW_RUNTIME: aleph-test-runtime/aleph_runtime.compact.wasm
         run: ./.github/scripts/test_update.sh
 
       - name: Stop cache

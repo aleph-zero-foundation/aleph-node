@@ -1,0 +1,5 @@
+**
+!target/release/aleph-node
+!docker
+!local-tests/send-runtime/target/release/send_runtime
+!docker-runtime-hook/entrypoint.sh

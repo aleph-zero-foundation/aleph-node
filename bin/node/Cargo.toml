@@ -3,7 +3,7 @@ name = "aleph-node"
 version = "0.4.0"
 authors = ["Cardinal Cryptography"]
 description = "Aleph node binary"
-edition = "2018"
+edition = "2021"
 license = "Apache 2.0"
 build = "build.rs"
 homepage = "https://alephzero.org"
@@ -68,3 +68,7 @@ substrate-build-script-utils = { git = "https://github.com/paritytech/substrate.
 
 [features]
 default = []
+short_session = [
+    "aleph-runtime/short_session",
+    "aleph-primitives/short_session"
+]
