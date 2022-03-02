@@ -12,11 +12,9 @@ Aleph Zero is an open-source layer 1 blockchain focused on privacy, scalability 
 Aleph node is based on a Substrate node where the default finality gadget (GRANDPA) has been replaced with AlephBFT. Block authoring is realized with Substrate's Aura. The chain is run in periodic sesssions (900 blocks each) utilizing the Session pallet. The authorities in each session serve for both Aura and AlephBFT authorities, and on top of that are responsible for running the Aggregator protocol producing multisignatures of finalized blocks.
 
 
-### Installation
+### Building
 
-1. Install the Substrate framework as described [here][substrate-installation], using the `nightly-2021-10-24` version of the rust toolchain (see the instruction at the bottom of the page)
-2. Clone this repository to your machine
-3. Run `cargo build --release -p aleph-node`
+Please consult the [BUILD][BUILD] guide.
 
 ### Running
 
@@ -48,3 +46,4 @@ The code in this repository is licensed under the terms of the the Apache Licens
 [e2e-tests-badge]: https://github.com/Cardinal-Cryptography/aleph-node/actions/workflows/e2e-tests-main-devnet.yml/badge.svg
 [license-image]: https://img.shields.io/badge/license-Apache2.0-blue.svg
 [license-link]: https://github.com/Cardinal-Cryptography/aleph-node/blob/main/LICENSE
+[BUILD]: ./BUILD.md
