@@ -17,8 +17,8 @@ pub use service::{
 
 use addresses::{add_matching_peer_id, get_common_peer_id, is_p2p};
 use connections::Connections;
-use discovery::{Discovery, DiscoveryMessage};
-use session::{Handler as SessionHandler, HandlerError as SessionHandlerError};
+pub use discovery::{Discovery, DiscoveryMessage};
+pub use session::{Handler as SessionHandler, HandlerError as SessionHandlerError};
 
 pub use addresses::get_peer_id;
 pub use service::SessionCommand;

@@ -1,4 +1,6 @@
-use crate::network::{Network, NetworkEventStream, NetworkSender, PeerId};
+use crate::network::{
+    ConnectionCommand, Data, DataCommand, Network, NetworkEventStream, NetworkSender, PeerId, IO,
+};
 use async_trait::async_trait;
 use futures::{
     channel::{mpsc, oneshot},
@@ -33,21 +35,47 @@ impl<T> Channel<T> {
         self.1.lock().await.next().await
     }
 
-    async fn close(self) {
+    pub async fn try_next(&self) -> Option<T> {
+        self.1.lock().await.try_next().unwrap_or(None)
+    }
+
+    async fn close(self) -> Option<T> {
         self.0.close_channel();
-        assert!(self.1.lock().await.try_next().unwrap().is_none());
+        self.try_next().await
     }
 }
 
-pub struct MockNetworkSender {
-    sender: mpsc::UnboundedSender<(Vec<u8>, PeerId, Cow<'static, str>)>,
+pub struct MockIO<D: Data> {
+    pub messages_for_user: mpsc::UnboundedSender<(D, DataCommand)>,
+    pub messages_from_user: mpsc::UnboundedReceiver<D>,
+    pub commands_for_manager: mpsc::UnboundedSender<ConnectionCommand>,
+}
+
+impl<D: Data> MockIO<D> {
+    pub fn new() -> (MockIO<D>, IO<D>) {
+        let (mock_messages_for_user, messages_from_user) = mpsc::unbounded();
+        let (messages_for_user, mock_messages_from_user) = mpsc::unbounded();
+        let (mock_commands_for_manager, commands_from_manager) = mpsc::unbounded();
+        (
+            MockIO {
+                messages_for_user: mock_messages_for_user,
+                messages_from_user: mock_messages_from_user,
+                commands_for_manager: mock_commands_for_manager,
+            },
+            IO::new(messages_from_user, messages_for_user, commands_from_manager),
+        )
+    }
+}
+
+pub struct MockNetworkSender<D: Data> {
+    sender: mpsc::UnboundedSender<(D, PeerId, Cow<'static, str>)>,
     peer_id: PeerId,
     protocol: Cow<'static, str>,
     error: Result<(), MockSenderError>,
 }
 
 #[async_trait]
-impl NetworkSender for MockNetworkSender {
+impl<D: Data> NetworkSender for MockNetworkSender<D> {
     type SenderError = MockSenderError;
 
     async fn send<'a>(
@@ -56,17 +84,21 @@ impl NetworkSender for MockNetworkSender {
     ) -> Result<(), MockSenderError> {
         self.error?;
         self.sender
-            .unbounded_send((data.into(), self.peer_id, self.protocol.clone()))
+            .unbounded_send((
+                D::decode(&mut &data.into()[..]).unwrap(),
+                self.peer_id,
+                self.protocol.clone(),
+            ))
             .unwrap();
         Ok(())
     }
 }
 
 #[derive(Clone)]
-pub struct MockNetwork {
+pub struct MockNetwork<D: Data> {
     pub add_reserved: Channel<(HashSet<Multiaddr>, Cow<'static, str>)>,
     pub remove_reserved: Channel<(HashSet<PeerId>, Cow<'static, str>)>,
-    pub send_message: Channel<(Vec<u8>, PeerId, Cow<'static, str>)>,
+    pub send_message: Channel<(D, PeerId, Cow<'static, str>)>,
     pub event_sinks: Arc<Mutex<Vec<mpsc::UnboundedSender<Event>>>>,
     event_stream_taken_oneshot: Arc<Mutex<Option<oneshot::Sender<()>>>>,
     pub create_sender_errors: Arc<Mutex<VecDeque<MockSenderError>>>,
@@ -90,9 +122,9 @@ impl fmt::Display for MockSenderError {
 
 impl std::error::Error for MockSenderError {}
 
-impl Network for MockNetwork {
+impl<D: Data> Network for MockNetwork<D> {
     type SenderError = MockSenderError;
-    type NetworkSender = MockNetworkSender;
+    type NetworkSender = MockNetworkSender<D>;
 
     fn event_stream(&self) -> NetworkEventStream {
         let (tx, rx) = mpsc::unbounded();
@@ -131,7 +163,7 @@ impl Network for MockNetwork {
     }
 }
 
-impl MockNetwork {
+impl<D: Data> MockNetwork<D> {
     pub fn new(oneshot_sender: oneshot::Sender<()>) -> Self {
         MockNetwork {
             add_reserved: Channel::new(),
@@ -153,8 +185,8 @@ impl MockNetwork {
     // Consumes the network asserting there are no unreceived messages in the channels.
     pub async fn close_channels(self) {
         self.event_sinks.lock().clear();
-        self.add_reserved.close().await;
-        self.remove_reserved.close().await;
-        self.send_message.close().await;
+        assert!(self.add_reserved.close().await.is_none());
+        assert!(self.remove_reserved.close().await.is_none());
+        assert!(self.send_message.close().await.is_none());
     }
 }

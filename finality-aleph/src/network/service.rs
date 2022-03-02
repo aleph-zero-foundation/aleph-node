@@ -299,38 +299,28 @@ impl<N: Network, D: Data> Service<N, D> {
 
 #[cfg(test)]
 mod tests {
-    use super::{ConnectionCommand, DataCommand, Service, IO};
+    use super::{ConnectionCommand, DataCommand, Service};
     use crate::network::{
         manager::testing::MockNetworkIdentity,
-        mock::{MockNetwork, MockSenderError},
+        mock::{MockIO, MockNetwork, MockSenderError},
         NetworkIdentity, Protocol, ALEPH_PROTOCOL_NAME, ALEPH_VALIDATOR_PROTOCOL_NAME,
     };
     use codec::Encode;
-    use futures::{
-        channel::{mpsc, oneshot},
-        StreamExt,
-    };
+    use futures::{channel::oneshot, StreamExt};
     use sc_network::{
         multiaddr::Protocol as ScProtocol, Event, Multiaddr as ScMultiaddr, ObservedRole,
     };
     use sc_service::TaskManager;
     use std::{borrow::Cow, collections::HashSet, iter, iter::FromIterator};
-    use tokio::runtime::Handle;
-    use tokio::task::JoinHandle;
+    use tokio::{runtime::Handle, task::JoinHandle};
 
     type MockData = Vec<u8>;
-
-    pub struct MockIO {
-        messages_for_user: mpsc::UnboundedSender<(MockData, DataCommand)>,
-        messages_from_user: mpsc::UnboundedReceiver<MockData>,
-        commands_for_manager: mpsc::UnboundedSender<ConnectionCommand>,
-    }
 
     pub struct TestData {
         pub service_handle: JoinHandle<()>,
         pub exit_tx: oneshot::Sender<()>,
-        pub network: MockNetwork,
-        pub mock_io: MockIO,
+        pub network: MockNetwork<MockData>,
+        pub mock_io: MockIO<MockData>,
         // `TaskManager` can't be dropped for `SpawnTaskHandle` to work
         _task_manager: TaskManager,
     }
@@ -340,19 +330,7 @@ mod tests {
             let task_manager = TaskManager::new(Handle::current(), None).unwrap();
 
             // Prepare communication with service
-            let (mock_messages_for_user, messages_from_user) = mpsc::unbounded();
-            let (messages_for_user, mock_messages_from_user) = mpsc::unbounded();
-            let (mock_commands_for_manager, commands_from_manager) = mpsc::unbounded();
-            let io = IO {
-                messages_from_user,
-                messages_for_user,
-                commands_from_manager,
-            };
-            let mock_io = MockIO {
-                messages_for_user: mock_messages_for_user,
-                messages_from_user: mock_messages_from_user,
-                commands_for_manager: mock_commands_for_manager,
-            };
+            let (mock_io, io) = MockIO::new();
             // Prepare service
             let (event_stream_oneshot_tx, event_stream_oneshot_rx) = oneshot::channel();
             let network = MockNetwork::new(event_stream_oneshot_tx);
@@ -506,7 +484,7 @@ mod tests {
 
         let expected_messages = HashSet::from_iter(identities.iter().map(|identity| {
             (
-                message.encode(),
+                message.clone(),
                 identity.1,
                 Cow::Borrowed(ALEPH_PROTOCOL_NAME),
             )
@@ -582,7 +560,7 @@ mod tests {
                 .map(|identity| {
                     messages
                         .iter()
-                        .map(move |m| (m.encode(), identity.1, Cow::Borrowed(ALEPH_PROTOCOL_NAME)))
+                        .map(move |m| (m.clone(), identity.1, Cow::Borrowed(ALEPH_PROTOCOL_NAME)))
                 })
                 .flatten(),
         );
@@ -621,7 +599,7 @@ mod tests {
             ))
             .unwrap();
 
-        let expected = (message.encode(), identity.1, Protocol::Validator.name());
+        let expected = (message, identity.1, Protocol::Validator.name());
 
         assert_eq!(
             test_data
@@ -681,7 +659,7 @@ mod tests {
             ))
             .unwrap();
 
-        let expected = (message_2.encode(), identity.1, Protocol::Validator.name());
+        let expected = (message_2, identity.1, Protocol::Validator.name());
 
         assert_eq!(
             test_data
@@ -758,7 +736,7 @@ mod tests {
             identities
                 .iter()
                 .skip(closed_authorities_n)
-                .map(|identity| (message.encode(), identity.1, Protocol::Validator.name())),
+                .map(|identity| (message.clone(), identity.1, Protocol::Validator.name())),
         );
 
         assert_eq!(broadcasted_messages, expected_messages);
@@ -811,7 +789,7 @@ mod tests {
             ))
             .unwrap();
 
-        let expected = (message_2.encode(), identity.1, Protocol::Validator.name());
+        let expected = (message_2, identity.1, Protocol::Validator.name());
 
         assert_eq!(
             test_data
@@ -888,7 +866,7 @@ mod tests {
             identities
                 .iter()
                 .skip(closed_authorities_n)
-                .map(|identity| (message.encode(), identity.1, Protocol::Validator.name())),
+                .map(|identity| (message.clone(), identity.1, Protocol::Validator.name())),
         );
 
         assert_eq!(broadcasted_messages, expected_messages);
@@ -925,7 +903,7 @@ mod tests {
             ))
             .unwrap();
 
-        let expected = (message.encode(), identity.1, Protocol::Generic.name());
+        let expected = (message, identity.1, Protocol::Generic.name());
 
         assert_eq!(
             test_data
@@ -985,7 +963,7 @@ mod tests {
             ))
             .unwrap();
 
-        let expected = (message_2.encode(), identity.1, Protocol::Generic.name());
+        let expected = (message_2, identity.1, Protocol::Generic.name());
 
         assert_eq!(
             test_data
@@ -1062,7 +1040,7 @@ mod tests {
             identities
                 .iter()
                 .skip(closed_authorities_n)
-                .map(|identity| (message.encode(), identity.1, Protocol::Generic.name())),
+                .map(|identity| (message.clone(), identity.1, Protocol::Generic.name())),
         );
 
         assert_eq!(broadcasted_messages, expected_messages);
@@ -1115,7 +1093,7 @@ mod tests {
             ))
             .unwrap();
 
-        let expected = (message_2.encode(), identity.1, Protocol::Generic.name());
+        let expected = (message_2, identity.1, Protocol::Generic.name());
 
         assert_eq!(
             test_data
@@ -1192,7 +1170,7 @@ mod tests {
             identities
                 .iter()
                 .skip(closed_authorities_n)
-                .map(|identity| (message.encode(), identity.1, Protocol::Generic.name())),
+                .map(|identity| (message.clone(), identity.1, Protocol::Generic.name())),
         );
 
         assert_eq!(broadcasted_messages, expected_messages);
