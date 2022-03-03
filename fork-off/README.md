@@ -7,10 +7,11 @@ You can then spawn a forked-off chain using this chainspec as a starting point.
 
 ## Using instructions
 
-Build the binary:
+Build the binary (this command will use rust toolchain version specified in the `rust-toolchain` file
+located in this repository's top-level directory):
 
 ```bash
-cargo +nightly build --release
+cargo build --release
 ```
 
 Create a chainspec for the fork, it will serve as a basis with a known sudo account, known set of validators, known session keys etc:
