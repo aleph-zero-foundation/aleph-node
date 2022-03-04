@@ -5,14 +5,18 @@ use crate::executor::AlephExecutor;
 use aleph_primitives::AlephSessionApi;
 use aleph_runtime::{self, opaque::Block, RuntimeApi, MAX_BLOCK_SIZE};
 use finality_aleph::{
-    run_aleph_consensus, AlephBlockImport, AlephConfig, JustificationNotification, Metrics,
-    MillisecsPerBlock, Protocol, SessionPeriod,
+    run_nonvalidator_node, run_validator_node, AlephBlockImport, AlephConfig,
+    JustificationNotification, Metrics, MillisecsPerBlock, Protocol, SessionPeriod,
 };
 use futures::channel::mpsc;
 use log::warn;
 use sc_client_api::ExecutorProvider;
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
-use sc_service::{error::Error as ServiceError, Configuration, TFullClient, TaskManager};
+use sc_network::NetworkService;
+use sc_service::{
+    error::Error as ServiceError, Configuration, KeystoreContainer, NetworkStarter, RpcHandlers,
+    TFullClient, TaskManager,
+};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sp_api::ProvideRuntimeApi;
 use sp_consensus::SlotData;
@@ -140,8 +144,74 @@ pub fn new_partial(
     })
 }
 
+#[allow(clippy::type_complexity)]
+#[allow(clippy::too_many_arguments)]
+fn setup(
+    mut config: Configuration,
+    backend: Arc<FullBackend>,
+    keystore_container: &KeystoreContainer,
+    import_queue: sc_consensus::DefaultImportQueue<Block, FullClient>,
+    transaction_pool: Arc<sc_transaction_pool::FullPool<Block, FullClient>>,
+    task_manager: &mut TaskManager,
+    client: Arc<FullClient>,
+    telemetry: &mut Option<Telemetry>,
+) -> Result<
+    (
+        RpcHandlers,
+        Arc<NetworkService<Block, <Block as BlockT>::Hash>>,
+        NetworkStarter,
+    ),
+    ServiceError,
+> {
+    config
+        .network
+        .extra_sets
+        .push(finality_aleph::peers_set_config(Protocol::Generic));
+
+    let (network, system_rpc_tx, network_starter) =
+        sc_service::build_network(sc_service::BuildNetworkParams {
+            config: &config,
+            client: client.clone(),
+            transaction_pool: transaction_pool.clone(),
+            spawn_handle: task_manager.spawn_handle(),
+            import_queue,
+            block_announce_validator_builder: None,
+            warp_sync: None,
+        })?;
+
+    let rpc_extensions_builder = {
+        let client = client.clone();
+        let pool = transaction_pool.clone();
+
+        Box::new(move |deny_unsafe, _| {
+            let deps = crate::rpc::FullDeps {
+                client: client.clone(),
+                pool: pool.clone(),
+                deny_unsafe,
+            };
+
+            Ok(crate::rpc::create_full(deps))
+        })
+    };
+
+    let rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
+        network: network.clone(),
+        client,
+        keystore: keystore_container.sync_keystore(),
+        task_manager,
+        transaction_pool,
+        rpc_extensions_builder,
+        backend,
+        system_rpc_tx,
+        config,
+        telemetry: telemetry.as_mut(),
+    })?;
+
+    Ok((rpc_handlers, network, network_starter))
+}
+
 /// Builds a new service for a full client.
-pub fn new_full(
+pub fn new_authority(
     mut config: Configuration,
     aleph_config: AlephCli,
 ) -> Result<TaskManager, ServiceError> {
@@ -155,27 +225,10 @@ pub fn new_full(
         transaction_pool,
         other: (block_import, justification_rx, mut telemetry, metrics),
     } = new_partial(&config)?;
-
-    config
-        .network
-        .extra_sets
-        .push(finality_aleph::peers_set_config(Protocol::Generic));
-
     config
         .network
         .extra_sets
         .push(finality_aleph::peers_set_config(Protocol::Validator));
-
-    let (network, system_rpc_tx, network_starter) =
-        sc_service::build_network(sc_service::BuildNetworkParams {
-            config: &config,
-            client: client.clone(),
-            transaction_pool: transaction_pool.clone(),
-            spawn_handle: task_manager.spawn_handle(),
-            import_queue,
-            block_announce_validator_builder: None,
-            warp_sync: None,
-        })?;
 
     let session_period = SessionPeriod(
         client
@@ -197,33 +250,16 @@ pub fn new_full(
     let backoff_authoring_blocks: Option<()> = None;
     let prometheus_registry = config.prometheus_registry().cloned();
 
-    let rpc_extensions_builder = {
-        let client = client.clone();
-        let pool = transaction_pool.clone();
-
-        Box::new(move |deny_unsafe, _| {
-            let deps = crate::rpc::FullDeps {
-                client: client.clone(),
-                pool: pool.clone(),
-                deny_unsafe,
-            };
-
-            Ok(crate::rpc::create_full(deps))
-        })
-    };
-
-    let _rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
-        network: network.clone(),
-        client: client.clone(),
-        keystore: keystore_container.sync_keystore(),
-        task_manager: &mut task_manager,
-        transaction_pool: transaction_pool.clone(),
-        rpc_extensions_builder,
-        backend,
-        system_rpc_tx,
+    let (_rpc_handlers, network, network_starter) = setup(
         config,
-        telemetry: telemetry.as_mut(),
-    })?;
+        backend,
+        &keystore_container,
+        import_queue,
+        transaction_pool.clone(),
+        &mut task_manager,
+        client.clone(),
+        &mut telemetry,
+    )?;
 
     let mut proposer_factory = sc_basic_authorship::ProposerFactory::new(
         task_manager.spawn_handle(),
@@ -288,7 +324,72 @@ pub fn new_full(
     task_manager.spawn_essential_handle().spawn_blocking(
         "aleph",
         None,
-        run_aleph_consensus(aleph_config),
+        run_validator_node(aleph_config),
+    );
+
+    network_starter.start_network();
+    Ok(task_manager)
+}
+
+pub fn new_full(
+    config: Configuration,
+    aleph_config: AlephCli,
+) -> Result<TaskManager, ServiceError> {
+    let sc_service::PartialComponents {
+        client,
+        backend,
+        mut task_manager,
+        import_queue,
+        keystore_container,
+        select_chain,
+        transaction_pool,
+        other: (_, justification_rx, mut telemetry, metrics),
+    } = new_partial(&config)?;
+
+    let (_rpc_handlers, network, network_starter) = setup(
+        config,
+        backend,
+        &keystore_container,
+        import_queue,
+        transaction_pool,
+        &mut task_manager,
+        client.clone(),
+        &mut telemetry,
+    )?;
+
+    let session_period = SessionPeriod(
+        client
+            .runtime_api()
+            .session_period(&BlockId::Number(Zero::zero()))
+            .unwrap(),
+    );
+
+    let millisecs_per_block = MillisecsPerBlock(
+        client
+            .runtime_api()
+            .millisecs_per_block(&BlockId::Number(Zero::zero()))
+            .unwrap(),
+    );
+
+    let unit_creation_delay = aleph_config.unit_creation_delay();
+
+    let aleph_config = AlephConfig {
+        network,
+        client,
+        select_chain,
+        session_period,
+        millisecs_per_block,
+        spawn_handle: task_manager.spawn_handle(),
+        keystore: keystore_container.keystore(),
+        justification_rx,
+        metrics,
+        unit_creation_delay,
+    };
+
+    task_manager.spawn_essential_handle().spawn_blocking(
+        "aleph",
+        None,
+        run_nonvalidator_node(aleph_config),
     );
 
     network_starter.start_network();

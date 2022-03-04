@@ -5,7 +5,7 @@ use structopt::StructOpt;
 #[derive(Debug, StructOpt, Clone)]
 pub struct AlephCli {
     #[structopt(long)]
-    pub unit_creation_delay: Option<u64>,
+    unit_creation_delay: Option<u64>,
 }
 
 impl AlephCli {

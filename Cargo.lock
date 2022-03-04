@@ -133,6 +133,7 @@ dependencies = [
  "sc-consensus-aura",
  "sc-executor",
  "sc-keystore",
+ "sc-network",
  "sc-rpc",
  "sc-rpc-api",
  "sc-service",
