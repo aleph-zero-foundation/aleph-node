@@ -25,7 +25,7 @@ fi
 
 if (( "$NEW_VER" > "$OLD_VER" )); then
     echo -n $(date +"%d-%b-%y %T") "   Fetching latest runtime from github..."
-    ALEPH_RUNTIME_URL=$(curl -sS -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/Cardinal-Cryptography/aleph-node/actions/artifacts | jq '.artifacts' | jq -r '.[] | select(.name=="aleph-runtime") | .archive_download_url' | head -n 1)
+    ALEPH_RUNTIME_URL=$(curl -sS -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/Cardinal-Cryptography/aleph-node/actions/artifacts | jq -r '.artifacts[] | select(.name=="aleph-release-runtime").archive_download_url' | head -n 1)
     curl -sS --netrc-file $NETRC_CREDS -L -o aleph-runtime.zip $ALEPH_RUNTIME_URL
     echo "completed"
     mkdir runtime
