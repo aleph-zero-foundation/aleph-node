@@ -12,12 +12,15 @@ use crate::{
     MillisecsPerBlock, NodeIndex, SessionId, SessionPeriod,
 };
 
+use aleph_bft::Recipient;
 use codec::Encode;
 use futures::channel::{mpsc, oneshot};
 use sc_network::{Event, Multiaddr as ScMultiaddr, ObservedRole};
 use sc_service::TaskManager;
 use std::{
+    borrow::Cow,
     collections::{HashMap, HashSet},
+    iter::FromIterator,
     time::Duration,
 };
 use tokio::{runtime::Handle, task::JoinHandle, time::timeout};
@@ -171,7 +174,6 @@ impl TestData {
             .expect("Failed to start validator session!")
     }
 
-    #[allow(dead_code)]
     fn early_start_validator_session(&self, node_id: usize, session_id: u32) {
         self.session_manager
             .early_start_validator_session(
@@ -225,7 +227,7 @@ impl TestData {
                 NetworkData::Meta(DiscoveryMessage::Authentication(auth_data)),
                 peer_id,
                 protocol,
-            )) = timeout(DEFAULT_TIMEOUT, self.network.send_message.next())
+            )) = timeout(DEFAULT_TIMEOUT, self.next_sent_authentication())
                 .await
                 .expect("Should send authentication")
             {
@@ -292,14 +294,239 @@ impl TestData {
         });
     }
 
+    async fn next_sent_authentication_broadcast(
+        &mut self,
+    ) -> Option<(NetworkData<MockData>, PeerId, Cow<'static, str>)> {
+        loop {
+            match self.network.send_message.next().await {
+                Some((
+                    NetworkData::Meta(DiscoveryMessage::AuthenticationBroadcast(auth_data)),
+                    peer_id,
+                    protocol,
+                )) => {
+                    return Some((
+                        NetworkData::Meta(DiscoveryMessage::AuthenticationBroadcast(auth_data)),
+                        peer_id,
+                        protocol,
+                    ))
+                }
+                None => return None,
+                _ => {}
+            }
+        }
+    }
+
+    async fn next_sent_authentication(
+        &mut self,
+    ) -> Option<(NetworkData<MockData>, PeerId, Cow<'static, str>)> {
+        loop {
+            match self.network.send_message.next().await {
+                Some((
+                    NetworkData::Meta(DiscoveryMessage::Authentication(auth_data)),
+                    peer_id,
+                    protocol,
+                )) => {
+                    return Some((
+                        NetworkData::Meta(DiscoveryMessage::Authentication(auth_data)),
+                        peer_id,
+                        protocol,
+                    ))
+                }
+                None => return None,
+                _ => {}
+            }
+        }
+    }
+
+    async fn next_sent_data_message(
+        &mut self,
+    ) -> Option<(NetworkData<MockData>, PeerId, Cow<'static, str>)> {
+        loop {
+            match self.network.send_message.next().await {
+                Some((NetworkData::Data(data, session_id), peer_id, protocol)) => {
+                    return Some((NetworkData::Data(data, session_id), peer_id, protocol))
+                }
+                None => return None,
+                _ => {}
+            }
+        }
+    }
+
     async fn cleanup(self) {
         self.network_manager_exit_tx.send(()).unwrap();
         self.network_service_exit_tx.send(()).unwrap();
         self.network_manager_handle.await.unwrap();
         self.network_service_handle.await.unwrap();
-        while self.network.send_message.try_next().await.is_some() {}
+        while let Some(message) = self.network.send_message.try_next().await {
+            if let (NetworkData::Data(data, session_id), peer_id, protocol) = message {
+                panic!("No Data messages should be sent during cleanup. All data messages should be handled before.\
+                 Got: {:?} in {:?} to {:?} with protocol {:?}", data, session_id, peer_id, protocol);
+            }
+        }
         self.network.close_channels().await;
     }
+}
+
+#[tokio::test]
+async fn test_sends_discovery_message() {
+    let session_id = 43;
+    let mut test_data = prepare_one_session_test_data().await;
+    let connected_peer_id = test_data.authorities[1].peer_id();
+    test_data.connect_identity_to_network(connected_peer_id, Protocol::Generic);
+    let mut data_network = test_data.start_validator_session(0, session_id).await;
+    let handler = test_data.get_session_handler(0, session_id).await;
+
+    for _ in 0..5 {
+        if let Some((
+            NetworkData::Meta(DiscoveryMessage::AuthenticationBroadcast(auth_data)),
+            peer_id,
+            protocol,
+        )) = timeout(DEFAULT_TIMEOUT, test_data.network.send_message.next())
+            .await
+            .ok()
+            .flatten()
+        {
+            assert_eq!(peer_id, connected_peer_id);
+            assert_eq!(protocol, Protocol::Generic.name());
+            assert_eq!(auth_data, handler.authentication().unwrap());
+        } else {
+            panic!("Should broadcast authentication");
+        }
+    }
+
+    test_data.cleanup().await;
+    assert_eq!(
+        timeout(DEFAULT_TIMEOUT, data_network.next()).await,
+        Ok(None)
+    );
+}
+
+#[tokio::test]
+async fn test_sends_authentication_on_receiving_broadcast() {
+    let session_id = 43;
+    let mut test_data = prepare_one_session_test_data().await;
+    let mut data_network = test_data.start_validator_session(0, session_id).await;
+    let handler = test_data.get_session_handler(0, session_id).await;
+    let sending_peer_handler = test_data.get_session_handler(1, session_id).await;
+    let sending_peer = test_data.authorities[1].clone();
+    test_data.connect_identity_to_network(sending_peer.peer_id(), Protocol::Generic);
+
+    test_data.network.emit_event(Event::NotificationsReceived {
+        remote: sending_peer.peer_id().into(),
+        messages: vec![(
+            Protocol::Generic.name(),
+            NetworkData::<MockData>::Meta(DiscoveryMessage::AuthenticationBroadcast(
+                sending_peer_handler.authentication().unwrap(),
+            ))
+            .encode()
+            .into(),
+        )],
+    });
+
+    assert_eq!(
+        timeout(DEFAULT_TIMEOUT, test_data.network.add_reserved.next())
+            .await
+            .ok()
+            .flatten()
+            .expect("Should add reserved nodes"),
+        (
+            sending_peer.addresses().into_iter().collect(),
+            Protocol::Validator.name()
+        ),
+    );
+
+    if let Some((
+        NetworkData::Meta(DiscoveryMessage::Authentication(auth_data)),
+        peer_id,
+        protocol,
+    )) = timeout(DEFAULT_TIMEOUT, test_data.next_sent_authentication())
+        .await
+        .expect("Should send authentication")
+    {
+        assert_eq!(peer_id, sending_peer.peer_id());
+        assert_eq!(protocol, Protocol::Generic.name());
+        assert_eq!(auth_data, handler.authentication().unwrap());
+    }
+
+    test_data.cleanup().await;
+    assert_eq!(
+        timeout(DEFAULT_TIMEOUT, data_network.next()).await,
+        Ok(None)
+    );
+}
+
+#[tokio::test]
+async fn test_forwards_authentication_broadcast() {
+    let session_id = 43;
+    let mut test_data = prepare_one_session_test_data().await;
+    let mut data_network = test_data.start_validator_session(0, session_id).await;
+    let handler = test_data.get_session_handler(0, session_id).await;
+    let sending_peer = test_data.authorities[1].clone();
+    let sending_peer_handler = test_data.get_session_handler(1, session_id).await;
+
+    for authority in test_data.authorities.clone().iter().skip(1) {
+        test_data.connect_identity_to_network(authority.peer_id(), Protocol::Generic);
+    }
+
+    test_data.network.emit_event(Event::NotificationsReceived {
+        remote: sending_peer.peer_id().into(),
+        messages: vec![(
+            Protocol::Generic.name(),
+            NetworkData::<MockData>::Meta(DiscoveryMessage::AuthenticationBroadcast(
+                sending_peer_handler.authentication().unwrap(),
+            ))
+            .encode()
+            .into(),
+        )],
+    });
+
+    assert_eq!(
+        timeout(DEFAULT_TIMEOUT, test_data.network.add_reserved.next())
+            .await
+            .ok()
+            .flatten()
+            .expect("Should add reserved nodes"),
+        (
+            sending_peer.addresses().into_iter().collect(),
+            Protocol::Validator.name()
+        ),
+    );
+
+    let mut expected_authentication = HashMap::new();
+    for authority in test_data.authorities.iter().skip(1) {
+        expected_authentication.insert(
+            authority.peer_id(),
+            sending_peer_handler.authentication().unwrap(),
+        );
+    }
+
+    let mut sent_authentication = HashMap::new();
+    while sent_authentication.len() < NODES_N - 1 {
+        if let Some((
+            NetworkData::Meta(DiscoveryMessage::AuthenticationBroadcast(auth_data)),
+            peer_id,
+            protocol,
+        )) = timeout(
+            DEFAULT_TIMEOUT,
+            test_data.next_sent_authentication_broadcast(),
+        )
+        .await
+        .expect("Should send Authentication Broadcast")
+        {
+            assert_eq!(protocol, Protocol::Generic.name());
+            if auth_data != handler.authentication().unwrap() {
+                sent_authentication.insert(peer_id, auth_data);
+            }
+        }
+    }
+
+    assert_eq!(sent_authentication, expected_authentication);
+
+    test_data.cleanup().await;
+    assert_eq!(
+        timeout(DEFAULT_TIMEOUT, data_network.next()).await,
+        Ok(None)
+    );
 }
 
 #[tokio::test]
@@ -320,4 +547,231 @@ async fn test_connects_to_others() {
 
     test_data.cleanup().await;
     assert_eq!(data_network.next().await, None);
+}
+
+#[tokio::test]
+async fn test_connects_to_others_early_validator() {
+    let session_id = 43;
+    let mut test_data = prepare_one_session_test_data().await;
+    test_data.early_start_validator_session(0, session_id);
+    test_data.connect_session_authorities(session_id).await;
+    test_data.check_sends_add_reserved_node().await;
+    test_data
+        .check_sends_authentication(
+            test_data
+                .get_session_handler(0, session_id)
+                .await
+                .authentication()
+                .unwrap(),
+        )
+        .await;
+    let mut data_network = test_data.start_validator_session(0, session_id).await;
+
+    let data = vec![1, 2, 3];
+    test_data.emit_notifications_received(
+        1,
+        vec![NetworkData::Data(data.clone(), SessionId(session_id))],
+    );
+    assert_eq!(
+        timeout(DEFAULT_TIMEOUT, data_network.next()).await,
+        Ok(Some(data.clone()))
+    );
+
+    test_data.cleanup().await;
+    assert_eq!(data_network.next().await, None);
+}
+
+#[tokio::test]
+async fn test_stops_session() {
+    let session_id = 43;
+    let mut test_data = prepare_one_session_test_data().await;
+    let mut data_network = test_data.start_session(session_id).await;
+
+    test_data
+        .session_manager
+        .stop_session(SessionId(session_id))
+        .unwrap();
+    assert_eq!(
+        timeout(DEFAULT_TIMEOUT, test_data.network.remove_reserved.next())
+            .await
+            .ok()
+            .flatten(),
+        Some((
+            HashSet::from_iter(test_data.authorities.iter().skip(1).map(|a| a.peer_id())),
+            Protocol::Validator.name()
+        ))
+    );
+
+    // This assert should be before cleanup. We want to check whether `session_manager.stop_session(...)`
+    // drops the sender. After cleanup all network tasks end and senders will be dropped.
+    // If assert was after cleanup we wouldn't know whether data_network receiver is droopped
+    // because of `session_manager.stop_session(...)` or because of cleanup.
+    assert_eq!(
+        timeout(DEFAULT_TIMEOUT, data_network.next()).await,
+        Ok(None)
+    );
+    test_data.cleanup().await;
+}
+
+#[tokio::test]
+async fn test_receives_data_in_correct_session() {
+    let session_id_1 = 42;
+    let session_id_2 = 43;
+    let mut test_data = prepare_one_session_test_data().await;
+    let mut data_network_1 = test_data.start_session(session_id_1).await;
+    let mut data_network_2 = test_data.start_session(session_id_2).await;
+
+    let data_1_1 = vec![1, 2, 3];
+    let data_1_2 = vec![4, 5, 6];
+    let data_2_1 = vec![7, 8, 9];
+    let data_2_2 = vec![10, 11, 12];
+    test_data.emit_notifications_received(
+        1,
+        vec![
+            NetworkData::Data(data_1_1.clone(), SessionId(session_id_1)),
+            NetworkData::Data(data_2_1.clone(), SessionId(session_id_2)),
+        ],
+    );
+    test_data.emit_notifications_received(
+        1,
+        vec![
+            NetworkData::Data(data_2_2.clone(), SessionId(session_id_2)),
+            NetworkData::Data(data_1_2.clone(), SessionId(session_id_1)),
+        ],
+    );
+
+    assert_eq!(
+        timeout(DEFAULT_TIMEOUT, data_network_1.next()).await,
+        Ok(Some(data_1_1))
+    );
+    assert_eq!(
+        timeout(DEFAULT_TIMEOUT, data_network_1.next()).await,
+        Ok(Some(data_1_2))
+    );
+    assert_eq!(
+        timeout(DEFAULT_TIMEOUT, data_network_2.next()).await,
+        Ok(Some(data_2_1))
+    );
+    assert_eq!(
+        timeout(DEFAULT_TIMEOUT, data_network_2.next()).await,
+        Ok(Some(data_2_2))
+    );
+
+    test_data.cleanup().await;
+
+    assert_eq!(
+        timeout(DEFAULT_TIMEOUT, data_network_1.next()).await,
+        Ok(None)
+    );
+    assert_eq!(
+        timeout(DEFAULT_TIMEOUT, data_network_2.next()).await,
+        Ok(None)
+    );
+}
+
+#[tokio::test]
+async fn test_sends_data_to_correct_session() {
+    let session_id_1 = 42;
+    let session_id_2 = 43;
+    let mut test_data = prepare_one_session_test_data().await;
+    let mut data_network_1 = test_data.start_session(session_id_1).await;
+    let mut data_network_2 = test_data.start_session(session_id_2).await;
+
+    let mut expected_data = HashSet::new();
+    for node_id in 1..NODES_N {
+        let data_1 = vec![2 * node_id as u8 - 1];
+        let data_2 = vec![2 * node_id as u8];
+
+        expected_data.insert((
+            data_1.clone(),
+            SessionId(session_id_1),
+            test_data.authorities[node_id].peer_id(),
+        ));
+        data_network_1
+            .send(data_1, Recipient::Node(NodeIndex(node_id)))
+            .expect("Should send");
+
+        expected_data.insert((
+            data_2.clone(),
+            SessionId(session_id_2),
+            test_data.authorities[node_id].peer_id(),
+        ));
+        data_network_2
+            .send(data_2, Recipient::Node(NodeIndex(node_id)))
+            .expect("Should send");
+    }
+
+    let mut sent_data = HashSet::new();
+    while sent_data.len() < 2 * (NODES_N - 1) {
+        if let Some((NetworkData::Data(data, session_id), peer_id, protocol)) =
+            timeout(DEFAULT_TIMEOUT, test_data.next_sent_data_message())
+                .await
+                .expect("Should send data")
+        {
+            println!("{:?} {:?}", data, peer_id);
+            sent_data.insert((data, session_id, peer_id));
+            assert_eq!(protocol, Protocol::Validator.name());
+        }
+    }
+
+    assert_eq!(sent_data, expected_data);
+    test_data.cleanup().await;
+
+    assert_eq!(
+        timeout(DEFAULT_TIMEOUT, data_network_1.next()).await,
+        Ok(None)
+    );
+    assert_eq!(
+        timeout(DEFAULT_TIMEOUT, data_network_2.next()).await,
+        Ok(None)
+    );
+}
+
+#[tokio::test]
+async fn test_broadcasts_data_to_correct_session() {
+    let session_id_1 = 42;
+    let session_id_2 = 43;
+    let mut test_data = prepare_one_session_test_data().await;
+    let mut data_network_1 = test_data.start_session(session_id_1).await;
+    let mut data_network_2 = test_data.start_session(session_id_2).await;
+
+    let data_1 = vec![1, 2, 3];
+    let data_2 = vec![4, 5, 6];
+    data_network_1
+        .send(data_1.clone(), Recipient::Everyone)
+        .expect("Should send");
+    data_network_2
+        .send(data_2.clone(), Recipient::Everyone)
+        .expect("Should send");
+
+    let mut expected_data = HashSet::new();
+    for authority in test_data.authorities.iter().skip(1) {
+        expected_data.insert((data_1.clone(), SessionId(session_id_1), authority.peer_id()));
+        expected_data.insert((data_2.clone(), SessionId(session_id_2), authority.peer_id()));
+    }
+
+    let mut sent_data = HashSet::new();
+    while sent_data.len() < 2 * (NODES_N - 1) {
+        if let Some((NetworkData::Data(data, session_id), peer_id, protocol)) =
+            timeout(DEFAULT_TIMEOUT, test_data.next_sent_data_message())
+                .await
+                .expect("Should send data")
+        {
+            sent_data.insert((data, session_id, peer_id));
+            assert_eq!(protocol, Protocol::Validator.name());
+        }
+    }
+
+    assert_eq!(sent_data, expected_data);
+
+    test_data.cleanup().await;
+
+    assert_eq!(
+        timeout(DEFAULT_TIMEOUT, data_network_1.next()).await,
+        Ok(None)
+    );
+    assert_eq!(
+        timeout(DEFAULT_TIMEOUT, data_network_2.next()).await,
+        Ok(None)
+    );
 }
