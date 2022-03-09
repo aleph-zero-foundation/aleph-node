@@ -1,6 +1,7 @@
 use log::info;
 use serde_json::Value;
 use sp_core::H256 as Hash;
+use aleph_client::FromStr;
 use std::{
     sync::{mpsc::channel, Arc, Mutex},
     thread,
@@ -22,6 +23,8 @@ use ws::{
 };
 
 // It attempts to run a single thread with a single WebSocket connection that processes all outgoing requests.
+// The upstream approach is to open a new socket for every request, but the number of sockets ends
+// up being the bottleneck for flooding, so we need to do it better.
 pub struct WsRpcClient {
     mux: Mutex<()>,
     next_handler: Arc<Mutex<Option<RpcClient>>>,
@@ -105,6 +108,14 @@ impl RpcClientTrait for WsRpcClient {
 
         self.set_next_handler(None);
         result
+    }
+}
+
+impl FromStr for WsRpcClient {
+    type Err = String;
+
+    fn from_str(url: &str) -> Result<Self, Self::Err> {
+        WsRpcClient::new(url)
     }
 }
 

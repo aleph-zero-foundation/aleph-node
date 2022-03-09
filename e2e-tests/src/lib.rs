@@ -1,24 +1,15 @@
 use codec::Compact;
-use log::info;
-use sp_core::sr25519;
-use sp_runtime::{generic, traits::BlakeTwo256, MultiAddress};
-use substrate_api_client::rpc::WsRpcClient;
-use substrate_api_client::{AccountId, Api, UncheckedExtrinsicV4, XtStatus};
+use sp_runtime::MultiAddress;
+use substrate_api_client::{AccountId, UncheckedExtrinsicV4};
 
 mod accounts;
 pub mod config;
 mod fee;
-pub mod rpc;
-pub mod session;
 mod staking;
 pub mod test;
 mod transfer;
 mod waiting;
 
-type BlockNumber = u32;
-type Header = generic::Header<BlockNumber, BlakeTwo256>;
-type KeyPair = sr25519::Pair;
-type Connection = Api<KeyPair, WsRpcClient>;
 type TransferTransaction =
     UncheckedExtrinsicV4<([u8; 2], MultiAddress<AccountId, ()>, Compact<u128>)>;
 
@@ -49,22 +40,6 @@ macro_rules! send_extrinsic {
             tx
 		}
     };
-}
-
-pub fn send_xt(connection: &Connection, xt: String, xt_name: &'static str, tx_status: XtStatus) {
-    let block_hash = connection
-        .send_extrinsic(xt, tx_status)
-        .expect("Could not send extrinsic")
-        .expect("Could not get tx hash");
-    let block_number = connection
-        .get_header::<Header>(Some(block_hash))
-        .expect("Could not fetch header")
-        .expect("Block exists; qed")
-        .number;
-    info!(
-        "Transaction {} was included in block {}.",
-        xt_name, block_number
-    );
 }
 
 #[macro_export]

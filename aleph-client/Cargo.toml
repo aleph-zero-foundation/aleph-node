@@ -1,5 +1,5 @@
 [package]
-name = "common"
+name = "aleph_client"
 version = "0.1.0"
 edition = "2021"
 
@@ -11,9 +11,10 @@ tag = "polkadot-v0.9.13.b2bfc0c3"
 [dependencies]
 # Substrate dependencies
 sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", features = ["full_crypto"] }
+sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", default-features = false }
 
 # other dependencies
 log = "0.4"
-mio = { version = "0.6.14" }
 serde_json = { version = "1.0" }
-ws = { version = "0.9.1", features = ["ssl"] }
+anyhow = "1.0"
+codec = { package = 'parity-scale-codec', version = "2.0.0", default-features = false,  features = ['derive']}

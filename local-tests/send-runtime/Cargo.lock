@@ -92,6 +92,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "aleph_client"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "log",
+ "parity-scale-codec",
+ "serde_json",
+ "sp-core",
+ "sp-runtime",
+ "substrate-api-client",
+]
+
+[[package]]
 name = "ansi_term"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -332,18 +345,6 @@ dependencies = [
  "textwrap",
  "unicode-width",
  "vec_map",
-]
-
-[[package]]
-name = "common"
-version = "0.1.0"
-dependencies = [
- "log",
- "mio",
- "serde_json",
- "sp-core",
- "substrate-api-client",
- "ws",
 ]
 
 [[package]]
@@ -1917,7 +1918,7 @@ checksum = "568a8e6258aa33c13358f81fd834adb854c6f7c9468520910a9b1e8fac068012"
 name = "send_runtime"
 version = "0.1.0"
 dependencies = [
- "common",
+ "aleph_client",
  "sp-core",
  "structopt",
  "substrate-api-client",

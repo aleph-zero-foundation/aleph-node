@@ -6,11 +6,8 @@
 # Rust
 .cargo/config
 
-target/
+**/target/
 **/*.rs.bk
-flooder/target/
-e2e-tests/target/
-common/target/
 
 # Substrate
 *.log

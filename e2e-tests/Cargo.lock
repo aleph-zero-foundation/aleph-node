@@ -95,9 +95,9 @@ dependencies = [
 name = "aleph-e2e-client"
 version = "0.1.0"
 dependencies = [
+ "aleph_client",
  "anyhow",
  "clap",
- "common",
  "env_logger",
  "frame-support",
  "frame-system",
@@ -107,6 +107,19 @@ dependencies = [
  "parity-scale-codec",
  "primitives",
  "rayon",
+ "serde_json",
+ "sp-core",
+ "sp-runtime",
+ "substrate-api-client",
+]
+
+[[package]]
+name = "aleph_client"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "log",
+ "parity-scale-codec",
  "serde_json",
  "sp-core",
  "sp-runtime",
@@ -369,18 +382,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "common"
-version = "0.1.0"
-dependencies = [
- "log",
- "mio",
- "serde_json",
- "sp-core",
- "substrate-api-client",
- "ws",
 ]
 
 [[package]]

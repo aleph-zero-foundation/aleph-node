@@ -1,11 +1,11 @@
-use crate::accounts::{accounts_from_seeds, get_free_balance, get_sudo};
-use crate::config::Config;
-use crate::fee::get_tx_fee_info;
-use crate::transfer::{setup_for_transfer, transfer};
-use crate::waiting::wait_for_event;
-use crate::Connection;
+use crate::{
+    accounts::{accounts_from_seeds, get_free_balance, get_sudo},
+    config::Config,
+    fee::get_tx_fee_info,
+    transfer::{setup_for_transfer, transfer},
+};
 use codec::{Compact, Decode};
-use common::create_connection;
+use aleph_client::{create_connection, wait_for_event, Connection};
 use frame_support::PalletId;
 use log::info;
 use sp_core::Pair;

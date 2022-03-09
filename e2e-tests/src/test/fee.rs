@@ -1,13 +1,18 @@
 use codec::Encode;
 use sp_core::Pair;
-use sp_runtime::{FixedPointNumber, FixedU128};
-use sp_runtime::traits::One;
+use sp_runtime::{
+    FixedPointNumber, FixedU128,
+    traits::One,
+};
 use substrate_api_client::{AccountId, compose_extrinsic, GenericAddress, UncheckedExtrinsicV4};
+use aleph_client::Connection;
 
-use crate::{Connection, TransferTransaction};
-use crate::config::Config;
-use crate::fee::{FeeInfo, get_next_fee_multiplier, get_tx_fee_info};
-use crate::transfer::setup_for_transfer;
+use crate::{
+    TransferTransaction,
+    config::Config,
+    fee::{FeeInfo, get_next_fee_multiplier, get_tx_fee_info},
+    transfer::setup_for_transfer,
+};
 
 pub fn fee_calculation(config: &Config) -> anyhow::Result<()> {
     let (connection, _from, _to) = setup_for_transfer(config);

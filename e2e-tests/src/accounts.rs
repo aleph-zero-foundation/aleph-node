@@ -1,9 +1,9 @@
 use sp_core::Pair;
 use sp_runtime::AccountId32;
 use substrate_api_client::Balance;
+use aleph_client::{Connection, KeyPair};
 
 use crate::config::Config;
-use crate::{Connection, KeyPair};
 
 pub fn keypair_from_string(seed: &str) -> KeyPair {
     KeyPair::from_string(seed, None).expect("Can't create pair from seed value")

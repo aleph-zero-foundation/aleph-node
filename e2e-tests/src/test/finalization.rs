@@ -1,4 +1,4 @@
-use common::create_connection;
+use aleph_client::create_connection;
 
 use crate::config::Config;
 use crate::waiting::wait_for_finalized_block;

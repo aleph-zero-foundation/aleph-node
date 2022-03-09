@@ -1,16 +1,10 @@
-use crate::rpc::get_author_rotate_keys;
-use crate::session::{get_current_session, session_set_keys, wait_for_session};
-use crate::staking::{nominate, wait_for_full_era_completion};
-use crate::transfer::locks;
 use crate::{
     accounts::{accounts_from_seeds, default_account_seeds, keypair_from_string},
     config::Config,
-    session::send_change_members,
-    staking::{bond, bonded, ledger, payout_stakers, validate},
-    transfer::batch_endow_account_balances,
-    BlockNumber, Connection, KeyPair,
+    staking::{nominate, bond, bonded, ledger, payout_stakers, validate, wait_for_full_era_completion},
+    transfer::{locks, batch_endow_account_balances},
 };
-use common::create_connection;
+use aleph_client::{wait_for_session, change_members, get_current_session, set_keys, rotate_keys, create_connection, BlockNumber, Connection, KeyPair};
 use log::info;
 use pallet_staking::StakingLedger;
 use primitives::TOKEN_DECIMALS;
@@ -111,9 +105,10 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
     // it's essential since keys from rotate_keys() needs to be run against that node
     let connection = create_connection(node).set_signer(sender);
 
-    send_change_members(
+    change_members(
         &connection,
         convert_authorities_to_account_id(validator_accounts.clone()),
+        XtStatus::InBlock,
     );
 
     let current_session = get_current_session(&connection);
@@ -138,8 +133,9 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
         &stash_account, &controller_account, &bonded_controller_account
     );
 
-    let validator_keys = get_author_rotate_keys(&connection).unwrap().unwrap();
-    session_set_keys(node, &controller, validator_keys, XtStatus::InBlock);
+    let validator_keys = rotate_keys(&connection).unwrap().unwrap();
+    let controller_connection = create_connection(node).set_signer(controller.clone());
+    set_keys(&controller_connection, validator_keys, XtStatus::InBlock);
 
     // to be elected in next era instead of expected validator_account_id
     validate(node, &controller, XtStatus::InBlock);
@@ -164,9 +160,10 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
     );
 
     validator_accounts.push(stash.clone());
-    send_change_members(
+    change_members(
         &connection,
         convert_authorities_to_account_id(validator_accounts.clone()),
+        XtStatus::InBlock,
     );
     let current_session = get_current_session(&connection);
     let _ = wait_for_session(&connection, current_session + 2)?;

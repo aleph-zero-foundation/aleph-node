@@ -1,6 +1,6 @@
 // A minimal tool for sending a setCode extrinsic to some node.
 
-use common::create_connection;
+use aleph_client::create_connection;
 use sp_core::{sr25519, Pair};
 use std::fs;
 use structopt::StructOpt;
