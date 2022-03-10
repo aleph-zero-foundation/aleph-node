@@ -134,7 +134,7 @@ impl Default for DataStoreConfig {
 //    with correct number and the ancestry is correct) AND the parent of the bottom block in the branch is finalized.
 // 2) (Hopeless Fork) There exists a hash h_i on the branch, corresponding to height `num` in the chain, such that
 //    some block `b` of number `num` is finalized and `hash(b) != h`. This is simply a situation in which the proposal
-//    no matter whether honest or not, cannot be possibly be applied, as a conflicting block was already finalized.
+//    no matter whether honest or not, cannot possibly be applied, as a conflicting block was already finalized.
 // It is possible that both 1) and 2) might be true for some proposals, but that's fine.
 //
 // The way DataStore works internally, is roughly as follows:

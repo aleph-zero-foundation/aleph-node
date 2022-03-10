@@ -87,7 +87,7 @@ impl<B: BlockT, C: HeaderBackend<B>> OrderedDataInterpreter<B, C> {
                 match status {
                     Finalize(block) => Some(block),
                     Ignore => {
-                        debug!(target: "aleph-finality", "HopelessFork {:?} encountered in Data. Skipping.", proposal);
+                        debug!(target: "aleph-finality", "Ignoring proposal {:?} in interpreter.", proposal);
                         None
                     }
                     Pending(pending_status) => {

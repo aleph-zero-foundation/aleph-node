@@ -1,4 +1,4 @@
-use crate::{BlockHashNum, SessionBoundaries};
+use crate::{data_io::MAX_DATA_BRANCH_LEN, BlockHashNum, SessionBoundaries};
 use codec::{Decode, Encode};
 use sp_runtime::traits::{Block as BlockT, NumberFor};
 use sp_runtime::SaturatedConversion;
@@ -6,9 +6,6 @@ use std::{
     hash::{Hash, Hasher},
     ops::Index,
 };
-
-// Maximum number of blocks above the last finalized allowed in an AlephBFT proposal.
-pub(crate) const MAX_DATA_BRANCH_LEN: u32 = 7;
 
 /// Represents a proposal we obtain from another node. Note that since the proposal might come from
 /// a malicious node there is no guarantee that the block hashes in the proposal correspond to real blocks
@@ -187,4 +184,57 @@ pub enum ProposalStatus<B: BlockT> {
     Finalize(BlockHashNum<B>),
     Ignore,
     Pending(PendingProposalStatus),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::UnvalidatedAlephProposal;
+    use crate::{data_io::MAX_DATA_BRANCH_LEN, SessionBoundaries, SessionId, SessionPeriod};
+    use sp_core::hash::H256;
+    use substrate_test_runtime_client::runtime::Block;
+
+    #[test]
+    fn too_long_proposal_is_invalid() {
+        let session_boundaries = SessionBoundaries::<Block>::new(SessionId(1), SessionPeriod(20));
+        let session_end = session_boundaries.last_block();
+        let branch = vec![H256::default(); MAX_DATA_BRANCH_LEN + 1];
+        let proposal = UnvalidatedAlephProposal::new(branch, session_end);
+        assert_eq!(proposal.validate_bounds(&session_boundaries), None);
+    }
+
+    #[test]
+    fn proposal_not_within_session_is_invalid() {
+        let session_boundaries = SessionBoundaries::<Block>::new(SessionId(1), SessionPeriod(20));
+        let session_start = session_boundaries.first_block();
+        let session_end = session_boundaries.last_block();
+        let branch = vec![H256::default(); 2];
+
+        let proposal = UnvalidatedAlephProposal::new(branch.clone(), session_start);
+        assert_eq!(proposal.validate_bounds(&session_boundaries), None);
+
+        let proposal = UnvalidatedAlephProposal::new(branch, session_end + 1);
+        assert_eq!(proposal.validate_bounds(&session_boundaries), None);
+    }
+
+    #[test]
+    fn proposal_starting_at_zero_block_is_invalid() {
+        let session_boundaries = SessionBoundaries::<Block>::new(SessionId(0), SessionPeriod(20));
+        let branch = vec![H256::default(); 2];
+
+        let proposal = UnvalidatedAlephProposal::new(branch, 1);
+        assert_eq!(proposal.validate_bounds(&session_boundaries), None);
+    }
+
+    #[test]
+    fn valid_proposal_is_validated_positively() {
+        let session_boundaries = SessionBoundaries::<Block>::new(SessionId(0), SessionPeriod(20));
+
+        let branch = vec![H256::default(); MAX_DATA_BRANCH_LEN];
+        let proposal = UnvalidatedAlephProposal::new(branch, (MAX_DATA_BRANCH_LEN + 1) as u64);
+        assert!(proposal.validate_bounds(&session_boundaries).is_some());
+
+        let branch = vec![H256::default(); 1];
+        let proposal = UnvalidatedAlephProposal::new(branch, (MAX_DATA_BRANCH_LEN + 1) as u64);
+        assert!(proposal.validate_bounds(&session_boundaries).is_some());
+    }
 }

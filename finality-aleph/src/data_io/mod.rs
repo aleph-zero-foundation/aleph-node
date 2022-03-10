@@ -15,8 +15,11 @@ mod status_provider;
 pub use chain_info::ChainInfoProvider;
 pub use data_interpreter::OrderedDataInterpreter;
 pub use data_provider::ChainTracker;
-pub use data_store::DataStore;
-pub use proposal::{AlephProposal, UnvalidatedAlephProposal};
+pub use data_store::{DataStore, DataStoreConfig};
+pub use proposal::UnvalidatedAlephProposal;
+
+// Maximum number of blocks above the last finalized allowed in an AlephBFT proposal.
+pub const MAX_DATA_BRANCH_LEN: usize = 7;
 
 /// The data ordered by the Aleph consensus.
 #[derive(Clone, Debug, Encode, Decode)]

@@ -1,6 +1,5 @@
 use crate::{
-    data_io::proposal::{UnvalidatedAlephProposal, MAX_DATA_BRANCH_LEN},
-    data_io::AlephData,
+    data_io::{proposal::UnvalidatedAlephProposal, AlephData, MAX_DATA_BRANCH_LEN},
     metrics::Checkpoint,
     BlockHashNum, Metrics, SessionBoundaries,
 };
