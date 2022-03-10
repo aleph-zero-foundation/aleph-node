@@ -1,3 +1,4 @@
+use aleph_primitives::staking::{MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND};
 use aleph_primitives::{AuthorityId as AlephId, ADDRESSES_ENCODING, TOKEN_DECIMALS};
 use aleph_runtime::{
     AccountId, AuraConfig, BalancesConfig, ElectionsConfig, GenesisConfig, Perbill, SessionConfig,
@@ -205,8 +206,11 @@ pub fn devnet_config(
     chain_params: ChainParams,
     authorities: Vec<AuthorityKeys>,
 ) -> Result<ChainSpec, String> {
-    let stakers = to_account_ids(&authorities).collect();
-    generate_chain_spec_config(chain_params, authorities, stakers)
+    // TODO fix it properly so there's a default configuration for distinct stash and controller
+    // accounts, and linked controller accounts with validators
+    // for now it's better to leave it as empty not to imply (not advised) initial staking configuration
+    // in which stash == controller == validator
+    generate_chain_spec_config(chain_params, authorities, vec![])
 }
 
 pub fn config(
@@ -287,8 +291,6 @@ fn generate_genesis_config(
     );
 
     const ENDOWMENT: u128 = 1_000_000_000u128 * 10u128.pow(TOKEN_DECIMALS);
-    const MIN_VALIDATOR_BOND: u128 = 25_000u128 * 10u128.pow(TOKEN_DECIMALS);
-    const MIN_NOMINATOR_BOND: u128 = 1_000u128 * 10u128.pow(TOKEN_DECIMALS);
 
     GenesisConfig {
         system: SystemConfig {

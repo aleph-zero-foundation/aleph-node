@@ -9,6 +9,12 @@ pub fn keypair_from_string(seed: &str) -> KeyPair {
     KeyPair::from_string(seed, None).expect("Can't create pair from seed value")
 }
 
+// below is used in benches crate
+#[allow(dead_code)]
+pub fn derive_user_account(seed: u64) -> KeyPair {
+    keypair_from_string(&format!("//{}", seed))
+}
+
 pub fn default_account_seeds() -> Vec<String> {
     ["//Damian", "//Hansu", "//Tomasz", "//Zbyszko", "//Julia"]
         .into_iter()

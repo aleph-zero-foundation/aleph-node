@@ -41,6 +41,8 @@ pub const DEFAULT_SESSION_PERIOD: u32 = 900;
 pub const DEFAULT_SESSIONS_PER_ERA: SessionIndex = 96;
 
 pub const TOKEN_DECIMALS: u32 = 12;
+pub const TOKEN: u128 = 10u128.pow(TOKEN_DECIMALS);
+
 pub const ADDRESSES_ENCODING: u32 = 42;
 pub const DEFAULT_UNIT_CREATION_DELAY: u64 = 300;
 
@@ -60,11 +62,15 @@ sp_api::decl_runtime_apis! {
 }
 
 pub mod staking {
-    use super::{Balance, TOKEN_DECIMALS};
+    use super::Balance;
+    use crate::TOKEN;
     use sp_runtime::Perbill;
 
+    pub const MIN_VALIDATOR_BOND: u128 = 25_000 * TOKEN;
+    pub const MIN_NOMINATOR_BOND: u128 = 100 * TOKEN;
+
     pub fn era_payout(miliseconds_per_era: u64) -> (Balance, Balance) {
-        const YEARLY_INFLATION: Balance = 30_000_000 * 10u128.pow(TOKEN_DECIMALS);
+        const YEARLY_INFLATION: Balance = 30_000_000 * TOKEN;
         // Milliseconds per year for the Julian year (365.25 days).
         const MILLISECONDS_PER_YEAR: u64 = 1000 * 3600 * 24 * 36525 / 100;
 
@@ -74,5 +80,34 @@ pub mod staking {
         let rest = total_payout - validators_payout;
 
         (validators_payout, rest)
+    }
+
+    /// Macro for making a default implementation of non-self methods from given class.
+    ///
+    /// As an input it expects list of tuples of form
+    ///
+    /// `(method_name(arg1: type1, arg2: type2, ...), class_name, return_type)`
+    ///
+    /// where
+    ///* `method_name`is a wrapee method,
+    ///* `arg1: type1, arg2: type,...`is a list of arguments and will be passed as is, can be empty
+    ///* `class_name`is a class that has non-self `method-name`,ie symbol `class_name::method_name` exists,
+    ///* `return_type` is type returned from `method_name`
+    /// Example
+    /// ```rust
+    ///  wrap_methods!(
+    ///         (bond(), SubstrateStakingWeights, Weight),
+    ///         (bond_extra(), SubstrateStakingWeights, Weight)
+    /// );
+    /// ```
+    #[macro_export]
+    macro_rules! wrap_methods {
+        ($(($wrapped_method:ident( $($arg_name:ident: $argument_type:ty), *), $wrapped_class:ty, $return_type:ty)), *) => {
+            $(
+                fn $wrapped_method($($arg_name: $argument_type), *) -> $return_type {
+                    <$wrapped_class>::$wrapped_method($($arg_name), *)
+                }
+            )*
+        };
     }
 }

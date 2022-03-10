@@ -2,12 +2,12 @@ use codec::Compact;
 use sp_runtime::MultiAddress;
 use substrate_api_client::{AccountId, UncheckedExtrinsicV4};
 
-mod accounts;
+pub mod accounts;
 pub mod config;
 mod fee;
-mod staking;
+pub mod staking;
 pub mod test;
-mod transfer;
+pub mod transfer;
 mod waiting;
 
 type TransferTransaction =

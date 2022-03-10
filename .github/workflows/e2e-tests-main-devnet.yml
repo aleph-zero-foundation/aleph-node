@@ -288,7 +288,7 @@ jobs:
         timeout-minutes: 20
         env:
           # Relative to local-tests/ directory
-          OLD_BINARY: old-aleph-node/aleph-node
+          OLD_BINARY: old-aleph-release-node/aleph-node
           NEW_BINARY: aleph-test-node/aleph-node
           NEW_RUNTIME: aleph-test-runtime/aleph_runtime.compact.wasm
         run: ./.github/scripts/test_update.sh
@@ -307,5 +307,5 @@ jobs:
         with:
           failOnError: false
           name: |
-            old-aleph-node
+            old-aleph-release-node
             old-aleph-runtime

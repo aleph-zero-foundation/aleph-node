@@ -45,7 +45,7 @@ pub use frame_support::{
 use frame_system::{EnsureRoot, EnsureSignedBy};
 pub use primitives::Balance;
 use primitives::{
-    ApiError as AlephApiError, AuthorityId as AlephId, DEFAULT_MILLISECS_PER_BLOCK,
+    wrap_methods, ApiError as AlephApiError, AuthorityId as AlephId, DEFAULT_MILLISECS_PER_BLOCK,
     DEFAULT_SESSIONS_PER_ERA, DEFAULT_SESSION_PERIOD,
 };
 
@@ -106,7 +106,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 10,
+    spec_version: 11,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 4,
@@ -354,7 +354,9 @@ impl pallet_session::historical::Config for Runtime {
 parameter_types! {
     pub const BondingDuration: EraIndex = 14;
     pub const SlashDeferDuration: EraIndex = 13;
-    pub const MaxNominatorRewardedPerValidator: u32 = 512;
+    // this is coupled with weights for payout_stakers() call
+    // see custom implementation of WeightInfo below
+    pub const MaxNominatorRewardedPerValidator: u32 = 1024;
     pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(33);
     pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(30);
     pub const SessionsPerEra: EraIndex = DEFAULT_SESSIONS_PER_ERA;
@@ -368,6 +370,65 @@ impl pallet_staking::EraPayout<Balance> for UniformEraPayout {
             MILLISECS_PER_BLOCK * SessionPeriod::get() as u64 * SessionsPerEra::get() as u64;
         primitives::staking::era_payout(miliseconds_per_era)
     }
+}
+
+type SubstrateStakingWeights = pallet_staking::weights::SubstrateWeight<Runtime>;
+
+pub struct PayoutStakersDecreasedWeightInfo;
+impl pallet_staking::WeightInfo for PayoutStakersDecreasedWeightInfo {
+    // To make possible 1024 nominators per validator we need to decrease weight for payout_stakers
+    fn payout_stakers_alive_staked(n: u32) -> Weight {
+        SubstrateStakingWeights::payout_stakers_alive_staked(n) / 2
+    }
+    wrap_methods!(
+        (bond(), SubstrateStakingWeights, Weight),
+        (bond_extra(), SubstrateStakingWeights, Weight),
+        (unbond(), SubstrateStakingWeights, Weight),
+        (
+            withdraw_unbonded_update(s: u32),
+            SubstrateStakingWeights,
+            Weight
+        ),
+        (
+            withdraw_unbonded_kill(s: u32),
+            SubstrateStakingWeights,
+            Weight
+        ),
+        (validate(), SubstrateStakingWeights, Weight),
+        (kick(k: u32), SubstrateStakingWeights, Weight),
+        (nominate(n: u32), SubstrateStakingWeights, Weight),
+        (chill(), SubstrateStakingWeights, Weight),
+        (set_payee(), SubstrateStakingWeights, Weight),
+        (set_controller(), SubstrateStakingWeights, Weight),
+        (set_validator_count(), SubstrateStakingWeights, Weight),
+        (force_no_eras(), SubstrateStakingWeights, Weight),
+        (force_new_era(), SubstrateStakingWeights, Weight),
+        (force_new_era_always(), SubstrateStakingWeights, Weight),
+        (set_invulnerables(v: u32), SubstrateStakingWeights, Weight),
+        (force_unstake(s: u32), SubstrateStakingWeights, Weight),
+        (
+            cancel_deferred_slash(s: u32),
+            SubstrateStakingWeights,
+            Weight
+        ),
+        (
+            payout_stakers_dead_controller(n: u32),
+            SubstrateStakingWeights,
+            Weight
+        ),
+        (rebond(l: u32), SubstrateStakingWeights, Weight),
+        (set_history_depth(e: u32), SubstrateStakingWeights, Weight),
+        (reap_stash(s: u32), SubstrateStakingWeights, Weight),
+        (new_era(v: u32, n: u32), SubstrateStakingWeights, Weight),
+        (
+            get_npos_voters(v: u32, n: u32, s: u32),
+            SubstrateStakingWeights,
+            Weight
+        ),
+        (get_npos_targets(v: u32), SubstrateStakingWeights, Weight),
+        (set_staking_limits(), SubstrateStakingWeights, Weight),
+        (chill_other(), SubstrateStakingWeights, Weight)
+    );
 }
 
 impl pallet_staking::Config for Runtime {
@@ -392,7 +453,7 @@ impl pallet_staking::Config for Runtime {
     type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
     type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
     type SortedListProvider = pallet_staking::UseNominatorsMap<Runtime>;
-    type WeightInfo = pallet_staking::weights::SubstrateWeight<Runtime>;
+    type WeightInfo = PayoutStakersDecreasedWeightInfo;
 }
 
 parameter_types! {

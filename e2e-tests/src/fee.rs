@@ -11,7 +11,10 @@ pub struct FeeInfo {
     pub adjusted_weight: Balance,
 }
 
-pub fn get_tx_fee_info<Call: Encode>(connection: &Connection, tx: &UncheckedExtrinsicV4<Call>) -> FeeInfo {
+pub fn get_tx_fee_info<Call: Encode>(
+    connection: &Connection,
+    tx: &UncheckedExtrinsicV4<Call>,
+) -> FeeInfo {
     let unadjusted_weight = connection
         .get_payment_info(&tx.hex_encode(), None)
         .unwrap()

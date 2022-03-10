@@ -1,22 +1,27 @@
 use crate::{
     accounts::{accounts_from_seeds, default_account_seeds, keypair_from_string},
     config::Config,
-    staking::{nominate, bond, bonded, ledger, payout_stakers, validate, wait_for_full_era_completion},
-    transfer::{locks, batch_endow_account_balances},
+    staking::{
+        bond, bonded, check_non_zero_payouts_for_era, ledger, nominate, validate,
+        wait_for_full_era_completion,
+    },
+    transfer::batch_endow_account_balances,
 };
-use aleph_client::{wait_for_session, change_members, get_current_session, set_keys, rotate_keys, create_connection, BlockNumber, Connection, KeyPair};
+use aleph_client::{
+    change_members, create_connection, get_current_session, rotate_keys, set_keys,
+    wait_for_session, KeyPair,
+};
 use log::info;
 use pallet_staking::StakingLedger;
-use primitives::TOKEN_DECIMALS;
+use primitives::{
+    staking::{MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND},
+    TOKEN,
+};
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
 use sp_core::Pair;
 use substrate_api_client::{AccountId, XtStatus};
-
-const TOKEN: u128 = 10u128.pow(TOKEN_DECIMALS);
-const VALIDATOR_STAKE: u128 = 25_000 * TOKEN;
-const NOMINATOR_STAKE: u128 = 1_000 * TOKEN;
 
 fn get_key_pairs() -> (Vec<KeyPair>, Vec<KeyPair>) {
     let validators = default_account_seeds();
@@ -49,10 +54,10 @@ pub fn staking_era_payouts(config: &Config) -> anyhow::Result<()> {
     let sender = validator_accounts[0].clone();
     let connection = create_connection(node).set_signer(sender);
 
-    batch_endow_account_balances(&connection, &stashes_accounts, VALIDATOR_STAKE);
+    batch_endow_account_balances(&connection, &stashes_accounts, MIN_VALIDATOR_BOND + TOKEN);
 
     validator_accounts.par_iter().for_each(|account| {
-        bond(node, VALIDATOR_STAKE, &account, &account);
+        bond(node, MIN_VALIDATOR_BOND, &account, &account);
     });
 
     validator_accounts
@@ -61,7 +66,7 @@ pub fn staking_era_payouts(config: &Config) -> anyhow::Result<()> {
 
     stashes_accounts
         .par_iter()
-        .for_each(|nominator| bond(node, NOMINATOR_STAKE, &nominator, &nominator));
+        .for_each(|nominator| bond(node, MIN_NOMINATOR_BOND, &nominator, &nominator));
 
     stashes_accounts
         .par_iter()
@@ -115,11 +120,11 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
     let _ = wait_for_session(&connection, current_session + 2)?;
 
     // to cover tx fees as we need a bit more than VALIDATOR_STAKE
-    batch_endow_account_balances(&connection, &[stash.clone()], VALIDATOR_STAKE + TOKEN);
+    batch_endow_account_balances(&connection, &[stash.clone()], MIN_VALIDATOR_BOND + TOKEN);
     // to cover txs fees
     batch_endow_account_balances(&connection, &[controller.clone()], TOKEN);
 
-    bond(node, VALIDATOR_STAKE, &stash, &controller);
+    bond(node, MIN_VALIDATOR_BOND, &stash, &controller);
     let bonded_controller_account = bonded(&connection, &stash);
     assert!(
         bonded_controller_account.is_some(),
@@ -151,8 +156,8 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
         ledger,
         StakingLedger {
             stash: stash_account.clone(),
-            total: VALIDATOR_STAKE,
-            active: VALIDATOR_STAKE,
+            total: MIN_VALIDATOR_BOND,
+            active: MIN_VALIDATOR_BOND,
             unlocking: vec![],
             // we don't need to compare claimed rewards as those are internals of staking pallet
             claimed_rewards: ledger.claimed_rewards.clone()
@@ -178,43 +183,4 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
     check_non_zero_payouts_for_era(node, &stash, &connection, current_era);
 
     Ok(())
-}
-
-fn check_non_zero_payouts_for_era(
-    node: &String,
-    stash: &KeyPair,
-    connection: &Connection,
-    era: BlockNumber,
-) {
-    let stash_account = AccountId::from(stash.public());
-    let locked_stash_balance_before_payout = locks(&connection, &stash);
-    assert!(
-        locked_stash_balance_before_payout.is_some(),
-        "Expected non-empty locked balances for account {}!",
-        stash_account
-    );
-    let locked_stash_balance_before_payout = locked_stash_balance_before_payout.unwrap();
-    assert_eq!(
-        locked_stash_balance_before_payout.len(),
-        1,
-        "Expected locked balances for account {} to have exactly one entry!",
-        stash_account
-    );
-    payout_stakers(node, stash.clone(), era - 1);
-    let locked_stash_balance_after_payout = locks(&connection, &stash);
-    assert!(
-        locked_stash_balance_after_payout.is_some(),
-        "Expected non-empty locked balances for account {}!",
-        stash_account
-    );
-    let locked_stash_balance_after_payout = locked_stash_balance_after_payout.unwrap();
-    assert_eq!(
-        locked_stash_balance_after_payout.len(),
-        1,
-        "Expected non-empty locked balances for account to have exactly one entry {}!",
-        stash_account
-    );
-    assert!(locked_stash_balance_after_payout[0].amount > locked_stash_balance_before_payout[0].amount,
-            "Expected payout to be non zero in locked balance for account {}. Balance before: {}, balance after: {}",
-            stash_account, locked_stash_balance_before_payout[0].amount, locked_stash_balance_after_payout[0].amount);
 }

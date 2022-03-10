@@ -14,5 +14,6 @@ exclude = [
   "e2e-tests",
   "aleph-client",
   "local-tests/send-runtime",
-  "fork-off"
+  "fork-off",
+  "benches/payout-stakers",
 ]
