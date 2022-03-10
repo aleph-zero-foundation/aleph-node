@@ -46,6 +46,7 @@ ARGS=(
   --no-mdns
   --ws-max-connections "${WS_MAX_CONNECTIONS}"
   --unsafe-ws-external --unsafe-rpc-external
+  --enable-log-reloading
 )
 
 if [[ -n "${BOOT_NODES:-}" ]]; then
