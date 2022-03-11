@@ -6,6 +6,7 @@ use substrate_api_client::{rpc::ws_client::WsRpcClient, Api, RpcClient, XtStatus
 
 mod rpc;
 mod session;
+mod staking;
 mod waiting;
 
 pub use rpc::rotate_keys;
@@ -13,6 +14,7 @@ pub use session::{
     change_members, get_current as get_current_session, set_keys, wait_for as wait_for_session,
     Keys as SessionKeys,
 };
+pub use staking::bond as staking_bond;
 pub use waiting::wait_for_event;
 
 pub trait FromStr: Sized {
@@ -66,6 +68,7 @@ pub fn send_xt(connection: &Connection, xt: String, xt_name: &'static str, tx_st
         .expect("Block exists; qed")
         .number;
     info!(
+        target: "aleph-client",
         "Transaction {} was included in block {}.",
         xt_name, block_number
     );

@@ -2,7 +2,7 @@ use aleph_client::create_connection;
 use e2e::{
     accounts::derive_user_account,
     staking::{
-        batch_bond, batch_nominate, bond, check_non_zero_payouts_for_era, validate,
+        batch_bond, batch_nominate, check_non_zero_payouts_for_era, validate,
         wait_for_era_completion, wait_for_full_era_completion, RewardDestination,
     },
     transfer::batch_endow_account_balances,
@@ -16,8 +16,8 @@ use rayon::prelude::*;
 use sp_core::sr25519::Pair;
 use sp_keyring::AccountKeyring;
 use std::iter;
-use substrate_api_client::rpc::WsRpcClient;
-use substrate_api_client::{Api, XtStatus};
+use substrate_api_client::{rpc::WsRpcClient, Api, XtStatus};
+use aleph_client::staking_bond;
 
 // testcase parameters
 const NOMINATOR_COUNT: u64 = 1024;
@@ -96,7 +96,8 @@ fn set_validators(address: &str) -> Vec<Pair> {
         .map(derive_user_account)
         .collect::<Vec<_>>();
     validators.par_iter().for_each(|account| {
-        bond(address, MIN_VALIDATOR_BOND, &account, &account);
+        let connection = create_connection(address).set_signer(account.clone());
+        staking_bond(&connection, MIN_VALIDATOR_BOND, &account, XtStatus::InBlock);
     });
     validators
         .par_iter()

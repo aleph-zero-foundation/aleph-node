@@ -119,6 +119,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "log",
+ "pallet-staking",
  "parity-scale-codec",
  "serde_json",
  "sp-core",
