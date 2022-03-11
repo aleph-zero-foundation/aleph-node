@@ -18,7 +18,7 @@ where
     use crate::data_io::proposal::PendingProposalStatus::*;
     use crate::data_io::proposal::ProposalStatus::*;
 
-    if chain_info_provider.get_highest().finalized.num >= proposal.number_top_block() {
+    if chain_info_provider.get_highest_finalized().num >= proposal.number_top_block() {
         return Ignore;
     }
 

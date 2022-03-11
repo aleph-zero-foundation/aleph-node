@@ -6,12 +6,6 @@ use sp_runtime::traits::One;
 use sp_runtime::traits::{Block as BlockT, Header as HeaderT, NumberFor};
 use std::sync::Arc;
 
-#[derive(Clone, Debug)]
-pub struct HighestBlocks<B: BlockT> {
-    pub finalized: BlockHashNum<B>,
-    pub imported: BlockHashNum<B>,
-}
-
 pub trait ChainInfoProvider<B: BlockT> {
     fn is_block_imported(&mut self, block: &BlockHashNum<B>) -> bool;
 
@@ -19,7 +13,7 @@ pub trait ChainInfoProvider<B: BlockT> {
 
     fn get_parent_hash(&mut self, block: &BlockHashNum<B>) -> Result<B::Hash, ()>;
 
-    fn get_highest(&mut self) -> HighestBlocks<B>;
+    fn get_highest_finalized(&mut self) -> BlockHashNum<B>;
 }
 
 impl<C, B> ChainInfoProvider<B> for Arc<C>
@@ -64,12 +58,9 @@ where
         }
     }
 
-    fn get_highest(&mut self) -> HighestBlocks<B> {
+    fn get_highest_finalized(&mut self) -> BlockHashNum<B> {
         let status = self.info();
-        HighestBlocks {
-            finalized: (status.finalized_hash, status.finalized_number).into(),
-            imported: (status.best_hash, status.best_number).into(),
-        }
+        (status.finalized_hash, status.finalized_number).into()
     }
 }
 
@@ -81,7 +72,6 @@ where
     available_block_with_parent_cache: LruCache<BlockHashNum<B>, B::Hash>,
     available_blocks_cache: LruCache<BlockHashNum<B>, ()>,
     finalized_cache: LruCache<NumberFor<B>, B::Hash>,
-    highest: HighestBlocks<B>,
     chain_info_provider: CIP,
 }
 
@@ -90,19 +80,13 @@ where
     B: BlockT,
     CIP: ChainInfoProvider<B>,
 {
-    pub fn new(mut chain_info_provider: CIP, config: ChainInfoCacheConfig) -> Self {
-        let highest = chain_info_provider.get_highest();
+    pub fn new(chain_info_provider: CIP, config: ChainInfoCacheConfig) -> Self {
         CachedChainInfoProvider {
             available_block_with_parent_cache: LruCache::new(config.block_cache_capacity),
             available_blocks_cache: LruCache::new(config.block_cache_capacity),
             finalized_cache: LruCache::new(config.block_cache_capacity),
-            highest,
             chain_info_provider,
         }
-    }
-
-    fn update_highest_blocks(&mut self) {
-        self.highest = self.chain_info_provider.get_highest();
     }
 
     pub fn inner(&mut self) -> &mut CIP {
@@ -116,17 +100,10 @@ where
     CIP: ChainInfoProvider<B>,
 {
     fn is_block_imported(&mut self, block: &BlockHashNum<B>) -> bool {
-        if self.highest.imported.num < block.num {
-            // We are lazy about updating highest blocks as this requires copying quite a bit of data
-            // from the client and requires a read lock.
-            self.update_highest_blocks();
-            if self.highest.imported.num < block.num {
-                return false;
-            }
-        }
         if self.available_blocks_cache.contains(block) {
             return true;
         }
+
         if self.chain_info_provider.is_block_imported(block) {
             self.available_blocks_cache.put(block.clone(), ());
             return true;
@@ -135,17 +112,14 @@ where
     }
 
     fn get_finalized_at(&mut self, num: NumberFor<B>) -> Result<BlockHashNum<B>, ()> {
-        if self.highest.finalized.num < num {
-            // We are lazy about updating highest blocks as this requires copying quite a bit of data
-            // from the client and requires a read lock.
-            self.update_highest_blocks();
-            if self.highest.finalized.num < num {
-                return Err(());
-            }
-        }
         if let Some(hash) = self.finalized_cache.get(&num) {
             return Ok((*hash, num).into());
         }
+
+        if self.get_highest_finalized().num < num {
+            return Err(());
+        }
+
         if let Ok(block) = self.chain_info_provider.get_finalized_at(num) {
             self.finalized_cache.put(num, block.hash);
             return Ok(block);
@@ -154,17 +128,10 @@ where
     }
 
     fn get_parent_hash(&mut self, block: &BlockHashNum<B>) -> Result<B::Hash, ()> {
-        if self.highest.imported.num < block.num {
-            // We are lazy about updating highest blocks as this requires copying quite a bit of data
-            // from the client and requires a read lock.
-            self.update_highest_blocks();
-            if self.highest.imported.num < block.num {
-                return Err(());
-            }
-        }
         if let Some(parent) = self.available_block_with_parent_cache.get(block) {
             return Ok(*parent);
         }
+
         if let Ok(parent) = self.chain_info_provider.get_parent_hash(block) {
             self.available_block_with_parent_cache
                 .put(block.clone(), parent);
@@ -173,9 +140,8 @@ where
         Err(())
     }
 
-    fn get_highest(&mut self) -> HighestBlocks<B> {
-        self.update_highest_blocks();
-        self.highest.clone()
+    fn get_highest_finalized(&mut self) -> BlockHashNum<B> {
+        self.chain_info_provider.get_highest_finalized()
     }
 }
 
@@ -219,8 +185,8 @@ where
     }
 
     fn get_finalized_at(&mut self, num: NumberFor<B>) -> Result<BlockHashNum<B>, ()> {
-        let internal_highest = self.chain_info_provider.get_highest();
-        if num <= internal_highest.finalized.num {
+        let highest_finalized_inner = self.chain_info_provider.get_highest_finalized();
+        if num <= highest_finalized_inner.num {
             return self.chain_info_provider.get_finalized_at(num);
         }
         if num > self.aux_finalized.num {
@@ -239,15 +205,12 @@ where
         self.chain_info_provider.get_parent_hash(block)
     }
 
-    fn get_highest(&mut self) -> HighestBlocks<B> {
-        let highest = self.chain_info_provider.get_highest();
-        if self.aux_finalized.num > highest.finalized.num {
-            HighestBlocks {
-                finalized: self.aux_finalized.clone(),
-                imported: highest.imported,
-            }
+    fn get_highest_finalized(&mut self) -> BlockHashNum<B> {
+        let highest_finalized_inner = self.chain_info_provider.get_highest_finalized();
+        if self.aux_finalized.num > highest_finalized_inner.num {
+            self.aux_finalized.clone()
         } else {
-            highest
+            highest_finalized_inner
         }
     }
 }

@@ -273,14 +273,14 @@ where
     }
 
     // Updates our highest known and highest finalized block info directly from the client.
-    fn update_highest_blocks(&mut self) {
-        let highest = self.chain_info_provider.get_highest();
-        self.on_block_imported(highest.imported);
-        self.on_block_finalized(highest.finalized);
+    fn update_highest_finalized(&mut self) {
+        let highest_finalized = self.chain_info_provider.get_highest_finalized();
+        self.on_block_imported(highest_finalized.clone());
+        self.on_block_finalized(highest_finalized);
     }
 
     fn run_maintenance(&mut self) {
-        self.update_highest_blocks();
+        self.update_highest_finalized();
 
         let proposals_with_timestamps: Vec<_> = self
             .pending_proposals
