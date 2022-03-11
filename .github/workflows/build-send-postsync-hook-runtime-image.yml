@@ -1,4 +1,4 @@
-name: Build and send to ECR postsync hook image for sending appropriate transaction after runtime change.
+name: Build, send and deploy postsync hook image.
 
 on:
   workflow_dispatch:
@@ -58,10 +58,43 @@ jobs:
         env:
           AWS_REGION: us-east-1
 
-      - name: Push aleph-node Current Image to Public ECR
+      - name: Push postsync hook current Image to Public ECR
         env:
           CURRENT_IMAGE: runtime-update-hook:${{ steps.vars.outputs.sha_short }}
           ECR_PUSH_IMAGE: public.ecr.aws/p6e8q1z1/runtime-update-hook:${{ steps.vars.outputs.sha_short }}
         run: |
           docker tag ${{ env.CURRENT_IMAGE }} ${{ env.ECR_PUSH_IMAGE }}
           docker push ${{ env.ECR_PUSH_IMAGE }}
+      
+      - name: GIT | Checkout aleph-apps repo
+        uses: actions/checkout@master
+        with:
+          repository: Cardinal-Cryptography/aleph-apps
+          token: ${{ secrets.CI_GH_TOKEN }}
+          path: "aleph-apps"
+
+      - name: Init kustomize
+        uses: imranismail/setup-kustomize@v1
+        with:
+          kustomize-version: "3.8.6"
+
+      - name: Update postsync hook docker image                                                                     
+        env:                                                                                                          
+          RELEASE_IMAGE: public.ecr.aws/p6e8q1z1/runtime-update-hook:${{ steps.vars.outputs.sha_short }}
+          REGIONS_AWS: 'eu-central-1'
+        run: |
+            # Deploy new image version for postsync hook
+            cd aleph-apps/aleph-node-validators/overlays/devnet/eu-central-1
+            kustomize edit set image "send-runtime-hook-image-placeholder=${{ env.RELEASE_IMAGE }}"
+
+      - name: GIT | Commit changes to aleph-apps repository.
+        uses: EndBug/add-and-commit@v5.1.0
+        with:
+          author_name: AlephZero Automation
+          author_email: alephzero@10clouds.com
+          message: "Updating postsync hook image tag to: ${{ steps.vars.outputs.sha_short }}"
+          add: "*.yaml"
+          cwd: "aleph-apps"
+          branch: main
+        env:
+          GITHUB_TOKEN: ${{ secrets.CI_GH_TOKEN }}
