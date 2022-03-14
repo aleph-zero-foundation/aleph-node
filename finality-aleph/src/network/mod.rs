@@ -12,7 +12,6 @@ mod component;
 mod manager;
 #[cfg(test)]
 mod mock;
-mod rmc;
 mod service;
 mod session;
 mod split;
@@ -26,7 +25,6 @@ pub use component::{
     SimpleNetwork,
 };
 pub use manager::{get_peer_id, ConnectionIO, ConnectionManager, ConnectionManagerConfig};
-pub use rmc::NetworkData as RmcNetworkData;
 pub use service::{Service, IO};
 pub use session::{Manager as SessionManager, ManagerError, Network as SessionNetwork};
 pub use split::{split, Split};

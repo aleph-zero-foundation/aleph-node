@@ -1,5 +1,6 @@
 use crate::{
-    network::{AlephNetworkData, RmcNetworkData, Split},
+    aggregation::RmcNetworkData,
+    network::{AlephNetworkData, Split},
     session::{
         first_block_of_session, last_block_of_session, session_id_from_block_num,
         SessionBoundaries, SessionId,
@@ -18,7 +19,7 @@ use sp_keystore::CryptoStore;
 use sp_runtime::traits::{BlakeTwo256, Block, Header};
 use std::{fmt::Debug, sync::Arc};
 
-mod aggregator;
+mod aggregation;
 mod crypto;
 mod data_io;
 mod finalization;

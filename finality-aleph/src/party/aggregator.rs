@@ -1,13 +1,16 @@
 use crate::{
-    aggregator::BlockSignatureAggregator,
-    crypto::KeyBox,
+    aggregation::{BlockSignatureAggregator, RmcNetworkData, SignableHash},
+    crypto::{KeyBox, Signature},
     justification::{AlephJustification, JustificationNotification},
     metrics::Checkpoint,
-    network::{DataNetwork, RmcNetworkData},
+    network::DataNetwork,
     party::{AuthoritySubtaskCommon, Task},
     BlockHashNum, Metrics, SessionBoundaries,
 };
-use aleph_bft::SpawnHandle;
+use aleph_bft::{
+    rmc::{DoublingDelayScheduler, ReliableMulticast},
+    KeyBox as BftKeyBox, SignatureSet, SpawnHandle,
+};
 use futures::{
     channel::{mpsc, oneshot},
     StreamExt,
@@ -23,17 +26,71 @@ pub struct IO<B: Block> {
     pub justifications_for_chain: mpsc::UnboundedSender<JustificationNotification<B>>,
 }
 
-async fn run_aggregator<B, C, N>(
-    mut aggregator: BlockSignatureAggregator<'_, B, N, KeyBox>,
+type Rmc<'a, B> = ReliableMulticast<'a, SignableHash<<B as Block>::Hash>, KeyBox>;
+
+async fn process_new_block_data<'a, B, N>(
+    aggregator: &mut BlockSignatureAggregator<
+        'a,
+        B::Hash,
+        RmcNetworkData<B>,
+        N,
+        KeyBox,
+        Rmc<'a, B>,
+    >,
+    block: BlockHashNum<B>,
+    session_boundaries: &SessionBoundaries<B>,
+    metrics: &Option<Metrics<<B::Header as Header>::Hash>>,
+) where
+    B: Block,
+    N: DataNetwork<RmcNetworkData<B>>,
+    <B as Block>::Hash: AsRef<[u8]>,
+{
+    trace!(target: "aleph-party", "Received unit {:?} in aggregator.", block);
+    if let Some(metrics) = &metrics {
+        metrics.report_block(block.hash, std::time::Instant::now(), Checkpoint::Ordered);
+    }
+
+    aggregator.start_aggregation(block.hash).await;
+    if block.num == session_boundaries.last_block() {
+        aggregator.notify_last_hash();
+    }
+}
+
+fn process_hash<B, C>(
+    hash: B::Hash,
+    multisignature: SignatureSet<Signature>,
+    justifications_for_chain: &mpsc::UnboundedSender<JustificationNotification<B>>,
+    client: &Arc<C>,
+) where
+    B: Block,
+    C: HeaderBackend<B> + Send + Sync + 'static,
+{
+    let number = client.number(hash).unwrap().unwrap();
+    // The unwrap might actually fail if data availability is not implemented correctly.
+    let notification = JustificationNotification {
+        justification: AlephJustification {
+            signature: multisignature,
+        },
+        hash,
+        number,
+    };
+    if let Err(e) = justifications_for_chain.unbounded_send(notification) {
+        error!(target: "aleph-party", "Issue with sending justification from Aggregator to JustificationHandler {:?}.", e);
+    }
+}
+
+async fn run_aggregator<'a, B, C, N>(
+    mut aggregator: BlockSignatureAggregator<'a, B::Hash, RmcNetworkData<B>, N, KeyBox, Rmc<'a, B>>,
     io: IO<B>,
     client: Arc<C>,
-    session_boundaries: SessionBoundaries<B>,
+    session_boundaries: &SessionBoundaries<B>,
     metrics: Option<Metrics<<B::Header as Header>::Hash>>,
     mut exit_rx: oneshot::Receiver<()>,
 ) where
     B: Block,
     C: HeaderBackend<B> + Send + Sync + 'static,
     N: DataNetwork<RmcNetworkData<B>>,
+    <B as Block>::Hash: AsRef<[u8]>,
 {
     let IO {
         mut blocks_from_interpreter,
@@ -44,16 +101,12 @@ async fn run_aggregator<B, C, N>(
         tokio::select! {
             maybe_block = blocks_from_interpreter.next() => {
                 if let Some(block) = maybe_block {
-
-                    trace!(target: "aleph-party", "Received block {:?} in aggregator.", block);
-                    if let Some(metrics) = &metrics {
-                        metrics.report_block(block.hash, std::time::Instant::now(), Checkpoint::Ordered);
-                    }
-
-                    aggregator.start_aggregation(block.hash).await;
-                    if block.num == session_boundaries.last_block() {
-                        aggregator.notify_last_hash();
-                    }
+                    process_new_block_data(
+                        &mut aggregator,
+                        block,
+                        session_boundaries,
+                        &metrics
+                    ).await;
                 } else {
                     debug!(target: "aleph-party", "Blocks ended in aggregator. Terminating.");
                     break;
@@ -61,16 +114,7 @@ async fn run_aggregator<B, C, N>(
             }
             multisigned_hash = aggregator.next_multisigned_hash() => {
                 if let Some((hash, multisignature)) = multisigned_hash {
-                    let number = client.number(hash).unwrap().unwrap();
-                    // The unwrap might actually fail if data availability is not implemented correctly.
-                    let notification = JustificationNotification {
-                        justification: AlephJustification{signature: multisignature},
-                        hash,
-                        number
-                    };
-                    if let Err(e) = justifications_for_chain.unbounded_send(notification)  {
-                        error!(target: "aleph-party", "Issue with sending justification from Aggregator to JustificationHandler {:?}.", e);
-                    }
+                    process_hash(hash, multisignature, &justifications_for_chain, &client);
                 } else {
                     debug!(target: "aleph-party", "The stream of multisigned hashes has ended. Terminating.");
                     return;
@@ -110,10 +154,25 @@ where
     let (stop, exit) = oneshot::channel();
     let task = {
         async move {
-            let aggregator =
-                BlockSignatureAggregator::new(rmc_network, &multikeychain, metrics.clone());
+            let (messages_for_rmc, messages_from_network) = mpsc::unbounded();
+            let (messages_for_network, messages_from_rmc) = mpsc::unbounded();
+            let scheduler = DoublingDelayScheduler::new(tokio::time::Duration::from_millis(500));
+            let rmc = ReliableMulticast::new(
+                messages_from_network,
+                messages_for_network,
+                &multikeychain,
+                multikeychain.node_count(),
+                scheduler,
+            );
+            let aggregator = BlockSignatureAggregator::new(
+                rmc_network,
+                rmc,
+                messages_for_rmc,
+                messages_from_rmc,
+                metrics.clone(),
+            );
             debug!(target: "aleph-party", "Running the aggregator task for {:?}", session_id);
-            run_aggregator(aggregator, io, client, session_boundaries, metrics, exit).await;
+            run_aggregator(aggregator, io, client, &session_boundaries, metrics, exit).await;
             debug!(target: "aleph-party", "Aggregator task stopped for {:?}", session_id);
         }
     };
