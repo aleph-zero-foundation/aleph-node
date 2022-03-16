@@ -1,9 +1,9 @@
 use clap::Parser;
 use futures::stream::{self, StreamExt};
+use log::{debug, info};
 use serde_json::Value;
 use std::fs::{self, File};
 use std::io::{ErrorKind, Write};
-use log::{debug, info};
 
 #[derive(Debug, Parser)]
 #[clap(version = "1.0")]
@@ -72,7 +72,7 @@ async fn main() -> anyhow::Result<()> {
     });
 
     // write out the fork spec
-    let json = serde_json::to_string(&fork_spec)?;
+    let json = serde_json::to_string_pretty(&fork_spec)?;
     info!(target: "fork", "Writing forked chain spec to {}", &write_to_path);
     write_to_file(write_to_path, json.as_bytes());
 
