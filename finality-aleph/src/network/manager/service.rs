@@ -632,8 +632,8 @@ impl<D: Data> IO<D> {
                     match maybe_message {
                         Some(message) => if let Err(e) = self.on_network_message(&mut service, message) {
                             match e {
-                                Error::UserSend => warn!(target: "aleph-network", "Failed to send to user in session."),
-                                Error::NoSession => warn!(target: "aleph-network", "Received message for unknown session."),
+                                Error::UserSend => trace!(target: "aleph-network", "Failed to send to user in session."),
+                                Error::NoSession => trace!(target: "aleph-network", "Received message for unknown session."),
                                 _ => return Err(e),
                             }
                         },
