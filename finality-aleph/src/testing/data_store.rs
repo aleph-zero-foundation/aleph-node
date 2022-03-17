@@ -1,11 +1,11 @@
 use crate::{
-    data_io::{
-        AlephData, AlephNetworkMessage, DataStore, DataStoreConfig, UnvalidatedAlephProposal,
-        MAX_DATA_BRANCH_LEN,
-    },
+    data_io::{AlephData, AlephNetworkMessage, DataStore, DataStoreConfig, MAX_DATA_BRANCH_LEN},
     network::{DataNetwork, RequestBlocks, SimpleNetwork},
     session::{SessionBoundaries, SessionId, SessionPeriod},
-    testing::client_chain_builder::ClientChainBuilder,
+    testing::{
+        client_chain_builder::ClientChainBuilder,
+        mocks::{aleph_data_from_blocks, aleph_data_from_headers},
+    },
     BlockHashNum,
 };
 use futures::{
@@ -16,7 +16,7 @@ use futures::{
     StreamExt,
 };
 use sp_api::NumberFor;
-pub use sp_core::hash::H256;
+use sp_core::hash::H256;
 use sp_runtime::traits::Block as BlockT;
 use std::{future::Future, sync::Arc, time::Duration};
 use substrate_test_runtime_client::{
@@ -25,25 +25,6 @@ use substrate_test_runtime_client::{
 };
 
 use tokio::time::timeout;
-
-fn unvalidated_proposal_from_headers(blocks: Vec<Header>) -> UnvalidatedAlephProposal<Block> {
-    let num = blocks.last().unwrap().number;
-    let hashes = blocks.into_iter().map(|block| block.hash()).collect();
-    UnvalidatedAlephProposal::new(hashes, num)
-}
-
-fn aleph_data_from_blocks(blocks: Vec<Block>) -> AlephData<Block> {
-    let headers = blocks.into_iter().map(|b| b.header().clone()).collect();
-    aleph_data_from_headers(headers)
-}
-
-fn aleph_data_from_headers(headers: Vec<Header>) -> AlephData<Block> {
-    if headers.is_empty() {
-        AlephData::Empty
-    } else {
-        AlephData::HeadProposal(unvalidated_proposal_from_headers(headers))
-    }
-}
 
 #[derive(Clone)]
 struct TestBlockRequester<B: BlockT> {

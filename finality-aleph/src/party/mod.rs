@@ -161,6 +161,7 @@ where
             self.select_chain.clone(),
             self.client.clone(),
             session_boundaries.clone(),
+            Default::default(),
             self.metrics.clone(),
         );
 

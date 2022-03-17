@@ -147,12 +147,13 @@ mod tests {
                 AlephProposal,
                 PendingProposalStatus::*,
                 ProposalStatus::{self, *},
-                UnvalidatedAlephProposal,
             },
             status_provider::get_proposal_status,
             ChainInfoCacheConfig, MAX_DATA_BRANCH_LEN,
         },
-        testing::client_chain_builder::ClientChainBuilder,
+        testing::{
+            client_chain_builder::ClientChainBuilder, mocks::unvalidated_proposal_from_headers,
+        },
         SessionBoundaries, SessionId, SessionPeriod,
     };
 
@@ -167,9 +168,7 @@ mod tests {
     const DUMMY_SESSION_LEN: u32 = 1_000_000;
 
     fn proposal_from_headers(headers: Vec<Header>) -> AlephProposal<Block> {
-        let num = headers.last().unwrap().number;
-        let hashes = headers.into_iter().map(|header| header.hash()).collect();
-        let unvalidated = UnvalidatedAlephProposal::new(hashes, num);
+        let unvalidated = unvalidated_proposal_from_headers(headers);
         let session_boundaries =
             SessionBoundaries::new(SessionId(0), SessionPeriod(DUMMY_SESSION_LEN));
         unvalidated.validate_bounds(&session_boundaries).unwrap()
