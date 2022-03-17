@@ -163,7 +163,15 @@ where
         // of `data_to_propose` unaffected.
 
         let client_info = self.client.info();
-        let finalized_block = (client_info.finalized_hash, client_info.finalized_number).into();
+        let finalized_block: BlockHashNum<B> =
+            (client_info.finalized_hash, client_info.finalized_number).into();
+
+        if finalized_block.num >= self.session_boundaries.last_block() {
+            // This session is already finished, but this instance of ChainTracker has not been terminated yet.
+            // We go with the default -- empty proposal, this does not have any significance.
+            *self.data_to_propose.lock().await = AlephData::Empty;
+            return;
+        }
 
         if let Some(prev) = &self.prev_chain_info {
             if prev.best_block_in_session == *best_block_in_session
@@ -219,8 +227,7 @@ where
             return None;
         }
         let last_block = self.session_boundaries.last_block();
-        let new_best_block: BlockHashNum<B> =
-            (new_best_header.hash(), *new_best_header.number()).into();
+        let new_best_block = (new_best_header.hash(), *new_best_header.number()).into();
         if new_best_header.number() <= &last_block {
             Some(new_best_block)
         } else {
@@ -424,6 +431,31 @@ mod tests {
                     aleph_data_from_blocks(blocks[height..(MAX_DATA_BRANCH_LEN + height)].to_vec());
                 assert_eq!(data, expected_data);
             }
+            chain_builder.finalize_block(&blocks.last().unwrap().header.hash());
+            sleep_enough().await;
+            assert_eq!(
+                data_provider.get_data().await,
+                AlephData::Empty,
+                "Expected empty proposal"
+            );
+        })
+        .await;
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn returns_empty_proposal_above_session_end() {
+        run_test(|mut chain_builder, mut data_provider| async move {
+            let blocks = chain_builder
+                .initialize_single_branch_and_import(
+                    (SESSION_LEN as usize) + 3 * MAX_DATA_BRANCH_LEN,
+                )
+                .await;
+            sleep_enough().await;
+            let data = data_provider.get_data().await;
+            let expected_data = aleph_data_from_blocks(blocks[0..MAX_DATA_BRANCH_LEN].to_vec());
+            assert_eq!(data, expected_data);
+
+            // Finalize a block beyond the last block in the session.
             chain_builder.finalize_block(&blocks.last().unwrap().header.hash());
             sleep_enough().await;
             assert_eq!(
