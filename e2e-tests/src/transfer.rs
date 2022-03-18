@@ -1,25 +1,24 @@
-use crate::{
-    TransferTransaction,
-    accounts::accounts_from_seeds,
-    config::Config,
-};
-use codec::Compact;
+use crate::{accounts::accounts_from_seeds, config::Config, TransferTransaction};
 use aleph_client::{create_connection, send_xt, Connection, KeyPair};
+use codec::Compact;
 use log::info;
 use primitives::Balance;
 use sp_core::Pair;
 use sp_runtime::AccountId32;
-use substrate_api_client::{compose_call, compose_extrinsic, GenericAddress, AccountId, XtStatus};
+use substrate_api_client::{compose_call, compose_extrinsic, AccountId, GenericAddress, XtStatus};
 
 pub fn setup_for_transfer(config: &Config) -> (Connection, AccountId32, AccountId32) {
     let Config {
-        ref node, seeds, ..
+        ref node,
+        seeds,
+        protocol,
+        ..
     } = config;
 
     let accounts = accounts_from_seeds(seeds);
     let (from, to) = (accounts[0].clone(), accounts[1].clone());
 
-    let connection = create_connection(node).set_signer(from.clone());
+    let connection = create_connection(node, *protocol).set_signer(from.clone());
     let from = AccountId::from(from.public());
     let to = AccountId::from(to.public());
     (connection, from, to)

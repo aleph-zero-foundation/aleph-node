@@ -36,23 +36,48 @@ pub type Header = GenericHeader<BlockNumber, BlakeTwo256>;
 pub type KeyPair = sr25519::Pair;
 pub type Connection = Api<KeyPair, WsRpcClient>;
 
-pub fn create_connection(address: &str) -> Connection {
-    create_custom_connection(address).expect("connection should be created")
+#[derive(Copy, Clone, Debug)]
+pub enum Protocol {
+    WS,
+    WSS,
+}
+
+impl Default for Protocol {
+    fn default() -> Self {
+        Protocol::WS
+    }
+}
+
+pub fn from(use_ssl: bool) -> Protocol {
+    match use_ssl {
+        true => Protocol::WSS,
+        false => Protocol::WS,
+    }
+}
+
+pub fn create_connection(address: &str, protocol: Protocol) -> Connection {
+    create_custom_connection(address, protocol).expect("connection should be created")
 }
 
 pub fn create_custom_connection<Client: FromStr + RpcClient>(
     address: &str,
+    protocol: Protocol,
 ) -> Result<Api<sr25519::Pair, Client>, <Client as FromStr>::Err> {
-    let client = Client::from_str(&format!("ws://{}", address))?;
-    match Api::<sr25519::Pair, _>::new(client) {
-        Ok(api) => Ok(api),
-        Err(why) => {
-            warn!(
-                "[+] Can't create_connection because {:?}, will try again in 1s",
-                why
-            );
-            sleep(Duration::from_millis(1000));
-            create_custom_connection(address)
+    let protocol = match protocol {
+        Protocol::WS => "ws",
+        Protocol::WSS => "wss",
+    };
+    loop {
+        let client = Client::from_str(&format!("{}://{}", protocol, address))?;
+        match Api::<sr25519::Pair, _>::new(client) {
+            Ok(api) => return Ok(api),
+            Err(why) => {
+                warn!(
+                    "[+] Can't create_connection because {:?}, will try again in 1s",
+                    why
+                );
+                sleep(Duration::from_millis(1000));
+            }
         }
     }
 }

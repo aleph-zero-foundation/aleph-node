@@ -2,7 +2,9 @@ use codec::Decode;
 use log::info;
 use sp_core::Pair;
 use substrate_api_client::{AccountId, XtStatus};
+
 use aleph_client::{change_members, create_connection, wait_for_event, Header};
+
 use crate::{
     accounts::{accounts_from_seeds, get_sudo},
     config::Config,
@@ -11,13 +13,16 @@ use crate::{
 
 pub fn change_validators(config: &Config) -> anyhow::Result<()> {
     let Config {
-        ref node, seeds, ..
+        ref node,
+        seeds,
+        protocol,
+        ..
     } = config;
 
     let mut accounts = accounts_from_seeds(seeds);
     let sudo = get_sudo(config);
 
-    let connection = create_connection(node).set_signer(sudo);
+    let connection = create_connection(node, *protocol).set_signer(sudo);
 
     let members_before: Vec<AccountId> = connection
         .get_storage_value("Elections", "Members", None)?

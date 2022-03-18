@@ -1,11 +1,10 @@
 mod config;
 mod ws_rpc_client;
 
+use aleph_client::{create_custom_connection, Protocol};
 use clap::Parser;
 use codec::{Compact, Decode, Encode};
-use aleph_client::create_custom_connection;
 use config::Config;
-use ws_rpc_client::WsRpcClient;
 use hdrhistogram::Histogram as HdrHistogram;
 use log::{debug, info};
 use rayon::prelude::*;
@@ -24,6 +23,7 @@ use substrate_api_client::{
     compose_call, compose_extrinsic_offline, AccountId, Api, GenericAddress, UncheckedExtrinsicV4,
     XtStatus,
 };
+use ws_rpc_client::WsRpcClient;
 
 type TransferTransaction =
     UncheckedExtrinsicV4<([u8; 2], MultiAddress<AccountId, ()>, codec::Compact<u128>)>;
@@ -76,7 +76,7 @@ fn main() -> Result<(), anyhow::Error> {
         "creating connection-pool: {}ms",
         time_stats.elapsed().as_millis()
     );
-    let pool = create_connection_pool(&config.nodes, threads);
+    let pool = create_connection_pool(&config.nodes, threads, config.protocol);
     info!(
         "connection-pool created: {}ms",
         time_stats.elapsed().as_millis()
@@ -498,6 +498,7 @@ fn send_tx<Call>(
 fn create_connection_pool(
     nodes: &[String],
     threads: usize,
+    protocol: Protocol,
 ) -> Vec<Vec<Api<sr25519::Pair, WsRpcClient>>> {
     repeat(nodes)
         .cycle()
@@ -505,7 +506,8 @@ fn create_connection_pool(
         .map(|urls| {
             urls.iter()
                 .map(|url| {
-                    create_custom_connection(url).expect("it should return initialized connection")
+                    create_custom_connection(url, protocol)
+                        .expect("it should return initialized connection")
                 })
                 .collect()
         })
@@ -550,6 +552,7 @@ mod tests {
         let url = "127.0.0.1:9944".to_string();
         let mut config = Config {
             nodes: vec![url.clone()],
+            protocol: Default::default(),
             transactions: 313,
             phrase: None,
             seed: None,
@@ -564,7 +567,7 @@ mod tests {
             interval_secs: None,
             transactions_in_interval: None,
         };
-        let conn = create_custom_connection(&url).unwrap();
+        let conn = create_custom_connection(&url, config.protocol).unwrap();
 
         let txs_gen = prepare_txs(&config, &conn);
 

@@ -7,7 +7,10 @@ use crate::{
     },
     transfer::batch_endow_account_balances,
 };
-use aleph_client::{staking_bond, wait_for_session, change_members, get_current_session, set_keys, rotate_keys, create_connection, KeyPair};
+use aleph_client::{
+    change_members, create_connection, get_current_session, rotate_keys, set_keys, staking_bond,
+    wait_for_session, KeyPair,
+};
 use log::info;
 use pallet_staking::StakingLedger;
 use primitives::{
@@ -49,30 +52,37 @@ pub fn staking_era_payouts(config: &Config) -> anyhow::Result<()> {
 
     let node = &config.node;
     let sender = validator_accounts[0].clone();
-    let connection = create_connection(node).set_signer(sender);
+    let connection = create_connection(node, config.protocol).set_signer(sender);
 
     batch_endow_account_balances(&connection, &stashes_accounts, MIN_VALIDATOR_BOND + TOKEN);
 
     validator_accounts.par_iter().for_each(|account| {
-        let connection = create_connection(node).set_signer(account.clone());
+        let connection = create_connection(node, config.protocol).set_signer(account.clone());
         staking_bond(&connection, MIN_VALIDATOR_BOND, &account, XtStatus::InBlock);
     });
 
-    validator_accounts
-        .par_iter()
-        .for_each(|account| validate(node, account, XtStatus::InBlock));
+    validator_accounts.par_iter().for_each(|account| {
+        let connection = create_connection(node, config.protocol).set_signer(account.clone());
+        validate(&connection, XtStatus::InBlock)
+    });
 
-    stashes_accounts
-        .par_iter()
-        .for_each(|nominator| {
-            let connection = create_connection(node).set_signer(nominator.clone());
-            staking_bond(&connection, MIN_NOMINATOR_BOND, &nominator, XtStatus::InBlock);
-        });
+    stashes_accounts.par_iter().for_each(|nominator| {
+        let connection = create_connection(node, config.protocol).set_signer(nominator.clone());
+        staking_bond(
+            &connection,
+            MIN_NOMINATOR_BOND,
+            &nominator,
+            XtStatus::InBlock,
+        );
+    });
 
     stashes_accounts
         .par_iter()
         .zip(validator_accounts.par_iter())
-        .for_each(|(nominator, nominee)| nominate(node, nominator, nominee));
+        .for_each(|(nominator, nominee)| {
+            let connection = create_connection(node, config.protocol).set_signer(nominator.clone());
+            nominate(&connection, nominee)
+        });
 
     // All the above calls influace the next era, so we need to wait that it passes.
     let current_era = wait_for_full_era_completion(&connection)?;
@@ -83,7 +93,9 @@ pub fn staking_era_payouts(config: &Config) -> anyhow::Result<()> {
     );
 
     validator_accounts.into_par_iter().for_each(|key_pair| {
-        check_non_zero_payouts_for_era(node, &key_pair, &connection, current_era)
+        let stash_connection =
+            create_connection(node, config.protocol).set_signer(key_pair.clone());
+        check_non_zero_payouts_for_era(&stash_connection, &key_pair, &connection, current_era)
     });
 
     Ok(())
@@ -109,7 +121,7 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
     let sender = validator_accounts.remove(0);
     // signer of this connection is sudo, the same node which in this test is used as the new one
     // it's essential since keys from rotate_keys() needs to be run against that node
-    let connection = create_connection(node).set_signer(sender);
+    let connection = create_connection(node, config.protocol).set_signer(sender);
 
     change_members(
         &connection,
@@ -125,8 +137,13 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
     // to cover txs fees
     batch_endow_account_balances(&connection, &[controller.clone()], TOKEN);
 
-    let stash_connection = create_connection(node).set_signer(stash.clone());
-    staking_bond(&stash_connection, MIN_VALIDATOR_BOND, &controller, XtStatus::InBlock);
+    let stash_connection = create_connection(node, config.protocol).set_signer(stash.clone());
+    staking_bond(
+        &stash_connection,
+        MIN_VALIDATOR_BOND,
+        &controller,
+        XtStatus::InBlock,
+    );
     let bonded_controller_account = bonded(&connection, &stash);
     assert!(
         bonded_controller_account.is_some(),
@@ -141,11 +158,12 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
     );
 
     let validator_keys = rotate_keys(&connection).unwrap().unwrap();
-    let controller_connection = create_connection(node).set_signer(controller.clone());
+    let controller_connection =
+        create_connection(node, config.protocol).set_signer(controller.clone());
     set_keys(&controller_connection, validator_keys, XtStatus::InBlock);
 
     // to be elected in next era instead of expected validator_account_id
-    validate(node, &controller, XtStatus::InBlock);
+    validate(&controller_connection, XtStatus::InBlock);
 
     let ledger = ledger(&connection, &controller);
     assert!(
@@ -182,7 +200,7 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
         current_era - 1
     );
 
-    check_non_zero_payouts_for_era(node, &stash, &connection, current_era);
+    check_non_zero_payouts_for_era(&stash_connection, &stash, &connection, current_era);
 
     Ok(())
 }
