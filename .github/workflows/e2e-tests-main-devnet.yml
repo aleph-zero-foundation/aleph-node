@@ -11,6 +11,7 @@ on:
       - '*.md'
     branches:
       - main
+      - release-5.1_build
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
