@@ -1,21 +1,18 @@
 use crate::chain_spec::{
-    self, get_account_id_from_seed, AuthorityKeys, ChainParams, SerializablePeerId,
+    self, get_account_id_from_seed, AuthorityKeys, ChainParams, ChainSpec, SerializablePeerId,
+    DEFAULT_CHAIN_ID,
 };
-use crate::chain_spec::{ChainSpec, DEFAULT_CHAIN_ID};
 use aleph_primitives::AuthorityId as AlephId;
 use aleph_runtime::AccountId;
 use libp2p::identity::{ed25519 as libp2p_ed25519, PublicKey};
 use sc_cli::{Error, KeystoreParams};
 use sc_keystore::LocalKeystore;
 use sc_service::config::{BasePath, KeystoreConfig};
-use sp_application_crypto::key_types;
-use sp_application_crypto::Ss58Codec;
+use sp_application_crypto::{key_types, Ss58Codec};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::sr25519;
 use sp_keystore::SyncCryptoStore;
-use std::fs;
-use std::io::Write;
-use std::path::PathBuf;
+use std::{fs, io::Write, path::PathBuf};
 use structopt::StructOpt;
 
 /// returns Aura key, if absent a new key is generated

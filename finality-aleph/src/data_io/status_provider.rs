@@ -3,8 +3,10 @@ use crate::data_io::{
     proposal::{AlephProposal, ProposalStatus},
 };
 use log::debug;
-use sp_runtime::traits::{Block as BlockT, NumberFor};
-use sp_runtime::SaturatedConversion;
+use sp_runtime::{
+    traits::{Block as BlockT, NumberFor},
+    SaturatedConversion,
+};
 
 pub fn get_proposal_status<B, CIP>(
     chain_info_provider: &mut CIP,
@@ -15,8 +17,7 @@ where
     B: BlockT,
     CIP: ChainInfoProvider<B>,
 {
-    use crate::data_io::proposal::PendingProposalStatus::*;
-    use crate::data_io::proposal::ProposalStatus::*;
+    use crate::data_io::proposal::{PendingProposalStatus::*, ProposalStatus::*};
 
     if chain_info_provider.get_highest_finalized().num >= proposal.number_top_block() {
         return Ignore;

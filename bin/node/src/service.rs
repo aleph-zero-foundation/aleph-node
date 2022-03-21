@@ -1,7 +1,6 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
-use crate::aleph_cli::AlephCli;
-use crate::executor::AlephExecutor;
+use crate::{aleph_cli::AlephCli, executor::AlephExecutor};
 use aleph_primitives::AlephSessionApi;
 use aleph_runtime::{self, opaque::Block, RuntimeApi, MAX_BLOCK_SIZE};
 use finality_aleph::{

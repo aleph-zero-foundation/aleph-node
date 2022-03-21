@@ -1,7 +1,9 @@
-use std::fmt::Debug;
-use std::hash::Hash;
-use std::time::Duration;
-use std::{collections::HashMap, time::Instant};
+use std::{
+    collections::HashMap,
+    fmt::Debug,
+    hash::Hash,
+    time::{Duration, Instant},
+};
 
 use log::{trace, warn};
 use lru::LruCache;

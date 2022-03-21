@@ -20,10 +20,9 @@ use log::{debug, error, info, trace, warn};
 use lru::LruCache;
 use sc_client_api::{BlockchainEvents, HeaderBackend};
 use sp_runtime::traits::{Block as BlockT, Header as HeaderT, NumberFor, One};
-use std::collections::hash_map::Entry::Occupied;
-use std::default::Default;
 use std::{
-    collections::{BTreeMap, HashMap, HashSet},
+    collections::{hash_map::Entry::Occupied, BTreeMap, HashMap, HashSet},
+    default::Default,
     hash::{Hash, Hasher},
     sync::Arc,
     time::{self, Duration},

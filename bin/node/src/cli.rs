@@ -1,8 +1,7 @@
-use crate::commands::BootstrapNodeCmd;
 use crate::{
     aleph_cli::AlephCli,
     chain_spec,
-    commands::{BootstrapChainCmd, ConvertChainspecToRawCmd},
+    commands::{BootstrapChainCmd, BootstrapNodeCmd, ConvertChainspecToRawCmd},
 };
 use sc_cli::{ChainSpec, RunCmd, RuntimeVersion, SubstrateCli};
 use structopt::StructOpt;

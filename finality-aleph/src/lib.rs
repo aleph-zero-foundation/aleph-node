@@ -8,7 +8,10 @@ use crate::{
 };
 use aleph_bft::{NodeIndex, TaskHandle};
 use codec::{Decode, Encode};
-use futures::{channel::mpsc, channel::oneshot, Future, TryFutureExt};
+use futures::{
+    channel::{mpsc, oneshot},
+    Future, TryFutureExt,
+};
 use sc_client_api::{backend::Backend, BlockchainEvents, Finalizer, LockImportRun, TransactionFor};
 use sc_consensus::BlockImport;
 use sc_network::{ExHashT, NetworkService};

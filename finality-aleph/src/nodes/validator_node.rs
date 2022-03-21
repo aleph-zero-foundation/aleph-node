@@ -5,8 +5,7 @@ use crate::{
         SessionManager, IO as NetworkIO,
     },
     nodes::{setup_justification_handler, JustificationParams},
-    party::ConsensusParty,
-    party::ConsensusPartyParams,
+    party::{ConsensusParty, ConsensusPartyParams},
     session_map::{AuthorityProviderImpl, FinalityNotificatorImpl, SessionMapUpdater},
     AlephConfig,
 };

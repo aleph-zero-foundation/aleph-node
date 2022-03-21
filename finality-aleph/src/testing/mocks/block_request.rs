@@ -1,8 +1,9 @@
 use sp_runtime::traits::Block;
 
-use crate::network::RequestBlocks;
-use crate::testing::mocks::single_action_mock::SingleActionMock;
-use crate::testing::mocks::{TBlock, THash, TNumber};
+use crate::{
+    network::RequestBlocks,
+    testing::mocks::{single_action_mock::SingleActionMock, TBlock, THash, TNumber},
+};
 
 type CallArgs = (THash, TNumber);
 

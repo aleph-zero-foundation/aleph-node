@@ -1,30 +1,31 @@
-use std::cell::RefCell;
-use std::collections::VecDeque;
-use std::sync::Arc;
-use std::time::Duration;
+use std::{cell::RefCell, collections::VecDeque, sync::Arc, time::Duration};
 
 use aleph_bft::{NodeCount, PartialMultisignature, SignatureSet};
 use codec::Encode;
-use futures::channel::mpsc::{unbounded, UnboundedSender};
-use futures::Future;
+use futures::{
+    channel::mpsc::{unbounded, UnboundedSender},
+    Future,
+};
 use sp_api::BlockId;
 use sp_runtime::traits::Block;
-use tokio::task::JoinHandle;
-use tokio::time::timeout;
+use tokio::{task::JoinHandle, time::timeout};
 
 use aleph_primitives::AuthoritySignature;
 use AcceptancePolicy::*;
 
-use crate::crypto::{Signature, SignatureV1};
-use crate::justification::{
-    backwards_compatible_decode, AlephJustification, AlephJustificationV1, JustificationDecoding,
-    JustificationHandler, JustificationHandlerConfig,
+use crate::{
+    crypto::{Signature, SignatureV1},
+    justification::{
+        backwards_compatible_decode, AlephJustification, AlephJustificationV1,
+        JustificationDecoding, JustificationHandler, JustificationHandlerConfig,
+    },
+    testing::mocks::{
+        create_block, AcceptancePolicy, Client, JustificationRequestSchedulerImpl,
+        MockedBlockFinalizer, MockedBlockRequester, SessionInfoProviderImpl, TBlock,
+        VerifierWrapper,
+    },
+    JustificationNotification, SessionPeriod,
 };
-use crate::testing::mocks::{
-    create_block, AcceptancePolicy, Client, JustificationRequestSchedulerImpl,
-    MockedBlockFinalizer, MockedBlockRequester, SessionInfoProviderImpl, TBlock, VerifierWrapper,
-};
-use crate::{JustificationNotification, SessionPeriod};
 
 #[test]
 fn correctly_decodes_v1() {

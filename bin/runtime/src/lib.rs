@@ -25,11 +25,6 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
-use frame_support::sp_runtime::Perquintill;
-use frame_support::traits::EqualPrivilegeOnly;
-use frame_support::traits::SortedMembers;
-use frame_support::weights::constants::WEIGHT_PER_MILLIS;
-use frame_support::PalletId;
 pub use frame_support::{
     construct_runtime, parameter_types,
     traits::{
@@ -41,6 +36,12 @@ pub use frame_support::{
         IdentityFee, Weight,
     },
     StorageValue,
+};
+use frame_support::{
+    sp_runtime::Perquintill,
+    traits::{EqualPrivilegeOnly, SortedMembers},
+    weights::constants::WEIGHT_PER_MILLIS,
+    PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
 pub use primitives::Balance;

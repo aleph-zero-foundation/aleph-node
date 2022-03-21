@@ -5,8 +5,7 @@ use sc_client_api::HeaderBackend;
 use sp_api::BlockId;
 use sp_consensus::BlockOrigin;
 use sp_core::hash::H256;
-use sp_runtime::traits::Block as BlockT;
-use sp_runtime::Digest;
+use sp_runtime::{traits::Block as BlockT, Digest};
 use std::{default::Default, sync::Arc};
 use substrate_test_runtime_client::{
     runtime::{Block, Header},

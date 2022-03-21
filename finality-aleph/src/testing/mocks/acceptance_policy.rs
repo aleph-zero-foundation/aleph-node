@@ -1,5 +1,4 @@
-use std::cell::RefCell;
-use std::collections::VecDeque;
+use std::{cell::RefCell, collections::VecDeque};
 
 #[derive(Clone, Debug)]
 pub(crate) enum AcceptancePolicy {

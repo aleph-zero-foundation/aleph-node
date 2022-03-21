@@ -8,8 +8,11 @@ use futures::channel::oneshot;
 use log::{debug, warn};
 use sc_client_api::HeaderBackend;
 use sp_consensus::SelectChain;
-use sp_runtime::traits::{Block as BlockT, Header as HeaderT, NumberFor, One, Zero};
-use sp_runtime::{generic::BlockId, SaturatedConversion};
+use sp_runtime::{
+    generic::BlockId,
+    traits::{Block as BlockT, Header as HeaderT, NumberFor, One, Zero},
+    SaturatedConversion,
+};
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 

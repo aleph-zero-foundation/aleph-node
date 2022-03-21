@@ -1,6 +1,5 @@
 use core::result::Result;
-use std::marker::PhantomData;
-use std::sync::Arc;
+use std::{marker::PhantomData, sync::Arc};
 
 use log::{debug, warn};
 use sc_client_api::{Backend, Finalizer, HeaderBackend, LockImportRun};

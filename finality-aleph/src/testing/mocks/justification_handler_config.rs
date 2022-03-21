@@ -1,11 +1,12 @@
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
-
-use crate::justification::{
-    JustificationHandlerConfig, JustificationRequestScheduler, SchedulerActions,
+use std::{
+    sync::{Arc, Mutex},
+    time::Duration,
 };
-use crate::testing::mocks::single_action_mock::SingleActionMock;
-use crate::testing::mocks::{AcceptancePolicy, TBlock};
+
+use crate::{
+    justification::{JustificationHandlerConfig, JustificationRequestScheduler, SchedulerActions},
+    testing::mocks::{single_action_mock::SingleActionMock, AcceptancePolicy, TBlock},
+};
 
 #[derive(Clone)]
 pub(crate) struct JustificationRequestSchedulerImpl {

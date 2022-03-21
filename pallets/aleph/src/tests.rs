@@ -3,9 +3,11 @@
 use std::collections::HashMap;
 
 use crate::{migrations, mock::*, pallet, Config};
-use frame_support::generate_storage_alias;
-use frame_support::storage::migration::{get_storage_value, put_storage_value};
-use frame_support::traits::{GetStorageVersion, OneSessionHandler, StorageVersion};
+use frame_support::{
+    generate_storage_alias,
+    storage::migration::{get_storage_value, put_storage_value},
+    traits::{GetStorageVersion, OneSessionHandler, StorageVersion},
+};
 
 generate_storage_alias!(
     Aleph, SessionForValidatorsChange => Value<u32>

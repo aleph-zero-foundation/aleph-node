@@ -1,22 +1,21 @@
-use aleph_primitives::staking::{MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND};
-use aleph_primitives::{AuthorityId as AlephId, ADDRESSES_ENCODING, TOKEN_DECIMALS};
+use aleph_primitives::{
+    staking::{MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND},
+    AuthorityId as AlephId, ADDRESSES_ENCODING, TOKEN_DECIMALS,
+};
 use aleph_runtime::{
     AccountId, AuraConfig, BalancesConfig, ElectionsConfig, GenesisConfig, Perbill, SessionConfig,
     SessionKeys, Signature, StakingConfig, SudoConfig, SystemConfig, VestingConfig, WASM_BINARY,
 };
 use libp2p::PeerId;
 use pallet_staking::{Forcing, StakerStatus};
-use sc_service::config::BasePath;
-use sc_service::ChainType;
-use serde::de::Error;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use sc_service::{config::BasePath, ChainType};
+use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Number, Value};
 use sp_application_crypto::Ss58Codec;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
-use std::collections::HashSet;
-use std::{path::PathBuf, str::FromStr};
+use std::{collections::HashSet, path::PathBuf, str::FromStr};
 use structopt::StructOpt;
 
 pub const CHAINTYPE_DEV: &str = "dev";

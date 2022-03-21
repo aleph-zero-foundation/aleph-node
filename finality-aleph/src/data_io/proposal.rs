@@ -1,7 +1,9 @@
 use crate::{data_io::MAX_DATA_BRANCH_LEN, BlockHashNum, SessionBoundaries};
 use codec::{Decode, Encode};
-use sp_runtime::traits::{Block as BlockT, NumberFor};
-use sp_runtime::SaturatedConversion;
+use sp_runtime::{
+    traits::{Block as BlockT, NumberFor},
+    SaturatedConversion,
+};
 use std::{
     hash::{Hash, Hasher},
     ops::Index,

@@ -1,7 +1,6 @@
 use crate::Config;
-use frame_support::log;
 use frame_support::{
-    generate_storage_alias,
+    generate_storage_alias, log,
     traits::{Get, PalletInfoAccess, StorageVersion},
     weights::Weight,
 };

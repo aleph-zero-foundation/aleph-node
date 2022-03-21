@@ -1,8 +1,7 @@
 use crate::Config;
-use frame_support::traits::PalletInfoAccess;
-use frame_support::{generate_storage_alias, log};
 use frame_support::{
-    traits::{Get, StorageVersion},
+    generate_storage_alias, log,
+    traits::{Get, PalletInfoAccess, StorageVersion},
     weights::Weight,
 };
 use sp_std::vec::Vec;

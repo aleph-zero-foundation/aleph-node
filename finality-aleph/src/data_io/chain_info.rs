@@ -1,9 +1,10 @@
 use crate::{data_io::ChainInfoCacheConfig, BlockHashNum};
 use lru::LruCache;
 use sc_client_api::HeaderBackend;
-use sp_runtime::generic::BlockId;
-use sp_runtime::traits::One;
-use sp_runtime::traits::{Block as BlockT, Header as HeaderT, NumberFor};
+use sp_runtime::{
+    generic::BlockId,
+    traits::{Block as BlockT, Header as HeaderT, NumberFor, One},
+};
 use std::sync::Arc;
 
 pub trait ChainInfoProvider<B: BlockT> {
