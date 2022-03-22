@@ -5,7 +5,7 @@ use sp_runtime::traits::Block;
 mod aggregator;
 mod multicast;
 
-pub use aggregator::BlockSignatureAggregator;
+pub use aggregator::{BlockSignatureAggregator, IO};
 pub use multicast::SignableHash;
 
 pub type RmcNetworkData<B> =

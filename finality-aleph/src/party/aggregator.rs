@@ -1,5 +1,5 @@
 use crate::{
-    aggregation::{BlockSignatureAggregator, RmcNetworkData, SignableHash},
+    aggregation::{BlockSignatureAggregator, RmcNetworkData, SignableHash, IO as AggregatorIO},
     crypto::{KeyBox, Signature},
     justification::{AlephJustification, JustificationNotification},
     metrics::Checkpoint,
@@ -26,17 +26,11 @@ pub struct IO<B: Block> {
     pub justifications_for_chain: mpsc::UnboundedSender<JustificationNotification<B>>,
 }
 
-type Rmc<'a, B> = ReliableMulticast<'a, SignableHash<<B as Block>::Hash>, KeyBox>;
+type SignableBlockHash<B> = SignableHash<<B as Block>::Hash>;
+type Rmc<'a, B> = ReliableMulticast<'a, SignableBlockHash<B>, KeyBox>;
 
 async fn process_new_block_data<'a, B, N>(
-    aggregator: &mut BlockSignatureAggregator<
-        'a,
-        B::Hash,
-        RmcNetworkData<B>,
-        N,
-        KeyBox,
-        Rmc<'a, B>,
-    >,
+    aggregator: &mut AggregatorIO<'a, B::Hash, RmcNetworkData<B>, N, KeyBox, Rmc<'a, B>>,
     block: BlockHashNum<B>,
     session_boundaries: &SessionBoundaries<B>,
     metrics: &Option<Metrics<<B::Header as Header>::Hash>>,
@@ -80,7 +74,7 @@ fn process_hash<B, C>(
 }
 
 async fn run_aggregator<'a, B, C, N>(
-    mut aggregator: BlockSignatureAggregator<'a, B::Hash, RmcNetworkData<B>, N, KeyBox, Rmc<'a, B>>,
+    mut aggregator: AggregatorIO<'a, B::Hash, RmcNetworkData<B>, N, KeyBox, Rmc<'a, B>>,
     io: IO<B>,
     client: Arc<C>,
     session_boundaries: &SessionBoundaries<B>,
@@ -164,15 +158,24 @@ where
                 multikeychain.node_count(),
                 scheduler,
             );
-            let aggregator = BlockSignatureAggregator::new(
-                rmc_network,
-                rmc,
+            let aggregator = BlockSignatureAggregator::new(metrics.clone());
+            let aggregator_io = AggregatorIO::new(
                 messages_for_rmc,
                 messages_from_rmc,
-                metrics.clone(),
+                rmc_network,
+                rmc,
+                aggregator,
             );
             debug!(target: "aleph-party", "Running the aggregator task for {:?}", session_id);
-            run_aggregator(aggregator, io, client, &session_boundaries, metrics, exit).await;
+            run_aggregator(
+                aggregator_io,
+                io,
+                client,
+                &session_boundaries,
+                metrics,
+                exit,
+            )
+            .await;
             debug!(target: "aleph-party", "Aggregator task stopped for {:?}", session_id);
         }
     };
