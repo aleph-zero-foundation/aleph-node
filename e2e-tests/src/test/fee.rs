@@ -2,9 +2,8 @@ use crate::{
     config::Config,
     fee::{get_next_fee_multiplier, get_tx_fee_info, FeeInfo},
     transfer::setup_for_transfer,
-    TransferTransaction,
 };
-use aleph_client::Connection;
+use aleph_client::{Connection, TransferTransaction};
 use codec::Encode;
 use sp_core::Pair;
 use sp_runtime::{traits::One, FixedPointNumber, FixedU128};

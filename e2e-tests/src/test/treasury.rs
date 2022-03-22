@@ -2,9 +2,9 @@ use crate::{
     accounts::{accounts_from_seeds, get_free_balance, get_sudo},
     config::Config,
     fee::get_tx_fee_info,
-    transfer::{setup_for_transfer, transfer},
+    transfer::setup_for_transfer,
 };
-use aleph_client::{create_connection, wait_for_event, Connection};
+use aleph_client::{balances_transfer, create_connection, wait_for_event, Connection};
 use codec::{Compact, Decode};
 use frame_support::PalletId;
 use log::info;
@@ -45,7 +45,7 @@ pub fn channeling_fee(config: &Config) -> anyhow::Result<()> {
         treasury_balance_before, issuance_before
     );
 
-    let tx = transfer(&to, 1000u128, &connection, XtStatus::Finalized);
+    let tx = balances_transfer(&connection, &to, 1000u128, XtStatus::Finalized);
     let treasury_balance_after = get_free_balance(&treasury, &connection);
     let issuance_after = get_total_issuance(&connection);
     check_treasury_issuance(

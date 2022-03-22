@@ -289,7 +289,8 @@ fn generate_genesis_config(
             .collect(),
     );
 
-    const ENDOWMENT: u128 = 1_000_000_000u128 * 10u128.pow(TOKEN_DECIMALS);
+    // to have total issuance 300M (for devnet/tests/local runs only)
+    const ENDOWMENT: u128 = 60_000_000u128 * 10u128.pow(TOKEN_DECIMALS);
 
     GenesisConfig {
         system: SystemConfig {

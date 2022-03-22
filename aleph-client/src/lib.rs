@@ -7,14 +7,19 @@ use substrate_api_client::{rpc::ws_client::WsRpcClient, Api, RpcClient, XtStatus
 mod rpc;
 mod session;
 mod staking;
+mod transfer;
 mod waiting;
 
-pub use rpc::rotate_keys;
+pub use rpc::{rotate_keys, rotate_keys_raw_result};
 pub use session::{
     change_members, get_current as get_current_session, set_keys, wait_for as wait_for_session,
     Keys as SessionKeys,
 };
-pub use staking::bond as staking_bond;
+pub use staking::{
+    bond as staking_bond, force_new_era as staking_force_new_era,
+    set_staking_limit as staking_set_staking_limits, validate as staking_validate,
+};
+pub use transfer::{transfer as balances_transfer, TransferTransaction};
 pub use waiting::wait_for_event;
 
 pub trait FromStr: Sized {

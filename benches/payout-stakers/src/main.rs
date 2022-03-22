@@ -1,22 +1,22 @@
-use aleph_client::{create_connection, staking_bond, Protocol};
+use aleph_client::{create_connection, staking_bond, staking_validate, Protocol};
 use e2e::{
     accounts::derive_user_account,
     staking::{
-        batch_bond, batch_nominate, check_non_zero_payouts_for_era, validate,
-        wait_for_era_completion, wait_for_full_era_completion, RewardDestination,
+        batch_bond, batch_nominate, check_non_zero_payouts_for_era, wait_for_era_completion,
+        wait_for_full_era_completion,
     },
     transfer::batch_endow_account_balances,
 };
 use log::info;
-use primitives::{
-    staking::{MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND},
-    TOKEN,
-};
+use primitives::staking::{MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND};
 use rayon::prelude::*;
-use sp_core::sr25519::Pair;
+use sp_core::{sr25519::Pair as KeyPair, Pair};
 use sp_keyring::AccountKeyring;
 use std::iter;
-use substrate_api_client::{rpc::WsRpcClient, Api, XtStatus};
+use substrate_api_client::{
+    extrinsic::staking::RewardDestination,
+    {rpc::WsRpcClient, AccountId, Api, XtStatus},
+};
 
 // testcase parameters
 const NOMINATOR_COUNT: u64 = 1024;
@@ -48,8 +48,8 @@ fn main() -> Result<(), anyhow::Error> {
 fn wait_for_10_eras(
     address: &str,
     protocol: Protocol,
-    connection: &Api<Pair, WsRpcClient>,
-    nominee: &Pair,
+    connection: &Api<KeyPair, WsRpcClient>,
+    nominee: &KeyPair,
 ) -> Result<(), anyhow::Error> {
     let mut current_era = wait_for_full_era_completion(&connection)?;
     for _ in 0..ERAS_TO_WAIT {
@@ -66,10 +66,10 @@ fn wait_for_10_eras(
 }
 
 fn nominate_validator_0<'a>(
-    connection: &Api<Pair, WsRpcClient>,
-    accounts: Vec<Pair>,
-    validators: &'a Vec<Pair>,
-) -> &'a Pair {
+    connection: &Api<KeyPair, WsRpcClient>,
+    accounts: Vec<KeyPair>,
+    validators: &'a Vec<KeyPair>,
+) -> &'a KeyPair {
     // 3. Let accounts nominate validator[0]
     let nominee = &validators[0];
     let stash_validators_pairs = accounts.iter().zip(accounts.iter()).collect::<Vec<_>>();
@@ -93,25 +93,31 @@ fn nominate_validator_0<'a>(
     nominee
 }
 
-fn set_validators(address: &str, protocol: Protocol) -> Vec<Pair> {
+fn set_validators(address: &str, protocol: Protocol) -> Vec<KeyPair> {
     let validators = (0..VALIDATOR_COUNT)
         .map(derive_user_account)
         .collect::<Vec<_>>();
     validators.par_iter().for_each(|account| {
         let connection = create_connection(address, protocol).set_signer(account.clone());
-        staking_bond(&connection, MIN_VALIDATOR_BOND, &account, XtStatus::InBlock);
+        let controller_account_id = AccountId::from(account.public());
+        staking_bond(
+            &connection,
+            MIN_VALIDATOR_BOND,
+            &controller_account_id,
+            XtStatus::InBlock,
+        );
     });
     validators.par_iter().for_each(|account| {
         let connection = create_connection(address, protocol).set_signer(account.clone());
-        validate(&connection, XtStatus::InBlock)
+        staking_validate(&connection, 10, XtStatus::InBlock);
     });
     validators
 }
 
-fn generate_1024_accounts(connection: &Api<Pair, WsRpcClient>) -> Vec<Pair> {
+fn generate_1024_accounts(connection: &Api<KeyPair, WsRpcClient>) -> Vec<KeyPair> {
     let accounts = (VALIDATOR_COUNT..NOMINATOR_COUNT + VALIDATOR_COUNT)
         .map(derive_user_account)
         .collect::<Vec<_>>();
-    batch_endow_account_balances(&connection, &accounts, TOKEN + MIN_NOMINATOR_BOND);
+    batch_endow_account_balances(&connection, &accounts, MIN_NOMINATOR_BOND);
     accounts
 }

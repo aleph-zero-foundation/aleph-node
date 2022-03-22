@@ -3,10 +3,8 @@ use aleph_client::{send_xt, wait_for_session, BlockNumber, Connection, KeyPair};
 use codec::Compact;
 use log::info;
 pub use pallet_staking::RewardDestination;
-use pallet_staking::ValidatorPrefs;
 use primitives::Balance;
 use sp_core::{crypto::AccountId32, Pair};
-use sp_runtime::Perbill;
 use substrate_api_client::{compose_call, compose_extrinsic, AccountId, GenericAddress, XtStatus};
 
 pub fn bonded(connection: &Connection, stash: &KeyPair) -> Option<AccountId> {
@@ -30,21 +28,6 @@ pub fn ledger(
             "Failed to obtain Ledger for account id {}",
             account_id
         ))
-}
-
-pub fn validate(controller_connection: &Connection, tx_status: XtStatus) {
-    let prefs = ValidatorPrefs {
-        blocked: false,
-        commission: Perbill::from_percent(10),
-    };
-
-    let xt = compose_extrinsic!(controller_connection, "Staking", "validate", prefs);
-    send_xt(
-        &controller_connection,
-        xt.hex_encode(),
-        "validate",
-        tx_status,
-    );
 }
 
 pub fn nominate(connection: &Connection, nominee_key_pair: &KeyPair) {

@@ -1,5 +1,3 @@
-use codec::Compact;
-use sp_runtime::MultiAddress;
 use substrate_api_client::{AccountId, UncheckedExtrinsicV4};
 
 pub mod accounts;
@@ -9,9 +7,6 @@ pub mod staking;
 pub mod test;
 pub mod transfer;
 mod waiting;
-
-type TransferTransaction =
-    UncheckedExtrinsicV4<([u8; 2], MultiAddress<AccountId, ()>, Compact<u128>)>;
 
 #[macro_export]
 macro_rules! send_extrinsic {
