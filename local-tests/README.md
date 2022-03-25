@@ -11,3 +11,5 @@ The contents are:
 4. `test_update.py` - a script simulating an update of `aleph-node` binary together with updating chain's runtime. It requires two different `aleph-node` binaries (pre-update and post-update) and a compiled wasm runtime of the post-update binary. Please check the top part to see how to set up env variables with correct paths before running.
 
 5. `test_update.ipynb` - a Jupyter notebook with the same contents as `test_update.py`
+
+6. `test_catch_up.py` - a script simulating nodes disconnecting from the chain for couple sessions and then reconnecting.

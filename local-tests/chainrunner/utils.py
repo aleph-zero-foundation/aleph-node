@@ -40,3 +40,14 @@ def flags_from_dict(d):
         if v is not True:
             res.append(str(v))
     return res
+
+
+def check_finalized(nodes):
+    """Check nodes stats, print them and returns finalized block number per node"""
+    results = [node.highest_block() for node in nodes]
+    highest, finalized = zip(*results)
+    print('Blocks seen by nodes:')
+    print('  Highest:   ', *highest)
+    print('  Finalized: ', *finalized)
+
+    return finalized
