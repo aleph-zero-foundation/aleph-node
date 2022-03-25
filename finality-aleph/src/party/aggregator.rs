@@ -29,8 +29,14 @@ pub struct IO<B: Block> {
 type SignableBlockHash<B> = SignableHash<<B as Block>::Hash>;
 type Rmc<'a, B> = ReliableMulticast<'a, SignableBlockHash<B>, KeyBox>;
 
-async fn process_new_block_data<'a, B, N>(
-    aggregator: &mut AggregatorIO<'a, B::Hash, RmcNetworkData<B>, N, KeyBox, Rmc<'a, B>>,
+async fn process_new_block_data<B, N>(
+    aggregator: &mut AggregatorIO<
+        B::Hash,
+        RmcNetworkData<B>,
+        N,
+        SignatureSet<Signature>,
+        Rmc<'_, B>,
+    >,
     block: BlockHashNum<B>,
     session_boundaries: &SessionBoundaries<B>,
     metrics: &Option<Metrics<<B::Header as Header>::Hash>>,
@@ -73,8 +79,14 @@ fn process_hash<B, C>(
     }
 }
 
-async fn run_aggregator<'a, B, C, N>(
-    mut aggregator: AggregatorIO<'a, B::Hash, RmcNetworkData<B>, N, KeyBox, Rmc<'a, B>>,
+async fn run_aggregator<B, C, N>(
+    mut aggregator: AggregatorIO<
+        B::Hash,
+        RmcNetworkData<B>,
+        N,
+        SignatureSet<Signature>,
+        Rmc<'_, B>,
+    >,
     io: IO<B>,
     client: Arc<C>,
     session_boundaries: &SessionBoundaries<B>,

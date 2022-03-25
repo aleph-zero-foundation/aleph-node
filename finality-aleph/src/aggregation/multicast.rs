@@ -1,14 +1,10 @@
 //! A set of abstractions for dealing with `ReliableMulticast` in a more testable
 //! and modular way.
 //!
-//! We expose the following traits:
-//! - `Multicast`: mimicking the interface of `aleph_bft::ReliableMulticast`
-//! - `Multisigned`: abstracting away the `aleph_bft::Multisigned` capabilities as a trait.
+//! We expose the `Multicast` trait, mimicking the interface of `aleph_bft::ReliableMulticast`
 
-use aleph_bft::{
-    rmc::ReliableMulticast, MultiKeychain, Multisigned as MultisignedStruct, Signable,
-    UncheckedSigned,
-};
+use crate::crypto::{KeyBox, Signature};
+use aleph_bft::{rmc::ReliableMulticast, Signable, SignatureSet};
 use codec::{Codec, Decode, Encode};
 use std::{fmt::Debug, hash::Hash as StdHash};
 
@@ -27,6 +23,10 @@ impl<H: Hash> SignableHash<H> {
     pub fn new(hash: H) -> Self {
         Self { hash }
     }
+
+    pub fn get_hash(&self) -> H {
+        self.hash.clone()
+    }
 }
 
 impl<H: Hash> Signable for SignableHash<H> {
@@ -36,54 +36,26 @@ impl<H: Hash> Signable for SignableHash<H> {
     }
 }
 
-/// Anything that exposes the same interface as `aleph_bft::Multisigned` struct.
-pub trait Multisigned<'a, S: Signable, MK: MultiKeychain> {
-    fn as_signable(&self) -> &S;
-    fn into_unchecked(self) -> UncheckedSigned<S, MK::PartialMultisignature>;
-}
-
-impl<'a, H: Hash, MK: MultiKeychain> Multisigned<'a, SignableHash<H>, MK>
-    for MultisignedStruct<'a, SignableHash<H>, MK>
-{
-    fn as_signable(&self) -> &SignableHash<H> {
-        self.as_signable()
-    }
-
-    fn into_unchecked(self) -> UncheckedSigned<SignableHash<H>, MK::PartialMultisignature> {
-        self.into_unchecked()
-    }
-}
-
 /// Anything that exposes the same interface as `aleph_bft::ReliableMulticast`.
 ///
 /// The trait defines an associated type: `Signed`. For `ReliableMulticast`, this is simply
 /// `aleph_bft::Multisigned` but the mocks are free to use the simplest matching implementation.
 #[async_trait::async_trait]
-pub trait Multicast<H: Hash, S: Signable>: Send + Sync {
-    type Signed;
-    async fn start_multicast(&mut self, signable: S);
-    fn get_multisigned(&self, signable: &S) -> Option<Self::Signed>;
-    async fn next_multisigned_hash(&mut self) -> Self::Signed;
+pub trait Multicast<H: Hash, PMS>: Send + Sync {
+    async fn start_multicast(&mut self, signable: SignableHash<H>);
+    async fn next_signed_pair(&mut self) -> (H, PMS);
 }
 
 #[async_trait::async_trait]
-impl<'a, H: Hash, MK: MultiKeychain> Multicast<H, SignableHash<H>>
-    for ReliableMulticast<'a, SignableHash<H>, MK>
+impl<'a, H: Hash> Multicast<H, SignatureSet<Signature>>
+    for ReliableMulticast<'a, SignableHash<H>, KeyBox>
 {
-    type Signed = MultisignedStruct<'a, SignableHash<H>, MK>;
-
     async fn start_multicast(&mut self, hash: SignableHash<H>) {
         self.start_rmc(hash).await;
     }
 
-    fn get_multisigned(
-        &self,
-        hash: &SignableHash<H>,
-    ) -> Option<MultisignedStruct<'a, SignableHash<H>, MK>> {
-        self.get_multisigned(hash)
-    }
-
-    async fn next_multisigned_hash(&mut self) -> MultisignedStruct<'a, SignableHash<H>, MK> {
-        self.next_multisigned_hash().await
+    async fn next_signed_pair(&mut self) -> (H, SignatureSet<Signature>) {
+        let ms = self.next_multisigned_hash().await.into_unchecked();
+        (ms.as_signable().get_hash(), ms.signature())
     }
 }
