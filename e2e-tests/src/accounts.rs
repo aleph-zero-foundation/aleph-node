@@ -1,19 +1,8 @@
-use sp_core::Pair;
+use aleph_client::{keypair_from_string, Connection, KeyPair};
 use sp_runtime::AccountId32;
 use substrate_api_client::Balance;
-use aleph_client::{Connection, KeyPair};
 
 use crate::config::Config;
-
-pub fn keypair_from_string(seed: &str) -> KeyPair {
-    KeyPair::from_string(seed, None).expect("Can't create pair from seed value")
-}
-
-// below is used in benches crate
-#[allow(dead_code)]
-pub fn derive_user_account(seed: u64) -> KeyPair {
-    keypair_from_string(&format!("//{}", seed))
-}
 
 pub fn default_account_seeds() -> Vec<String> {
     ["//Damian", "//Hansu", "//Tomasz", "//Zbyszko", "//Julia"]

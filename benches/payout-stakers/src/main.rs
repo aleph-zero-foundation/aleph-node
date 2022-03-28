@@ -1,31 +1,29 @@
-use aleph_client::{create_connection, staking_bond, staking_validate, Protocol};
-use e2e::{
-    accounts::derive_user_account,
-    staking::{
-        batch_bond, batch_nominate, check_non_zero_payouts_for_era, wait_for_era_completion,
-        wait_for_full_era_completion,
-    },
-    transfer::batch_endow_account_balances,
+use aleph_client::{
+    balances_batch_transfer, create_connection, keypair_from_string, staking_bond,
+    staking_validate, wait_for_full_era_completion, wait_for_next_era, Protocol,
 };
+use e2e::staking::{batch_bond, batch_nominate, payout_stakers_and_assert_locked_balance};
 use log::info;
-use primitives::staking::{MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND};
+use primitives::staking::{
+    MAX_NOMINATORS_REWARDED_PER_VALIDATOR, MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND,
+};
 use rayon::prelude::*;
 use sp_core::{sr25519::Pair as KeyPair, Pair};
 use sp_keyring::AccountKeyring;
 use std::iter;
 use substrate_api_client::{
-    extrinsic::staking::RewardDestination,
-    {rpc::WsRpcClient, AccountId, Api, XtStatus},
+    extrinsic::staking::RewardDestination, rpc::WsRpcClient, AccountId, Api, XtStatus,
 };
 
 // testcase parameters
-const NOMINATOR_COUNT: u64 = 1024;
+const NOMINATOR_COUNT: u64 = MAX_NOMINATORS_REWARDED_PER_VALIDATOR as u64;
 const VALIDATOR_COUNT: u64 = 4;
 const ERAS_TO_WAIT: u64 = 10;
 
 // we need to schedule batches for limited call count, otherwise we'll exhaust a block max weight
 const BOND_CALL_BATCH_LIMIT: usize = 256;
 const NOMINATE_CALL_BATCH_LIMIT: usize = 128;
+const TRANSFER_CALL_BATCH_LIMIT: usize = 1024;
 
 fn main() -> Result<(), anyhow::Error> {
     let address = "127.0.0.1:9944";
@@ -37,12 +35,16 @@ fn main() -> Result<(), anyhow::Error> {
 
     let connection = create_connection(address, protocol).set_signer(sudoer);
 
-    let accounts = generate_1024_accounts(&connection);
+    let nominator_accounts = generate_nominator_accounts_with_minimal_bond(&connection);
     let validators = set_validators(address, protocol);
-    let nominee = nominate_validator_0(&connection, accounts, &validators);
-    wait_for_10_eras(address, protocol, &connection, nominee)?;
+    let nominee = nominate_validator_0(&connection, nominator_accounts.clone(), &validators);
+    wait_for_10_eras(address, protocol, &connection, nominee, nominator_accounts)?;
 
     Ok(())
+}
+
+pub fn derive_user_account(seed: u64) -> KeyPair {
+    keypair_from_string(&format!("//{}", seed))
 }
 
 fn wait_for_10_eras(
@@ -50,7 +52,11 @@ fn wait_for_10_eras(
     protocol: Protocol,
     connection: &Api<KeyPair, WsRpcClient>,
     nominee: &KeyPair,
+    nominators: Vec<AccountId>,
 ) -> Result<(), anyhow::Error> {
+    // we wait at least two full eras plus this era, to have thousands of nominators to settle up
+    // correctly
+    wait_for_next_era(&connection)?;
     let mut current_era = wait_for_full_era_completion(&connection)?;
     for _ in 0..ERAS_TO_WAIT {
         info!(
@@ -59,21 +65,29 @@ fn wait_for_10_eras(
             current_era - 1
         );
         let stash_connection = create_connection(address, protocol).set_signer(nominee.clone());
-        check_non_zero_payouts_for_era(&stash_connection, nominee, &connection, current_era);
-        current_era = wait_for_era_completion(&connection, current_era + 1)?;
+        let stash_account = AccountId::from(nominee.public());
+        payout_stakers_and_assert_locked_balance(
+            &stash_connection,
+            &nominators[..],
+            &stash_account,
+            current_era,
+        );
+        current_era = wait_for_next_era(&connection)?;
     }
     Ok(())
 }
 
 fn nominate_validator_0<'a>(
     connection: &Api<KeyPair, WsRpcClient>,
-    accounts: Vec<KeyPair>,
+    nominator_accounts: Vec<AccountId>,
     validators: &'a Vec<KeyPair>,
 ) -> &'a KeyPair {
-    // 3. Let accounts nominate validator[0]
     let nominee = &validators[0];
-    let stash_validators_pairs = accounts.iter().zip(accounts.iter()).collect::<Vec<_>>();
-    stash_validators_pairs
+    let stash_validators_accounts = nominator_accounts
+        .iter()
+        .zip(nominator_accounts.iter())
+        .collect::<Vec<_>>();
+    stash_validators_accounts
         .chunks(BOND_CALL_BATCH_LIMIT)
         .for_each(|chunk| {
             batch_bond(
@@ -83,11 +97,12 @@ fn nominate_validator_0<'a>(
                 RewardDestination::Staked,
             )
         });
-    let nominator_nominee_pairs = accounts
+    let nominee_account = AccountId::from(nominee.public());
+    let nominator_nominee_accounts = nominator_accounts
         .iter()
-        .zip(iter::repeat(nominee))
+        .zip(iter::repeat(&nominee_account))
         .collect::<Vec<_>>();
-    nominator_nominee_pairs
+    nominator_nominee_accounts
         .chunks(NOMINATE_CALL_BATCH_LIMIT)
         .for_each(|chunk| batch_nominate(&connection, chunk));
     nominee
@@ -114,10 +129,21 @@ fn set_validators(address: &str, protocol: Protocol) -> Vec<KeyPair> {
     validators
 }
 
-fn generate_1024_accounts(connection: &Api<KeyPair, WsRpcClient>) -> Vec<KeyPair> {
+fn generate_nominator_accounts_with_minimal_bond(
+    connection: &Api<KeyPair, WsRpcClient>,
+) -> Vec<AccountId> {
     let accounts = (VALIDATOR_COUNT..NOMINATOR_COUNT + VALIDATOR_COUNT)
         .map(derive_user_account)
+        .map(|key_pair| AccountId::from(key_pair.public()))
         .collect::<Vec<_>>();
-    batch_endow_account_balances(&connection, &accounts, MIN_NOMINATOR_BOND);
+    accounts
+        .chunks(TRANSFER_CALL_BATCH_LIMIT)
+        .for_each(|chunk| {
+            balances_batch_transfer(
+                &connection,
+                chunk.into_iter().cloned().collect(),
+                MIN_NOMINATOR_BOND,
+            );
+        });
     accounts
 }

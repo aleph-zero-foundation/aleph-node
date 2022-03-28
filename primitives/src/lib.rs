@@ -68,6 +68,7 @@ pub mod staking {
 
     pub const MIN_VALIDATOR_BOND: u128 = 25_000 * TOKEN;
     pub const MIN_NOMINATOR_BOND: u128 = 100 * TOKEN;
+    pub const MAX_NOMINATORS_REWARDED_PER_VALIDATOR: u32 = 1024;
 
     pub fn era_payout(miliseconds_per_era: u64) -> (Balance, Balance) {
         const YEARLY_INFLATION: Balance = 30_000_000 * TOKEN;

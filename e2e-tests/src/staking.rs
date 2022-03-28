@@ -1,7 +1,7 @@
 use crate::transfer::locks;
-use aleph_client::{send_xt, wait_for_session, BlockNumber, Connection, KeyPair};
+use aleph_client::{send_xt, BlockNumber, Connection, KeyPair};
 use codec::Compact;
-use log::info;
+use pallet_balances::BalanceLock;
 pub use pallet_staking::RewardDestination;
 use primitives::Balance;
 use sp_core::{crypto::AccountId32, Pair};
@@ -37,13 +37,16 @@ pub fn nominate(connection: &Connection, nominee_key_pair: &KeyPair) {
     send_xt(&connection, xt.hex_encode(), "nominate", XtStatus::InBlock);
 }
 
-pub fn payout_stakers(stash_connection: &Connection, stash: KeyPair, era_number: BlockNumber) {
-    let account = AccountId::from(stash.public());
+pub fn payout_stakers(
+    stash_connection: &Connection,
+    stash_acount: &AccountId,
+    era_number: BlockNumber,
+) {
     let xt = compose_extrinsic!(
         stash_connection,
         "Staking",
         "payout_stakers",
-        account,
+        stash_acount,
         era_number
     );
 
@@ -55,81 +58,61 @@ pub fn payout_stakers(stash_connection: &Connection, stash: KeyPair, era_number:
     );
 }
 
-pub fn get_current_era(connection: &Connection) -> u32 {
-    connection
-        .get_storage_value("Staking", "ActiveEra", None)
-        .expect("Failed to decode ActiveEra extrinsic!")
-        .expect("ActiveEra is empty in the storage!")
-}
-
-pub fn wait_for_full_era_completion(connection: &Connection) -> anyhow::Result<BlockNumber> {
-    let current_era: u32 = get_current_era(connection);
-    info!("Current era is {}", current_era);
-    // staking works in such a way, that when we request a controller to be a validator in era N,
-    // then the changes are applied in the era N+1 (so the new validator is receiving points in N+1),
-    // so that we need N+1 to finish in order to claim the reward in era N+2 for the N+1 era
-    wait_for_era_completion(connection, current_era + 2)
-}
-
-pub fn wait_for_era_completion(
+pub fn get_locked_balance(
+    stash_account: &AccountId,
     connection: &Connection,
-    next_era_index: u32,
-) -> anyhow::Result<BlockNumber> {
-    let sessions_per_era: u32 = connection
-        .get_constant("Staking", "SessionsPerEra")
-        .expect("Failed to decode SessionsPerEra extrinsic!");
-    let first_session_in_next_era = next_era_index * sessions_per_era;
-    wait_for_session(connection, first_session_in_next_era)?;
-    Ok(next_era_index)
-}
-
-pub fn check_non_zero_payouts_for_era(
-    stash_connection: &Connection,
-    stash: &KeyPair,
-    connection: &Connection,
-    era: BlockNumber,
-) {
-    let stash_account = AccountId::from(stash.public());
-    let locked_stash_balance_before_payout = locks(&connection, &stash).expect(&format!(
+) -> Vec<BalanceLock<Balance>> {
+    let locked_stash_balance = locks(&connection, stash_account).expect(&format!(
         "Expected non-empty locked balances for account {}!",
         stash_account
     ));
     assert_eq!(
-        locked_stash_balance_before_payout.len(),
+        locked_stash_balance.len(),
         1,
         "Expected locked balances for account {} to have exactly one entry!",
         stash_account
     );
-    payout_stakers(stash_connection, stash.clone(), era - 1);
-    let locked_stash_balance_after_payout = locks(&connection, &stash).expect(&format!(
-        "Expected non-empty locked balances for account {}!",
-        stash_account
-    ));
-    assert_eq!(
-        locked_stash_balance_after_payout.len(),
-        1,
-        "Expected non-empty locked balances for account to have exactly one entry {}!",
-        stash_account
+    locked_stash_balance
+}
+
+pub fn payout_stakers_and_assert_locked_balance(
+    stash_connection: &Connection,
+    accounts_to_check_balance: &[AccountId],
+    stash_account: &AccountId,
+    era: BlockNumber,
+) {
+    let locked_stash_balance_before_payout = accounts_to_check_balance
+        .iter()
+        .map(|account| get_locked_balance(account, stash_connection))
+        .collect::<Vec<_>>();
+    payout_stakers(stash_connection, stash_account, era - 1);
+    let locked_stash_balance_after_payout = accounts_to_check_balance
+        .iter()
+        .map(|account| get_locked_balance(account, stash_connection))
+        .collect::<Vec<_>>();
+    locked_stash_balance_before_payout.into_iter().zip(locked_stash_balance_after_payout.into_iter()).zip(accounts_to_check_balance.iter()).
+        for_each(|((balance_before, balance_after), account_id)| {
+            assert!(balance_after[0].amount > balance_before[0].amount,
+                    "Expected payout to be positive in locked balance for account {}. Balance before: {}, balance after: {}",
+                    account_id, balance_before[0].amount, balance_after[0].amount);
+        }
     );
-    assert!(locked_stash_balance_after_payout[0].amount > locked_stash_balance_before_payout[0].amount,
-            "Expected payout to be positive in locked balance for account {}. Balance before: {}, balance after: {}",
-            stash_account, locked_stash_balance_before_payout[0].amount, locked_stash_balance_after_payout[0].amount);
 }
 
 pub fn batch_bond(
     connection: &Connection,
-    stash_controller_key_pairs: &[(&KeyPair, &KeyPair)],
+    stash_controller_accounts: &[(&AccountId, &AccountId)],
     bond_value: u128,
     reward_destination: RewardDestination<GenericAddress>,
 ) {
-    let batch_bond_calls = stash_controller_key_pairs
-        .iter()
-        .map(|(stash_key, controller_key)| {
+    let batch_bond_calls = stash_controller_accounts
+        .into_iter()
+        .map(|(stash_account, controller_account)| {
             let bond_call = compose_call!(
                 connection.metadata,
                 "Staking",
                 "bond",
-                GenericAddress::Id(AccountId::from(controller_key.public())),
+                GenericAddress::Id((*controller_account).clone()),
                 Compact(bond_value),
                 reward_destination.clone()
             );
@@ -137,7 +120,7 @@ pub fn batch_bond(
                 connection.metadata,
                 "Sudo",
                 "sudo_as",
-                GenericAddress::Id(AccountId::from(stash_key.public())),
+                GenericAddress::Id((*stash_account).clone()),
                 bond_call
             )
         })
@@ -152,21 +135,24 @@ pub fn batch_bond(
     );
 }
 
-pub fn batch_nominate(connection: &Connection, nominator_nominee_pairs: &[(&KeyPair, &KeyPair)]) {
+pub fn batch_nominate(
+    connection: &Connection,
+    nominator_nominee_pairs: &[(&AccountId, &AccountId)],
+) {
     let batch_nominate_calls = nominator_nominee_pairs
-        .iter()
+        .into_iter()
         .map(|(nominator, nominee)| {
             let nominate_call = compose_call!(
                 connection.metadata,
                 "Staking",
                 "nominate",
-                vec![GenericAddress::Id(AccountId::from(nominee.public()))]
+                vec![GenericAddress::Id((*nominee).clone())]
             );
             compose_call!(
                 connection.metadata,
                 "Sudo",
                 "sudo_as",
-                GenericAddress::Id(AccountId::from(nominator.public())),
+                GenericAddress::Id((*nominator).clone()),
                 nominate_call
             )
         })

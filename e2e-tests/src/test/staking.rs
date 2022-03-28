@@ -1,14 +1,12 @@
 use crate::{
-    accounts::{accounts_from_seeds, default_account_seeds, keypair_from_string},
+    accounts::{accounts_from_seeds, default_account_seeds},
     config::Config,
-    staking::{
-        bonded, check_non_zero_payouts_for_era, ledger, nominate, wait_for_full_era_completion,
-    },
-    transfer::batch_endow_account_balances,
+    staking::{bonded, ledger, nominate, payout_stakers_and_assert_locked_balance},
 };
 use aleph_client::{
-    change_members, create_connection, get_current_session, rotate_keys, set_keys, staking_bond,
-    staking_validate, wait_for_session, KeyPair,
+    balances_batch_transfer, change_members, create_connection, get_current_session,
+    keypair_from_string, rotate_keys, set_keys, staking_bond, staking_validate,
+    wait_for_full_era_completion, wait_for_session, KeyPair,
 };
 use log::info;
 use pallet_staking::StakingLedger;
@@ -47,13 +45,17 @@ fn convert_authorities_to_account_id(authorities: Vec<KeyPair>) -> Vec<AccountId
 // 4. wait for new era
 // 5. send payout stakers tx
 pub fn staking_era_payouts(config: &Config) -> anyhow::Result<()> {
-    let (stashes_accounts, validator_accounts) = get_key_pairs();
+    let (stashes_accounts_key_pairs, validator_accounts) = get_key_pairs();
 
     let node = &config.node;
     let sender = validator_accounts[0].clone();
     let connection = create_connection(node, config.protocol).set_signer(sender);
+    let stashes_accounts = stashes_accounts_key_pairs
+        .iter()
+        .map(|key_pair| AccountId::from(key_pair.public()))
+        .collect::<Vec<_>>();
 
-    batch_endow_account_balances(&connection, &stashes_accounts, MIN_VALIDATOR_BOND + TOKEN);
+    balances_batch_transfer(&connection, stashes_accounts, MIN_VALIDATOR_BOND + TOKEN);
 
     validator_accounts.par_iter().for_each(|account| {
         let connection = create_connection(node, config.protocol).set_signer(account.clone());
@@ -71,7 +73,7 @@ pub fn staking_era_payouts(config: &Config) -> anyhow::Result<()> {
         staking_validate(&connection, 10, XtStatus::InBlock);
     });
 
-    stashes_accounts.par_iter().for_each(|nominator| {
+    stashes_accounts_key_pairs.par_iter().for_each(|nominator| {
         let connection = create_connection(node, config.protocol).set_signer(nominator.clone());
         let controller_account_id = AccountId::from(nominator.public());
         staking_bond(
@@ -82,7 +84,7 @@ pub fn staking_era_payouts(config: &Config) -> anyhow::Result<()> {
         );
     });
 
-    stashes_accounts
+    stashes_accounts_key_pairs
         .par_iter()
         .zip(validator_accounts.par_iter())
         .for_each(|(nominator, nominee)| {
@@ -101,7 +103,13 @@ pub fn staking_era_payouts(config: &Config) -> anyhow::Result<()> {
     validator_accounts.into_par_iter().for_each(|key_pair| {
         let stash_connection =
             create_connection(node, config.protocol).set_signer(key_pair.clone());
-        check_non_zero_payouts_for_era(&stash_connection, &key_pair, &connection, current_era)
+        let stash_account = AccountId::from(key_pair.public());
+        payout_stakers_and_assert_locked_balance(
+            &stash_connection,
+            &[stash_account.clone()],
+            &stash_account,
+            current_era,
+        )
     });
 
     Ok(())
@@ -139,9 +147,13 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
     let _ = wait_for_session(&connection, current_session + 2)?;
 
     // to cover tx fees as we need a bit more than VALIDATOR_STAKE
-    batch_endow_account_balances(&connection, &[stash.clone()], MIN_VALIDATOR_BOND + TOKEN);
+    balances_batch_transfer(
+        &connection,
+        vec![stash_account.clone()],
+        MIN_VALIDATOR_BOND + TOKEN,
+    );
     // to cover txs fees
-    batch_endow_account_balances(&connection, &[controller.clone()], TOKEN);
+    balances_batch_transfer(&connection, vec![controller_account.clone()], TOKEN);
 
     let stash_connection = create_connection(node, config.protocol).set_signer(stash.clone());
 
@@ -204,7 +216,12 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
         current_era - 1
     );
 
-    check_non_zero_payouts_for_era(&stash_connection, &stash, &connection, current_era);
+    payout_stakers_and_assert_locked_balance(
+        &stash_connection,
+        &[stash_account.clone()],
+        &stash_account,
+        current_era,
+    );
 
     Ok(())
 }

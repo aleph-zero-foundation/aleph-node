@@ -1,5 +1,5 @@
 use log::{info, warn};
-use sp_core::sr25519;
+use sp_core::{sr25519, Pair};
 use sp_runtime::{generic::Header as GenericHeader, traits::BlakeTwo256};
 use std::{thread::sleep, time::Duration};
 use substrate_api_client::{rpc::ws_client::WsRpcClient, Api, RpcClient, XtStatus};
@@ -16,10 +16,12 @@ pub use session::{
     Keys as SessionKeys,
 };
 pub use staking::{
-    bond as staking_bond, force_new_era as staking_force_new_era,
-    set_staking_limit as staking_set_staking_limits, validate as staking_validate,
+    bond as staking_bond, force_new_era as staking_force_new_era, set_staking_limits,
+    validate as staking_validate, wait_for_full_era_completion, wait_for_next_era,
 };
-pub use transfer::{transfer as balances_transfer, TransferTransaction};
+pub use transfer::{
+    batch_transfer as balances_batch_transfer, transfer as balances_transfer, TransferTransaction,
+};
 pub use waiting::wait_for_event;
 
 pub trait FromStr: Sized {
@@ -102,4 +104,8 @@ pub fn send_xt(connection: &Connection, xt: String, xt_name: &'static str, tx_st
         "Transaction {} was included in block {}.",
         xt_name, block_number
     );
+}
+
+pub fn keypair_from_string(seed: &str) -> KeyPair {
+    KeyPair::from_string(seed, None).expect("Can't create pair from seed value")
 }

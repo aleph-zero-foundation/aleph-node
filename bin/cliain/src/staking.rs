@@ -1,6 +1,4 @@
-use aleph_client::{
-    staking_bond, staking_force_new_era, staking_set_staking_limits, staking_validate, Connection,
-};
+use aleph_client::{staking_bond, staking_force_new_era, staking_validate, Connection};
 use primitives::TOKEN;
 use sp_core::crypto::Ss58Codec;
 use substrate_api_client::{AccountId, XtStatus};
@@ -31,7 +29,7 @@ pub fn set_staking_limits_command(
     minimal_nominator_stake_tokens: u64,
     minimal_validator_stake_tokens: u64,
 ) {
-    staking_set_staking_limits(
+    aleph_client::set_staking_limits(
         &root_connection,
         minimal_nominator_stake_tokens as u128 * TOKEN,
         minimal_validator_stake_tokens as u128 * TOKEN,
