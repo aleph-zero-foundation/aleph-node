@@ -1,6 +1,6 @@
 [package]
 name = "fork-off"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 # client
@@ -10,8 +10,7 @@ tag = "polkadot-v0.9.13.b2bfc0c3"
 
 [dependencies]
 # Substrate dependencies
-sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9", features = ["full_crypto"] }
-sp-io = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.9" }
+sp-io = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13" }
 
 # other
 anyhow = "1.0.52"
@@ -21,5 +20,7 @@ futures = "0.3.17"
 hex = "0.4.3"
 log = "0.4"
 reqwest = { version = "0.11", features = ["json"] }
-serde_json = "1.0"
+serde = "1"
+serde_json = "1"
 tokio = { version = "1.0", features = ["full"]}
+parking_lot = "0.12.0"
