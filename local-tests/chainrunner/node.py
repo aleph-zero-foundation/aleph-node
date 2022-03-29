@@ -34,7 +34,6 @@ class Node:
 
         self.logfile = op.join(self.logdir, name + '.log')
         with open(self.logfile, 'w', encoding='utf-8') as logfile:
-            # pylint: disable=consider-using-with
             self.process = subprocess.Popen(cmd, stderr=logfile, stdout=subprocess.DEVNULL)
         self.running = True
 
