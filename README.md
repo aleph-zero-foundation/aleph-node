@@ -18,7 +18,13 @@ Please consult the [BUILD][BUILD] guide.
 
 ### Running
 
-To experiment with Aleph Node you can locally run a small blockchain network using the `run_nodes.sh` script from the root of this repository.  Please consult the script or the output of `run_nodes.sh -help` for additional parameters (like the number of nodes etc.). The script starts multiple instances of Aleph Node on your local machine, so please adjust the number of nodes carefully with performance of your system in mind. By default 4 nodes are started.
+#### Connect to Aleph Zero Testnet
+
+You can connect to global Aleph Zero Testnet network by running `aleph-node --chain=testnet`.
+
+#### Local Network
+
+To experiment with Aleph Node you can locally run a small blockchain network using the `run_nodes.sh` script from the root of this repository.  Please consult the script or the output of `run_nodes.sh -help` for additional parameters (like the number of nodes etc.). The script starts multiple instances of Aleph Node on your local machine, so please adjust the number of nodes carefully with performance of your system in mind. By default 4 nodes are started. 
 
 You can interact with your locally running nodes using RPC (use port 9933 for node0, 9934 for node1 and so on). A more convenient alternative is to attach to it with a polkadot.js wallet app. We recommend using our fork of that app which can be found [here][aleph-polkadot-link].
 

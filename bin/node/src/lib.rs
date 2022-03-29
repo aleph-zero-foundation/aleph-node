@@ -3,6 +3,7 @@ mod chain_spec;
 mod cli;
 mod commands;
 mod executor;
+mod resources;
 mod rpc;
 mod service;
 
