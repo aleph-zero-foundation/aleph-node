@@ -1,18 +1,24 @@
-use crate::{
-    accounts::{accounts_from_seeds, get_free_balance, get_sudo},
-    config::Config,
-    fee::get_tx_fee_info,
-    transfer::setup_for_transfer,
-};
-use aleph_client::{balances_transfer, create_connection, wait_for_event, Connection};
+use std::{thread, thread::sleep, time::Duration};
+
 use codec::{Compact, Decode};
 use frame_support::PalletId;
 use log::info;
 use sp_core::Pair;
 use sp_runtime::{traits::AccountIdConversion, AccountId32, MultiAddress};
-use std::time::Duration;
-use std::{thread, thread::sleep};
-use substrate_api_client::{AccountId, Balance, GenericAddress, UncheckedExtrinsicV4, XtStatus};
+use substrate_api_client::{
+    compose_extrinsic, AccountId, Balance, GenericAddress, UncheckedExtrinsicV4, XtStatus,
+};
+
+use aleph_client::{
+    balances_transfer, create_connection, get_free_balance, get_tx_fee_info, send_xt,
+    wait_for_event, Connection,
+};
+
+use crate::{
+    accounts::{accounts_from_seeds, get_sudo},
+    config::Config,
+    transfer::setup_for_transfer,
+};
 
 fn calculate_staking_treasury_addition(connection: &Connection) -> u128 {
     let sessions_per_era = connection
@@ -24,8 +30,8 @@ fn calculate_staking_treasury_addition(connection: &Connection) -> u128 {
     let millisecs_per_block = 2 * connection
         .get_constant::<u64>("Timestamp", "MinimumPeriod")
         .unwrap();
-    let miliseconds_per_era = millisecs_per_block * session_period as u64 * sessions_per_era as u64;
-    let treasury_era_payout_from_staking = primitives::staking::era_payout(miliseconds_per_era).1;
+    let millisecs_per_era = millisecs_per_block * session_period as u64 * sessions_per_era as u64;
+    let treasury_era_payout_from_staking = primitives::staking::era_payout(millisecs_per_era).1;
     info!(
         "[+] Possible treasury gain from staking is {}",
         treasury_era_payout_from_staking
@@ -38,7 +44,7 @@ pub fn channeling_fee(config: &Config) -> anyhow::Result<()> {
     let treasury = get_treasury_account(&connection);
 
     let possibly_treasury_gain_from_staking = calculate_staking_treasury_addition(&connection);
-    let treasury_balance_before = get_free_balance(&treasury, &connection);
+    let treasury_balance_before = get_free_balance(&connection, &treasury);
     let issuance_before = get_total_issuance(&connection);
     info!(
         "[+] Treasury balance before tx: {}. Total issuance: {}.",
@@ -46,7 +52,7 @@ pub fn channeling_fee(config: &Config) -> anyhow::Result<()> {
     );
 
     let tx = balances_transfer(&connection, &to, 1000u128, XtStatus::Finalized);
-    let treasury_balance_after = get_free_balance(&treasury, &connection);
+    let treasury_balance_after = get_free_balance(&connection, &treasury);
     let issuance_after = get_total_issuance(&connection);
     check_treasury_issuance(
         possibly_treasury_gain_from_staking,
@@ -159,15 +165,20 @@ fn propose_treasury_spend(
     beneficiary: &AccountId32,
     connection: &Connection,
 ) -> ProposalTransaction {
-    crate::send_extrinsic!(
+    let xt = compose_extrinsic!(
         connection,
         "Treasury",
         "propose_spend",
-        XtStatus::Finalized,
-        |tx_hash| info!("[+] Treasury spend transaction hash: {}", tx_hash),
         Compact(value),
         GenericAddress::Id(beneficiary.clone())
-    )
+    );
+    send_xt(
+        connection,
+        xt.hex_encode(),
+        "treasury spend",
+        XtStatus::Finalized,
+    );
+    xt
 }
 
 fn get_proposals_counter(connection: &Connection) -> u32 {
@@ -178,15 +189,21 @@ fn get_proposals_counter(connection: &Connection) -> u32 {
 }
 
 type GovernanceTransaction = UncheckedExtrinsicV4<([u8; 2], Compact<u32>)>;
+
 fn send_treasury_approval(proposal_id: u32, connection: &Connection) -> GovernanceTransaction {
-    crate::send_extrinsic!(
+    let xt = compose_extrinsic!(
         connection,
         "Treasury",
         "approve_proposal",
-        XtStatus::Finalized,
-        |tx_hash| info!("[+] Treasury approval transaction hash: {}", tx_hash),
         Compact(proposal_id)
-    )
+    );
+    send_xt(
+        connection,
+        xt.hex_encode(),
+        "treasury approval",
+        XtStatus::Finalized,
+    );
+    xt
 }
 
 fn treasury_approve(proposal_id: u32, connection: &Connection) -> anyhow::Result<()> {
@@ -195,14 +212,19 @@ fn treasury_approve(proposal_id: u32, connection: &Connection) -> anyhow::Result
 }
 
 fn send_treasury_rejection(proposal_id: u32, connection: &Connection) -> GovernanceTransaction {
-    crate::send_extrinsic!(
+    let xt = compose_extrinsic!(
         connection,
         "Treasury",
         "reject_proposal",
-        XtStatus::Finalized,
-        |tx_hash| info!("[+] Treasury rejection transaction hash: {}", tx_hash),
         Compact(proposal_id)
-    )
+    );
+    send_xt(
+        connection,
+        xt.hex_encode(),
+        "treasury rejection",
+        XtStatus::Finalized,
+    );
+    xt
 }
 
 fn treasury_reject(proposal_id: u32, connection: &Connection) -> anyhow::Result<()> {

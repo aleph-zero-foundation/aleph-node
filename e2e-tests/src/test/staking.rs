@@ -1,40 +1,39 @@
-use crate::{
-    accounts::{accounts_from_seeds, default_account_seeds},
-    config::Config,
-    staking::{bonded, ledger, nominate, payout_stakers_and_assert_locked_balance},
-};
-use aleph_client::{
-    balances_batch_transfer, change_members, create_connection, get_current_session,
-    keypair_from_string, rotate_keys, set_keys, staking_bond, staking_validate,
-    wait_for_full_era_completion, wait_for_session, KeyPair,
-};
 use log::info;
 use pallet_staking::StakingLedger;
-use primitives::{
-    staking::{MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND},
-    TOKEN,
-};
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
 use sp_core::Pair;
 use substrate_api_client::{AccountId, XtStatus};
 
+use aleph_client::{
+    balances_batch_transfer, change_members, create_connection, get_current_session,
+    keypair_from_string, payout_stakers_and_assert_locked_balance, rotate_keys, set_keys,
+    staking_bond, staking_bonded, staking_ledger, staking_nominate, staking_validate,
+    wait_for_full_era_completion, wait_for_session, KeyPair,
+};
+use primitives::{
+    staking::{MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND},
+    TOKEN,
+};
+
+use crate::{
+    accounts::{accounts_from_seeds, default_account_seeds},
+    config::Config,
+};
+
 fn get_key_pairs() -> (Vec<KeyPair>, Vec<KeyPair>) {
     let validators = default_account_seeds();
-    let validator_stashes: Vec<_> = validators
-        .iter()
-        .map(|v| String::from(v) + "//stash")
-        .collect();
+    let validator_stashes = validators.iter().map(|v| format!("{}//stash", v)).collect();
     let validator_accounts_key_pairs = accounts_from_seeds(&Some(validators));
     let stashes_accounts_key_pairs = accounts_from_seeds(&Some(validator_stashes));
 
     (stashes_accounts_key_pairs, validator_accounts_key_pairs)
 }
 
-fn convert_authorities_to_account_id(authorities: Vec<KeyPair>) -> Vec<AccountId> {
+fn convert_authorities_to_account_id(authorities: &[KeyPair]) -> Vec<AccountId> {
     authorities
-        .into_iter()
+        .iter()
         .map(|key| AccountId::from(key.public()))
         .collect()
 }
@@ -50,10 +49,7 @@ pub fn staking_era_payouts(config: &Config) -> anyhow::Result<()> {
     let node = &config.node;
     let sender = validator_accounts[0].clone();
     let connection = create_connection(node, config.protocol).set_signer(sender);
-    let stashes_accounts = stashes_accounts_key_pairs
-        .iter()
-        .map(|key_pair| AccountId::from(key_pair.public()))
-        .collect::<Vec<_>>();
+    let stashes_accounts = convert_authorities_to_account_id(&stashes_accounts_key_pairs);
 
     balances_batch_transfer(&connection, stashes_accounts, MIN_VALIDATOR_BOND + TOKEN);
 
@@ -89,10 +85,10 @@ pub fn staking_era_payouts(config: &Config) -> anyhow::Result<()> {
         .zip(validator_accounts.par_iter())
         .for_each(|(nominator, nominee)| {
             let connection = create_connection(node, config.protocol).set_signer(nominator.clone());
-            nominate(&connection, nominee)
+            staking_nominate(&connection, nominee)
         });
 
-    // All the above calls influace the next era, so we need to wait that it passes.
+    // All the above calls influence the next era, so we need to wait that it passes.
     let current_era = wait_for_full_era_completion(&connection)?;
     info!(
         "Era {} started, claiming rewards for era {}",
@@ -120,7 +116,7 @@ pub fn staking_era_payouts(config: &Config) -> anyhow::Result<()> {
 // 3. bond controller account to the stash account, stash != controller and set controller to StakerStatus::Validate
 // 4. call bonded, double check bonding
 // 5. set keys for controller account from validator's rotate_keys()
-// 6. set controller to StakerStatus::Validate, call ledger to double check storage state
+// 6. set controller to StakerStatus::Validate, call ledger to double-check storage state
 // 7. add 4th validator which is the new stash account
 // 8. wait for next era
 // 9. claim rewards for the stash account
@@ -139,7 +135,7 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
 
     change_members(
         &connection,
-        convert_authorities_to_account_id(validator_accounts.clone()),
+        convert_authorities_to_account_id(&validator_accounts),
         XtStatus::InBlock,
     );
 
@@ -163,10 +159,12 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
         &controller_account,
         XtStatus::InBlock,
     );
-    let bonded_controller_account = bonded(&connection, &stash).expect(&format!(
-        "Expected that stash account {} is bonded to some controller!",
-        &stash_account
-    ));
+    let bonded_controller_account = staking_bonded(&connection, &stash).unwrap_or_else(|| {
+        panic!(
+            "Expected that stash account {} is bonded to some controller!",
+            &stash_account
+        )
+    });
     assert_eq!(
         bonded_controller_account, controller_account,
         "Expected that stash account {} is bonded to the controller account {}, got {} instead!",
@@ -181,7 +179,7 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
     // to be elected in next era instead of expected validator_account_id
     staking_validate(&controller_connection, 10, XtStatus::InBlock);
 
-    let ledger = ledger(&connection, &controller);
+    let ledger = staking_ledger(&connection, &controller);
     assert!(
         ledger.is_some(),
         "Expected controller {} configuration to be non empty",
@@ -200,10 +198,10 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
         }
     );
 
-    validator_accounts.push(stash.clone());
+    validator_accounts.push(stash);
     change_members(
         &connection,
-        convert_authorities_to_account_id(validator_accounts.clone()),
+        convert_authorities_to_account_id(&validator_accounts),
         XtStatus::InBlock,
     );
     let current_session = get_current_session(&connection);

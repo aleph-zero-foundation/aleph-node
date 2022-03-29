@@ -1,28 +1,36 @@
+use std::{thread::sleep, time::Duration};
+
 use log::{info, warn};
 use sp_core::{sr25519, Pair};
 use sp_runtime::{generic::Header as GenericHeader, traits::BlakeTwo256};
-use std::{thread::sleep, time::Duration};
 use substrate_api_client::{rpc::ws_client::WsRpcClient, Api, RpcClient, XtStatus};
 
-mod rpc;
-mod session;
-mod staking;
-mod transfer;
-mod waiting;
-
+pub use account::{get_free_balance, get_locked_balance, locks};
+pub use fee::{get_next_fee_multiplier, get_tx_fee_info, FeeInfo};
 pub use rpc::{rotate_keys, rotate_keys_raw_result};
 pub use session::{
     change_members, get_current as get_current_session, set_keys, wait_for as wait_for_session,
     Keys as SessionKeys,
 };
 pub use staking::{
-    bond as staking_bond, force_new_era as staking_force_new_era, set_staking_limits,
-    validate as staking_validate, wait_for_full_era_completion, wait_for_next_era,
+    batch_bond as staking_batch_bond, batch_nominate as staking_batch_nominate,
+    bond as staking_bond, bonded as staking_bonded, force_new_era, ledger as staking_ledger,
+    nominate as staking_nominate, payout_stakers, payout_stakers_and_assert_locked_balance,
+    set_staking_limits, validate as staking_validate, wait_for_full_era_completion,
+    wait_for_next_era,
 };
 pub use transfer::{
     batch_transfer as balances_batch_transfer, transfer as balances_transfer, TransferTransaction,
 };
-pub use waiting::wait_for_event;
+pub use waiting::{wait_for_event, wait_for_finalized_block};
+
+mod account;
+mod fee;
+mod rpc;
+mod session;
+mod staking;
+mod transfer;
+mod waiting;
 
 pub trait FromStr: Sized {
     type Err;

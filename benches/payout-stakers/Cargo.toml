@@ -6,7 +6,6 @@ edition = "2021"
 
 [dependencies]
 aleph_client = { path = "../../aleph-client" }
-e2e = { path = "../../e2e-tests", package = "aleph-e2e-client" }
 primitives = { path = "../../primitives" }
 
 sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", features = ["full_crypto"] }

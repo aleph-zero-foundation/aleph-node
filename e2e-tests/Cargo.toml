@@ -3,21 +3,18 @@ name = "aleph-e2e-client"
 version = "0.1.0"
 edition = "2021"
 
-# client
-[dependencies.substrate-api-client]
-git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git"
-tag = "polkadot-v0.9.13.b2bfc0c3"
-features = ["staking-xt"]
-
 [dependencies]
 # Substrate dependencies
 primitives = { path = "../primitives", default-features = false}
+
 sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", default-features = false, features = ["full_crypto"] }
 sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", default-features = false }
 frame-support = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", default-features = false}
 system = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", package = "frame-system" }
 pallet-staking = {git = "https://github.com/paritytech/substrate.git",branch = "polkadot-v0.9.13", default-features = false }
 pallet-balances = {git = "https://github.com/paritytech/substrate.git",branch = "polkadot-v0.9.13", default-features = false }
+
+substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", tag = "polkadot-v0.9.13.b2bfc0c3", features = ["staking-xt"] }
 
 # other dependencies
 anyhow = "1.0"

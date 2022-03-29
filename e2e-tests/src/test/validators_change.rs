@@ -1,9 +1,10 @@
 use crate::{
     accounts::{accounts_from_seeds, get_sudo},
     config::Config,
-    waiting::wait_for_finalized_block,
 };
-use aleph_client::{change_members, create_connection, wait_for_event, Header};
+use aleph_client::{
+    change_members, create_connection, wait_for_event, wait_for_finalized_block, Header,
+};
 use codec::Decode;
 use log::info;
 use sp_core::Pair;

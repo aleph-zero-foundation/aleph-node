@@ -10,8 +10,8 @@ use log::{debug, info};
 use rayon::prelude::*;
 use sp_core::{sr25519, Pair};
 use sp_runtime::{generic, traits::BlakeTwo256, MultiAddress, OpaqueExtrinsic};
-use std::convert::TryInto;
 use std::{
+    convert::TryInto,
     io::{Read, Write},
     iter::{once, repeat},
     path::Path,
@@ -182,7 +182,7 @@ fn flood<'a>(
                     let thread_id = thread_pool.current_thread_index().unwrap_or(DEFAULT_THREAD_ID);
                     send_tx(
                         pool(thread_id, tx_ix),
-                        &tx,
+                        tx,
                         status,
                         Arc::clone(histogram),
                     );
@@ -274,7 +274,7 @@ fn generate_txs(
         false => repeat(0).take(accounts.len()).collect(),
         true => accounts
             .par_iter()
-            .map(|account| get_nonce(&connection, &AccountId::from(account.public())))
+            .map(|account| get_nonce(connection, &AccountId::from(account.public())))
             .collect(),
     };
     let receiver = accounts
@@ -282,7 +282,7 @@ fn generate_txs(
         .expect("we should have some accounts available for this test, but the list is empty")
         .clone();
     let txs: Vec<_> = sign_transactions(
-        &connection,
+        connection,
         receiver,
         accounts.into_par_iter().zip(nonces),
         transfer_amount,
@@ -315,18 +315,17 @@ fn initialize_accounts(
         .unwrap(),
     };
     let source_account_id = AccountId::from(account.public());
-    let source_account_nonce = get_nonce(&connection, &source_account_id);
-    let total_amount =
-        estimate_amount(&connection, &account, source_account_nonce, transfer_amount);
+    let source_account_nonce = get_nonce(connection, &source_account_id);
+    let total_amount = estimate_amount(connection, &account, source_account_nonce, transfer_amount);
 
     assert!(
-        get_funds(&connection, &source_account_id)
+        get_funds(connection, &source_account_id)
             .ge(&(total_amount * u128::from(config.transactions))),
         "Account is too poor"
     );
 
     initialize_accounts_on_chain(
-        &connection,
+        connection,
         &account,
         source_account_nonce,
         accounts,

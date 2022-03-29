@@ -16,7 +16,7 @@ pub fn transfer(
     status: XtStatus,
 ) -> TransferTransaction {
     let xt = connection.balance_transfer(GenericAddress::Id(target.clone()), value);
-    send_xt(&connection, xt.hex_encode(), "transfer", status);
+    send_xt(connection, xt.hex_encode(), "transfer", status);
     xt
 }
 

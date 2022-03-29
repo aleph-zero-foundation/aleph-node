@@ -1,6 +1,5 @@
 use crate::{accounts::accounts_from_seeds, config::Config};
 use aleph_client::{create_connection, Connection, KeyPair};
-use primitives::Balance;
 use sp_core::Pair;
 use substrate_api_client::AccountId;
 
@@ -17,13 +16,4 @@ pub fn setup_for_transfer(config: &Config) -> (Connection, KeyPair, AccountId) {
     let connection = create_connection(node, *protocol).set_signer(from.clone());
     let to = AccountId::from(to.public());
     (connection, from, to)
-}
-
-pub fn locks(
-    connection: &Connection,
-    account_id: &AccountId,
-) -> Option<Vec<pallet_balances::BalanceLock<Balance>>> {
-    connection
-        .get_storage_map("Balances", "Locks", account_id, None)
-        .unwrap()
 }

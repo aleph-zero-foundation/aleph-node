@@ -44,6 +44,6 @@ fn main() {
         .expect("Could not send extrinsic");
 }
 
-fn keypair_from_string(seed: &String) -> sr25519::Pair {
-    sr25519::Pair::from_string(&seed, None).expect("Can't create pair from seed value")
+fn keypair_from_string(seed: &str) -> sr25519::Pair {
+    sr25519::Pair::from_string(seed, None).expect("Can't create pair from seed value")
 }

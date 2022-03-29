@@ -4,7 +4,7 @@ use codec::Decode;
 use log::{error, info};
 use substrate_api_client::ApiResult;
 
-use crate::Connection;
+use crate::{Connection, Header};
 
 pub fn wait_for_event<E: Decode + Clone, P: Fn(E) -> bool>(
     connection: &Connection,
@@ -25,4 +25,24 @@ pub fn wait_for_event<E: Decode + Clone, P: Fn(E) -> bool>(
             Err(why) => error!(target: "aleph-client", "Error {:?}", why),
         }
     }
+}
+
+pub fn wait_for_finalized_block(connection: &Connection, block_number: u32) -> anyhow::Result<u32> {
+    let (sender, receiver) = channel();
+    connection.subscribe_finalized_heads(sender)?;
+
+    while let Ok(header) = receiver
+        .recv()
+        .map(|h| serde_json::from_str::<Header>(&h).expect("Should deserialize header"))
+    {
+        info!(target: "aleph-client", "Received header for a block number {:?}", header.number);
+
+        if header.number.ge(&block_number) {
+            return Ok(block_number);
+        }
+    }
+
+    Err(anyhow::anyhow!(
+        "Waiting for finalization is no longer possible"
+    ))
 }
