@@ -10,7 +10,6 @@ use aleph_client::{
     balances_batch_transfer, create_connection, keypair_from_string,
     payout_stakers_and_assert_locked_balance, staking_batch_bond, staking_batch_nominate,
     staking_bond, staking_validate, wait_for_full_era_completion, wait_for_next_era, Connection,
-    Protocol,
 };
 use primitives::staking::{
     MAX_NOMINATORS_REWARDED_PER_VALIDATOR, MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND,
@@ -28,19 +27,18 @@ const TRANSFER_CALL_BATCH_LIMIT: usize = 1024;
 
 fn main() -> Result<(), anyhow::Error> {
     let address = "127.0.0.1:9944";
-    let protocol = Protocol::WS;
     let sudoer = AccountKeyring::Alice.pair();
 
     env_logger::init();
     info!("Starting benchmark with config ");
 
-    let connection = create_connection(address, protocol).set_signer(sudoer);
+    let connection = create_connection(address).set_signer(sudoer);
 
     let nominator_accounts = generate_nominator_accounts_with_minimal_bond(&connection);
-    let validators = set_validators(address, protocol);
+    let validators = set_validators(address);
     let nominee = &validators[0];
     nominate_validator_0(&connection, nominator_accounts.clone(), nominee);
-    wait_for_10_eras(address, protocol, &connection, nominee, nominator_accounts)?;
+    wait_for_10_eras(address, &connection, nominee, nominator_accounts)?;
 
     Ok(())
 }
@@ -51,7 +49,6 @@ pub fn derive_user_account(seed: u64) -> KeyPair {
 
 fn wait_for_10_eras(
     address: &str,
-    protocol: Protocol,
     connection: &Connection,
     nominee: &KeyPair,
     nominators: Vec<AccountId>,
@@ -66,7 +63,7 @@ fn wait_for_10_eras(
             current_era,
             current_era - 1
         );
-        let stash_connection = create_connection(address, protocol).set_signer(nominee.clone());
+        let stash_connection = create_connection(address).set_signer(nominee.clone());
         let stash_account = AccountId::from(nominee.public());
         payout_stakers_and_assert_locked_balance(
             &stash_connection,
@@ -108,12 +105,12 @@ fn nominate_validator_0(
         .for_each(|chunk| staking_batch_nominate(connection, chunk));
 }
 
-fn set_validators(address: &str, protocol: Protocol) -> Vec<KeyPair> {
+fn set_validators(address: &str) -> Vec<KeyPair> {
     let validators = (0..VALIDATOR_COUNT)
         .map(derive_user_account)
         .collect::<Vec<_>>();
     validators.par_iter().for_each(|account| {
-        let connection = create_connection(address, protocol).set_signer(account.clone());
+        let connection = create_connection(address).set_signer(account.clone());
         let controller_account_id = AccountId::from(account.public());
         staking_bond(
             &connection,
@@ -123,7 +120,7 @@ fn set_validators(address: &str, protocol: Protocol) -> Vec<KeyPair> {
         );
     });
     validators.par_iter().for_each(|account| {
-        let connection = create_connection(address, protocol).set_signer(account.clone());
+        let connection = create_connection(address).set_signer(account.clone());
         staking_validate(&connection, 10, XtStatus::InBlock);
     });
     validators

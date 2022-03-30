@@ -1,4 +1,4 @@
-use aleph_client::{from as parse_to_protocol, KeyPair, Protocol};
+use aleph_client::KeyPair;
 use clap::{Parser, Subcommand};
 use log::{error, info};
 use sp_core::Pair;
@@ -16,10 +16,6 @@ struct Config {
     /// WS endpoint address of the node to connect to
     #[clap(long, default_value = "127.0.0.1:9944")]
     pub node: String,
-
-    /// Protocol to be used for connecting to node (`ws` or `wss`)
-    #[clap(name = "use_ssl", parse(from_flag = parse_to_protocol))]
-    pub protocol: Protocol,
 
     /// The seed of the key to use for signing calls
     /// If not given, an user is prompted to provide seed
@@ -106,7 +102,6 @@ fn main() {
 
     let Config {
         node,
-        protocol,
         seed,
         command,
     } = Config::parse();
@@ -121,7 +116,7 @@ fn main() {
             }
         },
     };
-    let cfg = ConnectionConfig::new(node, seed.clone(), protocol);
+    let cfg = ConnectionConfig::new(node, seed.clone());
     match command {
         Command::ChangeValidators { validators } => change_validators(cfg.into(), validators),
         Command::PrepareKeys => {

@@ -123,15 +123,12 @@ fn check_treasury_balance(
 
 pub fn treasury_access(config: &Config) -> anyhow::Result<()> {
     let Config {
-        ref node,
-        seeds,
-        protocol,
-        ..
+        ref node, seeds, ..
     } = config;
 
     let proposer = accounts_from_seeds(seeds)[0].clone();
     let beneficiary = AccountId::from(proposer.public());
-    let connection = create_connection(node, *protocol).set_signer(proposer);
+    let connection = create_connection(node).set_signer(proposer);
 
     propose_treasury_spend(10u128, &beneficiary, &connection);
     propose_treasury_spend(100u128, &beneficiary, &connection);
