@@ -272,7 +272,7 @@ jobs:
       - name: Restore cache
         uses: ./.github/actions/restore-cache
         with:
-          cargo-targets: local-tests/send-runtime/target/
+          cargo-targets: bin/cliain/target/
 
       - name: Download all artifacts
         uses: actions/download-artifact@v2

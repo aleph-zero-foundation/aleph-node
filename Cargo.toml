@@ -13,7 +13,6 @@ exclude = [
   "flooder",
   "e2e-tests",
   "aleph-client",
-  "local-tests/send-runtime",
   "fork-off",
   "benches/payout-stakers",
   "bin/cliain",

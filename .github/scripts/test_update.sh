@@ -29,7 +29,7 @@ chmod +x $OLD_BINARY $NEW_BINARY
 
 pip install -r requirements.txt
 
-pushd send-runtime/
+pushd ../bin/cliain/
 cargo build --release
 popd
 

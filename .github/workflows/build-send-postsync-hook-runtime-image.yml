@@ -3,8 +3,10 @@ name: Build, send and deploy postsync hook image.
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     paths:
-      - 'local-tests/send-runtime/**'
+      - 'bin/cliain/**'
       - 'docker-runtime-hook/**'
 
 concurrency:
@@ -13,7 +15,7 @@ concurrency:
 
 jobs:
   build:
-    name: Save send-runtime binary as an artifact
+    name: Save cliain binary as an artifact
     runs-on: ubuntu-latest
     env:
       CARGO_INCREMENTAL: 0
@@ -33,7 +35,7 @@ jobs:
 
       - name: Build binary
         run: |
-          pushd local-tests/send-runtime/
+          pushd bin/cliain/
           cargo build --release
           popd
 

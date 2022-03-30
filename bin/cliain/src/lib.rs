@@ -1,21 +1,19 @@
 mod keys;
+mod runtime;
 mod secret;
 mod staking;
 mod transfer;
 mod validators;
 
-use aleph_client::{create_connection, Connection, KeyPair};
-pub use keys::{
-    prepare as prepare_keys, rotate_keys_command as rotate_keys, set_keys_command as set_keys,
-};
+pub use keys::{prepare_keys, rotate_keys, set_keys};
+pub use runtime::update_runtime;
 pub use secret::prompt_password_hidden;
+pub use staking::{bond, force_new_era, set_staking_limits, validate};
+pub use transfer::transfer;
+pub use validators::change_validators;
+
+use aleph_client::{create_connection, Connection, KeyPair};
 use sp_core::Pair;
-pub use staking::{
-    bond_command as bond, force_new_era_command as force_new_era,
-    set_staking_limits_command as set_staking_limits, validate_command as validate,
-};
-pub use transfer::transfer_command as transfer;
-pub use validators::change as change_validators;
 
 pub struct ConnectionConfig {
     node_endpoint: String,

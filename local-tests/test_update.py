@@ -16,8 +16,8 @@ oldbin = abspath(os.getenv('OLD_BINARY', join(workdir, 'aleph-node-old')))
 newbin = abspath(os.getenv('NEW_BINARY', join(workdir, 'aleph-node-new')))
 # Path to the post-update compiled runtime:
 runtime = abspath(os.getenv('NEW_RUNTIME', join(workdir, 'aleph_runtime.compact.wasm')))
-# Path to the send-runtime binary (which lives in aleph-node/local-tests/send-runtime):
-SEND_RUNTIME = abspath('send-runtime/target/release/send_runtime')
+# Path to cliain:
+CLIAIN = abspath('../bin/cliain/target/release/cliain')
 
 
 def query_runtime_version(nodes):
@@ -58,8 +58,8 @@ chain.set_flags('validator',
 print('Starting the chain with old binary')
 chain.start('old')
 
-print('Waiting 30s')
-sleep(30)
+print('Waiting 90s')
+sleep(90)
 
 check_finalized(chain)
 query_runtime_version(chain)
@@ -80,7 +80,9 @@ oldver = query_runtime_version(chain)
 
 print('Submitting extrinsic with new runtime')
 subprocess.check_call(
-    [SEND_RUNTIME, '--url', 'localhost:9945', '--sudo-phrase', phrases[0], runtime])
+    [CLIAIN, '--node', 'localhost:9945', '--seed', phrases[0],
+        'update-runtime', '--runtime', runtime],
+    env=dict(os.environ, RUST_LOG="warn"))
 
 print('Waiting a bit')
 sleep(10)

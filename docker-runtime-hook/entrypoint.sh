@@ -3,7 +3,7 @@
 set -e
 
 NETRC_CREDS="./_netrc"
-RUNTIME_TOOL="./send_runtime"
+CLIAIN="./cliain"
 SUDO_PHRASE=${RUNTIME_PHRASE}
 
 RPC_ADDR="rpc.dev.azero.dev"
@@ -33,7 +33,8 @@ if (( "$NEW_VER" > "$OLD_VER" )); then
     NEW_RUNTIME=runtime/$(ls runtime)
 
     echo -n $(date +"%d-%b-%y %T") "   Sending runtime update... "
-    $RUNTIME_TOOL --url $WS_ADDR --sudo-phrase "$SUDO_PHRASE" $NEW_RUNTIME
+    export RUST_LOG="warn"
+    $CLIAIN --node $WS_ADDR --seed "$SUDO_PHRASE" update-runtime --runtime $NEW_RUNTIME
     echo "completed"
     echo -n $(date +"%d-%b-%y %T") "   Checking new runtime version on devnet: "
     UPD_VER=$(curl -sS -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "state_getRuntimeVersion"}' $RPC_ADDR | jq .result.specVersion)

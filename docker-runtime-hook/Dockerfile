@@ -8,8 +8,8 @@ RUN apt update && \
 
 WORKDIR aleph-runtime
 
-COPY local-tests/send-runtime/target/release/send_runtime /aleph-runtime/send_runtime
-RUN chmod +x /aleph-runtime/send_runtime
+COPY bin/cliain/target/release/cliain /aleph-runtime/cliain
+RUN chmod +x /aleph-runtime/cliain
 
 COPY docker-runtime-hook/entrypoint.sh /aleph-runtime/entrypoint.sh
 RUN chmod +x /aleph-runtime/entrypoint.sh

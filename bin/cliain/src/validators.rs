@@ -4,7 +4,7 @@ use substrate_api_client::{AccountId, XtStatus};
 
 /// Change validators to the provided list by calling the provided node.
 /// The keypair has to be capable of signing sudo calls.
-pub fn change(root_connection: Connection, validators: Vec<String>) {
+pub fn change_validators(root_connection: Connection, validators: Vec<String>) {
     let validators: Vec<_> = validators
         .into_iter()
         .map(|validator| AccountId::from_ss58check(&validator).expect("Address is valid"))

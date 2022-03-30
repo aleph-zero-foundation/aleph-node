@@ -7,7 +7,7 @@ use substrate_api_client::AccountId;
 
 use cliain::{
     bond, change_validators, force_new_era, prepare_keys, prompt_password_hidden, rotate_keys,
-    set_keys, set_staking_limits, transfer, validate, ConnectionConfig,
+    set_keys, set_staking_limits, transfer, update_runtime, validate, ConnectionConfig,
 };
 
 #[derive(Debug, Parser, Clone)]
@@ -89,6 +89,13 @@ enum Command {
         to_account: String,
     },
 
+    /// Send new runtime (requires sudo account)
+    UpdateRuntime {
+        #[clap(long)]
+        /// Path to WASM file with runtime
+        runtime: String,
+    },
+
     /// Call staking validate call for a given controller
     Validate {
         /// Validator commission percentage
@@ -151,6 +158,7 @@ fn main() {
                 .public()
                 .to_string()
         ),
+        Command::UpdateRuntime { runtime } => update_runtime(cfg.into(), runtime),
     }
 }
 
