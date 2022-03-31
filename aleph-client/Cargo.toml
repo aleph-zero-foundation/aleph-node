@@ -1,26 +1,23 @@
 [package]
 name = "aleph_client"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 
-# client
-[dependencies.substrate-api-client]
-git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git"
-tag = "polkadot-v0.9.13.b2bfc0c3"
-features = ["staking-xt"]
 
 [dependencies]
 # Substrate dependencies
 sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", features = ["full_crypto"] }
 sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", default-features = false }
-pallet-staking = {git = "https://github.com/paritytech/substrate.git",branch = "polkadot-v0.9.13", default-features = false }
-pallet-balances = {git = "https://github.com/paritytech/substrate.git",branch = "polkadot-v0.9.13", default-features = false }
+pallet-staking = { git = "https://github.com/paritytech/substrate.git",branch = "polkadot-v0.9.13", default-features = false }
+pallet-balances = { git = "https://github.com/paritytech/substrate.git",branch = "polkadot-v0.9.13", default-features = false }
+
+substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", tag = "polkadot-v0.9.13.b2bfc0c3", features = ["staking-xt"] }
 
 # other dependencies
 log = "0.4"
 serde_json = { version = "1.0" }
 anyhow = "1.0"
-codec = { package = 'parity-scale-codec', version = "2.0.0", default-features = false,  features = ['derive']}
+codec = { package = 'parity-scale-codec', version = "2.0.0", default-features = false,  features = ['derive'] }
 
 [features]
 default = ["std"]

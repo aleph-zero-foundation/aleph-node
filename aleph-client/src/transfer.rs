@@ -16,7 +16,7 @@ pub fn transfer(
     status: XtStatus,
 ) -> TransferTransaction {
     let xt = connection.balance_transfer(GenericAddress::Id(target.clone()), value);
-    send_xt(connection, xt.hex_encode(), "transfer", status);
+    send_xt(connection, xt.clone(), Some("transfer"), status);
     xt
 }
 
@@ -37,8 +37,8 @@ pub fn batch_transfer(connection: &Connection, account_keys: Vec<AccountId>, end
     let xt = compose_extrinsic!(connection, "Utility", "batch", batch_endow);
     send_xt(
         connection,
-        xt.hex_encode(),
-        "batch of endow balances",
+        xt,
+        Some("batch of endow balances"),
         XtStatus::InBlock,
     );
 }

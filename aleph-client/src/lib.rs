@@ -1,9 +1,13 @@
+use codec::Encode;
 use std::{thread::sleep, time::Duration};
 
 use log::{info, warn};
-use sp_core::{sr25519, Pair};
+use sp_core::{sr25519, Pair, H256};
 use sp_runtime::{generic::Header as GenericHeader, traits::BlakeTwo256};
-use substrate_api_client::{rpc::ws_client::WsRpcClient, Api, RpcClient, XtStatus};
+use substrate_api_client::{
+    rpc::ws_client::WsRpcClient, std::error::Error, Api, ApiResult, RpcClient,
+    UncheckedExtrinsicV4, XtStatus,
+};
 
 pub use account::{get_free_balance, get_locked_balance, locks};
 pub use fee::{get_next_fee_multiplier, get_tx_fee_info, FeeInfo};
@@ -58,29 +62,29 @@ pub fn create_connection(address: &str) -> Connection {
 }
 
 enum Protocol {
-    WS,
-    WSS,
+    Ws,
+    Wss,
 }
 
 impl Default for Protocol {
     fn default() -> Self {
-        Protocol::WS
+        Protocol::Ws
     }
 }
 
 impl ToString for Protocol {
     fn to_string(&self) -> String {
         match self {
-            Protocol::WS => String::from("ws://"),
-            Protocol::WSS => String::from("wss://"),
+            Protocol::Ws => String::from("ws://"),
+            Protocol::Wss => String::from("wss://"),
         }
     }
 }
 
 /// Unless `address` already contains protocol, we prepend to it `ws://`.
 fn ensure_protocol(address: &str) -> String {
-    if address.starts_with(&Protocol::WS.to_string())
-        || address.starts_with(&Protocol::WSS.to_string())
+    if address.starts_with(&Protocol::Ws.to_string())
+        || address.starts_with(&Protocol::Wss.to_string())
     {
         return address.to_string();
     }
@@ -105,21 +109,40 @@ pub fn create_custom_connection<Client: FromStr + RpcClient>(
     }
 }
 
-pub fn send_xt(connection: &Connection, xt: String, xt_name: &'static str, tx_status: XtStatus) {
-    let block_hash = connection
-        .send_extrinsic(xt, tx_status)
-        .expect("Could not send extrinsic")
-        .expect("Could not get tx hash");
-    let block_number = connection
-        .get_header::<Header>(Some(block_hash))
-        .expect("Could not fetch header")
-        .expect("Block exists; qed")
-        .number;
-    info!(
-        target: "aleph-client",
-        "Transaction {} was included in block {}.",
-        xt_name, block_number
-    );
+/// `panic`able utility wrapper for `try_send_xt`.
+pub fn send_xt<T: Encode>(
+    connection: &Connection,
+    xt: UncheckedExtrinsicV4<T>,
+    xt_name: Option<&'static str>,
+    xt_status: XtStatus,
+) -> Option<H256> {
+    try_send_xt(connection, xt, xt_name, xt_status).expect("Should manage to send extrinsic")
+}
+
+/// Sends transaction `xt` using `connection`. If `tx_status` is either `Finalized` or `InBlock`
+/// additionally returns hash of the containing block. `xt_name` is used only for logging purposes.
+/// Recoverable.
+pub fn try_send_xt<T: Encode>(
+    connection: &Connection,
+    xt: UncheckedExtrinsicV4<T>,
+    xt_name: Option<&'static str>,
+    xt_status: XtStatus,
+) -> ApiResult<Option<H256>> {
+    let hash = connection
+        .send_extrinsic(xt.hex_encode(), xt_status)?
+        .ok_or_else(|| Error::Other(String::from("Could not get tx/block hash").into()))?;
+
+    match xt_status {
+        XtStatus::Finalized | XtStatus::InBlock => {
+            info!(target: "aleph-client",
+                "Transaction `{}` was included in block with hash {}.",
+                xt_name.unwrap_or_default(), hash);
+            Ok(Some(hash))
+        }
+        // Other variants either do not return (see https://github.com/scs/substrate-api-client/issues/175)
+        // or return xt hash, which is kinda useless here.
+        _ => Ok(None),
+    }
 }
 
 pub fn keypair_from_string(seed: &str) -> KeyPair {

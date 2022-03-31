@@ -22,7 +22,7 @@ pub fn bond(
         initial_stake,
         RewardDestination::Staked,
     );
-    send_xt(connection, xt.hex_encode(), "bond", status);
+    send_xt(connection, xt, Some("bond"), status);
 }
 
 pub fn validate(connection: &Connection, validator_commission_percentage: u8, status: XtStatus) {
@@ -31,7 +31,7 @@ pub fn validate(connection: &Connection, validator_commission_percentage: u8, st
         commission: Perbill::from_percent(validator_commission_percentage as u32),
     };
     let xt = compose_extrinsic!(connection, "Staking", "validate", prefs);
-    send_xt(connection, xt.hex_encode(), "validate", status);
+    send_xt(connection, xt, Some("validate"), status);
 }
 
 pub fn set_staking_limits(
@@ -51,18 +51,13 @@ pub fn set_staking_limits(
         0_u8
     );
     let xt = compose_extrinsic!(root_connection, "Sudo", "sudo", set_staking_limits_call);
-    send_xt(
-        root_connection,
-        xt.hex_encode(),
-        "set_staking_limits",
-        status,
-    );
+    send_xt(root_connection, xt, Some("set_staking_limits"), status);
 }
 
 pub fn force_new_era(root_connection: &Connection, status: XtStatus) {
     let force_new_era_call = compose_call!(root_connection.metadata, "Staking", "force_new_era");
     let xt = compose_extrinsic!(root_connection, "Sudo", "sudo", force_new_era_call);
-    send_xt(root_connection, xt.hex_encode(), "force_new_era", status);
+    send_xt(root_connection, xt, Some("force_new_era"), status);
 }
 
 pub fn get_current_era(connection: &Connection) -> u32 {
@@ -112,8 +107,8 @@ pub fn payout_stakers(
 
     send_xt(
         stash_connection,
-        xt.hex_encode(),
-        "payout stakers",
+        xt,
+        Some("payout stakers"),
         XtStatus::InBlock,
     );
 }
@@ -175,8 +170,8 @@ pub fn batch_bond(
     let xt = compose_extrinsic!(connection, "Utility", "batch", batch_bond_calls);
     send_xt(
         connection,
-        xt.hex_encode(),
-        "batch of bond calls",
+        xt,
+        Some("batch of bond calls"),
         XtStatus::InBlock,
     );
 }
@@ -185,7 +180,7 @@ pub fn nominate(connection: &Connection, nominee_key_pair: &KeyPair) {
     let nominee_account_id = AccountId::from(nominee_key_pair.public());
 
     let xt = connection.staking_nominate(vec![GenericAddress::Id(nominee_account_id)]);
-    send_xt(connection, xt.hex_encode(), "nominate", XtStatus::InBlock);
+    send_xt(connection, xt, Some("nominate"), XtStatus::InBlock);
 }
 
 pub fn batch_nominate(
@@ -215,8 +210,8 @@ pub fn batch_nominate(
     let xt = compose_extrinsic!(connection, "Utility", "batch", batch_nominate_calls);
     send_xt(
         connection,
-        xt.hex_encode(),
-        "batch of nominate calls",
+        xt,
+        Some("batch of nominate calls"),
         XtStatus::InBlock,
     );
 }

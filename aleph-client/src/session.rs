@@ -50,17 +50,12 @@ pub fn change_members(sudo_connection: &Connection, new_members: Vec<AccountId>,
         call,
         0_u64
     );
-    send_xt(
-        sudo_connection,
-        xt.hex_encode(),
-        "sudo_unchecked_weight",
-        status,
-    );
+    send_xt(sudo_connection, xt, Some("sudo_unchecked_weight"), status);
 }
 
 pub fn set_keys(connection: &Connection, new_keys: Keys, status: XtStatus) {
     let xt = compose_extrinsic!(connection, "Session", "set_keys", new_keys, 0u8);
-    send_xt(connection, xt.hex_encode(), "set_keys", status);
+    send_xt(connection, xt, Some("set_keys"), status);
 }
 
 pub fn get_current(connection: &Connection) -> u32 {

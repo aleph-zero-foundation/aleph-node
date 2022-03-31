@@ -128,6 +128,6 @@ fn fill_blocks(target_ratio: u32, blocks: u32, connection: &Connection) {
             "fill_block",
             target_ratio * 10_000_000
         );
-        send_xt(connection, xt.hex_encode(), "fill block", XtStatus::InBlock);
+        send_xt(connection, xt, Some("fill block"), XtStatus::InBlock);
     }
 }
