@@ -33,7 +33,7 @@ runs:
         echo "SCCACHE_PATH=${{ inputs.sccache-path }}" >> $GITHUB_ENV
 
     - name: Restore cargo cache
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           ~/.cargo/bin/
@@ -42,7 +42,8 @@ runs:
           ~/.cargo/git/db/
           target/
           ${{ inputs.cargo-targets }}
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          ${{ inputs.sccache-path }}
+        key: ${{ runner.os }}-cargo-v1-${{ hashFiles('**/Cargo.lock') }} # bump cache version if you need to clear it, see https://github.com/actions/cache/issues/485 and https://stackoverflow.com/questions/63521430/clear-cache-in-github-actions
 
     - name: Install sccache for ubuntu-latest
       shell: bash
@@ -55,12 +56,6 @@ runs:
         mv -f $SCCACHE_FILE/sccache $HOME/.local/bin/sccache
 
         echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-    - name: Restore sccache
-      uses: actions/cache@v2
-      with:
-        path: ${{ inputs.sccache-path }}
-        key: ${{ runner.os }}-sccache-${{ hashFiles('**/Cargo.lock') }}
 
     - name: Start sccache server
       shell: bash

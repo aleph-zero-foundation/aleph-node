@@ -25,7 +25,7 @@ jobs:
 
       - name: Install WASM target
         run: rustup target add wasm32-unknown-unknown
-        
+
       - name: Restore cache
         uses: ./.github/actions/restore-cache
 
@@ -45,14 +45,14 @@ jobs:
           command: clippy
           args: -- --no-deps -D warnings
 
-      - name: Stop cache
-        uses: ./.github/actions/post-cache
-
       - name: Run Unit Test Suite
         uses: actions-rs/cargo@v1
         with:
           command: test
           args: --lib
+
+      - name: Stop sccache
+        uses: ./.github/actions/post-cache
 
       - name: Send Slack Notification
         uses: rtCamp/action-slack-notify@v2
