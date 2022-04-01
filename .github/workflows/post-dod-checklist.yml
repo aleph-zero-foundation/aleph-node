@@ -14,4 +14,5 @@ jobs:
             - [ ] Infrastructure updated accordingly
             - [ ] Updated existing documentation
             - [ ] New documentation created
-            - [ ] Bump spec_version and transaction_version if relevant
+            - [ ] Bump `spec_version` and `transaction_version` if relevant
+            - [ ] Bump `aleph-client` version if relevant

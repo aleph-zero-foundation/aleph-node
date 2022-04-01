@@ -18,4 +18,5 @@ Please delete options that are not relevant.
 - [ ] Infrastructure updated accordingly
 - [ ] I have made corresponding changes to the documentation
 - [ ] New documentation created
-- [ ] Bump spec_version and transaction_version if relevant
+- [ ] Bump `spec_version` and `transaction_version` if relevant
+- [ ] Bump `aleph-client` version if relevant
