@@ -1,13 +1,12 @@
 use std::{env, time::Instant};
 
 use clap::Parser;
-use log::info;
-
 use aleph_e2e_client::{
     test_batch_transactions, test_change_validators, test_channeling_fee, test_fee_calculation,
     test_finalization, test_staking_era_payouts, test_staking_new_validator, test_token_transfer,
     test_treasury_access, Config,
 };
+use log::info;
 
 fn main() -> anyhow::Result<()> {
     init_env();

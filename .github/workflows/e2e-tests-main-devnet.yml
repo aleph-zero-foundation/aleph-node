@@ -158,6 +158,12 @@ jobs:
         timeout-minutes: 15
         run: ./.github/scripts/run_e2e_tests.sh
 
+      - name: Print debug if failed
+        if: ${{ failure() }}
+        run: |
+          cd bin/cliain
+          cargo run -- --seed //Alice debug-storage
+
 
   push-image:
     needs: [run-e2e-tests]

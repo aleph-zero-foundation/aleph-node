@@ -1,10 +1,9 @@
-use std::{thread, thread::sleep, time::Duration};
-
 use codec::{Compact, Decode};
 use frame_support::PalletId;
 use log::info;
 use sp_core::Pair;
 use sp_runtime::{traits::AccountIdConversion, AccountId32, MultiAddress};
+use std::{thread, thread::sleep, time::Duration};
 use substrate_api_client::{
     compose_extrinsic, AccountId, Balance, GenericAddress, UncheckedExtrinsicV4, XtStatus,
 };

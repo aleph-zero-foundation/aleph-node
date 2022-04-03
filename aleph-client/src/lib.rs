@@ -9,6 +9,7 @@ use substrate_api_client::{
     UncheckedExtrinsicV4, XtStatus,
 };
 
+pub use debug::print_storages;
 pub use account::{get_free_balance, get_locked_balance, locks};
 pub use fee::{get_next_fee_multiplier, get_tx_fee_info, FeeInfo};
 pub use rpc::{rotate_keys, rotate_keys_raw_result};
@@ -30,6 +31,7 @@ pub use transfer::{
 pub use waiting::{wait_for_event, wait_for_finalized_block};
 
 mod account;
+mod debug;
 mod fee;
 mod rpc;
 mod session;
