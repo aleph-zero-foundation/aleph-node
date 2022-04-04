@@ -1,6 +1,6 @@
 [package]
 name = "aleph_client"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 
 
@@ -17,6 +17,7 @@ substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substra
 primitives = { path = "../primitives", default-features = false }
 
 # other dependencies
+hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 log = "0.4"
 serde_json = { version = "1.0" }
 anyhow = "1.0"

@@ -7,7 +7,7 @@ use substrate_api_client::{
     compose_call, compose_extrinsic, AccountId, Balance, GenericAddress, XtStatus,
 };
 
-use crate::{get_locked_balance, send_xt, wait_for_session, BlockNumber, Connection, KeyPair};
+use crate::{locks, send_xt, wait_for_session, BlockNumber, Connection, KeyPair};
 
 pub fn bond(
     connection: &Connection,
@@ -119,24 +119,17 @@ pub fn payout_stakers_and_assert_locked_balance(
     stash_account: &AccountId,
     era: BlockNumber,
 ) {
-    let locked_stash_balance_before_payout = accounts_to_check_balance
-        .iter()
-        .map(|account| get_locked_balance(account, stash_connection))
-        .collect::<Vec<_>>();
+    let locked_stash_balances_before_payout = locks(stash_connection, accounts_to_check_balance);
     payout_stakers(stash_connection, stash_account, era - 1);
-    let locked_stash_balance_after_payout = accounts_to_check_balance
-        .iter()
-        .map(|account| get_locked_balance(account, stash_connection))
-        .collect::<Vec<_>>();
-    locked_stash_balance_before_payout.iter()
-        .zip(locked_stash_balance_after_payout.iter())
+    let locked_stash_balances_after_payout = locks(stash_connection, accounts_to_check_balance);
+    locked_stash_balances_before_payout.iter()
+        .zip(locked_stash_balances_after_payout.iter())
         .zip(accounts_to_check_balance.iter())
-        .for_each(|((balance_before, balance_after), account_id)| {
-            assert!(balance_after[0].amount > balance_before[0].amount,
+        .for_each(|((balances_before, balances_after), account_id)| {
+            assert!(balances_after[0].amount > balances_before[0].amount,
                     "Expected payout to be positive in locked balance for account {}. Balance before: {}, balance after: {}",
-                    account_id, balance_before[0].amount, balance_after[0].amount);
-        }
-        );
+                    account_id, balances_before[0].amount, balances_after[0].amount);
+        });
 }
 
 pub fn batch_bond(

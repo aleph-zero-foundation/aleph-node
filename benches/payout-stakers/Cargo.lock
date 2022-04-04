@@ -93,13 +93,17 @@ dependencies = [
 
 [[package]]
 name = "aleph_client"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "anyhow",
+ "hex",
  "log",
+ "pallet-aleph",
  "pallet-balances",
  "pallet-staking",
+ "pallet-treasury",
  "parity-scale-codec",
+ "primitives",
  "serde_json",
  "sp-core",
  "sp-runtime",
@@ -1494,6 +1498,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-aleph"
+version = "0.2.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-session",
+ "parity-scale-codec",
+ "primitives",
+ "scale-info",
+ "serde",
+ "sp-io",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-authorship"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.13#afb74de23dfe2994e7ce38c0870efb9734e966f7"
@@ -1600,6 +1620,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-treasury"
+version = "4.0.0-dev"
+source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.13#afb74de23dfe2994e7ce38c0870efb9734e966f7"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "impl-trait-for-tuples",
+ "pallet-balances",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "parity-scale-codec"
 version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1695,6 +1731,7 @@ dependencies = [
  "aleph_client",
  "anyhow",
  "env_logger",
+ "hex",
  "log",
  "parity-scale-codec",
  "primitives",
@@ -2999,7 +3036,7 @@ version = "1.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ee73e6e4924fe940354b8d4d98cad5231175d615cd855b758adc658c0aac6a0"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if 0.1.10",
  "rand 0.8.5",
  "static_assertions",
 ]
