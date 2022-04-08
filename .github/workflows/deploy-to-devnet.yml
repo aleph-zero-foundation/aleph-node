@@ -76,12 +76,12 @@ jobs:
           else
             echo "Chainspec doesn't exist"
 
-            docker run -it --env RUST_BACKTRACE=1 --entrypoint "/usr/local/bin/aleph-node" public.ecr.aws/p6e8q1z1/aleph-node:${COMMIT_ID} bootstrap-chain --raw --base-path /data --chain-id a0dnet1 --account-ids 5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH,5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o,5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9,5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK,5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW,5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR,5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY,5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ,5CUnSsgAyLND3bxxnfNhgWXSe9Wn676JzLpGLgyJv858qhoX,5CVKn7HAZW1Ky4r7Vkgsr7VEW88C2sHgUNDiwHY9Ct2hjU8q --sudo-account-id 5F4SvwaUEQubiqkPF8YnRfcN77cLsT2DfG4vFeQmSXNjR7hD > chainspec.skeleton.json
+            docker run -i --env RUST_BACKTRACE=1 --entrypoint "/usr/local/bin/aleph-node" public.ecr.aws/p6e8q1z1/aleph-node:${COMMIT_ID} bootstrap-chain --raw --base-path /data --chain-id a0dnet1 --account-ids 5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH,5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o,5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9,5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK,5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW,5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR,5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY,5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ,5CUnSsgAyLND3bxxnfNhgWXSe9Wn676JzLpGLgyJv858qhoX,5CVKn7HAZW1Ky4r7Vkgsr7VEW88C2sHgUNDiwHY9Ct2hjU8q --sudo-account-id 5F4SvwaUEQubiqkPF8YnRfcN77cLsT2DfG4vFeQmSXNjR7hD > chainspec.skeleton.json
 
             aws s3 cp chainspec.skeleton.json s3://alephzero-devnet-eu-central-1-keys-bucket/forks/chainspec-${COMMIT_ID}.json
           fi
 
-          docker run -it -v $(pwd):/app public.ecr.aws/p6e8q1z1/fork-off:latest --http-rpc-endpoint=https://rpc.test.azero.dev --initial-spec-path=chainspec.skeleton.json --combined-spec-path=chainspec.json
+          docker run -i -v $(pwd):/app public.ecr.aws/p6e8q1z1/fork-off:latest --http-rpc-endpoint=https://rpc.test.azero.dev --initial-spec-path=chainspec.skeleton.json --combined-spec-path=chainspec.json
 
           aws s3 cp chainspec.json s3://alephzero-devnet-eu-central-1-keys-bucket/chainspec.json
 
