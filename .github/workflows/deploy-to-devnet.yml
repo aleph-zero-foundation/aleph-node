@@ -19,34 +19,24 @@ jobs:
       name: devnet
     runs-on: ubuntu-latest
     env:
-      AWS_REGION: us-east-1 # this region is used by all public ECR repos
+      AWS_REGION: eu-central-1
     steps:
       - name: GIT | Checkout
         uses: actions/checkout@v2
-        
+
       - name: GIT | Get branch info & current commit sha.
         id: vars
         shell: bash
         run: |
           echo "##[set-output name=branch;]$(echo ${GITHUB_REF##*/})"
           echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
-          
-      - name: Configure AWS credentials                          
-        uses: aws-actions/configure-aws-credentials@v1           
-        with:                                                    
-          aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}      
-          aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to Public Amazon ECR
-        id: login-public-ecr                        
-        uses: docker/login-action@v1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
         with:
-          registry: public.ecr.aws
-          username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
-          password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
-        env:
-          AWS_REGION: us-east-1
+          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: GIT | Checkout aleph-apps repo
         uses: actions/checkout@master
@@ -60,20 +50,70 @@ jobs:
         with:
           kustomize-version: "3.8.6"
 
-      - name: Update aleph-node docker image and trigger ArgoCD deploy for Devnet                                                                      
-        env:                                                                                                          
-          RELEASE_IMAGE: public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.vars.outputs.sha_short }}
-          REGIONS_AWS: 'eu-central-1'
-        run: |
-          IFS="," read -a region_array <<< ${{ env.REGIONS_AWS }}
-          export aleph_path=$(pwd)
-          for i in "${region_array[@]}"; do
-            
-            # Deploy new image version for validator
-            cd ${aleph_path}/aleph-apps/aleph-node-validators/overlays/devnet/${i}
-            kustomize edit set image "aleph-node-validator-image-placeholder=${{ env.RELEASE_IMAGE }}"
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v2.0
 
+      - name: Install yq
+        id: setup-yq
+        uses: shiipou/setup-yq-action@v2.0.1
+
+      - name: Run fork-off update
+        env:
+          RELEASE_TAG: ${{ steps.vars.outputs.sha_short }}
+
+        run: |
+          #!/bin/bash
+
+          SYSTEM_VERSION=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' https://rpc.test.azero.dev | jq -r '.result')
+          SUFFIX="-x86_64-linux-gnu"
+          TMP_COMMIT_ID=${SYSTEM_VERSION/%$SUFFIX}
+          COMMIT_ID=${TMP_COMMIT_ID: -7}
+          echo $COMMIT_ID
+
+          if aws s3api head-object --bucket alephzero-devnet-eu-central-1-keys-bucket --key forks/chainspec-${COMMIT_ID}.json; then
+            echo "Chainspec exists"
+            aws s3 cp s3://alephzero-devnet-eu-central-1-keys-bucket/forks/chainspec-${COMMIT_ID}.json chainspec.skeleton.json
+          else
+            echo "Chainspec doesn't exist"
+
+            docker run -it --env RUST_BACKTRACE=1 --entrypoint "/usr/local/bin/aleph-node" public.ecr.aws/p6e8q1z1/aleph-node:${COMMIT_ID} bootstrap-chain --raw --base-path /data --chain-id a0dnet1 --account-ids 5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH,5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o,5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9,5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK,5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW,5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR,5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY,5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ,5CUnSsgAyLND3bxxnfNhgWXSe9Wn676JzLpGLgyJv858qhoX,5CVKn7HAZW1Ky4r7Vkgsr7VEW88C2sHgUNDiwHY9Ct2hjU8q --sudo-account-id 5F4SvwaUEQubiqkPF8YnRfcN77cLsT2DfG4vFeQmSXNjR7hD > chainspec.skeleton.json
+
+            aws s3 cp chainspec.skeleton.json s3://alephzero-devnet-eu-central-1-keys-bucket/forks/chainspec-${COMMIT_ID}.json
+          fi
+
+          docker run -it -v $(pwd):/app public.ecr.aws/p6e8q1z1/fork-off:latest --http-rpc-endpoint=https://rpc.test.azero.dev --initial-spec-path=chainspec.skeleton.json --combined-spec-path=chainspec.json
+
+          aws s3 cp chainspec.json s3://alephzero-devnet-eu-central-1-keys-bucket/chainspec.json
+
+          #stop and clean devnet
+
+          aws eks --region eu-central-1 update-kubeconfig --name alephzero-devnet-eu-central-1-eks
+
+          kubectl delete sts aleph-node-validator -n devnet
+          kubectl delete pvc -l app=aleph-node-validator -n devnet
+
+          while [ `kubectl get pods -n devnet --no-headers | grep aleph-node-validator | grep Running | wc -l` -gt 0 ];
+          do
+            echo "Waiting for pods to be stopped"
+            sleep 1
           done
+
+          cd aleph-apps/aleph-node-validators/overlays/devnet/eu-central-1
+          kustomize edit set image "aleph-node-validator-image-placeholder=${COMMIT_ID}"
+          kustomize edit remove resource send-runtime-hook.yaml
+          kustomize build . | kubectl apply -f -
+
+          while [ `kubectl get pods -n devnet --no-headers | grep aleph-node-validator | grep Running | wc -l` -lt 10 ];
+          do
+            echo "Waiting for pods to be running"
+            sleep 1
+          done
+
+          sleep 600
+
+          kustomize edit set image "aleph-node-validator-image-placeholder=${RELEASE_TAG}"
+          kustomize edit add resource send-runtime-hook.yaml
+          kustomize build . | kubectl apply -f -
 
       - name: GIT | Commit changes to aleph-apps repository.
         uses: EndBug/add-and-commit@v5.1.0
