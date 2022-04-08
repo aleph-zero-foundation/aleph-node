@@ -53,16 +53,16 @@ jobs:
       - name: Setup kubectl
         uses: azure/setup-kubectl@v2.0
 
-      - name: Install yq
-        id: setup-yq
-        uses: shiipou/setup-yq-action@v2.0.1
-
       - name: Run fork-off update
         env:
           RELEASE_TAG: ${{ steps.vars.outputs.sha_short }}
 
         run: |
           #!/bin/bash
+
+          #setup jq
+          curl -sS https://webinstall.dev/jq | bash
+          export PATH=${HOME}/.local/bin:"$PATH"
 
           SYSTEM_VERSION=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' https://rpc.test.azero.dev | jq -r '.result')
           SUFFIX="-x86_64-linux-gnu"
