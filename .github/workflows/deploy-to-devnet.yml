@@ -99,7 +99,7 @@ jobs:
           done
 
           cd aleph-apps/aleph-node-validators/overlays/devnet/eu-central-1
-          kustomize edit set image "aleph-node-validator-image-placeholder=${COMMIT_ID}"
+          kustomize edit set image "aleph-node-validator-image-placeholder=public.ecr.aws/p6e8q1z1/aleph-node:${COMMIT_ID}"
           kustomize edit remove resource send-runtime-hook.yaml
           kustomize build . | kubectl apply -f -
 
@@ -111,7 +111,7 @@ jobs:
 
           sleep 600
 
-          kustomize edit set image "aleph-node-validator-image-placeholder=${RELEASE_TAG}"
+          kustomize edit set image "aleph-node-validator-image-placeholder=public.ecr.aws/p6e8q1z1/aleph-node:${RELEASE_TAG}"
           kustomize edit add resource send-runtime-hook.yaml
           kustomize build . | kubectl apply -f -
 
