@@ -60,7 +60,7 @@ jobs:
         run: |
           #!/bin/bash
 
-          #setup jq
+          # setup jq
           curl -sS https://webinstall.dev/jq | bash
           export PATH=${HOME}/.local/bin:"$PATH"
 
@@ -70,22 +70,24 @@ jobs:
           COMMIT_ID=${TMP_COMMIT_ID: -7}
           echo $COMMIT_ID
 
-          if aws s3api head-object --bucket alephzero-devnet-eu-central-1-keys-bucket --key forks/chainspec-${COMMIT_ID}.json; then
-            echo "Chainspec exists"
-            aws s3 cp s3://alephzero-devnet-eu-central-1-keys-bucket/forks/chainspec-${COMMIT_ID}.json chainspec.skeleton.json
-          else
-            echo "Chainspec doesn't exist"
+          # sync all validator's keystores from S3
+          aws s3 cp s3://alephzero-devnet-eu-central-1-keys-bucket/data data --recursive
 
-            docker run -i --env RUST_BACKTRACE=1 --entrypoint "/usr/local/bin/aleph-node" public.ecr.aws/p6e8q1z1/aleph-node:${COMMIT_ID} bootstrap-chain --raw --base-path /data --chain-id a0dnet1 --account-ids 5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH,5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o,5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9,5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK,5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW,5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR,5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY,5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ,5CUnSsgAyLND3bxxnfNhgWXSe9Wn676JzLpGLgyJv858qhoX,5CVKn7HAZW1Ky4r7Vkgsr7VEW88C2sHgUNDiwHY9Ct2hjU8q --sudo-account-id 5F4SvwaUEQubiqkPF8YnRfcN77cLsT2DfG4vFeQmSXNjR7hD > chainspec.skeleton.json
+          # rename validator paths
+          declare -A NAMES=([aleph-node-validator-0]=5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH [aleph-node-validator-1]=5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o [aleph-node-validator-2]=5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9 [aleph-node-validator-3]=5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK [aleph-node-validator-4]=5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW [aleph-node-validator-5]=5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR [aleph-node-validator-6]=5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY [aleph-node-validator-7]=5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ [aleph-node-validator-8]=5CUnSsgAyLND3bxxnfNhgWXSe9Wn676JzLpGLgyJv858qhoX [aleph-node-validator-9]=5CVKn7HAZW1Ky4r7Vkgsr7VEW88C2sHgUNDiwHY9Ct2hjU8q)
 
-            aws s3 cp chainspec.skeleton.json s3://alephzero-devnet-eu-central-1-keys-bucket/forks/chainspec-${COMMIT_ID}.json
-          fi
+          for NAME in "${!NAMES[@]}"; do
+            mv -v data/$NAME data/${NAMES[$NAME]}
+          done
 
-          docker run -i -v $(pwd):/app public.ecr.aws/p6e8q1z1/fork-off:latest --http-rpc-endpoint=https://rpc.test.azero.dev --initial-spec-path=chainspec.skeleton.json --combined-spec-path=chainspec.json
+          # generate chainspec, it will reuse keys from the synced keystore
+          docker run -i -v $(pwd)/data:/data --env RUST_BACKTRACE=1 --entrypoint "/usr/local/bin/aleph-node" public.ecr.aws/p6e8q1z1/aleph-node:${COMMIT_ID} bootstrap-chain --raw --base-path /data --chain-id a0dnet1 --account-ids 5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH,5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o,5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9,5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK,5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW,5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR,5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY,5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ,5CUnSsgAyLND3bxxnfNhgWXSe9Wn676JzLpGLgyJv858qhoX,5CVKn7HAZW1Ky4r7Vkgsr7VEW88C2sHgUNDiwHY9Ct2hjU8q --sudo-account-id 5F4SvwaUEQubiqkPF8YnRfcN77cLsT2DfG4vFeQmSXNjR7hD > chainspec.skeleton.json
+
+          docker run -i -v $(pwd):/app public.ecr.aws/p6e8q1z1/fork-off:latest --http-rpc-endpoint=https://rpc.test.azero.dev --initial-spec-path=chainspec.skeleton.json --combined-spec-path=chainspec.json --pallets-keep-state=Aura,Aleph,Sudo,Staking,Session,Elections
 
           aws s3 cp chainspec.json s3://alephzero-devnet-eu-central-1-keys-bucket/chainspec.json
 
-          #stop and clean devnet
+          # stop and clean devnet
 
           aws eks --region eu-central-1 update-kubeconfig --name alephzero-devnet-eu-central-1-eks
 
@@ -110,7 +112,7 @@ jobs:
 
           kustomize edit add resource send-runtime-hook.yaml
           kustomize build . | kubectl apply -f -
-          
+
       - name: GIT | Commit changes to aleph-apps repository.
         uses: EndBug/add-and-commit@v5.1.0
         with:
