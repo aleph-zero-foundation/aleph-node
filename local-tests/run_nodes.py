@@ -7,29 +7,39 @@
 
 from time import sleep
 
-from chainrunner import Chain, Seq, generate_keys
+from chainrunner import Chain, Seq, generate_keys, check_finalized
 
-NODES = 4
-WORKDIR = '.'
-BINARY = '../target/release/aleph-node'
+nodes = 4
+workdir = '.'
+binary = '../target/release/aleph-node'
+port = 30334
+ws_port = 9944
+rpc_port = 9933
 
-phrases = ['//Alice', '//Bob', '//Cedric', '//Dick', '//Ezekiel', '//Fanny', '//George', '//Hugo']
-keys_dict = generate_keys(BINARY, phrases)
+phrases = ['//Alice', '//Bob', '//Charlie', '//Dave', '//Ezekiel', '//Fanny', '//George', '//Hugo']
+keys_dict = generate_keys(binary, phrases)
 keys = list(keys_dict.values())
-NODES = min(NODES, len(phrases))
+nodes = min(nodes, len(phrases))
 
-chain = Chain(WORKDIR)
+chain = Chain(workdir)
 
-print(f'Bootstrapping chain for {NODES} nodes')
-chain.bootstrap(BINARY,
-                keys[:NODES],
+print(f'Bootstrapping chain for {nodes} nodes')
+chain.bootstrap(binary,
+                keys[:nodes],
                 chain_type='local')
 chain.set_flags('validator',
-                port=Seq(30334),
-                ws_port=Seq(9944),
-                rpc_port=Seq(9933),
-                unit_creation_delay=200,
-                execution='Native')
+                'unsafe-ws-external',
+                'unsafe-rpc-external',
+                'no-mdns',
+                port=Seq(port),
+                ws_port=Seq(ws_port),
+                rpc_port=Seq(rpc_port),
+                unit_creation_delay=500,
+                execution='Native',
+                rpc_cors='all',
+                rpc_methods='Unsafe')
+addresses = [n.address() for n in chain]
+chain.set_flags(bootnodes=addresses[0], public_addr=addresses)
 
 print('Starting the chain')
 chain.start('node')
@@ -37,9 +47,6 @@ chain.start('node')
 print('Waiting a minute')
 sleep(60)
 
-print('Blocks seen by nodes:')
-for node in chain:
-    h, f = node.highest_block()
-    print(f'highest:{h} finalized:{f}')
+check_finalized(chain)
 
 print('Exiting script, leaving nodes running in the background')

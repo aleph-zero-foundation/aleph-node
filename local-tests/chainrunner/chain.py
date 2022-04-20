@@ -30,7 +30,7 @@ class Chain:
     def __iter__(self):
         return iter(self.nodes)
 
-    def bootstrap(self, binary, validators, nonvalidators=None, **kwargs):
+    def bootstrap(self, binary, validators, nonvalidators=None, raw=True, **kwargs):
         """Bootstrap the chain. `validator_accounts` should be a list of strings.
         Flags `--account-ids`, `--base-path` and `--raw` are added automatically.
         All other flags are taken from kwargs"""
@@ -38,7 +38,9 @@ class Chain:
         cmd = [check_file(binary),
                'bootstrap-chain',
                '--base-path', self.path,
-               '--account-ids', ','.join(validators), '--raw']
+               '--account-ids', ','.join(validators)]
+        if raw:
+            cmd.append('--raw')
         cmd += flags_from_dict(kwargs)
 
         chainspec = op.join(self.path, 'chainspec.json')
@@ -48,6 +50,7 @@ class Chain:
         def account_to_node(account):
             n = Node(binary, chainspec, op.join(self.path, account), self.path)
             n.flags['node-key-file'] = op.join(self.path, account, 'p2p_secret')
+            n.flags['enable-log-reloading'] = True
             return n
 
         self.validator_nodes = [account_to_node(a) for a in validators]
@@ -62,7 +65,12 @@ class Chain:
                 n.flags[k] = True
         for k, v in kwargs.items():
             for i, n in enumerate(nodes):
-                n.flags[k] = v + i if isinstance(v, Seq) else v
+                if isinstance(v, Seq):
+                    n.flags[k] = v + i
+                elif isinstance(v, list) and i < len(v):
+                    n.flags[k] = v[i]
+                else:
+                    n.flags[k] = v
 
     def set_flags(self, *args, **kwargs):
         """Set common flags for all nodes.
@@ -71,7 +79,8 @@ class Chain:
         `--my-arg some_val` in the binary call.
         Seq (type alias for int) can be used to specify numerical values that should be different
         for each node. `val=Seq(13)` results in `--val 13` for node0, `--val 14` for node1 and so
-        on."""
+        on.
+        Providing a list of values results in each node being assigned a corresponding value from the list."""
         Chain._set_flags(self.nodes, *args, **kwargs)
 
     def set_flags_validator(self, *args, **kwargs):
@@ -81,7 +90,8 @@ class Chain:
         `--my-arg some_val` in the binary call.
         Seq (type alias for int) can be used to specify numerical values that should be different
         for each node. `val=Seq(13)` results in `--val 13` for node0, `--val 14` for node1 and so
-        on."""
+        on.
+        Providing a list of values results in each node being assigned a corresponding value from the list."""
         Chain._set_flags(self.validator_nodes, *args, **kwargs)
 
     def set_flags_nonvalidator(self, *args, **kwargs):
@@ -91,7 +101,8 @@ class Chain:
         `--my-arg some_val` in the binary call.
         Seq (type alias for int) can be used to specify numerical values that should be different
         for each node. `val=Seq(13)` results in `--val 13` for node0, `--val 14` for node1 and so
-        on."""
+        on.
+        Providing a list of values results in each node being assigned a corresponding value from the list."""
         Chain._set_flags(self.nonvalidator_nodes, *args, **kwargs)
 
     def set_binary(self, binary, nodes=None):
