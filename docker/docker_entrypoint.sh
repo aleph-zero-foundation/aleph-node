@@ -27,6 +27,7 @@ POOL_LIMIT=${POOL_LIMIT:-1024}
 PROMETHEUS_ENABLED=${PROMETHEUS_ENABLED:-true}
 TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-false}
 UNIT_CREATION_DELAY=${UNIT_CREATION_DELAY:-300}
+DB_CACHE=${DB_CACHE:-1024}
 
 if [[ "true" == "$PURGE_BEFORE_START" ]]; then
   echo "Purging chain (${CHAIN}) at path ${BASE_PATH}"
@@ -47,6 +48,7 @@ ARGS=(
   --ws-max-connections "${WS_MAX_CONNECTIONS}"
   --unsafe-ws-external --unsafe-rpc-external
   --enable-log-reloading
+  --db-cache "${DB_CACHE}"
 )
 
 if [[ -n "${BOOT_NODES:-}" ]]; then
@@ -106,7 +108,7 @@ if [[ -n "${UNIT_CREATION_DELAY:-}" ]]; then
 fi
 
 if [[ -n "${CUSTOM_ARGS:-}" ]]; then
-  ARGS+=("${CUSTOM_ARGS}")
+  ARGS+=(${CUSTOM_ARGS})
 fi
 
 aleph-node "${ARGS[@]}"
