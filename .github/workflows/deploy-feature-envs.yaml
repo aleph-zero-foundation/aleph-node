@@ -1,0 +1,517 @@
+name: Deploy Feature Environment
+
+on:
+  pull_request:
+    types: [labeled, closed]
+
+jobs:
+  ## After that job run, artefact with aleph-node is created with name: aleph-release-node
+  build_aleph_node_binary:
+    if: ${{ github.event.label.name == '[AZERO] DEPLOY-FEATURE-ENV' }}
+    name: Build runtime and aleph-node binary artefacts
+    uses: ./.github/workflows/build-node-and-runtime.yml
+
+  push_pr_image:
+    if: ${{ github.event.label.name == '[AZERO] DEPLOY-FEATURE-ENV' }}
+    needs: [build_aleph_node_binary]
+    name: Build, prepare and push aleph-node image from PR to ECR
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v2.3.4
+
+      - name: Get Branch Name
+        id: get_branch
+        env:
+          PR_HEAD: ${{ github.head_ref }}
+        run: |
+          echo "##[set-output name=branch;]$(echo ${PR_HEAD#refs/heads/} | tr / -)"
+          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"      
+
+      - name: Download artifact with built aleph-node binary from PR
+        uses: actions/download-artifact@v2
+        with:
+          name: aleph-release-node
+          path: target/release/
+      
+      - name: Build docker image with PR aleph-node binary
+        env:
+          IMAGE_TAG: fe-${{ steps.get_branch.outputs.branch }}_${{ steps.get_branch.outputs.sha_short }}
+          FE_ALEPH_NODE_REGISTRY: 573243519133.dkr.ecr.us-east-1.amazonaws.com/feature-env-aleph-node
+        run: |
+          chmod +x target/release/aleph-node
+          ls -alh target/release/
+          ls -alh ./docker/
+          docker build --tag ${{ env.FE_ALEPH_NODE_REGISTRY }}:${{ env.IMAGE_TAG }} -f ./docker/Dockerfile .
+
+      - name: Login to ECR
+        uses: docker/login-action@v1
+        with:
+          registry: 573243519133.dkr.ecr.us-east-1.amazonaws.com
+          username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+          password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+
+      - name: Push FE aleph-node image to the private feature-env-aleph-node registry
+        env:
+          IMAGE_TAG: fe-${{ steps.get_branch.outputs.branch }}_${{ steps.get_branch.outputs.sha_short }}
+          FE_ALEPH_NODE_REGISTRY: 573243519133.dkr.ecr.us-east-1.amazonaws.com/feature-env-aleph-node
+        run: |
+          docker push ${{ env.FE_ALEPH_NODE_REGISTRY }}:${{ env.IMAGE_TAG }}      
+
+
+  deploy_feature_env:
+    if: ${{ github.event.label.name == '[AZERO] DEPLOY-FEATURE-ENV' }}
+    name: Deploy feature environment based on the PR
+    runs-on: ubuntu-latest
+    outputs:
+      deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v2.3.4
+
+      - name: Get Branch Name
+        id: get_branch
+        shell: bash
+        env:
+          PR_HEAD: ${{ github.head_ref }}
+        run: |
+          echo "##[set-output name=branch;]$(echo ${PR_HEAD#refs/heads/} | tr / -)"
+          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+
+      - name: Start Feature Env Deployment
+        uses: bobheadxi/deployments@v1.1.0
+        id: deployment
+        with:
+          step: start
+          token: ${{ secrets.CI_GH_TOKEN }}
+          env: ${{ steps.get_branch.outputs.branch }}
+          ref: ${{ github.head_ref }}
+          override: true
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        env:
+          AWS_REGION: us-east-1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Public Amazon ECR
+        id: login-public-ecr                        
+        uses: docker/login-action@v1
+        with:
+          registry: public.ecr.aws
+          username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+          password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+        env:
+          AWS_REGION: us-east-1
+
+      - name: Build chainspec and send it to S3
+        env:
+          BRANCH_NAME: ${{ steps.get_branch.outputs.branch }}
+          CHAIN_ID: a0fenet
+        run: |
+          SYSTEM_VERSION=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' https://rpc.test.azero.dev | jq -r '.result')
+          SUFFIX="-x86_64-linux-gnu"
+          LONG_COMMIT_ID=${SYSTEM_VERSION/%$SUFFIX}
+          COMMIT_ID=${LONG_COMMIT_ID: -7}
+          echo $COMMIT_ID
+          TESTNET_IMAGE="public.ecr.aws/p6e8q1z1/aleph-node:$COMMIT_ID"
+
+          # sync all validator's keystores from S3
+          aws s3 cp s3://fe-alephzero-devnet-eu-central-1-keys-bucket/data data --recursive
+
+          # rename validator paths
+          declare -A NAMES=([aleph-node-validator-0]=5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY [aleph-node-validator-1]=5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty [aleph-node-validator-2]=5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y [aleph-node-validator-3]=5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy [aleph-node-validator-4]=5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw)
+
+          for NAME in "${!NAMES[@]}"; do
+            mv -v data/$NAME data/${NAMES[$NAME]}
+          done
+
+          # Generate chainspec skeleton, it will reuse keys from the synced keystore
+          docker run -v $(pwd)/data:/data --env RUST_BACKTRACE=1 --entrypoint "/usr/local/bin/aleph-node" $TESTNET_IMAGE bootstrap-chain --raw --base-path /data --chain-id $CHAIN_ID --account-ids 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y,5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy,5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw --sudo-account-id 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY > chainspec.skeleton.json
+
+          # Generate chainspec from skeleton
+          docker run -v $(pwd):/app --env RUST_LOG=info public.ecr.aws/p6e8q1z1/fork-off:latest --http-rpc-endpoint=https://rpc.test.azero.dev --initial-spec-path=chainspec.skeleton.json --combined-spec-path=chainspec.json
+
+          aws s3 cp chainspec.json s3://fe-alephzero-devnet-eu-central-1-keys-bucket/fe-${{ env.BRANCH_NAME }}/chainspec.json
+          aws s3 cp s3://fe-alephzero-devnet-eu-central-1-keys-bucket/data/ s3://fe-alephzero-devnet-eu-central-1-keys-bucket/fe-${{ env.BRANCH_NAME }}/data/ --recursive
+
+      - name: GIT | Checkout aleph-apps repo
+        uses: actions/checkout@master
+        with:
+          repository: Cardinal-Cryptography/aleph-apps
+          token: ${{ secrets.CI_GH_TOKEN }}
+          path: "aleph-apps"
+          ref: main
+
+      - name: Start testnet image on feature environment
+        env:
+          BRANCH_NAME: ${{ steps.get_branch.outputs.branch }}
+          APP_NAME: fe-${{ steps.get_branch.outputs.branch }}
+          NAMESPACE: fe-${{ steps.get_branch.outputs.branch }}
+          CREATE_HOOK: false
+        run: |
+          # Set up envs
+          SYSTEM_VERSION=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' https://rpc.test.azero.dev | jq -r '.result')
+          SUFFIX="-x86_64-linux-gnu"
+          LONG_COMMIT_ID=${SYSTEM_VERSION/%$SUFFIX}
+          COMMIT_ID=${LONG_COMMIT_ID: -7}
+          TESTNET_IMAGE="public.ecr.aws\/p6e8q1z1\/aleph-node:$COMMIT_ID"
+          ALEPH_PATH=$(pwd)
+
+          # Create application manifest from template
+
+          sed "s/APP_NAME/${{ env.APP_NAME }}/g" $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/app-template/app-template.yaml > $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+
+          sed "s/CREATE_HOOK/${{ env.CREATE_HOOK  }}/g" $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && mv $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+
+          sed "s/NAMESPACE/${{ env.NAMESPACE }}/g" $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && mv $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+
+          sed "s/NODE_IMAGE/$TESTNET_IMAGE/g" $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && mv $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+    
+      - name: GIT | Commit changes to aleph-apps repository.
+        uses: EndBug/add-and-commit@v5.1.0
+        env:
+          APP_NAME: fe-${{ steps.get_branch.outputs.branch }}
+          GITHUB_TOKEN: ${{ secrets.CI_GH_TOKEN }}
+        with:
+          author_name: AlephZero Automation
+          author_email: alephzero@10clouds.com
+          message: "New Feature Environment Deployment with name: ${{ env.APP_NAME }}"
+          add: "*.yaml"
+          cwd: "aleph-apps"
+          branch: main
+
+      - name: Refresh Argo and wait for the testnet image deployment to be finished
+        env:
+          APP_NAME: fe-${{ steps.get_branch.outputs.branch }}
+          ARGOCD_URL: argocd.dev.azero.dev
+        run: |
+          ## Install argocd CLI tool
+          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/download/v2.3.3/argocd-linux-amd64
+          chmod +x argocd && mv argocd /usr/local/bin/
+          
+          ## Sync argo to start deployment
+          /usr/local/bin/argocd app get fe-root-application --hard-refresh --auth-token ${{ secrets.ARGO_SYNC_USER_TOKEN }} --server ${{ env.ARGOCD_URL }}
+
+          ## Wait for the app to be deployed
+          /usr/local/bin/argocd app wait fe-root-application --auth-token ${{ secrets.ARGO_SYNC_USER_TOKEN }} --server ${{ env.ARGOCD_URL }}
+          /usr/local/bin/argocd app wait ${{ env.APP_NAME }} --auth-token ${{ secrets.ARGO_SYNC_USER_TOKEN }} --server ${{ env.ARGOCD_URL }}
+
+      - name: Wait for the testnet aleph-node binary to accept some blocks
+        uses: juliangruber/sleep-action@v1.0.1
+        with:
+          time: 5m
+
+  update_feature_env_image:
+    if: ${{ github.event.label.name == '[AZERO] DEPLOY-FEATURE-ENV' }}
+    needs: [push_pr_image,deploy_feature_env]
+    name: Update feature environment to the latest PR aleph-node image
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v2.3.4
+
+      - name: Get Branch Name
+        id: get_branch
+        shell: bash
+        env:
+          PR_HEAD: ${{ github.head_ref }}
+        run: |
+          echo "##[set-output name=branch;]$(echo ${PR_HEAD#refs/heads/} | tr / -)"
+          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+
+      - name: GIT | Checkout aleph-apps repo
+        uses: actions/checkout@master
+        with:
+          repository: Cardinal-Cryptography/aleph-apps
+          token: ${{ secrets.CI_GH_TOKEN }}
+          path: "aleph-apps"
+          ref: main
+
+      - name: Update feature environment to the latest PR image
+        env:
+          IMAGE_TAG: fe-${{ steps.get_branch.outputs.branch }}_${{ steps.get_branch.outputs.sha_short }}
+          FE_ALEPH_NODE_REGISTRY: 573243519133.dkr.ecr.us-east-1.amazonaws.com\/feature-env-aleph-node
+          APP_NAME: fe-${{ steps.get_branch.outputs.branch }}
+          ARGOCD_URL: argocd.dev.azero.dev
+          NAMESPACE: fe-${{ steps.get_branch.outputs.branch }}
+          CREATE_HOOK: true
+        run: |
+          # Set up envs
+          SYSTEM_VERSION=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' https://rpc.test.azero.dev | jq -r '.result')
+          SUFFIX="-x86_64-linux-gnu"
+          LONG_COMMIT_ID=${SYSTEM_VERSION/%$SUFFIX}
+          COMMIT_ID=${LONG_COMMIT_ID: -7}
+          TESTNET_IMAGE="public.ecr.aws\/p6e8q1z1\/aleph-node:$COMMIT_ID"
+          PR_IMAGE="${{ env.FE_ALEPH_NODE_REGISTRY }}\:${{ env.IMAGE_TAG }}"
+          ALEPH_PATH=$(pwd)
+
+          sed "s/APP_NAME/${{ env.APP_NAME }}/g" $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/app-template/app-template.yaml > $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+
+          sed "s/CREATE_HOOK/${{ env.CREATE_HOOK  }}/g" $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && mv $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+
+          sed "s/NAMESPACE/${{ env.NAMESPACE }}/g" $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && mv $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+
+          sed "s/NODE_IMAGE/$PR_IMAGE/g" $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && mv $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+
+      - name: GIT | Commit changes to aleph-apps repository.
+        uses: EndBug/add-and-commit@v5.1.0
+        env:
+          IMAGE_TAG: fe-${{ steps.get_branch.outputs.branch }}_${{ steps.get_branch.outputs.sha_short }}
+          FE_ALEPH_NODE_REGISTRY: 573243519133.dkr.ecr.us-east-1.amazonaws.com/feature-env-aleph-node
+          APP_NAME: fe-${{ steps.get_branch.outputs.branch }}
+          GITHUB_TOKEN: ${{ secrets.CI_GH_TOKEN }}
+        with:
+          author_name: AlephZero Automation
+          author_email: alephzero@10clouds.com
+          message: "Image changed for the feature environment to: ${{ env.FE_ALEPH_NODE_REGISTRY }}:${{ env.IMAGE_TAG }}"
+          add: "*.yaml"
+          cwd: "aleph-apps"
+          branch: main
+
+      - name: Refresh Argo and wait for the PR image deployment to be finished
+        env:
+          APP_NAME: fe-${{ steps.get_branch.outputs.branch }}
+          ARGOCD_URL: argocd.dev.azero.dev
+        run: |
+          ## Install argocd CLI tool
+          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/download/v2.3.3/argocd-linux-amd64
+          chmod +x argocd && mv argocd /usr/local/bin/
+          
+          ## Sync argo to start deployment
+          /usr/local/bin/argocd app get fe-root-application --hard-refresh --auth-token ${{ secrets.ARGO_SYNC_USER_TOKEN }} --server ${{ env.ARGOCD_URL }}
+
+          ## Wait for the app to be deployed
+          /usr/local/bin/argocd app wait fe-root-application --auth-token ${{ secrets.ARGO_SYNC_USER_TOKEN }} --server ${{ env.ARGOCD_URL }}
+          /usr/local/bin/argocd app wait ${{ env.APP_NAME }} --auth-token ${{ secrets.ARGO_SYNC_USER_TOKEN }} --server ${{ env.ARGOCD_URL }}
+
+      - name: Remove deployment request label
+        uses: actions-ecosystem/action-remove-labels@v1.3.0
+        with:
+          labels: '[AZERO] DEPLOY-FEATURE-ENV'
+          github_token: ${{ secrets.CI_GH_TOKEN }}
+
+      - name: Remove destroyed label if present
+        uses: actions-ecosystem/action-remove-labels@v1.3.0
+        if: contains( github.event.pull_request.labels.*.name, 'DESTROYED')
+        with:
+          labels: 'DESTROYED'
+          github_token: ${{ secrets.CI_GH_TOKEN }}
+      
+      - name: Add label to mark that feature branch has been deployed
+        uses: actions-ecosystem/action-add-labels@v1.1.0
+        with:
+          labels: 'DEPLOYED'
+          github_token: ${{ secrets.CI_GH_TOKEN }}
+
+      - name: Finish Feature Env Deployment
+        uses: bobheadxi/deployments@v1
+        if: always()
+        with:
+          step: finish
+          token: ${{ secrets.CI_GH_TOKEN }}
+          status: ${{ job.status }}
+          env: ${{ steps.get_branch.outputs.branch }}
+          deployment_id: ${{ needs.deploy_feature_env.outputs.deployment-id }}
+          env_url: https://dev.azero.dev/?rpc=wss%3A%2F%2Fws-fe-${{ steps.get_branch.outputs.branch }}.dev.azero.dev#/explorer
+          ref: ${{ github.head_ref }}
+
+  destroy_feature_env:
+    if: ${{ github.event.label.name == '[AZERO] DELETE-FEATURE-ENV' }}
+    name: Destroy feature env
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v2.3.4
+
+      - name: Get Branch Name
+        id: get_branch
+        shell: bash
+        env:
+          PR_HEAD: ${{ github.head_ref }}
+        run: echo "##[set-output name=branch;]$(echo ${PR_HEAD#refs/heads/} | tr / -)"
+
+      - name: GIT | Checkout aleph-apps repo
+        uses: actions/checkout@master
+        with:
+          repository: Cardinal-Cryptography/aleph-apps
+          token: ${{ secrets.CI_GH_TOKEN }}
+          path: "aleph-apps"
+          ref: main
+        
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        env:
+          AWS_REGION: us-east-1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Destroy feature branch
+        env:
+          APP_NAME: fe-${{ steps.get_branch.outputs.branch }}
+        run: |
+          ALEPH_PATH=$(pwd)
+
+          ## Delete FE application for argo to delete it automatically
+          rm -rf $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+
+      - name: GIT | Commit deletion of the feature environment.
+        uses: EndBug/add-and-commit@v5.1.0
+        env:
+          APP_NAME: fe-${{ steps.get_branch.outputs.branch }}
+          GITHUB_TOKEN: ${{ secrets.CI_GH_TOKEN }}
+        with:
+          author_name: AlephZero Automation
+          author_email: alephzero@10clouds.com
+          message: "Feature Environment: ${{ env.APP_NAME }} has been deleted"
+          add: "*.yaml"
+          cwd: "aleph-apps"
+          branch: main
+
+      - name: Refresh Argo and wait for the deletion to be finished
+        env:
+          ARGOCD_URL: argocd.dev.azero.dev
+        run: |
+          ## Install argocd CLI tool
+          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/download/v2.3.3/argocd-linux-amd64
+          chmod +x argocd && mv argocd /usr/local/bin/
+
+          /usr/local/bin/argocd app get fe-root-application --hard-refresh --auth-token ${{ secrets.ARGO_SYNC_USER_TOKEN }} --server ${{ env.ARGOCD_URL }}
+          /usr/local/bin/argocd app wait fe-root-application --auth-token ${{ secrets.ARGO_SYNC_USER_TOKEN }} --server ${{ env.ARGOCD_URL }}
+
+      - name: Clean S3 storage
+        env:
+          BRANCH_NAME: ${{ steps.get_branch.outputs.branch }}
+        run: |
+          aws s3 rm --recursive s3://fe-alephzero-devnet-eu-central-1-keys-bucket/fe-${{ env.BRANCH_NAME }}
+
+      - name: Remove labels
+        uses: actions-ecosystem/action-remove-labels@v1.3.0
+        with:
+          labels: '[AZERO] DELETE-FEATURE-ENV'
+          github_token: ${{ secrets.CI_GH_TOKEN }}
+
+      - name: Remove "DEPLOYED" label if present
+        uses: actions-ecosystem/action-remove-labels@v1.3.0
+        if: contains( github.event.pull_request.labels.*.name, 'DEPLOYED')
+        with:
+          labels: 'DEPLOYED'
+          github_token: ${{ secrets.CI_GH_TOKEN }}
+      
+      - name: Add label to mark that feature branch has been destroyed
+        uses: actions-ecosystem/action-add-labels@v1.1.0
+        with:
+          labels: 'DESTROYED'
+          github_token: ${{ secrets.CI_GH_TOKEN }}
+
+      - name: Deactivate deployed environment
+        uses: bobheadxi/deployments@v1
+        with:
+          step: deactivate-env
+          token: ${{ secrets.CI_GH_TOKEN }}
+          env: ${{ steps.get_branch.outputs.branch }}
+          desc: Environment was deleted
+          debug: true
+
+      - name: Delete environment and deployments
+        uses: strumwolf/delete-deployment-environment@v2
+        with:
+          token: ${{ secrets.CI_GH_TOKEN }}
+          environment: ${{ steps.get_branch.outputs.branch }}
+
+  destroy_feature_env_on_close:
+    if: (github.event.action == 'closed' && !contains( github.event.pull_request.labels.*.name, 'DESTROYED') && contains( github.event.pull_request.labels.*.name, 'DEPLOYED'))
+    name: Destroy feature env when PR closed
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v2.3.4
+
+      - name: Get Branch Name
+        id: get_branch
+        shell: bash
+        env:
+          PR_HEAD: ${{ github.head_ref }}
+        run: echo "##[set-output name=branch;]$(echo ${PR_HEAD#refs/heads/} | tr / -)"
+      
+      - name: GIT | Checkout aleph-apps repo
+        uses: actions/checkout@master
+        with:
+          repository: Cardinal-Cryptography/aleph-apps
+          token: ${{ secrets.CI_GH_TOKEN }}
+          path: "aleph-apps"
+          ref: main
+        
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        env:
+          AWS_REGION: us-east-1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Destroy feature branch
+        env:
+          APP_NAME: fe-${{ steps.get_branch.outputs.branch }}
+        run: |
+          ALEPH_PATH=$(pwd)
+
+          ## Delete FE application for argo to delete it automatically
+          rm -rf $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+
+      - name: GIT | Commit deletion of the feature environment.
+        uses: EndBug/add-and-commit@v5.1.0
+        env:
+          APP_NAME: fe-${{ steps.get_branch.outputs.branch }}
+          GITHUB_TOKEN: ${{ secrets.CI_GH_TOKEN }}
+        with:
+          author_name: AlephZero Automation
+          author_email: alephzero@10clouds.com
+          message: "Feature Environment: ${{ env.APP_NAME }} has been deleted"
+          add: "*.yaml"
+          cwd: "aleph-apps"
+          branch: main
+
+      - name: Refresh Argo and wait for the deletion to be finished
+        env:
+          ARGOCD_URL: argocd.dev.azero.dev
+        run: |
+          ## Install argocd CLI tool
+          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/download/v2.3.3/argocd-linux-amd64
+          chmod +x argocd && mv argocd /usr/local/bin/
+
+          /usr/local/bin/argocd app get fe-root-application --hard-refresh --auth-token ${{ secrets.ARGO_SYNC_USER_TOKEN }} --server ${{ env.ARGOCD_URL }}
+          /usr/local/bin/argocd app wait fe-root-application --auth-token ${{ secrets.ARGO_SYNC_USER_TOKEN }} --server ${{ env.ARGOCD_URL }}
+
+      - name: Clean S3 storage
+        env:
+          BRANCH_NAME: ${{ steps.get_branch.outputs.branch }}
+        run: |
+          aws s3 rm --recursive s3://fe-alephzero-devnet-eu-central-1-keys-bucket/fe-${{ env.BRANCH_NAME }}
+
+      - name: Remove labels
+        uses: actions-ecosystem/action-remove-labels@v1.3.0
+        with:
+          labels: 'DEPLOYED'
+          github_token: ${{ secrets.CI_GH_TOKEN }}
+
+      - name: Deactivate deployed environment
+        uses: bobheadxi/deployments@v1
+        with:
+          step: deactivate-env
+          token: ${{ secrets.CI_GH_TOKEN }}
+          env: ${{ steps.get_branch.outputs.branch }}
+          desc: Environment was deleted
+          debug: true
+
+      - name: Delete environment and deployments
+        uses: strumwolf/delete-deployment-environment@v2
+        with:
+          token: ${{ secrets.CI_GH_TOKEN }}
+          environment: ${{ steps.get_branch.outputs.branch }}
