@@ -17,23 +17,23 @@ jobs:
     steps:
       - name: GIT | Checkout
         uses: actions/checkout@v2
-        
+
       - name: GIT | Get branch info & current commit sha.
         id: vars
         shell: bash
         run: |
           echo "##[set-output name=branch;]$(echo ${GITHUB_REF##*/})"
           echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
-          
-      - name: Configure AWS credentials                          
-        uses: aws-actions/configure-aws-credentials@v1           
-        with:                                                    
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
           aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Public Amazon ECR
-        id: login-public-ecr                        
+        id: login-public-ecr
         uses: docker/login-action@v1
         with:
           registry: public.ecr.aws
@@ -51,7 +51,7 @@ jobs:
             echo "::error title=Wrong docker image tag::Docker image ${{ env.IMAGE }} doesn't exist"
             exit 1
           fi
-          
+
       - name: GIT | Checkout aleph-apps repo
         uses: actions/checkout@master
         with:
@@ -64,16 +64,16 @@ jobs:
         uses: imranismail/setup-kustomize@v1
         with:
           kustomize-version: "3.8.6"
-          
-      - name: Update aleph-node docker image and trigger ArgoCD deploy for Mainnet                                                                      
-        env:                                                                                                          
+
+      - name: Update aleph-node docker image and trigger ArgoCD deploy for Mainnet
+        env:
           MAINNET_IMAGE: public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.vars.outputs.branch }}
           REGIONS_AWS: 'eu-central-1,eu-west-1,eu-west-2,us-east-1,us-east-2'
         run: |
           IFS="," read -a region_array <<< ${{ env.REGIONS_AWS }}
           export aleph_path=$(pwd)
           for i in "${region_array[@]}"; do
-            # Deploy new image version for archivist 
+            # Deploy new image version for archivist
             cd ${aleph_path}/aleph-apps/aleph-node-archivists/overlays/mainnet/${i}
             kustomize edit set image "aleph-node-archivist-image-placeholder=${{ env.MAINNET_IMAGE }}"
 
@@ -93,13 +93,3 @@ jobs:
           branch: mainnet
         env:
           GITHUB_TOKEN: ${{ secrets.CI_GH_TOKEN }}
-
-      - name: Send Slack Notification
-        uses: rtCamp/action-slack-notify@v2
-        continue-on-error: true
-        env:
-          SLACK_COLOR: ${{ job.status }}
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_USERNAME: GithubActions
-          SLACK_TITLE: deploy-mainnet job has finished
-          MSG_MINIMAL: actions url

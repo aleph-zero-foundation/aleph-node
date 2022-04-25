@@ -219,16 +219,6 @@ jobs:
           docker tag ${{ env.CURRENT_IMAGE }} ${{ env.ECR_PUSH_IMAGE }}
           docker push ${{ env.ECR_PUSH_IMAGE }}
 
-      - name: Send Slack Notification
-        uses: rtCamp/action-slack-notify@v2
-        continue-on-error: true
-        env:
-          SLACK_COLOR: ${{ job.status }}
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_USERNAME: GithubActions
-          SLACK_TITLE: e2e tests job has finished
-          MSG_MINIMAL: actions url
-
 
   check-runtime-change:
     name: Inspect whether runtime version has been changed

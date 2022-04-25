@@ -124,13 +124,3 @@ jobs:
           branch: main
         env:
           GITHUB_TOKEN: ${{ secrets.CI_GH_TOKEN }}
-
-      - name: Send Slack Notification
-        uses: rtCamp/action-slack-notify@v2
-        continue-on-error: true
-        env:
-          SLACK_COLOR: ${{ job.status }}
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_USERNAME: GithubActions
-          SLACK_TITLE: deploy-devnet-new-test job has finished
-          MSG_MINIMAL: actions url
