@@ -4,7 +4,8 @@
 //! We expose the `Multicast` trait, mimicking the interface of `aleph_bft::ReliableMulticast`
 
 use crate::crypto::{KeyBox, Signature};
-use aleph_bft::{rmc::ReliableMulticast, Signable, SignatureSet};
+use aleph_bft::{Signable, SignatureSet};
+use aleph_bft_rmc::ReliableMulticast;
 use codec::{Codec, Decode, Encode};
 use std::{fmt::Debug, hash::Hash as StdHash};
 

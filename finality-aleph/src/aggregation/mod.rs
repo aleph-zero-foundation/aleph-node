@@ -1,5 +1,6 @@
 use crate::crypto::Signature;
-use aleph_bft::{rmc::Message, SignatureSet};
+use aleph_bft::SignatureSet;
+use aleph_bft_rmc::Message;
 use sp_runtime::traits::Block;
 
 mod aggregator;
