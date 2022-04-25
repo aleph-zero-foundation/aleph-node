@@ -100,7 +100,7 @@ jobs:
           kustomize edit remove resource send-runtime-hook.yaml
           kustomize build . | kubectl apply -f -
           sleep 2
-          kubectl rollout status --watch --timeout=600s statefulset/aleph-node-validator -n devnet
+          kubectl rollout status --watch --timeout=2000s statefulset/aleph-node-validator -n devnet
 
           echo "Waiting 10 minutes"
           sleep 600
