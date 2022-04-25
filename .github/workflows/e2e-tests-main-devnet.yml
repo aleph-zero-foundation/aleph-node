@@ -6,11 +6,14 @@ on:
       - '*.md'
     branches:
       - main
+      - "release-*"
   push:
     paths-ignore:
       - '*.md'
     branches:
       - main
+      - "release-*"
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -219,17 +222,47 @@ jobs:
           docker tag ${{ env.CURRENT_IMAGE }} ${{ env.ECR_PUSH_IMAGE }}
           docker push ${{ env.ECR_PUSH_IMAGE }}
 
-
-  check-runtime-change:
+  check-runtime-change-if-PR:
     name: Inspect whether runtime version has been changed
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' }}
     outputs:
       runtime-updated: ${{ steps.inspect.outputs.diff }}
     steps:
       - name: Checkout old source code
         uses: actions/checkout@v2
         with:
-          ref: main
+          ref: ${{ github.base_ref }}
+          path: old-repo
+
+      - name: Checkout current source code
+        uses: actions/checkout@v2
+        with:
+          path: new-repo
+
+      - name: Inspect versions
+        id: inspect
+        run: ./new-repo/.github/scripts/check_runtime_change.sh
+
+  check-runtime-change-if-OTHER:
+    name: Inspect whether runtime version has been changed
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'pull_request' }}
+    outputs:
+      runtime-updated: ${{ steps.inspect.outputs.diff }}
+      branch-name: ${{ steps.vars.outputs.branch }}
+    steps:
+      - name: GIT | Get branch info & current commit sha.
+        id: vars
+        shell: bash
+        run: |
+          echo "##[set-output name=branch;]$(echo ${GITHUB_REF##*/})"
+          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+
+      - name: Checkout old source code
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ steps.vars.outputs.branch }}
           path: old-repo
 
       - name: Checkout current source code
@@ -242,25 +275,74 @@ jobs:
         run: ./new-repo/.github/scripts/check_runtime_change.sh
 
 
-  build-old-node:
+  build-old-node-if-PR:
     name: Build node and runtime artifacts (main version)
-    needs: [check-runtime-change]
-    if: ${{ needs.check-runtime-change.outputs.runtime-updated != 0 }}
+    needs: [check-runtime-change-if-PR]
+    if: ${{ needs.check-runtime-change-if-PR.outputs.runtime-updated != 0 }}
     uses: Cardinal-Cryptography/aleph-node/.github/workflows/build-node-and-runtime.yml@main
     with:
-      ref: 'main'
+      ref: '${{ github.base_ref }}'
+      artifact-prefix: 'old-'
+
+  build-old-node-if-OTHER:
+    name: Build node and runtime artifacts (main version)
+    needs: [check-runtime-change-if-OTHER]
+    if: ${{ needs.check-runtime-change-if-OTHER.outputs.runtime-updated != 0 }}
+    uses: Cardinal-Cryptography/aleph-node/.github/workflows/build-node-and-runtime.yml@main
+    with:
+      ref: ${{ needs.check-runtime-change-if-OTHER.outputs.branch-name }}
       artifact-prefix: 'old-'
 
 
-  test-runtime-update:
+  test-runtime-update-if-PR:
     name: Test runtime update
     runs-on: ubuntu-latest
-    needs: [build-old-node, build-new-node]
+    needs: [build-old-node-if-PR, build-new-node]
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
         with:
-          ref: 'main' # build send-runtime using code on main
+          ref: '${{ github.base_ref }}' # build send-runtime using code on main
+
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
+
+      - name: Restore cache
+        uses: ./.github/actions/restore-cache
+        with:
+          cargo-targets: bin/cliain/target/
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: local-tests/
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: Test update
+        timeout-minutes: 20
+        env:
+          # Relative to local-tests/ directory
+          OLD_BINARY: old-aleph-release-node/aleph-node
+          NEW_BINARY: aleph-test-node/aleph-node
+          NEW_RUNTIME: aleph-test-runtime/aleph_runtime.compact.wasm
+        run: ./.github/scripts/test_update.sh
+
+      - name: Stop cache
+        uses: ./.github/actions/post-cache
+
+  test-runtime-update-if-OTHER:
+    name: Test runtime update
+    runs-on: ubuntu-latest
+    needs: [build-old-node-if-OTHER, build-new-node]
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+        with:
+          ref: '${{ needs.check-runtime-change-if-OTHER.outputs.branch-name }}' # build send-runtime using code on main
 
       - name: Install rust toolchain
         uses: actions-rs/toolchain@v1
@@ -317,10 +399,23 @@ jobs:
           ALEPH_NODE_BINARY: aleph-test-node/aleph-node
         run: ./.github/scripts/test_catch_up.sh
 
-  remove-old-artifacts:
+  remove-old-artifacts-if-PR:
     name: Remove old node and runtime artifacts
     runs-on: ubuntu-latest
-    needs: [test-runtime-update]
+    needs: [test-runtime-update-if-PR]
+    steps:
+      - name: Remove artifacts
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          failOnError: false
+          name: |
+            old-aleph-release-node
+            old-aleph-runtime
+
+  remove-old-artifacts-if-OTHER:
+    name: Remove old node and runtime artifacts
+    runs-on: ubuntu-latest
+    needs: [test-runtime-update-if-OTHER]
     steps:
       - name: Remove artifacts
         uses: geekyeggo/delete-artifact@v1
