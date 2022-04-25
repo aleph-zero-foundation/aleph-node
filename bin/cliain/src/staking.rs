@@ -30,11 +30,13 @@ pub fn set_staking_limits(
     root_connection: Connection,
     minimal_nominator_stake_tokens: u64,
     minimal_validator_stake_tokens: u64,
+    max_nominators_count: Option<u32>
 ) {
     staking_set_staking_limits(
         &root_connection,
         minimal_nominator_stake_tokens as u128 * TOKEN,
         minimal_validator_stake_tokens as u128 * TOKEN,
+        max_nominators_count,
         XtStatus::Finalized,
     );
 }

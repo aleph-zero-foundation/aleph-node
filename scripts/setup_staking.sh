@@ -33,7 +33,7 @@ Usage:
     [--key-rotation file]
        Optional param.
        Runs rotateKeys() and setKeys() for a given validator. file is a config like in --staking-config-file argument.
-    [--set-staking-limits "minimal_nominator_bond,minimal_validator_bond"]
+    [--set-staking-limits "minimal_nominator_bond,minimal_validator_bond,max_nominators_count"]
        Optional param.
        Command parameter is comma-separated tuple which is an argument to SetStakingLimits call (requires sudo account).
     [--change-validators account_ids_comma_separated]
@@ -240,10 +240,13 @@ function validate() {
 function set_staking_limits() {
   minimal_nominator_bond="$1"
   minimal_validator_bond="$2"
-  validator_pod_name="$3"
-  namespace="$4"
+  max_nominators_count="$3"
+  validator_pod_name="$4"
+  namespace="$5"
 
-  info "Calling setStakingLimits() with minimal nominator bond ${minimal_nominator_bond} and minimal validator bond ${minimal_validator_bond}."
+  info "Calling setStakingLimits() with minimal nominator bond ${minimal_nominator_bond}, \
+minimal validator bond ${minimal_validator_bond} \
+and max nominators count ${max_nominators_count}"
   prompt_if_interactive_mode "Press enter to continue"
 
   cmd_on_pod=(
@@ -252,6 +255,7 @@ function set_staking_limits() {
         set-staking-limits
          --minimal-nominator-stake "${minimal_nominator_bond}"
          --minimal-validator-stake "${minimal_validator_bond}"
+         --max-nominators-count "${max_nominators_count}"
   )
   # workaround for cliain expecting root account seed from stdin
   info "Provide seed for root account:"
@@ -412,7 +416,8 @@ if  [ -n "${SET_STAKING_LIMITS}" ]; then
   did_something="true"
   minimal_nominator_bond=$(echo "${SET_STAKING_LIMITS}" | cut -f 1 -d ',')
   minimal_validator_bond=$(echo "${SET_STAKING_LIMITS}" | cut -f 2 -d ',')
-  set_staking_limits "${minimal_nominator_bond}" "${minimal_validator_bond}" "${VALIDATOR_POD_NAME}" "${NAMESPACE}"
+  max_nominators_count=$(echo "${SET_STAKING_LIMITS}" | cut -f 3 -d ',')
+  set_staking_limits "${minimal_nominator_bond}" "${minimal_validator_bond}" "${max_nominators_count}" "${VALIDATOR_POD_NAME}" "${NAMESPACE}"
 fi
 if  [ -n "${CHANGE_VALIDATORS}" ]; then
   did_something="true"

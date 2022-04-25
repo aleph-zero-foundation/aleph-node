@@ -107,7 +107,6 @@ dependencies = [
  "primitives",
  "serde_json",
  "sp-core",
- "sp-io",
  "sp-runtime",
  "substrate-api-client",
  "thiserror",

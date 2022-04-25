@@ -76,6 +76,11 @@ enum Command {
         /// Validator lower bound
         #[clap(long)]
         minimal_validator_stake: u64,
+
+        /// Maximum number of nominators
+        #[clap(long)]
+        max_nominators_count: Option<u32>,
+
     },
 
     /// Transfer funds via balances pallet
@@ -150,7 +155,8 @@ fn main() {
         Command::SetStakingLimits {
             minimal_nominator_stake,
             minimal_validator_stake,
-        } => set_staking_limits(cfg.into(), minimal_nominator_stake, minimal_validator_stake),
+            max_nominators_count,
+        } => set_staking_limits(cfg.into(), minimal_nominator_stake, minimal_validator_stake, max_nominators_count),
         Command::ForceNewEra => {
             force_new_era(cfg.into());
         }
