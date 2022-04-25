@@ -91,9 +91,9 @@ jobs:
 
           aws eks --region eu-central-1 update-kubeconfig --name alephzero-devnet-eu-central-1-eks
 
-          kubectl delete sts aleph-node-validator -n devnet
-          kubectl delete pvc -l app=aleph-node-validator -n devnet
-          kubectl delete job send-runtime-hook -n devnet
+          kubectl delete sts aleph-node-validator -n devnet --ignore-not-found=true
+          kubectl delete pvc -l app=aleph-node-validator -n devnet --ignore-not-found=true
+          kubectl delete job send-runtime-hook -n devnet --ignore-not-found=true
 
           cd aleph-apps/aleph-node-validators/overlays/devnet/eu-central-1
           kustomize edit set image "aleph-node-validator-image-placeholder=public.ecr.aws/p6e8q1z1/aleph-node:${COMMIT_ID}"
