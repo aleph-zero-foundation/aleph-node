@@ -40,7 +40,7 @@ pub struct Config {
     #[clap(long, default_value_t = 5)]
     pub num_workers: u32,
 
-    /// which modules to set in forked spec
+    /// which modules to keep in forked spec
     #[clap(
         long,
         multiple_occurrences = true,

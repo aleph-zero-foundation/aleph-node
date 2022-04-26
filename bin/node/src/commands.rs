@@ -37,7 +37,7 @@ fn aleph_key(keystore: &impl SyncCryptoStore) -> AlephId {
         .into()
 }
 
-/// Returns peer id, if not p2p key found under base_path/account-id/node-key-file a new provate key gets generated
+/// Returns peer id, if not p2p key found under base_path/account-id/node-key-file a new private key gets generated
 fn p2p_key(chain_params: &ChainParams, account_id: &AccountId) -> SerializablePeerId {
     let authority = account_id.to_string();
     let file = chain_params
@@ -132,8 +132,8 @@ impl BootstrapChainCmd {
             })
             .collect();
 
-        let chain_spec = match self.is_devnet() {
-            true => chain_spec::devnet_config(self.chain_params.clone(), genesis_authorities)?,
+        let chain_spec = match self.is_local_run() {
+            true => chain_spec::local_config(self.chain_params.clone(), genesis_authorities)?,
             false => chain_spec::config(self.chain_params.clone(), genesis_authorities)?,
         };
 
@@ -145,7 +145,7 @@ impl BootstrapChainCmd {
         Ok(())
     }
 
-    fn is_devnet(&self) -> bool {
+    fn is_local_run(&self) -> bool {
         self.chain_params.chain_id() == DEFAULT_CHAIN_ID
     }
 }
