@@ -3,18 +3,16 @@ name = "fork-off"
 version = "0.2.0"
 edition = "2021"
 
-# client
-[dependencies.substrate-api-client]
-git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git"
-tag = "polkadot-v0.9.13.b2bfc0c3"
-
 [dependencies]
+# client
+substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "polkadot-v0.9.19" }
+
 # Substrate dependencies
-sp-io = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13" }
+sp-io = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
 
 # other
-anyhow = "1.0.52"
-clap = {version = "3.0.6", features = ["derive"]}
+anyhow = "1.0"
+clap = {version = "3.0", features = ["derive"]}
 env_logger = "0.8"
 futures = "0.3.17"
 hex = "0.4.3"

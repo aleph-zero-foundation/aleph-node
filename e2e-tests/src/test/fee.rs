@@ -111,11 +111,12 @@ fn assert_no_scaling(
 }
 
 fn prepare_transaction(connection: &Connection) -> TransferTransaction {
+    let bytes = [0u8; 32];
     compose_extrinsic!(
         connection,
         "Balances",
         "transfer",
-        GenericAddress::Id(AccountId::default()),
+        GenericAddress::Id(AccountId::from(bytes)),
         Compact(0u128)
     )
 }

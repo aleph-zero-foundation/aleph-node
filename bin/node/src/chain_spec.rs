@@ -6,6 +6,7 @@ use aleph_runtime::{
     AccountId, AuraConfig, BalancesConfig, ElectionsConfig, GenesisConfig, Perbill, SessionConfig,
     SessionKeys, Signature, StakingConfig, SudoConfig, SystemConfig, VestingConfig, WASM_BINARY,
 };
+use clap::Args;
 use libp2p::PeerId;
 use pallet_staking::{Forcing, StakerStatus};
 use sc_service::{config::BasePath, ChainType};
@@ -16,7 +17,6 @@ use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 use std::{collections::HashSet, path::PathBuf, str::FromStr};
-use structopt::StructOpt;
 
 pub const CHAINTYPE_DEV: &str = "dev";
 pub const CHAINTYPE_LOCAL: &str = "local";
@@ -106,43 +106,43 @@ fn to_account_ids(authorities: &[AuthorityKeys]) -> impl Iterator<Item = Account
     authorities.iter().map(|auth| auth.account_id.clone())
 }
 
-#[derive(Debug, StructOpt, Clone)]
+#[derive(Debug, Args, Clone)]
 pub struct ChainParams {
     /// Chain ID is a short identifier of the chain
-    #[structopt(long, value_name = "ID", default_value = DEFAULT_CHAIN_ID)]
+    #[clap(long, value_name = "ID", default_value = DEFAULT_CHAIN_ID)]
     chain_id: String,
 
     /// The type of the chain. Possible values: "dev", "local", "live" (default)
-    #[structopt(long, value_name = "TYPE", parse(from_str = parse_chaintype), default_value = CHAINTYPE_LIVE)]
+    #[clap(long, value_name = "TYPE", parse(from_str = parse_chaintype), default_value = CHAINTYPE_LIVE)]
     chain_type: ChainType,
 
     /// Specify custom base path
-    #[structopt(long, short = "d", value_name = "PATH", parse(from_os_str))]
+    #[clap(long, short = 'd', value_name = "PATH", parse(from_os_str))]
     base_path: PathBuf,
 
     /// Specify filename to write node private p2p keys to
     /// Resulting keys will be stored at: base_path/account_id/node_key_file for each node
-    #[structopt(long, default_value = "p2p_secret")]
+    #[clap(long, default_value = "p2p_secret")]
     node_key_file: String,
 
     /// Chain name. Default is "Aleph Zero Development"
-    #[structopt(long, default_value = "Aleph Zero Development")]
+    #[clap(long, default_value = "Aleph Zero Development")]
     chain_name: String,
 
     /// Token symbol. Default is DZERO
-    #[structopt(long, default_value = "DZERO")]
+    #[clap(long, default_value = "DZERO")]
     token_symbol: String,
 
     /// AccountIds of authorities forming the committee at the genesis (comma delimited)
-    #[structopt(long, require_delimiter = true, parse(from_str = parse_account_id))]
+    #[clap(long, require_value_delimiter = true, parse(from_str = parse_account_id))]
     account_ids: Vec<AccountId>,
 
     /// AccountId of the sudo account
-    #[structopt(long, parse(from_str = parse_account_id), default_value(DEFAULT_SUDO_ACCOUNT))]
+    #[clap(long, parse(from_str = parse_account_id), default_value(DEFAULT_SUDO_ACCOUNT))]
     sudo_account_id: AccountId,
 
     /// AccountId of the optional faucet account
-    #[structopt(long, parse(from_str = parse_account_id))]
+    #[clap(long, parse(from_str = parse_account_id))]
     faucet_account_id: Option<AccountId>,
 }
 
@@ -263,6 +263,8 @@ fn generate_chain_spec_config(
         // Telemetry
         None,
         // Protocol ID
+        None,
+        // Fork ID
         None,
         // Properties
         Some(system_properties(token_symbol)),
@@ -466,7 +468,7 @@ fn generate_genesis_config(
         },
         sudo: SudoConfig {
             // Assign network admin rights.
-            key: sudo_account,
+            key: Some(sudo_account),
         },
         elections: ElectionsConfig {
             members: accounts_config.members.clone(),

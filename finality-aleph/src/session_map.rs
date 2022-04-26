@@ -451,12 +451,16 @@ mod tests {
             .unbounded_send(FinalityNotification {
                 hash: block_1.header.hash(),
                 header: block_1.header,
+                tree_route: Arc::new([]),
+                stale_heads: Arc::new([]),
             })
             .unwrap();
         sender
             .unbounded_send(FinalityNotification {
                 hash: block_2.header.hash(),
                 header: block_2.header,
+                tree_route: Arc::new([]),
+                stale_heads: Arc::new([]),
             })
             .unwrap();
 

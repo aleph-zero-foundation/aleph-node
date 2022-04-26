@@ -1,10 +1,10 @@
 use aleph_primitives::DEFAULT_UNIT_CREATION_DELAY;
+use clap::Parser;
 use finality_aleph::UnitCreationDelay;
-use structopt::StructOpt;
 
-#[derive(Debug, StructOpt, Clone)]
+#[derive(Debug, Parser, Clone)]
 pub struct AlephCli {
-    #[structopt(long)]
+    #[clap(long)]
     unit_creation_delay: Option<u64>,
 }
 

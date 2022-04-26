@@ -5,6 +5,7 @@ use codec::{Decode, Encode};
 use log::{error, info};
 use primitives::Balance;
 use sp_core::{blake2_256, crypto::AccountId32, Pair};
+use sp_runtime::traits::TrailingZeroInput;
 use substrate_api_client::{compose_extrinsic, XtStatus::Finalized};
 use thiserror::Error;
 
@@ -170,11 +171,11 @@ impl MultisigParty {
     /// `pallet_multisig::Pallet<T: pallet_multisig::Config>` it is easier to just copy
     /// these two lines.
     ///
-    /// *Note:* this function is a little different in the newer Substrate versions.
-    /// After update, this code should be adjusted.
+    /// *Note:* if this function changes in some newer Substrate version, this code should be adjusted.
     pub fn multi_account_id(who: &[AccountId], threshold: u16) -> AccountId {
         let entropy = (b"modlpy/utilisuba", who, threshold).using_encoded(blake2_256);
-        AccountId::decode(&mut &entropy[..]).unwrap_or_default()
+        Decode::decode(&mut TrailingZeroInput::new(entropy.as_ref()))
+            .expect("infinite length input; no invalid inputs for type; qed")
     }
 
     /// Provide the address corresponding to the party (and the threshold).

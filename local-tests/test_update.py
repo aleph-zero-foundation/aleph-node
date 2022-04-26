@@ -93,12 +93,12 @@ newver = query_runtime_version(chain)
 print('Restarting remaining nodes with new binary')
 chain.stop(nodes=[0, 1, 2])
 chain.set_binary(newbin, nodes=[0, 1, 2])
-print('Waiting a bit')
-sleep(10)
-chain.start('new', nodes=[0, 1, 2])
-
 print('Waiting 30s')
 sleep(30)
+chain.start('new', nodes=[0, 1, 2])
+
+print('Waiting 90s')
+sleep(90)
 
 check_finalized(chain)
 query_runtime_version(chain)

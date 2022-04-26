@@ -7,10 +7,11 @@ use futures::{
     Future,
 };
 use sp_api::BlockId;
+use sp_core::Pair;
 use sp_runtime::traits::Block;
 use tokio::{task::JoinHandle, time::timeout};
 
-use aleph_primitives::AuthoritySignature;
+use aleph_primitives::{AuthorityPair, AuthoritySignature};
 use AcceptancePolicy::*;
 
 use crate::{
@@ -34,7 +35,9 @@ fn correctly_decodes_v1() {
         let id = i.into();
         let signature_v1 = SignatureV1 {
             _id: id,
-            sgn: Default::default(),
+            sgn: AuthorityPair::generate()
+                .0
+                .sign(vec![0u8, 0u8, 0u8, 0u8].as_slice()),
         };
         signature_set = signature_set.add_signature(&signature_v1, id);
     }
@@ -51,7 +54,9 @@ fn correctly_decodes_v1() {
 fn correctly_decodes_v2() {
     let mut signature_set: SignatureSet<Signature> = SignatureSet::with_size(7.into());
     for i in 0..7 {
-        let authority_signature: AuthoritySignature = Default::default();
+        let authority_signature: AuthoritySignature = AuthorityPair::generate()
+            .0
+            .sign(vec![0u8, 0u8, 0u8, 0u8].as_slice());
         signature_set = signature_set.add_signature(&authority_signature.into(), i.into());
     }
 

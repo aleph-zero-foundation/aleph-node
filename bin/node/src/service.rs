@@ -18,7 +18,6 @@ use sc_service::{
 };
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sp_api::ProvideRuntimeApi;
-use sp_consensus::SlotData;
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 use sp_runtime::{
     generic::BlockId,
@@ -64,6 +63,7 @@ pub fn new_partial(
         config.wasm_method,
         config.default_heap_pages,
         config.max_runtime_instances,
+        config.runtime_cache_size,
     );
 
     let (client, backend, keystore_container, task_manager) =
@@ -104,10 +104,10 @@ pub fn new_partial(
     let aleph_block_import =
         AlephBlockImport::new(client.clone() as Arc<_>, justification_tx, metrics.clone());
 
-    let slot_duration = sc_consensus_aura::slot_duration(&*client)?.slot_duration();
+    let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
 
-    let import_queue =
-        sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _, _>(ImportQueueParams {
+    let import_queue = sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _, _>(
+        ImportQueueParams {
             block_import: aleph_block_import.clone(),
             justification_import: Some(Box::new(aleph_block_import.clone())),
             client: client.clone(),
@@ -115,7 +115,7 @@ pub fn new_partial(
                 let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
                 let slot =
-                    sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_duration(
+                    sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
                         *timestamp,
                         slot_duration,
                     );
@@ -129,7 +129,8 @@ pub fn new_partial(
             ),
             check_for_equivocation: Default::default(),
             telemetry: telemetry.as_ref().map(|x| x.handle()),
-        })?;
+        },
+    )?;
 
     Ok(sc_service::PartialComponents {
         client,
@@ -272,7 +273,6 @@ pub fn new_authority(
     let can_author_with = sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
 
     let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
-    let raw_slot_duration = slot_duration.slot_duration();
 
     let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _, _, _, _, _, _>(
         StartAuraParams {
@@ -285,9 +285,9 @@ pub fn new_authority(
                 let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
 
                 let slot =
-                    sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_duration(
+                    sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
                         *timestamp,
-                        raw_slot_duration,
+                        slot_duration,
                     );
 
                 Ok((timestamp, slot))

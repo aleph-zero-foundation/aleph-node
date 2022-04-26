@@ -21,10 +21,7 @@ pub mod pallet {
         ElectionDataProvider, ElectionProvider, Support, Supports,
     };
     use frame_support::{pallet_prelude::*, traits::Get};
-    use frame_system::{
-        ensure_root,
-        pallet_prelude::{BlockNumberFor, OriginFor},
-    };
+    use frame_system::{ensure_root, pallet_prelude::OriginFor};
     use sp_std::{collections::btree_map::BTreeMap, prelude::Vec};
 
     #[pallet::storage]
@@ -34,7 +31,10 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-        type DataProvider: ElectionDataProvider<Self::AccountId, Self::BlockNumber>;
+        type DataProvider: ElectionDataProvider<
+            AccountId = Self::AccountId,
+            BlockNumber = Self::BlockNumber,
+        >;
         #[pallet::constant]
         type SessionPeriod: Get<u32>;
     }
@@ -47,6 +47,7 @@ pub mod pallet {
 
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]
+    #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
     #[pallet::call]
@@ -89,14 +90,16 @@ pub mod pallet {
         DataProvider(&'static str),
     }
 
-    impl<T: Config> ElectionProvider<T::AccountId, BlockNumberFor<T>> for Pallet<T> {
+    impl<T: Config> ElectionProvider for Pallet<T> {
+        type AccountId = T::AccountId;
+        type BlockNumber = T::BlockNumber;
         type Error = Error;
         type DataProvider = T::DataProvider;
 
         // The elections are PoA so only the nodes listed in the Members will be elected as validators.
         // We calculate the supports for them for the sake of eras payouts.
         fn elect() -> Result<Supports<T::AccountId>, Self::Error> {
-            let voters = Self::DataProvider::voters(None).map_err(Error::DataProvider)?;
+            let voters = Self::DataProvider::electing_voters(None).map_err(Error::DataProvider)?;
             let members = Pallet::<T>::members();
             let mut supports: BTreeMap<T::AccountId, Support<T::AccountId>> = members
                 .iter()

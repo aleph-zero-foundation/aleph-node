@@ -3,26 +3,25 @@ name = "aleph_client"
 version = "0.4.2"
 edition = "2021"
 
-
 [dependencies]
+# client
+substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "polkadot-v0.9.19", features = ["staking-xt"] }
 # Substrate dependencies
-sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", features = ["full_crypto"] }
-sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", default-features = false }
-pallet-multisig = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", default-features = false }
-pallet-staking = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", default-features = false }
-pallet-treasury = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", default-features = false }
+sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", features = ["full_crypto"] }
+sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", default-features = false }
+pallet-multisig = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", default-features = false }
+pallet-staking = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", default-features = false }
+pallet-treasury = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", default-features = false }
 pallet-aleph = { path = "../pallets/aleph", default-features = false }
-pallet-balances = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.13", default-features = false }
-
-substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", tag = "polkadot-v0.9.13.b2bfc0c3", features = ["staking-xt"] }
+pallet-balances = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", default-features = false }
 primitives = { path = "../primitives", default-features = false }
 
 # other dependencies
-anyhow = "1.0"
-codec = { package = 'parity-scale-codec', version = "2.0.0", default-features = false, features = ['derive'] }
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 log = "0.4"
 serde_json = { version = "1.0" }
+anyhow = "1.0"
+codec = { package = 'parity-scale-codec', version = "3.0.0", default-features = false,  features = ['derive']}
 thiserror = "1.0"
 
 [features]

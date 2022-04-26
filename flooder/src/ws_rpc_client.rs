@@ -144,6 +144,12 @@ impl WsRpcClient {
         self.send_rpc_request(json_req, on_extrinsic_msg_until_finalized)
     }
 
+    // FIXME:
+    // here we are using a deprecated `mio::channel::sync_channel` instead of the
+    // now-recommended `mio-extras` channel, because the ws library (in the latest version)
+    // is not yet updated to use the `mio-extras` version (and no conversion exists).
+    // We need to change it to `mio-extras` as soon as `ws` is updated.
+    #[allow(deprecated)]
     fn send_rpc_request(&self, jsonreq: String, on_message_fn: OnMessageFn) -> WsResult<String> {
         // ws_sender below is used by the RpcClient while being executed by another thread,
         // but we don't want it actually to do anything, since we are sending the given request here

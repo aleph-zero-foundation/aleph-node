@@ -1,4 +1,5 @@
 use log::info;
+use frame_support::BoundedVec;
 use pallet_staking::StakingLedger;
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
@@ -190,7 +191,7 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
             stash: stash_account.clone(),
             total: MIN_VALIDATOR_BOND,
             active: MIN_VALIDATOR_BOND,
-            unlocking: vec![],
+            unlocking: BoundedVec::try_from(vec![]).unwrap(),
             // we don't need to compare claimed rewards as those are internals of staking pallet
             claimed_rewards: ledger.claimed_rewards.clone()
         }

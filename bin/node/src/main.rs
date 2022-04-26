@@ -3,9 +3,10 @@ use sc_network::config::Role;
 use sc_service::PartialComponents;
 
 use aleph_node::{new_authority, new_full, new_partial, Cli, Subcommand};
+use clap::Parser;
 
 fn main() -> sc_cli::Result<()> {
-    let cli = Cli::from_args();
+    let cli = Cli::parse();
     match &cli.subcommand {
         Some(Subcommand::BootstrapChain(cmd)) => cmd.run(),
         Some(Subcommand::BootstrapNode(cmd)) => cmd.run(),
@@ -70,7 +71,7 @@ fn main() -> sc_cli::Result<()> {
                     backend,
                     ..
                 } = new_partial(&config)?;
-                Ok((cmd.run(client, backend), task_manager))
+                Ok((cmd.run(client, backend, None), task_manager))
             })
         }
         None => {

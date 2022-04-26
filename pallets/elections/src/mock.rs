@@ -6,6 +6,7 @@ use crate as pallet_elections;
 use frame_election_provider_support::{data_provider, ElectionDataProvider, VoteWeight};
 use frame_support::{
     construct_runtime, parameter_types, sp_io, traits::GenesisBuild, weights::RuntimeDbWeight,
+    BoundedVec,
 };
 use sp_core::H256;
 use sp_runtime::{
@@ -64,6 +65,7 @@ impl frame_system::Config for Test {
     type SystemWeightInfo = ();
     type SS58Prefix = ();
     type OnSetCode = ();
+    type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 parameter_types! {
@@ -100,17 +102,21 @@ impl Config for Test {
     type SessionPeriod = SessionPeriod;
 }
 
-pub struct StakingMock;
-impl ElectionDataProvider<AccountId, u64> for StakingMock {
-    const MAXIMUM_VOTES_PER_VOTER: u32 = 1;
+type AccountIdBoundedVec = BoundedVec<AccountId, ()>;
 
-    fn targets(_maybe_max_len: Option<usize>) -> data_provider::Result<Vec<AccountId>> {
+pub struct StakingMock;
+impl ElectionDataProvider for StakingMock {
+    type AccountId = AccountId;
+    type BlockNumber = u64;
+    type MaxVotesPerVoter = ();
+
+    fn electable_targets(_maybe_max_len: Option<usize>) -> data_provider::Result<Vec<AccountId>> {
         Ok(Vec::new())
     }
 
-    fn voters(
+    fn electing_voters(
         _maybe_max_len: Option<usize>,
-    ) -> data_provider::Result<Vec<(AccountId, VoteWeight, Vec<AccountId>)>> {
+    ) -> data_provider::Result<Vec<(AccountId, VoteWeight, AccountIdBoundedVec)>> {
         Ok(Vec::new())
     }
 

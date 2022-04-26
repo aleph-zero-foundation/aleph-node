@@ -33,15 +33,12 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
-        type AuthorityId: Member
-            + Parameter
-            + RuntimeAppPublic
-            + Default
-            + MaybeSerializeDeserialize;
+        type AuthorityId: Member + Parameter + RuntimeAppPublic + MaybeSerializeDeserialize;
     }
 
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]
+    #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
     #[pallet::hooks]

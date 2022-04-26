@@ -75,6 +75,7 @@ impl frame_system::Config for Test {
     type SystemWeightInfo = ();
     type SS58Prefix = ();
     type OnSetCode = ();
+    type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
 parameter_types! {
@@ -189,7 +190,6 @@ pub(crate) fn run_session(n: u32) {
             &(System::block_number() + 1),
             &parent_hash,
             &Default::default(),
-            Default::default(),
         );
         System::set_block_number((i + 1).into());
         Timestamp::set_timestamp(System::block_number() * 1000);
@@ -201,12 +201,7 @@ pub(crate) fn run_session(n: u32) {
 }
 
 pub(crate) fn initialize_session() {
-    System::initialize(
-        &1,
-        &System::parent_hash(),
-        &Default::default(),
-        Default::default(),
-    );
+    System::initialize(&1, &System::parent_hash(), &Default::default());
 
     System::on_initialize(System::block_number());
     Session::on_initialize(System::block_number());

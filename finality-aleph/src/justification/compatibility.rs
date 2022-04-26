@@ -34,9 +34,13 @@ pub enum JustificationDecoding {
 }
 
 pub fn backwards_compatible_decode(justification_raw: Vec<u8>) -> JustificationDecoding {
-    if let Ok(justification) = AlephJustification::decode_all(&justification_raw) {
+    let justification_cloned = justification_raw.clone();
+    if let Ok(justification) = AlephJustification::decode_all(&mut justification_cloned.as_slice())
+    {
         JustificationDecoding::V2(justification)
-    } else if let Ok(justification) = AlephJustificationV1::decode_all(&justification_raw) {
+    } else if let Ok(justification) =
+        AlephJustificationV1::decode_all(&mut justification_raw.as_slice())
+    {
         JustificationDecoding::V1(justification)
     } else {
         JustificationDecoding::Err
