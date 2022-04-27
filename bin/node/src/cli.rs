@@ -20,7 +20,7 @@ pub struct Cli {
 
 impl SubstrateCli for Cli {
     fn impl_name() -> String {
-        "Substrate Node".into()
+        "Aleph Node".into()
     }
 
     fn impl_version() -> String {
@@ -36,7 +36,7 @@ impl SubstrateCli for Cli {
     }
 
     fn support_url() -> String {
-        "support.anonymous.an".into()
+        "docs.alephzero.org".into()
     }
 
     fn copyright_start_year() -> i32 {
