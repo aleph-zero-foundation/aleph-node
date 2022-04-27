@@ -33,7 +33,7 @@ Usage:
     [--key-rotation file]
        Optional param.
        Runs rotateKeys() and setKeys() for a given validator. file is a config like in --staking-config-file argument.
-    [--set-staking-limits "minimal_nominator_bond,minimal_validator_bond,max_nominators_count"]
+    [--set-staking-limits "minimal_nominator_bond,minimal_validator_bond,max_nominators_count,max_validators_count"]
        Optional param.
        Command parameter is comma-separated tuple which is an argument to SetStakingLimits call (requires sudo account).
     [--change-validators account_ids_comma_separated]
@@ -241,12 +241,14 @@ function set_staking_limits() {
   minimal_nominator_bond="$1"
   minimal_validator_bond="$2"
   max_nominators_count="$3"
-  validator_pod_name="$4"
-  namespace="$5"
+  max_validators_count="$4"
+  validator_pod_name="$5"
+  namespace="$6"
 
   info "Calling setStakingLimits() with minimal nominator bond ${minimal_nominator_bond}, \
 minimal validator bond ${minimal_validator_bond} \
-and max nominators count ${max_nominators_count}"
+max nominators count ${max_nominators_count} \
+max validators count ${max_validators_count}"
   prompt_if_interactive_mode "Press enter to continue"
 
   cmd_on_pod=(
@@ -256,6 +258,7 @@ and max nominators count ${max_nominators_count}"
          --minimal-nominator-stake "${minimal_nominator_bond}"
          --minimal-validator-stake "${minimal_validator_bond}"
          --max-nominators-count "${max_nominators_count}"
+         --max-validators-count "${max_validators_count}"
   )
   # workaround for cliain expecting root account seed from stdin
   info "Provide seed for root account:"
@@ -417,7 +420,8 @@ if  [ -n "${SET_STAKING_LIMITS}" ]; then
   minimal_nominator_bond=$(echo "${SET_STAKING_LIMITS}" | cut -f 1 -d ',')
   minimal_validator_bond=$(echo "${SET_STAKING_LIMITS}" | cut -f 2 -d ',')
   max_nominators_count=$(echo "${SET_STAKING_LIMITS}" | cut -f 3 -d ',')
-  set_staking_limits "${minimal_nominator_bond}" "${minimal_validator_bond}" "${max_nominators_count}" "${VALIDATOR_POD_NAME}" "${NAMESPACE}"
+  max_validators_count=$(echo "${SET_STAKING_LIMITS}" | cut -f 4 -d ',')
+  set_staking_limits "${minimal_nominator_bond}" "${minimal_validator_bond}" "${max_nominators_count}" "${max_validators_count}" "${VALIDATOR_POD_NAME}" "${NAMESPACE}"
 fi
 if  [ -n "${CHANGE_VALIDATORS}" ]; then
   did_something="true"

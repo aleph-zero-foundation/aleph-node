@@ -39,6 +39,7 @@ pub fn set_staking_limits(
     minimal_nominator_stake: u128,
     minimal_validator_stake: u128,
     max_nominators_count: Option<u32>,
+    max_validators_count: Option<u32>,
     status: XtStatus,
 ) {
     let set_staking_limits_call = compose_call!(
@@ -48,7 +49,7 @@ pub fn set_staking_limits(
         minimal_nominator_stake,
         minimal_validator_stake,
         max_nominators_count,
-        0_u8,
+        max_validators_count,
         0_u8
     );
     let xt = compose_extrinsic!(root_connection, "Sudo", "sudo", set_staking_limits_call);

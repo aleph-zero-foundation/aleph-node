@@ -81,6 +81,9 @@ enum Command {
         #[clap(long)]
         max_nominators_count: Option<u32>,
 
+        /// Maximum number of validators
+        #[clap(long)]
+        max_validators_count: Option<u32>,
     },
 
     /// Transfer funds via balances pallet
@@ -156,7 +159,14 @@ fn main() {
             minimal_nominator_stake,
             minimal_validator_stake,
             max_nominators_count,
-        } => set_staking_limits(cfg.into(), minimal_nominator_stake, minimal_validator_stake, max_nominators_count),
+            max_validators_count,
+        } => set_staking_limits(
+            cfg.into(),
+            minimal_nominator_stake,
+            minimal_validator_stake,
+            max_nominators_count,
+            max_validators_count,
+        ),
         Command::ForceNewEra => {
             force_new_era(cfg.into());
         }
