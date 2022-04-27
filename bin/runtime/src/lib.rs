@@ -330,6 +330,7 @@ impl_opaque_keys! {
 
 parameter_types! {
     pub const SessionPeriod: u32 = DEFAULT_SESSION_PERIOD;
+    pub const MembersPerSession: u32 = 4;
 }
 
 impl pallet_elections::Config for Runtime {
@@ -344,13 +345,89 @@ parameter_types! {
     pub const Offset: u32 = 0;
 }
 
+// Choose a subset of all the validators for current era that contains all the
+// reserved nodes. Non reserved ones are chosen in consecutive batches for every session
+fn rotate() -> Option<Vec<AccountId>> {
+    let current_era = match Staking::active_era() {
+        Some(ae) if ae.index > 0 => ae.index,
+        _ => return None,
+    };
+    let mut all_validators: Vec<AccountId> =
+        pallet_staking::ErasStakers::<Runtime>::iter_key_prefix(current_era).collect();
+
+    let mut validators = pallet_elections::ErasReserved::<Runtime>::get();
+    all_validators.retain(|v| !validators.contains(v));
+    let n_all_validators = all_validators.len();
+
+    let n_validators = MembersPerSession::get() as usize;
+    let free_seats = n_validators.checked_sub(validators.len()).unwrap();
+
+    // The validators for the committee at the session `n` are chosen as follow:
+    // 1. Reserved validators are always chosen.
+    // 2. Given non-reserved list of validators the chosen ones are from the range:
+    // `n * free_seats` to `(n + 1) * free_seats` where free_seats is equal to free number of free
+    // seats in the committee after reserved nodes are added.
+    let current_session = Session::current_index() as usize;
+    let first_validator = current_session * free_seats;
+
+    validators.extend(
+        (first_validator..first_validator + free_seats)
+            .map(|i| all_validators[i % n_all_validators].clone()),
+    );
+
+    Some(validators)
+}
+
+fn populate_reserved_on_next_era_start(start_index: SessionIndex) {
+    let current_era = match Staking::active_era() {
+        Some(ae) => ae.index,
+        _ => return,
+    };
+    // this will be populated once for the session `n+1` on the start of the session `n` where session
+    // `n+1` starts a new era.
+    if let Some(era_index) = Staking::eras_start_session_index(current_era + 1) {
+        if era_index == start_index {
+            let reserved = pallet_staking::Invulnerables::<Runtime>::get();
+            pallet_elections::ErasReserved::<Runtime>::put(reserved);
+        }
+    }
+}
+
+use primitives::SessionIndex;
+type SM = pallet_session::historical::NoteHistoricalRoot<Runtime, Staking>;
+pub struct SampleSessionManager;
+
+impl pallet_session::SessionManager<AccountId> for SampleSessionManager {
+    fn new_session(new_index: SessionIndex) -> Option<Vec<AccountId>> {
+        SM::new_session(new_index);
+        // new session is always called before the end_session of the previous session
+        // so we need to populate reserved set here not on start_session nor end_session
+        let committee = rotate();
+        populate_reserved_on_next_era_start(new_index);
+
+        committee
+    }
+
+    fn end_session(end_index: SessionIndex) {
+        SM::end_session(end_index)
+    }
+
+    fn start_session(start_index: SessionIndex) {
+        SM::start_session(start_index)
+    }
+
+    fn new_session_genesis(new_index: SessionIndex) -> Option<Vec<AccountId>> {
+        SM::new_session_genesis(new_index)
+    }
+}
+
 impl pallet_session::Config for Runtime {
     type Event = Event;
     type ValidatorId = <Self as frame_system::Config>::AccountId;
     type ValidatorIdOf = pallet_staking::StashOf<Self>;
     type ShouldEndSession = pallet_session::PeriodicSessions<SessionPeriod, Offset>;
     type NextSessionRotation = pallet_session::PeriodicSessions<SessionPeriod, Offset>;
-    type SessionManager = pallet_session::historical::NoteHistoricalRoot<Self, Staking>;
+    type SessionManager = SampleSessionManager;
     type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = SessionKeys;
     type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
@@ -726,7 +803,7 @@ impl_runtime_apis! {
         }
 
         fn authorities() -> Vec<AuraId> {
-            Aura::authorities().to_vec ()
+            Aura::authorities().to_vec()
         }
     }
 
