@@ -4085,7 +4085,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-elections"
-version = "0.2.0"
+version = "0.1.0"
 dependencies = [
  "frame-election-provider-support",
  "frame-support",
@@ -4097,7 +4097,6 @@ dependencies = [
  "scale-info",
  "sp-core",
  "sp-runtime",
- "sp-staking",
  "sp-std",
 ]
 

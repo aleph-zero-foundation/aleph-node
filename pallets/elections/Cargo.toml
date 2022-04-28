@@ -1,20 +1,19 @@
 [package]
 name = "pallet-elections"
-version = "0.2.0"
+version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0", default-features = false, features = ["derive"] }
 frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
 frame-system = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
-frame-election-provider-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
+frame-election-provider-support ={ default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
 pallet-session = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
 sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
-primitives = { path = "../../primitives", default-features = false }
+primitives = { path = "../../primitives", default-features = false}
 scale-info = { version = "2.0", default-features = false, features = ["derive"] }
 pallet-balances = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
-sp-staking = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
-sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
+sp-core= { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
 
 [dev-dependencies]
 sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
@@ -31,5 +30,4 @@ std = [
     "pallet-session/std",
     "primitives/std",
     "pallet-balances/std",
-    "sp-staking/std",
 ]
