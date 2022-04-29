@@ -11,6 +11,8 @@ jobs:
   deploy-testnet:
     name: Deploy new aleph-node image to Testnet EKS
     runs-on: ubuntu-latest
+    environment: 
+      name: testnet
     env:
       AWS_REGION: us-east-1 # this region is used by all public ECR repos
     steps:
