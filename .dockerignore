@@ -1,5 +1,3 @@
-**
+**/target
 !target/release/aleph-node
-!docker
 !bin/cliain/target/release/cliain
-!docker-runtime-hook/entrypoint.sh

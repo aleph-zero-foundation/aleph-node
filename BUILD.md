@@ -14,7 +14,7 @@ In order to build a binary for `aleph-node` using docker we first need to instal
 distribution, by executing `sudo apt install docker.io` (please consult your distribution's manual describing docker
 installation procedure). Build procedure can be invoked by running:
 ```
-sudo DOCKER_BUILDKIT=1 docker build -t aleph-node/build -f docker/Dockerfile_build .
+sudo docker build -t aleph-node/build -f nix/Dockerfile.build .
 sudo docker run -ti --volume=$(pwd):/node/build aleph-node/build
 ```
 Binary will be stored at `$(pwd)/aleph-node`.
@@ -51,6 +51,7 @@ aleph-node>`.
 ## Manual
 These are build dependencies we use in our linux images for `aleph-node`:
 ```
+rust-nightly-2021-10-24
 bash-4.4
 glibc-2.31
 binutils-2.36,1
