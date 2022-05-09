@@ -103,6 +103,10 @@ impl Handler {
         }
     }
 
+    pub fn is_validator(&self) -> bool {
+        self.authority_index_and_pen.is_some()
+    }
+
     pub fn node_count(&self) -> NodeCount {
         self.authority_verifier.node_count()
     }
@@ -278,6 +282,29 @@ mod tests {
                 .await
                 .is_ok()
         );
+    }
+
+    #[tokio::test]
+    async fn identifies_whether_node_is_authority_in_current_session() {
+        let mut crypto_basics = crypto_basics(NUM_NODES).await;
+        let no_authority_handler = Handler::new(
+            None,
+            crypto_basics.1.clone(),
+            SessionId(43),
+            correct_addresses_0(),
+        )
+        .await
+        .unwrap();
+        let authority_handler = Handler::new(
+            Some(crypto_basics.0.pop().unwrap()),
+            crypto_basics.1,
+            SessionId(43),
+            local_p2p_addresses(),
+        )
+        .await
+        .unwrap();
+        assert!(!no_authority_handler.is_validator());
+        assert!(authority_handler.is_validator());
     }
 
     #[tokio::test]

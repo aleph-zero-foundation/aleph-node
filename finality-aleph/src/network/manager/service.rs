@@ -452,8 +452,9 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
                 handler, discovery, ..
             }) => {
                 let (addresses, responses) = discovery.handle_message(message, handler);
-                let maybe_command = match addresses.is_empty() {
-                    false => {
+                let maybe_command = match !addresses.is_empty() && handler.is_validator()
+                {
+                    true => {
                         debug!(target: "aleph-network", "Adding addresses for session {:?} to reserved: {:?}", session_id, addresses);
                         self.connections
                             .add_peers(session_id, addresses.iter().flat_map(get_peer_id));
@@ -461,7 +462,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
                             addresses.into_iter().map(|address| address.0).collect(),
                         ))
                     }
-                    true => None,
+                    false => None,
                 };
                 (
                     maybe_command,
