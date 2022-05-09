@@ -6,6 +6,7 @@ use futures::{channel::mpsc, StreamExt};
 use log::{debug, error, trace, warn};
 use sc_network::{multiaddr, Event};
 use sc_service::SpawnTaskHandle;
+use sc_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnboundedSender};
 use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
@@ -28,8 +29,8 @@ pub struct Service<N: Network, D: Data> {
     commands_from_manager: mpsc::UnboundedReceiver<ConnectionCommand>,
     generic_connected_peers: HashSet<PeerId>,
     validator_connected_peers: HashSet<PeerId>,
-    generic_peer_senders: HashMap<PeerId, mpsc::Sender<D>>,
-    validator_peer_senders: HashMap<PeerId, mpsc::Sender<D>>,
+    generic_peer_senders: HashMap<PeerId, TracingUnboundedSender<D>>,
+    validator_peer_senders: HashMap<PeerId, TracingUnboundedSender<D>>,
     spawn_handle: SpawnTaskHandle,
 }
 
@@ -53,7 +54,6 @@ impl<D: Data> IO<D> {
         }
     }
 }
-const PEER_BUFFER_SIZE: usize = 100;
 
 #[derive(Debug)]
 enum SendError {
@@ -81,7 +81,11 @@ impl<N: Network, D: Data> Service<N, D> {
         }
     }
 
-    fn get_sender(&mut self, peer: &PeerId, protocol: Protocol) -> Option<&mut mpsc::Sender<D>> {
+    fn get_sender(
+        &mut self,
+        peer: &PeerId,
+        protocol: Protocol,
+    ) -> Option<&mut TracingUnboundedSender<D>> {
         match protocol {
             Protocol::Generic => self.generic_peer_senders.get_mut(peer),
             Protocol::Validator => self.validator_peer_senders.get_mut(peer),
@@ -91,7 +95,7 @@ impl<N: Network, D: Data> Service<N, D> {
     fn peer_sender(
         &self,
         peer_id: PeerId,
-        mut receiver: mpsc::Receiver<D>,
+        mut receiver: TracingUnboundedReceiver<D>,
         protocol: Protocol,
     ) -> impl Future<Output = ()> + Send + 'static {
         let network = self.network.clone();
@@ -125,11 +129,8 @@ impl<N: Network, D: Data> Service<N, D> {
     fn send_to_peer(&mut self, data: D, peer: PeerId, protocol: Protocol) -> Result<(), SendError> {
         match self.get_sender(&peer, protocol) {
             Some(sender) => {
-                match sender.try_send(data) {
+                match sender.unbounded_send(data) {
                     Err(e) => {
-                        if e.is_full() {
-                            warn!(target: "aleph-network", "Failed sending data to peer because buffer is full: {:?}", peer);
-                        }
                         // Receiver can also be dropped when thread cannot send to peer. In case receiver is dropped this entry will be removed by Event::NotificationStreamClosed
                         // No need to remove the entry here
                         if e.is_disconnected() {
@@ -176,7 +177,7 @@ impl<N: Network, D: Data> Service<N, D> {
             } => match protocol.as_ref().try_into() {
                 Ok(Protocol::Generic) => {
                     trace!(target: "aleph-network", "NotificationStreamOpened event for peer {:?} and protocol {:?}", remote, protocol);
-                    let (tx, rx) = mpsc::channel(PEER_BUFFER_SIZE);
+                    let (tx, rx) = tracing_unbounded("mpsc_notification_stream_generic");
                     self.spawn_handle.spawn(
                         "aleph/network/peer_sender",
                         None,
@@ -187,7 +188,7 @@ impl<N: Network, D: Data> Service<N, D> {
                 }
                 Ok(Protocol::Validator) => {
                     trace!(target: "aleph-network", "NotificationStreamOpened event for peer {:?} and protocol {:?}", remote, protocol);
-                    let (tx, rx) = mpsc::channel(PEER_BUFFER_SIZE);
+                    let (tx, rx) = tracing_unbounded("mpsc_notification_stream_validator");
                     self.spawn_handle.spawn(
                         "aleph/network/peer_sender",
                         None,
