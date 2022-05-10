@@ -58,15 +58,16 @@ pub fn set_keys(connection: &Connection, new_keys: Keys, status: XtStatus) {
     send_xt(connection, xt, Some("set_keys"), status);
 }
 
+/// Get the number of the current session.
 pub fn get_current(connection: &Connection) -> u32 {
     connection
         .get_storage_value("Session", "CurrentIndex", None)
         .unwrap()
-        .unwrap()
+        .unwrap_or(0)
 }
 
 pub fn wait_for(connection: &Connection, session_index: u32) -> anyhow::Result<BlockNumber> {
-    info!(target: "aleph-client", "Waiting for the session {}", session_index);
+    info!(target: "aleph-client", "Waiting for session {}", session_index);
 
     #[derive(Debug, Decode, Clone)]
     struct NewSessionEvent {

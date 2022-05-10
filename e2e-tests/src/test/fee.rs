@@ -6,13 +6,17 @@ use substrate_api_client::{
 };
 
 use aleph_client::{
-    get_next_fee_multiplier, get_tx_fee_info, send_xt, Connection, FeeInfo, TransferTransaction,
+    balances_transfer, get_next_fee_multiplier, get_tx_fee_info, send_xt, Connection, FeeInfo,
+    TransferTransaction,
 };
 
 use crate::{config::Config, transfer::setup_for_transfer};
 
 pub fn fee_calculation(config: &Config) -> anyhow::Result<()> {
-    let (connection, _from, _to) = setup_for_transfer(config);
+    // An initial transfer is needed to establish the fee multiplier.
+    let (connection, _, to) = setup_for_transfer(config);
+    let transfer_value = 1000u128;
+    balances_transfer(&connection, &to, transfer_value, XtStatus::Finalized);
 
     // An example transaction for which we will query fee details at different traffic level.
     let tx = prepare_transaction(&connection);

@@ -43,3 +43,17 @@ cargo clippy
 
 ## `post-cache`
 Stops sccache server. Use together with `restore-cache`.
+
+---
+
+## `run-e2e-test`
+This action runs a single test from the e2e test suite. It requires a test case, which is the name of the test.
+
+### Usage
+Sample usage:
+```yaml
+steps:
+  - uses: ./.github/actions/run-e2e-test
+    with:
+      test-case: finalization
+```

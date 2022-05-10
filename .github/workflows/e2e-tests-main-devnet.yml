@@ -124,52 +124,153 @@ jobs:
           retention-days: 7
 
 
-  run-e2e-tests:
+  run-e2e-finalization-test:
     needs: [build-test-docker, build-test-client]
-    name: Run e2e tests suite
+    name: Run e2e finalization test
     runs-on: ubuntu-latest
     steps:
-      - name: GIT | Checkout Source code
+      - name: Checkout source code
         uses: actions/checkout@v2
 
-      - name: Download artifact with docker image
-        uses: actions/download-artifact@v2
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
         with:
-          name: aleph-test-docker
+          test-case: finalization
+        timeout-minutes: 2
 
-      - name: Load node docker image
-        shell: bash
-        run: docker load -i aleph-node.tar
 
-      - name: Run consensus party
-        run: ./.github/scripts/run_consensus.sh
+  run-e2e-token-transfer-test:
+    needs: [build-test-docker, build-test-client]
+    name: Run e2e token transfer test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
 
-      - name: Display bootnode logs
-        run: docker logs damian --follow &
-
-      - name: Download artifact with the test suite image
-        uses: actions/download-artifact@v2
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
         with:
-          name: aleph-e2e-client
+          test-case: token_transfer
+        timeout-minutes: 2
 
-      - name: Load test suite docker image
-        shell: bash
-        run: docker load -i aleph-e2e-client.tar
 
-      - name: Run e2e test suite
-        shell: bash
-        timeout-minutes: 15
-        run: ./.github/scripts/run_e2e_tests.sh
+  run-e2e-channeling-fee-test:
+    needs: [build-test-docker, build-test-client]
+    name: Run e2e channeling fee test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
 
-      - name: Print debug if failed
-        if: ${{ failure() }}
-        run: |
-          cd bin/cliain
-          cargo run -- --seed //Alice debug-storage
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: channeling_fee
+        timeout-minutes: 2
+
+
+  run-e2e-treasury-access-test:
+    needs: [build-test-docker, build-test-client]
+    name: Run e2e treasury access test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: treasury_access
+        timeout-minutes: 2
+
+
+  run-e2e-batch-transactions-test:
+    needs: [build-test-docker, build-test-client]
+    name: Run e2e batch transactions test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: batch_transactions
+        timeout-minutes: 2
+
+
+  run-e2e-staking-era-payouts-test:
+    needs: [build-test-docker, build-test-client]
+    name: Run e2e staking era payouts test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: staking_era_payouts
+        timeout-minutes: 10
+
+
+  run-e2e-staking-new-validator-test:
+    needs: [build-test-docker, build-test-client]
+    name: Run e2e staking new validator test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: staking_new_validator
+        timeout-minutes: 10
+
+
+  run-e2e-change-validators-test:
+    needs: [build-test-docker, build-test-client]
+    name: Run e2e change validators test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: change_validators
+        timeout-minutes: 2
+
+
+  run-e2e-fee-calculation:
+    needs: [build-test-docker, build-test-client]
+    name: Run e2e fee calculation test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: fee_calculation
+        timeout-minutes: 2
 
 
   push-image:
-    needs: [run-e2e-tests]
+    needs: [
+      run-e2e-finalization-test,
+      run-e2e-token-transfer-test,
+      run-e2e-channeling-fee-test,
+      run-e2e-treasury-access-test,
+      run-e2e-batch-transactions-test,
+      run-e2e-staking-era-payouts-test,
+      run-e2e-staking-new-validator-test,
+      run-e2e-change-validators-test,
+      run-e2e-fee-calculation
+    ]
     name: Push node image to the ECR repository
     if: github.event_name == 'push'
     runs-on: ubuntu-latest

@@ -7,6 +7,10 @@ pub struct Config {
     #[clap(long, default_value = "127.0.0.1:9943")]
     pub node: String,
 
+    /// Test cases to run.
+    #[clap(long)]
+    pub test_cases: Option<Vec<String>>,
+
     /// seed values to create accounts
     #[clap(long)]
     pub seeds: Option<Vec<String>>,

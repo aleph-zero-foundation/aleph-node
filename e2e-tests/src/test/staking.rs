@@ -1,5 +1,5 @@
-use log::info;
 use frame_support::BoundedVec;
+use log::info;
 use pallet_staking::StakingLedger;
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
@@ -121,7 +121,8 @@ pub fn staking_era_payouts(config: &Config) -> anyhow::Result<()> {
 // 8. wait for next era
 // 9. claim rewards for the stash account
 pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
-    let controller = keypair_from_string("//Controller");
+    let controller_seed = "//Controller";
+    let controller = keypair_from_string(controller_seed);
     let controller_account = AccountId::from(controller.public());
     let stash_seed = "//Stash";
     let stash = keypair_from_string(stash_seed);
@@ -140,6 +141,7 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
     );
 
     let current_session = get_current_session(&connection);
+
     let _ = wait_for_session(&connection, current_session + 2)?;
 
     // to cover tx fees as we need a bit more than VALIDATOR_STAKE

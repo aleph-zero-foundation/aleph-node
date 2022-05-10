@@ -1,0 +1,47 @@
+name: 'Run e2e test'
+description: 'Run single e2e test.'
+
+inputs:
+  test-case:
+    description: 'Name of test to run.'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Download artifact with docker image
+      uses: actions/download-artifact@v2
+      with:
+        name: aleph-test-docker
+
+    - name: Load node docker image
+      shell: bash
+      run: docker load -i aleph-node.tar
+
+    - name: Run consensus party
+      shell: bash
+      run: ./.github/scripts/run_consensus.sh
+
+    - name: Display bootnode logs
+      shell: bash
+      run: docker logs damian --follow &
+
+    - name: Download artifact with the test suite image
+      uses: actions/download-artifact@v2
+      with:
+        name: aleph-e2e-client
+
+    - name: Load test suite docker image
+      shell: bash
+      run: docker load -i aleph-e2e-client.tar
+
+    - name: Run single e2e test
+      shell: bash
+      run: ./.github/scripts/run_e2e_test.sh -t ${{ inputs.test-case }}
+
+    - name: Print debug if failed
+      if: ${{ failure() }}
+      shell: bash
+      run: |
+        cd bin/cliain
+        cargo run -- --seed //Alice debug-storage
