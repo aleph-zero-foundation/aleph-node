@@ -151,7 +151,7 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: token_transfer
-        timeout-minutes: 2
+        timeout-minutes: 3
 
 
   run-e2e-channeling-fee-test:
@@ -166,8 +166,7 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: channeling_fee
-        timeout-minutes: 2
-
+        timeout-minutes: 4
 
   run-e2e-treasury-access-test:
     needs: [build-test-docker, build-test-client]
@@ -181,7 +180,7 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: treasury_access
-        timeout-minutes: 2
+        timeout-minutes: 4
 
 
   run-e2e-batch-transactions-test:
@@ -196,7 +195,7 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: batch_transactions
-        timeout-minutes: 2
+        timeout-minutes: 4
 
 
   run-e2e-staking-era-payouts-test:
@@ -241,7 +240,7 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: change_validators
-        timeout-minutes: 2
+        timeout-minutes: 3
 
 
   run-e2e-fee-calculation:
@@ -258,6 +257,20 @@ jobs:
           test-case: fee_calculation
         timeout-minutes: 2
 
+  run-e2e-members-rotate:
+    needs: [build-test-docker, build-test-client]
+    name: Run members rotation test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: members_rotate
+        timeout-minutes: 10
+
 
   push-image:
     needs: [
@@ -269,7 +282,8 @@ jobs:
       run-e2e-staking-era-payouts-test,
       run-e2e-staking-new-validator-test,
       run-e2e-change-validators-test,
-      run-e2e-fee-calculation
+      run-e2e-fee-calculation,
+      run-e2e-members-rotate
     ]
     name: Push node image to the ECR repository
     if: github.event_name == 'push'
