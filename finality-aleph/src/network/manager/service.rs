@@ -452,8 +452,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
                 handler, discovery, ..
             }) => {
                 let (addresses, responses) = discovery.handle_message(message, handler);
-                let maybe_command = match !addresses.is_empty() && handler.is_validator()
-                {
+                let maybe_command = match !addresses.is_empty() && handler.is_validator() {
                     true => {
                         debug!(target: "aleph-network", "Adding addresses for session {:?} to reserved: {:?}", session_id, addresses);
                         self.connections

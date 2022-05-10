@@ -1,6 +1,6 @@
 use aleph_primitives::{
     staking::{MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND},
-    AuthorityId as AlephId, ADDRESSES_ENCODING, TOKEN, TOKEN_DECIMALS,
+    AuthorityId as AlephId, ADDRESSES_ENCODING, DEFAULT_MEMBERS_PER_SESSION, TOKEN, TOKEN_DECIMALS,
 };
 use aleph_runtime::{
     AccountId, AuraConfig, BalancesConfig, ElectionsConfig, GenesisConfig, Perbill, SessionConfig,
@@ -472,6 +472,7 @@ fn generate_genesis_config(
         },
         elections: ElectionsConfig {
             members: accounts_config.members.clone(),
+            members_per_session: DEFAULT_MEMBERS_PER_SESSION,
         },
         session: SessionConfig {
             keys: accounts_config.keys,
@@ -481,7 +482,8 @@ fn generate_genesis_config(
             validator_count,
             // to satisfy some e2e tests as this cannot be changed during runtime
             minimum_validator_count: 4,
-            invulnerables: accounts_config.members,
+            // we set first 2 members as invulnerables for testing purposes
+            invulnerables: accounts_config.members[0..2].to_vec(),
             slash_reward_fraction: Perbill::from_percent(10),
             stakers: accounts_config.stakers,
             min_validator_bond: MIN_VALIDATOR_BOND,
