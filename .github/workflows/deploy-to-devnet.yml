@@ -62,10 +62,6 @@ jobs:
         run: |
           #!/bin/bash
 
-          # setup jq
-          curl -sS https://webinstall.dev/jq | bash
-          export PATH=${HOME}/.local/bin:"$PATH"
-
           SYSTEM_VERSION=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' https://rpc.test.azero.dev | jq -r '.result')
           SUFFIX="-x86_64-linux-gnu"
           TMP_COMMIT_ID=${SYSTEM_VERSION/%$SUFFIX}
