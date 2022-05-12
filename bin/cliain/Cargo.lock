@@ -93,7 +93,7 @@ dependencies = [
 
 [[package]]
 name = "aleph_client"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "anyhow",
  "hex",
@@ -103,6 +103,7 @@ dependencies = [
  "pallet-multisig",
  "pallet-staking",
  "pallet-treasury",
+ "pallet-vesting",
  "parity-scale-codec",
  "primitives",
  "serde_json",
@@ -1759,6 +1760,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-vesting"
+version = "4.0.0-dev"
+source = "git+https://github.com/paritytech/substrate.git?branch=polkadot-v0.9.19#174735ea1bb5fc4513519c45181d8df63d86f613"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "parity-scale-codec"
 version = "3.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3158,7 +3173,7 @@ version = "1.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ee73e6e4924fe940354b8d4d98cad5231175d615cd855b758adc658c0aac6a0"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if 0.1.10",
  "digest 0.10.3",
  "rand 0.8.5",
  "static_assertions",

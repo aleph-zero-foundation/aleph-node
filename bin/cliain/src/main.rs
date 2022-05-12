@@ -1,4 +1,4 @@
-use aleph_client::{print_storages, KeyPair};
+use aleph_client::{keypair_from_string, print_storages, BlockNumber};
 use clap::{Parser, Subcommand};
 use log::{error, info};
 use sp_core::Pair;
@@ -7,8 +7,10 @@ use substrate_api_client::AccountId;
 
 use cliain::{
     bond, change_validators, force_new_era, prepare_keys, prompt_password_hidden, rotate_keys,
-    set_keys, set_staking_limits, transfer, update_runtime, validate, ConnectionConfig,
+    set_keys, set_staking_limits, transfer, update_runtime, validate, vest, vest_other,
+    vested_transfer, ConnectionConfig,
 };
+use primitives::Balance;
 
 #[derive(Debug, Parser, Clone)]
 #[clap(version = "1.0")]
@@ -18,7 +20,7 @@ struct Config {
     pub node: String,
 
     /// The seed of the key to use for signing calls
-    /// If not given, an user is prompted to provide seed
+    /// If not given, a user is prompted to provide seed
     #[clap(long)]
     pub seed: Option<String>,
 
@@ -111,6 +113,35 @@ enum Command {
         commission_percentage: u8,
     },
 
+    /// Update vesting for the calling account.
+    Vest,
+
+    /// Update vesting on behalf of the given account.
+    VestOther {
+        /// Account seed for which vesting should be performed.
+        #[clap(long)]
+        vesting_account: String,
+    },
+
+    /// Transfer funds via balances pallet
+    VestedTransfer {
+        /// Number of tokens to send.
+        #[clap(long)]
+        amount_in_tokens: u64,
+
+        /// Seed of the target account.
+        #[clap(long)]
+        to_account: String,
+
+        /// How much balance (in rappens, not in tokens) should be unlocked per block.
+        #[clap(long)]
+        per_block: Balance,
+
+        /// Block number when unlocking should start.
+        #[clap(long)]
+        starting_block: BlockNumber,
+    },
+
     /// Print debug info of storage
     DebugStorage,
 }
@@ -138,7 +169,7 @@ fn main() {
     match command {
         Command::ChangeValidators { validators } => change_validators(cfg.into(), validators),
         Command::PrepareKeys => {
-            let key = KeyPair::from_string(&seed, None).expect("Can't create pair from seed value");
+            let key = keypair_from_string(&seed);
             let controller_account_id = AccountId::from(key.public());
             prepare_keys(cfg.into(), controller_account_id);
         }
@@ -172,13 +203,24 @@ fn main() {
         }
         Command::SeedToSS58 => info!(
             "SS58 Address: {}",
-            KeyPair::from_string(&seed, None)
-                .expect("Can't create pair from seed value")
-                .public()
-                .to_string()
+            keypair_from_string(&seed).public().to_string()
         ),
         Command::DebugStorage => print_storages(&cfg.into()),
         Command::UpdateRuntime { runtime } => update_runtime(cfg.into(), runtime),
+        Command::Vest => vest(cfg.into()),
+        Command::VestOther { vesting_account } => vest_other(cfg.into(), vesting_account),
+        Command::VestedTransfer {
+            to_account,
+            amount_in_tokens,
+            per_block,
+            starting_block,
+        } => vested_transfer(
+            cfg.into(),
+            to_account,
+            amount_in_tokens,
+            per_block,
+            starting_block,
+        ),
     }
 }
 

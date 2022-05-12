@@ -33,6 +33,10 @@ pub use system::set_code;
 pub use transfer::{
     batch_transfer as balances_batch_transfer, transfer as balances_transfer, TransferTransaction,
 };
+pub use vesting::{
+    get_schedules, merge_schedules, vest, vest_other, vested_transfer, VestingError,
+    VestingSchedule,
+};
 pub use waiting::{wait_for_event, wait_for_finalized_block};
 
 mod account;
@@ -44,6 +48,7 @@ mod session;
 mod staking;
 mod system;
 mod transfer;
+mod vesting;
 mod waiting;
 
 pub trait FromStr: Sized {
@@ -176,6 +181,8 @@ fn storage_key(module: &str, version: &str) -> [u8; 32] {
 ///
 /// # Example
 /// ```
+/// use aleph_client::get_storage_key;
+///
 /// let staking_nominate_storage_key = get_storage_key("Staking", "Nominators");
 /// assert_eq!(staking_nominate_storage_key, String::from("5f3e4907f716ac89b6347d15ececedca9c6a637f62ae2af1c7e31eed7e96be04"));
 /// ```
