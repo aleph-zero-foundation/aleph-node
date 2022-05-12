@@ -28,7 +28,7 @@ use sp_version::RuntimeVersion;
 pub use frame_support::{
     construct_runtime, parameter_types,
     traits::{
-        Currency, EstimateNextNewSession, Imbalance, KeyOwnerProofSystem, LockIdentifier,
+        Currency, EstimateNextNewSession, Imbalance, KeyOwnerProofSystem, LockIdentifier, Nothing,
         OnUnbalanced, Randomness, U128CurrencyToVote, ValidatorSet,
     },
     weights::{
@@ -49,10 +49,14 @@ pub use primitives::Balance;
 use primitives::{
     staking::MAX_NOMINATORS_REWARDED_PER_VALIDATOR, wrap_methods, ApiError as AlephApiError,
     AuthorityId as AlephId, DEFAULT_MILLISECS_PER_BLOCK, DEFAULT_SESSIONS_PER_ERA,
-    DEFAULT_SESSION_PERIOD,
+    DEFAULT_SESSION_PERIOD, TOKEN,
 };
 
 pub use pallet_balances::Call as BalancesCall;
+use pallet_contracts::weights::WeightInfo;
+use pallet_contracts_primitives::{
+    CodeUploadResult, ContractExecResult, ContractInstantiateResult, GetStorageResult,
+};
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
 use sp_consensus_aura::SlotDuration;
@@ -109,10 +113,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 12,
+    spec_version: 13,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 5,
+    transaction_version: 6,
     state_version: 1,
 };
 
@@ -707,6 +711,44 @@ impl pallet_utility::Config for Runtime {
     type PalletsOrigin = OriginCaller;
 }
 
+// Prints debug output of the `contracts` pallet to stdout if the node is started with `-lruntime::contracts=debug`.
+const CONTRACTS_DEBUG_OUTPUT: bool = true;
+
+parameter_types! {
+    // The following weights are pulled out of thin air. A separate task to adjust them is already in JIRA.
+    pub const DepositPerItem: Balance = TOKEN / 100;     //  10 milli-AZERO per item
+    pub const DepositPerByte: Balance = TOKEN / 100_000; // ~10 milli-AZERO per kB storage
+    // The lazy deletion runs inside on_initialize.
+    pub DeletionWeightLimit: Weight = Perbill::from_percent(10) * BlockWeights::get().max_block; // 40ms
+    // The weight needed for decoding the queue should be less or equal than a tenth
+    // of the overall weight dedicated to the lazy deletion.
+    pub DeletionQueueDepth: u32 = ((DeletionWeightLimit::get() / (
+            <Runtime as pallet_contracts::Config>::WeightInfo::on_initialize_per_queue_item(1) -
+            <Runtime as pallet_contracts::Config>::WeightInfo::on_initialize_per_queue_item(0)
+        )) / 10) as u32; // 2228
+    pub Schedule: pallet_contracts::Schedule<Runtime> = Default::default();
+}
+
+impl pallet_contracts::Config for Runtime {
+    type Time = Timestamp;
+    type Randomness = RandomnessCollectiveFlip;
+    type Currency = Balances;
+    type Event = Event;
+    type Call = Call;
+    /// The safest default is to allow no calls at all. This is unsafe experimental feature with no support in ink!
+    type CallFilter = Nothing;
+    type DepositPerItem = DepositPerItem;
+    type DepositPerByte = DepositPerByte;
+    type WeightPrice = pallet_transaction_payment::Pallet<Self>;
+    type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
+    type ChainExtension = ();
+    type DeletionQueueDepth = DeletionQueueDepth;
+    type DeletionWeightLimit = DeletionWeightLimit;
+    type Schedule = Schedule;
+    type CallStack = [pallet_contracts::Frame<Self>; 31];
+    type AddressGenerator = pallet_contracts::DefaultAddressGenerator;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -732,6 +774,7 @@ construct_runtime!(
         Utility: pallet_utility::{Pallet, Call, Storage, Event} = 15,
         Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 16,
         Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 17,
+        Contracts: pallet_contracts::{Pallet, Call, Storage, Event<T>} = 18,
     }
 );
 
@@ -889,6 +932,51 @@ impl_runtime_apis! {
                 .collect::<Result<Vec<AlephId>, AlephApiError>>()
         }
     }
+
+    impl pallet_contracts_rpc_runtime_api::ContractsApi<Block, AccountId, Balance, BlockNumber, Hash> for Runtime {
+
+        fn call(
+            origin: AccountId,
+            dest: AccountId,
+            value: Balance,
+            gas_limit: u64,
+            storage_deposit_limit: Option<Balance>,
+            input_data: Vec<u8>,
+        ) -> ContractExecResult<Balance> {
+            Contracts::bare_call(origin, dest, value, gas_limit, storage_deposit_limit, input_data, CONTRACTS_DEBUG_OUTPUT)
+        }
+
+        fn instantiate(
+            origin: AccountId,
+            value: Balance,
+            gas_limit: u64,
+            storage_deposit_limit: Option<Balance>,
+            code: pallet_contracts_primitives::Code<Hash>,
+            data: Vec<u8>,
+            salt: Vec<u8>,
+        ) -> ContractInstantiateResult<AccountId, Balance>
+        {
+            Contracts::bare_instantiate(origin, value, gas_limit, storage_deposit_limit, code, data, salt, CONTRACTS_DEBUG_OUTPUT)
+        }
+
+        fn upload_code(
+            origin: AccountId,
+            code: Vec<u8>,
+            storage_deposit_limit: Option<Balance>,
+        ) -> CodeUploadResult<Hash, Balance>
+        {
+            Contracts::bare_upload_code(origin, code, storage_deposit_limit)
+        }
+
+        fn get_storage(
+            address: AccountId,
+            key: [u8; 32],
+        ) -> GetStorageResult {
+            Contracts::get_storage(address, key)
+        }
+
+    }
+
 }
 
 #[cfg(test)]

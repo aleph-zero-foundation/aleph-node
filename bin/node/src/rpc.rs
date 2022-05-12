@@ -7,7 +7,7 @@
 
 use std::sync::Arc;
 
-use aleph_runtime::{opaque::Block, AccountId, Balance, Index};
+use aleph_runtime::{opaque::Block, AccountId, Balance, BlockNumber, Hash, Index};
 pub use sc_rpc_api::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::ProvideRuntimeApi;
@@ -32,9 +32,11 @@ where
     C: Send + Sync + 'static,
     C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
     C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
+    C::Api: pallet_contracts_rpc::ContractsRuntimeApi<Block, AccountId, Balance, BlockNumber, Hash>,
     C::Api: BlockBuilder<Block>,
     P: TransactionPool + 'static,
 {
+    use pallet_contracts_rpc::{Contracts, ContractsApi};
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
     use substrate_frame_rpc_system::{FullSystem, SystemApi};
 
@@ -52,8 +54,10 @@ where
     )));
 
     io.extend_with(TransactionPaymentApi::to_delegate(TransactionPayment::new(
-        client,
+        client.clone(),
     )));
+
+    io.extend_with(ContractsApi::to_delegate(Contracts::new(client)));
 
     io
 }
