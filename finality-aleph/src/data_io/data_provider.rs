@@ -377,7 +377,7 @@ mod tests {
 
     // Sleep enough time so that the internal refreshing in ChainTracker has time to finish.
     async fn sleep_enough() {
-        sleep(REFRESH_INTERVAL + REFRESH_INTERVAL).await;
+        sleep(REFRESH_INTERVAL + REFRESH_INTERVAL + REFRESH_INTERVAL).await;
     }
 
     async fn run_test<F, S>(scenario: S)
