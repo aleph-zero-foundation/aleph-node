@@ -1,7 +1,7 @@
 use crate::{accounts::accounts_from_seeds, Config};
 use aleph_client::{
-    create_connection, get_current_session, wait_for_finalized_block, wait_for_session, Connection,
-    Header, KeyPair,
+    get_current_session, wait_for_finalized_block, wait_for_session, AnyConnection, Header,
+    KeyPair, SignedConnection,
 };
 use sp_core::Pair;
 use std::collections::HashMap;
@@ -37,16 +37,18 @@ fn get_non_reserved_members_for_session(session: u32) -> Vec<AccountId> {
         .collect()
 }
 
-fn get_authorities_for_session(connection: &Connection, session: u32) -> Vec<AccountId> {
+fn get_authorities_for_session<C: AnyConnection>(connection: &C, session: u32) -> Vec<AccountId> {
     const SESSION_PERIOD: u32 = 30;
     let first_block = SESSION_PERIOD * session;
 
     let block = connection
+        .as_connection()
         .get_block_hash(Some(first_block))
         .expect("Api call should succeed")
         .expect("Session already started so the first block should be present");
 
     connection
+        .as_connection()
         .get_storage_value("Session", "Validators", Some(block))
         .expect("Api call should succeed")
         .expect("Authorities should always be present")
@@ -56,7 +58,7 @@ pub fn validators_rotate(cfg: &Config) -> anyhow::Result<()> {
     let node = &cfg.node;
     let accounts = accounts_from_seeds(&None);
     let sender = accounts.first().expect("Using default accounts").to_owned();
-    let connection = create_connection(node).set_signer(sender);
+    let connection = SignedConnection::new(node, sender);
 
     let mut current_session = get_current_session(&connection);
     if current_session < MINIMAL_TEST_SESSION_START {
@@ -114,6 +116,7 @@ pub fn validators_rotate(cfg: &Config) -> anyhow::Result<()> {
     assert!(max_elected - min_elected <= 1);
 
     let block_number = connection
+        .as_connection()
         .get_header::<Header>(None)
         .expect("Could not fetch header")
         .expect("Block exists; qed")

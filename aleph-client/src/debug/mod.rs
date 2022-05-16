@@ -1,4 +1,4 @@
-use crate::Connection;
+use crate::AnyConnection;
 
 mod aleph;
 mod elections;
@@ -16,7 +16,7 @@ fn element_prompt(el: String) -> String {
     format!("\t{}", el)
 }
 
-pub fn print_storages(connection: &Connection) {
+pub fn print_storages<C: AnyConnection>(connection: &C) {
     treasury::print_storage(connection);
     aleph::print_storage(connection);
     elections::print_storage(connection);

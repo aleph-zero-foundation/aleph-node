@@ -1,4 +1,4 @@
-use crate::Connection;
+use crate::AnyConnection;
 use codec::Encode;
 use substrate_api_client::{Balance, UncheckedExtrinsicV4};
 
@@ -9,17 +9,19 @@ pub struct FeeInfo {
     pub adjusted_weight: Balance,
 }
 
-pub fn get_tx_fee_info<Call: Encode>(
-    connection: &Connection,
+pub fn get_tx_fee_info<C: AnyConnection, Call: Encode>(
+    connection: &C,
     tx: &UncheckedExtrinsicV4<Call>,
 ) -> FeeInfo {
     let unadjusted_weight = connection
+        .as_connection()
         .get_payment_info(&tx.hex_encode(), None)
         .expect("Should access payment info")
         .expect("Payment info should be present")
         .weight as Balance;
 
     let fee = connection
+        .as_connection()
         .get_fee_details(&tx.hex_encode(), None)
         .expect("Should access fee details")
         .expect("Should read fee details");
@@ -32,8 +34,9 @@ pub fn get_tx_fee_info<Call: Encode>(
     }
 }
 
-pub fn get_next_fee_multiplier(connection: &Connection) -> u128 {
+pub fn get_next_fee_multiplier<C: AnyConnection>(connection: &C) -> u128 {
     connection
+        .as_connection()
         .get_storage_value("TransactionPayment", "NextFeeMultiplier", None)
         .expect("Should access storage")
         .expect("Key `NextFeeMultiplier` should be present in storage")

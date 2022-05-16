@@ -4,6 +4,7 @@ use crate::transfer::setup_for_transfer;
 use sp_core::Pair;
 use substrate_api_client::{compose_call, compose_extrinsic, GenericAddress, XtStatus};
 
+use aleph_client::AnyConnection;
 use codec::Compact;
 
 use crate::config::Config;
@@ -11,10 +12,10 @@ use crate::config::Config;
 pub fn batch_transactions(config: &Config) -> anyhow::Result<()> {
     const NUMBER_OF_TRANSACTIONS: usize = 100;
 
-    let (connection, _, to) = setup_for_transfer(config);
+    let (connection, to) = setup_for_transfer(config);
 
     let call = compose_call!(
-        connection.metadata,
+        connection.as_connection().metadata,
         "Balances",
         "transfer",
         GenericAddress::Id(to),
@@ -25,9 +26,11 @@ pub fn batch_transactions(config: &Config) -> anyhow::Result<()> {
         transactions.push(call.clone());
     }
 
-    let extrinsic = compose_extrinsic!(connection, "Utility", "batch", transactions);
+    let extrinsic =
+        compose_extrinsic!(connection.as_connection(), "Utility", "batch", transactions);
 
     let finalized_block_hash = connection
+        .as_connection()
         .send_extrinsic(extrinsic.hex_encode(), XtStatus::Finalized)
         .expect("Could not send extrinsc")
         .expect("Could not get tx hash");

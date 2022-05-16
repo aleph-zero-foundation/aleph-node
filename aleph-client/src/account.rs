@@ -1,11 +1,12 @@
-use crate::{state_query_storage_at, Connection};
+use crate::{state_query_storage_at, AnyConnection};
 use codec::Decode;
 use pallet_balances::BalanceLock;
 use sp_core::{crypto::AccountId32, storage::StorageKey};
 use substrate_api_client::{AccountId, Balance};
 
-pub fn get_free_balance(connection: &Connection, account: &AccountId) -> Balance {
+pub fn get_free_balance<C: AnyConnection>(connection: &C, account: &AccountId) -> Balance {
     match connection
+        .as_connection()
         .get_account_data(account)
         .expect("Should be able to access account data")
     {
@@ -15,19 +16,23 @@ pub fn get_free_balance(connection: &Connection, account: &AccountId) -> Balance
     }
 }
 
-pub fn locks(connection: &Connection, accounts: &[AccountId]) -> Vec<Vec<BalanceLock<Balance>>> {
+pub fn locks<C: AnyConnection>(
+    connection: &C,
+    accounts: &[AccountId],
+) -> Vec<Vec<BalanceLock<Balance>>> {
     let storage_keys = create_storage_keys_from_accounts(connection, accounts);
     get_locked_balances_from_storage(connection, storage_keys)
 }
 
-fn create_storage_keys_from_accounts(
-    connection: &Connection,
+fn create_storage_keys_from_accounts<C: AnyConnection>(
+    connection: &C,
     accounts: &[AccountId32],
 ) -> Vec<StorageKey> {
     accounts
         .iter()
         .map(|account| {
             connection
+                .as_connection()
                 .metadata
                 .storage_map_key("Balances", "Locks", account)
                 .unwrap_or_else(|_| panic!("Cannot create storage key for account {}!", account))
@@ -35,8 +40,8 @@ fn create_storage_keys_from_accounts(
         .collect()
 }
 
-fn get_locked_balances_from_storage(
-    connection: &Connection,
+fn get_locked_balances_from_storage<C: AnyConnection>(
+    connection: &C,
     storage_keys: Vec<StorageKey>,
 ) -> Vec<Vec<BalanceLock<Balance>>> {
     match state_query_storage_at(connection, storage_keys) {

@@ -1,4 +1,6 @@
-use crate::{send_xt, waiting::wait_for_event, BlockNumber, Connection};
+use crate::{
+    send_xt, waiting::wait_for_event, AnyConnection, BlockNumber, RootConnection, SignedConnection,
+};
 use codec::{Decode, Encode};
 use log::info;
 use sp_core::Pair;
@@ -35,16 +37,20 @@ impl TryFrom<String> for Keys {
     }
 }
 
-pub fn change_members(sudo_connection: &Connection, new_members: Vec<AccountId>, status: XtStatus) {
+pub fn change_members(
+    sudo_connection: &RootConnection,
+    new_members: Vec<AccountId>,
+    status: XtStatus,
+) {
     info!(target: "aleph-client", "New members {:#?}", new_members);
     let call = compose_call!(
-        sudo_connection.metadata,
+        sudo_connection.as_connection().metadata,
         "Elections",
         "change_members",
         new_members
     );
     let xt = compose_extrinsic!(
-        sudo_connection,
+        sudo_connection.as_connection(),
         "Sudo",
         "sudo_unchecked_weight",
         call,
@@ -53,20 +59,30 @@ pub fn change_members(sudo_connection: &Connection, new_members: Vec<AccountId>,
     send_xt(sudo_connection, xt, Some("sudo_unchecked_weight"), status);
 }
 
-pub fn set_keys(connection: &Connection, new_keys: Keys, status: XtStatus) {
-    let xt = compose_extrinsic!(connection, "Session", "set_keys", new_keys, 0u8);
+pub fn set_keys(connection: &SignedConnection, new_keys: Keys, status: XtStatus) {
+    let xt = compose_extrinsic!(
+        connection.as_connection(),
+        "Session",
+        "set_keys",
+        new_keys,
+        0u8
+    );
     send_xt(connection, xt, Some("set_keys"), status);
 }
 
 /// Get the number of the current session.
-pub fn get_current(connection: &Connection) -> u32 {
+pub fn get_current<C: AnyConnection>(connection: &C) -> u32 {
     connection
+        .as_connection()
         .get_storage_value("Session", "CurrentIndex", None)
         .unwrap()
         .unwrap_or(0)
 }
 
-pub fn wait_for(connection: &Connection, session_index: u32) -> anyhow::Result<BlockNumber> {
+pub fn wait_for<C: AnyConnection>(
+    connection: &C,
+    session_index: u32,
+) -> anyhow::Result<BlockNumber> {
     info!(target: "aleph-client", "Waiting for session {}", session_index);
 
     #[derive(Debug, Decode, Clone)]

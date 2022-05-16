@@ -1,12 +1,13 @@
 use aleph_client::{
-    staking_bond, staking_force_new_era, staking_set_staking_limits, staking_validate, Connection,
+    staking_bond, staking_force_new_era, staking_set_staking_limits, staking_validate,
+    RootConnection, SignedConnection,
 };
 use primitives::TOKEN;
 use sp_core::crypto::Ss58Codec;
 use substrate_api_client::{AccountId, XtStatus};
 
 pub fn bond(
-    stash_connection: Connection,
+    stash_connection: SignedConnection,
     initial_stake_in_tokens: u32,
     controller_account: String,
 ) {
@@ -22,12 +23,12 @@ pub fn bond(
     );
 }
 
-pub fn validate(connection: Connection, commission_percentage: u8) {
+pub fn validate(connection: SignedConnection, commission_percentage: u8) {
     staking_validate(&connection, commission_percentage, XtStatus::Finalized);
 }
 
 pub fn set_staking_limits(
-    root_connection: Connection,
+    root_connection: RootConnection,
     minimal_nominator_stake_tokens: u64,
     minimal_validator_stake_tokens: u64,
     max_nominators_count: Option<u32>,
@@ -43,6 +44,6 @@ pub fn set_staking_limits(
     );
 }
 
-pub fn force_new_era(root_connection: Connection) {
+pub fn force_new_era(root_connection: RootConnection) {
     staking_force_new_era(&root_connection, XtStatus::Finalized);
 }

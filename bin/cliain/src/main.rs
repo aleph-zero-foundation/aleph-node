@@ -1,4 +1,4 @@
-use aleph_client::{keypair_from_string, print_storages, BlockNumber};
+use aleph_client::{keypair_from_string, print_storages, BlockNumber, SignedConnection};
 use clap::{Parser, Subcommand};
 use log::{error, info};
 use sp_core::Pair;
@@ -185,7 +185,7 @@ fn main() {
             amount_in_tokens,
             to_account,
         } => transfer(cfg.into(), amount_in_tokens, to_account),
-        Command::RotateKeys => rotate_keys(cfg.into()),
+        Command::RotateKeys => rotate_keys::<SignedConnection>(cfg.into()),
         Command::SetStakingLimits {
             minimal_nominator_stake,
             minimal_validator_stake,
@@ -205,7 +205,7 @@ fn main() {
             "SS58 Address: {}",
             keypair_from_string(&seed).public().to_string()
         ),
-        Command::DebugStorage => print_storages(&cfg.into()),
+        Command::DebugStorage => print_storages::<SignedConnection>(&cfg.into()),
         Command::UpdateRuntime { runtime } => update_runtime(cfg.into(), runtime),
         Command::Vest => vest(cfg.into()),
         Command::VestOther { vesting_account } => vest_other(cfg.into(), vesting_account),

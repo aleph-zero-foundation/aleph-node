@@ -9,19 +9,19 @@ use substrate_api_client::{
 };
 
 use crate::{
-    account_from_keypair, create_connection, locks, send_xt, wait_for_session, BlockNumber,
-    Connection, KeyPair,
+    account_from_keypair, create_connection, locks, send_xt, wait_for_session, AnyConnection,
+    BlockNumber, KeyPair, RootConnection, SignedConnection,
 };
 
 pub fn bond(
-    connection: &Connection,
+    connection: &SignedConnection,
     initial_stake: Balance,
     controller_account_id: &AccountId,
     status: XtStatus,
 ) {
     let controller_account_id = GenericAddress::Id(controller_account_id.clone());
 
-    let xt = connection.staking_bond(
+    let xt = connection.as_connection().staking_bond(
         controller_account_id,
         initial_stake,
         RewardDestination::Staked,
@@ -31,23 +31,31 @@ pub fn bond(
 
 pub fn multi_bond(node: &str, bonders: &[KeyPair], stake: Balance) {
     bonders.par_iter().for_each(|bonder| {
-        let connection = create_connection(node).set_signer(bonder.clone());
+        let connection = create_connection(node)
+            .set_signer(bonder.clone())
+            .try_into()
+            .expect("Signer has been set");
+
         let controller_account = account_from_keypair(bonder);
         bond(&connection, stake, &controller_account, XtStatus::InBlock);
     });
 }
 
-pub fn validate(connection: &Connection, validator_commission_percentage: u8, status: XtStatus) {
+pub fn validate(
+    connection: &SignedConnection,
+    validator_commission_percentage: u8,
+    status: XtStatus,
+) {
     let prefs = ValidatorPrefs {
         blocked: false,
         commission: Perbill::from_percent(validator_commission_percentage as u32),
     };
-    let xt = compose_extrinsic!(connection, "Staking", "validate", prefs);
+    let xt = compose_extrinsic!(connection.as_connection(), "Staking", "validate", prefs);
     send_xt(connection, xt, Some("validate"), status);
 }
 
 pub fn set_staking_limits(
-    root_connection: &Connection,
+    connection: &RootConnection,
     minimal_nominator_stake: u128,
     minimal_validator_stake: u128,
     max_nominators_count: Option<u32>,
@@ -55,7 +63,7 @@ pub fn set_staking_limits(
     status: XtStatus,
 ) {
     let set_staking_limits_call = compose_call!(
-        root_connection.metadata,
+        connection.as_connection().metadata,
         "Staking",
         "set_staking_limits",
         minimal_nominator_stake,
@@ -64,18 +72,33 @@ pub fn set_staking_limits(
         max_validators_count,
         0_u8
     );
-    let xt = compose_extrinsic!(root_connection, "Sudo", "sudo", set_staking_limits_call);
-    send_xt(root_connection, xt, Some("set_staking_limits"), status);
+    let xt = compose_extrinsic!(
+        connection.as_connection(),
+        "Sudo",
+        "sudo",
+        set_staking_limits_call
+    );
+    send_xt(connection, xt, Some("set_staking_limits"), status);
 }
 
-pub fn force_new_era(root_connection: &Connection, status: XtStatus) {
-    let force_new_era_call = compose_call!(root_connection.metadata, "Staking", "force_new_era");
-    let xt = compose_extrinsic!(root_connection, "Sudo", "sudo", force_new_era_call);
-    send_xt(root_connection, xt, Some("force_new_era"), status);
+pub fn force_new_era(connection: &RootConnection, status: XtStatus) {
+    let force_new_era_call = compose_call!(
+        connection.as_connection().metadata,
+        "Staking",
+        "force_new_era"
+    );
+    let xt = compose_extrinsic!(
+        connection.as_connection(),
+        "Sudo",
+        "sudo",
+        force_new_era_call
+    );
+    send_xt(connection, xt, Some("force_new_era"), status);
 }
 
-pub fn get_current_era(connection: &Connection) -> u32 {
+pub fn get_current_era<C: AnyConnection>(connection: &C) -> u32 {
     let current_era = connection
+        .as_connection()
         .get_storage_value("Staking", "ActiveEra", None)
         .expect("Failed to decode ActiveEra extrinsic!")
         .expect("ActiveEra is empty in the storage!");
@@ -83,22 +106,25 @@ pub fn get_current_era(connection: &Connection) -> u32 {
     current_era
 }
 
-pub fn wait_for_full_era_completion(connection: &Connection) -> anyhow::Result<BlockNumber> {
+pub fn wait_for_full_era_completion<C: AnyConnection>(
+    connection: &C,
+) -> anyhow::Result<BlockNumber> {
     // staking works in such a way, that when we request a controller to be a validator in era N,
     // then the changes are applied in the era N+1 (so the new validator is receiving points in N+1),
     // so that we need N+1 to finish in order to claim the reward in era N+2 for the N+1 era
     wait_for_era_completion(connection, get_current_era(connection) + 2)
 }
 
-pub fn wait_for_next_era(connection: &Connection) -> anyhow::Result<BlockNumber> {
+pub fn wait_for_next_era<C: AnyConnection>(connection: &C) -> anyhow::Result<BlockNumber> {
     wait_for_era_completion(connection, get_current_era(connection) + 1)
 }
 
-fn wait_for_era_completion(
-    connection: &Connection,
+fn wait_for_era_completion<C: AnyConnection>(
+    connection: &C,
     next_era_index: u32,
 ) -> anyhow::Result<BlockNumber> {
     let sessions_per_era: u32 = connection
+        .as_connection()
         .get_constant("Staking", "SessionsPerEra")
         .expect("Failed to decode SessionsPerEra extrinsic!");
     let first_session_in_next_era = next_era_index * sessions_per_era;
@@ -107,12 +133,12 @@ fn wait_for_era_completion(
 }
 
 pub fn payout_stakers(
-    stash_connection: &Connection,
+    stash_connection: &SignedConnection,
     stash_account: &AccountId,
     era_number: BlockNumber,
 ) {
     let xt = compose_extrinsic!(
-        stash_connection,
+        stash_connection.as_connection(),
         "Staking",
         "payout_stakers",
         stash_account,
@@ -128,7 +154,7 @@ pub fn payout_stakers(
 }
 
 pub fn payout_stakers_and_assert_locked_balance(
-    stash_connection: &Connection,
+    stash_connection: &SignedConnection,
     accounts_to_check_balance: &[AccountId],
     stash_account: &AccountId,
     era: BlockNumber,
@@ -147,17 +173,19 @@ pub fn payout_stakers_and_assert_locked_balance(
 }
 
 pub fn batch_bond(
-    connection: &Connection,
+    connection: &RootConnection,
     stash_controller_accounts: &[(&AccountId, &AccountId)],
     bond_value: u128,
     reward_destination: RewardDestination<GenericAddress>,
 ) {
+    let metadata = &connection.as_connection().metadata;
+
     let batch_bond_calls = stash_controller_accounts
         .iter()
         .cloned()
         .map(|(stash_account, controller_account)| {
             let bond_call = compose_call!(
-                connection.metadata,
+                metadata,
                 "Staking",
                 "bond",
                 GenericAddress::Id(controller_account.clone()),
@@ -165,7 +193,7 @@ pub fn batch_bond(
                 reward_destination.clone()
             );
             compose_call!(
-                connection.metadata,
+                metadata,
                 "Sudo",
                 "sudo_as",
                 GenericAddress::Id(stash_account.clone()),
@@ -174,7 +202,12 @@ pub fn batch_bond(
         })
         .collect::<Vec<_>>();
 
-    let xt = compose_extrinsic!(connection, "Utility", "batch", batch_bond_calls);
+    let xt = compose_extrinsic!(
+        connection.as_connection(),
+        "Utility",
+        "batch",
+        batch_bond_calls
+    );
     send_xt(
         connection,
         xt,
@@ -183,29 +216,33 @@ pub fn batch_bond(
     );
 }
 
-pub fn nominate(connection: &Connection, nominee_key_pair: &KeyPair) {
+pub fn nominate(connection: &SignedConnection, nominee_key_pair: &KeyPair) {
     let nominee_account_id = AccountId::from(nominee_key_pair.public());
 
-    let xt = connection.staking_nominate(vec![GenericAddress::Id(nominee_account_id)]);
+    let xt = connection
+        .as_connection()
+        .staking_nominate(vec![GenericAddress::Id(nominee_account_id)]);
     send_xt(connection, xt, Some("nominate"), XtStatus::InBlock);
 }
 
 pub fn batch_nominate(
-    connection: &Connection,
+    connection: &RootConnection,
     nominator_nominee_pairs: &[(&AccountId, &AccountId)],
 ) {
+    let metadata = &connection.as_connection().metadata;
+
     let batch_nominate_calls = nominator_nominee_pairs
         .iter()
         .cloned()
         .map(|(nominator, nominee)| {
             let nominate_call = compose_call!(
-                connection.metadata,
+                metadata,
                 "Staking",
                 "nominate",
                 vec![GenericAddress::Id(nominee.clone())]
             );
             compose_call!(
-                connection.metadata,
+                metadata,
                 "Sudo",
                 "sudo_as",
                 GenericAddress::Id(nominator.clone()),
@@ -214,7 +251,12 @@ pub fn batch_nominate(
         })
         .collect::<Vec<_>>();
 
-    let xt = compose_extrinsic!(connection, "Utility", "batch", batch_nominate_calls);
+    let xt = compose_extrinsic!(
+        connection.as_connection(),
+        "Utility",
+        "batch",
+        batch_nominate_calls
+    );
     send_xt(
         connection,
         xt,
@@ -223,19 +265,21 @@ pub fn batch_nominate(
     );
 }
 
-pub fn bonded(connection: &Connection, stash: &KeyPair) -> Option<AccountId> {
+pub fn bonded<C: AnyConnection>(connection: &C, stash: &KeyPair) -> Option<AccountId> {
     let account_id = AccountId::from(stash.public());
     connection
+        .as_connection()
         .get_storage_map("Staking", "Bonded", &account_id, None)
         .unwrap_or_else(|_| panic!("Failed to obtain Bonded for account id {}", account_id))
 }
 
-pub fn ledger(
-    connection: &Connection,
+pub fn ledger<C: AnyConnection>(
+    connection: &C,
     controller: &KeyPair,
 ) -> Option<pallet_staking::StakingLedger<AccountId, Balance>> {
     let account_id = AccountId::from(controller.public());
     connection
+        .as_connection()
         .get_storage_map("Staking", "Ledger", &account_id, None)
         .unwrap_or_else(|_| panic!("Failed to obtain Ledger for account id {}", account_id))
 }

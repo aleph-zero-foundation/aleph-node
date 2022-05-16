@@ -1,4 +1,4 @@
-use crate::{Connection, SessionKeys, H256};
+use crate::{AnyConnection, SessionKeys, H256};
 use serde_json::{json, Value};
 use sp_core::storage::{StorageChangeSet, StorageData};
 use substrate_api_client::StorageKey;
@@ -66,11 +66,14 @@ fn parse_query_storage_at_result(
     }
 }
 
-pub fn state_query_storage_at(
-    connection: &Connection,
+pub fn state_query_storage_at<C: AnyConnection>(
+    connection: &C,
     storage_keys: Vec<StorageKey>,
 ) -> Result<Vec<Option<StorageData>>, String> {
-    match connection.get_request(state_query_storage_at_json(&storage_keys)) {
+    match connection
+        .as_connection()
+        .get_request(state_query_storage_at_json(&storage_keys))
+    {
         Ok(maybe_json_result) => {
             parse_query_storage_at_result(maybe_json_result, storage_keys.len())
         }
@@ -81,14 +84,17 @@ pub fn state_query_storage_at(
     }
 }
 
-pub fn rotate_keys_base<F, R>(
-    connection: &Connection,
+pub fn rotate_keys_base<C: AnyConnection, F, R>(
+    connection: &C,
     rpc_result_mapper: F,
 ) -> Result<R, &'static str>
 where
     F: Fn(String) -> Option<R>,
 {
-    match connection.get_request(author_rotate_keys_json()) {
+    match connection
+        .as_connection()
+        .get_request(author_rotate_keys_json())
+    {
         Ok(maybe_keys) => match maybe_keys {
             Some(keys) => match rpc_result_mapper(keys) {
                 Some(keys) => Ok(keys),
@@ -100,14 +106,14 @@ where
     }
 }
 
-pub fn rotate_keys(connection: &Connection) -> Result<SessionKeys, &'static str> {
+pub fn rotate_keys<C: AnyConnection>(connection: &C) -> Result<SessionKeys, &'static str> {
     rotate_keys_base(connection, |keys| match SessionKeys::try_from(keys) {
         Ok(keys) => Some(keys),
         Err(_) => None,
     })
 }
 
-pub fn rotate_keys_raw_result(connection: &Connection) -> Result<String, &'static str> {
+pub fn rotate_keys_raw_result<C: AnyConnection>(connection: &C) -> Result<String, &'static str> {
     // we need to escape two characters from RPC result which is escaped quote
     rotate_keys_base(connection, |keys| Some(keys.trim_matches('\"').to_string()))
 }

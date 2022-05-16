@@ -8,23 +8,23 @@ edition = "2021"
 substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "polkadot-v0.9.19", features = ["staking-xt"] }
 
 # Substrate dependencies
-primitives = { path = "../primitives", default-features = false}
+primitives = { path = "../primitives", default-features = false }
 sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", default-features = false, features = ["full_crypto"] }
 sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", default-features = false }
-frame-support = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", default-features = false}
+frame-support = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", default-features = false }
 system = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", package = "frame-system" }
-pallet-staking = {git = "https://github.com/paritytech/substrate.git",branch = "polkadot-v0.9.19", default-features = false }
-pallet-balances = {git = "https://github.com/paritytech/substrate.git",branch = "polkadot-v0.9.19", default-features = false }
+pallet-staking = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", default-features = false }
+pallet-balances = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", default-features = false }
 
 
 # other dependencies
 anyhow = "1.0"
-clap = {version = "3.0", features = ["derive"]}
-aleph_client = {path = "../aleph-client" }
+clap = { version = "3.0", features = ["derive"] }
+aleph_client = { path = "../aleph-client" }
 env_logger = "0.8"
 log = "0.4"
 serde_json = "1.0"
-codec = { package = 'parity-scale-codec', version = "3.0", default-features = false,  features = ['derive']}
+codec = { package = 'parity-scale-codec', version = "3.0", default-features = false, features = ['derive'] }
 rayon = "1.5"
 
 [features]

@@ -1,13 +1,13 @@
 use aleph_client::{
-    account_from_keypair, keypair_from_string, BlockNumber, Connection, VestingSchedule,
+    account_from_keypair, keypair_from_string, BlockNumber, SignedConnection, VestingSchedule,
 };
 use log::{error, info};
 use primitives::{Balance, TOKEN};
 
 /// Delegates to `aleph_client::vest`.
 ///
-/// `connection` should be signed: the vesting is performed for the signer.
-pub fn vest(connection: Connection) {
+/// Vesting is performed for the signer of `connection`.
+pub fn vest(connection: SignedConnection) {
     match aleph_client::vest(connection) {
         Ok(_) => info!("Vesting has succeeded"),
         Err(e) => error!("Vesting has failed with:\n {:?}", e),
@@ -16,9 +16,8 @@ pub fn vest(connection: Connection) {
 
 /// Delegates to `aleph_client::vest_other`.
 ///
-/// `connection` should be signed: the vesting is performed by the signer for
-/// `vesting_account_seed`.
-pub fn vest_other(connection: Connection, vesting_account_seed: String) {
+/// Vesting is performed by the signer of `connection` for `vesting_account_seed`.
+pub fn vest_other(connection: SignedConnection, vesting_account_seed: String) {
     let vester = account_from_keypair(&keypair_from_string(vesting_account_seed.as_str()));
     match aleph_client::vest_other(connection, vester) {
         Ok(_) => info!("Vesting on behalf has succeeded"),
@@ -28,11 +27,11 @@ pub fn vest_other(connection: Connection, vesting_account_seed: String) {
 
 /// Delegates to `aleph_client::vested_transfer`.
 ///
-/// `connection` should be signed: the transfer is performed from the signer to `target_seed`.
+/// The transfer is performed from the signer of `connection` to `target_seed`.
 /// `amount_in_tokens`, `per_block` and `starting_block` corresponds to the fields of
 /// `aleph_client::VestingSchedule` struct.
 pub fn vested_transfer(
-    connection: Connection,
+    connection: SignedConnection,
     target_seed: String,
     amount_in_tokens: u64,
     per_block: Balance,

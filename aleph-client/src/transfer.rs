@@ -1,4 +1,4 @@
-use crate::{send_xt, Connection};
+use crate::{send_xt, AnyConnection, SignedConnection};
 use codec::Compact;
 use sp_core::Pair;
 use sp_runtime::MultiAddress;
@@ -10,31 +10,37 @@ pub type TransferTransaction =
     UncheckedExtrinsicV4<([u8; 2], MultiAddress<AccountId, ()>, Compact<u128>)>;
 
 pub fn transfer(
-    connection: &Connection,
+    connection: &SignedConnection,
     target: &AccountId,
     value: u128,
     status: XtStatus,
 ) -> TransferTransaction {
-    let xt = connection.balance_transfer(GenericAddress::Id(target.clone()), value);
+    let xt = connection
+        .as_connection()
+        .balance_transfer(GenericAddress::Id(target.clone()), value);
     send_xt(connection, xt.clone(), Some("transfer"), status);
     xt
 }
 
-pub fn batch_transfer(connection: &Connection, account_keys: Vec<AccountId>, endowment: u128) {
-    let batch_endow: Vec<_> = account_keys
+pub fn batch_transfer(
+    connection: &SignedConnection,
+    account_keys: Vec<AccountId>,
+    endowment: u128,
+) {
+    let batch_endow = account_keys
         .into_iter()
         .map(|account_id| {
             compose_call!(
-                connection.metadata,
+                connection.as_connection().metadata,
                 "Balances",
                 "transfer",
                 GenericAddress::Id(account_id),
                 Compact(endowment)
             )
         })
-        .collect();
+        .collect::<Vec<_>>();
 
-    let xt = compose_extrinsic!(connection, "Utility", "batch", batch_endow);
+    let xt = compose_extrinsic!(connection.as_connection(), "Utility", "batch", batch_endow);
     send_xt(
         connection,
         xt,

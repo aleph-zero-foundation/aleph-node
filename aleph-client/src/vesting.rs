@@ -1,4 +1,4 @@
-use anyhow::{ensure, Result};
+use anyhow::Result;
 use log::info;
 pub use pallet_vesting::VestingInfo;
 use sp_core::Pair;
@@ -7,7 +7,9 @@ use thiserror::Error;
 
 use primitives::Balance;
 
-use crate::{account_from_keypair, try_send_xt, AccountId, BlockNumber, Connection, KeyPair};
+use crate::{
+    account_from_keypair, try_send_xt, AccountId, AnyConnection, BlockNumber, SignedConnection,
+};
 
 /// Gathers errors from this module.
 #[derive(Debug, Error)]
@@ -22,23 +24,16 @@ pub type VestingSchedule = VestingInfo<Balance, BlockNumber>;
 
 const PALLET: &str = "Vesting";
 
-/// Checks whether `connection` is signed. If so, returns the signer keypair.
-fn ensure_signed(connection: &Connection) -> Result<KeyPair> {
-    let maybe_signer = connection.signer.clone();
-    ensure!(maybe_signer.is_some(), VestingError::UnsignedConnection);
-    Ok(maybe_signer.expect("Must be `Some(_)`: just checked."))
-}
-
 /// Calls `pallet_vesting::vest` for the signer of `connection`, i.e. makes all unlocked balances
 /// transferable.
 ///
-/// Fails if `connection` is unsigned or transaction could not have been sent.
+/// Fails if transaction could not have been sent.
 ///
 /// *Note*: This function returns `Ok(_)` even if the account has no active vesting schedules
 /// and thus the extrinsic was not successful. However, semantically it is still correct.
-pub fn vest(connection: Connection) -> Result<()> {
-    let vester = ensure_signed(&connection)?;
-    let xt = compose_extrinsic!(connection, PALLET, "vest");
+pub fn vest(connection: SignedConnection) -> Result<()> {
+    let vester = connection.signer();
+    let xt = compose_extrinsic!(connection.as_connection(), PALLET, "vest");
     let block_hash = try_send_xt(&connection, xt, Some("Vesting"), Finalized)?
         .expect("For `Finalized` status a block hash should be returned");
     info!(
@@ -51,14 +46,13 @@ pub fn vest(connection: Connection) -> Result<()> {
 /// Calls `pallet_vesting::vest_other` by the signer of `connection` on behalf of `vest_account`,
 /// i.e. makes all unlocked balances of `vest_account` transferable.
 ///
-/// Fails if `connection` is not signed or transaction could not have been sent.
+/// Fails if transaction could not have been sent.
 ///
 /// *Note*: This function returns `Ok(_)` even if the account has no active vesting schedules
 /// and thus the extrinsic was not successful. However, semantically it is still correct.
-pub fn vest_other(connection: Connection, vest_account: AccountId) -> Result<()> {
-    ensure_signed(&connection)?;
+pub fn vest_other(connection: SignedConnection, vest_account: AccountId) -> Result<()> {
     let xt = compose_extrinsic!(
-        connection,
+        connection.as_connection(),
         PALLET,
         "vest_other",
         GenericAddress::Id(vest_account.clone())
@@ -72,15 +66,14 @@ pub fn vest_other(connection: Connection, vest_account: AccountId) -> Result<()>
 /// Performs a vested transfer from the signer of `connection` to `receiver` according to
 /// `schedule`.
 ///
-/// Fails if `connection` is unsigned or transaction could not have been sent.
+/// Fails if transaction could not have been sent.
 pub fn vested_transfer(
-    connection: Connection,
+    connection: SignedConnection,
     receiver: AccountId,
     schedule: VestingSchedule,
 ) -> Result<()> {
-    ensure_signed(&connection)?;
     let xt = compose_extrinsic!(
-        connection,
+        connection.as_connection(),
         PALLET,
         "vested_transfer",
         GenericAddress::Id(receiver.clone()),
@@ -95,8 +88,12 @@ pub fn vested_transfer(
 /// Returns all active schedules of `who`.
 ///
 /// Fails if `who` does not have any active vesting schedules.
-pub fn get_schedules(connection: &Connection, who: AccountId) -> Result<Vec<VestingSchedule>> {
+pub fn get_schedules<C: AnyConnection>(
+    connection: &C,
+    who: AccountId,
+) -> Result<Vec<VestingSchedule>> {
     connection
+        .as_connection()
         .get_storage_map::<AccountId, Option<Vec<VestingSchedule>>>(PALLET, "Vesting", who, None)?
         .flatten()
         .ok_or_else(|| VestingError::NotVesting.into())
@@ -104,15 +101,23 @@ pub fn get_schedules(connection: &Connection, who: AccountId) -> Result<Vec<Vest
 
 /// Merges two vesting schedules (at indices `idx1` and `idx2`) of the signer of `connection`.
 ///
-/// Fails if `connection` is unsigned or transaction could not have been sent.
+/// Fails if transaction could not have been sent.
 ///
 /// *Note*: This function returns `Ok(_)` even if the account has no active vesting schedules, or
 /// it has fewer schedules than `max(idx1, idx2) - 1` and thus the extrinsic was not successful.
-pub fn merge_schedules(connection: Connection, idx1: u32, idx2: u32) -> Result<()> {
-    let who = ensure_signed(&connection)?;
-    let xt = compose_extrinsic!(connection, PALLET, "merge_schedules", idx1, idx2);
+pub fn merge_schedules(connection: SignedConnection, idx1: u32, idx2: u32) -> Result<()> {
+    let who = connection.signer();
+    let xt = compose_extrinsic!(
+        connection.as_connection(),
+        PALLET,
+        "merge_schedules",
+        idx1,
+        idx2
+    );
+
     let block_hash = try_send_xt(&connection, xt, Some("Merge vesting schedules"), Finalized)?
         .expect("For `Finalized` status a block hash should be returned");
+
     info!(target: "aleph-client", 
         "Merging vesting schedules (indices: {} and {}) for the account {:?}. Finalized in block {:?}", 
         idx1, idx2, account_from_keypair(&who), block_hash);

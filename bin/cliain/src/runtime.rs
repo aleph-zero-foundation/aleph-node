@@ -1,8 +1,8 @@
-use aleph_client::{set_code, Connection};
+use aleph_client::{set_code, RootConnection};
 use std::fs;
 use substrate_api_client::XtStatus;
 
-pub fn update_runtime(connection: Connection, runtime: String) {
+pub fn update_runtime(connection: RootConnection, runtime: String) {
     let runtime = fs::read(runtime).expect("Runtime file not found");
     set_code(&connection, runtime, XtStatus::Finalized);
 }

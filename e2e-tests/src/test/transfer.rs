@@ -6,7 +6,7 @@ use aleph_client::{balances_transfer, get_free_balance};
 use crate::{config::Config, transfer::setup_for_transfer};
 
 pub fn token_transfer(config: &Config) -> anyhow::Result<()> {
-    let (connection, _, to) = setup_for_transfer(config);
+    let (connection, to) = setup_for_transfer(config);
 
     let balance_before = get_free_balance(&connection, &to);
     info!("[+] Account {} balance before tx: {}", to, balance_before);

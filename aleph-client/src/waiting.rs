@@ -1,24 +1,29 @@
 use std::sync::mpsc::channel;
 
+use anyhow::{anyhow, Result as AnyResult};
 use codec::Decode;
 use log::{error, info};
 use substrate_api_client::ApiResult;
 
-use crate::{Connection, Header};
+use crate::{AnyConnection, Header};
 
-pub fn wait_for_event<E: Decode + Clone, P: Fn(E) -> bool>(
-    connection: &Connection,
+pub fn wait_for_event<C: AnyConnection, E: Decode + Clone, P: Fn(E) -> bool>(
+    connection: &C,
     event: (&str, &str),
     predicate: P,
-) -> anyhow::Result<E> {
+) -> AnyResult<E> {
     let (module, variant) = event;
     info!(target: "aleph-client", "Creating event subscription {}/{}", module, variant);
 
     let (events_in, events_out) = channel();
-    connection.subscribe_events(events_in)?;
+    connection.as_connection().subscribe_events(events_in)?;
 
     loop {
-        let args: ApiResult<E> = connection.wait_for_event(module, variant, None, &events_out);
+        let args: ApiResult<E> =
+            connection
+                .as_connection()
+                .wait_for_event(module, variant, None, &events_out);
+
         match args {
             Ok(event) if predicate(event.clone()) => return Ok(event),
             Ok(_) => (),
@@ -27,9 +32,14 @@ pub fn wait_for_event<E: Decode + Clone, P: Fn(E) -> bool>(
     }
 }
 
-pub fn wait_for_finalized_block(connection: &Connection, block_number: u32) -> anyhow::Result<u32> {
+pub fn wait_for_finalized_block<C: AnyConnection>(
+    connection: &C,
+    block_number: u32,
+) -> AnyResult<u32> {
     let (sender, receiver) = channel();
-    connection.subscribe_finalized_heads(sender)?;
+    connection
+        .as_connection()
+        .subscribe_finalized_heads(sender)?;
 
     while let Ok(header) = receiver
         .recv()
@@ -42,7 +52,5 @@ pub fn wait_for_finalized_block(connection: &Connection, block_number: u32) -> a
         }
     }
 
-    Err(anyhow::anyhow!(
-        "Waiting for finalization is no longer possible"
-    ))
+    Err(anyhow!("Waiting for finalization is no longer possible"))
 }

@@ -9,8 +9,8 @@ use substrate_api_client::{
 };
 
 use aleph_client::{
-    balances_transfer, create_connection, get_free_balance, get_tx_fee_info, send_xt,
-    wait_for_event, Connection,
+    balances_transfer, get_free_balance, get_tx_fee_info, send_xt, wait_for_event, AnyConnection,
+    RootConnection, SignedConnection,
 };
 
 use crate::{
@@ -19,14 +19,17 @@ use crate::{
     transfer::setup_for_transfer,
 };
 
-fn calculate_staking_treasury_addition(connection: &Connection) -> u128 {
+fn calculate_staking_treasury_addition<C: AnyConnection>(connection: &C) -> u128 {
     let sessions_per_era = connection
+        .as_connection()
         .get_constant::<u32>("Staking", "SessionsPerEra")
         .unwrap();
     let session_period = connection
+        .as_connection()
         .get_constant::<u32>("Elections", "SessionPeriod")
         .unwrap();
     let millisecs_per_block = 2 * connection
+        .as_connection()
         .get_constant::<u64>("Timestamp", "MinimumPeriod")
         .unwrap();
     let millisecs_per_era = millisecs_per_block * session_period as u64 * sessions_per_era as u64;
@@ -39,8 +42,8 @@ fn calculate_staking_treasury_addition(connection: &Connection) -> u128 {
 }
 
 pub fn channeling_fee(config: &Config) -> anyhow::Result<()> {
-    let (connection, _, to) = setup_for_transfer(config);
-    let treasury = get_treasury_account(&connection);
+    let (connection, to) = setup_for_transfer(config);
+    let treasury = get_treasury_account();
 
     let possibly_treasury_gain_from_staking = calculate_staking_treasury_addition(&connection);
     let treasury_balance_before = get_free_balance(&connection, &treasury);
@@ -127,7 +130,7 @@ pub fn treasury_access(config: &Config) -> anyhow::Result<()> {
 
     let proposer = accounts_from_seeds(seeds)[0].clone();
     let beneficiary = AccountId::from(proposer.public());
-    let connection = create_connection(node).set_signer(proposer);
+    let connection = SignedConnection::new(node, proposer);
 
     propose_treasury_spend(10u128, &beneficiary, &connection);
     propose_treasury_spend(100u128, &beneficiary, &connection);
@@ -135,7 +138,7 @@ pub fn treasury_access(config: &Config) -> anyhow::Result<()> {
     assert!(proposals_counter >= 2, "Proposal was not created");
 
     let sudo = get_sudo(config);
-    let connection = connection.set_signer(sudo);
+    let connection = RootConnection::new(node, sudo);
 
     treasury_approve(proposals_counter - 2, &connection)?;
     treasury_reject(proposals_counter - 1, &connection)?;
@@ -143,14 +146,15 @@ pub fn treasury_access(config: &Config) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn get_total_issuance(connection: &Connection) -> u128 {
+fn get_total_issuance<C: AnyConnection>(connection: &C) -> u128 {
     connection
+        .as_connection()
         .get_storage_value("Balances", "TotalIssuance", None)
         .unwrap()
         .unwrap()
 }
 
-fn get_treasury_account(_connection: &Connection) -> AccountId32 {
+fn get_treasury_account() -> AccountId32 {
     PalletId(*b"a0/trsry").into_account()
 }
 
@@ -159,10 +163,10 @@ type ProposalTransaction =
 fn propose_treasury_spend(
     value: u128,
     beneficiary: &AccountId32,
-    connection: &Connection,
+    connection: &SignedConnection,
 ) -> ProposalTransaction {
     let xt = compose_extrinsic!(
-        connection,
+        connection.as_connection(),
         "Treasury",
         "propose_spend",
         Compact(value),
@@ -177,8 +181,9 @@ fn propose_treasury_spend(
     xt
 }
 
-fn get_proposals_counter(connection: &Connection) -> u32 {
+fn get_proposals_counter<C: AnyConnection>(connection: &C) -> u32 {
     connection
+        .as_connection()
         .get_storage_value("Treasury", "ProposalCount", None)
         .unwrap()
         .unwrap()
@@ -186,9 +191,9 @@ fn get_proposals_counter(connection: &Connection) -> u32 {
 
 type GovernanceTransaction = UncheckedExtrinsicV4<([u8; 2], Compact<u32>)>;
 
-fn send_treasury_approval(proposal_id: u32, connection: &Connection) -> GovernanceTransaction {
+fn send_treasury_approval(proposal_id: u32, connection: &RootConnection) -> GovernanceTransaction {
     let xt = compose_extrinsic!(
-        connection,
+        connection.as_connection(),
         "Treasury",
         "approve_proposal",
         Compact(proposal_id)
@@ -202,14 +207,14 @@ fn send_treasury_approval(proposal_id: u32, connection: &Connection) -> Governan
     xt
 }
 
-fn treasury_approve(proposal_id: u32, connection: &Connection) -> anyhow::Result<()> {
+fn treasury_approve(proposal_id: u32, connection: &RootConnection) -> anyhow::Result<()> {
     send_treasury_approval(proposal_id, connection);
     wait_for_approval(connection, proposal_id)
 }
 
-fn send_treasury_rejection(proposal_id: u32, connection: &Connection) -> GovernanceTransaction {
+fn send_treasury_rejection(proposal_id: u32, connection: &RootConnection) -> GovernanceTransaction {
     let xt = compose_extrinsic!(
-        connection,
+        connection.as_connection(),
         "Treasury",
         "reject_proposal",
         Compact(proposal_id)
@@ -223,16 +228,17 @@ fn send_treasury_rejection(proposal_id: u32, connection: &Connection) -> Governa
     xt
 }
 
-fn treasury_reject(proposal_id: u32, connection: &Connection) -> anyhow::Result<()> {
+fn treasury_reject(proposal_id: u32, connection: &RootConnection) -> anyhow::Result<()> {
     let (c, p) = (connection.clone(), proposal_id);
     let listener = thread::spawn(move || wait_for_rejection(&c, p));
     send_treasury_rejection(proposal_id, connection);
     listener.join().unwrap()
 }
 
-fn wait_for_approval(connection: &Connection, proposal_id: u32) -> anyhow::Result<()> {
+fn wait_for_approval<C: AnyConnection>(connection: &C, proposal_id: u32) -> anyhow::Result<()> {
     loop {
         let approvals: Vec<u32> = connection
+            .as_connection()
             .get_storage_value("Treasury", "Approvals", None)
             .unwrap()
             .unwrap();
@@ -255,7 +261,7 @@ struct ProposalRejectedEvent {
     _slashed: u128,
 }
 
-fn wait_for_rejection(connection: &Connection, proposal_id: u32) -> anyhow::Result<()> {
+fn wait_for_rejection<C: AnyConnection>(connection: &C, proposal_id: u32) -> anyhow::Result<()> {
     wait_for_event(
         connection,
         ("Treasury", "Rejected"),

@@ -6,15 +6,15 @@ use substrate_api_client::{
 };
 
 use aleph_client::{
-    balances_transfer, get_next_fee_multiplier, get_tx_fee_info, send_xt, Connection, FeeInfo,
-    TransferTransaction,
+    balances_transfer, get_next_fee_multiplier, get_tx_fee_info, send_xt, AnyConnection, FeeInfo,
+    RootConnection, SignedConnection, TransferTransaction,
 };
 
 use crate::{config::Config, transfer::setup_for_transfer};
 
 pub fn fee_calculation(config: &Config) -> anyhow::Result<()> {
     // An initial transfer is needed to establish the fee multiplier.
-    let (connection, _, to) = setup_for_transfer(config);
+    let (connection, to) = setup_for_transfer(config);
     let transfer_value = 1000u128;
     balances_transfer(&connection, &to, transfer_value, XtStatus::Finalized);
 
@@ -31,7 +31,8 @@ pub fn fee_calculation(config: &Config) -> anyhow::Result<()> {
 
     // The target saturation level is set to 25%, so unless we cross this limit,
     // the fees should not increase. Note that effectively it is 18.75% of the whole block.
-    fill_blocks(15, 5, &connection);
+    let root_connection = RootConnection::from(connection.clone());
+    fill_blocks(15, 5, &root_connection);
     let (actual_multiplier, fee_info) = check_current_fees(&connection, &tx);
     assert_no_scaling(
         actual_multiplier,
@@ -43,7 +44,7 @@ pub fn fee_calculation(config: &Config) -> anyhow::Result<()> {
     // At 60% of occupancy the fees should increase by ~2.4% per block. However, the
     // intermediate blocks will be empty, so in order to have reliable reads we have to
     // simulate high traffic for a longer time.
-    fill_blocks(60, 4, &connection);
+    fill_blocks(60, 4, &root_connection);
     let (actual_multiplier, fee_info) = check_current_fees(&connection, &tx);
     assert!(
         actual_multiplier.gt(&FixedU128::one()),
@@ -55,7 +56,7 @@ pub fn fee_calculation(config: &Config) -> anyhow::Result<()> {
     );
 
     let (prev_multiplier, prev_fee_info) = (actual_multiplier, fee_info);
-    fill_blocks(60, 4, &connection);
+    fill_blocks(60, 4, &root_connection);
     let (actual_multiplier, fee_info) = check_current_fees(&connection, &tx);
     assert!(
         actual_multiplier.gt(&prev_multiplier),
@@ -67,7 +68,7 @@ pub fn fee_calculation(config: &Config) -> anyhow::Result<()> {
     );
 
     let (prev_multiplier, prev_fee_info) = (actual_multiplier, fee_info);
-    fill_blocks(0, 8, &connection);
+    fill_blocks(0, 8, &root_connection);
     let (actual_multiplier, fee_info) = check_current_fees(&connection, &tx);
     // This is rather an ethical version of sleep.
     assert!(
@@ -82,8 +83,8 @@ pub fn fee_calculation(config: &Config) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn check_current_fees<Call: Encode>(
-    connection: &Connection,
+fn check_current_fees<C: AnyConnection, Call: Encode>(
+    connection: &C,
     tx: &UncheckedExtrinsicV4<Call>,
 ) -> (FixedU128, FeeInfo) {
     // The storage query will return an u128 value which is the 'inner' representation
@@ -114,10 +115,10 @@ fn assert_no_scaling(
     );
 }
 
-fn prepare_transaction(connection: &Connection) -> TransferTransaction {
+fn prepare_transaction(connection: &SignedConnection) -> TransferTransaction {
     let bytes = [0u8; 32];
     compose_extrinsic!(
-        connection,
+        connection.as_connection(),
         "Balances",
         "transfer",
         GenericAddress::Id(AccountId::from(bytes)),
@@ -125,10 +126,10 @@ fn prepare_transaction(connection: &Connection) -> TransferTransaction {
     )
 }
 
-fn fill_blocks(target_ratio: u32, blocks: u32, connection: &Connection) {
+fn fill_blocks(target_ratio: u32, blocks: u32, connection: &RootConnection) {
     for _ in 0..blocks {
         let xt = compose_extrinsic!(
-            connection,
+            connection.as_connection(),
             "System",
             "fill_block",
             target_ratio * 10_000_000
