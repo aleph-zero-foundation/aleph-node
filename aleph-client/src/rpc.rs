@@ -16,13 +16,13 @@ pub fn author_rotate_keys_json() -> Value {
     json_req("author_rotateKeys", Value::Null, 1)
 }
 
-fn state_query_storage_at_json(storage_keys: &Vec<StorageKey>) -> Value {
+fn state_query_storage_at_json(storage_keys: &[StorageKey]) -> Value {
     json_req(
         "state_queryStorageAt",
         Value::Array(vec![
             Value::Array(
                 storage_keys
-                    .into_iter()
+                    .iter()
                     .map(|storage_key| Value::String(hex::encode(storage_key)))
                     .collect::<Vec<_>>(),
             ),
@@ -51,11 +51,11 @@ fn parse_query_storage_at_result(
             // best known block
             let storage_change_set = storage_change_set_vec.remove(0);
             if storage_change_set.changes.len() != expected_storage_key_size {
-                return Err(String::from(format!(
+                return Err(format!(
                     "Expected result to have exactly {} entries, got {}!",
                     expected_storage_key_size,
                     storage_change_set.changes.len()
-                )));
+                ));
             }
             Ok(storage_change_set
                 .changes
@@ -74,10 +74,10 @@ pub fn state_query_storage_at(
         Ok(maybe_json_result) => {
             parse_query_storage_at_result(maybe_json_result, storage_keys.len())
         }
-        Err(_) => Err(String::from(format!(
+        Err(_) => Err(format!(
             "Failed to obtain results from storage keys {:?}",
             &storage_keys
-        ))),
+        )),
     }
 }
 

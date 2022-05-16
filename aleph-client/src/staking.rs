@@ -1,17 +1,21 @@
 use codec::Compact;
 use log::info;
 use pallet_staking::{RewardDestination, ValidatorPrefs};
+use rayon::prelude::*;
 use sp_core::Pair;
 use sp_runtime::Perbill;
 use substrate_api_client::{
     compose_call, compose_extrinsic, AccountId, Balance, GenericAddress, XtStatus,
 };
 
-use crate::{locks, send_xt, wait_for_session, BlockNumber, Connection, KeyPair};
+use crate::{
+    account_from_keypair, create_connection, locks, send_xt, wait_for_session, BlockNumber,
+    Connection, KeyPair,
+};
 
 pub fn bond(
     connection: &Connection,
-    initial_stake: u128,
+    initial_stake: Balance,
     controller_account_id: &AccountId,
     status: XtStatus,
 ) {
@@ -23,6 +27,14 @@ pub fn bond(
         RewardDestination::Staked,
     );
     send_xt(connection, xt, Some("bond"), status);
+}
+
+pub fn multi_bond(node: &str, bonders: &[KeyPair], stake: Balance) {
+    bonders.par_iter().for_each(|bonder| {
+        let connection = create_connection(node).set_signer(bonder.clone());
+        let controller_account = account_from_keypair(bonder);
+        bond(&connection, stake, &controller_account, XtStatus::InBlock);
+    });
 }
 
 pub fn validate(connection: &Connection, validator_commission_percentage: u8, status: XtStatus) {

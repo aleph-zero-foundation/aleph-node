@@ -264,7 +264,7 @@ fn generate_txs(
     let accounts = (first_account_in_range..first_account_in_range + total_users)
         .into_par_iter()
         .map(derive_user_account)
-        .collect();
+        .collect::<Vec<sr25519::Pair>>();
 
     if initialize_accounts_flag {
         initialize_accounts(config, connection, transfer_amount, &accounts);
@@ -300,7 +300,7 @@ fn initialize_accounts(
     config: &Config,
     connection: &Api<sr25519::Pair, WsRpcClient>,
     transfer_amount: u128,
-    accounts: &Vec<sr25519::Pair>,
+    accounts: &[sr25519::Pair],
 ) {
     let account = match &config.phrase {
         Some(phrase) => {

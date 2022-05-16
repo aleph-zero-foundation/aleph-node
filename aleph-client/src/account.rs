@@ -17,7 +17,7 @@ pub fn get_free_balance(connection: &Connection, account: &AccountId) -> Balance
 
 pub fn locks(connection: &Connection, accounts: &[AccountId]) -> Vec<Vec<BalanceLock<Balance>>> {
     let storage_keys = create_storage_keys_from_accounts(connection, accounts);
-    get_locked_balances_from_storage(&connection, storage_keys)
+    get_locked_balances_from_storage(connection, storage_keys)
 }
 
 fn create_storage_keys_from_accounts(
@@ -25,15 +25,12 @@ fn create_storage_keys_from_accounts(
     accounts: &[AccountId32],
 ) -> Vec<StorageKey> {
     accounts
-        .into_iter()
+        .iter()
         .map(|account| {
             connection
                 .metadata
                 .storage_map_key("Balances", "Locks", account)
-                .expect(&format!(
-                    "Cannot create storage key for account {}!",
-                    account
-                ))
+                .unwrap_or_else(|_| panic!("Cannot create storage key for account {}!", account))
         })
         .collect()
 }
@@ -42,7 +39,7 @@ fn get_locked_balances_from_storage(
     connection: &Connection,
     storage_keys: Vec<StorageKey>,
 ) -> Vec<Vec<BalanceLock<Balance>>> {
-    match state_query_storage_at(&connection, storage_keys) {
+    match state_query_storage_at(connection, storage_keys) {
         Ok(storage_entries) => storage_entries
             .into_iter()
             .map(|storage_entry| {

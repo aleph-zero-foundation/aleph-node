@@ -93,7 +93,7 @@ dependencies = [
 
 [[package]]
 name = "aleph_client"
-version = "0.4.3"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "hex",
@@ -106,6 +106,7 @@ dependencies = [
  "pallet-vesting",
  "parity-scale-codec",
  "primitives",
+ "rayon",
  "serde_json",
  "sp-core",
  "sp-runtime",

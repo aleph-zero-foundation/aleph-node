@@ -1,6 +1,6 @@
 [package]
 name = "aleph_client"
-version = "0.4.3"
+version = "0.5.0"
 edition = "2021"
 
 [dependencies]
@@ -18,11 +18,12 @@ pallet-vesting = { git = "https://github.com/paritytech/substrate.git", branch =
 primitives = { path = "../primitives", default-features = false }
 
 # other dependencies
-hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
-log = "0.4"
-serde_json = { version = "1.0" }
 anyhow = "1.0"
 codec = { package = 'parity-scale-codec', version = "3.0.0", default-features = false,  features = ['derive']}
+hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
+log = "0.4"
+rayon = "1.5"
+serde_json = { version = "1.0" }
 thiserror = "1.0"
 
 [features]

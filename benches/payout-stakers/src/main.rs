@@ -1,4 +1,4 @@
-use clap::{ErrorKind, Parser, CommandFactory};
+use clap::{CommandFactory, ErrorKind, Parser};
 use log::{info, trace, warn};
 use rand::{thread_rng, Rng};
 use rayon::prelude::*;
@@ -10,7 +10,7 @@ use substrate_api_client::{extrinsic::staking::RewardDestination, AccountId, XtS
 use aleph_client::{
     balances_batch_transfer, create_connection, keypair_from_string,
     payout_stakers_and_assert_locked_balance, staking_batch_bond, staking_batch_nominate,
-    staking_bond, staking_validate, wait_for_next_era, Connection,
+    staking_multi_bond, staking_validate, wait_for_next_era, Connection,
 };
 use primitives::{
     staking::{MAX_NOMINATORS_REWARDED_PER_VALIDATOR, MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND},
@@ -62,13 +62,14 @@ fn main() -> Result<(), anyhow::Error> {
         cmd.error(
             ErrorKind::ArgumentConflict,
             "only one of --validator-count or --validators-seed-file must be specified!",
-        ).exit();
+        )
+        .exit();
     }
 
     let sudoer = match root_seed_file {
         Some(root_seed_file) => {
             let root_seed = std::fs::read_to_string(&root_seed_file)
-                .expect(&format!("Failed to read file {}", root_seed_file));
+                .unwrap_or_else(|_| panic!("Failed to read file {}", root_seed_file));
             keypair_from_string(root_seed.trim())
         }
         None => AccountKeyring::Alice.pair(),
@@ -80,15 +81,15 @@ fn main() -> Result<(), anyhow::Error> {
     let validators = match validators_seed_file {
         Some(validators_seed_file) => {
             let validators_seeds = std::fs::read_to_string(&validators_seed_file)
-                .expect(&format!("Failed to read file {}", validators_seed_file));
+                .unwrap_or_else(|_| panic!("Failed to read file {}", validators_seed_file));
             validators_seeds
-                .split("\n")
+                .split('\n')
                 .filter(|seed| !seed.is_empty())
                 .map(keypair_from_string)
                 .collect()
         }
         None => (0..validator_count.unwrap())
-            .map(|validator_number| derive_user_account_from_numeric_seed(validator_number))
+            .map(derive_user_account_from_numeric_seed)
             .collect::<Vec<_>>(),
     };
     let validator_count = validators.len() as u32;
@@ -117,13 +118,13 @@ fn create_test_validators_and_its_nominators(
         .enumerate()
         .map(|(validator_index, validator_pair)| {
             let nominator_accounts = generate_nominator_accounts_with_minimal_bond(
-                &connection,
+                connection,
                 validator_index as u32,
                 validators_count,
             );
             let nominee_account = AccountId::from(validator_pair.public());
             info!("Nominating validator {}", nominee_account);
-            nominate_validator(&connection, nominator_accounts.clone(), nominee_account);
+            nominate_validator(connection, nominator_accounts.clone(), nominee_account);
             (validator_pair.clone(), nominator_accounts)
         })
         .collect()
@@ -200,16 +201,7 @@ fn nominate_validator(
 }
 
 fn bond_validate(address: &str, validators: Vec<KeyPair>) -> Vec<KeyPair> {
-    validators.par_iter().for_each(|account| {
-        let connection = create_connection(address).set_signer(account.clone());
-        let controller_account_id = AccountId::from(account.public());
-        staking_bond(
-            &connection,
-            MIN_VALIDATOR_BOND,
-            &controller_account_id,
-            XtStatus::InBlock,
-        );
-    });
+    staking_multi_bond(address, &validators, MIN_VALIDATOR_BOND);
     validators.par_iter().for_each(|account| {
         let mut rng = thread_rng();
         let connection = create_connection(address).set_signer(account.clone());

@@ -1,7 +1,7 @@
+use aleph_client::FromStr;
 use log::info;
 use serde_json::Value;
 use sp_core::H256 as Hash;
-use aleph_client::FromStr;
 use std::{
     sync::{mpsc::channel, Arc, Mutex},
     thread,
@@ -35,11 +35,16 @@ pub struct WsRpcClient {
 
 impl WsRpcClient {
     pub fn new(url: &str) -> Result<WsRpcClient, String> {
-        let (sender, join_handle, rpc_client) = start_rpc_client_thread(url.to_string())?;
+        let RunningRpcClient {
+            ws_sender,
+            client_handle,
+            client,
+        } = start_rpc_client_thread(url.to_string())?;
+
         Ok(WsRpcClient {
-            next_handler: rpc_client,
-            join_handle: Some(join_handle),
-            out: sender,
+            next_handler: client,
+            join_handle: Some(client_handle),
+            out: ws_sender,
             mux: Mutex::new(()),
             url: url.to_string(),
         })
@@ -194,16 +199,13 @@ impl WsRpcClient {
     }
 }
 
-fn start_rpc_client_thread(
-    url: String,
-) -> Result<
-    (
-        WsSender,
-        JoinHandle<WsResult<()>>,
-        Arc<Mutex<Option<RpcClient>>>,
-    ),
-    String,
-> {
+struct RunningRpcClient {
+    ws_sender: WsSender,
+    client_handle: JoinHandle<WsResult<()>>,
+    client: Arc<Mutex<Option<RpcClient>>>,
+}
+
+fn start_rpc_client_thread(url: String) -> Result<RunningRpcClient, String> {
     let (tx, rx) = std::sync::mpsc::sync_channel(0);
     let rpc_client = Arc::new(Mutex::new(None));
     let connect_rpc_client = Arc::clone(&rpc_client);
@@ -219,7 +221,11 @@ fn start_rpc_client_thread(
         })
         .map_err(|_| "unable to spawn WebSocket's thread")?;
     let out = rx.recv().map_err(|_| "WebSocket's unexpectedly died")?;
-    Ok((out, join, rpc_client))
+    Ok(RunningRpcClient {
+        ws_sender: out,
+        client_handle: join,
+        client: rpc_client,
+    })
 }
 
 struct WsHandler {
