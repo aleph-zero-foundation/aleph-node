@@ -124,9 +124,10 @@ mod tests {
 
     #[test]
     fn given_some_input_when_state_query_storage_at_json_then_json_is_as_expected() {
-        let mut storage_keys = Vec::new();
-        storage_keys.push(StorageKey(vec![0, 1, 2, 3, 4, 5]));
-        storage_keys.push(StorageKey(vec![9, 8, 7, 6, 5]));
+        let storage_keys = vec![
+            StorageKey(vec![0, 1, 2, 3, 4, 5]),
+            StorageKey(vec![9, 8, 7, 6, 5]),
+        ];
         let expected_json_string = r#"
 {
    "id": "1",

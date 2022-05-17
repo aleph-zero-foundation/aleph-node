@@ -20,6 +20,9 @@ jobs:
       - name: Install rust toolchain
         uses: actions-rs/toolchain@v1
 
+      - name: Install clippy and fmt
+        run: rustup component add clippy rustfmt
+
       - name: Read excluded packages from Cargo.toml
         id: read_excluded
         uses: SebRollen/toml-action@v1.0.0
@@ -45,13 +48,17 @@ jobs:
           cargo-targets: "${{ steps.format_output.outputs.targets }}"
 
       - name: Check excluded packages
+        env:
+          RUSTC_WRAPPER: ""
+          RUSTC_WORKSPACE_WRAPPER: sccache
         run: |
           packages="${{ steps.format_output.outputs.packages }}"
           for p in ${packages[@]}
           do
-            echo "Compiling package $p..."
+            echo "Checking package $p..."
             pushd "$p"
-            cargo check --all-targets --all-features
+            cargo fmt --all --check
+            cargo clippy --all-targets --all-features -- --no-deps -D warnings
             popd
           done
 

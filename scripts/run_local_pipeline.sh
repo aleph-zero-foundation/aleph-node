@@ -1,7 +1,7 @@
-#!/bin/bash
-
 set -e
 
-CARGO_INCREMENTAL=0 cargo clippy --all-targets --all-features --no-deps
-CARGO_INCREMENTAL=0 cargo fmt --all
-CARGO_INCREMENTAL=0 cargo test --lib
+DIR=$(dirname "$0")
+
+"$DIR"/run_checks_on_aleph_node.sh
+"$DIR"/run_checks_on_excluded_packages.sh
+"$DIR"/run_local_e2e_pipeline.sh
