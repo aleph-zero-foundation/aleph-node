@@ -56,7 +56,7 @@ class Chain:
         self.validator_nodes = [account_to_node(a) for a in validators]
         self.nonvalidator_nodes = [account_to_node(a) for a in nonvalidators]
 
-        self.nodes = self.nonvalidator_nodes + self.validator_nodes
+        self.nodes = self.validator_nodes + self.nonvalidator_nodes
 
     @staticmethod
     def _set_flags(nodes, *args, **kwargs):

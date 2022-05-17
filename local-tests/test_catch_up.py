@@ -36,29 +36,39 @@ chain.start('aleph')
 print('Waiting 90s')
 sleep(90)
 
-check_finalized(chain)
+finalized_before_kill_per_node = check_finalized(chain)
 print('Killing one validator and one nonvalidator')
+
 chain[3].stop()
 chain[4].stop()
 
-print('waiting around 4 sessions')
-sleep(30 * 4)
+print('waiting around 2 sessions')
+sleep(30 * 2)
 
 print('restarting nodes')
-chain.start('aleph', nodes=[3, 4])
-check_finalized(chain)
-print('waiting 45s for catch up')
-sleep(45)
-finalized_per_node = check_finalized(chain)
+finalized_before_start_per_node = check_finalized(chain)
 
-nonvalidator_diff = abs(finalized_per_node[5] - finalized_per_node[4])
-validator_diff = abs(finalized_per_node[2] - finalized_per_node[3])
-ALLOWED_DELTA = 5
-
-if nonvalidator_diff > ALLOWED_DELTA:
-    print(f"too big difference for nonvalidators: {nonvalidator_diff}")
+# Check if the finalization didn't stop after a kill.
+if finalized_before_start_per_node[0] - finalized_before_kill_per_node[0] < 10:
+    print('Finalization stalled')
     sys.exit(1)
 
-if validator_diff > ALLOWED_DELTA:
-    print(f"too big difference for nonvalidators: {validator_diff}")
+chain.start('aleph', nodes=[3, 4])
+
+print('waiting 45s for catch up')
+sleep(45)
+finalized_after_catch_up_per_node = check_finalized(chain)
+
+nonvalidator_diff = finalized_after_catch_up_per_node[4] - finalized_before_start_per_node[4]
+validator_diff = finalized_after_catch_up_per_node[3] - finalized_before_start_per_node[3]
+
+ALLOWED_DELTA = 5
+
+# Checks if the murdered nodes started catching up with reasonable nr of blocks.
+if nonvalidator_diff <= ALLOWED_DELTA:
+    print(f"too small catch up for nonvalidators: {nonvalidator_diff}")
+    sys.exit(1)
+
+if validator_diff <= ALLOWED_DELTA:
+    print(f"too small catch up for validators: {validator_diff}")
     sys.exit(1)
