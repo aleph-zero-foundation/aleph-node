@@ -5,6 +5,9 @@ inputs:
   test-case:
     description: 'Name of test to run.'
     required: true
+  follow-up-finalization-check:
+    description: 'Whether to run a follow up finalizaton check.'
+    required: false
 
 runs:
   using: 'composite'
@@ -38,6 +41,11 @@ runs:
     - name: Run single e2e test
       shell: bash
       run: ./.github/scripts/run_e2e_test.sh -t ${{ inputs.test-case }}
+
+    - name: Run finalization e2e test
+      if: inputs.follow-up-finalization-check == 'true'
+      shell: bash
+      run: ./.github/scripts/run_e2e_test.sh -t finalization
 
     - name: Print debug if failed
       if: ${{ failure() }}
