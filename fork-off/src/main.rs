@@ -12,6 +12,9 @@ use std::{
     sync::Arc,
 };
 
+type StoragePath = String;
+type StorageKeyHash = String;
+
 #[derive(Debug, Parser)]
 #[clap(version = "1.0")]
 pub struct Config {
@@ -31,7 +34,7 @@ pub struct Config {
     #[clap(long, default_value = "./chainspec_from_snapshot.json")]
     pub combined_spec_path: String,
 
-    /// where to write the forked genesis chainspec
+    /// whether to read the state from the ready snapshot json file
     #[clap(long)]
     pub use_snapshot_file: bool,
 
@@ -46,9 +49,9 @@ pub struct Config {
         multiple_occurrences = true,
         takes_value = true,
         value_delimiter = ',',
-        default_value = "Aura,Aleph,Sudo,Staking,Session,Elections"
+        default_value = "Aura,Aleph,Balances,Sudo,Staking,Session,Elections,System.Account"
     )]
-    pub pallets_keep_state: Vec<String>,
+    pub storage_keep_state: Vec<StoragePath>,
 }
 
 const KEYS_BATCH_SIZE: u32 = 1000;
@@ -265,44 +268,45 @@ fn is_prefix_of(shorter: &str, longer: &str) -> bool {
     longer.starts_with(shorter)
 }
 
-fn combine_states(mut state: Storage, initial_state: Storage, pallets: Vec<String>) -> Storage {
-    let pallets_prefixes: Vec<(String, String)> = pallets
-        .iter()
-        .map(|pallet| {
-            let hash = format!("0x{}", prefix_as_hex(pallet));
-            (pallet.clone(), hash)
-        })
+fn combine_states(
+    mut state: Storage,
+    initial_state: Storage,
+    storage_to_keep: Vec<StoragePath>,
+) -> Storage {
+    let storage_prefixes: Vec<(StoragePath, StorageKeyHash)> = storage_to_keep
+        .into_iter()
+        .map(|path| (path.clone(), hash_storage_prefix(path)))
         .collect();
-    let mut removed_per_pallet_count: HashMap<String, usize> = pallets_prefixes
+    let mut removed_per_path_count: HashMap<String, usize> = storage_prefixes
         .iter()
-        .map(|(pallet, _)| (pallet.clone(), 0))
+        .map(|(path, _)| (path.clone(), 0))
         .collect();
-    let mut added_per_pallet_cnt = removed_per_pallet_count.clone();
+    let mut added_per_path_cnt = removed_per_path_count.clone();
     state.retain(|k, _v| {
-        match pallets_prefixes
+        match storage_prefixes
             .iter()
             .find(|(_, prefix)| is_prefix_of(prefix, k))
         {
-            Some((pallet, _)) => {
-                *removed_per_pallet_count.get_mut(pallet).unwrap() += 1;
+            Some((path, _)) => {
+                *removed_per_path_count.get_mut(path).unwrap() += 1;
                 false
             }
             None => true,
         }
     });
     for (k, v) in initial_state.iter() {
-        if let Some((pallet, _)) = pallets_prefixes
+        if let Some((pallet, _)) = storage_prefixes
             .iter()
             .find(|(_, prefix)| is_prefix_of(prefix, k))
         {
-            *added_per_pallet_cnt.get_mut(pallet).unwrap() += 1;
+            *added_per_path_cnt.get_mut(pallet).unwrap() += 1;
             state.insert(k.clone(), v.clone());
         }
     }
-    for (pallet, prefix) in pallets_prefixes {
+    for (path, prefix) in storage_prefixes {
         info!(
-            "For pallet {} (prefix {}) Replaced {} entries by {} entries from initial_spec",
-            pallet, prefix, removed_per_pallet_count[&pallet], added_per_pallet_cnt[&pallet]
+            "For storage path `{}` (prefix `{}`) Replaced {} entries by {} entries from initial_spec",
+            path, prefix, removed_per_path_count[&path], added_per_path_cnt[&path]
         );
     }
     state
@@ -316,7 +320,7 @@ async fn main() -> anyhow::Result<()> {
         snapshot_path,
         combined_spec_path,
         use_snapshot_file,
-        pallets_keep_state,
+        storage_keep_state,
         num_workers,
     } = Config::parse();
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
@@ -328,8 +332,8 @@ async fn main() -> anyhow::Result<()> {
         \tsnapshot_path: {}\n\
         \tcombined_spec_path: {}\n\
         \tuse_snapshot_file: {}\n\
-        \tpallets_keep_state: {:?}",
-        &http_rpc_endpoint, &initial_spec_path, &snapshot_path, &combined_spec_path, &use_snapshot_file, &pallets_keep_state
+        \tstorage_keep_state: {:?}",
+        &http_rpc_endpoint, &initial_spec_path, &snapshot_path, &combined_spec_path, &use_snapshot_file, &storage_keep_state
     );
 
     let mut initial_spec: Value = serde_json::from_str(
@@ -351,7 +355,7 @@ async fn main() -> anyhow::Result<()> {
     let initial_state: Storage =
         serde_json::from_value(initial_spec["genesis"]["raw"]["top"].take())
             .expect("Deserialization of state from given chainspec file failed");
-    let state = combine_states(state, initial_state, pallets_keep_state);
+    let state = combine_states(state, initial_state, storage_keep_state);
     let json_state = serde_json::to_value(state).expect("Failed to convert a storage map to json");
     initial_spec["genesis"]["raw"]["top"] = json_state;
     let new_spec = serde_json::to_vec_pretty(&initial_spec)?;
@@ -381,7 +385,8 @@ fn write_to_file(write_to_path: String, data: &[u8]) {
     file.write_all(data).expect("Could not write to file");
 }
 
-fn prefix_as_hex(module: &str) -> String {
-    let pallet_name = sp_io::hashing::twox_128(module.as_bytes());
-    hex::encode(pallet_name)
+fn hash_storage_prefix(storage_path: StoragePath) -> StorageKeyHash {
+    let modules = storage_path.split('.');
+    let hashes = modules.flat_map(|module| sp_io::hashing::twox_128(module.as_bytes()));
+    format!("0x{}", hex::encode(hashes.collect::<Vec<_>>()))
 }

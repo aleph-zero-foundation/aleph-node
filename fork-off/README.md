@@ -31,7 +31,7 @@ The tool will perform the following actions, in this order:
 2. Dump the state to a json file. You can provide a path via `--snapshot-path`.
 3. Read the state from the snapshot json file. This is because steps 1. and 2. can be omitted by running with `--use-snapshot-file` -- see example below.
 4. Read the chainspec provided via `--initial-spec-path` you should pass here the one generated via `the bootstrap-chain` command, so `--initial-spec-path=chainspec.json` if it is in the same directory.
-5. Replace the genesis state in the chainspec by the one from the snapshot WITH THE EXCEPTION of states of pallets provided via a comma separated list using `--pallets_keep_state`. The default setting is `--pallets_keep_state=Aura,Aleph,Sudo,Staking,Session,Elections` and it's likely you don't want to change it.
+5. Replace the genesis state in the chainspec by the one from the snapshot WITH THE EXCEPTION of states of paths provided via a comma separated list using `--storage_keep_state`. The default setting is `--storage_keep_state=Aura,Aleph,Balances,Sudo,Staking,Session,Elections,System.Account` and it's likely you don't want to change it.
 6. The final, new chainspec is saved to the path provided via `--combined-spec-path`.
 
 So for instance to generate a new spec keeping the storage of testnet (note that in that case you should use the same binary as running on testnet to `bootstrap-chain`) we would run:
@@ -40,7 +40,7 @@ So for instance to generate a new spec keeping the storage of testnet (note that
 target/release/fork-off --http-rpc-endpoint=https://rpc.test.azero.dev --initial-spec-path=chainspec.json --combined-spec-path=combined.json
 ```
 
-This will also create a `snapshot.json` file containing the state downloaded from testnet. In case the state downloaded correctly (easy to see from logs) but something went wrong when combining the specs (e.g. you want to use a different set of pallets) then you can rerun without the need of downloading the state again (it might be time consuming):
+This will also create a `snapshot.json` file containing the state downloaded from testnet. In case the state downloaded correctly (easy to see from logs) but something went wrong when combining the specs (e.g. you want to use a different set of paths) then you can rerun without the need of downloading the state again (it might be time consuming):
 
 ```bash
 target/release/fork-off --http-rpc-endpoint=https://rpc.test.azero.dev --initial-spec-path=chainspec.json --combined-spec-path=combined.json --use-snapshot-file
