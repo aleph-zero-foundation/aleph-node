@@ -4,6 +4,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+mod impls;
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
@@ -14,6 +15,8 @@ pub use pallet::*;
 
 const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 
+pub type BlockCount = u32;
+
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
@@ -22,6 +25,7 @@ pub mod pallet {
     };
     use frame_support::{pallet_prelude::*, traits::Get};
     use frame_system::{ensure_root, pallet_prelude::OriginFor};
+    use pallet_session::SessionManager;
     use primitives::DEFAULT_MEMBERS_PER_SESSION;
     use sp_std::{collections::btree_map::BTreeMap, prelude::Vec};
 
@@ -34,6 +38,7 @@ pub mod pallet {
         >;
         #[pallet::constant]
         type SessionPeriod: Get<u32>;
+        type SessionManager: SessionManager<<Self as frame_system::Config>::AccountId>;
     }
 
     #[pallet::event]
@@ -57,6 +62,10 @@ pub mod pallet {
     #[pallet::storage]
     pub type ErasReserved<T: Config> = StorageValue<_, Vec<T::AccountId>, ValueQuery>;
 
+    #[pallet::storage]
+    pub type SessionValidatorBlockCount<T: Config> =
+        StorageMap<_, Twox64Concat, T::AccountId, BlockCount, ValueQuery>;
+
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::weight((T::BlockWeights::get().max_block, DispatchClass::Operational))]
@@ -67,6 +76,7 @@ pub mod pallet {
 
             Ok(())
         }
+
         #[pallet::weight((T::BlockWeights::get().max_block, DispatchClass::Operational))]
         pub fn set_members_per_session(
             origin: OriginFor<T>,

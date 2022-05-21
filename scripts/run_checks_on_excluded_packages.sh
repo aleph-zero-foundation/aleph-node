@@ -1,3 +1,5 @@
+#!/bin/bash
+
 set -e
 
 # `packages` should reflect `exclude` section from root `Cargo.toml`.

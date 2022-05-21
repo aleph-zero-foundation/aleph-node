@@ -29,7 +29,7 @@ pub use frame_support::{
     construct_runtime, parameter_types,
     traits::{
         Currency, EstimateNextNewSession, Imbalance, KeyOwnerProofSystem, LockIdentifier, Nothing,
-        OnUnbalanced, Randomness, U128CurrencyToVote, ValidatorSet,
+        OnUnbalanced, Randomness, ValidatorSet,
     },
     weights::{
         constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
@@ -40,7 +40,7 @@ pub use frame_support::{
 use frame_support::{
     pallet_prelude::ConstU32,
     sp_runtime::Perquintill,
-    traits::{EqualPrivilegeOnly, SortedMembers},
+    traits::{EqualPrivilegeOnly, SortedMembers, U128CurrencyToVote},
     weights::constants::WEIGHT_PER_MILLIS,
     PalletId,
 };
@@ -113,7 +113,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 13,
+    spec_version: 14,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 6,
@@ -233,7 +233,7 @@ impl pallet_authorship::Config for Runtime {
     type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Aura>;
     type UncleGenerations = UncleGenerations;
     type FilterUncle = ();
-    type EventHandler = (Staking,);
+    type EventHandler = (Elections,);
 }
 
 parameter_types! {
@@ -340,6 +340,7 @@ impl pallet_elections::Config for Runtime {
     type Event = Event;
     type DataProvider = Staking;
     type SessionPeriod = SessionPeriod;
+    type SessionManager = pallet_session::historical::NoteHistoricalRoot<Runtime, Staking>;
 }
 
 impl pallet_randomness_collective_flip::Config for Runtime {}
@@ -348,113 +349,13 @@ parameter_types! {
     pub const Offset: u32 = 0;
 }
 
-fn rotate<T: Clone + PartialEq>(
-    current_era: EraIndex,
-    current_session: SessionIndex,
-    n_validators: usize,
-    all_validators: Vec<T>,
-    reserved: Vec<T>,
-) -> Option<Vec<T>> {
-    if current_era == 0 {
-        return None;
-    }
-
-    let validators_without_reserved: Vec<_> = all_validators
-        .into_iter()
-        .filter(|v| !reserved.contains(v))
-        .collect();
-    let n_all_validators_without_reserved = validators_without_reserved.len();
-
-    // The validators for the committee at the session `n` are chosen as follow:
-    // 1. Reserved validators are always chosen.
-    // 2. Given non-reserved list of validators the chosen ones are from the range:
-    // `n * free_seats` to `(n + 1) * free_seats` where free_seats is equal to number of free
-    // seats in the committee after reserved nodes are added.
-    let free_seats = n_validators.checked_sub(reserved.len()).unwrap();
-    let first_validator = current_session as usize * free_seats;
-    let committee =
-        reserved
-            .into_iter()
-            .chain((first_validator..first_validator + free_seats).map(|i| {
-                validators_without_reserved[i % n_all_validators_without_reserved].clone()
-            }))
-            .collect();
-
-    Some(committee)
-}
-
-// Choose a subset of all the validators for current era that contains all the
-// reserved nodes. Non reserved ones are chosen in consecutive batches for every session
-fn rotate_committee() -> Option<Vec<AccountId>> {
-    let current_era = match Staking::active_era() {
-        Some(ae) if ae.index > 0 => ae.index,
-        _ => return None,
-    };
-    let all_validators: Vec<AccountId> =
-        pallet_staking::ErasStakers::<Runtime>::iter_key_prefix(current_era).collect();
-    let reserved = pallet_elections::ErasReserved::<Runtime>::get();
-    let n_validators = pallet_elections::MembersPerSession::<Runtime>::get() as usize;
-    let current_session = Session::current_index();
-
-    rotate(
-        current_era,
-        current_session,
-        n_validators,
-        all_validators,
-        reserved,
-    )
-}
-
-fn populate_reserved_on_next_era_start(start_index: SessionIndex) {
-    let current_era = match Staking::active_era() {
-        Some(ae) => ae.index,
-        _ => return,
-    };
-    // this will be populated once for the session `n+1` on the start of the session `n` where session
-    // `n+1` starts a new era.
-    if let Some(era_index) = Staking::eras_start_session_index(current_era + 1) {
-        if era_index == start_index {
-            let reserved_validators = pallet_staking::Invulnerables::<Runtime>::get();
-            pallet_elections::ErasReserved::<Runtime>::put(reserved_validators);
-        }
-    }
-}
-
-use primitives::SessionIndex;
-type SM = pallet_session::historical::NoteHistoricalRoot<Runtime, Staking>;
-pub struct ComiteeRotationSessionManager;
-
-impl pallet_session::SessionManager<AccountId> for ComiteeRotationSessionManager {
-    fn new_session(new_index: SessionIndex) -> Option<Vec<AccountId>> {
-        SM::new_session(new_index);
-        // new session is always called before the end_session of the previous session
-        // so we need to populate reserved set here not on start_session nor end_session
-        let committee = rotate_committee();
-        populate_reserved_on_next_era_start(new_index);
-
-        committee
-    }
-
-    fn end_session(end_index: SessionIndex) {
-        SM::end_session(end_index)
-    }
-
-    fn start_session(start_index: SessionIndex) {
-        SM::start_session(start_index)
-    }
-
-    fn new_session_genesis(new_index: SessionIndex) -> Option<Vec<AccountId>> {
-        SM::new_session_genesis(new_index)
-    }
-}
-
 impl pallet_session::Config for Runtime {
     type Event = Event;
     type ValidatorId = <Self as frame_system::Config>::AccountId;
     type ValidatorIdOf = pallet_staking::StashOf<Self>;
     type ShouldEndSession = pallet_session::PeriodicSessions<SessionPeriod, Offset>;
     type NextSessionRotation = pallet_session::PeriodicSessions<SessionPeriod, Offset>;
-    type SessionManager = ComiteeRotationSessionManager;
+    type SessionManager = Elections;
     type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = SessionKeys;
     type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
@@ -977,32 +878,4 @@ impl_runtime_apis! {
 
     }
 
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::rotate;
-
-    #[test]
-    fn test_rotate() {
-        let all_validators = vec![1, 2, 3, 4, 5, 6];
-        let reserved = vec![1, 2];
-
-        assert_eq!(
-            None,
-            rotate(0, 0, 4, all_validators.clone(), reserved.clone())
-        );
-        assert_eq!(
-            Some(vec![1, 2, 3, 4]),
-            rotate(1, 0, 4, all_validators.clone(), reserved.clone())
-        );
-        assert_eq!(
-            Some(vec![1, 2, 5, 6]),
-            rotate(1, 1, 4, all_validators.clone(), reserved.clone())
-        );
-        assert_eq!(
-            Some(vec![1, 2, 3, 4]),
-            rotate(1, 2, 4, all_validators, reserved)
-        );
-    }
 }

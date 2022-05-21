@@ -141,7 +141,7 @@ dependencies = [
 
 [[package]]
 name = "aleph-node"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "aleph-runtime",
  "clap",
@@ -192,7 +192,7 @@ dependencies = [
 
 [[package]]
 name = "aleph-runtime"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "frame-executive",
  "frame-support",
@@ -4178,8 +4178,10 @@ dependencies = [
  "frame-election-provider-support",
  "frame-support",
  "frame-system",
+ "pallet-authorship",
  "pallet-balances",
  "pallet-session",
+ "pallet-staking",
  "parity-scale-codec",
  "primitives",
  "scale-info",

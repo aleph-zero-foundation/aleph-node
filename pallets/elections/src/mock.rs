@@ -100,6 +100,7 @@ impl Config for Test {
     type Event = Event;
     type DataProvider = StakingMock;
     type SessionPeriod = SessionPeriod;
+    type SessionManager = ();
 }
 
 type AccountIdBoundedVec = BoundedVec<AccountId, ()>;
