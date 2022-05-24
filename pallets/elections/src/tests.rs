@@ -6,7 +6,7 @@ use crate::mock::*;
 
 #[test]
 fn test_elect() {
-    new_test_ext(vec![1, 2]).execute_with(|| {
+    new_test_ext(vec![1, 2], vec![]).execute_with(|| {
         let elected = <Elections as ElectionProvider>::elect();
         assert!(elected.is_ok());
 

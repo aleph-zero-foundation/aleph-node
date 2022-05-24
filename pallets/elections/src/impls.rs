@@ -1,4 +1,6 @@
-use crate::{Config, ErasReserved, MembersPerSession, Pallet, SessionValidatorBlockCount};
+use crate::{
+    Config, ErasReserved, MembersPerSession, Pallet, ReservedMembers, SessionValidatorBlockCount,
+};
 use frame_election_provider_support::sp_arithmetic::Perquintill;
 use frame_support::{pallet_prelude::Get, traits::Currency};
 use sp_staking::{EraIndex, SessionIndex};
@@ -180,7 +182,7 @@ impl<T> Pallet<T>
         // `n+1` starts a new era.
         if let Some(era_index) = pallet_staking::ErasStartSessionIndex::<T>::get(current_era + 1) {
             if era_index == start_index {
-                let reserved_validators = pallet_staking::Invulnerables::<T>::get();
+                let reserved_validators = ReservedMembers::<T>::get();
                 ErasReserved::<T>::put(reserved_validators);
             }
         }

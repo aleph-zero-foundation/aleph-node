@@ -1,11 +1,15 @@
-use crate::{accounts::accounts_from_seeds, Config};
+use crate::{
+    accounts::{accounts_from_seeds, get_sudo},
+    Config,
+};
 use aleph_client::{
-    get_current_session, wait_for_finalized_block, wait_for_session, AnyConnection, Header,
-    KeyPair, SignedConnection,
+    change_reserved_members, get_current_session, wait_for_finalized_block,
+    wait_for_full_era_completion, wait_for_session, AnyConnection, Header, KeyPair, RootConnection,
+    SignedConnection,
 };
 use sp_core::Pair;
 use std::collections::HashMap;
-use substrate_api_client::AccountId;
+use substrate_api_client::{AccountId, XtStatus};
 
 const MINIMAL_TEST_SESSION_START: u32 = 9;
 const ELECTION_STARTS: u32 = 6;
@@ -60,16 +64,27 @@ pub fn validators_rotate(cfg: &Config) -> anyhow::Result<()> {
     let sender = accounts.first().expect("Using default accounts").to_owned();
     let connection = SignedConnection::new(node, sender);
 
-    let mut current_session = get_current_session(&connection);
-    if current_session < MINIMAL_TEST_SESSION_START {
-        wait_for_session(&connection, MINIMAL_TEST_SESSION_START)?;
-        current_session = MINIMAL_TEST_SESSION_START;
-    }
+    let sudo = get_sudo(cfg);
+
+    let root_connection = RootConnection::new(node, sudo);
 
     let reserved_members: Vec<_> = get_reserved_members()
         .iter()
         .map(|pair| AccountId::from(pair.public()))
         .collect();
+
+    change_reserved_members(
+        &root_connection,
+        reserved_members.clone(),
+        XtStatus::InBlock,
+    );
+    wait_for_full_era_completion(&connection)?;
+
+    let mut current_session = get_current_session(&connection);
+    if current_session < MINIMAL_TEST_SESSION_START {
+        wait_for_session(&connection, MINIMAL_TEST_SESSION_START)?;
+        current_session = MINIMAL_TEST_SESSION_START;
+    }
 
     let mut non_reserved_count = HashMap::new();
 
