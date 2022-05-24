@@ -1,29 +1,33 @@
-use std::collections::HashMap;
-
 use clap::Parser;
 use env_logger::Env;
 use log::info;
 use serde_json::Value;
 
 use crate::{
+    account_setting::{account_info_from_free, apply_account_setting, AccountSetting},
     chainspec_combining::combine_states,
-    config::{Config, StoragePath},
+    config::Config,
     fetching::StateFetcher,
-    fsio::{read_json_from_file, read_snapshot_from_file, save_snapshot_to_file, write_to_file},
+    fsio::{
+        file_content, read_json_from_file, read_snapshot_from_file, save_snapshot_to_file,
+        write_to_file,
+    },
+    types::Storage,
 };
 
+mod account_setting;
 mod chainspec_combining;
 mod config;
 mod fetching;
 mod fsio;
-
-type BlockHash = String;
-type StorageKey = String;
-type StorageValue = String;
-type Storage = HashMap<StorageKey, StorageValue>;
+mod types;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    let config = Config::parse();
+    info!(target: "fork-off", "{:?}", config);
+
     let Config {
         http_rpc_endpoint,
         initial_spec_path,
@@ -32,22 +36,11 @@ async fn main() -> anyhow::Result<()> {
         use_snapshot_file,
         storage_keep_state,
         num_workers,
-    } = Config::parse();
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
-
-    info!(target: "fork",
-        "Running with config: \n\
-        \thttp_rpc_endpoint: {}\n\
-        \tinitial_spec_path: {}\n\
-        \tsnapshot_path: {}\n\
-        \tcombined_spec_path: {}\n\
-        \tuse_snapshot_file: {}\n\
-        \tstorage_keep_state: {:?}",
-        &http_rpc_endpoint, &initial_spec_path, &snapshot_path, &combined_spec_path, &use_snapshot_file, &storage_keep_state
-    );
+        accounts_path,
+        balances,
+    } = config;
 
     let mut initial_spec: Value = read_json_from_file(initial_spec_path);
-
     assert_ne!(
         initial_spec["genesis"]["raw"],
         Value::Null,
@@ -66,13 +59,29 @@ async fn main() -> anyhow::Result<()> {
             .expect("Deserialization of state from given chainspec file failed");
 
     let state = combine_states(state, initial_state, storage_keep_state);
+
+    let account_setting: AccountSetting = match accounts_path {
+        Some(accounts_path) => serde_json::from_str(&file_content(accounts_path))
+            .expect("Deserialization of balance configuration file failed"),
+        None => match balances {
+            Some(balances) => {
+                let info = balances
+                    .into_iter()
+                    .map(|(account, free)| (account, account_info_from_free(free)));
+                AccountSetting::from_iter(info)
+            }
+            None => AccountSetting::new(),
+        },
+    };
+    let state = apply_account_setting(state, account_setting);
+
     let json_state = serde_json::to_value(state).expect("Failed to convert a storage map to json");
     initial_spec["genesis"]["raw"]["top"] = json_state;
     let new_spec = serde_json::to_vec_pretty(&initial_spec)?;
 
-    info!(target: "fork", "Writing new chainspec to {}", &combined_spec_path);
+    info!(target: "fork-off", "Writing new chainspec to {}", &combined_spec_path);
     write_to_file(combined_spec_path, &new_spec);
 
-    info!("Done!");
+    info!(target: "fork-off", "Done!");
     Ok(())
 }

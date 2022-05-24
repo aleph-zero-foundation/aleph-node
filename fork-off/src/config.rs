@@ -1,17 +1,8 @@
-use std::str::FromStr;
+use std::error::Error;
 
 use clap::Parser;
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct StoragePath(pub String);
-
-impl FromStr for StoragePath {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(s.to_string()))
-    }
-}
+use crate::types::{AccountId, Balance, StoragePath};
 
 #[derive(Debug, Parser)]
 #[clap(version = "1.0")]
@@ -47,7 +38,27 @@ pub struct Config {
         multiple_occurrences = true,
         takes_value = true,
         value_delimiter = ',',
-        default_value = "Aura,Aleph,Balances,Sudo,Staking,Session,Elections,System.Account"
+        default_value = "Aura,Aleph,Sudo,Staking,Session,Elections"
     )]
     pub storage_keep_state: Vec<StoragePath>,
+
+    #[clap(long)]
+    pub accounts_path: Option<String>,
+
+    #[clap(
+        long,
+        parse(try_from_str = parse_balances),
+        value_delimiter = ',',
+        multiple_occurrences(true))
+    ]
+    pub balances: Option<Vec<(AccountId, Balance)>>,
+}
+
+fn parse_balances(s: &str) -> Result<(AccountId, Balance), Box<dyn Error + Send + Sync + 'static>> {
+    let sep_pos = s.find('=').ok_or("Invalid ACCOUNT=BALANCE: no `=` found")?;
+
+    let account_raw: String = s[..sep_pos].parse()?;
+    let account = AccountId::new(&account_raw);
+    let balance = s[sep_pos + 1..].parse()?;
+    Ok((account, balance))
 }

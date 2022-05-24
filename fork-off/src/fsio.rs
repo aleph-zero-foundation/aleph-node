@@ -28,8 +28,12 @@ pub fn write_to_file(write_to_path: String, data: &[u8]) {
 }
 
 pub fn read_json_from_file(path: String) -> Value {
-    let content = fs::read_to_string(&path).expect("Could not read chainspec file");
+    let content = file_content(path);
     serde_json::from_str(&content).expect("Could not deserialize file to json format")
+}
+
+pub fn file_content(path: String) -> String {
+    fs::read_to_string(&path).unwrap_or_else(|_| panic!("Could not read file: `{}`", path))
 }
 
 pub fn save_snapshot_to_file(snapshot: Storage, path: String) {
