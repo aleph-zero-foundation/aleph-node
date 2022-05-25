@@ -36,7 +36,7 @@ if (( "$NEW_VER" > "$OLD_VER" )); then
     NEW_RUNTIME=runtime/$(ls runtime)
 
     echo -n $(date +"%d-%b-%y %T") "   Sending runtime update... "
-    export RUST_LOG="warn"
+    export RUST_LOG="debug"
     $CLIAIN --node $WS_ADDR --seed "$SUDO_PHRASE" update-runtime --runtime $NEW_RUNTIME
     echo "completed"
     echo -n $(date +"%d-%b-%y %T") "   Checking new runtime version on devnet: "
