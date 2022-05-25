@@ -337,10 +337,13 @@ parameter_types! {
 }
 
 impl pallet_elections::Config for Runtime {
+    type EraInfoProvider = Staking;
     type Event = Event;
     type DataProvider = Staking;
+    type SessionInfoProvider = Session;
     type SessionPeriod = SessionPeriod;
     type SessionManager = pallet_session::historical::NoteHistoricalRoot<Runtime, Staking>;
+    type ValidatorRewardsHandler = Staking;
 }
 
 impl pallet_randomness_collective_flip::Config for Runtime {}
