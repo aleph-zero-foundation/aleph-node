@@ -9,6 +9,9 @@ SUDO_PHRASE=${RUNTIME_PHRASE}
 RPC_ADDR="${RPC_ENVIRONMENT_ENDPOINT:-rpc.dev.azero.dev}"
 WS_ADDR="${WS_ENVIRONMENT_ENDPOINT:-ws.dev.azero.dev}"
 
+echo "Heating up for 10s"
+sleep 10
+
 echo -n  $(date +"%d-%b-%y %T") "   Checking runtime version on devnet: "
 OLD_VER=$(curl -sS -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "state_getRuntimeVersion"}' $RPC_ADDR | jq .result.specVersion)
 echo "$OLD_VER"

@@ -64,9 +64,13 @@ jobs:
         env:
           CURRENT_IMAGE: runtime-update-hook:${{ steps.vars.outputs.sha_short }}
           ECR_PUSH_IMAGE: public.ecr.aws/p6e8q1z1/runtime-update-hook:${{ steps.vars.outputs.sha_short }}
+          ECR_LATEST: public.ecr.aws/p6e8q1z1/runtime-update-hook:latest
         run: |
           docker tag ${{ env.CURRENT_IMAGE }} ${{ env.ECR_PUSH_IMAGE }}
           docker push ${{ env.ECR_PUSH_IMAGE }}
+
+          docker tag ${{ env.ECR_PUSH_IMAGE }} ${{ env.ECR_LATEST }}
+          docker push ${{ env.ECR_LATEST }}
       
       - name: GIT | Checkout aleph-apps repo
         uses: actions/checkout@master
