@@ -6,9 +6,9 @@ use std::env;
 use substrate_api_client::AccountId;
 
 use cliain::{
-    bond, change_validators, force_new_era, prepare_keys, prompt_password_hidden, rotate_keys,
-    set_keys, set_staking_limits, transfer, update_runtime, validate, vest, vest_other,
-    vested_transfer, ConnectionConfig,
+    bond, change_validators, force_new_era, nominate, prepare_keys, prompt_password_hidden,
+    rotate_keys, set_keys, set_staking_limits, transfer, update_runtime, validate, vest,
+    vest_other, vested_transfer, ConnectionConfig,
 };
 use primitives::Balance;
 
@@ -51,6 +51,12 @@ enum Command {
 
     /// Force new era in staking world. Requires sudo.
     ForceNewEra,
+
+    /// Declare the desire to nominate target account
+    Nominate {
+        #[clap(long)]
+        nominee: String,
+    },
 
     /// Associate the node with a specific staking account.
     PrepareKeys,
@@ -221,6 +227,7 @@ fn main() {
             per_block,
             starting_block,
         ),
+        Command::Nominate { nominee } => nominate(cfg.into(), nominee),
     }
 }
 

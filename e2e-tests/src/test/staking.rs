@@ -68,7 +68,8 @@ pub fn staking_era_payouts(config: &Config) -> anyhow::Result<()> {
         .zip(validator_accounts.par_iter())
         .for_each(|(nominator, nominee)| {
             let connection = SignedConnection::new(node, nominator.clone());
-            staking_nominate(&connection, nominee)
+            let nominee_account_id = AccountId::from(nominee.public());
+            staking_nominate(&connection, &nominee_account_id)
         });
 
     // All the above calls influence the next era, so we need to wait that it passes.

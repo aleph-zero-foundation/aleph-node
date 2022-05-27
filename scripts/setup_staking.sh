@@ -42,6 +42,22 @@ Usage:
     [--force-new-era]
        Optional param.
        Calls ForceNewEra call under the hood (requires sudo account).
+    [--bond-nominate-file file]
+       Optional param.
+       path to nominate-bond config file, which have following format:
+          rich's account seed
+          nominator's seed
+          nominate stake in tokens
+          nominee's account
+       The script does following things:
+        1. It transfers given stake in tokens from rich's account to nominator's account
+        2. It bonds nominator's account to the same account as controller
+        3. It calls nominate on nominator's controller for nominee
+      Example file:
+        //Rich-account
+        //20
+        100
+        5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH
 EOF
   exit 0
 }
@@ -121,6 +137,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --namespace)
       NAMESPACE="$2"
+      shift;shift
+      ;;
+    --bond-nominate-file)
+      BOND_NOMINATE="$2"
       shift;shift
       ;;
     *)
@@ -231,6 +251,24 @@ function validate() {
        --seed "${validator_controller_seed}"
         validate
            --commission-percentage "${commission}"
+  )
+  kubectl exec --stdin --tty -n "${namespace}" "${validator_pod_name}" -- "${cmd_on_pod[@]}" || \
+    error "Failed to run command on pod ${cmd_on_pod[@]}"
+  prompt_if_interactive_mode "Press enter to continue"
+}
+
+function nominate() {
+  nominator_seed="$1"
+  nominee="$2"
+  namespace="$3"
+  validator_pod_name="$4"
+
+  cmd_on_pod=(
+    "${CLIAIN_PATH_ON_POD}"
+      --node 127.0.0.1:9943
+       --seed "${nominator_seed}"
+        nominate
+           --nominee "${nominee}"
   )
   kubectl exec --stdin --tty -n "${namespace}" "${validator_pod_name}" -- "${cmd_on_pod[@]}" || \
     error "Failed to run command on pod ${cmd_on_pod[@]}"
@@ -386,6 +424,41 @@ function run_validator_setup() {
 	validate "${validator_controller_seed}" "${validator_commission}" "${namespace}" "${validator_pod_name}"
 }
 
+function bond_nominate {
+  bond_nominate_file="$1"
+  cliain_path="$2"
+  validator_pod_name="$3"
+  namespace="$4"
+
+  rich_account_seed=$(sed '1q;d' "${bond_nominate_file}")
+  nominator_seed=$(sed '2q;d' "${bond_nominate_file}")
+  nominator_stake_tokens=$(sed '3q;d' "${bond_nominate_file}")
+  nominee_account=$(sed '4q;d' "${bond_nominate_file}")
+
+  rich_account_id=$(get_ss58_address_from_seed "${rich_account_seed}" "${cliain_path}")
+  nominator_account_id=$(get_ss58_address_from_seed "${nominator_seed}" "${cliain_path}")
+
+  info "Setting up nominator on pod ${validator_pod_name} with following settings:"
+  info "Nominator's account id is ${nominator_account_id}"
+  info "Nominator's stake is ${nominator_stake_tokens}"
+  info "Rich's account id is ${rich_account_id}"
+  prompt_if_interactive_mode "Press enter to continue"
+
+  # one token more to cover tx fees for bond and nominate
+  tokens_to_transfer=$((nominator_stake_tokens + 1))
+  info "Transferring ${tokens_to_transfer} tokens from rich's account ${rich_account_id} to nominator ${nominator_account_id}"
+  prompt_if_interactive_mode "Press enter to continue"
+  transfer_tokens "${rich_account_seed}" "${nominator_account_id}" "${tokens_to_transfer}" "${namespace}" "${validator_pod_name}"
+
+  info "Bonding nominator account ${nominator_account_id} with the same account as controller"
+  prompt_if_interactive_mode "Press enter to continue"
+  bond "${nominator_seed}" "${nominator_account_id}" "${nominator_stake_tokens}" "${namespace}" "${validator_pod_name}"
+
+  info "Calling nominate on nominator controller account ${nominator_account_id} for nominee ${nominee_account}"
+  prompt_if_interactive_mode "Press enter to continue"
+  nominate "${nominator_seed}" "${nominee_account}" "${namespace}" "${validator_pod_name}"
+}
+
 if [ -z "${CLIAIN_PATH}" ]; then
   error "--cliain-path not specified!"
 fi
@@ -422,6 +495,10 @@ if  [ -n "${SET_STAKING_LIMITS}" ]; then
   max_nominators_count=$(echo "${SET_STAKING_LIMITS}" | cut -f 3 -d ',')
   max_validators_count=$(echo "${SET_STAKING_LIMITS}" | cut -f 4 -d ',')
   set_staking_limits "${minimal_nominator_bond}" "${minimal_validator_bond}" "${max_nominators_count}" "${max_validators_count}" "${VALIDATOR_POD_NAME}" "${NAMESPACE}"
+fi
+if  [ -n "${BOND_NOMINATE}" ]; then
+  did_something="true"
+  bond_nominate "${BOND_NOMINATE}" "${CLIAIN_PATH}" "${VALIDATOR_POD_NAME}" "${NAMESPACE}"
 fi
 if  [ -n "${CHANGE_VALIDATORS}" ]; then
   did_something="true"

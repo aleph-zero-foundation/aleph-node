@@ -9,7 +9,7 @@ mod vesting;
 pub use keys::{prepare_keys, rotate_keys, set_keys};
 pub use runtime::update_runtime;
 pub use secret::prompt_password_hidden;
-pub use staking::{bond, force_new_era, set_staking_limits, validate};
+pub use staking::{bond, force_new_era, nominate, set_staking_limits, validate};
 pub use transfer::transfer;
 pub use validators::change_validators;
 pub use vesting::{vest, vest_other, vested_transfer};

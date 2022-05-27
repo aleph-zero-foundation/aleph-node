@@ -1,6 +1,6 @@
 use aleph_client::{
-    staking_bond, staking_force_new_era, staking_set_staking_limits, staking_validate,
-    RootConnection, SignedConnection,
+    staking_bond, staking_force_new_era, staking_nominate, staking_set_staking_limits,
+    staking_validate, RootConnection, SignedConnection,
 };
 use primitives::TOKEN;
 use sp_core::crypto::Ss58Codec;
@@ -25,6 +25,11 @@ pub fn bond(
 
 pub fn validate(connection: SignedConnection, commission_percentage: u8) {
     staking_validate(&connection, commission_percentage, XtStatus::Finalized);
+}
+
+pub fn nominate(connection: SignedConnection, nominee: String) {
+    let nominee_account = AccountId::from_ss58check(&nominee).expect("Address is valid");
+    staking_nominate(&connection, &nominee_account);
 }
 
 pub fn set_staking_limits(

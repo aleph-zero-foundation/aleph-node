@@ -216,12 +216,10 @@ pub fn batch_bond(
     );
 }
 
-pub fn nominate(connection: &SignedConnection, nominee_key_pair: &KeyPair) {
-    let nominee_account_id = AccountId::from(nominee_key_pair.public());
-
+pub fn nominate(connection: &SignedConnection, nominee_account_id: &AccountId) {
     let xt = connection
         .as_connection()
-        .staking_nominate(vec![GenericAddress::Id(nominee_account_id)]);
+        .staking_nominate(vec![GenericAddress::Id(nominee_account_id.clone())]);
     send_xt(connection, xt, Some("nominate"), XtStatus::InBlock);
 }
 
