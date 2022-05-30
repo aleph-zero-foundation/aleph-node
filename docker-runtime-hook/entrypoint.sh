@@ -40,6 +40,7 @@ if (( "$NEW_VER" > "$OLD_VER" )); then
     $CLIAIN --node $WS_ADDR --seed "$SUDO_PHRASE" update-runtime --runtime $NEW_RUNTIME
     echo "completed"
     echo -n $(date +"%d-%b-%y %T") "   Checking new runtime version on devnet: "
+    sleep 10
     UPD_VER=$(curl -sS -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "state_getRuntimeVersion"}' $RPC_ADDR | jq .result.specVersion)
     echo "$UPD_VER"
     if (( $NEW_VER != $UPD_VER )); then
