@@ -1,5 +1,5 @@
 use crate::{
-    accounts::{accounts_from_seeds, get_sudo},
+    accounts::{accounts_seeds_to_keys, get_sudo_key, get_validators_keys, get_validators_seeds},
     Config,
 };
 use aleph_client::{
@@ -14,28 +14,36 @@ use substrate_api_client::{AccountId, XtStatus};
 const MINIMAL_TEST_SESSION_START: u32 = 9;
 const ELECTION_STARTS: u32 = 6;
 
-fn get_reserved_members() -> Vec<KeyPair> {
-    accounts_from_seeds(&Some(vec!["//Damian".to_string(), "//Tomasz".to_string()]))
+fn get_reserved_members(config: &Config) -> Vec<KeyPair> {
+    get_validators_keys(config)[0..2].to_vec()
 }
 
-fn get_non_reserved_members_for_session(session: u32) -> Vec<AccountId> {
+fn get_non_reserved_members_for_session(config: &Config, session: u32) -> Vec<AccountId> {
     // Test assumption
     const FREE_SEATS: u32 = 2;
 
     let mut non_reserved = vec![];
 
-    let x = vec![
-        "//Julia".to_string(),
-        "//Zbyszko".to_string(),
-        "//Hansu".to_string(),
+    let validators_seeds = get_validators_seeds(config);
+    // this order is determined by pallet_staking::ErasStakers::iter_ker_prefix, so by order in
+    // map which is not guaranteed, however runtime is deterministic, so we can rely on particular order
+    // test needs to be reworked to read order from ErasStakers
+    let non_reserved_nodes_order_from_runtime = vec![
+        validators_seeds[3].clone(),
+        validators_seeds[2].clone(),
+        validators_seeds[4].clone(),
     ];
-    let x_len = x.len();
+    let non_reserved_nodes_order_from_runtime_len = non_reserved_nodes_order_from_runtime.len();
 
     for i in (FREE_SEATS * session)..(FREE_SEATS * (session + 1)) {
-        non_reserved.push(x[i as usize % x_len].clone());
+        non_reserved.push(
+            non_reserved_nodes_order_from_runtime
+                [i as usize % non_reserved_nodes_order_from_runtime_len]
+                .clone(),
+        );
     }
 
-    accounts_from_seeds(&Some(non_reserved))
+    accounts_seeds_to_keys(&non_reserved)
         .iter()
         .map(|pair| AccountId::from(pair.public()))
         .collect()
@@ -58,17 +66,17 @@ fn get_authorities_for_session<C: AnyConnection>(connection: &C, session: u32) -
         .expect("Authorities should always be present")
 }
 
-pub fn validators_rotate(cfg: &Config) -> anyhow::Result<()> {
-    let node = &cfg.node;
-    let accounts = accounts_from_seeds(&None);
+pub fn members_rotate(config: &Config) -> anyhow::Result<()> {
+    let node = &config.node;
+    let accounts = get_validators_keys(config);
     let sender = accounts.first().expect("Using default accounts").to_owned();
     let connection = SignedConnection::new(node, sender);
 
-    let sudo = get_sudo(cfg);
+    let sudo = get_sudo_key(config);
 
     let root_connection = RootConnection::new(node, sudo);
 
-    let reserved_members: Vec<_> = get_reserved_members()
+    let reserved_members: Vec<_> = get_reserved_members(config)
         .iter()
         .map(|pair| AccountId::from(pair.public()))
         .collect();
@@ -90,7 +98,7 @@ pub fn validators_rotate(cfg: &Config) -> anyhow::Result<()> {
 
     for session in ELECTION_STARTS..current_session {
         let elected = get_authorities_for_session(&connection, session);
-        let non_reserved = get_non_reserved_members_for_session(session);
+        let non_reserved = get_non_reserved_members_for_session(config, session);
 
         for nr in non_reserved.clone() {
             *non_reserved_count.entry(nr).or_insert(0) += 1;

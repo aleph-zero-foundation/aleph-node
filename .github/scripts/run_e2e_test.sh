@@ -16,6 +16,6 @@ done
 
 # source docker/env
 
-docker run -v $(pwd)/docker/data:/data --network container:damian -e TEST_CASE -e NODE_URL=127.0.0.1:9943 -e RUST_LOG=info aleph-e2e-client:latest
+docker run -v $(pwd)/docker/data:/data --network container:Node0 -e TEST_CASE -e NODE_URL=127.0.0.1:9943 -e RUST_LOG=info aleph-e2e-client:latest
 
 exit $?

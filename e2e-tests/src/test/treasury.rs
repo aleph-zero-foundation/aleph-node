@@ -14,7 +14,7 @@ use aleph_client::{
 };
 
 use crate::{
-    accounts::{accounts_from_seeds, get_sudo},
+    accounts::{get_sudo_key, get_validators_keys},
     config::Config,
     transfer::setup_for_transfer,
 };
@@ -124,21 +124,17 @@ fn check_treasury_balance(
 }
 
 pub fn treasury_access(config: &Config) -> anyhow::Result<()> {
-    let Config {
-        ref node, seeds, ..
-    } = config;
-
-    let proposer = accounts_from_seeds(seeds)[0].clone();
+    let proposer = get_validators_keys(config)[0].clone();
     let beneficiary = AccountId::from(proposer.public());
-    let connection = SignedConnection::new(node, proposer);
+    let connection = SignedConnection::new(&config.node, proposer);
 
     propose_treasury_spend(10u128, &beneficiary, &connection);
     propose_treasury_spend(100u128, &beneficiary, &connection);
     let proposals_counter = get_proposals_counter(&connection);
     assert!(proposals_counter >= 2, "Proposal was not created");
 
-    let sudo = get_sudo(config);
-    let connection = RootConnection::new(node, sudo);
+    let sudo = get_sudo_key(config);
+    let connection = RootConnection::new(&config.node, sudo);
 
     treasury_approve(proposals_counter - 2, &connection)?;
     treasury_reject(proposals_counter - 1, &connection)?;

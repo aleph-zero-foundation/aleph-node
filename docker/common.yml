@@ -1,0 +1,26 @@
+services:
+  AlephNodeService:
+    image: aleph-node:latest
+    network_mode: host
+    environment:
+      - PURGE_BEFORE_START=true
+      - RUST_LOG=info
+      - CHAIN=/data/chainspec.json
+      - ALLOW_PRIVATE_IPV4=true
+      - DISCOVER_LOCAL=true
+      - UNIT_CREATION_DELAY=50
+    volumes:
+      - ./data/:/data/
+
+  AlephBootNode:
+    extends: AlephNodeService
+    environment:
+      - CUSTOM_ARGS=-lpallet_aleph=debug,runtime=debug
+      # key derived from "//0"
+      - BASE_PATH=/data/5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH
+      - NODE_KEY_PATH=/data/5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH/p2p_secret
+
+  AlephNonBootNode:
+    extends: AlephNodeService
+    environment:
+      - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/$BOOTNODE_PEER_ID

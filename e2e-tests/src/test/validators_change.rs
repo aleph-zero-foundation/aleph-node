@@ -1,5 +1,5 @@
 use crate::{
-    accounts::{accounts_from_seeds, get_sudo},
+    accounts::{get_sudo_key, get_validators_keys},
     config::Config,
 };
 use aleph_client::{
@@ -11,14 +11,10 @@ use sp_core::Pair;
 use substrate_api_client::{AccountId, XtStatus};
 
 pub fn change_validators(config: &Config) -> anyhow::Result<()> {
-    let Config {
-        ref node, seeds, ..
-    } = config;
+    let mut accounts = get_validators_keys(config);
+    let sudo = get_sudo_key(config);
 
-    let mut accounts = accounts_from_seeds(seeds);
-    let sudo = get_sudo(config);
-
-    let connection = RootConnection::new(node, sudo);
+    let connection = RootConnection::new(&config.node, sudo);
 
     let members_before: Vec<AccountId> = connection
         .as_connection()

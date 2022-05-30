@@ -27,7 +27,7 @@ runs:
 
     - name: Display bootnode logs
       shell: bash
-      run: docker logs damian --follow &
+      run: docker logs Node0 --follow &
 
     - name: Download artifact with the test suite image
       uses: actions/download-artifact@v2

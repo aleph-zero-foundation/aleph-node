@@ -1,108 +1,65 @@
-version: '3'
-services:
+# When increasing number of nodes in this file, change default value of --validators-count param in e2e-tests/src/config.rs
 
-  # bootnode
-  damian:
-    image: aleph-node:latest
-    container_name: damian
-    network_mode: host
+services:
+  Node0:
+    extends:
+      file: common.yml
+      service: AlephBootNode
+    container_name: Node0
     environment:
-      - CUSTOM_ARGS=-lpallet_aleph=debug,runtime=debug
-      - PURGE_BEFORE_START=true
-      - RUST_LOG=info
       - RPC_PORT=9933
       - WS_PORT=9943
       - PORT=30333
-      - NAME=Damian
-      - BASE_PATH=/data/$DAMIAN
-      - NODE_KEY_PATH=/data/$DAMIAN/p2p_secret
-      - CHAIN=/data/chainspec.json
-      - ALLOW_PRIVATE_IPV4=true
-      - DISCOVER_LOCAL=true
-      - UNIT_CREATION_DELAY=50
-    volumes:
-      - ./data/:/data/
+      - NAME=Node0
 
-  tomasz:
-    image: aleph-node:latest
-    container_name: tomasz
-    network_mode: host
+  Node1:
+    extends:
+      file: common.yml
+      service: AlephNonBootNode
+    container_name: Node1
     environment:
-      - PURGE_BEFORE_START=true
-      - RUST_LOG=info
       - RPC_PORT=9934
       - WS_PORT=9944
       - PORT=30334
-      - NAME=Tomasz
-      - BASE_PATH=/data/$TOMASZ
-      - NODE_KEY_PATH=/data/$TOMASZ/p2p_secret
-      - CHAIN=/data/chainspec.json
-      - ALLOW_PRIVATE_IPV4=true
-      - DISCOVER_LOCAL=true
-      - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/$BOOTNODE_PEER_ID
-      - UNIT_CREATION_DELAY=50
-    volumes:
-      - ./data/:/data/
+      - NAME=Node1
+      - BASE_PATH=/data/5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o
+      - NODE_KEY_PATH=/data/5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o/p2p_secret
 
-  zbyszko:
-    image: aleph-node:latest
-    container_name: zbyszko
-    network_mode: host
+  Node2:
+    extends:
+      file: common.yml
+      service: AlephNonBootNode
+    container_name: Node2
     environment:
-      - PURGE_BEFORE_START=true
-      - RUST_LOG=info
       - RPC_PORT=9935
       - WS_PORT=9945
       - PORT=30335
-      - NAME=Zbyszko
-      - BASE_PATH=/data/$ZBYSZKO
-      - NODE_KEY_PATH=/data/$ZBYSZKO/p2p_secret
-      - CHAIN=/data/chainspec.json
-      - ALLOW_PRIVATE_IPV4=true
-      - DISCOVER_LOCAL=true
-      - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/$BOOTNODE_PEER_ID
-      - UNIT_CREATION_DELAY=50
-    volumes:
-      - ./data/:/data/
+      - NAME=Node2
+      - BASE_PATH=/data/5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9
+      - NODE_KEY_PATH=/data/5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9/p2p_secret
 
-  hansu:
-    image: aleph-node:latest
-    container_name: hansu
-    network_mode: host
+  Node3:
+    extends:
+      file: common.yml
+      service: AlephNonBootNode
+    container_name: Node3
     environment:
-      - PURGE_BEFORE_START=true
-      - RUST_LOG=info
       - RPC_PORT=9936
       - WS_PORT=9946
       - PORT=30336
-      - NAME=Hansu
-      - BASE_PATH=/data/$HANSU
-      - NODE_KEY_PATH=/data/$HANSU/p2p_secret
-      - CHAIN=/data/chainspec.json
-      - ALLOW_PRIVATE_IPV4=true
-      - DISCOVER_LOCAL=true
-      - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/$BOOTNODE_PEER_ID
-      - UNIT_CREATION_DELAY=50
-    volumes:
-      - ./data/:/data/
+      - NAME=Node3
+      - BASE_PATH=/data/5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK
+      - NODE_KEY_PATH=/data/5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK/p2p_secret
 
-  julia:
-    image: aleph-node:latest
-    container_name: julia
-    network_mode: host
+  Node4:
+    extends:
+      file: common.yml
+      service: AlephNonBootNode
+    container_name: Node4
     environment:
-      - PURGE_BEFORE_START=true
-      - RUST_LOG=info
       - RPC_PORT=9937
       - WS_PORT=9947
       - PORT=30337
-      - NAME=Julia
-      - BASE_PATH=/data/$JULIA
-      - NODE_KEY_PATH=/data/$JULIA/p2p_secret
-      - CHAIN=/data/chainspec.json
-      - ALLOW_PRIVATE_IPV4=true
-      - DISCOVER_LOCAL=true
-      - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/$BOOTNODE_PEER_ID
-      - UNIT_CREATION_DELAY=50
-    volumes:
-      - ./data/:/data/
+      - NAME=Node4
+      - BASE_PATH=/data/5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW
+      - NODE_KEY_PATH=/data/5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW/p2p_secret

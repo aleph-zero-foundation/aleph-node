@@ -41,23 +41,15 @@ if $BUILD_ALEPH_NODE ; then
   cargo build --release -p aleph-node --features "short_session"
 fi
 
-account_ids=(
-    "5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH"
-    "5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o" \
-    "5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9" \
-    "5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK" \
-    "5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW" \
-    "5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR" \
-    "5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY" \
-    "5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ" \
-    "5CUnSsgAyLND3bxxnfNhgWXSe9Wn676JzLpGLgyJv858qhoX" \
-    "5CVKn7HAZW1Ky4r7Vkgsr7VEW88C2sHgUNDiwHY9Ct2hjU8q")
+declare -a account_ids
+for i in $(seq 0 "$(( N_VALIDATORS + N_NON_VALIDATORS - 1 ))"); do
+  account_ids+=($(./target/release/aleph-node key inspect "//$i" | grep "SS58 Address:" | awk '{print $3;}'))
+done
 validator_ids=("${account_ids[@]::N_VALIDATORS}")
 # space separated ids
 validator_ids_string="${validator_ids[*]}"
 # comma separated ids
 validator_ids_string="${validator_ids_string//${IFS:0:1}/,}"
-
 
 echo "Bootstrapping chain for nodes 0..$((N_VALIDATORS - 1))"
 ./target/release/aleph-node bootstrap-chain --base-path "$BASE_PATH" --account-ids "$validator_ids_string" --chain-type local > "$BASE_PATH/chainspec.json"
