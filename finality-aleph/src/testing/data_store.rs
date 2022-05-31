@@ -78,6 +78,7 @@ impl AlephNetworkMessage<Block> for TestData {
 struct TestHandler {
     chain_builder: ClientChainBuilder,
     block_requests_rx: UnboundedReceiver<BlockHashNum<Block>>,
+    justification_requests_rx: UnboundedReceiver<BlockHashNum<Block>>,
     network_tx: UnboundedSender<TestData>,
     network: Box<dyn DataNetwork<TestData>>,
 }
@@ -132,6 +133,11 @@ impl TestHandler {
         self.block_requests_rx.next().await.unwrap()
     }
 
+    /// Receive next justification request from Data Store
+    async fn next_justification_request(&mut self) -> BlockHashNum<Block> {
+        self.justification_requests_rx.next().await.unwrap()
+    }
+
     async fn assert_no_message_out(&mut self, err_message: &'static str) {
         let res = timeout(TIMEOUT_FAIL, self.network.next()).await;
         assert!(res.is_err(), "{} (message out: {:?})", err_message, res);
@@ -150,8 +156,7 @@ fn prepare_data_store(
 ) -> (impl Future<Output = ()>, oneshot::Sender<()>, TestHandler) {
     let client = Arc::new(TestClientBuilder::new().build());
 
-    let (block_requester, block_requests_rx, _justification_requests_rx) =
-        TestBlockRequester::new();
+    let (block_requester, block_requests_rx, justification_requests_rx) = TestBlockRequester::new();
     let (sender_tx, _sender_rx) = mpsc::unbounded();
     let (network_tx, network_rx) = mpsc::unbounded();
     let test_network = SimpleNetwork::new(network_rx, sender_tx);
@@ -188,6 +193,7 @@ fn prepare_data_store(
         TestHandler {
             chain_builder,
             block_requests_rx,
+            justification_requests_rx,
             network_tx,
             network: Box::new(network),
         },
@@ -434,6 +440,38 @@ async fn sends_block_request_on_missing_block() {
         assert_eq!(requested_block.hash, blocks[0].hash());
 
         test_handler.import_branch(blocks).await;
+
+        test_handler
+            .assert_message_out("Did not receive message from Data Store")
+            .await;
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn sends_justification_request_when_not_finalized() {
+    run_test(|mut test_handler| async move {
+        let blocks = test_handler
+            .initialize_single_branch(MAX_DATA_BRANCH_LEN * 10)
+            .await;
+        test_handler.import_branch(blocks.clone()).await;
+
+        let blocks_branch = vec![blocks[2].clone()];
+        let test_data = vec![aleph_data_from_blocks(blocks_branch)];
+        test_handler.send_data(test_data);
+
+        test_handler
+            .assert_no_message_out(
+                "Data Store let through a message with not finalized parent of base block",
+            )
+            .await;
+
+        let requested_block = timeout(TIMEOUT_SUCC, test_handler.next_justification_request())
+            .await
+            .expect("Did not receive block request from Data Store");
+        assert_eq!(requested_block.hash, blocks[1].hash());
+
+        test_handler.finalize_block(&blocks[1].hash());
 
         test_handler
             .assert_message_out("Did not receive message from Data Store")

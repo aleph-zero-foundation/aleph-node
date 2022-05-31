@@ -107,6 +107,8 @@ pub struct DataStoreConfig {
     pub max_messages_pending: usize,
     pub available_proposals_cache_capacity: usize,
     pub periodic_maintenance_interval: Duration,
+    // Specifies how much time must pass from receiving a given proposal for the first time, till we
+    // perform a request for either a block or a justification required to let this proposal through.
     pub request_block_after: Duration,
 }
 
@@ -117,8 +119,8 @@ impl Default for DataStoreConfig {
             max_proposals_pending: 80_000,
             max_messages_pending: 40_000,
             available_proposals_cache_capacity: 8000,
-            periodic_maintenance_interval: Duration::from_secs(60),
-            request_block_after: Duration::from_secs(100),
+            periodic_maintenance_interval: Duration::from_secs(25),
+            request_block_after: Duration::from_secs(20),
         }
     }
 }
@@ -300,18 +302,47 @@ where
 
         let now = time::SystemTime::now();
         for (proposal, first_occurrence) in proposals_with_timestamps {
-            if !self.bump_proposal(&proposal) {
-                // `bump_proposal` returns false if the bump didn't make the proposal available, meaning that it is still pending
-                if let Ok(time_waiting) = now.duration_since(first_occurrence) {
-                    if time_waiting >= self.config.request_block_after {
-                        let block = proposal.top_block();
-                        if !self.chain_info_provider.is_block_imported(&block) {
-                            debug!(target: "aleph-data-store", "Requesting a stale block {:?} after it has been missing for {:?} secs.", block, time_waiting.as_secs());
-                            self.block_requester
-                                .request_stale_block(block.hash, block.num);
-                        }
-                    }
+            if self.bump_proposal(&proposal) {
+                continue;
+            }
+            // `bump_proposal` returns false if the bump didn't make the proposal available, meaning that it is still pending
+            let time_waiting = match now.duration_since(first_occurrence) {
+                Ok(tw) if tw >= self.config.request_block_after => tw,
+                _ => continue,
+            };
+
+            let block = proposal.top_block();
+            if !self.chain_info_provider.is_block_imported(&block) {
+                debug!(target: "aleph-data-store", "Requesting a stale block {:?} after it has been missing for {:?} secs.", block, time_waiting.as_secs());
+                self.block_requester
+                    .request_stale_block(block.hash, block.num);
+                continue;
+            }
+            // The top block (thus the whole branch, in the honest case) has been imported. What's holding us
+            // must be that the parent of the base is not finalized. This might be either because of a malicious
+            // proposal (with not finalized "base") or because we are not up-to-date with finalization.
+            let bottom_block = proposal.bottom_block();
+            let parent_hash = match self.chain_info_provider.get_parent_hash(&bottom_block) {
+                Ok(ph) => ph,
+                _ => {
+                    warn!(target: "aleph-data-store", "Expected the block below the proposal {:?} to be imported", proposal);
+                    continue;
                 }
+            };
+            let parent_num = bottom_block.num - NumberFor::<B>::one();
+            if let Ok(finalized_block) = self.chain_info_provider.get_finalized_at(parent_num) {
+                if parent_hash != finalized_block.hash {
+                    warn!(target: "aleph-data-store", "The proposal {:?} is pending because the parent: \
+                        {:?}, does not agree with the block finalized at this height: {:?}.", proposal, parent_hash, finalized_block);
+                } else {
+                    warn!(target: "aleph-data-store", "The proposal {:?} is pending even though blocks \
+                            have been imported and parent was finalized.", proposal);
+                }
+            } else {
+                debug!(target: "aleph-data-store", "Requesting a justification for block {:?} {:?} \
+                        after it has been missing for {:?} secs.", parent_num, parent_hash, time_waiting.as_secs());
+                self.block_requester
+                    .request_justification(&parent_hash, parent_num);
             }
         }
     }
@@ -608,7 +639,8 @@ where
                     {
                         proposals.push(proposal);
                     } else {
-                        warn!(target: "aleph-data-store", "Message {:?} dropped as it contains proposal {:?} not within bounds.", message, unvalidated_proposal);
+                        warn!(target: "aleph-data-store", "Message {:?} dropped as it contains \
+                            proposal {:?} not within bounds.", message, unvalidated_proposal);
                         return;
                     }
                 }
