@@ -76,7 +76,7 @@ pub type Connection = Api<KeyPair, WsRpcClient>;
 /// Direct casting is often more handy than generic `.into()`. Justification: `Connection` objects
 /// are often passed to some macro like `compose_extrinsic!` and thus there is not enough
 /// information for type inferring required for `Into<Connection>`.
-pub trait AnyConnection: Clone {
+pub trait AnyConnection: Clone + Send {
     fn as_connection(&self) -> Connection;
 }
 
@@ -103,9 +103,12 @@ impl SignedConnection {
     }
 
     /// Semantically equivalent to `connection.set_signer(signer)`.
-    pub fn from_any_connection<C: AnyConnection>(connection: C, signer: KeyPair) -> Self {
+    pub fn from_any_connection<C: AnyConnection>(connection: &C, signer: KeyPair) -> Self {
         Self {
-            inner: connection.as_connection().set_signer(signer.clone()),
+            inner: connection
+                .clone()
+                .as_connection()
+                .set_signer(signer.clone()),
             signer,
         }
     }
@@ -129,7 +132,7 @@ impl TryFrom<Connection> for SignedConnection {
 
     fn try_from(connection: Connection) -> Result<Self, Self::Error> {
         if let Some(signer) = connection.signer.clone() {
-            Ok(Self::from_any_connection(connection, signer))
+            Ok(Self::from_any_connection(&connection, signer))
         } else {
             Err("Connection should be signed.")
         }

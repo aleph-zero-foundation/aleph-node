@@ -209,7 +209,7 @@ impl MultisigParty {
         connection: &C,
     ) -> (SignedConnection, Vec<AccountId>) {
         let (author, other_signatories) = self.designate_representative_and_represented(author_idx);
-        let connection = SignedConnection::from_any_connection(connection.as_connection(), author);
+        let connection = SignedConnection::from_any_connection(connection, author);
         (connection, other_signatories)
     }
 
@@ -481,7 +481,7 @@ pub fn perform_multisig_with_threshold_1<C: AnyConnection, CallDetails: Encode +
     other_signatories: &[AccountId],
     call: CallDetails,
 ) -> Result<()> {
-    let connection = SignedConnection::from_any_connection(connection.clone(), author);
+    let connection = SignedConnection::from_any_connection(connection, author);
     let xt = compose_extrinsic!(
         connection.as_connection(),
         "Multisig",
