@@ -6,17 +6,17 @@ Please include a summary of the change and which issue is fixed. Please also inc
 
 Please delete options that are not relevant.
 
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] This change requires a documentation update
+- Bug fix (non-breaking change which fixes an issue)
+- New feature (non-breaking change which adds functionality)
+- Breaking change (fix or feature that would cause existing functionality to not work as expected)
 
 # Checklist:
 
-- [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] Infrastructure updated accordingly
-- [ ] I have made corresponding changes to the documentation
-- [ ] New documentation created
-- [ ] Bump `spec_version` and `transaction_version` if relevant
-- [ ] Bump `aleph-client` version if relevant
+<!-- delete when not applicable to your PR -->
+
+- I have added tests
+- I have made neccessary updates to the Infrastructure
+- I have made corresponding changes to the existing documentation
+- I have created new documentation
+- I have bumped `spec_version` and `transaction_version`
+- I have bumped aleph-client version if relevant
