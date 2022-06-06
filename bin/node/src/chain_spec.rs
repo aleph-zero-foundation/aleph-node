@@ -378,7 +378,7 @@ fn generate_genesis_config(
             key: Some(sudo_account),
         },
         elections: ElectionsConfig {
-            members: accounts_config.members.clone(),
+            non_reserved_members: accounts_config.members.clone(),
             members_per_session: DEFAULT_MEMBERS_PER_SESSION,
             reserved_members: vec![],
         },

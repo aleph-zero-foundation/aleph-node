@@ -3,19 +3,21 @@ use crate::{
     Config,
 };
 use aleph_client::{
-    change_reserved_members, get_current_session, wait_for_finalized_block,
-    wait_for_full_era_completion, wait_for_session, AnyConnection, Header, KeyPair, RootConnection,
-    SignedConnection,
+    change_members, get_current_session, wait_for_finalized_block, wait_for_full_era_completion,
+    wait_for_session, AnyConnection, Header, KeyPair, RootConnection, SignedConnection,
 };
 use sp_core::Pair;
 use std::collections::HashMap;
 use substrate_api_client::{AccountId, XtStatus};
 
-const MINIMAL_TEST_SESSION_START: u32 = 9;
-const ELECTION_STARTS: u32 = 6;
+const TEST_LENGTH: u32 = 5;
 
 fn get_reserved_members(config: &Config) -> Vec<KeyPair> {
     get_validators_keys(config)[0..2].to_vec()
+}
+
+fn get_non_reserved_members(config: &Config) -> Vec<KeyPair> {
+    get_validators_keys(config)[2..].to_vec()
 }
 
 fn get_non_reserved_members_for_session(config: &Config, session: u32) -> Vec<AccountId> {
@@ -25,14 +27,7 @@ fn get_non_reserved_members_for_session(config: &Config, session: u32) -> Vec<Ac
     let mut non_reserved = vec![];
 
     let validators_seeds = get_validators_seeds(config);
-    // this order is determined by pallet_staking::ErasStakers::iter_ker_prefix, so by order in
-    // map which is not guaranteed, however runtime is deterministic, so we can rely on particular order
-    // test needs to be reworked to read order from ErasStakers
-    let non_reserved_nodes_order_from_runtime = vec![
-        validators_seeds[3].clone(),
-        validators_seeds[2].clone(),
-        validators_seeds[4].clone(),
-    ];
+    let non_reserved_nodes_order_from_runtime = validators_seeds[2..].to_vec();
     let non_reserved_nodes_order_from_runtime_len = non_reserved_nodes_order_from_runtime.len();
 
     for i in (FREE_SEATS * session)..(FREE_SEATS * (session + 1)) {
@@ -81,22 +76,26 @@ pub fn members_rotate(config: &Config) -> anyhow::Result<()> {
         .map(|pair| AccountId::from(pair.public()))
         .collect();
 
-    change_reserved_members(
+    let non_reserved_members = get_non_reserved_members(config)
+        .iter()
+        .map(|pair| AccountId::from(pair.public()))
+        .collect();
+
+    change_members(
         &root_connection,
-        reserved_members.clone(),
+        Some(reserved_members.clone()),
+        Some(non_reserved_members),
+        Some(4),
         XtStatus::InBlock,
     );
     wait_for_full_era_completion(&connection)?;
 
-    let mut current_session = get_current_session(&connection);
-    if current_session < MINIMAL_TEST_SESSION_START {
-        wait_for_session(&connection, MINIMAL_TEST_SESSION_START)?;
-        current_session = MINIMAL_TEST_SESSION_START;
-    }
+    let current_session = get_current_session(&connection);
+    wait_for_session(&connection, current_session + TEST_LENGTH)?;
 
     let mut non_reserved_count = HashMap::new();
 
-    for session in ELECTION_STARTS..current_session {
+    for session in current_session..current_session + TEST_LENGTH {
         let elected = get_authorities_for_session(&connection, session);
         let non_reserved = get_non_reserved_members_for_session(config, session);
 

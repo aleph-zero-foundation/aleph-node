@@ -23,6 +23,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 mod impls;
+mod migrations;
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
@@ -32,11 +33,15 @@ mod traits;
 use codec::{Decode, Encode};
 use frame_support::traits::StorageVersion;
 use scale_info::TypeInfo;
-use sp_std::{collections::btree_map::BTreeMap, prelude::Vec};
+use sp_std::{
+    collections::{btree_map::BTreeMap, btree_set::BTreeSet},
+    prelude::Vec,
+};
 
+pub use impls::compute_validator_scaled_total_rewards;
 pub use pallet::*;
 
-const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
+const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 
 pub type BlockCount = u32;
 pub type TotalReward = u32;
@@ -51,8 +56,11 @@ pub mod pallet {
     use frame_election_provider_support::{
         ElectionDataProvider, ElectionProvider, Support, Supports,
     };
-    use frame_support::{pallet_prelude::*, traits::Get};
-    use frame_system::{ensure_root, pallet_prelude::OriginFor};
+    use frame_support::{log, pallet_prelude::*, traits::Get};
+    use frame_system::{
+        ensure_root,
+        pallet_prelude::{BlockNumberFor, OriginFor},
+    };
     use pallet_session::SessionManager;
     use primitives::DEFAULT_MEMBERS_PER_SESSION;
 
@@ -80,7 +88,7 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        ChangeMembers(Vec<T::AccountId>),
+        ChangeMembers(Vec<T::AccountId>, Vec<T::AccountId>, u32),
     }
 
     #[pallet::pallet]
@@ -88,18 +96,42 @@ pub mod pallet {
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
 
+    #[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_runtime_upgrade() -> frame_support::weights::Weight {
+            let on_chain = <Pallet<T> as GetStorageVersion>::on_chain_storage_version();
+            T::DbWeight::get().reads(1)
+                + match on_chain {
+                    _ if on_chain == STORAGE_VERSION => 0,
+                    _ if on_chain == StorageVersion::new(0) => {
+                        migrations::v0_to_v1::migrate::<T, Self>()
+                    }
+                    _ => {
+                        log::warn!(
+                            target: "pallet_elections",
+                            "On chain storage version of pallet elections is {:?} but it should not be bigger than 1",
+                            on_chain
+                        );
+                        0
+                    }
+                }
+        }
+    }
+
     #[pallet::storage]
-    #[pallet::getter(fn members)]
-    pub type Members<T: Config> = StorageValue<_, Vec<T::AccountId>, ValueQuery>;
+    #[pallet::getter(fn non_reserved_members)]
+    pub type NonReservedMembers<T: Config> = StorageValue<_, Vec<T::AccountId>, ValueQuery>;
 
     #[pallet::storage]
     pub type MembersPerSession<T> = StorageValue<_, u32, ValueQuery>;
 
     #[pallet::storage]
+    #[pallet::getter(fn reserved_members)]
     pub type ReservedMembers<T: Config> = StorageValue<_, Vec<T::AccountId>, ValueQuery>;
 
     #[pallet::storage]
-    pub type ErasReserved<T: Config> = StorageValue<_, Vec<T::AccountId>, ValueQuery>;
+    pub type ErasMembers<T: Config> =
+        StorageValue<_, (Vec<T::AccountId>, Vec<T::AccountId>), ValueQuery>;
 
     #[pallet::storage]
     pub type SessionValidatorBlockCount<T: Config> =
@@ -112,32 +144,34 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::weight((T::BlockWeights::get().max_block, DispatchClass::Operational))]
-        pub fn change_members(origin: OriginFor<T>, members: Vec<T::AccountId>) -> DispatchResult {
-            ensure_root(origin)?;
-            Members::<T>::put(members.clone());
-            Self::deposit_event(Event::ChangeMembers(members));
-
-            Ok(())
-        }
-
-        #[pallet::weight((T::BlockWeights::get().max_block, DispatchClass::Operational))]
-        pub fn set_members_per_session(
+        pub fn change_members(
             origin: OriginFor<T>,
-            members_per_session: u32,
+            reserved_members: Option<Vec<T::AccountId>>,
+            non_reserved_members: Option<Vec<T::AccountId>>,
+            members_per_session: Option<u32>,
         ) -> DispatchResult {
             ensure_root(origin)?;
-            MembersPerSession::<T>::put(members_per_session);
 
-            Ok(())
-        }
+            let mps = members_per_session.unwrap_or_else(MembersPerSession::<T>::get);
+            let reserved_members = reserved_members.unwrap_or_else(ReservedMembers::<T>::get);
+            let non_reserved_members =
+                non_reserved_members.unwrap_or_else(NonReservedMembers::<T>::get);
 
-        #[pallet::weight((T::BlockWeights::get().max_block, DispatchClass::Operational))]
-        pub fn change_reserved_members(
-            origin: OriginFor<T>,
-            members: Vec<T::AccountId>,
-        ) -> DispatchResult {
-            ensure_root(origin)?;
-            ReservedMembers::<T>::put(members);
+            Self::ensure_members_are_ok(
+                reserved_members.clone(),
+                non_reserved_members.clone(),
+                mps,
+            )?;
+
+            NonReservedMembers::<T>::put(non_reserved_members.clone());
+            ReservedMembers::<T>::put(reserved_members.clone());
+            MembersPerSession::<T>::put(mps);
+
+            Self::deposit_event(Event::ChangeMembers(
+                reserved_members,
+                non_reserved_members,
+                mps,
+            ));
 
             Ok(())
         }
@@ -145,7 +179,7 @@ pub mod pallet {
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
-        pub members: Vec<T::AccountId>,
+        pub non_reserved_members: Vec<T::AccountId>,
         pub reserved_members: Vec<T::AccountId>,
         pub members_per_session: u32,
     }
@@ -154,7 +188,7 @@ pub mod pallet {
     impl<T: Config> Default for GenesisConfig<T> {
         fn default() -> Self {
             Self {
-                members: Vec::new(),
+                non_reserved_members: Vec::new(),
                 reserved_members: Vec::new(),
                 members_per_session: DEFAULT_MEMBERS_PER_SESSION,
             }
@@ -164,35 +198,75 @@ pub mod pallet {
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
         fn build(&self) {
-            <Members<T>>::put(&self.members);
+            <NonReservedMembers<T>>::put(&self.non_reserved_members);
             <MembersPerSession<T>>::put(&self.members_per_session);
             <ReservedMembers<T>>::put(&self.reserved_members);
         }
     }
 
-    impl<T: Config> Pallet<T> {}
+    impl<T: Config> Pallet<T> {
+        fn ensure_members_are_ok(
+            reserved_members: Vec<T::AccountId>,
+            non_reserved_members: Vec<T::AccountId>,
+            members_per_session: u32,
+        ) -> DispatchResult {
+            let reserved_len = reserved_members.len() as u32;
+            let non_reserved_len = non_reserved_members.len() as u32;
+            let members_size = reserved_len + non_reserved_len;
+
+            ensure!(
+                members_per_session >= reserved_len,
+                Error::<T>::TooManyReservedMembers
+            );
+            ensure!(
+                members_per_session <= members_size,
+                Error::<T>::NotEnoughMembers
+            );
+
+            let member_set: BTreeSet<_> = reserved_members
+                .into_iter()
+                .chain(non_reserved_members.into_iter())
+                .collect();
+
+            ensure!(
+                member_set.len() as u32 == members_size,
+                Error::<T>::NonUniqueListOfMembers
+            );
+
+            Ok(())
+        }
+    }
 
     #[derive(Debug)]
-    pub enum Error {
+    pub enum ElectionError {
         DataProvider(&'static str),
+    }
+
+    #[pallet::error]
+    pub enum Error<T> {
+        TooManyReservedMembers,
+        NotEnoughMembers,
+        NonUniqueListOfMembers,
     }
 
     impl<T: Config> ElectionProvider for Pallet<T> {
         type AccountId = T::AccountId;
         type BlockNumber = T::BlockNumber;
-        type Error = Error;
+        type Error = ElectionError;
         type DataProvider = T::DataProvider;
 
         // The elections are PoA so only the nodes listed in the Members will be elected as validators.
         // We calculate the supports for them for the sake of eras payouts.
         fn elect() -> Result<Supports<T::AccountId>, Self::Error> {
-            let voters = Self::DataProvider::electing_voters(None).map_err(Error::DataProvider)?;
-            let members = Pallet::<T>::members();
+            let voters =
+                Self::DataProvider::electing_voters(None).map_err(Self::Error::DataProvider)?;
+            let members = Pallet::<T>::non_reserved_members()
+                .into_iter()
+                .chain(Pallet::<T>::reserved_members().into_iter());
             let mut supports: BTreeMap<_, _> = members
-                .iter()
                 .map(|id| {
                     (
-                        id.clone(),
+                        id,
                         Support {
                             total: 0,
                             voters: Vec::new(),
