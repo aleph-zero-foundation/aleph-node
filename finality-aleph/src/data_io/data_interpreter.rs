@@ -69,13 +69,13 @@ impl<B: BlockT, C: HeaderBackend<B>> OrderedDataInterpreter<B, C> {
         match new_data {
             AlephData::Empty => None,
             AlephData::HeadProposal(unvalidated_proposal) => {
-                let proposal = if let Some(proposal) =
-                    unvalidated_proposal.validate_bounds(&self.session_boundaries)
+                let proposal = match unvalidated_proposal.validate_bounds(&self.session_boundaries)
                 {
-                    proposal
-                } else {
-                    warn!(target: "aleph-finality", "Incorrect proposal {:?} passed through data availability, session bounds: {:?}", unvalidated_proposal, self.session_boundaries);
-                    return None;
+                    Ok(proposal) => proposal,
+                    Err(error) => {
+                        warn!(target: "aleph-finality", "Incorrect proposal {:?} passed through data availability, session bounds: {:?}, error: {:?}", unvalidated_proposal, self.session_boundaries, error);
+                        return None;
+                    }
                 };
 
                 // WARNING: If we ever enable pruning, this code (and the code in Data Store) must be carefully analyzed

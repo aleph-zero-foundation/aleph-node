@@ -29,6 +29,25 @@ pub struct UnvalidatedAlephProposal<B: BlockT> {
     pub number: NumberFor<B>,
 }
 
+/// Represents possible invalid states as described in [UnvalidatedAlephProposal].
+#[derive(Debug, PartialEq)]
+pub enum ValidationError<B: BlockT> {
+    BranchEmpty,
+    BranchTooLong {
+        branch_size: usize,
+    },
+    BlockNumberOutOfBounds {
+        branch_size: usize,
+        block_number: NumberFor<B>,
+    },
+    BlockOutsideSessionBoundaries {
+        session_start: NumberFor<B>,
+        session_end: NumberFor<B>,
+        top_block: NumberFor<B>,
+        bottom_block: NumberFor<B>,
+    },
+}
+
 // Need to be implemented manually, as deriving does not work (`BlockT` is not `Hash`).
 impl<B: BlockT> Hash for UnvalidatedAlephProposal<B> {
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -57,29 +76,42 @@ impl<B: BlockT> UnvalidatedAlephProposal<B> {
     pub(crate) fn validate_bounds(
         &self,
         session_boundaries: &SessionBoundaries<B>,
-    ) -> Option<AlephProposal<B>> {
+    ) -> Result<AlephProposal<B>, ValidationError<B>> {
+        use ValidationError::*;
+
         if self.branch.len() > MAX_DATA_BRANCH_LEN as usize {
-            return None;
+            return Err(BranchTooLong {
+                branch_size: self.branch.len(),
+            });
         }
         if self.branch.is_empty() {
-            return None;
+            return Err(BranchEmpty);
         }
         if self.number < <NumberFor<B>>::saturated_from(self.branch.len()) {
             // Note that this also excludes branches starting at the genesis (0th) block.
-            return None;
+            return Err(BlockNumberOutOfBounds {
+                branch_size: self.branch.len(),
+                block_number: self.number,
+            });
         }
 
         let bottom_block = self.number - <NumberFor<B>>::saturated_from(self.branch.len() - 1);
         let top_block = self.number;
-        if session_boundaries.first_block() <= bottom_block
-            && top_block <= session_boundaries.last_block()
-        {
-            return Some(AlephProposal {
-                branch: self.branch.clone(),
-                number: self.number,
+        let session_start = session_boundaries.first_block();
+        let session_end = session_boundaries.last_block();
+        if session_start > bottom_block || top_block > session_end {
+            return Err(BlockOutsideSessionBoundaries {
+                session_start,
+                session_end,
+                top_block,
+                bottom_block,
             });
         }
-        None
+
+        Ok(AlephProposal {
+            branch: self.branch.clone(),
+            number: self.number,
+        })
     }
 }
 
@@ -190,18 +222,33 @@ pub enum ProposalStatus<B: BlockT> {
 
 #[cfg(test)]
 mod tests {
-    use super::UnvalidatedAlephProposal;
+    use super::{UnvalidatedAlephProposal, ValidationError::*};
     use crate::{data_io::MAX_DATA_BRANCH_LEN, SessionBoundaries, SessionId, SessionPeriod};
     use sp_core::hash::H256;
     use substrate_test_runtime_client::runtime::Block;
+
+    #[test]
+    fn proposal_with_empty_branch_is_invalid() {
+        let session_boundaries = SessionBoundaries::<Block>::new(SessionId(1), SessionPeriod(20));
+        let branch = vec![];
+        let proposal = UnvalidatedAlephProposal::new(branch, session_boundaries.first_block());
+        assert_eq!(
+            proposal.validate_bounds(&session_boundaries),
+            Err(BranchEmpty)
+        );
+    }
 
     #[test]
     fn too_long_proposal_is_invalid() {
         let session_boundaries = SessionBoundaries::<Block>::new(SessionId(1), SessionPeriod(20));
         let session_end = session_boundaries.last_block();
         let branch = vec![H256::default(); MAX_DATA_BRANCH_LEN + 1];
+        let branch_size = branch.len();
         let proposal = UnvalidatedAlephProposal::new(branch, session_end);
-        assert_eq!(proposal.validate_bounds(&session_boundaries), None);
+        assert_eq!(
+            proposal.validate_bounds(&session_boundaries),
+            Err(BranchTooLong { branch_size })
+        );
     }
 
     #[test]
@@ -212,10 +259,26 @@ mod tests {
         let branch = vec![H256::default(); 2];
 
         let proposal = UnvalidatedAlephProposal::new(branch.clone(), session_start);
-        assert_eq!(proposal.validate_bounds(&session_boundaries), None);
+        assert_eq!(
+            proposal.validate_bounds(&session_boundaries),
+            Err(BlockOutsideSessionBoundaries {
+                session_start,
+                session_end,
+                bottom_block: session_start - 1,
+                top_block: session_start
+            })
+        );
 
         let proposal = UnvalidatedAlephProposal::new(branch, session_end + 1);
-        assert_eq!(proposal.validate_bounds(&session_boundaries), None);
+        assert_eq!(
+            proposal.validate_bounds(&session_boundaries),
+            Err(BlockOutsideSessionBoundaries {
+                session_start,
+                session_end,
+                bottom_block: session_end,
+                top_block: session_end + 1
+            })
+        );
     }
 
     #[test]
@@ -224,7 +287,13 @@ mod tests {
         let branch = vec![H256::default(); 2];
 
         let proposal = UnvalidatedAlephProposal::new(branch, 1);
-        assert_eq!(proposal.validate_bounds(&session_boundaries), None);
+        assert_eq!(
+            proposal.validate_bounds(&session_boundaries),
+            Err(BlockNumberOutOfBounds {
+                branch_size: 2,
+                block_number: 1
+            })
+        );
     }
 
     #[test]
@@ -233,10 +302,10 @@ mod tests {
 
         let branch = vec![H256::default(); MAX_DATA_BRANCH_LEN];
         let proposal = UnvalidatedAlephProposal::new(branch, (MAX_DATA_BRANCH_LEN + 1) as u64);
-        assert!(proposal.validate_bounds(&session_boundaries).is_some());
+        assert!(proposal.validate_bounds(&session_boundaries).is_ok());
 
         let branch = vec![H256::default(); 1];
         let proposal = UnvalidatedAlephProposal::new(branch, (MAX_DATA_BRANCH_LEN + 1) as u64);
-        assert!(proposal.validate_bounds(&session_boundaries).is_some());
+        assert!(proposal.validate_bounds(&session_boundaries).is_ok());
     }
 }
