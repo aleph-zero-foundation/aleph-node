@@ -1,12 +1,21 @@
-name: 'Tidy cache'
-description: 'Gracefully tidy cache services. To be used with `restore-cache` action.'
+name: "Rust cache cleanup"
+description: |
+  Run this at the end of your workflow if you're running `rust-cache`.
 
 runs:
   using: "composite"
   steps:
-    - name: Print sccache stats
-      run: sccache --show-stats
-      shell: bash
+    - name: Prune unused packages from cargo cache
+      uses: actions-rs/cargo@v1
+      with:
+        command: cache
+        args: clean-unref
+
+    - name: Prune sources from cargo cache
+      uses: actions-rs/cargo@v1
+      with:
+        command: cache
+        args: --autoclean
 
     - name: Stop sccache server
       run: sccache --stop-server || true

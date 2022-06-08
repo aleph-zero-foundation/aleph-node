@@ -19,7 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RUST_BACKTRACE: full
-      # SCCACHE_RECACHE: 1 # to clear cache uncomment this, let the workflow run once, then comment it out again
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -34,6 +33,9 @@ jobs:
 
       - name: Restore cache
         uses: ./.github/actions/restore-cache
+        with:
+          target-key: release
+          cache-version: v1
 
       - name: Build binary and runtime
         run: cargo build --release -p aleph-node
@@ -73,5 +75,5 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Stop cache
+      - name: Cleanup cache
         uses: ./.github/actions/post-cache

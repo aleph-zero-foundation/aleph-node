@@ -1,7 +1,14 @@
 name: unit-tests
 
 on:
-  pull_request
+  pull_request:
+    branches:
+      - '**'
+  push:
+    paths-ignore:
+      - '*.md'
+    branches:
+      - main
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -28,6 +35,9 @@ jobs:
 
       - name: Restore cache
         uses: ./.github/actions/restore-cache
+        with:
+          target-key: debug
+          cache-version: v1
 
       - name: Run Format Checks
         uses: actions-rs/cargo@v1
@@ -51,5 +61,5 @@ jobs:
           command: test
           args: --lib
 
-      - name: Stop sccache
+      - name: Cleanup cache
         uses: ./.github/actions/post-cache

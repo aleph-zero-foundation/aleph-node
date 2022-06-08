@@ -103,6 +103,9 @@ jobs:
       - name: Restore cache
         uses: ./.github/actions/restore-cache
         with:
+          target-key: e2e
+          cargo-key: e2e
+          cache-version: v1
           cargo-targets: e2e-tests/target/
 
       - name: Build binary and docker image
@@ -438,6 +441,8 @@ jobs:
       - name: Restore cache
         uses: ./.github/actions/restore-cache
         with:
+          target-key: runtime-update
+          cache-version: v1
           cargo-targets: bin/cliain/target/
 
       - name: Download all artifacts
@@ -459,7 +464,7 @@ jobs:
           NEW_RUNTIME: aleph-test-runtime/aleph_runtime.compact.wasm
         run: ./.github/scripts/test_update.sh
 
-      - name: Stop cache
+      - name: Cleanup cache
         uses: ./.github/actions/post-cache
 
   test-runtime-update-if-OTHER:
@@ -478,6 +483,8 @@ jobs:
       - name: Restore cache
         uses: ./.github/actions/restore-cache
         with:
+          target-key: runtime-update
+          cache-version: v1
           cargo-targets: bin/cliain/target/
 
       - name: Download all artifacts
@@ -499,7 +506,7 @@ jobs:
           NEW_RUNTIME: aleph-test-runtime/aleph_runtime.compact.wasm
         run: ./.github/scripts/test_update.sh
 
-      - name: Stop cache
+      - name: Cleanup cache
         uses: ./.github/actions/post-cache
 
   test-catch-up:

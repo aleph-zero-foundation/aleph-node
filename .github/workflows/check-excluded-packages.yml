@@ -1,7 +1,14 @@
 name: Check excluded packages
 
 on:
-  pull_request
+  pull_request:
+    branches:
+      - '**'
+  push:
+    paths-ignore:
+      - '*.md'
+    branches:
+      - main
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -45,6 +52,9 @@ jobs:
       - name: Restore cache
         uses: ./.github/actions/restore-cache
         with:
+          target-key: excluded
+          cargo-key: excluded
+          cache-version: v1
           cargo-targets: "${{ steps.format_output.outputs.targets }}"
 
       - name: Check excluded packages
@@ -62,5 +72,5 @@ jobs:
             popd
           done
 
-      - name: Stop cache
+      - name: Cleanup cache
         uses: ./.github/actions/post-cache
