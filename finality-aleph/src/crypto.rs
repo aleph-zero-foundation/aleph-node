@@ -88,7 +88,7 @@ impl AuthorityVerifier {
     /// node of the given index.
     pub fn verify(&self, msg: &[u8], sgn: &Signature, index: NodeIndex) -> bool {
         match self.authorities.get(index.0) {
-            Some(authority) => authority.verify(&msg.to_vec(), &sgn.0),
+            Some(authority) => authority.verify(&msg, &sgn.0),
             None => false,
         }
     }

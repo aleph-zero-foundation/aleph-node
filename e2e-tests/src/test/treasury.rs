@@ -5,12 +5,12 @@ use sp_core::Pair;
 use sp_runtime::{traits::AccountIdConversion, AccountId32, MultiAddress};
 use std::{thread, thread::sleep, time::Duration};
 use substrate_api_client::{
-    compose_extrinsic, AccountId, Balance, GenericAddress, UncheckedExtrinsicV4, XtStatus,
+    compose_extrinsic, AccountId, Balance, ExtrinsicParams, GenericAddress, XtStatus,
 };
 
 use aleph_client::{
     balances_transfer, get_free_balance, get_tx_fee_info, send_xt, wait_for_event, AnyConnection,
-    RootConnection, SignedConnection,
+    Extrinsic, RootConnection, SignedConnection,
 };
 
 use crate::{
@@ -151,11 +151,10 @@ fn get_total_issuance<C: AnyConnection>(connection: &C) -> u128 {
 }
 
 fn get_treasury_account() -> AccountId32 {
-    PalletId(*b"a0/trsry").into_account()
+    PalletId(*b"a0/trsry").into_account_truncating()
 }
 
-type ProposalTransaction =
-    UncheckedExtrinsicV4<([u8; 2], Compact<u128>, MultiAddress<AccountId, ()>)>;
+type ProposalTransaction = Extrinsic<([u8; 2], Compact<u128>, MultiAddress<AccountId, ()>)>;
 fn propose_treasury_spend(
     value: u128,
     beneficiary: &AccountId32,
@@ -185,7 +184,7 @@ fn get_proposals_counter<C: AnyConnection>(connection: &C) -> u32 {
         .unwrap()
 }
 
-type GovernanceTransaction = UncheckedExtrinsicV4<([u8; 2], Compact<u32>)>;
+type GovernanceTransaction = Extrinsic<([u8; 2], Compact<u32>)>;
 
 fn send_treasury_approval(proposal_id: u32, connection: &RootConnection) -> GovernanceTransaction {
     let xt = compose_extrinsic!(

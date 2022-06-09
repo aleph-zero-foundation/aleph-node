@@ -4,7 +4,9 @@ use crate::{
 use codec::{Decode, Encode};
 use log::info;
 use sp_core::Pair;
-use substrate_api_client::{compose_call, compose_extrinsic, AccountId, FromHexString, XtStatus};
+use substrate_api_client::{
+    compose_call, compose_extrinsic, AccountId, ExtrinsicParams, FromHexString, XtStatus,
+};
 
 // Using custom struct and rely on default Encode trait from Parity's codec
 // it works since byte arrays are encoded in a straight forward way, it as-is

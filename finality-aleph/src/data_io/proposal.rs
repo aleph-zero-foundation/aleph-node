@@ -30,7 +30,7 @@ pub struct UnvalidatedAlephProposal<B: BlockT> {
 }
 
 /// Represents possible invalid states as described in [UnvalidatedAlephProposal].
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ValidationError<B: BlockT> {
     BranchEmpty,
     BranchTooLong {

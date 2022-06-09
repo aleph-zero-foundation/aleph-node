@@ -16,7 +16,7 @@ pub use scheduler::{
 };
 
 /// A proof of block finality, currently in the form of a sufficiently long list of signatures.
-#[derive(Clone, Encode, Decode, Debug, PartialEq)]
+#[derive(Clone, Encode, Decode, Debug, PartialEq, Eq)]
 pub struct AlephJustification {
     pub signature: SignatureSet<Signature>,
 }

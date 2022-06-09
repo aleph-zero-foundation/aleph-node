@@ -2,7 +2,9 @@ use log::info;
 
 use crate::transfer::setup_for_transfer;
 use sp_core::Pair;
-use substrate_api_client::{compose_call, compose_extrinsic, GenericAddress, XtStatus};
+use substrate_api_client::{
+    compose_call, compose_extrinsic, ExtrinsicParams, GenericAddress, XtStatus,
+};
 
 use aleph_client::AnyConnection;
 use codec::Compact;

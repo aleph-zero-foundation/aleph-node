@@ -2,19 +2,18 @@
 
 use std::collections::HashMap;
 
-use crate::{migrations, mock::*, pallet, Config};
+use crate::{migrations, mock::*, pallet};
 use frame_support::{
-    generate_storage_alias,
     storage::migration::{get_storage_value, put_storage_value},
+    storage_alias,
     traits::{GetStorageVersion, OneSessionHandler, StorageVersion},
 };
 
-generate_storage_alias!(
-    Aleph, SessionForValidatorsChange => Value<u32>
-);
-generate_storage_alias!(
-    Aleph, Validators<T: Config> => Value<Vec<T::AccountId>>
-);
+#[storage_alias]
+type SessionForValidatorsChange = StorageValue<Aleph, u32>;
+
+#[storage_alias]
+type Validators<T> = StorageValue<Aleph, Vec<<T as frame_system::Config>::AccountId>>;
 
 #[test]
 fn migration_from_v0_to_v1_works() {

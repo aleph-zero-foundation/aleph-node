@@ -179,7 +179,7 @@ fn setup(
             warp_sync: None,
         })?;
 
-    let rpc_extensions_builder = {
+    let rpc_builder = {
         let client = client.clone();
         let pool = transaction_pool.clone();
 
@@ -190,7 +190,7 @@ fn setup(
                 deny_unsafe,
             };
 
-            Ok(crate::rpc::create_full(deps))
+            Ok(crate::rpc::create_full(deps)?)
         })
     };
 
@@ -200,7 +200,7 @@ fn setup(
         keystore: keystore_container.sync_keystore(),
         task_manager,
         transaction_pool,
-        rpc_extensions_builder,
+        rpc_builder,
         backend,
         system_rpc_tx,
         config,

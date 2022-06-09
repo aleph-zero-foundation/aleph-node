@@ -1,6 +1,5 @@
 use frame_support::BoundedVec;
 use log::info;
-use pallet_staking::StakingLedger;
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
@@ -12,6 +11,7 @@ use aleph_client::{
     payout_stakers_and_assert_locked_balance, rotate_keys, set_keys, staking_bond, staking_bonded,
     staking_ledger, staking_multi_bond, staking_nominate, staking_validate,
     wait_for_full_era_completion, wait_for_session, KeyPair, RootConnection, SignedConnection,
+    StakingLedger,
 };
 use primitives::{
     staking::{MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND},
@@ -179,8 +179,6 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
             total: MIN_VALIDATOR_BOND,
             active: MIN_VALIDATOR_BOND,
             unlocking: BoundedVec::try_from(vec![]).unwrap(),
-            // we don't need to compare claimed rewards as those are internals of staking pallet
-            claimed_rewards: ledger.claimed_rewards.clone()
         }
     );
 

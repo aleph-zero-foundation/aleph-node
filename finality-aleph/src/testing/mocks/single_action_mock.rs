@@ -36,12 +36,16 @@ impl<CallArgs: Send> SingleActionMock<CallArgs> {
             .unwrap()
     }
 
+    //This code is used only for testing.
+    #[allow(clippy::await_holding_lock)]
     pub(crate) async fn has_not_been_invoked(&self) -> bool {
         timeout(self.timeout, self.history_rx.lock().unwrap().next())
             .await
             .is_err()
     }
 
+    //This code is used only for testing.
+    #[allow(clippy::await_holding_lock)]
     pub(crate) async fn has_been_invoked_with<P: FnOnce(CallArgs) -> bool>(
         &self,
         predicate: P,

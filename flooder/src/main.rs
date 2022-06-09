@@ -1,15 +1,3 @@
-mod config;
-mod ws_rpc_client;
-
-use aleph_client::create_custom_connection;
-use clap::Parser;
-use codec::{Compact, Decode, Encode};
-use config::Config;
-use hdrhistogram::Histogram as HdrHistogram;
-use log::{debug, info};
-use rayon::prelude::*;
-use sp_core::{sr25519, Pair};
-use sp_runtime::{generic, traits::BlakeTwo256, MultiAddress, OpaqueExtrinsic};
 use std::{
     convert::TryInto,
     io::{Read, Write},
@@ -19,18 +7,32 @@ use std::{
     thread,
     time::{Duration, Instant},
 };
+
+use clap::Parser;
+use codec::{Compact, Decode, Encode};
+use hdrhistogram::Histogram as HdrHistogram;
+use log::{debug, info};
+use rayon::prelude::*;
+use sp_core::{sr25519, Pair};
+use sp_runtime::{generic, traits::BlakeTwo256, MultiAddress, OpaqueExtrinsic};
 use substrate_api_client::{
-    compose_call, compose_extrinsic_offline, AccountId, Api, GenericAddress, UncheckedExtrinsicV4,
-    XtStatus,
+    compose_call, compose_extrinsic_offline, AccountId, Api, ExtrinsicParams, GenericAddress,
+    PlainTipExtrinsicParams, XtStatus,
 };
+
+use aleph_client::{create_custom_connection, Extrinsic};
+use config::Config;
 use ws_rpc_client::WsRpcClient;
 
-type TransferTransaction =
-    UncheckedExtrinsicV4<([u8; 2], MultiAddress<AccountId, ()>, codec::Compact<u128>)>;
+mod config;
+mod ws_rpc_client;
+
+type TransferTransaction = Extrinsic<([u8; 2], MultiAddress<AccountId, ()>, codec::Compact<u128>)>;
 type BlockNumber = u32;
 type Header = generic::Header<BlockNumber, BlakeTwo256>;
 type Block = generic::Block<Header, OpaqueExtrinsic>;
 type Nonce = u32;
+type Connection = Api<sr25519::Pair, WsRpcClient, PlainTipExtrinsicParams>;
 
 fn main() -> Result<(), anyhow::Error> {
     let time_stats = Instant::now();
@@ -153,7 +155,7 @@ fn main() -> Result<(), anyhow::Error> {
 type ThreadId = usize;
 
 fn flood<'a>(
-    pool: impl Fn(ThreadId, usize) -> &'a Api<sr25519::Pair, WsRpcClient> + Sync,
+    pool: impl Fn(ThreadId, usize) -> &'a Connection + Sync,
     txs: Vec<TransferTransaction>,
     status: XtStatus,
     histogram: &Arc<Mutex<HdrHistogram<u64>>>,
@@ -206,7 +208,7 @@ fn flood<'a>(
     });
 }
 
-fn estimate_tx_fee(connection: &Api<sr25519::Pair, WsRpcClient>, tx: &TransferTransaction) -> u128 {
+fn estimate_tx_fee(connection: &Connection, tx: &TransferTransaction) -> u128 {
     let block = connection.get_block::<Block>(None).unwrap().unwrap();
     let block_hash = block.header.hash();
     let fee = connection
@@ -231,10 +233,7 @@ fn load_transactions(file_path: impl AsRef<Path>) -> Vec<TransferTransaction> {
     Vec::<TransferTransaction>::decode(&mut &bytes[..]).expect("Error while decoding txs")
 }
 
-fn prepare_txs(
-    config: &Config,
-    connection: &Api<sr25519::Pair, WsRpcClient>,
-) -> Vec<TransferTransaction> {
+fn prepare_txs(config: &Config, connection: &Connection) -> Vec<TransferTransaction> {
     match config.load_txs {
         true => {
             let path = match &config.tx_store_path {
@@ -247,10 +246,7 @@ fn prepare_txs(
     }
 }
 
-fn generate_txs(
-    config: &Config,
-    connection: &Api<sr25519::Pair, WsRpcClient>,
-) -> Vec<TransferTransaction> {
+fn generate_txs(config: &Config, connection: &Connection) -> Vec<TransferTransaction> {
     let tx_store_path = match (config.store_txs, &config.tx_store_path) {
         (true, None) => panic!("tx_store_path is not set"),
         (true, path) => path,
@@ -298,7 +294,7 @@ fn generate_txs(
 
 fn initialize_accounts(
     config: &Config,
-    connection: &Api<sr25519::Pair, WsRpcClient>,
+    connection: &Connection,
     transfer_amount: u128,
     accounts: &[sr25519::Pair],
 ) {
@@ -335,7 +331,7 @@ fn initialize_accounts(
 }
 
 fn sign_tx(
-    connection: &Api<sr25519::Pair, WsRpcClient>,
+    connection: &Connection,
     signer: &sr25519::Pair,
     nonce: Nonce,
     to: &AccountId,
@@ -349,21 +345,12 @@ fn sign_tx(
         Compact(amount)
     );
 
-    compose_extrinsic_offline!(
-        signer,
-        call,
-        nonce,
-        Era::Immortal,
-        connection.genesis_hash,
-        connection.genesis_hash,
-        connection.runtime_version.spec_version,
-        connection.runtime_version.transaction_version
-    )
+    compose_extrinsic_offline!(signer, call, connection.extrinsic_params(nonce))
 }
 
 /// prepares payload for flooding
 fn sign_transactions<'a>(
-    connection: &'a Api<sr25519::Pair, WsRpcClient>,
+    connection: &'a Connection,
     account: sr25519::Pair,
     users_and_nonces: impl IntoParallelIterator<Item = (sr25519::Pair, u32)> + 'a,
     transfer_amount: u128,
@@ -378,7 +365,7 @@ fn sign_transactions<'a>(
 }
 
 fn estimate_amount(
-    connection: &Api<sr25519::Pair, WsRpcClient>,
+    connection: &Connection,
     account: &sr25519::Pair,
     account_nonce: u32,
     transfer_amount: u128,
@@ -403,7 +390,7 @@ fn estimate_amount(
 }
 
 fn initialize_accounts_on_chain(
-    connection: &Api<sr25519::Pair, WsRpcClient>,
+    connection: &Connection,
     source_account: &sr25519::Pair,
     mut source_account_nonce: u32,
     accounts: &[sr25519::Pair],
@@ -438,7 +425,7 @@ fn initialize_accounts_on_chain(
 }
 
 fn initialize_account(
-    connection: &Api<sr25519::Pair, WsRpcClient>,
+    connection: &Connection,
     account: &sr25519::Pair,
     account_nonce: Nonce,
     derived: &sr25519::Pair,
@@ -475,8 +462,8 @@ fn derive_user_account(seed: u64) -> sr25519::Pair {
 }
 
 fn send_tx<Call>(
-    connection: &Api<sr25519::Pair, WsRpcClient>,
-    tx: &UncheckedExtrinsicV4<Call>,
+    connection: &Connection,
+    tx: &Extrinsic<Call>,
     status: XtStatus,
     histogram: Arc<Mutex<HdrHistogram<u64>>>,
 ) where
@@ -494,10 +481,7 @@ fn send_tx<Call>(
     *hist += elapsed_time as u64;
 }
 
-fn create_connection_pool(
-    nodes: &[String],
-    threads: usize,
-) -> Vec<Vec<Api<sr25519::Pair, WsRpcClient>>> {
+fn create_connection_pool(nodes: &[String], threads: usize) -> Vec<Vec<Connection>> {
     repeat(nodes)
         .cycle()
         .take(threads)
@@ -511,14 +495,14 @@ fn create_connection_pool(
         .collect()
 }
 
-fn get_nonce(connection: &Api<sr25519::Pair, WsRpcClient>, account: &AccountId) -> u32 {
+fn get_nonce(connection: &Connection, account: &AccountId) -> u32 {
     connection
         .get_account_info(account)
         .map(|acc_opt| acc_opt.map_or_else(|| 0, |acc| acc.nonce))
         .expect("retrieved nonce's value")
 }
 
-fn get_funds(connection: &Api<sr25519::Pair, WsRpcClient>, account: &AccountId) -> u128 {
+fn get_funds(connection: &Connection, account: &AccountId) -> u128 {
     match connection.get_account_data(account).unwrap() {
         Some(data) => data.free,
         None => 0,

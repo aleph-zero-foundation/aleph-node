@@ -1,6 +1,6 @@
-use crate::AnyConnection;
+use crate::{AnyConnection, Extrinsic};
 use codec::Encode;
-use substrate_api_client::{Balance, UncheckedExtrinsicV4};
+use substrate_api_client::Balance;
 
 #[derive(Debug)]
 pub struct FeeInfo {
@@ -11,7 +11,7 @@ pub struct FeeInfo {
 
 pub fn get_tx_fee_info<C: AnyConnection, Call: Encode>(
     connection: &C,
-    tx: &UncheckedExtrinsicV4<Call>,
+    tx: &Extrinsic<Call>,
 ) -> FeeInfo {
     let unadjusted_weight = connection
         .as_connection()

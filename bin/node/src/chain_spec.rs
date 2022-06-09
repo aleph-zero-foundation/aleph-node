@@ -398,6 +398,8 @@ fn generate_genesis_config(
         },
         treasury: Default::default(),
         vesting: VestingConfig { vesting: vec![] },
+        nomination_pools: Default::default(),
+        transaction_payment: Default::default(),
     }
 }
 

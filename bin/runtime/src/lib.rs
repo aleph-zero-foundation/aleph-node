@@ -38,9 +38,8 @@ pub use frame_support::{
     StorageValue,
 };
 use frame_support::{
-    pallet_prelude::ConstU32,
     sp_runtime::Perquintill,
-    traits::{EqualPrivilegeOnly, SortedMembers, U128CurrencyToVote},
+    traits::{ConstU32, ConstU64, EqualPrivilegeOnly, SortedMembers, U128CurrencyToVote},
     weights::constants::WEIGHT_PER_MILLIS,
     PalletId,
 };
@@ -370,6 +369,40 @@ impl pallet_session::historical::Config for Runtime {
 }
 
 parameter_types! {
+    pub const PostUnbondPoolsWindow: u32 = 4;
+    pub const NominationPoolsPalletId: PalletId = PalletId(*b"py/nopls");
+    pub const MinPointsToBalance: u32 = 10;
+}
+
+use sp_runtime::traits::Convert;
+pub struct BalanceToU256;
+impl Convert<Balance, sp_core::U256> for BalanceToU256 {
+    fn convert(balance: Balance) -> sp_core::U256 {
+        sp_core::U256::from(balance)
+    }
+}
+pub struct U256ToBalance;
+impl Convert<sp_core::U256, Balance> for U256ToBalance {
+    fn convert(n: sp_core::U256) -> Balance {
+        n.try_into().unwrap_or(Balance::max_value())
+    }
+}
+
+impl pallet_nomination_pools::Config for Runtime {
+    type WeightInfo = ();
+    type Event = Event;
+    type Currency = Balances;
+    type BalanceToU256 = BalanceToU256;
+    type U256ToBalance = U256ToBalance;
+    type StakingInterface = pallet_staking::Pallet<Self>;
+    type PostUnbondingPoolsWindow = PostUnbondPoolsWindow;
+    type MaxMetadataLen = ConstU32<256>;
+    type MaxUnbonding = ConstU32<8>;
+    type PalletId = NominationPoolsPalletId;
+    type MinPointsToBalance = MinPointsToBalance;
+}
+
+parameter_types! {
     pub const BondingDuration: EraIndex = 14;
     pub const SlashDeferDuration: EraIndex = 13;
     // this is coupled with weights for payout_stakers() call
@@ -494,6 +527,8 @@ impl pallet_staking::Config for Runtime {
     type MaxUnlockingChunks = ConstU32<16>;
     type BenchmarkingConfig = StakingBenchmarkingConfig;
     type WeightInfo = PayoutStakersDecreasedWeightInfo;
+    type CurrencyBalance = Balance;
+    type OnStakerSlash = NominationPools;
 }
 
 parameter_types! {
@@ -651,6 +686,9 @@ impl pallet_contracts::Config for Runtime {
     type Schedule = Schedule;
     type CallStack = [pallet_contracts::Frame<Self>; 31];
     type AddressGenerator = pallet_contracts::DefaultAddressGenerator;
+    type ContractAccessWeight = ConstU64<0>;
+    type MaxCodeLen = ConstU32<{ 128 * 1024 }>;
+    type RelaxedMaxCodeLen = ConstU32<{ 256 * 1024 }>;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -660,25 +698,26 @@ construct_runtime!(
         NodeBlock = opaque::Block,
         UncheckedExtrinsic = UncheckedExtrinsic
     {
-        System: frame_system::{Pallet, Call, Config, Storage, Event<T>} = 0,
-        RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage} = 1,
-        Scheduler: pallet_scheduler::{Pallet, Call, Storage, Event<T>} = 2,
-        Aura: pallet_aura::{Pallet, Config<T>} = 3,
-        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent} = 4,
-        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>} = 5,
-        TransactionPayment: pallet_transaction_payment::{Pallet, Storage} = 6,
-        Authorship: pallet_authorship::{Pallet, Call, Storage} = 7,
-        Staking: pallet_staking::{Pallet, Call, Storage, Config<T>, Event<T>} = 8,
-        History: pallet_session::historical::{Pallet} = 9,
-        Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>} = 10,
-        Aleph: pallet_aleph::{Pallet, Storage} = 11,
-        Elections: pallet_elections::{Pallet, Call, Storage, Config<T>, Event<T>} = 12,
-        Treasury: pallet_treasury::{Pallet, Call, Storage, Config, Event<T>} = 13,
-        Vesting: pallet_vesting::{Pallet, Call, Storage, Event<T>, Config<T>} = 14,
-        Utility: pallet_utility::{Pallet, Call, Storage, Event} = 15,
-        Multisig: pallet_multisig::{Pallet, Call, Storage, Event<T>} = 16,
-        Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>} = 17,
-        Contracts: pallet_contracts::{Pallet, Call, Storage, Event<T>} = 18,
+        System: frame_system,
+        RandomnessCollectiveFlip: pallet_randomness_collective_flip,
+        Scheduler: pallet_scheduler,
+        Aura: pallet_aura,
+        Timestamp: pallet_timestamp,
+        Balances: pallet_balances,
+        TransactionPayment: pallet_transaction_payment,
+        Authorship: pallet_authorship,
+        Staking: pallet_staking,
+        History: pallet_session::historical,
+        Session: pallet_session,
+        Aleph: pallet_aleph,
+        Elections: pallet_elections,
+        Treasury: pallet_treasury,
+        Vesting: pallet_vesting,
+        Utility: pallet_utility,
+        Multisig: pallet_multisig,
+        Sudo: pallet_sudo,
+        Contracts: pallet_contracts,
+        NominationPools: pallet_nomination_pools,
     }
 );
 

@@ -6,7 +6,7 @@ use aleph_bft::{PartialMultisignature, SignatureSet};
 use codec::{Decode, DecodeAll, Encode};
 
 /// Old format of justifications, needed for backwards compatibility.
-#[derive(Clone, Encode, Decode, Debug, PartialEq)]
+#[derive(Clone, Encode, Decode, Debug, PartialEq, Eq)]
 pub struct AlephJustificationV1 {
     pub signature: SignatureSet<SignatureV1>,
 }
@@ -26,7 +26,7 @@ impl From<AlephJustificationV1> for AlephJustification {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum JustificationDecoding {
     V1(AlephJustificationV1),
     V2(AlephJustification),

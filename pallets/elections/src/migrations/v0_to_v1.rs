@@ -5,15 +5,14 @@ use crate::{
     ValidatorEraTotalReward, ValidatorTotalRewards,
 };
 use frame_support::{
-    generate_storage_alias, log,
+    log, storage_alias,
     traits::{Get, PalletInfoAccess, StorageVersion},
     weights::Weight,
 };
 use sp_std::vec::Vec;
 
-generate_storage_alias!(
-    Elections, Members<T: Config> => Value<Vec<T::AccountId>>
-);
+#[storage_alias]
+type Members<T> = StorageValue<Elections, Vec<<T as frame_system::Config>::AccountId>>;
 
 /// The assumptions made by this migration:
 ///

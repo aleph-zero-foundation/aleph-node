@@ -1,23 +1,23 @@
 [package]
 name = "payout-stakers"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Cardinal Cryptography"]
 edition = "2021"
 
 [dependencies]
-aleph_client = { path = "../../aleph-client" }
-primitives = { path = "../../primitives" }
-
-sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", features = ["full_crypto"] }
-sp-keyring = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
-codec = { package = 'parity-scale-codec', version = "3.0.0", features = ['derive'] }
-
-substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "polkadot-v0.9.19" }
-
 anyhow = "^1.0"
-clap = {version = "3.0.0", features = ["derive"]}
+clap = { version = "3.0.0", features = ["derive"] }
+codec = { package = 'parity-scale-codec', version = "3.0.0", features = ['derive'] }
 env_logger = "0.8"
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 log = "0.4"
 rayon = "1.5"
 rand = "0.8.5"
+
+sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.23", features = ["full_crypto"] }
+sp-keyring = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.23" }
+
+substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "polkadot-v0.9.23" }
+
+aleph_client = { path = "../../aleph-client" }
+primitives = { path = "../../primitives" }

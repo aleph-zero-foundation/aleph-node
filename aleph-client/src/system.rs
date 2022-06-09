@@ -1,6 +1,6 @@
 use crate::{send_xt, AnyConnection, RootConnection};
 use sp_core::Pair;
-use substrate_api_client::{compose_call, compose_extrinsic, XtStatus};
+use substrate_api_client::{compose_call, compose_extrinsic, ExtrinsicParams, XtStatus};
 
 pub fn set_code(connection: &RootConnection, runtime: Vec<u8>, status: XtStatus) {
     let call = compose_call!(

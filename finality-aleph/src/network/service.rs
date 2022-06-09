@@ -558,12 +558,11 @@ mod tests {
             identities
                 .iter()
                 .take(opened_authorities_n)
-                .map(|identity| {
+                .flat_map(|identity| {
                     messages
                         .iter()
                         .map(move |m| (m.clone(), identity.1, Cow::Borrowed(ALEPH_PROTOCOL_NAME)))
-                })
-                .flatten(),
+                }),
         );
 
         assert_eq!(broadcasted_messages, expected_messages);

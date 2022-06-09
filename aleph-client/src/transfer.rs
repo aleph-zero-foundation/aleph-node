@@ -1,13 +1,12 @@
-use crate::{send_xt, AnyConnection, SignedConnection};
+use crate::{send_xt, AnyConnection, Extrinsic, SignedConnection};
 use codec::Compact;
 use sp_core::Pair;
 use sp_runtime::MultiAddress;
 use substrate_api_client::{
-    compose_call, compose_extrinsic, AccountId, GenericAddress, UncheckedExtrinsicV4, XtStatus,
+    compose_call, compose_extrinsic, AccountId, ExtrinsicParams, GenericAddress, XtStatus,
 };
 
-pub type TransferTransaction =
-    UncheckedExtrinsicV4<([u8; 2], MultiAddress<AccountId, ()>, Compact<u128>)>;
+pub type TransferTransaction = Extrinsic<([u8; 2], MultiAddress<AccountId, ()>, Compact<u128>)>;
 
 pub fn transfer(
     connection: &SignedConnection,

@@ -1,16 +1,14 @@
 [package]
 name = "flooder"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Cardinal Cryptography"]
 edition = "2021"
 
 [dependencies]
-# client
-substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "polkadot-v0.9.19" }
+substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "polkadot-v0.9.23" }
 
-# Substrate dependencies
-sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", features = ["full_crypto"] }
-sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19" }
+sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.23", features = ["full_crypto"] }
+sp-runtime = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.23" }
 
 # other dependencies
 serde_json = { version = "1.0" }
@@ -18,11 +16,12 @@ ws = { version = "0.9.1", features = ["ssl"] }
 mio = { version = "0.6.14" }
 zip = "0.5"
 anyhow = "^1.0"
-clap = {version = "3.0", features = ["derive"]}
-codec = { package = 'parity-scale-codec', version = "3.0.0", features = ['derive']}
-aleph_client = {path = "../aleph-client" }
+clap = { version = "3.0", features = ["derive"] }
+codec = { package = 'parity-scale-codec', version = "3.0.0", features = ['derive'] }
 env_logger = "0.8"
 futures = { version = "0.3", features = ["alloc"] }
 hdrhistogram = "7.3"
 log = "0.4"
 rayon = "1.5"
+
+aleph_client = { path = "../aleph-client" }

@@ -13,7 +13,7 @@ use std::{
 };
 
 /// Messages used for discovery and authentication.
-#[derive(Clone, Debug, PartialEq, Encode, Decode)]
+#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
 pub enum DiscoveryMessage {
     AuthenticationBroadcast(Authentication),
     Authentication(Authentication),

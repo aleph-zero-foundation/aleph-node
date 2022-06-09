@@ -1,22 +1,22 @@
 [package]
 name = "cliain"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 
 [dependencies]
-substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "polkadot-v0.9.19", features = ["staking-xt"] }
-# Substrate dependencies
-sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.19", features = ["full_crypto"] }
-pallet-staking = {git = "https://github.com/paritytech/substrate.git",branch = "polkadot-v0.9.19", default-features = false }
-
-# other dependencies
-primitives = { path = "../../primitives", default-features = false}
-clap = {version = "3.0", features = ["derive"]}
-aleph_client = {path = "../../aleph-client" }
+clap = { version = "3.0", features = ["derive"] }
+codec = { package = 'parity-scale-codec', version = "3.0.0", default-features = false, features = ['derive'] }
+dialoguer = "0.10.0"
 env_logger = "0.8"
 log = "0.4"
-codec = { package = 'parity-scale-codec', version = "3.0.0", default-features = false,  features = ['derive']}
-dialoguer = "0.10.0"
+
+substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "polkadot-v0.9.23", features = ["staking-xt"] }
+
+sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.23", features = ["full_crypto"] }
+pallet-staking = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.23", default-features = false }
+
+aleph_client = { path = "../../aleph-client" }
+primitives = { path = "../../primitives", default-features = false }
 
 [features]
 default = ["std"]

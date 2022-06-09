@@ -1,14 +1,21 @@
 use crate::Config;
 use frame_support::{
-    generate_storage_alias, log,
+    log, storage_alias,
     traits::{Get, PalletInfoAccess, StorageVersion},
     weights::Weight,
 };
 
-generate_storage_alias!(Aleph, SessionForValidatorsChange => Value<()>);
-generate_storage_alias!(Aleph, MillisecsPerBlock => Value<()>);
-generate_storage_alias!(Aleph, SessionPeriod => Value<()>);
-generate_storage_alias!(Aleph, Validators => Value<()>);
+#[storage_alias]
+type SessionForValidatorsChange = StorageValue<Aleph, ()>;
+
+#[storage_alias]
+type MillisecsPerBlock = StorageValue<Aleph, ()>;
+
+#[storage_alias]
+type SessionPeriod = StorageValue<Aleph, ()>;
+
+#[storage_alias]
+type Validators = StorageValue<Aleph, ()>;
 
 pub fn migrate<T: Config, P: PalletInfoAccess>() -> Weight {
     let mut writes = 0;

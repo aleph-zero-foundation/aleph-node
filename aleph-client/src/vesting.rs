@@ -2,7 +2,9 @@ use anyhow::Result;
 use log::info;
 pub use pallet_vesting::VestingInfo;
 use sp_core::Pair;
-use substrate_api_client::{compose_extrinsic, GenericAddress, XtStatus::Finalized};
+use substrate_api_client::{
+    compose_extrinsic, ExtrinsicParams, GenericAddress, XtStatus::Finalized,
+};
 use thiserror::Error;
 
 use primitives::Balance;

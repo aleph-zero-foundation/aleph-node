@@ -8,6 +8,7 @@
 use std::sync::Arc;
 
 use aleph_runtime::{opaque::Block, AccountId, Balance, BlockNumber, Hash, Index};
+use jsonrpsee::RpcModule;
 pub use sc_rpc_api::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;
 use sp_api::ProvideRuntimeApi;
@@ -25,39 +26,35 @@ pub struct FullDeps<C, P> {
 }
 
 /// Instantiate all full RPC extensions.
-pub fn create_full<C, P>(deps: FullDeps<C, P>) -> jsonrpc_core::IoHandler<sc_rpc::Metadata>
+pub fn create_full<C, P>(
+    deps: FullDeps<C, P>,
+) -> Result<RpcModule<()>, Box<dyn std::error::Error + Send + Sync>>
 where
     C: ProvideRuntimeApi<Block>,
     C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError> + 'static,
     C: Send + Sync + 'static,
+    C::Api: pallet_contracts_rpc::ContractsRuntimeApi<Block, AccountId, Balance, BlockNumber, Hash>,
     C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
     C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
-    C::Api: pallet_contracts_rpc::ContractsRuntimeApi<Block, AccountId, Balance, BlockNumber, Hash>,
     C::Api: BlockBuilder<Block>,
     P: TransactionPool + 'static,
 {
-    use pallet_contracts_rpc::{Contracts, ContractsApi};
-    use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
-    use substrate_frame_rpc_system::{FullSystem, SystemApi};
+    use pallet_contracts_rpc::{Contracts, ContractsApiServer};
+    use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
+    use substrate_frame_rpc_system::{System, SystemApiServer};
 
-    let mut io = jsonrpc_core::IoHandler::default();
+    let mut module = RpcModule::new(());
     let FullDeps {
         client,
         pool,
         deny_unsafe,
     } = deps;
 
-    io.extend_with(SystemApi::to_delegate(FullSystem::new(
-        client.clone(),
-        pool,
-        deny_unsafe,
-    )));
+    module.merge(System::new(client.clone(), pool, deny_unsafe).into_rpc())?;
 
-    io.extend_with(TransactionPaymentApi::to_delegate(TransactionPayment::new(
-        client.clone(),
-    )));
+    module.merge(TransactionPayment::new(client.clone()).into_rpc())?;
 
-    io.extend_with(ContractsApi::to_delegate(Contracts::new(client)));
+    module.merge(Contracts::new(client).into_rpc())?;
 
-    io
+    Ok(module)
 }

@@ -1,18 +1,16 @@
 use crate::Config;
 use frame_support::{
-    generate_storage_alias, log,
+    log, storage_alias,
     traits::{Get, PalletInfoAccess, StorageVersion},
     weights::Weight,
 };
 use sp_std::vec::Vec;
 
-generate_storage_alias!(
-    Aleph, SessionForValidatorsChange => Value<u32>
-);
+#[storage_alias]
+type SessionForValidatorsChange = StorageValue<Aleph, u32>;
 
-generate_storage_alias!(
-    Aleph, Validators<T: Config> => Value<Vec<T::AccountId>>
-);
+#[storage_alias]
+type Validators<T> = StorageValue<Aleph, Vec<<T as frame_system::Config>::AccountId>>;
 
 pub fn migrate<T: Config, P: PalletInfoAccess>() -> Weight {
     log::info!(target: "pallet_aleph", "Running migration from STORAGE_VERSION 0 to 1");

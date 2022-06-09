@@ -2,12 +2,12 @@ use codec::Encode;
 use sp_core::Pair;
 use sp_runtime::{traits::One, FixedPointNumber, FixedU128};
 use substrate_api_client::{
-    compose_extrinsic, AccountId, GenericAddress, UncheckedExtrinsicV4, XtStatus,
+    compose_extrinsic, AccountId, ExtrinsicParams, GenericAddress, XtStatus,
 };
 
 use aleph_client::{
-    balances_transfer, get_next_fee_multiplier, get_tx_fee_info, send_xt, AnyConnection, FeeInfo,
-    RootConnection, SignedConnection, TransferTransaction,
+    balances_transfer, get_next_fee_multiplier, get_tx_fee_info, send_xt, AnyConnection, Extrinsic,
+    FeeInfo, RootConnection, SignedConnection, TransferTransaction,
 };
 
 use crate::{config::Config, transfer::setup_for_transfer};
@@ -85,7 +85,7 @@ pub fn fee_calculation(config: &Config) -> anyhow::Result<()> {
 
 fn check_current_fees<C: AnyConnection, Call: Encode>(
     connection: &C,
-    tx: &UncheckedExtrinsicV4<Call>,
+    tx: &Extrinsic<Call>,
 ) -> (FixedU128, FeeInfo) {
     // The storage query will return an u128 value which is the 'inner' representation
     // i.e. scaled up by 10^18 (see `implement_fixed!` for `FixedU128).

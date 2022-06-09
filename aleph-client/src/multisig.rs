@@ -5,14 +5,14 @@ use codec::{Decode, Encode};
 use log::{error, info};
 use sp_core::{blake2_256, crypto::AccountId32, Pair};
 use sp_runtime::traits::TrailingZeroInput;
-use substrate_api_client::{compose_extrinsic, XtStatus::Finalized};
+use substrate_api_client::{compose_extrinsic, ExtrinsicParams, XtStatus::Finalized};
 use thiserror::Error;
 
 use primitives::Balance;
 
 use crate::{
-    account_from_keypair, try_send_xt, AccountId, AnyConnection, BlockNumber, KeyPair,
-    SignedConnection, UncheckedExtrinsicV4, H256,
+    account_from_keypair, try_send_xt, AccountId, AnyConnection, BlockNumber, Extrinsic, KeyPair,
+    SignedConnection, H256,
 };
 
 /// `MAX_WEIGHT` is the extrinsic parameter specifying upperbound for executing approved call.
@@ -48,7 +48,7 @@ type CallHash = [u8; 32];
 type Call = Vec<u8>;
 type Timepoint = pallet_multisig::Timepoint<BlockNumber>;
 
-type ApproveAsMultiCall = UncheckedExtrinsicV4<(
+type ApproveAsMultiCall = Extrinsic<(
     [u8; 2],           // call index
     u16,               // threshold
     Vec<AccountId32>,  // other signatories
@@ -57,7 +57,7 @@ type ApproveAsMultiCall = UncheckedExtrinsicV4<(
     u64,               // max weight
 )>;
 
-type AsMultiCall = UncheckedExtrinsicV4<(
+type AsMultiCall = Extrinsic<(
     [u8; 2],           // call index
     u16,               // threshold
     Vec<AccountId32>,  // other signatories
@@ -67,7 +67,7 @@ type AsMultiCall = UncheckedExtrinsicV4<(
     u64,               // max weight
 )>;
 
-type CancelAsMultiCall = UncheckedExtrinsicV4<(
+type CancelAsMultiCall = Extrinsic<(
     [u8; 2],          // call index
     u16,              // threshold
     Vec<AccountId32>, // other signatories
@@ -75,9 +75,7 @@ type CancelAsMultiCall = UncheckedExtrinsicV4<(
     CallHash,         // call hash
 )>;
 
-pub fn compute_call_hash<CallDetails: Encode>(
-    call: &UncheckedExtrinsicV4<CallDetails>,
-) -> CallHash {
+pub fn compute_call_hash<CallDetails: Encode>(call: &Extrinsic<CallDetails>) -> CallHash {
     blake2_256(&call.function.encode())
 }
 
@@ -238,7 +236,7 @@ impl MultisigParty {
     fn finalize_xt<C: AnyConnection, T: Encode>(
         &self,
         connection: &C,
-        xt: UncheckedExtrinsicV4<T>,
+        xt: Extrinsic<T>,
         description: &'static str,
     ) -> Result<H256> {
         Ok(try_send_xt(connection, xt, Some(description), Finalized)?
@@ -305,7 +303,7 @@ impl MultisigParty {
         connection: &SignedConnection,
         other_signatories: Vec<AccountId>,
         timepoint: Option<Timepoint>,
-        call: UncheckedExtrinsicV4<CallDetails>,
+        call: Extrinsic<CallDetails>,
         store_call: bool,
     ) -> AsMultiCall {
         compose_extrinsic!(
@@ -325,7 +323,7 @@ impl MultisigParty {
     pub fn initiate_aggregation_with_call<C: AnyConnection, CallDetails: Encode + Clone>(
         &self,
         connection: &C,
-        call: UncheckedExtrinsicV4<CallDetails>,
+        call: Extrinsic<CallDetails>,
         store_call: bool,
         author_idx: usize,
     ) -> Result<SignatureAggregation> {
@@ -387,7 +385,7 @@ impl MultisigParty {
         connection: &C,
         author_idx: usize,
         mut sig_agg: SignatureAggregation,
-        call: UncheckedExtrinsicV4<CallDetails>,
+        call: Extrinsic<CallDetails>,
         store_call: bool,
     ) -> Result<SignatureAggregation> {
         self.ensure_index(author_idx)?;
