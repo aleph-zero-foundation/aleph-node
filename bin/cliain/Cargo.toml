@@ -4,23 +4,23 @@ version = "0.3.0"
 edition = "2021"
 
 [dependencies]
+aleph_client = { path = "../../aleph-client" }
+anyhow = "1.0"
 clap = { version = "3.0", features = ["derive"] }
-codec = { package = 'parity-scale-codec', version = "3.0.0", default-features = false, features = ['derive'] }
+codec = { package = 'parity-scale-codec', version = "3.0.0", features = ['derive'] }
+contract-metadata = { git = "https://github.com/paritytech/cargo-contract.git", tag = "v1.4.0"}
+contract-transcode = { version = "0.1.0" }
 dialoguer = "0.10.0"
 env_logger = "0.8"
+ink_metadata = { version = "3.0", features = ["derive"] }
 log = "0.4"
-
-substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "polkadot-v0.9.23", features = ["staking-xt"] }
-
+pallet-staking = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.23" }
+primitives = { path = "../../primitives" }
+serde = { version = "1.0.137", features = ["derive"] }
+serde_json = "1.0.81"
 sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.23", features = ["full_crypto"] }
-pallet-staking = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.23", default-features = false }
-
-aleph_client = { path = "../../aleph-client" }
-primitives = { path = "../../primitives", default-features = false }
+substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "polkadot-v0.9.23", features = ["staking-xt"] }
 
 [features]
 default = ["std"]
-std = [
-    "pallet-staking/std",
-    "primitives/std"
-]
+std = []

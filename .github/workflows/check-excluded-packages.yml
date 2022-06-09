@@ -68,7 +68,7 @@ jobs:
             echo "Checking package $p..."
             pushd "$p"
             cargo fmt --all --check
-            cargo clippy --all-targets --all-features -- --no-deps -D warnings
+            cargo clippy --all-features -- --no-deps -D warnings
             popd
           done
 
