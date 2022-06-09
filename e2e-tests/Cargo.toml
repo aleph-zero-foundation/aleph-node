@@ -22,7 +22,7 @@ pallet-staking = { git = "https://github.com/paritytech/substrate.git", branch =
 pallet-balances = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.23", default-features = false }
 
 aleph_client = { path = "../aleph-client" }
-primitives = { path = "../primitives", default-features = false }
+primitives = { path = "../primitives", features = ["short_session"], default-features = false }
 
 [features]
 default = ["std"]

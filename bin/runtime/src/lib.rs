@@ -413,13 +413,11 @@ parameter_types! {
     pub const SessionsPerEra: EraIndex = DEFAULT_SESSIONS_PER_ERA;
 }
 
-pub struct UniformEraPayout {}
+pub struct UniformEraPayout;
 
 impl pallet_staking::EraPayout<Balance> for UniformEraPayout {
-    fn era_payout(_: Balance, _: Balance, _: u64) -> (Balance, Balance) {
-        let miliseconds_per_era =
-            MILLISECS_PER_BLOCK * SessionPeriod::get() as u64 * SessionsPerEra::get() as u64;
-        primitives::staking::era_payout(miliseconds_per_era)
+    fn era_payout(_: Balance, _: Balance, era_duration_millis: u64) -> (Balance, Balance) {
+        primitives::staking::era_payout(era_duration_millis)
     }
 }
 

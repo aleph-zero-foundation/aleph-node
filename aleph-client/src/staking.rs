@@ -293,3 +293,11 @@ pub fn ledger<C: AnyConnection>(connection: &C, controller: &KeyPair) -> Option<
         .get_storage_map("Staking", "Ledger", &account_id, None)
         .unwrap_or_else(|_| panic!("Failed to obtain Ledger for account id {}", account_id))
 }
+
+pub fn get_payout_for_era<C: AnyConnection>(connection: &C, era: u32) -> u128 {
+    connection
+        .as_connection()
+        .get_storage_map("Staking", "ErasValidatorReward", era, None)
+        .expect("Failed to decode ErasValidatorReward")
+        .expect("ErasValidatoReward is empty in the storage")
+}

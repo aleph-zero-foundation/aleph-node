@@ -2,8 +2,8 @@ use crate::{
     config::Config,
     test::{
         batch_transactions as test_batch_transactions, change_validators as test_change_validators,
-        channeling_fee as test_channeling_fee, fee_calculation as test_fee_calculation,
-        finalization as test_finalization, members_rotate,
+        channeling_fee as test_channeling_fee, era_payouts_calculated_correctly as test_era_payout,
+        fee_calculation as test_fee_calculation, finalization as test_finalization, members_rotate,
         staking_era_payouts as test_staking_era_payouts,
         staking_new_validator as test_staking_new_validator, token_transfer as test_token_transfer,
         treasury_access as test_treasury_access,
@@ -32,5 +32,6 @@ pub fn possible_test_cases() -> PossibleTestCases {
         ),
         ("change_validators", test_change_validators as TestCase),
         ("fee_calculation", test_fee_calculation as TestCase),
+        ("era_payout", test_era_payout as TestCase),
     ]
 }

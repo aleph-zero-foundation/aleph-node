@@ -278,6 +278,21 @@ jobs:
           follow-up-finalization-check: true
         timeout-minutes: 10
 
+  run-e2e-era-payout:
+    needs: [build-test-docker, build-test-client]
+    name: Run era payout test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: era_payout
+          follow-up-finalization-check: true
+        timeout-minutes: 10
+
 
   check-e2e-test-suite-completion:
     needs: [
@@ -290,7 +305,8 @@ jobs:
       run-e2e-staking-new-validator-test,
       run-e2e-change-validators-test,
       run-e2e-fee-calculation,
-      run-e2e-members-rotate
+      run-e2e-members-rotate,
+      run-e2e-era-payout
     ]
     name: Check e2e test suite completion
     runs-on: ubuntu-latest
