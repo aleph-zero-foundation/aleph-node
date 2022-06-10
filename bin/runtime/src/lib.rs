@@ -47,8 +47,8 @@ use frame_system::{EnsureRoot, EnsureSignedBy};
 pub use primitives::Balance;
 use primitives::{
     staking::MAX_NOMINATORS_REWARDED_PER_VALIDATOR, wrap_methods, ApiError as AlephApiError,
-    AuthorityId as AlephId, DEFAULT_MILLISECS_PER_BLOCK, DEFAULT_SESSIONS_PER_ERA,
-    DEFAULT_SESSION_PERIOD, TOKEN,
+    AuthorityId as AlephId, ADDRESSES_ENCODING, DEFAULT_SESSIONS_PER_ERA, DEFAULT_SESSION_PERIOD,
+    MILLISECS_PER_BLOCK, TOKEN,
 };
 
 pub use pallet_balances::Call as BalancesCall;
@@ -112,23 +112,12 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 15,
+    spec_version: 16,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 6,
     state_version: 1,
 };
-
-pub const MILLISECS_PER_BLOCK: u64 = DEFAULT_MILLISECS_PER_BLOCK;
-
-pub const MILLISECS_PER_MINUTE: u64 = 60_000; // milliseconds
-pub const MILLISECS_PER_HOUR: u64 = MILLISECS_PER_MINUTE * 60;
-pub const MILLISECS_PER_DAY: u64 = MILLISECS_PER_HOUR * 24;
-
-/// Get the number of blocks produced in the period given by `hours`
-pub fn hours_as_block_num(hours: u64) -> BlockNumber {
-    (MILLISECS_PER_HOUR * hours / MILLISECS_PER_BLOCK) as BlockNumber
-}
 
 /// The version information used to identify this runtime when compiled natively.
 #[cfg(feature = "std")]
@@ -139,16 +128,23 @@ pub fn native_version() -> NativeVersion {
     }
 }
 
-const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
+pub const BLOCKS_PER_HOUR: u32 = 60 * 60 * 1000 / (MILLISECS_PER_BLOCK as u32);
+
+pub const MILLI_AZERO: Balance = TOKEN / 1000;
+pub const MICRO_AZERO: Balance = MILLI_AZERO / 1000;
+pub const NANO_AZERO: Balance = MICRO_AZERO / 1000;
+pub const PICO_AZERO: Balance = NANO_AZERO / 1000;
+
+// 75% block weight is dedicated to normal extrinsics
+pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 // The whole process for a single block should take 1s, of which 400ms is for creation,
 // 200ms for propagation and 400ms for validation. Hence the block weight should be within 400ms.
-const MAX_BLOCK_WEIGHT: Weight = 400 * WEIGHT_PER_MILLIS;
+pub const MAX_BLOCK_WEIGHT: Weight = 400 * WEIGHT_PER_MILLIS;
 // We agreed to 5MB as the block size limit.
 pub const MAX_BLOCK_SIZE: u32 = 5 * 1024 * 1024;
 
-pub const MILLICENTS: Balance = 100_000_000;
-pub const CENTS: Balance = 1_000 * MILLICENTS; // 10^12 is one token, which for now is worth $0.1
-pub const DOLLARS: Balance = 100 * CENTS; // 10_000_000_000
+// The storage deposit is roughly 1 TOKEN per 1kB
+pub const DEPOSIT_PER_BYTE: Balance = MILLI_AZERO;
 
 parameter_types! {
     pub const Version: RuntimeVersion = VERSION;
@@ -157,7 +153,7 @@ parameter_types! {
         ::with_sensible_defaults(MAX_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO);
     pub BlockLength: frame_system::limits::BlockLength = frame_system::limits::BlockLength
         ::max_with_normal_ratio(MAX_BLOCK_SIZE, NORMAL_DISPATCH_RATIO);
-    pub const SS58Prefix: u8 = 42;
+    pub const SS58Prefix: u8 = ADDRESSES_ENCODING;
 }
 
 // Configure FRAME pallets to include in runtime.
@@ -236,7 +232,7 @@ impl pallet_authorship::Config for Runtime {
 }
 
 parameter_types! {
-    pub const ExistentialDeposit: u128 = 500;
+    pub const ExistentialDeposit: u128 = 500 * PICO_AZERO;
     pub const MaxLocks: u32 = 50;
 }
 
@@ -252,13 +248,6 @@ impl pallet_balances::Config for Runtime {
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
-}
-
-parameter_types! {
-    // This value increases the priority of `Operational` transactions by adding
-    // a "virtual tip" that's equal to the `OperationalFeeMultiplier * final_fee`.
-    // follows polkadot : https://github.com/paritytech/polkadot/blob/9ce5f7ef5abb1a4291454e8c9911b304d80679f9/runtime/polkadot/src/lib.rs#L369
-    pub const OperationalFeeMultiplier: u8 = 5;
 }
 
 type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
@@ -277,8 +266,12 @@ impl OnUnbalanced<NegativeImbalance> for EverythingToTheTreasury {
 }
 
 parameter_types! {
+    // This value increases the priority of `Operational` transactions by adding
+    // a "virtual tip" that's equal to the `OperationalFeeMultiplier * final_fee`.
+    // follows polkadot : https://github.com/paritytech/polkadot/blob/9ce5f7ef5abb1a4291454e8c9911b304d80679f9/runtime/polkadot/src/lib.rs#L369
+    pub const OperationalFeeMultiplier: u8 = 5;
     // We expect that on average 25% of the normal capacity will be occupied with normal txs.
-    pub TargetSaturationLevel: Perquintill = Perquintill::from_percent(25);
+    pub const TargetSaturationLevel: Perquintill = Perquintill::from_percent(25);
     // During 20 blocks the fee may not change more than by 100%. This, together with the
     // `TargetSaturationLevel` value, results in variability ~0.067. For the corresponding
     // formulas please refer to Substrate code at `frame/transaction-payment/src/lib.rs`.
@@ -550,7 +543,7 @@ where
 }
 
 parameter_types! {
-    pub const MinVestedTransfer: Balance = 1_000_000;
+    pub const MinVestedTransfer: Balance = MICRO_AZERO;
 }
 
 impl pallet_vesting::Config for Runtime {
@@ -564,20 +557,11 @@ impl pallet_vesting::Config for Runtime {
     const MAX_VESTING_SCHEDULES: u32 = 28;
 }
 
-// at a fixed cost $0.01 per byte, the constants are selected so that
-// the base cost of starting a multisig action is $5
-pub const ALLOCATION_COST: Balance = 412 * CENTS;
-pub const BYTE_COST: Balance = CENTS;
-
-pub const fn deposit(items: u32, bytes: u32) -> Balance {
-    (items as Balance) * ALLOCATION_COST + (bytes as Balance) * BYTE_COST
-}
-
 parameter_types! {
-    // One storage item; key size is 32; value is size 4+4+16+32 bytes = 56 bytes.
-    pub const DepositBase: Balance = deposit(1, 88);
+    // One storage item; key size is 32+32; value is size 4+4+16+32 bytes = 56 bytes.
+    pub const DepositBase: Balance = 120 * DEPOSIT_PER_BYTE;
     // Additional storage item size of 32 bytes.
-    pub const DepositFactor: Balance = deposit(0, 32);
+    pub const DepositFactor: Balance = 32 * DEPOSIT_PER_BYTE;
     pub const MaxSignatories: u16 = 100;
 }
 
@@ -596,13 +580,11 @@ pub const TREASURY_BURN: u32 = 0;
 // The percentage of the amount of the proposal that the proposer should deposit.
 // We agreed on non-progressive deposit.
 pub const TREASURY_PROPOSAL_BOND: u32 = 0;
-// The proposer should deposit max{`TREASURY_PROPOSAL_BOND`% of the proposal value, $10}.
-pub const TREASURY_MINIMUM_BOND: Balance = 1000 * CENTS;
-pub const TREASURY_MAXIMUM_BOND: Balance = 500 * DOLLARS;
-// Every 4h we implement accepted proposals.
-pub fn treasury_spend_period() -> BlockNumber {
-    hours_as_block_num(4)
-}
+// The proposer should deposit max{`TREASURY_PROPOSAL_BOND`% of the proposal value, 100 AZERO}.
+pub const TREASURY_MINIMUM_BOND: Balance = 100 * TOKEN;
+pub const TREASURY_MAXIMUM_BOND: Balance = 5000 * TOKEN;
+// Every 4 hours we implement accepted proposals.
+pub const TREASURY_SPEND_PERIOD: BlockNumber = 4 * BLOCKS_PER_HOUR;
 // We allow at most 20 approvals in the queue at once.
 pub const TREASURY_MAX_APPROVALS: u32 = 20;
 
@@ -612,7 +594,7 @@ parameter_types! {
     pub const ProposalBondMinimum: Balance = TREASURY_MINIMUM_BOND;
     pub const ProposalBondMaximum: Balance = TREASURY_MAXIMUM_BOND;
     pub const MaxApprovals: u32 = TREASURY_MAX_APPROVALS;
-    pub SpendPeriod: BlockNumber = treasury_spend_period();
+    pub const SpendPeriod: BlockNumber = TREASURY_SPEND_PERIOD;
     pub const TreasuryPalletId: PalletId = PalletId(*b"a0/trsry");
 }
 
@@ -652,9 +634,8 @@ impl pallet_utility::Config for Runtime {
 const CONTRACTS_DEBUG_OUTPUT: bool = true;
 
 parameter_types! {
-    // The following weights are pulled out of thin air. A separate task to adjust them is already in JIRA.
-    pub const DepositPerItem: Balance = TOKEN / 100;     //  10 milli-AZERO per item
-    pub const DepositPerByte: Balance = TOKEN / 100_000; // ~10 milli-AZERO per kB storage
+    pub const DepositPerItem: Balance = 32 * DEPOSIT_PER_BYTE;
+    pub const DepositPerByte: Balance = DEPOSIT_PER_BYTE;
     // The lazy deletion runs inside on_initialize.
     pub DeletionWeightLimit: Weight = Perbill::from_percent(10) * BlockWeights::get().max_block; // 40ms
     // The weight needed for decoding the queue should be less or equal than a tenth

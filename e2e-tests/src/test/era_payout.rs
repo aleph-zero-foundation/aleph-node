@@ -4,8 +4,7 @@ use aleph_client::{
     wait_for_next_era, wait_for_session, AnyConnection, RootConnection, SignedConnection,
 };
 use primitives::{
-    staking::era_payout, DEFAULT_MILLISECS_PER_BLOCK, DEFAULT_SESSIONS_PER_ERA,
-    DEFAULT_SESSION_PERIOD,
+    staking::era_payout, DEFAULT_SESSIONS_PER_ERA, DEFAULT_SESSION_PERIOD, MILLISECS_PER_BLOCK,
 };
 use substrate_api_client::XtStatus;
 
@@ -17,7 +16,7 @@ pub fn era_payouts_calculated_correctly(config: &Config) -> anyhow::Result<()> {
 }
 
 fn payout_within_two_block_delta(expected_payout: u128, payout: u128) {
-    let one_block = era_payout(2 * DEFAULT_MILLISECS_PER_BLOCK).0;
+    let one_block = era_payout(2 * MILLISECS_PER_BLOCK).0;
 
     let start = expected_payout - one_block;
     let end = expected_payout + one_block;
@@ -53,8 +52,7 @@ fn force_era_payout(config: &Config) -> anyhow::Result<()> {
     wait_for_session(&root_connection, starting_session + 3)?;
 
     let payout = get_payout_for_era(&root_connection, current_era);
-    let expected_payout =
-        era_payout((3 * DEFAULT_SESSION_PERIOD) as u64 * DEFAULT_MILLISECS_PER_BLOCK).0;
+    let expected_payout = era_payout((3 * DEFAULT_SESSION_PERIOD) as u64 * MILLISECS_PER_BLOCK).0;
 
     payout_within_two_block_delta(expected_payout, payout);
 
@@ -67,7 +65,7 @@ fn normal_era_payout(config: &Config) -> anyhow::Result<()> {
     let current_era = wait_to_second_era(&connection);
     let payout = get_payout_for_era(&connection, current_era - 1);
     let expected_payout = era_payout(
-        (DEFAULT_SESSIONS_PER_ERA * DEFAULT_SESSION_PERIOD) as u64 * DEFAULT_MILLISECS_PER_BLOCK,
+        (DEFAULT_SESSIONS_PER_ERA * DEFAULT_SESSION_PERIOD) as u64 * MILLISECS_PER_BLOCK,
     )
     .0;
 

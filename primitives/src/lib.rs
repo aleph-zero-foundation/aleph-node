@@ -26,7 +26,7 @@ pub type AuthorityId = app::Public;
 
 pub type Balance = u128;
 
-pub const DEFAULT_MILLISECS_PER_BLOCK: u64 = 1000;
+pub const MILLISECS_PER_BLOCK: u64 = 1000;
 
 // Quick sessions for testing purposes
 #[cfg(feature = "short_session")]
@@ -45,7 +45,7 @@ pub const TOKEN: u128 = 10u128.pow(TOKEN_DECIMALS);
 
 pub const DEFAULT_MEMBERS_PER_SESSION: u32 = 4;
 
-pub const ADDRESSES_ENCODING: u32 = 42;
+pub const ADDRESSES_ENCODING: u8 = 42;
 pub const DEFAULT_UNIT_CREATION_DELAY: u64 = 300;
 
 #[derive(Encode, Decode, PartialEq, Eq, sp_std::fmt::Debug)]
@@ -71,15 +71,16 @@ pub mod staking {
     pub const MIN_VALIDATOR_BOND: u128 = 25_000 * TOKEN;
     pub const MIN_NOMINATOR_BOND: u128 = 100 * TOKEN;
     pub const MAX_NOMINATORS_REWARDED_PER_VALIDATOR: u32 = 1024;
+    pub const YEARLY_INFLATION: Balance = 30_000_000 * TOKEN;
+    pub const VALIDATOR_REWARD: Perbill = Perbill::from_percent(90);
 
     pub fn era_payout(miliseconds_per_era: u64) -> (Balance, Balance) {
-        const YEARLY_INFLATION: Balance = 30_000_000 * TOKEN;
         // Milliseconds per year for the Julian year (365.25 days).
         const MILLISECONDS_PER_YEAR: u64 = 1000 * 3600 * 24 * 36525 / 100;
 
         let portion = Perbill::from_rational(miliseconds_per_era, MILLISECONDS_PER_YEAR);
         let total_payout = portion * YEARLY_INFLATION;
-        let validators_payout = Perbill::from_percent(90) * total_payout;
+        let validators_payout = VALIDATOR_REWARD * total_payout;
         let rest = total_payout - validators_payout;
 
         (validators_payout, rest)
