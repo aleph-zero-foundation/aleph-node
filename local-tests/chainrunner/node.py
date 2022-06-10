@@ -76,7 +76,7 @@ class Node:
         if self.running:
             print("cannot export state of a running node")
             return {}
-        cmd = [self.binary, 'export-state', '--pruning', 'archive'] + self._stdargs()
+        cmd = [self.binary, 'export-state'] + self._stdargs()
         if block is not None:
             cmd.append(str(block))
         proc = subprocess.run(cmd, capture_output=True, check=True)
