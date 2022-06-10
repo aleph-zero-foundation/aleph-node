@@ -83,7 +83,9 @@ oldver = query_runtime_version(chain)
 
 print('Submitting extrinsic with new runtime')
 subprocess.check_call(
-    [CLIAIN, '--node', 'localhost:9945', '--seed', phrases[0], 'update-runtime', '--runtime', runtime])
+    [CLIAIN, '--node', 'localhost:9945', '--seed', phrases[0],
+        'update-runtime', '--runtime', runtime],
+    env=dict(os.environ, RUST_LOG="warn"))
 
 print('Waiting a bit')
 sleep(10)
