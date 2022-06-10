@@ -1,3 +1,8 @@
+//! This module contains basic treasury actions testing. However, since currently we need to disable
+//! proposing to treasury on Testnet, `treasury_access` test must have been simplified and thus
+//! some part of this module is unused (`dead_code`). As soon as proposals are enabled once again,
+//! we should recover original scenario.
+
 use codec::{Compact, Decode};
 use frame_support::PalletId;
 use log::info;
@@ -13,11 +18,7 @@ use aleph_client::{
     Extrinsic, RootConnection, SignedConnection,
 };
 
-use crate::{
-    accounts::{get_sudo_key, get_validators_keys},
-    config::Config,
-    transfer::setup_for_transfer,
-};
+use crate::{accounts::get_validators_keys, config::Config, transfer::setup_for_transfer};
 
 fn calculate_staking_treasury_addition<C: AnyConnection>(connection: &C) -> u128 {
     let sessions_per_era = connection
@@ -128,16 +129,13 @@ pub fn treasury_access(config: &Config) -> anyhow::Result<()> {
     let beneficiary = AccountId::from(proposer.public());
     let connection = SignedConnection::new(&config.node, proposer);
 
+    let proposals_counter_before = get_proposals_counter(&connection);
     propose_treasury_spend(10u128, &beneficiary, &connection);
-    propose_treasury_spend(100u128, &beneficiary, &connection);
-    let proposals_counter = get_proposals_counter(&connection);
-    assert!(proposals_counter >= 2, "Proposal was not created");
-
-    let sudo = get_sudo_key(config);
-    let connection = RootConnection::new(&config.node, sudo);
-
-    treasury_approve(proposals_counter - 2, &connection)?;
-    treasury_reject(proposals_counter - 1, &connection)?;
+    let proposals_counter_after = get_proposals_counter(&connection);
+    assert_eq!(
+        proposals_counter_before, proposals_counter_after,
+        "Proposal was created: deposit was not high enough"
+    );
 
     Ok(())
 }
@@ -181,11 +179,13 @@ fn get_proposals_counter<C: AnyConnection>(connection: &C) -> u32 {
         .as_connection()
         .get_storage_value("Treasury", "ProposalCount", None)
         .unwrap()
-        .unwrap()
+        .unwrap_or(0)
 }
 
+#[allow(dead_code)]
 type GovernanceTransaction = Extrinsic<([u8; 2], Compact<u32>)>;
 
+#[allow(dead_code)]
 fn send_treasury_approval(proposal_id: u32, connection: &RootConnection) -> GovernanceTransaction {
     let xt = compose_extrinsic!(
         connection.as_connection(),
@@ -202,11 +202,13 @@ fn send_treasury_approval(proposal_id: u32, connection: &RootConnection) -> Gove
     xt
 }
 
+#[allow(dead_code)]
 fn treasury_approve(proposal_id: u32, connection: &RootConnection) -> anyhow::Result<()> {
     send_treasury_approval(proposal_id, connection);
     wait_for_approval(connection, proposal_id)
 }
 
+#[allow(dead_code)]
 fn send_treasury_rejection(proposal_id: u32, connection: &RootConnection) -> GovernanceTransaction {
     let xt = compose_extrinsic!(
         connection.as_connection(),
@@ -223,6 +225,7 @@ fn send_treasury_rejection(proposal_id: u32, connection: &RootConnection) -> Gov
     xt
 }
 
+#[allow(dead_code)]
 fn treasury_reject(proposal_id: u32, connection: &RootConnection) -> anyhow::Result<()> {
     let (c, p) = (connection.clone(), proposal_id);
     let listener = thread::spawn(move || wait_for_rejection(&c, p));
@@ -230,6 +233,7 @@ fn treasury_reject(proposal_id: u32, connection: &RootConnection) -> anyhow::Res
     listener.join().unwrap()
 }
 
+#[allow(dead_code)]
 fn wait_for_approval<C: AnyConnection>(connection: &C, proposal_id: u32) -> anyhow::Result<()> {
     loop {
         let approvals: Vec<u32> = connection
@@ -250,12 +254,14 @@ fn wait_for_approval<C: AnyConnection>(connection: &C, proposal_id: u32) -> anyh
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Decode, Copy, Clone)]
 struct ProposalRejectedEvent {
     proposal_id: u32,
     _slashed: u128,
 }
 
+#[allow(dead_code)]
 fn wait_for_rejection<C: AnyConnection>(connection: &C, proposal_id: u32) -> anyhow::Result<()> {
     wait_for_event(
         connection,

@@ -112,7 +112,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 16,
+    spec_version: 17,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 6,
@@ -581,8 +581,8 @@ pub const TREASURY_BURN: u32 = 0;
 // We agreed on non-progressive deposit.
 pub const TREASURY_PROPOSAL_BOND: u32 = 0;
 // The proposer should deposit max{`TREASURY_PROPOSAL_BOND`% of the proposal value, 100 AZERO}.
-pub const TREASURY_MINIMUM_BOND: Balance = 100 * TOKEN;
-pub const TREASURY_MAXIMUM_BOND: Balance = 5000 * TOKEN;
+pub const TREASURY_MINIMUM_BOND: Balance = 100_000_000_000 * TOKEN;
+pub const TREASURY_MAXIMUM_BOND: Balance = 100_000_000_000 * TOKEN;
 // Every 4 hours we implement accepted proposals.
 pub const TREASURY_SPEND_PERIOD: BlockNumber = 4 * BLOCKS_PER_HOUR;
 // We allow at most 20 approvals in the queue at once.
