@@ -26,6 +26,7 @@ pallet-balances = { default-features = false, git = "https://github.com/parityte
 pallet-contracts = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.23" }
 pallet-contracts-primitives = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.23" }
 pallet-contracts-rpc-runtime-api = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.23" }
+pallet-identity = { git = "https://github.com/paritytech/substrate", default-features = false, branch = "polkadot-v0.9.23" }
 pallet-randomness-collective-flip = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.23"}
 pallet-session = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.23"}
 pallet-scheduler = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.23"}
@@ -73,6 +74,7 @@ std = [
     "pallet-authorship/std",
     "pallet-balances/std",
     "pallet-elections/std",
+    "pallet-identity/std",
     "pallet-randomness-collective-flip/std",
     "pallet-session/std",
     "pallet-staking/std",

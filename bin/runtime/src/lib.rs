@@ -112,10 +112,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 17,
+    spec_version: 18,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 6,
+    transaction_version: 7,
     state_version: 1,
 };
 
@@ -670,6 +670,32 @@ impl pallet_contracts::Config for Runtime {
     type RelaxedMaxCodeLen = ConstU32<{ 256 * 1024 }>;
 }
 
+parameter_types! {
+    // bytes count taken from:
+    // https://github.com/paritytech/polkadot/blob/016dc7297101710db0483ab6ef199e244dff711d/runtime/kusama/src/lib.rs#L995
+    pub const BasicDeposit: Balance = 258 * DEPOSIT_PER_BYTE;
+    pub const FieldDeposit: Balance = 66 * DEPOSIT_PER_BYTE;
+    pub const SubAccountDeposit: Balance = 53 * DEPOSIT_PER_BYTE;
+    pub const MaxSubAccounts: u32 = 100;
+    pub const MaxAdditionalFields: u32 = 100;
+    pub const MaxRegistrars: u32 = 20;
+}
+
+impl pallet_identity::Config for Runtime {
+    type Event = Event;
+    type Currency = Balances;
+    type BasicDeposit = BasicDeposit;
+    type FieldDeposit = FieldDeposit;
+    type SubAccountDeposit = SubAccountDeposit;
+    type MaxSubAccounts = MaxSubAccounts;
+    type MaxAdditionalFields = MaxAdditionalFields;
+    type MaxRegistrars = MaxRegistrars;
+    type Slashed = Treasury;
+    type ForceOrigin = EnsureRoot<AccountId>;
+    type RegistrarOrigin = EnsureRoot<AccountId>;
+    type WeightInfo = pallet_identity::weights::SubstrateWeight<Self>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub enum Runtime where
@@ -697,6 +723,7 @@ construct_runtime!(
         Sudo: pallet_sudo,
         Contracts: pallet_contracts,
         NominationPools: pallet_nomination_pools,
+        Identity: pallet_identity,
     }
 );
 
