@@ -4,21 +4,9 @@
 //!
 //! ### Terminology
 //! For definition of session, era, staking see pallet_session and pallet_staking.
-//! - Committee: Set of nodes that produce and finalize blocks in the era.
+//! - Committee: Set of nodes that produce and finalize blocks in the session.
 //! - Validator: Node that can become a member of committee (or already is) via rotation.
-//! - (TODO: remove this to remove confusion) Member: Usually same as validator, sometimes means member of the committee
-//! - ReservedMembers: Validators that are chosen to be in committee every single session.
-//!
-//! ### Storage
-//! - `Members` - List of possible validators.
-//! - `MembersPerSession` - Committee size.
-//! - `ReservedMembers` - List of reserved nodes.
-//! - `ErasReserved` - List of reserved nodes for the current era.
-//!   This is populated from `ReservedMembers` at the time of planning the first session of the era.
-//! - `SessionValidatorBlockCount` - Count per validator, how many blocks did the validator produced
-//!   in the current session.
-//! - `ValidatorEraTotalReward` - Total possible reward per validator for the current era. Scaled to
-//!   fit in the u32.
+//! - ReservedValidators: Validators that are chosen to be in committee every single session.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -35,17 +23,31 @@ use frame_support::traits::StorageVersion;
 use scale_info::TypeInfo;
 use sp_std::{
     collections::{btree_map::BTreeMap, btree_set::BTreeSet},
-    prelude::Vec,
+    prelude::*,
 };
 
 pub use impls::compute_validator_scaled_total_rewards;
 pub use pallet::*;
 
-const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
 
 pub type BlockCount = u32;
 pub type TotalReward = u32;
 
+#[derive(Decode, Encode, TypeInfo)]
+pub struct EraValidators<AccountId> {
+    pub reserved: Vec<AccountId>,
+    pub non_reserved: Vec<AccountId>,
+}
+
+impl<AccountId> Default for EraValidators<AccountId> {
+    fn default() -> Self {
+        EraValidators {
+            reserved: vec![],
+            non_reserved: vec![],
+        }
+    }
+}
 #[derive(Decode, Encode, TypeInfo)]
 pub struct ValidatorTotalRewards<T>(pub BTreeMap<T, TotalReward>);
 
@@ -62,7 +64,7 @@ pub mod pallet {
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
     use pallet_session::SessionManager;
-    use primitives::DEFAULT_MEMBERS_PER_SESSION;
+    use primitives::DEFAULT_COMMITTEE_SIZE;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -88,7 +90,7 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        ChangeMembers(Vec<T::AccountId>, Vec<T::AccountId>, u32),
+        ChangeValidators(Vec<T::AccountId>, Vec<T::AccountId>, u32),
     }
 
     #[pallet::pallet]
@@ -105,11 +107,15 @@ pub mod pallet {
                     _ if on_chain == STORAGE_VERSION => 0,
                     _ if on_chain == StorageVersion::new(0) => {
                         migrations::v0_to_v1::migrate::<T, Self>()
+                            + migrations::v1_to_v2::migrate::<T, Self>()
+                    }
+                    _ if on_chain == StorageVersion::new(1) => {
+                        migrations::v1_to_v2::migrate::<T, Self>()
                     }
                     _ => {
                         log::warn!(
                             target: "pallet_elections",
-                            "On chain storage version of pallet elections is {:?} but it should not be bigger than 1",
+                            "On chain storage version of pallet elections is {:?} but it should not be bigger than 2",
                             on_chain
                         );
                         0
@@ -117,26 +123,42 @@ pub mod pallet {
                 }
         }
     }
-
+    /// Desirable size of a committee.
+    ///
+    /// When new session is planned, first reserved validators are
+    /// added to the committee. Then remaining slots are filled from total validators list excluding
+    /// reserved validators
     #[pallet::storage]
-    #[pallet::getter(fn non_reserved_members)]
-    pub type NonReservedMembers<T: Config> = StorageValue<_, Vec<T::AccountId>, ValueQuery>;
+    pub type CommitteeSize<T> = StorageValue<_, u32, ValueQuery>;
 
+    /// List of reserved validators in force from a new era.
+    ///
+    /// Can be changed via `change_validators` call that requires sudo.
     #[pallet::storage]
-    pub type MembersPerSession<T> = StorageValue<_, u32, ValueQuery>;
+    pub type NextEraReservedValidators<T: Config> = StorageValue<_, Vec<T::AccountId>, ValueQuery>;
 
+    /// Current era's list of reserved validators.
+    ///
+    /// This is populated from `NextEraReservedValidators`
+    /// at the time of planning the first session of the era.
+    /// This is a tuple of vectors representing `(reserved, non_reserved)` validators.
     #[pallet::storage]
-    #[pallet::getter(fn reserved_members)]
-    pub type ReservedMembers<T: Config> = StorageValue<_, Vec<T::AccountId>, ValueQuery>;
+    pub type CurrentEraValidators<T: Config> =
+        StorageValue<_, EraValidators<T::AccountId>, ValueQuery>;
 
+    /// List of possible validators that are not reserved.
     #[pallet::storage]
-    pub type ErasMembers<T: Config> =
-        StorageValue<_, (Vec<T::AccountId>, Vec<T::AccountId>), ValueQuery>;
+    pub type NextEraNonReservedValidators<T: Config> =
+        StorageValue<_, Vec<T::AccountId>, ValueQuery>;
 
+    /// Count per validator, how many blocks did the validator produced.
     #[pallet::storage]
     pub type SessionValidatorBlockCount<T: Config> =
         StorageMap<_, Twox64Concat, T::AccountId, BlockCount, ValueQuery>;
 
+    /// Total possible reward per validator for the current era.
+    ///
+    /// Scaled to fit in the u32.
     #[pallet::storage]
     pub type ValidatorEraTotalReward<T: Config> =
         StorageValue<_, ValidatorTotalRewards<T::AccountId>, OptionQuery>;
@@ -144,33 +166,33 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         #[pallet::weight((T::BlockWeights::get().max_block, DispatchClass::Operational))]
-        pub fn change_members(
+        pub fn change_validators(
             origin: OriginFor<T>,
-            reserved_members: Option<Vec<T::AccountId>>,
-            non_reserved_members: Option<Vec<T::AccountId>>,
-            members_per_session: Option<u32>,
+            reserved_validators: Option<Vec<T::AccountId>>,
+            non_reserved_validators: Option<Vec<T::AccountId>>,
+            committee_size: Option<u32>,
         ) -> DispatchResult {
             ensure_root(origin)?;
+            let committee_size = committee_size.unwrap_or_else(CommitteeSize::<T>::get);
+            let reserved_validators =
+                reserved_validators.unwrap_or_else(NextEraReservedValidators::<T>::get);
+            let non_reserved_validators =
+                non_reserved_validators.unwrap_or_else(NextEraNonReservedValidators::<T>::get);
 
-            let mps = members_per_session.unwrap_or_else(MembersPerSession::<T>::get);
-            let reserved_members = reserved_members.unwrap_or_else(ReservedMembers::<T>::get);
-            let non_reserved_members =
-                non_reserved_members.unwrap_or_else(NonReservedMembers::<T>::get);
-
-            Self::ensure_members_are_ok(
-                reserved_members.clone(),
-                non_reserved_members.clone(),
-                mps,
+            Self::ensure_validators_are_ok(
+                reserved_validators.clone(),
+                non_reserved_validators.clone(),
+                committee_size,
             )?;
 
-            NonReservedMembers::<T>::put(non_reserved_members.clone());
-            ReservedMembers::<T>::put(reserved_members.clone());
-            MembersPerSession::<T>::put(mps);
+            NextEraNonReservedValidators::<T>::put(non_reserved_validators.clone());
+            NextEraReservedValidators::<T>::put(reserved_validators.clone());
+            CommitteeSize::<T>::put(committee_size);
 
-            Self::deposit_event(Event::ChangeMembers(
-                reserved_members,
-                non_reserved_members,
-                mps,
+            Self::deposit_event(Event::ChangeValidators(
+                reserved_validators,
+                non_reserved_validators,
+                committee_size,
             ));
 
             Ok(())
@@ -179,18 +201,18 @@ pub mod pallet {
 
     #[pallet::genesis_config]
     pub struct GenesisConfig<T: Config> {
-        pub non_reserved_members: Vec<T::AccountId>,
-        pub reserved_members: Vec<T::AccountId>,
-        pub members_per_session: u32,
+        pub non_reserved_validators: Vec<T::AccountId>,
+        pub reserved_validators: Vec<T::AccountId>,
+        pub committee_size: u32,
     }
 
     #[cfg(feature = "std")]
     impl<T: Config> Default for GenesisConfig<T> {
         fn default() -> Self {
             Self {
-                non_reserved_members: Vec::new(),
-                reserved_members: Vec::new(),
-                members_per_session: DEFAULT_MEMBERS_PER_SESSION,
+                non_reserved_validators: Vec::new(),
+                reserved_validators: Vec::new(),
+                committee_size: DEFAULT_COMMITTEE_SIZE,
             }
         }
     }
@@ -198,39 +220,39 @@ pub mod pallet {
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
         fn build(&self) {
-            <NonReservedMembers<T>>::put(&self.non_reserved_members);
-            <MembersPerSession<T>>::put(&self.members_per_session);
-            <ReservedMembers<T>>::put(&self.reserved_members);
+            <NextEraNonReservedValidators<T>>::put(&self.reserved_validators);
+            <CommitteeSize<T>>::put(&self.committee_size);
+            <NextEraReservedValidators<T>>::put(&self.non_reserved_validators);
         }
     }
 
     impl<T: Config> Pallet<T> {
-        fn ensure_members_are_ok(
-            reserved_members: Vec<T::AccountId>,
-            non_reserved_members: Vec<T::AccountId>,
-            members_per_session: u32,
+        fn ensure_validators_are_ok(
+            reserved_validators: Vec<T::AccountId>,
+            non_reserved_validators: Vec<T::AccountId>,
+            committee_size: u32,
         ) -> DispatchResult {
-            let reserved_len = reserved_members.len() as u32;
-            let non_reserved_len = non_reserved_members.len() as u32;
-            let members_size = reserved_len + non_reserved_len;
+            let reserved_len = reserved_validators.len() as u32;
+            let non_reserved_len = non_reserved_validators.len() as u32;
+            let validators_size = reserved_len + non_reserved_len;
 
             ensure!(
-                members_per_session >= reserved_len,
-                Error::<T>::TooManyReservedMembers
+                committee_size >= reserved_len,
+                Error::<T>::TooManyReservedValidators
             );
             ensure!(
-                members_per_session <= members_size,
-                Error::<T>::NotEnoughMembers
+                committee_size <= validators_size,
+                Error::<T>::NotEnoughValidators
             );
 
-            let member_set: BTreeSet<_> = reserved_members
+            let member_set: BTreeSet<_> = reserved_validators
                 .into_iter()
-                .chain(non_reserved_members.into_iter())
+                .chain(non_reserved_validators.into_iter())
                 .collect();
 
             ensure!(
-                member_set.len() as u32 == members_size,
-                Error::<T>::NonUniqueListOfMembers
+                member_set.len() as u32 == validators_size,
+                Error::<T>::NonUniqueListOfValidators
             );
 
             Ok(())
@@ -244,9 +266,9 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
-        TooManyReservedMembers,
-        NotEnoughMembers,
-        NonUniqueListOfMembers,
+        TooManyReservedValidators,
+        NotEnoughValidators,
+        NonUniqueListOfValidators,
     }
 
     impl<T: Config> ElectionProvider for Pallet<T> {
@@ -255,15 +277,15 @@ pub mod pallet {
         type Error = ElectionError;
         type DataProvider = T::DataProvider;
 
-        // The elections are PoA so only the nodes listed in the Members will be elected as validators.
+        // The elections are PoA so only the nodes listed in the Validators will be elected as validators.
         // We calculate the supports for them for the sake of eras payouts.
         fn elect() -> Result<Supports<T::AccountId>, Self::Error> {
             let voters =
                 Self::DataProvider::electing_voters(None).map_err(Self::Error::DataProvider)?;
-            let members = Pallet::<T>::non_reserved_members()
+            let validators = NextEraReservedValidators::<T>::get()
                 .into_iter()
-                .chain(Pallet::<T>::reserved_members().into_iter());
-            let mut supports: BTreeMap<_, _> = members
+                .chain(NextEraNonReservedValidators::<T>::get().into_iter());
+            let mut supports: BTreeMap<_, _> = validators
                 .map(|id| {
                     (
                         id,

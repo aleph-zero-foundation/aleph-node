@@ -39,21 +39,21 @@ impl TryFrom<String> for Keys {
     }
 }
 
-pub fn change_members(
+pub fn change_validators(
     sudo_connection: &RootConnection,
-    new_reserved_members: Option<Vec<AccountId>>,
-    new_non_reserved_members: Option<Vec<AccountId>>,
-    members_per_session: Option<u32>,
+    new_reserved_validators: Option<Vec<AccountId>>,
+    new_non_reserved_validators: Option<Vec<AccountId>>,
+    validators_per_session: Option<u32>,
     status: XtStatus,
 ) {
-    info!(target: "aleph-client", "New members: reserved: {:#?}, non_reserved: {:#?}, members_per_session: {:?}", new_reserved_members, new_non_reserved_members, members_per_session);
+    info!(target: "aleph-client", "New validators: reserved: {:#?}, non_reserved: {:#?}, validators_per_session: {:?}", new_reserved_validators, new_non_reserved_validators, validators_per_session);
     let call = compose_call!(
         sudo_connection.as_connection().metadata,
         "Elections",
-        "change_members",
-        new_reserved_members,
-        new_non_reserved_members,
-        members_per_session
+        "change_validators",
+        new_reserved_validators,
+        new_non_reserved_validators,
+        validators_per_session
     );
     let xt = compose_extrinsic!(
         sudo_connection.as_connection(),
@@ -62,15 +62,15 @@ pub fn change_members(
         call,
         0_u64
     );
-    send_xt(sudo_connection, xt, Some("change_members"), status);
+    send_xt(sudo_connection, xt, Some("change_validators"), status);
 }
 
-pub fn change_reserved_members(
+pub fn change_next_era_reserved_validators(
     sudo_connection: &RootConnection,
-    new_members: Vec<AccountId>,
+    new_validators: Vec<AccountId>,
     status: XtStatus,
 ) {
-    change_members(sudo_connection, Some(new_members), None, None, status)
+    change_validators(sudo_connection, Some(new_validators), None, None, status)
 }
 
 pub fn set_keys(connection: &SignedConnection, new_keys: Keys, status: XtStatus) {

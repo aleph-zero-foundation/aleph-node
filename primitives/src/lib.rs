@@ -43,7 +43,7 @@ pub const DEFAULT_SESSIONS_PER_ERA: SessionIndex = 96;
 pub const TOKEN_DECIMALS: u32 = 12;
 pub const TOKEN: u128 = 10u128.pow(TOKEN_DECIMALS);
 
-pub const DEFAULT_MEMBERS_PER_SESSION: u32 = 4;
+pub const DEFAULT_COMMITTEE_SIZE: u32 = 4;
 
 pub const ADDRESSES_ENCODING: u8 = 42;
 pub const DEFAULT_UNIT_CREATION_DELAY: u64 = 300;

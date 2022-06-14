@@ -263,9 +263,9 @@ jobs:
           test-case: fee_calculation
         timeout-minutes: 2
 
-  run-e2e-members-rotate:
+  run-e2e-validators-rotate:
     needs: [build-test-docker, build-test-client]
-    name: Run members rotation test
+    name: Run validators rotation test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code
@@ -274,7 +274,7 @@ jobs:
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
         with:
-          test-case: members_rotate
+          test-case: validators_rotate
           follow-up-finalization-check: true
         timeout-minutes: 10
 
@@ -305,7 +305,7 @@ jobs:
       run-e2e-staking-new-validator-test,
       run-e2e-change-validators-test,
       run-e2e-fee-calculation,
-      run-e2e-members-rotate,
+      run-e2e-validators-rotate,
       run-e2e-era-payout
     ]
     name: Check e2e test suite completion

@@ -1,4 +1,4 @@
-use aleph_client::{change_members, RootConnection};
+use aleph_client::RootConnection;
 use sp_core::crypto::Ss58Codec;
 use substrate_api_client::{AccountId, XtStatus};
 
@@ -11,7 +11,7 @@ pub fn change_validators(root_connection: RootConnection, validators: Vec<String
 
     let validators_len = validators.len() as u32;
 
-    change_members(
+    aleph_client::change_validators(
         &root_connection,
         Some(validators),
         Some(vec![]),

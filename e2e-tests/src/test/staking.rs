@@ -7,7 +7,7 @@ use sp_core::Pair;
 use substrate_api_client::{AccountId, XtStatus};
 
 use aleph_client::{
-    balances_batch_transfer, change_members, get_current_session, keypair_from_string,
+    balances_batch_transfer, change_validators, get_current_session, keypair_from_string,
     payout_stakers_and_assert_locked_balance, rotate_keys, set_keys, staking_bond, staking_bonded,
     staking_ledger, staking_multi_bond, staking_nominate, staking_validate,
     wait_for_full_era_completion, wait_for_session, KeyPair, RootConnection, SignedConnection,
@@ -113,7 +113,7 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
     // it's essential since keys from rotate_keys() needs to be run against that node
     let root_connection: RootConnection = SignedConnection::new(node, get_sudo_key(config)).into();
 
-    change_members(
+    change_validators(
         &root_connection,
         Some(convert_authorities_to_account_id(&validator_accounts)),
         Some(vec![]),
@@ -183,7 +183,7 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
     );
 
     validator_accounts.push(stash);
-    change_members(
+    change_validators(
         &root_connection,
         Some(convert_authorities_to_account_id(&validator_accounts)),
         Some(vec![]),

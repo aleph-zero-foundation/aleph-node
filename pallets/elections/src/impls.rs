@@ -1,7 +1,8 @@
 use crate::{
     traits::{EraInfoProvider, SessionInfoProvider, ValidatorRewardsHandler},
-    Config, ErasMembers, MembersPerSession, NonReservedMembers, Pallet, ReservedMembers,
-    SessionValidatorBlockCount, ValidatorEraTotalReward, ValidatorTotalRewards,
+    CommitteeSize, Config, CurrentEraValidators, EraValidators, NextEraNonReservedValidators,
+    NextEraReservedValidators, Pallet, SessionValidatorBlockCount, ValidatorEraTotalReward,
+    ValidatorTotalRewards,
 };
 use frame_election_provider_support::sp_arithmetic::Perquintill;
 use frame_support::pallet_prelude::Get;
@@ -19,8 +20,8 @@ const LENIENT_THRESHOLD: Perquintill = Perquintill::from_percent(90);
 /// 3. `start_session(S + 1)` is called.
 /// -  if session `S+1` starts new era we populate totals.
 /// 4. `new_session(S + 2)` is called.
-/// -  If session `S+2` starts new era then we update the reserved and non_reserved members.
-/// -  We rotate the members for session `S + 2` using the information about reserved and non_reserved members.
+/// -  If session `S+2` starts new era then we update the reserved and non_reserved validators.
+/// -  We rotate the validators for session `S + 2` using the information about reserved and non_reserved validators.
 ///
 
 fn calculate_adjusted_session_points(
@@ -110,8 +111,8 @@ where
 
     fn get_committee_and_non_committee() -> (Vec<T::AccountId>, Vec<T::AccountId>) {
         let committee = T::SessionInfoProvider::current_committee();
-        let non_committee = ErasMembers::<T>::get()
-            .1
+        let non_committee = CurrentEraValidators::<T>::get()
+            .non_reserved
             .into_iter()
             .filter(|a| !committee.contains(a))
             .collect();
@@ -120,7 +121,7 @@ where
     }
 
     fn blocks_to_produce_per_session() -> u32 {
-        T::SessionPeriod::get() / MembersPerSession::<T>::get()
+        T::SessionPeriod::get() / CommitteeSize::<T>::get()
     }
 
     fn reward_for_session_non_committee(
@@ -171,8 +172,11 @@ where
             return None;
         }
 
-        let (reserved, non_reserved) = ErasMembers::<T>::get();
-        let n_validators = MembersPerSession::<T>::get() as usize;
+        let EraValidators {
+            reserved,
+            non_reserved,
+        } = CurrentEraValidators::<T>::get();
+        let n_validators = CommitteeSize::<T>::get() as usize;
 
         rotate(current_session, n_validators, reserved, non_reserved)
     }
@@ -185,7 +189,7 @@ where
         }
     }
 
-    fn populate_members_on_next_era_start(session: SessionIndex) {
+    fn populate_next_era_validators_on_next_era_start(session: SessionIndex) {
         let active_era = match T::EraInfoProvider::active_era() {
             Some(ae) => ae,
             _ => return,
@@ -194,9 +198,12 @@ where
         // this will be populated once for the session `n+1` on the start of the session `n` where session
         // `n+1` starts a new era.
         Self::if_era_starts_do(active_era + 1, session, || {
-            let reserved_validators = ReservedMembers::<T>::get();
-            let non_reserved_validators = NonReservedMembers::<T>::get();
-            ErasMembers::<T>::put((reserved_validators, non_reserved_validators))
+            let reserved_validators = NextEraReservedValidators::<T>::get();
+            let non_reserved_validators = NextEraNonReservedValidators::<T>::get();
+            CurrentEraValidators::<T>::put(EraValidators {
+                reserved: reserved_validators,
+                non_reserved: non_reserved_validators,
+            });
         });
     }
 
@@ -265,7 +272,7 @@ where
         <T as Config>::SessionManager::new_session(new_index);
         // new session is always called before the end_session of the previous session
         // so we need to populate reserved set here not on start_session nor end_session
-        Self::populate_members_on_next_era_start(new_index);
+        Self::populate_next_era_validators_on_next_era_start(new_index);
         Self::rotate_committee(new_index)
     }
 

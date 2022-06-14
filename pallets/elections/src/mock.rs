@@ -171,29 +171,31 @@ impl ElectionDataProvider for StakingMock {
 }
 
 pub fn new_test_ext(
-    reserved_members: Vec<AccountId>,
-    non_reserved_members: Vec<AccountId>,
+    reserved_validators: Vec<AccountId>,
+    non_reserved_validators: Vec<AccountId>,
 ) -> sp_io::TestExternalities {
     let mut t = frame_system::GenesisConfig::default()
         .build_storage::<Test>()
         .unwrap();
 
-    let members: Vec<_> = non_reserved_members
+    let validators: Vec<_> = non_reserved_validators
         .iter()
-        .chain(reserved_members.iter())
+        .chain(reserved_validators.iter())
         .collect();
 
-    let balances: Vec<_> = (0..members.len()).map(|i| (i as u64, 10_000_000)).collect();
+    let balances: Vec<_> = (0..validators.len())
+        .map(|i| (i as u64, 10_000_000))
+        .collect();
 
     pallet_balances::GenesisConfig::<Test> { balances }
         .assimilate_storage(&mut t)
         .unwrap();
 
-    let members_per_session = members.len() as u32;
+    let committee_size = validators.len() as u32;
     crate::GenesisConfig::<Test> {
-        non_reserved_members,
-        members_per_session,
-        reserved_members,
+        non_reserved_validators,
+        committee_size,
+        reserved_validators,
     }
     .assimilate_storage(&mut t)
     .unwrap();

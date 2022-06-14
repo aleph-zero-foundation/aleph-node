@@ -1,8 +1,7 @@
 use crate::{
     compute_validator_scaled_total_rewards,
     traits::{EraInfoProvider, ValidatorRewardsHandler},
-    Config, ErasMembers, MembersPerSession, NonReservedMembers, ReservedMembers,
-    ValidatorEraTotalReward, ValidatorTotalRewards,
+    Config, ValidatorEraTotalReward, ValidatorTotalRewards,
 };
 use frame_support::{
     log, storage_alias,
@@ -13,6 +12,20 @@ use sp_std::vec::Vec;
 
 #[storage_alias]
 type Members<T> = StorageValue<Elections, Vec<<T as frame_system::Config>::AccountId>>;
+#[storage_alias]
+pub type MembersPerSession = StorageValue<Elections, u32>;
+#[storage_alias]
+type ReservedMembers<T> = StorageValue<Elections, Vec<<T as frame_system::Config>::AccountId>>;
+#[storage_alias]
+type NonReservedMembers<T> = StorageValue<Elections, Vec<<T as frame_system::Config>::AccountId>>;
+#[storage_alias]
+type ErasMembers<T> = StorageValue<
+    Elections,
+    (
+        Vec<<T as frame_system::Config>::AccountId>,
+        Vec<<T as frame_system::Config>::AccountId>,
+    ),
+>;
 
 /// The assumptions made by this migration:
 ///
@@ -26,7 +39,14 @@ type Members<T> = StorageValue<Elections, Vec<<T as frame_system::Config>::Accou
 pub fn migrate<T: Config, P: PalletInfoAccess>() -> Weight {
     log::info!(target: "pallet_elections", "Running migration from STORAGE_VERSION 0 to 1 for pallet elections");
 
-    let members = Members::<T>::get().expect("Members should be present");
+    let members = match Members::<T>::get() {
+        Some(m) => m,
+        None => {
+            log::error!(target: "pallet_elections", "Migration failed, no Members storage");
+            return T::DbWeight::get().reads(1);
+        }
+    };
+
     Members::<T>::kill();
 
     let mut writes = 5;
@@ -44,7 +64,7 @@ pub fn migrate<T: Config, P: PalletInfoAccess>() -> Weight {
 
     let members_per_session = members.len() as u32;
 
-    MembersPerSession::<T>::put(members_per_session);
+    MembersPerSession::put(members_per_session);
     ReservedMembers::<T>::put(members.clone());
     NonReservedMembers::<T>::put(Vec::<T::AccountId>::new());
     ErasMembers::<T>::put((members, Vec::<T::AccountId>::new()));
