@@ -1,7 +1,7 @@
 use crate::{
     network::{
-        manager::{Authentication, Multiaddr, SessionHandler},
-        DataCommand, PeerId, Protocol,
+        manager::{Authentication, SessionHandler},
+        DataCommand, Multiaddress, Protocol,
     },
     NodeIndex, SessionId,
 };
@@ -9,17 +9,18 @@ use codec::{Decode, Encode};
 use log::{debug, trace, warn};
 use std::{
     collections::HashMap,
+    marker::PhantomData,
     time::{Duration, Instant},
 };
 
 /// Messages used for discovery and authentication.
 #[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
-pub enum DiscoveryMessage {
-    AuthenticationBroadcast(Authentication),
-    Authentication(Authentication),
+pub enum DiscoveryMessage<M: Multiaddress> {
+    AuthenticationBroadcast(Authentication<M>),
+    Authentication(Authentication<M>),
 }
 
-impl DiscoveryMessage {
+impl<M: Multiaddress> DiscoveryMessage<M> {
     pub fn session_id(&self) -> SessionId {
         use DiscoveryMessage::*;
         match self {
@@ -31,38 +32,51 @@ impl DiscoveryMessage {
 }
 
 /// Handles creating and responding to discovery messages.
-pub struct Discovery {
+pub struct Discovery<M: Multiaddress> {
     cooldown: Duration,
     last_broadcast: HashMap<NodeIndex, Instant>,
+    _phantom: PhantomData<M>,
 }
 
-type DiscoveryCommand = (DiscoveryMessage, DataCommand);
+type DiscoveryCommand<M> = (
+    DiscoveryMessage<M>,
+    DataCommand<<M as Multiaddress>::PeerId>,
+);
 
-fn authentication_broadcast(authentication: Authentication) -> DiscoveryCommand {
+fn authentication_broadcast<M: Multiaddress>(
+    authentication: Authentication<M>,
+) -> DiscoveryCommand<M> {
     (
         DiscoveryMessage::AuthenticationBroadcast(authentication),
         DataCommand::Broadcast,
     )
 }
 
-fn response(authentication: Authentication, peer_id: PeerId) -> DiscoveryCommand {
+fn response<M: Multiaddress>(
+    authentication: Authentication<M>,
+    peer_id: M::PeerId,
+) -> DiscoveryCommand<M> {
     (
         DiscoveryMessage::Authentication(authentication),
         DataCommand::SendTo(peer_id, Protocol::Generic),
     )
 }
 
-impl Discovery {
+impl<M: Multiaddress> Discovery<M> {
     /// Create a new discovery handler with the given response/broadcast cooldown.
     pub fn new(cooldown: Duration) -> Self {
         Discovery {
             cooldown,
             last_broadcast: HashMap::new(),
+            _phantom: PhantomData,
         }
     }
 
     /// Returns messages that should be sent as part of authority discovery at this moment.
-    pub fn discover_authorities(&mut self, handler: &SessionHandler) -> Vec<DiscoveryCommand> {
+    pub fn discover_authorities(
+        &mut self,
+        handler: &SessionHandler<M>,
+    ) -> Vec<DiscoveryCommand<M>> {
         let authentication = match handler.authentication() {
             Some(authentication) => authentication,
             None => return Vec::new(),
@@ -78,9 +92,9 @@ impl Discovery {
     /// connected to if the authentication is correct.
     fn handle_authentication(
         &mut self,
-        authentication: Authentication,
-        handler: &mut SessionHandler,
-    ) -> Vec<Multiaddr> {
+        authentication: Authentication<M>,
+        handler: &mut SessionHandler<M>,
+    ) -> Vec<M> {
         if !handler.handle_authentication(authentication.clone()) {
             return Vec::new();
         }
@@ -96,9 +110,9 @@ impl Discovery {
 
     fn handle_broadcast(
         &mut self,
-        authentication: Authentication,
-        handler: &mut SessionHandler,
-    ) -> (Vec<Multiaddr>, Vec<DiscoveryCommand>) {
+        authentication: Authentication<M>,
+        handler: &mut SessionHandler<M>,
+    ) -> (Vec<M>, Vec<DiscoveryCommand<M>>) {
         debug!(target: "aleph-network", "Handling broadcast with authentication {:?}.", authentication);
         let addresses = self.handle_authentication(authentication.clone(), handler);
         if addresses.is_empty() {
@@ -129,9 +143,9 @@ impl Discovery {
     /// that we should send as a result of it.
     pub fn handle_message(
         &mut self,
-        message: DiscoveryMessage,
-        handler: &mut SessionHandler,
-    ) -> (Vec<Multiaddr>, Vec<DiscoveryCommand>) {
+        message: DiscoveryMessage<M>,
+        handler: &mut SessionHandler<M>,
+    ) -> (Vec<M>, Vec<DiscoveryCommand<M>>) {
         use DiscoveryMessage::*;
         match message {
             AuthenticationBroadcast(authentication) => {
@@ -150,32 +164,31 @@ mod tests {
     use super::{Discovery, DiscoveryMessage};
     use crate::{
         network::{
-            manager::{testing::crypto_basics, SessionHandler},
-            DataCommand, Multiaddr,
+            manager::SessionHandler,
+            mock::{crypto_basics, MockMultiaddress, MockPeerId},
+            DataCommand,
         },
         SessionId,
     };
     use codec::Encode;
-    use sc_network::{
-        multiaddr::Protocol as ScProtocol, Multiaddr as ScMultiaddr, PeerId as ScPeerId,
-    };
-    use std::{net::Ipv4Addr, thread::sleep, time::Duration};
+    use std::{thread::sleep, time::Duration};
 
     const NUM_NODES: u8 = 7;
     const MS_COOLDOWN: u64 = 200;
 
-    fn addresses() -> Vec<Multiaddr> {
+    fn addresses() -> Vec<MockMultiaddress> {
         (0..NUM_NODES)
-            .map(|id| {
-                ScMultiaddr::empty()
-                    .with(ScProtocol::Ip4(Ipv4Addr::new(192, 168, 1, id)))
-                    .with(ScProtocol::Tcp(30333))
-                    .with(ScProtocol::P2p(ScPeerId::random().into()))
-            })
+            .map(|_| MockMultiaddress::random_with_id(MockPeerId::random()))
             .collect()
     }
 
-    async fn build_number(num_nodes: u8) -> (Discovery, Vec<SessionHandler>, SessionHandler) {
+    async fn build_number(
+        num_nodes: u8,
+    ) -> (
+        Discovery<MockMultiaddress>,
+        Vec<SessionHandler<MockMultiaddress>>,
+        SessionHandler<MockMultiaddress>,
+    ) {
         let crypto_basics = crypto_basics(num_nodes.into()).await;
         let mut handlers = Vec::new();
         for (authority_index_and_pen, address) in crypto_basics.0.into_iter().zip(addresses()) {
@@ -184,7 +197,7 @@ mod tests {
                     Some(authority_index_and_pen),
                     crypto_basics.1.clone(),
                     SessionId(43),
-                    vec![address.into()],
+                    vec![address],
                 )
                 .await
                 .unwrap(),
@@ -194,16 +207,7 @@ mod tests {
             None,
             crypto_basics.1.clone(),
             SessionId(43),
-            vec![ScMultiaddr::empty()
-                .with(ScProtocol::Ip4(Ipv4Addr::new(
-                    192,
-                    168,
-                    1,
-                    (handlers.len() - 1) as u8,
-                )))
-                .with(ScProtocol::Tcp(30333))
-                .with(ScProtocol::P2p(ScPeerId::random().into()))
-                .into()],
+            vec![MockMultiaddress::random_with_id(MockPeerId::random())],
         )
         .await
         .unwrap();
@@ -214,7 +218,11 @@ mod tests {
         )
     }
 
-    async fn build() -> (Discovery, Vec<SessionHandler>, SessionHandler) {
+    async fn build() -> (
+        Discovery<MockMultiaddress>,
+        Vec<SessionHandler<MockMultiaddress>>,
+        SessionHandler<MockMultiaddress>,
+    ) {
         build_number(NUM_NODES).await
     }
 

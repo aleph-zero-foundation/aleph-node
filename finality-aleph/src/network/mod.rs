@@ -1,21 +1,19 @@
 use aleph_bft::Recipient;
 use async_trait::async_trait;
-use codec::{Codec, Decode, Encode};
-use futures::stream::Stream;
-use sc_network::{Event, Multiaddr, PeerId as ScPeerId};
+use bytes::Bytes;
+use codec::Codec;
 use sp_api::NumberFor;
 use sp_runtime::traits::Block;
-use std::{borrow::Cow, collections::HashSet, convert::TryFrom, pin::Pin};
+use std::{collections::HashSet, fmt::Debug, hash::Hash};
 
 mod aleph;
 mod component;
 mod manager;
 #[cfg(test)]
-mod mock;
+pub mod mock;
 mod service;
 mod session;
 mod split;
-mod substrate;
 
 use manager::SessionCommand;
 
@@ -24,93 +22,38 @@ pub use component::{
     Network as ComponentNetwork, Receiver as ReceiverComponent, Sender as SenderComponent,
     SimpleNetwork,
 };
-pub use manager::{get_peer_id, ConnectionIO, ConnectionManager, ConnectionManagerConfig};
+pub use manager::{ConnectionIO, ConnectionManager, ConnectionManagerConfig};
 pub use service::{Service, IO};
 pub use session::{Manager as SessionManager, ManagerError, Network as SessionNetwork};
 pub use split::{split, Split};
 
 #[cfg(test)]
 pub mod testing {
-    pub use super::{
-        manager::{
-            testing::{crypto_basics, MockNetworkIdentity},
-            Authentication, DiscoveryMessage, NetworkData, SessionHandler,
-        },
-        mock::MockNetwork,
-    };
+    pub use super::manager::{Authentication, DiscoveryMessage, NetworkData, SessionHandler};
 }
 
-#[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
-pub struct PeerId(pub(crate) ScPeerId);
+/// Represents the id of an arbitrary node.
+pub trait PeerId: PartialEq + Eq + Copy + Clone + Debug + Hash + Codec + Send {}
 
-impl From<PeerId> for ScPeerId {
-    fn from(wrapper: PeerId) -> Self {
-        wrapper.0
-    }
+/// Represents the address of an arbitrary node.
+pub trait Multiaddress: Debug + Hash + Codec + Clone + Eq {
+    type PeerId: PeerId;
+
+    /// Returns the peer id associated with this multiaddress if it exists and is unique.
+    fn get_peer_id(&self) -> Option<Self::PeerId>;
+
+    /// Returns the address extended by the peer id, unless it already contained another peer id.
+    fn add_matching_peer_id(self, peer_id: Self::PeerId) -> Option<Self>;
 }
-
-impl From<ScPeerId> for PeerId {
-    fn from(id: ScPeerId) -> Self {
-        PeerId(id)
-    }
-}
-
-impl Encode for PeerId {
-    fn using_encoded<R, F: FnOnce(&[u8]) -> R>(&self, f: F) -> R {
-        self.0.to_bytes().using_encoded(f)
-    }
-}
-
-impl Decode for PeerId {
-    fn decode<I: codec::Input>(value: &mut I) -> Result<Self, codec::Error> {
-        let bytes = Vec::<u8>::decode(value)?;
-        ScPeerId::from_bytes(&bytes)
-            .map_err(|_| "PeerId not encoded with to_bytes".into())
-            .map(|pid| pid.into())
-    }
-}
-
-/// Name of the network protocol used by Aleph Zero. This is how messages
-/// are subscribed to ensure that we are gossiping and communicating with our
-/// own network.
-const ALEPH_PROTOCOL_NAME: &str = "/cardinals/aleph/2";
-
-/// Name of the network protocol used by Aleph Zero validators. Similar to
-/// ALEPH_PROTOCOL_NAME, but only used by validators that authenticated to each other.
-const ALEPH_VALIDATOR_PROTOCOL_NAME: &str = "/cardinals/aleph_validator/1";
 
 /// The Generic protocol is used for validator discovery.
 /// The Validator protocol is used for validator-specific messages, i.e. ones needed for
 /// finalization.
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub enum Protocol {
     Generic,
     Validator,
 }
-
-impl Protocol {
-    pub fn name(&self) -> Cow<'static, str> {
-        use Protocol::*;
-        match self {
-            Generic => Cow::Borrowed(ALEPH_PROTOCOL_NAME),
-            Validator => Cow::Borrowed(ALEPH_VALIDATOR_PROTOCOL_NAME),
-        }
-    }
-}
-
-impl TryFrom<&str> for Protocol {
-    type Error = &'static str;
-
-    fn try_from(item: &str) -> Result<Self, Self::Error> {
-        match item {
-            ALEPH_PROTOCOL_NAME => Ok(Protocol::Generic),
-            ALEPH_VALIDATOR_PROTOCOL_NAME => Ok(Protocol::Validator),
-            _ => Err("Unsupported conversion"),
-        }
-    }
-}
-
-type NetworkEventStream = Pin<Box<dyn Stream<Item = Event> + Send>>;
 
 /// Abstraction over a sender to network.
 #[async_trait]
@@ -124,32 +67,52 @@ pub trait NetworkSender: Send + Sync + 'static {
     ) -> Result<(), Self::SenderError>;
 }
 
+#[derive(Clone)]
+pub enum Event<M: Multiaddress> {
+    Connected(M),
+    Disconnected(M::PeerId),
+    StreamOpened(M::PeerId, Protocol),
+    StreamClosed(M::PeerId, Protocol),
+    Messages(Vec<Bytes>),
+}
+
+#[async_trait]
+pub trait EventStream<M: Multiaddress> {
+    async fn next_event(&mut self) -> Option<Event<M>>;
+}
+
 /// Abstraction over a network.
 pub trait Network: Clone + Send + Sync + 'static {
     type SenderError: std::error::Error;
     type NetworkSender: NetworkSender;
+    type PeerId: PeerId;
+    type Multiaddress: Multiaddress<PeerId = Self::PeerId>;
+    type EventStream: EventStream<Self::Multiaddress>;
 
     /// Returns a stream of events representing what happens on the network.
-    fn event_stream(&self) -> NetworkEventStream;
+    fn event_stream(&self) -> Self::EventStream;
 
     /// Returns a sender to the given peer using a given protocol. Returns Error if not connected to the peer.
     fn sender(
         &self,
-        peer_id: PeerId,
-        protocol: Cow<'static, str>,
+        peer_id: Self::PeerId,
+        protocol: Protocol,
     ) -> Result<Self::NetworkSender, Self::SenderError>;
 
     /// Add peers to one of the reserved sets.
-    fn add_reserved(&self, addresses: HashSet<Multiaddr>, protocol: Cow<'static, str>);
+    fn add_reserved(&self, addresses: HashSet<Self::Multiaddress>, protocol: Protocol);
 
     /// Remove peers from one of the reserved sets.
-    fn remove_reserved(&self, peers: HashSet<PeerId>, protocol: Cow<'static, str>);
+    fn remove_reserved(&self, peers: HashSet<Self::PeerId>, protocol: Protocol);
 }
 
 /// Abstraction for requesting own network addresses and PeerId.
 pub trait NetworkIdentity {
+    type PeerId: PeerId;
+    type Multiaddress: Multiaddress<PeerId = Self::PeerId>;
+
     /// The external identity of this node, consisting of addresses and the PeerId.
-    fn identity(&self) -> (Vec<Multiaddr>, PeerId);
+    fn identity(&self) -> (Vec<Self::Multiaddress>, Self::PeerId);
 }
 
 /// Abstraction for requesting justifications for finalized blocks and stale blocks.
@@ -168,16 +131,16 @@ pub trait RequestBlocks<B: Block>: Clone + Send + Sync + 'static {
 /// What do do with a specific piece of data.
 /// Note that broadcast does not specify the protocol, as we only broadcast Generic messages in this sense.
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum DataCommand {
+pub enum DataCommand<PID: PeerId> {
     Broadcast,
-    SendTo(PeerId, Protocol),
+    SendTo(PID, Protocol),
 }
 
 /// Commands for manipulating the reserved peers set.
 #[derive(Debug, PartialEq, Eq)]
-pub enum ConnectionCommand {
-    AddReserved(HashSet<Multiaddr>),
-    DelReserved(HashSet<PeerId>),
+pub enum ConnectionCommand<M: Multiaddress> {
+    AddReserved(HashSet<M>),
+    DelReserved(HashSet<M::PeerId>),
 }
 
 /// Returned when something went wrong when sending data using a DataNetwork.

@@ -2,12 +2,12 @@ use crate::{network::PeerId, SessionId};
 use std::collections::{HashMap, HashSet};
 
 /// Keeps track of connections we should maintain taking into account data from many sessions.
-pub struct Connections {
-    associated_sessions: HashMap<PeerId, HashSet<SessionId>>,
-    peers_by_session: HashMap<SessionId, HashSet<PeerId>>,
+pub struct Connections<PID: PeerId> {
+    associated_sessions: HashMap<PID, HashSet<SessionId>>,
+    peers_by_session: HashMap<SessionId, HashSet<PID>>,
 }
 
-impl Connections {
+impl<PID: PeerId> Connections<PID> {
     /// Creates a new object, initially without any connections.
     pub fn new() -> Self {
         Connections {
@@ -17,7 +17,7 @@ impl Connections {
     }
 
     /// Mark the specified peers as ones we should be connected to for the given session.
-    pub fn add_peers(&mut self, session_id: SessionId, peers: impl IntoIterator<Item = PeerId>) {
+    pub fn add_peers(&mut self, session_id: SessionId, peers: impl IntoIterator<Item = PID>) {
         for peer in peers {
             self.associated_sessions
                 .entry(peer)
@@ -32,7 +32,7 @@ impl Connections {
 
     /// Assume we no longer need to be connected to peers from the given session.
     /// Returns the peers we no longer have any reason to be connected to.
-    pub fn remove_session(&mut self, session_id: SessionId) -> HashSet<PeerId> {
+    pub fn remove_session(&mut self, session_id: SessionId) -> HashSet<PID> {
         let mut result = HashSet::new();
         if let Some(peers) = self.peers_by_session.remove(&session_id) {
             for peer in peers {
@@ -53,12 +53,11 @@ impl Connections {
 #[cfg(test)]
 mod tests {
     use super::Connections;
-    use crate::{network::PeerId, SessionId};
-    use sc_network::PeerId as ScPeerId;
+    use crate::{network::mock::MockPeerId, SessionId};
     use std::collections::HashSet;
 
-    fn random_peer_ids(num: usize) -> HashSet<PeerId> {
-        (0..num).map(|_| PeerId(ScPeerId::random())).collect()
+    fn random_peer_ids(num: usize) -> HashSet<MockPeerId> {
+        (0..num).map(|_| MockPeerId::random()).collect()
     }
 
     #[test]

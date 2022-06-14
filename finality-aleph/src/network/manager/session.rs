@@ -1,8 +1,8 @@
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{
-        manager::{get_common_peer_id, is_p2p, AuthData, Authentication, Multiaddr},
-        PeerId,
+        manager::{AuthData, Authentication},
+        Multiaddress, PeerId,
     },
     NodeIndex, SessionId,
 };
@@ -11,12 +11,12 @@ use codec::Encode;
 use std::collections::HashMap;
 
 #[derive(Debug)]
-pub enum SessionInfo {
+pub enum SessionInfo<M: Multiaddress> {
     SessionId(SessionId),
-    OwnAuthentication(Authentication),
+    OwnAuthentication(Authentication<M>),
 }
 
-impl SessionInfo {
+impl<M: Multiaddress> SessionInfo<M> {
     fn session_id(&self) -> SessionId {
         match self {
             SessionInfo::SessionId(session_id) => *session_id,
@@ -25,13 +25,15 @@ impl SessionInfo {
     }
 }
 
+type PeerAuthentications<M> = (Authentication<M>, Option<Authentication<M>>);
+
 /// A struct for handling authentications for a given session and maintaining
 /// mappings between PeerIds and NodeIndexes within that session.
-pub struct Handler {
-    peers_by_node: HashMap<NodeIndex, PeerId>,
-    authentications: HashMap<PeerId, (Authentication, Option<Authentication>)>,
-    session_info: SessionInfo,
-    own_peer_id: PeerId,
+pub struct Handler<M: Multiaddress> {
+    peers_by_node: HashMap<NodeIndex, M::PeerId>,
+    authentications: HashMap<M::PeerId, PeerAuthentications<M>>,
+    session_info: SessionInfo<M>,
+    own_peer_id: M::PeerId,
     authority_index_and_pen: Option<(NodeIndex, AuthorityPen)>,
     authority_verifier: AuthorityVerifier,
 }
@@ -48,19 +50,65 @@ pub enum HandlerError {
     MultiplePeerIds,
 }
 
-fn retrieve_peer_id(addresses: &[Multiaddr]) -> Result<PeerId, HandlerError> {
+enum CommonPeerId<PID: PeerId> {
+    Unknown,
+    Unique(PID),
+    NotUnique,
+}
+
+impl<PID: PeerId> From<CommonPeerId<PID>> for Option<PID> {
+    fn from(cpi: CommonPeerId<PID>) -> Self {
+        use CommonPeerId::*;
+        match cpi {
+            Unique(peer_id) => Some(peer_id),
+            Unknown | NotUnique => None,
+        }
+    }
+}
+
+impl<PID: PeerId> CommonPeerId<PID> {
+    fn aggregate(self, peer_id: PID) -> Self {
+        use CommonPeerId::*;
+        match self {
+            Unknown => Unique(peer_id),
+            Unique(current_peer_id) => match peer_id == current_peer_id {
+                true => Unique(current_peer_id),
+                false => NotUnique,
+            },
+            NotUnique => NotUnique,
+        }
+    }
+}
+
+fn get_common_peer_id<M: Multiaddress>(addresses: &[M]) -> Option<M::PeerId> {
+    addresses
+        .iter()
+        .fold(
+            CommonPeerId::Unknown,
+            |common_peer_id, address| match address.get_peer_id() {
+                Some(peer_id) => common_peer_id.aggregate(peer_id),
+                None => CommonPeerId::NotUnique,
+            },
+        )
+        .into()
+}
+
+fn retrieve_peer_id<M: Multiaddress>(addresses: &[M]) -> Result<M::PeerId, HandlerError> {
     if addresses.is_empty() {
         return Err(HandlerError::NoP2pAddresses);
     }
     get_common_peer_id(addresses).ok_or(HandlerError::MultiplePeerIds)
 }
 
-async fn construct_session_info(
+async fn construct_session_info<M: Multiaddress>(
     authority_index_and_pen: &Option<(NodeIndex, AuthorityPen)>,
     session_id: SessionId,
-    addresses: Vec<Multiaddr>,
-) -> Result<(SessionInfo, PeerId), HandlerError> {
-    let addresses: Vec<_> = addresses.into_iter().filter(is_p2p).collect();
+    addresses: Vec<M>,
+) -> Result<(SessionInfo<M>, M::PeerId), HandlerError> {
+    let addresses: Vec<_> = addresses
+        .into_iter()
+        .filter(|address| address.get_peer_id().is_some())
+        .collect();
     let peer = retrieve_peer_id(&addresses)?;
 
     if let Some((node_index, authority_pen)) = authority_index_and_pen {
@@ -75,15 +123,15 @@ async fn construct_session_info(
     Ok((SessionInfo::SessionId(session_id), peer))
 }
 
-impl Handler {
+impl<M: Multiaddress> Handler<M> {
     /// Returns an error if the set of addresses contains no external libp2p addresses, or contains
     /// at least two such addresses with differing PeerIds.
     pub async fn new(
         authority_index_and_pen: Option<(NodeIndex, AuthorityPen)>,
         authority_verifier: AuthorityVerifier,
         session_id: SessionId,
-        addresses: Vec<Multiaddr>,
-    ) -> Result<Handler, HandlerError> {
+        addresses: Vec<M>,
+    ) -> Result<Handler<M>, HandlerError> {
         let (session_info, own_peer_id) =
             construct_session_info(&authority_index_and_pen, session_id, addresses).await?;
         Ok(Handler {
@@ -116,7 +164,7 @@ impl Handler {
     }
 
     /// Returns the authentication for the node and session this handler is responsible for.
-    pub fn authentication(&self) -> Option<Authentication> {
+    pub fn authentication(&self) -> Option<Authentication<M>> {
         match &self.session_info {
             SessionInfo::SessionId(_) => None,
             SessionInfo::OwnAuthentication(own_authentication) => Some(own_authentication.clone()),
@@ -139,7 +187,7 @@ impl Handler {
 
     /// Verifies the authentication, uses it to update mappings, and returns whether we should
     /// remain connected to the multiaddresses.
-    pub fn handle_authentication(&mut self, authentication: Authentication) -> bool {
+    pub fn handle_authentication(&mut self, authentication: Authentication<M>) -> bool {
         if authentication.0.session_id != self.session_id() {
             return false;
         }
@@ -170,7 +218,7 @@ impl Handler {
     }
 
     /// Returns the PeerId of the node with the given NodeIndex, if known.
-    pub fn peer_id(&self, node_id: &NodeIndex) -> Option<PeerId> {
+    pub fn peer_id(&self, node_id: &NodeIndex) -> Option<M::PeerId> {
         self.peers_by_node.get(node_id).copied()
     }
 
@@ -184,8 +232,8 @@ impl Handler {
         &mut self,
         authority_index_and_pen: Option<(NodeIndex, AuthorityPen)>,
         authority_verifier: AuthorityVerifier,
-        addresses: Vec<Multiaddr>,
-    ) -> Result<Vec<Multiaddr>, HandlerError> {
+        addresses: Vec<M>,
+    ) -> Result<Vec<M>, HandlerError> {
         if authority_index_and_pen.is_none() != self.authority_index_and_pen.is_none() {
             return Err(HandlerError::TypeChange);
         }
@@ -218,35 +266,14 @@ impl Handler {
 mod tests {
     use super::{get_common_peer_id, Handler, HandlerError};
     use crate::{
-        network::manager::{
-            testing::{address, crypto_basics},
-            Multiaddr,
+        network::{
+            mock::{crypto_basics, MockMultiaddress, MockNetworkIdentity, MockPeerId},
+            NetworkIdentity,
         },
         NodeIndex, SessionId,
     };
 
     const NUM_NODES: usize = 7;
-
-    fn correct_addresses_0() -> Vec<Multiaddr> {
-        vec![
-                address("/dns4/example.com/tcp/30333/p2p/12D3KooWRkGLz4YbVmrsWK75VjFTs8NvaBu42xhAmQaP4KeJpw1L").into(),
-                address("/dns4/peer.example.com/tcp/30333/p2p/12D3KooWRkGLz4YbVmrsWK75VjFTs8NvaBu42xhAmQaP4KeJpw1L").into(),
-        ]
-    }
-
-    fn correct_addresses_1() -> Vec<Multiaddr> {
-        vec![
-                address("/dns4/other.example.com/tcp/30333/p2p/12D3KooWFVXnvJdPuGnGYMPn5qLQAQYwmRBgo6SmEQsKZSrDoo2k").into(),
-                address("/dns4/peer.other.example.com/tcp/30333/p2p/12D3KooWFVXnvJdPuGnGYMPn5qLQAQYwmRBgo6SmEQsKZSrDoo2k").into(),
-        ]
-    }
-
-    fn local_p2p_addresses() -> Vec<Multiaddr> {
-        vec![address(
-            "/ip4/127.0.0.1/tcp/30333/p2p/12D3KooWFVXnvJdPuGnGYMPn5qLQAQYwmRBgo6SmEQsKZSrDoo2k",
-        )
-        .into()]
-    }
 
     #[tokio::test]
     async fn creates_with_correct_data() {
@@ -255,7 +282,7 @@ mod tests {
             Some(crypto_basics.0.pop().unwrap()),
             crypto_basics.1,
             SessionId(43),
-            correct_addresses_0()
+            MockNetworkIdentity::new().identity().0,
         )
         .await
         .is_ok());
@@ -268,7 +295,7 @@ mod tests {
             Some(crypto_basics.0.pop().unwrap()),
             crypto_basics.1,
             SessionId(43),
-            local_p2p_addresses()
+            MockNetworkIdentity::new().identity().0,
         )
         .await
         .is_ok());
@@ -277,11 +304,14 @@ mod tests {
     #[tokio::test]
     async fn creates_without_node_index_nor_authority_pen() {
         let crypto_basics = crypto_basics(NUM_NODES).await;
-        assert!(
-            Handler::new(None, crypto_basics.1, SessionId(43), correct_addresses_0())
-                .await
-                .is_ok()
-        );
+        assert!(Handler::new(
+            None,
+            crypto_basics.1,
+            SessionId(43),
+            MockNetworkIdentity::new().identity().0,
+        )
+        .await
+        .is_ok());
     }
 
     #[tokio::test]
@@ -291,7 +321,7 @@ mod tests {
             None,
             crypto_basics.1.clone(),
             SessionId(43),
-            correct_addresses_0(),
+            MockNetworkIdentity::new().identity().0,
         )
         .await
         .unwrap();
@@ -299,7 +329,7 @@ mod tests {
             Some(crypto_basics.0.pop().unwrap()),
             crypto_basics.1,
             SessionId(43),
-            local_p2p_addresses(),
+            MockNetworkIdentity::new().identity().0,
         )
         .await
         .unwrap();
@@ -310,13 +340,16 @@ mod tests {
     #[tokio::test]
     async fn non_validator_handler_returns_none_for_authentication() {
         let crypto_basics = crypto_basics(NUM_NODES).await;
-        assert!(
-            Handler::new(None, crypto_basics.1, SessionId(43), correct_addresses_0())
-                .await
-                .unwrap()
-                .authentication()
-                .is_none()
-        );
+        assert!(Handler::new(
+            None,
+            crypto_basics.1,
+            SessionId(43),
+            MockNetworkIdentity::new().identity().0
+        )
+        .await
+        .unwrap()
+        .authentication()
+        .is_none());
     }
 
     #[tokio::test]
@@ -327,7 +360,7 @@ mod tests {
                 Some(crypto_basics.0.pop().unwrap()),
                 crypto_basics.1,
                 SessionId(43),
-                Vec::new()
+                Vec::<MockMultiaddress>::new()
             )
             .await,
             Err(HandlerError::NoP2pAddresses)
@@ -337,10 +370,10 @@ mod tests {
     #[tokio::test]
     async fn fails_to_create_with_non_unique_peer_id() {
         let mut crypto_basics = crypto_basics(NUM_NODES).await;
-        let addresses = correct_addresses_0()
-            .into_iter()
-            .chain(correct_addresses_1())
-            .collect();
+        let addresses = vec![
+            MockMultiaddress::random_with_id(MockPeerId::random()),
+            MockMultiaddress::random_with_id(MockPeerId::random()),
+        ];
         assert!(matches!(
             Handler::new(
                 Some(crypto_basics.0.pop().unwrap()),
@@ -356,17 +389,18 @@ mod tests {
     #[tokio::test]
     async fn fails_to_update_from_validator_to_non_validator() {
         let mut crypto_basics = crypto_basics(NUM_NODES).await;
+        let addresses = MockNetworkIdentity::new().identity().0;
         let mut handler0 = Handler::new(
             Some(crypto_basics.0.pop().unwrap()),
             crypto_basics.1.clone(),
             SessionId(43),
-            correct_addresses_0(),
+            addresses.clone(),
         )
         .await
         .unwrap();
         assert!(matches!(
             handler0
-                .update(None, crypto_basics.1.clone(), correct_addresses_0())
+                .update(None, crypto_basics.1.clone(), addresses)
                 .await,
             Err(HandlerError::TypeChange)
         ));
@@ -375,11 +409,12 @@ mod tests {
     #[tokio::test]
     async fn fails_to_update_from_non_validator_to_validator() {
         let mut crypto_basics = crypto_basics(NUM_NODES).await;
+        let addresses = MockNetworkIdentity::new().identity().0;
         let mut handler0 = Handler::new(
             None,
             crypto_basics.1.clone(),
             SessionId(43),
-            correct_addresses_0(),
+            addresses.clone(),
         )
         .await
         .unwrap();
@@ -388,7 +423,7 @@ mod tests {
                 .update(
                     Some(crypto_basics.0.pop().unwrap()),
                     crypto_basics.1.clone(),
-                    correct_addresses_0()
+                    addresses,
                 )
                 .await,
             Err(HandlerError::TypeChange)
@@ -402,7 +437,7 @@ mod tests {
             Some(crypto_basics.0.pop().unwrap()),
             crypto_basics.1,
             SessionId(43),
-            correct_addresses_0(),
+            MockNetworkIdentity::new().identity().0,
         )
         .await
         .unwrap();
@@ -416,7 +451,7 @@ mod tests {
             Some(crypto_basics.0.pop().unwrap()),
             crypto_basics.1,
             SessionId(43),
-            correct_addresses_0(),
+            MockNetworkIdentity::new().identity().0,
         )
         .await
         .unwrap();
@@ -433,15 +468,16 @@ mod tests {
             Some(crypto_basics.0[0].clone()),
             crypto_basics.1.clone(),
             SessionId(43),
-            correct_addresses_0(),
+            MockNetworkIdentity::new().identity().0,
         )
         .await
         .unwrap();
+        let addresses = MockNetworkIdentity::new().identity().0;
         let handler1 = Handler::new(
             Some(crypto_basics.0[1].clone()),
             crypto_basics.1.clone(),
             SessionId(43),
-            correct_addresses_1(),
+            addresses.clone(),
         )
         .await
         .unwrap();
@@ -449,7 +485,7 @@ mod tests {
         let missing_nodes = handler0.missing_nodes();
         let expected_missing: Vec<_> = (2..NUM_NODES).map(NodeIndex).collect();
         assert_eq!(missing_nodes, expected_missing);
-        let peer_id1 = get_common_peer_id(&correct_addresses_1());
+        let peer_id1 = get_common_peer_id(&addresses);
         assert_eq!(handler0.peer_id(&NodeIndex(1)), peer_id1);
     }
 
@@ -460,15 +496,16 @@ mod tests {
             None,
             crypto_basics.1.clone(),
             SessionId(43),
-            correct_addresses_0(),
+            MockNetworkIdentity::new().identity().0,
         )
         .await
         .unwrap();
+        let addresses = MockNetworkIdentity::new().identity().0;
         let handler1 = Handler::new(
             Some(crypto_basics.0[1].clone()),
             crypto_basics.1.clone(),
             SessionId(43),
-            correct_addresses_1(),
+            addresses.clone(),
         )
         .await
         .unwrap();
@@ -477,7 +514,7 @@ mod tests {
         let mut expected_missing: Vec<_> = (0..NUM_NODES).map(NodeIndex).collect();
         expected_missing.remove(1);
         assert_eq!(missing_nodes, expected_missing);
-        let peer_id1 = get_common_peer_id(&correct_addresses_1());
+        let peer_id1 = get_common_peer_id(&addresses);
         assert_eq!(handler0.peer_id(&NodeIndex(1)), peer_id1);
     }
 
@@ -488,7 +525,7 @@ mod tests {
             Some(crypto_basics.0[0].clone()),
             crypto_basics.1.clone(),
             SessionId(43),
-            correct_addresses_0(),
+            MockNetworkIdentity::new().identity().0,
         )
         .await
         .unwrap();
@@ -496,7 +533,7 @@ mod tests {
             Some(crypto_basics.0[1].clone()),
             crypto_basics.1.clone(),
             SessionId(43),
-            correct_addresses_1(),
+            MockNetworkIdentity::new().identity().0,
         )
         .await
         .unwrap();
@@ -515,7 +552,7 @@ mod tests {
             Some(crypto_basics.0[0].clone()),
             crypto_basics.1.clone(),
             SessionId(43),
-            correct_addresses_0(),
+            MockNetworkIdentity::new().identity().0,
         )
         .await
         .unwrap();
@@ -523,7 +560,7 @@ mod tests {
             Some(crypto_basics.0[1].clone()),
             crypto_basics.1.clone(),
             SessionId(44),
-            correct_addresses_1(),
+            MockNetworkIdentity::new().identity().0,
         )
         .await
         .unwrap();
@@ -540,7 +577,7 @@ mod tests {
             Some(awaited_crypto_basics.0[0].clone()),
             awaited_crypto_basics.1.clone(),
             SessionId(43),
-            correct_addresses_0(),
+            MockNetworkIdentity::new().identity().0,
         )
         .await
         .unwrap();
@@ -557,7 +594,7 @@ mod tests {
             Some(awaited_crypto_basics.0[0].clone()),
             awaited_crypto_basics.1.clone(),
             SessionId(43),
-            correct_addresses_0(),
+            MockNetworkIdentity::new().identity().0,
         )
         .await
         .unwrap();
@@ -565,7 +602,7 @@ mod tests {
             Some(awaited_crypto_basics.0[1].clone()),
             awaited_crypto_basics.1.clone(),
             SessionId(43),
-            correct_addresses_1(),
+            MockNetworkIdentity::new().identity().0,
         )
         .await
         .unwrap();
@@ -575,7 +612,7 @@ mod tests {
             .update(
                 Some(new_crypto_basics.0[0].clone()),
                 new_crypto_basics.1.clone(),
-                correct_addresses_0(),
+                MockNetworkIdentity::new().identity().0,
             )
             .await
             .unwrap();
@@ -588,19 +625,21 @@ mod tests {
     #[tokio::test]
     async fn uses_cached_authentication() {
         let awaited_crypto_basics = crypto_basics(NUM_NODES).await;
+        let addresses0 = MockNetworkIdentity::new().identity().0;
         let mut handler0 = Handler::new(
             Some(awaited_crypto_basics.0[0].clone()),
             awaited_crypto_basics.1.clone(),
             SessionId(43),
-            correct_addresses_0(),
+            addresses0.clone(),
         )
         .await
         .unwrap();
+        let addresses1 = MockNetworkIdentity::new().identity().0;
         let mut handler1 = Handler::new(
             Some(awaited_crypto_basics.0[1].clone()),
             awaited_crypto_basics.1.clone(),
             SessionId(43),
-            correct_addresses_1(),
+            addresses1.clone(),
         )
         .await
         .unwrap();
@@ -610,7 +649,7 @@ mod tests {
             .update(
                 Some(new_crypto_basics.0[1].clone()),
                 new_crypto_basics.1.clone(),
-                correct_addresses_1()
+                addresses1.clone(),
             )
             .await
             .unwrap()
@@ -620,7 +659,7 @@ mod tests {
             .update(
                 Some(new_crypto_basics.0[0].clone()),
                 new_crypto_basics.1.clone(),
-                correct_addresses_0(),
+                addresses0,
             )
             .await
             .unwrap();
@@ -629,7 +668,7 @@ mod tests {
         assert_eq!(missing_nodes, expected_missing);
         assert_eq!(
             handler0.peer_id(&NodeIndex(1)),
-            get_common_peer_id(&correct_addresses_1())
+            get_common_peer_id(&addresses1)
         );
     }
 }

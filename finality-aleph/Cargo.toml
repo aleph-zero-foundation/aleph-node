@@ -10,6 +10,7 @@ aleph-bft-rmc = "0.3.0"
 aleph-primitives = { package = "primitives", path = "../primitives" }
 
 async-trait = "0.1"
+bytes = "1.0"
 codec = { package = "parity-scale-codec", version = "3.0", default-features = false, features = ["derive"] }
 derive_more = "0.99"
 env_logger = "0.9"
