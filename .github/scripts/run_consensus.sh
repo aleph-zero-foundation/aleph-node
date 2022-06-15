@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 # change it when increasing number of node containers
 export NODE_COUNT=5

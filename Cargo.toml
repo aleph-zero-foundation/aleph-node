@@ -17,4 +17,5 @@ exclude = [
   "benches/payout-stakers",
   "bin/cliain",
   "peer-verification",
+  "contracts",
 ]

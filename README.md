@@ -34,8 +34,7 @@ If you would like to contribute, please fork the repository, introduce your chan
 
 ### License
 
-- The code in this repository is licensed under the terms of the the Apache License 2.0.
-- With the exception of `bin/cliain/src/transcode/*` directory which contains code licensed under GPL v3.0
+The code in this repository is licensed under the terms of the the Apache License 2.0.
 
 [aleph-homepage]: https://alephzero.org
 [aleph-logo]: https://alephzero.org/wp-content/uploads/A0_logotype_dark-1.jpg

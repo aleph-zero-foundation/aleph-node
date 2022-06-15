@@ -30,6 +30,9 @@ jobs:
       - name: Install clippy and fmt
         run: rustup component add clippy rustfmt
 
+      - name: Install WASM target
+        run: rustup target add wasm32-unknown-unknown
+
       - name: Read excluded packages from Cargo.toml
         id: read_excluded
         uses: SebRollen/toml-action@v1.0.0

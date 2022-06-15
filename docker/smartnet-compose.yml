@@ -1,0 +1,25 @@
+version: '3'
+services:
+
+  smartnode:
+    image: public.ecr.aws/p6e8q1z1/aleph-node:31b1428-smartnet
+    container_name: smartnode
+    network_mode: host
+    environment:
+      - ALLOW_PRIVATE_IPV4=true
+      - BASE_PATH=/data/$NODE_ID
+      - CHAIN=/data/chainspec.smartnet.json
+      - CUSTOM_ARGS=-lruntime::contracts=debug
+      - DISCOVER_LOCAL=true
+      - NAME=Smartnode
+      - NODE_KEY_PATH=/data/$NODE_ID/p2p_secret
+      - PORT=30333
+      - PURGE_BEFORE_START=true
+      - RPC_PORT=9933
+      - RUST_LOG=info
+      - UNIT_CREATION_DELAY=50
+      - WS_PORT=9943
+      - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/$BOOTNODE_PEER_ID
+      - PUBLIC_ADDR=/ip4/127.0.0.1/tcp/30333
+    volumes:
+      - ./data/:/data/
