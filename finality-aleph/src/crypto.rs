@@ -165,7 +165,7 @@ impl MultiKeychain for KeyBox {
     // We probably should do this for them at some point.
     type PartialMultisignature = SignatureSet<Signature>;
 
-    fn from_signature(
+    fn bootstrap_multi(
         &self,
         signature: &Signature,
         index: NodeIndex,
