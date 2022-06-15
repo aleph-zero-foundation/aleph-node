@@ -29,7 +29,7 @@ aleph-node convert-chainspec-to-raw --chain docker/data/chainspec.json
 ```
 
 The tool will perform the following actions, in this order:
-1. Download the whole state (key-value pairs) of the chain via the provided rpc endpoint `http-rpc-endpoint`. More specifically it will first query the best block and then download the state at this block.
+1. Download the whole state (key-value pairs) of the chain via the provided rpc endpoint `ws-rpc-endpoint`. More specifically it will first query the best block and then download the state at this block.
 2. Dump the state to a json file. You can provide a path via `--snapshot-path`.
 3. Read the state from the snapshot json file. This is because steps 1. and 2. can be omitted by running with `--use-snapshot-file` -- see example below.
 4. Read the chainspec provided via `--initial-spec-path` you should pass here the one generated via `the bootstrap-chain` command, so `--initial-spec-path=chainspec.json` if it is in the same directory.
@@ -44,13 +44,13 @@ For Alice it would be `5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY`.
 So for instance to generate a new spec keeping the storage of testnet (note that in that case you should use the same binary as running on testnet to `bootstrap-chain`) we would run:
 
 ```bash
-target/release/fork-off --http-rpc-endpoint=https://rpc.test.azero.dev --initial-spec-path=chainspec.json --combined-spec-path=combined.json --balances 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY=1000000000000000
+target/release/fork-off --ws-rpc-endpoint=wss://ws.test.azero.dev --initial-spec-path=chainspec.json --combined-spec-path=combined.json --balances 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY=1000000000000000
 ```
 
 This will also create a `snapshot.json` file containing the state downloaded from testnet. In case the state downloaded correctly (easy to see from logs) but something went wrong when combining the specs (e.g. you want to use a different set of paths) then you can rerun without the need of downloading the state again (it might be time consuming):
 
 ```bash
-target/release/fork-off --http-rpc-endpoint=https://rpc.test.azero.dev --initial-spec-path=chainspec.json --combined-spec-path=combined.json --use-snapshot-file
+target/release/fork-off --ws-rpc-endpoint=wss://ws.test.azero.dev --initial-spec-path=chainspec.json --combined-spec-path=combined.json --use-snapshot-file
 ```
 
-Finally, there is also an optional parameter `--num-workers` with default value `5` which you can increase to parallelize better the process of downloading the state. Note however that this might increase the risk of being banned for too many RPC requests, so use with caution. The default value seems to be safe.
+Finally, there is also an optional parameter `--max-requests` with a default value of `1000` which you can tweak to allow more/less concurrent in-flight requests while the state is downloading. Note that this might influence the risk of being banned for too many RPC requests, so use with caution. The default value seems to be safe.
