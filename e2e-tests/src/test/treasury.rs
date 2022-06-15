@@ -18,7 +18,7 @@ use aleph_client::{
     Extrinsic, RootConnection, SignedConnection,
 };
 
-use crate::{accounts::get_validators_keys, config::Config, transfer::setup_for_transfer};
+use crate::{accounts::get_validators_keys, config::Config, transfer::setup_for_tipped_transfer};
 
 fn calculate_staking_treasury_addition<C: AnyConnection>(connection: &C) -> u128 {
     let sessions_per_era = connection
@@ -42,8 +42,9 @@ fn calculate_staking_treasury_addition<C: AnyConnection>(connection: &C) -> u128
     treasury_era_payout_from_staking
 }
 
-pub fn channeling_fee(config: &Config) -> anyhow::Result<()> {
-    let (connection, to) = setup_for_transfer(config);
+pub fn channeling_fee_and_tip(config: &Config) -> anyhow::Result<()> {
+    let tip = 10_000u128;
+    let (connection, to) = setup_for_tipped_transfer(config, tip);
     let treasury = get_treasury_account();
 
     let possibly_treasury_gain_from_staking = calculate_staking_treasury_addition(&connection);
@@ -71,6 +72,7 @@ pub fn channeling_fee(config: &Config) -> anyhow::Result<()> {
         treasury_balance_before,
         treasury_balance_after,
         fee,
+        tip,
     );
 
     Ok(())
@@ -109,16 +111,19 @@ fn check_treasury_balance(
     treasury_balance_before: Balance,
     treasury_balance_after: Balance,
     fee: Balance,
+    tip: Balance,
 ) {
-    let treasury_balance_diff = treasury_balance_after - (treasury_balance_before + fee);
+    let treasury_balance_diff = treasury_balance_after - (treasury_balance_before + fee + tip);
     assert_eq!(
         treasury_balance_diff % possibly_treasury_gain_from_staking,
         0,
-        "Incorrect amount was channeled to the treasury: before = {}, after = {}, fee = {}.  We can \
-        be different only as multiples of staking treasury reward {}, but the remainder is {}",
+        "Incorrect amount was channeled to the treasury: before = {}, after = {}, fee = {}, tip = \
+        {}. We can be different only as multiples of staking treasury reward {}, but the remainder \
+        is {}",
         treasury_balance_before,
         treasury_balance_after,
         fee,
+        tip,
         possibly_treasury_gain_from_staking,
         treasury_balance_diff % possibly_treasury_gain_from_staking,
     );

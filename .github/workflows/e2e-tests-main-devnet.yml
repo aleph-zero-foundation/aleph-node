@@ -168,7 +168,7 @@ jobs:
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
         with:
-          test-case: channeling_fee
+          test-case: channeling_fee_and_tip
         timeout-minutes: 4
 
   run-e2e-treasury-access-test:
