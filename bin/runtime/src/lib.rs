@@ -402,7 +402,6 @@ parameter_types! {
     // see custom implementation of WeightInfo below
     pub const MaxNominatorRewardedPerValidator: u32 = MAX_NOMINATORS_REWARDED_PER_VALIDATOR;
     pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(33);
-    pub const DisabledValidatorsThreshold: Perbill = Perbill::from_percent(30);
     pub const SessionsPerEra: EraIndex = DEFAULT_SESSIONS_PER_ERA;
 }
 
@@ -575,26 +574,20 @@ impl pallet_multisig::Config for Runtime {
     type WeightInfo = pallet_multisig::weights::SubstrateWeight<Runtime>;
 }
 
-// We do not burn any money within treasury.
-pub const TREASURY_BURN: u32 = 0;
-// The percentage of the amount of the proposal that the proposer should deposit.
-// We agreed on non-progressive deposit.
-pub const TREASURY_PROPOSAL_BOND: u32 = 0;
-// The proposer should deposit max{`TREASURY_PROPOSAL_BOND`% of the proposal value, 100 AZERO}.
-pub const TREASURY_MINIMUM_BOND: Balance = 100_000_000_000 * TOKEN;
-pub const TREASURY_MAXIMUM_BOND: Balance = 100_000_000_000 * TOKEN;
-// Every 4 hours we implement accepted proposals.
-pub const TREASURY_SPEND_PERIOD: BlockNumber = 4 * BLOCKS_PER_HOUR;
-// We allow at most 20 approvals in the queue at once.
-pub const TREASURY_MAX_APPROVALS: u32 = 20;
-
 parameter_types! {
-    pub const Burn: Permill = Permill::from_percent(TREASURY_BURN);
-    pub const ProposalBond: Permill = Permill::from_percent(TREASURY_PROPOSAL_BOND);
-    pub const ProposalBondMinimum: Balance = TREASURY_MINIMUM_BOND;
-    pub const ProposalBondMaximum: Balance = TREASURY_MAXIMUM_BOND;
-    pub const MaxApprovals: u32 = TREASURY_MAX_APPROVALS;
-    pub const SpendPeriod: BlockNumber = TREASURY_SPEND_PERIOD;
+    // We do not burn any money within treasury.
+    pub const Burn: Permill = Permill::from_percent(0);
+    // The fraction of the proposal that the proposer should deposit.
+    // We agreed on non-progressive deposit.
+    pub const ProposalBond: Permill = Permill::from_percent(0);
+    // The minimal deposit for proposal. This value effectively disables treasury.
+    pub const ProposalBondMinimum: Balance = 100_000_000_000 * TOKEN;
+    // The upper bound of the deposit for the proposal.
+    pub const ProposalBondMaximum: Balance = 100_000_000_000 * TOKEN;
+    // Maximum number of approvals that can wait in the spending queue.
+    pub const MaxApprovals: u32 = 20;
+    // Every 4 hours we fund accepted proposals.
+    pub const SpendPeriod: BlockNumber = 4 * BLOCKS_PER_HOUR;
     pub const TreasuryPalletId: PalletId = PalletId(*b"a0/trsry");
 }
 
@@ -634,10 +627,13 @@ impl pallet_utility::Config for Runtime {
 const CONTRACTS_DEBUG_OUTPUT: bool = true;
 
 parameter_types! {
+    // Refundable deposit per storage item
     pub const DepositPerItem: Balance = 32 * DEPOSIT_PER_BYTE;
+    // Refundable deposit per byte of storage
     pub const DepositPerByte: Balance = DEPOSIT_PER_BYTE;
-    // The lazy deletion runs inside on_initialize.
+    // How much weight of each block can be spent on the lazy deletion queue of terminated contracts
     pub DeletionWeightLimit: Weight = Perbill::from_percent(10) * BlockWeights::get().max_block; // 40ms
+    // Maximum size of the lazy deletion queue of terminated contracts.
     // The weight needed for decoding the queue should be less or equal than a tenth
     // of the overall weight dedicated to the lazy deletion.
     pub DeletionQueueDepth: u32 = ((DeletionWeightLimit::get() / (
@@ -653,7 +649,7 @@ impl pallet_contracts::Config for Runtime {
     type Currency = Balances;
     type Event = Event;
     type Call = Call;
-    /// The safest default is to allow no calls at all. This is unsafe experimental feature with no support in ink!
+    // The safest default is to allow no calls at all. This is unsafe experimental feature with no support in ink!
     type CallFilter = Nothing;
     type DepositPerItem = DepositPerItem;
     type DepositPerByte = DepositPerByte;
