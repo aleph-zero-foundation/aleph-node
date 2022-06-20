@@ -1,4 +1,5 @@
 pub use era_payout::era_payouts_calculated_correctly;
+pub use era_validators::era_validators;
 pub use fee::fee_calculation;
 pub use finalization::finalization;
 pub use staking::{staking_era_payouts, staking_new_validator};
@@ -9,6 +10,7 @@ pub use validators_change::change_validators;
 pub use validators_rotate::validators_rotate;
 
 mod era_payout;
+mod era_validators;
 mod fee;
 mod finalization;
 mod staking;
