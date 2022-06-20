@@ -1,14 +1,13 @@
 use crate::{
     finalization::BlockFinalizer,
     justification::{
-        scheduler::SchedulerActions, JustificationNotification, JustificationRequestScheduler,
-        Verifier,
+        scheduler::SchedulerActions, versioned_encode, JustificationNotification,
+        JustificationRequestScheduler, Verifier,
     },
     metrics::Checkpoint,
     network, Metrics,
 };
 use aleph_primitives::ALEPH_ENGINE_ID;
-use codec::Encode;
 use log::{debug, error, warn};
 use sc_client_api::HeaderBackend;
 use sp_api::{BlockId, BlockT, NumberFor};
@@ -88,7 +87,7 @@ where
         let finalization_res = self.finalizer.finalize_block(
             hash,
             number,
-            Some((ALEPH_ENGINE_ID, justification.encode())),
+            Some((ALEPH_ENGINE_ID, versioned_encode(justification))),
         );
         match finalization_res {
             Ok(()) => {

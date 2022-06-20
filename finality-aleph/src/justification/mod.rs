@@ -9,7 +9,7 @@ mod handler;
 mod requester;
 mod scheduler;
 
-pub use compatibility::{backwards_compatible_decode, AlephJustificationV1, JustificationDecoding};
+pub use compatibility::{backwards_compatible_decode, versioned_encode, Error as DecodeError};
 pub use handler::JustificationHandler;
 pub use scheduler::{
     JustificationRequestScheduler, JustificationRequestSchedulerImpl, SchedulerActions,

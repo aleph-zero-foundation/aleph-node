@@ -1,7 +1,5 @@
 use crate::{
-    justification::{
-        backwards_compatible_decode, JustificationDecoding, JustificationNotification,
-    },
+    justification::{backwards_compatible_decode, DecodeError, JustificationNotification},
     metrics::{Checkpoint, Metrics},
 };
 use aleph_primitives::ALEPH_ENGINE_ID;
@@ -38,7 +36,13 @@ where
 {
     Send(TrySendError<JustificationNotification<Block>>),
     Consensus(Box<ConsensusError>),
-    Decode,
+    Decode(DecodeError),
+}
+
+impl<Block: BlockT> From<DecodeError> for SendJustificationError<Block> {
+    fn from(decode_error: DecodeError) -> Self {
+        Self::Decode(decode_error)
+    }
 }
 
 impl<Block, Be, I> AlephBlockImport<Block, Be, I>
@@ -73,16 +77,7 @@ where
             )));
         }
         let justification_raw = justification.1;
-        let aleph_justification = match backwards_compatible_decode(justification_raw) {
-            JustificationDecoding::V1(just) => {
-                debug!(target: "aleph-justification", "Justification for block {:?} decoded correctly as V1", number);
-                just.into()
-            }
-            JustificationDecoding::V2(just) => just,
-            JustificationDecoding::Err => {
-                return Err(SendJustificationError::Decode);
-            }
-        };
+        let aleph_justification = backwards_compatible_decode(justification_raw)?;
 
         self.justification_tx
             .unbounded_send(JustificationNotification {
@@ -199,8 +194,8 @@ where
                     "Could not send justification to ConsensusParty",
                 )),
                 SendJustificationError::Consensus(e) => *e,
-                SendJustificationError::Decode => {
-                    warn!(target: "aleph-justification", "Justification for block {:?} decoded incorrectly", number);
+                SendJustificationError::Decode(e) => {
+                    warn!(target: "aleph-justification", "Justification for block {:?} decoded incorrectly: {}", number, e);
                     ConsensusError::ClientImport(String::from("Could not decode justification"))
                 }
             })
