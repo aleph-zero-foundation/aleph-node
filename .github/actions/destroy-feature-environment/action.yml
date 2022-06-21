@@ -1,0 +1,92 @@
+name: 'Destroy Feature Environment'
+description: 'Action used for feature environment deletion'
+
+inputs:
+  gh-ci-token:
+    description: 'GH token to be used in the action'
+    required: true
+  aws-access-key:
+    description: 'AWS Access Key ID to be used in the action'
+    required: true
+  aws-secret-access-key:
+    description: 'AWS Secret Access Key to be used in the action'
+    required: true
+  argo-sync-user-token:
+    description: 'ArgoCD user token to be used in the action'
+    required: true
+
+outputs:
+  deployment-name:
+    description: 'Output with a deployment name for working with deployments'
+    value: ${{ steps.get_branch.outputs.branch }}
+  
+
+
+runs:
+  using: "composite"
+  steps:
+    - name: Get Branch Name
+      id: get_branch
+      shell: bash
+      env:
+        PR_HEAD: ${{ github.head_ref }}
+      run: echo "##[set-output name=branch;]$(echo ${PR_HEAD#refs/heads/} | tr / -)"
+
+    - name: Checkout aleph-apps repo
+      uses: actions/checkout@master
+      with:
+        repository: Cardinal-Cryptography/aleph-apps
+        token: ${{ inputs.gh-ci-token }}
+        path: "aleph-apps"
+        ref: main
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      env:
+        AWS_REGION: us-east-1
+      with:
+        aws-access-key-id: ${{ inputs.aws-access-key }}
+        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Destroy feature branch
+      shell: bash
+      env:
+        APP_NAME: fe-${{ steps.get_branch.outputs.branch }}
+      run: |
+        ALEPH_PATH=$(pwd)
+
+        ## Delete FE application for argo to delete it automatically
+        rm -rf $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+
+    - name: Commit deletion of the feature environment.
+      uses: EndBug/add-and-commit@v5.1.0
+      env:
+        APP_NAME: fe-${{ steps.get_branch.outputs.branch }}
+        GITHUB_TOKEN: ${{ inputs.gh-ci-token }}
+      with:
+        author_name: AlephZero Automation
+        author_email: alephzero@10clouds.com
+        message: "Feature Environment: ${{ env.APP_NAME }} has been deleted"
+        add: "*.yaml"
+        cwd: "aleph-apps"
+        branch: main
+
+    - name: Refresh Argo and wait for the deletion to be finished
+      shell: bash
+      env:
+        ARGOCD_URL: argocd.dev.azero.dev
+      run: |
+        ## Install argocd CLI tool
+        curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/download/v2.3.3/argocd-linux-amd64
+        chmod +x argocd && mv argocd /usr/local/bin/
+
+        /usr/local/bin/argocd app get fe-root-application --hard-refresh --auth-token ${{ inputs.argo-sync-user-token }} --server ${{ env.ARGOCD_URL }}
+        /usr/local/bin/argocd app wait fe-root-application --auth-token ${{ inputs.argo-sync-user-token }} --server ${{ env.ARGOCD_URL }}
+
+    - name: Clean S3 storage
+      shell: bash
+      env:
+        BRANCH_NAME: ${{ steps.get_branch.outputs.branch }}
+      run: |
+        aws s3 rm --recursive s3://fe-alephzero-devnet-eu-central-1-keys-bucket/fe-${{ env.BRANCH_NAME }}
