@@ -26,7 +26,8 @@ chain.set_flags(port=Seq(30334),
                 ws_port=Seq(9944),
                 rpc_port=Seq(9933),
                 unit_creation_delay=200,
-                execution='Native')
+                execution='Native',
+                pruning='archive')
 
 chain.set_flags_validator('validator')
 

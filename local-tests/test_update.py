@@ -53,7 +53,8 @@ chain.set_flags('validator',
                 ws_port=Seq(9944),
                 rpc_port=Seq(9933),
                 unit_creation_delay=200,
-                execution='Native')
+                execution='Native',
+                pruning='archive')
 
 addresses = [n.address() for n in chain]
 chain.set_flags(public_addr=addresses)
