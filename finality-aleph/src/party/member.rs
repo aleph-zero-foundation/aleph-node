@@ -2,14 +2,13 @@ use crate::{
     crypto::KeyBox,
     data_io::{AlephData, OrderedDataInterpreter},
     network::{AlephNetworkData, DataNetwork, NetworkWrapper},
-    party::{AuthoritySubtaskCommon, Task},
+    party::{backup::ABFTBackup, AuthoritySubtaskCommon, Task},
 };
 use aleph_bft::{Config, LocalIO, SpawnHandle};
 use futures::channel::oneshot;
 use log::debug;
 use sc_client_api::HeaderBackend;
 use sp_runtime::traits::Block;
-use std::io::{empty, sink};
 
 /// Runs the member within a single session.
 pub fn task<
@@ -23,14 +22,15 @@ pub fn task<
     network: NetworkWrapper<AlephNetworkData<B>, ADN>,
     data_provider: impl aleph_bft::DataProvider<AlephData<B>> + Send + 'static,
     ordered_data_interpreter: OrderedDataInterpreter<B, C>,
+    backup: ABFTBackup,
 ) -> Task {
     let AuthoritySubtaskCommon {
         spawn_handle,
         session_id,
     } = subtask_common;
     let (stop, exit) = oneshot::channel();
-    // `sink` and `empty` here are noop placeholders which will be replaced in A0-542
-    let local_io = LocalIO::new(data_provider, ordered_data_interpreter, sink(), empty());
+    let local_io = LocalIO::new(data_provider, ordered_data_interpreter, backup.0, backup.1);
+
     let task = {
         let spawn_handle = spawn_handle.clone();
         async move {

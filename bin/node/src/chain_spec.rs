@@ -116,6 +116,9 @@ pub struct ChainParams {
     #[clap(long, default_value = "p2p_secret")]
     node_key_file: String,
 
+    #[clap(long, default_value = "backup-stash")]
+    backup_dir: String,
+
     /// Chain name. Default is "Aleph Zero Development"
     #[clap(long, default_value = "Aleph Zero Development")]
     chain_name: String,
@@ -152,6 +155,10 @@ impl ChainParams {
 
     pub fn node_key_file(&self) -> &str {
         &self.node_key_file
+    }
+
+    pub fn backup_dir(&self) -> &str {
+        &self.backup_dir
     }
 
     pub fn chain_name(&self) -> &str {

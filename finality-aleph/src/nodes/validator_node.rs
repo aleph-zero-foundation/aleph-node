@@ -35,6 +35,7 @@ where
         session_period,
         millisecs_per_block,
         justification_rx,
+        backup_saving_path,
         ..
     } = aleph_config;
 
@@ -113,6 +114,7 @@ where
         metrics,
         authority_justification_tx,
         unit_creation_delay,
+        backup_saving_path,
     });
 
     debug!(target: "aleph-party", "Consensus party has started.");

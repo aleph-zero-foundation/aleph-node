@@ -10,6 +10,7 @@ use crate::{
             SubtaskCommon as AuthoritySubtaskCommon, Subtasks as AuthoritySubtasks,
             Task as AuthorityTask,
         },
+        backup::ABFTBackup,
         task::{Handle, Task},
     },
     session_id_from_block_num,
@@ -22,15 +23,20 @@ use aleph_primitives::KEY_TYPE;
 use codec::Encode;
 use futures::channel::mpsc;
 use futures_timer::Delay;
-use log::{debug, info, trace, warn};
+use log::{debug, error, info, trace, warn};
 use sc_client_api::Backend;
 use sp_consensus::SelectChain;
 use sp_keystore::CryptoStore;
 use sp_runtime::traits::{Block, Header};
-use std::{collections::HashSet, default::Default, marker::PhantomData, sync::Arc, time::Duration};
+use std::{
+    collections::HashSet, default::Default, marker::PhantomData, path::PathBuf, sync::Arc,
+    time::Duration,
+};
+use tokio::task::spawn_blocking;
 
 mod aggregator;
 mod authority;
+mod backup;
 mod chain_tracker;
 mod data_store;
 mod member;
@@ -71,6 +77,7 @@ pub(crate) struct ConsensusPartyParams<B: Block, SC, C, RB> {
     pub metrics: Option<Metrics<<B::Header as Header>::Hash>>,
     pub authority_justification_tx: mpsc::UnboundedSender<JustificationNotification<B>>,
     pub unit_creation_delay: UnitCreationDelay,
+    pub backup_saving_path: Option<PathBuf>,
 }
 
 pub(crate) struct ConsensusParty<B, C, BE, SC, RB>
@@ -94,6 +101,7 @@ where
     metrics: Option<Metrics<<B::Header as Header>::Hash>>,
     authority_justification_tx: mpsc::UnboundedSender<JustificationNotification<B>>,
     unit_creation_delay: UnitCreationDelay,
+    backup_saving_path: Option<PathBuf>,
 }
 
 const SESSION_STATUS_CHECK_PERIOD: Duration = Duration::from_millis(1000);
@@ -120,6 +128,7 @@ where
             metrics,
             authority_justification_tx,
             unit_creation_delay,
+            backup_saving_path,
         } = params;
         Self {
             session_manager,
@@ -134,9 +143,11 @@ where
             spawn_handle,
             phantom: PhantomData,
             unit_creation_delay,
+            backup_saving_path,
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn spawn_authority_subtasks(
         &self,
         node_id: NodeIndex,
@@ -144,6 +155,7 @@ where
         data_network: SessionNetwork<SplitData<B>>,
         session_id: SessionId,
         authorities: Vec<AuthorityId>,
+        backup: ABFTBackup,
         exit_rx: futures::channel::oneshot::Receiver<()>,
     ) -> AuthoritySubtasks {
         debug!(target: "afa", "Authority task {:?}", session_id);
@@ -198,6 +210,7 @@ where
                 aleph_network.into(),
                 data_provider,
                 ordered_data_interpreter,
+                backup,
             ),
             aggregator::task(
                 subtask_common.clone(),
@@ -218,6 +231,7 @@ where
         session_id: SessionId,
         node_id: NodeIndex,
         authorities: Vec<AuthorityId>,
+        backup: ABFTBackup,
     ) -> AuthorityTask {
         let authority_verifier = AuthorityVerifier::new(authorities.clone());
         let authority_pen =
@@ -241,6 +255,7 @@ where
                 data_network,
                 session_id,
                 authorities,
+                backup,
                 exit_rx,
             )
             .await;
@@ -258,6 +273,10 @@ where
 
     async fn run_session(&mut self, session_id: SessionId) {
         let last_block = last_block_of_session::<B>(session_id, self.session_period);
+        if let Some(previous_session_id) = session_id.0.checked_sub(1) {
+            let backup_saving_path = self.backup_saving_path.clone();
+            spawn_blocking(move || backup::remove(backup_saving_path, previous_session_id));
+        }
 
         // Early skip attempt -- this will trigger during catching up (initial sync).
         if self.client.info().best_number >= last_block {
@@ -297,11 +316,23 @@ where
         let mut maybe_authority_task = if let Some(node_id) =
             get_node_index(&authorities, self.keystore.clone()).await
         {
-            debug!(target: "aleph-party", "Running session {:?} as authority id {:?}", session_id, node_id);
-            Some(
-                self.spawn_authority_task(session_id, node_id, authorities.clone())
-                    .await,
-            )
+            match backup::rotate(self.backup_saving_path.clone(), session_id.0) {
+                Ok(backup) => {
+                    debug!(target: "aleph-party", "Running session {:?} as authority id {:?}", session_id, node_id);
+                    Some(
+                        self.spawn_authority_task(session_id, node_id, authorities.clone(), backup)
+                            .await,
+                    )
+                }
+                Err(err) => {
+                    error!(
+                        target: "AlephBFT-member",
+                        "Error setting up backup saving for session {:?}. Not running the session: {}",
+                        session_id, err
+                    );
+                    return;
+                }
+            }
         } else {
             debug!(target: "afa", "Running session {:?} as non-authority", session_id);
             if let Err(e) = self

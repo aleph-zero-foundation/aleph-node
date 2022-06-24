@@ -28,6 +28,7 @@ PROMETHEUS_ENABLED=${PROMETHEUS_ENABLED:-true}
 TELEMETRY_ENABLED=${TELEMETRY_ENABLED:-false}
 UNIT_CREATION_DELAY=${UNIT_CREATION_DELAY:-300}
 DB_CACHE=${DB_CACHE:-1024}
+BACKUP_PATH=${BACKUP_PATH:-${BASE_PATH}/backup-stash}
 
 if [[ "true" == "$PURGE_BEFORE_START" ]]; then
   echo "Purging chain (${CHAIN}) at path ${BASE_PATH}"
@@ -43,6 +44,7 @@ ARGS=(
   --pool-limit "${POOL_LIMIT}"
   --chain "${CHAIN}"
   --node-key-file "${NODE_KEY_PATH}"
+  --backup-path "${BACKUP_PATH}"
   --rpc-port "${RPC_PORT}" --ws-port "${WS_PORT}" --port "${PORT}"
   --rpc-cors all
   --no-mdns

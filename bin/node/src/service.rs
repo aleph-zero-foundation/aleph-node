@@ -244,8 +244,6 @@ pub fn new_authority(
             .unwrap(),
     );
 
-    let unit_creation_delay = aleph_config.unit_creation_delay();
-
     let force_authoring = config.force_authoring;
     let backoff_authoring_blocks: Option<()> = None;
     let prometheus_registry = config.prometheus_registry().cloned();
@@ -318,7 +316,8 @@ pub fn new_authority(
         keystore: keystore_container.keystore(),
         justification_rx,
         metrics,
-        unit_creation_delay,
+        unit_creation_delay: aleph_config.unit_creation_delay(),
+        backup_saving_path: aleph_config.backup_path(),
     };
     task_manager.spawn_essential_handle().spawn_blocking(
         "aleph",
@@ -370,8 +369,6 @@ pub fn new_full(
             .unwrap(),
     );
 
-    let unit_creation_delay = aleph_config.unit_creation_delay();
-
     let aleph_config = AlephConfig {
         network,
         client,
@@ -382,7 +379,8 @@ pub fn new_full(
         keystore: keystore_container.keystore(),
         justification_rx,
         metrics,
-        unit_creation_delay,
+        unit_creation_delay: aleph_config.unit_creation_delay(),
+        backup_saving_path: aleph_config.backup_path(),
     };
 
     task_manager.spawn_essential_handle().spawn_blocking(

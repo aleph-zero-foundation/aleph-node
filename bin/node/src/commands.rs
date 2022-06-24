@@ -5,13 +5,20 @@ use aleph_primitives::AuthorityId as AlephId;
 use aleph_runtime::AccountId;
 use clap::Parser;
 use libp2p::identity::{ed25519 as libp2p_ed25519, PublicKey};
-use sc_cli::{Error, KeystoreParams};
+use sc_cli::{CliConfiguration, DatabaseParams, Error, KeystoreParams, SharedParams};
 use sc_keystore::LocalKeystore;
-use sc_service::config::{BasePath, KeystoreConfig};
+use sc_service::{
+    config::{BasePath, KeystoreConfig},
+    DatabaseSource,
+};
 use sp_application_crypto::{key_types, Ss58Codec};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_keystore::SyncCryptoStore;
-use std::{fs, io::Write, path::PathBuf};
+use std::{
+    fs,
+    io::{self, Write},
+    path::{Path, PathBuf},
+};
 
 /// returns Aura key, if absent a new key is generated
 fn aura_key(keystore: &impl SyncCryptoStore) -> AuraId {
@@ -60,6 +67,10 @@ fn p2p_key(chain_params: &ChainParams, account_id: &AccountId) -> SerializablePe
     }
 }
 
+fn backup_path(base_path: &Path, backup_dir: &str) -> PathBuf {
+    base_path.join(backup_dir)
+}
+
 fn open_keystore(
     keystore_params: &KeystoreParams,
     chain_params: &ChainParams,
@@ -81,6 +92,22 @@ fn open_keystore(
             LocalKeystore::open(path, password).expect("Keystore open should succeed")
         }
         _ => unreachable!("keystore_config always returns path and password; qed"),
+    }
+}
+
+fn bootstrap_backup(chain_params: &ChainParams, account_id: &AccountId) {
+    let base_path = chain_params.base_path().path().join(account_id.to_string());
+    let backup_path = backup_path(&base_path, chain_params.backup_dir());
+
+    if backup_path.exists() {
+        if !backup_path.is_dir() {
+            panic!(
+                "Could not create backup directory at {:?}. Path is already a file.",
+                backup_path
+            );
+        }
+    } else {
+        fs::create_dir_all(backup_path).expect("Could not create backup directory.");
     }
 }
 
@@ -125,6 +152,7 @@ impl BootstrapChainCmd {
             .account_ids()
             .iter()
             .map(|account_id| {
+                bootstrap_backup(&self.chain_params, account_id);
                 let keystore = open_keystore(&self.keystore_params, &self.chain_params, account_id);
                 authority_keys(&keystore, &self.chain_params, account_id)
             })
@@ -141,7 +169,7 @@ impl BootstrapChainCmd {
     }
 }
 
-/// The `bootstrap-node` command is used to generate key pairs for a single authority
+/// The `bootstrap-node` command is used to generate key pairs and AlephBFT backup folder for a single authority
 /// private keys are stored in a specified keystore, and the public keys are written to stdout.
 #[derive(Debug, Parser)]
 pub struct BootstrapNodeCmd {
@@ -166,6 +194,7 @@ pub struct BootstrapNodeCmd {
 impl BootstrapNodeCmd {
     pub fn run(&self) -> Result<(), Error> {
         let account_id = &self.account_id();
+        bootstrap_backup(&self.chain_params, account_id);
         let keystore = open_keystore(&self.keystore_params, &self.chain_params, account_id);
 
         let authority_keys = authority_keys(&keystore, &self.chain_params, account_id);
@@ -209,6 +238,86 @@ impl ConvertChainspecToRawCmd {
             let _ = std::io::stderr().write_all(b"Error writing to stdout\n");
         }
 
+        Ok(())
+    }
+}
+
+/// The `purge-chain` command used to remove the whole chain and backup made by AlephBFT.
+/// First runs substrate PurgeChainCmd and after that removes AlephBFT backup.
+#[derive(Debug, Parser)]
+pub struct PurgeChainCmd {
+    #[clap(flatten)]
+    pub purge_backup: PurgeBackupCmd,
+
+    #[clap(flatten)]
+    pub purge_chain: sc_cli::PurgeChainCmd,
+}
+
+impl PurgeChainCmd {
+    pub fn run(&self, database_config: DatabaseSource) -> Result<(), Error> {
+        self.purge_chain.run(database_config)?;
+        self.purge_backup.run()
+    }
+}
+
+impl CliConfiguration for PurgeChainCmd {
+    fn shared_params(&self) -> &SharedParams {
+        self.purge_chain.shared_params()
+    }
+
+    fn database_params(&self) -> Option<&DatabaseParams> {
+        self.purge_chain.database_params()
+    }
+}
+
+#[derive(Debug, Parser)]
+pub struct PurgeBackupCmd {
+    /// Skip interactive prompt by answering yes automatically.
+    #[clap(short = 'y')]
+    pub yes: bool,
+    #[clap(flatten)]
+    pub chain_params: ChainParams,
+}
+
+impl PurgeBackupCmd {
+    pub fn run(&self) -> Result<(), Error> {
+        let backup_path = backup_path(
+            self.chain_params.base_path().path(),
+            self.chain_params.backup_dir(),
+        );
+
+        if !self.yes {
+            print!(
+                "Are you sure to inside of remove {:?}? [y/N]: ",
+                &backup_path
+            );
+            io::stdout().flush().expect("failed to flush stdout");
+
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
+            let input = input.trim();
+
+            match input.chars().next() {
+                Some('y') | Some('Y') => {}
+                _ => {
+                    println!("Aborted");
+                    return Ok(());
+                }
+            }
+        }
+
+        for entry in fs::read_dir(&backup_path)? {
+            let path = entry?.path();
+            match fs::remove_dir_all(&path) {
+                Ok(_) => {
+                    println!("{:?} removed.", &path);
+                }
+                Err(ref err) if err.kind() == io::ErrorKind::NotFound => {
+                    eprintln!("{:?} did not exist.", &path);
+                }
+                Err(err) => return Err(err.into()),
+            }
+        }
         Ok(())
     }
 }

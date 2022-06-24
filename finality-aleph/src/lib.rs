@@ -21,7 +21,7 @@ use sp_api::{NumberFor, ProvideRuntimeApi};
 use sp_blockchain::{HeaderBackend, HeaderMetadata};
 use sp_keystore::CryptoStore;
 use sp_runtime::traits::{BlakeTwo256, Block, Header};
-use std::{fmt::Debug, sync::Arc};
+use std::{fmt::Debug, path::PathBuf, sync::Arc};
 
 mod aggregation;
 mod crypto;
@@ -178,4 +178,5 @@ pub struct AlephConfig<B: Block, H: ExHashT, C, SC> {
     pub session_period: SessionPeriod,
     pub millisecs_per_block: MillisecsPerBlock,
     pub unit_creation_delay: UnitCreationDelay,
+    pub backup_saving_path: Option<PathBuf>,
 }

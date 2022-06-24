@@ -50,6 +50,7 @@ class Chain:
         def account_to_node(account):
             n = Node(binary, chainspec, op.join(self.path, account), self.path)
             n.flags['node-key-file'] = op.join(self.path, account, 'p2p_secret')
+            n.flags['backup_path'] = op.join(self.path, account, 'backup-stash')
             n.flags['enable-log-reloading'] = True
             return n
 

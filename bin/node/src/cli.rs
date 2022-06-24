@@ -1,12 +1,13 @@
 use crate::{
     aleph_cli::AlephCli,
     chain_spec,
-    commands::{BootstrapChainCmd, BootstrapNodeCmd, ConvertChainspecToRawCmd},
+    commands::{BootstrapChainCmd, BootstrapNodeCmd, ConvertChainspecToRawCmd, PurgeChainCmd},
 };
 use clap::{Parser, Subcommand as ClapSubcommand};
 use sc_cli::{ChainSpec, RunCmd, RuntimeVersion, SubstrateCli};
 
 #[derive(Debug, Parser)]
+#[clap(subcommand_negates_reqs(true))]
 pub struct Cli {
     #[clap(subcommand)]
     pub subcommand: Option<Subcommand>,
@@ -94,7 +95,7 @@ pub enum Subcommand {
     ImportBlocks(sc_cli::ImportBlocksCmd),
 
     /// Remove the whole chain.
-    PurgeChain(sc_cli::PurgeChainCmd),
+    PurgeChain(PurgeChainCmd),
 
     /// Revert the chain to a previous state.
     Revert(sc_cli::RevertCmd),
