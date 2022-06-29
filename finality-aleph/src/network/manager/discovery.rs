@@ -6,7 +6,7 @@ use crate::{
     NodeIndex, SessionId,
 };
 use codec::{Decode, Encode};
-use log::{debug, trace, warn};
+use log::{debug, info, trace, warn};
 use std::{
     collections::HashMap,
     marker::PhantomData,
@@ -84,7 +84,7 @@ impl<M: Multiaddress> Discovery<M> {
 
         let missing_authorities = handler.missing_nodes();
         let node_count = handler.node_count();
-        debug!(target: "aleph-network", "{:?}/{:?} authorities known for session {:?}.", node_count.0-missing_authorities.len(), node_count, handler.session_id());
+        info!(target: "aleph-network", "{}/{} authorities known for session {}.", node_count.0-missing_authorities.len(), node_count.0, handler.session_id().0);
         vec![authentication_broadcast(authentication)]
     }
 
