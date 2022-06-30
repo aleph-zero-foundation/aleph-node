@@ -12,6 +12,7 @@ use substrate_api_client::{
 };
 
 pub use account::{get_free_balance, locks};
+pub use balances::total_issuance;
 pub use debug::print_storages;
 pub use fee::{get_next_fee_multiplier, get_tx_fee_info, FeeInfo};
 pub use multisig::{
@@ -35,6 +36,11 @@ pub use system::set_code;
 pub use transfer::{
     batch_transfer as balances_batch_transfer, transfer as balances_transfer, TransferTransaction,
 };
+pub use treasury::{
+    approve as approve_treasury_proposal, proposals_counter as treasury_proposals_counter,
+    propose as make_treasury_proposal, reject as reject_treasury_proposal, staking_treasury_payout,
+    treasury_account,
+};
 pub use vesting::{
     get_schedules, merge_schedules, vest, vest_other, vested_transfer, VestingError,
     VestingSchedule,
@@ -42,6 +48,7 @@ pub use vesting::{
 pub use waiting::{wait_for_event, wait_for_finalized_block};
 
 mod account;
+mod balances;
 mod debug;
 mod fee;
 mod multisig;
@@ -50,6 +57,7 @@ mod session;
 mod staking;
 mod system;
 mod transfer;
+mod treasury;
 mod vesting;
 mod waiting;
 
