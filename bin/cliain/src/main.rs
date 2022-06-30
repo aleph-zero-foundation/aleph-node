@@ -3,8 +3,8 @@ use clap::Parser;
 use cliain::{
     bond, call, change_validators, force_new_era, instantiate, instantiate_with_code, nominate,
     prepare_keys, prompt_password_hidden, remove_code, rotate_keys, set_keys, set_staking_limits,
-    transfer, update_runtime, upload_code, validate, vest, vest_other, vested_transfer, Command,
-    ConnectionConfig,
+    transfer, treasury_approve, treasury_propose, treasury_reject, update_runtime, upload_code,
+    validate, vest, vest_other, vested_transfer, Command, ConnectionConfig,
 };
 use log::{error, info};
 use sp_core::Pair;
@@ -67,6 +67,12 @@ fn main() {
             amount_in_tokens,
             to_account,
         } => transfer(cfg.into(), amount_in_tokens, to_account),
+        Command::TreasuryPropose {
+            amount_in_tokens,
+            beneficiary,
+        } => treasury_propose(cfg.into(), amount_in_tokens, beneficiary),
+        Command::TreasuryApprove { proposal_id } => treasury_approve(cfg.into(), proposal_id),
+        Command::TreasuryReject { proposal_id } => treasury_reject(cfg.into(), proposal_id),
         Command::RotateKeys => rotate_keys::<SignedConnection>(cfg.into()),
         Command::SetStakingLimits {
             minimal_nominator_stake,

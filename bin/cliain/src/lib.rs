@@ -5,6 +5,7 @@ mod runtime;
 mod secret;
 mod staking;
 mod transfer;
+mod treasury;
 mod validators;
 mod vesting;
 
@@ -15,6 +16,9 @@ pub use runtime::update_runtime;
 pub use secret::prompt_password_hidden;
 pub use staking::{bond, force_new_era, nominate, set_staking_limits, validate};
 pub use transfer::transfer;
+pub use treasury::{
+    approve as treasury_approve, propose as treasury_propose, reject as treasury_reject,
+};
 pub use validators::change_validators;
 pub use vesting::{vest, vest_other, vested_transfer};
 
