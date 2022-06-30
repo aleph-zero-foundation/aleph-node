@@ -38,7 +38,7 @@ clear
 
 
 if $BUILD_ALEPH_NODE ; then
-  cargo build --release -p aleph-node --features "short_session"
+  cargo build --release -p aleph-node --features "short_session enable_treasury_proposals"
 fi
 
 declare -a account_ids

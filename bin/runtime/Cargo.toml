@@ -109,3 +109,4 @@ std = [
     "pallet-nomination-pools/std",
 ]
 short_session = ["primitives/short_session"]
+enable_treasury_proposals = []

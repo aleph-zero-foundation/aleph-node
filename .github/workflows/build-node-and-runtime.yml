@@ -57,7 +57,7 @@ jobs:
           retention-days: 7
 
       - name: Build test binary
-        run: cargo build --release -p aleph-node --features "short_session"
+        run: cargo build --release -p aleph-node --features "short_session enable_treasury_proposals"
 
       - name: Upload test binary
         uses: actions/upload-artifact@v2

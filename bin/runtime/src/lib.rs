@@ -112,7 +112,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 20,
+    spec_version: 21,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 8,
@@ -574,16 +574,23 @@ impl pallet_multisig::Config for Runtime {
     type WeightInfo = pallet_multisig::weights::SubstrateWeight<Runtime>;
 }
 
+#[cfg(not(feature = "enable_treasury_proposals"))]
+// This value effectively disables treasury.
+pub const TREASURY_PROPOSAL_BOND: Balance = 100_000_000_000 * TOKEN;
+
+#[cfg(feature = "enable_treasury_proposals")]
+pub const TREASURY_PROPOSAL_BOND: Balance = 100 * TOKEN;
+
 parameter_types! {
     // We do not burn any money within treasury.
     pub const Burn: Permill = Permill::from_percent(0);
     // The fraction of the proposal that the proposer should deposit.
     // We agreed on non-progressive deposit.
     pub const ProposalBond: Permill = Permill::from_percent(0);
-    // The minimal deposit for proposal. This value effectively disables treasury.
-    pub const ProposalBondMinimum: Balance = 100_000_000_000 * TOKEN;
+    // The minimal deposit for proposal.
+    pub const ProposalBondMinimum: Balance = TREASURY_PROPOSAL_BOND;
     // The upper bound of the deposit for the proposal.
-    pub const ProposalBondMaximum: Balance = 100_000_000_000 * TOKEN;
+    pub const ProposalBondMaximum: Balance = TREASURY_PROPOSAL_BOND;
     // Maximum number of approvals that can wait in the spending queue.
     pub const MaxApprovals: u32 = 20;
     // Every 4 hours we fund accepted proposals.

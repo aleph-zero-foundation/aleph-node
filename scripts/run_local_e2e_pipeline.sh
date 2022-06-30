@@ -3,7 +3,7 @@
 set -e
 
 # build release binary
-cargo build --release -p aleph-node --features "short_session"
+cargo build --release -p aleph-node --features "short_session enable_treasury_proposals"
 # build docker image
 docker build --tag aleph-node:latest -f ./docker/Dockerfile .
 

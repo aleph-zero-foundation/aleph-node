@@ -1,14 +1,18 @@
 use log::info;
-use sp_core::Pair;
-use substrate_api_client::{AccountId, Balance, XtStatus};
+use substrate_api_client::{Balance, XtStatus};
 
 use aleph_client::{
-    balances_transfer, get_free_balance, get_tx_fee_info, make_treasury_proposal,
-    staking_treasury_payout, total_issuance, treasury_account, treasury_proposals_counter,
-    AnyConnection, SignedConnection,
+    account_from_keypair, approve_treasury_proposal, balances_transfer, get_free_balance,
+    get_tx_fee_info, make_treasury_proposal, reject_treasury_proposal, staking_treasury_payout,
+    total_issuance, treasury_account, treasury_proposals_counter, AnyConnection, RootConnection,
+    SignedConnection,
 };
 
-use crate::{accounts::get_validators_keys, config::Config, transfer::setup_for_tipped_transfer};
+use crate::{
+    accounts::{get_sudo_key, get_validators_keys},
+    config::Config,
+    transfer::setup_for_tipped_transfer,
+};
 
 /// Returns current treasury free funds and total issuance.
 ///
@@ -99,16 +103,25 @@ fn check_treasury_balance(
 
 pub fn treasury_access(config: &Config) -> anyhow::Result<()> {
     let proposer = get_validators_keys(config)[0].clone();
-    let beneficiary = AccountId::from(proposer.public());
+    let beneficiary = account_from_keypair(&proposer);
     let connection = SignedConnection::new(&config.node, proposer);
 
     let proposals_counter_before = treasury_proposals_counter(&connection);
     make_treasury_proposal(&connection, 10u128, &beneficiary)?;
+    make_treasury_proposal(&connection, 100u128, &beneficiary)?;
     let proposals_counter_after = treasury_proposals_counter(&connection);
+
     assert_eq!(
-        proposals_counter_before, proposals_counter_after,
-        "Proposal was created: deposit was not high enough"
+        proposals_counter_before + 2,
+        proposals_counter_after,
+        "Proposal has not been created"
     );
+
+    let sudo = get_sudo_key(config);
+    let connection = RootConnection::new(&config.node, sudo);
+
+    approve_treasury_proposal(&connection, proposals_counter_after - 2)?;
+    reject_treasury_proposal(&connection, proposals_counter_after - 1)?;
 
     Ok(())
 }
