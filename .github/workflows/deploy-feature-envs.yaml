@@ -26,14 +26,14 @@ jobs:
           PR_HEAD: ${{ github.head_ref }}
         run: |
           echo "##[set-output name=branch;]$(echo ${PR_HEAD#refs/heads/} | tr / -)"
-          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"      
+          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
 
       - name: Download artifact with built aleph-node binary from PR
         uses: actions/download-artifact@v2
         with:
           name: aleph-release-node
           path: target/release/
-      
+
       - name: Build docker image with PR aleph-node binary
         env:
           IMAGE_TAG: fe-${{ steps.get_branch.outputs.branch }}_${{ steps.get_branch.outputs.sha_short }}
@@ -56,7 +56,7 @@ jobs:
           IMAGE_TAG: fe-${{ steps.get_branch.outputs.branch }}_${{ steps.get_branch.outputs.sha_short }}
           FE_ALEPH_NODE_REGISTRY: 573243519133.dkr.ecr.us-east-1.amazonaws.com/feature-env-aleph-node
         run: |
-          docker push ${{ env.FE_ALEPH_NODE_REGISTRY }}:${{ env.IMAGE_TAG }}      
+          docker push ${{ env.FE_ALEPH_NODE_REGISTRY }}:${{ env.IMAGE_TAG }}
 
 
   deploy_feature_env:
@@ -107,7 +107,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Public Amazon ECR
-        id: login-public-ecr                        
+        id: login-public-ecr
         uses: docker/login-action@v1
         with:
           registry: public.ecr.aws
@@ -122,10 +122,7 @@ jobs:
           BRANCH_NAME: ${{ steps.get_branch.outputs.branch }}
           CHAIN_ID: a0fenet
         run: |
-          SYSTEM_VERSION=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' https://rpc.test.azero.dev | jq -r '.result')
-          SUFFIX="-x86_64-linux-gnu"
-          LONG_COMMIT_ID=${SYSTEM_VERSION/%$SUFFIX}
-          COMMIT_ID=${LONG_COMMIT_ID: -7}
+          COMMIT_ID=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' https://rpc.test.azero.dev | jq -r '.result' | cut -d "-" -f 2 | head -c 7)
           echo $COMMIT_ID
           TESTNET_IMAGE="public.ecr.aws/p6e8q1z1/aleph-node:$COMMIT_ID"
 
@@ -198,10 +195,7 @@ jobs:
           CREATE_HOOK: false
         run: |
           # Set up envs
-          SYSTEM_VERSION=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' https://rpc.test.azero.dev | jq -r '.result')
-          SUFFIX="-x86_64-linux-gnu"
-          LONG_COMMIT_ID=${SYSTEM_VERSION/%$SUFFIX}
-          COMMIT_ID=${LONG_COMMIT_ID: -7}
+          COMMIT_ID=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' https://rpc.test.azero.dev | jq -r '.result' | cut -d "-" -f 2 | head -c 7)
           TESTNET_IMAGE="public.ecr.aws\/p6e8q1z1\/aleph-node:$COMMIT_ID"
           ALEPH_PATH=$(pwd)
 
@@ -240,7 +234,7 @@ jobs:
           sed "s/NAMESPACE/${{ env.NAMESPACE }}/g" $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && mv $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
 
           sed "s/NODE_IMAGE/$MAINNET_IMAGE/g" $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && mv $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
-    
+
       - name: GIT | Commit changes to aleph-apps repository.
         uses: EndBug/add-and-commit@v5.1.0
         env:
@@ -262,7 +256,7 @@ jobs:
           ## Install argocd CLI tool
           curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/download/v2.3.3/argocd-linux-amd64
           chmod +x argocd && mv argocd /usr/local/bin/
-          
+
           ## Sync argo to start deployment
           /usr/local/bin/argocd app get fe-root-application --hard-refresh --auth-token ${{ secrets.ARGO_SYNC_USER_TOKEN }} --server ${{ env.ARGOCD_URL }}
 
@@ -345,7 +339,7 @@ jobs:
           ## Install argocd CLI tool
           curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/download/v2.3.3/argocd-linux-amd64
           chmod +x argocd && mv argocd /usr/local/bin/
-          
+
           ## Sync argo to start deployment
           /usr/local/bin/argocd app get fe-root-application --hard-refresh --auth-token ${{ secrets.ARGO_SYNC_USER_TOKEN }} --server ${{ env.ARGOCD_URL }}
 
@@ -373,7 +367,7 @@ jobs:
         with:
           labels: 'DESTROYED'
           github_token: ${{ secrets.CI_GH_TOKEN }}
-      
+
       - name: Add label to mark that feature branch has been deployed
         uses: actions-ecosystem/action-add-labels@v1.1.0
         with:
@@ -408,7 +402,7 @@ jobs:
           aws-access-key: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
           argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
-      
+
       - name: Remove labels
         uses: actions-ecosystem/action-remove-labels@v1.3.0
         with:
@@ -421,7 +415,7 @@ jobs:
         with:
           labels: 'DEPLOYED'
           github_token: ${{ secrets.CI_GH_TOKEN }}
-      
+
       - name: Add label to mark that feature branch has been destroyed
         uses: actions-ecosystem/action-add-labels@v1.1.0
         with:
@@ -472,7 +466,7 @@ jobs:
         with:
           labels: 'DEPLOYED'
           github_token: ${{ secrets.CI_GH_TOKEN }}
-      
+
       - name: Add label to mark that feature branch has been destroyed
         uses: actions-ecosystem/action-add-labels@v1.1.0
         with:

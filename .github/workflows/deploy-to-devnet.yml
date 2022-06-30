@@ -62,10 +62,7 @@ jobs:
         run: |
           #!/bin/bash
 
-          SYSTEM_VERSION=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' https://rpc.test.azero.dev | jq -r '.result')
-          SUFFIX="-x86_64-linux-gnu"
-          TMP_COMMIT_ID=${SYSTEM_VERSION/%$SUFFIX}
-          COMMIT_ID=${TMP_COMMIT_ID: -7}
+          COMMIT_ID=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' https://rpc.test.azero.dev | jq -r '.result' | cut -d "-" -f 2 | head -c 7)
           echo $COMMIT_ID
 
           # sync all validator's keystores from S3
