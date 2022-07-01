@@ -1,12 +1,14 @@
-use crate::{
-    crypto::{Signature, SignatureV1},
-    justification::AlephJustification,
-};
-use aleph_bft::{PartialMultisignature, SignatureSet};
-use codec::{Decode, DecodeAll, Encode, Error as CodecError, Input as CodecInput};
 use std::{
     fmt::{Display, Error as FmtError, Formatter},
     mem::size_of,
+};
+
+use aleph_bft::{PartialMultisignature, SignatureSet};
+use codec::{Decode, DecodeAll, Encode, Error as CodecError, Input as CodecInput};
+
+use crate::{
+    crypto::{Signature, SignatureV1},
+    justification::AlephJustification,
 };
 
 type Version = u16;
@@ -152,15 +154,16 @@ pub fn versioned_encode(justification: AlephJustification) -> Vec<u8> {
 
 #[cfg(test)]
 mod test {
+    use aleph_bft::{NodeCount, PartialMultisignature, SignatureSet};
+    use aleph_primitives::{AuthorityPair, AuthoritySignature};
+    use codec::{Decode, Encode};
+    use sp_core::Pair;
+
     use super::{backwards_compatible_decode, AlephJustificationV1, VersionedAlephJustification};
     use crate::{
         crypto::{Signature, SignatureV1},
         justification::AlephJustification,
     };
-    use aleph_bft::{NodeCount, PartialMultisignature, SignatureSet};
-    use aleph_primitives::{AuthorityPair, AuthoritySignature};
-    use codec::{Decode, Encode};
-    use sp_core::Pair;
 
     #[test]
     fn correctly_decodes_v1() {

@@ -6,25 +6,6 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-use sp_api::impl_runtime_apis;
-use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
-use sp_runtime::{
-    create_runtime_str, generic, impl_opaque_keys,
-    traits::{
-        AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, IdentifyAccount, OpaqueKeys,
-        Verify,
-    },
-    transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, MultiSignature, RuntimeAppPublic,
-};
-use sp_staking::EraIndex;
-
-use sp_std::prelude::*;
-#[cfg(feature = "std")]
-use sp_version::NativeVersion;
-use sp_version::RuntimeVersion;
-
 pub use frame_support::{
     construct_runtime, parameter_types,
     traits::{
@@ -44,13 +25,6 @@ use frame_support::{
     PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
-pub use primitives::Balance;
-use primitives::{
-    staking::MAX_NOMINATORS_REWARDED_PER_VALIDATOR, wrap_methods, ApiError as AlephApiError,
-    AuthorityId as AlephId, ADDRESSES_ENCODING, DEFAULT_SESSIONS_PER_ERA, DEFAULT_SESSION_PERIOD,
-    MILLISECS_PER_BLOCK, TOKEN,
-};
-
 pub use pallet_balances::Call as BalancesCall;
 use pallet_contracts::weights::WeightInfo;
 use pallet_contracts_primitives::{
@@ -58,11 +32,32 @@ use pallet_contracts_primitives::{
 };
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
-use sp_consensus_aura::SlotDuration;
-use sp_runtime::traits::One;
+pub use primitives::Balance;
+use primitives::{
+    staking::MAX_NOMINATORS_REWARDED_PER_VALIDATOR, wrap_methods, ApiError as AlephApiError,
+    AuthorityId as AlephId, ADDRESSES_ENCODING, DEFAULT_SESSIONS_PER_ERA, DEFAULT_SESSION_PERIOD,
+    MILLISECS_PER_BLOCK, TOKEN,
+};
+use sp_api::impl_runtime_apis;
+use sp_consensus_aura::{sr25519::AuthorityId as AuraId, SlotDuration};
+use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
+use sp_runtime::{
+    create_runtime_str, generic, impl_opaque_keys,
+    traits::{
+        AccountIdLookup, BlakeTwo256, Block as BlockT, ConvertInto, IdentifyAccount, One,
+        OpaqueKeys, Verify,
+    },
+    transaction_validity::{TransactionSource, TransactionValidity},
+    ApplyExtrinsicResult, MultiSignature, RuntimeAppPublic,
+};
 pub use sp_runtime::{FixedPointNumber, Perbill, Permill};
+use sp_staking::EraIndex;
+use sp_std::prelude::*;
+#[cfg(feature = "std")]
+use sp_version::NativeVersion;
+use sp_version::RuntimeVersion;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -89,9 +84,9 @@ pub type Hash = sp_core::H256;
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
 /// to even the core data structures.
 pub mod opaque {
-    use super::*;
-
     pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
+
+    use super::*;
 
     /// Opaque block header type.
     pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
@@ -112,7 +107,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 21,
+    spec_version: 22,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 8,

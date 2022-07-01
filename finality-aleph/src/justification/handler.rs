@@ -1,3 +1,13 @@
+use std::{sync::Arc, time::Duration};
+
+use futures::{channel::mpsc, Stream, StreamExt};
+use futures_timer::Delay;
+use log::{debug, error};
+use sc_client_api::HeaderBackend;
+use sp_api::BlockT;
+use sp_runtime::traits::Header;
+use tokio::time::timeout;
+
 use crate::{
     finalization::BlockFinalizer,
     justification::{
@@ -6,14 +16,6 @@ use crate::{
     },
     network, Metrics,
 };
-use futures::{channel::mpsc, Stream, StreamExt};
-use futures_timer::Delay;
-use log::{debug, error};
-use sc_client_api::HeaderBackend;
-use sp_api::BlockT;
-use sp_runtime::traits::Header;
-use std::{sync::Arc, time::Duration};
-use tokio::time::timeout;
 
 pub struct JustificationHandler<B, V, RB, C, S, SI, F>
 where

@@ -1,13 +1,11 @@
-use crate::{
-    data_io::{
-        chain_info::{CachedChainInfoProvider, ChainInfoProvider},
-        proposal::{AlephProposal, ProposalStatus},
-        status_provider::get_proposal_status,
-        AlephNetworkMessage,
-    },
-    network::{ComponentNetwork, DataNetwork, ReceiverComponent, RequestBlocks, SimpleNetwork},
-    BlockHashNum, SessionBoundaries,
+use std::{
+    collections::{hash_map::Entry::Occupied, BTreeMap, HashMap, HashSet},
+    default::Default,
+    hash::{Hash, Hasher},
+    sync::Arc,
+    time::{self, Duration},
 };
+
 use futures::{
     channel::{
         mpsc::{self, UnboundedSender},
@@ -20,14 +18,18 @@ use log::{debug, error, info, trace, warn};
 use lru::LruCache;
 use sc_client_api::{BlockchainEvents, HeaderBackend};
 use sp_runtime::traits::{Block as BlockT, Header as HeaderT, NumberFor, One};
-use std::{
-    collections::{hash_map::Entry::Occupied, BTreeMap, HashMap, HashSet},
-    default::Default,
-    hash::{Hash, Hasher},
-    sync::Arc,
-    time::{self, Duration},
-};
 use tokio::sync::Mutex;
+
+use crate::{
+    data_io::{
+        chain_info::{CachedChainInfoProvider, ChainInfoProvider},
+        proposal::{AlephProposal, ProposalStatus},
+        status_provider::get_proposal_status,
+        AlephNetworkMessage,
+    },
+    network::{ComponentNetwork, DataNetwork, ReceiverComponent, RequestBlocks, SimpleNetwork},
+    BlockHashNum, SessionBoundaries,
+};
 
 type MessageId = u64;
 

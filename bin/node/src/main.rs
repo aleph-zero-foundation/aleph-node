@@ -1,9 +1,8 @@
+use aleph_node::{new_authority, new_full, new_partial, Cli, Subcommand};
+use clap::Parser;
 use sc_cli::SubstrateCli;
 use sc_network::config::Role;
 use sc_service::PartialComponents;
-
-use aleph_node::{new_authority, new_full, new_partial, Cli, Subcommand};
-use clap::Parser;
 
 fn main() -> sc_cli::Result<()> {
     let cli = Cli::parse();

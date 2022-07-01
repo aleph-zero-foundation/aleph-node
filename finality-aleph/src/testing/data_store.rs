@@ -1,13 +1,5 @@
-use crate::{
-    data_io::{AlephData, AlephNetworkMessage, DataStore, DataStoreConfig, MAX_DATA_BRANCH_LEN},
-    network::{DataNetwork, RequestBlocks, SimpleNetwork},
-    session::{SessionBoundaries, SessionId, SessionPeriod},
-    testing::{
-        client_chain_builder::ClientChainBuilder,
-        mocks::{aleph_data_from_blocks, aleph_data_from_headers},
-    },
-    BlockHashNum,
-};
+use std::{future::Future, sync::Arc, time::Duration};
+
 use futures::{
     channel::{
         mpsc::{self, UnboundedReceiver, UnboundedSender},
@@ -18,13 +10,22 @@ use futures::{
 use sp_api::NumberFor;
 use sp_core::hash::H256;
 use sp_runtime::traits::Block as BlockT;
-use std::{future::Future, sync::Arc, time::Duration};
 use substrate_test_runtime_client::{
     runtime::{Block, Header},
     DefaultTestClientBuilderExt, TestClientBuilder, TestClientBuilderExt,
 };
-
 use tokio::time::timeout;
+
+use crate::{
+    data_io::{AlephData, AlephNetworkMessage, DataStore, DataStoreConfig, MAX_DATA_BRANCH_LEN},
+    network::{DataNetwork, RequestBlocks, SimpleNetwork},
+    session::{SessionBoundaries, SessionId, SessionPeriod},
+    testing::{
+        client_chain_builder::ClientChainBuilder,
+        mocks::{aleph_data_from_blocks, aleph_data_from_headers},
+    },
+    BlockHashNum,
+};
 
 #[derive(Clone)]
 struct TestBlockRequester<B: BlockT> {

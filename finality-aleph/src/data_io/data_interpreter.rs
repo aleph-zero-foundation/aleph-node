@@ -1,3 +1,11 @@
+use std::{default::Default, sync::Arc};
+
+use async_trait::async_trait;
+use futures::channel::mpsc;
+use log::{debug, error, warn};
+use sc_client_api::HeaderBackend;
+use sp_runtime::traits::{Block as BlockT, NumberFor, One, Zero};
+
 use crate::{
     data_io::{
         chain_info::{AuxFinalizationChainInfoProvider, CachedChainInfoProvider},
@@ -6,12 +14,6 @@ use crate::{
     },
     BlockHashNum, SessionBoundaries,
 };
-use async_trait::async_trait;
-use futures::channel::mpsc;
-use log::{debug, error, warn};
-use sc_client_api::HeaderBackend;
-use sp_runtime::traits::{Block as BlockT, NumberFor, One, Zero};
-use std::{default::Default, sync::Arc};
 
 type InterpretersChainInfoProvider<B, C> =
     CachedChainInfoProvider<B, AuxFinalizationChainInfoProvider<B, Arc<C>>>;

@@ -1,6 +1,5 @@
-use crate::{
-    first_block_of_session, session_id_from_block_num, ClientForAleph, SessionId, SessionPeriod,
-};
+use std::{collections::HashMap, marker::PhantomData, sync::Arc};
+
 use aleph_primitives::{AlephSessionApi, AuthorityId};
 use futures::StreamExt;
 use log::{debug, error, trace};
@@ -11,10 +10,13 @@ use sp_runtime::{
     traits::{Block, Header, NumberFor},
     SaturatedConversion,
 };
-use std::{collections::HashMap, marker::PhantomData, sync::Arc};
 use tokio::sync::{
     oneshot::{Receiver as OneShotReceiver, Sender as OneShotSender},
     RwLock,
+};
+
+use crate::{
+    first_block_of_session, session_id_from_block_num, ClientForAleph, SessionId, SessionPeriod,
 };
 
 const PRUNING_THRESHOLD: u32 = 10;
@@ -334,19 +336,21 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::testing::mocks::TBlock;
+    use std::{sync::Mutex, time::Duration};
+
     use futures_timer::Delay;
     use sc_block_builder::BlockBuilderProvider;
     use sc_utils::mpsc::tracing_unbounded;
     use sp_consensus::BlockOrigin;
     use sp_runtime::testing::UintAuthorityId;
-    use std::{sync::Mutex, time::Duration};
     use substrate_test_runtime_client::{
         ClientBlockImportExt, DefaultTestClientBuilderExt, TestClient, TestClientBuilder,
         TestClientBuilderExt,
     };
     use tokio::sync::oneshot::error::TryRecvError;
+
+    use super::*;
+    use crate::testing::mocks::TBlock;
 
     struct MockProvider {
         pub session_map: HashMap<NumberFor<TBlock>, Vec<AuthorityId>>,

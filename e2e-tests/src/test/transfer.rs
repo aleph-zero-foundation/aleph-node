@@ -1,7 +1,6 @@
+use aleph_client::{balances_transfer, get_free_balance};
 use log::info;
 use substrate_api_client::XtStatus;
-
-use aleph_client::{balances_transfer, get_free_balance};
 
 use crate::{config::Config, transfer::setup_for_transfer};
 

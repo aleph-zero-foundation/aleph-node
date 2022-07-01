@@ -1,5 +1,6 @@
-use aleph_client::{set_code, RootConnection};
 use std::fs;
+
+use aleph_client::{set_code, RootConnection};
 use substrate_api_client::XtStatus;
 
 pub fn update_runtime(connection: RootConnection, runtime: String) {

@@ -1,8 +1,5 @@
-use crate::{
-    data_io::{proposal::UnvalidatedAlephProposal, AlephData, MAX_DATA_BRANCH_LEN},
-    metrics::Checkpoint,
-    BlockHashNum, Metrics, SessionBoundaries,
-};
+use std::{sync::Arc, time::Duration};
+
 use async_trait::async_trait;
 use futures::channel::oneshot;
 use log::{debug, warn};
@@ -13,8 +10,13 @@ use sp_runtime::{
     traits::{Block as BlockT, Header as HeaderT, NumberFor, One, Zero},
     SaturatedConversion,
 };
-use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
+
+use crate::{
+    data_io::{proposal::UnvalidatedAlephProposal, AlephData, MAX_DATA_BRANCH_LEN},
+    metrics::Checkpoint,
+    BlockHashNum, Metrics, SessionBoundaries,
+};
 
 // Reduce block header to the level given by num, by traversing down via parents.
 pub fn reduce_header_to_num<B, C>(client: &C, header: B::Header, num: NumberFor<B>) -> B::Header
@@ -324,6 +326,14 @@ impl<B: BlockT> aleph_bft::DataProvider<AlephData<B>> for DataProvider<B> {
 
 #[cfg(test)]
 mod tests {
+    use std::{future::Future, sync::Arc, time::Duration};
+
+    use futures::channel::oneshot;
+    use substrate_test_runtime_client::{
+        runtime::Block, DefaultTestClientBuilderExt, TestClientBuilder, TestClientBuilderExt,
+    };
+    use tokio::time::sleep;
+
     use crate::{
         data_io::{
             data_provider::{ChainTracker, ChainTrackerConfig},
@@ -332,12 +342,6 @@ mod tests {
         testing::{client_chain_builder::ClientChainBuilder, mocks::aleph_data_from_blocks},
         SessionBoundaries, SessionId, SessionPeriod,
     };
-    use futures::channel::oneshot;
-    use std::{future::Future, sync::Arc, time::Duration};
-    use substrate_test_runtime_client::{
-        runtime::Block, DefaultTestClientBuilderExt, TestClientBuilder, TestClientBuilderExt,
-    };
-    use tokio::time::sleep;
 
     const SESSION_LEN: u32 = 100;
     // The lower the interval the less time the tests take, however setting this too low might cause

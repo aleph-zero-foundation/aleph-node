@@ -1,7 +1,9 @@
-use crate::Future;
+use std::{boxed::Box, pin::Pin};
+
 use futures::channel::oneshot;
 use log::warn;
-use std::{boxed::Box, pin::Pin};
+
+use crate::Future;
 
 /// A single handle that can be waited on, as returned by spawning an essential task.
 pub type Handle = Pin<Box<(dyn Future<Output = sc_service::Result<(), ()>> + Send + 'static)>>;

@@ -1,6 +1,9 @@
-use crate::chain_spec::{
-    self, account_id_from_string, AuthorityKeys, ChainParams, ChainSpec, SerializablePeerId,
+use std::{
+    fs,
+    io::{self, Write},
+    path::{Path, PathBuf},
 };
+
 use aleph_primitives::AuthorityId as AlephId;
 use aleph_runtime::AccountId;
 use clap::Parser;
@@ -14,10 +17,9 @@ use sc_service::{
 use sp_application_crypto::{key_types, Ss58Codec};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_keystore::SyncCryptoStore;
-use std::{
-    fs,
-    io::{self, Write},
-    path::{Path, PathBuf},
+
+use crate::chain_spec::{
+    self, account_id_from_string, AuthorityKeys, ChainParams, ChainSpec, SerializablePeerId,
 };
 
 /// returns Aura key, if absent a new key is generated

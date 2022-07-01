@@ -1,5 +1,6 @@
-use dialoguer::theme::ColorfulTheme;
 use std::io::Result;
+
+use dialoguer::theme::ColorfulTheme;
 
 pub fn prompt_password_hidden(message: &str) -> Result<String> {
     let theme = ColorfulTheme::default();

@@ -1,8 +1,10 @@
-use crate::network::{Data, DataNetwork, SendError};
+use std::{marker::PhantomData, sync::Arc};
+
 use aleph_bft::Recipient;
 use futures::{channel::mpsc, StreamExt};
-use std::{marker::PhantomData, sync::Arc};
 use tokio::sync::Mutex;
+
+use crate::network::{Data, DataNetwork, SendError};
 
 /// For sending arbitrary messages.
 pub trait Sender<D: Data>: Sync + Send + Clone {
@@ -80,8 +82,9 @@ impl<D: Data, R: Receiver<D>, S: Sender<D>> Network<D> for SimpleNetwork<D, R, S
 
 #[cfg(test)]
 mod tests {
-    use super::Receiver;
     use futures::channel::mpsc;
+
+    use super::Receiver;
 
     #[tokio::test]
     async fn test_receiver_implementation() {

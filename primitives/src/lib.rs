@@ -64,9 +64,10 @@ sp_api::decl_runtime_apis! {
 }
 
 pub mod staking {
+    use sp_runtime::Perbill;
+
     use super::Balance;
     use crate::TOKEN;
-    use sp_runtime::Perbill;
 
     pub const MIN_VALIDATOR_BOND: u128 = 25_000 * TOKEN;
     pub const MIN_NOMINATOR_BOND: u128 = 100 * TOKEN;

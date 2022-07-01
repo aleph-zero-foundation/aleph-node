@@ -1,7 +1,3 @@
-use crate::{
-    accounts::{get_sudo_key, get_validators_keys},
-    config::Config,
-};
 use aleph_client::{
     wait_for_event, wait_for_finalized_block, AnyConnection, Header, RootConnection,
 };
@@ -9,6 +5,11 @@ use codec::Decode;
 use log::info;
 use sp_core::Pair;
 use substrate_api_client::{AccountId, XtStatus};
+
+use crate::{
+    accounts::{get_sudo_key, get_validators_keys},
+    config::Config,
+};
 
 pub fn change_validators(config: &Config) -> anyhow::Result<()> {
     let accounts = get_validators_keys(config);

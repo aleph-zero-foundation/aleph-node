@@ -1,3 +1,11 @@
+use std::{marker::PhantomData, sync::Arc, time::Instant};
+
+use aleph_primitives::ALEPH_ENGINE_ID;
+use log::{debug, error, warn};
+use sc_client_api::HeaderBackend;
+use sp_api::{BlockId, BlockT, NumberFor};
+use sp_runtime::traits::Header;
+
 use crate::{
     finalization::BlockFinalizer,
     justification::{
@@ -7,12 +15,6 @@ use crate::{
     metrics::Checkpoint,
     network, Metrics,
 };
-use aleph_primitives::ALEPH_ENGINE_ID;
-use log::{debug, error, warn};
-use sc_client_api::HeaderBackend;
-use sp_api::{BlockId, BlockT, NumberFor};
-use sp_runtime::traits::Header;
-use std::{marker::PhantomData, sync::Arc, time::Instant};
 
 pub struct BlockRequester<B, RB, C, S, F, V>
 where

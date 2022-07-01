@@ -1,22 +1,21 @@
-use clap::{ArgGroup, Parser};
-use log::{info, trace, warn};
-use rand::{thread_rng, Rng};
-use rayon::prelude::*;
-use sp_core::{sr25519::Pair as KeyPair, Pair};
-use sp_keyring::AccountKeyring;
 use std::{iter, time::Instant};
-use substrate_api_client::{extrinsic::staking::RewardDestination, AccountId, XtStatus};
 
 use aleph_client::{
     balances_batch_transfer, keypair_from_string, payout_stakers_and_assert_locked_balance,
     staking_batch_bond, staking_batch_nominate, staking_bond, staking_validate, wait_for_next_era,
     AnyConnection, RootConnection, SignedConnection,
 };
+use clap::{ArgGroup, Parser};
+use log::{info, trace, warn};
 use primitives::{
     staking::{MAX_NOMINATORS_REWARDED_PER_VALIDATOR, MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND},
     TOKEN,
 };
-use sp_core::crypto::AccountId32;
+use rand::{thread_rng, Rng};
+use rayon::prelude::*;
+use sp_core::{crypto::AccountId32, sr25519::Pair as KeyPair, Pair};
+use sp_keyring::AccountKeyring;
+use substrate_api_client::{extrinsic::staking::RewardDestination, AccountId, XtStatus};
 
 // testcase parameters
 const NOMINATOR_COUNT: u32 = MAX_NOMINATORS_REWARDED_PER_VALIDATOR;

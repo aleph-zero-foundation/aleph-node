@@ -1,7 +1,8 @@
+use std::{cmp::Ordering, fmt::Debug, hash::Hash as StdHash, marker::PhantomData};
+
 use aleph_bft::Hasher;
 use codec::{Decode, Encode};
 use sp_runtime::traits::Hash;
-use std::{cmp::Ordering, fmt::Debug, hash::Hash as StdHash, marker::PhantomData};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, StdHash, Encode, Decode)]
 pub struct OrdForHash<O: Eq + Copy + Clone + Send + Debug + StdHash + Encode + Decode + AsRef<[u8]>>

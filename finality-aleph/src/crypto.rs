@@ -1,3 +1,5 @@
+use std::{convert::TryInto, sync::Arc};
+
 use aleph_bft::{
     KeyBox as AlephKeyBox, MultiKeychain, NodeCount, NodeIndex, PartialMultisignature, SignatureSet,
 };
@@ -6,7 +8,6 @@ use codec::{Decode, Encode};
 use sp_core::crypto::KeyTypeId;
 use sp_keystore::{CryptoStore, Error as KeystoreError};
 use sp_runtime::RuntimeAppPublic;
-use std::{convert::TryInto, sync::Arc};
 
 #[derive(Debug)]
 pub enum Error {
@@ -193,8 +194,9 @@ impl From<SignatureV1> for Signature {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use sp_keystore::{testing::KeyStore, CryptoStore};
+
+    use super::*;
 
     async fn generate_keys(names: &[String]) -> (Vec<AuthorityPen>, AuthorityVerifier) {
         let key_store = Arc::new(KeyStore::new());

@@ -8,8 +8,10 @@ use std::{
     time::{Duration, Instant},
 };
 
+use aleph_client::{create_custom_connection, Extrinsic};
 use clap::Parser;
 use codec::{Compact, Decode, Encode};
+use config::Config;
 use hdrhistogram::Histogram as HdrHistogram;
 use log::{debug, info};
 use rayon::prelude::*;
@@ -19,9 +21,6 @@ use substrate_api_client::{
     compose_call, compose_extrinsic_offline, AccountId, Api, ExtrinsicParams, GenericAddress,
     PlainTipExtrinsicParams, XtStatus,
 };
-
-use aleph_client::{create_custom_connection, Extrinsic};
-use config::Config;
 use ws_rpc_client::WsRpcClient;
 
 mod config;
@@ -177,18 +176,17 @@ fn flood<'a>(
                 interval.
                     into_par_iter()
                     .enumerate()
-                    .map(|( tx_ix, tx )| (tx_ix + current_start_ix, tx))
+                    .map(|(tx_ix, tx)| (tx_ix + current_start_ix, tx))
                     .for_each(|(tx_ix, tx)| {
-
-                    const DEFAULT_THREAD_ID: usize = 0;
-                    let thread_id = thread_pool.current_thread_index().unwrap_or(DEFAULT_THREAD_ID);
-                    send_tx(
-                        pool(thread_id, tx_ix),
-                        tx,
-                        status,
-                        Arc::clone(histogram),
-                    );
-                });
+                        const DEFAULT_THREAD_ID: usize = 0;
+                        let thread_id = thread_pool.current_thread_index().unwrap_or(DEFAULT_THREAD_ID);
+                        send_tx(
+                            pool(thread_id, tx_ix),
+                            tx,
+                            status,
+                            Arc::clone(histogram),
+                        );
+                    });
 
                 let exec_time = start.elapsed();
 

@@ -1,13 +1,15 @@
+use std::marker::PhantomData;
+
+use aleph_bft::{Network as AlephNetwork, NetworkData as AlephNetworkData, SignatureSet};
+use log::warn;
+use sp_runtime::traits::Block;
+
 use crate::{
     crypto::Signature,
     data_io::{AlephData, AlephNetworkMessage},
     network::{Data, DataNetwork},
     Hasher,
 };
-use aleph_bft::{Network as AlephNetwork, NetworkData as AlephNetworkData, SignatureSet};
-use log::warn;
-use sp_runtime::traits::Block;
-use std::marker::PhantomData;
 
 pub type NetworkData<B> =
     AlephNetworkData<Hasher, AlephData<B>, Signature, SignatureSet<Signature>>;

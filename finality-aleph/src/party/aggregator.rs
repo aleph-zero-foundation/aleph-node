@@ -1,12 +1,5 @@
-use crate::{
-    aggregation::{BlockSignatureAggregator, RmcNetworkData, SignableHash, IO as AggregatorIO},
-    crypto::{KeyBox, Signature},
-    justification::{AlephJustification, JustificationNotification},
-    metrics::Checkpoint,
-    network::DataNetwork,
-    party::{AuthoritySubtaskCommon, Task},
-    BlockHashNum, Metrics, SessionBoundaries,
-};
+use std::sync::Arc;
+
 use aleph_bft::{KeyBox as BftKeyBox, SignatureSet, SpawnHandle};
 use aleph_bft_rmc::{DoublingDelayScheduler, ReliableMulticast};
 use futures::{
@@ -16,7 +9,16 @@ use futures::{
 use log::{debug, error, trace};
 use sc_client_api::HeaderBackend;
 use sp_runtime::traits::{Block, Header};
-use std::sync::Arc;
+
+use crate::{
+    aggregation::{BlockSignatureAggregator, RmcNetworkData, SignableHash, IO as AggregatorIO},
+    crypto::{KeyBox, Signature},
+    justification::{AlephJustification, JustificationNotification},
+    metrics::Checkpoint,
+    network::DataNetwork,
+    party::{AuthoritySubtaskCommon, Task},
+    BlockHashNum, Metrics, SessionBoundaries,
+};
 
 /// IO channels used by the aggregator task.
 pub struct IO<B: Block> {

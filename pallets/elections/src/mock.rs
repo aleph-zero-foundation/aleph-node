@@ -1,9 +1,5 @@
 #![cfg(test)]
 
-use super::*;
-use crate as pallet_elections;
-
-use crate::traits::{EraInfoProvider, SessionInfoProvider, ValidatorRewardsHandler};
 use frame_election_provider_support::{data_provider, ElectionDataProvider, VoteWeight};
 use frame_support::{
     construct_runtime, parameter_types, sp_io, traits::GenesisBuild, weights::RuntimeDbWeight,
@@ -16,6 +12,10 @@ use sp_runtime::{
 };
 use sp_staking::{EraIndex, SessionIndex};
 use sp_std::collections::btree_set::BTreeSet;
+
+use super::*;
+use crate as pallet_elections;
+use crate::traits::{EraInfoProvider, SessionInfoProvider, ValidatorRewardsHandler};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;

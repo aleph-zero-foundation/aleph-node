@@ -1,9 +1,10 @@
-use codec::{Decode, Encode};
-use sp_runtime::traits::Block as BlockT;
 use std::{
     fmt::Debug,
     hash::{Hash, Hasher},
 };
+
+use codec::{Decode, Encode};
+use sp_runtime::traits::Block as BlockT;
 
 mod chain_info;
 mod data_interpreter;

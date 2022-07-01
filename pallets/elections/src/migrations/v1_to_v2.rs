@@ -1,10 +1,11 @@
-use crate::{Config, EraValidators};
 use frame_support::{
     log, storage_alias,
     traits::{Get, PalletInfoAccess, StorageVersion},
     weights::Weight,
 };
 use sp_std::vec::Vec;
+
+use crate::{Config, EraValidators};
 
 // V1 storages
 #[storage_alias]

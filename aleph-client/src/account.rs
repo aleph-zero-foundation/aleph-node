@@ -1,8 +1,9 @@
-use crate::{state_query_storage_at, AnyConnection};
 use codec::Decode;
 use pallet_balances::BalanceLock;
 use sp_core::{crypto::AccountId32, storage::StorageKey};
 use substrate_api_client::{AccountId, Balance};
+
+use crate::{state_query_storage_at, AnyConnection};
 
 pub fn get_free_balance<C: AnyConnection>(connection: &C, account: &AccountId) -> Balance {
     match connection

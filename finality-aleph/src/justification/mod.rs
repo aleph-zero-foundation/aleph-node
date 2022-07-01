@@ -1,8 +1,10 @@
-use crate::{crypto::Signature, SessionId};
+use std::time::Duration;
+
 use aleph_bft::SignatureSet;
 use codec::{Decode, Encode};
 use sp_api::{BlockT, NumberFor};
-use std::time::Duration;
+
+use crate::{crypto::Signature, SessionId};
 
 mod compatibility;
 mod handler;

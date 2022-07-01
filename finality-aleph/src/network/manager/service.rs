@@ -1,3 +1,16 @@
+use std::{
+    collections::{HashMap, HashSet},
+    time::Duration,
+};
+
+use aleph_bft::Recipient;
+use futures::{
+    channel::{mpsc, oneshot},
+    StreamExt,
+};
+use log::{debug, trace, warn};
+use tokio::time::interval;
+
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{
@@ -9,17 +22,6 @@ use crate::{
     },
     MillisecsPerBlock, NodeIndex, SessionId, SessionPeriod,
 };
-use aleph_bft::Recipient;
-use futures::{
-    channel::{mpsc, oneshot},
-    StreamExt,
-};
-use log::{debug, trace, warn};
-use std::{
-    collections::{HashMap, HashSet},
-    time::Duration,
-};
-use tokio::time::interval;
 
 /// Commands for manipulating sessions, stopping them and starting both validator and non-validator
 /// sessions.
@@ -667,6 +669,11 @@ impl<D: Data, M: Multiaddress> IO<D, M> {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
+    use aleph_bft::Recipient;
+    use futures::{channel::oneshot, StreamExt};
+
     use super::{Config, Error, Service, ServiceActions, SessionCommand};
     use crate::{
         network::{
@@ -676,9 +683,6 @@ mod tests {
         },
         SessionId,
     };
-    use aleph_bft::Recipient;
-    use futures::{channel::oneshot, StreamExt};
-    use std::time::Duration;
 
     const NUM_NODES: usize = 7;
     const MAINTENANCE_PERIOD: Duration = Duration::from_secs(120);

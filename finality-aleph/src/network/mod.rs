@@ -1,10 +1,11 @@
+use std::{collections::HashSet, fmt::Debug, hash::Hash};
+
 use aleph_bft::Recipient;
 use async_trait::async_trait;
 use bytes::Bytes;
 use codec::Codec;
 use sp_api::NumberFor;
 use sp_runtime::traits::Block;
-use std::{collections::HashSet, fmt::Debug, hash::Hash};
 
 mod aleph;
 mod component;
@@ -15,13 +16,12 @@ mod service;
 mod session;
 mod split;
 
-use manager::SessionCommand;
-
 pub use aleph::{NetworkData as AlephNetworkData, NetworkWrapper};
 pub use component::{
     Network as ComponentNetwork, Receiver as ReceiverComponent, Sender as SenderComponent,
     SimpleNetwork,
 };
+use manager::SessionCommand;
 pub use manager::{ConnectionIO, ConnectionManager, ConnectionManagerConfig};
 pub use service::{Service, IO};
 pub use session::{Manager as SessionManager, ManagerError, Network as SessionNetwork};

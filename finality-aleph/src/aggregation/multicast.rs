@@ -3,11 +3,13 @@
 //!
 //! We expose the `Multicast` trait, mimicking the interface of `aleph_bft::ReliableMulticast`
 
-use crate::crypto::{KeyBox, Signature};
+use std::{fmt::Debug, hash::Hash as StdHash};
+
 use aleph_bft::{Signable, SignatureSet};
 use aleph_bft_rmc::ReliableMulticast;
 use codec::{Codec, Decode, Encode};
-use std::{fmt::Debug, hash::Hash as StdHash};
+
+use crate::crypto::{KeyBox, Signature};
 
 /// A convenience trait for gathering all of the desired hash characteristics.
 pub trait Hash: AsRef<[u8]> + StdHash + Eq + Clone + Codec + Debug + Send + Sync {}

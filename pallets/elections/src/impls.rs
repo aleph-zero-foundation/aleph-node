@@ -1,13 +1,14 @@
+use frame_election_provider_support::sp_arithmetic::Perquintill;
+use frame_support::pallet_prelude::Get;
+use sp_staking::{EraIndex, SessionIndex};
+use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
+
 use crate::{
     traits::{EraInfoProvider, SessionInfoProvider, ValidatorRewardsHandler},
     CommitteeSize, Config, CurrentEraValidators, EraValidators, NextEraNonReservedValidators,
     NextEraReservedValidators, Pallet, SessionValidatorBlockCount, ValidatorEraTotalReward,
     ValidatorTotalRewards,
 };
-use frame_election_provider_support::sp_arithmetic::Perquintill;
-use frame_support::pallet_prelude::Get;
-use sp_staking::{EraIndex, SessionIndex};
-use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 
 const MAX_REWARD: u32 = 1_000_000_000;
 const LENIENT_THRESHOLD: Perquintill = Perquintill::from_percent(90);
@@ -296,11 +297,12 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::collections::VecDeque;
+
     use crate::impls::{
         calculate_adjusted_session_points, compute_validator_scaled_total_rewards, rotate,
         MAX_REWARD,
     };
-    use std::collections::VecDeque;
 
     #[test]
     fn adjusted_session_points_all_blocks_created_are_calculated_correctly() {

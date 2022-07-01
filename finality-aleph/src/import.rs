@@ -1,7 +1,5 @@
-use crate::{
-    justification::{backwards_compatible_decode, DecodeError, JustificationNotification},
-    metrics::{Checkpoint, Metrics},
-};
+use std::{collections::HashMap, marker::PhantomData, sync::Arc, time::Instant};
+
 use aleph_primitives::ALEPH_ENGINE_ID;
 use futures::channel::mpsc::{TrySendError, UnboundedSender};
 use log::{debug, warn};
@@ -15,7 +13,11 @@ use sp_runtime::{
     traits::{Block as BlockT, Header, NumberFor},
     Justification,
 };
-use std::{collections::HashMap, marker::PhantomData, sync::Arc, time::Instant};
+
+use crate::{
+    justification::{backwards_compatible_decode, DecodeError, JustificationNotification},
+    metrics::{Checkpoint, Metrics},
+};
 
 pub struct AlephBlockImport<Block, Be, I>
 where

@@ -1,5 +1,6 @@
-use clap::Parser;
 use std::{fs, path::PathBuf};
+
+use clap::Parser;
 
 #[derive(Debug, Parser)]
 #[clap(version = "1.0")]

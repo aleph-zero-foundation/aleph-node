@@ -1,10 +1,11 @@
-use crate::Config;
 use frame_support::{
     log, storage_alias,
     traits::{Get, PalletInfoAccess, StorageVersion},
     weights::Weight,
 };
 use sp_std::vec::Vec;
+
+use crate::Config;
 
 #[storage_alias]
 type SessionForValidatorsChange = StorageValue<Aleph, u32>;

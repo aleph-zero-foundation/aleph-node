@@ -1,4 +1,3 @@
-use log::{debug, warn};
 use std::{
     fmt, fs,
     fs::File,
@@ -7,6 +6,8 @@ use std::{
     path::{Path, PathBuf},
     str::FromStr,
 };
+
+use log::{debug, warn};
 
 const BACKUP_FILE_EXTENSION: &str = ".abfts";
 

@@ -1,11 +1,12 @@
-use crate::{
-    send_xt, waiting::wait_for_event, AnyConnection, BlockNumber, RootConnection, SignedConnection,
-};
 use codec::{Decode, Encode};
 use log::info;
 use sp_core::Pair;
 use substrate_api_client::{
     compose_call, compose_extrinsic, AccountId, ExtrinsicParams, FromHexString, XtStatus,
+};
+
+use crate::{
+    send_xt, waiting::wait_for_event, AnyConnection, BlockNumber, RootConnection, SignedConnection,
 };
 
 // Using custom struct and rely on default Encode trait from Parity's codec

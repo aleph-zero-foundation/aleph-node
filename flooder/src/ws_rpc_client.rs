@@ -1,12 +1,13 @@
-use aleph_client::FromStr;
-use log::info;
-use serde_json::Value;
-use sp_core::H256 as Hash;
 use std::{
     sync::{mpsc::channel, Arc, Mutex},
     thread,
     thread::JoinHandle,
 };
+
+use aleph_client::FromStr;
+use log::info;
+use serde_json::Value;
+use sp_core::H256 as Hash;
 use substrate_api_client::{
     rpc::{
         json_req,

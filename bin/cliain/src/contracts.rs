@@ -1,7 +1,8 @@
-use crate::commands::{
-    ContractCall, ContractInstantiate, ContractInstantiateWithCode, ContractOptions,
-    ContractRemoveCode, ContractUploadCode,
+use std::{
+    fs::{self, File},
+    path::Path,
 };
+
 use aleph_client::{send_xt, wait_for_event, AnyConnection, SignedConnection};
 use anyhow::anyhow;
 use codec::{Compact, Decode};
@@ -10,12 +11,13 @@ use contract_transcode::ContractMessageTranscoder;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use sp_core::{Pair, H256};
-use std::{
-    fs::{self, File},
-    path::Path,
-};
 use substrate_api_client::{
     compose_extrinsic, AccountId, ExtrinsicParams, GenericAddress, XtStatus,
+};
+
+use crate::commands::{
+    ContractCall, ContractInstantiate, ContractInstantiateWithCode, ContractOptions,
+    ContractRemoveCode, ContractUploadCode,
 };
 
 #[derive(Debug, Decode, Clone)]

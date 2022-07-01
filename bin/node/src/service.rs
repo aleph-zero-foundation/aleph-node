@@ -1,6 +1,7 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
-use crate::{aleph_cli::AlephCli, executor::AlephExecutor};
+use std::sync::Arc;
+
 use aleph_primitives::AlephSessionApi;
 use aleph_runtime::{self, opaque::Block, RuntimeApi, MAX_BLOCK_SIZE};
 use finality_aleph::{
@@ -23,7 +24,8 @@ use sp_runtime::{
     generic::BlockId,
     traits::{Block as BlockT, Header as HeaderT, Zero},
 };
-use std::sync::Arc;
+
+use crate::{aleph_cli::AlephCli, executor::AlephExecutor};
 
 type FullClient = sc_service::TFullClient<Block, RuntimeApi, AlephExecutor>;
 type FullBackend = sc_service::TFullBackend<Block>;

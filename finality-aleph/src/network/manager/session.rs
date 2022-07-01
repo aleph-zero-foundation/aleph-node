@@ -1,3 +1,8 @@
+use std::collections::HashMap;
+
+use aleph_bft::NodeCount;
+use codec::Encode;
+
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{
@@ -6,9 +11,6 @@ use crate::{
     },
     NodeIndex, SessionId,
 };
-use aleph_bft::NodeCount;
-use codec::Encode;
-use std::collections::HashMap;
 
 #[derive(Debug)]
 pub enum SessionInfo<M: Multiaddress> {

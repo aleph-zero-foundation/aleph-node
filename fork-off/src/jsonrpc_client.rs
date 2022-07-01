@@ -1,9 +1,11 @@
-use crate::types::{BlockHash, StorageKey, StorageValue};
+use std::future::Future;
+
 use async_channel::{bounded, Receiver, Sender};
 use jsonrpc_core::Error;
 use jsonrpc_core_client::{transports::ws, RpcError};
 use jsonrpc_derive::rpc;
-use std::future::Future;
+
+use crate::types::{BlockHash, StorageKey, StorageValue};
 
 #[rpc]
 pub trait Rpc {

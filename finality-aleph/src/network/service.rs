@@ -1,15 +1,17 @@
-use crate::network::{
-    ConnectionCommand, Data, DataCommand, Event, EventStream, Multiaddress, Network, NetworkSender,
-    Protocol,
-};
-use futures::{channel::mpsc, StreamExt};
-use log::{debug, error, trace, warn};
-use sc_service::SpawnTaskHandle;
-use sc_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnboundedSender};
 use std::{
     collections::{HashMap, HashSet},
     future::Future,
     iter,
+};
+
+use futures::{channel::mpsc, StreamExt};
+use log::{debug, error, trace, warn};
+use sc_service::SpawnTaskHandle;
+use sc_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnboundedSender};
+
+use crate::network::{
+    ConnectionCommand, Data, DataCommand, Event, EventStream, Multiaddress, Network, NetworkSender,
+    Protocol,
 };
 
 /// A service managing all the direct interaction with the underlying network implementation. It
@@ -281,6 +283,13 @@ impl<N: Network, D: Data> Service<N, D> {
 
 #[cfg(test)]
 mod tests {
+    use std::{collections::HashSet, iter, iter::FromIterator};
+
+    use codec::Encode;
+    use futures::{channel::oneshot, StreamExt};
+    use sc_service::TaskManager;
+    use tokio::{runtime::Handle, task::JoinHandle};
+
     use super::{ConnectionCommand, DataCommand, Service};
     use crate::network::{
         mock::{
@@ -289,11 +298,6 @@ mod tests {
         },
         NetworkIdentity, Protocol,
     };
-    use codec::Encode;
-    use futures::{channel::oneshot, StreamExt};
-    use sc_service::TaskManager;
-    use std::{collections::HashSet, iter, iter::FromIterator};
-    use tokio::{runtime::Handle, task::JoinHandle};
 
     pub struct TestData {
         pub service_handle: JoinHandle<()>,

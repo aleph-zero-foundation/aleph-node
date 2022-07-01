@@ -8,7 +8,6 @@ use futures::{
 use sp_api::BlockId;
 use sp_runtime::traits::Block;
 use tokio::{task::JoinHandle, time::timeout};
-
 use AcceptancePolicy::*;
 
 use crate::{

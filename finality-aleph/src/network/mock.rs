@@ -1,11 +1,9 @@
-use crate::{
-    crypto::{AuthorityPen, AuthorityVerifier},
-    network::{
-        ConnectionCommand, Data, DataCommand, Event, EventStream, Multiaddress, Network,
-        NetworkIdentity, NetworkSender, PeerId, Protocol, IO,
-    },
-    AuthorityId, NodeIndex,
+use std::{
+    collections::{HashSet, VecDeque},
+    fmt,
+    sync::Arc,
 };
+
 use aleph_primitives::KEY_TYPE;
 use async_trait::async_trait;
 use codec::{Decode, Encode};
@@ -16,10 +14,14 @@ use futures::{
 use parking_lot::Mutex;
 use rand::random;
 use sp_keystore::{testing::KeyStore, CryptoStore};
-use std::{
-    collections::{HashSet, VecDeque},
-    fmt,
-    sync::Arc,
+
+use crate::{
+    crypto::{AuthorityPen, AuthorityVerifier},
+    network::{
+        ConnectionCommand, Data, DataCommand, Event, EventStream, Multiaddress, Network,
+        NetworkIdentity, NetworkSender, PeerId, Protocol, IO,
+    },
+    AuthorityId, NodeIndex,
 };
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash, Encode, Decode)]

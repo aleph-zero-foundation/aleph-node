@@ -1,16 +1,18 @@
+use std::{
+    collections::HashMap,
+    marker::PhantomData,
+    time::{Duration, Instant},
+};
+
+use codec::{Decode, Encode};
+use log::{debug, info, trace, warn};
+
 use crate::{
     network::{
         manager::{Authentication, SessionHandler},
         DataCommand, Multiaddress, Protocol,
     },
     NodeIndex, SessionId,
-};
-use codec::{Decode, Encode};
-use log::{debug, info, trace, warn};
-use std::{
-    collections::HashMap,
-    marker::PhantomData,
-    time::{Duration, Instant},
 };
 
 /// Messages used for discovery and authentication.
@@ -161,6 +163,10 @@ impl<M: Multiaddress> Discovery<M> {
 
 #[cfg(test)]
 mod tests {
+    use std::{thread::sleep, time::Duration};
+
+    use codec::Encode;
+
     use super::{Discovery, DiscoveryMessage};
     use crate::{
         network::{
@@ -170,8 +176,6 @@ mod tests {
         },
         SessionId,
     };
-    use codec::Encode;
-    use std::{thread::sleep, time::Duration};
 
     const NUM_NODES: u8 = 7;
     const MS_COOLDOWN: u64 = 200;

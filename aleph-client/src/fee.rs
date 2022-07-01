@@ -1,6 +1,7 @@
-use crate::{AnyConnection, Extrinsic};
 use codec::Encode;
 use substrate_api_client::Balance;
+
+use crate::{AnyConnection, Extrinsic};
 
 #[derive(Debug)]
 pub struct FeeInfo {

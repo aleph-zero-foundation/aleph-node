@@ -1,11 +1,13 @@
-use crate::{data_io::ChainInfoCacheConfig, BlockHashNum};
+use std::sync::Arc;
+
 use lru::LruCache;
 use sc_client_api::HeaderBackend;
 use sp_runtime::{
     generic::BlockId,
     traits::{Block as BlockT, Header as HeaderT, NumberFor, One},
 };
-use std::sync::Arc;
+
+use crate::{data_io::ChainInfoCacheConfig, BlockHashNum};
 
 pub trait ChainInfoProvider<B: BlockT> {
     fn is_block_imported(&mut self, block: &BlockHashNum<B>) -> bool;

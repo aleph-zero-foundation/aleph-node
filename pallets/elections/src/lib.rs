@@ -20,14 +20,13 @@ mod traits;
 
 use codec::{Decode, Encode};
 use frame_support::traits::StorageVersion;
+pub use impls::compute_validator_scaled_total_rewards;
+pub use pallet::*;
 use scale_info::TypeInfo;
 use sp_std::{
     collections::{btree_map::BTreeMap, btree_set::BTreeSet},
     prelude::*,
 };
-
-pub use impls::compute_validator_scaled_total_rewards;
-pub use pallet::*;
 
 const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
 
@@ -53,8 +52,6 @@ pub struct ValidatorTotalRewards<T>(pub BTreeMap<T, TotalReward>);
 
 #[frame_support::pallet]
 pub mod pallet {
-    use super::*;
-    use crate::traits::{EraInfoProvider, SessionInfoProvider, ValidatorRewardsHandler};
     use frame_election_provider_support::{
         ElectionDataProvider, ElectionProvider, Support, Supports,
     };
@@ -65,6 +62,9 @@ pub mod pallet {
     };
     use pallet_session::SessionManager;
     use primitives::DEFAULT_COMMITTEE_SIZE;
+
+    use super::*;
+    use crate::traits::{EraInfoProvider, SessionInfoProvider, ValidatorRewardsHandler};
 
     #[pallet::config]
     pub trait Config: frame_system::Config {

@@ -3,12 +3,11 @@ use std::collections::HashSet;
 use anyhow::{ensure, Result};
 use codec::{Decode, Encode};
 use log::{error, info};
+use primitives::Balance;
 use sp_core::{blake2_256, crypto::AccountId32, Pair};
 use sp_runtime::traits::TrailingZeroInput;
 use substrate_api_client::{compose_extrinsic, ExtrinsicParams, XtStatus::Finalized};
 use thiserror::Error;
-
-use primitives::Balance;
 
 use crate::{
     account_from_keypair, try_send_xt, AccountId, AnyConnection, BlockNumber, Extrinsic, KeyPair,

@@ -1,6 +1,7 @@
-use crate::data_io::{AlephData, UnvalidatedAlephProposal};
 use sp_runtime::traits::Block as BlockT;
 use substrate_test_runtime_client::runtime::{Block, Header};
+
+use crate::data_io::{AlephData, UnvalidatedAlephProposal};
 
 pub fn unvalidated_proposal_from_headers(headers: Vec<Header>) -> UnvalidatedAlephProposal<Block> {
     let num = headers.last().unwrap().number;

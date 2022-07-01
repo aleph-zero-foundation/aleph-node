@@ -1,15 +1,12 @@
+use aleph_client::AnyConnection;
+use codec::Compact;
 use log::info;
-
-use crate::transfer::setup_for_transfer;
 use sp_core::Pair;
 use substrate_api_client::{
     compose_call, compose_extrinsic, ExtrinsicParams, GenericAddress, XtStatus,
 };
 
-use aleph_client::AnyConnection;
-use codec::Compact;
-
-use crate::config::Config;
+use crate::{config::Config, transfer::setup_for_transfer};
 
 pub fn batch_transactions(config: &Config) -> anyhow::Result<()> {
     const NUMBER_OF_TRANSACTIONS: usize = 100;

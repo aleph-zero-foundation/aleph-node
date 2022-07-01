@@ -1,11 +1,12 @@
-use crate::{
-    debug::{element_prompt, entry_prompt, pallet_prompt},
-    AnyConnection,
-};
 use log::trace;
 use pallet_treasury::{Proposal, ProposalIndex};
 use sp_core::crypto::AccountId32;
 use substrate_api_client::Balance;
+
+use crate::{
+    debug::{element_prompt, entry_prompt, pallet_prompt},
+    AnyConnection,
+};
 
 pub fn print_storage<C: AnyConnection>(connection: &C) {
     let connection = connection.as_connection();

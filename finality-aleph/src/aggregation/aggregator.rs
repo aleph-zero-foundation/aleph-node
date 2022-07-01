@@ -1,15 +1,17 @@
-use crate::{
-    aggregation::multicast::{Hash, Multicast, SignableHash},
-    metrics::{Checkpoint, Metrics},
-    network::DataNetwork,
+use std::{
+    collections::{HashMap, HashSet, VecDeque},
+    fmt::Debug,
 };
+
 use aleph_bft::Recipient;
 use codec::Codec;
 use futures::{channel::mpsc, StreamExt};
 use log::{debug, trace, warn};
-use std::{
-    collections::{HashMap, HashSet, VecDeque},
-    fmt::Debug,
+
+use crate::{
+    aggregation::multicast::{Hash, Multicast, SignableHash},
+    metrics::{Checkpoint, Metrics},
+    network::DataNetwork,
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -209,8 +211,9 @@ impl<
 
 #[cfg(test)]
 mod tests {
-    use crate::aggregation::aggregator::{AggregatorError, BlockSignatureAggregator};
     use substrate_test_runtime::Hash as THash;
+
+    use crate::aggregation::aggregator::{AggregatorError, BlockSignatureAggregator};
 
     type TestMultisignature = usize;
     const TEST_SIGNATURE: TestMultisignature = 42;

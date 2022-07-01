@@ -1,14 +1,15 @@
+use aleph_bft::{Config, LocalIO, SpawnHandle};
+use futures::channel::oneshot;
+use log::debug;
+use sc_client_api::HeaderBackend;
+use sp_runtime::traits::Block;
+
 use crate::{
     crypto::KeyBox,
     data_io::{AlephData, OrderedDataInterpreter},
     network::{AlephNetworkData, DataNetwork, NetworkWrapper},
     party::{backup::ABFTBackup, AuthoritySubtaskCommon, Task},
 };
-use aleph_bft::{Config, LocalIO, SpawnHandle};
-use futures::channel::oneshot;
-use log::debug;
-use sc_client_api::HeaderBackend;
-use sp_runtime::traits::Block;
 
 /// Runs the member within a single session.
 pub fn task<

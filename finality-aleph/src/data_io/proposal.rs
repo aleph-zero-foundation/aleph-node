@@ -1,13 +1,15 @@
-use crate::{data_io::MAX_DATA_BRANCH_LEN, BlockHashNum, SessionBoundaries};
+use std::{
+    hash::{Hash, Hasher},
+    ops::Index,
+};
+
 use codec::{Decode, Encode};
 use sp_runtime::{
     traits::{Block as BlockT, NumberFor},
     SaturatedConversion,
 };
-use std::{
-    hash::{Hash, Hasher},
-    ops::Index,
-};
+
+use crate::{data_io::MAX_DATA_BRANCH_LEN, BlockHashNum, SessionBoundaries};
 
 /// Represents a proposal we obtain from another node. Note that since the proposal might come from
 /// a malicious node there is no guarantee that the block hashes in the proposal correspond to real blocks
@@ -222,10 +224,11 @@ pub enum ProposalStatus<B: BlockT> {
 
 #[cfg(test)]
 mod tests {
-    use super::{UnvalidatedAlephProposal, ValidationError::*};
-    use crate::{data_io::MAX_DATA_BRANCH_LEN, SessionBoundaries, SessionId, SessionPeriod};
     use sp_core::hash::H256;
     use substrate_test_runtime_client::runtime::Block;
+
+    use super::{UnvalidatedAlephProposal, ValidationError::*};
+    use crate::{data_io::MAX_DATA_BRANCH_LEN, SessionBoundaries, SessionId, SessionPeriod};
 
     #[test]
     fn proposal_with_empty_branch_is_invalid() {

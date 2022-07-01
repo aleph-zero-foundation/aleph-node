@@ -1,11 +1,10 @@
-use sp_core::crypto::Ss58Codec;
-use substrate_api_client::AccountId;
-
 use aleph_client::{
     approve_treasury_proposal, make_treasury_proposal, reject_treasury_proposal, RootConnection,
     SignedConnection,
 };
 use primitives::{Balance, TOKEN};
+use sp_core::crypto::Ss58Codec;
+use substrate_api_client::AccountId;
 
 /// Delegates to `aleph_client::make_treasury_proposal`.
 pub fn propose(connection: SignedConnection, amount_in_tokens: u64, beneficiary: String) {

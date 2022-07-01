@@ -1,13 +1,12 @@
+use aleph_client::{
+    balances_transfer, get_next_fee_multiplier, get_tx_fee_info, send_xt, AnyConnection, Extrinsic,
+    FeeInfo, RootConnection, SignedConnection, TransferTransaction,
+};
 use codec::Encode;
 use sp_core::Pair;
 use sp_runtime::{traits::One, FixedPointNumber, FixedU128};
 use substrate_api_client::{
     compose_extrinsic, AccountId, ExtrinsicParams, GenericAddress, XtStatus,
-};
-
-use aleph_client::{
-    balances_transfer, get_next_fee_multiplier, get_tx_fee_info, send_xt, AnyConnection, Extrinsic,
-    FeeInfo, RootConnection, SignedConnection, TransferTransaction,
 };
 
 use crate::{config::Config, transfer::setup_for_transfer};

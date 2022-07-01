@@ -1,12 +1,5 @@
-use crate::{
-    aggregation::RmcNetworkData,
-    network::{AlephNetworkData, Split},
-    session::{
-        first_block_of_session, last_block_of_session, session_id_from_block_num,
-        SessionBoundaries, SessionId,
-    },
-    substrate_network::protocol_name,
-};
+use std::{fmt::Debug, path::PathBuf, sync::Arc};
+
 use aleph_bft::{NodeIndex, TaskHandle};
 use codec::{Decode, Encode};
 use futures::{
@@ -21,7 +14,16 @@ use sp_api::{NumberFor, ProvideRuntimeApi};
 use sp_blockchain::{HeaderBackend, HeaderMetadata};
 use sp_keystore::CryptoStore;
 use sp_runtime::traits::{BlakeTwo256, Block, Header};
-use std::{fmt::Debug, path::PathBuf, sync::Arc};
+
+use crate::{
+    aggregation::RmcNetworkData,
+    network::{AlephNetworkData, Split},
+    session::{
+        first_block_of_session, last_block_of_session, session_id_from_block_num,
+        SessionBoundaries, SessionId,
+    },
+    substrate_network::protocol_name,
+};
 
 mod aggregation;
 mod crypto;
@@ -40,7 +42,6 @@ mod substrate_network;
 #[cfg(test)]
 pub mod testing;
 
-pub use crate::metrics::Metrics;
 pub use aleph_bft::default_config as default_aleph_config;
 pub use aleph_primitives::{AuthorityId, AuthorityPair, AuthoritySignature};
 pub use import::AlephBlockImport;
@@ -48,6 +49,8 @@ pub use justification::JustificationNotification;
 pub use network::Protocol;
 pub use nodes::{run_nonvalidator_node, run_validator_node};
 pub use session::SessionPeriod;
+
+pub use crate::metrics::Metrics;
 
 #[derive(Clone, Debug, Encode, Decode)]
 enum Error {

@@ -1,6 +1,7 @@
-use crate::NumberFor;
 use codec::{Decode, Encode};
 use sp_runtime::{traits::Block, SaturatedConversion};
+
+use crate::NumberFor;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct SessionBoundaries<B: Block> {

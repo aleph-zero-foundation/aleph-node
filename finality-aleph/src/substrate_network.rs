@@ -1,7 +1,5 @@
-use crate::network::{
-    Event, EventStream, Multiaddress as MultiaddressT, Network, NetworkIdentity, NetworkSender,
-    PeerId as PeerIdT, Protocol, RequestBlocks,
-};
+use std::{borrow::Cow, collections::HashSet, fmt, iter, pin::Pin, sync::Arc};
+
 use async_trait::async_trait;
 use codec::{Decode, Encode};
 use futures::stream::{Stream, StreamExt};
@@ -12,7 +10,11 @@ use sc_network::{
 };
 use sp_api::NumberFor;
 use sp_runtime::traits::Block;
-use std::{borrow::Cow, collections::HashSet, fmt, iter, pin::Pin, sync::Arc};
+
+use crate::network::{
+    Event, EventStream, Multiaddress as MultiaddressT, Network, NetworkIdentity, NetworkSender,
+    PeerId as PeerIdT, Protocol, RequestBlocks,
+};
 
 impl<B: Block, H: ExHashT> RequestBlocks<B> for Arc<NetworkService<B, H>> {
     fn request_justification(&self, hash: &B::Hash, number: NumberFor<B>) {
@@ -365,9 +367,10 @@ impl<B: Block, H: ExHashT> NetworkIdentity for Arc<NetworkService<B, H>> {
 
 #[cfg(test)]
 mod tests {
+    use codec::{Decode, Encode};
+
     use super::Multiaddress;
     use crate::network::Multiaddress as _;
-    use codec::{Decode, Encode};
 
     fn address(text: &str) -> Multiaddress {
         Multiaddress(text.parse().unwrap())

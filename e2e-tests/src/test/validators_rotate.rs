@@ -1,14 +1,16 @@
-use crate::{
-    accounts::{accounts_seeds_to_keys, get_sudo_key, get_validators_keys, get_validators_seeds},
-    Config,
-};
+use std::collections::HashMap;
+
 use aleph_client::{
     change_validators, get_current_session, wait_for_finalized_block, wait_for_full_era_completion,
     wait_for_session, AnyConnection, Header, KeyPair, RootConnection, SignedConnection,
 };
 use sp_core::Pair;
-use std::collections::HashMap;
 use substrate_api_client::{AccountId, XtStatus};
+
+use crate::{
+    accounts::{accounts_seeds_to_keys, get_sudo_key, get_validators_keys, get_validators_seeds},
+    Config,
+};
 
 const TEST_LENGTH: u32 = 5;
 

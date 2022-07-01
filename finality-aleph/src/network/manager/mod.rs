@@ -1,9 +1,10 @@
+use codec::{Decode, Encode};
+
 use crate::{
     crypto::Signature,
     network::{Data, Multiaddress},
     NodeIndex, SessionId,
 };
-use codec::{Decode, Encode};
 
 mod connections;
 mod discovery;
@@ -11,7 +12,6 @@ mod service;
 mod session;
 
 use connections::Connections;
-
 pub use discovery::{Discovery, DiscoveryMessage};
 pub use service::{
     Config as ConnectionManagerConfig, Service as ConnectionManager, SessionCommand,

@@ -1,8 +1,9 @@
+use primitives::AuthorityId;
+
 use crate::{
     debug::{element_prompt, entry_prompt, pallet_prompt},
     AnyConnection,
 };
-use primitives::AuthorityId;
 
 pub fn print_storage<C: AnyConnection>(connection: &C) {
     let members: Vec<AuthorityId> = connection

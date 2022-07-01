@@ -1,5 +1,6 @@
-use crate::AnyConnection;
 use primitives::Balance;
+
+use crate::AnyConnection;
 
 /// Reads from the storage how much balance is currently on chain.
 ///

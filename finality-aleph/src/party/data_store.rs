@@ -1,13 +1,14 @@
-use crate::{
-    data_io::DataStore,
-    network::{AlephNetworkData, ReceiverComponent, RequestBlocks},
-    party::{AuthoritySubtaskCommon, Task},
-};
 use aleph_bft::SpawnHandle;
 use futures::channel::oneshot;
 use log::debug;
 use sc_client_api::{BlockchainEvents, HeaderBackend};
 use sp_runtime::traits::Block;
+
+use crate::{
+    data_io::DataStore,
+    network::{AlephNetworkData, ReceiverComponent, RequestBlocks},
+    party::{AuthoritySubtaskCommon, Task},
+};
 
 /// Runs the data store within a single session.
 pub fn task<B, C, RB, R>(

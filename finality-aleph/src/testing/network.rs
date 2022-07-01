@@ -1,3 +1,15 @@
+use std::{
+    collections::{HashMap, HashSet},
+    iter::FromIterator,
+    time::Duration,
+};
+
+use aleph_bft::Recipient;
+use codec::Encode;
+use futures::channel::{mpsc, oneshot};
+use sc_service::TaskManager;
+use tokio::{runtime::Handle, task::JoinHandle, time::timeout};
+
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{
@@ -11,17 +23,6 @@ use crate::{
     },
     MillisecsPerBlock, NodeIndex, SessionId, SessionPeriod,
 };
-
-use aleph_bft::Recipient;
-use codec::Encode;
-use futures::channel::{mpsc, oneshot};
-use sc_service::TaskManager;
-use std::{
-    collections::{HashMap, HashSet},
-    iter::FromIterator,
-    time::Duration,
-};
-use tokio::{runtime::Handle, task::JoinHandle, time::timeout};
 
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(10);
 const SESSION_PERIOD: SessionPeriod = SessionPeriod(10);

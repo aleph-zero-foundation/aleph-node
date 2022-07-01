@@ -1,7 +1,8 @@
+use std::path::PathBuf;
+
 use aleph_primitives::DEFAULT_UNIT_CREATION_DELAY;
 use clap::{ArgGroup, Parser};
 use finality_aleph::UnitCreationDelay;
-use std::path::PathBuf;
 
 #[derive(Debug, Parser, Clone)]
 #[clap(group(ArgGroup::new("backup").required(true)))]

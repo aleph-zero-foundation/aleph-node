@@ -1,12 +1,14 @@
+use std::sync::Arc;
+
+use aleph_bft::Recipient;
+use futures::channel::{mpsc, oneshot};
+use tokio::sync::Mutex;
+
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{ComponentNetwork, Data, SendError, SenderComponent, SessionCommand},
     NodeIndex, SessionId,
 };
-use aleph_bft::Recipient;
-use futures::channel::{mpsc, oneshot};
-use std::sync::Arc;
-use tokio::sync::Mutex;
 
 /// Sends data within a single session.
 #[derive(Clone)]

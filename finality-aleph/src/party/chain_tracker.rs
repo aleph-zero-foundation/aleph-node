@@ -1,13 +1,14 @@
-use crate::{
-    data_io::ChainTracker,
-    party::{AuthoritySubtaskCommon, Task},
-};
 use aleph_bft::SpawnHandle;
 use futures::channel::oneshot;
 use log::debug;
 use sc_client_api::HeaderBackend;
 use sp_consensus::SelectChain;
 use sp_runtime::traits::Block;
+
+use crate::{
+    data_io::ChainTracker,
+    party::{AuthoritySubtaskCommon, Task},
+};
 
 /// Runs the latest block refresher within a single session.
 pub fn task<B, SC, C>(

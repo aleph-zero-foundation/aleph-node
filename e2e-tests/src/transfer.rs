@@ -1,8 +1,7 @@
 use ac_primitives::PlainTipExtrinsicParamsBuilder;
+use aleph_client::{create_connection, Connection, KeyPair, SignedConnection};
 use sp_core::Pair;
 use substrate_api_client::{AccountId, Balance};
-
-use aleph_client::{create_connection, Connection, KeyPair, SignedConnection};
 
 use crate::{accounts::get_validators_keys, config::Config};
 

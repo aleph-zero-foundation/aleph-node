@@ -1,11 +1,12 @@
-use crate::data_io::{
-    chain_info::ChainInfoProvider,
-    proposal::{AlephProposal, ProposalStatus},
-};
 use log::debug;
 use sp_runtime::{
     traits::{Block as BlockT, NumberFor},
     SaturatedConversion,
+};
+
+use crate::data_io::{
+    chain_info::ChainInfoProvider,
+    proposal::{AlephProposal, ProposalStatus},
 };
 
 pub fn get_proposal_status<B, CIP>(
@@ -141,6 +142,14 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
+    use sp_runtime::traits::Block as BlockT;
+    use substrate_test_runtime_client::{
+        runtime::{Block, Header},
+        DefaultTestClientBuilderExt, TestClient, TestClientBuilder, TestClientBuilderExt,
+    };
+
     use crate::{
         data_io::{
             chain_info::{AuxFinalizationChainInfoProvider, CachedChainInfoProvider},
@@ -156,13 +165,6 @@ mod tests {
             client_chain_builder::ClientChainBuilder, mocks::unvalidated_proposal_from_headers,
         },
         SessionBoundaries, SessionId, SessionPeriod,
-    };
-
-    use sp_runtime::traits::Block as BlockT;
-    use std::sync::Arc;
-    use substrate_test_runtime_client::{
-        runtime::{Block, Header},
-        DefaultTestClientBuilderExt, TestClient, TestClientBuilder, TestClientBuilderExt,
     };
 
     // A large number only for the purpose of creating `AlephProposal`s

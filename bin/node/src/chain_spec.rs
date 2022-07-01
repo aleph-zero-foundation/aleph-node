@@ -1,3 +1,5 @@
+use std::{collections::HashSet, path::PathBuf, str::FromStr};
+
 use aleph_primitives::{
     staking::{MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND},
     AuthorityId as AlephId, ADDRESSES_ENCODING, DEFAULT_COMMITTEE_SIZE, TOKEN, TOKEN_DECIMALS,
@@ -15,7 +17,6 @@ use serde_json::{Number, Value};
 use sp_application_crypto::Ss58Codec;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair};
-use std::{collections::HashSet, path::PathBuf, str::FromStr};
 
 pub const CHAINTYPE_DEV: &str = "dev";
 pub const CHAINTYPE_LOCAL: &str = "local";

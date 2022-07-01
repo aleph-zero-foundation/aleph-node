@@ -1,12 +1,11 @@
-use log::info;
-use substrate_api_client::{Balance, XtStatus};
-
 use aleph_client::{
     account_from_keypair, approve_treasury_proposal, balances_transfer, get_free_balance,
     get_tx_fee_info, make_treasury_proposal, reject_treasury_proposal, staking_treasury_payout,
     total_issuance, treasury_account, treasury_proposals_counter, AnyConnection, RootConnection,
     SignedConnection,
 };
+use log::info;
+use substrate_api_client::{Balance, XtStatus};
 
 use crate::{
     accounts::{get_sudo_key, get_validators_keys},

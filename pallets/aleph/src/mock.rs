@@ -1,8 +1,5 @@
 #![cfg(test)]
 
-use super::*;
-use crate as pallet_aleph;
-
 use frame_support::{
     construct_runtime, parameter_types, sp_io,
     traits::{OnFinalize, OnInitialize},
@@ -16,6 +13,9 @@ use sp_runtime::{
     testing::{Header, TestXt, UintAuthorityId},
     traits::{ConvertInto, IdentityLookup, OpaqueKeys},
 };
+
+use super::*;
+use crate as pallet_aleph;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;

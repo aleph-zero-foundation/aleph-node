@@ -2,12 +2,13 @@
 
 use std::collections::HashMap;
 
-use crate::{migrations, mock::*, pallet};
 use frame_support::{
     storage::migration::{get_storage_value, put_storage_value},
     storage_alias,
     traits::{GetStorageVersion, OneSessionHandler, StorageVersion},
 };
+
+use crate::{migrations, mock::*, pallet};
 
 #[storage_alias]
 type SessionForValidatorsChange = StorageValue<Aleph, u32>;

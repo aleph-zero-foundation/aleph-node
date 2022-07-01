@@ -1,3 +1,20 @@
+use std::{
+    collections::HashSet, default::Default, marker::PhantomData, path::PathBuf, sync::Arc,
+    time::Duration,
+};
+
+use aleph_bft::{DelayConfig, SpawnHandle};
+use aleph_primitives::KEY_TYPE;
+use codec::Encode;
+use futures::channel::mpsc;
+use futures_timer::Delay;
+use log::{debug, error, info, trace, warn};
+use sc_client_api::Backend;
+use sp_consensus::SelectChain;
+use sp_keystore::CryptoStore;
+use sp_runtime::traits::{Block, Header};
+use tokio::task::spawn_blocking;
+
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier, KeyBox},
     data_io::{ChainTracker, DataStore, OrderedDataInterpreter},
@@ -18,21 +35,6 @@ use crate::{
     AuthorityId, Metrics, NodeIndex, SessionBoundaries, SessionId, SessionPeriod, SplitData,
     UnitCreationDelay,
 };
-use aleph_bft::{DelayConfig, SpawnHandle};
-use aleph_primitives::KEY_TYPE;
-use codec::Encode;
-use futures::channel::mpsc;
-use futures_timer::Delay;
-use log::{debug, error, info, trace, warn};
-use sc_client_api::Backend;
-use sp_consensus::SelectChain;
-use sp_keystore::CryptoStore;
-use sp_runtime::traits::{Block, Header};
-use std::{
-    collections::HashSet, default::Default, marker::PhantomData, path::PathBuf, sync::Arc,
-    time::Duration,
-};
-use tokio::task::spawn_blocking;
 
 mod aggregator;
 mod authority;

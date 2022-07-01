@@ -1,12 +1,15 @@
 use std::{collections::HashMap, iter::repeat_with, sync::Arc};
 
-use crate::{jsonrpc_client::Client, Storage};
 use async_channel::Receiver;
 use futures::{future::join_all, join};
 use log::info;
 use parking_lot::Mutex;
 
-use crate::types::{BlockHash, StorageKey};
+use crate::{
+    jsonrpc_client::Client,
+    types::{BlockHash, StorageKey},
+    Storage,
+};
 
 pub struct StateFetcher {
     client: Client,

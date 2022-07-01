@@ -1,5 +1,6 @@
-use crate::{network::PeerId, SessionId};
 use std::collections::{HashMap, HashSet};
+
+use crate::{network::PeerId, SessionId};
 
 /// Keeps track of connections we should maintain taking into account data from many sessions.
 pub struct Connections<PID: PeerId> {
@@ -52,9 +53,10 @@ impl<PID: PeerId> Connections<PID> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::Connections;
     use crate::{network::mock::MockPeerId, SessionId};
-    use std::collections::HashSet;
 
     fn random_peer_ids(num: usize) -> HashSet<MockPeerId> {
         (0..num).map(|_| MockPeerId::random()).collect()

@@ -1,3 +1,5 @@
+use std::env;
+
 use aleph_client::{keypair_from_string, print_storages, SignedConnection};
 use clap::Parser;
 use cliain::{
@@ -8,7 +10,6 @@ use cliain::{
 };
 use log::{error, info};
 use sp_core::Pair;
-use std::env;
 use substrate_api_client::AccountId;
 
 #[derive(Debug, Parser, Clone)]

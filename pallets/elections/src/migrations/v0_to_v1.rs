@@ -1,14 +1,15 @@
-use crate::{
-    compute_validator_scaled_total_rewards,
-    traits::{EraInfoProvider, ValidatorRewardsHandler},
-    Config, ValidatorEraTotalReward, ValidatorTotalRewards,
-};
 use frame_support::{
     log, storage_alias,
     traits::{Get, PalletInfoAccess, StorageVersion},
     weights::Weight,
 };
 use sp_std::vec::Vec;
+
+use crate::{
+    compute_validator_scaled_total_rewards,
+    traits::{EraInfoProvider, ValidatorRewardsHandler},
+    Config, ValidatorEraTotalReward, ValidatorTotalRewards,
+};
 
 #[storage_alias]
 type Members<T> = StorageValue<Elections, Vec<<T as frame_system::Config>::AccountId>>;

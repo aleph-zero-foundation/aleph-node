@@ -1,13 +1,12 @@
 use anyhow::Result;
 use log::info;
 pub use pallet_vesting::VestingInfo;
+use primitives::Balance;
 use sp_core::Pair;
 use substrate_api_client::{
     compose_extrinsic, ExtrinsicParams, GenericAddress, XtStatus::Finalized,
 };
 use thiserror::Error;
-
-use primitives::Balance;
 
 use crate::{
     account_from_keypair, try_send_xt, AccountId, AnyConnection, BlockNumber, SignedConnection,

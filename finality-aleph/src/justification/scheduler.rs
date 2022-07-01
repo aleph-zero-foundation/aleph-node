@@ -1,8 +1,9 @@
-use crate::{MillisecsPerBlock, SessionPeriod};
 use std::{
     cmp::min,
     time::{Duration, Instant},
 };
+
+use crate::{MillisecsPerBlock, SessionPeriod};
 
 pub enum SchedulerActions {
     ClearQueue,
