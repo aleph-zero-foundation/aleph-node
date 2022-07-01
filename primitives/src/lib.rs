@@ -3,7 +3,7 @@
 use codec::{Decode, Encode};
 use sp_core::crypto::KeyTypeId;
 use sp_runtime::ConsensusEngineId;
-pub use sp_staking::SessionIndex;
+pub use sp_staking::{EraIndex, SessionIndex};
 use sp_std::vec::Vec;
 
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"alp0");

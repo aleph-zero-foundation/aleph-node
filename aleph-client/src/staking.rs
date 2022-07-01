@@ -1,9 +1,13 @@
+use std::collections::BTreeMap;
+
 use codec::{Compact, Decode, Encode};
 use frame_support::BoundedVec;
-use log::info;
-use pallet_staking::{MaxUnlockingChunks, RewardDestination, UnlockChunk, ValidatorPrefs};
+use pallet_staking::{
+    Exposure, MaxUnlockingChunks, RewardDestination, UnlockChunk, ValidatorPrefs,
+};
+use primitives::EraIndex;
 use rayon::prelude::*;
-use sp_core::Pair;
+use sp_core::{Pair, H256};
 use sp_runtime::Perbill;
 use substrate_api_client::{
     compose_call, compose_extrinsic, AccountId, Balance, ExtrinsicParams, GenericAddress, XtStatus,
@@ -97,33 +101,21 @@ pub fn force_new_era(connection: &RootConnection, status: XtStatus) {
     send_xt(connection, xt, Some("force_new_era"), status);
 }
 
-pub fn get_current_era<C: AnyConnection>(connection: &C) -> u32 {
-    let current_era = connection
-        .as_connection()
-        .get_storage_value("Staking", "ActiveEra", None)
-        .expect("Failed to decode ActiveEra extrinsic!")
-        .expect("ActiveEra is empty in the storage!");
-    info!(target: "aleph-client", "Current era is {}", current_era);
-    current_era
-}
-
-pub fn wait_for_full_era_completion<C: AnyConnection>(
-    connection: &C,
-) -> anyhow::Result<BlockNumber> {
+pub fn wait_for_full_era_completion<C: AnyConnection>(connection: &C) -> anyhow::Result<EraIndex> {
     // staking works in such a way, that when we request a controller to be a validator in era N,
     // then the changes are applied in the era N+1 (so the new validator is receiving points in N+1),
     // so that we need N+1 to finish in order to claim the reward in era N+2 for the N+1 era
     wait_for_era_completion(connection, get_current_era(connection) + 2)
 }
 
-pub fn wait_for_next_era<C: AnyConnection>(connection: &C) -> anyhow::Result<BlockNumber> {
+pub fn wait_for_next_era<C: AnyConnection>(connection: &C) -> anyhow::Result<EraIndex> {
     wait_for_era_completion(connection, get_current_era(connection) + 1)
 }
 
 fn wait_for_era_completion<C: AnyConnection>(
     connection: &C,
-    next_era_index: u32,
-) -> anyhow::Result<BlockNumber> {
+    next_era_index: EraIndex,
+) -> anyhow::Result<EraIndex> {
     let sessions_per_era: u32 = connection
         .as_connection()
         .get_constant("Staking", "SessionsPerEra")
@@ -131,6 +123,25 @@ fn wait_for_era_completion<C: AnyConnection>(
     let first_session_in_next_era = next_era_index * sessions_per_era;
     wait_for_session(connection, first_session_in_next_era)?;
     Ok(next_era_index)
+}
+
+pub fn get_sessions_per_era<C: AnyConnection>(connection: &C) -> u32 {
+    connection
+        .as_connection()
+        .get_constant("Staking", "SessionsPerEra")
+        .expect("Failed to decode SessionsPerEra extrinsic!")
+}
+
+pub fn get_era<C: AnyConnection>(connection: &C, block: Option<H256>) -> EraIndex {
+    connection
+        .as_connection()
+        .get_storage_value("Staking", "ActiveEra", block)
+        .expect("Failed to decode ActiveEra extrinsic!")
+        .expect("ActiveEra is empty in the storage!")
+}
+
+pub fn get_current_era<C: AnyConnection>(connection: &C) -> EraIndex {
+    get_era(connection, None)
 }
 
 pub fn payout_stakers(
@@ -294,10 +305,53 @@ pub fn ledger<C: AnyConnection>(connection: &C, controller: &KeyPair) -> Option<
         .unwrap_or_else(|_| panic!("Failed to obtain Ledger for account id {}", account_id))
 }
 
-pub fn get_payout_for_era<C: AnyConnection>(connection: &C, era: u32) -> u128 {
+pub fn get_payout_for_era<C: AnyConnection>(connection: &C, era: EraIndex) -> u128 {
     connection
         .as_connection()
         .get_storage_map("Staking", "ErasValidatorReward", era, None)
         .expect("Failed to decode ErasValidatorReward")
         .expect("ErasValidatoReward is empty in the storage")
+}
+
+pub fn get_exposure<C: AnyConnection>(
+    connection: &C,
+    era: EraIndex,
+    account_id: &AccountId,
+    block_hash: Option<H256>,
+) -> Exposure<AccountId, u128> {
+    connection
+        .as_connection()
+        .get_storage_double_map("Staking", "ErasStakers", era, account_id, block_hash)
+        .expect("Failed to decode ErasStakers extrinsic!")
+        .unwrap_or_else(|| panic!("Failed to obtain ErasStakers for era {}.", era))
+}
+
+pub type RewardPoint = u32;
+
+/// Helper to decode reward points for an era without the need to fill in a generic parameter.
+/// Reward points of an era. Used to split era total payout between validators.
+///
+/// This points will be used to reward validators and their respective nominators.
+#[derive(Clone, Decode, Default)]
+pub struct EraRewardPoints {
+    /// Total number of points. Equals the sum of reward points for each validator.
+    pub total: RewardPoint,
+    /// The reward points earned by a given validator.
+    pub individual: BTreeMap<AccountId, RewardPoint>,
+}
+
+pub fn get_era_reward_points<C: AnyConnection>(
+    connection: &C,
+    era: EraIndex,
+    block_hash: Option<H256>,
+) -> Option<EraRewardPoints> {
+    connection
+        .as_connection()
+        .get_storage_map("Staking", "ErasRewardPoints", era, block_hash)
+        .unwrap_or_else(|e| {
+            panic!(
+                "Failed to obtain ErasRewardPoints for era {} at block {:?}: {}",
+                era, block_hash, e
+            )
+        })
 }

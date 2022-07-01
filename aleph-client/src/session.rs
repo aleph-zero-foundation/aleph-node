@@ -1,6 +1,7 @@
 use codec::{Decode, Encode};
 use log::info;
-use sp_core::Pair;
+use primitives::SessionIndex;
+use sp_core::{Pair, H256};
 use substrate_api_client::{
     compose_call, compose_extrinsic, AccountId, ExtrinsicParams, FromHexString, XtStatus,
 };
@@ -85,33 +86,57 @@ pub fn set_keys(connection: &SignedConnection, new_keys: Keys, status: XtStatus)
     send_xt(connection, xt, Some("set_keys"), status);
 }
 
-/// Get the number of the current session.
-pub fn get_current<C: AnyConnection>(connection: &C) -> u32 {
+pub fn get_current_session<C: AnyConnection>(connection: &C) -> SessionIndex {
+    get_session(connection, None)
+}
+
+pub fn get_session<C: AnyConnection>(connection: &C, block_hash: Option<H256>) -> SessionIndex {
     connection
         .as_connection()
-        .get_storage_value("Session", "CurrentIndex", None)
+        .get_storage_value("Session", "CurrentIndex", block_hash)
         .unwrap()
         .unwrap_or(0)
 }
 
-pub fn wait_for<C: AnyConnection>(
+pub fn wait_for_predicate<C: AnyConnection, P: Fn(SessionIndex) -> bool>(
     connection: &C,
-    session_index: u32,
+    session_predicate: P,
 ) -> anyhow::Result<BlockNumber> {
-    info!(target: "aleph-client", "Waiting for session {}", session_index);
+    info!(target: "aleph-client", "Waiting for session");
 
     #[derive(Debug, Decode, Clone)]
     struct NewSessionEvent {
-        session_index: u32,
+        session_index: SessionIndex,
     }
-    wait_for_event(
+    let result = wait_for_event(
         connection,
         ("Session", "NewSession"),
         |e: NewSessionEvent| {
             info!(target: "aleph-client", "New session {}", e.session_index);
 
-            e.session_index == session_index
+            session_predicate(e.session_index)
         },
     )?;
-    Ok(session_index)
+    Ok(result.session_index)
+}
+
+pub fn wait_for<C: AnyConnection>(
+    connection: &C,
+    session_index: SessionIndex,
+) -> anyhow::Result<BlockNumber> {
+    wait_for_predicate(connection, |session_ix| session_ix == session_index)
+}
+
+pub fn wait_for_at_least<C: AnyConnection>(
+    connection: &C,
+    session_index: SessionIndex,
+) -> anyhow::Result<BlockNumber> {
+    wait_for_predicate(connection, |session_ix| session_ix >= session_index)
+}
+
+pub fn get_session_period<C: AnyConnection>(connection: &C) -> u32 {
+    connection
+        .as_connection()
+        .get_constant("Elections", "SessionPeriod")
+        .expect("Failed to decode SessionPeriod extrinsic!")
 }

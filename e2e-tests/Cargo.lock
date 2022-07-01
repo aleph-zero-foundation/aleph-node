@@ -104,6 +104,7 @@ dependencies = [
  "frame-system",
  "log",
  "pallet-balances",
+ "pallet-elections",
  "pallet-staking",
  "parity-scale-codec",
  "primitives",
@@ -1779,6 +1780,25 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-elections"
+version = "0.3.0"
+dependencies = [
+ "frame-election-provider-support",
+ "frame-support",
+ "frame-system",
+ "pallet-authorship",
+ "pallet-balances",
+ "pallet-session",
+ "pallet-staking",
+ "parity-scale-codec",
+ "primitives",
+ "scale-info",
+ "sp-core",
+ "sp-staking",
  "sp-std",
 ]
 

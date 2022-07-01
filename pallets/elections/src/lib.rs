@@ -20,7 +20,7 @@ mod traits;
 
 use codec::{Decode, Encode};
 use frame_support::traits::StorageVersion;
-pub use impls::compute_validator_scaled_total_rewards;
+pub use impls::{compute_validator_scaled_total_rewards, LENIENT_THRESHOLD};
 pub use pallet::*;
 use scale_info::TypeInfo;
 use sp_std::{

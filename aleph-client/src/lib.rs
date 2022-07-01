@@ -13,18 +13,20 @@ pub use multisig::{
 };
 pub use rpc::{rotate_keys, rotate_keys_raw_result, state_query_storage_at};
 pub use session::{
-    change_next_era_reserved_validators, change_validators, get_current as get_current_session,
-    set_keys, wait_for as wait_for_session, Keys as SessionKeys,
+    change_next_era_reserved_validators, change_validators, get_current_session, get_session,
+    get_session_period, set_keys, wait_for as wait_for_session,
+    wait_for_at_least as wait_for_at_least_session, Keys as SessionKeys,
 };
 use sp_core::{sr25519, storage::StorageKey, Pair, H256};
 use sp_runtime::{generic::Header as GenericHeader, traits::BlakeTwo256};
 pub use staking::{
     batch_bond as staking_batch_bond, batch_nominate as staking_batch_nominate,
     bond as staking_bond, bonded as staking_bonded, force_new_era as staking_force_new_era,
-    get_current_era, get_payout_for_era, ledger as staking_ledger,
-    multi_bond as staking_multi_bond, nominate as staking_nominate, payout_stakers,
-    payout_stakers_and_assert_locked_balance, set_staking_limits as staking_set_staking_limits,
-    validate as staking_validate, wait_for_full_era_completion, wait_for_next_era, StakingLedger,
+    get_current_era, get_era, get_era_reward_points, get_exposure, get_payout_for_era,
+    get_sessions_per_era, ledger as staking_ledger, multi_bond as staking_multi_bond,
+    nominate as staking_nominate, payout_stakers, payout_stakers_and_assert_locked_balance,
+    set_staking_limits as staking_set_staking_limits, validate as staking_validate,
+    wait_for_full_era_completion, wait_for_next_era, RewardPoint, StakingLedger,
 };
 pub use substrate_api_client;
 use substrate_api_client::{
@@ -307,4 +309,14 @@ pub fn get_storage_key(pallet: &str, call: &str) -> String {
     let bytes = storage_key(pallet, call);
     let storage_key = StorageKey(bytes.into());
     hex::encode(storage_key.0)
+}
+
+pub fn get_block_hash<C: AnyConnection>(connection: &C, block_number: u32) -> H256 {
+    connection
+        .as_connection()
+        .get_block_hash(Some(block_number))
+        .expect("API call should have succeeded.")
+        .unwrap_or_else(|| {
+            panic!("Failed to obtain block hash for block {}.", block_number);
+        })
 }
