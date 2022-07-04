@@ -19,23 +19,13 @@ pub fn treasury_account() -> AccountId32 {
 
 /// Returns how many treasury proposals have ever been created.
 pub fn proposals_counter<C: AnyConnection>(connection: &C) -> u32 {
-    connection
-        .as_connection()
-        .get_storage_value("Treasury", "ProposalCount", None)
-        .expect("Key `Treasury::ProposalCount` should be present in storage")
-        .unwrap_or(0)
+    connection.read_storage_value_or_default("Treasury", "ProposalCount")
 }
 
 /// Calculates how much balance will be paid out to the treasury after each era.
 pub fn staking_treasury_payout<C: AnyConnection>(connection: &C) -> Balance {
-    let sessions_per_era = connection
-        .as_connection()
-        .get_constant::<u32>("Staking", "SessionsPerEra")
-        .expect("Constant `Staking::SessionsPerEra` should be present");
-    let session_period = connection
-        .as_connection()
-        .get_constant::<u32>("Elections", "SessionPeriod")
-        .expect("Constant `Elections::SessionPeriod` should be present");
+    let sessions_per_era: u32 = connection.read_constant("Staking", "SessionsPerEra");
+    let session_period: u32 = connection.read_constant("Elections", "SessionPeriod");
     let millisecs_per_era = MILLISECS_PER_BLOCK * session_period as u64 * sessions_per_era as u64;
     primitives::staking::era_payout(millisecs_per_era).1
 }
@@ -131,11 +121,7 @@ fn send_approval(connection: &RootConnection, proposal_id: u32) -> ApiResult<Opt
 
 fn wait_for_approval<C: AnyConnection>(connection: &C, proposal_id: u32) -> AnyResult<()> {
     loop {
-        let approvals: Vec<u32> = connection
-            .as_connection()
-            .get_storage_value("Treasury", "Approvals", None)
-            .expect("Key `Treasury::Approvals` should be present in storage")
-            .unwrap();
+        let approvals: Vec<u32> = connection.read_storage_value("Treasury", "Approvals");
         if approvals.contains(&proposal_id) {
             return Ok(());
         } else {

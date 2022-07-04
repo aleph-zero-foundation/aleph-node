@@ -10,15 +10,9 @@ use crate::{
 
 pub fn print_storage<C: AnyConnection>(connection: &C) {
     let connection = connection.as_connection();
-    let proposal_count: u32 = connection
-        .get_storage_value("Treasury", "ProposalCount", None)
-        .expect("Api call should succeed")
-        .unwrap_or(0);
-
-    let approvals: Vec<ProposalIndex> = connection
-        .get_storage_value("Treasury", "Approvals", None)
-        .expect("Api call should succeed")
-        .unwrap_or_default();
+    let proposal_count: u32 = connection.read_storage_value_or_default("Treasury", "ProposalCount");
+    let approvals: Vec<ProposalIndex> =
+        connection.read_storage_value_or_default("Treasury", "Approvals");
 
     println!("{}", pallet_prompt("Treasury"));
     println!("{}: {}", entry_prompt("ProposalCount"), proposal_count);

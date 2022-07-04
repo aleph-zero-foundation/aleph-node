@@ -116,20 +116,14 @@ fn wait_for_era_completion<C: AnyConnection>(
     connection: &C,
     next_era_index: EraIndex,
 ) -> anyhow::Result<EraIndex> {
-    let sessions_per_era: u32 = connection
-        .as_connection()
-        .get_constant("Staking", "SessionsPerEra")
-        .expect("Failed to decode SessionsPerEra extrinsic!");
+    let sessions_per_era: u32 = connection.read_constant("Staking", "SessionsPerEra");
     let first_session_in_next_era = next_era_index * sessions_per_era;
     wait_for_session(connection, first_session_in_next_era)?;
     Ok(next_era_index)
 }
 
 pub fn get_sessions_per_era<C: AnyConnection>(connection: &C) -> u32 {
-    connection
-        .as_connection()
-        .get_constant("Staking", "SessionsPerEra")
-        .expect("Failed to decode SessionsPerEra extrinsic!")
+    connection.read_constant("Staking", "SessionsPerEra")
 }
 
 pub fn get_era<C: AnyConnection>(connection: &C, block: Option<H256>) -> EraIndex {

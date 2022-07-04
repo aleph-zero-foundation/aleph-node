@@ -36,9 +36,5 @@ pub fn get_tx_fee_info<C: AnyConnection, Call: Encode>(
 }
 
 pub fn get_next_fee_multiplier<C: AnyConnection>(connection: &C) -> u128 {
-    connection
-        .as_connection()
-        .get_storage_value("TransactionPayment", "NextFeeMultiplier", None)
-        .expect("Should access storage")
-        .expect("Key `NextFeeMultiplier` should be present in storage")
+    connection.read_storage_value("TransactionPayment", "NextFeeMultiplier")
 }

@@ -6,9 +6,5 @@ use crate::AnyConnection;
 ///
 /// Performs a single storage read.
 pub fn total_issuance<C: AnyConnection>(connection: &C) -> Balance {
-    connection
-        .as_connection()
-        .get_storage_value("Balances", "TotalIssuance", None)
-        .expect("Key `Balances::TotalIssuance` should be present in storage")
-        .unwrap()
+    connection.read_storage_value("Balances", "TotalIssuance")
 }

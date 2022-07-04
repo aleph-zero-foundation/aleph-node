@@ -1,9 +1,9 @@
-use std::{thread::sleep, time::Duration};
+use std::{default::Default, thread::sleep, time::Duration};
 
 use ac_primitives::SubstrateDefaultSignedExtra;
 pub use account::{get_free_balance, locks};
 pub use balances::total_issuance;
-use codec::Encode;
+use codec::{Decode, Encode};
 pub use debug::print_storages;
 pub use fee::{get_next_fee_multiplier, get_tx_fee_info, FeeInfo};
 use log::{info, warn};
@@ -82,13 +82,78 @@ pub type KeyPair = sr25519::Pair;
 pub type Connection = Api<KeyPair, WsRpcClient, PlainTipExtrinsicParams>;
 pub type Extrinsic<Call> = UncheckedExtrinsicV4<Call, SubstrateDefaultSignedExtra>;
 
-/// 'Castability' to `Connection`.
-///
-/// Direct casting is often more handy than generic `.into()`. Justification: `Connection` objects
-/// are often passed to some macro like `compose_extrinsic!` and thus there is not enough
-/// information for type inferring required for `Into<Connection>`.
+/// Common abstraction for different types of connections.
 pub trait AnyConnection: Clone + Send {
+    /// 'Castability' to `Connection`.
+    ///
+    /// Direct casting is often more handy than generic `.into()`. Justification: `Connection`
+    /// objects are often passed to some macro like `compose_extrinsic!` and thus there is not
+    /// enough information for type inferring required for `Into<Connection>`.
     fn as_connection(&self) -> Connection;
+
+    /// Reads value from storage. Panics if it couldn't be read.
+    fn read_storage_value<T: Decode>(&self, pallet: &'static str, key: &'static str) -> T {
+        self.read_storage_value_or_else(pallet, key, || {
+            panic!("Value is `None` or couldn't have been decoded")
+        })
+    }
+
+    /// Reads value from storage. In case value is `None` or couldn't have been decoded, result of
+    /// `fallback` is returned.
+    fn read_storage_value_or_else<F: FnOnce() -> T, T: Decode>(
+        &self,
+        pallet: &'static str,
+        key: &'static str,
+        fallback: F,
+    ) -> T {
+        self.as_connection()
+            .get_storage_value(pallet, key, None)
+            .unwrap_or_else(|_| panic!("Key `{}::{}` should be present in storage", pallet, key))
+            .unwrap_or_else(fallback)
+    }
+
+    /// Reads value from storage. In case value is `None` or couldn't have been decoded, the default
+    /// value is returned.
+    fn read_storage_value_or_default<T: Decode + Default>(
+        &self,
+        pallet: &'static str,
+        key: &'static str,
+    ) -> T {
+        self.read_storage_value_or_else(pallet, key, Default::default)
+    }
+
+    /// Reads pallet's constant from metadata. Panics if it couldn't be read.
+    fn read_constant<T: Decode>(&self, pallet: &'static str, constant: &'static str) -> T {
+        self.read_constant_or_else(pallet, constant, || {
+            panic!(
+                "Constant `{}::{}` should be present and decodable",
+                pallet, constant
+            )
+        })
+    }
+
+    /// Reads pallet's constant from metadata. In case value is `None` or couldn't have been
+    /// decoded, result of `fallback` is returned.
+    fn read_constant_or_else<F: FnOnce() -> T, T: Decode>(
+        &self,
+        pallet: &'static str,
+        constant: &'static str,
+        fallback: F,
+    ) -> T {
+        self.as_connection()
+            .get_constant(pallet, constant)
+            .unwrap_or_else(|_| fallback())
+    }
+
+    /// Reads pallet's constant from metadata. In case value is `None` or couldn't have been
+    /// decoded, the default value is returned.
+    fn read_constant_or_default<T: Decode + Default>(
+        &self,
+        pallet: &'static str,
+        constant: &'static str,
+    ) -> T {
+        self.read_constant_or_else(pallet, constant, Default::default)
+    }
 }
 
 impl AnyConnection for Connection {

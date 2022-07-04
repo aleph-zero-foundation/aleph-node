@@ -135,8 +135,5 @@ pub fn wait_for_at_least<C: AnyConnection>(
 }
 
 pub fn get_session_period<C: AnyConnection>(connection: &C) -> u32 {
-    connection
-        .as_connection()
-        .get_constant("Elections", "SessionPeriod")
-        .expect("Failed to decode SessionPeriod extrinsic!")
+    connection.read_constant("Elections", "SessionPeriod")
 }
