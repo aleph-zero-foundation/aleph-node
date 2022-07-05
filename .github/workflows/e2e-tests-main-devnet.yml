@@ -142,6 +142,22 @@ jobs:
         timeout-minutes: 2
 
 
+  run-e2e-reward-points-disable-node-test:
+    needs: [build-test-docker, build-test-client]
+    name: Run e2e reward points - disable node test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: reward_points_disable_node
+          follow-up-finalization-check: true
+        timeout-minutes: 10
+
+
   run-e2e-token-transfer-test:
     needs: [build-test-docker, build-test-client]
     name: Run e2e token transfer test
@@ -311,6 +327,7 @@ jobs:
   check-e2e-test-suite-completion:
     needs: [
       run-e2e-finalization-test,
+      run-e2e-reward-points-disable-node-test,
       run-e2e-token-transfer-test,
       run-e2e-channeling-fee-test,
       run-e2e-treasury-access-test,
