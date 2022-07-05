@@ -35,7 +35,6 @@ pub fn get_sudo_key(config: &Config) -> KeyPair {
 pub struct NodeKeys {
     pub validator: KeyPair,
     pub controller: KeyPair,
-    pub stash: KeyPair,
 }
 
 impl From<String> for NodeKeys {
@@ -43,15 +42,10 @@ impl From<String> for NodeKeys {
         Self {
             validator: keypair_from_string(&seed),
             controller: keypair_from_string(&get_validators_controller_seed(&seed)),
-            stash: keypair_from_string(&get_validators_stash_seed(&seed)),
         }
     }
 }
 
 fn get_validators_controller_seed(seed: &str) -> String {
     format!("{}//Controller", seed)
-}
-
-fn get_validators_stash_seed(seed: &str) -> String {
-    format!("{}//stash", seed)
 }
