@@ -131,6 +131,18 @@ pub mod pallet {
     #[pallet::storage]
     pub type CommitteeSize<T> = StorageValue<_, u32, ValueQuery>;
 
+    #[pallet::type_value]
+    pub fn DefaultNextEraCommitteeSize<T: Config>() -> u32 {
+        CommitteeSize::<T>::get()
+    }
+
+    /// Desired size of a committee in effect from a new era.
+    ///
+    /// can be changed via `change_validators` call that requires sudo.
+    #[pallet::storage]
+    pub type NextEraCommitteeSize<T> =
+        StorageValue<_, u32, ValueQuery, DefaultNextEraCommitteeSize<T>>;
+
     /// List of reserved validators in force from a new era.
     ///
     /// Can be changed via `change_validators` call that requires sudo.
@@ -173,7 +185,7 @@ pub mod pallet {
             committee_size: Option<u32>,
         ) -> DispatchResult {
             ensure_root(origin)?;
-            let committee_size = committee_size.unwrap_or_else(CommitteeSize::<T>::get);
+            let committee_size = committee_size.unwrap_or_else(NextEraCommitteeSize::<T>::get);
             let reserved_validators =
                 reserved_validators.unwrap_or_else(NextEraReservedValidators::<T>::get);
             let non_reserved_validators =
@@ -187,7 +199,7 @@ pub mod pallet {
 
             NextEraNonReservedValidators::<T>::put(non_reserved_validators.clone());
             NextEraReservedValidators::<T>::put(reserved_validators.clone());
-            CommitteeSize::<T>::put(committee_size);
+            NextEraCommitteeSize::<T>::put(committee_size);
 
             Self::deposit_event(Event::ChangeValidators(
                 reserved_validators,

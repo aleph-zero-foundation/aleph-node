@@ -5,9 +5,9 @@ use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 
 use crate::{
     traits::{EraInfoProvider, SessionInfoProvider, ValidatorRewardsHandler},
-    CommitteeSize, Config, CurrentEraValidators, EraValidators, NextEraNonReservedValidators,
-    NextEraReservedValidators, Pallet, SessionValidatorBlockCount, ValidatorEraTotalReward,
-    ValidatorTotalRewards,
+    CommitteeSize, Config, CurrentEraValidators, EraValidators, NextEraCommitteeSize,
+    NextEraNonReservedValidators, NextEraReservedValidators, Pallet, SessionValidatorBlockCount,
+    ValidatorEraTotalReward, ValidatorTotalRewards,
 };
 
 const MAX_REWARD: u32 = 1_000_000_000;
@@ -201,10 +201,13 @@ where
         Self::if_era_starts_do(active_era + 1, session, || {
             let reserved_validators = NextEraReservedValidators::<T>::get();
             let non_reserved_validators = NextEraNonReservedValidators::<T>::get();
+            let committee_size = NextEraCommitteeSize::<T>::get();
+
             CurrentEraValidators::<T>::put(EraValidators {
                 reserved: reserved_validators,
                 non_reserved: non_reserved_validators,
             });
+            CommitteeSize::<T>::put(committee_size);
         });
     }
 
