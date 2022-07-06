@@ -1,15 +1,18 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub use crate::button_token::{
-    ButtonToken, ButtonTokenRef, Event, ALLOWANCE_SELECTOR, BALANCE_OF_SELECTOR,
-    TOTAL_SUPPLY_SELECTOR, TRANSFER_SELECTOR,
-};
 use ink_lang as ink;
+
+pub use crate::button_token::{
+    Event, ALLOWANCE_SELECTOR, BALANCE_OF_SELECTOR, TOTAL_SUPPLY_SELECTOR, TRANSFER_SELECTOR,
+};
 
 #[ink::contract]
 mod button_token {
 
-    use ink_lang::reflect::ContractEventBase;
+    use access_control::{traits::AccessControlled, Role, ACCESS_CONTROL_PUBKEY};
+    use ink_env::Error as InkEnvError;
+    use ink_lang::{codegen::EmitEvent, reflect::ContractEventBase};
+    use ink_prelude::{format, string::String};
     use ink_storage::{traits::SpreadAllocate, Mapping};
 
     pub const TOTAL_SUPPLY_SELECTOR: [u8; 4] = [0, 0, 0, 1];
@@ -22,13 +25,13 @@ mod button_token {
     pub struct ButtonToken {
         /// Total token supply.
         total_supply: Balance,
-        /// Mapping from owner to number of owned token.
+        /// Mapping from account id to the number of owned token.
         balances: Mapping<AccountId, Balance>,
         /// Mapping of the token amount which an account is allowed to withdraw
         /// from another account.
         allowances: Mapping<(AccountId, AccountId), Balance>,
-        /// access control
-        owner: AccountId,
+        /// access control contract
+        access_control: AccountId,
     }
 
     /// Event emitted when a token transfer occurs.
@@ -43,25 +46,15 @@ mod button_token {
     }
 
     /// Event emitted when an approval occurs that `spender` is allowed to withdraw
-    /// up to the amount of `value` tokens from `owner`.
+    /// up to the amount of `value` tokens from `access_control`.
     #[ink(event)]
     #[derive(Debug)]
     pub struct Approval {
         #[ink(topic)]
-        owner: AccountId,
+        access_control: AccountId,
         #[ink(topic)]
         spender: AccountId,
         value: Balance,
-    }
-
-    /// Event emitted when TheButton owner is changed
-    #[ink(event)]
-    #[derive(Debug)]
-    pub struct OwnershipTransferred {
-        #[ink(topic)]
-        from: AccountId,
-        #[ink(topic)]
-        to: AccountId,
     }
 
     #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
@@ -71,38 +64,70 @@ mod button_token {
         InsufficientBalance,
         /// Returned if not enough allowance to fulfill a request is available.
         InsufficientAllowance,
-        /// Returned when an account which is not the owner calls a method with access control
-        NotOwner,
+        /// Returned if a call to another contract has failed
+        ContractCall(String),
+        /// Returned if a call is made from an account with missing access conrol priviledges
+        MissingRole,
     }
 
-    /// Result type    
+    /// Result type
     pub type Result<T> = core::result::Result<T, Error>;
     /// Event type
     pub type Event = <ButtonToken as ContractEventBase>::Type;
 
+    impl AccessControlled for ButtonToken {
+        type ContractError = Error;
+    }
+
     impl ButtonToken {
         /// Creates a new contract with the specified initial supply.
+        ///
+        /// Will revert if called from an account without a proper role
         #[ink(constructor)]
         pub fn new(initial_supply: Balance) -> Self {
-            // This call is required in order to correctly initialize the
-            // `Mapping`s of our contract.
-            ink_lang::utils::initialize_contract(|contract| {
-                Self::new_init(contract, initial_supply)
-            })
+            let caller = Self::env().caller();
+            let code_hash = Self::env()
+                .own_code_hash()
+                .expect("Called new on a contract with no code hash");
+            let required_role = Role::Initializer(code_hash);
+
+            let role_check = <Self as AccessControlled>::check_role(
+                AccountId::from(ACCESS_CONTROL_PUBKEY),
+                caller,
+                required_role,
+                |why: InkEnvError| {
+                    Error::ContractCall(format!("Calling access control has failed: {:?}", why))
+                },
+                || Error::MissingRole,
+            );
+
+            match role_check {
+                Ok(_) => ink_lang::utils::initialize_contract(|contract| {
+                    Self::new_init(contract, initial_supply)
+                }),
+                Err(why) => panic!("Could not initialize the contract {:?}", why),
+            }
         }
 
         /// Default initializes the contract with the specified initial supply.
         fn new_init(&mut self, initial_supply: Balance) {
             let caller = Self::env().caller();
+
             self.balances.insert(&caller, &initial_supply);
             self.total_supply = initial_supply;
-            self.owner = caller;
+            self.access_control = AccountId::from(ACCESS_CONTROL_PUBKEY);
 
-            Self::env().emit_event(Transfer {
+            let event = Event::Transfer(Transfer {
                 from: None,
                 to: caller,
                 value: initial_supply,
             });
+
+            Self::emit_event(Self::env(), event)
+        }
+
+        fn emit_event<EE: EmitEvent<ButtonToken>>(emitter: EE, event: Event) {
+            emitter.emit_event(event);
         }
 
         /// Returns the total token supply.
@@ -111,15 +136,15 @@ mod button_token {
             self.total_supply
         }
 
-        /// Returns the account balance for the specified `owner`.
+        /// Returns the account balance for the specified `access_control`.
         ///
         /// Returns `0` if the account is non-existent.
         #[ink(message, selector = 2)]
-        pub fn balance_of(&self, owner: AccountId) -> Balance {
-            self.balance_of_impl(&owner)
+        pub fn balance_of(&self, access_control: AccountId) -> Balance {
+            self.balance_of_impl(&access_control)
         }
 
-        /// Returns the account balance for the specified `owner`.
+        /// Returns the account balance for the specified `access_control`.
         ///
         /// Returns `0` if the account is non-existent.
         ///
@@ -128,19 +153,19 @@ mod button_token {
         /// Prefer to call this method over `balance_of` since this
         /// works using references which are more efficient in Wasm.
         #[inline]
-        fn balance_of_impl(&self, owner: &AccountId) -> Balance {
-            self.balances.get(owner).unwrap_or_default()
+        fn balance_of_impl(&self, access_control: &AccountId) -> Balance {
+            self.balances.get(access_control).unwrap_or_default()
         }
 
-        /// Returns the amount which `spender` is still allowed to withdraw from `owner`.
+        /// Returns the amount which `spender` is still allowed to withdraw from `access_control`.
         ///
         /// Returns `0` if no allowance has been set.
         #[ink(message, selector = 3)]
-        pub fn allowance(&self, owner: AccountId, spender: AccountId) -> Balance {
-            self.allowance_impl(&owner, &spender)
+        pub fn allowance(&self, access_control: AccountId, spender: AccountId) -> Balance {
+            self.allowance_impl(&access_control, &spender)
         }
 
-        /// Returns the amount which `spender` is still allowed to withdraw from `owner`.
+        /// Returns the amount which `spender` is still allowed to withdraw from `access_control`.
         ///
         /// Returns `0` if no allowance has been set.
         ///
@@ -149,8 +174,10 @@ mod button_token {
         /// Prefer to call this method over `allowance` since this
         /// works using references which are more efficient in Wasm.
         #[inline]
-        fn allowance_impl(&self, owner: &AccountId, spender: &AccountId) -> Balance {
-            self.allowances.get((owner, spender)).unwrap_or_default()
+        fn allowance_impl(&self, access_control: &AccountId, spender: &AccountId) -> Balance {
+            self.allowances
+                .get((access_control, spender))
+                .unwrap_or_default()
         }
 
         /// Transfers `value` amount of tokens from the caller's account to account `to`.
@@ -175,13 +202,16 @@ mod button_token {
         /// An `Approval` event is emitted.
         #[ink(message, selector = 5)]
         pub fn approve(&mut self, spender: AccountId, value: Balance) -> Result<()> {
-            let owner = self.env().caller();
-            self.allowances.insert((&owner, &spender), &value);
-            self.env().emit_event(Approval {
-                owner,
+            let access_control = self.env().caller();
+            self.allowances.insert((&access_control, &spender), &value);
+
+            let event = Event::Approval(Approval {
+                access_control,
                 spender,
                 value,
             });
+            Self::emit_event(self.env(), event);
+
             Ok(())
         }
 
@@ -239,49 +269,74 @@ mod button_token {
             self.balances.insert(from, &(from_balance - value));
             let to_balance = self.balance_of_impl(to);
             self.balances.insert(to, &(to_balance + value));
-            self.env().emit_event(Transfer {
+
+            let event = Event::Transfer(Transfer {
                 from: Some(*from),
                 to: *to,
                 value,
             });
+            Self::emit_event(self.env(), event);
+
             Ok(())
         }
 
         /// Terminates the contract.
         ///
-        /// can only be called by the contract owner
+        /// can only be called by the contract's Owner
         #[ink(message, selector = 7)]
         pub fn terminate(&mut self) -> Result<()> {
             let caller = self.env().caller();
-            if caller != self.owner {
-                return Err(Error::NotOwner);
-            }
+            let this = self.env().account_id();
+            let required_role = Role::Owner(this);
+
+            self.check_role(caller, required_role)?;
 
             self.env().terminate_contract(caller)
         }
 
-        /// Transfers ownership of the contract to a new account
-        ///
-        /// Can only be called by the current owner
+        /// Returns the contract's access control contract address
         #[ink(message, selector = 8)]
-        pub fn transfer_ownership(&mut self, to: AccountId) -> Result<()> {
-            let caller = Self::env().caller();
-            if caller != self.owner {
-                return Err(Error::NotOwner);
-            }
-            self.owner = to;
-            self.env()
-                .emit_event(OwnershipTransferred { from: caller, to });
+        pub fn access_control(&self) -> AccountId {
+            self.access_control
+        }
+
+        fn check_role(&self, account: AccountId, role: Role) -> Result<()> {
+            <Self as AccessControlled>::check_role(
+                self.access_control,
+                account,
+                role,
+                |why: InkEnvError| {
+                    Error::ContractCall(format!("Calling access control has failed: {:?}", why))
+                },
+                || Error::MissingRole,
+            )
+        }
+
+        /// Sets new access control contract address
+        ///
+        /// Can only be called by the contract's Owner
+        #[ink(message, selector = 9)]
+        pub fn set_access_control(&mut self, access_control: AccountId) -> Result<()> {
+            let caller = self.env().caller();
+            let this = self.env().account_id();
+            let required_role = Role::Owner(this);
+
+            self.check_role(caller, required_role)?;
+
+            self.access_control = access_control;
             Ok(())
         }
 
-        /// Returns the contract owner.
-        #[ink(message)]
-        pub fn owner(&self) -> AccountId {
-            self.owner
+        /// Returns own code hash
+        #[ink(message, selector = 10)]
+        pub fn code_hash(&self) -> Result<Hash> {
+            Self::env().own_code_hash().map_err(|why| {
+                Error::ContractCall(format!("Calling control has failed: {:?}", why))
+            })
         }
     }
 
+    /*
     #[cfg(test)]
     mod tests {
         use super::*;
@@ -547,31 +602,5 @@ mod button_token {
             result.as_mut()[0..copy_len].copy_from_slice(&hash_output[0..copy_len]);
             result
         }
-
-        #[ink::test]
-        fn ownership_tests() {
-            let accounts = ink_env::test::default_accounts::<ink_env::DefaultEnvironment>();
-
-            let alice = accounts.alice;
-            let bob = accounts.bob;
-
-            let erc20_address = accounts.frank;
-
-            // alice deploys the contract
-            ink_env::test::set_caller::<ink_env::DefaultEnvironment>(alice);
-            ink_env::test::set_callee::<ink_env::DefaultEnvironment>(erc20_address);
-            let mut erc20 = ButtonToken::new(1000);
-
-            assert_eq!(erc20.owner(), alice, "Wrong initial owner AccountId");
-
-            // alice transfers contract ownership to bob
-
-            assert!(
-                erc20.transfer_ownership(bob).is_ok(),
-                "Ownership transfer failed"
-            );
-
-            assert_eq!(erc20.owner(), bob, "Wrong new owner AccountId");
-        }
-    }
+    }*/
 }

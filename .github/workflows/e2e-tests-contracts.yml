@@ -92,3 +92,6 @@ jobs:
       - name: Run e2e tests
         shell: bash
         run: ./contracts/scripts/deploy.sh
+
+      - name: Cleanup cache
+        uses: ./.github/actions/post-cache

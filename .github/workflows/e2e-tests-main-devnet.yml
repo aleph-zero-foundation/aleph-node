@@ -411,11 +411,13 @@ jobs:
 
       - name: Push aleph-node Current Image to Public ECR
         env:
-          CURRENT_IMAGE: aleph-node:latest
-          ECR_PUSH_IMAGE: public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.vars.outputs.sha_short }}
+          CURRENT_IMAGE: aleph-node
+          ECR_PUSH_IMAGE: public.ecr.aws/p6e8q1z1/aleph-node
         run: |
-          docker tag ${{ env.CURRENT_IMAGE }} ${{ env.ECR_PUSH_IMAGE }}
-          docker push ${{ env.ECR_PUSH_IMAGE }}
+          docker tag ${{ env.CURRENT_IMAGE }} ${{ env.ECR_PUSH_IMAGE }}:${{ steps.vars.outputs.sha_short }}
+          docker tag ${{ env.CURRENT_IMAGE }} ${{ env.ECR_PUSH_IMAGE }}:latest
+          docker push ${{ env.ECR_PUSH_IMAGE }}:${{ steps.vars.outputs.sha_short }}
+          docker push ${{ env.ECR_PUSH_IMAGE }}:latest
 
   check-runtime-change-if-PR:
     name: Inspect whether runtime version has been changed

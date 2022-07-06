@@ -2,7 +2,7 @@ version: '3'
 services:
 
   smartnode:
-    image: public.ecr.aws/p6e8q1z1/aleph-node:31b1428-smartnet
+    image: public.ecr.aws/p6e8q1z1/aleph-node:latest
     container_name: smartnode
     network_mode: host
     environment:
