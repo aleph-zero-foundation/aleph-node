@@ -1,14 +1,15 @@
 use aleph_client::{
     account_from_keypair, balances_batch_transfer, balances_transfer, change_validators,
-    get_sessions_per_era, send_xt, wait_for_full_era_completion, wait_for_next_era, AnyConnection,
-    KeyPair, SignedConnection,
+    get_current_era, get_current_session, get_sessions_per_era, send_xt, staking_force_new_era,
+    wait_for_full_era_completion, wait_for_next_era, wait_for_session, AnyConnection, KeyPair,
+    RootConnection, SignedConnection,
 };
 use log::info;
 use primitives::{staking::MIN_VALIDATOR_BOND, Balance, SessionIndex, TOKEN};
 use substrate_api_client::{AccountId, XtStatus};
 
 use crate::{
-    accounts::{get_validators_keys, get_validators_seeds, NodeKeys},
+    accounts::{get_sudo_key, get_validators_keys, get_validators_seeds, NodeKeys},
     rewards::{check_points, reset_validator_keys, set_invalid_keys_for_validator},
     Config,
 };
@@ -39,6 +40,16 @@ fn get_non_reserved_members_for_session(config: &Config, session: SessionIndex) 
     }
 
     non_reserved.iter().map(account_from_keypair).collect()
+}
+
+fn get_bench_members(
+    non_reserved_members: Vec<AccountId>,
+    non_reserved_members_for_session: &[AccountId],
+) -> Vec<AccountId> {
+    non_reserved_members
+        .into_iter()
+        .filter(|account_id| !non_reserved_members_for_session.contains(account_id))
+        .collect::<Vec<_>>()
 }
 
 fn get_member_accounts(config: &Config) -> (Vec<AccountId>, Vec<AccountId>) {
@@ -219,6 +230,80 @@ pub fn disable_node(config: &Config) -> anyhow::Result<()> {
             session,
             era,
             members,
+            members_bench,
+            MAX_DIFFERENCE,
+        )?;
+    }
+
+    Ok(())
+}
+
+pub fn force_new_era(config: &Config) -> anyhow::Result<()> {
+    const MAX_DIFFERENCE: f64 = 0.05;
+
+    let node = &config.node;
+    let accounts = get_validators_keys(config);
+    let sender = accounts.first().expect("Using default accounts").to_owned();
+    let connection = SignedConnection::new(node, sender);
+
+    let sudo = get_sudo_key(config);
+    let root_connection = RootConnection::new(node, sudo);
+
+    let reserved_members: Vec<_> = get_reserved_members(config)
+        .iter()
+        .map(account_from_keypair)
+        .collect();
+    let non_reserved_members: Vec<_> = get_non_reserved_members(config)
+        .iter()
+        .map(account_from_keypair)
+        .collect();
+
+    wait_for_full_era_completion(&connection)?;
+
+    let start_era = get_current_era(&connection);
+    let start_session = get_current_session(&connection);
+    info!("Start | era: {}, session: {}", start_era, start_session);
+
+    staking_force_new_era(&root_connection, XtStatus::Finalized);
+
+    wait_for_session(&connection, start_session + 2)?;
+    let current_era = get_current_era(&connection);
+    let current_session = get_current_session(&connection);
+    info!(
+        "After ForceNewEra | era: {}, session: {}",
+        current_era, current_session
+    );
+
+    // Once a new era is forced in session k, the new era does not come into effect until session
+    // k + 2; we test points:
+    // 1) immediately following the call in session k,
+    // 2) in the interim session k + 1,
+    // 3) in session k + 2, the first session of the new era.
+    for idx in 0..3 {
+        let session_to_check = start_session + idx;
+        let era_to_check = start_era + idx / 2;
+
+        info!(
+            "Testing points | era: {}, session: {}",
+            era_to_check, session_to_check
+        );
+
+        let non_reserved_members_for_session =
+            get_non_reserved_members_for_session(config, session_to_check);
+        let members_bench = get_bench_members(
+            non_reserved_members.clone(),
+            &non_reserved_members_for_session,
+        );
+        let members_active = reserved_members
+            .clone()
+            .into_iter()
+            .chain(non_reserved_members_for_session);
+
+        check_points(
+            &connection,
+            session_to_check,
+            era_to_check,
+            members_active,
             members_bench,
             MAX_DIFFERENCE,
         )?;

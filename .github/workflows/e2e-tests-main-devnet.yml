@@ -142,7 +142,7 @@ jobs:
         timeout-minutes: 2
 
 
-  run-e2e-reward-points-disable-node-test:
+  run-e2e-rewards-disable-node-test:
     needs: [build-test-docker, build-test-client]
     name: Run e2e reward points - disable node test
     runs-on: ubuntu-latest
@@ -153,7 +153,7 @@ jobs:
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
         with:
-          test-case: reward_points_disable_node
+          test-case: rewards_disable_node
           follow-up-finalization-check: true
         timeout-minutes: 10
 
@@ -324,7 +324,22 @@ jobs:
           follow-up-finalization-check: true
         timeout-minutes: 10
 
-  run-e2e-points-stake-change:
+  run-e2e-rewards-force-new-era:
+    needs: [build-test-docker, build-test-client]
+    name: Run force new era test to check rewards
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: rewards_force_new_era
+          follow-up-finalization-check: true
+        timeout-minutes: 10
+  
+  run-e2e-rewards-stake-change:
     needs: [build-test-docker, build-test-client]
     name: Run reward points with stake changed test
     runs-on: ubuntu-latest
@@ -335,14 +350,13 @@ jobs:
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
         with:
-          test-case: points_stake_change
-          follow-up-finalization-check: true
-        timeout-minutes: 10
+          test-case: rewards_stake_change
+          timeout-minutes: 10
 
   check-e2e-test-suite-completion:
     needs: [
       run-e2e-finalization-test,
-      run-e2e-reward-points-disable-node-test,
+      run-e2e-rewards-disable-node-test,
       run-e2e-token-transfer-test,
       run-e2e-channeling-fee-test,
       run-e2e-treasury-access-test,
@@ -354,7 +368,8 @@ jobs:
       run-e2e-validators-rotate,
       run-e2e-era-payout,
       run-e2e-era-validators,
-      run-e2e-points-stake-change
+      run-e2e-rewards-force-new-era,
+      run-e2e-rewards-stake-change
     ]
     name: Check e2e test suite completion
     runs-on: ubuntu-latest

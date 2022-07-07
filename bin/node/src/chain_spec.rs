@@ -315,11 +315,12 @@ fn configure_chain_spec_fields(
     let stakers = authorities
         .iter()
         .zip(controllers)
-        .map(|(validator, controller)| {
+        .enumerate()
+        .map(|(validator_idx, (validator, controller))| {
             (
                 validator.account_id.clone(),
                 controller,
-                MIN_VALIDATOR_BOND,
+                (validator_idx + 1) as u128 * MIN_VALIDATOR_BOND,
                 StakerStatus::Validator,
             )
         })
