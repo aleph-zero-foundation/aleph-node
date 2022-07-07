@@ -351,7 +351,8 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: rewards_stake_change
-          timeout-minutes: 10
+          follow-up-finalization-check: true
+        timeout-minutes: 10
 
   check-e2e-test-suite-completion:
     needs: [

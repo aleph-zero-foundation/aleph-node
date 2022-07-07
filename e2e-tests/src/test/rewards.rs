@@ -108,7 +108,7 @@ fn validators_bond_extra_stakes(config: &Config, additional_stakes: Vec<Balance>
 }
 
 pub fn points_stake_change(config: &Config) -> anyhow::Result<()> {
-    const MAX_DIFFERENCE: f64 = 0.05;
+    const MAX_DIFFERENCE: f64 = 0.07;
 
     let node = &config.node;
     let accounts = get_validators_keys(config);
@@ -176,7 +176,7 @@ pub fn points_stake_change(config: &Config) -> anyhow::Result<()> {
 }
 
 pub fn disable_node(config: &Config) -> anyhow::Result<()> {
-    const MAX_DIFFERENCE: f64 = 0.05;
+    const MAX_DIFFERENCE: f64 = 0.07;
     const VALIDATORS_PER_SESSION: u32 = 4;
 
     let root_connection = config.create_root_connection();
@@ -239,7 +239,7 @@ pub fn disable_node(config: &Config) -> anyhow::Result<()> {
 }
 
 pub fn force_new_era(config: &Config) -> anyhow::Result<()> {
-    const MAX_DIFFERENCE: f64 = 0.05;
+    const MAX_DIFFERENCE: f64 = 0.07;
 
     let node = &config.node;
     let accounts = get_validators_keys(config);
