@@ -1,4 +1,5 @@
 use std::{
+    cmp,
     collections::{HashMap, HashSet},
     time::Duration,
 };
@@ -9,7 +10,7 @@ use futures::{
     StreamExt,
 };
 use log::{debug, trace, warn};
-use tokio::time::interval;
+use tokio::time::{interval_at, Instant};
 
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
@@ -73,17 +74,23 @@ impl PreSession {
 }
 
 /// Configuration for the session manager service. Controls how often the maintenance and
-/// rebroadcasts are triggerred.
+/// rebroadcasts are triggerred. Also controls when maintenance starts.
 pub struct Config {
     discovery_cooldown: Duration,
     maintenance_period: Duration,
+    initial_delay: Duration,
 }
 
 impl Config {
-    fn new(discovery_cooldown: Duration, maintenance_period: Duration) -> Self {
+    fn new(
+        discovery_cooldown: Duration,
+        maintenance_period: Duration,
+        initial_delay: Duration,
+    ) -> Self {
         Config {
             discovery_cooldown,
             maintenance_period,
+            initial_delay,
         }
     }
 
@@ -94,7 +101,12 @@ impl Config {
     ) -> Self {
         let discovery_cooldown =
             Duration::from_millis(millisecs_per_block.0 * session_period.0 as u64 / 5);
-        Config::new(discovery_cooldown, discovery_cooldown / 2)
+        let maintenance_period = discovery_cooldown / 2;
+        let initial_delay = cmp::min(
+            Duration::from_millis(millisecs_per_block.0 * 10),
+            maintenance_period,
+        );
+        Config::new(discovery_cooldown, maintenance_period, initial_delay)
     }
 }
 
@@ -133,6 +145,7 @@ pub struct Service<NI: NetworkIdentity, D: Data> {
     )>,
     discovery_cooldown: Duration,
     maintenance_period: Duration,
+    initial_delay: Duration,
 }
 
 impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
@@ -141,6 +154,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
         let Config {
             discovery_cooldown,
             maintenance_period,
+            initial_delay,
         } = config;
         Service {
             network_identity,
@@ -149,6 +163,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
             to_retry: Vec::new(),
             discovery_cooldown,
             maintenance_period,
+            initial_delay,
         }
     }
 
@@ -616,7 +631,12 @@ impl<D: Data, M: Multiaddress> IO<D, M> {
         mut self,
         mut service: Service<NI, D>,
     ) -> Result<(), Error> {
-        let mut maintenance = interval(service.maintenance_period);
+        // Initial delay is needed so that Network is fully set up and we received some first discovery broadcasts from other nodes.
+        // Otherwise this might cause first maintenance never working, as it happens before first broadcasts.
+        let mut maintenance = interval_at(
+            Instant::now() + service.initial_delay,
+            service.maintenance_period,
+        );
         loop {
             trace!(target: "aleph-network", "Manager Loop started a next iteration");
             tokio::select! {
@@ -687,11 +707,12 @@ mod tests {
     const NUM_NODES: usize = 7;
     const MAINTENANCE_PERIOD: Duration = Duration::from_secs(120);
     const DISCOVERY_PERIOD: Duration = Duration::from_secs(60);
+    const INITIAL_DELAY: Duration = Duration::from_secs(5);
 
     fn build() -> Service<MockNetworkIdentity, i32> {
         Service::new(
             MockNetworkIdentity::new(),
-            Config::new(MAINTENANCE_PERIOD, DISCOVERY_PERIOD),
+            Config::new(MAINTENANCE_PERIOD, DISCOVERY_PERIOD, INITIAL_DELAY),
         )
     }
 

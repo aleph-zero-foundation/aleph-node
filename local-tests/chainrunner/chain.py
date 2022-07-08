@@ -47,6 +47,13 @@ class Chain:
         with open(chainspec, 'w', encoding='utf-8') as f:
             subprocess.run(cmd, stdout=f, check=True)
 
+        for nv in nonvalidators:
+            cmd = [check_file(binary),
+                   'bootstrap-node',
+                   '--base-path', self.path,
+                   '--account-id', nv]
+            subprocess.run(cmd, stdout=subprocess.DEVNULL, check=True)
+
         def account_to_node(account):
             n = Node(binary, chainspec, op.join(self.path, account), self.path)
             n.flags['node-key-file'] = op.join(self.path, account, 'p2p_secret')

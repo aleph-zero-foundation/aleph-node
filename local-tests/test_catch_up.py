@@ -28,6 +28,8 @@ chain.set_flags(port=Seq(30334),
                 unit_creation_delay=200,
                 execution='Native',
                 pruning='archive')
+addresses = [n.address() for n in chain]
+chain.set_flags(bootnodes=addresses[0], public_addr=addresses)
 
 chain.set_flags_validator('validator')
 
