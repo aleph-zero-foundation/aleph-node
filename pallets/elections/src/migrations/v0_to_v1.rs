@@ -73,3 +73,60 @@ pub fn migrate<T: Config, P: PalletInfoAccess>() -> Weight {
     StorageVersion::new(1).put::<P>();
     T::DbWeight::get().reads(reads) + T::DbWeight::get().writes(writes)
 }
+
+#[cfg(feature = "try-runtime")]
+pub fn pre_upgrade<T: Config, P: PalletInfoAccess>() -> Result<(), &'static str> {
+    match Members::<T>::get() {
+        Some(_) => {}
+        _ => return Err("No `Members` storage"),
+    }
+
+    if StorageVersion::get::<P>() == StorageVersion::new(0) {
+        Ok(())
+    } else {
+        Err("Bad storage version")
+    }
+}
+
+#[allow(dead_code)]
+#[cfg(feature = "try-runtime")]
+pub fn post_upgrade<T: Config, P: PalletInfoAccess>() -> Result<(), &'static str> {
+    let mps = match MembersPerSession::get() {
+        Some(mps) => mps,
+        _ => return Err("No `MembersPerSession` in the storage"),
+    };
+    let reserved_members = match ReservedMembers::<T>::get() {
+        Some(rm) => rm,
+        _ => return Err("No `ReservedMembers` in the storage"),
+    };
+    let non_reserved_members = match NonReservedMembers::<T>::get() {
+        Some(nrm) => nrm,
+        _ => return Err("No `NonReservedMembers` in the storage"),
+    };
+    let eras_members = match ErasMembers::<T>::get() {
+        Some(em) => em,
+        _ => return Err("No `ErasMembers` in the storage"),
+    };
+
+    if mps as usize != reserved_members.len() {
+        return Err("Bad size of the `MembersPerSession`");
+    }
+
+    if reserved_members != eras_members.0 {
+        return Err("Bad contents of the `ReservedMembers` and `ErasMembers`");
+    }
+
+    if non_reserved_members != eras_members.1 {
+        return Err("Bad contents of the `NonReservedMembers` and `ErasMembers`");
+    }
+
+    if !non_reserved_members.is_empty() {
+        return Err("`NonReservedMembers` should be empty");
+    }
+
+    if StorageVersion::get::<P>() == StorageVersion::new(1) {
+        Ok(())
+    } else {
+        Err("Bad storage version")
+    }
+}

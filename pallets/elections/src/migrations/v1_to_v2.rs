@@ -76,3 +76,55 @@ pub fn migrate<T: Config, P: PalletInfoAccess>() -> Weight {
     StorageVersion::new(2).put::<P>();
     T::DbWeight::get().reads(reads) + T::DbWeight::get().writes(writes)
 }
+
+#[cfg(feature = "try-runtime")]
+pub fn pre_upgrade<T: Config, P: PalletInfoAccess>() -> Result<(), &'static str> {
+    match MembersPerSession::get() {
+        Some(_) => {}
+        _ => return Err("No `Members` storage"),
+    }
+    match ReservedMembers::<T>::get() {
+        Some(_) => {}
+        _ => return Err("No `Members` storage"),
+    }
+    match NonReservedMembers::<T>::get() {
+        Some(_) => {}
+        _ => return Err("No `Members` storage"),
+    }
+    match ErasMembers::<T>::get() {
+        Some(_) => {}
+        _ => return Err("No `Members` storage"),
+    }
+
+    if StorageVersion::get::<P>() == StorageVersion::new(1) {
+        Ok(())
+    } else {
+        Err("Bad storage version")
+    }
+}
+
+#[cfg(feature = "try-runtime")]
+pub fn post_upgrade<T: Config, P: PalletInfoAccess>() -> Result<(), &'static str> {
+    match CommitteeSize::get() {
+        Some(_) => {}
+        _ => return Err("No `CommitteeSize` in the storage"),
+    }
+    match NextEraReservedValidators::<T>::get() {
+        Some(_) => {}
+        _ => return Err("No `NextEraReservedValidators` in the storage"),
+    }
+    match NextEraNonReservedValidators::<T>::get() {
+        Some(_) => {}
+        _ => return Err("No `NextEraNonReservedValidators` in the storage"),
+    };
+    match CurrentEraValidators::<T>::get() {
+        Some(_) => {}
+        _ => return Err("No `CurrentEraValidators` in the storage"),
+    };
+
+    if StorageVersion::get::<P>() == StorageVersion::new(2) {
+        Ok(())
+    } else {
+        Err("Bad storage version")
+    }
+}
