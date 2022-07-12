@@ -5,7 +5,7 @@ authors = ["Cardinal Cryptography"]
 edition = "2021"
 
 [dependencies]
-aleph-bft = "0.14.0"
+aleph-bft = "0.15.0"
 aleph-bft-rmc = "0.3.0"
 aleph-primitives = { package = "primitives", path = "../primitives" }
 

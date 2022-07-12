@@ -16,7 +16,7 @@ use sp_runtime::traits::{Block, Header};
 use tokio::task::spawn_blocking;
 
 use crate::{
-    crypto::{AuthorityPen, AuthorityVerifier, KeyBox},
+    crypto::{AuthorityPen, AuthorityVerifier, Keychain},
     data_io::{ChainTracker, DataStore, OrderedDataInterpreter},
     default_aleph_config,
     justification::{AlephJustification, JustificationNotification, Verifier},
@@ -153,7 +153,7 @@ where
     async fn spawn_authority_subtasks(
         &self,
         node_id: NodeIndex,
-        multikeychain: KeyBox,
+        multikeychain: Keychain,
         data_network: SessionNetwork<SplitData<B>>,
         session_id: SessionId,
         authorities: Vec<AuthorityId>,
@@ -241,7 +241,7 @@ where
                 .await
                 .expect("The keys should sign successfully");
 
-        let keybox = KeyBox::new(node_id, authority_verifier.clone(), authority_pen.clone());
+        let keychain = Keychain::new(node_id, authority_verifier.clone(), authority_pen.clone());
 
         let data_network = self
             .session_manager
@@ -253,7 +253,7 @@ where
         let authority_subtasks = self
             .spawn_authority_subtasks(
                 node_id,
-                keybox,
+                keychain,
                 data_network,
                 session_id,
                 authorities,
@@ -282,7 +282,7 @@ where
 
         // Early skip attempt -- this will trigger during catching up (initial sync).
         if self.client.info().best_number >= last_block {
-            // We need to give the JustificationHandler some time to pick up the keybox for the new session,
+            // We need to give the JustificationHandler some time to pick up the keychain for the new session,
             // validate justifications and finalize blocks. We wait 2000ms in total, checking every 200ms
             // if the last block has been finalized.
             for attempt in 0..10 {

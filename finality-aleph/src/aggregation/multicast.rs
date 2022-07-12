@@ -9,7 +9,7 @@ use aleph_bft::{Signable, SignatureSet};
 use aleph_bft_rmc::ReliableMulticast;
 use codec::{Codec, Decode, Encode};
 
-use crate::crypto::{KeyBox, Signature};
+use crate::crypto::{Keychain, Signature};
 
 /// A convenience trait for gathering all of the desired hash characteristics.
 pub trait Hash: AsRef<[u8]> + StdHash + Eq + Clone + Codec + Debug + Send + Sync {}
@@ -51,7 +51,7 @@ pub trait Multicast<H: Hash, PMS>: Send + Sync {
 
 #[async_trait::async_trait]
 impl<'a, H: Hash> Multicast<H, SignatureSet<Signature>>
-    for ReliableMulticast<'a, SignableHash<H>, KeyBox>
+    for ReliableMulticast<'a, SignableHash<H>, Keychain>
 {
     async fn start_multicast(&mut self, hash: SignableHash<H>) {
         self.start_rmc(hash).await;

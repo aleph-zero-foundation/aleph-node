@@ -5,7 +5,7 @@ use sc_client_api::HeaderBackend;
 use sp_runtime::traits::Block;
 
 use crate::{
-    crypto::KeyBox,
+    crypto::Keychain,
     data_io::{AlephData, OrderedDataInterpreter},
     network::{AlephNetworkData, DataNetwork, NetworkWrapper},
     party::{backup::ABFTBackup, AuthoritySubtaskCommon, Task},
@@ -18,7 +18,7 @@ pub fn task<
     ADN: DataNetwork<AlephNetworkData<B>> + 'static,
 >(
     subtask_common: AuthoritySubtaskCommon,
-    multikeychain: KeyBox,
+    multikeychain: Keychain,
     config: Config,
     network: NetworkWrapper<AlephNetworkData<B>, ADN>,
     data_provider: impl aleph_bft::DataProvider<AlephData<B>> + Send + 'static,

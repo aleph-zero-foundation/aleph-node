@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use aleph_bft::{KeyBox as BftKeyBox, SignatureSet, SpawnHandle};
+use aleph_bft::{Keychain as BftKeychain, SignatureSet, SpawnHandle};
 use aleph_bft_rmc::{DoublingDelayScheduler, ReliableMulticast};
 use futures::{
     channel::{mpsc, oneshot},
@@ -12,7 +12,7 @@ use sp_runtime::traits::{Block, Header};
 
 use crate::{
     aggregation::{BlockSignatureAggregator, RmcNetworkData, SignableHash, IO as AggregatorIO},
-    crypto::{KeyBox, Signature},
+    crypto::{Keychain, Signature},
     justification::{AlephJustification, JustificationNotification},
     metrics::Checkpoint,
     network::DataNetwork,
@@ -27,7 +27,7 @@ pub struct IO<B: Block> {
 }
 
 type SignableBlockHash<B> = SignableHash<<B as Block>::Hash>;
-type Rmc<'a, B> = ReliableMulticast<'a, SignableBlockHash<B>, KeyBox>;
+type Rmc<'a, B> = ReliableMulticast<'a, SignableBlockHash<B>, Keychain>;
 
 async fn process_new_block_data<B, N>(
     aggregator: &mut AggregatorIO<
@@ -145,7 +145,7 @@ pub fn task<B, C, N>(
     io: IO<B>,
     session_boundaries: SessionBoundaries<B>,
     metrics: Option<Metrics<<B::Header as Header>::Hash>>,
-    multikeychain: KeyBox,
+    multikeychain: Keychain,
     rmc_network: N,
 ) -> Task
 where

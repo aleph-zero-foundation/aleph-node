@@ -1,7 +1,8 @@
 use std::{convert::TryInto, sync::Arc};
 
 use aleph_bft::{
-    KeyBox as AlephKeyBox, MultiKeychain, NodeCount, NodeIndex, PartialMultisignature, SignatureSet,
+    Keychain as AlephKeychain, MultiKeychain, NodeCount, NodeIndex, PartialMultisignature,
+    SignatureSet,
 };
 use aleph_primitives::{AuthorityId, AuthoritySignature, KEY_TYPE};
 use codec::{Decode, Encode};
@@ -113,24 +114,24 @@ impl AuthorityVerifier {
     }
 }
 
-/// KeyBox combines an AuthorityPen and AuthorityVerifier into one object implementing the AlephBFT
+/// Keychain combines an AuthorityPen and AuthorityVerifier into one object implementing the AlephBFT
 /// MultiKeychain trait.
 #[derive(Clone)]
-pub struct KeyBox {
+pub struct Keychain {
     id: NodeIndex,
     authority_pen: AuthorityPen,
     authority_verifier: AuthorityVerifier,
 }
 
-impl KeyBox {
-    /// Constructs a new keybox from a signing contraption and verifier, with the specified node
+impl Keychain {
+    /// Constructs a new keychain from a signing contraption and verifier, with the specified node
     /// index.
     pub fn new(
         id: NodeIndex,
         authority_verifier: AuthorityVerifier,
         authority_pen: AuthorityPen,
     ) -> Self {
-        KeyBox {
+        Keychain {
             id,
             authority_pen,
             authority_verifier,
@@ -138,14 +139,14 @@ impl KeyBox {
     }
 }
 
-impl aleph_bft::Index for KeyBox {
+impl aleph_bft::Index for Keychain {
     fn index(&self) -> NodeIndex {
         self.id
     }
 }
 
 #[async_trait::async_trait]
-impl AlephKeyBox for KeyBox {
+impl AlephKeychain for Keychain {
     type Signature = Signature;
 
     fn node_count(&self) -> NodeCount {
@@ -161,7 +162,7 @@ impl AlephKeyBox for KeyBox {
     }
 }
 
-impl MultiKeychain for KeyBox {
+impl MultiKeychain for Keychain {
     // Using `SignatureSet` is slow, but Substrate has not yet implemented aggregation.
     // We probably should do this for them at some point.
     type PartialMultisignature = SignatureSet<Signature>;
