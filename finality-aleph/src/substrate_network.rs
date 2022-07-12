@@ -33,6 +33,10 @@ impl<B: Block, H: ExHashT> RequestBlocks<B> for Arc<NetworkService<B, H>> {
     fn clear_justification_requests(&self) {
         NetworkService::clear_justification_requests(self)
     }
+
+    fn is_major_syncing(&self) -> bool {
+        NetworkService::is_major_syncing(self)
+    }
 }
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]

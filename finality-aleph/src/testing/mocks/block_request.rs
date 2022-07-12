@@ -45,4 +45,8 @@ impl RequestBlocks<TBlock> for MockedBlockRequester {
     fn clear_justification_requests(&self) {
         panic!("`clear_justification_requests` not implemented!")
     }
+
+    fn is_major_syncing(&self) -> bool {
+        panic!("`is_major_syncing` not implemented!")
+    }
 }

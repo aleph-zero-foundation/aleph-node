@@ -126,6 +126,13 @@ pub trait RequestBlocks<B: Block>: Clone + Send + Sync + 'static {
     /// Clear all pending justification requests. We need this function in case
     /// we requested a justification for a block, which will never get it.
     fn clear_justification_requests(&self);
+
+    /// Are we in the process of downloading the chain?
+    ///
+    /// Like [`NetworkService::is_major_syncing`][1].
+    ///
+    /// [1]: sc_network::NetworkService::is_major_syncing
+    fn is_major_syncing(&self) -> bool;
 }
 
 /// What do do with a specific piece of data.
