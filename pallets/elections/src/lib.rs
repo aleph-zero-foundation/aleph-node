@@ -254,9 +254,9 @@ pub mod pallet {
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
         fn build(&self) {
-            <NextEraNonReservedValidators<T>>::put(&self.reserved_validators);
+            <NextEraNonReservedValidators<T>>::put(&self.non_reserved_validators);
             <CommitteeSize<T>>::put(&self.committee_size);
-            <NextEraReservedValidators<T>>::put(&self.non_reserved_validators);
+            <NextEraReservedValidators<T>>::put(&self.reserved_validators);
         }
     }
 
