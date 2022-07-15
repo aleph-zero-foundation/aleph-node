@@ -338,7 +338,7 @@ jobs:
           test-case: rewards_force_new_era
           follow-up-finalization-check: true
         timeout-minutes: 10
-  
+
   run-e2e-rewards-stake-change:
     needs: [build-test-docker, build-test-client]
     name: Run reward points with stake changed test
@@ -353,6 +353,23 @@ jobs:
           test-case: rewards_stake_change
           follow-up-finalization-check: true
         timeout-minutes: 10
+
+  run-e2e-rewards-points-basic:
+    needs: [build-test-docker, build-test-client]
+    name: Run basic reward points calculation test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: points_basic
+          follow-up-finalization-check: true
+        timeout-minutes: 10
+
+
 
   check-e2e-test-suite-completion:
     needs: [
@@ -370,7 +387,8 @@ jobs:
       run-e2e-era-payout,
       run-e2e-era-validators,
       run-e2e-rewards-force-new-era,
-      run-e2e-rewards-stake-change
+      run-e2e-rewards-stake-change,
+      run-e2e-rewards-points-basic
     ]
     name: Check e2e test suite completion
     runs-on: ubuntu-latest

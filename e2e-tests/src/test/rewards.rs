@@ -107,6 +107,58 @@ fn validators_bond_extra_stakes(config: &Config, additional_stakes: Vec<Balance>
     );
 }
 
+pub fn points_basic(config: &Config) -> anyhow::Result<()> {
+    const MAX_DIFFERENCE: f64 = 0.07;
+
+    let node = &config.node;
+    let accounts = get_validators_keys(config);
+    let sender = accounts.first().expect("Using default accounts").to_owned();
+    let connection = SignedConnection::new(node, sender);
+    let root_connection = config.create_root_connection();
+
+    let (reserved_members, non_reserved_members) = get_member_accounts(config);
+
+    change_validators(
+        &root_connection,
+        Some(reserved_members.clone()),
+        Some(non_reserved_members.clone()),
+        Some(4),
+        XtStatus::Finalized,
+    );
+
+    let sessions_per_era = get_sessions_per_era(&connection);
+    let era = wait_for_next_era(&root_connection)?;
+    let start_new_era_session = era * sessions_per_era;
+    let end_new_era_session = sessions_per_era * wait_for_next_era(&root_connection)?;
+
+    info!(
+        "Checking rewards for sessions {}..{}.",
+        start_new_era_session, end_new_era_session
+    );
+
+    for session in start_new_era_session..end_new_era_session {
+        let non_reserved_for_session = get_non_reserved_members_for_session(config, session);
+        let members_bench =
+            get_bench_members(non_reserved_members.clone(), &non_reserved_for_session);
+        let members = reserved_members
+            .clone()
+            .into_iter()
+            .chain(non_reserved_for_session)
+            .collect::<Vec<_>>();
+
+        check_points(
+            &connection,
+            session,
+            era,
+            members,
+            members_bench,
+            MAX_DIFFERENCE,
+        )?
+    }
+
+    Ok(())
+}
+
 pub fn points_stake_change(config: &Config) -> anyhow::Result<()> {
     const MAX_DIFFERENCE: f64 = 0.07;
 
