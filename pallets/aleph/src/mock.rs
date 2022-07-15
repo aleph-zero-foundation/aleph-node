@@ -29,7 +29,7 @@ construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
         Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-        Aleph: pallet_aleph::{Pallet, Storage},
+        Aleph: pallet_aleph::{Pallet, Storage, Event<T>},
         Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
         Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
     }
@@ -132,13 +132,15 @@ impl pallet_timestamp::Config for Test {
 
 impl Config for Test {
     type AuthorityId = AuthorityId;
+    type Event = Event;
+}
+
+pub fn to_authority(id: &u64) -> AuthorityId {
+    UintAuthorityId(*id).to_public_key()
 }
 
 pub fn to_authorities(authorities: &[u64]) -> Vec<AuthorityId> {
-    authorities
-        .iter()
-        .map(|id| UintAuthorityId(*id).to_public_key::<AuthorityId>())
-        .collect()
+    authorities.iter().map(to_authority).collect()
 }
 
 pub fn new_session_validators(validators: &[u64]) -> impl Iterator<Item = (&u64, AuthorityId)> {

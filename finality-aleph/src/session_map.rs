@@ -1,6 +1,6 @@
 use std::{collections::HashMap, marker::PhantomData, sync::Arc};
 
-use aleph_primitives::{AlephSessionApi, AuthorityId};
+use aleph_primitives::{AlephSessionApi, SessionAuthorityData};
 use futures::StreamExt;
 use log::{debug, error, trace};
 use sc_client_api::{Backend, FinalityNotification};
@@ -20,14 +20,14 @@ use crate::{
 };
 
 const PRUNING_THRESHOLD: u32 = 10;
-type SessionMap = HashMap<SessionId, Vec<AuthorityId>>;
-type SessionSubscribers = HashMap<SessionId, Vec<OneShotSender<Vec<AuthorityId>>>>;
+type SessionMap = HashMap<SessionId, SessionAuthorityData>;
+type SessionSubscribers = HashMap<SessionId, Vec<OneShotSender<SessionAuthorityData>>>;
 
 pub trait AuthorityProvider<B> {
-    /// returns authorities for block
-    fn authorities(&self, block: B) -> Option<Vec<AuthorityId>>;
-    /// returns next session authorities where current session is for block
-    fn next_authorities(&self, block: B) -> Option<Vec<AuthorityId>>;
+    /// returns authority data for block
+    fn authority_data(&self, block: B) -> Option<SessionAuthorityData>;
+    /// returns next session authority data where current session is for block
+    fn next_authority_data(&self, block: B) -> Option<SessionAuthorityData>;
 }
 
 /// Default implementation of authority provider trait.
@@ -64,20 +64,41 @@ where
     B: Block,
     BE: Backend<B> + 'static,
 {
-    fn authorities(&self, num: NumberFor<B>) -> Option<Vec<AuthorityId>> {
-        self.client
+    fn authority_data(&self, num: NumberFor<B>) -> Option<SessionAuthorityData> {
+        match self
+            .client
             .runtime_api()
-            .authorities(&BlockId::Number(num))
-            .ok()
+            .authority_data(&BlockId::Number(num))
+        {
+            Ok(data) => Some(data),
+            Err(_) => self
+                .client
+                .runtime_api()
+                .authorities(&BlockId::Number(num))
+                .map(|authorities| SessionAuthorityData::new(authorities, None))
+                .ok(),
+        }
     }
 
-    fn next_authorities(&self, num: NumberFor<B>) -> Option<Vec<AuthorityId>> {
-        self.client
+    fn next_authority_data(&self, num: NumberFor<B>) -> Option<SessionAuthorityData> {
+        match self
+            .client
             .runtime_api()
-            .next_session_authorities(&BlockId::Number(num))
+            .next_session_authority_data(&BlockId::Number(num))
             .map(|r| r.ok())
-            .ok()
-            .flatten()
+        {
+            Ok(maybe_data) => maybe_data,
+            Err(_) => self
+                .client
+                .runtime_api()
+                .next_session_authorities(&BlockId::Number(num))
+                .map(|r| {
+                    r.map(|authorities| SessionAuthorityData::new(authorities, None))
+                        .ok()
+                })
+                .ok()
+                .flatten(),
+        }
     }
 }
 
@@ -149,20 +170,20 @@ impl SharedSessionMap {
     async fn update(
         &mut self,
         id: SessionId,
-        authorities: Vec<AuthorityId>,
-    ) -> Option<Vec<AuthorityId>> {
+        authority_data: SessionAuthorityData,
+    ) -> Option<SessionAuthorityData> {
         let mut guard = self.0.write().await;
 
         // notify all subscribers about insertion and remove them from subscription
         if let Some(senders) = guard.1.remove(&id) {
             for sender in senders {
-                if let Err(e) = sender.send(authorities.clone()) {
+                if let Err(e) = sender.send(authority_data.clone()) {
                     error!(target: "aleph-session-updater", "Error while sending notification: {:?}", e);
                 }
             }
         }
 
-        guard.0.insert(id, authorities)
+        guard.0.insert(id, authority_data)
     }
 
     async fn prune_below(&mut self, id: SessionId) {
@@ -180,21 +201,24 @@ impl SharedSessionMap {
 }
 
 impl ReadOnlySessionMap {
-    pub async fn get(&self, id: SessionId) -> Option<Vec<AuthorityId>> {
+    pub async fn get(&self, id: SessionId) -> Option<SessionAuthorityData> {
         self.inner.read().await.0.get(&id).cloned()
     }
 
-    /// returns an end of the oneshot channel that fires a message if either authorities are already
-    /// known for the session with id = `id` or when the authorities are inserted for this session.
-    pub async fn subscribe_to_insertion(&self, id: SessionId) -> OneShotReceiver<Vec<AuthorityId>> {
+    /// returns an end of the oneshot channel that fires a message if either authority data is already
+    /// known for the session with id = `id` or when the data is inserted for this session.
+    pub async fn subscribe_to_insertion(
+        &self,
+        id: SessionId,
+    ) -> OneShotReceiver<SessionAuthorityData> {
         let (sender, receiver) = tokio::sync::oneshot::channel();
 
         let mut guard = self.inner.write().await;
 
-        if let Some(authorities) = guard.0.get(&id) {
+        if let Some(authority_data) = guard.0.get(&id) {
             // if the value is already present notify immediately
             sender
-                .send(authorities.clone())
+                .send(authority_data.clone())
                 .expect("we control both ends");
         } else {
             guard.1.entry(id).or_insert_with(Vec::new).push(sender);
@@ -204,21 +228,21 @@ impl ReadOnlySessionMap {
     }
 }
 
-fn get_authorities_for_session<AP, B>(
+fn get_authority_data_for_session<AP, B>(
     authority_provider: &AP,
     session_id: SessionId,
     first_block: NumberFor<B>,
-) -> Vec<AuthorityId>
+) -> SessionAuthorityData
 where
     B: Block,
     AP: AuthorityProvider<NumberFor<B>>,
 {
     if session_id == SessionId(0) {
         authority_provider
-            .authorities(<NumberFor<B>>::saturated_from(0u32))
+            .authority_data(<NumberFor<B>>::saturated_from(0u32))
             .expect("Authorities for the session 0 must be available from the beginning")
     } else {
-        authority_provider.next_authorities(first_block).unwrap_or_else(||
+        authority_provider.next_authority_data(first_block).unwrap_or_else(||
             panic!("Authorities for next session {:?} must be available at first block #{:?} of current session", session_id.0, first_block)
         )
     }
@@ -257,7 +281,7 @@ where
         self.session_map.read_only()
     }
 
-    /// puts authorities for the next session into the session map
+    /// puts authority data for the next session into the session map
     async fn handle_first_block_of_session(&mut self, num: NumberFor<B>, session_id: SessionId) {
         debug!(target: "aleph-session-updater", "Handling first block #{:?} of session {:?}", num, session_id.0);
         let next_session = SessionId(session_id.0 + 1);
@@ -265,17 +289,17 @@ where
         self.session_map
             .update(
                 next_session,
-                get_authorities_for_session::<_, B>(authority_provider, next_session, num),
+                get_authority_data_for_session::<_, B>(authority_provider, next_session, num),
             )
             .await;
 
-        // if this is the first session we also need to include starting authorities into the map
+        // if this is the first session we also need to include starting authority data into the map
         if session_id.0 == 0 {
             let authority_provider = &self.authority_provider;
             self.session_map
                 .update(
                     session_id,
-                    get_authorities_for_session::<_, B>(authority_provider, session_id, num),
+                    get_authority_data_for_session::<_, B>(authority_provider, session_id, num),
                 )
                 .await;
         }
@@ -353,8 +377,8 @@ mod tests {
     use crate::testing::mocks::TBlock;
 
     struct MockProvider {
-        pub session_map: HashMap<NumberFor<TBlock>, Vec<AuthorityId>>,
-        pub next_session_map: HashMap<NumberFor<TBlock>, Vec<AuthorityId>>,
+        pub session_map: HashMap<NumberFor<TBlock>, SessionAuthorityData>,
+        pub next_session_map: HashMap<NumberFor<TBlock>, SessionAuthorityData>,
         pub asked_for: Arc<Mutex<Vec<NumberFor<TBlock>>>>,
     }
 
@@ -383,13 +407,13 @@ mod tests {
     }
 
     impl AuthorityProvider<NumberFor<TBlock>> for MockProvider {
-        fn authorities(&self, b: NumberFor<TBlock>) -> Option<Vec<AuthorityId>> {
+        fn authority_data(&self, b: NumberFor<TBlock>) -> Option<SessionAuthorityData> {
             let mut asked = self.asked_for.lock().unwrap();
             asked.push(b);
             self.session_map.get(&b).cloned()
         }
 
-        fn next_authorities(&self, b: NumberFor<TBlock>) -> Option<Vec<AuthorityId>> {
+        fn next_authority_data(&self, b: NumberFor<TBlock>) -> Option<SessionAuthorityData> {
             let mut asked = self.asked_for.lock().unwrap();
             asked.push(b);
             self.next_session_map.get(&b).cloned()
@@ -408,10 +432,13 @@ mod tests {
         }
     }
 
-    fn authorities(from: u64, to: u64) -> Vec<AuthorityId> {
-        (from..to)
-            .map(|id| UintAuthorityId(id).to_public_key())
-            .collect()
+    fn authority_data(from: u64, to: u64) -> SessionAuthorityData {
+        SessionAuthorityData::new(
+            (from..to)
+                .map(|id| UintAuthorityId(id).to_public_key())
+                .collect(),
+            None,
+        )
     }
 
     fn n_new_blocks(client: &mut Arc<TestClient>, n: u64) -> Vec<TBlock> {
@@ -438,12 +465,16 @@ mod tests {
         let mut mock_provider = MockProvider::new();
         let mock_notificator = MockNotificator::new(receiver);
 
-        mock_provider.session_map.insert(0, authorities(0, 4));
-        mock_provider.next_session_map.insert(0, authorities(4, 8));
-        mock_provider.next_session_map.insert(1, authorities(8, 12));
+        mock_provider.session_map.insert(0, authority_data(0, 4));
         mock_provider
             .next_session_map
-            .insert(2, authorities(12, 16));
+            .insert(0, authority_data(4, 8));
+        mock_provider
+            .next_session_map
+            .insert(1, authority_data(8, 12));
+        mock_provider
+            .next_session_map
+            .insert(2, authority_data(12, 16));
 
         let updater = SessionMapUpdater::new(mock_provider, mock_notificator);
         let session_map = updater.readonly_session_map();
@@ -473,15 +504,21 @@ mod tests {
         // wait a bit
         Delay::new(Duration::from_millis(50)).await;
 
-        assert_eq!(session_map.get(SessionId(0)).await, Some(authorities(0, 4)));
-        assert_eq!(session_map.get(SessionId(1)).await, Some(authorities(4, 8)));
+        assert_eq!(
+            session_map.get(SessionId(0)).await,
+            Some(authority_data(0, 4))
+        );
+        assert_eq!(
+            session_map.get(SessionId(1)).await,
+            Some(authority_data(4, 8))
+        );
         assert_eq!(
             session_map.get(SessionId(2)).await,
-            Some(authorities(8, 12))
+            Some(authority_data(8, 12))
         );
         assert_eq!(
             session_map.get(SessionId(3)).await,
-            Some(authorities(12, 16))
+            Some(authority_data(12, 16))
         );
     }
 
@@ -491,12 +528,16 @@ mod tests {
         let mut mock_provider = MockProvider::new();
         let mut mock_notificator = MockNotificator::new(receiver);
 
-        mock_provider.session_map.insert(0, authorities(0, 4));
-        mock_provider.next_session_map.insert(0, authorities(4, 8));
-        mock_provider.next_session_map.insert(1, authorities(8, 12));
+        mock_provider.session_map.insert(0, authority_data(0, 4));
         mock_provider
             .next_session_map
-            .insert(2, authorities(12, 16));
+            .insert(0, authority_data(4, 8));
+        mock_provider
+            .next_session_map
+            .insert(1, authority_data(8, 12));
+        mock_provider
+            .next_session_map
+            .insert(2, authority_data(12, 16));
 
         mock_notificator.last_finalized = 2;
 
@@ -508,15 +549,21 @@ mod tests {
         // wait a bit
         Delay::new(Duration::from_millis(50)).await;
 
-        assert_eq!(session_map.get(SessionId(0)).await, Some(authorities(0, 4)));
-        assert_eq!(session_map.get(SessionId(1)).await, Some(authorities(4, 8)));
+        assert_eq!(
+            session_map.get(SessionId(0)).await,
+            Some(authority_data(0, 4))
+        );
+        assert_eq!(
+            session_map.get(SessionId(1)).await,
+            Some(authority_data(4, 8))
+        );
         assert_eq!(
             session_map.get(SessionId(2)).await,
-            Some(authorities(8, 12))
+            Some(authority_data(8, 12))
         );
         assert_eq!(
             session_map.get(SessionId(3)).await,
-            Some(authorities(12, 16))
+            Some(authority_data(12, 16))
         );
     }
 
@@ -526,11 +573,11 @@ mod tests {
         let mut mock_provider = MockProvider::new();
         let mut mock_notificator = MockNotificator::new(receiver);
 
-        mock_provider.session_map.insert(0, authorities(0, 4));
+        mock_provider.session_map.insert(0, authority_data(0, 4));
         for i in 0..=2 * PRUNING_THRESHOLD {
             mock_provider.next_session_map.insert(
                 i as u64,
-                authorities(4 * (i + 1) as u64, 4 * (i + 2) as u64),
+                authority_data(4 * (i + 1) as u64, 4 * (i + 2) as u64),
             );
         }
 
@@ -560,7 +607,7 @@ mod tests {
         for i in 21 - PRUNING_THRESHOLD..=20 {
             assert_eq!(
                 session_map.get(SessionId(i)).await,
-                Some(authorities(4 * i as u64, 4 * (i + 1) as u64)),
+                Some(authority_data(4 * i as u64, 4 * (i + 1) as u64)),
                 "Session {:?} should not be pruned",
                 i
             );
@@ -573,12 +620,12 @@ mod tests {
         let readonly = shared.read_only();
         let session = SessionId(0);
 
-        shared.update(session, authorities(0, 2)).await;
+        shared.update(session, authority_data(0, 2)).await;
 
         let mut receiver = readonly.subscribe_to_insertion(session).await;
 
         // we should have this immediately
-        assert_eq!(Ok(authorities(0, 2)), receiver.try_recv());
+        assert_eq!(Ok(authority_data(0, 2)), receiver.try_recv());
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -590,7 +637,7 @@ mod tests {
 
         // does not yet have any value
         assert_eq!(Err(TryRecvError::Empty), receiver.try_recv());
-        shared.update(session, authorities(0, 2)).await;
-        assert_eq!(Ok(authorities(0, 2)), receiver.await);
+        shared.update(session, authority_data(0, 2)).await;
+        assert_eq!(Ok(authority_data(0, 2)), receiver.await);
     }
 }

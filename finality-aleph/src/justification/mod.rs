@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use aleph_bft::SignatureSet;
+use aleph_primitives::AuthoritySignature;
 use codec::{Decode, Encode};
 use sp_api::{BlockT, NumberFor};
 
@@ -17,10 +18,12 @@ pub use scheduler::{
     JustificationRequestScheduler, JustificationRequestSchedulerImpl, SchedulerActions,
 };
 
-/// A proof of block finality, currently in the form of a sufficiently long list of signatures.
+/// A proof of block finality, currently in the form of a sufficiently long list of signatures or a
+/// sudo signature of a block for emergency finalization.
 #[derive(Clone, Encode, Decode, Debug, PartialEq, Eq)]
-pub struct AlephJustification {
-    pub signature: SignatureSet<Signature>,
+pub enum AlephJustification {
+    CommitteeMultisignature(SignatureSet<Signature>),
+    EmergencySignature(AuthoritySignature),
 }
 
 pub trait Verifier<B: BlockT> {

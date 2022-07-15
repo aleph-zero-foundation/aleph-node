@@ -35,8 +35,8 @@ use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustm
 pub use primitives::Balance;
 use primitives::{
     staking::MAX_NOMINATORS_REWARDED_PER_VALIDATOR, wrap_methods, ApiError as AlephApiError,
-    AuthorityId as AlephId, ADDRESSES_ENCODING, DEFAULT_SESSIONS_PER_ERA, DEFAULT_SESSION_PERIOD,
-    MILLISECS_PER_BLOCK, TOKEN,
+    AuthorityId as AlephId, SessionAuthorityData, ADDRESSES_ENCODING, DEFAULT_SESSIONS_PER_ERA,
+    DEFAULT_SESSION_PERIOD, MILLISECS_PER_BLOCK, TOKEN,
 };
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::{sr25519::AuthorityId as AuraId, SlotDuration};
@@ -110,7 +110,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_version: 24,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 8,
+    transaction_version: 9,
     state_version: 0,
 };
 
@@ -310,6 +310,7 @@ impl pallet_sudo::Config for Runtime {
 
 impl pallet_aleph::Config for Runtime {
     type AuthorityId = AlephId;
+    type Event = Event;
 }
 
 impl_opaque_keys! {
@@ -860,10 +861,6 @@ impl_runtime_apis! {
     }
 
     impl primitives::AlephSessionApi<Block> for Runtime {
-        fn authorities() -> Vec<AlephId> {
-            Aleph::authorities()
-        }
-
         fn millisecs_per_block() -> u64 {
             MILLISECS_PER_BLOCK
         }
@@ -872,11 +869,28 @@ impl_runtime_apis! {
             SessionPeriod::get()
         }
 
+        fn authorities() -> Vec<AlephId> {
+            Aleph::authorities()
+        }
+
         fn next_session_authorities() -> Result<Vec<AlephId>, AlephApiError> {
             Session::queued_keys()
                 .iter()
                 .map(|(_, key)| key.get(AlephId::ID).ok_or(AlephApiError::DecodeKey))
                 .collect::<Result<Vec<AlephId>, AlephApiError>>()
+        }
+
+        fn authority_data() -> SessionAuthorityData {
+            SessionAuthorityData::new(Aleph::authorities(), Aleph::emergency_finalizer())
+        }
+
+        fn next_session_authority_data() -> Result<SessionAuthorityData, AlephApiError> {
+            Ok(SessionAuthorityData::new(Session::queued_keys()
+                .iter()
+                .map(|(_, key)| key.get(AlephId::ID).ok_or(AlephApiError::DecodeKey))
+                .collect::<Result<Vec<AlephId>, AlephApiError>>()?,
+                Aleph::queued_emergency_finalizer(),
+            ))
         }
     }
 

@@ -30,9 +30,20 @@ impl From<AlephJustificationV1> for AlephJustification {
             .fold(SignatureSet::with_size(size), |sig_set, (id, sgn)| {
                 sig_set.add_signature(&sgn.into(), id)
             });
-        AlephJustification {
-            signature: just_drop_id,
-        }
+        AlephJustification::CommitteeMultisignature(just_drop_id)
+    }
+}
+
+/// Old format of justifications, needed for backwards compatibility.
+/// Used an old format of signature from before the compatibility changes.
+#[derive(Clone, Encode, Decode, Debug, PartialEq, Eq)]
+struct AlephJustificationV2 {
+    pub signature: SignatureSet<Signature>,
+}
+
+impl From<AlephJustificationV2> for AlephJustification {
+    fn from(justification: AlephJustificationV2) -> AlephJustification {
+        AlephJustification::CommitteeMultisignature(justification.signature)
     }
 }
 
@@ -41,7 +52,8 @@ enum VersionedAlephJustification {
     // Most likely from the future.
     Other(Version, Vec<u8>),
     V1(AlephJustificationV1),
-    V2(AlephJustification),
+    V2(AlephJustificationV2),
+    V3(AlephJustification),
 }
 
 fn encode_with_version(version: Version, mut payload: Vec<u8>) -> Vec<u8> {
@@ -66,6 +78,7 @@ impl Encode for VersionedAlephJustification {
                 Other(_, payload) => payload.len(),
                 V1(justification) => justification.size_hint(),
                 V2(justification) => justification.size_hint(),
+                V3(justification) => justification.size_hint(),
             }
     }
 
@@ -75,6 +88,7 @@ impl Encode for VersionedAlephJustification {
             Other(version, payload) => encode_with_version(*version, payload.clone()),
             V1(justification) => encode_with_version(1, justification.encode()),
             V2(justification) => encode_with_version(2, justification.encode()),
+            V3(justification) => encode_with_version(3, justification.encode()),
         }
     }
 }
@@ -86,7 +100,8 @@ impl Decode for VersionedAlephJustification {
         let num_bytes = ByteCount::decode(input)?;
         match version {
             1 => Ok(V1(AlephJustificationV1::decode(input)?)),
-            2 => Ok(V2(AlephJustification::decode(input)?)),
+            2 => Ok(V2(AlephJustificationV2::decode(input)?)),
+            3 => Ok(V3(AlephJustification::decode(input)?)),
             _ => {
                 let mut payload = vec![0; num_bytes.into()];
                 input.read(payload.as_mut_slice())?;
@@ -126,7 +141,8 @@ pub fn backwards_compatible_decode(
             use VersionedAlephJustification::*;
             match justification {
                 V1(justification) => Ok(justification.into()),
-                V2(justification) => Ok(justification),
+                V2(justification) => Ok(justification.into()),
+                V3(justification) => Ok(justification),
                 Other(version, _) => Err(UnknownVersion(version)),
             }
         }
@@ -135,8 +151,8 @@ pub fn backwards_compatible_decode(
             // may be lingering in the DB. Perhaps one day in the future we will be able to remove
             // this code, but I wouldn't count on it.
             let justification_cloned = justification_raw.clone();
-            match AlephJustification::decode_all(&mut justification_cloned.as_slice()) {
-                Ok(justification) => Ok(justification),
+            match AlephJustificationV2::decode_all(&mut justification_cloned.as_slice()) {
+                Ok(justification) => Ok(justification.into()),
                 Err(_) => match AlephJustificationV1::decode_all(&mut justification_raw.as_slice())
                 {
                     Ok(justification) => Ok(justification.into()),
@@ -149,7 +165,7 @@ pub fn backwards_compatible_decode(
 
 /// Encodes the justification in a way that is forwards compatible with future versions.
 pub fn versioned_encode(justification: AlephJustification) -> Vec<u8> {
-    VersionedAlephJustification::V2(justification).encode()
+    VersionedAlephJustification::V3(justification).encode()
 }
 
 #[cfg(test)]
@@ -159,7 +175,10 @@ mod test {
     use codec::{Decode, Encode};
     use sp_core::Pair;
 
-    use super::{backwards_compatible_decode, AlephJustificationV1, VersionedAlephJustification};
+    use super::{
+        backwards_compatible_decode, versioned_encode, AlephJustificationV1, AlephJustificationV2,
+        VersionedAlephJustification,
+    };
     use crate::{
         crypto::{Signature, SignatureV1},
         justification::AlephJustification,
@@ -198,12 +217,30 @@ mod test {
             signature_set = signature_set.add_signature(&authority_signature.into(), i.into());
         }
 
-        let just_v2 = AlephJustification {
+        let just_v2 = AlephJustificationV2 {
             signature: signature_set,
         };
         let encoded_just: Vec<u8> = just_v2.encode();
         let decoded = backwards_compatible_decode(encoded_just);
+        let just_v2: AlephJustification = just_v2.into();
         assert_eq!(decoded, Ok(just_v2));
+    }
+
+    #[test]
+    fn correctly_decodes_v3_committee() {
+        let mut signature_set: SignatureSet<Signature> = SignatureSet::with_size(7.into());
+        for i in 0..7 {
+            let authority_signature: AuthoritySignature = AuthorityPair::generate()
+                .0
+                .sign(vec![0u8, 0u8, 0u8, 0u8].as_slice());
+            signature_set = signature_set.add_signature(&authority_signature.into(), i.into());
+        }
+
+        let just_v3 = AlephJustification::CommitteeMultisignature(signature_set);
+        // Here we use `versioned_encode` since we never sent plain v3 justifications.
+        let encoded_just = versioned_encode(just_v3.clone());
+        let decoded = backwards_compatible_decode(encoded_just);
+        assert_eq!(decoded, Ok(just_v3));
     }
 
     #[test]
@@ -232,7 +269,12 @@ mod test {
             12, 8, 0,
         ];
         match backwards_compatible_decode(raw) {
-            Ok(justification) => assert_eq!(justification.signature.size(), NodeCount(4)),
+            Ok(AlephJustification::CommitteeMultisignature(signature)) => {
+                assert_eq!(signature.size(), NodeCount(4))
+            }
+            Ok(AlephJustification::EmergencySignature(_)) => {
+                panic!("decoded V1 as emergency signature")
+            }
             Err(e) => panic!("decoding V1 failed: {}", e),
         }
     }
@@ -262,7 +304,12 @@ mod test {
             68, 94, 254, 77, 39, 172, 255, 145, 10, 0,
         ];
         match backwards_compatible_decode(raw) {
-            Ok(justification) => assert_eq!(justification.signature.size(), NodeCount(6)),
+            Ok(AlephJustification::CommitteeMultisignature(signature)) => {
+                assert_eq!(signature.size(), NodeCount(6))
+            }
+            Ok(AlephJustification::EmergencySignature(_)) => {
+                panic!("decoded V1 as emergency signature")
+            }
             Err(e) => panic!("decoding V1 failed: {}", e),
         }
     }

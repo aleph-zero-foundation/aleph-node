@@ -68,9 +68,7 @@ fn process_hash<B, C>(
     let number = client.number(hash).unwrap().unwrap();
     // The unwrap might actually fail if data availability is not implemented correctly.
     let notification = JustificationNotification {
-        justification: AlephJustification {
-            signature: multisignature,
-        },
+        justification: AlephJustification::CommitteeMultisignature(multisignature),
         hash,
         number,
     };

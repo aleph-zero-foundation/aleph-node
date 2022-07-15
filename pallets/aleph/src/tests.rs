@@ -163,3 +163,29 @@ fn test_session_rotation() {
         assert_eq!(Aleph::authorities(), to_authorities(&[3, 4]));
     })
 }
+
+#[test]
+fn test_emergency_signer() {
+    new_test_ext(&[(1u64, 1u64), (2u64, 2u64)]).execute_with(|| {
+        initialize_session();
+
+        run_session(1);
+
+        Aleph::set_next_emergency_finalizer(to_authority(&21));
+
+        assert_eq!(Aleph::emergency_finalizer(), None);
+        assert_eq!(Aleph::queued_emergency_finalizer(), None);
+
+        run_session(2);
+
+        Aleph::set_next_emergency_finalizer(to_authority(&37));
+
+        assert_eq!(Aleph::emergency_finalizer(), None);
+        assert_eq!(Aleph::queued_emergency_finalizer(), Some(to_authority(&21)));
+
+        run_session(3);
+
+        assert_eq!(Aleph::emergency_finalizer(), Some(to_authority(&21)));
+        assert_eq!(Aleph::queued_emergency_finalizer(), Some(to_authority(&37)));
+    })
+}

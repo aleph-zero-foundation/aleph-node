@@ -48,9 +48,33 @@ pub const DEFAULT_COMMITTEE_SIZE: u32 = 4;
 pub const ADDRESSES_ENCODING: u8 = 42;
 pub const DEFAULT_UNIT_CREATION_DELAY: u64 = 300;
 
-#[derive(Encode, Decode, PartialEq, Eq, sp_std::fmt::Debug)]
+#[derive(Encode, Decode, PartialEq, Eq, Debug)]
 pub enum ApiError {
     DecodeKey,
+}
+
+/// All the data needed to verify block finalization justifications.
+#[derive(Clone, Debug, Encode, Decode, PartialEq, Eq)]
+pub struct SessionAuthorityData {
+    authorities: Vec<AuthorityId>,
+    emergency_finalizer: Option<AuthorityId>,
+}
+
+impl SessionAuthorityData {
+    pub fn new(authorities: Vec<AuthorityId>, emergency_finalizer: Option<AuthorityId>) -> Self {
+        SessionAuthorityData {
+            authorities,
+            emergency_finalizer,
+        }
+    }
+
+    pub fn authorities(&self) -> &Vec<AuthorityId> {
+        &self.authorities
+    }
+
+    pub fn emergency_finalizer(&self) -> &Option<AuthorityId> {
+        &self.emergency_finalizer
+    }
 }
 
 sp_api::decl_runtime_apis! {
@@ -58,6 +82,8 @@ sp_api::decl_runtime_apis! {
     {
         fn next_session_authorities() -> Result<Vec<AuthorityId>, ApiError>;
         fn authorities() -> Vec<AuthorityId>;
+        fn next_session_authority_data() -> Result<SessionAuthorityData, ApiError>;
+        fn authority_data() -> SessionAuthorityData;
         fn session_period() -> u32;
         fn millisecs_per_block() -> u64;
     }

@@ -26,13 +26,23 @@ const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
 #[frame_support::pallet]
 pub mod pallet {
     use frame_support::{pallet_prelude::*, sp_runtime::RuntimeAppPublic};
-    use frame_system::pallet_prelude::BlockNumberFor;
+    use frame_system::{
+        ensure_root,
+        pallet_prelude::{BlockNumberFor, OriginFor},
+    };
 
     use super::*;
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type AuthorityId: Member + Parameter + RuntimeAppPublic + MaybeSerializeDeserialize;
+        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+    }
+
+    #[pallet::event]
+    #[pallet::generate_deposit(pub(super) fn deposit_event)]
+    pub enum Event<T: Config> {
+        ChangeEmergencyFinalizer(T::AuthorityId),
     }
 
     #[pallet::pallet]
@@ -70,6 +80,18 @@ pub mod pallet {
     #[pallet::getter(fn authorities)]
     pub(super) type Authorities<T: Config> = StorageValue<_, Vec<T::AuthorityId>, ValueQuery>;
 
+    #[pallet::storage]
+    #[pallet::getter(fn emergency_finalizer)]
+    pub(super) type EmergencyFinalizer<T: Config> = StorageValue<_, T::AuthorityId, OptionQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn queued_emergency_finalizer)]
+    pub(super) type QueuedEmergencyFinalizer<T: Config> =
+        StorageValue<_, T::AuthorityId, OptionQuery>;
+
+    #[pallet::storage]
+    type NextEmergencyFinalizer<T: Config> = StorageValue<_, T::AuthorityId, OptionQuery>;
+
     impl<T: Config> Pallet<T> {
         pub(crate) fn initialize_authorities(authorities: &[T::AuthorityId]) {
             if !authorities.is_empty() {
@@ -83,6 +105,39 @@ pub mod pallet {
 
         pub(crate) fn update_authorities(authorities: &[T::AuthorityId]) {
             <Authorities<T>>::put(authorities);
+        }
+
+        pub(crate) fn update_emergency_finalizer() {
+            match <QueuedEmergencyFinalizer<T>>::get() {
+                Some(emergency_finalizer) => <EmergencyFinalizer<T>>::put(emergency_finalizer),
+                None => (),
+            }
+            match <NextEmergencyFinalizer<T>>::get() {
+                Some(emergency_finalizer) => {
+                    <QueuedEmergencyFinalizer<T>>::put(emergency_finalizer)
+                }
+                None => (),
+            }
+        }
+
+        pub(crate) fn set_next_emergency_finalizer(emergency_finalizer: T::AuthorityId) {
+            <NextEmergencyFinalizer<T>>::put(emergency_finalizer);
+        }
+    }
+
+    #[pallet::call]
+    impl<T: Config> Pallet<T> {
+        /// Sets the emergency finalization key. If called in session `N` the key can be used to
+        /// finalize blocks from session `N+2` onwards, until it gets overridden.
+        #[pallet::weight((T::BlockWeights::get().max_block, DispatchClass::Operational))]
+        pub fn set_emergency_finalizer(
+            origin: OriginFor<T>,
+            emergency_finalizer: T::AuthorityId,
+        ) -> DispatchResult {
+            ensure_root(origin)?;
+            Self::set_next_emergency_finalizer(emergency_finalizer.clone());
+            Self::deposit_event(Event::ChangeEmergencyFinalizer(emergency_finalizer));
+            Ok(())
         }
     }
 
@@ -107,6 +162,7 @@ pub mod pallet {
             I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
             T::AccountId: 'a,
         {
+            Self::update_emergency_finalizer();
             if changed {
                 let (_, authorities): (Vec<_>, Vec<_>) = validators.unzip();
                 Self::update_authorities(authorities.as_slice());

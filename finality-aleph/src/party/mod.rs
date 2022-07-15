@@ -5,7 +5,6 @@ use std::{
 
 use aleph_bft::{DelayConfig, SpawnHandle};
 use aleph_primitives::KEY_TYPE;
-use codec::Encode;
 use futures::channel::mpsc;
 use futures_timer::Delay;
 use log::{debug, error, info, trace, warn};
@@ -19,7 +18,7 @@ use crate::{
     crypto::{AuthorityPen, AuthorityVerifier, Keychain},
     data_io::{ChainTracker, DataStore, OrderedDataInterpreter},
     default_aleph_config,
-    justification::{AlephJustification, JustificationNotification, Verifier},
+    justification::JustificationNotification,
     last_block_of_session,
     network::{split, RequestBlocks, SessionManager, SessionNetwork},
     party::{
@@ -43,16 +42,6 @@ mod chain_tracker;
 mod data_store;
 mod member;
 mod task;
-
-impl<B: Block> Verifier<B> for AuthorityVerifier {
-    fn verify(&self, justification: &AlephJustification, hash: B::Hash) -> bool {
-        if !self.is_complete(&hash.encode()[..], &justification.signature) {
-            warn!(target: "aleph-justification", "Bad justification for block hash #{:?} {:?}", hash, justification);
-            return false;
-        }
-        true
-    }
-}
 
 async fn get_node_index(
     authorities: &[AuthorityId],
@@ -160,7 +149,7 @@ where
         backup: ABFTBackup,
         exit_rx: futures::channel::oneshot::Receiver<()>,
     ) -> AuthoritySubtasks {
-        debug!(target: "afa", "Authority task {:?}", session_id);
+        debug!(target: "aleph-party", "Authority task {:?}", session_id);
         let session_boundaries = SessionBoundaries::new(session_id, self.session_period);
         let (blocks_for_aggregator, blocks_from_interpreter) = mpsc::unbounded();
 
@@ -298,10 +287,10 @@ where
             }
         }
 
-        // We need to wait until session-authorities are available for current session.
+        // We need to wait until session authority data is available for current session.
         // This should only be needed for the first ever session as all other session are known
         // at least one session earlier.
-        let authorities = match self
+        let authority_data = match self
             .session_authorities
             .subscribe_to_insertion(session_id)
             .await
@@ -311,12 +300,13 @@ where
                 "Error while receiving the notification about current session {:?}",
                 e
             ),
-            Ok(authorities) => authorities,
+            Ok(authority_data) => authority_data,
         };
+        let authorities = authority_data.authorities();
 
-        trace!(target: "afa", "Authorities for session {:?}: {:?}", session_id, authorities);
+        trace!(target: "aleph-party", "Authority data for session {:?}: {:?}", session_id, authorities);
         let mut maybe_authority_task = if let Some(node_id) =
-            get_node_index(&authorities, self.keystore.clone()).await
+            get_node_index(authorities, self.keystore.clone()).await
         {
             match backup::rotate(self.backup_saving_path.clone(), session_id.0) {
                 Ok(backup) => {
@@ -336,7 +326,7 @@ where
                 }
             }
         } else {
-            debug!(target: "afa", "Running session {:?} as non-authority", session_id);
+            debug!(target: "aleph-party", "Running session {:?} as non-authority", session_id);
             if let Err(e) = self
                 .session_manager
                 .start_nonvalidator_session(session_id, AuthorityVerifier::new(authorities.clone()))
@@ -362,7 +352,7 @@ where
                     }
                     check_session_status = Delay::new(SESSION_STATUS_CHECK_PERIOD);
                 },
-                Some(next_session_authorities) = async {
+                Some(next_session_authority_data) = async {
                     match &mut start_next_session_network {
                         Some(notification) => {
                             match notification.await {
@@ -371,19 +361,19 @@ where
                                     start_next_session_network = Some(self.session_authorities.subscribe_to_insertion(next_session_id).await);
                                     None
                                 },
-                                Ok(next_session_authorities) => {
-                                    Some(next_session_authorities)
+                                Ok(next_session_authority_data) => {
+                                    Some(next_session_authority_data)
                                 }
                             }
                         },
                         None => None,
                     }
                 } => {
-                    let authority_verifier = AuthorityVerifier::new(next_session_authorities.clone());
-                    match get_node_index(&next_session_authorities, self.keystore.clone()).await {
+                    let authority_verifier = AuthorityVerifier::new(next_session_authority_data.authorities().clone());
+                    match get_node_index(next_session_authority_data.authorities(), self.keystore.clone()).await {
                         Some(node_id) => {
                             let authority_pen = AuthorityPen::new(
-                                next_session_authorities[node_id.0].clone(),
+                                next_session_authority_data.authorities()[node_id.0].clone(),
                                 self.keystore.clone(),
                             )
                             .await
