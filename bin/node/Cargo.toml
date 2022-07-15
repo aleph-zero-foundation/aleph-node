@@ -25,9 +25,11 @@ futures = "0.3"
 hex = "0.4"
 hex-literal = "0.3"
 libp2p = "0.44"
+thiserror = "1.0"
 
 sp-application-crypto = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.23" }
 sc-block-builder = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.23" }
+sc-chain-spec = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.23"}
 sc-cli = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.23", features = ["wasmtime"] }
 sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.23" }
 sc-executor = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.23", features = ["wasmtime"] }

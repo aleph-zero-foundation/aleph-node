@@ -45,7 +45,7 @@ pub mod testing;
 pub use aleph_bft::default_config as default_aleph_config;
 pub use aleph_primitives::{AuthorityId, AuthorityPair, AuthoritySignature};
 pub use import::AlephBlockImport;
-pub use justification::JustificationNotification;
+pub use justification::{AlephJustification, JustificationNotification};
 pub use network::Protocol;
 pub use nodes::{run_nonvalidator_node, run_validator_node};
 pub use session::SessionPeriod;
