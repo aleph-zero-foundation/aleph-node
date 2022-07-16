@@ -3,6 +3,7 @@ name = "yellow_button"
 version = "0.1.0"
 authors = ["Cardinal Cryptography"]
 edition = "2021"
+license = "Apache 2.0"
 
 [dependencies]
 ink_env = { version = "3.2.0", default-features = false }
@@ -26,7 +27,7 @@ crate-type = [
   # Used for normal contract Wasm blobs.
   "cdylib",
   # Used for ABI generation.
-  "rlib",  
+  "rlib",
 ]
 
 [features]

@@ -3,6 +3,7 @@ name = "primitives"
 version = "0.4.0"
 authors = ["Cardinal Cryptography"]
 edition = "2021"
+license = "Apache 2.0"
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0", default-features = false, features = ["derive"] }

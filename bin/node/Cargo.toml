@@ -4,10 +4,10 @@ version = "0.6.0"
 authors = ["Cardinal Cryptography"]
 description = "Aleph node binary"
 edition = "2021"
-license = "Apache 2.0"
 build = "build.rs"
 homepage = "https://alephzero.org"
 repository = "https://github.com/aleph-zero-foundation/aleph-node"
+license = "GPL-3.0-or-later"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
