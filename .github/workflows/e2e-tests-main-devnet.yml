@@ -703,6 +703,7 @@ jobs:
   slack:
     name: Slack notification
     runs-on: ubuntu-latest
+    needs: [push-image]
     if: always()
     steps:
       - name: Checkout repository

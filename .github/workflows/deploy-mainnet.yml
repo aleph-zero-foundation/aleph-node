@@ -97,6 +97,7 @@ jobs:
   slack:
     name: Slack notification
     runs-on: ubuntu-latest
+    needs: [deploy-mainnet]
     if: always()
     steps:
       - name: Checkout repository
