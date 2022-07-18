@@ -1,0 +1,46 @@
+name: 'Send Slack notifiction'
+description: 'Action used to send Slack notifications about workflow status in channel specified in SLACK_WEBHOOK'
+
+inputs:
+  notify-on:
+    description: "Choose when Slack messages should be sent"
+    type: choice
+    options:
+      - always
+      - success
+      - failure
+      - neutral
+      - skipped
+      - cancelled
+      - timed_out
+      - action_required
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Get workflow conclusion
+      uses: technote-space/workflow-conclusion-action@v3
+
+    - name: Export envs
+      shell: bash
+      run: |
+        #!/bin/bash
+        if [[ "$WORKFLOW_CONCLUSION" == "success" ]]; then \
+          echo SLACK_COLOR="#57d115" >> $GITHUB_ENV; else \
+          echo SLACK_COLOR="#ff0000" >> $GITHUB_ENV; fi
+        echo WORKFLOW_NAME="$(echo "$GITHUB_WORKFLOW" | rev | cut -f1 -d"/" | rev)" >> $GITHUB_ENV
+        echo STATUS="$(echo "$WORKFLOW_CONCLUSION")" >> $GITHUB_ENV
+        if [[ "$NOTIFY_ON" == "always" ]]; then \
+          echo WORKFLOW_CONCLUSION="always" >> $GITHUB_ENV; fi
+        echo NOTIFY_ON="$(echo "$NOTIFY_ON")" >> $GITHUB_ENV
+      env:
+        NOTIFY_ON: ${{ inputs.notify-on }}
+
+    - name: Send Slack message
+      uses: rtCamp/action-slack-notify@v2
+      if: env.WORKFLOW_CONCLUSION == env.NOTIFY_ON || env.WORKFLOW_CONCLUSION == 'always'
+      env:
+        SLACK_TITLE: "*Status: ${{ env.STATUS }}* \n || \n Workflow: ${{ env.WORKFLOW_NAME }}"
+        SLACK_USERNAME: GithubActions
+        SLACK_ICON_EMOJI: ":aleph:"

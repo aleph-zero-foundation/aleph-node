@@ -95,3 +95,18 @@ jobs:
 
       - name: Cleanup cache
         uses: ./.github/actions/post-cache
+
+  slack:
+    name: Slack notification
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Send Slack message
+        uses: ./.github/actions/slack-notification
+        with:
+          notify-on: "failure"
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
