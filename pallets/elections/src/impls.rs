@@ -5,9 +5,9 @@ use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 
 use crate::{
     traits::{EraInfoProvider, SessionInfoProvider, ValidatorRewardsHandler},
-    CommitteeSize, Config, CurrentEraValidators, EraValidators, NextEraCommitteeSize,
-    NextEraNonReservedValidators, NextEraReservedValidators, Pallet, SessionValidatorBlockCount,
-    ValidatorEraTotalReward, ValidatorTotalRewards,
+    CommitteeSeats, CommitteeSize, Config, CurrentEraValidators, EraValidators,
+    NextEraCommitteeSize, NextEraNonReservedValidators, NextEraReservedValidators, Pallet,
+    SessionValidatorBlockCount, ValidatorEraTotalReward, ValidatorTotalRewards,
 };
 
 const MAX_REWARD: u32 = 1_000_000_000;
@@ -68,35 +68,48 @@ pub fn compute_validator_scaled_total_rewards<V>(
         .collect()
 }
 
+fn choose_for_session<T: Clone>(
+    validators: Vec<T>,
+    count: usize,
+    session: usize,
+) -> Option<Vec<T>> {
+    if validators.is_empty() || count == 0 {
+        return None;
+    }
+
+    let validators_len = validators.len();
+    let first_index = session.saturating_mul(count) % validators_len;
+    let mut chosen = Vec::new();
+
+    for i in 0..count {
+        chosen.push(validators[first_index.saturating_add(i) % validators_len].clone());
+    }
+
+    Some(chosen)
+}
+
 fn rotate<T: Clone + PartialEq>(
     current_session: SessionIndex,
-    n_validators: usize,
+    reserved_seats: usize,
+    non_reserved_seats: usize,
     reserved: Vec<T>,
     non_reserved: Vec<T>,
 ) -> Option<Vec<T>> {
-    if non_reserved.is_empty() {
-        return Some(reserved);
-    }
-
     // The validators for the committee at the session `n` are chosen as follow:
-    // 1. Reserved validators are always chosen.
-    // 2. Given non-reserved list of validators the chosen ones are from the range:
-    // `n * free_seats` to `(n + 1) * free_seats` where free_seats is equal to free number of free
-    // seats in the committee after reserved nodes are added.
-    let free_seats = n_validators.saturating_sub(reserved.len());
+    // 1. `reserved_seats` validators are chosen from the reserved set while `non_reserved_seats` from the non_reserved set.
+    // 2. Given a set of validators the chosen ones are from the range:
+    // `n * seats` to `(n + 1) * seats` where seats is equal to reserved_seats(non_reserved_seats) for reserved(non_reserved) validators.
 
-    let non_reserved_len = non_reserved.len();
-    let first_validator = (current_session as usize).saturating_mul(free_seats) % non_reserved_len;
+    let reserved_committee = choose_for_session(reserved, reserved_seats, current_session as usize);
+    let non_reserved_committee =
+        choose_for_session(non_reserved, non_reserved_seats, current_session as usize);
 
-    let committee = reserved
-        .into_iter()
-        .chain(
-            (first_validator..first_validator + free_seats)
-                .map(|i| non_reserved[i % non_reserved_len].clone()),
-        )
-        .collect();
-
-    Some(committee)
+    match (reserved_committee, non_reserved_committee) {
+        (Some(rc), Some(nrc)) => Some(rc.into_iter().chain(nrc.into_iter()).collect()),
+        (Some(rc), _) => Some(rc),
+        (_, Some(nrc)) => Some(nrc),
+        _ => None,
+    }
 }
 
 impl<T> Pallet<T>
@@ -112,9 +125,14 @@ where
 
     fn get_committee_and_non_committee() -> (Vec<T::AccountId>, Vec<T::AccountId>) {
         let committee = T::SessionInfoProvider::current_committee();
-        let non_committee = CurrentEraValidators::<T>::get()
-            .non_reserved
+        let EraValidators {
+            reserved,
+            non_reserved,
+        } = CurrentEraValidators::<T>::get();
+
+        let non_committee = non_reserved
             .into_iter()
+            .chain(reserved.into_iter())
             .filter(|a| !committee.contains(a))
             .collect();
 
@@ -122,7 +140,7 @@ where
     }
 
     fn blocks_to_produce_per_session() -> u32 {
-        T::SessionPeriod::get() / CommitteeSize::<T>::get()
+        T::SessionPeriod::get().saturating_div(CommitteeSize::<T>::get().size())
     }
 
     fn reward_for_session_non_committee(
@@ -177,9 +195,18 @@ where
             reserved,
             non_reserved,
         } = CurrentEraValidators::<T>::get();
-        let n_validators = CommitteeSize::<T>::get() as usize;
+        let CommitteeSeats {
+            reserved_seats,
+            non_reserved_seats,
+        } = CommitteeSize::<T>::get();
 
-        rotate(current_session, n_validators, reserved, non_reserved)
+        rotate(
+            current_session,
+            reserved_seats as usize,
+            non_reserved_seats as usize,
+            reserved,
+            non_reserved,
+        )
     }
 
     fn if_era_starts_do<F: Fn()>(era: EraIndex, start_index: SessionIndex, on_era_start: F) {
@@ -396,7 +423,7 @@ mod tests {
             compute_validator_scaled_total_rewards(vec![
                 (1, 20 * max),
                 (2, 10 * max),
-                (3, 30 * max)
+                (3, 30 * max),
             ])
         );
     }
@@ -406,23 +433,30 @@ mod tests {
     ) {
         let reserved: Vec<_> = (0..11).collect();
         let non_reserved: Vec<_> = (11..101).collect();
-        let total_validators = 53;
-        let mut rotated_free_seats_validators: VecDeque<_> = (11..101).collect();
+        let reserved_seats = 7;
+        let non_reserved_seats = 13;
+        let mut rotated_non_reserved_validators: VecDeque<_> = (11..101).collect();
+        let mut rotated_reserved_validators: VecDeque<_> = (0..11).collect();
 
         for session_index in 0u32..100u32 {
-            let mut expected_rotated_free_seats = vec![];
-            for _ in 0..total_validators - reserved.len() {
-                let first = rotated_free_seats_validators.pop_front().unwrap();
-                expected_rotated_free_seats.push(first);
-                rotated_free_seats_validators.push_back(first);
+            let mut expected_committee = vec![];
+            for _ in 0..reserved_seats {
+                let first = rotated_reserved_validators.pop_front().unwrap();
+                expected_committee.push(first);
+                rotated_reserved_validators.push_back(first);
             }
-            let mut expected_rotated_committee = reserved.clone();
-            expected_rotated_committee.append(&mut expected_rotated_free_seats);
+            for _ in 0..non_reserved_seats {
+                let first = rotated_non_reserved_validators.pop_front().unwrap();
+                expected_committee.push(first);
+                rotated_non_reserved_validators.push_back(first);
+            }
+
             assert_eq!(
-                expected_rotated_committee,
+                expected_committee,
                 rotate(
                     session_index,
-                    total_validators,
+                    reserved_seats,
+                    non_reserved_seats,
                     reserved.clone(),
                     non_reserved.clone(),
                 )

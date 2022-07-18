@@ -5,6 +5,7 @@ use aleph_client::{
     RootConnection, SignedConnection,
 };
 use log::info;
+use pallet_elections::CommitteeSeats;
 use primitives::{staking::MIN_VALIDATOR_BOND, Balance, EraIndex, SessionIndex, TOKEN};
 use substrate_api_client::{AccountId, XtStatus};
 
@@ -173,7 +174,10 @@ pub fn points_basic(config: &Config) -> anyhow::Result<()> {
         &root_connection,
         Some(reserved_members.clone()),
         Some(non_reserved_members.clone()),
-        Some(4),
+        Some(CommitteeSeats {
+            reserved_seats: 2,
+            non_reserved_seats: 2,
+        }),
         XtStatus::Finalized,
     );
 
@@ -223,7 +227,10 @@ pub fn points_stake_change(config: &Config) -> anyhow::Result<()> {
         &root_connection,
         Some(reserved_members.clone()),
         Some(non_reserved_members.clone()),
-        Some(4),
+        Some(CommitteeSeats {
+            reserved_seats: 2,
+            non_reserved_seats: 2,
+        }),
         XtStatus::Finalized,
     );
 
@@ -277,7 +284,7 @@ pub fn points_stake_change(config: &Config) -> anyhow::Result<()> {
 }
 
 pub fn disable_node(config: &Config) -> anyhow::Result<()> {
-    const VALIDATORS_PER_SESSION: u32 = 4;
+    const MAX_DIFFERENCE: f64 = 0.07;
 
     let root_connection = config.create_root_connection();
 
@@ -289,7 +296,10 @@ pub fn disable_node(config: &Config) -> anyhow::Result<()> {
         &root_connection,
         Some(reserved_members.clone()),
         Some(non_reserved_members.clone()),
-        Some(VALIDATORS_PER_SESSION),
+        Some(CommitteeSeats {
+            reserved_seats: 2,
+            non_reserved_seats: 2,
+        }),
         XtStatus::Finalized,
     );
 
@@ -339,7 +349,7 @@ pub fn disable_node(config: &Config) -> anyhow::Result<()> {
 }
 
 pub fn force_new_era(config: &Config) -> anyhow::Result<()> {
-    const VALIDATORS_PER_SESSION: u32 = 4;
+    const MAX_DIFFERENCE: f64 = 0.07;
 
     let node = &config.node;
     let accounts = get_validators_keys(config);
@@ -355,7 +365,10 @@ pub fn force_new_era(config: &Config) -> anyhow::Result<()> {
         &root_connection,
         Some(reserved_members.clone()),
         Some(non_reserved_members.clone()),
-        Some(VALIDATORS_PER_SESSION),
+        Some(CommitteeSeats {
+            reserved_seats: 2,
+            non_reserved_seats: 2,
+        }),
         XtStatus::Finalized,
     );
 
@@ -394,8 +407,6 @@ pub fn force_new_era(config: &Config) -> anyhow::Result<()> {
 /// and after two sessions (required for a new era to be forced) they are adjusted to the new
 /// stakes.
 pub fn change_stake_and_force_new_era(config: &Config) -> anyhow::Result<()> {
-    const VALIDATORS_PER_SESSION: u32 = 4;
-
     let node = &config.node;
     let accounts = get_validators_keys(config);
     let sender = accounts.first().expect("Using default accounts").to_owned();
@@ -410,7 +421,10 @@ pub fn change_stake_and_force_new_era(config: &Config) -> anyhow::Result<()> {
         &root_connection,
         Some(reserved_members.clone()),
         Some(non_reserved_members.clone()),
-        Some(VALIDATORS_PER_SESSION),
+        Some(CommitteeSeats {
+            reserved_seats: 2,
+            non_reserved_seats: 2,
+        }),
         XtStatus::Finalized,
     );
 

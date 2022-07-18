@@ -4,6 +4,7 @@ use aleph_client::{
     SignedConnection,
 };
 use codec::Decode;
+use pallet_elections::CommitteeSeats;
 use sp_core::Pair;
 use substrate_api_client::{AccountId, XtStatus};
 
@@ -89,7 +90,10 @@ pub fn era_validators(config: &Config) -> anyhow::Result<()> {
         &root_connection,
         Some(initial_reserved_validators.clone()),
         Some(initial_non_reserved_validators.clone()),
-        Some(4),
+        Some(CommitteeSeats {
+            reserved_seats: 2,
+            non_reserved_seats: 2,
+        }),
         XtStatus::InBlock,
     );
     wait_for_full_era_completion(&connection)?;
@@ -98,7 +102,10 @@ pub fn era_validators(config: &Config) -> anyhow::Result<()> {
         &root_connection,
         Some(new_reserved_validators.clone()),
         Some(new_non_reserved_validators.clone()),
-        Some(4),
+        Some(CommitteeSeats {
+            reserved_seats: 2,
+            non_reserved_seats: 2,
+        }),
         XtStatus::InBlock,
     );
 

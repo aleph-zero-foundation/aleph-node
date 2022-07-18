@@ -1,4 +1,5 @@
 use aleph_client::RootConnection;
+use pallet_elections::CommitteeSeats;
 use sp_core::crypto::Ss58Codec;
 use substrate_api_client::{AccountId, XtStatus};
 
@@ -15,7 +16,10 @@ pub fn change_validators(root_connection: RootConnection, validators: Vec<String
         &root_connection,
         Some(validators),
         Some(vec![]),
-        Some(validators_len),
+        Some(CommitteeSeats {
+            reserved_seats: validators_len,
+            non_reserved_seats: 0,
+        }),
         XtStatus::Finalized,
     );
     // TODO we need to check state here whether change members actually succeed

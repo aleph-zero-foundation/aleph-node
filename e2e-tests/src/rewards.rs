@@ -6,7 +6,7 @@ use aleph_client::{
     RewardPoint, SessionKeys, SignedConnection,
 };
 use log::info;
-use pallet_elections::LENIENT_THRESHOLD;
+use pallet_elections::{CommitteeSeats, LENIENT_THRESHOLD};
 use pallet_staking::Exposure;
 use primitives::{EraIndex, SessionIndex};
 use sp_core::H256;
@@ -161,7 +161,7 @@ pub fn check_points(
     let before_end_of_session_block_hash = get_block_hash(connection, end_of_session_block - 1);
     info!("End-of-session block hash: {}.", end_of_session_block_hash);
 
-    let members_per_session: u32 = connection
+    let committee_seats: CommitteeSeats = connection
         .as_connection()
         .get_storage_value(
             "Elections",
@@ -170,6 +170,8 @@ pub fn check_points(
         )
         .expect("Failed to decode CommitteeSize extrinsic!")
         .unwrap_or_else(|| panic!("Failed to obtain CommitteeSize for session {}.", session));
+
+    let members_per_session = committee_seats.non_reserved_seats + committee_seats.reserved_seats;
 
     info!("Members per session: {}.", members_per_session);
 
