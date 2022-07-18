@@ -1,10 +1,10 @@
 import json
+import jsonrpcclient
 import os.path as op
 import re
+import requests
 import subprocess
 
-import jsonrpcclient as rpc
-import requests
 
 from .utils import flags_from_dict
 
@@ -28,9 +28,15 @@ class Node:
     def _stdargs(self):
         return ['--base-path', self.path, '--chain', self.chainspec]
 
-    def start(self, name):
-        """Start the node. `name` is used to name of the logfile and for --name flag."""
-        cmd = [self.binary, '--name', name] + self._stdargs() + flags_from_dict(self.flags)
+    def _nodeargs(self, backup=True):
+        res = ['--node-key-file', op.join(self.path, 'p2p_secret'), '--enable-log-reloading']
+        if backup:
+            res += ['--backup-path', op.join(self.path, 'backup-stash')]
+        return res
+
+    def start(self, name, backup=True):
+        """Start the node. `name` is used to name the logfile and for --name flag."""
+        cmd = [self.binary, '--name', name] + self._stdargs() + self._nodeargs(backup) + flags_from_dict(self.flags)
 
         self.logfile = op.join(self.logdir, name + '.log')
         with open(self.logfile, 'w', encoding='utf-8') as logfile:
@@ -46,7 +52,23 @@ class Node:
     def purge(self):
         """Purge chain (delete the database of the node)."""
         cmd = [self.binary, 'purge-chain', '-y'] + self._stdargs()
-        subprocess.run(cmd, stdout=subprocess.DEVNULL, check=True)
+        subprocess.run(cmd, stdout=subprocess.DEVNULL)
+
+    def rpc_port(self):
+        """Return RPC port for this node. The value is taken from `flags` dictionary.
+        Raises KeyError if not present."""
+        port = self.flags.get('rpc_port', self.flags.get('rpc-port'))
+        if port is None:
+            raise KeyError("RPC port unknown, please set rpc_port flag")
+        return port
+
+    def ws_port(self):
+        """Return WS port for this node. The value is taken from `flags` dictionary.
+        Raises KeyError if not present."""
+        port = self.flags.get('ws_port', self.flags.get('ws-port'))
+        if port is None:
+            raise KeyError("WS port unknown, please set ws_port flag")
+        return port
 
     def greplog(self, regexp):
         """Find in the logs all occurrences of the given regexp. Returns a list of matches."""
@@ -58,12 +80,18 @@ class Node:
 
     def highest_block(self):
         """Find in the logs the height of the most recent block.
-        Returns two ints: highest block and highest finalized block."""
+        Return two ints: highest block and highest finalized block."""
         results = self.greplog(r'best: #(\d+) .+ finalized #(\d+)')
         if results:
             a, b = results[-1]
             return int(a), int(b)
         return -1, -1
+
+    def check_authorities(self):
+        """Find in the logs the number of authorities this node is connected to.
+        Return bool indicating if it's connected to all known authorities."""
+        grep = self.greplog(r'(\d+)/(\d+) authorities known for session')
+        return grep[-1][0] == grep[-1][1] if grep else False
 
     def get_hash(self, height):
         """Find the hash of the block with the given height. Requires the node to be running."""
@@ -88,12 +116,9 @@ class Node:
         if not self.running:
             print("cannot RPC because node is not running")
             return None
-        port = self.flags.get('rpc_port', self.flags.get('rpc-port', -1))
-        if port == -1:
-            print("RPC port unknown, please set rpc_port flag")
-            return None
-        resp = requests.post(f'http://localhost:{port}/', json=rpc.request(method, params))
-        return rpc.parse(resp.json())
+        port = self.rpc_port()
+        resp = requests.post(f'http://localhost:{port}/', json=jsonrpcclient.request(method, params))
+        return jsonrpcclient.parse(resp.json())
 
     def set_log_level(self, target, level):
         """Change log verbosity of the chosen target.

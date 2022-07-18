@@ -1,12 +1,12 @@
 #!/bin/env python
 import os
-import subprocess
 import sys
 from os.path import abspath, join
-from time import sleep
-import jsonrpcclient
+from time import sleep, ctime
 
-from chainrunner import Chain, Seq, generate_keys, check_finalized
+from chainrunner import Chain, Seq, generate_keys, check_finalized, check_version
+
+def printt(s): print(ctime() + ' | ' + s)
 
 # Path to working directory, where chainspec, logs and nodes' dbs are written:
 workdir = abspath(os.getenv('WORKDIR', '/tmp/workdir'))
@@ -17,32 +17,12 @@ newbin = abspath(os.getenv('NEW_BINARY', join(workdir, 'aleph-node-new')))
 # Path to the post-update compiled runtime:
 runtime = abspath(os.getenv('NEW_RUNTIME', join(workdir, 'aleph_runtime.compact.wasm')))
 # Path to cliain:
-CLIAIN = abspath('../bin/cliain/target/release/cliain')
-
-
-def query_runtime_version(nodes):
-    print('Current version:')
-    versions = set()
-    for i, node in enumerate(nodes):
-        sysver = node.rpc('system_version').result
-        resp = node.rpc('state_getRuntimeVersion')
-        if isinstance(resp, jsonrpcclient.Ok):
-            rt = resp.result['specVersion']
-            versions.add(rt)
-        else:
-            rt = "ERROR"
-        print(f'  Node {i}: system: {sysver}  runtime: {rt}')
-    if len(versions) > 1:
-        print(f'ERROR: nodes reported different runtime versions: {versions}')
-    if versions:
-        return max(versions)
-    return -1
-
+cliain = abspath('../bin/cliain/target/release/cliain')
 
 phrases = ['//Cartman', '//Stan', '//Kyle', '//Kenny']
 keys = generate_keys(newbin, phrases)
 chain = Chain(workdir)
-print('Bootstraping the chain with old binary')
+printt('Bootstraping the chain with old binary')
 chain.bootstrap(oldbin,
                 keys.values(),
                 sudo_account_id=keys[phrases[0]],
@@ -59,69 +39,66 @@ chain.set_flags('validator',
 addresses = [n.address() for n in chain]
 chain.set_flags(public_addr=addresses)
 
-print('Starting the chain with old binary')
-chain.start('old')
+printt('Starting the chain with old binary')
+chain.start('old', backup=False)
 
-print('Waiting 90s')
-sleep(90)
+printt('Waiting for finalization')
+chain.wait_for_finalization(0)
 
-check_finalized(chain)
-query_runtime_version(chain)
+check_version(chain)
+last_finalized = max(check_finalized(chain))
 
-print('Killing node 3 and deleting its database')
+printt('Killing node 3 and deleting its database')
 chain[3].stop()  # OH MY GOD THEY KILLED KENNY!
 chain[3].purge()
 
-print('Restarting node 3 with new binary')
+printt('Restarting node 3 with new binary')
 chain[3].binary = newbin
 chain[3].start('new3')
+printt('Waiting for finalization')
+chain.wait_for_finalization(last_finalized, nodes=[3])
 
-print('Waiting 30s')
-sleep(30)
-
+oldver = check_version(chain)
 check_finalized(chain)
-oldver = query_runtime_version(chain)
 
-print('Submitting extrinsic with new runtime')
-subprocess.check_call(
-    [CLIAIN, '--node', 'localhost:9945', '--seed', phrases[0],
-        'update-runtime', '--runtime', runtime],
-    env=dict(os.environ, RUST_LOG="warn"))
+printt('Submitting extrinsic with new runtime')
+chain.update_runtime(cliain, phrases[0], runtime)
 
-print('Waiting a bit')
+printt('Waiting 10s')
 sleep(10)
 
-check_finalized(chain)
-newver = query_runtime_version(chain)
+newver = check_version(chain)
+last_finalized = max(check_finalized(chain))
 
-print('Restarting remaining nodes with new binary')
+printt('Killing remaining nodes')
 chain.stop(nodes=[0, 1, 2])
 chain.set_binary(newbin, nodes=[0, 1, 2])
-print('Waiting 30s')
-sleep(30)
-chain.start('new', nodes=[0, 1, 2])
+printt('Waiting 10s')
+sleep(10)
 
-print('Waiting 90s')
-sleep(90)
+printt('Restarting remaining nodes with new binary')
+chain.start('new', nodes=[0, 1, 2])
+printt('Waiting for finalization')
+chain.wait_for_finalization(last_finalized)
 
 check_finalized(chain)
-query_runtime_version(chain)
+check_version(chain)
 
-print('Stopping the chain')
+printt('Stopping the chain')
 chain.stop()
 
-print('Waiting a bit')
+printt('Waiting 10s')
 sleep(10)
 
 hf = min(node.highest_block()[1] for node in chain)
-print(f'Sanity check: the highest finalized block is {hf}. '
+printt(f'Sanity check: the highest finalized block is {hf}. '
       f'Comparing exported states after that block:')
 if chain[0].state(hf) == chain[1].state(hf) == chain[2].state(hf) == chain[3].state(hf):
-    print("The same :)")
+    printt("The same :)")
 else:
-    print("DIFFERENT!")
+    printt("DIFFERENT!")
     sys.exit(1)
 
 if oldver == newver:
-    print("ERROR: runtime version reported by nodes didn't change after the update")
+    printt("ERROR: runtime version reported by nodes didn't change after the update")
     sys.exit(1)

@@ -1,6 +1,7 @@
 import os
 import os.path as op
 import subprocess
+import time
 
 from .node import Node
 from .utils import flags_from_dict, check_file
@@ -31,8 +32,8 @@ class Chain:
         return iter(self.nodes)
 
     def bootstrap(self, binary, validators, nonvalidators=None, raw=True, **kwargs):
-        """Bootstrap the chain. `validator_accounts` should be a list of strings.
-        Flags `--account-ids`, `--base-path` and `--raw` are added automatically.
+        """Bootstrap the chain. `validators` and `nonvalidators` should be lists of strings
+        with public keys. Flags `--account-ids`, `--base-path` and `--raw` are added automatically.
         All other flags are taken from kwargs"""
         nonvalidators = nonvalidators or []
         cmd = [check_file(binary),
@@ -54,15 +55,9 @@ class Chain:
                    '--account-id', nv]
             subprocess.run(cmd, stdout=subprocess.DEVNULL, check=True)
 
-        def account_to_node(account):
-            n = Node(binary, chainspec, op.join(self.path, account), self.path)
-            n.flags['node-key-file'] = op.join(self.path, account, 'p2p_secret')
-            n.flags['backup_path'] = op.join(self.path, account, 'backup-stash')
-            n.flags['enable-log-reloading'] = True
-            return n
-
-        self.validator_nodes = [account_to_node(a) for a in validators]
-        self.nonvalidator_nodes = [account_to_node(a) for a in nonvalidators]
+        new_node = lambda x: Node(binary, chainspec, op.join(self.path, x), self.path)
+        self.validator_nodes = [new_node(a) for a in validators]
+        self.nonvalidator_nodes = [new_node(a) for a in nonvalidators]
 
         self.nodes = self.validator_nodes + self.nonvalidator_nodes
 
@@ -140,13 +135,13 @@ class Chain:
         for i in idx:
             self.nodes[i].set_log_level(target, level)
 
-    def start(self, name, nodes=None):
+    def start(self, name, nodes=None, backup=True):
         """Start the chain. `name` will be used to name logfiles: name0.log, name1.log etc.
         Optional `nodes` argument can be used to specify which nodes are affected and should be
         a list of integer indices (0..N-1). Affects all nodes if omitted."""
         idx = nodes or range(len(self.nodes))
         for i in idx:
-            self.nodes[i].start(name + str(i))
+            self.nodes[i].start(name + str(i), backup)
 
     def stop(self, nodes=None):
         """Stop the chain. Optional `nodes` argument can be used to specify which nodes are affected
@@ -162,3 +157,57 @@ class Chain:
         idx = nodes or range(len(self.nodes))
         for i in idx:
             self.nodes[i].purge()
+
+    def fork(self, forkoff_path, ws_endpoint):
+        """Replace the chainspec of this chain with the state forked from the given `ws_endpoint`.
+        This method should be run after bootstrapping the chain, but before starting it.
+        'forkoff_path' should be a path to fork-off binary."""
+        forked = op.join(self.path, 'forked.json')
+        cmd = [check_file(forkoff_path), '--ws-rpc-endpoint', ws_endpoint,
+                '--initial-spec-path', op.join(self.path, 'chainspec.json'),
+                '--snapshot-path', op.join(self.path, 'snapshot.json'),
+                '--combined-spec-path', forked]
+        subprocess.run(cmd, check=True)
+        self.set_chainspec(forked)
+
+    def update_runtime(self, cliain_path, sudo_phrase, runtime):
+        """Send set_code extrinsic with runtime update.
+        Requires a path to `cliain` binary, a path to new WASM runtime and the sudo phrase."""
+        port = self.nodes[0].ws_port()
+        cmd = [check_file(cliain_path), '--node', f'localhost:{port}', '--seed', sudo_phrase,
+                'update-runtime', '--runtime', check_file(runtime)]
+        subprocess.run(cmd, check=True)
+
+    def wait_for_finalization(self, old_finalized, nodes=None, timeout=300, finalized_delta=3, catchup=True, catchup_delta=10):
+        """Wait for finalization to catch up with the newest blocks. Requires providing the number
+        of the last finalized block, which will be used as a reference against recently finalized blocks.
+        The finalization is considered "recovered" when all provided `nodes` (all nodes if None)
+        have seen a finalized block higher than `old_finalized` + `finalized_delta`.
+        If `catchup` is True, wait until finalization catches up with the newly produced blocks
+        (within `catchup_delta` blocks). 'timeout' (in seconds) is a global timeout for the whole method
+        to execute. Raise TimeoutError if finalization fails to recover within the given timeout."""
+        nodes = [self.nodes[i] for i in nodes] if nodes else self.nodes
+        deadline = time.time() + timeout
+        while any((n.highest_block()[1] <= old_finalized + finalized_delta) for n in nodes):
+            time.sleep(5)
+            if time.time() > deadline:
+                raise TimeoutError(f'Block finalization stalled after {timeout} seconds')
+        if catchup:
+            def lags(node):
+                r, f = node.highest_block()
+                return r - f > catchup_delta
+            while any(lags(n) for n in nodes):
+                time.sleep(5)
+                if time.time() > deadline:
+                    print(f'Finalization restored, but failed to catch up with recent blocks within {timeout} seconds')
+                    break
+
+    def wait_for_authorities(self, nodes=None, timeout=300):
+        """Wait for the selected `nodes` (all validator nodes if None) to connect to all known authorities.
+        If not successful within the given `timeout` (in seconds), raise TimeoutError."""
+        nodes = [self.nodes[i] for i in nodes] if nodes else self.validator_nodes
+        deadline = time.time() + timeout
+        while not all(n.check_authorities() for n in nodes):
+            time.sleep(5)
+            if time.time() > deadline:
+                raise TimeoutError(f'Failed to connect to all authorities after {timeout} seconds')

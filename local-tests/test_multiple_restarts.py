@@ -2,27 +2,28 @@
 import os
 import sys
 from os.path import abspath, join
-from time import sleep
+from time import sleep, ctime
 
 from chainrunner import Chain, Seq, generate_keys, check_finalized
+
+def printt(s): print(ctime() + ' | ' + s)
 
 # Path to working directory, where chainspec, logs and nodes' dbs are written:
 workdir = abspath(os.getenv('WORKDIR', '/tmp/workdir'))
 # Path to the aleph-node binary (important DON'T use short-session feature):
 binary = abspath(os.getenv('ALEPH_NODE_BINARY', join(workdir, 'aleph-node')))
 
-phrases = [f'//{i}' for i in range(6)]
+phrases = [f'//{i}' for i in range(4)]
 keys = generate_keys(binary, phrases)
-all_accounts = list(keys.values())
 chain = Chain(workdir)
-print('Bootstrapping the chain with binary')
+printt('Bootstrapping the chain with binary')
 chain.bootstrap(binary,
-                all_accounts[:4],
-                nonvalidators=all_accounts[4:],
+                keys.values(),
                 sudo_account_id=keys[phrases[0]],
                 chain_type='local')
 
-chain.set_flags(port=Seq(30334),
+chain.set_flags('no-mdns',
+                port=Seq(30334),
                 ws_port=Seq(9944),
                 rpc_port=Seq(9933),
                 unit_creation_delay=200,
@@ -33,49 +34,41 @@ chain.set_flags(bootnodes=addresses[0], public_addr=addresses)
 
 chain.set_flags_validator('validator')
 
-print('Starting the chain')
+printt('Starting the chain')
 chain.start('aleph')
 
-for run_duration, stop_duration, catch_up_duration in [[150, 20, 30], [20, 15, 30], [20, 15, 30]]:
-    print(f'Waiting {run_duration}s')
-    sleep(run_duration)
+printt('Waiting for finalization')
+chain.wait_for_finalization(0)
+printt('Waiting for authorities')
+chain.wait_for_authorities()
 
-    finalized_before_kill_per_node = check_finalized(chain)
-    print('Killing one validator and one nonvalidator')
+delta = 5
 
+for sleep_duration in [21, 37, 15]:
+    printt('Killing one validator')
     chain[3].stop()
-    chain[4].stop()
+    finalized_before_kill = check_finalized(chain)
 
-    print(f'Waiting {stop_duration}s')
-    sleep(stop_duration)
+    printt(f'Waiting {sleep_duration}s')
+    sleep(sleep_duration)
 
-    print('Restarting nodes')
-    finalized_before_start_per_node = check_finalized(chain)
+    finalized_before_start = check_finalized(chain)
 
     # Check if the finalization didn't stop after a kill.
-    # Use a reduced rate since 1/4 nodes are offline, and fudge by 0.9 to give a margin of error.
-    if finalized_before_start_per_node[0] - finalized_before_kill_per_node[0] < stop_duration * (3/4) * 0.9:
-        print('Finalization stalled')
+    if finalized_before_start[0] - finalized_before_kill[0] < delta:
+        printt('Finalization stalled')
         sys.exit(1)
 
-    chain.start('aleph', nodes=[3, 4])
+    printt('Restarting nodes')
+    chain[3].start('aleph')
 
-    print(f'Waiting {catch_up_duration}s for catch up')
-    sleep(catch_up_duration)
-    finalized_after_catch_up_per_node = check_finalized(chain)
+    printt('Waiting for finalization')
+    chain.wait_for_finalization(finalized_before_start[3], nodes=[3])
 
-    nonvalidator_diff = finalized_after_catch_up_per_node[4] - \
-        finalized_before_start_per_node[4]
-    validator_diff = finalized_after_catch_up_per_node[3] - \
-        finalized_before_start_per_node[3]
+    finalized_after = check_finalized(chain)
+    diff = finalized_after[3] - finalized_before_start[3]
 
-    ALLOWED_DELTA = 5
-
-    # Checks if the murdered nodes started catching up with reasonable nr of blocks.
-    if nonvalidator_diff <= ALLOWED_DELTA:
-        print(f"too small catch up for nonvalidators: {nonvalidator_diff}")
-        sys.exit(1)
-
-    if validator_diff <= ALLOWED_DELTA:
-        print(f"too small catch up for validators: {validator_diff}")
+    # Check if the murdered node started catching up with reasonable nr of blocks.
+    if diff <= delta:
+        printt(f'Too small catch up for validators: {validator_diff}')
         sys.exit(1)

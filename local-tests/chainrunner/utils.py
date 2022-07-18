@@ -1,3 +1,4 @@
+import jsonrpcclient
 import os.path as op
 import re
 import subprocess
@@ -43,7 +44,7 @@ def flags_from_dict(d):
 
 
 def check_finalized(nodes):
-    """Check nodes stats, print them and returns finalized block number per node"""
+    """Check nodes stats, print them and return finalized block number per node"""
     results = [node.highest_block() for node in nodes]
     highest, finalized = zip(*results)
     print('Blocks seen by nodes:')
@@ -51,3 +52,27 @@ def check_finalized(nodes):
     print('  Finalized: ', *finalized)
 
     return finalized
+
+
+def check_version(nodes, verbose=False):
+    """Query given nodes for aleph-node (host) version and runtime version.
+    Print the summary to the standard output and return the runtime version.
+    If multiple runtime versions are reported, print error and return the maximum.
+    If `verbose` is True, print the whole RPC response."""
+    versions = set()
+    for i, node in enumerate(nodes):
+        sysver = node.rpc('system_version').result
+        resp = node.rpc('state_getRuntimeVersion')
+        if verbose:
+            print(resp)
+        if isinstance(resp, jsonrpcclient.Ok):
+            rt = resp.result['specVersion']
+            versions.add(rt)
+        else:
+            rt = "ERROR"
+        print(f'  Node {i} | host: {sysver}  runtime: {rt}')
+    if len(versions) > 1:
+        print(f'ERROR: nodes reported different runtime versions: {versions}')
+    if versions:
+        return max(versions)
+    return -1
