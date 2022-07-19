@@ -102,6 +102,7 @@ dependencies = [
  "env_logger",
  "frame-support",
  "frame-system",
+ "hex",
  "log",
  "pallet-balances",
  "pallet-elections",

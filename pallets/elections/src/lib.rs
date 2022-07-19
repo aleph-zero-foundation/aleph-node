@@ -82,7 +82,7 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config {
         /// Something that provides information about ongoing eras.
-        type EraInfoProvider: EraInfoProvider;
+        type EraInfoProvider: EraInfoProvider<AccountId = Self::AccountId>;
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         /// Something that provides data for elections.
         type DataProvider: ElectionDataProvider<
@@ -348,28 +348,44 @@ pub mod pallet {
         type Error = ElectionError;
         type DataProvider = T::DataProvider;
 
-        // The elections are PoA so only the nodes listed in the Validators will be elected as validators.
-        // We calculate the supports for them for the sake of eras payouts.
+        /// The elections are PoA so only the nodes listed in the Validators will be elected as
+        /// validators.
+        ///
+        /// We calculate the supports for them for the sake of eras payouts.
         fn elect() -> Result<Supports<T::AccountId>, Self::Error> {
-            let voters =
-                Self::DataProvider::electing_voters(None).map_err(Self::Error::DataProvider)?;
-            let validators = NextEraReservedValidators::<T>::get()
+            let staking_validators = Self::DataProvider::electable_targets(None)
+                .map_err(Self::Error::DataProvider)?
                 .into_iter()
-                .chain(NextEraNonReservedValidators::<T>::get().into_iter());
-            let mut supports: BTreeMap<_, _> = validators
+                .collect::<BTreeSet<_>>();
+            let reserved_validators = NextEraReservedValidators::<T>::get()
+                .into_iter()
+                .collect::<BTreeSet<_>>();
+            let non_reserved_validators = NextEraNonReservedValidators::<T>::get()
+                .into_iter()
+                .collect::<BTreeSet<_>>();
+
+            let eligible_validators =
+                &(&reserved_validators | &non_reserved_validators) & &staking_validators;
+            let mut supports = eligible_validators
+                .into_iter()
                 .map(|id| {
                     (
                         id,
+                        // Under normal circumstances support will never be `0` since 'self-vote'
+                        // is counted in.
                         Support {
                             total: 0,
                             voters: Vec::new(),
                         },
                     )
                 })
-                .collect();
+                .collect::<BTreeMap<_, _>>();
 
+            let voters =
+                Self::DataProvider::electing_voters(None).map_err(Self::Error::DataProvider)?;
             for (voter, vote, targets) in voters {
-                // The parameter Staking::MAX_NOMINATIONS is set to 1 which guarantees that len(targets) == 1
+                // The parameter `Staking::MAX_NOMINATIONS` is set to 1 which guarantees that
+                // `len(targets) == 1`.
                 let member = &targets[0];
                 if let Some(support) = supports.get_mut(member) {
                     support.total += vote as u128;

@@ -1,6 +1,7 @@
 use crate::{
     config::Config,
     test::{
+        authorities_are_staking as test_authorities_are_staking,
         batch_transactions as test_batch_transactions,
         change_stake_and_force_new_era as test_change_stake_and_force_new_era,
         change_validators as test_change_validators,
@@ -50,5 +51,9 @@ pub fn possible_test_cases() -> PossibleTestCases {
         ("points_basic", test_points_basic as TestCase),
         ("rewards_force_new_era", test_force_new_era as TestCase),
         ("rewards_stake_change", test_points_stake_change as TestCase),
+        (
+            "authorities_are_staking",
+            test_authorities_are_staking as TestCase,
+        ),
     ]
 }

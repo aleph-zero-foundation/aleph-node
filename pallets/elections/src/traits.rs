@@ -44,6 +44,8 @@ where
 }
 
 pub trait EraInfoProvider {
+    type AccountId;
+
     /// Returns `Some(idx)` where idx is the current active era index otherwise
     /// if no era is active returns `None`.
     fn active_era() -> Option<EraIndex>;
@@ -51,12 +53,16 @@ pub trait EraInfoProvider {
     fn era_start_session_index(era: EraIndex) -> Option<SessionIndex>;
     /// Returns how many sessions are in single era.
     fn sessions_per_era() -> SessionIndex;
+    /// Returns the elected authorities for provided era.
+    fn elected_validators(era: EraIndex) -> Vec<Self::AccountId>;
 }
 
 impl<T> EraInfoProvider for pallet_staking::Pallet<T>
 where
     T: pallet_staking::Config,
 {
+    type AccountId = T::AccountId;
+
     fn active_era() -> Option<EraIndex> {
         pallet_staking::ActiveEra::<T>::get().map(|ae| ae.index)
     }
@@ -67,5 +73,9 @@ where
 
     fn sessions_per_era() -> SessionIndex {
         T::SessionsPerEra::get()
+    }
+
+    fn elected_validators(era: EraIndex) -> Vec<Self::AccountId> {
+        pallet_staking::ErasStakers::<T>::iter_key_prefix(era).collect()
     }
 }

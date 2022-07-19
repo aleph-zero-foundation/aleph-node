@@ -1,7 +1,10 @@
 use frame_election_provider_support::sp_arithmetic::Perquintill;
 use frame_support::pallet_prelude::Get;
 use sp_staking::{EraIndex, SessionIndex};
-use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
+use sp_std::{
+    collections::{btree_map::BTreeMap, btree_set::BTreeSet},
+    vec::Vec,
+};
 
 use crate::{
     traits::{EraInfoProvider, SessionInfoProvider, ValidatorRewardsHandler},
@@ -81,7 +84,7 @@ fn choose_for_session<T: Clone>(
     let first_index = session.saturating_mul(count) % validators_len;
     let mut chosen = Vec::new();
 
-    for i in 0..count {
+    for i in 0..count.min(validators_len) {
         chosen.push(validators[first_index.saturating_add(i) % validators_len].clone());
     }
 
@@ -226,13 +229,22 @@ where
         // this will be populated once for the session `n+1` on the start of the session `n` where session
         // `n+1` starts a new era.
         Self::if_era_starts_do(active_era + 1, session, || {
+            let elected_committee =
+                BTreeSet::from_iter(T::EraInfoProvider::elected_validators(active_era + 1));
+
+            let retain_elected = |vals: Vec<T::AccountId>| -> Vec<T::AccountId> {
+                vals.into_iter()
+                    .filter(|v| elected_committee.contains(v))
+                    .collect()
+            };
+
             let reserved_validators = NextEraReservedValidators::<T>::get();
             let non_reserved_validators = NextEraNonReservedValidators::<T>::get();
             let committee_size = NextEraCommitteeSize::<T>::get();
 
             CurrentEraValidators::<T>::put(EraValidators {
-                reserved: reserved_validators,
-                non_reserved: non_reserved_validators,
+                reserved: retain_elected(reserved_validators),
+                non_reserved: retain_elected(non_reserved_validators),
             });
             CommitteeSize::<T>::put(committee_size);
         });
