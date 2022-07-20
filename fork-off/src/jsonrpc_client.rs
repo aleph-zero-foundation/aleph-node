@@ -1,6 +1,7 @@
 use std::future::Future;
 
 use async_channel::{bounded, Receiver, Sender};
+use backoff::{future::retry, ExponentialBackoff};
 use jsonrpc_core::Error;
 use jsonrpc_core_client::{transports::ws, RpcError};
 use jsonrpc_derive::rpc;
@@ -102,6 +103,12 @@ impl Client {
 
     /// Fetch the value under `key` in the `at` block.
     pub async fn get_storage(&self, key: StorageKey, at: BlockHash) -> RpcResult<StorageValue> {
-        self.client.get_storage(key, Some(at)).await
+        retry(ExponentialBackoff::default(), || async {
+            self.client
+                .get_storage(key.clone(), Some(at.clone()))
+                .await
+                .map_err(backoff::Error::transient)
+        })
+        .await
     }
 }

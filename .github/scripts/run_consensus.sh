@@ -32,7 +32,7 @@ function generate_chainspec {
   "aleph-node bootstrap-chain --base-path /data --account-ids $validator_ids > /data/chainspec.json"
 }
 
-function generete_bootnode_peer_id {
+function generate_bootnode_peer_id {
   local bootnode_account="$1"
 
   echo "Generate bootnode peer id..."
@@ -48,7 +48,7 @@ function run_containers {
 
 authorities=$(generate_authorities ${NODE_COUNT})
 generate_chainspec "${authorities[@]}"
-generete_bootnode_peer_id ${authorities[0]}
+generate_bootnode_peer_id ${authorities[0]}
 run_containers ${NODE_COUNT}
 
 exit $?
