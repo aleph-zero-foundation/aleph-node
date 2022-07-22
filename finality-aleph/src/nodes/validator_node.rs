@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use log::{debug, error};
 use sc_client_api::Backend;
 use sc_network::ExHashT;
@@ -11,7 +13,11 @@ use crate::{
         SessionManager, IO as NetworkIO,
     },
     nodes::{setup_justification_handler, JustificationParams},
-    party::{ConsensusParty, ConsensusPartyParams},
+    party::{
+        impls::{ChainStateImpl, SessionInfoImpl},
+        manager::NodeSessionManagerImpl,
+        ConsensusParty, ConsensusPartyParams,
+    },
     session_map::{AuthorityProviderImpl, FinalityNotificatorImpl, SessionMapUpdater},
     AlephConfig,
 };
@@ -104,18 +110,27 @@ where
     debug!(target: "aleph-party", "Network has started.");
 
     let party = ConsensusParty::new(ConsensusPartyParams {
-        session_manager,
         session_authorities,
-        session_period,
-        spawn_handle: spawn_handle.into(),
-        client,
-        select_chain,
-        keystore,
-        block_requester,
-        metrics,
-        authority_justification_tx,
-        unit_creation_delay,
+        sync_state: block_requester.clone(),
         backup_saving_path,
+        chain_state: ChainStateImpl {
+            client: client.clone(),
+            _phantom: PhantomData,
+        },
+        session_manager: NodeSessionManagerImpl::new(
+            client,
+            select_chain,
+            session_period,
+            unit_creation_delay,
+            authority_justification_tx,
+            block_requester,
+            metrics,
+            spawn_handle.into(),
+            session_manager,
+            keystore,
+        ),
+        _phantom: PhantomData,
+        session_info: SessionInfoImpl::new(session_period),
     });
 
     debug!(target: "aleph-party", "Consensus party has started.");
