@@ -951,3 +951,13 @@ impl_runtime_apis! {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::VERSION;
+
+    #[test]
+    fn state_version_must_be_zero() {
+        assert_eq!(0, VERSION.state_version);
+    }
+}
