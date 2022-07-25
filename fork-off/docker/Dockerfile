@@ -1,4 +1,4 @@
-FROM ubuntu:impish-20220128
+FROM ubuntu:jammy-20220531
 
 RUN apt update && \
         apt install ca-certificates -y && \
