@@ -48,18 +48,6 @@ impl<AccountId> Default for EraValidators<AccountId> {
     }
 }
 
-#[derive(Decode, Encode, TypeInfo, Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct CommitteeSeats {
-    pub reserved_seats: u32,
-    pub non_reserved_seats: u32,
-}
-
-impl CommitteeSeats {
-    fn size(&self) -> u32 {
-        self.reserved_seats.saturating_add(self.non_reserved_seats)
-    }
-}
-
 #[derive(Decode, Encode, TypeInfo)]
 pub struct ValidatorTotalRewards<T>(pub BTreeMap<T, TotalReward>);
 
@@ -74,7 +62,7 @@ pub mod pallet {
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
     use pallet_session::SessionManager;
-    use primitives::DEFAULT_COMMITTEE_SIZE;
+    use primitives::CommitteeSeats;
 
     use super::*;
     use crate::traits::{EraInfoProvider, SessionInfoProvider, ValidatorRewardsHandler};
@@ -258,7 +246,7 @@ pub mod pallet {
     pub struct GenesisConfig<T: Config> {
         pub non_reserved_validators: Vec<T::AccountId>,
         pub reserved_validators: Vec<T::AccountId>,
-        pub committee_size: u32,
+        pub committee_seats: CommitteeSeats,
     }
 
     #[cfg(feature = "std")]
@@ -267,7 +255,7 @@ pub mod pallet {
             Self {
                 non_reserved_validators: Vec::new(),
                 reserved_validators: Vec::new(),
-                committee_size: DEFAULT_COMMITTEE_SIZE,
+                committee_seats: Default::default(),
             }
         }
     }
@@ -275,12 +263,14 @@ pub mod pallet {
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
         fn build(&self) {
+            <CommitteeSize<T>>::put(&self.committee_seats);
+            <NextEraCommitteeSize<T>>::put(&self.committee_seats);
             <NextEraNonReservedValidators<T>>::put(&self.non_reserved_validators);
-            <CommitteeSize<T>>::put(&CommitteeSeats {
-                reserved_seats: self.committee_size,
-                non_reserved_seats: 0,
-            });
             <NextEraReservedValidators<T>>::put(&self.reserved_validators);
+            <CurrentEraValidators<T>>::put(&EraValidators {
+                reserved: self.reserved_validators.clone(),
+                non_reserved: self.non_reserved_validators.clone(),
+            });
         }
     }
 

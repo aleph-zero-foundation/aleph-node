@@ -4,7 +4,7 @@ use aleph_client::{
     SignedConnection,
 };
 use codec::Decode;
-use pallet_elections::CommitteeSeats;
+use primitives::CommitteeSeats;
 use sp_core::Pair;
 use substrate_api_client::{AccountId, XtStatus};
 

@@ -3,8 +3,16 @@
 use frame_election_provider_support::{ElectionProvider, Support};
 use frame_support::bounded_vec;
 use pallet_session::SessionManager;
+use primitives::CommitteeSeats;
 
-use crate::{mock::*, CommitteeSeats, CommitteeSize};
+use crate::{
+    mock::{
+        with_active_era, with_electable_targets, with_elected_validators, with_electing_voters,
+        AccountId, Balance, Elections, SessionsPerEra, Test, TestExtBuilder,
+    },
+    CommitteeSize, CurrentEraValidators, NextEraCommitteeSize, NextEraNonReservedValidators,
+    NextEraReservedValidators,
+};
 
 fn no_support() -> Support<AccountId> {
     Default::default()
@@ -15,53 +23,85 @@ fn support(total: Balance, voters: Vec<(AccountId, Balance)>) -> Support<Account
 }
 
 #[test]
+fn storage_is_initialized_already_in_genesis() {
+    const RESERVED: [AccountId; 3] = [1, 2, 3];
+    const NON_RESERVED: [AccountId; 2] = [4, 5];
+    const COMMITTEE_SEATS: CommitteeSeats = CommitteeSeats {
+        reserved_seats: 3,
+        non_reserved_seats: 2,
+    };
+
+    TestExtBuilder::new(RESERVED.to_vec(), NON_RESERVED.to_vec())
+        .with_committee_seats(COMMITTEE_SEATS)
+        .build()
+        .execute_with(|| {
+            assert_eq!(CommitteeSize::<Test>::get(), COMMITTEE_SEATS);
+            assert_eq!(NextEraCommitteeSize::<Test>::get(), COMMITTEE_SEATS);
+            assert_eq!(NextEraReservedValidators::<Test>::get(), RESERVED);
+            assert_eq!(NextEraNonReservedValidators::<Test>::get(), NON_RESERVED);
+            assert_eq!(CurrentEraValidators::<Test>::get().reserved, RESERVED);
+            assert_eq!(
+                CurrentEraValidators::<Test>::get().non_reserved,
+                NON_RESERVED
+            );
+            // We do not expect SessionValidatorBlockCount and ValidatorEraTotalReward to be
+            // populated from genesis.
+        });
+}
+
+#[test]
 fn validators_are_elected_only_when_staking() {
-    new_test_ext(vec![1, 2, 3, 4], vec![5, 6, 7, 8]).execute_with(|| {
-        // We check all 4 possibilities for both reserved and non reserved validators:
-        // { staking validator, not staking validator } x { any support, no support }.
-        //
-        // Only those considered as staking should be elected.
+    TestExtBuilder::new(vec![1, 2, 3, 4], vec![5, 6, 7, 8])
+        .build()
+        .execute_with(|| {
+            // We check all 4 possibilities for both reserved and non reserved validators:
+            // { staking validator, not staking validator } x { any support, no support }.
+            //
+            // Only those considered as staking should be elected.
 
-        with_electable_targets(vec![1, 2, 5, 6]);
-        with_electing_voters(vec![
-            (1, 10, bounded_vec![1]),
-            (3, 10, bounded_vec![3]),
-            (5, 10, bounded_vec![5]),
-            (7, 10, bounded_vec![7]),
-        ]);
+            with_electable_targets(vec![1, 2, 5, 6]);
+            with_electing_voters(vec![
+                (1, 10, bounded_vec![1]),
+                (3, 10, bounded_vec![3]),
+                (5, 10, bounded_vec![5]),
+                (7, 10, bounded_vec![7]),
+            ]);
 
-        let elected = <Elections as ElectionProvider>::elect().expect("`elect()` should succeed");
+            let elected =
+                <Elections as ElectionProvider>::elect().expect("`elect()` should succeed");
 
-        assert_eq!(
-            elected,
-            &[
-                (1, support(10, vec![(1, 10)])),
-                (2, no_support()),
-                (5, support(10, vec![(5, 10)])),
-                (6, no_support()),
-            ]
-        );
-    });
+            assert_eq!(
+                elected,
+                &[
+                    (1, support(10, vec![(1, 10)])),
+                    (2, no_support()),
+                    (5, support(10, vec![(5, 10)])),
+                    (6, no_support()),
+                ]
+            );
+        });
 }
 
 #[test]
 fn session_authorities_must_have_been_elected() {
-    new_test_ext(vec![1, 2], vec![5, 6]).execute_with(|| {
-        let next_era = 41;
-
-        CommitteeSize::<Test>::put(CommitteeSeats {
+    TestExtBuilder::new(vec![1, 2], vec![5, 6])
+        .with_committee_seats(CommitteeSeats {
             reserved_seats: 2,
             non_reserved_seats: 2,
+        })
+        .build()
+        .execute_with(|| {
+            let next_era = 41;
+
+            with_active_era(next_era - 1);
+            with_elected_validators(next_era, vec![1, 5]);
+
+            let mut authorities = <Elections as SessionManager<AccountId>>::new_session(
+                next_era * SessionsPerEra::get(),
+            )
+            .unwrap_or_default();
+
+            authorities.sort();
+            assert_eq!(authorities, &[1, 5]);
         });
-
-        with_active_era(next_era - 1);
-        with_elected_validators(next_era, vec![1, 5]);
-
-        let mut authorities =
-            <Elections as SessionManager<AccountId>>::new_session(next_era * SessionsPerEra::get())
-                .unwrap_or_default();
-
-        authorities.sort();
-        assert_eq!(authorities, &[1, 5]);
-    });
 }

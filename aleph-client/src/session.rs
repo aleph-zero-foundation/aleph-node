@@ -1,7 +1,6 @@
 use codec::{Decode, Encode};
 use log::info;
-use pallet_elections::CommitteeSeats;
-use primitives::SessionIndex;
+use primitives::{CommitteeSeats, SessionIndex};
 use sp_core::{Pair, H256};
 use substrate_api_client::{
     compose_call, compose_extrinsic, AccountId, ExtrinsicParams, FromHexString, XtStatus,

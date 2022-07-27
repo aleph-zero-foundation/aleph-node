@@ -7,6 +7,7 @@ use frame_support::{
     weights::RuntimeDbWeight,
     BoundedVec,
 };
+use primitives::CommitteeSeats;
 use sp_core::H256;
 use sp_runtime::{
     testing::{Header, TestXt},
@@ -208,35 +209,59 @@ impl ElectionDataProvider for StakingMock {
     }
 }
 
-pub fn new_test_ext(
+pub struct TestExtBuilder {
     reserved_validators: Vec<AccountId>,
     non_reserved_validators: Vec<AccountId>,
-) -> sp_io::TestExternalities {
-    let mut t = frame_system::GenesisConfig::default()
-        .build_storage::<Test>()
-        .unwrap();
+    committee_seats: CommitteeSeats,
+}
 
-    let validators: Vec<_> = non_reserved_validators
-        .iter()
-        .chain(reserved_validators.iter())
-        .collect();
+impl TestExtBuilder {
+    pub fn new(
+        reserved_validators: Vec<AccountId>,
+        non_reserved_validators: Vec<AccountId>,
+    ) -> Self {
+        Self {
+            committee_seats: CommitteeSeats {
+                reserved_seats: reserved_validators.len() as u32,
+                non_reserved_seats: non_reserved_validators.len() as u32,
+            },
+            reserved_validators,
+            non_reserved_validators,
+        }
+    }
 
-    let balances: Vec<_> = (0..validators.len())
-        .map(|i| (i as u64, 10_000_000))
-        .collect();
+    pub fn with_committee_seats(mut self, committee_seats: CommitteeSeats) -> Self {
+        self.committee_seats = committee_seats;
+        self
+    }
 
-    pallet_balances::GenesisConfig::<Test> { balances }
+    pub fn build(self) -> sp_io::TestExternalities {
+        let mut t = frame_system::GenesisConfig::default()
+            .build_storage::<Test>()
+            .unwrap();
+
+        let validators: Vec<_> = self
+            .non_reserved_validators
+            .iter()
+            .chain(self.reserved_validators.iter())
+            .collect();
+
+        let balances: Vec<_> = (0..validators.len())
+            .map(|i| (i as u64, 10_000_000))
+            .collect();
+
+        pallet_balances::GenesisConfig::<Test> { balances }
+            .assimilate_storage(&mut t)
+            .unwrap();
+
+        crate::GenesisConfig::<Test> {
+            non_reserved_validators: self.non_reserved_validators,
+            reserved_validators: self.reserved_validators,
+            committee_seats: self.committee_seats,
+        }
         .assimilate_storage(&mut t)
         .unwrap();
 
-    let committee_size = validators.len() as u32;
-    crate::GenesisConfig::<Test> {
-        non_reserved_validators,
-        committee_size,
-        reserved_validators,
+        t.into()
     }
-    .assimilate_storage(&mut t)
-    .unwrap();
-
-    t.into()
 }

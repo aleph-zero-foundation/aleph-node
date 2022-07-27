@@ -1,6 +1,9 @@
 #![allow(clippy::too_many_arguments, clippy::unnecessary_mut_passed)]
 #![cfg_attr(not(feature = "std"), no_std)]
 use codec::{Decode, Encode};
+use scale_info::TypeInfo;
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 use sp_core::crypto::KeyTypeId;
 use sp_runtime::ConsensusEngineId;
 pub use sp_staking::{EraIndex, SessionIndex};
@@ -43,10 +46,32 @@ pub const DEFAULT_SESSIONS_PER_ERA: SessionIndex = 96;
 pub const TOKEN_DECIMALS: u32 = 12;
 pub const TOKEN: u128 = 10u128.pow(TOKEN_DECIMALS);
 
-pub const DEFAULT_COMMITTEE_SIZE: u32 = 4;
-
 pub const ADDRESSES_ENCODING: u8 = 42;
 pub const DEFAULT_UNIT_CREATION_DELAY: u64 = 300;
+
+pub const DEFAULT_COMMITTEE_SIZE: u32 = 4;
+
+#[derive(Decode, Encode, TypeInfo, Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct CommitteeSeats {
+    pub reserved_seats: u32,
+    pub non_reserved_seats: u32,
+}
+
+impl CommitteeSeats {
+    pub fn size(&self) -> u32 {
+        self.reserved_seats.saturating_add(self.non_reserved_seats)
+    }
+}
+
+impl Default for CommitteeSeats {
+    fn default() -> Self {
+        CommitteeSeats {
+            reserved_seats: DEFAULT_COMMITTEE_SIZE,
+            non_reserved_seats: 0,
+        }
+    }
+}
 
 #[derive(Encode, Decode, PartialEq, Eq, Debug)]
 pub enum ApiError {

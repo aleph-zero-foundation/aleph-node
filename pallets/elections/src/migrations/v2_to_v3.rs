@@ -3,9 +3,10 @@ use frame_support::{
     traits::{Get, PalletInfoAccess, StorageVersion},
     weights::Weight,
 };
+use primitives::CommitteeSeats;
 use sp_std::vec::Vec;
 
-use crate::{CommitteeSeats, Config, EraValidators};
+use crate::{Config, EraValidators};
 
 // V2 storages
 #[storage_alias]

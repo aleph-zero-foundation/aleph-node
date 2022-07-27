@@ -1,6 +1,6 @@
 [package]
 name = "aleph_client"
-version = "1.4.1"
+version = "1.4.2"
 edition = "2021"
 license = "Apache 2.0"
 
@@ -26,7 +26,6 @@ pallet-balances = { git = "https://github.com/Cardinal-Cryptography/substrate.gi
 pallet-vesting = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.23", default-features = false }
 
 pallet-aleph = { path = "../pallets/aleph", default-features = false }
-pallet-elections = { path = "../pallets/elections", default-features = false }
 primitives = { path = "../primitives", default-features = false }
 
 [features]
@@ -41,5 +40,4 @@ std = [
     "pallet-balances/std",
     "pallet-multisig/std",
     "pallet-vesting/std",
-    "pallet-elections/std",
 ]

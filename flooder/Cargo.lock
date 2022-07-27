@@ -93,7 +93,7 @@ dependencies = [
 
 [[package]]
 name = "aleph_client"
-version = "1.4.1"
+version = "1.4.2"
 dependencies = [
  "ac-primitives",
  "anyhow",
@@ -102,7 +102,6 @@ dependencies = [
  "log",
  "pallet-aleph",
  "pallet-balances",
- "pallet-elections",
  "pallet-multisig",
  "pallet-staking",
  "pallet-treasury",
@@ -1847,25 +1846,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-elections"
-version = "0.3.0"
-dependencies = [
- "frame-election-provider-support",
- "frame-support",
- "frame-system",
- "pallet-authorship",
- "pallet-balances",
- "pallet-session",
- "pallet-staking",
- "parity-scale-codec",
- "primitives",
- "scale-info",
- "sp-core",
- "sp-staking",
- "sp-std",
-]
-
-[[package]]
 name = "pallet-multisig"
 version = "4.0.0-dev"
 source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.23#bfcc96afecbbf2413ef610e2b549c0fbfbb9a32b"
@@ -2134,7 +2114,7 @@ dependencies = [
 
 [[package]]
 name = "primitives"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "parity-scale-codec",
  "scale-info",

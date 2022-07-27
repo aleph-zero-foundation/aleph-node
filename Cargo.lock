@@ -4230,7 +4230,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-elections"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "frame-election-provider-support",
  "frame-support",
@@ -4806,7 +4806,7 @@ dependencies = [
 
 [[package]]
 name = "primitives"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "parity-scale-codec",
  "scale-info",

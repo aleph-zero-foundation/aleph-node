@@ -1,5 +1,6 @@
 use frame_election_provider_support::sp_arithmetic::Perquintill;
 use frame_support::pallet_prelude::Get;
+use primitives::CommitteeSeats;
 use sp_staking::{EraIndex, SessionIndex};
 use sp_std::{
     collections::{btree_map::BTreeMap, btree_set::BTreeSet},
@@ -8,9 +9,9 @@ use sp_std::{
 
 use crate::{
     traits::{EraInfoProvider, SessionInfoProvider, ValidatorRewardsHandler},
-    CommitteeSeats, CommitteeSize, Config, CurrentEraValidators, EraValidators,
-    NextEraCommitteeSize, NextEraNonReservedValidators, NextEraReservedValidators, Pallet,
-    SessionValidatorBlockCount, ValidatorEraTotalReward, ValidatorTotalRewards,
+    CommitteeSize, Config, CurrentEraValidators, EraValidators, NextEraCommitteeSize,
+    NextEraNonReservedValidators, NextEraReservedValidators, Pallet, SessionValidatorBlockCount,
+    ValidatorEraTotalReward, ValidatorTotalRewards,
 };
 
 const MAX_REWARD: u32 = 1_000_000_000;

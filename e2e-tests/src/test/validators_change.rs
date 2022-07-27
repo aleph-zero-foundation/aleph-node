@@ -3,7 +3,7 @@ use aleph_client::{
 };
 use codec::Decode;
 use log::info;
-use pallet_elections::CommitteeSeats;
+use primitives::CommitteeSeats;
 use sp_core::Pair;
 use substrate_api_client::{AccountId, XtStatus};
 

@@ -1,5 +1,5 @@
 use aleph_client::RootConnection;
-use pallet_elections::CommitteeSeats;
+use primitives::CommitteeSeats;
 use sp_core::crypto::Ss58Codec;
 use substrate_api_client::{AccountId, XtStatus};
 

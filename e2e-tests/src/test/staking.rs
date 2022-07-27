@@ -7,10 +7,9 @@ use aleph_client::{
 };
 use frame_support::BoundedVec;
 use log::info;
-use pallet_elections::CommitteeSeats;
 use primitives::{
     staking::{MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND},
-    TOKEN,
+    CommitteeSeats, TOKEN,
 };
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,

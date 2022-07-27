@@ -8,8 +8,7 @@ use aleph_client::{
     SignedConnection,
 };
 use log::info;
-use pallet_elections::CommitteeSeats;
-use primitives::{staking::MIN_VALIDATOR_BOND, EraIndex, TOKEN};
+use primitives::{staking::MIN_VALIDATOR_BOND, CommitteeSeats, EraIndex, TOKEN};
 use sp_core::{storage::StorageKey, Pair};
 use substrate_api_client::{compose_extrinsic, AccountId, XtStatus};
 
