@@ -6,8 +6,8 @@ edition = "2021"
 license = "Apache 2.0"
 
 [dependencies]
-aleph-bft = "0.15.0"
-aleph-bft-rmc = "0.3.0"
+aleph-bft = "0.18.1"
+aleph-bft-rmc = "0.4.0"
 aleph-primitives = { package = "primitives", path = "../primitives" }
 
 async-trait = "0.1"

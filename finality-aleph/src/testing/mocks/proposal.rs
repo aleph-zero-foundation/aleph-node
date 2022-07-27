@@ -15,9 +15,7 @@ pub fn aleph_data_from_blocks(blocks: Vec<Block>) -> AlephData<Block> {
 }
 
 pub fn aleph_data_from_headers(headers: Vec<Header>) -> AlephData<Block> {
-    if headers.is_empty() {
-        AlephData::Empty
-    } else {
-        AlephData::HeadProposal(unvalidated_proposal_from_headers(headers))
+    AlephData {
+        head_proposal: unvalidated_proposal_from_headers(headers),
     }
 }

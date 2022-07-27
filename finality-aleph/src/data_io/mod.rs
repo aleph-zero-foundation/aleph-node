@@ -24,34 +24,21 @@ pub const MAX_DATA_BRANCH_LEN: usize = 7;
 
 /// The data ordered by the Aleph consensus.
 #[derive(Clone, Debug, Encode, Decode)]
-pub enum AlephData<B: BlockT> {
-    Empty,
-    HeadProposal(UnvalidatedAlephProposal<B>),
+pub struct AlephData<B: BlockT> {
+    pub head_proposal: UnvalidatedAlephProposal<B>,
 }
 
 // Need to be implemented manually, as deriving does not work (`BlockT` is not `Hash`).
 impl<B: BlockT> Hash for AlephData<B> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        match self {
-            AlephData::Empty => {
-                (0u8).hash(state);
-            }
-            AlephData::HeadProposal(proposal) => {
-                (1u8).hash(state);
-                proposal.hash(state);
-            }
-        }
+        self.head_proposal.hash(state);
     }
 }
 
 // Clippy does not allow deriving PartialEq when implementing Hash manually
 impl<B: BlockT> PartialEq for AlephData<B> {
     fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (AlephData::Empty, AlephData::Empty) => true,
-            (AlephData::HeadProposal(p1), AlephData::HeadProposal(p2)) => p1.eq(p2),
-            _ => false,
-        }
+        self.head_proposal.eq(&other.head_proposal)
     }
 }
 

@@ -632,18 +632,13 @@ where
     fn on_message_received(&mut self, message: Message) {
         let mut proposals = Vec::new();
         for data in message.included_data() {
-            use crate::data_io::AlephData::*;
-            match data {
-                Empty => {}
-                HeadProposal(unvalidated_proposal) => {
-                    match unvalidated_proposal.validate_bounds(&self.session_boundaries) {
-                        Ok(proposal) => proposals.push(proposal),
-                        Err(error) => {
-                            warn!(target: "aleph-data-store", "Message {:?} dropped as it contains \
+            let unvalidated_proposal = data.head_proposal;
+            match unvalidated_proposal.validate_bounds(&self.session_boundaries) {
+                Ok(proposal) => proposals.push(proposal),
+                Err(error) => {
+                    warn!(target: "aleph-data-store", "Message {:?} dropped as it contains \
                             proposal {:?} not within bounds ({:?}).", message, unvalidated_proposal, error);
-                            return;
-                        }
-                    }
+                    return;
                 }
             }
         }

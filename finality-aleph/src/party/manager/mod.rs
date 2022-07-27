@@ -289,11 +289,11 @@ fn create_aleph_config(
             exponential_slowdown(t, unit_creation_delay.0 as f64, 5000, 1.005)
         }
     });
-    let unit_broadcast_delay = Arc::new(|t| exponential_slowdown(t, 4000., 0, 2.));
     let delay_config = DelayConfig {
         tick_interval: Duration::from_millis(100),
         requests_interval: Duration::from_millis(3000),
-        unit_broadcast_delay,
+        unit_rebroadcast_interval_min: Duration::from_millis(15000),
+        unit_rebroadcast_interval_max: Duration::from_millis(20000),
         unit_creation_delay,
     };
     consensus_config.delay_config = delay_config;

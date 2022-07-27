@@ -82,9 +82,9 @@ where
         let num_last = finalized_block.num + <NumberFor<B>>::saturated_from(branch.len());
         // The hashes in `branch` are ordered from top to bottom -- need to reverse.
         branch.reverse();
-        Ok(AlephData::HeadProposal(UnvalidatedAlephProposal::<B>::new(
-            branch, num_last,
-        )))
+        Ok(AlephData {
+            head_proposal: UnvalidatedAlephProposal::new(branch, num_last),
+        })
     } else {
         // By backtracking from the best block we reached a block conflicting with best finalized.
         // This is most likely a bug, or some extremely unlikely synchronization issue of the client.
@@ -115,7 +115,7 @@ struct ChainInfo<B: BlockT> {
 
 /// ChainTracker keeps track of the best_block in a given session and allows to generate `AlephData`.
 /// Internally it frequently updates a `data_to_propose` field that is shared with a `DataProvider`, which
-/// in turn is a tiny wrapper around this single shared resource that outputs `data_to_propose` whenever
+/// in turn is a tiny wrapper around this single shared resource that takes out `data_to_propose` whenever
 /// `get_data` is called.
 pub struct ChainTracker<B, SC, C>
 where
@@ -125,7 +125,7 @@ where
 {
     select_chain: SC,
     client: Arc<C>,
-    data_to_propose: Arc<Mutex<AlephData<B>>>,
+    data_to_propose: Arc<Mutex<Option<AlephData<B>>>>,
     session_boundaries: SessionBoundaries<B>,
     prev_chain_info: Option<ChainInfo<B>>,
     config: ChainTrackerConfig,
@@ -144,7 +144,7 @@ where
         config: ChainTrackerConfig,
         metrics: Option<Metrics<<B::Header as HeaderT>::Hash>>,
     ) -> (Self, impl aleph_bft::DataProvider<AlephData<B>>) {
-        let data_to_propose = Arc::new(Mutex::new(AlephData::Empty));
+        let data_to_propose = Arc::new(Mutex::new(None));
         (
             ChainTracker {
                 select_chain,
@@ -174,7 +174,7 @@ where
         if finalized_block.num >= self.session_boundaries.last_block() {
             // This session is already finished, but this instance of ChainTracker has not been terminated yet.
             // We go with the default -- empty proposal, this does not have any significance.
-            *self.data_to_propose.lock().await = AlephData::Empty;
+            *self.data_to_propose.lock().await = None;
             return;
         }
 
@@ -195,7 +195,7 @@ where
 
         if best_block_in_session.num == finalized_block.num {
             // We don't have anything to propose, we go ahead with an empty proposal.
-            *self.data_to_propose.lock().await = AlephData::Empty;
+            *self.data_to_propose.lock().await = None;
             return;
         }
         if best_block_in_session.num < finalized_block.num {
@@ -209,7 +209,7 @@ where
             best_block_in_session.clone(),
             finalized_block,
         ) {
-            *self.data_to_propose.lock().await = proposal;
+            *self.data_to_propose.lock().await = Some(proposal);
         }
     }
 
@@ -293,7 +293,7 @@ where
 /// Provides data to AlephBFT for ordering.
 #[derive(Clone)]
 struct DataProvider<B: BlockT> {
-    data_to_propose: Arc<Mutex<AlephData<B>>>,
+    data_to_propose: Arc<Mutex<Option<AlephData<B>>>>,
     metrics: Option<Metrics<<B::Header as HeaderT>::Hash>>,
 }
 
@@ -307,20 +307,21 @@ struct DataProvider<B: BlockT> {
 //    at most MAX_DATA_BRANCH_LEN.
 #[async_trait]
 impl<B: BlockT> aleph_bft::DataProvider<AlephData<B>> for DataProvider<B> {
-    async fn get_data(&mut self) -> AlephData<B> {
-        let data = (*self.data_to_propose.lock().await).clone();
+    async fn get_data(&mut self) -> Option<AlephData<B>> {
+        let data_to_propose = (*self.data_to_propose.lock().await).take();
 
-        if let Some(m) = &self.metrics {
-            if let AlephData::HeadProposal(proposal) = &data {
+        if let Some(data) = &data_to_propose {
+            if let Some(m) = &self.metrics {
                 m.report_block(
-                    *proposal.branch.last().unwrap(),
+                    *data.head_proposal.branch.last().unwrap(),
                     std::time::Instant::now(),
                     Checkpoint::Ordering,
                 );
             }
-        }
-        debug!(target: "aleph-data-store", "Outputting {:?} in get_data", data);
-        data
+            debug!(target: "aleph-data-store", "Outputting {:?} in get_data", data);
+        };
+
+        return data_to_propose;
     }
 }
 
@@ -407,7 +408,7 @@ mod tests {
 
             assert_eq!(
                 data_provider.get_data().await,
-                AlephData::Empty,
+                None,
                 "Expected empty proposal"
             );
 
@@ -417,7 +418,7 @@ mod tests {
 
             sleep_enough().await;
 
-            let data = data_provider.get_data().await;
+            let data = data_provider.get_data().await.unwrap();
             let expected_data = aleph_data_from_blocks(blocks[..MAX_DATA_BRANCH_LEN].to_vec());
             assert_eq!(data, expected_data);
         })
@@ -433,7 +434,7 @@ mod tests {
             for height in 1..(2 * MAX_DATA_BRANCH_LEN) {
                 chain_builder.finalize_block(&blocks[height - 1].header.hash());
                 sleep_enough().await;
-                let data = data_provider.get_data().await;
+                let data = data_provider.get_data().await.unwrap();
                 let expected_data =
                     aleph_data_from_blocks(blocks[height..(MAX_DATA_BRANCH_LEN + height)].to_vec());
                 assert_eq!(data, expected_data);
@@ -442,7 +443,7 @@ mod tests {
             sleep_enough().await;
             assert_eq!(
                 data_provider.get_data().await,
-                AlephData::Empty,
+                None,
                 "Expected empty proposal"
             );
         })
@@ -458,7 +459,7 @@ mod tests {
                 )
                 .await;
             sleep_enough().await;
-            let data = data_provider.get_data().await;
+            let data = data_provider.get_data().await.unwrap();
             let expected_data = aleph_data_from_blocks(blocks[0..MAX_DATA_BRANCH_LEN].to_vec());
             assert_eq!(data, expected_data);
 
@@ -467,7 +468,7 @@ mod tests {
             sleep_enough().await;
             assert_eq!(
                 data_provider.get_data().await,
-                AlephData::Empty,
+                None,
                 "Expected empty proposal"
             );
         })
