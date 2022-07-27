@@ -5,7 +5,7 @@ use clap::{ArgGroup, Parser};
 use finality_aleph::UnitCreationDelay;
 
 #[derive(Debug, Parser, Clone)]
-#[clap(group(ArgGroup::new("backup").required(true)))]
+#[clap(group(ArgGroup::new("backup")))]
 pub struct AlephCli {
     #[clap(long)]
     unit_creation_delay: Option<u64>,
@@ -36,5 +36,9 @@ impl AlephCli {
 
     pub fn backup_path(&self) -> Option<PathBuf> {
         self.backup_path.clone()
+    }
+
+    pub fn no_backup(&self) -> bool {
+        self.no_backup
     }
 }

@@ -102,7 +102,7 @@ pub fn rotate(
     let session_path = if let Some(path) = backup_path {
         path.join(format!("{}", session_id))
     } else {
-        debug!(target: "aleph-party", "Passing empty backup for session {:?} as no backup path was provided", session_id);
+        debug!(target: "aleph-party", "Passing empty backup for session {:?} as no backup argument was provided", session_id);
         return Ok((Box::new(io::sink()), Box::new(io::empty())));
     };
     debug!(target: "aleph-party", "Loading backup for session {:?} at path {:?}", session_id, session_path);
