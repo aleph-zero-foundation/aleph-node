@@ -19,9 +19,9 @@ serde = "1"
 serde_json = "1"
 tokio = { version = "1.0", features = ["full"] }
 
-frame-support = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.23" }
-frame-system = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.23" }
-pallet-balances = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.23" }
+frame-support = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
+frame-system = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
+pallet-balances = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
 jsonrpc-core = "18.0"
 jsonrpc-core-client = { version = "18.0", features = ["ws"] }
 jsonrpc-derive = "18.0"

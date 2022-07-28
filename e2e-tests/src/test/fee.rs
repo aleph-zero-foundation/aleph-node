@@ -6,14 +6,16 @@ use codec::Encode;
 use sp_core::Pair;
 use sp_runtime::{traits::One, FixedPointNumber, FixedU128};
 use substrate_api_client::{
-    compose_extrinsic, AccountId, ExtrinsicParams, GenericAddress, XtStatus,
+    compose_call, compose_extrinsic, AccountId, ExtrinsicParams, GenericAddress, XtStatus,
 };
 
-use crate::{config::Config, transfer::setup_for_transfer};
+use crate::{accounts::get_sudo_key, config::Config, transfer::setup_for_transfer};
 
 pub fn fee_calculation(config: &Config) -> anyhow::Result<()> {
     // An initial transfer is needed to establish the fee multiplier.
     let (connection, to) = setup_for_transfer(config);
+    let sudo = get_sudo_key(config);
+    let root_connection = RootConnection::new(&config.node, sudo);
     let transfer_value = 1000u128;
     balances_transfer(&connection, &to, transfer_value, XtStatus::Finalized);
 
@@ -30,7 +32,6 @@ pub fn fee_calculation(config: &Config) -> anyhow::Result<()> {
 
     // The target saturation level is set to 25%, so unless we cross this limit,
     // the fees should not increase. Note that effectively it is 18.75% of the whole block.
-    let root_connection = RootConnection::from(connection.clone());
     fill_blocks(15, 5, &root_connection);
     let (actual_multiplier, fee_info) = check_current_fees(&connection, &tx);
     assert_no_scaling(
@@ -127,12 +128,13 @@ fn prepare_transaction(connection: &SignedConnection) -> TransferTransaction {
 
 fn fill_blocks(target_ratio: u32, blocks: u32, connection: &RootConnection) {
     for _ in 0..blocks {
-        let xt = compose_extrinsic!(
-            connection.as_connection(),
+        let call = compose_call!(
+            connection.as_connection().metadata,
             "System",
             "fill_block",
             target_ratio * 10_000_000
         );
+        let xt = compose_extrinsic!(connection.as_connection(), "Sudo", "sudo", call);
         send_xt(connection, xt, Some("fill block"), XtStatus::InBlock);
     }
 }

@@ -107,7 +107,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 28,
+    spec_version: 29,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 9,
@@ -276,6 +276,7 @@ parameter_types! {
 }
 
 impl pallet_transaction_payment::Config for Runtime {
+    type Event = Event;
     type OnChargeTransaction = CurrencyAdapter<Balances, EverythingToTheTreasury>;
     type LengthToFee = IdentityFee<Balance>;
     type WeightToFee = IdentityFee<Balance>;
@@ -615,6 +616,7 @@ impl pallet_treasury::Config for Runtime {
     type ProposalBondMaximum = ProposalBondMaximum;
     type RejectOrigin = EnsureSignedBy<TreasuryGovernance, AccountId>;
     type SpendFunds = ();
+    type SpendOrigin = frame_support::traits::NeverEnsureOrigin<u128>;
     type SpendPeriod = SpendPeriod;
     type WeightInfo = pallet_treasury::weights::SubstrateWeight<Runtime>;
 }
@@ -667,6 +669,7 @@ impl pallet_contracts::Config for Runtime {
     type ContractAccessWeight = ConstU64<0>;
     type MaxCodeLen = ConstU32<{ 128 * 1024 }>;
     type RelaxedMaxCodeLen = ConstU32<{ 256 * 1024 }>;
+    type MaxStorageKeyLen = ConstU32<128>;
 }
 
 parameter_types! {
@@ -931,7 +934,7 @@ impl_runtime_apis! {
 
         fn get_storage(
             address: AccountId,
-            key: [u8; 32],
+            key: Vec<u8>,
         ) -> GetStorageResult {
             Contracts::get_storage(address, key)
         }

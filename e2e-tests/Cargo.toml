@@ -14,15 +14,15 @@ serde_json = "1.0"
 codec = { package = 'parity-scale-codec', version = "3.0", default-features = false, features = ['derive'] }
 rayon = "1.5"
 
-substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "aleph-v0.9.23", features = ["staking-xt"] }
-ac-primitives = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "aleph-v0.9.23" }
+substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "aleph-v0.9.26", features = ["staking-xt"] }
+ac-primitives = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "aleph-v0.9.26" }
 
-sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.23", default-features = false, features = ["full_crypto"] }
-sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.23", default-features = false }
-frame-support = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.23", default-features = false }
-system = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.23", package = "frame-system" }
-pallet-staking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.23", default-features = false }
-pallet-balances = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.23", default-features = false }
+sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", default-features = false, features = ["full_crypto"] }
+sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", default-features = false }
+frame-support = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", default-features = false }
+system = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", package = "frame-system" }
+pallet-staking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", default-features = false }
+pallet-balances = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", default-features = false }
 
 aleph_client = { path = "../aleph-client" }
 pallet-elections = { path = "../pallets/elections" }
