@@ -110,8 +110,4 @@ if [[ -n "${UNIT_CREATION_DELAY:-}" ]]; then
   ARGS+=(--unit-creation-delay="${UNIT_CREATION_DELAY}")
 fi
 
-if [[ -n "${CUSTOM_ARGS:-}" ]]; then
-  ARGS+=(${CUSTOM_ARGS})
-fi
-
-aleph-node "${ARGS[@]}"
+echo "${CUSTOM_ARGS}" | xargs aleph-node "${ARGS[@]}"
