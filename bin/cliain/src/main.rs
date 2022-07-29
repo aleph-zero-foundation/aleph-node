@@ -1,16 +1,19 @@
 use std::env;
 
-use aleph_client::{keypair_from_string, print_storages, SignedConnection};
+use aleph_client::{
+    account_from_keypair, aleph_keypair_from_string, keypair_from_string, print_storages,
+    SignedConnection,
+};
 use clap::Parser;
 use cliain::{
-    bond, call, change_validators, force_new_era, instantiate, instantiate_with_code, nominate,
-    prepare_keys, prompt_password_hidden, remove_code, rotate_keys, set_keys, set_staking_limits,
-    transfer, treasury_approve, treasury_propose, treasury_reject, update_runtime, upload_code,
-    validate, vest, vest_other, vested_transfer, Command, ConnectionConfig,
+    bond, call, change_validators, finalize, force_new_era, instantiate, instantiate_with_code,
+    nominate, prepare_keys, prompt_password_hidden, remove_code, rotate_keys,
+    set_emergency_finalizer, set_keys, set_staking_limits, transfer, treasury_approve,
+    treasury_propose, treasury_reject, update_runtime, upload_code, validate, vest, vest_other,
+    vested_transfer, Command, ConnectionConfig,
 };
 use log::{error, info};
 use sp_core::Pair;
-use substrate_api_client::AccountId;
 
 #[derive(Debug, Parser, Clone)]
 #[clap(version = "1.0")]
@@ -29,6 +32,19 @@ struct Config {
     pub command: Command,
 }
 
+fn read_secret(secret: Option<String>, message: &str) -> String {
+    match secret {
+        Some(secret) => secret,
+        None => match prompt_password_hidden(message) {
+            Ok(secret) => secret,
+            Err(e) => {
+                error!("Failed to parse prompt with error {:?}! Exiting.", e);
+                std::process::exit(1);
+            }
+        },
+    }
+}
+
 fn main() {
     init_env();
 
@@ -38,28 +54,34 @@ fn main() {
         command,
     } = Config::parse();
 
-    let seed = match seed {
-        Some(seed) => seed,
-        None => match prompt_password_hidden("Provide seed for the signer account:") {
-            Ok(seed) => seed,
-            Err(e) => {
-                error!("Failed to parse prompt with error {:?}! Exiting.", e);
-                std::process::exit(1);
-            }
-        },
-    };
+    let seed = read_secret(seed, "Provide seed for the signer account:");
     let cfg = ConnectionConfig::new(node, seed.clone());
     match command {
         Command::ChangeValidators { validators } => change_validators(cfg.into(), validators),
         Command::PrepareKeys => {
             let key = keypair_from_string(&seed);
-            let controller_account_id = AccountId::from(key.public());
+            let controller_account_id = account_from_keypair(&key);
             prepare_keys(cfg.into(), controller_account_id);
         }
         Command::Bond {
             controller_account,
             initial_stake_tokens,
         } => bond(cfg.into(), initial_stake_tokens, controller_account),
+        Command::Finalize {
+            block,
+            hash,
+            finalizer_seed,
+        } => {
+            let finalizer_seed = read_secret(finalizer_seed, "Provide finalizer seed:");
+            let finalizer = aleph_keypair_from_string(&finalizer_seed);
+            finalize(cfg.into(), block, hash, finalizer);
+        }
+        Command::SetEmergencyFinalizer { finalizer_seed } => {
+            let finalizer_seed = read_secret(finalizer_seed, "Provide finalizer seed:");
+            let finalizer = aleph_keypair_from_string(&finalizer_seed);
+            let finalizer = account_from_keypair(&finalizer);
+            set_emergency_finalizer(cfg.into(), finalizer);
+        }
         Command::SetKeys { new_keys } => set_keys(cfg.into(), new_keys),
         Command::Validate {
             commission_percentage,

@@ -6,19 +6,23 @@ pub use balances::total_issuance;
 use codec::{Decode, Encode};
 pub use debug::print_storages;
 pub use fee::{get_next_fee_multiplier, get_tx_fee_info, FeeInfo};
+pub use finalization::set_emergency_finalizer as finalization_set_emergency_finalizer;
 use log::{info, warn};
 pub use multisig::{
     compute_call_hash, perform_multisig_with_threshold_1, MultisigError, MultisigParty,
     SignatureAggregation,
 };
-pub use rpc::{rotate_keys, rotate_keys_raw_result, state_query_storage_at};
+pub use rpc::{emergency_finalize, rotate_keys, rotate_keys_raw_result, state_query_storage_at};
 pub use session::{
     change_next_era_reserved_validators, change_validators, get_current_session, get_session,
     get_session_period, set_keys, wait_for as wait_for_session,
     wait_for_at_least as wait_for_at_least_session, Keys as SessionKeys,
 };
-use sp_core::{sr25519, storage::StorageKey, Pair, H256};
-use sp_runtime::{generic::Header as GenericHeader, traits::BlakeTwo256};
+use sp_core::{ed25519, sr25519, storage::StorageKey, Pair, H256};
+use sp_runtime::{
+    generic::Header as GenericHeader,
+    traits::{BlakeTwo256, Header as HeaderT},
+};
 pub use staking::{
     batch_bond as staking_batch_bond, batch_nominate as staking_batch_nominate,
     bond as staking_bond, bonded as staking_bonded, force_new_era as staking_force_new_era,
@@ -52,6 +56,7 @@ mod account;
 mod balances;
 mod debug;
 mod fee;
+mod finalization;
 mod multisig;
 mod rpc;
 mod session;
@@ -78,7 +83,9 @@ impl FromStr for WsRpcClient {
 
 pub type BlockNumber = u32;
 pub type Header = GenericHeader<BlockNumber, BlakeTwo256>;
+pub type BlockHash = <Header as HeaderT>::Hash;
 pub type KeyPair = sr25519::Pair;
+pub type AlephKeyPair = ed25519::Pair;
 pub type Connection = Api<KeyPair, WsRpcClient, PlainTipExtrinsicParams>;
 pub type Extrinsic<Call> = UncheckedExtrinsicV4<Call, SubstrateDefaultSignedExtra>;
 
@@ -351,7 +358,15 @@ pub fn keypair_from_string(seed: &str) -> KeyPair {
     KeyPair::from_string(seed, None).expect("Can't create pair from seed value")
 }
 
-pub fn account_from_keypair(keypair: &KeyPair) -> AccountId {
+pub fn aleph_keypair_from_string(seed: &str) -> AlephKeyPair {
+    AlephKeyPair::from_string(seed, None).expect("Can't create aleph pair from seed value")
+}
+
+pub fn account_from_keypair<P>(keypair: &P) -> AccountId
+where
+    P: Pair,
+    AccountId: From<<P as Pair>::Public>,
+{
     AccountId::from(keypair.public())
 }
 
@@ -381,7 +396,7 @@ pub fn get_storage_key(pallet: &str, call: &str) -> String {
     hex::encode(storage_key.0)
 }
 
-pub fn get_block_hash<C: AnyConnection>(connection: &C, block_number: u32) -> H256 {
+pub fn get_block_hash<C: AnyConnection>(connection: &C, block_number: BlockNumber) -> BlockHash {
     connection
         .as_connection()
         .get_block_hash(Some(block_number))
