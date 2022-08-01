@@ -1793,6 +1793,7 @@ dependencies = [
  "primitives",
  "scale-info",
  "sp-core",
+ "sp-io",
  "sp-staking",
  "sp-std",
 ]

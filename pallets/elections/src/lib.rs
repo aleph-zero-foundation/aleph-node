@@ -33,7 +33,7 @@ const STORAGE_VERSION: StorageVersion = StorageVersion::new(3);
 pub type BlockCount = u32;
 pub type TotalReward = u32;
 
-#[derive(Decode, Encode, TypeInfo)]
+#[derive(Decode, Encode, TypeInfo, Eq, PartialEq)]
 pub struct EraValidators<AccountId> {
     pub reserved: Vec<AccountId>,
     pub non_reserved: Vec<AccountId>,

@@ -5,6 +5,8 @@ use frame_support::bounded_vec;
 use pallet_session::SessionManager;
 use primitives::CommitteeSeats;
 
+#[cfg(feature = "try-runtime")]
+use crate::migrations::StorageMigration;
 use crate::{
     mock::{
         with_active_era, with_electable_targets, with_elected_validators, with_electing_voters,
@@ -104,4 +106,55 @@ fn session_authorities_must_have_been_elected() {
             authorities.sort();
             assert_eq!(authorities, &[1, 5]);
         });
+}
+
+#[cfg(feature = "try-runtime")]
+mod migration_tests {
+    use frame_support::migration::put_storage_value;
+
+    use super::*;
+
+    const MODULE: &[u8] = b"Elections";
+
+    #[test]
+    fn migration_v0_to_v1_works() {
+        TestExtBuilder::new(vec![], vec![])
+            .with_storage_version(0)
+            .build()
+            .execute_with(|| {
+                put_storage_value::<Vec<AccountId>>(MODULE, b"Members", &[], vec![1, 2]);
+                crate::migrations::v0_to_v1::Migration::<Test, crate::Pallet<Test>>::migrate()
+            });
+    }
+
+    #[test]
+    fn migration_v1_to_v2_works() {
+        TestExtBuilder::new(vec![], vec![])
+            .with_storage_version(1)
+            .build()
+            .execute_with(|| {
+                put_storage_value::<u32>(MODULE, b"MembersPerSession", &[], 2);
+                put_storage_value::<Vec<AccountId>>(MODULE, b"ReservedMembers", &[], vec![1]);
+                put_storage_value::<Vec<AccountId>>(MODULE, b"NonReservedMembers", &[], vec![2]);
+                put_storage_value::<(Vec<AccountId>, Vec<AccountId>)>(
+                    MODULE,
+                    b"ErasMembers",
+                    &[],
+                    (vec![1], vec![2]),
+                );
+                crate::migrations::v1_to_v2::Migration::<Test, crate::Pallet<Test>>::migrate()
+            });
+    }
+
+    #[test]
+    fn migration_v2_to_v3_works() {
+        TestExtBuilder::new(vec![1, 2], vec![3])
+            .with_storage_version(2)
+            .build()
+            .execute_with(|| {
+                put_storage_value::<u32>(MODULE, b"CommitteeSize", &[], 2);
+                put_storage_value::<u32>(MODULE, b"NextEraCommitteeSize", &[], 3);
+                crate::migrations::v2_to_v3::Migration::<Test, crate::Pallet<Test>>::migrate()
+            });
+    }
 }

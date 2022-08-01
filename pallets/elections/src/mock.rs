@@ -5,7 +5,7 @@ use frame_support::{
     construct_runtime, parameter_types, sp_io,
     traits::{ConstU32, GenesisBuild},
     weights::RuntimeDbWeight,
-    BoundedVec,
+    BasicExternalities, BoundedVec,
 };
 use primitives::CommitteeSeats;
 use sp_core::H256;
@@ -116,7 +116,7 @@ impl ValidatorRewardsHandler<Test> for MockProvider {
     fn validator_totals(
         _era: EraIndex,
     ) -> Vec<(<Test as frame_system::Config>::AccountId, Balance)> {
-        todo!()
+        Default::default()
     }
 
     fn add_rewards(
@@ -213,6 +213,7 @@ pub struct TestExtBuilder {
     reserved_validators: Vec<AccountId>,
     non_reserved_validators: Vec<AccountId>,
     committee_seats: CommitteeSeats,
+    storage_version: StorageVersion,
 }
 
 impl TestExtBuilder {
@@ -227,11 +228,18 @@ impl TestExtBuilder {
             },
             reserved_validators,
             non_reserved_validators,
+            storage_version: STORAGE_VERSION,
         }
     }
 
     pub fn with_committee_seats(mut self, committee_seats: CommitteeSeats) -> Self {
         self.committee_seats = committee_seats;
+        self
+    }
+
+    #[cfg(feature = "try-runtime")]
+    pub fn with_storage_version(mut self, version: u16) -> Self {
+        self.storage_version = StorageVersion::new(version);
         self
     }
 
@@ -261,6 +269,10 @@ impl TestExtBuilder {
         }
         .assimilate_storage(&mut t)
         .unwrap();
+
+        BasicExternalities::execute_with_storage(&mut t, || {
+            self.storage_version.put::<Pallet<Test>>()
+        });
 
         t.into()
     }

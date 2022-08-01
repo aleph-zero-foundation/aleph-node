@@ -4805,6 +4805,7 @@ dependencies = [
  "primitives",
  "scale-info",
  "sp-core",
+ "sp-io",
  "sp-runtime",
  "sp-staking",
  "sp-std",
