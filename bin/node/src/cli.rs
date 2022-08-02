@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
-#[clap(subcommand_negates_reqs(true))]
+#[clap(subcommand_negates_reqs(true), version(env!("SUBSTRATE_CLI_IMPL_VERSION")))]
 pub struct Cli {
     #[clap(subcommand)]
     pub subcommand: Option<Subcommand>,
