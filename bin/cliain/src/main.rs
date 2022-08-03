@@ -22,14 +22,29 @@ struct Config {
     #[clap(long, default_value = "127.0.0.1:9944")]
     pub node: String,
 
-    /// The seed of the key to use for signing calls
-    /// If not given, a user is prompted to provide seed
+    /// The seed of the key to use for signing calls.
+    /// If not given and the command is not rpc call,
+    /// a user is prompted to provide seed
     #[clap(long)]
     pub seed: Option<String>,
 
     /// Specific command that executes either a signed transaction or is an auxiliary command
     #[clap(subcommand)]
     pub command: Command,
+}
+
+fn read_seed(command: &Command, seed: Option<String>) -> String {
+    match command {
+        Command::Finalize {
+            block: _,
+            hash: _,
+            finalizer_seed: _,
+        }
+        | Command::RotateKeys
+        | Command::DebugStorage
+        | Command::SeedToSS58 { input: _ } => String::new(),
+        _ => read_secret(seed, "Provide seed for the signer account:"),
+    }
 }
 
 fn read_secret(secret: Option<String>, message: &str) -> String {
@@ -54,7 +69,7 @@ fn main() {
         command,
     } = Config::parse();
 
-    let seed = read_secret(seed, "Provide seed for the signer account:");
+    let seed = read_seed(&command, seed);
     let cfg = ConnectionConfig::new(node, seed.clone());
     match command {
         Command::ChangeValidators { validators } => change_validators(cfg.into(), validators),
@@ -112,10 +127,13 @@ fn main() {
         Command::ForceNewEra => {
             force_new_era(cfg.into());
         }
-        Command::SeedToSS58 => info!(
-            "SS58 Address: {}",
-            keypair_from_string(&seed).public().to_string()
-        ),
+        Command::SeedToSS58 { input } => {
+            let input = read_secret(input, "Provide seed:");
+            info!(
+                "SS58 Address: {}",
+                keypair_from_string(&input).public().to_string()
+            )
+        }
         Command::DebugStorage => print_storages::<SignedConnection>(&cfg.into()),
         Command::UpdateRuntime { runtime } => update_runtime(cfg.into(), runtime),
         Command::Vest => vest(cfg.into()),
