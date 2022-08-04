@@ -127,6 +127,7 @@ dependencies = [
  "log",
  "pallet-aleph",
  "pallet-balances",
+ "pallet-elections",
  "pallet-multisig",
  "pallet-staking",
  "pallet-treasury",

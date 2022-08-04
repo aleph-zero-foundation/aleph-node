@@ -5,7 +5,7 @@ use codec::Decode;
 use log::{error, info};
 use substrate_api_client::ApiResult;
 
-use crate::{AnyConnection, Header};
+use crate::{AnyConnection, BlockNumber, Header};
 
 pub fn wait_for_event<C: AnyConnection, E: Decode + Clone, P: Fn(E) -> bool>(
     connection: &C,
@@ -34,8 +34,8 @@ pub fn wait_for_event<C: AnyConnection, E: Decode + Clone, P: Fn(E) -> bool>(
 
 pub fn wait_for_finalized_block<C: AnyConnection>(
     connection: &C,
-    block_number: u32,
-) -> AnyResult<u32> {
+    block_number: BlockNumber,
+) -> AnyResult<BlockNumber> {
     let (sender, receiver) = channel();
     connection
         .as_connection()

@@ -1,119 +1,23 @@
 use std::collections::BTreeSet;
 
-use ac_primitives::ExtrinsicParams;
 use aleph_client::{
-    account_from_keypair, balances_batch_transfer, change_validators, get_current_session,
-    keypair_from_string, rotate_keys, send_xt, set_keys, staking_bond, staking_validate,
-    wait_for_full_era_completion, wait_for_session, AnyConnection, KeyPair, RootConnection,
-    SignedConnection,
+    change_validators, get_current_session, get_current_validators, get_eras_stakers_storage_key,
+    get_stakers_as_storage_keys, get_stakers_as_storage_keys_from_storage_key,
+    staking_chill_all_validators, wait_for_full_era_completion, wait_for_session, AnyConnection,
+    RootConnection, SignedConnection,
 };
 use log::info;
-use primitives::{staking::MIN_VALIDATOR_BOND, CommitteeSeats, EraIndex, TOKEN};
-use sp_core::{storage::StorageKey, Pair};
-use substrate_api_client::{compose_extrinsic, AccountId, XtStatus};
+use primitives::{CommitteeSeats, EraIndex};
+use sp_core::storage::StorageKey;
+use substrate_api_client::{AccountId, XtStatus};
 
-use crate::{accounts::get_sudo_key, Config};
+use crate::{
+    accounts::get_sudo_key,
+    validators::{prepare_validators, setup_accounts},
+    Config,
+};
 
-/// Gathers keys and accounts for all validators used in the experiment.
-struct Accounts {
-    stash_keys: Vec<KeyPair>,
-    stash_accounts: Vec<AccountId>,
-
-    controller_keys: Vec<KeyPair>,
-    controller_accounts: Vec<AccountId>,
-}
-
-/// Generate `Accounts` struct.
-fn setup_accounts() -> Accounts {
-    let seeds = (0..6).map(|idx| format!("//Validator//{}", idx));
-
-    let stash_seeds = seeds.clone().map(|seed| format!("{}//Stash", seed));
-    let stash_keys = stash_seeds.map(|s| keypair_from_string(&s));
-    let stash_accounts = stash_keys.clone().map(|k| account_from_keypair(&k));
-
-    let controller_seeds = seeds.map(|seed| format!("{}//Controller", seed));
-    let controller_keys = controller_seeds.map(|s| keypair_from_string(&s));
-    let controller_accounts = controller_keys.clone().map(|k| account_from_keypair(&k));
-
-    Accounts {
-        stash_keys: stash_keys.collect(),
-        stash_accounts: stash_accounts.collect(),
-        controller_keys: controller_keys.collect(),
-        controller_accounts: controller_accounts.collect(),
-    }
-}
-
-/// Endow validators (stashes and controllers), bond and rotate keys.
-///
-/// Signer of `connection` should have enough balance to endow new accounts.
-fn prepare_validators(connection: &SignedConnection, node: &str, accounts: &Accounts) {
-    balances_batch_transfer(
-        connection,
-        accounts.stash_accounts.clone(),
-        MIN_VALIDATOR_BOND + TOKEN,
-    );
-    balances_batch_transfer(connection, accounts.controller_accounts.clone(), TOKEN);
-
-    for (stash, controller) in accounts
-        .stash_keys
-        .iter()
-        .zip(accounts.controller_accounts.iter())
-    {
-        let connection = SignedConnection::new(node, stash.clone());
-        staking_bond(
-            &connection,
-            MIN_VALIDATOR_BOND,
-            controller,
-            XtStatus::Finalized,
-        );
-    }
-
-    for controller in accounts.controller_keys.iter() {
-        let keys = rotate_keys(connection).expect("Failed to generate new keys");
-        let connection = SignedConnection::new(node, controller.clone());
-        set_keys(&connection, keys, XtStatus::Finalized);
-        staking_validate(&connection, 10, XtStatus::Finalized);
-    }
-}
-
-/// Produce storage key to `ErasStakers::era`.
-///
-/// Since in `substrate-api-client` it seems impossible to get prefix for the first key in double
-/// map, we have to do it by hand.
-fn get_eras_stakers_storage_key(era: EraIndex) -> StorageKey {
-    let mut bytes = sp_core::twox_128("Staking".as_bytes()).to_vec();
-    bytes.extend(&sp_core::twox_128("ErasStakers".as_bytes())[..]);
-
-    let era_encoded = codec::Encode::encode(&era);
-    // `pallet_staking::ErasStakers`'s keys are `Twox64Concat`-encoded.
-    let era_key: Vec<u8> = sp_core::twox_64(&era_encoded)
-        .iter()
-        .chain(&era_encoded)
-        .cloned()
-        .collect();
-    bytes.extend(era_key);
-
-    StorageKey(bytes)
-}
-
-fn stakers_as_storage_keys<C: AnyConnection>(
-    connection: &C,
-    accounts: &[AccountId],
-    era: EraIndex,
-) -> BTreeSet<StorageKey> {
-    accounts
-        .iter()
-        .map(|acc| {
-            connection
-                .as_connection()
-                .metadata
-                .storage_double_map_key("Staking", "ErasStakers", era, acc)
-                .unwrap()
-        })
-        .collect()
-}
-
-/// Verify that `pallet_staking::ErasStakers` contain all target validators.
+/// Verify that `pallet_staking::ErasStakers` contains all target validators.
 ///
 /// We have to do it by comparing keys in storage trie.
 fn assert_validators_are_elected_stakers<C: AnyConnection>(
@@ -122,18 +26,8 @@ fn assert_validators_are_elected_stakers<C: AnyConnection>(
     expected_validators_as_keys: &BTreeSet<StorageKey>,
 ) {
     let storage_key = get_eras_stakers_storage_key(current_era);
-    let stakers = connection
-        .as_connection()
-        .get_keys(storage_key, None)
-        .unwrap_or_else(|_| panic!("Couldn't read storage keys"))
-        .unwrap_or_else(|| panic!("Couldn't read `ErasStakers` for era {}", current_era))
-        .into_iter()
-        .map(|key| {
-            let mut bytes = [0u8; 84];
-            hex::decode_to_slice(&key[2..], &mut bytes as &mut [u8]).expect("Should decode key");
-            StorageKey(bytes.to_vec())
-        });
-    let stakers = BTreeSet::from_iter(stakers);
+    let stakers =
+        get_stakers_as_storage_keys_from_storage_key(connection, current_era, storage_key);
 
     assert_eq!(
         *expected_validators_as_keys, stakers,
@@ -155,8 +49,7 @@ fn assert_validators_are_used_as_authorities<C: AnyConnection>(
         let current_session = get_current_session(connection);
 
         info!("Reading authorities in session {}", current_session);
-        let current_authorities: Vec<AccountId> =
-            connection.read_storage_value("Session", "Validators");
+        let current_authorities = get_current_validators(connection);
         for ca in current_authorities.into_iter() {
             authorities.insert(ca);
         }
@@ -169,26 +62,6 @@ fn assert_validators_are_used_as_authorities<C: AnyConnection>(
         "Expected another set of authorities.\n\tExpected: {:?}\n\tActual: {:?}",
         expected_authorities, authorities
     );
-}
-
-/// Chill validator.
-fn chill(connection: &SignedConnection) {
-    let xt = compose_extrinsic!(connection.as_connection(), "Staking", "chill");
-    send_xt(
-        connection,
-        xt,
-        Some("chilling validator"),
-        XtStatus::InBlock,
-    );
-}
-
-/// Chill all validators in `chilling`.
-fn chill_validators(node: &str, chilling: Vec<KeyPair>) {
-    for validator in chilling.into_iter() {
-        info!("Chilling validator {:?}", validator.public());
-        let connection = SignedConnection::new(node, validator);
-        chill(&connection);
-    }
 }
 
 /// 1. Setup 6 brand new validators - 3 reserved and 3 non reserved.
@@ -216,10 +89,10 @@ pub fn authorities_are_staking(config: &Config) -> anyhow::Result<()> {
     prepare_validators(&root_connection.as_signed(), node, &accounts);
     info!("New validators are set up");
 
-    let reserved_validators = accounts.stash_accounts[..3].to_vec();
-    let chilling_reserved = accounts.controller_keys[0].clone();
-    let non_reserved_validators = accounts.stash_accounts[3..].to_vec();
-    let chilling_non_reserved = accounts.controller_keys[3].clone();
+    let reserved_validators = accounts.get_stash_accounts()[..3].to_vec();
+    let chilling_reserved = accounts.get_controller_keys()[0].clone();
+    let non_reserved_validators = accounts.get_stash_accounts()[3..].to_vec();
+    let chilling_non_reserved = accounts.get_controller_keys()[3].clone();
 
     change_validators(
         &root_connection,
@@ -234,7 +107,7 @@ pub fn authorities_are_staking(config: &Config) -> anyhow::Result<()> {
     info!("Changed validators to a new set");
 
     // We need any signed connection.
-    let connection = SignedConnection::new(node, accounts.stash_keys[0].clone());
+    let connection = SignedConnection::new(node, accounts.get_stash_keys()[0].clone());
 
     let current_era = wait_for_full_era_completion(&connection)?;
     info!("New validators are in force (era: {})", current_era);
@@ -242,14 +115,14 @@ pub fn authorities_are_staking(config: &Config) -> anyhow::Result<()> {
     assert_validators_are_elected_stakers(
         &connection,
         current_era,
-        &stakers_as_storage_keys(&connection, &accounts.stash_accounts, current_era),
+        &get_stakers_as_storage_keys(&connection, accounts.get_stash_accounts(), current_era),
     );
     assert_validators_are_used_as_authorities(
         &connection,
-        &BTreeSet::from_iter(accounts.stash_accounts.clone().into_iter()),
+        &BTreeSet::from_iter(accounts.get_stash_accounts().clone().into_iter()),
     );
 
-    chill_validators(node, vec![chilling_reserved, chilling_non_reserved]);
+    staking_chill_all_validators(node, vec![chilling_reserved, chilling_non_reserved]);
 
     let current_era = wait_for_full_era_completion(&connection)?;
     info!(
@@ -257,14 +130,14 @@ pub fn authorities_are_staking(config: &Config) -> anyhow::Result<()> {
         current_era
     );
 
-    let mut left_stashes = accounts.stash_accounts;
+    let mut left_stashes = accounts.get_stash_accounts().clone();
     left_stashes.remove(3);
     left_stashes.remove(0);
 
     assert_validators_are_elected_stakers(
         &connection,
         current_era,
-        &stakers_as_storage_keys(&connection, &left_stashes, current_era),
+        &get_stakers_as_storage_keys(&connection, &left_stashes, current_era),
     );
     assert_validators_are_used_as_authorities(
         &connection,

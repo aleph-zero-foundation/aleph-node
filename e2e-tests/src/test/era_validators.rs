@@ -1,23 +1,16 @@
 use aleph_client::{
-    change_validators, get_current_session, wait_for_finalized_block, wait_for_full_era_completion,
-    wait_for_next_era, wait_for_session, AnyConnection, Header, KeyPair, RootConnection,
-    SignedConnection,
+    change_validators, get_current_block_number, get_current_era_non_reserved_validators,
+    get_current_era_reserved_validators, get_current_session, get_next_era_non_reserved_validators,
+    get_next_era_reserved_validators, wait_for_finalized_block, wait_for_full_era_completion,
+    wait_for_next_era, wait_for_session, KeyPair, SignedConnection,
 };
-use codec::Decode;
 use primitives::CommitteeSeats;
-use sp_core::Pair;
 use substrate_api_client::{AccountId, XtStatus};
 
 use crate::{
-    accounts::{get_sudo_key, get_validators_keys},
+    accounts::{account_ids_from_keys, get_validators_keys},
     Config,
 };
-
-#[derive(Decode)]
-struct EraValidators {
-    pub reserved: Vec<AccountId>,
-    pub non_reserved: Vec<AccountId>,
-}
 
 fn get_initial_reserved_validators(config: &Config) -> Vec<KeyPair> {
     get_validators_keys(config)[..2].to_vec()
@@ -35,56 +28,38 @@ fn get_new_non_reserved_validators(config: &Config) -> Vec<KeyPair> {
     get_validators_keys(config)[..3].to_vec()
 }
 
-fn get_pallets_reserved(
+fn get_current_and_next_era_reserved_validators(
     connection: &SignedConnection,
-) -> anyhow::Result<(Vec<AccountId>, Vec<AccountId>)> {
-    let stored_reserved: Vec<AccountId> =
-        connection.read_storage_value("Elections", "NextEraReservedValidators");
-    let eras_validators: EraValidators =
-        connection.read_storage_value("Elections", "CurrentEraValidators");
-
-    Ok((stored_reserved, eras_validators.reserved))
+) -> (Vec<AccountId>, Vec<AccountId>) {
+    let stored_reserved = get_next_era_reserved_validators(connection);
+    let current_reserved = get_current_era_reserved_validators(connection);
+    (current_reserved, stored_reserved)
 }
 
-fn get_pallets_non_reserved(
+fn get_current_and_next_era_non_reserved_validators(
     connection: &SignedConnection,
-) -> anyhow::Result<(Vec<AccountId>, Vec<AccountId>)> {
-    let stored_non_reserved: Vec<AccountId> =
-        connection.read_storage_value("Elections", "NextEraNonReservedValidators");
-    let eras_validators: EraValidators =
-        connection.read_storage_value("Elections", "CurrentEraValidators");
-
-    Ok((stored_non_reserved, eras_validators.non_reserved))
+) -> (Vec<AccountId>, Vec<AccountId>) {
+    let stored_non_reserved = get_next_era_non_reserved_validators(connection);
+    let current_non_reserved = get_current_era_non_reserved_validators(connection);
+    (current_non_reserved, stored_non_reserved)
 }
 
 pub fn era_validators(config: &Config) -> anyhow::Result<()> {
-    let node = &config.node;
-    let accounts = get_validators_keys(config);
-    let sender = accounts.first().expect("Using default accounts").to_owned();
-    let connection = SignedConnection::new(node, sender);
+    let connection = config.get_first_signed_connection();
+    let root_connection = config.create_root_connection();
 
-    let sudo = get_sudo_key(config);
+    let initial_reserved_validators_keys = get_initial_reserved_validators(config);
+    let initial_reserved_validators = account_ids_from_keys(&initial_reserved_validators_keys);
 
-    let root_connection = RootConnection::new(node, sudo);
+    let initial_non_reserved_validators_keys = get_initial_non_reserved_validators(config);
+    let initial_non_reserved_validators =
+        account_ids_from_keys(&initial_non_reserved_validators_keys);
 
-    let initial_reserved_validators: Vec<_> = get_initial_reserved_validators(config)
-        .iter()
-        .map(|pair| AccountId::from(pair.public()))
-        .collect();
+    let new_reserved_validators_keys = get_new_reserved_validators(config);
+    let new_reserved_validators = account_ids_from_keys(&new_reserved_validators_keys);
 
-    let initial_non_reserved_validators: Vec<_> = get_initial_non_reserved_validators(config)
-        .iter()
-        .map(|pair| AccountId::from(pair.public()))
-        .collect();
-
-    let new_non_reserved_validators: Vec<_> = get_new_non_reserved_validators(config)
-        .iter()
-        .map(|pair| AccountId::from(pair.public()))
-        .collect();
-    let new_reserved_validators: Vec<_> = get_new_reserved_validators(config)
-        .iter()
-        .map(|pair| AccountId::from(pair.public()))
-        .collect();
+    let new_non_reserved_validators_keys = get_new_non_reserved_validators(config);
+    let new_non_reserved_validators = account_ids_from_keys(&new_non_reserved_validators_keys);
 
     change_validators(
         &root_connection,
@@ -112,8 +87,10 @@ pub fn era_validators(config: &Config) -> anyhow::Result<()> {
     let current_session = get_current_session(&connection);
     wait_for_session(&connection, current_session + 1)?;
 
-    let (stored_reserved, eras_reserved) = get_pallets_reserved(&connection)?;
-    let (stored_non_reserved, eras_non_reserved) = get_pallets_non_reserved(&connection)?;
+    let (eras_reserved, stored_reserved) =
+        get_current_and_next_era_reserved_validators(&connection);
+    let (eras_non_reserved, stored_non_reserved) =
+        get_current_and_next_era_non_reserved_validators(&connection);
 
     assert_eq!(
         stored_reserved, new_reserved_validators,
@@ -135,8 +112,10 @@ pub fn era_validators(config: &Config) -> anyhow::Result<()> {
 
     wait_for_next_era(&connection)?;
 
-    let (stored_reserved, eras_reserved) = get_pallets_reserved(&connection)?;
-    let (stored_non_reserved, eras_non_reserved) = get_pallets_non_reserved(&connection)?;
+    let (eras_reserved, stored_reserved) =
+        get_current_and_next_era_reserved_validators(&connection);
+    let (eras_non_reserved, stored_non_reserved) =
+        get_current_and_next_era_non_reserved_validators(&connection);
 
     assert_eq!(
         stored_reserved, new_reserved_validators,
@@ -156,12 +135,7 @@ pub fn era_validators(config: &Config) -> anyhow::Result<()> {
         "Non-reserved validators set is not properly updated in the next era."
     );
 
-    let block_number = connection
-        .as_connection()
-        .get_header::<Header>(None)
-        .expect("Could not fetch header")
-        .expect("Block exists; qed")
-        .number;
+    let block_number = get_current_block_number(&connection);
     wait_for_finalized_block(&connection, block_number)?;
 
     Ok(())

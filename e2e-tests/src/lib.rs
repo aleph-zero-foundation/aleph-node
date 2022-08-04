@@ -7,3 +7,4 @@ mod config;
 mod rewards;
 mod test;
 mod transfer;
+mod validators;

@@ -7,8 +7,11 @@ use substrate_api_client::{
 };
 
 use crate::{
-    send_xt, waiting::wait_for_event, AnyConnection, BlockNumber, RootConnection, SignedConnection,
+    get_block_hash, send_xt, waiting::wait_for_event, AnyConnection, BlockNumber, RootConnection,
+    SignedConnection,
 };
+
+const PALLET: &str = "Session";
 
 // Using custom struct and rely on default Encode trait from Parity's codec
 // it works since byte arrays are encoded in a straight forward way, it as-is
@@ -78,7 +81,7 @@ pub fn change_next_era_reserved_validators(
 pub fn set_keys(connection: &SignedConnection, new_keys: Keys, status: XtStatus) {
     let xt = compose_extrinsic!(
         connection.as_connection(),
-        "Session",
+        PALLET,
         "set_keys",
         new_keys,
         0u8
@@ -93,7 +96,7 @@ pub fn get_current_session<C: AnyConnection>(connection: &C) -> SessionIndex {
 pub fn get_session<C: AnyConnection>(connection: &C, block_hash: Option<H256>) -> SessionIndex {
     connection
         .as_connection()
-        .get_storage_value("Session", "CurrentIndex", block_hash)
+        .get_storage_value(PALLET, "CurrentIndex", block_hash)
         .unwrap()
         .unwrap_or(0)
 }
@@ -108,15 +111,11 @@ pub fn wait_for_predicate<C: AnyConnection, P: Fn(SessionIndex) -> bool>(
     struct NewSessionEvent {
         session_index: SessionIndex,
     }
-    let result = wait_for_event(
-        connection,
-        ("Session", "NewSession"),
-        |e: NewSessionEvent| {
-            info!(target: "aleph-client", "New session {}", e.session_index);
+    let result = wait_for_event(connection, (PALLET, "NewSession"), |e: NewSessionEvent| {
+        info!(target: "aleph-client", "New session {}", e.session_index);
 
-            session_predicate(e.session_index)
-        },
-    )?;
+        session_predicate(e.session_index)
+    })?;
     Ok(result.session_index)
 }
 
@@ -136,4 +135,23 @@ pub fn wait_for_at_least<C: AnyConnection>(
 
 pub fn get_session_period<C: AnyConnection>(connection: &C) -> u32 {
     connection.read_constant("Elections", "SessionPeriod")
+}
+
+pub fn get_validators_for_session<C: AnyConnection>(
+    connection: &C,
+    session: SessionIndex,
+) -> Vec<AccountId> {
+    let session_period = get_session_period(connection);
+    let first_block = session_period * session;
+    let block = get_block_hash(connection, first_block);
+
+    connection
+        .as_connection()
+        .get_storage_value(PALLET, "Validators", Some(block))
+        .expect("Failed to decode Validators extrinsic!")
+        .expect("Authorities should always be present")
+}
+
+pub fn get_current_validators<C: AnyConnection>(connection: &C) -> Vec<AccountId> {
+    connection.read_storage_value(PALLET, "Validators")
 }

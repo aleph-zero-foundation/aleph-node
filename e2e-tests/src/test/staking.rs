@@ -2,8 +2,7 @@ use aleph_client::{
     balances_batch_transfer, change_validators, get_current_session, keypair_from_string,
     payout_stakers_and_assert_locked_balance, rotate_keys, set_keys, staking_bond, staking_bonded,
     staking_ledger, staking_multi_bond, staking_nominate, staking_validate,
-    wait_for_full_era_completion, wait_for_session, KeyPair, RootConnection, SignedConnection,
-    StakingLedger,
+    wait_for_full_era_completion, wait_for_session, KeyPair, SignedConnection, StakingLedger,
 };
 use frame_support::BoundedVec;
 use log::info;
@@ -18,7 +17,7 @@ use sp_core::Pair;
 use substrate_api_client::{AccountId, XtStatus};
 
 use crate::{
-    accounts::{accounts_seeds_to_keys, get_sudo_key, get_validators_seeds},
+    accounts::{account_ids_from_keys, accounts_seeds_to_keys, get_validators_seeds},
     config::Config,
 };
 
@@ -34,13 +33,6 @@ fn get_validator_stashes_key_pairs(config: &Config) -> (Vec<KeyPair>, Vec<KeyPai
     (stashes_accounts_key_pairs, validator_accounts_key_pairs)
 }
 
-fn convert_authorities_to_account_id(authorities: &[KeyPair]) -> Vec<AccountId> {
-    authorities
-        .iter()
-        .map(|key| AccountId::from(key.public()))
-        .collect()
-}
-
 // 0. validators stash and controllers are already endowed, bonded and validated in a genesis block
 // 1. endow nominators stash accounts balances
 // 3. bond controller account to stash account, stash = controller and set controller to StakerStatus::Nominate
@@ -50,9 +42,8 @@ pub fn staking_era_payouts(config: &Config) -> anyhow::Result<()> {
     let (stashes_accounts_key_pairs, validator_accounts) = get_validator_stashes_key_pairs(config);
 
     let node = &config.node;
-    let sender = validator_accounts[0].clone();
-    let connection = SignedConnection::new(node, sender);
-    let stashes_accounts = convert_authorities_to_account_id(&stashes_accounts_key_pairs);
+    let connection = config.get_first_signed_connection();
+    let stashes_accounts = account_ids_from_keys(&stashes_accounts_key_pairs);
 
     balances_batch_transfer(&connection, stashes_accounts, MIN_NOMINATOR_BOND + TOKEN);
     staking_multi_bond(node, &stashes_accounts_key_pairs, MIN_NOMINATOR_BOND);
@@ -110,11 +101,11 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
     let _ = validator_accounts.remove(0);
     // signer of this connection is sudo, the same node which in this test is used as the new one
     // it's essential since keys from rotate_keys() needs to be run against that node
-    let root_connection: RootConnection = SignedConnection::new(node, get_sudo_key(config)).into();
+    let root_connection = config.create_root_connection();
 
     change_validators(
         &root_connection,
-        Some(convert_authorities_to_account_id(&validator_accounts)),
+        Some(account_ids_from_keys(&validator_accounts)),
         Some(vec![]),
         Some(CommitteeSeats {
             reserved_seats: 4,
@@ -187,7 +178,7 @@ pub fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
     validator_accounts.push(stash);
     change_validators(
         &root_connection,
-        Some(convert_authorities_to_account_id(&validator_accounts)),
+        Some(account_ids_from_keys(&validator_accounts)),
         Some(vec![]),
         Some(CommitteeSeats {
             reserved_seats: 5,

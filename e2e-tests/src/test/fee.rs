@@ -9,13 +9,12 @@ use substrate_api_client::{
     compose_call, compose_extrinsic, AccountId, ExtrinsicParams, GenericAddress, XtStatus,
 };
 
-use crate::{accounts::get_sudo_key, config::Config, transfer::setup_for_transfer};
+use crate::{config::Config, transfer::setup_for_transfer};
 
 pub fn fee_calculation(config: &Config) -> anyhow::Result<()> {
     // An initial transfer is needed to establish the fee multiplier.
     let (connection, to) = setup_for_transfer(config);
-    let sudo = get_sudo_key(config);
-    let root_connection = RootConnection::new(&config.node, sudo);
+    let root_connection = config.create_root_connection();
     let transfer_value = 1000u128;
     balances_transfer(&connection, &to, transfer_value, XtStatus::Finalized);
 

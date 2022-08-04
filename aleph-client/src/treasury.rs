@@ -10,6 +10,8 @@ use substrate_api_client::{compose_extrinsic, ApiResult, GenericAddress, XtStatu
 
 use crate::{try_send_xt, wait_for_event, AnyConnection, RootConnection, SignedConnection};
 
+const PALLET: &str = "Treasury";
+
 type AnyResult<T> = anyhow::Result<T>;
 
 /// Returns the account of the treasury.
@@ -19,7 +21,7 @@ pub fn treasury_account() -> AccountId32 {
 
 /// Returns how many treasury proposals have ever been created.
 pub fn proposals_counter<C: AnyConnection>(connection: &C) -> u32 {
-    connection.read_storage_value_or_default("Treasury", "ProposalCount")
+    connection.read_storage_value_or_default(PALLET, "ProposalCount")
 }
 
 /// Calculates how much balance will be paid out to the treasury after each era.
@@ -41,7 +43,7 @@ pub fn propose(
 ) -> ApiResult<Option<H256>> {
     let xt = compose_extrinsic!(
         connection.as_connection(),
-        "Treasury",
+        PALLET,
         "propose_spend",
         Compact(value),
         GenericAddress::Id(beneficiary.clone())
@@ -83,7 +85,7 @@ struct ProposalRejectedEvent {
 fn wait_for_rejection<C: AnyConnection>(connection: &C, proposal_id: u32) -> AnyResult<()> {
     wait_for_event(
         connection,
-        ("Treasury", "Rejected"),
+        (PALLET, "Rejected"),
         |e: ProposalRejectedEvent| proposal_id.eq(&e.proposal_id),
     )
     .map(|_| ())
@@ -92,7 +94,7 @@ fn wait_for_rejection<C: AnyConnection>(connection: &C, proposal_id: u32) -> Any
 fn send_rejection(connection: &RootConnection, proposal_id: u32) -> ApiResult<Option<H256>> {
     let xt = compose_extrinsic!(
         connection.as_connection(),
-        "Treasury",
+        PALLET,
         "reject_proposal",
         Compact(proposal_id)
     );
@@ -107,7 +109,7 @@ fn send_rejection(connection: &RootConnection, proposal_id: u32) -> ApiResult<Op
 fn send_approval(connection: &RootConnection, proposal_id: u32) -> ApiResult<Option<H256>> {
     let xt = compose_extrinsic!(
         connection.as_connection(),
-        "Treasury",
+        PALLET,
         "approve_proposal",
         Compact(proposal_id)
     );
@@ -121,7 +123,7 @@ fn send_approval(connection: &RootConnection, proposal_id: u32) -> ApiResult<Opt
 
 fn wait_for_approval<C: AnyConnection>(connection: &C, proposal_id: u32) -> AnyResult<()> {
     loop {
-        let approvals: Vec<u32> = connection.read_storage_value("Treasury", "Approvals");
+        let approvals: Vec<u32> = connection.read_storage_value(PALLET, "Approvals");
         if approvals.contains(&proposal_id) {
             return Ok(());
         } else {

@@ -5,7 +5,11 @@ use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::KeyTypeId;
-use sp_runtime::ConsensusEngineId;
+use sp_runtime::{
+    generic::Header as GenericHeader,
+    traits::{BlakeTwo256, Header as HeaderT},
+    ConsensusEngineId,
+};
 pub use sp_staking::{EraIndex, SessionIndex};
 use sp_std::vec::Vec;
 
@@ -28,6 +32,9 @@ pub type AuthoritySignature = app::Signature;
 pub type AuthorityId = app::Public;
 
 pub type Balance = u128;
+pub type Header = GenericHeader<BlockNumber, BlakeTwo256>;
+pub type BlockHash = <Header as HeaderT>::Hash;
+pub type BlockNumber = u32;
 
 pub const MILLISECS_PER_BLOCK: u64 = 1000;
 

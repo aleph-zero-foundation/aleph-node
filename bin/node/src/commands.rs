@@ -55,7 +55,7 @@ fn p2p_key(chain_params: &ChainParams, account_id: &AccountId) -> SerializablePe
 
     if file.exists() {
         let mut file_content =
-            hex::decode(fs::read(&file).unwrap()).expect("failed to decode secret as hex");
+            hex::decode(fs::read(&file).unwrap()).expect("Failed to decode secret as hex");
         let secret =
             libp2p_ed25519::SecretKey::from_bytes(&mut file_content).expect("Bad node key file");
         let keypair = libp2p_ed25519::Keypair::from(secret);
