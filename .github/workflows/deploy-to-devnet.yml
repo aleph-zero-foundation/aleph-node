@@ -1,19 +1,13 @@
 name: Deploy to Devnet
 
 on:
-  workflow_run:
-    workflows: ["e2e-tests-main-devnet"]
-    branches:
-      - main
-    types:
-      - completed
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
 
 jobs:
   deploy-devnet:
-    if: github.event.workflow_run.conclusion == 'success'
     name: Deploy new aleph-node image to EKS
     environment:
       name: devnet
