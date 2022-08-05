@@ -807,6 +807,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "sp-core",
  "tokio",
 ]
 

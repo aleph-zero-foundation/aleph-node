@@ -172,7 +172,7 @@ jobs:
           docker run -v $(pwd)/data:/data --env RUST_BACKTRACE=1 --entrypoint "/usr/local/bin/aleph-node" $MAINNET_IMAGE bootstrap-chain --raw --base-path /data --chain-id $CHAIN_ID --account-ids 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y,5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy,5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw --sudo-account-id 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY > chainspec.skeleton.json
 
           # Generate chainspec from skeleton
-          docker run -v $(pwd):/app --env RUST_LOG=info public.ecr.aws/p6e8q1z1/fork-off:latest --http-rpc-endpoint=https://rpc.azero.dev --initial-spec-path=chainspec.skeleton.json --combined-spec-path=chainspec.json
+          docker run -v $(pwd):/app --env RUST_LOG=info public.ecr.aws/p6e8q1z1/fork-off:latest --ws-rpc-endpoint=https://rpc.azero.dev --initial-spec-path=chainspec.skeleton.json --combined-spec-path=chainspec.json
 
           aws s3 cp chainspec.json s3://fe-alephzero-devnet-eu-central-1-keys-bucket/fe-${{ env.BRANCH_NAME }}/chainspec.json
           aws s3 cp s3://fe-alephzero-devnet-eu-central-1-keys-bucket/data/ s3://fe-alephzero-devnet-eu-central-1-keys-bucket/fe-${{ env.BRANCH_NAME }}/data/ --recursive
