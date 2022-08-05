@@ -72,7 +72,9 @@ fn main() {
     let seed = read_seed(&command, seed);
     let cfg = ConnectionConfig::new(node, seed.clone());
     match command {
-        Command::ChangeValidators { validators } => change_validators(cfg.into(), validators),
+        Command::ChangeValidators {
+            change_validators_args,
+        } => change_validators(cfg.into(), change_validators_args),
         Command::PrepareKeys => {
             let key = keypair_from_string(&seed);
             let controller_account_id = account_from_keypair(&key);

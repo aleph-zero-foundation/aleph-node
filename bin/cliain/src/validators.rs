@@ -1,25 +1,18 @@
 use aleph_client::RootConnection;
-use primitives::CommitteeSeats;
-use sp_core::crypto::Ss58Codec;
-use substrate_api_client::{AccountId, XtStatus};
+use substrate_api_client::XtStatus;
+
+use crate::commands::ChangeValidatorArgs;
 
 /// Change validators to the provided list by calling the provided node.
-pub fn change_validators(root_connection: RootConnection, validators: Vec<String>) {
-    let validators: Vec<_> = validators
-        .iter()
-        .map(|address| AccountId::from_ss58check(address).expect("Address is valid"))
-        .collect();
-
-    let validators_len = validators.len() as u32;
-
+pub fn change_validators(
+    root_connection: RootConnection,
+    change_validator_args: ChangeValidatorArgs,
+) {
     aleph_client::change_validators(
         &root_connection,
-        Some(validators),
-        Some(vec![]),
-        Some(CommitteeSeats {
-            reserved_seats: validators_len,
-            non_reserved_seats: 0,
-        }),
+        change_validator_args.reserved_validators,
+        change_validator_args.non_reserved_validators,
+        change_validator_args.committee_size,
         XtStatus::Finalized,
     );
     // TODO we need to check state here whether change members actually succeed
