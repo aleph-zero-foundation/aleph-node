@@ -3,10 +3,10 @@
 use frame_election_provider_support::{ElectionProvider, Support};
 use frame_support::bounded_vec;
 use pallet_session::SessionManager;
+#[cfg(feature = "try-runtime")]
+use pallets_support::StorageMigration;
 use primitives::CommitteeSeats;
 
-#[cfg(feature = "try-runtime")]
-use crate::migrations::StorageMigration;
 use crate::{
     mock::{
         with_active_era, with_electable_targets, with_elected_validators, with_electing_voters,

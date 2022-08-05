@@ -6,6 +6,7 @@ members = [
     "finality-aleph",
     "pallets/aleph",
     "pallets/elections",
+    "pallets/support",
     "primitives",
 ]
 

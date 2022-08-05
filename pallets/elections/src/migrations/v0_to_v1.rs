@@ -5,13 +5,14 @@ use frame_support::{
     traits::{Get, OnRuntimeUpgrade, PalletInfoAccess, StorageVersion},
     weights::Weight,
 };
+#[cfg(feature = "try-runtime")]
+use pallets_support::ensure_storage_version;
+use pallets_support::StorageMigration;
 use sp_std::vec::Vec;
 
-#[cfg(feature = "try-runtime")]
-use crate::migrations::ensure_storage_version;
 use crate::{
     compute_validator_scaled_total_rewards,
-    migrations::{StorageMigration, Validators},
+    migrations::Validators,
     traits::{EraInfoProvider, ValidatorRewardsHandler},
     Config, ValidatorEraTotalReward, ValidatorTotalRewards,
 };

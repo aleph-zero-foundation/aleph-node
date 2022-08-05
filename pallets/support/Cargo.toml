@@ -1,0 +1,16 @@
+[package]
+name = "pallets-support"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+frame-support = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
+
+[features]
+default = ["std"]
+std = [
+    "frame-support/std",
+]
+try-runtime = [
+    "frame-support/try-runtime",
+]

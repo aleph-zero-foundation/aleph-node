@@ -1,6 +1,6 @@
 [package]
 name = "pallet-elections"
-version = "0.3.1"
+version = "0.4.0"
 edition = "2021"
 license = "Apache 2.0"
 
@@ -20,6 +20,7 @@ sp-io = { default-features = false, git = "https://github.com/Cardinal-Cryptogra
 sp-staking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
 sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
 
+pallets-support = { path = "../support", default-features = false }
 primitives = { path = "../../primitives", default-features = false }
 
 [dev-dependencies]
@@ -37,8 +38,12 @@ std = [
     "pallet-session/std",
     "pallet-staking/std",
     "pallet-authorship/std",
+    "pallets-support/std",
     "primitives/std",
     "pallet-balances/std",
     "sp-staking/std",
 ]
-try-runtime = ["frame-support/try-runtime"]
+try-runtime = [
+    "frame-support/try-runtime",
+    "pallets-support/try-runtime",
+]
