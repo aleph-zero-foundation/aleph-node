@@ -237,7 +237,6 @@ where
     pub async fn run(mut self) {
         let starting_session = self.catch_up().await;
         for curr_id in starting_session.0.. {
-            println!("Running session {:?}.", curr_id);
             info!(target: "aleph-party", "Running session {:?}.", curr_id);
             self.run_session(SessionId(curr_id)).await;
         }
