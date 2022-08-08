@@ -35,7 +35,7 @@ class Node:
         return res
 
     def start(self, name, backup=True):
-        """Start the node. `name` is used to name the logfile and for --name flag."""
+        """Start the node. `name` is used to name the logfile and for the --name flag."""
         cmd = [self.binary, '--name', name] + self._stdargs() + self._nodeargs(backup) + flags_from_dict(self.flags)
 
         self.logfile = op.join(self.logdir, name + '.log')

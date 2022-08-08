@@ -51,7 +51,7 @@ class Chain:
         for nv in nonvalidators:
             cmd = [check_file(binary),
                    'bootstrap-node',
-                   '--base-path', self.path,
+                   '--base-path', op.join(self.path, nv),
                    '--account-id', nv]
             subprocess.run(cmd, stdout=subprocess.DEVNULL, check=True)
 

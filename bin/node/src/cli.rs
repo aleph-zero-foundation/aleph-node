@@ -70,9 +70,6 @@ pub enum Subcommand {
     #[clap(subcommand)]
     Key(sc_cli::KeySubcommand),
 
-    // NOTE: similarly we could have a BootstrapNode command that takes a node-name parameter
-    // and writes aura, aleph and (optionally) libp2p private keys to the base-path of a single node
-    // and prints accountId and peerId to the stdout
     /// Populate authorities keystore and generate chainspec in JSON format (printed to stdout)
     /// Use `--raw` to produce the so called raw chainspec
     BootstrapChain(BootstrapChainCmd),

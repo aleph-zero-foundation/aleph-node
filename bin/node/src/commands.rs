@@ -1,4 +1,5 @@
 use std::{
+    ffi::OsStr,
     fs,
     io::{self, Write},
     path::{Path, PathBuf},
@@ -6,7 +7,7 @@ use std::{
 
 use aleph_primitives::AuthorityId as AlephId;
 use aleph_runtime::AccountId;
-use clap::Parser;
+use clap::{Args, Parser};
 use libp2p::identity::{ed25519 as libp2p_ed25519, PublicKey};
 use sc_cli::{CliConfiguration, DatabaseParams, Error, KeystoreParams, SharedParams};
 use sc_keystore::LocalKeystore;
@@ -20,7 +21,43 @@ use sp_keystore::SyncCryptoStore;
 
 use crate::chain_spec::{
     self, account_id_from_string, AuthorityKeys, ChainParams, ChainSpec, SerializablePeerId,
+    DEFAULT_BACKUP_FOLDER,
 };
+
+#[derive(Debug, Args)]
+pub struct NodeParams {
+    /// For `bootstrap-node` and `purge-chain` it works with this directory as base.
+    /// For `bootstrap-chain` the base path is appended with an account id for each node.
+    #[clap(long, short = 'd', value_name = "PATH", parse(from_os_str = parse_base_path))]
+    base_path: BasePath,
+
+    /// Specify filename to write node private p2p keys to
+    /// Resulting keys will be stored at: base_path/account_id/node_key_file for each node
+    #[clap(long, default_value = "p2p_secret")]
+    node_key_file: String,
+
+    /// Directory under which AlephBFT backup is stored
+    #[clap(long, default_value = DEFAULT_BACKUP_FOLDER)]
+    backup_dir: String,
+}
+
+impl NodeParams {
+    pub fn base_path(&self) -> &BasePath {
+        &self.base_path
+    }
+
+    pub fn node_key_file(&self) -> &str {
+        &self.node_key_file
+    }
+
+    pub fn backup_dir(&self) -> &str {
+        &self.backup_dir
+    }
+}
+
+fn parse_base_path(path: &OsStr) -> BasePath {
+    BasePath::new(path)
+}
 
 /// returns Aura key, if absent a new key is generated
 fn aura_key(keystore: &impl SyncCryptoStore) -> AuraId {
@@ -44,18 +81,11 @@ fn aleph_key(keystore: &impl SyncCryptoStore) -> AlephId {
         .into()
 }
 
-/// Returns peer id, if not p2p key found under base_path/account-id/node-key-file a new private key gets generated
-fn p2p_key(chain_params: &ChainParams, account_id: &AccountId) -> SerializablePeerId {
-    let authority = account_id.to_string();
-    let file = chain_params
-        .base_path()
-        .path()
-        .join(authority)
-        .join(chain_params.node_key_file());
-
-    if file.exists() {
+/// Returns peer id, if not p2p key found under base_path/node-key-file a new private key gets generated
+fn p2p_key(node_key_path: &Path) -> SerializablePeerId {
+    if node_key_path.exists() {
         let mut file_content =
-            hex::decode(fs::read(&file).unwrap()).expect("Failed to decode secret as hex");
+            hex::decode(fs::read(&node_key_path).unwrap()).expect("Failed to decode secret as hex");
         let secret =
             libp2p_ed25519::SecretKey::from_bytes(&mut file_content).expect("Bad node key file");
         let keypair = libp2p_ed25519::Keypair::from(secret);
@@ -64,7 +94,7 @@ fn p2p_key(chain_params: &ChainParams, account_id: &AccountId) -> SerializablePe
         let keypair = libp2p_ed25519::Keypair::generate();
         let secret = keypair.secret();
         let secret_hex = hex::encode(secret.as_ref());
-        fs::write(file, secret_hex).expect("Could not write p2p secret");
+        fs::write(node_key_path, secret_hex).expect("Could not write p2p secret");
         SerializablePeerId::new(PublicKey::Ed25519(keypair.public()).to_peer_id())
     }
 }
@@ -75,16 +105,9 @@ fn backup_path(base_path: &Path, backup_dir: &str) -> PathBuf {
 
 fn open_keystore(
     keystore_params: &KeystoreParams,
-    chain_params: &ChainParams,
-    account_id: &AccountId,
+    chain_id: &str,
+    base_path: &BasePath,
 ) -> impl SyncCryptoStore {
-    let chain_id = chain_params.chain_id();
-    let base_path: BasePath = chain_params
-        .base_path()
-        .path()
-        .join(account_id.to_string())
-        .into();
-
     let config_dir = base_path.config_dir(chain_id);
     match keystore_params
         .keystore_config(&config_dir)
@@ -97,9 +120,8 @@ fn open_keystore(
     }
 }
 
-fn bootstrap_backup(chain_params: &ChainParams, account_id: &AccountId) {
-    let base_path = chain_params.base_path().path().join(account_id.to_string());
-    let backup_path = backup_path(&base_path, chain_params.backup_dir());
+fn bootstrap_backup(base_path_with_account_id: &Path, backup_dir: &str) {
+    let backup_path = backup_path(base_path_with_account_id, backup_dir);
 
     if backup_path.exists() {
         if !backup_path.is_dir() {
@@ -115,14 +137,15 @@ fn bootstrap_backup(chain_params: &ChainParams, account_id: &AccountId) {
 
 fn authority_keys(
     keystore: &impl SyncCryptoStore,
-    chain_params: &ChainParams,
-    account_id: &AccountId,
+    base_path: &Path,
+    node_key_file: &str,
+    account_id: AccountId,
 ) -> AuthorityKeys {
     let aura_key = aura_key(keystore);
     let aleph_key = aleph_key(keystore);
-    let peer_id = p2p_key(chain_params, account_id);
+    let node_key_path = base_path.join(node_key_file);
+    let peer_id = p2p_key(node_key_path.as_path());
 
-    let account_id = account_id.clone();
     AuthorityKeys {
         account_id,
         aura_key,
@@ -145,18 +168,33 @@ pub struct BootstrapChainCmd {
 
     #[clap(flatten)]
     pub chain_params: ChainParams,
+
+    #[clap(flatten)]
+    pub node_params: NodeParams,
 }
 
+/// Assumes an input path: some_path/, which is appended to finally become: some_path/account_id
 impl BootstrapChainCmd {
     pub fn run(&self) -> Result<(), Error> {
+        let base_path = self.node_params.base_path();
+        let backup_dir = self.node_params.backup_dir();
+        let node_key_file = self.node_params.node_key_file();
+        let chain_id = self.chain_params.chain_id();
         let genesis_authorities = self
             .chain_params
             .account_ids()
-            .iter()
+            .into_iter()
             .map(|account_id| {
-                bootstrap_backup(&self.chain_params, account_id);
-                let keystore = open_keystore(&self.keystore_params, &self.chain_params, account_id);
-                authority_keys(&keystore, &self.chain_params, account_id)
+                let account_base_path: BasePath =
+                    base_path.path().join(account_id.to_string()).into();
+                bootstrap_backup(account_base_path.path(), backup_dir);
+                let keystore = open_keystore(&self.keystore_params, chain_id, &account_base_path);
+                authority_keys(
+                    &keystore,
+                    account_base_path.path(),
+                    node_key_file,
+                    account_id,
+                )
             })
             .collect();
 
@@ -175,10 +213,10 @@ impl BootstrapChainCmd {
 /// private keys are stored in a specified keystore, and the public keys are written to stdout.
 #[derive(Debug, Parser)]
 pub struct BootstrapNodeCmd {
-    /// Pass the AccountId of a new node
+    /// Pass the account id of a new node
     ///
-    /// Expects a string with an AccountId (hex encoding of an sr2559 public key)
-    /// If this argument is not passed a random AccountId will be generated using account-seed argument as a seed
+    /// Expects a string with an account id (hex encoding of an sr2559 public key)
+    /// If this argument is not passed a random account id will be generated using account-seed argument as a seed
     #[clap(long)]
     account_id: Option<String>,
 
@@ -191,15 +229,25 @@ pub struct BootstrapNodeCmd {
 
     #[clap(flatten)]
     pub chain_params: ChainParams,
+
+    #[clap(flatten)]
+    pub node_params: NodeParams,
 }
 
+/// Assumes an input path: some_path/account_id/, which is not appended with an account id
 impl BootstrapNodeCmd {
     pub fn run(&self) -> Result<(), Error> {
-        let account_id = &self.account_id();
-        bootstrap_backup(&self.chain_params, account_id);
-        let keystore = open_keystore(&self.keystore_params, &self.chain_params, account_id);
+        let base_path = self.node_params.base_path();
+        let backup_dir = self.node_params.backup_dir();
+        let node_key_file = self.node_params.node_key_file();
 
-        let authority_keys = authority_keys(&keystore, &self.chain_params, account_id);
+        bootstrap_backup(base_path.path(), backup_dir);
+        let chain_id = self.chain_params.chain_id();
+        let keystore = open_keystore(&self.keystore_params, chain_id, base_path);
+
+        // Does not rely on the account id in the path
+        let account_id = self.account_id();
+        let authority_keys = authority_keys(&keystore, base_path.path(), node_key_file, account_id);
         let keys_json = serde_json::to_string_pretty(&authority_keys)
             .expect("serialization of authority keys should have succeeded");
         println!("{}", keys_json);
@@ -278,19 +326,19 @@ pub struct PurgeBackupCmd {
     #[clap(short = 'y')]
     pub yes: bool,
     #[clap(flatten)]
-    pub chain_params: ChainParams,
+    pub node_params: NodeParams,
 }
 
 impl PurgeBackupCmd {
     pub fn run(&self) -> Result<(), Error> {
         let backup_path = backup_path(
-            self.chain_params.base_path().path(),
-            self.chain_params.backup_dir(),
+            self.node_params.base_path().path(),
+            self.node_params.backup_dir(),
         );
 
         if !self.yes {
             print!(
-                "Are you sure to inside of remove {:?}? [y/N]: ",
+                "Are you sure you want to remove {:?}? [y/N]: ",
                 &backup_path
             );
             io::stdout().flush().expect("failed to flush stdout");
