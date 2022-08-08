@@ -151,10 +151,10 @@ where
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 /// Wrapper around Mapping from sessionId to Vec of AuthorityIds allowing mutation
 /// and hiding locking details
-struct SharedSessionMap(Arc<RwLock<(SessionMap, SessionSubscribers)>>);
+pub struct SharedSessionMap(Arc<RwLock<(SessionMap, SessionSubscribers)>>);
 
 #[derive(Clone)]
 /// Wrapper around Mapping from sessionId to Vec of AuthorityIds allowing only reads
@@ -163,11 +163,11 @@ pub struct ReadOnlySessionMap {
 }
 
 impl SharedSessionMap {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self(Arc::new(RwLock::new((HashMap::new(), HashMap::new()))))
     }
 
-    async fn update(
+    pub async fn update(
         &mut self,
         id: SessionId,
         authority_data: SessionAuthorityData,
@@ -193,7 +193,7 @@ impl SharedSessionMap {
         guard.1.retain(|&s, _| s >= id);
     }
 
-    fn read_only(&self) -> ReadOnlySessionMap {
+    pub fn read_only(&self) -> ReadOnlySessionMap {
         ReadOnlySessionMap {
             inner: self.0.clone(),
         }

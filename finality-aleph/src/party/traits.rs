@@ -42,7 +42,7 @@ pub trait NodeSessionManager {
         session: SessionId,
         node_id: NodeIndex,
         backup: ABFTBackup,
-        authorithies: &[AuthorityId],
+        authorities: &[AuthorityId],
     ) -> AuthorityTask;
 
     /// Prepare validator session.
