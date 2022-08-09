@@ -3,6 +3,7 @@ use std::{sync::Arc, time::Duration};
 use async_trait::async_trait;
 use futures::channel::oneshot;
 use log::{debug, warn};
+use parking_lot::Mutex;
 use sc_client_api::HeaderBackend;
 use sp_consensus::SelectChain;
 use sp_runtime::{
@@ -10,7 +11,6 @@ use sp_runtime::{
     traits::{Block as BlockT, Header as HeaderT, NumberFor, One, Zero},
     SaturatedConversion,
 };
-use tokio::sync::Mutex;
 
 use crate::{
     data_io::{proposal::UnvalidatedAlephProposal, AlephData, MAX_DATA_BRANCH_LEN},
@@ -161,7 +161,7 @@ where
         )
     }
 
-    async fn update_data(&mut self, best_block_in_session: &BlockHashNum<B>) {
+    fn update_data(&mut self, best_block_in_session: &BlockHashNum<B>) {
         // We use best_block_in_session argument and the highest_finalized block from the client and compute
         // the corresponding `AlephData<B>` in `data_to_propose` for AlephBFT. To not recompute this many
         // times we remember these "inputs" in `prev_chain_info` and upon match we leave the old value
@@ -174,7 +174,7 @@ where
         if finalized_block.num >= self.session_boundaries.last_block() {
             // This session is already finished, but this instance of ChainTracker has not been terminated yet.
             // We go with the default -- empty proposal, this does not have any significance.
-            *self.data_to_propose.lock().await = None;
+            *self.data_to_propose.lock() = None;
             return;
         }
 
@@ -195,7 +195,7 @@ where
 
         if best_block_in_session.num == finalized_block.num {
             // We don't have anything to propose, we go ahead with an empty proposal.
-            *self.data_to_propose.lock().await = None;
+            *self.data_to_propose.lock() = None;
             return;
         }
         if best_block_in_session.num < finalized_block.num {
@@ -209,7 +209,7 @@ where
             best_block_in_session.clone(),
             finalized_block,
         ) {
-            *self.data_to_propose.lock().await = Some(proposal);
+            *self.data_to_propose.lock() = Some(proposal);
         }
     }
 
@@ -277,7 +277,7 @@ where
                 _ = delay => {
                     best_block_in_session = self.get_best_block_in_session(best_block_in_session).await;
                     if let Some(best_block) = &best_block_in_session {
-                        self.update_data(best_block).await;
+                        self.update_data(best_block);
                     }
 
                 }
@@ -308,7 +308,7 @@ struct DataProvider<B: BlockT> {
 #[async_trait]
 impl<B: BlockT> aleph_bft::DataProvider<AlephData<B>> for DataProvider<B> {
     async fn get_data(&mut self) -> Option<AlephData<B>> {
-        let data_to_propose = (*self.data_to_propose.lock().await).take();
+        let data_to_propose = (*self.data_to_propose.lock()).take();
 
         if let Some(data) = &data_to_propose {
             if let Some(m) = &self.metrics {
