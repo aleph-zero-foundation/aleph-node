@@ -102,6 +102,7 @@ dependencies = [
  "log",
  "pallet-aleph",
  "pallet-balances",
+ "pallet-elections",
  "pallet-multisig",
  "pallet-staking",
  "pallet-treasury",
@@ -1846,6 +1847,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-elections"
+version = "0.4.0"
+dependencies = [
+ "frame-election-provider-support",
+ "frame-support",
+ "frame-system",
+ "pallet-authorship",
+ "pallet-balances",
+ "pallet-session",
+ "pallet-staking",
+ "pallets-support",
+ "parity-scale-codec",
+ "primitives",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-staking",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-multisig"
 version = "4.0.0-dev"
 source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.26#98c2eeea74413044ae8ccfca1b6d56d01b57a76b"
@@ -1962,6 +1984,13 @@ dependencies = [
  "scale-info",
  "sp-runtime",
  "sp-std",
+]
+
+[[package]]
+name = "pallets-support"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
 ]
 
 [[package]]

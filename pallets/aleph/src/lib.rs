@@ -30,6 +30,7 @@ pub mod pallet {
         ensure_root,
         pallet_prelude::{BlockNumberFor, OriginFor},
     };
+    use pallets_support::StorageMigration;
 
     use super::*;
 
@@ -58,11 +59,11 @@ pub mod pallet {
                 + match on_chain {
                     _ if on_chain == STORAGE_VERSION => 0,
                     _ if on_chain == StorageVersion::new(1) => {
-                        migrations::v1_to_v2::migrate::<T, Self>()
+                        migrations::v1_to_v2::Migration::<T, Self>::migrate()
                     }
                     _ if on_chain == StorageVersion::new(0) => {
-                        migrations::v0_to_v1::migrate::<T, Self>()
-                            + migrations::v1_to_v2::migrate::<T, Self>()
+                        migrations::v0_to_v1::Migration::<T, Self>::migrate()
+                            + migrations::v1_to_v2::Migration::<T, Self>::migrate()
                     }
                     _ => {
                         log::warn!(

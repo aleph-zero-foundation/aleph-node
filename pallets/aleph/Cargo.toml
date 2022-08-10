@@ -1,6 +1,6 @@
 [package]
 name = "pallet-aleph"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Cardinal Cryptography"]
 edition = "2021"
 license = "Apache 2.0"
@@ -17,6 +17,7 @@ pallet-session = { default-features = false, git = "https://github.com/Cardinal-
 sp-io = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
 sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
 
+pallets-support = { path = "../support", default-features = false }
 primitives = { path = "../../primitives", default-features = false }
 
 [dev-dependencies]
@@ -33,6 +34,10 @@ std = [
     "sp-std/std",
     "primitives/std",
     "pallet-balances/std",
-    "pallet-session/std"
+    "pallet-session/std",
+    "pallets-support/std",
 ]
-try-runtime = ["frame-support/try-runtime"]
+try-runtime = [
+    "frame-support/try-runtime",
+    "pallets-support/try-runtime",
+]

@@ -1,14 +1,8 @@
 #![cfg(test)]
 
-use std::collections::HashMap;
+use frame_support::{storage_alias, traits::OneSessionHandler};
 
-use frame_support::{
-    storage::migration::{get_storage_value, put_storage_value},
-    storage_alias,
-    traits::{GetStorageVersion, OneSessionHandler, StorageVersion},
-};
-
-use crate::{migrations, mock::*, pallet};
+use crate::mock::*;
 
 #[storage_alias]
 type SessionForValidatorsChange = StorageValue<Aleph, u32>;
@@ -16,93 +10,40 @@ type SessionForValidatorsChange = StorageValue<Aleph, u32>;
 #[storage_alias]
 type Validators<T> = StorageValue<Aleph, Vec<<T as frame_system::Config>::AccountId>>;
 
-#[test]
-fn migration_from_v0_to_v1_works() {
-    new_test_ext(&[(1u64, 1u64), (2u64, 2u64)]).execute_with(|| {
-        put_storage_value(b"Aleph", b"SessionForValidatorsChange", &[], Some(7u32));
+#[cfg(feature = "try-runtime")]
+mod migration_tests {
+    use frame_support::{storage::migration::put_storage_value, traits::StorageVersion};
+    use pallets_support::StorageMigration;
 
-        let before = get_storage_value::<Option<u32>>(b"Aleph", b"SessionForValidatorsChange", &[]);
+    use crate::{migrations, mock::*, Pallet};
 
-        assert_eq!(
-            before,
-            Some(Some(7)),
-            "Storage before migration has type Option<u32>"
-        );
+    const MODULE: &[u8] = b"Aleph";
 
-        put_storage_value(
-            b"Aleph",
-            b"Validators",
-            &[],
-            Some(vec![AccountId::default()]),
-        );
+    #[test]
+    fn migration_from_v0_to_v1_works() {
+        new_test_ext(&[(1u64, 1u64), (2u64, 2u64)]).execute_with(|| {
+            StorageVersion::new(0).put::<Pallet<Test>>();
 
-        let v0 = <pallet::Pallet<Test> as GetStorageVersion>::on_chain_storage_version();
+            put_storage_value(MODULE, b"SessionForValidatorsChange", &[], Some(7u32));
+            put_storage_value(MODULE, b"Validators", &[], Some(vec![0u64, 1u64]));
 
-        assert_eq!(
-            v0,
-            StorageVersion::default(),
-            "Storage version before applying migration should be default",
-        );
+            let _weight = migrations::v0_to_v1::Migration::<Test, Aleph>::migrate();
+        })
+    }
 
-        let _weight = migrations::v0_to_v1::migrate::<Test, Aleph>();
+    #[test]
+    fn migration_from_v1_to_v2_works() {
+        new_test_ext(&[(1u64, 1u64), (2u64, 2u64)]).execute_with(|| {
+            StorageVersion::new(1).put::<Pallet<Test>>();
 
-        let v1 = <pallet::Pallet<Test> as GetStorageVersion>::on_chain_storage_version();
+            put_storage_value(MODULE, b"SessionForValidatorsChange", &[], ());
+            put_storage_value(MODULE, b"Validators", &[], ());
+            put_storage_value(MODULE, b"MillisecsPerBlock", &[], ());
+            put_storage_value(MODULE, b"SessionPeriod", &[], ());
 
-        assert_ne!(
-            v1,
-            StorageVersion::default(),
-            "Storage version after applying migration should be incremented"
-        );
-
-        assert_eq!(
-            SessionForValidatorsChange::get(),
-            Some(7u32),
-            "Migration should preserve ongoing session change with respect to the session number"
-        );
-
-        assert_eq!(
-            Validators::<Test>::get(),
-            Some(vec![AccountId::default()]),
-            "Migration should preserve ongoing session change with respect to the validators set"
-        );
-    })
-}
-
-#[test]
-fn migration_from_v1_to_v2_works() {
-    new_test_ext(&[(1u64, 1u64), (2u64, 2u64)]).execute_with(|| {
-        let map = [
-            "SessionForValidatorsChange",
-            "Validators",
-            "MillisecsPerBlock",
-            "SessionPeriod",
-        ]
-        .iter()
-        .zip(0..4)
-        .collect::<HashMap<_, _>>();
-
-        map.iter().for_each(|(item, value)| {
-            put_storage_value(b"Aleph", item.as_bytes(), &[], value);
-        });
-
-        let _weight = migrations::v1_to_v2::migrate::<Test, Aleph>();
-
-        let v2 = <pallet::Pallet<Test> as GetStorageVersion>::on_chain_storage_version();
-
-        assert_eq!(
-            v2,
-            StorageVersion::new(2),
-            "Storage version after applying migration should be incremented"
-        );
-
-        for item in map.keys() {
-            assert!(
-                get_storage_value::<i32>(b"Aleph", item.as_bytes(), &[]).is_none(),
-                "Storage item {} should be killed",
-                item
-            );
-        }
-    })
+            let _weight = migrations::v1_to_v2::Migration::<Test, Aleph>::migrate();
+        })
+    }
 }
 
 #[test]
