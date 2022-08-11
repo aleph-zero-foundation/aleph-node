@@ -2,7 +2,8 @@ use aleph_client::{
     balances_batch_transfer, change_validators, get_current_session, keypair_from_string,
     payout_stakers_and_assert_locked_balance, rotate_keys, set_keys, staking_bond, staking_bonded,
     staking_ledger, staking_multi_bond, staking_nominate, staking_validate,
-    wait_for_full_era_completion, wait_for_session, KeyPair, SignedConnection, StakingLedger,
+    wait_for_full_era_completion, wait_for_session, AccountId, KeyPair, SignedConnection,
+    StakingLedger, XtStatus,
 };
 use frame_support::BoundedVec;
 use log::info;
@@ -14,7 +15,6 @@ use rayon::iter::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
 };
 use sp_core::Pair;
-use substrate_api_client::{AccountId, XtStatus};
 
 use crate::{
     accounts::{account_ids_from_keys, accounts_seeds_to_keys, get_validators_seeds},

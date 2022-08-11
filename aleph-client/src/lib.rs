@@ -1,4 +1,4 @@
-use std::{default::Default, thread::sleep, time::Duration};
+use std::{default::Default, fmt::Debug, thread::sleep, time::Duration};
 
 use ac_primitives::SubstrateDefaultSignedExtra;
 pub use account::{get_free_balance, locks};
@@ -7,7 +7,7 @@ use codec::{Decode, Encode};
 pub use debug::print_storages;
 pub use elections::{
     get_committee_seats, get_current_era_non_reserved_validators,
-    get_current_era_reserved_validators, get_next_era_committee_seats,
+    get_current_era_reserved_validators, get_era_validators, get_next_era_committee_seats,
     get_next_era_non_reserved_validators, get_next_era_reserved_validators,
     get_validator_block_count,
 };
@@ -22,9 +22,9 @@ pub use primitives::{BlockHash, BlockNumber, Header};
 pub use rpc::{emergency_finalize, rotate_keys, rotate_keys_raw_result, state_query_storage_at};
 pub use session::{
     change_next_era_reserved_validators, change_validators, get_current_session,
-    get_current_validators, get_session, get_session_period, get_validators_for_session, set_keys,
-    wait_for as wait_for_session, wait_for_at_least as wait_for_at_least_session,
-    Keys as SessionKeys,
+    get_current_validators, get_session, get_session_first_block, get_session_period,
+    get_validators_for_session, set_keys, wait_for as wait_for_session,
+    wait_for_at_least as wait_for_at_least_session, Keys as SessionKeys,
 };
 use sp_core::{ed25519, sr25519, storage::StorageKey, Pair, H256};
 pub use staking::{
@@ -37,13 +37,13 @@ pub use staking::{
     get_stakers_as_storage_keys_from_storage_key, ledger as staking_ledger,
     multi_bond as staking_multi_bond, nominate as staking_nominate, payout_stakers,
     payout_stakers_and_assert_locked_balance, set_staking_limits as staking_set_staking_limits,
-    validate as staking_validate, wait_for_full_era_completion, wait_for_next_era, RewardPoint,
-    StakingLedger,
+    validate as staking_validate, wait_for_at_least_era, wait_for_era_completion,
+    wait_for_full_era_completion, wait_for_next_era, RewardPoint, StakingLedger,
 };
-pub use substrate_api_client;
+pub use substrate_api_client::{self, AccountId, Balance, XtStatus};
 use substrate_api_client::{
-    rpc::ws_client::WsRpcClient, std::error::Error, AccountId, Api, ApiResult,
-    PlainTipExtrinsicParams, RpcClient, UncheckedExtrinsicV4, XtStatus,
+    rpc::ws_client::WsRpcClient, std::error::Error, Api, ApiResult, PlainTipExtrinsicParams,
+    RpcClient, UncheckedExtrinsicV4,
 };
 pub use system::set_code;
 pub use transfer::{
@@ -103,11 +103,30 @@ pub trait AnyConnection: Clone + Send {
     /// objects are often passed to some macro like `compose_extrinsic!` and thus there is not
     /// enough information for type inferring required for `Into<Connection>`.
     fn as_connection(&self) -> Connection;
+}
 
+impl<C: AnyConnection> AnyConnectionExt for C {}
+
+pub trait AnyConnectionExt: AnyConnection {
     /// Reads value from storage. Panics if it couldn't be read.
     fn read_storage_value<T: Decode>(&self, pallet: &'static str, key: &'static str) -> T {
         self.read_storage_value_or_else(pallet, key, || {
             panic!("Value is `None` or couldn't have been decoded")
+        })
+    }
+
+    /// Reads value from storage at given block (empty means `best known`). Panics if it couldn't be read.
+    fn read_storage_value_at_block<T: Decode>(
+        &self,
+        pallet: &'static str,
+        key: &'static str,
+        block_hash: Option<H256>,
+    ) -> T {
+        self.read_storage_value_at_block_or_else(pallet, key, block_hash, || {
+            panic!(
+                "Retrieved storage value ({}/{}) was equal `null`",
+                pallet, key
+            )
         })
     }
 
@@ -119,12 +138,24 @@ pub trait AnyConnection: Clone + Send {
         key: &'static str,
         fallback: F,
     ) -> T {
+        self.read_storage_value_at_block_or_else(pallet, key, None, fallback)
+    }
+
+    /// Reads value from storage from a given block. In case value is `None` or couldn't have been decoded, result of
+    /// `fallback` is returned.
+    fn read_storage_value_at_block_or_else<F: FnOnce() -> T, T: Decode>(
+        &self,
+        pallet: &'static str,
+        key: &'static str,
+        block_hash: Option<H256>,
+        fallback: F,
+    ) -> T {
         self.as_connection()
-            .get_storage_value(pallet, key, None)
+            .get_storage_value(pallet, key, block_hash)
             .unwrap_or_else(|e| {
                 panic!(
-                    "Key `{}::{}` should be present in storage, error {:?}",
-                    pallet, key, e
+                    "Unable to retrieve a storage value {}/{} at block {:#?}: {}",
+                    pallet, key, block_hash, e
                 )
             })
             .unwrap_or_else(fallback)
@@ -171,6 +202,18 @@ pub trait AnyConnection: Clone + Send {
         constant: &'static str,
     ) -> T {
         self.read_constant_or_else(pallet, constant, Default::default)
+    }
+
+    fn read_storage_map<K: Encode + Debug + Clone, T: Decode + Clone>(
+        &self,
+        pallet: &'static str,
+        map_name: &'static str,
+        map_key: K,
+        block_hash: Option<H256>,
+    ) -> Option<T> {
+        self.as_connection()
+            .get_storage_map(pallet, map_name, map_key.clone(), block_hash)
+            .unwrap_or_else(|e| panic!("Unable to retrieve a storage map for pallet={} map_name={} map_key={:#?} block_hash={:#?}: {}", pallet, map_name, &map_key, block_hash, e))
     }
 }
 

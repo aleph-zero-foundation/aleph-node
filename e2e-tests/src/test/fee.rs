@@ -1,13 +1,12 @@
 use aleph_client::{
-    balances_transfer, get_next_fee_multiplier, get_tx_fee_info, send_xt, AnyConnection, Extrinsic,
-    FeeInfo, RootConnection, SignedConnection, TransferTransaction,
+    balances_transfer, get_next_fee_multiplier, get_tx_fee_info, send_xt, AccountId, AnyConnection,
+    AnyConnectionExt, Extrinsic, FeeInfo, RootConnection, SignedConnection, TransferTransaction,
+    XtStatus,
 };
 use codec::Encode;
 use sp_core::Pair;
 use sp_runtime::{traits::One, FixedPointNumber, FixedU128};
-use substrate_api_client::{
-    compose_call, compose_extrinsic, AccountId, ExtrinsicParams, GenericAddress, XtStatus,
-};
+use substrate_api_client::{compose_call, compose_extrinsic, ExtrinsicParams, GenericAddress};
 
 use crate::{config::Config, transfer::setup_for_transfer};
 
@@ -82,7 +81,7 @@ pub fn fee_calculation(config: &Config) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn check_current_fees<C: AnyConnection, Call: Encode>(
+fn check_current_fees<C: AnyConnectionExt, Call: Encode>(
     connection: &C,
     tx: &Extrinsic<Call>,
 ) -> (FixedU128, FeeInfo) {

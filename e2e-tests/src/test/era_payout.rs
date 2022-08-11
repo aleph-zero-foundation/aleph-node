@@ -1,12 +1,11 @@
 use aleph_client::{
     create_connection, get_current_era, get_payout_for_era, staking_force_new_era,
-    wait_for_next_era, wait_for_session, AnyConnection,
+    wait_for_next_era, wait_for_session, AnyConnection, XtStatus,
 };
 use primitives::{
     staking::era_payout, Balance, EraIndex, DEFAULT_SESSIONS_PER_ERA, DEFAULT_SESSION_PERIOD,
     MILLISECS_PER_BLOCK,
 };
-use substrate_api_client::XtStatus;
 
 use crate::Config;
 

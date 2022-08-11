@@ -1,14 +1,14 @@
 use codec::{Decode, Encode};
 use log::info;
-use primitives::{CommitteeSeats, SessionIndex};
+use primitives::{BlockHash, CommitteeSeats, SessionIndex};
 use sp_core::{Pair, H256};
 use substrate_api_client::{
     compose_call, compose_extrinsic, AccountId, ExtrinsicParams, FromHexString, XtStatus,
 };
 
 use crate::{
-    get_block_hash, send_xt, waiting::wait_for_event, AnyConnection, BlockNumber, RootConnection,
-    SignedConnection,
+    get_block_hash, send_xt, waiting::wait_for_event, AnyConnection, AnyConnectionExt, BlockNumber,
+    RootConnection, SignedConnection,
 };
 
 const PALLET: &str = "Session";
@@ -89,11 +89,11 @@ pub fn set_keys(connection: &SignedConnection, new_keys: Keys, status: XtStatus)
     send_xt(connection, xt, Some("set_keys"), status);
 }
 
-pub fn get_current_session<C: AnyConnection>(connection: &C) -> SessionIndex {
+pub fn get_current_session<C: AnyConnectionExt>(connection: &C) -> SessionIndex {
     get_session(connection, None)
 }
 
-pub fn get_session<C: AnyConnection>(connection: &C, block_hash: Option<H256>) -> SessionIndex {
+pub fn get_session<C: AnyConnectionExt>(connection: &C, block_hash: Option<H256>) -> SessionIndex {
     connection
         .as_connection()
         .get_storage_value(PALLET, "CurrentIndex", block_hash)
@@ -101,7 +101,7 @@ pub fn get_session<C: AnyConnection>(connection: &C, block_hash: Option<H256>) -
         .unwrap_or(0)
 }
 
-pub fn wait_for_predicate<C: AnyConnection, P: Fn(SessionIndex) -> bool>(
+pub fn wait_for_predicate<C: AnyConnectionExt, P: Fn(SessionIndex) -> bool>(
     connection: &C,
     session_predicate: P,
 ) -> anyhow::Result<BlockNumber> {
@@ -119,25 +119,25 @@ pub fn wait_for_predicate<C: AnyConnection, P: Fn(SessionIndex) -> bool>(
     Ok(result.session_index)
 }
 
-pub fn wait_for<C: AnyConnection>(
+pub fn wait_for<C: AnyConnectionExt>(
     connection: &C,
     session_index: SessionIndex,
 ) -> anyhow::Result<BlockNumber> {
     wait_for_predicate(connection, |session_ix| session_ix == session_index)
 }
 
-pub fn wait_for_at_least<C: AnyConnection>(
+pub fn wait_for_at_least<C: AnyConnectionExt>(
     connection: &C,
     session_index: SessionIndex,
 ) -> anyhow::Result<BlockNumber> {
     wait_for_predicate(connection, |session_ix| session_ix >= session_index)
 }
 
-pub fn get_session_period<C: AnyConnection>(connection: &C) -> u32 {
+pub fn get_session_period<C: AnyConnectionExt>(connection: &C) -> u32 {
     connection.read_constant("Elections", "SessionPeriod")
 }
 
-pub fn get_validators_for_session<C: AnyConnection>(
+pub fn get_validators_for_session<C: AnyConnectionExt>(
     connection: &C,
     session: SessionIndex,
 ) -> Vec<AccountId> {
@@ -145,13 +145,17 @@ pub fn get_validators_for_session<C: AnyConnection>(
     let first_block = session_period * session;
     let block = get_block_hash(connection, first_block);
 
-    connection
-        .as_connection()
-        .get_storage_value(PALLET, "Validators", Some(block))
-        .expect("Failed to decode Validators extrinsic!")
-        .expect("Authorities should always be present")
+    connection.read_storage_value_at_block(PALLET, "Validators", Some(block))
 }
 
-pub fn get_current_validators<C: AnyConnection>(connection: &C) -> Vec<AccountId> {
+pub fn get_current_validators<C: AnyConnectionExt>(connection: &C) -> Vec<AccountId> {
     connection.read_storage_value(PALLET, "Validators")
+}
+
+pub fn get_session_first_block<C: AnyConnectionExt>(
+    connection: &C,
+    session: SessionIndex,
+) -> BlockHash {
+    let block_number = session * get_session_period(connection);
+    get_block_hash(connection, block_number)
 }

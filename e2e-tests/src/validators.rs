@@ -1,44 +1,22 @@
 use aleph_client::{
     account_from_keypair, balances_batch_transfer, keypair_from_string, rotate_keys, set_keys,
-    staking_bond, staking_validate, KeyPair, SignedConnection,
+    staking_bond, staking_validate, AccountId, KeyPair, SignedConnection, XtStatus,
 };
-use primitives::{staking::MIN_VALIDATOR_BOND, SessionIndex, TOKEN};
-use substrate_api_client::{AccountId, XtStatus};
+use pallet_elections::EraValidators;
+use primitives::{staking::MIN_VALIDATOR_BOND, TOKEN};
 
 use crate::{accounts::get_validators_keys, Config};
 
-/// Get all the reserved validators for the chain.
-pub fn get_reserved_validators(config: &Config) -> Vec<KeyPair> {
-    get_validators_keys(config)[0..2].to_vec()
-}
+/// Get all validators assumed for test
+pub fn get_test_validators(config: &Config) -> EraValidators<KeyPair> {
+    let all_validators = get_validators_keys(config);
+    let reserved = all_validators[0..2].to_vec();
+    let non_reserved = all_validators[2..].to_vec();
 
-/// Get all the non-reserved validators for the chain.
-pub fn get_non_reserved_validators(config: &Config) -> Vec<KeyPair> {
-    get_validators_keys(config)[2..].to_vec()
-}
-
-/// Get the non-reserved validators selected for a particular session.
-pub fn get_non_reserved_validators_for_session(
-    config: &Config,
-    session: SessionIndex,
-) -> Vec<AccountId> {
-    // Test assumption
-    const FREE_SEATS: u32 = 2;
-
-    let mut non_reserved = vec![];
-
-    let non_reserved_nodes_order_from_runtime = get_non_reserved_validators(config);
-    let non_reserved_nodes_order_from_runtime_len = non_reserved_nodes_order_from_runtime.len();
-
-    for i in (FREE_SEATS * session)..(FREE_SEATS * (session + 1)) {
-        non_reserved.push(
-            non_reserved_nodes_order_from_runtime
-                [i as usize % non_reserved_nodes_order_from_runtime_len]
-                .clone(),
-        );
+    EraValidators {
+        reserved,
+        non_reserved,
     }
-
-    non_reserved.iter().map(account_from_keypair).collect()
 }
 
 /// Gathers keys and accounts for all validators used in an experiment.

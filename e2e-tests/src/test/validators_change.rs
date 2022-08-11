@@ -1,12 +1,12 @@
 use aleph_client::{
     get_current_block_number, get_next_era_committee_seats, get_next_era_non_reserved_validators,
-    get_next_era_reserved_validators, wait_for_event, wait_for_finalized_block,
+    get_next_era_reserved_validators, wait_for_event, wait_for_finalized_block, AccountId,
+    XtStatus,
 };
 use codec::Decode;
 use log::info;
 use primitives::CommitteeSeats;
 use sp_core::Pair;
-use substrate_api_client::{AccountId, XtStatus};
 
 use crate::{accounts::get_validators_keys, config::Config};
 

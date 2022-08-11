@@ -1,6 +1,5 @@
-use aleph_client::{keypair_from_string, KeyPair};
+use aleph_client::{keypair_from_string, AccountId, KeyPair};
 use sp_core::Pair;
-use substrate_api_client::AccountId;
 
 use crate::config::Config;
 

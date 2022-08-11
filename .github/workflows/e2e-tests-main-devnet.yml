@@ -155,7 +155,7 @@ jobs:
         with:
           test-case: rewards_disable_node
           follow-up-finalization-check: true
-        timeout-minutes: 10
+        timeout-minutes: 15
 
 
   run-e2e-token-transfer-test:

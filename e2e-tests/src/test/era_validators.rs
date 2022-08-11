@@ -2,10 +2,9 @@ use aleph_client::{
     change_validators, get_current_block_number, get_current_era_non_reserved_validators,
     get_current_era_reserved_validators, get_current_session, get_next_era_non_reserved_validators,
     get_next_era_reserved_validators, wait_for_finalized_block, wait_for_full_era_completion,
-    wait_for_next_era, wait_for_session, KeyPair, SignedConnection,
+    wait_for_next_era, wait_for_session, AccountId, KeyPair, SignedConnection, XtStatus,
 };
 use primitives::CommitteeSeats;
-use substrate_api_client::{AccountId, XtStatus};
 
 use crate::{
     accounts::{account_ids_from_keys, get_validators_keys},

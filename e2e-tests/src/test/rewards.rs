@@ -1,17 +1,17 @@
 use aleph_client::{
-    account_from_keypair, change_validators, get_current_era, get_current_session,
-    get_sessions_per_era, staking_force_new_era, wait_for_full_era_completion, wait_for_next_era,
-    wait_for_session, KeyPair, SignedConnection,
+    get_current_era, get_current_session, staking_force_new_era, wait_for_full_era_completion,
+    wait_for_next_era, wait_for_session, AccountId, SignedConnection, XtStatus,
 };
 use log::info;
-use primitives::{staking::MIN_VALIDATOR_BOND, CommitteeSeats, EraIndex, SessionIndex};
-use substrate_api_client::{AccountId, XtStatus};
+use primitives::{
+    staking::MIN_VALIDATOR_BOND, CommitteeSeats, EraIndex, EraValidators, SessionIndex,
+};
 
 use crate::{
-    accounts::get_validators_keys,
+    elections::get_and_test_members_for_session,
     rewards::{
-        check_points, get_bench_members, reset_validator_keys, set_invalid_keys_for_validator,
-        validators_bond_extra_stakes,
+        check_points, get_era_for_session, reset_validator_keys, set_invalid_keys_for_validator,
+        setup_validators, validators_bond_extra_stakes,
     },
     Config,
 };
@@ -21,81 +21,24 @@ use crate::{
 // retrieved from pallet Staking.
 const MAX_DIFFERENCE: f64 = 0.07;
 
-const COMMITTEE_SEATS: CommitteeSeats = CommitteeSeats {
-    reserved_seats: 2,
-    non_reserved_seats: 2,
-};
-
-fn get_reserved_members(config: &Config) -> Vec<KeyPair> {
-    get_validators_keys(config)[0..2].to_vec()
-}
-
-fn get_non_reserved_members(config: &Config) -> Vec<KeyPair> {
-    get_validators_keys(config)[2..].to_vec()
-}
-
-fn get_non_reserved_members_for_session(config: &Config, session: SessionIndex) -> Vec<AccountId> {
-    // Test assumption
-    const FREE_SEATS: u32 = 2;
-
-    let mut non_reserved = vec![];
-
-    let non_reserved_nodes_order_from_runtime = get_non_reserved_members(config);
-    let non_reserved_nodes_order_from_runtime_len = non_reserved_nodes_order_from_runtime.len();
-
-    for i in (FREE_SEATS * session)..(FREE_SEATS * (session + 1)) {
-        non_reserved.push(
-            non_reserved_nodes_order_from_runtime
-                [i as usize % non_reserved_nodes_order_from_runtime_len]
-                .clone(),
-        );
-    }
-
-    non_reserved.iter().map(account_from_keypair).collect()
-}
-
-fn get_member_accounts(config: &Config) -> (Vec<AccountId>, Vec<AccountId>) {
-    (
-        get_reserved_members(config)
-            .iter()
-            .map(account_from_keypair)
-            .collect(),
-        get_non_reserved_members(config)
-            .iter()
-            .map(account_from_keypair)
-            .collect(),
-    )
-}
-
-/// Runs a chain, checks that reward points are calculated correctly .
 pub fn points_basic(config: &Config) -> anyhow::Result<()> {
+    let (era_validators, committee_size, start_session) = setup_validators(config)?;
+
     let connection = config.get_first_signed_connection();
-    let root_connection = config.create_root_connection();
 
-    let (reserved_members, non_reserved_members) = get_member_accounts(config);
-
-    change_validators(
-        &root_connection,
-        Some(reserved_members.clone()),
-        Some(non_reserved_members.clone()),
-        Some(COMMITTEE_SEATS),
-        XtStatus::Finalized,
-    );
-
-    let sessions_per_era = get_sessions_per_era(&connection);
-    let era = wait_for_next_era(&connection)?;
-    let start_new_era_session = era * sessions_per_era;
-    let end_new_era_session = sessions_per_era * wait_for_next_era(&connection)?;
+    wait_for_next_era(&connection)?;
+    let end_session = get_current_session(&connection);
+    let members_per_session = committee_size.reserved_seats + committee_size.non_reserved_seats;
 
     info!(
         "Checking rewards for sessions {}..{}.",
-        start_new_era_session, end_new_era_session
+        start_session, end_session
     );
 
-    for session in start_new_era_session..end_new_era_session {
-        let non_reserved_for_session = get_non_reserved_members_for_session(config, session);
-        let members_bench = get_bench_members(&non_reserved_members, &non_reserved_for_session);
-        let members_active = reserved_members.iter().chain(&non_reserved_for_session);
+    for session in start_session..end_session {
+        let era = get_era_for_session(&connection, session);
+        let (members_active, members_bench) =
+            get_and_test_members_for_session(&connection, committee_size, &era_validators, session);
 
         check_points(
             &connection,
@@ -103,6 +46,7 @@ pub fn points_basic(config: &Config) -> anyhow::Result<()> {
             era,
             members_active,
             members_bench,
+            members_per_session,
             MAX_DIFFERENCE,
         )?
     }
@@ -113,18 +57,7 @@ pub fn points_basic(config: &Config) -> anyhow::Result<()> {
 /// Runs a chain, bonds extra stakes to validator accounts and checks that reward points
 /// are calculated correctly afterward.
 pub fn points_stake_change(config: &Config) -> anyhow::Result<()> {
-    let connection = config.get_first_signed_connection();
-    let root_connection = config.create_root_connection();
-
-    let (reserved_members, non_reserved_members) = get_member_accounts(config);
-
-    change_validators(
-        &root_connection,
-        Some(reserved_members.clone()),
-        Some(non_reserved_members.clone()),
-        Some(COMMITTEE_SEATS),
-        XtStatus::Finalized,
-    );
+    let (era_validators, committee_size, _) = setup_validators(config)?;
 
     validators_bond_extra_stakes(
         config,
@@ -137,24 +70,21 @@ pub fn points_stake_change(config: &Config) -> anyhow::Result<()> {
         ],
     );
 
-    let sessions_per_era = get_sessions_per_era(&connection);
-    let era = wait_for_next_era(&connection)?;
-    let start_era_session = era * sessions_per_era;
-    let end_era_session = sessions_per_era * wait_for_next_era(&connection)?;
+    let connection = config.get_first_signed_connection();
+    let start_session = get_current_session(&connection);
+    wait_for_next_era(&connection)?;
+    let end_session = get_current_session(&connection);
+    let members_per_session = committee_size.reserved_seats + committee_size.non_reserved_seats;
 
     info!(
         "Checking rewards for sessions {}..{}.",
-        start_era_session, end_era_session
+        start_session, end_session
     );
 
-    for session in start_era_session..end_era_session {
-        let non_reserved_members_for_session =
-            get_non_reserved_members_for_session(config, session);
-        let members_bench =
-            get_bench_members(&non_reserved_members, &non_reserved_members_for_session);
-        let members_active = reserved_members
-            .iter()
-            .chain(&non_reserved_members_for_session);
+    for session in start_session..end_session {
+        let era = get_era_for_session(&connection, session);
+        let (members_active, members_bench) =
+            get_and_test_members_for_session(&connection, committee_size, &era_validators, session);
 
         check_points(
             &connection,
@@ -162,6 +92,7 @@ pub fn points_stake_change(config: &Config) -> anyhow::Result<()> {
             era,
             members_active,
             members_bench,
+            members_per_session,
             MAX_DIFFERENCE,
         )?
     }
@@ -172,30 +103,19 @@ pub fn points_stake_change(config: &Config) -> anyhow::Result<()> {
 /// Runs a chain, sets invalid session keys for one validator, re-sets the keys to valid ones
 /// and checks that reward points are calculated correctly afterward.
 pub fn disable_node(config: &Config) -> anyhow::Result<()> {
+    let (era_validators, committee_size, start_session) = setup_validators(config)?;
+
     let root_connection = config.create_root_connection();
-    let sessions_per_era = get_sessions_per_era(&root_connection);
-    let (reserved_members, non_reserved_members) = get_member_accounts(config);
-
-    change_validators(
-        &root_connection,
-        Some(reserved_members.clone()),
-        Some(non_reserved_members.clone()),
-        Some(COMMITTEE_SEATS),
-        XtStatus::Finalized,
-    );
-
-    let era = wait_for_next_era(&root_connection)?;
-    let start_session = era * sessions_per_era;
-
     let controller_connection = SignedConnection::new(&config.node, config.node_keys().controller);
+
     // this should `disable` this node by setting invalid session_keys
     set_invalid_keys_for_validator(&controller_connection)?;
     // this should `re-enable` this node, i.e. by means of the `rotate keys` procedure
     reset_validator_keys(&controller_connection)?;
 
-    let era = wait_for_full_era_completion(&root_connection)?;
-
-    let end_session = era * sessions_per_era;
+    wait_for_full_era_completion(&root_connection)?;
+    let end_session = get_current_session(&root_connection);
+    let members_per_session = committee_size.reserved_seats + committee_size.non_reserved_seats;
 
     info!(
         "Checking rewards for sessions {}..{}.",
@@ -203,21 +123,21 @@ pub fn disable_node(config: &Config) -> anyhow::Result<()> {
     );
 
     for session in start_session..end_session {
-        let non_reserved_members_for_session =
-            get_non_reserved_members_for_session(config, session);
-        let members_bench =
-            get_bench_members(&non_reserved_members, &non_reserved_members_for_session);
-        let members_active = reserved_members
-            .iter()
-            .chain(&non_reserved_members_for_session);
+        let era = get_era_for_session(&controller_connection, session);
+        let (members_active, members_bench) = get_and_test_members_for_session(
+            &controller_connection,
+            committee_size,
+            &era_validators,
+            session,
+        );
 
-        let era = session / sessions_per_era;
         check_points(
             &controller_connection,
             session,
             era,
             members_active,
             members_bench,
+            members_per_session,
             MAX_DIFFERENCE,
         )?;
     }
@@ -230,23 +150,12 @@ pub fn disable_node(config: &Config) -> anyhow::Result<()> {
 /// session, when the new era has not yet started, 3) in the next session, second one after
 /// the call, when the new era has already begun.
 pub fn force_new_era(config: &Config) -> anyhow::Result<()> {
+    let (era_validators, committee_size, start_session) = setup_validators(config)?;
+
     let connection = config.get_first_signed_connection();
     let root_connection = config.create_root_connection();
+    let start_era = get_era_for_session(&connection, start_session);
 
-    let (reserved_members, non_reserved_members) = get_member_accounts(config);
-
-    change_validators(
-        &root_connection,
-        Some(reserved_members.clone()),
-        Some(non_reserved_members.clone()),
-        Some(COMMITTEE_SEATS),
-        XtStatus::Finalized,
-    );
-
-    wait_for_full_era_completion(&connection)?;
-
-    let start_era = get_current_era(&connection);
-    let start_session = get_current_session(&connection);
     info!("Start | era: {}, session: {}", start_era, start_session);
 
     staking_force_new_era(&root_connection, XtStatus::Finalized);
@@ -260,12 +169,11 @@ pub fn force_new_era(config: &Config) -> anyhow::Result<()> {
     );
 
     check_points_after_force_new_era(
-        config,
         &connection,
         start_session,
         start_era,
-        reserved_members,
-        non_reserved_members,
+        &era_validators,
+        committee_size,
         MAX_DIFFERENCE,
     )?;
     Ok(())
@@ -278,23 +186,12 @@ pub fn force_new_era(config: &Config) -> anyhow::Result<()> {
 /// and after two sessions (required for a new era to be forced) they are adjusted to the new
 /// stakes.
 pub fn change_stake_and_force_new_era(config: &Config) -> anyhow::Result<()> {
+    let (era_validators, committee_size, start_session) = setup_validators(config)?;
+
     let connection = config.get_first_signed_connection();
     let root_connection = config.create_root_connection();
 
-    let (reserved_members, non_reserved_members) = get_member_accounts(config);
-
-    change_validators(
-        &root_connection,
-        Some(reserved_members.clone()),
-        Some(non_reserved_members.clone()),
-        Some(COMMITTEE_SEATS),
-        XtStatus::Finalized,
-    );
-
-    wait_for_full_era_completion(&connection)?;
-
-    let start_era = get_current_era(&connection);
-    let start_session = get_current_session(&connection);
+    let start_era = get_era_for_session(&connection, start_session);
     info!("Start | era: {}, session: {}", start_era, start_session);
 
     validators_bond_extra_stakes(
@@ -319,23 +216,22 @@ pub fn change_stake_and_force_new_era(config: &Config) -> anyhow::Result<()> {
     );
 
     check_points_after_force_new_era(
-        config,
         &connection,
         start_session,
         start_era,
-        reserved_members,
-        non_reserved_members,
+        &era_validators,
+        committee_size,
         MAX_DIFFERENCE,
     )?;
     Ok(())
 }
+
 fn check_points_after_force_new_era(
-    config: &Config,
     connection: &SignedConnection,
     start_session: SessionIndex,
     start_era: EraIndex,
-    reserved_members: Vec<AccountId>,
-    non_reserved_members: Vec<AccountId>,
+    era_validators: &EraValidators<AccountId>,
+    seats: CommitteeSeats,
     max_relative_difference: f64,
 ) -> anyhow::Result<()> {
     // Once a new era is forced in session k, the new era does not come into effect until session
@@ -352,13 +248,8 @@ fn check_points_after_force_new_era(
             era_to_check, session_to_check
         );
 
-        let non_reserved_members_for_session =
-            get_non_reserved_members_for_session(config, session_to_check);
-        let members_bench =
-            get_bench_members(&non_reserved_members, &non_reserved_members_for_session);
-        let members_active = reserved_members
-            .iter()
-            .chain(&non_reserved_members_for_session);
+        let (members_active, members_bench) =
+            get_and_test_members_for_session(connection, seats, era_validators, session_to_check);
 
         check_points(
             connection,
@@ -366,6 +257,7 @@ fn check_points_after_force_new_era(
             era_to_check,
             members_active,
             members_bench,
+            seats.reserved_seats + seats.non_reserved_seats,
             max_relative_difference,
         )?;
     }

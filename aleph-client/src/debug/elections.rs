@@ -2,10 +2,10 @@ use primitives::AuthorityId;
 
 use crate::{
     debug::{element_prompt, entry_prompt, pallet_prompt},
-    AnyConnection,
+    AnyConnectionExt,
 };
 
-pub fn print_storage<C: AnyConnection>(connection: &C) {
+pub fn print_storage<C: AnyConnectionExt>(connection: &C) {
     let members: Vec<AuthorityId> = connection.read_storage_value("Elections", "Members");
 
     println!("{}", pallet_prompt("Elections"));

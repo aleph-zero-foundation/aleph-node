@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use codec::{Compact, Decode, Encode};
 use frame_support::BoundedVec;
-use log::info;
+use log::{debug, info};
 use pallet_staking::{
     Exposure, MaxUnlockingChunks, RewardDestination, UnlockChunk, ValidatorPrefs,
 };
@@ -15,8 +15,9 @@ use substrate_api_client::{
 };
 
 use crate::{
-    account_from_keypair, create_connection, locks, send_xt, wait_for_session, AnyConnection,
-    BlockNumber, KeyPair, RootConnection, SignedConnection,
+    account_from_keypair, create_connection, locks, send_xt, session::wait_for_predicate,
+    wait_for_session, AnyConnection, AnyConnectionExt, BlockNumber, KeyPair, RootConnection,
+    SignedConnection,
 };
 
 const PALLET: &str = "Staking";
@@ -112,12 +113,31 @@ pub fn wait_for_next_era<C: AnyConnection>(connection: &C) -> anyhow::Result<Era
     wait_for_era_completion(connection, get_current_era(connection) + 1)
 }
 
-fn wait_for_era_completion<C: AnyConnection>(
+pub fn wait_for_at_least_era<C: AnyConnectionExt>(
+    connection: &C,
+    era: EraIndex,
+) -> anyhow::Result<EraIndex> {
+    let current_era = get_era(connection, None);
+    if current_era >= era {
+        return Ok(current_era);
+    }
+    let sessions_per_era: u32 = connection.read_constant(PALLET, "SessionsPerEra");
+    let first_session_in_era = era * sessions_per_era;
+    wait_for_predicate(connection, |session| session >= first_session_in_era)?;
+    Ok(get_era(connection, None))
+}
+
+pub fn wait_for_era_completion<C: AnyConnection>(
     connection: &C,
     next_era_index: EraIndex,
 ) -> anyhow::Result<EraIndex> {
+    debug!("waiting for era {}", next_era_index);
     let sessions_per_era: u32 = connection.read_constant(PALLET, "SessionsPerEra");
     let first_session_in_next_era = next_era_index * sessions_per_era;
+    debug!(
+        "waiting for session first_session_in_next_era={}",
+        first_session_in_next_era
+    );
     wait_for_session(connection, first_session_in_next_era)?;
     Ok(next_era_index)
 }

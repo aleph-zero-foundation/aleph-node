@@ -8,7 +8,9 @@ use sp_core::{Pair, H256};
 use sp_runtime::{traits::AccountIdConversion, AccountId32};
 use substrate_api_client::{compose_extrinsic, ApiResult, GenericAddress, XtStatus};
 
-use crate::{try_send_xt, wait_for_event, AnyConnection, RootConnection, SignedConnection};
+use crate::{
+    try_send_xt, wait_for_event, AnyConnection, AnyConnectionExt, RootConnection, SignedConnection,
+};
 
 const PALLET: &str = "Treasury";
 
@@ -20,7 +22,7 @@ pub fn treasury_account() -> AccountId32 {
 }
 
 /// Returns how many treasury proposals have ever been created.
-pub fn proposals_counter<C: AnyConnection>(connection: &C) -> u32 {
+pub fn proposals_counter<C: AnyConnectionExt>(connection: &C) -> u32 {
     connection.read_storage_value_or_default(PALLET, "ProposalCount")
 }
 

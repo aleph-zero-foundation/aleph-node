@@ -3,13 +3,12 @@ use std::collections::BTreeSet;
 use aleph_client::{
     change_validators, get_current_session, get_current_validators, get_eras_stakers_storage_key,
     get_stakers_as_storage_keys, get_stakers_as_storage_keys_from_storage_key,
-    staking_chill_all_validators, wait_for_full_era_completion, wait_for_session, AnyConnection,
-    RootConnection, SignedConnection,
+    staking_chill_all_validators, wait_for_full_era_completion, wait_for_session, AccountId,
+    AnyConnection, RootConnection, SignedConnection, XtStatus,
 };
 use log::info;
 use primitives::{CommitteeSeats, EraIndex};
 use sp_core::storage::StorageKey;
-use substrate_api_client::{AccountId, XtStatus};
 
 use crate::{
     accounts::get_sudo_key,

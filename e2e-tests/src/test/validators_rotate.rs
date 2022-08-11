@@ -2,18 +2,13 @@ use std::collections::HashMap;
 
 use aleph_client::{
     change_validators, get_current_block_number, get_current_session, get_validators_for_session,
-    wait_for_finalized_block, wait_for_full_era_completion, wait_for_session,
+    wait_for_finalized_block, wait_for_full_era_completion, wait_for_session, XtStatus,
 };
 use primitives::CommitteeSeats;
-use substrate_api_client::XtStatus;
 
 use crate::{
-    accounts::account_ids_from_keys,
-    validators::{
-        get_non_reserved_validators, get_non_reserved_validators_for_session,
-        get_reserved_validators,
-    },
-    Config,
+    accounts::account_ids_from_keys, elections::get_members_subset_for_session,
+    validators::get_test_validators, Config,
 };
 
 const TEST_LENGTH: u32 = 5;
@@ -22,20 +17,21 @@ pub fn validators_rotate(config: &Config) -> anyhow::Result<()> {
     let connection = config.get_first_signed_connection();
     let root_connection = config.create_root_connection();
 
-    let reserved_validators_keys = get_reserved_validators(config);
-    let reserved_validators = account_ids_from_keys(&reserved_validators_keys);
+    let era_validators = get_test_validators(config);
+    let reserved_validators = account_ids_from_keys(&era_validators.reserved);
 
-    let non_reserved_validators_keys = get_non_reserved_validators(config);
-    let non_reserved_validators = account_ids_from_keys(&non_reserved_validators_keys);
+    let non_reserved_validators = account_ids_from_keys(&era_validators.non_reserved);
+
+    let seats = CommitteeSeats {
+        reserved_seats: 2,
+        non_reserved_seats: 2,
+    };
 
     change_validators(
         &root_connection,
         Some(reserved_validators.clone()),
-        Some(non_reserved_validators),
-        Some(CommitteeSeats {
-            reserved_seats: 2,
-            non_reserved_seats: 2,
-        }),
+        Some(non_reserved_validators.clone()),
+        Some(seats),
         XtStatus::InBlock,
     );
     wait_for_full_era_completion(&connection)?;
@@ -47,7 +43,12 @@ pub fn validators_rotate(config: &Config) -> anyhow::Result<()> {
 
     for session in current_session..current_session + TEST_LENGTH {
         let elected = get_validators_for_session(&connection, session);
-        let non_reserved = get_non_reserved_validators_for_session(config, session);
+
+        let non_reserved = get_members_subset_for_session(
+            seats.non_reserved_seats,
+            &non_reserved_validators,
+            session,
+        );
 
         for nr in non_reserved.clone() {
             *non_reserved_count.entry(nr).or_insert(0) += 1;
