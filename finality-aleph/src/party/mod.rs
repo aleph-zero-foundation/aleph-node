@@ -259,11 +259,15 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashSet, sync::Arc, time::Duration};
+    use std::{
+        collections::{HashMap, HashSet},
+        sync::Arc,
+        time::Duration,
+    };
 
     use aleph_primitives::{AuthorityId, SessionAuthorityData};
     use sp_runtime::testing::UintAuthorityId;
-    use tokio::time::sleep;
+    use tokio::{task::JoinHandle, time::sleep};
 
     use crate::{
         party::{
@@ -273,8 +277,223 @@ mod tests {
             ConsensusParty, ConsensusPartyParams, SESSION_STATUS_CHECK_PERIOD,
         },
         session_map::SharedSessionMap,
-        SessionId,
+        SessionId, SessionPeriod,
     };
+
+    type Party = ConsensusParty<
+        SimpleBlock,
+        Arc<MockSyncState>,
+        Arc<MockChainState>,
+        Arc<MockNodeSessionManager>,
+        MockSessionInfo,
+    >;
+
+    struct PartyState {
+        validator_started: Vec<SessionId>,
+        early_started: Vec<SessionId>,
+        stopped: Vec<SessionId>,
+        non_validator_started: Vec<SessionId>,
+    }
+
+    #[derive(Default)]
+    struct BlockEvents {
+        session_authorities: Option<(SessionId, Vec<AuthorityId>)>,
+        id: Option<Option<AuthorityId>>,
+        state_to_assert: Option<PartyState>,
+    }
+
+    struct PartyTest {
+        current_block: u32,
+        controller: MockController,
+        block_events: HashMap<u32, BlockEvents>,
+        handle: Option<JoinHandle<()>>,
+    }
+
+    impl PartyTest {
+        fn new(session_period: SessionPeriod) -> (Self, Party) {
+            let (party, controller) = create_mocked_consensus_party(session_period);
+
+            (
+                Self {
+                    current_block: 0,
+                    controller,
+                    block_events: Default::default(),
+                    handle: None,
+                },
+                party,
+            )
+        }
+
+        fn run_party(mut self, party: Party) -> Self {
+            let party_handle = tokio::spawn(party.run());
+            self.handle = Some(party_handle);
+
+            self
+        }
+
+        fn assert_state(&self, expected_state: PartyState, block: u32) {
+            let PartyState {
+                validator_started,
+                early_started,
+                stopped,
+                non_validator_started,
+            } = expected_state;
+            assert_eq!(
+                *self
+                    .controller
+                    .node_session_manager
+                    .validator_session_started
+                    .lock()
+                    .unwrap(),
+                HashSet::from_iter(validator_started),
+                "`validator_session_started` mismatch at block #{}",
+                block
+            );
+
+            assert_eq!(
+                *self
+                    .controller
+                    .node_session_manager
+                    .session_early_started
+                    .lock()
+                    .unwrap(),
+                HashSet::from_iter(early_started),
+                "`session_early_started` mismatch at block #{}",
+                block
+            );
+
+            assert_eq!(
+                *self
+                    .controller
+                    .node_session_manager
+                    .session_stopped
+                    .lock()
+                    .unwrap(),
+                HashSet::from_iter(stopped),
+                "`session_stopped` mismatch at block #{}",
+                block
+            );
+
+            assert_eq!(
+                *self
+                    .controller
+                    .node_session_manager
+                    .nonvalidator_session_started
+                    .lock()
+                    .unwrap(),
+                HashSet::from_iter(non_validator_started),
+                "`nonvalidator_session_started` mismatch at block #{}",
+                block
+            );
+        }
+
+        async fn run_for_n_blocks(mut self, n: u32) -> Self {
+            for i in self.current_block..self.current_block + n {
+                self.controller.chain_state_mock.set_best_block(i);
+                self.controller.chain_state_mock.set_finalized_block(i);
+
+                if let Some(events) = self.block_events.remove(&i) {
+                    self.handle_events(events, i).await;
+                }
+            }
+
+            self.current_block = self.current_block + n;
+
+            self
+        }
+
+        async fn handle_events(&mut self, events: BlockEvents, block: u32) {
+            let BlockEvents {
+                session_authorities,
+                id,
+                state_to_assert,
+            } = events;
+
+            if let Some(expected_state) = state_to_assert {
+                // sleep to make sure party catch all events
+                sleep(Duration::from_millis(
+                    SESSION_STATUS_CHECK_PERIOD.as_millis() as u64 + 100,
+                ))
+                .await;
+                self.assert_state(expected_state, block);
+            }
+
+            if let Some((session, authorities)) = session_authorities {
+                self.controller
+                    .shared_session_map
+                    .update(session, SessionAuthorityData::new(authorities, None))
+                    .await;
+            }
+
+            if let Some(id) = id {
+                self.controller.node_session_manager.set_node_id(id)
+            }
+        }
+
+        fn set_authorities_for_session_at_block(
+            mut self,
+            block: u32,
+            authorities: Vec<AuthorityId>,
+            session: SessionId,
+        ) -> Self {
+            let events = self.block_events.entry(block).or_default();
+            events.session_authorities = Some((session, authorities));
+
+            self
+        }
+
+        fn set_node_id_for_session_at_block(mut self, block: u32, id: Option<AuthorityId>) -> Self {
+            let events = self.block_events.entry(block).or_default();
+            events.id = Some(id);
+
+            self
+        }
+
+        async fn set_best_and_finalized_block(
+            mut self,
+            best_block: u32,
+            finalized_block: u32,
+        ) -> Self {
+            self.controller.chain_state_mock.set_best_block(best_block);
+            self.controller
+                .chain_state_mock
+                .set_finalized_block(finalized_block);
+
+            self.current_block = best_block + 1;
+
+            self
+        }
+
+        fn expect_session_states_at_block(
+            mut self,
+            block: u32,
+            expected_state: PartyState,
+        ) -> Self {
+            let events = self.block_events.entry(block).or_default();
+            events.state_to_assert = Some(expected_state);
+
+            self
+        }
+
+        async fn set_now(
+            mut self,
+            session_authorities: Option<(SessionId, Vec<AuthorityId>)>,
+            id: Option<Option<AuthorityId>>,
+        ) -> Self {
+            if let Some((session, authorities)) = session_authorities {
+                self.controller
+                    .shared_session_map
+                    .update(session, SessionAuthorityData::new(authorities, None))
+                    .await;
+            }
+
+            if let Some(id) = id {
+                self.controller.node_session_manager.set_node_id(id)
+            }
+
+            self
+        }
+    }
 
     const SESSION_PERIOD: u32 = 30;
 
@@ -286,7 +505,9 @@ mod tests {
         pub node_session_manager: Arc<MockNodeSessionManager>,
     }
 
-    fn create_mocked_consensus_party() -> (
+    fn create_mocked_consensus_party(
+        session_period: SessionPeriod,
+    ) -> (
         ConsensusParty<
             SimpleBlock,
             Arc<MockSyncState>,
@@ -302,7 +523,7 @@ mod tests {
         let chain_state = Arc::new(MockChainState::new());
         let sync_state = Arc::new(MockSyncState::new());
         let session_manager = Arc::new(MockNodeSessionManager::new());
-        let session_info = MockSessionInfo::new(SESSION_PERIOD);
+        let session_info = MockSessionInfo::new(session_period.0);
 
         let controller = MockController {
             shared_session_map: shared_map,
@@ -324,275 +545,201 @@ mod tests {
         (ConsensusParty::new(params), controller)
     }
 
-    fn simulate_n_blocks(start: u32, n: u32, controller: &MockController) {
-        for i in start..start + n {
-            controller.chain_state_mock.set_best_block(i);
-            controller.chain_state_mock.set_finalized_block(i);
-        }
-    }
-
-    async fn set_authorities_for_sessions(
-        controller: &mut MockController,
-        sessions: Vec<(SessionId, Vec<AuthorityId>)>,
-    ) {
-        for (session, authorities) in sessions {
-            controller
-                .shared_session_map
-                .update(session, SessionAuthorityData::new(authorities, None))
-                .await;
-        }
-    }
-
-    fn assert_session_states(
-        controller: &MockController,
-        validator_started: Vec<SessionId>,
-        early_started: Vec<SessionId>,
-        stopped: Vec<SessionId>,
-        non_validator_started: Vec<SessionId>,
-    ) {
-        assert_eq!(
-            *controller
-                .node_session_manager
-                .validator_session_started
-                .lock()
-                .unwrap(),
-            HashSet::from_iter(validator_started),
-            "`validator_session_started` mismatch"
-        );
-
-        assert_eq!(
-            *controller
-                .node_session_manager
-                .session_early_started
-                .lock()
-                .unwrap(),
-            HashSet::from_iter(early_started),
-            "`session_early_started` mismatch"
-        );
-
-        assert_eq!(
-            *controller
-                .node_session_manager
-                .session_stopped
-                .lock()
-                .unwrap(),
-            HashSet::from_iter(stopped),
-            "`session_stopped` mismatch"
-        );
-
-        assert_eq!(
-            *controller
-                .node_session_manager
-                .nonvalidator_session_started
-                .lock()
-                .unwrap(),
-            HashSet::from_iter(non_validator_started),
-            "`nonvalidator_session_started` mismatch"
-        );
-    }
-
     #[tokio::test(flavor = "multi_thread")]
     async fn party_starts_session_for_node_in_authorities() {
-        let (party, mut controller) = create_mocked_consensus_party();
-
-        controller
-            .node_session_manager
-            .set_node_id(Some(UintAuthorityId(0).to_public_key()));
-
-        let _party_handle = tokio::spawn(party.run());
+        let (test, party) = PartyTest::new(SessionPeriod(SESSION_PERIOD));
 
         let authorities: Vec<_> = (0..10)
             .map(|id| UintAuthorityId(id).to_public_key())
             .collect();
-        set_authorities_for_sessions(
-            &mut controller,
-            vec![
-                (SessionId(0), authorities.clone()),
-                (SessionId(1), authorities),
-            ],
-        )
-        .await;
 
-        sleep(Duration::from_millis(100)).await;
-        simulate_n_blocks(0, SESSION_PERIOD, &controller);
-        sleep(Duration::from_millis(
-            SESSION_STATUS_CHECK_PERIOD.as_millis() as u64 + 100,
-        ))
-        .await;
+        let state_1 = PartyState {
+            validator_started: vec![SessionId(0)],
+            early_started: vec![SessionId(1)],
+            stopped: vec![],
+            non_validator_started: vec![],
+        };
 
-        assert_session_states(
-            &controller,
-            vec![SessionId(0), SessionId(1)],
-            vec![SessionId(1)],
-            vec![SessionId(0)],
-            vec![],
-        );
+        let state_2 = PartyState {
+            validator_started: vec![SessionId(0), SessionId(1)],
+            early_started: vec![SessionId(1)],
+            stopped: vec![SessionId(0)],
+            non_validator_started: vec![],
+        };
+
+        test.set_authorities_for_session_at_block(0, authorities.clone(), SessionId(0))
+            .set_authorities_for_session_at_block(25, authorities, SessionId(1))
+            .set_node_id_for_session_at_block(0, Some(UintAuthorityId(0).to_public_key()))
+            .expect_session_states_at_block(28, state_1)
+            .expect_session_states_at_block(29, state_2)
+            .run_party(party)
+            .run_for_n_blocks(SESSION_PERIOD)
+            .await;
     }
 
     #[tokio::test(flavor = "multi_thread")]
     async fn party_run_3_authorities_sessions() {
-        let (party, mut controller) = create_mocked_consensus_party();
-
-        controller
-            .node_session_manager
-            .set_node_id(Some(UintAuthorityId(0).to_public_key()));
-
-        let _party_handle = tokio::spawn(party.run());
+        let (test, party) = PartyTest::new(SessionPeriod(SESSION_PERIOD));
 
         let authorities: Vec<_> = (0..10)
             .map(|id| UintAuthorityId(id).to_public_key())
             .collect();
-        set_authorities_for_sessions(
-            &mut controller,
-            vec![
-                (SessionId(0), authorities.clone()),
-                (SessionId(1), authorities.clone()),
-                (SessionId(2), authorities.clone()),
-                (SessionId(3), authorities),
-            ],
-        )
-        .await;
 
-        sleep(Duration::from_millis(100)).await;
+        let state_1 = PartyState {
+            validator_started: vec![SessionId(0)],
+            early_started: vec![SessionId(1)],
+            stopped: vec![],
+            non_validator_started: vec![],
+        };
 
-        for i in 0..3 {
-            simulate_n_blocks(SESSION_PERIOD * i, SESSION_PERIOD, &controller);
-            sleep(Duration::from_millis(
-                SESSION_STATUS_CHECK_PERIOD.as_millis() as u64 + 100,
-            ))
+        let state_2 = PartyState {
+            validator_started: vec![SessionId(0), SessionId(1)],
+            early_started: vec![SessionId(1)],
+            stopped: vec![SessionId(0)],
+            non_validator_started: vec![],
+        };
+
+        let state_3 = PartyState {
+            validator_started: vec![SessionId(0), SessionId(1), SessionId(2)],
+            early_started: vec![SessionId(1), SessionId(2)],
+            stopped: vec![SessionId(0), SessionId(1)],
+            non_validator_started: vec![],
+        };
+
+        let state_4 = PartyState {
+            validator_started: vec![SessionId(0), SessionId(1), SessionId(2), SessionId(3)],
+            early_started: vec![SessionId(1), SessionId(2), SessionId(3)],
+            stopped: vec![SessionId(0), SessionId(1), SessionId(2)],
+            non_validator_started: vec![],
+        };
+
+        test.set_authorities_for_session_at_block(0, authorities.clone(), SessionId(0))
+            .set_authorities_for_session_at_block(25, authorities.clone(), SessionId(1))
+            .set_authorities_for_session_at_block(55, authorities.clone(), SessionId(2))
+            .set_authorities_for_session_at_block(85, authorities, SessionId(3))
+            .set_node_id_for_session_at_block(0, Some(UintAuthorityId(0).to_public_key()))
+            .expect_session_states_at_block(28, state_1)
+            .expect_session_states_at_block(29, state_2)
+            .expect_session_states_at_block(59, state_3)
+            .expect_session_states_at_block(89, state_4)
+            .run_party(party)
+            .run_for_n_blocks(3 * SESSION_PERIOD)
             .await;
-        }
-
-        assert_session_states(
-            &controller,
-            vec![SessionId(0), SessionId(1), SessionId(2), SessionId(3)],
-            vec![SessionId(1), SessionId(2), SessionId(3)],
-            vec![SessionId(0), SessionId(1), SessionId(2)],
-            vec![],
-        );
     }
 
     #[tokio::test(flavor = "multi_thread")]
     async fn party_run_3_non_authorities_sessions() {
-        let (party, mut controller) = create_mocked_consensus_party();
-
-        controller.node_session_manager.set_node_id(None);
-
-        let _party_handle = tokio::spawn(party.run());
+        let (test, party) = PartyTest::new(SessionPeriod(SESSION_PERIOD));
 
         let authorities: Vec<_> = (0..10)
             .map(|id| UintAuthorityId(id).to_public_key())
             .collect();
-        set_authorities_for_sessions(
-            &mut controller,
-            vec![
-                (SessionId(0), authorities.clone()),
-                (SessionId(1), authorities.clone()),
-                (SessionId(2), authorities.clone()),
-                (SessionId(3), authorities),
-            ],
-        )
-        .await;
 
-        sleep(Duration::from_millis(100)).await;
+        let state_1 = PartyState {
+            non_validator_started: vec![SessionId(0)],
+            early_started: vec![],
+            stopped: vec![],
+            validator_started: vec![],
+        };
 
-        for i in 0..3 {
-            simulate_n_blocks(SESSION_PERIOD * i, SESSION_PERIOD, &controller);
-            sleep(Duration::from_millis(
-                SESSION_STATUS_CHECK_PERIOD.as_millis() as u64 + 100,
-            ))
+        let state_2 = PartyState {
+            non_validator_started: vec![SessionId(0), SessionId(1)],
+            early_started: vec![],
+            stopped: vec![SessionId(0)],
+            validator_started: vec![],
+        };
+
+        let state_3 = PartyState {
+            non_validator_started: vec![SessionId(0), SessionId(1), SessionId(2)],
+            early_started: vec![],
+            stopped: vec![SessionId(0), SessionId(1)],
+            validator_started: vec![],
+        };
+
+        let state_4 = PartyState {
+            non_validator_started: vec![SessionId(0), SessionId(1), SessionId(2), SessionId(3)],
+            early_started: vec![],
+            stopped: vec![SessionId(0), SessionId(1), SessionId(2)],
+            validator_started: vec![],
+        };
+
+        test.set_authorities_for_session_at_block(0, authorities.clone(), SessionId(0))
+            .set_authorities_for_session_at_block(25, authorities.clone(), SessionId(1))
+            .set_authorities_for_session_at_block(55, authorities.clone(), SessionId(2))
+            .set_authorities_for_session_at_block(85, authorities, SessionId(3))
+            .set_node_id_for_session_at_block(0, None)
+            .expect_session_states_at_block(24, state_1)
+            .expect_session_states_at_block(29, state_2)
+            .expect_session_states_at_block(59, state_3)
+            .expect_session_states_at_block(89, state_4)
+            .run_party(party)
+            .run_for_n_blocks(3 * SESSION_PERIOD)
             .await;
-        }
-
-        assert_session_states(
-            &controller,
-            vec![],
-            vec![],
-            vec![SessionId(0), SessionId(1), SessionId(2)],
-            vec![SessionId(0), SessionId(1), SessionId(2), SessionId(3)],
-        );
     }
 
     #[tokio::test(flavor = "multi_thread")]
     async fn party_early_skips_past_sessions() {
-        let (party, mut controller) = create_mocked_consensus_party();
-
-        controller
-            .node_session_manager
-            .set_node_id(Some(UintAuthorityId(0).to_public_key()));
-
-        controller
-            .chain_state_mock
-            .set_finalized_block(SESSION_PERIOD * 2);
-        controller
-            .chain_state_mock
-            .set_best_block(SESSION_PERIOD * 2);
-
-        let _party_handle = tokio::spawn(party.run());
+        let (test, party) = PartyTest::new(SessionPeriod(SESSION_PERIOD));
 
         let authorities: Vec<_> = (0..10)
             .map(|id| UintAuthorityId(id).to_public_key())
             .collect();
-        set_authorities_for_sessions(
-            &mut controller,
-            vec![
-                (SessionId(0), authorities.clone()),
-                (SessionId(1), authorities.clone()),
-                (SessionId(2), authorities.clone()),
-                (SessionId(3), authorities),
-            ],
+
+        let state = PartyState {
+            validator_started: vec![SessionId(2)],
+            early_started: vec![SessionId(3)],
+            non_validator_started: vec![],
+            stopped: vec![],
+        };
+
+        test.set_now(
+            Some((SessionId(0), authorities.clone())),
+            Some(Some(UintAuthorityId(0).to_public_key())),
         )
+        .await
+        .set_now(Some((SessionId(1), authorities.clone())), None)
+        .await
+        .set_now(Some((SessionId(2), authorities.clone())), None)
+        .await
+        .set_now(Some((SessionId(3), authorities)), None)
+        .await
+        .set_best_and_finalized_block(SESSION_PERIOD * 2, SESSION_PERIOD * 2)
+        .await
+        .run_party(party)
+        .expect_session_states_at_block(61, state)
+        .run_for_n_blocks(1)
         .await;
-
-        sleep(Duration::from_millis(
-            SESSION_STATUS_CHECK_PERIOD.as_millis() as u64 + 100,
-        ))
-        .await;
-
-        assert_session_states(
-            &controller,
-            vec![SessionId(2)],
-            vec![SessionId(3)],
-            vec![],
-            vec![],
-        );
     }
 
     #[tokio::test(flavor = "multi_thread")]
     async fn party_dont_start_session_for_node_non_in_authorities() {
-        let (party, mut controller) = create_mocked_consensus_party();
-
-        controller
-            .node_session_manager
-            .set_node_id(Some(UintAuthorityId(0).to_public_key()));
-
-        let _party_handle = tokio::spawn(party.run());
+        let (test, party) = PartyTest::new(SessionPeriod(SESSION_PERIOD));
 
         let authorities: Vec<_> = (0..10)
             .map(|id| UintAuthorityId(id).to_public_key())
             .collect();
-        set_authorities_for_sessions(
-            &mut controller,
-            vec![
-                (SessionId(0), authorities.clone()),
-                (SessionId(1), authorities[1..].to_vec()),
-            ],
-        )
-        .await;
 
-        sleep(Duration::from_millis(100)).await;
-        simulate_n_blocks(0, SESSION_PERIOD + 1, &controller);
-        sleep(Duration::from_millis(
-            SESSION_STATUS_CHECK_PERIOD.as_millis() as u64 + 100,
-        ))
-        .await;
+        let state_1 = PartyState {
+            validator_started: vec![SessionId(0)],
+            early_started: vec![],
+            non_validator_started: vec![],
+            stopped: vec![],
+        };
 
-        assert_session_states(
-            &controller,
-            vec![SessionId(0)],
-            vec![],
-            vec![SessionId(0)],
-            vec![SessionId(1)],
-        );
+        let state_2 = PartyState {
+            validator_started: vec![SessionId(0)],
+            early_started: vec![],
+            non_validator_started: vec![SessionId(1)],
+            stopped: vec![SessionId(0)],
+        };
+
+        test.set_authorities_for_session_at_block(0, authorities.clone(), SessionId(0))
+            .set_authorities_for_session_at_block(25, authorities[1..].to_vec(), SessionId(1))
+            .set_node_id_for_session_at_block(0, Some(UintAuthorityId(0).to_public_key()))
+            .expect_session_states_at_block(24, state_1)
+            .expect_session_states_at_block(29, state_2)
+            .run_party(party)
+            .run_for_n_blocks(SESSION_PERIOD)
+            .await;
     }
 }
