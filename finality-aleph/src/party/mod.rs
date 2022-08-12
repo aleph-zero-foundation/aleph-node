@@ -397,7 +397,7 @@ mod tests {
                 }
             }
 
-            self.current_block = self.current_block + n;
+            self.current_block += n;
 
             self
         }
@@ -505,6 +505,7 @@ mod tests {
         pub node_session_manager: Arc<MockNodeSessionManager>,
     }
 
+    #[allow(clippy::type_complexity)]
     fn create_mocked_consensus_party(
         session_period: SessionPeriod,
     ) -> (

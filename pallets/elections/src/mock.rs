@@ -143,7 +143,7 @@ impl EraInfoProvider for MockProvider {
     type AccountId = AccountId;
 
     fn active_era() -> Option<EraIndex> {
-        Some(ACTIVE_ERA.with(|ae| ae.borrow().clone()))
+        Some(ACTIVE_ERA.with(|ae| *ae.borrow()))
     }
 
     fn era_start_session_index(era: EraIndex) -> Option<SessionIndex> {
@@ -193,11 +193,11 @@ impl ElectionDataProvider for StakingMock {
     type MaxVotesPerVoter = MaxVotesPerVoter;
 
     fn electable_targets(_maybe_max_len: Option<usize>) -> data_provider::Result<Vec<AccountId>> {
-        ELECTABLE_TARGETS.with(|et| Ok(et.borrow().clone())).into()
+        ELECTABLE_TARGETS.with(|et| Ok(et.borrow().clone()))
     }
 
     fn electing_voters(_maybe_max_len: Option<usize>) -> data_provider::Result<Vec<Vote>> {
-        ELECTING_VOTERS.with(|ev| Ok(ev.borrow().clone())).into()
+        ELECTING_VOTERS.with(|ev| Ok(ev.borrow().clone()))
     }
 
     fn desired_targets() -> data_provider::Result<u32> {
@@ -254,8 +254,9 @@ impl TestExtBuilder {
             .chain(self.reserved_validators.iter())
             .collect();
 
-        let balances: Vec<_> = (0..validators.len())
-            .map(|i| (i as u64, 10_000_000))
+        let balances: Vec<_> = validators
+            .iter()
+            .map(|i| (**i as u64, 10_000_000))
             .collect();
 
         pallet_balances::GenesisConfig::<Test> { balances }

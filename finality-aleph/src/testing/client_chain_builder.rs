@@ -35,8 +35,8 @@ impl ClientChainBuilder {
     pub fn new(client: Arc<TestClient>, client_builder: Arc<TestClient>) -> Self {
         // Below we enforce that both clients are "empty" and agree with each other.
         assert_eq!(client.info(), client_builder.info());
-        assert_no_blocks_except_genesis(&*client);
-        assert_no_blocks_except_genesis(&*client_builder);
+        assert_no_blocks_except_genesis(&client);
+        assert_no_blocks_except_genesis(&client_builder);
         ClientChainBuilder {
             client,
             client_builder,

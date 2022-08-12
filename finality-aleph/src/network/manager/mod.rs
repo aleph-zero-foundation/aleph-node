@@ -46,7 +46,7 @@ impl<M: Multiaddress> AuthData<M> {
 pub type Authentication<M> = (AuthData<M>, Signature);
 
 /// The data that should be sent to the network service.
-#[derive(Clone, Debug, PartialEq, Encode, Decode)]
+#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
 pub enum NetworkData<D: Data, M: Multiaddress> {
     Meta(DiscoveryMessage<M>),
     Data(D, SessionId),

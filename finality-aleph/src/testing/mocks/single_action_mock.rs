@@ -46,6 +46,7 @@ impl<CallArgs: Send> SingleActionMock<CallArgs> {
 
     //This code is used only for testing.
     #[allow(clippy::await_holding_lock)]
+    #[allow(clippy::significant_drop_in_scrutinee)]
     pub(crate) async fn has_been_invoked_with<P: FnOnce(CallArgs) -> bool>(
         &self,
         predicate: P,

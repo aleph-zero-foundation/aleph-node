@@ -109,15 +109,12 @@ pub mod pallet {
         }
 
         pub(crate) fn update_emergency_finalizer() {
-            match <QueuedEmergencyFinalizer<T>>::get() {
-                Some(emergency_finalizer) => <EmergencyFinalizer<T>>::put(emergency_finalizer),
-                None => (),
+            if let Some(emergency_finalizer) = <QueuedEmergencyFinalizer<T>>::get() {
+                <EmergencyFinalizer<T>>::put(emergency_finalizer)
             }
-            match <NextEmergencyFinalizer<T>>::get() {
-                Some(emergency_finalizer) => {
-                    <QueuedEmergencyFinalizer<T>>::put(emergency_finalizer)
-                }
-                None => (),
+
+            if let Some(emergency_finalizer) = <NextEmergencyFinalizer<T>>::get() {
+                <QueuedEmergencyFinalizer<T>>::put(emergency_finalizer)
             }
         }
 

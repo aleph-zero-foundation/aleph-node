@@ -61,10 +61,10 @@ fn parse_base_path(path: &OsStr) -> BasePath {
 
 /// returns Aura key, if absent a new key is generated
 fn aura_key(keystore: &impl SyncCryptoStore) -> AuraId {
-    SyncCryptoStore::sr25519_public_keys(&*keystore, key_types::AURA)
+    SyncCryptoStore::sr25519_public_keys(keystore, key_types::AURA)
         .pop()
         .unwrap_or_else(|| {
-            SyncCryptoStore::sr25519_generate_new(&*keystore, key_types::AURA, None)
+            SyncCryptoStore::sr25519_generate_new(keystore, key_types::AURA, None)
                 .expect("Could not create Aura key")
         })
         .into()
@@ -72,10 +72,10 @@ fn aura_key(keystore: &impl SyncCryptoStore) -> AuraId {
 
 /// returns Aleph key, if absent a new key is generated
 fn aleph_key(keystore: &impl SyncCryptoStore) -> AlephId {
-    SyncCryptoStore::ed25519_public_keys(&*keystore, aleph_primitives::KEY_TYPE)
+    SyncCryptoStore::ed25519_public_keys(keystore, aleph_primitives::KEY_TYPE)
         .pop()
         .unwrap_or_else(|| {
-            SyncCryptoStore::ed25519_generate_new(&*keystore, aleph_primitives::KEY_TYPE, None)
+            SyncCryptoStore::ed25519_generate_new(keystore, aleph_primitives::KEY_TYPE, None)
                 .expect("Could not create Aleph key")
         })
         .into()
