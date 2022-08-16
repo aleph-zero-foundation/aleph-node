@@ -496,11 +496,11 @@ jobs:
 
       - name: Push aleph-node:latest-onfinality to Docker Hub
         env:
-          CURRENT_IMAGE: aleph-node
+          CURRENT_IMAGE_ONFINALITY: aleph-node:latest-onfinality
           DOCKERHUB_PUSH_IMAGE: cardinalcryptography/aleph-zero
         run: |
-          docker tag ${{ env.CURRENT_IMAGE }} ${{ env.DOCKERHUB_PUSH_IMAGE }}:${{ steps.vars.outputs.sha_short }}-onfinality
-          docker tag ${{ env.CURRENT_IMAGE }} ${{ env.DOCKERHUB_PUSH_IMAGE }}:latest-onfinality
+          docker tag ${{ env.CURRENT_IMAGE_ONFINALITY }} ${{ env.DOCKERHUB_PUSH_IMAGE }}:${{ steps.vars.outputs.sha_short }}-onfinality
+          docker tag ${{ env.CURRENT_IMAGE_ONFINALITY }} ${{ env.DOCKERHUB_PUSH_IMAGE }}:latest-onfinality
           docker push ${{ env.DOCKERHUB_PUSH_IMAGE }}:${{ steps.vars.outputs.sha_short }}-onfinality
           docker push ${{ env.DOCKERHUB_PUSH_IMAGE }}:latest-onfinality
 
