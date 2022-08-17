@@ -1,0 +1,159 @@
+name: Nightly pipeline
+
+on:
+  schedule:
+    - cron:  '00 23 * * *'
+
+concurrency:
+  group: "${{ github.ref }}-${{ github.workflow }}-nightly"
+  cancel-in-progress: true
+
+jobs:
+  build-new-node:
+    name: Build node and runtime artifacts (PR version)
+    uses: ./.github/workflows/build-node-and-runtime.yml
+
+  build-test-docker:
+    needs: [build-new-node]
+    name: Build docker image with the test node artifact
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Download test artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: aleph-test-node
+          path: target/release
+      
+      - name: Build test docker image
+        id: build-image
+        run: |
+          chmod +x target/release/aleph-node
+          docker build --tag aleph-node:latest -f ./docker/Dockerfile .
+          docker save -o aleph-node.tar aleph-node:latest
+      
+      - name: Upload test docker image
+        uses: actions/upload-artifact@v2
+        with:
+          name: aleph-test-docker
+          path: aleph-node.tar
+          if-no-files-found: error
+          retention-days: 7
+
+  check-determinism:
+    needs: [build-new-node]
+    name: Verify runtime build determinism
+    runs-on: ubuntu-latest
+    env:
+      RUST_BACKTRACE: full
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+      
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+
+      - name: Install WASM target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: aleph-release-runtime
+      
+      - name: Build runtime and compare checksum with artifact
+        env:
+          ARTIFACT: aleph_runtime.compact.wasm
+          TARGET_DIR: target/release/wbuild/aleph-runtime
+        run: |
+          mkdir -p "$TARGET_DIR"
+          mv "$ARTIFACT" "$TARGET_DIR"
+          sha256sum "$TARGET_DIR/$ARTIFACT" > checksum.sha256
+          cargo clean
+          cargo build --release -p aleph-runtime
+          sha256sum -c checksum.sha256
+
+  build-test-client:
+    name: Build e2e test client suite
+    runs-on: ubuntu-latest
+    env:
+      RUST_BACKTRACE: full
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+  
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+      
+      - name: Restore cache
+        uses: ./.github/actions/restore-cache
+        with:
+          target-key: e2e
+          cargo-key: e2e
+          cache-version: v1
+          cargo-targets: e2e-tests/target/
+      
+      - name: Build binary and docker image
+        run: |
+          cd e2e-tests/
+          cargo build --release
+          docker build --tag aleph-e2e-client:latest -f Dockerfile .
+          docker save -o aleph-e2e-client.tar aleph-e2e-client:latest
+      
+      - name: Stop cache
+        uses: ./.github/actions/post-cache
+  
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: aleph-e2e-client
+          path: e2e-tests/aleph-e2e-client.tar
+          if-no-files-found: error
+          retention-days: 7
+
+  run-e2e-finalization-test:
+    needs: [build-test-docker, build-test-client]
+    name: Run e2e finalization test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: finalization
+        timeout-minutes: 2
+
+  run-e2e-rewards-points-basic:
+    needs: [build-test-docker, build-test-client]
+    name: Run basic reward points calculation test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: points_basic
+          follow-up-finalization-check: true
+        timeout-minutes: 10
+
+  slack:
+    name: Slack notification
+    runs-on: ubuntu-latest
+    needs: [run-e2e-finalization-test, check-determinism, test-failure]
+    if: always()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Send Slack message
+        uses: ./.github/actions/slack-notification
+        with:
+          notify-on: "always"
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_NIGHTLY_PIPELINE }}
