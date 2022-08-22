@@ -66,26 +66,26 @@ impl<B: BlockT, C: HeaderBackend<B>> OrderedDataInterpreter<B, C> {
         }
     }
 
-    fn block_to_finalize_from_data(&mut self, new_data: AlephData<B>) -> Option<BlockHashNum<B>> {
+    fn blocks_to_finalize_from_data(&mut self, new_data: AlephData<B>) -> Vec<BlockHashNum<B>> {
         let unvalidated_proposal = new_data.head_proposal;
         let proposal = match unvalidated_proposal.validate_bounds(&self.session_boundaries) {
             Ok(proposal) => proposal,
             Err(error) => {
                 warn!(target: "aleph-finality", "Incorrect proposal {:?} passed through data availability, session bounds: {:?}, error: {:?}", unvalidated_proposal, self.session_boundaries, error);
-                return None;
+                return Vec::new();
             }
         };
 
-        // WARNING: If we ever enable pruning, this code (and the code in Data Store) must be carefully analyzed
-        // for possible safety violations.
+        // WARNING: If we ever enable block pruning, this code (and the code in Data Store) must be carefully
+        // analyzed for possible safety violations.
 
         use crate::data_io::proposal::ProposalStatus::*;
         let status = get_proposal_status(&mut self.chain_info_provider, &proposal, None);
         match status {
-            Finalize(block) => Some(block),
+            Finalize(blocks) => blocks,
             Ignore => {
                 debug!(target: "aleph-finality", "Ignoring proposal {:?} in interpreter.", proposal);
-                None
+                Vec::new()
             }
             Pending(pending_status) => {
                 panic!(
@@ -101,7 +101,7 @@ impl<B: BlockT, C: HeaderBackend<B> + Send + 'static> aleph_bft::FinalizationHan
     for OrderedDataInterpreter<B, C>
 {
     fn data_finalized(&mut self, data: AlephData<B>) {
-        if let Some(block) = self.block_to_finalize_from_data(data) {
+        for block in self.blocks_to_finalize_from_data(data) {
             self.last_finalized_by_aleph = block.clone();
             self.chain_info_provider
                 .inner()

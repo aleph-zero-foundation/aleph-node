@@ -1,6 +1,6 @@
 use log::debug;
 use sp_runtime::{
-    traits::{Block as BlockT, NumberFor},
+    traits::{Block as BlockT, NumberFor, One},
     SaturatedConversion,
 };
 
@@ -20,7 +20,9 @@ where
 {
     use crate::data_io::proposal::{PendingProposalStatus::*, ProposalStatus::*};
 
-    if chain_info_provider.get_highest_finalized().num >= proposal.number_top_block() {
+    let current_highest_finalized = chain_info_provider.get_highest_finalized().num;
+
+    if current_highest_finalized >= proposal.number_top_block() {
         return Ignore;
     }
 
@@ -42,7 +44,11 @@ where
                 // relation on the branch.
                 if is_branch_ancestry_correct(chain_info_provider, proposal) {
                     if is_ancestor_finalized(chain_info_provider, proposal) {
-                        Finalize(proposal.top_block())
+                        Finalize(
+                            proposal
+                                .blocks_from_num(current_highest_finalized + NumberFor::<B>::one())
+                                .collect(),
+                        )
                     } else {
                         // This could also be a hopeless fork, but we have checked before that it isn't (yet).
                         Pending(TopBlockImportedButNotFinalizedAncestor)
@@ -58,7 +64,11 @@ where
         }
         Pending(TopBlockImportedButNotFinalizedAncestor) => {
             if is_ancestor_finalized(chain_info_provider, proposal) {
-                Finalize(proposal.top_block())
+                Finalize(
+                    proposal
+                        .blocks_from_num(current_highest_finalized + NumberFor::<B>::one())
+                        .collect(),
+                )
             } else {
                 // This could also be a hopeless fork, but we have checked before that it isn't (yet).
                 Pending(TopBlockImportedButNotFinalizedAncestor)
@@ -238,7 +248,7 @@ mod tests {
                 cached_cip,
                 aux_cip,
                 &proposal,
-                ProposalStatus::Finalize(proposal.top_block()),
+                ProposalStatus::Finalize(proposal.blocks_from_num(0).collect()),
             );
         }
     }
@@ -401,7 +411,17 @@ mod tests {
             &mut cached_cip,
             &mut aux_cip,
             &fresh_proposal,
-            Finalize(fresh_proposal.top_block()),
+            Finalize(fresh_proposal.blocks_from_num(0).collect()),
+        );
+
+        // Long proposals should finalize the appropriate suffix.
+        let long_proposal = proposal_from_blocks(blocks[0..6].to_vec());
+        verify_proposal_status(
+            &mut cached_cip,
+            &mut aux_cip,
+            &long_proposal,
+            // We are using fresh_proposal here on purpose, to only check the expected blocks.
+            Finalize(fresh_proposal.blocks_from_num(0).collect()),
         );
     }
 }

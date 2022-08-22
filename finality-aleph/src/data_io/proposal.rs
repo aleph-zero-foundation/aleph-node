@@ -1,4 +1,5 @@
 use std::{
+    cmp::max,
     hash::{Hash, Hasher},
     ops::Index,
 };
@@ -206,6 +207,18 @@ impl<B: BlockT> AlephProposal<B> {
         }
         None
     }
+
+    /// Outputs an iterator over blocks starting at num. If num is too high, the iterator is
+    /// empty, if it's too low the whole branch is returned.
+    pub fn blocks_from_num(&self, num: NumberFor<B>) -> impl Iterator<Item = BlockHashNum<B>> + '_ {
+        let num = max(num, self.number_bottom_block());
+        self.branch
+            .iter()
+            .skip((num - self.number_bottom_block()).saturated_into())
+            .cloned()
+            .zip(0u32..)
+            .map(move |(hash, index)| (hash, num + index.into()).into())
+    }
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -217,7 +230,7 @@ pub enum PendingProposalStatus {
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum ProposalStatus<B: BlockT> {
-    Finalize(BlockHashNum<B>),
+    Finalize(Vec<BlockHashNum<B>>),
     Ignore,
     Pending(PendingProposalStatus),
 }
