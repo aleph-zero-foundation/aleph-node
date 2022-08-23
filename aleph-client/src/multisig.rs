@@ -1,4 +1,7 @@
-use std::collections::HashSet;
+use std::{
+    collections::HashSet,
+    fmt::{Debug, Formatter},
+};
 
 use anyhow::{ensure, Result};
 use codec::{Decode, Encode};
@@ -25,7 +28,7 @@ use crate::{
 const MAX_WEIGHT: u64 = 500_000_000;
 
 /// Gathers all possible errors from this module.
-#[derive(Debug, Error)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Error)]
 pub enum MultisigError {
     #[error("👪❌ Threshold should be between 2 and {0}.")]
     IncorrectThreshold(usize),
@@ -91,7 +94,7 @@ struct Multisig {
 
 /// This represents the ongoing procedure of aggregating approvals among members
 /// of multisignature party.
-#[derive(Debug)]
+#[derive(Eq, PartialEq, Debug)]
 pub struct SignatureAggregation {
     /// The point in 'time' when the aggregation was initiated on the chain.
     /// Internally it is a pair: number of the block containing initial call and the position
@@ -122,6 +125,7 @@ impl SignatureAggregation {
 
 /// `MultisigParty` is representing a multiparty entity constructed from
 /// a group of accounts (`members`) and a threshold (`threshold`).
+#[derive(Clone)]
 pub struct MultisigParty {
     /// Derived multiparty account (public key).
     account: AccountId,
@@ -129,6 +133,16 @@ pub struct MultisigParty {
     members: Vec<KeyPair>,
     /// Minimum required approvals.
     threshold: u16,
+}
+
+impl Debug for MultisigParty {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MultisigParty")
+            .field("account", &self.account)
+            .field("threshold", &self.threshold)
+            .field("member count", &self.members.len())
+            .finish()
+    }
 }
 
 impl MultisigParty {

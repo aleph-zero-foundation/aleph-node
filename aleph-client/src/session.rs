@@ -15,7 +15,7 @@ const PALLET: &str = "Session";
 
 // Using custom struct and rely on default Encode trait from Parity's codec
 // it works since byte arrays are encoded in a straight forward way, it as-is
-#[derive(Debug, Encode, Clone)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Decode, Encode)]
 pub struct Keys {
     pub aura: [u8; 32],
     pub aleph: [u8; 32],

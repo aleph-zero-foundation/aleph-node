@@ -3,7 +3,7 @@ use substrate_api_client::Balance;
 
 use crate::{AnyConnectionExt, Extrinsic};
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct FeeInfo {
     pub fee_without_weight: Balance,
     pub unadjusted_weight: Balance,

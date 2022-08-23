@@ -315,6 +315,7 @@ pub fn create_connection(address: &str) -> Connection {
     create_custom_connection(address).expect("Connection should be created")
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 enum Protocol {
     Ws,
     Wss,

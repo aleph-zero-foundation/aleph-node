@@ -15,7 +15,7 @@ use crate::{
 const PALLET: &str = "Vesting";
 
 /// Gathers errors from this module.
-#[derive(Debug, Error)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Error)]
 pub enum VestingError {
     #[error("🦺❌ The connection should be signed.")]
     UnsignedConnection,

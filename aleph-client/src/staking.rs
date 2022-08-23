@@ -301,7 +301,7 @@ pub fn bonded<C: AnyConnection>(connection: &C, stash: &KeyPair) -> Option<Accou
 /// `T: pallet_staking::Config` (somehow breaking consistency with similar structures in other
 /// pallets) we have no easy way of retrieving ledgers from storage. Thus, we chose cloning
 /// (relevant part of) this struct instead of implementing `Config` trait.
-#[derive(PartialEq, Eq, Clone, Debug, Encode, Decode)]
+#[derive(Clone, Eq, PartialEq, Debug, Encode, Decode)]
 pub struct StakingLedger {
     pub stash: AccountId,
     #[codec(compact)]
