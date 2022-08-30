@@ -150,6 +150,30 @@ impl aleph_bft::SpawnHandle for SpawnHandle {
     }
 }
 
+impl SpawnHandle {
+    fn spawn_essential_with_result(
+        &self,
+        name: &'static str,
+        task: impl Future<Output = Result<(), ()>> + Send + 'static,
+    ) -> TaskHandle {
+        let (tx, rx) = oneshot::channel();
+        let wrapped_task = async move {
+            let result = task.await;
+            let _ = tx.send(result);
+        };
+        let result = <Self as aleph_bft::SpawnHandle>::spawn_essential(self, name, wrapped_task);
+        let wrapped_result = async move {
+            let main_result = result.await;
+            if main_result.is_err() {
+                return Err(());
+            }
+            let rx_result = rx.await;
+            rx_result.unwrap_or(Err(()))
+        };
+        Box::pin(wrapped_result)
+    }
+}
+
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
 pub struct HashNum<H, N> {
     hash: H,

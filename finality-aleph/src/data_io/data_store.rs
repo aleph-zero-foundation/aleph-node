@@ -18,7 +18,6 @@ use log::{debug, error, info, trace, warn};
 use lru::LruCache;
 use sc_client_api::{BlockchainEvents, HeaderBackend};
 use sp_runtime::traits::{Block as BlockT, Header as HeaderT, NumberFor, One};
-use tokio::sync::Mutex;
 
 use crate::{
     data_io::{
@@ -191,7 +190,7 @@ where
     client: Arc<C>,
     block_requester: RB,
     config: DataStoreConfig,
-    messages_from_network: Arc<Mutex<R>>,
+    messages_from_network: R,
     messages_for_aleph: UnboundedSender<Message>,
 }
 
@@ -213,8 +212,7 @@ where
         component_network: N,
     ) -> (Self, impl DataNetwork<Message>) {
         let (messages_for_aleph, messages_from_data_store) = mpsc::unbounded();
-        let messages_to_network = component_network.sender().clone();
-        let messages_from_network = component_network.receiver();
+        let (messages_to_network, messages_from_network) = component_network.into();
         let status = client.info();
         let chain_info_provider = CachedChainInfoProvider::new(client.clone(), Default::default());
 
@@ -248,10 +246,7 @@ where
             self.prune_pending_messages();
             self.prune_triggers();
             tokio::select! {
-                Some(message) = async {
-                    let mut lock = self.messages_from_network.lock().await;
-                    lock.next().await
-                } => {
+                Some(message) = self.messages_from_network.next() => {
                     trace!(target: "aleph-data-store", "Received message at Data Store {:?}", message);
                     self.on_message_received(message);
                 }

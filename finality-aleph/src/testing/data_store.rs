@@ -1,5 +1,6 @@
 use std::{future::Future, sync::Arc, time::Duration};
 
+use aleph_bft::Recipient;
 use futures::{
     channel::{
         mpsc::{self, UnboundedReceiver, UnboundedSender},
@@ -18,7 +19,7 @@ use tokio::time::timeout;
 
 use crate::{
     data_io::{AlephData, AlephNetworkMessage, DataStore, DataStoreConfig, MAX_DATA_BRANCH_LEN},
-    network::{DataNetwork, RequestBlocks, SimpleNetwork},
+    network::{ComponentNetwork, Data, DataNetwork, RequestBlocks},
     session::{SessionBoundaries, SessionId, SessionPeriod},
     testing::{
         client_chain_builder::ClientChainBuilder,
@@ -77,6 +78,20 @@ type TestData = Vec<AlephData<Block>>;
 impl AlephNetworkMessage<Block> for TestData {
     fn included_data(&self) -> Vec<AlephData<Block>> {
         self.clone()
+    }
+}
+
+struct TestComponentNetwork<S, R> {
+    sender: mpsc::UnboundedSender<(S, Recipient)>,
+    receiver: mpsc::UnboundedReceiver<R>,
+}
+
+impl<D: Data> ComponentNetwork<D> for TestComponentNetwork<D, D> {
+    type S = mpsc::UnboundedSender<(D, Recipient)>;
+    type R = mpsc::UnboundedReceiver<D>;
+
+    fn into(self) -> (Self::S, Self::R) {
+        (self.sender, self.receiver)
     }
 }
 
@@ -164,7 +179,10 @@ fn prepare_data_store(
     let (block_requester, block_requests_rx, justification_requests_rx) = TestBlockRequester::new();
     let (sender_tx, _sender_rx) = mpsc::unbounded();
     let (network_tx, network_rx) = mpsc::unbounded();
-    let test_network = SimpleNetwork::new(network_rx, sender_tx);
+    let test_network = TestComponentNetwork {
+        sender: sender_tx,
+        receiver: network_rx,
+    };
     let data_store_config = DataStoreConfig {
         max_triggers_pending: 80_000,
         max_proposals_pending: 80_000,

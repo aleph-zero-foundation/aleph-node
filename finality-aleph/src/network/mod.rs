@@ -18,13 +18,13 @@ mod split;
 
 pub use aleph::{NetworkData as AlephNetworkData, NetworkWrapper};
 pub use component::{
-    Network as ComponentNetwork, Receiver as ReceiverComponent, Sender as SenderComponent,
-    SimpleNetwork,
+    Network as ComponentNetwork, NetworkExt as ComponentNetworkExt, Receiver as ReceiverComponent,
+    Sender as SenderComponent, SimpleNetwork,
 };
 use manager::SessionCommand;
 pub use manager::{ConnectionIO, ConnectionManager, ConnectionManagerConfig};
 pub use service::{Service, IO};
-pub use session::{Manager as SessionManager, ManagerError, Network as SessionNetwork};
+pub use session::{Manager as SessionManager, ManagerError};
 pub use split::{split, Split};
 
 #[cfg(test)]

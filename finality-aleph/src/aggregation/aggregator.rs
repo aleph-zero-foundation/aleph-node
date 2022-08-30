@@ -16,7 +16,6 @@ use crate::{
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum AggregatorError {
-    LastHashPlaced,
     NoHashFound,
     DuplicateHash,
 }
@@ -32,7 +31,6 @@ pub type IOResult = Result<(), IOError>;
 pub struct BlockSignatureAggregator<H: Hash + Copy, PMS> {
     signatures: HashMap<H, PMS>,
     hash_queue: VecDeque<H>,
-    last_hash_placed: bool,
     started_hashes: HashSet<H>,
     metrics: Option<Metrics<H>>,
 }
@@ -42,7 +40,6 @@ impl<H: Copy + Hash, PMS> BlockSignatureAggregator<H, PMS> {
         BlockSignatureAggregator {
             signatures: HashMap::new(),
             hash_queue: VecDeque::new(),
-            last_hash_placed: false,
             started_hashes: HashSet::new(),
             metrics,
         }
@@ -60,10 +57,6 @@ impl<H: Copy + Hash, PMS> BlockSignatureAggregator<H, PMS> {
         Ok(())
     }
 
-    pub(crate) fn notify_last_hash(&mut self) {
-        self.last_hash_placed = true;
-    }
-
     fn on_multisigned_hash(&mut self, hash: H, signature: PMS) {
         debug!(target: "aleph-aggregator", "New multisigned_hash {:?}.", hash);
         self.signatures.insert(hash, signature);
@@ -79,13 +72,7 @@ impl<H: Copy + Hash, PMS> BlockSignatureAggregator<H, PMS> {
                     Err(AggregatorError::NoHashFound)
                 }
             }
-            None => {
-                if self.last_hash_placed {
-                    Err(AggregatorError::LastHashPlaced)
-                } else {
-                    Err(AggregatorError::NoHashFound)
-                }
-            }
+            None => Err(AggregatorError::NoHashFound),
         }
     }
 }
@@ -139,10 +126,6 @@ impl<
             .await;
     }
 
-    pub fn notify_last_hash(&mut self) {
-        self.aggregator.notify_last_hash()
-    }
-
     async fn wait_for_next_signature(&mut self) -> IOResult {
         loop {
             tokio::select! {
@@ -184,13 +167,6 @@ impl<
             match self.aggregator.try_pop_hash() {
                 Ok(res) => {
                     return Some(res);
-                }
-                Err(AggregatorError::LastHashPlaced) => {
-                    debug!(
-                        target: "aleph-aggregator",
-                        "Terminating next_multisigned_hash because the last hash has been signed."
-                    );
-                    return None;
                 }
                 Err(AggregatorError::NoHashFound) => { /* ignored */ }
                 Err(AggregatorError::DuplicateHash) => {
@@ -250,13 +226,5 @@ mod tests {
 
         let res = aggregator.try_pop_hash();
         assert_eq!(res, Err(AggregatorError::NoHashFound));
-    }
-
-    #[test]
-    fn is_aware_of_last_hash() {
-        let mut aggregator = build_aggregator();
-        aggregator.notify_last_hash();
-        let res = aggregator.try_pop_hash();
-        assert_eq!(res, Err(AggregatorError::LastHashPlaced));
     }
 }

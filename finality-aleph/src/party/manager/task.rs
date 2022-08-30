@@ -12,26 +12,38 @@ pub type Handle = Pin<Box<(dyn Future<Output = sc_service::Result<(), ()>> + Sen
 pub struct Task {
     handle: Handle,
     exit: oneshot::Sender<()>,
+    cached_result: Option<Result<(), ()>>,
 }
 
 impl Task {
     /// Create a new task.
     pub fn new(handle: Handle, exit: oneshot::Sender<()>) -> Self {
-        Task { handle, exit }
-    }
-
-    /// Cleanly stop the task.
-    pub async fn stop(self) {
-        if let Err(e) = self.exit.send(()) {
-            warn!(target: "aleph-party", "Failed to send exit signal to authority: {:?}", e);
-        } else {
-            let _ = self.handle.await;
+        Task {
+            handle,
+            exit,
+            cached_result: None,
         }
     }
 
+    /// Cleanly stop the task.
+    pub async fn stop(self) -> Result<(), ()> {
+        if let Some(result) = self.cached_result {
+            return result;
+        }
+        if self.exit.send(()).is_err() {
+            warn!(target: "aleph-party", "Failed to send exit signal to authority");
+        }
+        self.handle.await
+    }
+
     /// Await the task to stop by itself. Should usually just block forever, unless something went
-    /// wrong.
-    pub async fn stopped(&mut self) {
-        let _ = (&mut self.handle).await;
+    /// wrong. Can be called multiple times.
+    pub async fn stopped(&mut self) -> Result<(), ()> {
+        if let Some(result) = self.cached_result {
+            return result;
+        }
+        let result = (&mut self.handle).await;
+        self.cached_result = Some(result);
+        result
     }
 }

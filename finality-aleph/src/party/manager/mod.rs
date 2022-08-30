@@ -144,7 +144,8 @@ where
             .await
             .expect("Failed to start validator session!");
 
-        let (unfiltered_aleph_network, rmc_network) = split(data_network);
+        let (unfiltered_aleph_network, rmc_network) =
+            split(data_network, "aleph_network", "rmc_network");
         let (data_store, aleph_network) = DataStore::new(
             session_boundaries.clone(),
             self.client.clone(),
@@ -212,7 +213,7 @@ where
         AuthorityTask::new(
             self.spawn_handle
                 .spawn_essential("aleph/session_authority", async move {
-                    if subtasks.failed().await {
+                    if subtasks.wait_completion().await.is_err() {
                         warn!(target: "aleph-party", "Authority subtasks failed.");
                     }
                 }),

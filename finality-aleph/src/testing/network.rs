@@ -19,7 +19,7 @@ use crate::{
         },
         testing::{Authentication, DiscoveryMessage, NetworkData, SessionHandler},
         ConnectionIO, ConnectionManager, ConnectionManagerConfig, DataNetwork, NetworkIdentity,
-        Protocol, Service as NetworkService, SessionManager, SessionNetwork, IO as NetworkIO,
+        Protocol, Service as NetworkService, SessionManager, IO as NetworkIO,
     },
     MillisecsPerBlock, NodeIndex, SessionId, SessionPeriod,
 };
@@ -161,7 +161,7 @@ impl TestData {
         &self,
         node_id: usize,
         session_id: u32,
-    ) -> SessionNetwork<MockData> {
+    ) -> impl DataNetwork<MockData> {
         self.session_manager
             .start_validator_session(
                 SessionId(session_id),
@@ -262,7 +262,7 @@ impl TestData {
         }
     }
 
-    async fn start_session(&mut self, session_id: u32) -> SessionNetwork<MockData> {
+    async fn start_session(&mut self, session_id: u32) -> impl DataNetwork<MockData> {
         let data_network = self.start_validator_session(0, session_id).await;
         self.connect_session_authorities(session_id).await;
         self.check_sends_add_reserved_node().await;
@@ -602,6 +602,7 @@ async fn test_receives_data_in_correct_session() {
     let session_id_2 = 43;
     let mut test_data = prepare_one_session_test_data().await;
     let mut data_network_1 = test_data.start_session(session_id_1).await;
+
     let mut data_network_2 = test_data.start_session(session_id_2).await;
 
     let data_1_1 = vec![1, 2, 3];

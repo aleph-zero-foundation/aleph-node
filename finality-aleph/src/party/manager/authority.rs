@@ -1,5 +1,5 @@
 use futures::channel::oneshot;
-use log::{debug, trace};
+use log::{debug, trace, warn};
 
 use crate::{
     party::{Handle, Task as PureTask},
@@ -22,14 +22,16 @@ impl Task {
     }
 
     /// Stop the authority task and wait for it to finish.
-    pub async fn stop(self) {
+    pub async fn stop(self) -> Result<(), ()> {
         self.task.stop().await
     }
 
     /// If the authority task stops for any reason, this returns the associated NodeIndex, which
     /// can be used to restart the task.
     pub async fn stopped(&mut self) -> NodeIndex {
-        self.task.stopped().await;
+        if self.task.stopped().await.is_err() {
+            debug!(target: "aleph-party", "Authority task failed for {:?}", self.node_id);
+        }
         self.node_id
     }
 }
@@ -61,35 +63,46 @@ impl Subtasks {
         }
     }
 
-    async fn stop(self) {
+    async fn stop(self) -> Result<(), ()> {
         // both member and aggregator are implicitly using forwarder,
         // so we should force them to exit first to avoid any panics, i.e. `send on closed channel`
         debug!(target: "aleph-party", "Started to stop all tasks");
-        self.member.stop().await;
+        let mut result = Ok(());
+        if self.member.stop().await.is_err() {
+            warn!(target: "aleph-party", "Member stopped with en error");
+            result = Err(());
+        }
         trace!(target: "aleph-party", "Member stopped");
-        self.aggregator.stop().await;
+        if self.aggregator.stop().await.is_err() {
+            warn!(target: "aleph-party", "Aggregator stopped with en error");
+            result = Err(());
+        }
         trace!(target: "aleph-party", "Aggregator stopped");
-        self.refresher.stop().await;
+        if self.refresher.stop().await.is_err() {
+            warn!(target: "aleph-party", "Refresher stopped with en error");
+            result = Err(());
+        }
         trace!(target: "aleph-party", "Refresher stopped");
-        self.data_store.stop().await;
+        if self.data_store.stop().await.is_err() {
+            warn!(target: "aleph-party", "DataStore stopped with en error");
+            result = Err(());
+        }
         trace!(target: "aleph-party", "DataStore stopped");
+        result
     }
 
     /// Blocks until the task is done and returns true if it quit unexpectedly.
-    pub async fn failed(mut self) -> bool {
+    pub async fn wait_completion(mut self) -> Result<(), ()> {
         let result = tokio::select! {
-            _ = &mut self.exit => false,
-            _ = self.member.stopped() => true,
-            _ = self.aggregator.stopped() => true,
-            _ = self.refresher.stopped() => true,
-            _ = self.data_store.stopped() => true,
+            _ = &mut self.exit => Ok(()),
+            res = self.member.stopped() => { debug!(target: "aleph-party", "Member stopped early"); res },
+            res = self.aggregator.stopped() => { debug!(target: "aleph-party", "Aggregator stopped early"); res },
+            res = self.refresher.stopped() => { debug!(target: "aleph-party", "Refresher stopped early"); res },
+            res = self.data_store.stopped() => { debug!(target: "aleph-party", "DataStore stopped early"); res },
         };
-        if result {
-            debug!(target: "aleph-party", "Something died and it was unexpected");
-        }
-        self.stop().await;
+        let stop_result = self.stop().await;
         debug!(target: "aleph-party", "Stopped all processes");
-        result
+        result.and(stop_result)
     }
 }
 
