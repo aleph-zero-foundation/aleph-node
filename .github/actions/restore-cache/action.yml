@@ -47,6 +47,8 @@ runs:
   steps:
     - name: Restore cargo cache
       uses: actions/cache@v3
+      env:
+        SEGMENT_DOWNLOAD_TIMEOUT_MIN: "10"
       with:
         path: |
           ~/.cargo
