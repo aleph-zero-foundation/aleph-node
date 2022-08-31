@@ -113,9 +113,9 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  run-e2e-finalization-test:
+  run-e2e-authorities-are-staking:
     needs: [build-test-docker, build-test-client]
-    name: Run e2e finalization test
+    name: Run authorities are staking test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code
@@ -124,28 +124,24 @@ jobs:
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
         with:
-          test-case: finalization
-        timeout-minutes: 2
+          test-case: authorities_are_staking
+          randomized: true
+        timeout-minutes: 60
 
-  run-e2e-rewards-points-basic:
-    needs: [build-test-docker, build-test-client]
-    name: Run basic reward points calculation test
+  check-e2e-test-suite-completion:
+    needs: [
+      run-e2e-authorities-are-staking,
+    ]
+    name: Check e2e test suite completion
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v2
-
-      - name: Run e2e test
-        uses: ./.github/actions/run-e2e-test
-        with:
-          test-case: points_basic
-          follow-up-finalization-check: true
-        timeout-minutes: 10
+      - name: All e2e tests completed
+        run: echo "All e2e tests completed."
 
   slack:
     name: Slack notification
     runs-on: ubuntu-latest
-    needs: [run-e2e-finalization-test, check-determinism]
+    needs: [check-e2e-test-suite-completion, check-determinism]
     if: always()
     steps:
       - name: Checkout repository

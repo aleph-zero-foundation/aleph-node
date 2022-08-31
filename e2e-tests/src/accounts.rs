@@ -11,7 +11,7 @@ fn get_validator_seed(seed: u32) -> String {
 pub fn get_validators_seeds(config: &Config) -> Vec<String> {
     match config.validators_seeds {
         Some(ref seeds) => seeds.clone(),
-        None => (0..config.validators_count)
+        None => (0..config.validator_count)
             .map(get_validator_seed)
             .collect(),
     }

@@ -152,6 +152,10 @@ pub fn get_current_validators<C: AnyConnectionExt>(connection: &C) -> Vec<Accoun
     connection.read_storage_value(PALLET, "Validators")
 }
 
+pub fn get_current_validator_count<C: AnyConnectionExt>(connection: &C) -> u32 {
+    get_current_validators(connection).len() as u32
+}
+
 pub fn get_session_first_block<C: AnyConnectionExt>(
     connection: &C,
     session: SessionIndex,

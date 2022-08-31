@@ -533,7 +533,7 @@ jobs:
         run: ./.github/scripts/test_multiple_restarts.sh
 
   check-runtime-change:
-    name: Inspect whether runtime version has been changed (comparing to main)
+    name: Inspect whether runtime version has been changed (compared with main)
     runs-on: ubuntu-latest
     outputs:
       runtime-updated: ${{ steps.inspect.outputs.diff }}

@@ -2,12 +2,43 @@
 
 set -euo pipefail
 
-# change it when increasing number of node containers
-export NODE_COUNT=5
+# default node count
+# change when increasing the number of node containers
+NODE_COUNT=5
 
 export NODE_IMAGE=aleph-node:latest
 
 mkdir -p docker/data/
+
+function usage {
+   cat << EOF
+Usage
+  $0
+    --node-count, -n
+      number of nodes to run
+EOF
+  exit 0
+}
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+  -h|--help)
+    usage
+    exit 0
+    ;;
+  -n|--node-count)
+    NODE_COUNT="$2"
+    shift 2
+    ;;
+  *)
+    echo "Unrecognized argument $1!"
+    usage
+    exit 1
+    ;;
+  esac
+done
+
+export NODE_COUNT
 
 function generate_authorities {
   local authorities_count="$1"

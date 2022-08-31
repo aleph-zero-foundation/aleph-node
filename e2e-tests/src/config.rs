@@ -1,5 +1,5 @@
 use aleph_client::{RootConnection, SignedConnection};
-use clap::Parser;
+use clap::{Args, Parser};
 
 use crate::accounts::{get_sudo_key, get_validators_keys, get_validators_seeds, NodeKeys};
 
@@ -16,16 +16,20 @@ pub struct Config {
 
     /// Number of //0, //1, ... validators to run e2e tests on
     #[clap(long, default_value = "5")]
-    pub validators_count: u32,
+    pub validator_count: u32,
 
-    /// seed values to create accounts
+    /// Seed values to create accounts
     /// Optional: by default we use //0, //1, ... seeds for validators
     #[clap(long)]
     pub validators_seeds: Option<Vec<String>>,
 
-    /// seed value of sudo account
+    /// Seed value of sudo account
     #[clap(long, default_value = "//Alice")]
     pub sudo_seed: String,
+
+    /// Test case parameters, used for test setup.
+    #[clap(flatten)]
+    pub test_case_params: TestCaseParams,
 }
 
 impl Config {
@@ -50,5 +54,27 @@ impl Config {
         let accounts = get_validators_keys(self);
         let sender = accounts.first().expect("Using default accounts").to_owned();
         SignedConnection::new(node, sender)
+    }
+}
+
+/// Parameters which can be passed to test cases.
+#[derive(Args, Clone, Debug)]
+pub struct TestCaseParams {
+    /// Desired number of reserved seats for validators, may be set within the test.
+    #[clap(long)]
+    reserved_seats: Option<u32>,
+
+    /// Desired number of non-reserved seats for validators, may be set within the test.
+    #[clap(long)]
+    non_reserved_seats: Option<u32>,
+}
+
+impl TestCaseParams {
+    pub fn reserved_seats(&self) -> Option<u32> {
+        self.reserved_seats
+    }
+
+    pub fn non_reserved_seats(&self) -> Option<u32> {
+        self.non_reserved_seats
     }
 }

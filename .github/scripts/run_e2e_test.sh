@@ -1,21 +1,96 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-set -eu
+set -euo pipefail
 
-while getopts t: opt
+# This is required by Substrate: MinValidatorCount in pallet_Staking.
+MIN_VALIDATOR_COUNT=4
+# This is arbitrary.
+MAX_VALIDATOR_COUNT=20
+
+function set_randomized_test_params {
+  VALIDATOR_COUNT=$(shuf -i "${MIN_VALIDATOR_COUNT}"-"${MAX_VALIDATOR_COUNT}" -n 1)
+  # Assumes there is at least one reserved seat for validators.
+  RESERVED_SEATS=$(shuf -i 1-"${VALIDATOR_COUNT}" -n 1)
+  NON_RESERVED_SEATS=$((${VALIDATOR_COUNT} - ${RESERVED_SEATS}))
+}
+
+function usage {
+    cat << EOF
+Usage:
+  $0
+    -t
+      Test cases to run.
+    -r
+      Whether to randomize test case params, "true" and "false" values supported.
+      Can only be used if both the `-f` and `-n` params are empty.
+    -f
+      Number of reserved seats available to validators, ignored if empty or `-n` is empty.
+      Cannot be used with `-r=true`.
+    -n
+      Number of non-reserved seats available to validators, ignored if empty or `-f` is empty.
+      Cannot be used with `-r=true`.
+EOF
+  exit 0
+}
+
+while getopts "h:t:r:f:n:" flag
 do
-  case $opt in
-    t)
-      export TEST_CASE=$OPTARG;;
-    \?)
-      echo "Invalid option: -$OPTARG"
+  case "${flag}" in
+    h) usage;;
+    t) TEST_CASES="${OPTARG}";;
+    r) RANDOMIZED="${OPTARG}";;
+    f) RESERVED_SEATS="${OPTARG}";;
+    n) NON_RESERVED_SEATS="${OPTARG}";;
+    *)
+      echo "Unrecognized argument "${flag}"!"
+      usage
       exit 1
       ;;
   esac
 done
 
-# source docker/env
+ARGS=(
+  --network "container:Node0"
+  -e NODE_URL="127.0.0.1:9943"
+  -e RUST_LOG=info
+)
 
-docker run -v $(pwd)/docker/data:/data --network container:Node0 -e TEST_CASE -e NODE_URL=127.0.0.1:9943 -e RUST_LOG=info aleph-e2e-client:latest
+if [[ -n "${TEST_CASES:-}" ]]; then
+  ARGS+=(-e TEST_CASES="${TEST_CASES}")
+fi
+
+RANDOMIZED="${RANDOMIZED:-"false"}"
+RESERVED_SEATS="${RESERVED_SEATS:-}"
+NON_RESERVED_SEATS="${NON_RESERVED_SEATS:-}"
+
+# Do not accept randomization together with test case parameters.
+if [[ "${RANDOMIZED}" == "true" && ( -n "${RESERVED_SEATS}" || -n "${NON_RESERVED_SEATS}" )]]; then
+  echo "Cannot both randomize and provide test case parameters!"
+  exit 1
+fi
+
+# If randomization requested, generate random test params.
+if [[ "${RANDOMIZED}" == "true" ]]; then
+  set_randomized_test_params
+  echo "Test case params have been randomized."
+elif [[ "${RANDOMIZED}" == "false" ]]; then
+  echo "Test case params have not been randomized."
+else
+  echo "Only 'true' and 'false' values supported, "${RANDOMIZED}" provided!"
+  exit 1
+fi
+
+# If both test params are not empty, pass them. Otherwise, do not pass them.
+if [[ -n "${RESERVED_SEATS}" && -n "${NON_RESERVED_SEATS}" ]]; then
+  echo "Test case params: "${RESERVED_SEATS}" reserved and "${NON_RESERVED_SEATS}" non-reserved seats."
+  ARGS+=(
+    -e "${RESERVED_SEATS}"
+    -e "${NON_RESERVED_SEATS}"
+  )
+else
+  echo "Falling back on default test case param values."
+fi
+
+docker run -v $(pwd)/docker/data:/data "${ARGS[@]}" aleph-e2e-client:latest
 
 exit $?
