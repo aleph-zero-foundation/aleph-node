@@ -1,8 +1,9 @@
+{ rustToolchainFile ? ../rust-toolchain }:
 rec {
   rustToolchain =
     let
       # use Rust toolchain declared by the rust-toolchain file
-      rustToolchain = with nixpkgs; overrideRustTarget ( rustChannelOf { rustToolchain = ../rust-toolchain; } );
+      rustToolchain = with nixpkgs; overrideRustTarget ( rustChannelOf { rustToolchain = rustToolchainFile; } );
 
       overrideRustTarget = rustChannel: rustChannel // {
         rust = rustChannel.rust.override {
@@ -63,4 +64,6 @@ rec {
       };
     in
       import gitignoreSrc { inherit (nixpkgs) lib; };
+
+  customRocksDB = import ./rocksdb.nix { inherit nixpkgs; };
 }

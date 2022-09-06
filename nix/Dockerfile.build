@@ -1,13 +1,14 @@
 FROM nixos/nix@sha256:f0c68f870c655d8d96658ca762a0704a30704de22d16b4956e762a2ddfbccb09
 
-COPY nix/nix-build.sh /node/
-COPY . /node/build
 RUN nix-env -i patchelf && \
-    nix-collect-garbage -d && \
-    chmod +x /node/nix-build.sh
+    nix-collect-garbage -d
+
+COPY nix/ /node/nix-files/nix/
+RUN chmod +x /node/nix-files/nix/nix-build.sh
+COPY default.nix shell.nix rust-toolchain /node/nix-files/
+
+RUN nix-shell --pure --run 'echo installed all native pre-requisities' /node/nix-files/shell.nix
 
 WORKDIR /node/build
-RUN /node/nix-build.sh
-
-ENTRYPOINT ["/node/nix-build.sh"]
+ENTRYPOINT PATH_TO_FIX="result/bin/aleph-node" "/node/nix-files/nix/nix-build.sh"
 CMD []
