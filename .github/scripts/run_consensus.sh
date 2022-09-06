@@ -26,6 +26,10 @@ while [[ $# -gt 0 ]]; do
     usage
     exit 0
     ;;
+  -m|--min-validator-count)
+    MIN_VALIDATOR_COUNT="$2"
+    shift 2
+    ;;
   -n|--node-count)
     NODE_COUNT="$2"
     shift 2
@@ -54,13 +58,15 @@ function generate_authorities {
 
 function generate_chainspec {
   local authorities="$1"
+  local min_validator_count="$2"
 
   # comma separated ids
   validator_ids="${authorities//${IFS:0:1}/,}"
 
   echo "Generate chainspec and keystores with sudo account //Alice ..."
   docker run --rm -v $(pwd)/docker/data:/data --entrypoint "/bin/sh" -e RUST_LOG=debug "${NODE_IMAGE}" -c \
-  "aleph-node bootstrap-chain --base-path /data --account-ids $validator_ids > /data/chainspec.json"
+  "aleph-node bootstrap-chain --base-path /data --account-ids $validator_ids \
+  --min-validator-count "${min_validator_count}" > /data/chainspec.json"
 }
 
 function generate_bootnode_peer_id {
@@ -78,7 +84,7 @@ function run_containers {
 }
 
 authorities=$(generate_authorities ${NODE_COUNT})
-generate_chainspec "${authorities[@]}"
+generate_chainspec "${authorities[@]}" "${MIN_VALIDATOR_COUNT}"
 generate_bootnode_peer_id ${authorities[0]}
 run_containers ${NODE_COUNT}
 

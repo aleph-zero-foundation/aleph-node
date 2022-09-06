@@ -129,6 +129,10 @@ pub struct ChainParams {
     /// AccountId of the optional faucet account
     #[clap(long, parse(from_str = parse_account_id))]
     faucet_account_id: Option<AccountId>,
+
+    /// Minimum number of stakers before chain enters emergency state.
+    #[clap(long, default_value = "4")]
+    min_validator_count: u32,
 }
 
 impl ChainParams {
@@ -158,6 +162,10 @@ impl ChainParams {
 
     pub fn faucet_account_id(&self) -> Option<AccountId> {
         self.faucet_account_id.clone()
+    }
+
+    pub fn min_validator_count(&self) -> u32 {
+        self.min_validator_count
     }
 }
 
@@ -206,6 +214,7 @@ fn generate_chain_spec_config(
     let chain_type = chain_params.chain_type();
     let sudo_account = chain_params.sudo_account_id();
     let faucet_account = chain_params.faucet_account_id();
+    let min_validator_count = chain_params.min_validator_count();
 
     Ok(ChainSpec::from_genesis(
         // Name
@@ -220,6 +229,7 @@ fn generate_chain_spec_config(
                 sudo_account.clone(), // Sudo account, will also be pre funded
                 faucet_account.clone(), // Pre-funded faucet account
                 controller_accounts.clone(), // Controller accounts for staking.
+                min_validator_count,
             )
         },
         // Bootnodes
@@ -321,6 +331,7 @@ fn generate_genesis_config(
     sudo_account: AccountId,
     faucet_account: Option<AccountId>,
     controller_accounts: Vec<AccountId>,
+    min_validator_count: u32,
 ) -> GenesisConfig {
     let special_accounts = match faucet_account {
         Some(faucet_id) => vec![sudo_account.clone(), faucet_id],
@@ -376,7 +387,7 @@ fn generate_genesis_config(
             force_era: Forcing::NotForcing,
             validator_count,
             // to satisfy some e2e tests as this cannot be changed during runtime
-            minimum_validator_count: 4,
+            minimum_validator_count: min_validator_count,
             slash_reward_fraction: Perbill::from_percent(10),
             stakers: accounts_config.stakers,
             min_validator_bond: MIN_VALIDATOR_BOND,

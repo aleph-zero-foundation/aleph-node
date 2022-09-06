@@ -396,6 +396,10 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: authorities_are_staking
+          node-count: 6
+          reserved-seats: 3
+          non-reserved-seats: 3
+          follow-up-finalization-check: true
         timeout-minutes: 15
 
   check-e2e-test-suite-completion:

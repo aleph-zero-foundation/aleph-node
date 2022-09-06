@@ -440,7 +440,7 @@ pub fn chill_validator(connection: &SignedConnection) {
 }
 
 /// Chill all validators in `chilling`.
-pub fn chill_all_validators(node: &str, chilling: Vec<KeyPair>) {
+pub fn chill_validators(node: &str, chilling: Vec<KeyPair>) {
     for validator in chilling.into_iter() {
         info!("Chilling validator {:?}", validator.public());
         let connection = SignedConnection::new(node, validator);
@@ -454,4 +454,8 @@ pub fn bond_extra_stake(connection: &SignedConnection, additional_stake: Balance
         .as_connection()
         .staking_bond_extra(additional_stake);
     send_xt(connection, xt, Some("bond_extra"), XtStatus::Finalized);
+}
+
+pub fn get_minimum_validator_count<C: AnyConnection>(connection: &C) -> u32 {
+    connection.read_storage_value(PALLET, "MinimumValidatorCount")
 }
