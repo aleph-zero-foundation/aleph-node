@@ -1,7 +1,7 @@
-use std::{fmt::Debug, path::PathBuf, sync::Arc};
+use std::{convert::Infallible, fmt::Debug, path::PathBuf, sync::Arc};
 
 use aleph_bft::{NodeIndex, TaskHandle};
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, Output};
 use futures::{
     channel::{mpsc, oneshot},
     Future, TryFutureExt,
@@ -89,7 +89,83 @@ pub struct MillisecsPerBlock(pub u64);
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
 pub struct UnitCreationDelay(pub u64);
 
-pub(crate) type SplitData<B> = Split<AlephNetworkData<B>, RmcNetworkData<B>>;
+pub type SplitData<B> = Split<AlephNetworkData<B>, RmcNetworkData<B>>;
+
+impl<B: Block> Versioned for AlephNetworkData<B> {
+    const VERSION: Version = Version(0);
+}
+
+#[derive(Encode, Eq, Decode, PartialEq)]
+pub struct Version(u32);
+
+pub trait Versioned {
+    const VERSION: Version;
+}
+
+/// The main purpose of this data type is to enable a seamless transition between protocol versions at the Network level. It
+/// provides a generic implementation of the Decode and Encode traits (LE byte representation) by prepending byte
+/// representations for provided type parameters with their version (they need to implement the `Versioned` trait). If one
+/// provides data types that declares equal versions, the first data type parameter will have priority while decoding. Keep in
+/// mind that in such case, `decode` might fail even if the second data type would be able decode provided byte representation.
+#[derive(Clone)]
+pub enum VersionedEitherMessage<L, R> {
+    Left(L),
+    Right(R),
+}
+
+impl<L: Versioned + Decode, R: Versioned + Decode> Decode for VersionedEitherMessage<L, R> {
+    fn decode<I: codec::Input>(input: &mut I) -> Result<Self, codec::Error> {
+        let version = Version::decode(input)?;
+        if version == L::VERSION {
+            return Ok(VersionedEitherMessage::Left(L::decode(input)?));
+        }
+        if version == R::VERSION {
+            return Ok(VersionedEitherMessage::Right(R::decode(input)?));
+        }
+        Err("Invalid version while decoding VersionedEitherMessage".into())
+    }
+}
+
+impl<L: Versioned + Encode, R: Versioned + Encode> Encode for VersionedEitherMessage<L, R> {
+    fn encode_to<T: Output + ?Sized>(&self, dest: &mut T) {
+        match self {
+            VersionedEitherMessage::Left(left) => {
+                L::VERSION.encode_to(dest);
+                left.encode_to(dest);
+            }
+            VersionedEitherMessage::Right(right) => {
+                R::VERSION.encode_to(dest);
+                right.encode_to(dest);
+            }
+        }
+    }
+
+    fn size_hint(&self) -> usize {
+        match self {
+            VersionedEitherMessage::Left(left) => L::VERSION.size_hint() + left.size_hint(),
+            VersionedEitherMessage::Right(right) => R::VERSION.size_hint() + right.size_hint(),
+        }
+    }
+}
+
+pub type VersionedNetworkData<B> = VersionedEitherMessage<SplitData<B>, SplitData<B>>;
+
+impl<B: Block> TryFrom<VersionedNetworkData<B>> for SplitData<B> {
+    type Error = Infallible;
+
+    fn try_from(value: VersionedNetworkData<B>) -> Result<Self, Self::Error> {
+        Ok(match value {
+            VersionedEitherMessage::Left(data) => data,
+            VersionedEitherMessage::Right(data) => data,
+        })
+    }
+}
+
+impl<B: Block> From<SplitData<B>> for VersionedNetworkData<B> {
+    fn from(data: SplitData<B>) -> Self {
+        VersionedEitherMessage::Left(data)
+    }
+}
 
 pub trait ClientForAleph<B, BE>:
     LockImportRun<B, BE>
