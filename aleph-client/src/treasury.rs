@@ -9,7 +9,7 @@ use sp_runtime::{traits::AccountIdConversion, AccountId32};
 use substrate_api_client::{compose_extrinsic, ApiResult, GenericAddress, XtStatus};
 
 use crate::{
-    try_send_xt, wait_for_event, AnyConnection, AnyConnectionExt, RootConnection, SignedConnection,
+    try_send_xt, wait_for_event, AnyConnection, ReadStorage, RootConnection, SignedConnection,
 };
 
 const PALLET: &str = "Treasury";
@@ -22,12 +22,12 @@ pub fn treasury_account() -> AccountId32 {
 }
 
 /// Returns how many treasury proposals have ever been created.
-pub fn proposals_counter<C: AnyConnectionExt>(connection: &C) -> u32 {
+pub fn proposals_counter<C: ReadStorage>(connection: &C) -> u32 {
     connection.read_storage_value_or_default(PALLET, "ProposalCount")
 }
 
 /// Calculates how much balance will be paid out to the treasury after each era.
-pub fn staking_treasury_payout<C: AnyConnection>(connection: &C) -> Balance {
+pub fn staking_treasury_payout<C: ReadStorage>(connection: &C) -> Balance {
     let sessions_per_era: u32 = connection.read_constant("Staking", "SessionsPerEra");
     let session_period: u32 = connection.read_constant("Elections", "SessionPeriod");
     let millisecs_per_era = MILLISECS_PER_BLOCK * session_period as u64 * sessions_per_era as u64;
@@ -123,7 +123,7 @@ fn send_approval(connection: &RootConnection, proposal_id: u32) -> ApiResult<Opt
     )
 }
 
-fn wait_for_approval<C: AnyConnection>(connection: &C, proposal_id: u32) -> AnyResult<()> {
+fn wait_for_approval<C: ReadStorage>(connection: &C, proposal_id: u32) -> AnyResult<()> {
     loop {
         let approvals: Vec<u32> = connection.read_storage_value(PALLET, "Approvals");
         if approvals.contains(&proposal_id) {

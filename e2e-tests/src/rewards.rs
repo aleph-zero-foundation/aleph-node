@@ -5,8 +5,8 @@ use aleph_client::{
     change_validators, get_block_hash, get_committee_seats, get_current_session, get_era,
     get_era_reward_points, get_era_validators, get_exposure, get_session_first_block,
     get_session_period, get_validator_block_count, rotate_keys, set_keys, wait_for_at_least_era,
-    wait_for_at_least_session, wait_for_finalized_block, wait_for_next_era, AccountId,
-    AnyConnection, RewardPoint, SessionKeys, SignedConnection, XtStatus,
+    wait_for_at_least_session, wait_for_finalized_block, wait_for_next_era, AccountId, ReadStorage,
+    RewardPoint, SessionKeys, SignedConnection, XtStatus,
 };
 use log::{debug, info};
 use pallet_elections::LENIENT_THRESHOLD;
@@ -242,7 +242,7 @@ pub fn check_points(
     )
 }
 
-pub fn get_era_for_session<C: AnyConnection>(connection: &C, session: SessionIndex) -> EraIndex {
+pub fn get_era_for_session<C: ReadStorage>(connection: &C, session: SessionIndex) -> EraIndex {
     let session_first_block = get_session_first_block(connection, session);
     get_era(connection, Some(session_first_block))
 }

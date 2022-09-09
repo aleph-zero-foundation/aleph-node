@@ -7,7 +7,7 @@ use substrate_api_client::{
 };
 
 use crate::{
-    get_block_hash, send_xt, waiting::wait_for_event, AnyConnection, AnyConnectionExt, BlockNumber,
+    get_block_hash, send_xt, waiting::wait_for_event, AnyConnection, BlockNumber, ReadStorage,
     RootConnection, SignedConnection,
 };
 
@@ -89,11 +89,11 @@ pub fn set_keys(connection: &SignedConnection, new_keys: Keys, status: XtStatus)
     send_xt(connection, xt, Some("set_keys"), status);
 }
 
-pub fn get_current_session<C: AnyConnectionExt>(connection: &C) -> SessionIndex {
+pub fn get_current_session<C: ReadStorage>(connection: &C) -> SessionIndex {
     get_session(connection, None)
 }
 
-pub fn get_session<C: AnyConnectionExt>(connection: &C, block_hash: Option<H256>) -> SessionIndex {
+pub fn get_session<C: ReadStorage>(connection: &C, block_hash: Option<H256>) -> SessionIndex {
     connection
         .as_connection()
         .get_storage_value(PALLET, "CurrentIndex", block_hash)
@@ -101,7 +101,7 @@ pub fn get_session<C: AnyConnectionExt>(connection: &C, block_hash: Option<H256>
         .unwrap_or(0)
 }
 
-pub fn wait_for_predicate<C: AnyConnectionExt, P: Fn(SessionIndex) -> bool>(
+pub fn wait_for_predicate<C: ReadStorage, P: Fn(SessionIndex) -> bool>(
     connection: &C,
     session_predicate: P,
 ) -> anyhow::Result<BlockNumber> {
@@ -119,25 +119,25 @@ pub fn wait_for_predicate<C: AnyConnectionExt, P: Fn(SessionIndex) -> bool>(
     Ok(result.session_index)
 }
 
-pub fn wait_for<C: AnyConnectionExt>(
+pub fn wait_for<C: ReadStorage>(
     connection: &C,
     session_index: SessionIndex,
 ) -> anyhow::Result<BlockNumber> {
     wait_for_predicate(connection, |session_ix| session_ix == session_index)
 }
 
-pub fn wait_for_at_least<C: AnyConnectionExt>(
+pub fn wait_for_at_least<C: ReadStorage>(
     connection: &C,
     session_index: SessionIndex,
 ) -> anyhow::Result<BlockNumber> {
     wait_for_predicate(connection, |session_ix| session_ix >= session_index)
 }
 
-pub fn get_session_period<C: AnyConnectionExt>(connection: &C) -> u32 {
+pub fn get_session_period<C: ReadStorage>(connection: &C) -> u32 {
     connection.read_constant("Elections", "SessionPeriod")
 }
 
-pub fn get_validators_for_session<C: AnyConnectionExt>(
+pub fn get_validators_for_session<C: ReadStorage>(
     connection: &C,
     session: SessionIndex,
 ) -> Vec<AccountId> {
@@ -148,18 +148,15 @@ pub fn get_validators_for_session<C: AnyConnectionExt>(
     connection.read_storage_value_at_block(PALLET, "Validators", Some(block))
 }
 
-pub fn get_current_validators<C: AnyConnectionExt>(connection: &C) -> Vec<AccountId> {
+pub fn get_current_validators<C: ReadStorage>(connection: &C) -> Vec<AccountId> {
     connection.read_storage_value(PALLET, "Validators")
 }
 
-pub fn get_current_validator_count<C: AnyConnectionExt>(connection: &C) -> u32 {
+pub fn get_current_validator_count<C: ReadStorage>(connection: &C) -> u32 {
     get_current_validators(connection).len() as u32
 }
 
-pub fn get_session_first_block<C: AnyConnectionExt>(
-    connection: &C,
-    session: SessionIndex,
-) -> BlockHash {
+pub fn get_session_first_block<C: ReadStorage>(connection: &C, session: SessionIndex) -> BlockHash {
     let block_number = session * get_session_period(connection);
     get_block_hash(connection, block_number)
 }

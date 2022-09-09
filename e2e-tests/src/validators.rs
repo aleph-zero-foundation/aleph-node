@@ -2,8 +2,7 @@ use aleph_client::{
     account_from_keypair, balances_batch_transfer, keypair_from_string, rotate_keys, set_keys,
     staking_bond, staking_validate, AccountId, KeyPair, SignedConnection, XtStatus,
 };
-use pallet_elections::EraValidators;
-use primitives::{staking::MIN_VALIDATOR_BOND, TOKEN};
+use primitives::{staking::MIN_VALIDATOR_BOND, EraValidators, TOKEN};
 
 use crate::{accounts::get_validators_keys, Config};
 

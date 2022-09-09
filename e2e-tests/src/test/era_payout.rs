@@ -1,6 +1,6 @@
 use aleph_client::{
     create_connection, get_current_era, get_payout_for_era, staking_force_new_era,
-    wait_for_next_era, wait_for_session, AnyConnection, XtStatus,
+    wait_for_next_era, wait_for_session, ReadStorage, XtStatus,
 };
 use primitives::{
     staking::era_payout, Balance, EraIndex, DEFAULT_SESSIONS_PER_ERA, DEFAULT_SESSION_PERIOD,
@@ -29,7 +29,7 @@ fn payout_within_two_block_delta(expected_payout: Balance, payout: Balance) {
     );
 }
 
-fn wait_to_second_era<C: AnyConnection>(connection: &C) -> EraIndex {
+fn wait_to_second_era<C: ReadStorage>(connection: &C) -> EraIndex {
     let current_era = get_current_era(connection);
     if current_era < 2 {
         wait_for_next_era(connection).expect("Era is active");

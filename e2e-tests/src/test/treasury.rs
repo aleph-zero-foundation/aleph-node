@@ -1,8 +1,8 @@
 use aleph_client::{
-    account_from_keypair, approve_treasury_proposal, balances_transfer, get_free_balance,
-    get_tx_fee_info, make_treasury_proposal, reject_treasury_proposal, staking_treasury_payout,
-    total_issuance, treasury_account, treasury_proposals_counter, AnyConnection, Balance,
-    RootConnection, SignedConnection, XtStatus,
+    account_from_keypair, approve_treasury_proposal, get_free_balance, make_treasury_proposal,
+    reject_treasury_proposal, staking_treasury_payout, total_issuance, treasury_account,
+    treasury_proposals_counter, Balance, BalanceTransfer, GetTxInfo, ReadStorage, RootConnection,
+    SignedConnection, XtStatus,
 };
 use log::info;
 
@@ -15,7 +15,7 @@ use crate::{
 /// Returns current treasury free funds and total issuance.
 ///
 /// Takes two storage reads.
-fn balance_info<C: AnyConnection>(connection: &C) -> (Balance, Balance) {
+fn balance_info<C: ReadStorage>(connection: &C) -> (Balance, Balance) {
     let treasury_balance = get_free_balance(connection, &treasury_account());
     let issuance = total_issuance(connection);
     info!(
@@ -31,7 +31,8 @@ pub fn channeling_fee_and_tip(config: &Config) -> anyhow::Result<()> {
     let (connection, to) = setup_for_tipped_transfer(config, tip);
 
     let (treasury_balance_before, issuance_before) = balance_info(&connection);
-    let tx = balances_transfer(&connection, &to, transfer_amount, XtStatus::Finalized);
+    let tx = connection.create_transfer_tx(to, transfer_amount);
+    connection.transfer(tx.clone(), XtStatus::Finalized)?;
     let (treasury_balance_after, issuance_after) = balance_info(&connection);
 
     let possible_treasury_gain_from_staking = staking_treasury_payout(&connection);
@@ -42,7 +43,7 @@ pub fn channeling_fee_and_tip(config: &Config) -> anyhow::Result<()> {
         issuance_after,
     );
 
-    let fee_info = get_tx_fee_info(&connection, &tx);
+    let fee_info = connection.get_tx_info(&tx);
     let fee = fee_info.fee_without_weight + fee_info.adjusted_weight;
     check_treasury_balance(
         possible_treasury_gain_from_staking,

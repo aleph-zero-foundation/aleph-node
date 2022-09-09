@@ -16,7 +16,7 @@ use substrate_api_client::{
 
 use crate::{
     account_from_keypair, create_connection, locks, send_xt, session::wait_for_predicate,
-    wait_for_session, AnyConnection, AnyConnectionExt, BlockNumber, KeyPair, RootConnection,
+    wait_for_session, AnyConnection, BlockNumber, KeyPair, ReadStorage, RootConnection,
     SignedConnection,
 };
 
@@ -102,18 +102,18 @@ pub fn force_new_era(connection: &RootConnection, status: XtStatus) {
     send_xt(connection, xt, Some("force_new_era"), status);
 }
 
-pub fn wait_for_full_era_completion<C: AnyConnection>(connection: &C) -> anyhow::Result<EraIndex> {
+pub fn wait_for_full_era_completion<C: ReadStorage>(connection: &C) -> anyhow::Result<EraIndex> {
     // staking works in such a way, that when we request a controller to be a validator in era N,
     // then the changes are applied in the era N+1 (so the new validator is receiving points in N+1),
     // so that we need N+1 to finish in order to claim the reward in era N+2 for the N+1 era
     wait_for_era_completion(connection, get_current_era(connection) + 2)
 }
 
-pub fn wait_for_next_era<C: AnyConnection>(connection: &C) -> anyhow::Result<EraIndex> {
+pub fn wait_for_next_era<C: ReadStorage>(connection: &C) -> anyhow::Result<EraIndex> {
     wait_for_era_completion(connection, get_current_era(connection) + 1)
 }
 
-pub fn wait_for_at_least_era<C: AnyConnectionExt>(
+pub fn wait_for_at_least_era<C: ReadStorage>(
     connection: &C,
     era: EraIndex,
 ) -> anyhow::Result<EraIndex> {
@@ -127,7 +127,7 @@ pub fn wait_for_at_least_era<C: AnyConnectionExt>(
     Ok(get_era(connection, None))
 }
 
-pub fn wait_for_era_completion<C: AnyConnection>(
+pub fn wait_for_era_completion<C: ReadStorage>(
     connection: &C,
     next_era_index: EraIndex,
 ) -> anyhow::Result<EraIndex> {
@@ -142,7 +142,7 @@ pub fn wait_for_era_completion<C: AnyConnection>(
     Ok(next_era_index)
 }
 
-pub fn get_sessions_per_era<C: AnyConnection>(connection: &C) -> u32 {
+pub fn get_sessions_per_era<C: ReadStorage>(connection: &C) -> u32 {
     connection.read_constant(PALLET, "SessionsPerEra")
 }
 

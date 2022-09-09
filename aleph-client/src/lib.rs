@@ -1,6 +1,6 @@
-use std::{default::Default, fmt::Debug, thread::sleep, time::Duration};
+use std::{default::Default, error::Error as StdError, fmt::Debug, thread::sleep, time::Duration};
 
-use ac_primitives::SubstrateDefaultSignedExtra;
+use ac_primitives::{PlainTipExtrinsicParamsBuilder, SubstrateDefaultSignedExtra};
 pub use account::{get_free_balance, locks};
 pub use balances::total_issuance;
 use codec::{Decode, Encode};
@@ -11,14 +11,14 @@ pub use elections::{
     get_next_era_non_reserved_validators, get_next_era_reserved_validators,
     get_validator_block_count,
 };
-pub use fee::{get_next_fee_multiplier, get_tx_fee_info, FeeInfo};
+pub use fee::get_next_fee_multiplier;
 pub use finalization::set_emergency_finalizer as finalization_set_emergency_finalizer;
 use log::{info, warn};
 pub use multisig::{
     compute_call_hash, perform_multisig_with_threshold_1, MultisigError, MultisigParty,
     SignatureAggregation,
 };
-pub use primitives::{BlockHash, BlockNumber, Header};
+pub use primitives::{Balance, BlockHash, BlockNumber, Header};
 pub use rpc::{emergency_finalize, rotate_keys, rotate_keys_raw_result, state_query_storage_at};
 pub use session::{
     change_next_era_reserved_validators, change_validators, get_current_session,
@@ -40,7 +40,7 @@ pub use staking::{
     validate as staking_validate, wait_for_at_least_era, wait_for_era_completion,
     wait_for_full_era_completion, wait_for_next_era, RewardPoint, StakingLedger,
 };
-pub use substrate_api_client::{self, AccountId, Balance, XtStatus};
+pub use substrate_api_client::{self, AccountId, XtStatus};
 use substrate_api_client::{
     rpc::ws_client::WsRpcClient, std::error::Error, Api, ApiResult, PlainTipExtrinsicParams,
     RpcClient, UncheckedExtrinsicV4,
@@ -92,7 +92,8 @@ impl FromStr for WsRpcClient {
 
 pub type KeyPair = sr25519::Pair;
 pub type AlephKeyPair = ed25519::Pair;
-pub type Connection = Api<KeyPair, WsRpcClient, PlainTipExtrinsicParams>;
+pub type ExtrinsicParams = PlainTipExtrinsicParams;
+pub type Connection = Api<KeyPair, WsRpcClient, ExtrinsicParams>;
 pub type Extrinsic<Call> = UncheckedExtrinsicV4<Call, SubstrateDefaultSignedExtra>;
 
 /// Common abstraction for different types of connections.
@@ -105,9 +106,7 @@ pub trait AnyConnection: Clone + Send {
     fn as_connection(&self) -> Connection;
 }
 
-impl<C: AnyConnection> AnyConnectionExt for C {}
-
-pub trait AnyConnectionExt: AnyConnection {
+pub trait ReadStorage: AnyConnection {
     /// Reads value from storage. Panics if it couldn't be read.
     fn read_storage_value<T: Decode>(&self, pallet: &'static str, key: &'static str) -> T {
         self.read_storage_value_or_else(pallet, key, || {
@@ -214,6 +213,59 @@ pub trait AnyConnectionExt: AnyConnection {
         self.as_connection()
             .get_storage_map(pallet, map_name, map_key.clone(), block_hash)
             .unwrap_or_else(|e| panic!("Unable to retrieve a storage map for pallet={} map_name={} map_key={:#?} block_hash={:#?}: {}", pallet, map_name, &map_key, block_hash, e))
+    }
+}
+
+impl<C: AnyConnection> ReadStorage for C {}
+
+pub trait BalanceTransfer {
+    type TransferTx;
+    type Error: StdError;
+
+    fn create_transfer_tx(&self, account: AccountId, amount: Balance) -> Self::TransferTx;
+    fn transfer(&self, tx: Self::TransferTx, status: XtStatus)
+        -> Result<Option<H256>, Self::Error>;
+}
+
+pub trait BatchTransactions<Tx> {
+    type Error: StdError;
+
+    fn batch_and_send_transactions<'a>(
+        &self,
+        transactions: impl IntoIterator<Item = &'a Tx>,
+        status: XtStatus,
+    ) -> Result<Option<H256>, Self::Error>
+    where
+        Tx: 'a;
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
+pub struct FeeInfo {
+    pub fee_without_weight: Balance,
+    pub unadjusted_weight: Balance,
+    pub adjusted_weight: Balance,
+}
+
+pub trait GetTxInfo<Tx> {
+    fn get_tx_info(&self, tx: &Tx) -> FeeInfo;
+}
+
+pub trait CallSystem {
+    type Error: StdError;
+
+    fn fill_block(&self, target_ratio: u32, status: XtStatus) -> Result<(), Self::Error>;
+}
+
+pub trait ManageParams {
+    fn set_tip(self, tip: Balance) -> Self;
+}
+
+impl ManageParams for SignedConnection {
+    fn set_tip(self, tip: Balance) -> Self {
+        let xt_params = PlainTipExtrinsicParamsBuilder::new().tip(tip);
+        let SignedConnection { mut inner, signer } = self;
+        inner = inner.set_extrinsic_params_builder(xt_params);
+        Self { inner, signer }
     }
 }
 

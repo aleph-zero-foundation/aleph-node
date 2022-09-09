@@ -1,12 +1,8 @@
 use aleph_client::{
-    balances_transfer, get_next_fee_multiplier, get_tx_fee_info, send_xt, AccountId, AnyConnection,
-    AnyConnectionExt, Extrinsic, FeeInfo, RootConnection, SignedConnection, TransferTransaction,
-    XtStatus,
+    balances_transfer, get_next_fee_multiplier, AccountId, BalanceTransfer, CallSystem, FeeInfo,
+    GetTxInfo, ReadStorage, RootConnection, XtStatus,
 };
-use codec::Encode;
-use sp_core::Pair;
 use sp_runtime::{traits::One, FixedPointNumber, FixedU128};
-use substrate_api_client::{compose_call, compose_extrinsic, ExtrinsicParams, GenericAddress};
 
 use crate::{config::Config, transfer::setup_for_transfer};
 
@@ -81,14 +77,14 @@ pub fn fee_calculation(config: &Config) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn check_current_fees<C: AnyConnectionExt, Call: Encode>(
+fn check_current_fees<C: ReadStorage + BalanceTransfer + GetTxInfo<C::TransferTx>>(
     connection: &C,
-    tx: &Extrinsic<Call>,
+    tx: &C::TransferTx,
 ) -> (FixedU128, FeeInfo) {
     // The storage query will return an u128 value which is the 'inner' representation
     // i.e. scaled up by 10^18 (see `implement_fixed!` for `FixedU128).
     let actual_multiplier = FixedU128::from_inner(get_next_fee_multiplier(connection));
-    let fee_info = get_tx_fee_info(connection, tx);
+    let fee_info = connection.get_tx_info(tx);
     (actual_multiplier, fee_info)
 }
 
@@ -113,26 +109,17 @@ fn assert_no_scaling(
     );
 }
 
-fn prepare_transaction(connection: &SignedConnection) -> TransferTransaction {
+fn prepare_transaction<C: BalanceTransfer>(connection: &C) -> C::TransferTx {
     let bytes = [0u8; 32];
-    compose_extrinsic!(
-        connection.as_connection(),
-        "Balances",
-        "transfer",
-        GenericAddress::Id(AccountId::from(bytes)),
-        Compact(0u128)
-    )
+    let account = AccountId::from(bytes);
+
+    connection.create_transfer_tx(account, 0u128)
 }
 
 fn fill_blocks(target_ratio: u32, blocks: u32, connection: &RootConnection) {
     for _ in 0..blocks {
-        let call = compose_call!(
-            connection.as_connection().metadata,
-            "System",
-            "fill_block",
-            target_ratio * 10_000_000
-        );
-        let xt = compose_extrinsic!(connection.as_connection(), "Sudo", "sudo", call);
-        send_xt(connection, xt, Some("fill block"), XtStatus::InBlock);
+        connection
+            .fill_block(target_ratio, XtStatus::InBlock)
+            .unwrap_or_else(|err| panic!("Error while sending a fill_block transation: {:?}", err));
     }
 }

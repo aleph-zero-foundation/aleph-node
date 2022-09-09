@@ -5,12 +5,12 @@ use substrate_api_client::Balance;
 
 use crate::{
     debug::{element_prompt, entry_prompt, pallet_prompt},
-    AnyConnectionExt,
+    ReadStorage,
 };
 
 const PALLET: &str = "Treasury";
 
-pub fn print_storage<C: AnyConnectionExt>(connection: &C) {
+pub fn print_storage<C: ReadStorage>(connection: &C) {
     let proposal_count: u32 = connection.read_storage_value_or_default(PALLET, "ProposalCount");
     let approvals: Vec<ProposalIndex> =
         connection.read_storage_value_or_default(PALLET, "Approvals");

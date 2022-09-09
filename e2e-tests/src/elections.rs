@@ -1,10 +1,10 @@
 use std::{collections::HashSet, iter::empty};
 
-use aleph_client::{get_validators_for_session, AccountId, AnyConnection};
+use aleph_client::{get_validators_for_session, AccountId, ReadStorage};
 use log::debug;
 use primitives::{CommitteeSeats, EraValidators, SessionIndex};
 
-pub fn get_and_test_members_for_session<C: AnyConnection>(
+pub fn get_and_test_members_for_session<C: ReadStorage>(
     connection: &C,
     seats: CommitteeSeats,
     era_validators: &EraValidators<AccountId>,
