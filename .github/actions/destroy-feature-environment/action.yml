@@ -18,19 +18,16 @@ inputs:
 outputs:
   deployment-name:
     description: 'Output with a deployment name for working with deployments'
-    value: ${{ steps.get_branch.outputs.branch }}
+    value: ${{ steps.get_branch.outputs.branch_name }}
   
 
 
 runs:
   using: "composite"
   steps:
-    - name: Get Branch Name
+    - name: Get branch name and commit SHA
       id: get_branch
-      shell: bash
-      env:
-        PR_HEAD: ${{ github.head_ref }}
-      run: echo "##[set-output name=branch;]$(echo ${PR_HEAD#refs/heads/} | tr / -)"
+      uses: ./.github/actions/get-branch
 
     - name: Checkout aleph-apps repo
       uses: actions/checkout@master
@@ -52,7 +49,7 @@ runs:
     - name: Destroy feature branch
       shell: bash
       env:
-        APP_NAME: fe-${{ steps.get_branch.outputs.branch }}
+        APP_NAME: fe-${{ steps.get_branch.outputs.branch_appname }}
       run: |
         ALEPH_PATH=$(pwd)
 
@@ -62,7 +59,7 @@ runs:
     - name: Commit deletion of the feature environment.
       uses: EndBug/add-and-commit@v5.1.0
       env:
-        APP_NAME: fe-${{ steps.get_branch.outputs.branch }}
+        APP_NAME: fe-${{ steps.get_branch.outputs.branch_appname }}
         GITHUB_TOKEN: ${{ inputs.gh-ci-token }}
       with:
         author_name: AlephZero Automation
@@ -87,6 +84,6 @@ runs:
     - name: Clean S3 storage
       shell: bash
       env:
-        BRANCH_NAME: ${{ steps.get_branch.outputs.branch }}
+        BRANCH_NAME: ${{ steps.get_branch.outputs.branch_name }}
       run: |
         aws s3 rm --recursive s3://fe-alephzero-devnet-eu-central-1-keys-bucket/fe-${{ env.BRANCH_NAME }}
