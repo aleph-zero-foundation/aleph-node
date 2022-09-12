@@ -20,13 +20,9 @@ jobs:
       - name: checkout repo
         uses: actions/checkout@v2.3.4
 
-      - name: Get Branch Name
+      - name: Get branch name and commit SHA
         id: get_branch
-        env:
-          PR_HEAD: ${{ github.head_ref }}
-        run: |
-          echo "##[set-output name=branch;]$(echo ${PR_HEAD#refs/heads/} | tr / -)"
-          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+        uses: ./.github/actions/get-branch
 
       - name: Download artifact with built aleph-node binary from PR
         uses: actions/download-artifact@v2
@@ -36,7 +32,7 @@ jobs:
 
       - name: Build docker image with PR aleph-node binary
         env:
-          IMAGE_TAG: fe-${{ steps.get_branch.outputs.branch }}_${{ steps.get_branch.outputs.sha_short }}
+          IMAGE_TAG: fe-${{ steps.get_branch.outputs.branch_imagetag_full }}
           FE_ALEPH_NODE_REGISTRY: 573243519133.dkr.ecr.us-east-1.amazonaws.com/feature-env-aleph-node
         run: |
           chmod +x target/release/aleph-node
@@ -53,7 +49,7 @@ jobs:
 
       - name: Push FE aleph-node image to the private feature-env-aleph-node registry
         env:
-          IMAGE_TAG: fe-${{ steps.get_branch.outputs.branch }}_${{ steps.get_branch.outputs.sha_short }}
+          IMAGE_TAG: fe-${{ steps.get_branch.outputs.branch_imagetag_full }}
           FE_ALEPH_NODE_REGISTRY: 573243519133.dkr.ecr.us-east-1.amazonaws.com/feature-env-aleph-node
         run: |
           docker push ${{ env.FE_ALEPH_NODE_REGISTRY }}:${{ env.IMAGE_TAG }}
@@ -78,14 +74,9 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
           argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
 
-      - name: Get Branch Name
+      - name: Get branch name and commit SHA
         id: get_branch
-        shell: bash
-        env:
-          PR_HEAD: ${{ github.head_ref }}
-        run: |
-          echo "##[set-output name=branch;]$(echo ${PR_HEAD#refs/heads/} | tr / -)"
-          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+        uses: ./.github/actions/get-branch
 
       - name: Start Feature Env Deployment
         uses: bobheadxi/deployments@v1.1.0
@@ -93,7 +84,7 @@ jobs:
         with:
           step: start
           token: ${{ secrets.CI_GH_TOKEN }}
-          env: ${{ steps.get_branch.outputs.branch }}
+          env: ${{ steps.get_branch.outputs.branch_name }}
           ref: ${{ github.head_ref }}
           override: true
 
@@ -119,7 +110,7 @@ jobs:
       - name: Build chainspec for testnet FE and send it to S3
         if: contains( github.event.pull_request.labels.*.name, '[AZERO] DEPLOY-FEATURE-ENV')
         env:
-          BRANCH_NAME: ${{ steps.get_branch.outputs.branch }}
+          BRANCH_NAME: ${{ steps.get_branch.outputs.branch_name }}
           CHAIN_ID: a0fenet
         run: |
           COMMIT_ID=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' https://rpc.test.azero.dev | jq -r '.result' | cut -d "-" -f 2 | head -c 7)
@@ -148,7 +139,7 @@ jobs:
       - name: Build chainspec for Hotnet FE and send it to S3
         if: contains( github.event.pull_request.labels.*.name, '[AZERO] DEPLOY-HOT-FEATURE-ENV')
         env:
-          BRANCH_NAME: ${{ steps.get_branch.outputs.branch }}
+          BRANCH_NAME: ${{ steps.get_branch.outputs.branch_name }}
           CHAIN_ID: a0fenet
         run: |
           SYSTEM_VERSION=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' https://rpc.azero.dev | jq -r '.result')
@@ -189,9 +180,9 @@ jobs:
       - name: Start testnet image on feature environment
         if: contains( github.event.pull_request.labels.*.name, '[AZERO] DEPLOY-FEATURE-ENV')
         env:
-          BRANCH_NAME: ${{ steps.get_branch.outputs.branch }}
-          APP_NAME: fe-${{ steps.get_branch.outputs.branch }}
-          NAMESPACE: fe-${{ steps.get_branch.outputs.branch }}
+          BRANCH_NAME: ${{ steps.get_branch.outputs.branch_name }}
+          APP_NAME: fe-${{ steps.get_branch.outputs.branch_appname }}
+          NAMESPACE: fe-${{ steps.get_branch.outputs.branch_appname }}
           CREATE_HOOK: false
         run: |
           # Set up envs
@@ -212,9 +203,9 @@ jobs:
       - name: Start mainnet image on feature environment
         if: contains( github.event.pull_request.labels.*.name, '[AZERO] DEPLOY-HOT-FEATURE-ENV')
         env:
-          BRANCH_NAME: ${{ steps.get_branch.outputs.branch }}
-          APP_NAME: fe-${{ steps.get_branch.outputs.branch }}
-          NAMESPACE: fe-${{ steps.get_branch.outputs.branch }}
+          BRANCH_NAME: ${{ steps.get_branch.outputs.branch_name }}
+          APP_NAME: fe-${{ steps.get_branch.outputs.branch_appname }}
+          NAMESPACE: fe-${{ steps.get_branch.outputs.branch_appname }}
           CREATE_HOOK: false
         run: |
           # Set up envs
@@ -238,7 +229,7 @@ jobs:
       - name: GIT | Commit changes to aleph-apps repository.
         uses: EndBug/add-and-commit@v5.1.0
         env:
-          APP_NAME: fe-${{ steps.get_branch.outputs.branch }}
+          APP_NAME: fe-${{ steps.get_branch.outputs.branch_appname }}
           GITHUB_TOKEN: ${{ secrets.CI_GH_TOKEN }}
         with:
           author_name: AlephZero Automation
@@ -250,7 +241,7 @@ jobs:
 
       - name: Refresh Argo and wait for the testnet image deployment to be finished
         env:
-          APP_NAME: fe-${{ steps.get_branch.outputs.branch }}
+          APP_NAME: fe-${{ steps.get_branch.outputs.branch_appname }}
           ARGOCD_URL: argocd.dev.azero.dev
         run: |
           ## Install argocd CLI tool
@@ -278,14 +269,9 @@ jobs:
       - name: checkout repo
         uses: actions/checkout@v2.3.4
 
-      - name: Get Branch Name
+      - name: Get branch name and commit SHA
         id: get_branch
-        shell: bash
-        env:
-          PR_HEAD: ${{ github.head_ref }}
-        run: |
-          echo "##[set-output name=branch;]$(echo ${PR_HEAD#refs/heads/} | tr / -)"
-          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+        uses: ./.github/actions/get-branch
 
       - name: GIT | Checkout aleph-apps repo
         uses: actions/checkout@master
@@ -297,11 +283,11 @@ jobs:
 
       - name: Update feature environment to the latest PR image
         env:
-          IMAGE_TAG: fe-${{ steps.get_branch.outputs.branch }}_${{ steps.get_branch.outputs.sha_short }}
+          IMAGE_TAG: fe-${{ steps.get_branch.outputs.branch_imagetag_full }}
           FE_ALEPH_NODE_REGISTRY: 573243519133.dkr.ecr.us-east-1.amazonaws.com\/feature-env-aleph-node
-          APP_NAME: fe-${{ steps.get_branch.outputs.branch }}
+          APP_NAME: fe-${{ steps.get_branch.outputs.branch_appname }}
           ARGOCD_URL: argocd.dev.azero.dev
-          NAMESPACE: fe-${{ steps.get_branch.outputs.branch }}
+          NAMESPACE: fe-${{ steps.get_branch.outputs.branch_appname }}
           CREATE_HOOK: true
         run: |
           # Set up envs
@@ -319,9 +305,9 @@ jobs:
       - name: GIT | Commit changes to aleph-apps repository.
         uses: EndBug/add-and-commit@v5.1.0
         env:
-          IMAGE_TAG: fe-${{ steps.get_branch.outputs.branch }}_${{ steps.get_branch.outputs.sha_short }}
+          IMAGE_TAG: fe-${{ steps.get_branch.outputs.branch_imagetag_full }}
           FE_ALEPH_NODE_REGISTRY: 573243519133.dkr.ecr.us-east-1.amazonaws.com/feature-env-aleph-node
-          APP_NAME: fe-${{ steps.get_branch.outputs.branch }}
+          APP_NAME: fe-${{ steps.get_branch.outputs.branch_appname }}
           GITHUB_TOKEN: ${{ secrets.CI_GH_TOKEN }}
         with:
           author_name: AlephZero Automation
@@ -333,7 +319,7 @@ jobs:
 
       - name: Refresh Argo and wait for the PR image deployment to be finished
         env:
-          APP_NAME: fe-${{ steps.get_branch.outputs.branch }}
+          APP_NAME: fe-${{ steps.get_branch.outputs.branch_appname }}
           ARGOCD_URL: argocd.dev.azero.dev
         run: |
           ## Install argocd CLI tool
@@ -381,9 +367,9 @@ jobs:
           step: finish
           token: ${{ secrets.CI_GH_TOKEN }}
           status: ${{ job.status }}
-          env: ${{ steps.get_branch.outputs.branch }}
+          env: ${{ steps.get_branch.outputs.branch_name }}
           deployment_id: ${{ needs.deploy_feature_env.outputs.deployment-id }}
-          env_url: https://dev.azero.dev/?rpc=wss%3A%2F%2Fws-fe-${{ steps.get_branch.outputs.branch }}.dev.azero.dev#/explorer
+          env_url: https://dev.azero.dev/?rpc=wss%3A%2F%2Fws-fe-${{ steps.get_branch.outputs.branch_name }}.dev.azero.dev#/explorer
           ref: ${{ github.head_ref }}
 
   destroy_feature_env:
