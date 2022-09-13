@@ -16,7 +16,7 @@ jobs:
   build-test-docker:
     needs: [build-new-node]
     name: Build docker image with the test node artifact
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -45,7 +45,7 @@ jobs:
   check-determinism:
     needs: [build-new-node]
     name: Verify runtime build determinism
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     env:
       RUST_BACKTRACE: full
     steps:
@@ -77,7 +77,7 @@ jobs:
 
   build-test-client:
     name: Build e2e test client suite
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     env:
       RUST_BACKTRACE: full
     steps:
@@ -116,7 +116,7 @@ jobs:
   run-e2e-authorities-are-staking:
     needs: [build-test-docker, build-test-client]
     name: Run authorities are staking test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -133,14 +133,14 @@ jobs:
       run-e2e-authorities-are-staking,
     ]
     name: Check e2e test suite completion
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: All e2e tests completed
         run: echo "All e2e tests completed."
 
   slack:
     name: Slack notification
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: [check-e2e-test-suite-completion, check-determinism]
     if: always()
     steps:

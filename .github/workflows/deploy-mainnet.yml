@@ -10,7 +10,7 @@ concurrency:
 jobs:
   deploy-mainnet:
     name: Deploy new aleph-node image to Mainnet EKS
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     environment: 'mainnet'
     env:
       AWS_REGION: us-east-1 # this region is used by all public ECR repos
@@ -116,7 +116,7 @@ jobs:
 
   slack:
     name: Slack notification
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: [deploy-mainnet]
     if: always()
     steps:

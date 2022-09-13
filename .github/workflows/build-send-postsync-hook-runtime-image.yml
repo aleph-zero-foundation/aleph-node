@@ -16,7 +16,7 @@ concurrency:
 jobs:
   build:
     name: Save cliain binary as an artifact
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     env:
       CARGO_INCREMENTAL: 0
     steps:

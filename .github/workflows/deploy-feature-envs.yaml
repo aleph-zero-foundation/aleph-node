@@ -15,7 +15,7 @@ jobs:
     if: ${{ (github.event.label.name == '[AZERO] DEPLOY-FEATURE-ENV') || (github.event.label.name == '[AZERO] DEPLOY-HOT-FEATURE-ENV') }}
     needs: [build_aleph_node_binary]
     name: Build, prepare and push aleph-node image from PR to ECR
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: checkout repo
         uses: actions/checkout@v2.3.4
@@ -58,7 +58,7 @@ jobs:
   deploy_feature_env:
     if: ${{ (github.event.label.name == '[AZERO] DEPLOY-FEATURE-ENV') || (github.event.label.name == '[AZERO] DEPLOY-HOT-FEATURE-ENV') }}
     name: Deploy feature environment based on the PR
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     outputs:
       deployment-id: ${{ steps.deployment.outputs.deployment_id }}
     steps:
@@ -264,7 +264,7 @@ jobs:
     if: ${{ (github.event.label.name == '[AZERO] DEPLOY-FEATURE-ENV') || (github.event.label.name == '[AZERO] DEPLOY-HOT-FEATURE-ENV') }}
     needs: [push_pr_image,deploy_feature_env]
     name: Update feature environment to the latest PR aleph-node image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: checkout repo
         uses: actions/checkout@v2.3.4
@@ -375,7 +375,7 @@ jobs:
   destroy_feature_env:
     if: ${{ github.event.label.name == '[AZERO] DELETE-FEATURE-ENV' }}
     name: Destroy feature env
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2.3.4
@@ -426,7 +426,7 @@ jobs:
   destroy_feature_env_on_close:
     if: (github.event.action == 'closed' && !contains( github.event.pull_request.labels.*.name, 'DESTROYED') && contains( github.event.pull_request.labels.*.name, 'DEPLOYED'))
     name: Destroy feature env when PR closed
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2.3.4

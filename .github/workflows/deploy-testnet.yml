@@ -10,7 +10,7 @@ concurrency:
 jobs:
   deploy-testnet:
     name: Deploy new aleph-node image to Testnet EKS
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     environment: 
       name: testnet
     env:
@@ -123,7 +123,7 @@ jobs:
 
   slack:
     name: Slack notification
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: [deploy-testnet]
     if: always()
     steps:

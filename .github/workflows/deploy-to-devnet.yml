@@ -11,7 +11,7 @@ jobs:
     name: Deploy new aleph-node image to EKS
     environment:
       name: devnet
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     env:
       AWS_REGION: eu-central-1
     steps:
@@ -116,7 +116,7 @@ jobs:
 
   slack:
     name: Slack notification
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: [deploy-devnet]
     if: always()
     steps:

@@ -66,7 +66,7 @@ runs:
         restore-keys: |
           ${{ runner.os }}-target-${{ inputs.target-key }}-${{ inputs.cache-version }}
 
-    - name: Install sccache for ubuntu-latest
+    - name: Install sccache for ubuntu-20.04
       shell: bash
       run: |
         LINK=https://github.com/mozilla/sccache/releases/download
