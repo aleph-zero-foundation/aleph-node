@@ -7,7 +7,7 @@ use aleph_client::{
 use clap::Parser;
 use cliain::{
     bond, call, change_validators, finalize, force_new_era, instantiate, instantiate_with_code,
-    nominate, prepare_keys, prompt_password_hidden, remove_code, rotate_keys,
+    next_session_keys, nominate, prepare_keys, prompt_password_hidden, remove_code, rotate_keys,
     set_emergency_finalizer, set_keys, set_staking_limits, transfer, treasury_approve,
     treasury_propose, treasury_reject, update_runtime, upload_code, validate, vest, vest_other,
     vested_transfer, Command, ConnectionConfig,
@@ -40,6 +40,7 @@ fn read_seed(command: &Command, seed: Option<String>) -> String {
             hash: _,
             finalizer_seed: _,
         }
+        | Command::NextSessionKeys { account_id: _ }
         | Command::RotateKeys
         | Command::DebugStorage
         | Command::SeedToSS58 { input: _ } => String::new(),
@@ -114,6 +115,7 @@ fn main() {
         Command::TreasuryApprove { proposal_id } => treasury_approve(cfg.into(), proposal_id),
         Command::TreasuryReject { proposal_id } => treasury_reject(cfg.into(), proposal_id),
         Command::RotateKeys => rotate_keys::<SignedConnection>(cfg.into()),
+        Command::NextSessionKeys { account_id } => next_session_keys(&cfg.into(), account_id),
         Command::SetStakingLimits {
             minimal_nominator_stake,
             minimal_validator_stake,

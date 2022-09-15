@@ -44,6 +44,13 @@ impl TryFrom<String> for Keys {
     }
 }
 
+pub fn get_next_session_keys<C: AnyConnection>(
+    connection: &C,
+    account_id: AccountId,
+) -> Option<Keys> {
+    connection.read_storage_map(PALLET, "NextKeys", account_id, None)
+}
+
 pub fn change_validators(
     sudo_connection: &RootConnection,
     new_reserved_validators: Option<Vec<AccountId>>,
