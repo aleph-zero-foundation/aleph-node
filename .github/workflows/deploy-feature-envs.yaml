@@ -4,15 +4,33 @@ on:
   pull_request:
     types: [labeled, closed]
 
+env:
+  LABEL_DEPLOY: '[AZERO] DEPLOY-FEATURE-ENV'
+  LABEL_DEPLOY_HOT: '[AZERO] DEPLOY-HOT-FEATURE-ENV'
+  LABEL_DELETE: '[AZERO] DELETE-FEATURE-ENV'
+  LABEL_DESTROYED: 'DESTROYED'
+  LABEL_DEPLOYED: 'DEPLOYED'
+  REGISTRY_HOST: 573243519133.dkr.ecr.us-east-1.amazonaws.com
+  FE_ALEPHNODE_REGISTRY: 573243519133.dkr.ecr.us-east-1.amazonaws.com/feature-env-aleph-node
+  FE_IMAGETAG_PREFIX: 'fe-'
+  FE_APP_PREFIX: 'fe-'
+  PUBLIC_ALEPHNODE_REGISTRY: public.ecr.aws/p6e8q1z1/aleph-node
+  FE_KEYS_S3BUCKET: fe-alephzero-devnet-eu-central-1-keys-bucket
+  FE_KEYS_S3PATH_PREFIX: 'fe-'
+  RPC_TESTNET_URL: https://rpc.test.azero.dev
+  WSS_TESTNET_URL: wss://ws.test.azero.dev
+  RPC_MAINNET_URL: https://rpc.azero.dev
+  FORKOFF_IMAGE: public.ecr.aws/p6e8q1z1/fork-off:latest
+
 jobs:
   ## After that job run, artefact with aleph-node is created with name: aleph-release-node
   build_aleph_node_binary:
-    if: ${{ (github.event.label.name == '[AZERO] DEPLOY-FEATURE-ENV') || (github.event.label.name == '[AZERO] DEPLOY-HOT-FEATURE-ENV') }}
+    if: (github.event.label.name == env.LABEL_DEPLOY) || (github.event.label.name == env.LABEL_DEPLOY_HOT)
     name: Build runtime and aleph-node binary artefacts
     uses: ./.github/workflows/build-node-and-runtime.yml
 
   push_pr_image:
-    if: ${{ (github.event.label.name == '[AZERO] DEPLOY-FEATURE-ENV') || (github.event.label.name == '[AZERO] DEPLOY-HOT-FEATURE-ENV') }}
+    if: (github.event.label.name == env.LABEL_DEPLOY) || (github.event.label.name == env.LABEL_DEPLOY_HOT)
     needs: [build_aleph_node_binary]
     name: Build, prepare and push aleph-node image from PR to ECR
     runs-on: ubuntu-20.04
@@ -32,31 +50,29 @@ jobs:
 
       - name: Build docker image with PR aleph-node binary
         env:
-          IMAGE_TAG: fe-${{ steps.get_branch.outputs.branch_imagetag_full }}
-          FE_ALEPH_NODE_REGISTRY: 573243519133.dkr.ecr.us-east-1.amazonaws.com/feature-env-aleph-node
+          IMAGE_TAG: ${{ FE_IMAGETAG_PREFIX }}${{ steps.get_branch.outputs.branch_imagetag_full }}
         run: |
           chmod +x target/release/aleph-node
           ls -alh target/release/
           ls -alh ./docker/
-          docker build --tag ${{ env.FE_ALEPH_NODE_REGISTRY }}:${{ env.IMAGE_TAG }} -f ./docker/Dockerfile .
+          docker build --tag ${{ env.FE_ALEPHNODE_REGISTRY }}:${{ env.IMAGE_TAG }} -f ./docker/Dockerfile .
 
       - name: Login to ECR
         uses: docker/login-action@v1
         with:
-          registry: 573243519133.dkr.ecr.us-east-1.amazonaws.com
+          registry: ${{ env.REGISTRY_HOST }}
           username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
           password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
 
       - name: Push FE aleph-node image to the private feature-env-aleph-node registry
         env:
-          IMAGE_TAG: fe-${{ steps.get_branch.outputs.branch_imagetag_full }}
-          FE_ALEPH_NODE_REGISTRY: 573243519133.dkr.ecr.us-east-1.amazonaws.com/feature-env-aleph-node
+          IMAGE_TAG: ${{ FE_IMAGETAG_PREFIX }}${{ steps.get_branch.outputs.branch_imagetag_full }}
         run: |
-          docker push ${{ env.FE_ALEPH_NODE_REGISTRY }}:${{ env.IMAGE_TAG }}
+          docker push ${{ env.FE_ALEPHNODE_REGISTRY }}:${{ env.IMAGE_TAG }}
 
 
   deploy_feature_env:
-    if: ${{ (github.event.label.name == '[AZERO] DEPLOY-FEATURE-ENV') || (github.event.label.name == '[AZERO] DEPLOY-HOT-FEATURE-ENV') }}
+    if: (github.event.label.name == env.LABEL_DEPLOY) || (github.event.label.name == env.LABEL_DEPLOY_HOT)
     name: Deploy feature environment based on the PR
     runs-on: ubuntu-20.04
     outputs:
@@ -66,7 +82,7 @@ jobs:
         uses: actions/checkout@v2.3.4
 
       - name: Delete old FE when redeploying
-        if: contains( github.event.pull_request.labels.*.name, 'DEPLOYED')
+        if: contains( github.event.pull_request.labels.*.name, env.LABEL_DEPLOYED)
         uses: ./.github/actions/destroy-feature-environment
         with:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
@@ -108,17 +124,17 @@ jobs:
           AWS_REGION: us-east-1
 
       - name: Build chainspec for testnet FE and send it to S3
-        if: contains( github.event.pull_request.labels.*.name, '[AZERO] DEPLOY-FEATURE-ENV')
+        if: contains( github.event.pull_request.labels.*.name, env.LABEL_DEPLOY)
         env:
           BRANCH_NAME: ${{ steps.get_branch.outputs.branch_name }}
           CHAIN_ID: a0fenet
         run: |
-          COMMIT_ID=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' https://rpc.test.azero.dev | jq -r '.result' | cut -d "-" -f 2 | head -c 7)
+          COMMIT_ID=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' ${{ env.RPC_TESTNET_URL }} | jq -r '.result' | cut -d "-" -f 2 | head -c 7)
           echo $COMMIT_ID
-          TESTNET_IMAGE="public.ecr.aws/p6e8q1z1/aleph-node:$COMMIT_ID"
+          TESTNET_IMAGE="${{ env.PUBLIC_ALEPHNODE_REGISTRY }}:$COMMIT_ID"
 
           # sync all validator's keystores from S3
-          aws s3 cp s3://fe-alephzero-devnet-eu-central-1-keys-bucket/data data --recursive
+          aws s3 cp s3://${{ env.FE_KEYS_S3BUCKET }}/data data --recursive
 
           # rename validator paths
           declare -A NAMES=([aleph-node-validator-0]=5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY [aleph-node-validator-1]=5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty [aleph-node-validator-2]=5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y [aleph-node-validator-3]=5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy [aleph-node-validator-4]=5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw)
@@ -131,26 +147,26 @@ jobs:
           docker run -v $(pwd)/data:/data --env RUST_BACKTRACE=1 --entrypoint "/usr/local/bin/aleph-node" $TESTNET_IMAGE bootstrap-chain --raw --base-path /data --chain-id $CHAIN_ID --account-ids 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y,5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy,5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw --sudo-account-id 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY > chainspec.skeleton.json
 
           # Generate chainspec from skeleton
-          docker run -v $(pwd):/app --env RUST_LOG=info public.ecr.aws/p6e8q1z1/fork-off:latest --ws-rpc-endpoint=wss://ws.test.azero.dev --initial-spec-path=chainspec.skeleton.json --combined-spec-path=chainspec.json
+          docker run -v $(pwd):/app --env RUST_LOG=info ${{ env.FORKOFF_IMAGE }} --ws-rpc-endpoint=${{ env.WSS_TESTNET_URL }} --initial-spec-path=chainspec.skeleton.json --combined-spec-path=chainspec.json
 
-          aws s3 cp chainspec.json s3://fe-alephzero-devnet-eu-central-1-keys-bucket/fe-${{ env.BRANCH_NAME }}/chainspec.json
-          aws s3 cp s3://fe-alephzero-devnet-eu-central-1-keys-bucket/data/ s3://fe-alephzero-devnet-eu-central-1-keys-bucket/fe-${{ env.BRANCH_NAME }}/data/ --recursive
+          aws s3 cp chainspec.json s3://${{ env.FE_KEYS_S3BUCKET }}/${{ env.FE_KEYS_S3PATH_PREFIX }}${{ env.BRANCH_NAME }}/chainspec.json
+          aws s3 cp s3://${{ env.FE_KEYS_S3BUCKET }}/data/ s3://${{ env.FE_KEYS_S3BUCKET }}/${{ env.FE_KEYS_S3PATH_PREFIX }}${{ env.BRANCH_NAME }}/data/ --recursive
 
       - name: Build chainspec for Hotnet FE and send it to S3
-        if: contains( github.event.pull_request.labels.*.name, '[AZERO] DEPLOY-HOT-FEATURE-ENV')
+        if: contains( github.event.pull_request.labels.*.name, env.LABEL_DEPLOY_HOT)
         env:
           BRANCH_NAME: ${{ steps.get_branch.outputs.branch_name }}
           CHAIN_ID: a0fenet
         run: |
-          SYSTEM_VERSION=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' https://rpc.azero.dev | jq -r '.result')
+          SYSTEM_VERSION=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' ${{ env.RPC_MAINNET_URL }} | jq -r '.result')
           SUFFIX="-x86_64-linux-gnu"
           LONG_COMMIT_ID=${SYSTEM_VERSION/%$SUFFIX}
           COMMIT_ID=${LONG_COMMIT_ID: -7}
           echo $COMMIT_ID
-          MAINNET_IMAGE="public.ecr.aws/p6e8q1z1/aleph-node:$COMMIT_ID"
+          MAINNET_IMAGE="${{ env.PUBLIC_ALEPHNODE_REGISTRY }}:$COMMIT_ID"
 
           # sync all validator's keystores from S3
-          aws s3 cp s3://fe-alephzero-devnet-eu-central-1-keys-bucket/data data --recursive
+          aws s3 cp s3://${{ env.FE_KEYS_S3BUCKET }}/data data --recursive
 
           # rename validator paths
           declare -A NAMES=([aleph-node-validator-0]=5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY [aleph-node-validator-1]=5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty [aleph-node-validator-2]=5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y [aleph-node-validator-3]=5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy [aleph-node-validator-4]=5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw)
@@ -163,10 +179,10 @@ jobs:
           docker run -v $(pwd)/data:/data --env RUST_BACKTRACE=1 --entrypoint "/usr/local/bin/aleph-node" $MAINNET_IMAGE bootstrap-chain --raw --base-path /data --chain-id $CHAIN_ID --account-ids 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y,5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy,5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw --sudo-account-id 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY > chainspec.skeleton.json
 
           # Generate chainspec from skeleton
-          docker run -v $(pwd):/app --env RUST_LOG=info public.ecr.aws/p6e8q1z1/fork-off:latest --ws-rpc-endpoint=https://rpc.azero.dev --initial-spec-path=chainspec.skeleton.json --combined-spec-path=chainspec.json
+          docker run -v $(pwd):/app --env RUST_LOG=info ${{ env.FORKOFF_IMAGE }} --ws-rpc-endpoint=${{ env.RPC_MAINNET_URL }} --initial-spec-path=chainspec.skeleton.json --combined-spec-path=chainspec.json
 
-          aws s3 cp chainspec.json s3://fe-alephzero-devnet-eu-central-1-keys-bucket/fe-${{ env.BRANCH_NAME }}/chainspec.json
-          aws s3 cp s3://fe-alephzero-devnet-eu-central-1-keys-bucket/data/ s3://fe-alephzero-devnet-eu-central-1-keys-bucket/fe-${{ env.BRANCH_NAME }}/data/ --recursive
+          aws s3 cp chainspec.json s3://${{ env.FE_KEYS_S3BUCKET }}/${{ FE_KEYS_S3PATH_PREFIX }}${{ env.BRANCH_NAME }}/chainspec.json
+          aws s3 cp s3://${{ env.FE_KEYS_S3BUCKET }}/data/ s3://${{ env.FE_KEYS_S3BUCKET }}/${{ env.FE_KEYS_S3PATH_PREFIX }}${{ env.BRANCH_NAME }}/data/ --recursive
 
 
       - name: GIT | Checkout aleph-apps repo
@@ -178,16 +194,16 @@ jobs:
           ref: main
 
       - name: Start testnet image on feature environment
-        if: contains( github.event.pull_request.labels.*.name, '[AZERO] DEPLOY-FEATURE-ENV')
+        if: contains( github.event.pull_request.labels.*.name, env.LABEL_DEPLOY)
         env:
           BRANCH_NAME: ${{ steps.get_branch.outputs.branch_name }}
-          APP_NAME: fe-${{ steps.get_branch.outputs.branch_appname }}
-          NAMESPACE: fe-${{ steps.get_branch.outputs.branch_appname }}
+          APP_NAME: ${{ env.FE_APP_PREFIX }}${{ steps.get_branch.outputs.branch_appname }}
+          NAMESPACE: ${{ env.FE_APP_PREFIX }}${{ steps.get_branch.outputs.branch_appname }}
           CREATE_HOOK: false
         run: |
           # Set up envs
-          COMMIT_ID=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' https://rpc.test.azero.dev | jq -r '.result' | cut -d "-" -f 2 | head -c 7)
-          TESTNET_IMAGE="public.ecr.aws\/p6e8q1z1\/aleph-node:$COMMIT_ID"
+          COMMIT_ID=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' ${{ env.RPC_TESTNET_URL }} | jq -r '.result' | cut -d "-" -f 2 | head -c 7)
+          TESTNET_IMAGE="${{ env.PUBLIC_ALEPHNODE_REGISTRY }}:$COMMIT_ID"
           ALEPH_PATH=$(pwd)
 
           # Create application manifest from template
@@ -201,19 +217,19 @@ jobs:
           sed "s/NODE_IMAGE/$TESTNET_IMAGE/g" $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && mv $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
 
       - name: Start mainnet image on feature environment
-        if: contains( github.event.pull_request.labels.*.name, '[AZERO] DEPLOY-HOT-FEATURE-ENV')
+        if: contains( github.event.pull_request.labels.*.name, env.LABEL_DEPLOY_HOT)
         env:
           BRANCH_NAME: ${{ steps.get_branch.outputs.branch_name }}
-          APP_NAME: fe-${{ steps.get_branch.outputs.branch_appname }}
-          NAMESPACE: fe-${{ steps.get_branch.outputs.branch_appname }}
+          APP_NAME: ${{ env.FE_APP_PREFIX }}${{ steps.get_branch.outputs.branch_appname }}
+          NAMESPACE: ${{ env.FE_APP_PREFIX }}${{ steps.get_branch.outputs.branch_appname }}
           CREATE_HOOK: false
         run: |
           # Set up envs
-          SYSTEM_VERSION=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' https://rpc.azero.dev | jq -r '.result')
+          SYSTEM_VERSION=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' ${{ env.RPC_MAINNET_URL }} | jq -r '.result')
           SUFFIX="-x86_64-linux-gnu"
           LONG_COMMIT_ID=${SYSTEM_VERSION/%$SUFFIX}
           COMMIT_ID=${LONG_COMMIT_ID: -7}
-          MAINNET_IMAGE="public.ecr.aws\/p6e8q1z1\/aleph-node:$COMMIT_ID"
+          MAINNET_IMAGE="${{ env.PUBLIC_ALEPHNODE_REGISTRY }}:$COMMIT_ID"
           ALEPH_PATH=$(pwd)
 
           # Create application manifest from template
@@ -229,7 +245,7 @@ jobs:
       - name: GIT | Commit changes to aleph-apps repository.
         uses: EndBug/add-and-commit@v5.1.0
         env:
-          APP_NAME: fe-${{ steps.get_branch.outputs.branch_appname }}
+          APP_NAME: ${{ env.FE_APP_PREFIX }}${{ steps.get_branch.outputs.branch_appname }}
           GITHUB_TOKEN: ${{ secrets.CI_GH_TOKEN }}
         with:
           author_name: AlephZero Automation
@@ -241,7 +257,7 @@ jobs:
 
       - name: Refresh Argo and wait for the testnet image deployment to be finished
         env:
-          APP_NAME: fe-${{ steps.get_branch.outputs.branch_appname }}
+          APP_NAME: ${{ env.FE_APP_PREFIX }}${{ steps.get_branch.outputs.branch_appname }}
           ARGOCD_URL: argocd.dev.azero.dev
         run: |
           ## Install argocd CLI tool
@@ -261,7 +277,7 @@ jobs:
           time: 5m
 
   update_feature_env_image:
-    if: ${{ (github.event.label.name == '[AZERO] DEPLOY-FEATURE-ENV') || (github.event.label.name == '[AZERO] DEPLOY-HOT-FEATURE-ENV') }}
+    if: (github.event.label.name == env.LABEL_DEPLOY) || (github.event.label.name == env.LABEL_DEPLOY_HOT)
     needs: [push_pr_image,deploy_feature_env]
     name: Update feature environment to the latest PR aleph-node image
     runs-on: ubuntu-20.04
@@ -283,15 +299,14 @@ jobs:
 
       - name: Update feature environment to the latest PR image
         env:
-          IMAGE_TAG: fe-${{ steps.get_branch.outputs.branch_imagetag_full }}
-          FE_ALEPH_NODE_REGISTRY: 573243519133.dkr.ecr.us-east-1.amazonaws.com\/feature-env-aleph-node
-          APP_NAME: fe-${{ steps.get_branch.outputs.branch_appname }}
+          IMAGE_TAG: ${{ env.FE_IMAGETAG_PREFIX }}${{ steps.get_branch.outputs.branch_imagetag_full }}
+          APP_NAME: ${{ env.FE_APP_PREFIX }}${{ steps.get_branch.outputs.branch_appname }}
           ARGOCD_URL: argocd.dev.azero.dev
-          NAMESPACE: fe-${{ steps.get_branch.outputs.branch_appname }}
+          NAMESPACE: ${{ env.FE_APP_PREFIX }}${{ steps.get_branch.outputs.branch_appname }}
           CREATE_HOOK: true
         run: |
           # Set up envs
-          PR_IMAGE="${{ env.FE_ALEPH_NODE_REGISTRY }}\:${{ env.IMAGE_TAG }}"
+          PR_IMAGE="${{ env.FE_ALEPHNODE_REGISTRY }}:${{ env.IMAGE_TAG }}"
           ALEPH_PATH=$(pwd)
 
           sed "s/APP_NAME/${{ env.APP_NAME }}/g" $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/app-template/app-template.yaml > $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
@@ -305,21 +320,20 @@ jobs:
       - name: GIT | Commit changes to aleph-apps repository.
         uses: EndBug/add-and-commit@v5.1.0
         env:
-          IMAGE_TAG: fe-${{ steps.get_branch.outputs.branch_imagetag_full }}
-          FE_ALEPH_NODE_REGISTRY: 573243519133.dkr.ecr.us-east-1.amazonaws.com/feature-env-aleph-node
-          APP_NAME: fe-${{ steps.get_branch.outputs.branch_appname }}
+          IMAGE_TAG: ${{ env.FE_IMAGETAG_PREFIX }}${{ steps.get_branch.outputs.branch_imagetag_full }}
+          APP_NAME: ${{ env.FE_APP_PREFIX }}${{ steps.get_branch.outputs.branch_appname }}
           GITHUB_TOKEN: ${{ secrets.CI_GH_TOKEN }}
         with:
           author_name: AlephZero Automation
           author_email: alephzero@10clouds.com
-          message: "Image changed for the feature environment to: ${{ env.FE_ALEPH_NODE_REGISTRY }}:${{ env.IMAGE_TAG }}"
+          message: "Image changed for the feature environment to: ${{ env.FE_ALEPHNODE_REGISTRY }}:${{ env.IMAGE_TAG }}"
           add: "*.yaml"
           cwd: "aleph-apps"
           branch: main
 
       - name: Refresh Argo and wait for the PR image deployment to be finished
         env:
-          APP_NAME: fe-${{ steps.get_branch.outputs.branch_appname }}
+          APP_NAME: ${{ env.FE_APP_PREFIX }}${{ steps.get_branch.outputs.branch_appname }}
           ARGOCD_URL: argocd.dev.azero.dev
         run: |
           ## Install argocd CLI tool
@@ -334,30 +348,30 @@ jobs:
           /usr/local/bin/argocd app wait ${{ env.APP_NAME }} --auth-token ${{ secrets.ARGO_SYNC_USER_TOKEN }} --server ${{ env.ARGOCD_URL }}
 
       - name: Remove testnet deployment request label if exists
-        if: contains( github.event.pull_request.labels.*.name, '[AZERO] DEPLOY-FEATURE-ENV')
+        if: contains( github.event.pull_request.labels.*.name, env.LABEL_DEPLOY)
         uses: actions-ecosystem/action-remove-labels@v1.3.0
         with:
-          labels: '[AZERO] DEPLOY-FEATURE-ENV'
+          labels: env.LABEL_DEPLOY
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Remove mainnet deployment request label if exists
-        if: contains( github.event.pull_request.labels.*.name, '[AZERO] DEPLOY-HOT-FEATURE-ENV')
+        if: contains( github.event.pull_request.labels.*.name, env.LABEL_DEPLOY_HOT)
         uses: actions-ecosystem/action-remove-labels@v1.3.0
         with:
-          labels: '[AZERO] DEPLOY-HOT-FEATURE-ENV'
+          labels: env.LABEL_DEPLOY_HOT
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Remove destroyed label if present
         uses: actions-ecosystem/action-remove-labels@v1.3.0
-        if: contains( github.event.pull_request.labels.*.name, 'DESTROYED')
+        if: contains( github.event.pull_request.labels.*.name, env.LABEL_DESTROYED)
         with:
-          labels: 'DESTROYED'
+          labels: env.LABEL_DESTROYED
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Add label to mark that feature branch has been deployed
         uses: actions-ecosystem/action-add-labels@v1.1.0
         with:
-          labels: 'DEPLOYED'
+          labels: env.LABEL_DEPLOYED
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Finish Feature Env Deployment
@@ -369,11 +383,11 @@ jobs:
           status: ${{ job.status }}
           env: ${{ steps.get_branch.outputs.branch_name }}
           deployment_id: ${{ needs.deploy_feature_env.outputs.deployment-id }}
-          env_url: https://dev.azero.dev/?rpc=wss%3A%2F%2Fws-fe-${{ steps.get_branch.outputs.branch_name }}.dev.azero.dev#/explorer
+          env_url: https://dev.azero.dev/?rpc=wss%3A%2F%2Fws-${{ env.FE_APP_PREFIX }}${{ steps.get_branch.outputs.branch_appname }}.dev.azero.dev#/explorer
           ref: ${{ github.head_ref }}
 
   destroy_feature_env:
-    if: ${{ github.event.label.name == '[AZERO] DELETE-FEATURE-ENV' }}
+    if: github.event.label.name == env.LABEL_DELETE
     name: Destroy feature env
     runs-on: ubuntu-20.04
     steps:
@@ -392,20 +406,20 @@ jobs:
       - name: Remove labels
         uses: actions-ecosystem/action-remove-labels@v1.3.0
         with:
-          labels: '[AZERO] DELETE-FEATURE-ENV'
+          labels: env.LABEL_DELETE
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Remove "DEPLOYED" label if present
         uses: actions-ecosystem/action-remove-labels@v1.3.0
-        if: contains( github.event.pull_request.labels.*.name, 'DEPLOYED')
+        if: contains( github.event.pull_request.labels.*.name, env.LABEL_DEPLOYED)
         with:
-          labels: 'DEPLOYED'
+          labels: env.LABEL_DEPLOYED
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Add label to mark that feature branch has been destroyed
         uses: actions-ecosystem/action-add-labels@v1.1.0
         with:
-          labels: 'DESTROYED'
+          labels: env.LABEL_DESTROYED
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Deactivate deployed environment
@@ -424,7 +438,7 @@ jobs:
           environment: ${{ steps.delete_fe.outputs.deployment-name }}
 
   destroy_feature_env_on_close:
-    if: (github.event.action == 'closed' && !contains( github.event.pull_request.labels.*.name, 'DESTROYED') && contains( github.event.pull_request.labels.*.name, 'DEPLOYED'))
+    if: (github.event.action == 'closed' && !contains( github.event.pull_request.labels.*.name, env.LABEL_DESTROYED) && contains( github.event.pull_request.labels.*.name, env.LABEL_DEPLOYED))
     name: Destroy feature env when PR closed
     runs-on: ubuntu-20.04
     steps:
@@ -443,20 +457,20 @@ jobs:
       - name: Remove labels
         uses: actions-ecosystem/action-remove-labels@v1.3.0
         with:
-          labels: '[AZERO] DELETE-FEATURE-ENV'
+          labels: env.LABEL_DELETE
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Remove "DEPLOYED" label if present
         uses: actions-ecosystem/action-remove-labels@v1.3.0
-        if: contains( github.event.pull_request.labels.*.name, 'DEPLOYED')
+        if: contains( github.event.pull_request.labels.*.name, env.LABEL_DEPLOYED)
         with:
-          labels: 'DEPLOYED'
+          labels: env.LABEL_DEPLOYED
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Add label to mark that feature branch has been destroyed
         uses: actions-ecosystem/action-add-labels@v1.1.0
         with:
-          labels: 'DESTROYED'
+          labels: env.LABEL_DESTROYED
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Deactivate deployed environment
