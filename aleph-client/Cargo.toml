@@ -1,13 +1,13 @@
 [package]
 name = "aleph_client"
-version = "1.5.3"
+version = "1.6.0"
 edition = "2021"
 license = "Apache 2.0"
 
 [dependencies]
 anyhow = "1.0"
-codec = { package = 'parity-scale-codec', version = "3.0.0", default-features = false, features = ['derive'] }
-hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
+codec = { package = 'parity-scale-codec', version = "3.0.0", features = ['derive'] }
+hex = { version = "0.4.3", features = ["alloc"] }
 log = "0.4"
 rayon = "1.5"
 serde_json = { version = "1.0" }
@@ -16,30 +16,15 @@ thiserror = "1.0"
 ac-primitives = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "aleph-v0.9.26" }
 substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "aleph-v0.9.26", features = ["staking-xt"] }
 
-frame-support = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", default-features = false }
+frame-support = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
 sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", features = ["full_crypto"] }
-sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", default-features = false }
-pallet-multisig = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", default-features = false }
-pallet-staking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", default-features = false }
-pallet-treasury = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", default-features = false }
-pallet-balances = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", default-features = false }
-pallet-vesting = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", default-features = false }
+sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
+pallet-multisig = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
+pallet-staking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
+pallet-treasury = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
+pallet-balances = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
+pallet-vesting = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
 
-pallet-aleph = { path = "../pallets/aleph", default-features = false }
-pallet-elections = { path = "../pallets/elections", default-features = false }
-primitives = { path = "../primitives", default-features = false }
-
-[features]
-default = ["std"]
-std = [
-    "sp-core/std",
-    "sp-runtime/std",
-    "pallet-staking/std",
-    "pallet-treasury/std",
-    "pallet-aleph/std",
-    "pallet-elections/std",
-    "primitives/std",
-    "pallet-balances/std",
-    "pallet-multisig/std",
-    "pallet-vesting/std",
-]
+pallet-aleph = { path = "../pallets/aleph" }
+pallet-elections = { path = "../pallets/elections" }
+primitives = { path = "../primitives" }
