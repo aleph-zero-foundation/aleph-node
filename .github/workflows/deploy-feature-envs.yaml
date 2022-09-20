@@ -50,7 +50,7 @@ jobs:
 
       - name: Build docker image with PR aleph-node binary
         env:
-          IMAGE_TAG: ${{ FE_IMAGETAG_PREFIX }}${{ steps.get_branch.outputs.branch_imagetag_full }}
+          IMAGE_TAG: ${{ env.FE_IMAGETAG_PREFIX }}${{ steps.get_branch.outputs.branch_imagetag_full }}
         run: |
           chmod +x target/release/aleph-node
           ls -alh target/release/
@@ -66,7 +66,7 @@ jobs:
 
       - name: Push FE aleph-node image to the private feature-env-aleph-node registry
         env:
-          IMAGE_TAG: ${{ FE_IMAGETAG_PREFIX }}${{ steps.get_branch.outputs.branch_imagetag_full }}
+          IMAGE_TAG: ${{ env.FE_IMAGETAG_PREFIX }}${{ steps.get_branch.outputs.branch_imagetag_full }}
         run: |
           docker push ${{ env.FE_ALEPHNODE_REGISTRY }}:${{ env.IMAGE_TAG }}
 
@@ -181,7 +181,7 @@ jobs:
           # Generate chainspec from skeleton
           docker run -v $(pwd):/app --env RUST_LOG=info ${{ env.FORKOFF_IMAGE }} --ws-rpc-endpoint=${{ env.RPC_MAINNET_URL }} --initial-spec-path=chainspec.skeleton.json --combined-spec-path=chainspec.json
 
-          aws s3 cp chainspec.json s3://${{ env.FE_KEYS_S3BUCKET }}/${{ FE_KEYS_S3PATH_PREFIX }}${{ env.BRANCH_NAME }}/chainspec.json
+          aws s3 cp chainspec.json s3://${{ env.FE_KEYS_S3BUCKET }}/${{ env.FE_KEYS_S3PATH_PREFIX }}${{ env.BRANCH_NAME }}/chainspec.json
           aws s3 cp s3://${{ env.FE_KEYS_S3BUCKET }}/data/ s3://${{ env.FE_KEYS_S3BUCKET }}/${{ env.FE_KEYS_S3PATH_PREFIX }}${{ env.BRANCH_NAME }}/data/ --recursive
 
 
