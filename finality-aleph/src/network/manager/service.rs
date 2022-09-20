@@ -9,8 +9,8 @@ use futures::{
     channel::{mpsc, oneshot},
     StreamExt,
 };
-use log::{debug, trace, warn};
-use tokio::time::{interval_at, Instant};
+use log::{debug, info, trace, warn};
+use tokio::time::{self, Instant};
 
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
@@ -21,7 +21,7 @@ use crate::{
         },
         ConnectionCommand, Data, DataCommand, Multiaddress, NetworkIdentity, Protocol,
     },
-    MillisecsPerBlock, NodeIndex, SessionId, SessionPeriod,
+    MillisecsPerBlock, NodeIndex, SessionId, SessionPeriod, STATUS_REPORT_INTERVAL,
 };
 
 /// Commands for manipulating sessions, stopping them and starting both validator and non-validator
@@ -544,6 +544,83 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
             }
         }
     }
+
+    pub fn status_report(&self) {
+        let mut status = String::from("Connection Manager status report: ");
+
+        let mut authenticated: Vec<_> = self
+            .sessions
+            .iter()
+            .filter(|(_, session)| session.handler.authentication().is_some())
+            .map(|(session_id, session)| {
+                let mut peers = session
+                    .handler
+                    .peers()
+                    .into_iter()
+                    .map(|(node_id, peer_id)| (node_id.0, peer_id))
+                    .collect::<Vec<_>>();
+                peers.sort_by(|x, y| x.0.cmp(&y.0));
+                (session_id.0, session.handler.node_count().0, peers)
+            })
+            .collect();
+        authenticated.sort_by(|x, y| x.0.cmp(&y.0));
+        if !authenticated.is_empty() {
+            let authenticated_status = authenticated
+                .iter()
+                .map(|(session_id, node_count, peers)| {
+                    let peer_ids = peers
+                        .iter()
+                        .map(|(node_id, peer_id)| format!("{:?}: {}", node_id, peer_id,))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+
+                    format!(
+                        "{:?}: {}/{} {{{}}}",
+                        session_id,
+                        peers.len() + 1,
+                        node_count,
+                        peer_ids
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
+            status.push_str(&format!(
+                "authenticated authorities: {}; ",
+                authenticated_status
+            ));
+        }
+
+        let mut missing: Vec<_> = self
+            .sessions
+            .iter()
+            .filter(|(_, session)| session.handler.authentication().is_some())
+            .map(|(session_id, session)| {
+                (
+                    session_id.0,
+                    session
+                        .handler
+                        .missing_nodes()
+                        .iter()
+                        .map(|id| id.0)
+                        .collect::<Vec<_>>(),
+                )
+            })
+            .filter(|(_, missing)| !missing.is_empty())
+            .collect();
+        missing.sort_by(|x, y| x.0.cmp(&y.0));
+        if !missing.is_empty() {
+            let missing_status = missing
+                .iter()
+                .map(|(session_id, missing)| format!("{:?}: {:?}", session_id, missing))
+                .collect::<Vec<_>>()
+                .join(", ");
+            status.push_str(&format!("missing authorities: {}; ", missing_status));
+        }
+
+        if !authenticated.is_empty() || !missing.is_empty() {
+            info!(target: "aleph-network", "{}", status);
+        }
+    }
 }
 
 /// Input/output interface for the connectiona manager service.
@@ -633,10 +710,12 @@ impl<D: Data, M: Multiaddress> IO<D, M> {
     ) -> Result<(), Error> {
         // Initial delay is needed so that Network is fully set up and we received some first discovery broadcasts from other nodes.
         // Otherwise this might cause first maintenance never working, as it happens before first broadcasts.
-        let mut maintenance = interval_at(
+        let mut maintenance = time::interval_at(
             Instant::now() + service.initial_delay,
             service.maintenance_period,
         );
+
+        let mut status_ticker = time::interval(STATUS_REPORT_INTERVAL);
         loop {
             trace!(target: "aleph-network", "Manager Loop started a next iteration");
             tokio::select! {
@@ -682,6 +761,9 @@ impl<D: Data, M: Multiaddress> IO<D, M> {
                         self.send_data(to_send)?;
                     }
                 },
+                _ = status_ticker.tick() => {
+                    service.status_report();
+                }
             }
         }
     }

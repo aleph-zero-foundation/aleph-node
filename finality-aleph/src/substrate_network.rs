@@ -69,6 +69,21 @@ impl Decode for PeerId {
     }
 }
 
+impl fmt::Display for PeerId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let peer_id: String = self.0.to_string();
+
+        let prefix: String = peer_id.chars().take(4).collect();
+
+        let suffix: String = peer_id
+            .chars()
+            .skip(peer_id.len().saturating_sub(8))
+            .collect();
+
+        write!(f, "{}…{}", &prefix, &suffix)
+    }
+}
+
 impl PeerIdT for PeerId {}
 
 fn peer_id(protocol: &MultiaddressProtocol<'_>) -> Option<PeerId> {

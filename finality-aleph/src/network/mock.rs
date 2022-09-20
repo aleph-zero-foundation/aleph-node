@@ -32,6 +32,11 @@ impl MockPeerId {
         MockPeerId(random())
     }
 }
+impl fmt::Display for MockPeerId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 impl PeerId for MockPeerId {}
 

@@ -1,4 +1,7 @@
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use futures::{channel::mpsc, Stream, StreamExt};
 use futures_timer::Delay;
@@ -14,7 +17,7 @@ use crate::{
         requester::BlockRequester, JustificationHandlerConfig, JustificationNotification,
         JustificationRequestScheduler, SessionInfo, SessionInfoProvider, Verifier,
     },
-    network, Metrics,
+    network, Metrics, STATUS_REPORT_INTERVAL,
 };
 
 pub struct JustificationHandler<B, V, RB, C, S, SI, F>
@@ -75,6 +78,7 @@ where
         let import_stream = wrap_channel_with_logging(import_justification_rx, "import");
         let authority_stream = wrap_channel_with_logging(authority_justification_rx, "aggregator");
         let mut notification_stream = futures::stream::select(import_stream, authority_stream);
+        let mut last_status_report = Instant::now();
 
         loop {
             let last_finalized_number = self.block_requester.finalized_number();
@@ -106,7 +110,13 @@ where
                 Err(_) => {} //Timeout passed
             }
 
-            self.block_requester.request_justification(stop_h)
+            self.block_requester.request_justification(stop_h);
+            if Instant::now().saturating_duration_since(last_status_report)
+                >= STATUS_REPORT_INTERVAL
+            {
+                self.block_requester.status_report();
+                last_status_report = Instant::now();
+            }
         }
     }
 }

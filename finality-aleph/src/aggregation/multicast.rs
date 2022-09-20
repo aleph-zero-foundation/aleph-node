@@ -3,7 +3,10 @@
 //!
 //! We expose the `Multicast` trait, mimicking the interface of `aleph_bft::ReliableMulticast`
 
-use std::{fmt::Debug, hash::Hash as StdHash};
+use std::{
+    fmt::{Debug, Display},
+    hash::Hash as StdHash,
+};
 
 use aleph_bft::{Signable, SignatureSet};
 use aleph_bft_rmc::ReliableMulticast;
@@ -12,9 +15,9 @@ use codec::{Codec, Decode, Encode};
 use crate::crypto::{Keychain, Signature};
 
 /// A convenience trait for gathering all of the desired hash characteristics.
-pub trait Hash: AsRef<[u8]> + StdHash + Eq + Clone + Codec + Debug + Send + Sync {}
+pub trait Hash: AsRef<[u8]> + StdHash + Eq + Clone + Codec + Debug + Display + Send + Sync {}
 
-impl<T: AsRef<[u8]> + StdHash + Eq + Clone + Codec + Debug + Send + Sync> Hash for T {}
+impl<T: AsRef<[u8]> + StdHash + Eq + Clone + Codec + Debug + Display + Send + Sync> Hash for T {}
 
 /// A wrapper allowing block hashes to be signed.
 #[derive(PartialEq, Eq, StdHash, Clone, Debug, Default, Encode, Decode)]

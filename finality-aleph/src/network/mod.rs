@@ -1,4 +1,8 @@
-use std::{collections::HashSet, fmt::Debug, hash::Hash};
+use std::{
+    collections::HashSet,
+    fmt::{Debug, Display},
+    hash::Hash,
+};
 
 use aleph_bft::Recipient;
 use async_trait::async_trait;
@@ -34,7 +38,7 @@ pub mod testing {
 }
 
 /// Represents the id of an arbitrary node.
-pub trait PeerId: PartialEq + Eq + Copy + Clone + Debug + Hash + Codec + Send {}
+pub trait PeerId: PartialEq + Eq + Copy + Clone + Debug + Display + Hash + Codec + Send {}
 
 /// Represents the address of an arbitrary node.
 pub trait Multiaddress: Debug + Hash + Codec + Clone + Eq {

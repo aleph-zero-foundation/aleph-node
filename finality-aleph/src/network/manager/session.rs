@@ -224,6 +224,11 @@ impl<M: Multiaddress> Handler<M> {
         self.peers_by_node.get(node_id).copied()
     }
 
+    /// Returns maping from NodeIndex to PeerId
+    pub fn peers(&self) -> HashMap<NodeIndex, M::PeerId> {
+        self.peers_by_node.clone()
+    }
+
     /// Updates the handler with the given keychain and set of own addresses.
     /// Returns an error if the set of addresses is not valid.
     /// All authentications will be rechecked, invalid ones purged and cached ones that turn out to
