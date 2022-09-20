@@ -71,6 +71,17 @@ impl AuthorityPen {
                 .expect("the bytes encode a signature"),
         )
     }
+
+    #[allow(dead_code)] // Remove when used in validator network.
+    /// Return the associated AuthorityId.
+    pub fn authority_id(&self) -> AuthorityId {
+        self.authority_id.clone()
+    }
+}
+
+/// Verify the signature given an authority id.
+pub fn verify(authority: &AuthorityId, message: &[u8], signature: &Signature) -> bool {
+    authority.verify(&message, &signature.0)
 }
 
 /// Holds the public authority keys for a session allowing for verification of messages from that
@@ -90,7 +101,7 @@ impl AuthorityVerifier {
     /// node of the given index.
     pub fn verify(&self, msg: &[u8], sgn: &Signature, index: NodeIndex) -> bool {
         match self.authorities.get(index.0) {
-            Some(authority) => authority.verify(&msg, &sgn.0),
+            Some(authority) => verify(authority, msg, sgn),
             None => false,
         }
     }
