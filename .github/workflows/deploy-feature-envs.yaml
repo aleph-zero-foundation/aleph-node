@@ -12,9 +12,11 @@ env:
   LABEL_DEPLOYED: 'DEPLOYED'
   REGISTRY_HOST: 573243519133.dkr.ecr.us-east-1.amazonaws.com
   FE_ALEPHNODE_REGISTRY: 573243519133.dkr.ecr.us-east-1.amazonaws.com/feature-env-aleph-node
+  FE_ALEPHNODE_REGISTRY_ESCAPED: '573243519133.dkr.ecr.us-east-1.amazonaws.com\/feature-env-aleph-node'
   FE_IMAGETAG_PREFIX: 'fe-'
   FE_APP_PREFIX: 'fe-'
   PUBLIC_ALEPHNODE_REGISTRY: public.ecr.aws/p6e8q1z1/aleph-node
+  PUBLIC_ALEPHNODE_REGISTRY_ESCAPED: 'public.ecr.aws\/p6e8q1z1\/aleph-node'
   FE_KEYS_S3BUCKET: fe-alephzero-devnet-eu-central-1-keys-bucket
   FE_KEYS_S3PATH_PREFIX: 'fe-'
   RPC_TESTNET_URL: https://rpc.test.azero.dev
@@ -203,7 +205,7 @@ jobs:
         run: |
           # Set up envs
           COMMIT_ID=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' ${{ env.RPC_TESTNET_URL }} | jq -r '.result' | cut -d "-" -f 2 | head -c 7)
-          TESTNET_IMAGE="${{ env.PUBLIC_ALEPHNODE_REGISTRY }}:$COMMIT_ID"
+          TESTNET_IMAGE="${{ env.PUBLIC_ALEPHNODE_REGISTRY_ESCAPED }}:$COMMIT_ID"
           ALEPH_PATH=$(pwd)
 
           # Create application manifest from template
@@ -229,7 +231,7 @@ jobs:
           SUFFIX="-x86_64-linux-gnu"
           LONG_COMMIT_ID=${SYSTEM_VERSION/%$SUFFIX}
           COMMIT_ID=${LONG_COMMIT_ID: -7}
-          MAINNET_IMAGE="${{ env.PUBLIC_ALEPHNODE_REGISTRY }}:$COMMIT_ID"
+          MAINNET_IMAGE="${{ env.PUBLIC_ALEPHNODE_REGISTRY_ESCAPED }}:$COMMIT_ID"
           ALEPH_PATH=$(pwd)
 
           # Create application manifest from template
@@ -306,7 +308,7 @@ jobs:
           CREATE_HOOK: true
         run: |
           # Set up envs
-          PR_IMAGE="${{ env.FE_ALEPHNODE_REGISTRY }}:${{ env.IMAGE_TAG }}"
+          PR_IMAGE="${{ env.FE_ALEPHNODE_REGISTRY_ESCAPED }}\:${{ env.IMAGE_TAG }}"
           ALEPH_PATH=$(pwd)
 
           sed "s/APP_NAME/${{ env.APP_NAME }}/g" $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/app-template/app-template.yaml > $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
@@ -351,27 +353,27 @@ jobs:
         if: contains( github.event.pull_request.labels.*.name, env.LABEL_DEPLOY)
         uses: actions-ecosystem/action-remove-labels@v1.3.0
         with:
-          labels: env.LABEL_DEPLOY
+          labels: ${{ env.LABEL_DEPLOY }}
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Remove mainnet deployment request label if exists
         if: contains( github.event.pull_request.labels.*.name, env.LABEL_DEPLOY_HOT)
         uses: actions-ecosystem/action-remove-labels@v1.3.0
         with:
-          labels: env.LABEL_DEPLOY_HOT
+          labels: ${{ env.LABEL_DEPLOY_HOT }}
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Remove destroyed label if present
         uses: actions-ecosystem/action-remove-labels@v1.3.0
         if: contains( github.event.pull_request.labels.*.name, env.LABEL_DESTROYED)
         with:
-          labels: env.LABEL_DESTROYED
+          labels: ${{ env.LABEL_DESTROYED }}
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Add label to mark that feature branch has been deployed
         uses: actions-ecosystem/action-add-labels@v1.1.0
         with:
-          labels: env.LABEL_DEPLOYED
+          labels: ${{ env.LABEL_DEPLOYED }}
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Finish Feature Env Deployment
@@ -406,20 +408,20 @@ jobs:
       - name: Remove labels
         uses: actions-ecosystem/action-remove-labels@v1.3.0
         with:
-          labels: env.LABEL_DELETE
+          labels: ${{ env.LABEL_DELETE }}
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Remove "DEPLOYED" label if present
         uses: actions-ecosystem/action-remove-labels@v1.3.0
         if: contains( github.event.pull_request.labels.*.name, env.LABEL_DEPLOYED)
         with:
-          labels: env.LABEL_DEPLOYED
+          labels: ${{ env.LABEL_DEPLOYED }}
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Add label to mark that feature branch has been destroyed
         uses: actions-ecosystem/action-add-labels@v1.1.0
         with:
-          labels: env.LABEL_DESTROYED
+          labels: ${{ env.LABEL_DESTROYED }}
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Deactivate deployed environment
@@ -457,20 +459,20 @@ jobs:
       - name: Remove labels
         uses: actions-ecosystem/action-remove-labels@v1.3.0
         with:
-          labels: env.LABEL_DELETE
+          labels: ${{ env.LABEL_DELETE }}
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Remove "DEPLOYED" label if present
         uses: actions-ecosystem/action-remove-labels@v1.3.0
         if: contains( github.event.pull_request.labels.*.name, env.LABEL_DEPLOYED)
         with:
-          labels: env.LABEL_DEPLOYED
+          labels: ${{ env.LABEL_DEPLOYED }}
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Add label to mark that feature branch has been destroyed
         uses: actions-ecosystem/action-add-labels@v1.1.0
         with:
-          labels: env.LABEL_DESTROYED
+          labels: ${{ env.LABEL_DESTROYED }}
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Deactivate deployed environment
