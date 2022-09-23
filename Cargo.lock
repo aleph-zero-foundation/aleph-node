@@ -63,6 +63,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "aggregator"
+version = "0.1.0"
+dependencies = [
+ "aleph-bft-rmc",
+ "aleph-bft-types",
+ "async-trait",
+ "futures",
+ "log",
+ "parity-scale-codec",
+ "tokio",
+]
+
+[[package]]
 name = "ahash"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1734,6 +1747,7 @@ dependencies = [
 name = "finality-aleph"
 version = "0.5.0"
 dependencies = [
+ "aggregator",
  "aleph-bft",
  "aleph-bft-rmc",
  "async-trait",

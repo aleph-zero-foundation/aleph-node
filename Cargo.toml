@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
+    "aggregator",
     "bin/node",
     "bin/runtime",
     "finality-aleph",

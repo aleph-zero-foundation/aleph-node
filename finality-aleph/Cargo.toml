@@ -9,6 +9,7 @@ license = "Apache 2.0"
 aleph-bft = "0.18.1"
 aleph-bft-rmc = "0.4.0"
 aleph-primitives = { package = "primitives", path = "../primitives" }
+aleph-aggregator = { package = "aggregator", path = "../aggregator" }
 
 async-trait = "0.1"
 bytes = "1.0"
