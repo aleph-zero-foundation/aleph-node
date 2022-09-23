@@ -42,6 +42,7 @@ mod session_map;
 mod substrate_network;
 #[cfg(test)]
 pub mod testing;
+mod validator_network;
 
 pub use aleph_bft::default_config as default_aleph_config;
 pub use aleph_primitives::{AuthorityId, AuthorityPair, AuthoritySignature};
