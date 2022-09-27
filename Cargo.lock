@@ -65,8 +65,22 @@ dependencies = [
 [[package]]
 name = "aggregator"
 version = "0.1.0"
+source = "git+https://github.com/Cardinal-Cryptography/aleph-node.git?tag=aggregator-v0.1.0#5e7e4300e92b2b4c6fd18acd2f430b83e6e28903"
 dependencies = [
- "aleph-bft-rmc",
+ "aleph-bft-rmc 0.4.0",
+ "aleph-bft-types",
+ "async-trait",
+ "futures",
+ "log",
+ "parity-scale-codec",
+ "tokio",
+]
+
+[[package]]
+name = "aggregator"
+version = "0.2.0"
+dependencies = [
+ "aleph-bft-rmc 0.5.1",
  "aleph-bft-types",
  "async-trait",
  "futures",
@@ -101,7 +115,7 @@ version = "0.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d802f8bc4d40b1acf5c895a27463866eae7537fc30a5f5884cfde7a01464630c"
 dependencies = [
- "aleph-bft-rmc",
+ "aleph-bft-rmc 0.4.0",
  "aleph-bft-types",
  "async-trait",
  "derivative",
@@ -128,12 +142,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "aleph-bft-crypto"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "728a91479669f5eb086b38bff29156eb2f2ffc8e5eab16f6afe48e43b5180599"
+dependencies = [
+ "async-trait",
+ "bit-vec",
+ "derive_more",
+ "log",
+ "parity-scale-codec",
+]
+
+[[package]]
 name = "aleph-bft-rmc"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "14bb3b9c3729667084ae9c1257e785219e23e1d1ee246f73b18a9457aead6214"
 dependencies = [
- "aleph-bft-crypto",
+ "aleph-bft-crypto 0.4.0",
+ "async-trait",
+ "futures",
+ "futures-timer",
+ "log",
+ "parity-scale-codec",
+]
+
+[[package]]
+name = "aleph-bft-rmc"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1190a7b2af2c25bd0f318a9a45c05603e5f93cd170be7da15a10c33f2c8153bc"
+dependencies = [
+ "aleph-bft-crypto 0.5.1",
  "async-trait",
  "futures",
  "futures-timer",
@@ -147,7 +188,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bb9f5b8526b63c76102ef1b36400cf62381f6900585a8258511580af917dd580"
 dependencies = [
- "aleph-bft-crypto",
+ "aleph-bft-crypto 0.4.0",
  "async-trait",
  "futures",
  "parity-scale-codec",
@@ -1747,9 +1788,9 @@ dependencies = [
 name = "finality-aleph"
 version = "0.5.0"
 dependencies = [
- "aggregator",
+ "aggregator 0.1.0",
  "aleph-bft",
- "aleph-bft-rmc",
+ "aleph-bft-rmc 0.4.0",
  "async-trait",
  "bytes",
  "derive_more",
