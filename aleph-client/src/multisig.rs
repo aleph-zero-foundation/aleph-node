@@ -13,7 +13,7 @@ use substrate_api_client::{compose_extrinsic, ExtrinsicParams, XtStatus::Finaliz
 use thiserror::Error;
 
 use crate::{
-    account_from_keypair, try_send_xt, AccountId, AnyConnection, BlockNumber, Extrinsic, KeyPair,
+    account_from_keypair, try_send_xt, AccountId, AnyConnection, BlockNumber, Extrinsic,
     SignedConnection, H256,
 };
 
@@ -34,8 +34,6 @@ pub enum MultisigError {
     IncorrectThreshold(usize),
     #[error("👪❌ There should be at least 2 unique members.")]
     TooFewMembers,
-    #[error("👪❌ There is no available member at the provided index.")]
-    IncorrectMemberIndex,
     #[error("👪❌ There is no such member in the party.")]
     NoSuchMember,
     #[error("👪❌ There is no entry for this multisig aggregation in the pallet storage.")]
@@ -44,6 +42,8 @@ pub enum MultisigError {
     CallConflict,
     #[error("👪❌ Only the author can cancel aggregation.")]
     NotAuthor,
+    #[error("👪❌ The connection is signed by an account that doesn't match to any member.")]
+    NonMemberSignature,
 }
 
 type CallHash = [u8; 32];
@@ -130,7 +130,7 @@ pub struct MultisigParty {
     /// Derived multiparty account (public key).
     account: AccountId,
     /// *Sorted* collection of members.
-    members: Vec<KeyPair>,
+    members: Vec<AccountId>,
     /// Minimum required approvals.
     threshold: u16,
 }
@@ -152,14 +152,10 @@ impl MultisigParty {
     ///    to ensure it is not exceeded
     /// - `members` may contain duplicates, but they are ignored and not counted to the cardinality
     /// - `threshold` must be between 2 and `members.len()`
-    pub fn new(members: Vec<KeyPair>, threshold: u16) -> Result<Self> {
-        let mut members = members
-            .iter()
-            .map(|m| (m.clone(), account_from_keypair(m)))
-            .collect::<Vec<_>>();
-
-        members.sort_by_key(|(_, a)| a.clone());
-        members.dedup_by(|(_, a1), (_, a2)| a1 == a2);
+    pub fn new(members: &[AccountId], threshold: u16) -> Result<Self> {
+        let mut members = members.to_vec();
+        members.sort();
+        members.dedup();
 
         ensure!(2 <= members.len(), MultisigError::TooFewMembers);
         ensure!(
@@ -167,11 +163,10 @@ impl MultisigParty {
             MultisigError::IncorrectThreshold(members.len())
         );
 
-        let (keypairs, accounts): (Vec<_>, Vec<_>) = members.iter().cloned().unzip();
-        let account = Self::multi_account_id(&accounts, threshold);
+        let account = Self::multi_account_id(&members, threshold);
         Ok(Self {
             account,
-            members: keypairs,
+            members,
             threshold,
         })
     }
@@ -199,29 +194,18 @@ impl MultisigParty {
     /// as a particular member, without sorting their public keys on the callee side.
     pub fn get_member_index(&self, member: AccountId) -> Result<usize> {
         self.members
-            .binary_search_by_key(&member, account_from_keypair)
+            .binary_search(&member)
             .map_err(|_| MultisigError::NoSuchMember.into())
     }
 
-    /// For all extrinsics we have to sign it with the caller (representative) and pass
-    /// accounts of the other party members.
-    fn designate_representative_and_represented(&self, idx: usize) -> (KeyPair, Vec<AccountId>) {
+    /// For all extrinsics we have to sign them with the caller (representative) and pass
+    /// accounts of the other party members (represented).
+    ///
+    /// Assumes that `representative_idx` is a valid index for `self.members`.
+    fn designate_represented(&self, representative_idx: usize) -> Vec<AccountId> {
         let mut members = self.members.clone();
-        let member = members.remove(idx);
-        let others = members.iter().map(account_from_keypair).collect();
-        (member, others)
-    }
-
-    /// Shortcut method for designating author and other signatories, and preparing connection
-    /// signed by the author (corresponding to `author_idx`).
-    fn prepare_for_extrinsic<C: AnyConnection>(
-        &self,
-        author_idx: usize,
-        connection: &C,
-    ) -> (SignedConnection, Vec<AccountId>) {
-        let (author, other_signatories) = self.designate_representative_and_represented(author_idx);
-        let connection = SignedConnection::from_any_connection(connection, author);
-        (connection, other_signatories)
+        members.remove(representative_idx);
+        members
     }
 
     /// Compose extrinsic for `multisig::approve_as_multi` call.
@@ -277,36 +261,35 @@ impl MultisigParty {
         Ok(multisig.when)
     }
 
-    /// Checks whether `member_idx` is a proper position for `self.members`.
-    fn ensure_index(&self, member_idx: usize) -> Result<()> {
-        ensure!(
-            member_idx < self.members.len(),
-            MultisigError::IncorrectMemberIndex
-        );
-        Ok(())
+    /// Checks whether `connection` is signed by some member and if so, returns their index.
+    fn map_signer_to_member_index(&self, connection: &SignedConnection) -> Result<usize> {
+        self.members
+            .binary_search(&account_from_keypair(&connection.signer))
+            .map_err(|_| MultisigError::NonMemberSignature.into())
     }
 
     /// Effectively starts the aggregation process by calling `approveAsMulti`.
-    pub fn initiate_aggregation_with_hash<C: AnyConnection>(
+    ///
+    /// `connection` should be signed by some member.
+    pub fn initiate_aggregation_with_hash(
         &self,
-        connection: &C,
+        connection: &SignedConnection,
         call_hash: CallHash,
-        author_idx: usize,
     ) -> Result<SignatureAggregation> {
-        self.ensure_index(author_idx)?;
+        let author_idx = self.map_signer_to_member_index(connection)?;
 
-        let (connection, other_signatories) = self.prepare_for_extrinsic(author_idx, connection);
-        let xt = self.construct_approve_as_multi(&connection, other_signatories, None, call_hash);
+        let other_signatories = self.designate_represented(author_idx);
+        let xt = self.construct_approve_as_multi(connection, other_signatories, None, call_hash);
 
-        let block_hash = self.finalize_xt(&connection, xt, "Initiate multisig aggregation")?;
+        let block_hash = self.finalize_xt(connection, xt, "Initiate multisig aggregation")?;
         info!(target: "aleph-client", "Initiating multisig aggregation for call hash: {:?}", call_hash);
 
         Ok(SignatureAggregation {
-            timepoint: self.get_timestamp(&connection, &call_hash, block_hash)?,
+            timepoint: self.get_timestamp(connection, &call_hash, block_hash)?,
             author: author_idx,
             call_hash,
             call: None,
-            approvers: HashSet::from([account_from_keypair(&self.members[author_idx])]),
+            approvers: HashSet::from([self.members[author_idx].clone()]),
         })
     }
 
@@ -333,75 +316,74 @@ impl MultisigParty {
     }
 
     /// Effectively starts aggregation process by calling `asMulti`.
-    pub fn initiate_aggregation_with_call<C: AnyConnection, CallDetails: Encode + Clone>(
+    ///
+    /// `connection` should be signed by some member.
+    pub fn initiate_aggregation_with_call<CallDetails: Encode + Clone>(
         &self,
-        connection: &C,
+        connection: &SignedConnection,
         call: Extrinsic<CallDetails>,
         store_call: bool,
-        author_idx: usize,
     ) -> Result<SignatureAggregation> {
-        self.ensure_index(author_idx)?;
+        let author_idx = self.map_signer_to_member_index(connection)?;
 
-        let (connection, other_signatories) = self.prepare_for_extrinsic(author_idx, connection);
         let xt = self.construct_as_multi(
-            &connection,
-            other_signatories,
+            connection,
+            self.designate_represented(author_idx),
             None,
             call.clone(),
             store_call,
         );
 
         let block_hash =
-            self.finalize_xt(&connection, xt, "Initiate multisig aggregation with call")?;
+            self.finalize_xt(connection, xt, "Initiate multisig aggregation with call")?;
 
         let call_hash = compute_call_hash(&call);
         info!(target: "aleph-client", "Initiating multisig aggregation for call hash: {:?}", call_hash);
 
         Ok(SignatureAggregation {
-            timepoint: self.get_timestamp(&connection, &call_hash, block_hash)?,
+            timepoint: self.get_timestamp(connection, &call_hash, block_hash)?,
             author: author_idx,
             call_hash,
             call: Some(call.encode()),
-            approvers: HashSet::from([account_from_keypair(&self.members[author_idx])]),
+            approvers: HashSet::from([self.members[author_idx].clone()]),
         })
     }
 
     /// Report approval for `sig_agg` aggregation.
-    pub fn approve<C: AnyConnection>(
+    ///
+    /// `connection` should be signed by some member.
+    pub fn approve(
         &self,
-        connection: &C,
-        author_idx: usize,
+        connection: &SignedConnection,
         mut sig_agg: SignatureAggregation,
     ) -> Result<SignatureAggregation> {
-        self.ensure_index(author_idx)?;
+        let member_idx = self.map_signer_to_member_index(connection)?;
 
-        let (connection, other_signatories) = self.prepare_for_extrinsic(author_idx, connection);
         let xt = self.construct_approve_as_multi(
-            &connection,
-            other_signatories,
+            connection,
+            self.designate_represented(member_idx),
             Some(sig_agg.timepoint),
             sig_agg.call_hash,
         );
 
-        self.finalize_xt(&connection, xt, "Report approval to multisig aggregation")?;
+        self.finalize_xt(connection, xt, "Report approval to multisig aggregation")?;
 
         info!(target: "aleph-client", "Registered multisig approval for call hash: {:?}", sig_agg.call_hash);
-        sig_agg
-            .approvers
-            .insert(account_from_keypair(&self.members[author_idx]));
+        sig_agg.approvers.insert(self.members[member_idx].clone());
         Ok(sig_agg)
     }
 
     /// Report approval for `sig_agg` aggregation.
-    pub fn approve_with_call<C: AnyConnection, CallDetails: Encode + Clone>(
+    ///     
+    /// `connection` should be signed by some member.
+    pub fn approve_with_call<CallDetails: Encode + Clone>(
         &self,
-        connection: &C,
-        author_idx: usize,
+        connection: &SignedConnection,
         mut sig_agg: SignatureAggregation,
         call: Extrinsic<CallDetails>,
         store_call: bool,
     ) -> Result<SignatureAggregation> {
-        self.ensure_index(author_idx)?;
+        let member_idx = self.map_signer_to_member_index(connection)?;
         if let Some(ref reported_call) = sig_agg.call {
             ensure!(
                 reported_call.eq(&call.encode()),
@@ -414,25 +396,22 @@ impl MultisigParty {
             );
         }
 
-        let (connection, other_signatories) = self.prepare_for_extrinsic(author_idx, connection);
         let xt = self.construct_as_multi(
-            &connection,
-            other_signatories,
+            connection,
+            self.designate_represented(member_idx),
             Some(sig_agg.timepoint),
             call.clone(),
             store_call,
         );
 
         self.finalize_xt(
-            &connection,
+            connection,
             xt,
             "Report approval to multisig aggregation with call",
         )?;
 
         info!(target: "aleph-client", "Registered multisig approval for call hash: {:?}", sig_agg.call_hash);
-        sig_agg
-            .approvers
-            .insert(account_from_keypair(&self.members[author_idx]));
+        sig_agg.approvers.insert(self.members[member_idx].clone());
         sig_agg.call = Some(call.encode());
         Ok(sig_agg)
     }
@@ -458,41 +437,36 @@ impl MultisigParty {
 
     /// Cancel `sig_agg` aggregation.
     ///
-    /// Does *not* expect that `connection` is already signed by the canceling member.
-    pub fn cancel<C: AnyConnection>(
+    /// `connection` should be signed by the aggregation author.
+    pub fn cancel(
         &self,
-        connection: &C,
-        author_idx: usize,
+        connection: &SignedConnection,
         sig_agg: SignatureAggregation,
     ) -> Result<()> {
-        self.ensure_index(author_idx)?;
+        let author_idx = self.map_signer_to_member_index(connection)?;
         ensure!(sig_agg.author == author_idx, MultisigError::NotAuthor);
 
-        let (connection, other_signatories) = self.prepare_for_extrinsic(author_idx, connection);
         let xt = self.construct_cancel_as_multi(
-            &connection,
-            other_signatories,
+            connection,
+            self.designate_represented(author_idx),
             sig_agg.timepoint,
             sig_agg.call_hash,
         );
-        self.finalize_xt(&connection, xt, "Cancel multisig aggregation")?;
+        self.finalize_xt(connection, xt, "Cancel multisig aggregation")?;
         info!(target: "aleph-client", "Cancelled multisig aggregation for call hash: {:?}", sig_agg.call_hash);
         Ok(())
     }
 }
 
-/// Dispatch `call` as on behalf of the multisig party of `author` and `other_signatories`
-/// with threshold 1.
+/// Dispatch `call` on behalf of the multisig party of `connection.get_signer()` and
+/// `other_signatories` with threshold 1.
 ///
-/// `connection` is *not* assumed to be already signed by `author`.
 /// `other_signatories` *must* be sorted (according to the natural ordering on `AccountId`).
-pub fn perform_multisig_with_threshold_1<C: AnyConnection, CallDetails: Encode + Clone>(
-    connection: &C,
-    author: KeyPair,
+pub fn perform_multisig_with_threshold_1<CallDetails: Encode + Clone>(
+    connection: &SignedConnection,
     other_signatories: &[AccountId],
     call: CallDetails,
 ) -> Result<()> {
-    let connection = SignedConnection::from_any_connection(connection, author);
     let xt = compose_extrinsic!(
         connection.as_connection(),
         "Multisig",
@@ -500,12 +474,7 @@ pub fn perform_multisig_with_threshold_1<C: AnyConnection, CallDetails: Encode +
         other_signatories,
         call
     );
-    try_send_xt(
-        &connection,
-        xt,
-        Some("Multisig with threshold 1"),
-        Finalized,
-    )?
-    .expect("For `Finalized` status a block hash should be returned");
+    try_send_xt(connection, xt, Some("Multisig with threshold 1"), Finalized)?
+        .expect("For `Finalized` status a block hash should be returned");
     Ok(())
 }
