@@ -5,9 +5,12 @@ use aleph_primitives::AuthorityId;
 use codec::Codec;
 use tokio::io::{AsyncRead, AsyncWrite};
 
+mod handshake;
+mod heartbeat;
 mod io;
 #[cfg(test)]
 mod mock;
+mod protocols;
 
 /// What the data sent using the network has to satisfy.
 pub trait Data: Clone + Codec + Send + Sync + 'static {}
