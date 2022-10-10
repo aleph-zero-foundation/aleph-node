@@ -7,9 +7,12 @@ use tokio::io::{AsyncRead, AsyncWrite};
 
 mod handshake;
 mod heartbeat;
+mod incoming;
 mod io;
 #[cfg(test)]
 mod mock;
+mod outgoing;
+mod protocol_negotiation;
 mod protocols;
 
 /// What the data sent using the network has to satisfy.
@@ -53,7 +56,7 @@ pub trait Splittable: AsyncWrite + AsyncRead + Unpin + Send {
 #[async_trait::async_trait]
 pub trait Dialer<A: Data>: Clone + Send + 'static {
     type Connection: Splittable;
-    type Error: Display;
+    type Error: Display + Send;
 
     /// Attempt to connect to a peer using the provided addresses. Should work if at least one of
     /// the addresses is correct.
