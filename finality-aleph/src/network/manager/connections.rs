@@ -21,7 +21,7 @@ impl<PID: PeerId> Connections<PID> {
     pub fn add_peers(&mut self, session_id: SessionId, peers: impl IntoIterator<Item = PID>) {
         for peer in peers {
             self.associated_sessions
-                .entry(peer)
+                .entry(peer.clone())
                 .or_default()
                 .insert(session_id);
             self.peers_by_session

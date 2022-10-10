@@ -214,14 +214,15 @@ impl<M: Multiaddress> Handler<M> {
             }
             return false;
         }
-        self.peers_by_node.insert(auth_data.node_id, peer_id);
+        self.peers_by_node
+            .insert(auth_data.node_id, peer_id.clone());
         self.authentications.insert(peer_id, (authentication, None));
         true
     }
 
     /// Returns the PeerId of the node with the given NodeIndex, if known.
     pub fn peer_id(&self, node_id: &NodeIndex) -> Option<M::PeerId> {
-        self.peers_by_node.get(node_id).copied()
+        self.peers_by_node.get(node_id).cloned()
     }
 
     /// Returns maping from NodeIndex to PeerId

@@ -225,7 +225,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
         debug!(target: "aleph-network", "Got addresses:\n{:?}\n and peer_id:{:?}", addresses, peer_id);
         addresses
             .into_iter()
-            .filter_map(|address| address.add_matching_peer_id(peer_id))
+            .filter_map(|address| address.add_matching_peer_id(peer_id.clone()))
             .collect()
     }
 
