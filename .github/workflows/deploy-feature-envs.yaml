@@ -10,6 +10,7 @@ env:
   LABEL_DELETE: '[AZERO] DELETE-FEATURE-ENV'
   LABEL_DESTROYED: 'DESTROYED'
   LABEL_DEPLOYED: 'DEPLOYED'
+  LABEL_DEPLOYED_CONTRACTS: 'DEPLOYED-CONTRACTS'
   REGISTRY_HOST: 573243519133.dkr.ecr.us-east-1.amazonaws.com
   FE_ALEPHNODE_REGISTRY: 573243519133.dkr.ecr.us-east-1.amazonaws.com/feature-env-aleph-node
   FE_ALEPHNODE_REGISTRY_ESCAPED: '573243519133.dkr.ecr.us-east-1.amazonaws.com\/feature-env-aleph-node'
@@ -146,10 +147,11 @@ jobs:
           done
 
           # Generate chainspec skeleton, it will reuse keys from the synced keystore
-          docker run -v $(pwd)/data:/data --env RUST_BACKTRACE=1 --entrypoint "/usr/local/bin/aleph-node" $TESTNET_IMAGE bootstrap-chain --raw --base-path /data --chain-id $CHAIN_ID --account-ids 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y,5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy,5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw --sudo-account-id 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY > chainspec.skeleton.json
+          docker run -v $(pwd)/data:/data --env RUST_BACKTRACE=1 --entrypoint "/usr/local/bin/aleph-node" $TESTNET_IMAGE bootstrap-chain --raw --base-path /data --chain-id $CHAIN_ID --account-ids 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y,5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy,5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw --sudo-account-id 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY --faucet-account-id 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY > chainspec.json
 
           # Generate chainspec from skeleton
-          docker run -v $(pwd):/app --env RUST_LOG=info ${{ env.FORKOFF_IMAGE }} --ws-rpc-endpoint=${{ env.WSS_TESTNET_URL }} --initial-spec-path=chainspec.skeleton.json --combined-spec-path=chainspec.json
+          # docker run -v $(pwd):/app --env RUST_LOG=info ${{ env.FORKOFF_IMAGE }} --ws-rpc-endpoint=${{ env.WSS_TESTNET_URL }} --initial-spec-path=chainspec.skeleton.json --combined-spec-path=chainspec.json 
+          #--storage-keep-state=Aura,Aleph,Sudo,Staking,Session,Elections,Balances
 
           aws s3 cp chainspec.json s3://${{ env.FE_KEYS_S3BUCKET }}/${{ env.FE_KEYS_S3PATH_PREFIX }}${{ env.BRANCH_NAME }}/chainspec.json
           aws s3 cp s3://${{ env.FE_KEYS_S3BUCKET }}/data/ s3://${{ env.FE_KEYS_S3BUCKET }}/${{ env.FE_KEYS_S3PATH_PREFIX }}${{ env.BRANCH_NAME }}/data/ --recursive
@@ -178,10 +180,10 @@ jobs:
           done
 
           # Generate chainspec skeleton, it will reuse keys from the synced keystore
-          docker run -v $(pwd)/data:/data --env RUST_BACKTRACE=1 --entrypoint "/usr/local/bin/aleph-node" $MAINNET_IMAGE bootstrap-chain --raw --base-path /data --chain-id $CHAIN_ID --account-ids 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y,5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy,5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw --sudo-account-id 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY > chainspec.skeleton.json
+          docker run -v $(pwd)/data:/data --env RUST_BACKTRACE=1 --entrypoint "/usr/local/bin/aleph-node" $MAINNET_IMAGE bootstrap-chain --raw --base-path /data --chain-id $CHAIN_ID --account-ids 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y,5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy,5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw --sudo-account-id 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY > chainspec.json
 
           # Generate chainspec from skeleton
-          docker run -v $(pwd):/app --env RUST_LOG=info ${{ env.FORKOFF_IMAGE }} --ws-rpc-endpoint=${{ env.RPC_MAINNET_URL }} --initial-spec-path=chainspec.skeleton.json --combined-spec-path=chainspec.json
+          # docker run -v $(pwd):/app --env RUST_LOG=info ${{ env.FORKOFF_IMAGE }} --ws-rpc-endpoint=${{ env.RPC_MAINNET_URL }} --initial-spec-path=chainspec.skeleton.json --combined-spec-path=chainspec.json
 
           aws s3 cp chainspec.json s3://${{ env.FE_KEYS_S3BUCKET }}/${{ env.FE_KEYS_S3PATH_PREFIX }}${{ env.BRANCH_NAME }}/chainspec.json
           aws s3 cp s3://${{ env.FE_KEYS_S3BUCKET }}/data/ s3://${{ env.FE_KEYS_S3BUCKET }}/${{ env.FE_KEYS_S3PATH_PREFIX }}${{ env.BRANCH_NAME }}/data/ --recursive
@@ -418,6 +420,13 @@ jobs:
           labels: ${{ env.LABEL_DEPLOYED }}
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
+      - name: Remove "DEPLOYED-CONTRACTS" label if present
+        uses: actions-ecosystem/action-remove-labels@v1.3.0
+        if: contains( github.event.pull_request.labels.*.name, env.LABEL_DEPLOYED_CONTRACTS)
+        with:
+          labels: ${{ env.LABEL_DEPLOYED_CONTRACTS }}
+          github_token: ${{ secrets.CI_GH_TOKEN }}
+
       - name: Add label to mark that feature branch has been destroyed
         uses: actions-ecosystem/action-add-labels@v1.1.0
         with:
@@ -467,6 +476,13 @@ jobs:
         if: contains( github.event.pull_request.labels.*.name, env.LABEL_DEPLOYED)
         with:
           labels: ${{ env.LABEL_DEPLOYED }}
+          github_token: ${{ secrets.CI_GH_TOKEN }}
+
+      - name: Remove "DEPLOYED-CONTRACTS" label if present
+        uses: actions-ecosystem/action-remove-labels@v1.3.0
+        if: contains( github.event.pull_request.labels.*.name, env.LABEL_DEPLOYED_CONTRACTS)
+        with:
+          labels: ${{ env.LABEL_DEPLOYED_CONTRACTS }}
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Add label to mark that feature branch has been destroyed
