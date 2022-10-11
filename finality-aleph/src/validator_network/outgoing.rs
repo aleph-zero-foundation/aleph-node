@@ -48,7 +48,7 @@ async fn manage_outgoing<D: Data, A: Data, ND: Dialer<A>>(
     peer_id: AuthorityId,
     mut dialer: ND,
     addresses: Vec<A>,
-    data_from_user: mpsc::UnboundedReceiver<D>,
+    result_for_parent: mpsc::UnboundedSender<(AuthorityId, Option<mpsc::UnboundedSender<D>>)>,
 ) -> Result<(), OutgoingError<A, ND>> {
     debug!(target: "validator-network", "Trying to connect to {}.", peer_id);
     let stream = dialer
@@ -59,7 +59,7 @@ async fn manage_outgoing<D: Data, A: Data, ND: Dialer<A>>(
     let (stream, protocol) = protocol(stream).await?;
     debug!(target: "validator-network", "Negotiated protocol, running.");
     Ok(protocol
-        .manage_outgoing(stream, authority_pen, peer_id, data_from_user)
+        .manage_outgoing(stream, authority_pen, peer_id, result_for_parent)
         .await?)
 }
 
@@ -73,21 +73,20 @@ pub async fn outgoing<D: Data, A: Data, ND: Dialer<A>>(
     peer_id: AuthorityId,
     dialer: ND,
     addresses: Vec<A>,
-    data_from_user: mpsc::UnboundedReceiver<D>,
-    failure_for_parent: mpsc::UnboundedSender<AuthorityId>,
+    result_for_parent: mpsc::UnboundedSender<(AuthorityId, Option<mpsc::UnboundedSender<D>>)>,
 ) {
     if let Err(e) = manage_outgoing(
         authority_pen,
         peer_id.clone(),
         dialer,
         addresses,
-        data_from_user,
+        result_for_parent.clone(),
     )
     .await
     {
         info!(target: "validator-network", "Outgoing connection to {} failed: {}, will retry after {}s.", peer_id, e, RETRY_DELAY.as_secs());
         sleep(RETRY_DELAY).await;
-        if failure_for_parent.unbounded_send(peer_id).is_err() {
+        if result_for_parent.unbounded_send((peer_id, None)).is_err() {
             debug!(target: "validator-network", "Could not send the closing message, we've probably been terminated by the parent service.");
         }
     }

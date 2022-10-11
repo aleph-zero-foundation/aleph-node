@@ -97,12 +97,16 @@ async fn v0_outgoing<D: Data, S: Splittable>(
     stream: S,
     authority_pen: AuthorityPen,
     peer_id: AuthorityId,
-    data_from_user: mpsc::UnboundedReceiver<D>,
+    result_for_parent: mpsc::UnboundedSender<(AuthorityId, Option<mpsc::UnboundedSender<D>>)>,
 ) -> Result<(), ProtocolError> {
     let (sender, receiver, other_peer_id) = v0_handshake(stream, authority_pen).await?;
     if peer_id != other_peer_id {
         return Err(ProtocolError::WrongPeer(other_peer_id));
     }
+    let (data_for_network, data_from_user) = mpsc::unbounded::<D>();
+    result_for_parent
+        .unbounded_send((peer_id, Some(data_for_network)))
+        .map_err(|_| ProtocolError::NoParentConnection)?;
 
     let sending = sending(sender, data_from_user);
     let heartbeat = heartbeat_receiver(receiver);
@@ -178,11 +182,11 @@ impl Protocol {
         stream: S,
         authority_pen: AuthorityPen,
         peer_id: AuthorityId,
-        data_from_user: mpsc::UnboundedReceiver<D>,
+        result_for_service: mpsc::UnboundedSender<(AuthorityId, Option<mpsc::UnboundedSender<D>>)>,
     ) -> Result<(), ProtocolError> {
         use Protocol::*;
         match self {
-            V0 => v0_outgoing(stream, authority_pen, peer_id, data_from_user).await,
+            V0 => v0_outgoing(stream, authority_pen, peer_id, result_for_service).await,
         }
     }
 }
@@ -191,11 +195,7 @@ impl Protocol {
 mod tests {
     use aleph_primitives::AuthorityId;
     use futures::{
-        channel::{
-            mpsc,
-            mpsc::{UnboundedReceiver, UnboundedSender},
-            oneshot,
-        },
+        channel::{mpsc, mpsc::UnboundedReceiver, oneshot},
         pin_mut, FutureExt, StreamExt,
     };
 
@@ -216,28 +216,28 @@ mod tests {
         impl futures::Future<Output = Result<(), ProtocolError>>,
         impl futures::Future<Output = Result<(), ProtocolError>>,
         UnboundedReceiver<D>,
-        UnboundedSender<D>,
         UnboundedReceiver<(AuthorityId, oneshot::Sender<()>)>,
+        UnboundedReceiver<(AuthorityId, Option<mpsc::UnboundedSender<D>>)>,
     ) {
         let (stream_incoming, stream_outgoing) = MockSplittable::new(4096);
         let (id_incoming, pen_incoming) = keys().await;
         let (id_outgoing, pen_outgoing) = keys().await;
         assert_ne!(id_incoming, id_outgoing);
-        let (result_for_service, result_from_incoming) =
+        let (incoming_result_for_service, result_from_incoming) =
             mpsc::unbounded::<(AuthorityId, oneshot::Sender<()>)>();
+        let (outgoing_result_for_service, result_from_outgoing) = mpsc::unbounded();
         let (data_for_user, data_from_incoming) = mpsc::unbounded::<D>();
-        let (data_for_outgoing, data_from_user) = mpsc::unbounded::<D>();
         let incoming_handle = Protocol::V0.manage_incoming(
             stream_incoming,
             pen_incoming.clone(),
-            result_for_service,
+            incoming_result_for_service,
             data_for_user,
         );
         let outgoing_handle = Protocol::V0.manage_outgoing(
             stream_outgoing,
             pen_outgoing.clone(),
             id_incoming.clone(),
-            data_from_user,
+            outgoing_result_for_service,
         );
         (
             id_incoming,
@@ -247,8 +247,8 @@ mod tests {
             incoming_handle,
             outgoing_handle,
             data_from_incoming,
-            data_for_outgoing,
             result_from_incoming,
+            result_from_outgoing,
         )
     }
 
@@ -262,19 +262,28 @@ mod tests {
             incoming_handle,
             outgoing_handle,
             mut data_from_incoming,
-            data_for_outgoing,
             _result_from_incoming,
+            mut result_from_outgoing,
         ) = prepare::<Vec<i32>>().await;
-        data_for_outgoing
-            .unbounded_send(vec![4, 3, 43])
-            .expect("should send");
-        data_for_outgoing
-            .unbounded_send(vec![2, 1, 3, 7])
-            .expect("should send");
         let incoming_handle = incoming_handle.fuse();
         let outgoing_handle = outgoing_handle.fuse();
         pin_mut!(incoming_handle);
         pin_mut!(outgoing_handle);
+        let _data_for_outgoing = tokio::select! {
+            _ = &mut incoming_handle => panic!("incoming process unexpectedly finished"),
+            _ = &mut outgoing_handle => panic!("outgoing process unexpectedly finished"),
+            result = result_from_outgoing.next() => {
+                let (_, maybe_data_for_outgoing) = result.expect("outgoing should have resturned Some");
+                let data_for_outgoing = maybe_data_for_outgoing.expect("successfully connected");
+                data_for_outgoing
+                    .unbounded_send(vec![4, 3, 43])
+                    .expect("should send");
+                data_for_outgoing
+                    .unbounded_send(vec![2, 1, 3, 7])
+                    .expect("should send");
+                data_for_outgoing
+            },
+        };
         tokio::select! {
             _ = &mut incoming_handle => panic!("incoming process unexpectedly finished"),
             _ = &mut outgoing_handle => panic!("outgoing process unexpectedly finished"),
@@ -301,8 +310,8 @@ mod tests {
             incoming_handle,
             outgoing_handle,
             _data_from_incoming,
-            _data_for_outgoing,
             mut result_from_incoming,
+            _result_from_outgoing,
         ) = prepare::<Vec<i32>>().await;
         let incoming_handle = incoming_handle.fuse();
         let outgoing_handle = outgoing_handle.fuse();
@@ -332,8 +341,8 @@ mod tests {
             incoming_handle,
             outgoing_handle,
             _data_from_incoming,
-            _data_for_outgoing,
             result_from_incoming,
+            _result_from_outgoing,
         ) = prepare::<Vec<i32>>().await;
         std::mem::drop(result_from_incoming);
         let incoming_handle = incoming_handle.fuse();
@@ -360,17 +369,26 @@ mod tests {
             incoming_handle,
             outgoing_handle,
             data_from_incoming,
-            data_for_outgoing,
             _result_from_incoming,
+            mut result_from_outgoing,
         ) = prepare::<Vec<i32>>().await;
         std::mem::drop(data_from_incoming);
-        data_for_outgoing
-            .unbounded_send(vec![2, 1, 3, 7])
-            .expect("should send");
         let incoming_handle = incoming_handle.fuse();
         let outgoing_handle = outgoing_handle.fuse();
         pin_mut!(incoming_handle);
         pin_mut!(outgoing_handle);
+        let _data_for_outgoing = tokio::select! {
+            _ = &mut incoming_handle => panic!("incoming process unexpectedly finished"),
+            _ = &mut outgoing_handle => panic!("outgoing process unexpectedly finished"),
+            result = result_from_outgoing.next() => {
+                let (_, maybe_data_for_outgoing) = result.expect("outgoing should have resturned Some");
+                let data_for_outgoing = maybe_data_for_outgoing.expect("successfully connected");
+                data_for_outgoing
+                    .unbounded_send(vec![2, 1, 3, 7])
+                    .expect("should send");
+                data_for_outgoing
+            },
+        };
         tokio::select! {
             e = &mut incoming_handle => match e {
                 Err(ProtocolError::NoUserConnection) => (),
@@ -391,8 +409,8 @@ mod tests {
             incoming_handle,
             outgoing_handle,
             _data_from_incoming,
-            _data_for_outgoing,
             _result_from_incoming,
+            _result_from_outgoing,
         ) = prepare::<Vec<i32>>().await;
         std::mem::drop(outgoing_handle);
         match incoming_handle.await {
@@ -412,8 +430,8 @@ mod tests {
             incoming_handle,
             outgoing_handle,
             _data_from_incoming,
-            _data_for_outgoing,
             mut result_from_incoming,
+            _result_from_outgoing,
         ) = prepare::<Vec<i32>>().await;
         let incoming_handle = incoming_handle.fuse();
         pin_mut!(incoming_handle);
@@ -440,8 +458,8 @@ mod tests {
             incoming_handle,
             outgoing_handle,
             _data_from_incoming,
-            _data_for_outgoing,
             _result_from_incoming,
+            _result_from_outgoing,
         ) = prepare::<Vec<i32>>().await;
         std::mem::drop(incoming_handle);
         match outgoing_handle.await {
@@ -461,8 +479,8 @@ mod tests {
             incoming_handle,
             outgoing_handle,
             _data_from_incoming,
-            _data_for_outgoing,
             mut result_from_incoming,
+            _result_from_outgoing,
         ) = prepare::<Vec<i32>>().await;
         let outgoing_handle = outgoing_handle.fuse();
         pin_mut!(outgoing_handle);
@@ -491,8 +509,8 @@ mod tests {
             incoming_handle,
             outgoing_handle,
             _data_from_incoming,
-            data_for_outgoing,
             mut result_from_incoming,
+            _result_from_outgoing,
         ) = prepare::<Vec<i32>>().await;
         let outgoing_handle = outgoing_handle.fuse();
         pin_mut!(outgoing_handle);
@@ -501,16 +519,7 @@ mod tests {
             _ = &mut outgoing_handle => panic!("outgoing process unexpectedly finished"),
             out = result_from_incoming.next() => out.expect("should receive"),
         };
-        // incoming_handle got consumed by tokio::select!, the receiver is dead
-        data_for_outgoing
-            .unbounded_send(vec![2, 1, 3, 7])
-            .expect("should send");
-        // The kind of error we get depends on which branch of tokio::select! in
-        // the main loop of v0_outgoing is chosen, and since it happens randomly,
-        // we cannot exclude the CardiacArrest variant. Therefore, we accept both
-        // possible results. These tests will be improved in the future.
         match outgoing_handle.await {
-            Err(ProtocolError::SendError(_)) => (),
             Err(ProtocolError::CardiacArrest) => (),
             Err(e) => panic!("unexpected error: {}", e),
             Ok(_) => panic!("successfully finished when connection dead"),

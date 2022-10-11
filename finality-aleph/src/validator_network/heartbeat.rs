@@ -9,8 +9,8 @@ use crate::validator_network::io::{receive_data, send_data};
 const HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(5);
 const MAX_MISSED_HEARTBEATS: u32 = 4;
 
-/// Represents the heartbeat message. Holds a single integer,
-/// which should be interpreted as a message counter.
+/// Represents the heartbeat message. Holds a single integer, so that it encodes into a nonempty
+/// string of bytes.
 #[derive(Debug, Clone, Encode, Decode)]
 struct Heartbeat(u32);
 
