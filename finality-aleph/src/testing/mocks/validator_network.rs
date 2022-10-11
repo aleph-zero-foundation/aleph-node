@@ -4,11 +4,9 @@ use aleph_primitives::{AuthorityId, KEY_TYPE};
 use sp_keystore::{testing::KeyStore, CryptoStore};
 
 use crate::{
-    network::{mock::Channel, Data, Multiaddress, NetworkIdentity, PeerId},
+    network::{mock::Channel, Data, Multiaddress, NetworkIdentity},
     validator_network::Network,
 };
-
-impl PeerId for AuthorityId {}
 
 type MockMultiaddress = (AuthorityId, String);
 
