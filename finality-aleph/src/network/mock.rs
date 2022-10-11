@@ -107,12 +107,12 @@ pub struct Channel<T>(
 );
 
 impl<T> Channel<T> {
-    fn new() -> Self {
+    pub fn new() -> Self {
         let (tx, rx) = mpsc::unbounded();
         Channel(tx, Arc::new(tokio::sync::Mutex::new(rx)))
     }
 
-    fn send(&self, msg: T) {
+    pub fn send(&self, msg: T) {
         self.0.unbounded_send(msg).unwrap();
     }
 
@@ -124,7 +124,7 @@ impl<T> Channel<T> {
         self.1.lock().await.try_next().unwrap_or(None)
     }
 
-    async fn close(self) -> Option<T> {
+    pub async fn close(self) -> Option<T> {
         self.0.close_channel();
         self.try_next().await
     }
