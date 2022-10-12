@@ -35,8 +35,9 @@ use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustm
 pub use primitives::Balance;
 use primitives::{
     staking::MAX_NOMINATORS_REWARDED_PER_VALIDATOR, wrap_methods, ApiError as AlephApiError,
-    AuthorityId as AlephId, SessionAuthorityData, ADDRESSES_ENCODING, DEFAULT_SESSIONS_PER_ERA,
-    DEFAULT_SESSION_PERIOD, MILLISECS_PER_BLOCK, TOKEN,
+    AuthorityId as AlephId, SessionAuthorityData, ADDRESSES_ENCODING,
+    DEFAULT_KICK_OUT_REASON_LENGTH, DEFAULT_SESSIONS_PER_ERA, DEFAULT_SESSION_PERIOD,
+    MILLISECS_PER_BLOCK, TOKEN,
 };
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::{sr25519::AuthorityId as AuraId, SlotDuration};
@@ -107,10 +108,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 34,
+    spec_version: 35,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 9,
+    transaction_version: 10,
     state_version: 0,
 };
 
@@ -323,6 +324,7 @@ impl_opaque_keys! {
 
 parameter_types! {
     pub const SessionPeriod: u32 = DEFAULT_SESSION_PERIOD;
+    pub const MaximumKickOutReasonLength: u32 = DEFAULT_KICK_OUT_REASON_LENGTH;
 }
 
 impl pallet_elections::Config for Runtime {
@@ -333,6 +335,7 @@ impl pallet_elections::Config for Runtime {
     type SessionPeriod = SessionPeriod;
     type SessionManager = pallet_session::historical::NoteHistoricalRoot<Runtime, Staking>;
     type ValidatorRewardsHandler = Staking;
+    type MaximumKickOutReasonLength = MaximumKickOutReasonLength;
 }
 
 impl pallet_randomness_collective_flip::Config for Runtime {}

@@ -139,9 +139,7 @@ fn get_node_performance(
     );
     let performance = block_count as f64 / blocks_to_produce_per_session as f64;
     info!("validator {}, performance {:?}.", account_id, performance);
-    let lenient_performance = match Perquintill::from_float(performance) >= LENIENT_THRESHOLD
-        && blocks_to_produce_per_session >= block_count
-    {
+    let lenient_performance = match Perquintill::from_float(performance) >= LENIENT_THRESHOLD {
         true => 1.0,
         false => performance,
     };

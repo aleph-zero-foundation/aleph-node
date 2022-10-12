@@ -1,6 +1,13 @@
 use frame_election_provider_support::sp_arithmetic::Perquintill;
-use frame_support::{log::debug, pallet_prelude::Get};
-use primitives::{CommitteeSeats, EraValidators};
+use frame_support::{
+    log::{debug, info},
+    pallet_prelude::Get,
+};
+use primitives::{
+    CommitteeKickOutConfig as CommitteeKickOutConfigStruct, CommitteeSeats, EraValidators,
+    KickOutReason,
+};
+use sp_runtime::Perbill;
 use sp_staking::{EraIndex, SessionIndex};
 use sp_std::{
     collections::{btree_map::BTreeMap, btree_set::BTreeSet},
@@ -9,9 +16,10 @@ use sp_std::{
 
 use crate::{
     traits::{EraInfoProvider, SessionInfoProvider, ValidatorRewardsHandler},
-    CommitteeSize, Config, CurrentEraValidators, NextEraCommitteeSize,
+    CommitteeKickOutConfig, CommitteeSize, Config, CurrentEraValidators, NextEraCommitteeSize,
     NextEraNonReservedValidators, NextEraReservedValidators, Pallet, SessionValidatorBlockCount,
-    ValidatorEraTotalReward, ValidatorTotalRewards,
+    ToBeKickedOutFromCommittee, UnderperformedValidatorSessionCount, ValidatorEraTotalReward,
+    ValidatorTotalRewards,
 };
 
 const MAX_REWARD: u32 = 1_000_000_000;
@@ -21,12 +29,17 @@ pub const LENIENT_THRESHOLD: Perquintill = Perquintill::from_percent(90);
 ///
 /// 1. Block `B` initialized
 /// 2. `end_session(S)` is called
-/// -  We update rewards and clear block count for the session `S`.
+/// *  Based on block count we might mark the session for a given validator as underperformed
+/// *  We update rewards and clear block count for the session `S`.
 /// 3. `start_session(S + 1)` is called.
-/// -  if session `S+1` starts new era we populate totals.
+/// *  if session `S+1` starts new era we populate totals.
+/// *  if session `S+1` % [`CommitteeKickOutConfig::clean_session_counter_delay`] == 0, we
+///    clean up underperformed session counter
 /// 4. `new_session(S + 2)` is called.
-/// -  If session `S+2` starts new era then we update the reserved and non_reserved validators.
-/// -  We rotate the validators for session `S + 2` using the information about reserved and non_reserved validators.
+/// *  If session `S+2` starts new era:
+///    * during elections, we kick out underperforming validators from non_reserved set,
+///    * then we update the reserved and non reserved validators.
+/// *  We rotate the validators for session `S + 2` using the information about reserved and non reserved validators.
 ///
 
 fn calculate_adjusted_session_points(
@@ -38,8 +51,8 @@ fn calculate_adjusted_session_points(
     let performance =
         Perquintill::from_rational(blocks_created as u64, blocks_to_produce_per_session as u64);
 
-    // when produced between 90% to 100% expected blocks get 100% possible reward for session
-    if performance >= LENIENT_THRESHOLD && blocks_to_produce_per_session >= blocks_created {
+    // when produced more than 90% expected blocks, get 100% possible reward for session
+    if performance >= LENIENT_THRESHOLD {
         return (Perquintill::from_rational(1, sessions_per_era as u64)
             * total_possible_reward as u64) as u32;
     }
@@ -220,7 +233,6 @@ where
             }
         }
     }
-
     fn populate_next_era_validators_on_next_era_start(session: SessionIndex) {
         let active_era = match T::EraInfoProvider::active_era() {
             Some(ae) => ae,
@@ -293,6 +305,50 @@ where
 
         T::ValidatorRewardsHandler::add_rewards(rewards);
     }
+
+    fn calculate_underperforming_validators() {
+        let thresholds = CommitteeKickOutConfig::<T>::get();
+        let current_committee = T::SessionInfoProvider::current_committee();
+        let expected_blocks_per_validator = Self::blocks_to_produce_per_session();
+        for validator in current_committee {
+            let underperformance = match SessionValidatorBlockCount::<T>::try_get(&validator) {
+                Ok(block_count) => {
+                    Perbill::from_rational(block_count, expected_blocks_per_validator)
+                        <= thresholds.minimal_expected_performance
+                }
+                Err(_) => true,
+            };
+            if underperformance {
+                Self::mark_validator_underperformance(&thresholds, &validator);
+            }
+        }
+    }
+
+    fn mark_validator_underperformance(
+        thresholds: &CommitteeKickOutConfigStruct,
+        validator: &T::AccountId,
+    ) {
+        let counter = UnderperformedValidatorSessionCount::<T>::mutate(&validator, |count| {
+            *count += 1;
+            *count
+        });
+        if counter >= thresholds.underperformed_session_count_threshold {
+            ToBeKickedOutFromCommittee::<T>::insert(
+                &validator,
+                KickOutReason::InsufficientUptime(counter),
+            );
+            UnderperformedValidatorSessionCount::<T>::remove(&validator);
+        }
+    }
+
+    fn clear_underperformance_session_counter(session: SessionIndex) {
+        let clean_session_counter_delay =
+            CommitteeKickOutConfig::<T>::get().clean_session_counter_delay;
+        if session % clean_session_counter_delay == 0 {
+            info!(target: "pallet_elections", "Clearing UnderperformedValidatorSessionCount");
+            let _result = UnderperformedValidatorSessionCount::<T>::clear(u32::MAX, None);
+        }
+    }
 }
 
 impl<T> pallet_authorship::EventHandler<T::AccountId, T::BlockNumber> for Pallet<T>
@@ -327,8 +383,9 @@ where
     fn end_session(end_index: SessionIndex) {
         <T as Config>::SessionManager::end_session(end_index);
         Self::adjust_rewards_for_session();
-
-        // clear block count
+        Self::calculate_underperforming_validators();
+        // clear block count after calculating stats for underperforming validators, as they use
+        // SessionValidatorBlockCount for that
         let result = SessionValidatorBlockCount::<T>::clear(u32::MAX, None);
         debug!(target: "pallet_elections", "Result of clearing the `SessionValidatorBlockCount`, {:?}", result.deconstruct());
     }
@@ -336,6 +393,7 @@ where
     fn start_session(start_index: SessionIndex) {
         <T as Config>::SessionManager::start_session(start_index);
         Self::populate_totals_on_new_era_start(start_index);
+        Self::clear_underperformance_session_counter(start_index);
     }
 }
 
@@ -381,17 +439,17 @@ mod tests {
     #[test]
     fn adjusted_session_points_more_than_all_blocks_created_are_calculated_correctly() {
         assert_eq!(
-            2 * 5000,
+            5000,
             calculate_adjusted_session_points(5, 30, 2 * 30, 25_000)
         );
 
         assert_eq!(
-            3 * 6250000,
+            6250000,
             calculate_adjusted_session_points(96, 900, 3 * 900, 600_000_000)
         );
 
         assert_eq!(
-            6152662,
+            6145833,
             calculate_adjusted_session_points(96, 900, 901, 590_000_000)
         );
     }

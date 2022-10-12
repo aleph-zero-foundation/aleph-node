@@ -379,6 +379,7 @@ fn generate_genesis_config(
             reserved_validators: accounts_config.members.clone(),
             non_reserved_validators: vec![],
             committee_seats: Default::default(),
+            committee_kick_out_config: Default::default(),
         },
         session: SessionConfig {
             keys: accounts_config.keys,
