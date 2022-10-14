@@ -11,6 +11,8 @@ license = "GPL-3.0-or-later"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
+ark-bls12-381 = { version = "^0.3.0" }
+
 codec = { package = "parity-scale-codec", version = "3.0", default-features = false, features = ["derive"] }
 scale-info = { version = "2.0", default-features = false, features = ["derive"] }
 serde = { version = "1.0", optional = true, features = ["derive"] }
@@ -60,6 +62,7 @@ sp-io = { default-features = false, git = "https://github.com/Cardinal-Cryptogra
 primitives = { path = "../../primitives", default-features = false }
 pallet-aleph = { path = "../../pallets/aleph", default-features = false }
 pallet-elections = { path = "../../pallets/elections", default-features = false }
+pallet-snarcos = { path = "../../pallets/snarcos", default-features = false }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
@@ -67,6 +70,7 @@ substrate-wasm-builder = { git = "https://github.com/Cardinal-Cryptography/subst
 [features]
 default = ["std"]
 std = [
+    "ark-bls12-381/std",
     "codec/std",
     "frame-executive/std",
     "frame-support/std",
@@ -80,6 +84,7 @@ std = [
     "pallet-randomness-collective-flip/std",
     "pallet-session/std",
     "pallet-staking/std",
+    "pallet-snarcos/std",
     "pallet-sudo/std",
     "pallet-timestamp/std",
     "pallet-transaction-payment/std",

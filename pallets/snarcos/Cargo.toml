@@ -1,0 +1,63 @@
+[package]
+name = "pallet-snarcos"
+version = "0.1.0"
+authors = ["Cardinal Cryptography"]
+edition = "2021"
+license = "Apache 2.0"
+
+[dependencies]
+blake2 = { version = "0.9", default-features = false }
+codec = { package = "parity-scale-codec", version = "3.0", default-features = false, features = ["derive"] }
+digest = "0.9"
+scale-info = { version = "2.0", default-features = false, features = ["derive"] }
+
+ark-ff = { version = "^0.3.0", default-features = false }
+ark-ec = { version = "^0.3.0", default-features = false }
+ark-ed-on-bls12-381 = { version = "^0.3.0", features = ["r1cs"] }
+ark-bls12-381 = { version = "^0.3.0" }
+ark-std = { version = "^0.3.0", default-features = false }
+ark-relations = { version = "^0.3.0", default-features = false }
+
+ark-r1cs-std = { version = "^0.3.0", default-features = false }
+ark-snark = { version = "^0.3.0", default-features = false }
+ark-groth16 = { version = "^0.3.0", default-features = false }
+ark-gm17 = { version = "^0.3.0", default-features = false }
+
+ark-serialize = { version = "^0.3.0", default-features = false }
+ark-crypto-primitives = { version = "^0.3.0", default-features = false }
+
+frame-support = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
+frame-system = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
+sp-core = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
+sp-io = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
+sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
+
+primitives = { path = "../../primitives", default-features = false }
+
+[features]
+default = ["std"]
+std = [
+    "ark-ff/std",
+    "ark-ec/std",
+    "ark-ed-on-bls12-381/std",
+    "ark-bls12-381/std",
+    "ark-std/std",
+    "ark-relations/std",
+    "ark-r1cs-std/std",
+    "ark-groth16/std",
+    "ark-gm17/std",
+    "ark-serialize/std",
+    "ark-crypto-primitives/std",
+
+    "blake2/std",
+    "codec/std",
+    "digest/std",
+
+    "frame-system/std",
+    "frame-support/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-std/std",
+
+    "primitives/std",
+]
