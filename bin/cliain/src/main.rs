@@ -2,7 +2,7 @@ use std::env;
 
 use aleph_client::{
     account_from_keypair, aleph_keypair_from_string, keypair_from_string, print_storages,
-    SignedConnection,
+    Connection,
 };
 use clap::Parser;
 use cliain::{
@@ -114,7 +114,7 @@ fn main() {
         } => treasury_propose(cfg.into(), amount_in_tokens, beneficiary),
         Command::TreasuryApprove { proposal_id } => treasury_approve(cfg.into(), proposal_id),
         Command::TreasuryReject { proposal_id } => treasury_reject(cfg.into(), proposal_id),
-        Command::RotateKeys => rotate_keys::<SignedConnection>(cfg.into()),
+        Command::RotateKeys => rotate_keys(cfg.into()),
         Command::NextSessionKeys { account_id } => next_session_keys(&cfg.into(), account_id),
         Command::SetStakingLimits {
             minimal_nominator_stake,
@@ -138,7 +138,7 @@ fn main() {
                 keypair_from_string(&input).public().to_string()
             )
         }
-        Command::DebugStorage => print_storages::<SignedConnection>(&cfg.into()),
+        Command::DebugStorage => print_storages::<Connection>(&cfg.into()),
         Command::UpdateRuntime { runtime } => update_runtime(cfg.into(), runtime),
         Command::Vest => vest(cfg.into()),
         Command::VestOther { vesting_account } => vest_other(cfg.into(), vesting_account),

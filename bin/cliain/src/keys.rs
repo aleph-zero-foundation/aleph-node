@@ -1,6 +1,6 @@
 use aleph_client::{
     get_next_session_keys, rotate_keys as rotate, rotate_keys_raw_result, set_keys as set,
-    staking_bond, AnyConnection, Connection, RootConnection, SessionKeys, SignedConnection,
+    staking_bond, Connection, RootConnection, SessionKeys, SignedConnection,
 };
 use hex::ToHex;
 use log::{error, info};
@@ -28,7 +28,7 @@ pub fn set_keys(connection: SignedConnection, new_keys: String) {
     );
 }
 
-pub fn rotate_keys<C: AnyConnection>(connection: C) {
+pub fn rotate_keys(connection: Connection) {
     let new_keys = rotate_keys_raw_result(&connection).expect("Failed to retrieve keys");
     info!("Rotated keys: {:?}", new_keys);
 }
