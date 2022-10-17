@@ -17,7 +17,7 @@ pub enum Error {
     Conversion,
 }
 
-#[derive(PartialEq, Eq, Clone, Debug, Decode, Encode)]
+#[derive(PartialEq, Eq, Clone, Debug, Hash, Decode, Encode)]
 pub struct Signature(AuthoritySignature);
 
 impl From<AuthoritySignature> for Signature {

@@ -8,7 +8,7 @@ use crate::{
     validator_network::Network,
 };
 
-type MockMultiaddress = (AuthorityId, String);
+pub type MockMultiaddress = (AuthorityId, String);
 
 impl Multiaddress for MockMultiaddress {
     type PeerId = AuthorityId;
@@ -25,6 +25,7 @@ impl Multiaddress for MockMultiaddress {
     }
 }
 
+#[derive(Clone)]
 pub struct MockNetwork<D: Data> {
     pub add_connection: Channel<(AuthorityId, Vec<MockMultiaddress>)>,
     pub remove_connection: Channel<AuthorityId>,
@@ -63,7 +64,7 @@ impl<D: Data> NetworkIdentity for MockNetwork<D> {
 }
 
 impl<D: Data> MockNetwork<D> {
-    pub async fn _new(address: &str) -> Self {
+    pub async fn new(address: &str) -> Self {
         let key_store = Arc::new(KeyStore::new());
         let id: AuthorityId = key_store
             .ed25519_generate_new(KEY_TYPE, None)

@@ -1,16 +1,18 @@
-use std::{io::Result as IoResult, net::ToSocketAddrs as _};
+use std::{io::Result as IoResult, marker::PhantomData, net::ToSocketAddrs as _, sync::Arc};
 
-use aleph_primitives::AuthorityId;
+use aleph_primitives::{AuthorityId, KEY_TYPE};
 use codec::{Decode, Encode};
+use futures::future::pending;
 use log::info;
+use sp_keystore::{testing::KeyStore, CryptoStore};
 use tokio::net::{
     tcp::{OwnedReadHalf, OwnedWriteHalf},
     TcpListener, TcpStream, ToSocketAddrs,
 };
 
 use crate::{
-    network::{Multiaddress, NetworkIdentity, PeerId},
-    validator_network::{Dialer, Listener, Splittable},
+    network::{Data, Multiaddress, NetworkIdentity, PeerId},
+    validator_network::{Dialer, Listener, Network, Splittable},
 };
 
 impl Splittable for TcpStream {
@@ -124,4 +126,44 @@ pub async fn new_tcp_network<A: ToSocketAddrs>(
         peer_id,
     };
     Ok((TcpDialer {}, listener, identity))
+}
+
+/// This struct is for integration only. Will be removed after A0-1411.
+struct NoopNetwork<D: Data> {
+    _phantom: PhantomData<D>,
+}
+
+#[async_trait::async_trait]
+impl<D: Data> Network<TcpMultiaddress, D> for NoopNetwork<D> {
+    fn add_connection(&mut self, _peer: AuthorityId, _addresses: Vec<TcpMultiaddress>) {}
+
+    fn remove_connection(&mut self, _peer: AuthorityId) {}
+
+    fn send(&self, _data: D, _recipient: AuthorityId) {}
+
+    async fn next(&mut self) -> Option<D> {
+        Some(pending::<D>().await)
+    }
+}
+
+pub async fn new_noop<D: Data>() -> (
+    impl Network<TcpMultiaddress, D>,
+    impl NetworkIdentity<Multiaddress = TcpMultiaddress, PeerId = AuthorityId>,
+) {
+    let key_store = Arc::new(KeyStore::new());
+    let peer_id: AuthorityId = key_store
+        .ed25519_generate_new(KEY_TYPE, None)
+        .await
+        .unwrap()
+        .into();
+    let addresses = vec![TcpMultiaddress {
+        peer_id: peer_id.clone(),
+        address: String::from(""),
+    }];
+    (
+        NoopNetwork {
+            _phantom: PhantomData,
+        },
+        TcpNetworkIdentity { peer_id, addresses },
+    )
 }

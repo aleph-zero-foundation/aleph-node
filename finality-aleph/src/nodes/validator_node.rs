@@ -7,10 +7,9 @@ use sp_consensus::SelectChain;
 use sp_runtime::traits::Block;
 
 use crate::{
-    mpsc,
     network::{
-        ConnectionIO, ConnectionManager, ConnectionManagerConfig, Service as NetworkService,
-        SessionManager, IO as NetworkIO,
+        setup_io, ConnectionManager, ConnectionManagerConfig, Service as NetworkService,
+        SessionManager,
     },
     nodes::{setup_justification_handler, JustificationParams},
     party::{
@@ -19,7 +18,7 @@ use crate::{
         ConsensusParty, ConsensusPartyParams,
     },
     session_map::{AuthorityProviderImpl, FinalityNotificatorImpl, SessionMapUpdater},
-    AlephConfig,
+    tcp_network, AlephConfig,
 };
 
 pub async fn run_validator_node<B, H, C, BE, SC>(aleph_config: AlephConfig<B, H, C, SC>)
@@ -46,6 +45,8 @@ where
         ..
     } = aleph_config;
 
+    let (validator_network, validator_network_identity) = tcp_network::new_noop().await;
+
     let block_requester = network.clone();
     let map_updater = SessionMapUpdater::<_, _, B>::new(
         AuthorityProviderImpl::new(client.clone()),
@@ -68,44 +69,53 @@ where
             session_map: session_authorities.clone(),
         });
 
-    // Prepare and start the network
-    let (commands_for_network, commands_from_io) = mpsc::unbounded();
-    let (messages_for_network, messages_from_user) = mpsc::unbounded();
-    let (commands_for_service, commands_from_user) = mpsc::unbounded();
-    let (messages_for_service, commands_from_manager) = mpsc::unbounded();
-    let (messages_for_user, messages_from_network) = mpsc::unbounded();
+    let (connection_io, network_io, session_io) = setup_io();
 
-    let connection_io = ConnectionIO::new(
-        commands_for_network,
-        messages_for_network,
-        commands_from_user,
-        commands_from_manager,
-        messages_from_network,
-    );
     let connection_manager = ConnectionManager::new(
-        network.clone(),
+        validator_network_identity,
         ConnectionManagerConfig::with_session_period(&session_period, &millisecs_per_block),
     );
-    let session_manager = SessionManager::new(commands_for_service, messages_for_service);
-    let network = NetworkService::new(
-        network.clone(),
-        spawn_handle.clone(),
-        NetworkIO::new(messages_from_user, messages_for_user, commands_from_io),
-    );
 
-    let network_manager_task = async move {
+    let connection_manager_task = async move {
         connection_io
             .run(connection_manager)
             .await
-            .expect("Failed to run new network manager")
+            .expect("Failed to run connection manager")
     };
 
+    let (legacy_connection_io, legacy_network_io, legacy_session_io) = setup_io();
+
+    let legacy_connection_manager = ConnectionManager::new(
+        network.clone(),
+        ConnectionManagerConfig::with_session_period(&session_period, &millisecs_per_block),
+    );
+
+    let legacy_connection_manager_task = async move {
+        legacy_connection_io
+            .run(legacy_connection_manager)
+            .await
+            .expect("Failed to legacy connection manager")
+    };
+
+    let session_manager = SessionManager::new(session_io, legacy_session_io);
+    let network = NetworkService::new(
+        network.clone(),
+        validator_network,
+        spawn_handle.clone(),
+        network_io,
+        legacy_network_io,
+    );
     let network_task = async move { network.run().await };
 
     spawn_handle.spawn("aleph/justification_handler", None, handler_task);
     debug!(target: "aleph-party", "JustificationHandler has started.");
 
-    spawn_handle.spawn("aleph/network_manager", None, network_manager_task);
+    spawn_handle.spawn("aleph/connection_manager", None, connection_manager_task);
+    spawn_handle.spawn(
+        "aleph/legacy_connection_manager",
+        None,
+        legacy_connection_manager_task,
+    );
     spawn_handle.spawn("aleph/network", None, network_task);
     debug!(target: "aleph-party", "Network has started.");
 

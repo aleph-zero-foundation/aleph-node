@@ -21,4 +21,4 @@ mod justification_handler_config;
 mod proposal;
 mod session_info;
 mod single_action_mock;
-mod validator_network;
+pub mod validator_network;

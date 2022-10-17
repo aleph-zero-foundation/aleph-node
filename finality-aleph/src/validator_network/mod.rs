@@ -30,7 +30,7 @@ impl<D: Clone + Codec + Send + Sync + 'static> Data for D {}
 /// implementation might fail to deliver any specific message, so messages have to be resent while
 /// they still should be delivered.
 #[async_trait::async_trait]
-pub trait Network<A: Data, D: Data>: Send {
+pub trait Network<A: Data, D: Data>: Send + 'static {
     /// Add the peer to the set of connected peers.
     fn add_connection(&mut self, peer: AuthorityId, addresses: Vec<A>);
 

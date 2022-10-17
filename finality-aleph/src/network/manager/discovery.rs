@@ -16,7 +16,7 @@ use crate::{
 };
 
 /// Messages used for discovery and authentication.
-#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Encode, Decode)]
 pub enum DiscoveryMessage<M: Multiaddress> {
     AuthenticationBroadcast(Authentication<M>),
     Authentication(Authentication<M>),

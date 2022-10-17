@@ -191,26 +191,33 @@ impl MultiaddressT for Multiaddress {
 /// Name of the network protocol used by Aleph Zero. This is how messages
 /// are subscribed to ensure that we are gossiping and communicating with our
 /// own network.
-const ALEPH_PROTOCOL_NAME: &str = "/cardinals/aleph/2";
+const LEGACY_ALEPH_PROTOCOL_NAME: &str = "/cardinals/aleph/2";
+
+/// Name of the network protocol used by Aleph Zero. This is how messages
+/// are subscribed to ensure that we are gossiping and communicating with our
+/// own network.
+const AUTHENTICATION_PROTOCOL_NAME: &str = "/aleph/1";
 
 /// Name of the network protocol used by Aleph Zero validators. Similar to
 /// ALEPH_PROTOCOL_NAME, but only used by validators that authenticated to each other.
-const ALEPH_VALIDATOR_PROTOCOL_NAME: &str = "/cardinals/aleph_validator/1";
+const LEGACY_ALEPH_VALIDATOR_PROTOCOL_NAME: &str = "/cardinals/aleph_validator/1";
 
 /// Returns the canonical name of the protocol.
 pub fn protocol_name(protocol: &Protocol) -> Cow<'static, str> {
     use Protocol::*;
     match protocol {
-        Generic => Cow::Borrowed(ALEPH_PROTOCOL_NAME),
-        Validator => Cow::Borrowed(ALEPH_VALIDATOR_PROTOCOL_NAME),
+        Authentication => Cow::Borrowed(AUTHENTICATION_PROTOCOL_NAME),
+        Generic => Cow::Borrowed(LEGACY_ALEPH_PROTOCOL_NAME),
+        Validator => Cow::Borrowed(LEGACY_ALEPH_VALIDATOR_PROTOCOL_NAME),
     }
 }
 
 /// Attempts to convert the protocol name to a protocol.
 fn to_protocol(protocol_name: &str) -> Result<Protocol, ()> {
     match protocol_name {
-        ALEPH_PROTOCOL_NAME => Ok(Protocol::Generic),
-        ALEPH_VALIDATOR_PROTOCOL_NAME => Ok(Protocol::Validator),
+        AUTHENTICATION_PROTOCOL_NAME => Ok(Protocol::Authentication),
+        LEGACY_ALEPH_PROTOCOL_NAME => Ok(Protocol::Generic),
+        LEGACY_ALEPH_VALIDATOR_PROTOCOL_NAME => Ok(Protocol::Validator),
         _ => Err(()),
     }
 }
@@ -308,7 +315,7 @@ impl EventStream<Multiaddress> for NetworkEventStream {
                                 .into_iter()
                                 .filter_map(|(protocol, data)| {
                                     match to_protocol(protocol.as_ref()) {
-                                        Ok(_) => Some(data),
+                                        Ok(protocol) => Some((protocol, data)),
                                         // This might end with us returning an empty vec, but it's probably not
                                         // worth it to handle this situation here.
                                         Err(_) => None,

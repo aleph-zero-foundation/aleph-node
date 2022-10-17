@@ -6,11 +6,13 @@ use crate::{
     NodeIndex, SessionId,
 };
 
+mod compatibility;
 mod connections;
 mod discovery;
 mod service;
 mod session;
 
+pub use compatibility::VersionedAuthentication;
 use connections::Connections;
 pub use discovery::{Discovery, DiscoveryMessage};
 pub use service::{
@@ -18,10 +20,9 @@ pub use service::{
     IO as ConnectionIO,
 };
 pub use session::{Handler as SessionHandler, HandlerError as SessionHandlerError};
-
 /// Data validators use to authenticate themselves for a single session
 /// and disseminate their addresses.
-#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Encode, Decode)]
 pub struct AuthData<M: Multiaddress> {
     addresses: Vec<M>,
     node_id: NodeIndex,
@@ -44,6 +45,15 @@ impl<M: Multiaddress> AuthData<M> {
 
 /// A full authentication, consisting of a signed AuthData.
 pub type Authentication<M> = (AuthData<M>, Signature);
+
+/// Data inside session, sent to validator network.
+pub type DataInSession<D> = (D, SessionId);
+
+impl<D: Data, M: Multiaddress> From<DataInSession<D>> for NetworkData<D, M> {
+    fn from(data: DataInSession<D>) -> Self {
+        NetworkData::Data(data.0, data.1)
+    }
+}
 
 /// The data that should be sent to the network service.
 #[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]

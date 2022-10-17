@@ -196,6 +196,10 @@ fn setup(
         .network
         .extra_sets
         .push(finality_aleph::peers_set_config(Protocol::Generic));
+    config
+        .network
+        .extra_sets
+        .push(finality_aleph::peers_set_config(Protocol::Authentication));
 
     let (network, system_rpc_tx, network_starter) =
         sc_service::build_network(sc_service::BuildNetworkParams {
