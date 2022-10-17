@@ -10,7 +10,7 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use crate::{
     crypto::AuthorityPen,
     validator_network::{
-        handshake::{v0_handshake, HandshakeError},
+        handshake::{v0_handshake_incoming, v0_handshake_outgoing, HandshakeError},
         heartbeat::{heartbeat_receiver, heartbeat_sender},
         io::{receive_data, send_data, ReceiveError, SendError},
         Data, Splittable,
@@ -29,8 +29,6 @@ pub enum Protocol {
 pub enum ProtocolError {
     /// Error during performing a handshake.
     HandshakeError(HandshakeError),
-    /// Connected to a peer with unexpected ID.
-    WrongPeer(AuthorityId),
     /// Sending failed.
     SendError(SendError),
     /// Receiving failed.
@@ -48,7 +46,6 @@ impl Display for ProtocolError {
         use ProtocolError::*;
         match self {
             HandshakeError(e) => write!(f, "handshake error: {}", e),
-            WrongPeer(peer_id) => write!(f, "connected to unexpected peer {}", peer_id),
             SendError(e) => write!(f, "send error: {}", e),
             ReceiveError(e) => write!(f, "receive error: {}", e),
             CardiacArrest => write!(f, "heartbeat stopped"),
@@ -99,10 +96,7 @@ async fn v0_outgoing<D: Data, S: Splittable>(
     peer_id: AuthorityId,
     result_for_parent: mpsc::UnboundedSender<(AuthorityId, Option<mpsc::UnboundedSender<D>>)>,
 ) -> Result<(), ProtocolError> {
-    let (sender, receiver, other_peer_id) = v0_handshake(stream, authority_pen).await?;
-    if peer_id != other_peer_id {
-        return Err(ProtocolError::WrongPeer(other_peer_id));
-    }
+    let (sender, receiver) = v0_handshake_outgoing(stream, authority_pen, peer_id.clone()).await?;
     let (data_for_network, data_from_user) = mpsc::unbounded::<D>();
     result_for_parent
         .unbounded_send((peer_id, Some(data_for_network)))
@@ -142,7 +136,7 @@ async fn v0_incoming<D: Data, S: Splittable>(
     result_for_parent: mpsc::UnboundedSender<(AuthorityId, oneshot::Sender<()>)>,
     data_for_user: mpsc::UnboundedSender<D>,
 ) -> Result<(), ProtocolError> {
-    let (sender, receiver, peer_id) = v0_handshake(stream, authority_pen).await?;
+    let (sender, receiver, peer_id) = v0_handshake_incoming(stream, authority_pen).await?;
 
     let (tx_exit, exit) = oneshot::channel();
     result_for_parent

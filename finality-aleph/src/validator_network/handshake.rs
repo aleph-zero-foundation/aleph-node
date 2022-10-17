@@ -24,6 +24,8 @@ pub enum HandshakeError {
     ReceiveError(ReceiveError),
     /// Signature error.
     SignatureError,
+    /// Challenge contains invalid peer id.
+    ChallengeError(AuthorityId, AuthorityId),
     /// Timeout.
     TimedOut,
 }
@@ -35,6 +37,11 @@ impl Display for HandshakeError {
             SendError(e) => write!(f, "send error: {}", e),
             ReceiveError(e) => write!(f, "receive error: {}", e),
             SignatureError => write!(f, "signature error"),
+            ChallengeError(expected, got) => write!(
+                f,
+                "challenge error, expected peer {}, received from {}",
+                expected, got
+            ),
             TimedOut => write!(f, "timed out"),
         }
     }
@@ -52,7 +59,7 @@ impl From<ReceiveError> for HandshakeError {
     }
 }
 
-/// Handshake challenge.
+/// Handshake challenge. Contains public key of the creator, and a random nonce.
 #[derive(Debug, Clone, Encode, Decode)]
 struct Challenge {
     id: AuthorityId,
@@ -67,55 +74,103 @@ impl Challenge {
     }
 }
 
-/// Handshake response.
+/// Handshake response. Contains public key of the creator, and signature
+/// related to the received challenge.
 #[derive(Debug, Clone, Encode, Decode)]
-struct Response(Signature);
+struct Response {
+    id: AuthorityId,
+    signature: Signature,
+}
 
 impl Response {
     /// Create a new response by signing the challenge.
     async fn new(pen: &AuthorityPen, challenge: &Challenge) -> Self {
-        Self(pen.sign(&challenge.encode()).await)
+        Self {
+            id: pen.authority_id(),
+            signature: pen.sign(&challenge.encode()).await,
+        }
     }
 
     /// Verify the Response sent by the peer.
-    fn verify(&self, peer_id: &AuthorityId, challenge: &Challenge) -> bool {
-        verify(peer_id, &challenge.encode(), &self.0)
+    fn verify(&self, challenge: &Challenge) -> bool {
+        verify(&self.id, &challenge.encode(), &self.signature)
     }
 }
 
-/// Performs the handshake. The goal is to obtain ID of the peer,
-/// and split the communication stream into two halves.
-pub async fn execute_v0_handshake<S: Splittable>(
+/// Performs the handshake with a peer that called us.
+/// The goal is to obtain the public key of the peer, and split
+/// the communication stream into two halves.
+/// The peer needs to prove their identity by signing a randomly generated
+/// challenge, but apart from that, the returned communication channels
+/// will NOT be secured in any way. We assume that if the channel is
+/// compromised after the handshake, the peer will establish another connection,
+/// which will replace the current one.
+pub async fn execute_v0_handshake_incoming<S: Splittable>(
     stream: S,
     authority_pen: AuthorityPen,
 ) -> Result<(S::Sender, S::Receiver, AuthorityId), HandshakeError> {
     // send challenge
     let our_challenge = Challenge::new(authority_pen.authority_id());
     let stream = send_data(stream, our_challenge.clone()).await?;
-    // receive challenge
-    let (stream, peer_challenge) = receive_data::<_, Challenge>(stream).await?;
-    let peer_id = peer_challenge.id.clone();
-    // send response
-    let our_response = Response::new(&authority_pen, &peer_challenge).await;
-    let stream = send_data(stream, our_response).await?;
     // receive response
     let (stream, peer_response) = receive_data::<_, Response>(stream).await?;
     // validate response
-    if !peer_response.verify(&peer_id, &our_challenge) {
+    if !peer_response.verify(&our_challenge) {
         return Err(HandshakeError::SignatureError);
     }
     let (sender, receiver) = stream.split();
+    let peer_id = peer_response.id;
     Ok((sender, receiver, peer_id))
 }
 
+/// Performs the handshake with a peer that we called. We assume that their
+/// public key is known to us.
+/// The goal is to authenticate ourselves, and split the communication stream
+/// into two halves.
+/// We need to prove our identity by signing a randomly generated
+/// challenge, but apart from that, the returned communication channels
+/// will NOT be secured in any way. We assume that if the channel is
+/// compromised after the handshake, we will establish another connection,
+/// which will replace the current one.
+pub async fn execute_v0_handshake_outgoing<S: Splittable>(
+    stream: S,
+    authority_pen: AuthorityPen,
+    peer_id: AuthorityId,
+) -> Result<(S::Sender, S::Receiver), HandshakeError> {
+    // receive challenge
+    let (stream, peer_challenge) = receive_data::<_, Challenge>(stream).await?;
+    if peer_id != peer_challenge.id {
+        return Err(HandshakeError::ChallengeError(peer_id, peer_challenge.id));
+    }
+    // send response
+    let our_response = Response::new(&authority_pen, &peer_challenge).await;
+    let stream = send_data(stream, our_response).await?;
+    let (sender, receiver) = stream.split();
+    Ok((sender, receiver))
+}
+
 /// Wrapper that adds timeout to the function performing handshake.
-pub async fn v0_handshake<S: Splittable>(
+pub async fn v0_handshake_incoming<S: Splittable>(
     stream: S,
     authority_pen: AuthorityPen,
 ) -> Result<(S::Sender, S::Receiver, AuthorityId), HandshakeError> {
     timeout(
         HANDSHAKE_TIMEOUT,
-        execute_v0_handshake(stream, authority_pen),
+        execute_v0_handshake_incoming(stream, authority_pen),
+    )
+    .await
+    .map_err(|_| HandshakeError::TimedOut)?
+}
+
+/// Wrapper that adds timeout to the function performing handshake.
+pub async fn v0_handshake_outgoing<S: Splittable>(
+    stream: S,
+    authority_pen: AuthorityPen,
+    peer_id: AuthorityId,
+) -> Result<(S::Sender, S::Receiver), HandshakeError> {
+    timeout(
+        HANDSHAKE_TIMEOUT,
+        execute_v0_handshake_outgoing(stream, authority_pen, peer_id),
     )
     .await
     .map_err(|_| HandshakeError::TimedOut)?
@@ -123,10 +178,12 @@ pub async fn v0_handshake<S: Splittable>(
 
 #[cfg(test)]
 mod tests {
-    use aleph_primitives::AuthorityId;
     use futures::{join, try_join};
 
-    use super::{execute_v0_handshake, Challenge, HandshakeError, Response};
+    use super::{
+        execute_v0_handshake_incoming, execute_v0_handshake_outgoing, Challenge, HandshakeError,
+        Response,
+    };
     use crate::{
         crypto::AuthorityPen,
         validator_network::{
@@ -136,75 +193,9 @@ mod tests {
         },
     };
 
-    pub async fn execute_malicious_v0_handshake<S: Splittable>(
-        stream: S,
-        authority_pen: AuthorityPen,
-    ) -> Result<(S::Sender, S::Receiver, AuthorityId), HandshakeError> {
-        // send challenge
-        let our_challenge = Challenge::new(authority_pen.authority_id());
-        let stream = send_data(stream, our_challenge.clone()).await?;
-        // receive challenge
-        let (stream, peer_challenge) = receive_data::<_, Challenge>(stream).await?;
-        let peer_id = peer_challenge.id.clone();
-        // WE PREPARE A FAKE RESPONSE WITH INVALID SIGNATURE
-        // send fake response
-        let fake_challenge = our_challenge.clone();
-        let fake_response = Response::new(&authority_pen, &fake_challenge).await;
-        let stream = send_data(stream, fake_response).await?;
-        // receive response
-        let (stream, peer_response) = receive_data::<_, Response>(stream).await?;
-        // validate response
-        if !peer_response.verify(&peer_id, &our_challenge) {
-            return Err(HandshakeError::SignatureError);
-        }
-        let (sender, receiver) = stream.split();
-        Ok((sender, receiver, peer_id))
-    }
-
-    pub async fn execute_broken_v0_handshake<S: Splittable>(
-        stream: S,
-        authority_pen: AuthorityPen,
-        step: usize,
-    ) -> Result<(), HandshakeError> {
-        // WE CHANGE THE ORDER OF STEPS TO MAKE TESTS DETERMINISTIC
-        // receive challenge
-        let (stream, peer_challenge) = receive_data::<_, Challenge>(stream).await?;
-        let _ = peer_challenge.id.clone();
-        if step == 0 {
-            return Ok(());
-        }
-        // send challenge
-        let our_challenge = Challenge::new(authority_pen.authority_id());
-        let stream = send_data(stream, our_challenge.clone()).await?;
-        if step == 1 {
-            return Ok(());
-        }
-        // receive response
-        let (stream, _) = receive_data::<_, Response>(stream).await?;
-        if step == 2 {
-            return Ok(());
-        }
-        // send response
-        let our_response = Response::new(&authority_pen, &peer_challenge).await;
-        send_data(stream, our_response).await?;
-        Ok(())
-    }
-
-    async fn break_v0_handshake_after(step: usize) -> HandshakeError {
-        let (stream_a, stream_b) = MockSplittable::new(4096);
-        let (id_a, pen_a) = keys().await;
-        let (id_b, pen_b) = keys().await;
-        assert_ne!(id_a, id_b);
-        let (e, _) = join!(
-            execute_v0_handshake(stream_a, pen_a),
-            execute_broken_v0_handshake(stream_b, pen_b, step),
-        );
-        e.expect_err("should end with error")
-    }
-
-    fn assert_send_error(e: HandshakeError) {
-        match e {
-            HandshakeError::SendError(_) => (),
+    fn assert_send_error<T: std::fmt::Debug>(result: Result<T, HandshakeError>) {
+        match result {
+            Err(HandshakeError::SendError(_)) => (),
             x => panic!(
                 "should end with HandshakeError::SendError, but we got {:?}",
                 x
@@ -212,11 +203,31 @@ mod tests {
         };
     }
 
-    fn assert_receive_error(e: HandshakeError) {
-        match e {
-            HandshakeError::ReceiveError(_) => (),
+    fn assert_receive_error<T: std::fmt::Debug>(result: Result<T, HandshakeError>) {
+        match result {
+            Err(HandshakeError::ReceiveError(_)) => (),
             x => panic!(
                 "should end with HandshakeError::ReceiveError, but we got {:?}",
+                x
+            ),
+        };
+    }
+
+    fn assert_signature_error<T: std::fmt::Debug>(result: Result<T, HandshakeError>) {
+        match result {
+            Err(HandshakeError::SignatureError) => (),
+            x => panic!(
+                "should end with HandshakeError::SignatureError, but we got {:?}",
+                x
+            ),
+        };
+    }
+
+    fn assert_challenge_error<T: std::fmt::Debug>(result: Result<T, HandshakeError>) {
+        match result {
+            Err(HandshakeError::ChallengeError(_, _)) => (),
+            x => panic!(
+                "should end with HandshakeError::ChallengeError, but we got {:?}",
                 x
             ),
         };
@@ -228,48 +239,134 @@ mod tests {
         let (id_a, pen_a) = keys().await;
         let (id_b, pen_b) = keys().await;
         assert_ne!(id_a, id_b);
-        let ((_, _, received_id_b), (_, _, received_id_a)) = try_join!(
-            execute_v0_handshake(stream_a, pen_a),
-            execute_v0_handshake(stream_b, pen_b),
+        let ((_, _, received_id_b), (_, _)) = try_join!(
+            execute_v0_handshake_incoming(stream_a, pen_a),
+            execute_v0_handshake_outgoing(stream_b, pen_b, id_a),
         )
         .expect("handshake should work");
-        assert_eq!(id_a, received_id_a);
         assert_eq!(id_b, received_id_b);
     }
 
     #[tokio::test]
-    async fn broken_connection() {
-        // break the connection even before the handshake starts
-        let (stream_a, _) = MockSplittable::new(4096);
-        let (_, pen_a) = keys().await;
-        let e = execute_v0_handshake(stream_a, pen_a)
-            .await
-            .expect_err("should end with error");
-        assert_send_error(e);
-        // break the connection at precise step
-        assert_receive_error(break_v0_handshake_after(0).await);
-        assert_send_error(break_v0_handshake_after(1).await);
-        assert_receive_error(break_v0_handshake_after(2).await);
+    async fn handshake_with_malicious_server_peer() {
+        async fn execute_malicious_v0_handshake_incoming<S: Splittable>(stream: S) {
+            let (fake_id, _) = keys().await;
+            // send challenge with incorrect id
+            let our_challenge = Challenge::new(fake_id);
+            send_data(stream, our_challenge.clone())
+                .await
+                .expect("should send");
+            // wait forever
+            futures::future::pending::<()>().await;
+        }
+
+        let (stream_a, stream_b) = MockSplittable::new(4096);
+        let (id_a, _) = keys().await;
+        let (_, pen_b) = keys().await;
+        tokio::select! {
+            _ = execute_malicious_v0_handshake_incoming(stream_a) => panic!("should wait"),
+            result = execute_v0_handshake_outgoing(stream_b, pen_b, id_a) => assert_challenge_error(result),
+        }
     }
 
     #[tokio::test]
-    async fn handshake_with_malicious_peer() {
+    async fn handshake_with_malicious_client_peer_fake_challenge() {
+        pub async fn execute_malicious_v0_handshake_outgoing_fake_challenge<S: Splittable>(
+            stream: S,
+            authority_pen: AuthorityPen,
+        ) {
+            // receive challenge
+            let (stream, _) = receive_data::<_, Challenge>(stream)
+                .await
+                .expect("should receive");
+            // prepare fake challenge
+            let (fake_id, _) = keys().await;
+            let fake_challenge = Challenge::new(fake_id);
+            // send response with substituted challenge
+            let our_response = Response::new(&authority_pen, &fake_challenge).await;
+            send_data(stream, our_response).await.expect("should send");
+            futures::future::pending::<()>().await;
+        }
+
+        let (stream_a, stream_b) = MockSplittable::new(4096);
+        let (_, pen_a) = keys().await;
+        let (_, pen_b) = keys().await;
+        tokio::select! {
+            result = execute_v0_handshake_incoming(stream_a, pen_a) => assert_signature_error(result),
+            _ = execute_malicious_v0_handshake_outgoing_fake_challenge(stream_b, pen_b) => panic!("should wait"),
+        }
+    }
+
+    #[tokio::test]
+    async fn handshake_with_malicious_client_peer_fake_signature() {
+        pub async fn execute_malicious_v0_handshake_outgoing_fake_signature<S: Splittable>(
+            stream: S,
+            authority_pen: AuthorityPen,
+        ) {
+            // receive challenge
+            let (stream, challenge) = receive_data::<_, Challenge>(stream)
+                .await
+                .expect("should receive");
+            // prepare fake id
+            let (fake_id, _) = keys().await;
+            // send response with substituted id
+            let mut our_response = Response::new(&authority_pen, &challenge).await;
+            our_response.id = fake_id;
+            send_data(stream, our_response).await.expect("should send");
+            futures::future::pending::<()>().await;
+        }
+
+        let (stream_a, stream_b) = MockSplittable::new(4096);
+        let (_, pen_a) = keys().await;
+        let (_, pen_b) = keys().await;
+        tokio::select! {
+            result = execute_v0_handshake_incoming(stream_a, pen_a) => assert_signature_error(result),
+            _ = execute_malicious_v0_handshake_outgoing_fake_signature(stream_b, pen_b) => panic!("should wait"),
+        }
+    }
+
+    #[tokio::test]
+    async fn broken_incoming_connection_step_one() {
+        // break the connection even before the handshake starts by dropping the stream
+        let (stream_a, _) = MockSplittable::new(4096);
+        let (_, pen_a) = keys().await;
+        assert_send_error(execute_v0_handshake_incoming(stream_a, pen_a).await);
+    }
+
+    #[tokio::test]
+    async fn broken_incoming_connection_step_two() {
+        let (stream_a, stream_b) = MockSplittable::new(4096);
+        let (_, pen_a) = keys().await;
+        let (result, _) = join!(
+            execute_v0_handshake_incoming(stream_a, pen_a),
+            // mock outgoing handshake: receive the first message and terminate
+            async {
+                receive_data::<_, Challenge>(stream_b)
+                    .await
+                    .expect("should receive");
+            },
+        );
+        assert_receive_error(result);
+    }
+
+    #[tokio::test]
+    async fn broken_outgoing_connection_step_one() {
+        // break the connection even before the handshake starts by dropping the stream
+        let (stream_a, _) = MockSplittable::new(4096);
+        let (_, pen_a) = keys().await;
+        let (id_b, _) = keys().await;
+        assert_receive_error(execute_v0_handshake_outgoing(stream_a, pen_a, id_b).await);
+    }
+
+    #[tokio::test]
+    async fn broken_outgoing_connection_step_two() {
         let (stream_a, stream_b) = MockSplittable::new(4096);
         let (id_a, pen_a) = keys().await;
-        let (id_b, pen_b) = keys().await;
-        assert_ne!(id_a, id_b);
-        let (result_good, result_bad) = join!(
-            execute_v0_handshake(stream_a, pen_a),
-            execute_malicious_v0_handshake(stream_b, pen_b),
-        );
-        let (_, _, received_id_a) = result_bad.expect("bad handshake should work");
-        assert_eq!(id_a, received_id_a);
-        match result_good {
-            Err(HandshakeError::SignatureError) => (),
-            x => panic!(
-                "should end with HandshakeError::SignatureError, but we got {:?}",
-                x
-            ),
-        }
+        let (_, pen_b) = keys().await;
+        // mock incoming handshake: send the first message and terminate
+        send_data(stream_a, Challenge::new(pen_a.authority_id()))
+            .await
+            .expect("should send");
+        assert_send_error(execute_v0_handshake_outgoing(stream_b, pen_b, id_a).await);
     }
 }
