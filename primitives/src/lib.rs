@@ -171,6 +171,14 @@ impl SessionAuthorityData {
     }
 }
 
+pub type Version = u32;
+
+#[derive(Clone, Debug, Decode, Encode, PartialEq, Eq, TypeInfo)]
+pub struct VersionChange {
+    pub version_incoming: Version,
+    pub session: SessionIndex,
+}
+
 sp_api::decl_runtime_apis! {
     pub trait AlephSessionApi
     {
@@ -180,6 +188,8 @@ sp_api::decl_runtime_apis! {
         fn authority_data() -> SessionAuthorityData;
         fn session_period() -> u32;
         fn millisecs_per_block() -> u64;
+        fn finality_version() -> Version;
+        fn next_session_finality_version() -> Version;
     }
 }
 

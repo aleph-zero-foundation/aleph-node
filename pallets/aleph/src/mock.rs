@@ -105,7 +105,7 @@ impl pallet_session::Config for Test {
     type ValidatorIdOf = ConvertInto;
     type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
     type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
-    type SessionManager = ();
+    type SessionManager = Aleph;
     type SessionHandler = <TestSessionKeys as OpaqueKeys>::KeyTypeIdProviders;
     type Keys = TestSessionKeys;
     type WeightInfo = ();
@@ -133,6 +133,8 @@ impl pallet_timestamp::Config for Test {
 impl Config for Test {
     type AuthorityId = AuthorityId;
     type Event = Event;
+    type SessionInfoProvider = Session;
+    type SessionManager = ();
 }
 
 pub fn to_authority(id: &u64) -> AuthorityId {
