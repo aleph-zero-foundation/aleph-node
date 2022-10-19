@@ -1,7 +1,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use codec::{Decode, Encode};
 use frame_support::pallet_prelude::StorageVersion;
 pub use pallet::*;
+use scale_info::TypeInfo;
 
 /// The current storage version.
 const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
@@ -9,10 +11,17 @@ const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 /// We store verification keys under short identifiers.
 pub type VerificationKeyIdentifier = [u8; 4];
 
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Decode, Encode, TypeInfo)]
+pub enum ProvingSystem {
+    Groth16,
+    Gm17,
+}
+
 #[frame_support::pallet]
 pub mod pallet {
     use ark_ec::PairingEngine;
-    use ark_groth16::{Groth16, Proof, VerifyingKey};
+    use ark_gm17::GM17;
+    use ark_groth16::Groth16;
     use ark_serialize::CanonicalDeserialize;
     use ark_snark::SNARK;
     use frame_support::{log, pallet_prelude::*};
@@ -21,10 +30,15 @@ pub mod pallet {
 
     use super::*;
 
+    /// Pack of helpful type aliases.
+    type Fr<T> = <<T as Config>::Pairing as PairingEngine>::Fr;
+    type VerifyingKey<S, T> = <S as SNARK<Fr<T>>>::VerifyingKey;
+    type Proof<S, T> = <S as SNARK<Fr<T>>>::Proof;
+
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-        type Field: PairingEngine;
+        type Pairing: PairingEngine;
 
         #[pallet::constant]
         type MaximumVerificationKeyLength: Get<u32>;
@@ -74,6 +88,14 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        /// Stores `key` under `identifier` in `VerificationKeys` map.
+        ///
+        /// Fails if:
+        /// - `key.len()` is greater than `MaximumVerificationKeyLength`, or
+        /// - `identifier` has been already used
+        ///
+        /// `key` can come from any proving system - there are no checks that verify it, in
+        /// particular, `key` can contain just trash bytes.
         #[pallet::weight(T::BlockWeights::get().max_block / 2)]
         pub fn store_key(
             _origin: OriginFor<T>,
@@ -98,38 +120,75 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Verifies `proof` against `public_input` with a key that has been stored under
+        /// `verification_key_identifier`. All is done within `system` proving system.
+        ///
+        /// Fails if:
+        /// - there is no verification key under `verification_key_identifier`
+        /// - verification key under `verification_key_identifier` cannot be deserialized
+        /// (e.g. it has been produced for another proving system)
+        /// - `proof` cannot be deserialized (e.g. it has been produced for another proving system)
+        /// - `public_input` cannot be deserialized (e.g. it has been produced for another proving
+        /// system)
+        /// - verifying procedure fails (e.g. incompatible verification key and proof)
+        /// - proof is incorrect
         #[pallet::weight(T::BlockWeights::get().max_block / 2)]
         pub fn verify(
             _origin: OriginFor<T>,
             verification_key_identifier: VerificationKeyIdentifier,
             proof: Vec<u8>,
             public_input: Vec<u8>,
+            system: ProvingSystem,
         ) -> DispatchResult {
-            let proof = Proof::<T::Field>::deserialize(&*proof).map_err(|e| {
+            match system {
+                ProvingSystem::Groth16 => Self::bare_verify::<Groth16<T::Pairing>>(
+                    verification_key_identifier,
+                    proof,
+                    public_input,
+                ),
+                ProvingSystem::Gm17 => Self::bare_verify::<GM17<T::Pairing>>(
+                    verification_key_identifier,
+                    proof,
+                    public_input,
+                ),
+            }
+            .map_err(|e| e.into())
+        }
+    }
+
+    impl<T: Config> Pallet<T> {
+        pub fn bare_verify<S: SNARK<Fr<T>>>(
+            verification_key_identifier: VerificationKeyIdentifier,
+            proof: Vec<u8>,
+            public_input: Vec<u8>,
+        ) -> Result<(), Error<T>>
+        where
+            VerifyingKey<S, T>: CanonicalDeserialize,
+            Proof<S, T>: CanonicalDeserialize,
+        {
+            let proof: Proof<S, T> = CanonicalDeserialize::deserialize(&*proof).map_err(|e| {
                 log::error!("Deserializing proof failed: {:?}", e);
                 Error::<T>::DeserializingProofFailed
             })?;
 
-            let public_input =
-                Vec::<<<T as Config>::Field as PairingEngine>::Fr>::deserialize(&*public_input)
-                    .map_err(|e| {
-                        log::error!("Deserializing public input failed: {:?}", e);
-                        Error::<T>::DeserializingPublicInputFailed
-                    })?;
+            let public_input: Vec<Fr<T>> = CanonicalDeserialize::deserialize(&*public_input)
+                .map_err(|e| {
+                    log::error!("Deserializing public input failed: {:?}", e);
+                    Error::<T>::DeserializingPublicInputFailed
+                })?;
 
             let verification_key = VerificationKeys::<T>::get(verification_key_identifier)
                 .ok_or(Error::<T>::UnknownVerificationKeyIdentifier)?;
-            let verification_key = VerifyingKey::<T::Field>::deserialize(&**verification_key)
-                .map_err(|e| {
+            let verification_key: VerifyingKey<S, T> =
+                CanonicalDeserialize::deserialize(&**verification_key).map_err(|e| {
                     log::error!("Deserializing verification key failed: {:?}", e);
                     Error::<T>::DeserializingVerificationKeyFailed
                 })?;
 
-            let valid_proof =
-                Groth16::verify(&verification_key, &public_input, &proof).map_err(|e| {
-                    log::error!("Verifying failed: {:?}", e);
-                    Error::<T>::VerificationFailed
-                })?;
+            let valid_proof = S::verify(&verification_key, &public_input, &proof).map_err(|e| {
+                log::error!("Verifying failed: {:?}", e);
+                Error::<T>::VerificationFailed
+            })?;
 
             ensure!(valid_proof, Error::<T>::IncorrectProof);
 
