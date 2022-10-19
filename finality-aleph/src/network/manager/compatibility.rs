@@ -4,6 +4,7 @@ use std::{
 };
 
 use codec::{Decode, Encode, Error as CodecError, Input as CodecInput};
+use log::warn;
 
 use crate::network::{
     manager::{DiscoveryMessage, NetworkData},
@@ -41,12 +42,33 @@ impl<M: Multiaddress> From<DiscoveryMessage<M>> for VersionedAuthentication<M> {
     }
 }
 
-fn encode_with_version(version: Version, mut payload: Vec<u8>) -> Vec<u8> {
-    let mut result = version.encode();
-    // This will produce rubbish if we ever try encodings that have more than u32::MAX bytes.
-    let num_bytes = payload.len() as ByteCount;
-    result.append(&mut num_bytes.encode());
-    result.append(&mut payload);
+fn encode_with_version(version: Version, payload: &[u8]) -> Vec<u8> {
+    // If size is bigger then u16 we set it to MAX_AUTHENTICATION_SIZE.
+    // This should never happen but in case it does we will not panic.
+    // Also for other users if they have this version of protocol, authentication
+    // will be decoded. If they do not know the protocol, authentication will result
+    // in decoding error.
+    // We do not have a guarantee that size_hint is implemented for DiscoveryMessage, so we need
+    // to compute actual size to place it in the encoded data.
+    let size = payload
+        .len()
+        .try_into()
+        .unwrap_or(MAX_AUTHENTICATION_SIZE + 1);
+    if size > MAX_AUTHENTICATION_SIZE {
+        warn!(
+            "Versioned Authentication v{:?} too big during Encode. Size is {:?}. Should be {:?} at max.",
+            version,
+            payload.len(),
+            MAX_AUTHENTICATION_SIZE
+        );
+    }
+
+    let mut result = Vec::with_capacity(version.size_hint() + size.size_hint() + payload.len());
+
+    version.encode_to(&mut result);
+    size.encode_to(&mut result);
+    result.extend_from_slice(payload);
+
     result
 }
 
@@ -66,8 +88,8 @@ impl<M: Multiaddress> Encode for VersionedAuthentication<M> {
     fn encode(&self) -> Vec<u8> {
         use VersionedAuthentication::*;
         match self {
-            Other(version, payload) => encode_with_version(*version, payload.clone()),
-            V1(data) => encode_with_version(1, data.encode()),
+            Other(version, payload) => encode_with_version(*version, payload),
+            V1(data) => encode_with_version(1, &data.encode()),
         }
     }
 }
@@ -168,6 +190,11 @@ mod test {
         other.append(&mut size.encode());
         other.append(&mut vec![0u8; size.into()]);
         let decoded = VersionedAuthentication::<MockMultiaddress>::decode(&mut other.as_slice());
+        assert!(decoded.is_err());
+
+        let other = VersionedAuthentication::<MockMultiaddress>::Other(42, vec![0u8; size.into()]);
+        let encoded = other.encode();
+        let decoded = VersionedAuthentication::<MockMultiaddress>::decode(&mut encoded.as_slice());
         assert!(decoded.is_err());
     }
 

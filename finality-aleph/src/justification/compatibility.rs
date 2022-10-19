@@ -5,6 +5,7 @@ use std::{
 
 use aleph_bft::{PartialMultisignature, SignatureSet};
 use codec::{Decode, DecodeAll, Encode, Error as CodecError, Input as CodecInput};
+use log::warn;
 
 use crate::{
     crypto::{Signature, SignatureV1},
@@ -56,14 +57,30 @@ enum VersionedAlephJustification {
     V3(AlephJustification),
 }
 
-fn encode_with_version(version: Version, mut payload: Vec<u8>) -> Vec<u8> {
-    let mut result = version.encode();
+fn encode_with_version(version: Version, payload: &[u8]) -> Vec<u8> {
     // This will produce rubbish if we ever try encodings that have more than u16::MAX bytes. We
     // expect this won't happen, since we will switch to proper multisignatures before proofs get
     // that big.
-    let num_bytes = payload.len() as ByteCount;
-    result.append(&mut num_bytes.encode());
-    result.append(&mut payload);
+    // We do not have a guarantee that size_hint is implemented for AlephJustification, so we need
+    // to compute actual size to place it in the encoded data.
+    let size = payload.len().try_into().unwrap_or_else(|_| {
+        if payload.len() > ByteCount::MAX.into() {
+            warn!(
+                "Versioned Justification v{:?} too big during Encode. Size is {:?}. Should be {:?} at max.",
+                version,
+                payload.len(),
+                ByteCount::MAX
+            );
+        }
+        ByteCount::MAX
+    });
+
+    let mut result = Vec::with_capacity(version.size_hint() + size.size_hint() + payload.len());
+
+    version.encode_to(&mut result);
+    size.encode_to(&mut result);
+    result.extend_from_slice(payload);
+
     result
 }
 
@@ -85,10 +102,10 @@ impl Encode for VersionedAlephJustification {
     fn encode(&self) -> Vec<u8> {
         use VersionedAlephJustification::*;
         match self {
-            Other(version, payload) => encode_with_version(*version, payload.clone()),
-            V1(justification) => encode_with_version(1, justification.encode()),
-            V2(justification) => encode_with_version(2, justification.encode()),
-            V3(justification) => encode_with_version(3, justification.encode()),
+            Other(version, payload) => encode_with_version(*version, payload),
+            V1(justification) => encode_with_version(1, &justification.encode()),
+            V2(justification) => encode_with_version(2, &justification.encode()),
+            V3(justification) => encode_with_version(3, &justification.encode()),
         }
     }
 }
