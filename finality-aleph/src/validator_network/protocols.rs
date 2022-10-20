@@ -5,6 +5,7 @@ use futures::{
     channel::{mpsc, oneshot},
     StreamExt,
 };
+use log::{debug, info, trace};
 use tokio::io::{AsyncRead, AsyncWrite};
 
 use crate::{
@@ -96,15 +97,18 @@ async fn v0_outgoing<D: Data, S: Splittable>(
     peer_id: AuthorityId,
     result_for_parent: mpsc::UnboundedSender<(AuthorityId, Option<mpsc::UnboundedSender<D>>)>,
 ) -> Result<(), ProtocolError> {
+    trace!(target: "validator-network", "Extending hand to {}.", peer_id);
     let (sender, receiver) = v0_handshake_outgoing(stream, authority_pen, peer_id.clone()).await?;
+    info!(target: "validator-network", "Outgoing handshake with {} finished successfully.", peer_id);
     let (data_for_network, data_from_user) = mpsc::unbounded::<D>();
     result_for_parent
-        .unbounded_send((peer_id, Some(data_for_network)))
+        .unbounded_send((peer_id.clone(), Some(data_for_network)))
         .map_err(|_| ProtocolError::NoParentConnection)?;
 
     let sending = sending(sender, data_from_user);
     let heartbeat = heartbeat_receiver(receiver);
 
+    debug!(target: "validator-network", "Starting worker for sending to {}.", peer_id);
     loop {
         tokio::select! {
             _ = heartbeat => return Err(ProtocolError::CardiacArrest),
@@ -136,16 +140,19 @@ async fn v0_incoming<D: Data, S: Splittable>(
     result_for_parent: mpsc::UnboundedSender<(AuthorityId, oneshot::Sender<()>)>,
     data_for_user: mpsc::UnboundedSender<D>,
 ) -> Result<(), ProtocolError> {
+    trace!(target: "validator-network", "Waiting for extended hand...");
     let (sender, receiver, peer_id) = v0_handshake_incoming(stream, authority_pen).await?;
+    info!(target: "validator-network", "Incoming handshake with {} finished successfully.", peer_id);
 
     let (tx_exit, exit) = oneshot::channel();
     result_for_parent
-        .unbounded_send((peer_id, tx_exit))
+        .unbounded_send((peer_id.clone(), tx_exit))
         .map_err(|_| ProtocolError::NoParentConnection)?;
 
     let receiving = receiving(receiver, data_for_user);
     let heartbeat = heartbeat_sender(sender);
 
+    debug!(target: "validator-network", "Starting worker for receiving from {}.", peer_id);
     loop {
         tokio::select! {
             _ = heartbeat => return Err(ProtocolError::CardiacArrest),

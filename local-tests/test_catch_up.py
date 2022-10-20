@@ -26,13 +26,16 @@ chain.bootstrap(binary,
 
 chain.set_flags('no-mdns',
                 port=Seq(30334),
+                validator_port=Seq(30343),
                 ws_port=Seq(9944),
                 rpc_port=Seq(9933),
                 unit_creation_delay=200,
                 execution='Native',
                 pruning='archive')
 addresses = [n.address() for n in chain]
-chain.set_flags(bootnodes=addresses[0], public_addr=addresses)
+validator_addresses = [n.validator_address() for n in chain]
+chain.set_flags(bootnodes=addresses[0])
+chain.set_flags_validator(public_addr=addresses, public_validator_addresses=validator_addresses)
 
 chain.set_flags_validator('validator')
 

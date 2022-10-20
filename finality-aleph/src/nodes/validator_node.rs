@@ -1,5 +1,7 @@
 use std::marker::PhantomData;
 
+use bip39::{Language, Mnemonic, MnemonicType};
+use futures::channel::oneshot;
 use log::{debug, error};
 use sc_client_api::Backend;
 use sc_network::ExHashT;
@@ -7,6 +9,7 @@ use sp_consensus::SelectChain;
 use sp_runtime::traits::Block;
 
 use crate::{
+    crypto::AuthorityPen,
     network::{
         setup_io, ConnectionManager, ConnectionManagerConfig, Service as NetworkService,
         SessionManager,
@@ -18,7 +21,9 @@ use crate::{
         ConsensusParty, ConsensusPartyParams,
     },
     session_map::{AuthorityProviderImpl, FinalityNotificatorImpl, SessionMapUpdater},
-    tcp_network, AlephConfig,
+    tcp_network::new_tcp_network,
+    validator_network::{Service, KEY_TYPE},
+    AlephConfig,
 };
 
 pub async fn run_validator_node<B, H, C, BE, SC>(aleph_config: AlephConfig<B, H, C, SC>)
@@ -42,10 +47,43 @@ where
         millisecs_per_block,
         justification_rx,
         backup_saving_path,
+        external_addresses,
+        validator_port,
         ..
     } = aleph_config;
 
-    let (validator_network, validator_network_identity) = tcp_network::new_noop().await;
+    // We generate the phrase manually to only save the key in RAM, we don't want to have these
+    // relatively low-importance keys getting spammed around the absolutely crucial Aleph keys.
+    // The interface of `ed25519_generate_new` only allows to save in RAM by providing a mnemonic.
+    let validator_peer_id = keystore
+        .ed25519_generate_new(
+            KEY_TYPE,
+            Some(Mnemonic::new(MnemonicType::Words12, Language::English).phrase()),
+        )
+        .await
+        .expect("generating a key should work");
+    let network_authority_pen =
+        AuthorityPen::new_with_key_type(validator_peer_id.into(), keystore.clone(), KEY_TYPE)
+            .await
+            .expect("we just generated this key so everything should work");
+    let (dialer, listener, network_identity) = new_tcp_network(
+        ("0.0.0.0", validator_port),
+        external_addresses,
+        validator_peer_id.into(),
+    )
+    .await
+    .expect("we should have working networking");
+    let (validator_network_service, validator_network) = Service::new(
+        dialer,
+        listener,
+        network_authority_pen,
+        spawn_handle.clone(),
+    );
+    let (_validator_network_exit, exit) = oneshot::channel();
+    spawn_handle.spawn("aleph/validator_network", None, async move {
+        debug!(target: "aleph-party", "Validator network has started.");
+        validator_network_service.run(exit).await
+    });
 
     let block_requester = network.clone();
     let map_updater = SessionMapUpdater::<_, _, B>::new(
@@ -72,7 +110,7 @@ where
     let (connection_io, network_io, session_io) = setup_io();
 
     let connection_manager = ConnectionManager::new(
-        validator_network_identity,
+        network_identity,
         ConnectionManagerConfig::with_session_period(&session_period, &millisecs_per_block),
     );
 

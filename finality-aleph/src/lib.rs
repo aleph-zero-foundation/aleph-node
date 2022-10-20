@@ -289,4 +289,6 @@ pub struct AlephConfig<B: Block, H: ExHashT, C, SC> {
     pub millisecs_per_block: MillisecsPerBlock,
     pub unit_creation_delay: UnitCreationDelay,
     pub backup_saving_path: Option<PathBuf>,
+    pub external_addresses: Vec<String>,
+    pub validator_port: u16,
 }

@@ -350,6 +350,9 @@ pub fn new_authority(
         .spawn_essential_handle()
         .spawn_blocking("aura", None, aura);
 
+    if aleph_config.external_addresses().is_empty() {
+        panic!("Cannot run a validator node without external addresses, stopping.");
+    }
     let aleph_config = AlephConfig {
         network,
         client,
@@ -362,6 +365,8 @@ pub fn new_authority(
         metrics,
         unit_creation_delay: aleph_config.unit_creation_delay(),
         backup_saving_path: backup_path,
+        external_addresses: aleph_config.external_addresses(),
+        validator_port: aleph_config.validator_port(),
     };
     task_manager.spawn_essential_handle().spawn_blocking(
         "aleph",
@@ -435,6 +440,8 @@ pub fn new_full(
         metrics,
         unit_creation_delay: aleph_config.unit_creation_delay(),
         backup_saving_path: backup_path,
+        external_addresses: aleph_config.external_addresses(),
+        validator_port: aleph_config.validator_port(),
     };
 
     task_manager.spawn_essential_handle().spawn_blocking(

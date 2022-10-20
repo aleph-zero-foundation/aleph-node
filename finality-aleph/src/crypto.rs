@@ -36,7 +36,31 @@ pub struct AuthorityPen {
 }
 
 impl AuthorityPen {
-    /// Constructs a new authority cryptography keystore for the given ID.
+    /// Constructs a new authority cryptography keystore for the given ID and key type.
+    /// Will attempt to sign a test message to verify that signing works.
+    /// Returns errors if anything goes wrong during this attempt, otherwise we assume the
+    /// AuthorityPen will work for any future attempts at signing.
+    pub async fn new_with_key_type(
+        authority_id: AuthorityId,
+        keystore: Arc<dyn CryptoStore>,
+        key_type: KeyTypeId,
+    ) -> Result<Self, Error> {
+        // Check whether this signing setup works
+        let _: AuthoritySignature = keystore
+            .sign_with(key_type, &authority_id.clone().into(), b"test")
+            .await
+            .map_err(Error::Keystore)?
+            .ok_or_else(|| Error::KeyMissing(authority_id.clone()))?
+            .try_into()
+            .map_err(|_| Error::Conversion)?;
+        Ok(AuthorityPen {
+            key_type_id: key_type,
+            authority_id,
+            keystore,
+        })
+    }
+
+    /// Constructs a new authority cryptography keystore for the given ID and the aleph key type.
     /// Will attempt to sign a test message to verify that signing works.
     /// Returns errors if anything goes wrong during this attempt, otherwise we assume the
     /// AuthorityPen will work for any future attempts at signing.
@@ -44,19 +68,7 @@ impl AuthorityPen {
         authority_id: AuthorityId,
         keystore: Arc<dyn CryptoStore>,
     ) -> Result<Self, Error> {
-        // Check whether this signing setup works
-        let _: AuthoritySignature = keystore
-            .sign_with(KEY_TYPE, &authority_id.clone().into(), b"test")
-            .await
-            .map_err(Error::Keystore)?
-            .ok_or_else(|| Error::KeyMissing(authority_id.clone()))?
-            .try_into()
-            .map_err(|_| Error::Conversion)?;
-        Ok(AuthorityPen {
-            key_type_id: KEY_TYPE,
-            authority_id,
-            keystore,
-        })
+        Self::new_with_key_type(authority_id, keystore, KEY_TYPE).await
     }
 
     /// Cryptographically signs the message.
@@ -72,7 +84,6 @@ impl AuthorityPen {
         )
     }
 
-    #[allow(dead_code)] // Remove when used in validator network.
     /// Return the associated AuthorityId.
     pub fn authority_id(&self) -> AuthorityId {
         self.authority_id.clone()

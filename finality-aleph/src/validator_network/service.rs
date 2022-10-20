@@ -3,13 +3,16 @@ use futures::{
     channel::{mpsc, oneshot},
     StreamExt,
 };
-use log::{info, warn};
+use log::{info, trace, warn};
 use tokio::time;
 
 use crate::{
     crypto::AuthorityPen,
     validator_network::{
-        incoming::incoming, manager::Manager, outgoing::outgoing, Data, Dialer, Listener, Network,
+        incoming::incoming,
+        manager::{AddResult, Manager},
+        outgoing::outgoing,
+        Data, Dialer, Listener, Network,
     },
     SpawnTaskHandle, STATUS_REPORT_INTERVAL,
 };
@@ -168,8 +171,9 @@ impl<D: Data, A: Data, ND: Dialer<A>, NL: Listener> Service<D, A, ND, NL> {
                     },
                     // pass the data to the manager
                     SendData(data, peer_id) => {
-                        if let Err(e) = self.manager.send_to(&peer_id, data) {
-                            info!(target: "validator-network", "Failed sending to {}: {}", peer_id, e);
+                        match self.manager.send_to(&peer_id, data) {
+                            Ok(_) => trace!(target: "validator-network", "Sending data to {}.", peer_id),
+                            Err(e) => trace!(target: "validator-network", "Failed sending to {}: {}", peer_id, e),
                         }
                     },
                 },
@@ -178,16 +182,24 @@ impl<D: Data, A: Data, ND: Dialer<A>, NL: Listener> Service<D, A, ND, NL> {
                 // pass the tuple to the manager to register the connection
                 // the manager will be responsible for killing the worker if necessary
                 Some((peer_id, exit)) = incoming_workers.next() => {
-                    if self.manager.add_incoming(peer_id.clone(), exit) {
-                        info!(target: "validator-network", "Replaced incoming connection for peer {}.", peer_id)
+                    use AddResult::*;
+                    match self.manager.add_incoming(peer_id.clone(), exit) {
+                        Uninterested => info!(target: "validator-network", "Peer {} connected to us despite out lack of interest.", peer_id),
+                        Added => info!(target: "validator-network", "New incoming connection for peer {}.", peer_id),
+                        Replaced => info!(target: "validator-network", "Replaced incoming connection for peer {}.", peer_id),
                     }
                 },
                 // received information from a spawned worker managing an outgoing connection
                 // check if we still want to be connected to the peer, and if so, spawn a new worker or actually add proper connection
                 Some((peer_id, maybe_data_for_network)) = outgoing_workers.next() => {
+                    use AddResult::*;
                     if let Some(addresses) = self.manager.peer_addresses(&peer_id) {
                         match maybe_data_for_network {
-                            Some(data_for_network) => self.manager.add_outgoing(peer_id, data_for_network),
+                            Some(data_for_network) => match self.manager.add_outgoing(peer_id.clone(), data_for_network) {
+                                Uninterested => warn!(target: "validator-network", "We connected to peer {} for unknown reasons.", peer_id),
+                                Added => info!(target: "validator-network", "New outgoing connection to peer {}.", peer_id),
+                                Replaced => info!(target: "validator-network", "Replaced outgoing connection to peer {}.", peer_id),
+                            },
                             None => self.spawn_new_outgoing(peer_id, addresses, outgoing_result_for_parent.clone()),
                         }
                     };

@@ -2,6 +2,7 @@ use std::fmt::Display;
 
 use aleph_primitives::AuthorityId;
 use codec::Codec;
+use sp_core::crypto::KeyTypeId;
 use tokio::io::{AsyncRead, AsyncWrite};
 
 mod handshake;
@@ -14,8 +15,11 @@ mod mock;
 mod outgoing;
 mod protocol_negotiation;
 mod protocols;
-#[allow(dead_code)]
 mod service;
+
+pub use service::Service;
+
+pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"a0vn");
 
 /// What the data sent using the network has to satisfy.
 pub trait Data: Clone + Codec + Send + Sync + 'static {}

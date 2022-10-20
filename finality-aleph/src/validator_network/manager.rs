@@ -57,6 +57,17 @@ impl Display for ManagerStatus {
     }
 }
 
+/// Possible results of adding connections.
+#[derive(Debug, PartialEq, Eq)]
+pub enum AddResult {
+    /// We do not want to maintain a connection with this peer.
+    Uninterested,
+    /// Connection added.
+    Added,
+    /// Old connection replaced with new one.
+    Replaced,
+}
+
 impl<A: Data, D: Data> Manager<A, D> {
     /// Create a new Manager with empty list of peers.
     pub fn new() -> Self {
@@ -86,20 +97,28 @@ impl<A: Data, D: Data> Manager<A, D> {
         &mut self,
         peer_id: AuthorityId,
         data_for_network: mpsc::UnboundedSender<D>,
-    ) {
-        if self.addresses.contains_key(&peer_id) {
-            self.outgoing.insert(peer_id, data_for_network);
-        };
+    ) -> AddResult {
+        use AddResult::*;
+        if !self.addresses.contains_key(&peer_id) {
+            return Uninterested;
+        }
+        match self.outgoing.insert(peer_id, data_for_network) {
+            Some(_) => Replaced,
+            None => Added,
+        }
     }
 
     /// Add an established incoming connection with a known peer,
     /// but only if the peer is on the list of peers that we want to stay connected with.
-    /// Returns true if it overwrote an earlier connection.
-    pub fn add_incoming(&mut self, peer_id: AuthorityId, exit: oneshot::Sender<()>) -> bool {
+    pub fn add_incoming(&mut self, peer_id: AuthorityId, exit: oneshot::Sender<()>) -> AddResult {
+        use AddResult::*;
         if !self.addresses.contains_key(&peer_id) {
-            return false;
+            return Uninterested;
         };
-        self.incoming.insert(peer_id, exit).is_some()
+        match self.incoming.insert(peer_id, exit) {
+            Some(_) => Replaced,
+            None => Added,
+        }
     }
 
     /// Remove a peer from the list of peers that we want to stay connected with.
@@ -128,12 +147,12 @@ impl<A: Data, D: Data> Manager<A, D> {
             incoming_peers: self
                 .incoming
                 .values()
-                .filter(|exit| exit.is_canceled())
+                .filter(|exit| !exit.is_canceled())
                 .count(),
             outgoing_peers: self
                 .outgoing
                 .values()
-                .filter(|sender| sender.is_closed())
+                .filter(|sender| !sender.is_closed())
                 .count(),
         }
     }
@@ -146,7 +165,7 @@ mod tests {
         StreamExt,
     };
 
-    use super::{Manager, SendError};
+    use super::{AddResult::*, Manager, SendError};
     use crate::validator_network::mock::keys;
 
     type Data = String;
@@ -201,7 +220,7 @@ mod tests {
         // add peer, this time for real
         assert!(manager.add_peer(peer_id.clone(), addresses.clone()));
         let (tx, mut rx) = mpsc::unbounded();
-        manager.add_outgoing(peer_id.clone(), tx);
+        assert_eq!(manager.add_outgoing(peer_id.clone(), tx), Added);
         // send and receive
         assert!(manager.send_to(&peer_id, data.clone()).is_ok());
         assert_eq!(data, rx.next().await.expect("should receive"));
@@ -221,20 +240,20 @@ mod tests {
             String::from("43.43.43.43:43000"),
         ];
         let (tx, rx) = oneshot::channel();
-        // try add unknown peer, does not replace so should be false
-        assert!(!manager.add_incoming(peer_id.clone(), tx));
+        // try add unknown peer
+        assert_eq!(manager.add_incoming(peer_id.clone(), tx), Uninterested);
         // rx should fail
         assert!(rx.await.is_err());
         // add peer, this time for real
         assert!(manager.add_peer(peer_id.clone(), addresses.clone()));
         let (tx, mut rx) = oneshot::channel();
-        // still shouldn't replace
-        assert!(!manager.add_incoming(peer_id.clone(), tx));
+        // should just add
+        assert_eq!(manager.add_incoming(peer_id.clone(), tx), Added);
         // the exit channel should be open
         assert!(rx.try_recv().is_ok());
         let (tx, mut rx2) = oneshot::channel();
         // should replace now
-        assert!(manager.add_incoming(peer_id.clone(), tx));
+        assert_eq!(manager.add_incoming(peer_id.clone(), tx), Replaced);
         // receiving should fail on old, but work on new channel
         assert!(rx.try_recv().is_err());
         assert!(rx2.try_recv().is_ok());
