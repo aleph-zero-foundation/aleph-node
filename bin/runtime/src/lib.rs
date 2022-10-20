@@ -6,6 +6,8 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+mod chain_extension;
+
 use ark_bls12_381::Bls12_381;
 pub use frame_support::{
     construct_runtime, log, parameter_types,
@@ -108,7 +110,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 34,
+    spec_version: 35,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 9,
@@ -377,6 +379,9 @@ parameter_types! {
 }
 
 use sp_runtime::traits::Convert;
+
+use crate::chain_extension::AlephChainExtension;
+
 pub struct BalanceToU256;
 impl Convert<Balance, sp_core::U256> for BalanceToU256 {
     fn convert(balance: Balance) -> sp_core::U256 {
@@ -672,7 +677,7 @@ impl pallet_contracts::Config for Runtime {
     type DepositPerByte = DepositPerByte;
     type WeightPrice = pallet_transaction_payment::Pallet<Self>;
     type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
-    type ChainExtension = ();
+    type ChainExtension = AlephChainExtension;
     type DeletionQueueDepth = DeletionQueueDepth;
     type DeletionWeightLimit = DeletionWeightLimit;
     type Schedule = Schedule;

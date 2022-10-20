@@ -102,22 +102,7 @@ pub mod pallet {
             identifier: VerificationKeyIdentifier,
             key: Vec<u8>,
         ) -> DispatchResult {
-            ensure!(
-                key.len() <= T::MaximumVerificationKeyLength::get() as usize,
-                Error::<T>::VerificationKeyTooLong
-            );
-            ensure!(
-                !VerificationKeys::<T>::contains_key(identifier),
-                Error::<T>::IdentifierAlreadyInUse
-            );
-
-            VerificationKeys::<T>::insert(
-                identifier,
-                BoundedVec::try_from(key).unwrap(), // must succeed since we've just check length
-            );
-
-            Self::deposit_event(Event::VerificationKeyStored);
-            Ok(())
+            Self::bare_store_key(identifier, key).map_err(|e| e.into())
         }
 
         /// Verifies `proof` against `public_input` with a key that has been stored under
@@ -157,6 +142,34 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
+        /// This is the inner logic behind `Self::store_key`, however it is free from account lookup
+        /// or other dispatchable-related overhead. Thus, it is more suited to call directly from
+        /// runtime, like from a chain extension.
+        pub fn bare_store_key(
+            identifier: VerificationKeyIdentifier,
+            key: Vec<u8>,
+        ) -> Result<(), Error<T>> {
+            ensure!(
+                !VerificationKeys::<T>::contains_key(identifier),
+                Error::<T>::IdentifierAlreadyInUse
+            );
+            ensure!(
+                key.len() <= T::MaximumVerificationKeyLength::get() as usize,
+                Error::<T>::VerificationKeyTooLong
+            );
+
+            VerificationKeys::<T>::insert(
+                identifier,
+                BoundedVec::try_from(key).unwrap(), // must succeed since we've just check length
+            );
+
+            Self::deposit_event(Event::VerificationKeyStored);
+            Ok(())
+        }
+
+        /// This is the inner logic behind `Self::verify`, however it is free from account lookup
+        /// or other dispatchable-related overhead. Thus, it is more suited to call directly from
+        /// runtime, like from a chain extension.
         pub fn bare_verify<S: SNARK<Fr<T>>>(
             verification_key_identifier: VerificationKeyIdentifier,
             proof: Vec<u8>,

@@ -18,4 +18,6 @@ exclude = [
   "fork-off",
   "benches/payout-stakers",
   "bin/cliain",
+  "bin/runtime/src/chain_extension/snarcos-extension",
+  "contracts/snarcos-contract",
 ]
