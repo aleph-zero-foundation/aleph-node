@@ -1,3 +1,5 @@
+//! Utilities for writing contract wrappers.
+
 use anyhow::{anyhow, Result};
 use contract_transcode::Value;
 use sp_core::crypto::Ss58Codec;

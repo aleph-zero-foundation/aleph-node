@@ -1,6 +1,49 @@
-/// Utilities for writing contract wrappers.
-///
-/// The functions in this module simplify parsing the data types returned by contract calls.
+//! Contains types and functions simplifying common contract-related operations.
+//!
+//! For example, you could write this wrapper around (some of) the functionality of openbrush PSP22
+//! contracts using the building blocks provided by this module:
+//!
+//! ```no_run
+//! # use anyhow::{Result, Context};
+//! # use sp_core::crypto::AccountId32;
+//! # use aleph_client::{Connection, SignedConnection};
+//! # use aleph_client::contract::ContractInstance;
+//! # use aleph_client::contract::util::to_u128;
+//! #
+//! #[derive(Debug)]
+//! struct PSP22TokenInstance {
+//!     contract: ContractInstance,
+//! }
+//!
+//! impl PSP22TokenInstance {
+//!     fn new(address: AccountId32, metadata_path: &Option<String>) -> Result<Self> {
+//!         let metadata_path = metadata_path
+//!             .as_ref()
+//!             .context("PSP22Token metadata not set.")?;
+//!         Ok(Self {
+//!             contract: ContractInstance::new(address, metadata_path)?,
+//!         })
+//!     }
+//!
+//!     fn transfer(&self, conn: &SignedConnection, to: AccountId32, amount: u128) -> Result<()> {
+//!         self.contract.contract_exec(
+//!             conn,
+//!             "PSP22::transfer",
+//!             vec![to.to_string().as_str(), amount.to_string().as_str(), "0x00"].as_slice(),
+//!         )
+//!     }
+//!
+//!     fn balance_of(&self, conn: &Connection, account: AccountId32) -> Result<u128> {
+//!         to_u128(self.contract.contract_read(
+//!             conn,
+//!             "PSP22::balance_of",
+//!             &vec![account.to_string().as_str()],
+//!         )?)
+//!     }
+//! }
+//! ```
+
+pub mod event;
 pub mod util;
 
 use std::{
@@ -20,49 +63,6 @@ use substrate_api_client::{compose_extrinsic, GenericAddress, XtStatus};
 use crate::{try_send_xt, AnyConnection, SignedConnection};
 
 /// Represents a contract instantiated on the chain.
-///
-/// For example, you could write this wrapper around (some of) the functionality of openbrush PSP22
-/// contracts:
-///
-/// ```no_run
-/// # use anyhow::{Result, Context};
-/// # use sp_core::crypto::AccountId32;
-/// # use aleph_client::{Connection, SignedConnection};
-/// # use aleph_client::contract::ContractInstance;
-/// # use aleph_client::contract::util::to_u128;
-///
-/// #[derive(Debug)]
-/// struct PSP22TokenInstance {
-///     contract: ContractInstance,
-/// }
-///
-/// impl PSP22TokenInstance {
-///     fn new(address: AccountId32, metadata_path: &Option<String>) -> Result<Self> {
-///         let metadata_path = metadata_path
-///             .as_ref()
-///             .context("PSP22Token metadata not set.")?;
-///         Ok(Self {
-///             contract: ContractInstance::new(address, metadata_path)?,
-///         })
-///     }
-///
-///     fn transfer(&self, conn: &SignedConnection, to: AccountId32, amount: u128) -> Result<()> {
-///         self.contract.contract_exec(
-///             conn,
-///             "PSP22::transfer",
-///             vec![to.to_string().as_str(), amount.to_string().as_str(), "0x00"].as_slice(),
-///         )
-///     }
-///
-///     fn balance_of(&self, conn: &Connection, account: AccountId32) -> Result<u128> {
-///         to_u128(self.contract.contract_read(
-///             conn,
-///             "PSP22::balance_of",
-///             &vec![account.to_string().as_str()],
-///         )?)
-///     }
-/// }
-/// ```
 pub struct ContractInstance {
     address: AccountId32,
     ink_project: InkProject,
