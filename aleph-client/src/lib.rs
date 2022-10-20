@@ -63,6 +63,7 @@ pub use waiting::{wait_for_event, wait_for_finalized_block};
 
 mod account;
 mod balances;
+pub mod contract;
 mod debug;
 mod elections;
 mod fee;
