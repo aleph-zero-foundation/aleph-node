@@ -1,10 +1,12 @@
 use std::{fmt::Display, marker::PhantomData};
 
-use aleph_bft::Recipient;
 use futures::{channel::mpsc, StreamExt};
 use log::warn;
 
-use crate::network::{Data, DataNetwork, SendError};
+use crate::{
+    network::{Data, DataNetwork, SendError},
+    Recipient,
+};
 
 /// For sending arbitrary messages.
 pub trait Sender<D: Data>: Sync + Send + Clone {
@@ -174,7 +176,6 @@ impl<D: Data, R: Receiver<D>, S: Sender<D>> Network<D> for SimpleNetwork<D, R, S
 
 #[cfg(test)]
 mod tests {
-    use aleph_bft::Recipient;
     use codec::{Decode, Encode};
     use futures::{
         channel::mpsc::{self, UnboundedReceiver, UnboundedSender},
@@ -182,9 +183,12 @@ mod tests {
     };
 
     use super::{DataNetwork, NetworkMap, Receiver, Sender};
-    use crate::network::{
-        component::{Network, ReceiverMap, SenderMap},
-        Data, SendError,
+    use crate::{
+        network::{
+            component::{Network, ReceiverMap, SenderMap},
+            Data, SendError,
+        },
+        Recipient,
     };
 
     #[tokio::test]

@@ -4,7 +4,6 @@ use std::{
     time::Duration,
 };
 
-use aleph_bft::Recipient;
 use codec::{Decode, Encode};
 use futures::channel::oneshot;
 use sc_service::TaskManager;
@@ -23,7 +22,7 @@ use crate::{
         Service as NetworkService, SessionManager,
     },
     testing::mocks::validator_network::MockNetwork as MockValidatorNetwork,
-    MillisecsPerBlock, NodeIndex, SessionId, SessionPeriod,
+    MillisecsPerBlock, NodeIndex, Recipient, SessionId, SessionPeriod,
 };
 
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(10);

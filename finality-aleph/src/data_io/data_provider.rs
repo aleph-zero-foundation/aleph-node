@@ -1,6 +1,5 @@
 use std::{sync::Arc, time::Duration};
 
-use async_trait::async_trait;
 use futures::channel::oneshot;
 use log::{debug, warn};
 use parking_lot::Mutex;
@@ -143,7 +142,7 @@ where
         session_boundaries: SessionBoundaries<B>,
         config: ChainTrackerConfig,
         metrics: Option<Metrics<<B::Header as HeaderT>::Hash>>,
-    ) -> (Self, impl aleph_bft::DataProvider<AlephData<B>>) {
+    ) -> (Self, DataProvider<B>) {
         let data_to_propose = Arc::new(Mutex::new(None));
         (
             ChainTracker {
@@ -292,7 +291,7 @@ where
 
 /// Provides data to AlephBFT for ordering.
 #[derive(Clone)]
-struct DataProvider<B: BlockT> {
+pub struct DataProvider<B: BlockT> {
     data_to_propose: Arc<Mutex<Option<AlephData<B>>>>,
     metrics: Option<Metrics<<B::Header as HeaderT>::Hash>>,
 }
@@ -305,9 +304,8 @@ struct DataProvider<B: BlockT> {
 //    then the node proposes `Empty`, otherwise the node proposes a branch extending from one block above
 //    last finalized till `best_block` with the restriction that the branch must be truncated to length
 //    at most MAX_DATA_BRANCH_LEN.
-#[async_trait]
-impl<B: BlockT> aleph_bft::DataProvider<AlephData<B>> for DataProvider<B> {
-    async fn get_data(&mut self) -> Option<AlephData<B>> {
+impl<B: BlockT> DataProvider<B> {
+    pub async fn get_data(&mut self) -> Option<AlephData<B>> {
         let data_to_propose = (*self.data_to_propose.lock()).take();
 
         if let Some(data) = &data_to_propose {
@@ -321,7 +319,7 @@ impl<B: BlockT> aleph_bft::DataProvider<AlephData<B>> for DataProvider<B> {
             debug!(target: "aleph-data-store", "Outputting {:?} in get_data", data);
         };
 
-        return data_to_propose;
+        data_to_propose
     }
 }
 
@@ -338,7 +336,7 @@ mod tests {
     use crate::{
         data_io::{
             data_provider::{ChainTracker, ChainTrackerConfig},
-            AlephData, MAX_DATA_BRANCH_LEN,
+            DataProvider, MAX_DATA_BRANCH_LEN,
         },
         testing::{client_chain_builder::ClientChainBuilder, mocks::aleph_data_from_blocks},
         SessionBoundaries, SessionId, SessionPeriod,
@@ -353,7 +351,7 @@ mod tests {
         impl Future<Output = ()>,
         oneshot::Sender<()>,
         ClientChainBuilder,
-        impl aleph_bft::DataProvider<AlephData<Block>>,
+        DataProvider<Block>,
     ) {
         let (client, select_chain) = TestClientBuilder::new().build_with_longest_chain();
         let client = Arc::new(client);
@@ -388,12 +386,12 @@ mod tests {
     async fn run_test<F, S>(scenario: S)
     where
         F: Future,
-        S: FnOnce(ClientChainBuilder, Box<dyn aleph_bft::DataProvider<AlephData<Block>>>) -> F,
+        S: FnOnce(ClientChainBuilder, DataProvider<Block>) -> F,
     {
         let (task_handle, exit, chain_builder, data_provider) = prepare_chain_tracker_test();
         let chain_tracker_handle = tokio::spawn(task_handle);
 
-        scenario(chain_builder, Box::new(data_provider)).await;
+        scenario(chain_builder, data_provider).await;
 
         exit.send(()).unwrap();
         chain_tracker_handle

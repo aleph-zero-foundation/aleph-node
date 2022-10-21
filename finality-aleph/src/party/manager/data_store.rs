@@ -1,25 +1,29 @@
-use aleph_bft::SpawnHandle;
+use std::fmt::Debug;
+
+use codec::Codec;
 use futures::channel::oneshot;
 use log::debug;
 use sc_client_api::{BlockchainEvents, HeaderBackend};
 use sp_runtime::traits::Block;
 
 use crate::{
-    data_io::DataStore,
-    network::{AlephNetworkData, ReceiverComponent, RequestBlocks},
+    abft::SpawnHandleT,
+    data_io::{AlephNetworkMessage, DataStore},
+    network::{ReceiverComponent, RequestBlocks},
     party::{AuthoritySubtaskCommon, Task},
 };
 
 /// Runs the data store within a single session.
-pub fn task<B, C, RB, R>(
+pub fn task<B, C, RB, R, Message>(
     subtask_common: AuthoritySubtaskCommon,
-    mut data_store: DataStore<B, C, RB, AlephNetworkData<B>, R>,
+    mut data_store: DataStore<B, C, RB, Message, R>,
 ) -> Task
 where
     B: Block,
     C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
     RB: RequestBlocks<B> + 'static,
-    R: ReceiverComponent<AlephNetworkData<B>> + 'static,
+    Message: AlephNetworkMessage<B> + Debug + Send + Sync + Codec + 'static,
+    R: ReceiverComponent<Message> + 'static,
 {
     let AuthoritySubtaskCommon {
         spawn_handle,

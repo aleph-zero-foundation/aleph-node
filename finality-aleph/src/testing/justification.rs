@@ -1,6 +1,5 @@
 use std::{cell::RefCell, collections::VecDeque, sync::Arc, time::Duration};
 
-use aleph_bft::SignatureSet;
 use futures::{
     channel::mpsc::{unbounded, UnboundedSender},
     Future,
@@ -17,7 +16,7 @@ use crate::{
         MockedBlockFinalizer, MockedBlockRequester, SessionInfoProviderImpl, TBlock,
         VerifierWrapper,
     },
-    JustificationNotification, SessionPeriod,
+    JustificationNotification, SessionPeriod, SignatureSet,
 };
 
 const SESSION_PERIOD: SessionPeriod = SessionPeriod(5u32);

@@ -1,12 +1,10 @@
-use aleph_bft::Recipient;
 use futures::channel::{mpsc, oneshot};
 
 use super::SimpleNetwork;
 use crate::{
+    abft::Recipient,
     crypto::{AuthorityPen, AuthorityVerifier},
-    network::{
-        ComponentNetworkExt, Data, ReceiverComponent, SendError, SenderComponent, SessionCommand,
-    },
+    network::{Data, ReceiverComponent, SendError, SenderComponent, SessionCommand},
     NodeIndex, SessionId,
 };
 
@@ -117,7 +115,7 @@ impl<D: Data> Manager<D> {
         verifier: AuthorityVerifier,
         node_id: NodeIndex,
         pen: AuthorityPen,
-    ) -> Result<impl ComponentNetworkExt<D>, ManagerError> {
+    ) -> Result<Network<D>, ManagerError> {
         let (result_for_us, result_from_service) = oneshot::channel();
         self.commands_for_service
             .unbounded_send(SessionCommand::StartValidator(

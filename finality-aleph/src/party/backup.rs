@@ -42,8 +42,8 @@ impl From<io::Error> for BackupLoadError {
 
 impl std::error::Error for BackupLoadError {}
 
-pub type Saver = Box<dyn Write + Send>;
-pub type Loader = Box<dyn Read + Send>;
+pub type Saver = Box<dyn Write + Send + Sync>;
+pub type Loader = Box<dyn Read + Send + Sync>;
 pub type ABFTBackup = (Saver, Loader);
 
 /// Find all `*.abfts` files at `session_path` and return their indexes sorted, if all are present.

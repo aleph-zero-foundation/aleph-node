@@ -1,4 +1,3 @@
-use aleph_bft::SpawnHandle;
 use futures::channel::oneshot;
 use log::debug;
 use sc_client_api::HeaderBackend;
@@ -6,6 +5,7 @@ use sp_consensus::SelectChain;
 use sp_runtime::traits::Block;
 
 use crate::{
+    abft::SpawnHandleT,
     data_io::ChainTracker,
     party::{AuthoritySubtaskCommon, Task},
 };

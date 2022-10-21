@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use aleph_bft::SignatureSet;
 use aleph_primitives::AuthoritySignature;
 use codec::{Decode, Encode};
 use sp_api::{BlockT, NumberFor};
@@ -17,6 +16,8 @@ pub use handler::JustificationHandler;
 pub use scheduler::{
     JustificationRequestScheduler, JustificationRequestSchedulerImpl, SchedulerActions,
 };
+
+use crate::abft::SignatureSet;
 
 /// A proof of block finality, currently in the form of a sufficiently long list of signatures or a
 /// sudo signature of a block for emergency finalization.

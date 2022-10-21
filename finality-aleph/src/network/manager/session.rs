@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use aleph_bft::NodeCount;
 use codec::Encode;
 
 use crate::{
+    abft::NodeCount,
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{
         manager::{AuthData, Authentication},

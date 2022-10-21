@@ -1,10 +1,12 @@
-use std::{convert::Infallible, fmt::Debug, path::PathBuf, sync::Arc};
+extern crate core;
 
-use aleph_bft::{NodeIndex, TaskHandle};
+use std::{fmt::Debug, path::PathBuf, sync::Arc};
+
 use codec::{Decode, Encode, Output};
+use derive_more::Display;
 use futures::{
     channel::{mpsc, oneshot},
-    Future, TryFutureExt,
+    Future,
 };
 use sc_client_api::{backend::Backend, BlockchainEvents, Finalizer, LockImportRun, TransactionFor};
 use sc_consensus::BlockImport;
@@ -17,20 +19,22 @@ use sp_runtime::traits::{BlakeTwo256, Block, Header};
 use tokio::time::Duration;
 
 use crate::{
-    aggregation::RmcNetworkData,
-    network::{AlephNetworkData, Split},
+    abft::{CurrentNetworkData, LegacyNetworkData},
+    aggregation::{CurrentRmcNetworkData, LegacyRmcNetworkData},
+    network::Split,
     session::{
         first_block_of_session, last_block_of_session, session_id_from_block_num,
         SessionBoundaries, SessionId,
     },
     substrate_network::protocol_name,
+    VersionedTryFromError::{ExpectedNewGotOld, ExpectedOldGotNew},
 };
 
+mod abft;
 mod aggregation;
 mod crypto;
 mod data_io;
 mod finalization;
-mod hash;
 mod import;
 mod justification;
 pub mod metrics;
@@ -45,7 +49,7 @@ mod tcp_network;
 pub mod testing;
 mod validator_network;
 
-pub use aleph_bft::default_config as default_aleph_config;
+pub use abft::{Keychain, NodeCount, NodeIndex, Recipient, SignatureSet, SpawnHandle};
 pub use aleph_primitives::{AuthorityId, AuthorityPair, AuthoritySignature};
 pub use import::AlephBlockImport;
 pub use justification::{AlephJustification, JustificationNotification};
@@ -96,10 +100,15 @@ pub struct MillisecsPerBlock(pub u64);
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
 pub struct UnitCreationDelay(pub u64);
 
-pub type SplitData<B> = Split<AlephNetworkData<B>, RmcNetworkData<B>>;
+pub type LegacySplitData<B> = Split<LegacyNetworkData<B>, LegacyRmcNetworkData<B>>;
+pub type CurrentSplitData<B> = Split<CurrentNetworkData<B>, CurrentRmcNetworkData<B>>;
 
-impl<B: Block> Versioned for AlephNetworkData<B> {
+impl<B: Block> Versioned for LegacyNetworkData<B> {
     const VERSION: Version = Version(0);
+}
+
+impl<B: Block> Versioned for CurrentNetworkData<B> {
+    const VERSION: Version = Version(1);
 }
 
 #[derive(Encode, Eq, Decode, PartialEq)]
@@ -155,22 +164,44 @@ impl<L: Versioned + Encode, R: Versioned + Encode> Encode for VersionedEitherMes
     }
 }
 
-pub type VersionedNetworkData<B> = VersionedEitherMessage<SplitData<B>, SplitData<B>>;
+pub type VersionedNetworkData<B> = VersionedEitherMessage<LegacySplitData<B>, CurrentSplitData<B>>;
 
-impl<B: Block> TryFrom<VersionedNetworkData<B>> for SplitData<B> {
-    type Error = Infallible;
+#[derive(Debug, Display, Clone)]
+pub enum VersionedTryFromError {
+    ExpectedNewGotOld,
+    ExpectedOldGotNew,
+}
+
+impl<B: Block> TryFrom<VersionedNetworkData<B>> for LegacySplitData<B> {
+    type Error = VersionedTryFromError;
 
     fn try_from(value: VersionedNetworkData<B>) -> Result<Self, Self::Error> {
         Ok(match value {
             VersionedEitherMessage::Left(data) => data,
+            VersionedEitherMessage::Right(_) => return Err(ExpectedOldGotNew),
+        })
+    }
+}
+impl<B: Block> TryFrom<VersionedNetworkData<B>> for CurrentSplitData<B> {
+    type Error = VersionedTryFromError;
+
+    fn try_from(value: VersionedNetworkData<B>) -> Result<Self, Self::Error> {
+        Ok(match value {
+            VersionedEitherMessage::Left(_) => return Err(ExpectedNewGotOld),
             VersionedEitherMessage::Right(data) => data,
         })
     }
 }
 
-impl<B: Block> From<SplitData<B>> for VersionedNetworkData<B> {
-    fn from(data: SplitData<B>) -> Self {
+impl<B: Block> From<LegacySplitData<B>> for VersionedNetworkData<B> {
+    fn from(data: LegacySplitData<B>) -> Self {
         VersionedEitherMessage::Left(data)
+    }
+}
+
+impl<B: Block> From<CurrentSplitData<B>> for VersionedNetworkData<B> {
+    fn from(data: CurrentSplitData<B>) -> Self {
+        VersionedEitherMessage::Right(data)
     }
 }
 
@@ -202,60 +233,7 @@ where
 {
 }
 
-type Hasher = hash::Wrapper<BlakeTwo256>;
-
-/// A wrapper for spawning tasks in a way compatible with AlephBFT.
-#[derive(Clone)]
-pub struct SpawnHandle(SpawnTaskHandle);
-
-impl From<SpawnTaskHandle> for SpawnHandle {
-    fn from(sth: SpawnTaskHandle) -> Self {
-        SpawnHandle(sth)
-    }
-}
-
-impl aleph_bft::SpawnHandle for SpawnHandle {
-    fn spawn(&self, name: &'static str, task: impl Future<Output = ()> + Send + 'static) {
-        self.0.spawn(name, None, task)
-    }
-
-    fn spawn_essential(
-        &self,
-        name: &'static str,
-        task: impl Future<Output = ()> + Send + 'static,
-    ) -> TaskHandle {
-        let (tx, rx) = oneshot::channel();
-        self.spawn(name, async move {
-            task.await;
-            let _ = tx.send(());
-        });
-        Box::pin(rx.map_err(|_| ()))
-    }
-}
-
-impl SpawnHandle {
-    fn spawn_essential_with_result(
-        &self,
-        name: &'static str,
-        task: impl Future<Output = Result<(), ()>> + Send + 'static,
-    ) -> TaskHandle {
-        let (tx, rx) = oneshot::channel();
-        let wrapped_task = async move {
-            let result = task.await;
-            let _ = tx.send(result);
-        };
-        let result = <Self as aleph_bft::SpawnHandle>::spawn_essential(self, name, wrapped_task);
-        let wrapped_result = async move {
-            let main_result = result.await;
-            if main_result.is_err() {
-                return Err(());
-            }
-            let rx_result = rx.await;
-            rx_result.unwrap_or(Err(()))
-        };
-        Box::pin(wrapped_result)
-    }
-}
+type Hasher = abft::HashWrapper<BlakeTwo256>;
 
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
 pub struct HashNum<H, N> {

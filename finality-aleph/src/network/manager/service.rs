@@ -4,7 +4,6 @@ use std::{
     time::Duration,
 };
 
-use aleph_bft::Recipient;
 use futures::{
     channel::{mpsc, oneshot},
     StreamExt,
@@ -13,6 +12,7 @@ use log::{debug, info, trace, warn};
 use tokio::time::{self, Instant};
 
 use crate::{
+    abft::Recipient,
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{
         manager::{
@@ -773,7 +773,6 @@ impl<D: Data, M: Multiaddress> IO<D, M> {
 mod tests {
     use std::time::Duration;
 
-    use aleph_bft::Recipient;
     use futures::{channel::oneshot, StreamExt};
 
     use super::{Config, Error, Service, ServiceActions, SessionCommand};
@@ -783,7 +782,7 @@ mod tests {
             mock::{crypto_basics, MockNetworkIdentity},
             ConnectionCommand, DataCommand, Protocol,
         },
-        SessionId,
+        Recipient, SessionId,
     };
 
     const NUM_NODES: usize = 7;

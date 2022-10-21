@@ -1,8 +1,5 @@
 use std::sync::Arc;
 
-use aleph_aggregator::{BlockSignatureAggregator, SignableHash, IO as Aggregator};
-use aleph_bft::{Keychain as BftKeychain, SignatureSet};
-use aleph_bft_rmc::{DoublingDelayScheduler, ReliableMulticast};
 use futures::{
     channel::{mpsc, oneshot},
     pin_mut, StreamExt,
@@ -13,13 +10,18 @@ use sp_runtime::traits::{Block, Header};
 use tokio::time;
 
 use crate::{
-    aggregation::NetworkWrapper,
-    crypto::{Keychain, Signature},
+    abft::SignatureSet,
+    aggregation::Aggregator,
+    crypto::Signature,
     justification::{AlephJustification, JustificationNotification},
     metrics::Checkpoint,
     network::DataNetwork,
-    party::{AuthoritySubtaskCommon, Task},
-    BlockHashNum, Metrics, RmcNetworkData, SessionBoundaries, STATUS_REPORT_INTERVAL,
+    party::{
+        manager::aggregator::AggregatorVersion::{Current, Legacy},
+        AuthoritySubtaskCommon, Task,
+    },
+    BlockHashNum, CurrentRmcNetworkData, Keychain, LegacyRmcNetworkData, Metrics,
+    SessionBoundaries, STATUS_REPORT_INTERVAL,
 };
 
 /// IO channels used by the aggregator task.
@@ -28,24 +30,14 @@ pub struct IO<B: Block> {
     pub justifications_for_chain: mpsc::UnboundedSender<JustificationNotification<B>>,
 }
 
-type SignableBlockHash<B> = SignableHash<<B as Block>::Hash>;
-type Rmc<'a, B> = ReliableMulticast<'a, SignableBlockHash<B>, Keychain>;
-type AggregatorIO<'a, B, N> = Aggregator<
-    <B as Block>::Hash,
-    RmcNetworkData<B>,
-    NetworkWrapper<RmcNetworkData<B>, N>,
-    SignatureSet<Signature>,
-    Rmc<'a, B>,
-    Metrics<<B as Block>::Hash>,
->;
-
-async fn process_new_block_data<B, N>(
-    aggregator: &mut AggregatorIO<'_, B, N>,
+async fn process_new_block_data<B, CN, LN>(
+    aggregator: &mut Aggregator<'_, B, CN, LN>,
     block: BlockHashNum<B>,
     metrics: &Option<Metrics<<B::Header as Header>::Hash>>,
 ) where
     B: Block,
-    N: DataNetwork<RmcNetworkData<B>>,
+    CN: DataNetwork<CurrentRmcNetworkData<B>>,
+    LN: DataNetwork<LegacyRmcNetworkData<B>>,
     <B as Block>::Hash: AsRef<[u8]>,
 {
     trace!(target: "aleph-party", "Received unit {:?} in aggregator.", block);
@@ -80,8 +72,8 @@ where
     Ok(())
 }
 
-async fn run_aggregator<B, C, N>(
-    mut aggregator: AggregatorIO<'_, B, N>,
+async fn run_aggregator<B, C, CN, LN>(
+    mut aggregator: Aggregator<'_, B, CN, LN>,
     io: IO<B>,
     client: Arc<C>,
     session_boundaries: &SessionBoundaries<B>,
@@ -91,7 +83,8 @@ async fn run_aggregator<B, C, N>(
 where
     B: Block,
     C: HeaderBackend<B> + Send + Sync + 'static,
-    N: DataNetwork<RmcNetworkData<B>>,
+    LN: DataNetwork<LegacyRmcNetworkData<B>>,
+    CN: DataNetwork<CurrentRmcNetworkData<B>>,
     <B as Block>::Hash: AsRef<[u8]>,
 {
     let IO {
@@ -120,7 +113,7 @@ where
             maybe_block = blocks_from_interpreter.next() => {
                 if let Some(block) = maybe_block {
                     hash_of_last_block = Some(block.hash);
-                    process_new_block_data::<B, N>(
+                    process_new_block_data::<B, CN, LN>(
                         &mut aggregator,
                         block,
                         &metrics
@@ -158,20 +151,26 @@ where
     Ok(())
 }
 
+pub enum AggregatorVersion<CN, LN> {
+    Current(CN),
+    Legacy(LN),
+}
+
 /// Runs the justification signature aggregator within a single session.
-pub fn task<B, C, N>(
+pub fn task<B, C, CN, LN>(
     subtask_common: AuthoritySubtaskCommon,
     client: Arc<C>,
     io: IO<B>,
     session_boundaries: SessionBoundaries<B>,
     metrics: Option<Metrics<<B::Header as Header>::Hash>>,
     multikeychain: Keychain,
-    rmc_network: N,
+    version: AggregatorVersion<CN, LN>,
 ) -> Task
 where
     B: Block,
     C: HeaderBackend<B> + Send + Sync + 'static,
-    N: DataNetwork<RmcNetworkData<B>> + 'static,
+    LN: DataNetwork<LegacyRmcNetworkData<B>> + 'static,
+    CN: DataNetwork<CurrentRmcNetworkData<B>> + 'static,
 {
     let AuthoritySubtaskCommon {
         spawn_handle,
@@ -180,24 +179,14 @@ where
     let (stop, exit) = oneshot::channel();
     let task = {
         async move {
-            let (messages_for_rmc, messages_from_network) = mpsc::unbounded();
-            let (messages_for_network, messages_from_rmc) = mpsc::unbounded();
-            let scheduler = DoublingDelayScheduler::new(tokio::time::Duration::from_millis(500));
-            let rmc = ReliableMulticast::new(
-                messages_from_network,
-                messages_for_network,
-                &multikeychain,
-                multikeychain.node_count(),
-                scheduler,
-            );
-            let aggregator = BlockSignatureAggregator::new(metrics.clone());
-            let aggregator_io = AggregatorIO::<B, N>::new(
-                messages_for_rmc,
-                messages_from_rmc,
-                NetworkWrapper::new(rmc_network),
-                rmc,
-                aggregator,
-            );
+            let aggregator_io = match version {
+                Current(rmc_network) => {
+                    Aggregator::new_current(&multikeychain, rmc_network, metrics.clone())
+                }
+                Legacy(rmc_network) => {
+                    Aggregator::new_legacy(&multikeychain, rmc_network, metrics.clone())
+                }
+            };
             debug!(target: "aleph-party", "Running the aggregator task for {:?}", session_id);
             let result = run_aggregator(
                 aggregator_io,
