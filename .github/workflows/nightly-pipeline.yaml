@@ -26,14 +26,14 @@ jobs:
         with:
           name: aleph-test-node
           path: target/release
-      
+
       - name: Build test docker image
         id: build-image
         run: |
           chmod +x target/release/aleph-node
           docker build --tag aleph-node:latest -f ./docker/Dockerfile .
           docker save -o aleph-node.tar aleph-node:latest
-      
+
       - name: Upload test docker image
         uses: actions/upload-artifact@v2
         with:
@@ -51,7 +51,7 @@ jobs:
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
-      
+
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
 
@@ -62,17 +62,17 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: aleph-release-runtime
-      
+
       - name: Build runtime and compare checksum with artifact
         env:
           ARTIFACT: aleph_runtime.compact.wasm
-          TARGET_DIR: target/release/wbuild/aleph-runtime
+          TARGET_DIR: target/production/wbuild/aleph-runtime
         run: |
           mkdir -p "$TARGET_DIR"
           mv "$ARTIFACT" "$TARGET_DIR"
           sha256sum "$TARGET_DIR/$ARTIFACT" > checksum.sha256
           cargo clean
-          cargo build --release -p aleph-runtime
+          cargo build --profile production -p aleph-runtime
           sha256sum -c checksum.sha256
 
   build-test-client:
@@ -83,10 +83,10 @@ jobs:
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
-  
+
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
-      
+
       - name: Restore cache
         uses: ./.github/actions/restore-cache
         with:
@@ -94,17 +94,17 @@ jobs:
           cargo-key: e2e
           cache-version: v1
           cargo-targets: e2e-tests/target/
-      
+
       - name: Build binary and docker image
         run: |
           cd e2e-tests/
-          cargo build --release
+          cargo build
           docker build --tag aleph-e2e-client:latest -f Dockerfile .
           docker save -o aleph-e2e-client.tar aleph-e2e-client:latest
-      
+
       - name: Stop cache
         uses: ./.github/actions/post-cache
-  
+
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:

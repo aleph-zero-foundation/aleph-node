@@ -38,13 +38,13 @@ jobs:
           cache-version: v1
 
       - name: Build binary and runtime
-        run: cargo build --release -p aleph-node
+        run: cargo build --profile production -p aleph-node
 
       - name: Upload release binary
         uses: actions/upload-artifact@v2
         with:
           name: ${{ inputs.artifact-prefix }}aleph-release-node
-          path: target/release/aleph-node
+          path: target/production/aleph-node
           if-no-files-found: error
           retention-days: 7
 
@@ -52,7 +52,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ${{ inputs.artifact-prefix }}aleph-release-runtime
-          path: target/release/wbuild/aleph-runtime/aleph_runtime.compact.wasm
+          path: target/production/wbuild/aleph-runtime/aleph_runtime.compact.wasm
           if-no-files-found: error
           retention-days: 7
 

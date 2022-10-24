@@ -78,13 +78,13 @@ jobs:
       - name: Build runtime and compare checksum with artifact
         env:
           ARTIFACT: aleph_runtime.compact.wasm
-          TARGET_DIR: target/release/wbuild/aleph-runtime
+          TARGET_DIR: target/production/wbuild/aleph-runtime
         run: |
           mkdir -p "$TARGET_DIR"
           mv "$ARTIFACT" "$TARGET_DIR"
           sha256sum "$TARGET_DIR/$ARTIFACT" > checksum.sha256
           cargo clean
-          cargo build --release -p aleph-runtime
+          cargo build --profile production -p aleph-runtime
           sha256sum -c checksum.sha256
 
 
@@ -554,7 +554,7 @@ jobs:
           then
             echo "::set-output name=diff::0"
           else
-            echo "::set-output name=diff::1"            
+            echo "::set-output name=diff::1"
           fi
 
   build-new-runtime-and-try_runtime:
