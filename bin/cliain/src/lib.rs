@@ -14,7 +14,9 @@ use aleph_client::{
     create_connection, keypair_from_string, Connection, RootConnection, SignedConnection,
 };
 pub use commands::Command;
-pub use contracts::{call, instantiate, instantiate_with_code, remove_code, upload_code};
+pub use contracts::{
+    call, instantiate, instantiate_with_code, owner_info, remove_code, upload_code,
+};
 pub use finalization::{finalize, set_emergency_finalizer};
 pub use keys::{next_session_keys, prepare_keys, rotate_keys, set_keys};
 pub use runtime::update_runtime;

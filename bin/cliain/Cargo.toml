@@ -12,8 +12,8 @@ codec = { package = 'parity-scale-codec', version = "3.0.0", features = ['derive
 contract-metadata = { git = "https://github.com/paritytech/cargo-contract.git", tag = "v1.4.0"}
 contract-transcode = { version = "0.1.0" }
 dialoguer = "0.10.0"
-hex = "0.4.3"
 env_logger = "0.8"
+hex = "0.4.3"
 ink_metadata = { version = "3.0", features = ["derive"] }
 log = "0.4"
 pallet-staking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }

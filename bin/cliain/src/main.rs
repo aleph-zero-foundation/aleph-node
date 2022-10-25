@@ -7,8 +7,8 @@ use aleph_client::{
 use clap::Parser;
 use cliain::{
     bond, call, change_validators, finalize, force_new_era, instantiate, instantiate_with_code,
-    next_session_keys, nominate, prepare_keys, prompt_password_hidden, remove_code, rotate_keys,
-    set_emergency_finalizer, set_keys, set_staking_limits, transfer, treasury_approve,
+    next_session_keys, nominate, owner_info, prepare_keys, prompt_password_hidden, remove_code,
+    rotate_keys, set_emergency_finalizer, set_keys, set_staking_limits, transfer, treasury_approve,
     treasury_propose, treasury_reject, update_runtime, upload_code, validate, vest, vest_other,
     vested_transfer, Command, ConnectionConfig,
 };
@@ -43,7 +43,8 @@ fn read_seed(command: &Command, seed: Option<String>) -> String {
         | Command::NextSessionKeys { account_id: _ }
         | Command::RotateKeys
         | Command::DebugStorage
-        | Command::SeedToSS58 { input: _ } => String::new(),
+        | Command::SeedToSS58 { input: _ }
+        | Command::ContractOwnerInfo { .. } => String::new(),
         _ => read_secret(seed, "Provide seed for the signer account:"),
     }
 }
@@ -176,6 +177,7 @@ fn main() {
             Ok(result) => println!("{:?}", result),
             Err(why) => error!("Contract instantiate failed {:?}", why),
         },
+        Command::ContractOwnerInfo(command) => println!("{:#?}", owner_info(cfg.into(), command)),
         Command::ContractRemoveCode(command) => match remove_code(cfg.into(), command) {
             Ok(result) => println!("{:?}", result),
             Err(why) => error!("Contract remove code failed {:?}", why),

@@ -91,8 +91,15 @@ pub struct ContractCall {
 }
 
 #[derive(Debug, Clone, Args)]
+pub struct ContractOwnerInfo {
+    /// Code hash of the contract code
+    #[clap(long, parse(try_from_str))]
+    pub code_hash: H256,
+}
+
+#[derive(Debug, Clone, Args)]
 pub struct ContractRemoveCode {
-    /// Code hash of the deployed contract
+    /// Code hash of the contract code
     #[clap(long, parse(try_from_str))]
     pub code_hash: H256,
 }
@@ -320,6 +327,9 @@ pub enum Command {
     ///
     /// API signature: https://polkadot.js.org/docs/substrate/extrinsics/#calldest-multiaddress-value-compactu128-gas_limit-compactu64-storage_deposit_limit-optioncompactu128-data-bytes
     ContractCall(ContractCall),
+
+    /// Returns OwnerInfo if code hash is stored on chain
+    ContractOwnerInfo(ContractOwnerInfo),
 
     /// Removes the code stored under code_hash and refund the deposit to its owner.
     ///
