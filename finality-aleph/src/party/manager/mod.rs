@@ -335,11 +335,11 @@ where
             Ok(version) if version == CURRENT_VERSION => self.current_subtasks(params),
             Ok(version) if version == LEGACY_VERSION => self.legacy_subtasks(params),
             Ok(version) => {
-                panic!("Unsuported version {}. Supported versions: {} or {}. Potentially outdated node.", version, LEGACY_VERSION, CURRENT_VERSION)
+                panic!("Unsupported version {}. Supported versions: {} or {}. Potentially outdated node.", version, LEGACY_VERSION, CURRENT_VERSION)
             }
             _ => {
                 // this might happen when there was no runtime upgrade yet. Fallback to legacy version
-                self.current_subtasks(params)
+                self.legacy_subtasks(params)
             }
         }
     }
