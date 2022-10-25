@@ -377,12 +377,14 @@ impl<
                     }
                 }
             }
-            NetworkData::Data(data, session) => {
+            NetworkData::Data(data, session_id) => {
                 match command {
                     Broadcast => {
                         // We ignore this for now. AlephBFT does not broadcast data.
                     }
-                    SendTo(peer, _) => self.validator_network.send((data, session), peer),
+                    SendTo(peer, _) => self
+                        .validator_network
+                        .send(DataInSession { data, session_id }, peer),
                 }
             }
         }

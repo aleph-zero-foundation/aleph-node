@@ -6,12 +6,14 @@ use std::{
 use codec::{Decode, Encode, Error as CodecError, Input as CodecInput};
 use log::warn;
 
-use crate::network::{
-    manager::{DiscoveryMessage, NetworkData},
-    Data, Multiaddress,
+use crate::{
+    network::{
+        manager::{DiscoveryMessage, NetworkData},
+        Data, Multiaddress,
+    },
+    Version,
 };
 
-type Version = u16;
 type ByteCount = u16;
 
 // We allow sending authentications of size up to 16KiB, that should be enough.
@@ -89,7 +91,7 @@ impl<M: Multiaddress> Encode for VersionedAuthentication<M> {
         use VersionedAuthentication::*;
         match self {
             Other(version, payload) => encode_with_version(*version, payload),
-            V1(data) => encode_with_version(1, &data.encode()),
+            V1(data) => encode_with_version(Version(1), &data.encode()),
         }
     }
 }
@@ -100,7 +102,7 @@ impl<M: Multiaddress> Decode for VersionedAuthentication<M> {
         let version = Version::decode(input)?;
         let num_bytes = ByteCount::decode(input)?;
         match version {
-            1 => Ok(V1(DiscoveryMessage::decode(input)?)),
+            Version(1) => Ok(V1(DiscoveryMessage::decode(input)?)),
             _ => {
                 if num_bytes > MAX_AUTHENTICATION_SIZE {
                     Err("Authentication has unknown version and is encoded as more than 16KiB.")?;
@@ -123,7 +125,7 @@ impl Display for Error {
         use Error::*;
         match self {
             UnknownVersion(version) => {
-                write!(f, "Authentication has unknown version {}", version)
+                write!(f, "Authentication has unknown version {}", version.0)
             }
         }
     }
@@ -140,7 +142,7 @@ mod test {
             mock::{crypto_basics, MockMultiaddress, MockNetworkIdentity},
             NetworkIdentity,
         },
-        SessionId,
+        SessionId, Version,
     };
 
     #[tokio::test]
@@ -164,7 +166,7 @@ mod test {
 
     #[tokio::test]
     async fn correctly_decodes_other() {
-        let other = VersionedAuthentication::<MockMultiaddress>::Other(42, vec![21, 37]);
+        let other = VersionedAuthentication::<MockMultiaddress>::Other(Version(42), vec![21, 37]);
         let encoded = other.encode();
         let decoded = VersionedAuthentication::decode(&mut encoded.as_slice());
         assert_eq!(decoded, Ok(other));
@@ -177,7 +179,7 @@ mod test {
         assert_eq!(
             decoded,
             Ok(VersionedAuthentication::<MockMultiaddress>::Other(
-                42,
+                Version(42),
                 other_big[4..].to_vec()
             ))
         );
@@ -192,7 +194,8 @@ mod test {
         let decoded = VersionedAuthentication::<MockMultiaddress>::decode(&mut other.as_slice());
         assert!(decoded.is_err());
 
-        let other = VersionedAuthentication::<MockMultiaddress>::Other(42, vec![0u8; size.into()]);
+        let other =
+            VersionedAuthentication::<MockMultiaddress>::Other(Version(42), vec![0u8; size.into()]);
         let encoded = other.encode();
         let decoded = VersionedAuthentication::<MockMultiaddress>::decode(&mut encoded.as_slice());
         assert!(decoded.is_err());

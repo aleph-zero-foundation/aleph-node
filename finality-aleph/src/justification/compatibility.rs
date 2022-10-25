@@ -10,9 +10,9 @@ use crate::{
     abft::SignatureSet,
     crypto::{Signature, SignatureV1},
     justification::AlephJustification,
+    Version,
 };
 
-type Version = u16;
 type ByteCount = u16;
 
 /// Old format of justifications, needed for backwards compatibility.
@@ -103,9 +103,9 @@ impl Encode for VersionedAlephJustification {
         use VersionedAlephJustification::*;
         match self {
             Other(version, payload) => encode_with_version(*version, payload),
-            V1(justification) => encode_with_version(1, &justification.encode()),
-            V2(justification) => encode_with_version(2, &justification.encode()),
-            V3(justification) => encode_with_version(3, &justification.encode()),
+            V1(justification) => encode_with_version(Version(1), &justification.encode()),
+            V2(justification) => encode_with_version(Version(2), &justification.encode()),
+            V3(justification) => encode_with_version(Version(3), &justification.encode()),
         }
     }
 }
@@ -116,9 +116,9 @@ impl Decode for VersionedAlephJustification {
         let version = Version::decode(input)?;
         let num_bytes = ByteCount::decode(input)?;
         match version {
-            1 => Ok(V1(AlephJustificationV1::decode(input)?)),
-            2 => Ok(V2(AlephJustificationV2::decode(input)?)),
-            3 => Ok(V3(AlephJustification::decode(input)?)),
+            Version(1) => Ok(V1(AlephJustificationV1::decode(input)?)),
+            Version(2) => Ok(V2(AlephJustificationV2::decode(input)?)),
+            Version(3) => Ok(V3(AlephJustification::decode(input)?)),
             _ => {
                 let mut payload = vec![0; num_bytes.into()];
                 input.read(payload.as_mut_slice())?;
@@ -140,7 +140,11 @@ impl Display for Error {
         match self {
             BadFormat => write!(f, "malformed encoding"),
             UnknownVersion(version) => {
-                write!(f, "justification encoded with unknown version {}", version)
+                write!(
+                    f,
+                    "justification encoded with unknown version {}",
+                    version.0
+                )
             }
         }
     }
@@ -210,7 +214,7 @@ mod test {
     use crate::{
         crypto::{Signature, SignatureV1},
         justification::AlephJustification,
-        NodeCount, SignatureSet,
+        NodeCount, SignatureSet, Version,
     };
 
     #[test]
@@ -274,7 +278,7 @@ mod test {
 
     #[test]
     fn correctly_decodes_other() {
-        let other = VersionedAlephJustification::Other(43, vec![21, 37]);
+        let other = VersionedAlephJustification::Other(Version(43), vec![21, 37]);
         let encoded = other.encode();
         let decoded = VersionedAlephJustification::decode(&mut encoded.as_slice());
         assert_eq!(decoded, Ok(other));
