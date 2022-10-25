@@ -43,7 +43,21 @@ pub mod testing {
 }
 
 /// Represents the id of an arbitrary node.
-pub trait PeerId: PartialEq + Eq + Clone + Debug + Display + Hash + Codec + Send {}
+pub trait PeerId: PartialEq + Eq + Clone + Debug + Display + Hash + Codec + Send {
+    /// This function is used for logging. It implements a shorter version of `to_string` for ids implementing display.
+    fn to_short_string(&self) -> String {
+        let id = format!("{}", self);
+        if id.len() <= 12 {
+            return id;
+        }
+
+        let prefix: String = id.chars().take(4).collect();
+
+        let suffix: String = id.chars().skip(id.len().saturating_sub(8)).collect();
+
+        format!("{}…{}", &prefix, &suffix)
+    }
+}
 
 /// Represents the address of an arbitrary node.
 pub trait Multiaddress: Debug + Hash + Codec + Clone + Eq + Send + Sync {

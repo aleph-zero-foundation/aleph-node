@@ -206,7 +206,7 @@ impl<D: Data, A: Data, ND: Dialer<A>, NL: Listener> Service<D, A, ND, NL> {
                 },
                 // periodically reporting what we are trying to do
                 _ = status_ticker.tick() => {
-                    info!(target: "validator-network", "Manager status report: {}.", self.manager.status_report())
+                    info!(target: "validator-network", "Validator Network status: {}", self.manager.status_report())
                 }
                 // received exit signal, stop the network
                 // all workers will be killed automatically after the manager gets dropped
