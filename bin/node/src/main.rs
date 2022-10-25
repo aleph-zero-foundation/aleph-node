@@ -1,9 +1,11 @@
-#[cfg(feature = "try-runtime")]
+#[cfg(any(feature = "try-runtime", feature = "runtime-benchmarks"))]
 use aleph_node::ExecutorDispatch;
 use aleph_node::{new_authority, new_full, new_partial, Cli, Subcommand};
-#[cfg(feature = "try-runtime")]
+#[cfg(any(feature = "try-runtime", feature = "runtime-benchmarks"))]
 use aleph_runtime::Block;
 use clap::Parser;
+#[cfg(feature = "runtime-benchmarks")]
+use frame_benchmarking_cli::BenchmarkCmd;
 use sc_cli::SubstrateCli;
 use sc_network::config::Role;
 use sc_service::PartialComponents;
@@ -105,6 +107,23 @@ fn main() -> sc_cli::Result<()> {
         Some(Subcommand::TryRuntime) => Err("TryRuntime wasn't enabled when building the node. \
         You can enable it with `--features try-runtime`."
             .into()),
+        #[cfg(feature = "runtime-benchmarks")]
+        Some(Subcommand::Benchmark(cmd)) => {
+            let runner = cli.create_runner(cmd)?;
+            runner.sync_run(|config| {
+                if let BenchmarkCmd::Pallet(cmd) = cmd {
+                    cmd.run::<Block, ExecutorDispatch>(config)
+                } else {
+                    Err(sc_cli::Error::Input("Wrong subcommand".to_string()))
+                }
+            })
+        }
+        #[cfg(not(feature = "runtime-benchmarks"))]
+        Some(Subcommand::Benchmark) => Err(
+            "Benchmarking wasn't enabled when building the node. You can enable it with \
+				     `--features runtime-benchmarks`."
+                .into(),
+        ),
         None => {
             let runner = cli.create_runner(&cli.run)?;
             let aleph_cli_config = cli.aleph;

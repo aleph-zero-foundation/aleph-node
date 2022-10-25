@@ -53,6 +53,9 @@ sp-timestamp = { git = "https://github.com/Cardinal-Cryptography/substrate.git",
 pallet-staking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
 try-runtime-cli = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", optional = true }
 
+frame-benchmarking-cli = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", optional = true }
+frame-benchmarking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", optional = true }
+
 aleph-runtime = { path = "../runtime" }
 finality-aleph = { path = "../../finality-aleph" }
 aleph-primitives = { package = "primitives", path = "../../primitives" }
@@ -83,4 +86,9 @@ try-runtime = [
 ]
 enable_treasury_proposals = [
     "aleph-runtime/enable_treasury_proposals"
+]
+runtime-benchmarks = [
+    "frame-benchmarking",
+    "frame-benchmarking-cli/runtime-benchmarks",
+    "aleph-runtime/runtime-benchmarks",
 ]

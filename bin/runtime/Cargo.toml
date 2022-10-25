@@ -59,6 +59,10 @@ sp-version = { default-features = false, git = "https://github.com/Cardinal-Cryp
 # NOTE: these two disabled features collide with std in wasm
 sp-io = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
 
+# Benchmarking stuff
+frame-benchmarking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", optional = true }
+hex-literal = { version = "0.3.4", optional = true }
+
 primitives = { path = "../../primitives", default-features = false }
 pallet-aleph = { path = "../../pallets/aleph", default-features = false }
 pallet-elections = { path = "../../pallets/elections", default-features = false }
@@ -140,3 +144,9 @@ try-runtime = [
     "pallet-utility/try-runtime",
 ]
 enable_treasury_proposals = []
+runtime-benchmarks = [
+    "hex-literal",
+    "frame-system/runtime-benchmarks",
+    "frame-benchmarking/runtime-benchmarks",
+    "pallet-snarcos/runtime-benchmarks",
+]

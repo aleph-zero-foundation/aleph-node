@@ -1,9 +1,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
+mod weights;
 use codec::{Decode, Encode};
 use frame_support::pallet_prelude::StorageVersion;
 pub use pallet::*;
 use scale_info::TypeInfo;
+pub use weights::{AlephWeight, WeightInfo};
 
 /// The current storage version.
 const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
@@ -39,6 +43,7 @@ pub mod pallet {
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
         type Pairing: PairingEngine;
+        type WeightInfo: WeightInfo;
 
         #[pallet::constant]
         type MaximumVerificationKeyLength: Get<u32>;
@@ -96,7 +101,7 @@ pub mod pallet {
         ///
         /// `key` can come from any proving system - there are no checks that verify it, in
         /// particular, `key` can contain just trash bytes.
-        #[pallet::weight(T::BlockWeights::get().max_block / 2)]
+        #[pallet::weight(T::WeightInfo::store_key(key.len() as u32))]
         pub fn store_key(
             _origin: OriginFor<T>,
             identifier: VerificationKeyIdentifier,
@@ -117,7 +122,7 @@ pub mod pallet {
         /// system)
         /// - verifying procedure fails (e.g. incompatible verification key and proof)
         /// - proof is incorrect
-        #[pallet::weight(T::BlockWeights::get().max_block / 2)]
+        #[pallet::weight(T::WeightInfo::verify())]
         pub fn verify(
             _origin: OriginFor<T>,
             verification_key_identifier: VerificationKeyIdentifier,
