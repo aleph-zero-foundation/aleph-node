@@ -99,6 +99,14 @@ else
   echo "Falling back on default test case param values."
 fi
 
+if [[ -n "${UPGRADE_VERSION:-}" && -n "${UPGRADE_SESSION:-}" && -n "${UPGRADE_FINALIZATION_WAIT_SESSIONS:-}" ]]; then
+    ARGS+=(
+        -e "${UPGRADE_VERSION}"
+        -e "${UPGRADE_SESSION}"
+        -e "${UPGRADE_FINALIZATION_WAIT_SESSIONS}"
+    )
+fi
+
 docker run -v $(pwd)/docker/data:/data "${ARGS[@]}" aleph-e2e-client:latest
 
 exit $?

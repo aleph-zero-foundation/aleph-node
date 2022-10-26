@@ -109,7 +109,7 @@ pub fn get_session<C: ReadStorage>(connection: &C, block_hash: Option<H256>) -> 
 pub fn wait_for_predicate<C: ReadStorage, P: Fn(SessionIndex) -> bool>(
     connection: &C,
     session_predicate: P,
-) -> anyhow::Result<BlockNumber> {
+) -> anyhow::Result<SessionIndex> {
     info!(target: "aleph-client", "Waiting for session");
 
     #[derive(Debug, Decode, Clone)]

@@ -69,21 +69,21 @@ runs:
           -r "${{ inputs.randomized }}"
           -m "${{ inputs.min-validator-count }}"
         )
-        
+
         RESERVED_SEATS="${{ inputs.reserved-seats }}"
         NON_RESERVED_SEATS="${{ inputs.non-reserved-seats }}"
-        
+
         if [[ -n "${RANDOMIZED}" ]]; then
           ARGS+=(-r "${RANDOMIZED}")
         fi
-        
+
         if [[ -n "${RESERVED_SEATS}" && -n "${NON_RESERVED_SEATS}" ]]; then
           ARGS+=(
             -f "${RESERVED_SEATS}"
             -n "${NON_RESERVED_SEATS}"
           )
         fi
-        
+
         ./.github/scripts/run_e2e_test.sh "${ARGS[@]}"
 
     - name: Run finalization e2e test

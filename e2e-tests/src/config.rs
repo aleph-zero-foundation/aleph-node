@@ -1,5 +1,6 @@
 use aleph_client::{RootConnection, SignedConnection};
 use clap::{Args, Parser};
+use primitives::SessionIndex;
 
 use crate::accounts::{get_sudo_key, get_validators_keys, get_validators_seeds, NodeKeys};
 
@@ -62,19 +63,21 @@ impl Config {
 pub struct TestCaseParams {
     /// Desired number of reserved seats for validators, may be set within the test.
     #[clap(long)]
-    reserved_seats: Option<u32>,
+    pub reserved_seats: Option<u32>,
 
     /// Desired number of non-reserved seats for validators, may be set within the test.
     #[clap(long)]
-    non_reserved_seats: Option<u32>,
-}
+    pub non_reserved_seats: Option<u32>,
 
-impl TestCaseParams {
-    pub fn reserved_seats(&self) -> Option<u32> {
-        self.reserved_seats
-    }
+    /// Version for the VersionUpgrade test.
+    #[clap(long)]
+    pub upgrade_to_version: Option<u32>,
 
-    pub fn non_reserved_seats(&self) -> Option<u32> {
-        self.non_reserved_seats
-    }
+    /// Session in which we should schedule an upgrade in VersionUpgrade test.
+    #[clap(long)]
+    pub upgrade_session: Option<SessionIndex>,
+
+    /// How many sessions we should wait after upgrade in VersionUpgrade test.
+    #[clap(long)]
+    pub upgrade_finalization_wait_sessions: Option<u32>,
 }

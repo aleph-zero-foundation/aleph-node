@@ -145,11 +145,11 @@ pub fn authorities_are_staking(config: &Config) -> anyhow::Result<()> {
     // `MinimumValidatorCount` from `pallet_staking`, set in chain spec.
     let min_validator_count = get_minimum_validator_count(&root_connection);
 
-    let reserved_seats = match config.test_case_params.reserved_seats() {
+    let reserved_seats = match config.test_case_params.reserved_seats {
         Some(seats) => seats,
         None => RESERVED_SEATS_DEFAULT,
     };
-    let non_reserved_seats = match config.test_case_params.non_reserved_seats() {
+    let non_reserved_seats = match config.test_case_params.non_reserved_seats {
         Some(seats) => seats,
         None => NON_RESERVED_SEATS_DEFAULT,
     };
