@@ -6,10 +6,11 @@ pub use balances::total_issuance;
 use codec::{Decode, Encode};
 pub use debug::print_storages;
 pub use elections::{
-    get_committee_seats, get_current_era_non_reserved_validators,
-    get_current_era_reserved_validators, get_era_validators, get_next_era_committee_seats,
+    get_committee_kick_out_config, get_committee_seats, get_current_era_non_reserved_validators,
+    get_current_era_reserved_validators, get_current_era_validators, get_era_validators,
+    get_kick_out_reason_for_validator, get_next_era_committee_seats,
     get_next_era_non_reserved_validators, get_next_era_reserved_validators,
-    get_validator_block_count,
+    get_next_era_validators, get_underperformed_validator_session_count, get_validator_block_count,
 };
 pub use fee::get_next_fee_multiplier;
 pub use finalization::set_emergency_finalizer as finalization_set_emergency_finalizer;

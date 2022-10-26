@@ -5,6 +5,7 @@ mod accounts;
 mod cases;
 mod config;
 mod elections;
+mod kick_out;
 mod rewards;
 mod test;
 mod transfer;

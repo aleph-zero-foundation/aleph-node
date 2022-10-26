@@ -3,7 +3,7 @@ use sp_core::Pair;
 
 use crate::config::Config;
 
-fn get_validator_seed(seed: u32) -> String {
+pub fn get_validator_seed(seed: u32) -> String {
     format!("//{}", seed)
 }
 
