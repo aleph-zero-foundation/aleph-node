@@ -18,7 +18,7 @@ use rayon::prelude::*;
 use sp_core::{sr25519, Pair};
 use sp_runtime::{generic, traits::BlakeTwo256, MultiAddress, OpaqueExtrinsic};
 use substrate_api_client::{
-    compose_call, compose_extrinsic_offline, AccountId, Api, ExtrinsicParams, GenericAddress,
+    compose_call, compose_extrinsic_offline, AccountId, Api, GenericAddress,
     PlainTipExtrinsicParams, XtStatus,
 };
 use ws_rpc_client::WsRpcClient;

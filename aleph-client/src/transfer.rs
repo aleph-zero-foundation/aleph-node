@@ -1,10 +1,10 @@
 use codec::Compact;
 use primitives::Balance;
-use sp_core::{Pair, H256};
+use sp_core::H256;
 use sp_runtime::MultiAddress;
 use substrate_api_client::{
-    compose_call, compose_extrinsic, compose_extrinsic_offline, error::Error as SacError,
-    AccountId, ExtrinsicParams, GenericAddress, XtStatus,
+    compose_call, compose_extrinsic, compose_extrinsic_offline, std::error::Error as SacError,
+    AccountId, GenericAddress, XtStatus,
 };
 
 use crate::{

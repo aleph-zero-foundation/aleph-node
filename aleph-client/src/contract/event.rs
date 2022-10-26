@@ -136,6 +136,8 @@ pub fn listen_contract_events<F: Fn(Result<ContractEvent>)>(
     }
 }
 
+use crate::contract::anyhow;
+
 /// Consumes a raw `batch` of chain events, and returns only those that are coming from `contracts`.
 ///
 /// This function, somewhat confusingly, returns a `Result<Vec<Result<_>>>` - this is to represent
@@ -152,11 +154,13 @@ fn decode_contract_event_batch(
 
     let batch = batch.replacen("0x", "", 1);
     let bytes = hex::decode(batch)?;
-    let events = events_decoder.decode_events(&mut bytes.as_slice())?;
+    let events = events_decoder
+        .decode_events(&mut bytes.as_slice())
+        .map_err(|err| anyhow!("{:?}", err))?;
 
     for (_phase, raw_event) in events {
         match raw_event {
-            Raw::Error(err) => results.push(Err(err.into())),
+            Raw::Error(err) => results.push(Err(anyhow!("{:?}", err))),
             Raw::Event(event) => {
                 if event.pallet == "Contracts" && event.variant == "ContractEmitted" {
                     results.push(decode_contract_event(
@@ -179,7 +183,9 @@ fn decode_contract_event(
     events_transcoder: &Transcoder,
     event: RawEvent,
 ) -> Result<ContractEvent> {
-    let event_metadata = metadata.event(event.pallet_index, event.variant_index)?;
+    let event_metadata = metadata
+        .event(event.pallet_index, event.variant_index)
+        .map_err(|err| anyhow!("{:?}", err))?;
 
     let parse_pointer = &mut event.data.0.as_slice();
     let mut raw_data = None;

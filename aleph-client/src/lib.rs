@@ -1,6 +1,6 @@
 use std::{default::Default, error::Error as StdError, fmt::Debug, thread::sleep, time::Duration};
 
-use ac_primitives::{PlainTipExtrinsicParamsBuilder, SubstrateDefaultSignedExtra};
+use ac_primitives::{PlainTip, PlainTipExtrinsicParamsBuilder, SubstrateDefaultSignedExtra};
 pub use account::{get_free_balance, locks};
 pub use balances::total_issuance;
 use codec::{Decode, Encode};
@@ -96,7 +96,7 @@ pub type KeyPair = sr25519::Pair;
 pub type AlephKeyPair = ed25519::Pair;
 pub type ExtrinsicParams = PlainTipExtrinsicParams;
 pub type Connection = Api<KeyPair, WsRpcClient, ExtrinsicParams>;
-pub type Extrinsic<Call> = UncheckedExtrinsicV4<Call, SubstrateDefaultSignedExtra>;
+pub type Extrinsic<Call> = UncheckedExtrinsicV4<Call, SubstrateDefaultSignedExtra<PlainTip>>;
 
 /// Common abstraction for different types of connections.
 pub trait AnyConnection: Clone + Send {

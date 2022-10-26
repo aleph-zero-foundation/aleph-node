@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-frame-support = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
+frame-support = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.28" }
 
 [features]
 default = ["std"]

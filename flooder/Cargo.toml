@@ -1,15 +1,15 @@
 [package]
 name = "flooder"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Cardinal Cryptography"]
 edition = "2021"
 license = "Apache 2.0"
 
 [dependencies]
-substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "aleph-v0.9.26" }
+substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "aleph-v0.9.28" }
 
-sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", features = ["full_crypto"] }
-sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
+sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.28", features = ["full_crypto"] }
+sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.28" }
 
 # other dependencies
 serde_json = { version = "1.0" }

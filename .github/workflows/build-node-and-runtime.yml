@@ -35,7 +35,7 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           target-key: release
-          cache-version: v1
+          cache-version: v2
 
       - name: Build binary and runtime
         run: cargo build --profile production -p aleph-node

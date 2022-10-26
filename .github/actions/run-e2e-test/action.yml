@@ -30,6 +30,7 @@ inputs:
 runs:
   using: 'composite'
   steps:
+
     - name: Download artifact with docker image
       uses: actions/download-artifact@v2
       with:
@@ -42,6 +43,10 @@ runs:
     - name: Run consensus party
       shell: bash
       run: ./.github/scripts/run_consensus.sh -m ${{ inputs.min-validator-count }} -n ${{ inputs.node-count }}
+    
+    - name: Sleep
+      shell: bash
+      run: sleep 60
 
     - name: Display bootnode logs
       shell: bash

@@ -12,8 +12,7 @@ use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use sp_core::{Pair, H256};
 use substrate_api_client::{
-    compose_extrinsic, utils::storage_key, AccountId, ExtrinsicParams, GenericAddress, StorageKey,
-    XtStatus,
+    compose_extrinsic, utils::storage_key, AccountId, GenericAddress, StorageKey, XtStatus,
 };
 
 use crate::commands::{

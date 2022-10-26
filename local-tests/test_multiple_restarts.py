@@ -29,7 +29,7 @@ chain.set_flags('no-mdns',
                 rpc_port=Seq(9933),
                 unit_creation_delay=200,
                 execution='Native',
-                pruning='archive')
+                state_pruning='archive')
 addresses = [n.address() for n in chain]
 validator_addresses = [n.validator_address() for n in chain]
 chain.set_flags(bootnodes=addresses[0])

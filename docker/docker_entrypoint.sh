@@ -40,7 +40,7 @@ fi
 
 ARGS=(
   --validator
-  --pruning archive
+  --state-pruning archive
   --execution Native
   --name "${NAME}"
   --base-path "${BASE_PATH}"

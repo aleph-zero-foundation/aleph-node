@@ -37,7 +37,7 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           target-key: debug
-          cache-version: v1
+          cache-version: v2
 
       - name: Run Format Checks
         uses: actions-rs/cargo@v1

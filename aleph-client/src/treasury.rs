@@ -1,10 +1,9 @@
 use std::{thread, thread::sleep, time::Duration};
 
-use ac_primitives::ExtrinsicParams;
 use codec::Decode;
 use frame_support::PalletId;
 use primitives::{Balance, MILLISECS_PER_BLOCK};
-use sp_core::{Pair, H256};
+use sp_core::H256;
 use sp_runtime::{traits::AccountIdConversion, AccountId32};
 use substrate_api_client::{compose_extrinsic, ApiResult, GenericAddress, XtStatus};
 

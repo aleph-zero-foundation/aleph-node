@@ -51,7 +51,7 @@ use sp_runtime::{
         OpaqueKeys, Verify,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, MultiSignature, RuntimeAppPublic,
+    ApplyExtrinsicResult, FixedU128, MultiSignature, RuntimeAppPublic,
 };
 pub use sp_runtime::{FixedPointNumber, Perbill, Permill};
 use sp_staking::EraIndex;
@@ -108,10 +108,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 36,
+    spec_version: 37,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 11,
+    transaction_version: 12,
     state_version: 0,
 };
 
@@ -366,7 +366,7 @@ impl pallet_session::historical::Config for Runtime {
 parameter_types! {
     pub const PostUnbondPoolsWindow: u32 = 4;
     pub const NominationPoolsPalletId: PalletId = PalletId(*b"py/nopls");
-    pub const MinPointsToBalance: u32 = 10;
+    pub const MaxPointsToBalance: u8 = 10;
 }
 
 use sp_runtime::traits::Convert;
@@ -387,6 +387,8 @@ impl pallet_nomination_pools::Config for Runtime {
     type WeightInfo = ();
     type Event = Event;
     type Currency = Balances;
+    type CurrencyBalance = Balance;
+    type RewardCounter = FixedU128;
     type BalanceToU256 = BalanceToU256;
     type U256ToBalance = U256ToBalance;
     type StakingInterface = pallet_staking::Pallet<Self>;
@@ -394,7 +396,7 @@ impl pallet_nomination_pools::Config for Runtime {
     type MaxMetadataLen = ConstU32<256>;
     type MaxUnbonding = ConstU32<8>;
     type PalletId = NominationPoolsPalletId;
-    type MinPointsToBalance = MinPointsToBalance;
+    type MaxPointsToBalance = MaxPointsToBalance;
 }
 
 parameter_types! {

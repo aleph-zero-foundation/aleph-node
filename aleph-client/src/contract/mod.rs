@@ -51,13 +51,12 @@ use std::{
     fs::File,
 };
 
-use ac_primitives::ExtrinsicParams;
 use anyhow::{anyhow, Context, Result};
 use contract_metadata::ContractMetadata;
 use contract_transcode::{ContractMessageTranscoder, Value};
 use ink_metadata::{InkProject, MetadataVersioned};
 use serde_json::{from_reader, from_str, from_value, json};
-use sp_core::{crypto::AccountId32, Pair};
+use sp_core::crypto::AccountId32;
 use substrate_api_client::{compose_extrinsic, GenericAddress, XtStatus};
 
 use crate::{try_send_xt, AnyConnection, SignedConnection};

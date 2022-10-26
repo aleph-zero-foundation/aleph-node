@@ -1,6 +1,5 @@
-use sp_core::Pair;
 use sp_runtime::Perbill;
-use substrate_api_client::{compose_call, compose_extrinsic, ExtrinsicParams, XtStatus};
+use substrate_api_client::{compose_call, compose_extrinsic, XtStatus};
 
 use crate::{send_xt, try_send_xt, AnyConnection, CallSystem, RootConnection};
 
@@ -22,7 +21,7 @@ pub fn set_code(connection: &RootConnection, runtime: Vec<u8>, status: XtStatus)
 }
 
 impl CallSystem for RootConnection {
-    type Error = substrate_api_client::error::Error;
+    type Error = substrate_api_client::std::error::Error;
 
     fn fill_block(&self, target_ratio_percent: u32, status: XtStatus) -> Result<(), Self::Error> {
         let connection = self.as_connection();

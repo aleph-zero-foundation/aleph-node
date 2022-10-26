@@ -1,10 +1,8 @@
 use codec::{Decode, Encode};
 use log::info;
 use primitives::{BlockHash, CommitteeSeats, SessionIndex};
-use sp_core::{Pair, H256};
-use substrate_api_client::{
-    compose_call, compose_extrinsic, AccountId, ExtrinsicParams, FromHexString, XtStatus,
-};
+use sp_core::H256;
+use substrate_api_client::{compose_call, compose_extrinsic, AccountId, FromHexString, XtStatus};
 
 use crate::{
     get_block_hash, send_xt, waiting::wait_for_event, AnyConnection, BlockNumber, ReadStorage,

@@ -57,7 +57,7 @@ jobs:
         with:
           target-key: excluded
           cargo-key: excluded
-          cache-version: v1
+          cache-version: v2
           cargo-targets: "${{ steps.format_output.outputs.targets }}"
 
       - name: Check excluded packages

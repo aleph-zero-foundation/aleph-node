@@ -7,9 +7,9 @@ use anyhow::{ensure, Result};
 use codec::{Decode, Encode};
 use log::{error, info};
 use primitives::Balance;
-use sp_core::{blake2_256, crypto::AccountId32, Pair};
+use sp_core::{blake2_256, crypto::AccountId32};
 use sp_runtime::traits::TrailingZeroInput;
-use substrate_api_client::{compose_extrinsic, ExtrinsicParams, XtStatus::Finalized};
+use substrate_api_client::{compose_extrinsic, XtStatus::Finalized};
 use thiserror::Error;
 
 use crate::{
