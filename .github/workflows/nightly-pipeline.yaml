@@ -98,7 +98,7 @@ jobs:
       - name: Build binary and docker image
         run: |
           cd e2e-tests/
-          cargo build
+          cargo build --release
           docker build --tag aleph-e2e-client:latest -f Dockerfile .
           docker save -o aleph-e2e-client.tar aleph-e2e-client:latest
 
