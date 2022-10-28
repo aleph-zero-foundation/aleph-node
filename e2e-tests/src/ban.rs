@@ -1,13 +1,11 @@
 use aleph_client::{
-    change_validators, get_committee_kick_out_config, get_kick_out_reason_for_validator,
+    change_validators, get_ban_config, get_ban_reason_for_validator,
     get_underperformed_validator_session_count, wait_for_event, wait_for_full_era_completion,
     AccountId, AnyConnection, RootConnection, XtStatus,
 };
 use codec::Decode;
 use log::info;
-use primitives::{
-    CommitteeKickOutConfig, CommitteeSeats, EraValidators, KickOutReason, SessionCount,
-};
+use primitives::{BanConfig, BanInfo, CommitteeSeats, EraValidators, SessionCount};
 use sp_runtime::Perbill;
 
 use crate::{accounts::account_ids_from_keys, validators::get_test_validators, Config};
@@ -57,28 +55,28 @@ pub fn check_validators<C: AnyConnection>(
     era_validators
 }
 
-pub fn check_committee_kick_out_config(
+pub fn check_ban_config(
     connection: &RootConnection,
     expected_minimal_expected_performance: Perbill,
     expected_session_count_threshold: SessionCount,
     expected_clean_session_counter_delay: SessionCount,
-) -> CommitteeKickOutConfig {
-    let committee_kick_out_config = get_committee_kick_out_config(connection);
+) -> BanConfig {
+    let ban_config = get_ban_config(connection);
 
     assert_eq!(
-        committee_kick_out_config.minimal_expected_performance,
+        ban_config.minimal_expected_performance,
         expected_minimal_expected_performance
     );
     assert_eq!(
-        committee_kick_out_config.underperformed_session_count_threshold,
+        ban_config.underperformed_session_count_threshold,
         expected_session_count_threshold
     );
     assert_eq!(
-        committee_kick_out_config.clean_session_counter_delay,
+        ban_config.clean_session_counter_delay,
         expected_clean_session_counter_delay
     );
 
-    committee_kick_out_config
+    ban_config
 }
 
 pub fn check_underperformed_validator_session_count<C: AnyConnection>(
@@ -100,36 +98,29 @@ pub fn check_underperformed_validator_session_count<C: AnyConnection>(
 pub fn check_underperformed_validator_reason<C: AnyConnection>(
     connection: &C,
     validator: &AccountId,
-    expected_reason: Option<&KickOutReason>,
-) -> Option<KickOutReason> {
-    let validator_kick_out_reason = get_kick_out_reason_for_validator(connection, validator);
+    expected_info: Option<&BanInfo>,
+) -> Option<BanInfo> {
+    let validator_ban_info = get_ban_reason_for_validator(connection, validator);
 
-    assert_eq!(validator_kick_out_reason.as_ref(), expected_reason);
+    assert_eq!(validator_ban_info.as_ref(), expected_info);
 
-    validator_kick_out_reason
+    validator_ban_info
 }
 
 #[derive(Debug, Decode, Clone)]
-pub struct KickOutEvent {
-    kicked_out_validators: Vec<(AccountId, KickOutReason)>,
+pub struct BanEvent {
+    banned_validators: Vec<(AccountId, BanInfo)>,
 }
 
-pub fn check_kick_out_event<C: AnyConnection>(
+pub fn check_ban_event<C: AnyConnection>(
     connection: &C,
-    expected_kicked_out_validators: &[(AccountId, KickOutReason)],
-) -> anyhow::Result<KickOutEvent> {
-    let event = wait_for_event(
-        connection,
-        ("Elections", "KickOutValidators"),
-        |e: KickOutEvent| {
-            info!(
-                "Received KickOutValidators event: {:?}",
-                e.kicked_out_validators
-            );
-            assert_eq!(e.kicked_out_validators, expected_kicked_out_validators);
-            true
-        },
-    )?;
+    expected_banned_validators: &[(AccountId, BanInfo)],
+) -> anyhow::Result<BanEvent> {
+    let event = wait_for_event(connection, ("Elections", "BanValidators"), |e: BanEvent| {
+        info!("Received BanValidators event: {:?}", e.banned_validators);
+        assert_eq!(e.banned_validators, expected_banned_validators);
+        true
+    })?;
 
     Ok(event)
 }

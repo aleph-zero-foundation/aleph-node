@@ -60,10 +60,18 @@ pub const DEFAULT_UNIT_CREATION_DELAY: u64 = 300;
 
 pub const DEFAULT_COMMITTEE_SIZE: u32 = 4;
 
-pub const DEFAULT_KICK_OUT_MINIMAL_EXPECTED_PERFORMANCE: Perbill = Perbill::from_percent(0);
-pub const DEFAULT_KICK_OUT_SESSION_COUNT_THRESHOLD: SessionCount = 3;
-pub const DEFAULT_KICK_OUT_REASON_LENGTH: u32 = 300;
+pub const DEFAULT_BAN_MINIMAL_EXPECTED_PERFORMANCE: Perbill = Perbill::from_percent(0);
+pub const DEFAULT_BAN_SESSION_COUNT_THRESHOLD: SessionCount = 3;
+pub const DEFAULT_BAN_REASON_LENGTH: u32 = 300;
 pub const DEFAULT_CLEAN_SESSION_COUNTER_DELAY: SessionCount = 960;
+pub const DEFAULT_BAN_PERIOD: EraIndex = 10;
+
+/// Openness of the process of the elections
+#[derive(Decode, Encode, TypeInfo, Debug, Clone, PartialEq, Eq)]
+pub enum ElectionOpenness {
+    Permissioned,
+    Permissionless,
+}
 
 /// Represent desirable size of a committee in a session
 #[derive(Decode, Encode, TypeInfo, Debug, Clone, Copy, PartialEq, Eq)]
@@ -90,10 +98,10 @@ impl Default for CommitteeSeats {
     }
 }
 
-/// Configurable parameters for kick-out validator mechanism
+/// Configurable parameters for ban validator mechanism
 #[derive(Decode, Encode, TypeInfo, Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct CommitteeKickOutConfig {
+pub struct BanConfig {
     /// performance ratio threshold in a session
     /// calculated as ratio of number of blocks produced to expected number of blocks for a single validator
     pub minimal_expected_performance: Perbill,
@@ -101,27 +109,39 @@ pub struct CommitteeKickOutConfig {
     pub underperformed_session_count_threshold: SessionCount,
     /// underperformed session counter is cleared every subsequent `clean_session_counter_delay` sessions
     pub clean_session_counter_delay: SessionCount,
+    /// how many eras a validator is banned for
+    pub ban_period: EraIndex,
 }
 
-impl Default for CommitteeKickOutConfig {
+impl Default for BanConfig {
     fn default() -> Self {
-        CommitteeKickOutConfig {
-            minimal_expected_performance: DEFAULT_KICK_OUT_MINIMAL_EXPECTED_PERFORMANCE,
-            underperformed_session_count_threshold: DEFAULT_KICK_OUT_SESSION_COUNT_THRESHOLD,
+        BanConfig {
+            minimal_expected_performance: DEFAULT_BAN_MINIMAL_EXPECTED_PERFORMANCE,
+            underperformed_session_count_threshold: DEFAULT_BAN_SESSION_COUNT_THRESHOLD,
             clean_session_counter_delay: DEFAULT_CLEAN_SESSION_COUNTER_DELAY,
+            ban_period: DEFAULT_BAN_PERIOD,
         }
     }
 }
 
 /// Represent any possible reason a validator can be removed from the committee due to
 #[derive(PartialEq, Eq, Clone, Encode, Decode, TypeInfo, Debug)]
-pub enum KickOutReason {
+pub enum BanReason {
     /// Validator has been removed from the committee due to insufficient uptime in a given number
     /// of sessions
     InsufficientUptime(u32),
 
     /// Any arbitrary reason
-    OtherReason(BoundedVec<u8, ConstU32<DEFAULT_KICK_OUT_REASON_LENGTH>>),
+    OtherReason(BoundedVec<u8, ConstU32<DEFAULT_BAN_REASON_LENGTH>>),
+}
+
+/// Details of why and for how long a validator is removed from the committee
+#[derive(PartialEq, Eq, Clone, Encode, Decode, TypeInfo, Debug)]
+pub struct BanInfo {
+    /// reason for banning a validator
+    pub reason: BanReason,
+    /// index of the first era when a ban starts
+    pub start: EraIndex,
 }
 
 /// Represent committee, ie set of nodes that produce and finalize blocks in the session
@@ -129,7 +149,7 @@ pub enum KickOutReason {
 pub struct EraValidators<AccountId> {
     /// Validators that are chosen to be in committee every single session.
     pub reserved: Vec<AccountId>,
-    /// Validators that can be kicked out from the committee, under the circumstances
+    /// Validators that can be banned out from the committee, under the circumstances
     pub non_reserved: Vec<AccountId>,
 }
 

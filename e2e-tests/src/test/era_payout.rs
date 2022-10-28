@@ -1,5 +1,5 @@
 use aleph_client::{
-    create_connection, get_current_era, get_payout_for_era, staking_force_new_era,
+    create_connection, get_active_era, get_payout_for_era, staking_force_new_era,
     wait_for_next_era, wait_for_session, ReadStorage, XtStatus,
 };
 use primitives::{
@@ -30,28 +30,28 @@ fn payout_within_two_block_delta(expected_payout: Balance, payout: Balance) {
 }
 
 fn wait_to_second_era<C: ReadStorage>(connection: &C) -> EraIndex {
-    let current_era = get_current_era(connection);
-    if current_era < 2 {
+    let active_era = get_active_era(connection);
+    if active_era < 2 {
         wait_for_next_era(connection).expect("Era is active");
         wait_for_next_era(connection).expect("Era is active");
     }
-    get_current_era(connection)
+    get_active_era(connection)
 }
 
 fn force_era_payout(config: &Config) -> anyhow::Result<()> {
     let root_connection = config.create_root_connection();
-    let current_era = wait_to_second_era(&root_connection);
+    let active_era = wait_to_second_era(&root_connection);
     wait_for_next_era(&root_connection)?;
-    let current_era = current_era + 1;
+    let active_era = active_era + 1;
 
-    let starting_session = current_era * DEFAULT_SESSIONS_PER_ERA;
+    let starting_session = active_era * DEFAULT_SESSIONS_PER_ERA;
     wait_for_session(&root_connection, starting_session + 1)?;
 
     // new era will start in the session `starting_session + 3`
     staking_force_new_era(&root_connection, XtStatus::InBlock);
     wait_for_session(&root_connection, starting_session + 3)?;
 
-    let payout = get_payout_for_era(&root_connection, current_era);
+    let payout = get_payout_for_era(&root_connection, active_era);
     let expected_payout = era_payout((3 * DEFAULT_SESSION_PERIOD) as u64 * MILLISECS_PER_BLOCK).0;
 
     payout_within_two_block_delta(expected_payout, payout);
@@ -62,8 +62,8 @@ fn force_era_payout(config: &Config) -> anyhow::Result<()> {
 fn normal_era_payout(config: &Config) -> anyhow::Result<()> {
     let connection = create_connection(&config.node);
 
-    let current_era = wait_to_second_era(&connection);
-    let payout = get_payout_for_era(&connection, current_era - 1);
+    let active_era = wait_to_second_era(&connection);
+    let payout = get_payout_for_era(&connection, active_era - 1);
     let expected_payout = era_payout(
         (DEFAULT_SESSIONS_PER_ERA * DEFAULT_SESSION_PERIOD) as u64 * MILLISECS_PER_BLOCK,
     )

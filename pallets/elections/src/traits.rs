@@ -46,9 +46,12 @@ where
 pub trait EraInfoProvider {
     type AccountId;
 
-    /// Returns `Some(idx)` where idx is the current active era index otherwise
+    /// Returns `Some(idx)` where idx is the active era index otherwise
     /// if no era is active returns `None`.
     fn active_era() -> Option<EraIndex>;
+    /// Returns `Some(idx)` where idx is the current era index which is latest
+    /// planed era otherwise if no era has started returns `None`.
+    fn current_era() -> Option<EraIndex>;
     /// Returns the index of the starting session of the `era` if possible. Otherwise returns `None`.
     fn era_start_session_index(era: EraIndex) -> Option<SessionIndex>;
     /// Returns how many sessions are in single era.
@@ -65,6 +68,10 @@ where
 
     fn active_era() -> Option<EraIndex> {
         pallet_staking::ActiveEra::<T>::get().map(|ae| ae.index)
+    }
+
+    fn current_era() -> Option<EraIndex> {
+        pallet_staking::CurrentEra::<T>::get()
     }
 
     fn era_start_session_index(era: EraIndex) -> Option<SessionIndex> {

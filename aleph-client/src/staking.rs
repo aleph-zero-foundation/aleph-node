@@ -106,11 +106,11 @@ pub fn wait_for_full_era_completion<C: ReadStorage>(connection: &C) -> anyhow::R
     // staking works in such a way, that when we request a controller to be a validator in era N,
     // then the changes are applied in the era N+1 (so the new validator is receiving points in N+1),
     // so that we need N+1 to finish in order to claim the reward in era N+2 for the N+1 era
-    wait_for_era_completion(connection, get_current_era(connection) + 2)
+    wait_for_era_completion(connection, get_active_era(connection) + 2)
 }
 
 pub fn wait_for_next_era<C: ReadStorage>(connection: &C) -> anyhow::Result<EraIndex> {
-    wait_for_era_completion(connection, get_current_era(connection) + 1)
+    wait_for_era_completion(connection, get_active_era(connection) + 1)
 }
 
 pub fn wait_for_at_least_era<C: ReadStorage>(
@@ -154,8 +154,16 @@ pub fn get_era<C: AnyConnection>(connection: &C, block: Option<H256>) -> EraInde
         .expect("ActiveEra is empty in the storage!")
 }
 
-pub fn get_current_era<C: AnyConnection>(connection: &C) -> EraIndex {
+pub fn get_active_era<C: AnyConnection>(connection: &C) -> EraIndex {
     get_era(connection, None)
+}
+
+pub fn get_current_era<C: AnyConnection>(connection: &C) -> EraIndex {
+    connection
+        .as_connection()
+        .get_storage_value(PALLET, "CurrentEra", None)
+        .expect("Failed to obtain CurrentEra extrinsic!")
+        .expect("CurrentEra is empty in the storage!")
 }
 
 pub fn payout_stakers(

@@ -6,9 +6,9 @@ pub use balances::total_issuance;
 use codec::{Decode, Encode};
 pub use debug::print_storages;
 pub use elections::{
-    get_committee_kick_out_config, get_committee_seats, get_current_era_non_reserved_validators,
-    get_current_era_reserved_validators, get_current_era_validators, get_era_validators,
-    get_kick_out_reason_for_validator, get_next_era_committee_seats,
+    get_ban_config, get_ban_reason_for_validator, get_committee_seats,
+    get_current_era_non_reserved_validators, get_current_era_reserved_validators,
+    get_current_era_validators, get_era_validators, get_next_era_committee_seats,
     get_next_era_non_reserved_validators, get_next_era_reserved_validators,
     get_next_era_validators, get_underperformed_validator_session_count, get_validator_block_count,
 };
@@ -33,9 +33,9 @@ pub use staking::{
     batch_bond as staking_batch_bond, batch_nominate as staking_batch_nominate,
     bond as staking_bond, bond_extra_stake, bonded as staking_bonded,
     chill_validator as staking_chill_validator, chill_validators as staking_chill_validators,
-    force_new_era as staking_force_new_era, get_current_era, get_era, get_era_reward_points,
-    get_eras_stakers_storage_key, get_exposure, get_minimum_validator_count, get_payout_for_era,
-    get_sessions_per_era, get_stakers_as_storage_keys,
+    force_new_era as staking_force_new_era, get_active_era, get_current_era, get_era,
+    get_era_reward_points, get_eras_stakers_storage_key, get_exposure, get_minimum_validator_count,
+    get_payout_for_era, get_sessions_per_era, get_stakers_as_storage_keys,
     get_stakers_as_storage_keys_from_storage_key, ledger as staking_ledger,
     multi_bond as staking_multi_bond, nominate as staking_nominate, payout_stakers,
     payout_stakers_and_assert_locked_balance, set_staking_limits as staking_set_staking_limits,

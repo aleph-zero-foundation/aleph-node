@@ -3,10 +3,7 @@ use frame_support::{
     log::{debug, info},
     pallet_prelude::Get,
 };
-use primitives::{
-    CommitteeKickOutConfig as CommitteeKickOutConfigStruct, CommitteeSeats, EraValidators,
-    KickOutReason,
-};
+use primitives::{BanConfig as BanConfigStruct, BanInfo, BanReason, CommitteeSeats, EraValidators};
 use sp_runtime::Perbill;
 use sp_staking::{EraIndex, SessionIndex};
 use sp_std::{
@@ -16,10 +13,9 @@ use sp_std::{
 
 use crate::{
     traits::{EraInfoProvider, SessionInfoProvider, ValidatorRewardsHandler},
-    CommitteeKickOutConfig, CommitteeSize, Config, CurrentEraValidators, NextEraCommitteeSize,
+    BanConfig, Banned, CommitteeSize, Config, CurrentEraValidators, NextEraCommitteeSize,
     NextEraNonReservedValidators, NextEraReservedValidators, Pallet, SessionValidatorBlockCount,
-    ToBeKickedOutFromCommittee, UnderperformedValidatorSessionCount, ValidatorEraTotalReward,
-    ValidatorTotalRewards,
+    UnderperformedValidatorSessionCount, ValidatorEraTotalReward, ValidatorTotalRewards,
 };
 
 const MAX_REWARD: u32 = 1_000_000_000;
@@ -32,12 +28,15 @@ pub const LENIENT_THRESHOLD: Perquintill = Perquintill::from_percent(90);
 /// *  Based on block count we might mark the session for a given validator as underperformed
 /// *  We update rewards and clear block count for the session `S`.
 /// 3. `start_session(S + 1)` is called.
-/// *  if session `S+1` starts new era we populate totals.
-/// *  if session `S+1` % [`CommitteeKickOutConfig::clean_session_counter_delay`] == 0, we
+/// *  if session `S+1` starts new era we populate totals and unban all validators whose ban expired.
+/// *  if session `S+1` % [`BanConfig::clean_session_counter_delay`] == 0, we
 ///    clean up underperformed session counter
 /// 4. `new_session(S + 2)` is called.
 /// *  If session `S+2` starts new era:
-///    * during elections, we kick out underperforming validators from non_reserved set,
+///    * during elections, we choose validators eligible for elections depending on the openness of the process
+///       * `permsionless`: all validators that bonded sufficient amount are chosen
+///       * `permissioned`: we choose only validators from allow lists
+///    * in both cases, we exclude banned validators from the elections
 ///    * then we update the reserved and non reserved validators.
 /// *  We rotate the validators for session `S + 2` using the information about reserved and non reserved validators.
 ///
@@ -226,6 +225,10 @@ where
         )
     }
 
+    pub fn ban_expired(start: EraIndex, period: EraIndex, active_era: EraIndex) -> bool {
+        start + period <= active_era
+    }
+
     fn if_era_starts_do<F: Fn()>(era: EraIndex, start_index: SessionIndex, on_era_start: F) {
         if let Some(era_start_index) = T::EraInfoProvider::era_start_session_index(era) {
             if era_start_index == start_index {
@@ -233,6 +236,25 @@ where
             }
         }
     }
+
+    fn clear_expired_bans_on_new_era_start(session: SessionIndex) {
+        let active_era = match T::EraInfoProvider::active_era() {
+            Some(ae) => ae,
+            _ => return,
+        };
+
+        Self::if_era_starts_do(active_era, session, || {
+            let ban_period = BanConfig::<T>::get().ban_period;
+            let unban = Banned::<T>::iter().filter_map(|(v, ban_info)| {
+                if Self::ban_expired(ban_info.start, ban_period, active_era) {
+                    return Some(v);
+                }
+                None
+            });
+            unban.for_each(Banned::<T>::remove);
+        });
+    }
+
     fn populate_next_era_validators_on_next_era_start(session: SessionIndex) {
         let active_era = match T::EraInfoProvider::active_era() {
             Some(ae) => ae,
@@ -307,7 +329,7 @@ where
     }
 
     fn calculate_underperforming_validators() {
-        let thresholds = CommitteeKickOutConfig::<T>::get();
+        let thresholds = BanConfig::<T>::get();
         let current_committee = T::SessionInfoProvider::current_committee();
         let expected_blocks_per_validator = Self::blocks_to_produce_per_session();
         for validator in current_committee {
@@ -324,26 +346,29 @@ where
         }
     }
 
-    fn mark_validator_underperformance(
-        thresholds: &CommitteeKickOutConfigStruct,
-        validator: &T::AccountId,
-    ) {
+    pub fn ban_validator(validator: &T::AccountId, reason: BanReason) {
+        // current era is the latest planned era for which validators are already chosen
+        // so we ban from the next era
+        let start: EraIndex = T::EraInfoProvider::current_era()
+            .unwrap_or(0)
+            .saturating_add(1);
+        Banned::<T>::insert(validator, BanInfo { reason, start });
+    }
+
+    fn mark_validator_underperformance(thresholds: &BanConfigStruct, validator: &T::AccountId) {
         let counter = UnderperformedValidatorSessionCount::<T>::mutate(&validator, |count| {
             *count += 1;
             *count
         });
         if counter >= thresholds.underperformed_session_count_threshold {
-            ToBeKickedOutFromCommittee::<T>::insert(
-                &validator,
-                KickOutReason::InsufficientUptime(counter),
-            );
+            let reason = BanReason::InsufficientUptime(counter);
+            Self::ban_validator(validator, reason);
             UnderperformedValidatorSessionCount::<T>::remove(&validator);
         }
     }
 
     fn clear_underperformance_session_counter(session: SessionIndex) {
-        let clean_session_counter_delay =
-            CommitteeKickOutConfig::<T>::get().clean_session_counter_delay;
+        let clean_session_counter_delay = BanConfig::<T>::get().clean_session_counter_delay;
         if session % clean_session_counter_delay == 0 {
             info!(target: "pallet_elections", "Clearing UnderperformedValidatorSessionCount");
             let _result = UnderperformedValidatorSessionCount::<T>::clear(u32::MAX, None);
@@ -394,6 +419,7 @@ where
         <T as Config>::SessionManager::start_session(start_index);
         Self::populate_totals_on_new_era_start(start_index);
         Self::clear_underperformance_session_counter(start_index);
+        Self::clear_expired_bans_on_new_era_start(start_index);
     }
 }
 

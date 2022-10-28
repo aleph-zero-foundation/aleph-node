@@ -1,5 +1,5 @@
 use aleph_client::{
-    get_current_era, get_current_session, staking_force_new_era, wait_for_full_era_completion,
+    get_active_era, get_current_session, staking_force_new_era, wait_for_full_era_completion,
     wait_for_next_era, wait_for_session, AccountId, SignedConnection, XtStatus,
 };
 use log::info;
@@ -161,11 +161,11 @@ pub fn force_new_era(config: &Config) -> anyhow::Result<()> {
     staking_force_new_era(&root_connection, XtStatus::Finalized);
 
     wait_for_session(&connection, start_session + 2)?;
-    let current_era = get_current_era(&connection);
+    let active_era = get_active_era(&connection);
     let current_session = get_current_session(&connection);
     info!(
         "After ForceNewEra | era: {}, session: {}",
-        current_era, current_session
+        active_era, current_session
     );
 
     check_points_after_force_new_era(
@@ -208,11 +208,11 @@ pub fn change_stake_and_force_new_era(config: &Config) -> anyhow::Result<()> {
     staking_force_new_era(&root_connection, XtStatus::Finalized);
 
     wait_for_session(&connection, start_session + 2)?;
-    let current_era = get_current_era(&connection);
+    let active_era = get_active_era(&connection);
     let current_session = get_current_session(&connection);
     info!(
         "After ForceNewEra | era: {}, session: {}",
-        current_era, current_session
+        active_era, current_session
     );
 
     check_points_after_force_new_era(

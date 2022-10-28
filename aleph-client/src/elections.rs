@@ -1,7 +1,4 @@
-use primitives::{
-    CommitteeKickOutConfig, CommitteeSeats, EraValidators, KickOutReason, SessionCount,
-    SessionIndex,
-};
+use primitives::{BanConfig, BanInfo, CommitteeSeats, EraValidators, SessionCount, SessionIndex};
 use sp_core::H256;
 
 use crate::{get_session_first_block, AccountId, ReadStorage};
@@ -66,8 +63,8 @@ pub fn get_era_validators<C: ReadStorage>(
     connection.read_storage_value_at_block(PALLET, "CurrentEraValidators", Some(block_hash))
 }
 
-pub fn get_committee_kick_out_config<C: ReadStorage>(connection: &C) -> CommitteeKickOutConfig {
-    connection.read_storage_value(PALLET, "CommitteeKickOutConfig")
+pub fn get_ban_config<C: ReadStorage>(connection: &C) -> BanConfig {
+    connection.read_storage_value(PALLET, "BanConfig")
 }
 
 pub fn get_underperformed_validator_session_count<C: ReadStorage>(
@@ -84,9 +81,9 @@ pub fn get_underperformed_validator_session_count<C: ReadStorage>(
         .unwrap_or(0)
 }
 
-pub fn get_kick_out_reason_for_validator<C: ReadStorage>(
+pub fn get_ban_reason_for_validator<C: ReadStorage>(
     connection: &C,
     account_id: &AccountId,
-) -> Option<KickOutReason> {
-    connection.read_storage_map(PALLET, "ToBeKickedOutFromCommittee", account_id, None)
+) -> Option<BanInfo> {
+    connection.read_storage_map(PALLET, "Banned", account_id, None)
 }
