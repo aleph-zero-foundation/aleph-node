@@ -11,7 +11,7 @@ mod incoming;
 mod io;
 mod manager;
 #[cfg(test)]
-mod mock;
+pub mod mock;
 mod outgoing;
 mod protocol_negotiation;
 mod protocols;

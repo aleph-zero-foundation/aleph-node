@@ -188,7 +188,7 @@ mod tests {
         crypto::AuthorityPen,
         validator_network::{
             io::{receive_data, send_data},
-            mock::{keys, MockSplittable},
+            mock::{key, MockSplittable},
             Splittable,
         },
     };
@@ -236,8 +236,8 @@ mod tests {
     #[tokio::test]
     async fn handshake() {
         let (stream_a, stream_b) = MockSplittable::new(4096);
-        let (id_a, pen_a) = keys().await;
-        let (id_b, pen_b) = keys().await;
+        let (id_a, pen_a) = key().await;
+        let (id_b, pen_b) = key().await;
         assert_ne!(id_a, id_b);
         let ((_, _, received_id_b), (_, _)) = try_join!(
             execute_v0_handshake_incoming(stream_a, pen_a),
@@ -250,7 +250,7 @@ mod tests {
     #[tokio::test]
     async fn handshake_with_malicious_server_peer() {
         async fn execute_malicious_v0_handshake_incoming<S: Splittable>(stream: S) {
-            let (fake_id, _) = keys().await;
+            let (fake_id, _) = key().await;
             // send challenge with incorrect id
             let our_challenge = Challenge::new(fake_id);
             send_data(stream, our_challenge.clone())
@@ -261,8 +261,8 @@ mod tests {
         }
 
         let (stream_a, stream_b) = MockSplittable::new(4096);
-        let (id_a, _) = keys().await;
-        let (_, pen_b) = keys().await;
+        let (id_a, _) = key().await;
+        let (_, pen_b) = key().await;
         tokio::select! {
             _ = execute_malicious_v0_handshake_incoming(stream_a) => panic!("should wait"),
             result = execute_v0_handshake_outgoing(stream_b, pen_b, id_a) => assert_challenge_error(result),
@@ -280,7 +280,7 @@ mod tests {
                 .await
                 .expect("should receive");
             // prepare fake challenge
-            let (fake_id, _) = keys().await;
+            let (fake_id, _) = key().await;
             let fake_challenge = Challenge::new(fake_id);
             // send response with substituted challenge
             let our_response = Response::new(&authority_pen, &fake_challenge).await;
@@ -289,8 +289,8 @@ mod tests {
         }
 
         let (stream_a, stream_b) = MockSplittable::new(4096);
-        let (_, pen_a) = keys().await;
-        let (_, pen_b) = keys().await;
+        let (_, pen_a) = key().await;
+        let (_, pen_b) = key().await;
         tokio::select! {
             result = execute_v0_handshake_incoming(stream_a, pen_a) => assert_signature_error(result),
             _ = execute_malicious_v0_handshake_outgoing_fake_challenge(stream_b, pen_b) => panic!("should wait"),
@@ -308,7 +308,7 @@ mod tests {
                 .await
                 .expect("should receive");
             // prepare fake id
-            let (fake_id, _) = keys().await;
+            let (fake_id, _) = key().await;
             // send response with substituted id
             let mut our_response = Response::new(&authority_pen, &challenge).await;
             our_response.id = fake_id;
@@ -317,8 +317,8 @@ mod tests {
         }
 
         let (stream_a, stream_b) = MockSplittable::new(4096);
-        let (_, pen_a) = keys().await;
-        let (_, pen_b) = keys().await;
+        let (_, pen_a) = key().await;
+        let (_, pen_b) = key().await;
         tokio::select! {
             result = execute_v0_handshake_incoming(stream_a, pen_a) => assert_signature_error(result),
             _ = execute_malicious_v0_handshake_outgoing_fake_signature(stream_b, pen_b) => panic!("should wait"),
@@ -329,14 +329,14 @@ mod tests {
     async fn broken_incoming_connection_step_one() {
         // break the connection even before the handshake starts by dropping the stream
         let (stream_a, _) = MockSplittable::new(4096);
-        let (_, pen_a) = keys().await;
+        let (_, pen_a) = key().await;
         assert_send_error(execute_v0_handshake_incoming(stream_a, pen_a).await);
     }
 
     #[tokio::test]
     async fn broken_incoming_connection_step_two() {
         let (stream_a, stream_b) = MockSplittable::new(4096);
-        let (_, pen_a) = keys().await;
+        let (_, pen_a) = key().await;
         let (result, _) = join!(
             execute_v0_handshake_incoming(stream_a, pen_a),
             // mock outgoing handshake: receive the first message and terminate
@@ -353,16 +353,16 @@ mod tests {
     async fn broken_outgoing_connection_step_one() {
         // break the connection even before the handshake starts by dropping the stream
         let (stream_a, _) = MockSplittable::new(4096);
-        let (_, pen_a) = keys().await;
-        let (id_b, _) = keys().await;
+        let (_, pen_a) = key().await;
+        let (id_b, _) = key().await;
         assert_receive_error(execute_v0_handshake_outgoing(stream_a, pen_a, id_b).await);
     }
 
     #[tokio::test]
     async fn broken_outgoing_connection_step_two() {
         let (stream_a, stream_b) = MockSplittable::new(4096);
-        let (id_a, pen_a) = keys().await;
-        let (_, pen_b) = keys().await;
+        let (id_a, pen_a) = key().await;
+        let (_, pen_b) = key().await;
         // mock incoming handshake: send the first message and terminate
         send_data(stream_a, Challenge::new(pen_a.authority_id()))
             .await

@@ -204,7 +204,7 @@ mod tests {
     use crate::{
         crypto::AuthorityPen,
         validator_network::{
-            mock::{keys, MockSplittable},
+            mock::{key, MockSplittable},
             Data,
         },
     };
@@ -221,8 +221,8 @@ mod tests {
         UnboundedReceiver<(AuthorityId, Option<mpsc::UnboundedSender<D>>)>,
     ) {
         let (stream_incoming, stream_outgoing) = MockSplittable::new(4096);
-        let (id_incoming, pen_incoming) = keys().await;
-        let (id_outgoing, pen_outgoing) = keys().await;
+        let (id_incoming, pen_incoming) = key().await;
+        let (id_outgoing, pen_outgoing) = key().await;
         assert_ne!(id_incoming, id_outgoing);
         let (incoming_result_for_service, result_from_incoming) =
             mpsc::unbounded::<(AuthorityId, oneshot::Sender<()>)>();
