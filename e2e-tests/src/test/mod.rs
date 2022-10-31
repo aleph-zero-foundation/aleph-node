@@ -1,4 +1,4 @@
-pub use ban::ban_automatic;
+pub use ban::{ban_automatic, clearing_session_count};
 pub use electing_validators::authorities_are_staking;
 pub use era_payout::era_payouts_calculated_correctly;
 pub use era_validators::era_validators;

@@ -5,7 +5,8 @@ use crate::{
         ban_automatic as test_ban_automatic, batch_transactions as test_batch_transactions,
         change_stake_and_force_new_era as test_change_stake_and_force_new_era,
         change_validators as test_change_validators,
-        channeling_fee_and_tip as test_channeling_fee_and_tip, disable_node as test_disable_node,
+        channeling_fee_and_tip as test_channeling_fee_and_tip,
+        clearing_session_count as test_clearing_session_count, disable_node as test_disable_node,
         era_payouts_calculated_correctly as test_era_payout, era_validators as test_era_validators,
         fee_calculation as test_fee_calculation, finalization as test_finalization,
         force_new_era as test_force_new_era, points_basic as test_points_basic,
@@ -56,6 +57,10 @@ pub fn possible_test_cases() -> PossibleTestCases {
         (
             "authorities_are_staking",
             test_authorities_are_staking as TestCase,
+        ),
+        (
+            "clearing_session_count",
+            test_clearing_session_count as TestCase,
         ),
         ("ban_automatic", test_ban_automatic as TestCase),
     ]

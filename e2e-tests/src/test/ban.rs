@@ -1,6 +1,8 @@
 use aleph_client::{
-    get_current_era, get_current_era_validators, get_current_session, wait_for_at_least_session,
-    SignedConnection,
+    change_ban_config, get_current_era, get_current_era_validators, get_current_session,
+    get_next_era_non_reserved_validators, get_next_era_reserved_validators,
+    get_underperformed_validator_session_count, wait_for_at_least_session, SignedConnection,
+    XtStatus,
 };
 use log::info;
 use primitives::{
@@ -23,6 +25,17 @@ const VALIDATOR_TO_DISABLE_OVERALL_INDEX: u32 = 2;
 // Address for //2 (Node2). Depends on the infrastructure setup.
 const NODE_TO_DISABLE_ADDRESS: &str = "127.0.0.1:9945";
 const SESSIONS_TO_MEET_BAN_THRESHOLD: SessionCount = 4;
+
+fn disable_validator(validator_address: &str, validator_seed: u32) -> anyhow::Result<()> {
+    let validator_seed = get_validator_seed(validator_seed);
+    let stash_controller = NodeKeys::from(validator_seed);
+    let controller_key_to_disable = stash_controller.controller;
+
+    // This connection has to be set up with the controller key.
+    let connection_to_disable = SignedConnection::new(validator_address, controller_key_to_disable);
+
+    set_invalid_keys_for_validator(&connection_to_disable)
+}
 
 /// Runs a chain, sets up a committee and validators. Sets an incorrect key for one of the
 /// validators. Waits for the offending validator to hit the ban threshold of sessions without
@@ -54,15 +67,7 @@ pub fn ban_automatic(config: &Config) -> anyhow::Result<()> {
     check_underperformed_validator_session_count(&root_connection, validator_to_disable, &0);
     check_underperformed_validator_reason(&root_connection, validator_to_disable, None);
 
-    let validator_seed = get_validator_seed(VALIDATOR_TO_DISABLE_OVERALL_INDEX);
-    let stash_controller = NodeKeys::from(validator_seed);
-    let controller_key_to_disable = stash_controller.controller;
-
-    // This connection has to be set up with the controller key.
-    let connection_to_disable =
-        SignedConnection::new(NODE_TO_DISABLE_ADDRESS, controller_key_to_disable);
-
-    set_invalid_keys_for_validator(&connection_to_disable)?;
+    disable_validator(NODE_TO_DISABLE_ADDRESS, VALIDATOR_TO_DISABLE_OVERALL_INDEX)?;
 
     let current_session = get_current_session(&root_connection);
 
@@ -98,6 +103,48 @@ pub fn ban_automatic(config: &Config) -> anyhow::Result<()> {
         expected_non_reserved,
         get_current_era_validators,
     );
+
+    Ok(())
+}
+
+/// Setup validators and non_validators. Set ban config clean_session_counter_delay to 2, while
+/// underperformed_session_count_threshold to 3.
+/// Disable one non_reserved validator. Check if the disabled validator is still in the committee
+/// and his underperformed session count is less or equal to 2.
+pub fn clearing_session_count(config: &Config) -> anyhow::Result<()> {
+    let (root_connection, reserved_validators, non_reserved_validators) = setup_test(config)?;
+
+    info!(target: "aleph-client", "changing ban config");
+    change_ban_config(
+        &root_connection,
+        None,
+        Some(3),
+        Some(2),
+        None,
+        XtStatus::InBlock,
+    );
+
+    let validator_to_disable =
+        &non_reserved_validators[VALIDATOR_TO_DISABLE_NON_RESERVED_INDEX as usize];
+    disable_validator(NODE_TO_DISABLE_ADDRESS, VALIDATOR_TO_DISABLE_OVERALL_INDEX)?;
+
+    info!(target: "aleph-client", "Disabling validator {}", validator_to_disable);
+    let current_session = get_current_session(&root_connection);
+
+    wait_for_at_least_session(&root_connection, current_session + 5)?;
+
+    let underperformed_validator_session_count =
+        get_underperformed_validator_session_count(&root_connection, validator_to_disable);
+
+    // it only has to be ge than 0 and should be cleared before reaching values larger than 3.
+    assert!(underperformed_validator_session_count <= 2);
+
+    let next_era_reserved_validators = get_next_era_reserved_validators(&root_connection);
+    let next_era_non_reserved_validators = get_next_era_non_reserved_validators(&root_connection);
+
+    // checks no one was kicked out
+    assert_eq!(next_era_reserved_validators, reserved_validators);
+    assert_eq!(next_era_non_reserved_validators, non_reserved_validators);
 
     Ok(())
 }

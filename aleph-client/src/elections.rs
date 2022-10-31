@@ -1,7 +1,12 @@
-use primitives::{BanConfig, BanInfo, CommitteeSeats, EraValidators, SessionCount, SessionIndex};
+use primitives::{
+    BanConfig, BanInfo, CommitteeSeats, EraIndex, EraValidators, SessionCount, SessionIndex,
+};
 use sp_core::H256;
+use substrate_api_client::{compose_call, compose_extrinsic, XtStatus};
 
-use crate::{get_session_first_block, AccountId, ReadStorage};
+use crate::{
+    get_session_first_block, send_xt, AccountId, AnyConnection, ReadStorage, RootConnection,
+};
 
 const PALLET: &str = "Elections";
 
@@ -86,4 +91,31 @@ pub fn get_ban_reason_for_validator<C: ReadStorage>(
     account_id: &AccountId,
 ) -> Option<BanInfo> {
     connection.read_storage_map(PALLET, "Banned", account_id, None)
+}
+
+pub fn change_ban_config(
+    sudo_connection: &RootConnection,
+    minimal_expected_performance: Option<u8>,
+    underperformed_session_count_threshold: Option<u32>,
+    clean_session_counter_delay: Option<u32>,
+    ban_period: Option<EraIndex>,
+    status: XtStatus,
+) {
+    let call = compose_call!(
+        sudo_connection.as_connection().metadata,
+        PALLET,
+        "set_ban_config",
+        minimal_expected_performance,
+        underperformed_session_count_threshold,
+        clean_session_counter_delay,
+        ban_period
+    );
+    let xt = compose_extrinsic!(
+        sudo_connection.as_connection(),
+        "Sudo",
+        "sudo_unchecked_weight",
+        call,
+        0_u64
+    );
+    send_xt(sudo_connection, xt, Some("set_ban_config"), status);
 }
