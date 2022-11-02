@@ -1,19 +1,19 @@
 use aleph_client::{
-    change_ban_config, get_current_era, get_current_era_validators, get_current_session,
-    get_next_era_non_reserved_validators, get_next_era_reserved_validators,
+    ban_from_committee, change_ban_config, get_current_era, get_current_era_validators,
+    get_current_session, get_next_era_non_reserved_validators, get_next_era_reserved_validators,
     get_underperformed_validator_session_count, wait_for_at_least_session, SignedConnection,
     XtStatus,
 };
 use log::info;
 use primitives::{
-    BanInfo, BanReason, SessionCount, DEFAULT_BAN_MINIMAL_EXPECTED_PERFORMANCE,
+    BanInfo, BanReason, BoundedVec, SessionCount, DEFAULT_BAN_MINIMAL_EXPECTED_PERFORMANCE,
     DEFAULT_BAN_SESSION_COUNT_THRESHOLD, DEFAULT_CLEAN_SESSION_COUNTER_DELAY,
 };
 
 use crate::{
     accounts::{get_validator_seed, NodeKeys},
     ban::{
-        check_ban_config, check_ban_event, check_underperformed_validator_reason,
+        check_ban_config, check_ban_event, check_ban_info_for_validator,
         check_underperformed_validator_session_count, check_validators, setup_test,
     },
     rewards::set_invalid_keys_for_validator,
@@ -25,6 +25,9 @@ const VALIDATOR_TO_DISABLE_OVERALL_INDEX: u32 = 2;
 // Address for //2 (Node2). Depends on the infrastructure setup.
 const NODE_TO_DISABLE_ADDRESS: &str = "127.0.0.1:9945";
 const SESSIONS_TO_MEET_BAN_THRESHOLD: SessionCount = 4;
+
+const VALIDATOR_TO_MANUALLY_BAN_NON_RESERVED_INDEX: u32 = 1;
+const MANUAL_BAN_REASON: &str = "Manual ban reason";
 
 fn disable_validator(validator_address: &str, validator_seed: u32) -> anyhow::Result<()> {
     let validator_seed = get_validator_seed(validator_seed);
@@ -62,10 +65,10 @@ pub fn ban_automatic(config: &Config) -> anyhow::Result<()> {
     let validator_to_disable =
         &non_reserved_validators[VALIDATOR_TO_DISABLE_NON_RESERVED_INDEX as usize];
 
-    info!(target: "aleph-client", "Validator to disable: {}", validator_to_disable);
+    info!("Validator to disable: {}", validator_to_disable);
 
     check_underperformed_validator_session_count(&root_connection, validator_to_disable, &0);
-    check_underperformed_validator_reason(&root_connection, validator_to_disable, None);
+    check_ban_info_for_validator(&root_connection, validator_to_disable, None);
 
     disable_validator(NODE_TO_DISABLE_ADDRESS, VALIDATOR_TO_DISABLE_OVERALL_INDEX)?;
 
@@ -84,7 +87,7 @@ pub fn ban_automatic(config: &Config) -> anyhow::Result<()> {
     let start = get_current_era(&root_connection) + 1;
     let expected_ban_info = BanInfo { reason, start };
 
-    check_underperformed_validator_reason(
+    check_ban_info_for_validator(
         &root_connection,
         validator_to_disable,
         Some(&expected_ban_info),
@@ -107,6 +110,78 @@ pub fn ban_automatic(config: &Config) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Runs a chain, sets up a committee and validators. Manually bans one of the validators
+/// from the committee with a specific reason. Verifies that validator marked for ban has in
+/// fact been banned for the given reason.
+pub fn ban_manual(config: &Config) -> anyhow::Result<()> {
+    let (root_connection, reserved_validators, non_reserved_validators) = setup_test(config)?;
+
+    // Check current era validators.
+    check_validators(
+        &root_connection,
+        &reserved_validators,
+        &non_reserved_validators,
+        get_current_era_validators,
+    );
+
+    check_ban_config(
+        &root_connection,
+        DEFAULT_BAN_MINIMAL_EXPECTED_PERFORMANCE,
+        DEFAULT_BAN_SESSION_COUNT_THRESHOLD,
+        DEFAULT_CLEAN_SESSION_COUNTER_DELAY,
+    );
+
+    let validator_to_manually_ban =
+        &non_reserved_validators[VALIDATOR_TO_MANUALLY_BAN_NON_RESERVED_INDEX as usize];
+
+    info!("Validator to manually ban: {}", validator_to_manually_ban);
+
+    check_underperformed_validator_session_count(&root_connection, validator_to_manually_ban, &0);
+    check_ban_info_for_validator(&root_connection, validator_to_manually_ban, None);
+
+    let bounded_reason: BoundedVec<_, _> = MANUAL_BAN_REASON
+        .as_bytes()
+        .to_vec()
+        .try_into()
+        .expect("Incorrect manual ban reason format!");
+
+    ban_from_committee(
+        &root_connection,
+        validator_to_manually_ban,
+        &bounded_reason,
+        XtStatus::InBlock,
+    );
+
+    let reason = BanReason::OtherReason(bounded_reason);
+    let start = get_current_era(&root_connection) + 1;
+    let expected_ban_info = BanInfo { reason, start };
+    check_ban_info_for_validator(
+        &root_connection,
+        validator_to_manually_ban,
+        Some(&expected_ban_info),
+    );
+
+    let expected_banned_validators = vec![(validator_to_manually_ban.clone(), expected_ban_info)];
+
+    check_ban_event(&root_connection, &expected_banned_validators)?;
+
+    let expected_non_reserved: Vec<_> = non_reserved_validators
+        .clone()
+        .into_iter()
+        .filter(|account_id| account_id != validator_to_manually_ban)
+        .collect();
+
+    // Check current validators.
+    check_validators(
+        &root_connection,
+        &reserved_validators,
+        &expected_non_reserved,
+        get_current_era_validators,
+    );
+
+    Ok(())
+}
+
 /// Setup validators and non_validators. Set ban config clean_session_counter_delay to 2, while
 /// underperformed_session_count_threshold to 3.
 /// Disable one non_reserved validator. Check if the disabled validator is still in the committee
@@ -114,7 +189,7 @@ pub fn ban_automatic(config: &Config) -> anyhow::Result<()> {
 pub fn clearing_session_count(config: &Config) -> anyhow::Result<()> {
     let (root_connection, reserved_validators, non_reserved_validators) = setup_test(config)?;
 
-    info!(target: "aleph-client", "changing ban config");
+    info!("changing ban config");
     change_ban_config(
         &root_connection,
         None,
@@ -128,7 +203,7 @@ pub fn clearing_session_count(config: &Config) -> anyhow::Result<()> {
         &non_reserved_validators[VALIDATOR_TO_DISABLE_NON_RESERVED_INDEX as usize];
     disable_validator(NODE_TO_DISABLE_ADDRESS, VALIDATOR_TO_DISABLE_OVERALL_INDEX)?;
 
-    info!(target: "aleph-client", "Disabling validator {}", validator_to_disable);
+    info!("Disabling validator {}", validator_to_disable);
     let current_session = get_current_session(&root_connection);
 
     wait_for_at_least_session(&root_connection, current_session + 5)?;
@@ -142,7 +217,7 @@ pub fn clearing_session_count(config: &Config) -> anyhow::Result<()> {
     let next_era_reserved_validators = get_next_era_reserved_validators(&root_connection);
     let next_era_non_reserved_validators = get_next_era_non_reserved_validators(&root_connection);
 
-    // checks no one was kicked out
+    // checks no one was banned
     assert_eq!(next_era_reserved_validators, reserved_validators);
     assert_eq!(next_era_non_reserved_validators, non_reserved_validators);
 

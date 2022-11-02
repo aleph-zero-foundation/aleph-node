@@ -2,10 +2,11 @@ use primitives::{
     BanConfig, BanInfo, CommitteeSeats, EraIndex, EraValidators, SessionCount, SessionIndex,
 };
 use sp_core::H256;
-use substrate_api_client::{compose_call, compose_extrinsic, XtStatus};
+use substrate_api_client::{compose_call, compose_extrinsic};
 
 use crate::{
     get_session_first_block, send_xt, AccountId, AnyConnection, ReadStorage, RootConnection,
+    XtStatus,
 };
 
 const PALLET: &str = "Elections";
@@ -91,6 +92,33 @@ pub fn get_ban_reason_for_validator<C: ReadStorage>(
     account_id: &AccountId,
 ) -> Option<BanInfo> {
     connection.read_storage_map(PALLET, "Banned", account_id, None)
+}
+
+pub fn ban_from_committee(
+    connection: &RootConnection,
+    to_be_banned: &AccountId,
+    reason: &Vec<u8>,
+    status: XtStatus,
+) {
+    let call_name = "ban_from_committee";
+
+    let ban_from_committee_call = compose_call!(
+        connection.as_connection().metadata,
+        PALLET,
+        call_name,
+        to_be_banned,
+        reason
+    );
+
+    let xt = compose_extrinsic!(
+        connection.as_connection(),
+        "Sudo",
+        "sudo_unchecked_weight",
+        ban_from_committee_call,
+        0_u64
+    );
+
+    send_xt(connection, xt, Some(call_name), status);
 }
 
 pub fn change_ban_config(

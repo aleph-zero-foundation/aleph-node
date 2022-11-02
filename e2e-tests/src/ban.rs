@@ -95,7 +95,7 @@ pub fn check_underperformed_validator_session_count<C: AnyConnection>(
     underperformed_validator_session_count
 }
 
-pub fn check_underperformed_validator_reason<C: AnyConnection>(
+pub fn check_ban_info_for_validator<C: AnyConnection>(
     connection: &C,
     validator: &AccountId,
     expected_info: Option<&BanInfo>,
