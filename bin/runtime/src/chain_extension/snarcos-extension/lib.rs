@@ -2,10 +2,14 @@
 
 use ink_env::Environment;
 use ink_lang as ink;
+use scale::{Decode, Encode};
+#[cfg(feature = "std")]
+use scale_info::TypeInfo;
+use sp_std::vec::Vec;
 
 /// Gathers all the possible errors that might occur while calling `pallet_snarcos::store_key`.
-#[derive(Copy, Clone, Eq, PartialEq, Debug, scale::Decode, scale::Encode)]
-#[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Decode, Encode)]
+#[cfg_attr(feature = "std", derive(TypeInfo))]
 pub enum StoreKeyError {
     /// This verification key identifier is already taken.
     IdentifierAlreadyInUse,
@@ -21,13 +25,16 @@ pub enum StoreKeyError {
 impl ink_env::chain_extension::FromStatusCode for StoreKeyError {
     fn from_status_code(status_code: u32) -> Result<(), Self> {
         match status_code {
-            0 => Ok(()),
-            1 => Err(Self::VerificationKeyTooLong),
-            2 => Err(Self::IdentifierAlreadyInUse),
+            10_000 => Ok(()),
+            10_001 => Err(Self::VerificationKeyTooLong),
+            10_002 => Err(Self::IdentifierAlreadyInUse),
             _ => Err(Self::UnknownError),
         }
     }
 }
+
+/// Copied from `pallet_snarcos`.
+pub type VerificationKeyIdentifier = [u8; 4];
 
 #[ink::chain_extension]
 pub trait StoreKeyExtension {
@@ -35,13 +42,9 @@ pub trait StoreKeyExtension {
 
     /// Directly call `pallet_snarcos::store_key`.
     ///
-    /// The identifier and the key must be both mocked in the extension itself. This is
-    /// a temporary simplification to avoid any problems with passing data between contract and
-    /// runtime.
-    ///
-    /// The extension method ID matches the one declared in runtime: `SNARCOS_CHAIN_EXT`.
+    /// The extension method ID matches the one declared in runtime: `SNARCOS_STORE_KEY_FUNC_ID`.
     #[ink(extension = 41, returns_result = false)]
-    fn store_key();
+    fn store_key(identifier: VerificationKeyIdentifier, key: Vec<u8>);
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

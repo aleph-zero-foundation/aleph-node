@@ -594,6 +594,7 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "snarcos-extension",
+ "sp-std",
 ]
 
 [[package]]
@@ -604,7 +605,13 @@ dependencies = [
  "ink_lang",
  "parity-scale-codec",
  "scale-info",
+ "sp-std",
 ]
+
+[[package]]
+name = "sp-std"
+version = "4.0.0"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.26#fd26e2a04f5111e9ad692a84c69c1f1aeca896d3"
 
 [[package]]
 name = "static_assertions"

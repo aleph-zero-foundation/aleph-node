@@ -5,14 +5,12 @@ use ink_lang as ink;
 #[ink::contract(env = snarcos_extension::DefaultEnvironment)]
 #[allow(clippy::let_unit_value)] // clippy complains about the return type of `trigger` message
 mod snarcos {
-    use snarcos_extension::StoreKeyError;
+    use snarcos_extension::{StoreKeyError, VerificationKeyIdentifier};
+    use sp_std::vec::Vec;
 
     #[ink(storage)]
     #[derive(Default)]
     pub struct SnarcosExtension;
-
-    #[ink(event)]
-    pub struct KeyStored {}
 
     impl SnarcosExtension {
         #[ink(constructor)]
@@ -21,9 +19,12 @@ mod snarcos {
         }
 
         #[ink(message)]
-        pub fn trigger(&mut self) -> Result<(), StoreKeyError> {
-            self.env().extension().store_key()?;
-            self.env().emit_event(KeyStored {});
+        pub fn store_key(
+            &mut self,
+            identifier: VerificationKeyIdentifier,
+            key: Vec<u8>,
+        ) -> Result<(), StoreKeyError> {
+            self.env().extension().store_key(identifier, key)?;
             Ok(())
         }
     }

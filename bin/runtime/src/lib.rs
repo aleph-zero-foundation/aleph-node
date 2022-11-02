@@ -62,7 +62,7 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
-use crate::chain_extension::AlephChainExtension;
+use crate::chain_extension::SnarcosChainExtension;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -678,7 +678,7 @@ impl pallet_contracts::Config for Runtime {
     type DepositPerByte = DepositPerByte;
     type WeightPrice = pallet_transaction_payment::Pallet<Self>;
     type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
-    type ChainExtension = AlephChainExtension;
+    type ChainExtension = SnarcosChainExtension;
     type DeletionQueueDepth = DeletionQueueDepth;
     type DeletionWeightLimit = DeletionWeightLimit;
     type Schedule = Schedule;

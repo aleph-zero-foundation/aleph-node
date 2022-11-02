@@ -155,12 +155,12 @@ pub mod pallet {
             key: Vec<u8>,
         ) -> Result<(), Error<T>> {
             ensure!(
-                !VerificationKeys::<T>::contains_key(identifier),
-                Error::<T>::IdentifierAlreadyInUse
-            );
-            ensure!(
                 key.len() <= T::MaximumVerificationKeyLength::get() as usize,
                 Error::<T>::VerificationKeyTooLong
+            );
+            ensure!(
+                !VerificationKeys::<T>::contains_key(identifier),
+                Error::<T>::IdentifierAlreadyInUse
             );
 
             VerificationKeys::<T>::insert(
