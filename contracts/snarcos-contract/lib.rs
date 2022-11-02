@@ -3,9 +3,9 @@
 use ink_lang as ink;
 
 #[ink::contract(env = snarcos_extension::DefaultEnvironment)]
-#[allow(clippy::let_unit_value)] // clippy complains about the return type of `trigger` message
+#[allow(clippy::let_unit_value)] // clippy complains about the return type of the messages
 mod snarcos {
-    use snarcos_extension::{StoreKeyError, VerificationKeyIdentifier};
+    use snarcos_extension::{ProvingSystem, SnarcosError, VerificationKeyIdentifier};
     use sp_std::vec::Vec;
 
     #[ink(storage)]
@@ -23,8 +23,22 @@ mod snarcos {
             &mut self,
             identifier: VerificationKeyIdentifier,
             key: Vec<u8>,
-        ) -> Result<(), StoreKeyError> {
+        ) -> Result<(), SnarcosError> {
             self.env().extension().store_key(identifier, key)?;
+            Ok(())
+        }
+
+        #[ink(message)]
+        pub fn verify(
+            &mut self,
+            identifier: VerificationKeyIdentifier,
+            proof: Vec<u8>,
+            input: Vec<u8>,
+            system: ProvingSystem,
+        ) -> Result<(), SnarcosError> {
+            self.env()
+                .extension()
+                .verify(identifier, proof, input, system)?;
             Ok(())
         }
     }

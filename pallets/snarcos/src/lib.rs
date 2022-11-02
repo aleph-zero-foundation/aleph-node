@@ -130,19 +130,8 @@ pub mod pallet {
             public_input: Vec<u8>,
             system: ProvingSystem,
         ) -> DispatchResult {
-            match system {
-                ProvingSystem::Groth16 => Self::bare_verify::<Groth16<T::Pairing>>(
-                    verification_key_identifier,
-                    proof,
-                    public_input,
-                ),
-                ProvingSystem::Gm17 => Self::bare_verify::<GM17<T::Pairing>>(
-                    verification_key_identifier,
-                    proof,
-                    public_input,
-                ),
-            }
-            .map_err(|e| e.into())
+            Self::bare_verify(verification_key_identifier, proof, public_input, system)
+                .map_err(|e| e.into())
         }
     }
 
@@ -175,7 +164,27 @@ pub mod pallet {
         /// This is the inner logic behind `Self::verify`, however it is free from account lookup
         /// or other dispatchable-related overhead. Thus, it is more suited to call directly from
         /// runtime, like from a chain extension.
-        pub fn bare_verify<S: SNARK<Fr<T>>>(
+        pub fn bare_verify(
+            verification_key_identifier: VerificationKeyIdentifier,
+            proof: Vec<u8>,
+            public_input: Vec<u8>,
+            system: ProvingSystem,
+        ) -> Result<(), Error<T>> {
+            match system {
+                ProvingSystem::Groth16 => Self::_bare_verify::<Groth16<T::Pairing>>(
+                    verification_key_identifier,
+                    proof,
+                    public_input,
+                ),
+                ProvingSystem::Gm17 => Self::_bare_verify::<GM17<T::Pairing>>(
+                    verification_key_identifier,
+                    proof,
+                    public_input,
+                ),
+            }
+        }
+
+        fn _bare_verify<S: SNARK<Fr<T>>>(
             verification_key_identifier: VerificationKeyIdentifier,
             proof: Vec<u8>,
             public_input: Vec<u8>,
