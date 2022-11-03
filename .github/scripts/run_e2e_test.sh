@@ -101,10 +101,14 @@ fi
 
 if [[ -n "${UPGRADE_VERSION:-}" && -n "${UPGRADE_SESSION:-}" && -n "${UPGRADE_FINALIZATION_WAIT_SESSIONS:-}" ]]; then
     ARGS+=(
-        -e "${UPGRADE_VERSION}"
-        -e "${UPGRADE_SESSION}"
-        -e "${UPGRADE_FINALIZATION_WAIT_SESSIONS}"
+        -e UPGRADE_VERSION
+        -e UPGRADE_SESSION
+        -e UPGRADE_FINALIZATION_WAIT_SESSIONS
     )
+fi
+
+if [[ -n "${ONLY_LEGACY:-}" ]]; then
+    ARGS+=(-e ONLY_LEGACY)
 fi
 
 docker run -v $(pwd)/docker/data:/data "${ARGS[@]}" aleph-e2e-client:latest

@@ -47,6 +47,9 @@ use crate::{
     network::ComponentNetwork,
 };
 
+#[cfg(feature = "only_legacy")]
+const ONLY_LEGACY_ENV: &str = "ONLY_LEGACY_PROTOCOL";
+
 type LegacyNetworkType<B> = SimpleNetwork<
     LegacyRmcNetworkData<B>,
     mpsc::UnboundedReceiver<LegacyRmcNetworkData<B>>,
@@ -332,6 +335,8 @@ where
             .runtime_api()
             .next_session_finality_version(&BlockId::Number(last_block_of_previous_session))
         {
+            #[cfg(feature = "only_legacy")]
+            _ if self.only_legacy() => self.legacy_subtasks(params),
             Ok(version) if version == CURRENT_VERSION => self.current_subtasks(params),
             Ok(version) if version == LEGACY_VERSION => self.legacy_subtasks(params),
             Ok(version) => {
@@ -342,6 +347,13 @@ where
                 self.legacy_subtasks(params)
             }
         }
+    }
+
+    #[cfg(feature = "only_legacy")]
+    fn only_legacy(&self) -> bool {
+        std::env::var(ONLY_LEGACY_ENV)
+            .map(|legacy| !legacy.is_empty())
+            .unwrap_or(false)
     }
 }
 

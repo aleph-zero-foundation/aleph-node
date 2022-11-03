@@ -43,7 +43,7 @@ runs:
     - name: Run consensus party
       shell: bash
       run: ./.github/scripts/run_consensus.sh -m ${{ inputs.min-validator-count }} -n ${{ inputs.node-count }}
-    
+
     - name: Sleep
       shell: bash
       run: sleep 60

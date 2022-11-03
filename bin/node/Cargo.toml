@@ -84,3 +84,6 @@ try-runtime = [
 enable_treasury_proposals = [
     "aleph-runtime/enable_treasury_proposals"
 ]
+only_legacy = [
+    "finality-aleph/only_legacy"
+]

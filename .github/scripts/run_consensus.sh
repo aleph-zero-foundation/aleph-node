@@ -6,6 +6,7 @@ set -euo pipefail
 # change when increasing the number of node containers
 NODE_COUNT=5
 MIN_VALIDATOR_COUNT=4
+OVERRIDE_DOCKER_COMPOSE=${OVERRIDE_DOCKER_COMPOSE:-""}
 
 # default minimum validator count
 MIN_VALIDATOR_COUNT=4
@@ -82,14 +83,19 @@ function generate_bootnode_peer_id {
 
 function run_containers {
   local authorities_count="$1"
+  local override_file="$2"
 
   echo "Running ${authorities_count} containers..."
-  docker-compose -f docker/docker-compose.yml up -d
+  if [[ -z ${override_file} ]]; then
+      docker-compose -f docker/docker-compose.yml up -d
+  else
+      docker-compose -f docker/docker-compose.yml -f "${override_file}" up -d
+  fi
 }
 
 authorities=$(generate_authorities ${NODE_COUNT})
 generate_chainspec "${authorities[@]}" "${MIN_VALIDATOR_COUNT}"
 generate_bootnode_peer_id ${authorities[0]}
-run_containers ${NODE_COUNT}
+run_containers ${NODE_COUNT} "${OVERRIDE_DOCKER_COMPOSE}"
 
 exit $?
