@@ -64,6 +64,7 @@ pub type VerificationKeyIdentifier = [u8; 4];
 pub enum ProvingSystem {
     Groth16,
     Gm17,
+    Marlin,
 }
 
 #[ink::chain_extension]

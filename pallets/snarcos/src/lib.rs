@@ -3,10 +3,8 @@
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 mod weights;
-use codec::{Decode, Encode};
 use frame_support::pallet_prelude::StorageVersion;
 pub use pallet::*;
-use scale_info::TypeInfo;
 pub use weights::{AlephWeight, WeightInfo};
 
 /// The current storage version.
@@ -15,34 +13,22 @@ const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 /// We store verification keys under short identifiers.
 pub type VerificationKeyIdentifier = [u8; 4];
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Decode, Encode, TypeInfo)]
-pub enum ProvingSystem {
-    Groth16,
-    Gm17,
-}
+mod systems;
+pub use systems::ProvingSystem;
 
 #[frame_support::pallet]
 pub mod pallet {
-    use ark_ec::PairingEngine;
-    use ark_gm17::GM17;
-    use ark_groth16::Groth16;
     use ark_serialize::CanonicalDeserialize;
-    use ark_snark::SNARK;
     use frame_support::{log, pallet_prelude::*};
     use frame_system::pallet_prelude::OriginFor;
     use sp_std::prelude::Vec;
 
     use super::*;
-
-    /// Pack of helpful type aliases.
-    type Fr<T> = <<T as Config>::Pairing as PairingEngine>::Fr;
-    type VerifyingKey<S, T> = <S as SNARK<Fr<T>>>::VerifyingKey;
-    type Proof<S, T> = <S as SNARK<Fr<T>>>::Proof;
+    use crate::systems::{Gm17, Groth16, Marlin, VerifyingSystem};
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-        type Pairing: PairingEngine;
         type WeightInfo: WeightInfo;
 
         #[pallet::constant]
@@ -171,51 +157,45 @@ pub mod pallet {
             system: ProvingSystem,
         ) -> Result<(), Error<T>> {
             match system {
-                ProvingSystem::Groth16 => Self::_bare_verify::<Groth16<T::Pairing>>(
-                    verification_key_identifier,
-                    proof,
-                    public_input,
-                ),
-                ProvingSystem::Gm17 => Self::_bare_verify::<GM17<T::Pairing>>(
-                    verification_key_identifier,
-                    proof,
-                    public_input,
-                ),
+                ProvingSystem::Groth16 => {
+                    Self::_bare_verify::<Groth16>(verification_key_identifier, proof, public_input)
+                }
+                ProvingSystem::Gm17 => {
+                    Self::_bare_verify::<Gm17>(verification_key_identifier, proof, public_input)
+                }
+                ProvingSystem::Marlin => {
+                    Self::_bare_verify::<Marlin>(verification_key_identifier, proof, public_input)
+                }
             }
         }
 
-        fn _bare_verify<S: SNARK<Fr<T>>>(
+        fn _bare_verify<S: VerifyingSystem>(
             verification_key_identifier: VerificationKeyIdentifier,
             proof: Vec<u8>,
             public_input: Vec<u8>,
-        ) -> Result<(), Error<T>>
-        where
-            VerifyingKey<S, T>: CanonicalDeserialize,
-            Proof<S, T>: CanonicalDeserialize,
-        {
-            let proof: Proof<S, T> = CanonicalDeserialize::deserialize(&*proof).map_err(|e| {
+        ) -> Result<(), Error<T>> {
+            let proof: S::Proof = CanonicalDeserialize::deserialize(&*proof).map_err(|e| {
                 log::error!("Deserializing proof failed: {:?}", e);
                 Error::<T>::DeserializingProofFailed
             })?;
 
-            let public_input: Vec<Fr<T>> = CanonicalDeserialize::deserialize(&*public_input)
-                .map_err(|e| {
+            let public_input: Vec<S::CircuitField> =
+                CanonicalDeserialize::deserialize(&*public_input).map_err(|e| {
                     log::error!("Deserializing public input failed: {:?}", e);
                     Error::<T>::DeserializingPublicInputFailed
                 })?;
 
             let verification_key = VerificationKeys::<T>::get(verification_key_identifier)
                 .ok_or(Error::<T>::UnknownVerificationKeyIdentifier)?;
-            let verification_key: VerifyingKey<S, T> =
+            let verification_key: S::VerifyingKey =
                 CanonicalDeserialize::deserialize(&**verification_key).map_err(|e| {
                     log::error!("Deserializing verification key failed: {:?}", e);
                     Error::<T>::DeserializingVerificationKeyFailed
                 })?;
 
-            let valid_proof = S::verify(&verification_key, &public_input, &proof).map_err(|e| {
-                log::error!("Verifying failed: {:?}", e);
-                Error::<T>::VerificationFailed
-            })?;
+            // At some point we should enhance error type from `S::verify` and be more verbose here.
+            let valid_proof = S::verify(&verification_key, &public_input, &proof)
+                .map_err(|_| Error::<T>::VerificationFailed)?;
 
             ensure!(valid_proof, Error::<T>::IncorrectProof);
 

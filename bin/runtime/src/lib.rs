@@ -8,7 +8,6 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 mod chain_extension;
 
-use ark_bls12_381::Bls12_381;
 pub use frame_support::{
     construct_runtime, log, parameter_types,
     traits::{
@@ -326,7 +325,6 @@ parameter_types! {
 
 impl pallet_snarcos::Config for Runtime {
     type Event = Event;
-    type Pairing = Bls12_381;
     type WeightInfo = pallet_snarcos::AlephWeight<Runtime>;
     type MaximumVerificationKeyLength = MaximumVerificationKeyLength;
 }
