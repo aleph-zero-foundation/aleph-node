@@ -23,7 +23,7 @@ ink_lang = { version = "~3.3.0", default-features = false }
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
 
-sp-std = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", default-features = false }
+sp-std = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal", default-features = false }
 
 snarcos-extension = { path = "../../bin/runtime/src/chain_extension/snarcos-extension", default-features = false, features = ["ink-as-dependency"] }
 

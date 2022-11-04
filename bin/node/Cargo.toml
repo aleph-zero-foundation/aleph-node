@@ -27,34 +27,34 @@ hex-literal = "0.3"
 libp2p = "0.44"
 thiserror = "1.0"
 
-sp-application-crypto = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sc-block-builder = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sc-chain-spec = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26"}
-sc-cli = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", features = ["wasmtime"] }
-sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sc-executor = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", features = ["wasmtime"] }
-sc-service = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", features = ["wasmtime"] }
-sc-telemetry = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sc-keystore = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sp-keystore = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sp-inherents = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sc-basic-authorship = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sc-network = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sc-transaction-pool = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sp-transaction-pool = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sc-transaction-pool-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sc-consensus-aura = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sp-consensus-aura = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sp-consensus = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sc-consensus = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sc-client-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sp-timestamp = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-pallet-staking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-try-runtime-cli = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", optional = true }
+sp-application-crypto = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sc-block-builder = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sc-chain-spec = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal"}
+sc-cli = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal", features = ["wasmtime"] }
+sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sc-executor = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal", features = ["wasmtime"] }
+sc-service = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal", features = ["wasmtime"] }
+sc-telemetry = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sc-keystore = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sp-keystore = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sp-inherents = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sc-basic-authorship = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sc-network = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sc-transaction-pool = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sp-transaction-pool = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sc-transaction-pool-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sc-consensus-aura = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sp-consensus-aura = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sp-consensus = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sc-consensus = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sc-client-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sp-timestamp = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+pallet-staking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+try-runtime-cli = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal", optional = true }
 
-frame-benchmarking-cli = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", optional = true }
-frame-benchmarking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26", optional = true }
+frame-benchmarking-cli = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal", optional = true }
+frame-benchmarking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal", optional = true }
 
 aleph-runtime = { path = "../runtime" }
 finality-aleph = { path = "../../finality-aleph" }
@@ -62,17 +62,17 @@ aleph-primitives = { package = "primitives", path = "../../primitives" }
 
 # These dependencies are used for the node's RPCs
 jsonrpsee = { version = "0.14.0", features = ["server"] }
-sc-rpc = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sp-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sc-rpc-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sp-blockchain = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-sp-block-builder = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-substrate-frame-rpc-system = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-pallet-contracts-rpc = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
-pallet-transaction-payment-rpc = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
+sc-rpc = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sp-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sc-rpc-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sp-blockchain = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sp-block-builder = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+substrate-frame-rpc-system = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+pallet-contracts-rpc = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+pallet-transaction-payment-rpc = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
 
 [build-dependencies]
-substrate-build-script-utils = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.26" }
+substrate-build-script-utils = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
 
 [features]
 default = []
