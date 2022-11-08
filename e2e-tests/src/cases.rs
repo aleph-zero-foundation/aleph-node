@@ -3,7 +3,7 @@ use crate::{
     test::{
         authorities_are_staking as test_authorities_are_staking,
         ban_automatic as test_ban_automatic, ban_manual as test_ban_manual,
-        batch_transactions as test_batch_transactions,
+        ban_threshold as test_ban_threshold, batch_transactions as test_batch_transactions,
         change_stake_and_force_new_era as test_change_stake_and_force_new_era,
         change_validators as test_change_validators,
         channeling_fee_and_tip as test_channeling_fee_and_tip,
@@ -70,5 +70,6 @@ pub fn possible_test_cases() -> PossibleTestCases {
             "clearing_session_count",
             test_clearing_session_count as TestCase,
         ),
+        ("ban_threshold", test_ban_threshold as TestCase),
     ]
 }

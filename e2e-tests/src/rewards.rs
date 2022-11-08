@@ -163,12 +163,12 @@ pub fn check_points(
 
     info!("Era: {} | session: {}.", era, session);
 
-    let beggining_of_session_block = session * session_period;
-    let end_of_session_block = beggining_of_session_block + session_period;
+    let beginning_of_session_block = session * session_period;
+    let end_of_session_block = beginning_of_session_block + session_period;
     info!("Waiting for block: {}.", end_of_session_block);
     wait_for_finalized_block(connection, end_of_session_block)?;
 
-    let beggining_of_session_block_hash = get_block_hash(connection, beggining_of_session_block);
+    let beginning_of_session_block_hash = get_block_hash(connection, beginning_of_session_block);
     let end_of_session_block_hash = get_block_hash(connection, end_of_session_block);
     let before_end_of_session_block_hash = get_block_hash(connection, end_of_session_block - 1);
     info!("End-of-session block hash: {}.", end_of_session_block_hash);
@@ -188,7 +188,7 @@ pub fn check_points(
             .individual;
 
     let validator_reward_points_previous_session =
-        get_era_reward_points(connection, era, Some(beggining_of_session_block_hash))
+        get_era_reward_points(connection, era, Some(beginning_of_session_block_hash))
             .unwrap_or_default()
             .individual;
 
@@ -229,7 +229,7 @@ pub fn check_points(
     let members_count = reward_points.len() as f64;
     for (account_id, reward_points) in reward_points.iter_mut() {
         let exposure =
-            download_exposure(connection, era, account_id, beggining_of_session_block_hash);
+            download_exposure(connection, era, account_id, beginning_of_session_block_hash);
         *reward_points *= exposure as f64 / members_count;
     }
 

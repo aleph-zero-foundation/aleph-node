@@ -6,7 +6,7 @@ pub use balances::total_issuance;
 use codec::{Decode, Encode};
 pub use debug::print_storages;
 pub use elections::{
-    ban_from_committee, change_ban_config, get_ban_config, get_ban_reason_for_validator,
+    ban_from_committee, change_ban_config, get_ban_config, get_ban_info_for_validator,
     get_committee_seats, get_current_era_non_reserved_validators,
     get_current_era_reserved_validators, get_current_era_validators, get_era_validators,
     get_next_era_committee_seats, get_next_era_non_reserved_validators,

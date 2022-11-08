@@ -457,6 +457,21 @@ jobs:
           follow-up-finalization-check: true
         timeout-minutes: 15
 
+  run-e2e-ban-manual:
+    needs: [build-test-docker, build-test-client]
+    name: Run ban manual test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: ban_manual
+          follow-up-finalization-check: true
+        timeout-minutes: 15
+
   run-e2e-ban-counter-clearing:
     needs: [build-test-docker, build-test-client]
     name: Run ban counter clearing test
@@ -469,6 +484,21 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: clearing_session_count
+          follow-up-finalization-check: true
+        timeout-minutes: 15
+
+  run-e2e-ban-threshold:
+    needs: [build-test-docker, build-test-client]
+    name: Run ban threshold test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: ban_threshold
           follow-up-finalization-check: true
         timeout-minutes: 15
 
@@ -509,21 +539,6 @@ jobs:
           UPGRADE_FINALIZATION_WAIT_SESSIONS: 2
           ONLY_LEGACY: true
         timeout-minutes: 10
-
-  run-e2e-ban-manual:
-    needs: [build-test-docker, build-test-client]
-    name: Run ban manual test
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v2
-
-      - name: Run e2e test
-        uses: ./.github/actions/run-e2e-test
-        with:
-          test-case: ban_manual
-          follow-up-finalization-check: true
-        timeout-minutes: 15
 
   run-e2e-version-upgrade-catchup:
     needs: [build-test-docker, build-cliain-image]
@@ -606,8 +621,9 @@ jobs:
       run-e2e-rewards-points-basic,
       run-e2e-authorities-are-staking,
       run-e2e-ban-automatic,
-      run-e2e-ban-counter-clearing,
       run-e2e-ban-manual,
+      run-e2e-ban-counter-clearing,
+      run-e2e-ban-threshold,
       run-e2e-version-upgrade,
       run-e2e-failing-version-upgrade,
       run-e2e-version-upgrade-catchup,

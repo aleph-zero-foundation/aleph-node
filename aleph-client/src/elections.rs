@@ -1,3 +1,4 @@
+use log::info;
 use primitives::{
     BanConfig, BanInfo, CommitteeSeats, EraIndex, EraValidators, SessionCount, SessionIndex,
 };
@@ -76,18 +77,19 @@ pub fn get_ban_config<C: ReadStorage>(connection: &C) -> BanConfig {
 pub fn get_underperformed_validator_session_count<C: ReadStorage>(
     connection: &C,
     account_id: &AccountId,
+    block_hash: Option<H256>,
 ) -> SessionCount {
     connection
         .read_storage_map(
             PALLET,
             "UnderperformedValidatorSessionCount",
             account_id,
-            None,
+            block_hash,
         )
         .unwrap_or(0)
 }
 
-pub fn get_ban_reason_for_validator<C: ReadStorage>(
+pub fn get_ban_info_for_validator<C: ReadStorage>(
     connection: &C,
     account_id: &AccountId,
 ) -> Option<BanInfo> {
@@ -129,15 +131,19 @@ pub fn change_ban_config(
     ban_period: Option<EraIndex>,
     status: XtStatus,
 ) {
+    info!(target: "aleph-client", "Changing ban config");
+    let call_name = "set_ban_config";
+
     let call = compose_call!(
         sudo_connection.as_connection().metadata,
         PALLET,
-        "set_ban_config",
+        call_name,
         minimal_expected_performance,
         underperformed_session_count_threshold,
         clean_session_counter_delay,
         ban_period
     );
+
     let xt = compose_extrinsic!(
         sudo_connection.as_connection(),
         "Sudo",
@@ -145,5 +151,6 @@ pub fn change_ban_config(
         call,
         0_u64
     );
-    send_xt(sudo_connection, xt, Some("set_ban_config"), status);
+
+    send_xt(sudo_connection, xt, Some(call_name), status);
 }
