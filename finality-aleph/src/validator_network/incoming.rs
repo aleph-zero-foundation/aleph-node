@@ -65,7 +65,8 @@ pub async fn incoming<D: Data, S: Splittable>(
     result_for_parent: mpsc::UnboundedSender<(AuthorityId, oneshot::Sender<()>)>,
     data_for_user: mpsc::UnboundedSender<D>,
 ) {
+    let addr = stream.peer_address_info();
     if let Err(e) = manage_incoming(authority_pen, stream, result_for_parent, data_for_user).await {
-        info!(target: "validator-network", "Incoming connection failed: {}", e);
+        info!(target: "validator-network", "Incoming connection from {} failed: {}.", addr, e);
     }
 }

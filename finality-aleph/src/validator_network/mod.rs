@@ -49,10 +49,18 @@ pub trait Network<A: Data, D: Data>: Send + 'static {
     async fn next(&mut self) -> Option<D>;
 }
 
+pub type PeerAddressInfo = String;
+
+/// Reports address of the peer that we are connected to.
+pub trait ConnectionInfo {
+    /// Return the address of the peer that we are connected to.
+    fn peer_address_info(&self) -> PeerAddressInfo;
+}
+
 /// A stream that can be split into a sending and receiving part.
-pub trait Splittable: AsyncWrite + AsyncRead + Unpin + Send {
-    type Sender: AsyncWrite + Unpin + Send;
-    type Receiver: AsyncRead + Unpin + Send;
+pub trait Splittable: AsyncWrite + AsyncRead + ConnectionInfo + Unpin + Send {
+    type Sender: AsyncWrite + ConnectionInfo + Unpin + Send;
+    type Receiver: AsyncRead + ConnectionInfo + Unpin + Send;
 
     /// Split into the sending and receiving part.
     fn split(self) -> (Self::Sender, Self::Receiver);

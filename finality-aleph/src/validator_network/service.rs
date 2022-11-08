@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use aleph_primitives::AuthorityId;
 use futures::{
     channel::{mpsc, oneshot},
@@ -71,7 +73,7 @@ impl<D: Data, A: Data> Network<A, D> for ServiceInterface<D, A> {
 }
 
 /// A service that has to be run for the validator network to work.
-pub struct Service<D: Data, A: Data, ND: Dialer<A>, NL: Listener> {
+pub struct Service<D: Data, A: Data + Debug, ND: Dialer<A>, NL: Listener> {
     commands_from_interface: mpsc::UnboundedReceiver<ServiceCommand<D, A>>,
     next_to_interface: mpsc::UnboundedSender<D>,
     manager: Manager<A, D>,
@@ -81,7 +83,7 @@ pub struct Service<D: Data, A: Data, ND: Dialer<A>, NL: Listener> {
     authority_pen: AuthorityPen,
 }
 
-impl<D: Data, A: Data, ND: Dialer<A>, NL: Listener> Service<D, A, ND, NL> {
+impl<D: Data, A: Data + Debug, ND: Dialer<A>, NL: Listener> Service<D, A, ND, NL> {
     /// Create a new validator network service plus an interface for interacting with it.
     pub fn new(
         dialer: ND,

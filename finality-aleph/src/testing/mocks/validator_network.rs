@@ -26,7 +26,8 @@ use crate::{
     crypto::AuthorityPen,
     network::{mock::Channel, Data, Multiaddress, NetworkIdentity},
     validator_network::{
-        mock::random_keys, Dialer as DialerT, Listener as ListenerT, Network, Service, Splittable,
+        mock::random_keys, ConnectionInfo, Dialer as DialerT, Listener as ListenerT, Network,
+        PeerAddressInfo, Service, Splittable,
     },
 };
 
@@ -119,6 +120,7 @@ impl<D: Data> MockNetwork<D> {
 pub struct UnreliableDuplexStream {
     stream: DuplexStream,
     counter: Option<usize>,
+    peer_address: Address,
 }
 
 impl AsyncWrite for UnreliableDuplexStream {
@@ -160,33 +162,45 @@ impl AsyncRead for UnreliableDuplexStream {
 pub struct UnreliableSplittable {
     incoming_data: UnreliableDuplexStream,
     outgoing_data: UnreliableDuplexStream,
+    peer_address: Address,
 }
 
 impl UnreliableSplittable {
     /// Create a pair of mock splittables connected to each other.
-    pub fn new(max_buf_size: usize, ends_after: Option<usize>) -> (Self, Self) {
-        let (in_a, out_b) = duplex(max_buf_size);
-        let (in_b, out_a) = duplex(max_buf_size);
+    pub fn new(
+        max_buf_size: usize,
+        ends_after: Option<usize>,
+        l_address: Address,
+        r_address: Address,
+    ) -> (Self, Self) {
+        let (l_in, r_out) = duplex(max_buf_size);
+        let (r_in, l_out) = duplex(max_buf_size);
         (
             UnreliableSplittable {
                 incoming_data: UnreliableDuplexStream {
-                    stream: in_a,
+                    stream: l_in,
                     counter: ends_after,
+                    peer_address: r_address,
                 },
                 outgoing_data: UnreliableDuplexStream {
-                    stream: out_a,
+                    stream: l_out,
                     counter: ends_after,
+                    peer_address: r_address,
                 },
+                peer_address: r_address,
             },
             UnreliableSplittable {
                 incoming_data: UnreliableDuplexStream {
-                    stream: in_b,
+                    stream: r_in,
                     counter: ends_after,
+                    peer_address: l_address,
                 },
                 outgoing_data: UnreliableDuplexStream {
-                    stream: out_b,
+                    stream: r_out,
                     counter: ends_after,
+                    peer_address: l_address,
                 },
+                peer_address: l_address,
             },
         )
     }
@@ -216,6 +230,18 @@ impl AsyncWrite for UnreliableSplittable {
     }
 }
 
+impl ConnectionInfo for UnreliableSplittable {
+    fn peer_address_info(&self) -> PeerAddressInfo {
+        self.peer_address.to_string()
+    }
+}
+
+impl ConnectionInfo for UnreliableDuplexStream {
+    fn peer_address_info(&self) -> PeerAddressInfo {
+        self.peer_address.to_string()
+    }
+}
+
 impl Splittable for UnreliableSplittable {
     type Sender = UnreliableDuplexStream;
     type Receiver = UnreliableDuplexStream;
@@ -234,7 +260,9 @@ const TWICE_MAX_DATA_SIZE: usize = 32 * 1024 * 1024;
 
 #[derive(Clone)]
 pub struct MockDialer {
-    channel_connect: mpsc::UnboundedSender<(Address, oneshot::Sender<Connection>)>,
+    // used for logging
+    own_address: Address,
+    channel_connect: mpsc::UnboundedSender<(Address, Address, oneshot::Sender<Connection>)>,
 }
 
 #[async_trait::async_trait]
@@ -245,7 +273,7 @@ impl DialerT<Address> for MockDialer {
     async fn connect(&mut self, addresses: Vec<Address>) -> Result<Self::Connection, Self::Error> {
         let (tx, rx) = oneshot::channel();
         self.channel_connect
-            .unbounded_send((addresses[0], tx))
+            .unbounded_send((self.own_address, addresses[0], tx))
             .expect("should send");
         Ok(rx.await.expect("should receive"))
     }
@@ -266,7 +294,7 @@ impl ListenerT for MockListener {
 }
 
 pub struct UnreliableConnectionMaker {
-    dialers: mpsc::UnboundedReceiver<(Address, oneshot::Sender<Connection>)>,
+    dialers: mpsc::UnboundedReceiver<(Address, Address, oneshot::Sender<Connection>)>,
     listeners: Vec<mpsc::UnboundedSender<Connection>>,
 }
 
@@ -288,6 +316,7 @@ impl UnreliableConnectionMaker {
         for id in ids.into_iter() {
             let (tx_listener, rx_listener) = mpsc::unbounded();
             let dialer = MockDialer {
+                own_address: addr.get(&id).expect("should be there")[0],
                 channel_connect: tx_dialer.clone(),
             };
             let listener = MockListener {
@@ -306,13 +335,19 @@ impl UnreliableConnectionMaker {
     pub async fn run(&mut self, connections_end_after: Option<usize>) {
         loop {
             info!(target: "validator-network", "UnreliableConnectionMaker: waiting for new request...");
-            let (addr, c) = self.dialers.next().await.expect("should receive");
+            let (dialer_address, listener_address, c) =
+                self.dialers.next().await.expect("should receive");
             info!(target: "validator-network", "UnreliableConnectionMaker: received request");
-            let (l_stream, r_stream) = Connection::new(4096, connections_end_after);
+            let (dialer_stream, listener_stream) = Connection::new(
+                4096,
+                connections_end_after,
+                dialer_address,
+                listener_address,
+            );
             info!(target: "validator-network", "UnreliableConnectionMaker: sending stream");
-            c.send(l_stream).expect("should send");
-            self.listeners[addr as usize]
-                .unbounded_send(r_stream)
+            c.send(dialer_stream).expect("should send");
+            self.listeners[listener_address as usize]
+                .unbounded_send(listener_stream)
                 .expect("should send");
         }
     }

@@ -10,8 +10,35 @@ use tokio::net::{
 
 use crate::{
     network::{Multiaddress, NetworkIdentity, PeerId},
-    validator_network::{Dialer, Listener, Splittable},
+    validator_network::{ConnectionInfo, Dialer, Listener, Splittable},
 };
+
+impl ConnectionInfo for TcpStream {
+    fn peer_address_info(&self) -> String {
+        match self.peer_addr() {
+            Ok(addr) => addr.to_string(),
+            Err(e) => format!("unknown address: {}", e),
+        }
+    }
+}
+
+impl ConnectionInfo for OwnedWriteHalf {
+    fn peer_address_info(&self) -> String {
+        match self.peer_addr() {
+            Ok(addr) => addr.to_string(),
+            Err(e) => e.to_string(),
+        }
+    }
+}
+
+impl ConnectionInfo for OwnedReadHalf {
+    fn peer_address_info(&self) -> String {
+        match self.peer_addr() {
+            Ok(addr) => addr.to_string(),
+            Err(e) => e.to_string(),
+        }
+    }
+}
 
 impl Splittable for TcpStream {
     type Sender = OwnedWriteHalf;
