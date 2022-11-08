@@ -54,6 +54,45 @@ jobs:
           retention-days: 7
 
 
+  build-cliain-image:
+    name: Build docker image for cliain
+    runs-on: ubuntu-20.04
+    steps:
+      - name: GIT | Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+
+      - name: Restore cache
+        uses: ./.github/actions/restore-cache
+        with:
+          target-key: cliain
+          cache-version: v2
+          cargo-targets: bin/cliain/target/
+
+      - name: Cargo | Build release binary
+        run: |
+          cd bin/cliain && cargo build --release
+
+      - name: Build docker image
+        run: |
+          cd bin/cliain
+          docker build --tag cliain:latest -f ./Dockerfile .
+          docker save -o cliain.tar cliain:latest
+
+      - name: Upload test docker image
+        uses: actions/upload-artifact@v2
+        with:
+          name: cliain-docker
+          path: ./bin/cliain/cliain.tar
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Cleanup cache
+        uses: ./.github/actions/post-cache
+
+
   check-determinism:
     needs: [build-new-node]
     name: Verify runtime build determinism
@@ -279,6 +318,7 @@ jobs:
           test-case: fee_calculation
         timeout-minutes: 2
 
+
   run-e2e-validators-rotate:
     needs: [build-test-docker, build-test-client]
     name: Run validators rotation test
@@ -485,6 +525,66 @@ jobs:
           follow-up-finalization-check: true
         timeout-minutes: 15
 
+  run-e2e-version-upgrade-catchup:
+    needs: [build-test-docker, build-cliain-image]
+    name: Run series of tests where some of the nodes need to do version-upgrade during catch-up
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        include:
+          - nodes: "Node1"
+            ports: "9934"
+            ext_status: "finalized"
+            upgrade_before_disable: "true"
+
+          - nodes: "Node1"
+            ports: "9934"
+            ext_status: "finalized"
+            upgrade_before_disable: "false"
+
+          - nodes: "Node1:Node2"
+            ports: "9934:9935"
+            ext_status: "in-block"
+            upgrade_before_disable: "true"
+
+          - nodes: "Node1:Node2"
+            ports: "9934:9935"
+            ext_status: "in-block"
+            upgrade_before_disable: "false"
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Download artifact with docker image for aleph-node
+        uses: actions/download-artifact@v2
+        with:
+          name: aleph-test-docker
+
+      - name: Load node docker image
+        shell: bash
+        run: docker load -i aleph-node.tar
+
+      - name: Download artifact with docker image for cliain
+        uses: actions/download-artifact@v2
+        with:
+          name: cliain-docker
+
+      - name: Load cliain docker image
+        shell: bash
+        run: docker load -i cliain.tar
+
+      - name: Call catchup_test.sh
+        env:
+          UPGRADE_BLOCK: 31
+          NODES: ${{ matrix.nodes }}
+          PORTS: ${{ matrix.ports }}
+          EXT_STATUS: ${{ matrix.ext_status }}
+          UPGRADE_BEFORE_DISABLE: ${{ matrix.upgrade_before_disable }}
+          DOCKER_COMPOSE: docker/docker-compose.bridged.yml
+
+        run: |
+          ./scripts/catchup_version_upgrade_test.sh
+
   check-e2e-test-suite-completion:
     needs: [
       run-e2e-finalization-test,
@@ -510,6 +610,7 @@ jobs:
       run-e2e-ban-manual,
       run-e2e-version-upgrade,
       run-e2e-failing-version-upgrade,
+      run-e2e-version-upgrade-catchup,
     ]
     name: Check e2e test suite completion
     runs-on: ubuntu-20.04

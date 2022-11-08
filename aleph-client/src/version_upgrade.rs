@@ -6,10 +6,11 @@ use crate::{try_send_xt, AnyConnection, RootConnection};
 
 pub type Version = u32;
 
-pub fn schedule_upgrade(
+pub fn schedule_upgrade_with_state(
     connection: &RootConnection,
     version: Version,
     session: SessionIndex,
+    state: XtStatus,
 ) -> Result<(), ApiClientError> {
     let connection = connection.as_connection();
     let upgrade_call = compose_call!(
@@ -30,7 +31,15 @@ pub fn schedule_upgrade(
         &connection,
         xt,
         Some("schedule finality version change"),
-        XtStatus::Finalized,
+        state,
     )
     .map(|_| ())
+}
+
+pub fn schedule_upgrade(
+    connection: &RootConnection,
+    version: Version,
+    session: SessionIndex,
+) -> Result<(), ApiClientError> {
+    schedule_upgrade_with_state(connection, version, session, XtStatus::Finalized)
 }

@@ -8,6 +8,7 @@ mod staking;
 mod transfer;
 mod treasury;
 mod validators;
+mod version_upgrade;
 mod vesting;
 
 use aleph_client::{
@@ -27,6 +28,7 @@ pub use treasury::{
     approve as treasury_approve, propose as treasury_propose, reject as treasury_reject,
 };
 pub use validators::change_validators;
+pub use version_upgrade::schedule_upgrade;
 pub use vesting::{vest, vest_other, vested_transfer};
 
 pub struct ConnectionConfig {
