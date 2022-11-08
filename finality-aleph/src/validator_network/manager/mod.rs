@@ -4,17 +4,9 @@ use std::{
 };
 
 use aleph_primitives::AuthorityId;
-use futures::channel::{mpsc, oneshot};
+use futures::channel::mpsc;
 
 use crate::{network::PeerId, validator_network::Data};
-
-/// Network component responsible for holding the list of peers that we
-/// want to connect to, and managing the established connections.
-pub struct Manager<A: Data, D: Data> {
-    addresses: HashMap<AuthorityId, Vec<A>>,
-    outgoing: HashMap<AuthorityId, mpsc::UnboundedSender<D>>,
-    incoming: HashMap<AuthorityId, oneshot::Sender<()>>,
-}
 
 /// Error during sending data through the Manager
 #[derive(Debug, PartialEq, Eq)]
@@ -35,6 +27,25 @@ impl Display for SendError {
     }
 }
 
+/// Possible results of adding connections.
+#[derive(Debug, PartialEq, Eq)]
+pub enum AddResult {
+    /// We do not want to maintain a connection with this peer.
+    Uninterested,
+    /// Connection added.
+    Added,
+    /// Old connection replaced with new one.
+    Replaced,
+}
+
+/// Network component responsible for holding the list of peers that we
+/// want to connect to, and managing the established connections.
+pub struct Manager<A: Data, D: Data> {
+    addresses: HashMap<AuthorityId, Vec<A>>,
+    outgoing: HashMap<AuthorityId, mpsc::UnboundedSender<D>>,
+    incoming: HashMap<AuthorityId, mpsc::UnboundedSender<D>>,
+}
+
 struct ManagerStatus {
     wanted_peers: usize,
     both_ways_peers: HashSet<AuthorityId>,
@@ -48,7 +59,7 @@ impl ManagerStatus {
         let incoming: HashSet<_> = manager
             .incoming
             .iter()
-            .filter(|(_, exit)| !exit.is_canceled())
+            .filter(|(_, exit)| !exit.is_closed())
             .map(|(k, _)| k.clone())
             .collect();
         let outgoing: HashSet<_> = manager
@@ -149,17 +160,6 @@ impl Display for ManagerStatus {
     }
 }
 
-/// Possible results of adding connections.
-#[derive(Debug, PartialEq, Eq)]
-pub enum AddResult {
-    /// We do not want to maintain a connection with this peer.
-    Uninterested,
-    /// Connection added.
-    Added,
-    /// Old connection replaced with new one.
-    Replaced,
-}
-
 impl<A: Data, D: Data> Manager<A, D> {
     /// Create a new Manager with empty list of peers.
     pub fn new() -> Self {
@@ -202,7 +202,11 @@ impl<A: Data, D: Data> Manager<A, D> {
 
     /// Add an established incoming connection with a known peer,
     /// but only if the peer is on the list of peers that we want to stay connected with.
-    pub fn add_incoming(&mut self, peer_id: AuthorityId, exit: oneshot::Sender<()>) -> AddResult {
+    pub fn add_incoming(
+        &mut self,
+        peer_id: AuthorityId,
+        exit: mpsc::UnboundedSender<D>,
+    ) -> AddResult {
         use AddResult::*;
         if !self.addresses.contains_key(&peer_id) {
             return Uninterested;
@@ -240,10 +244,7 @@ impl<A: Data, D: Data> Manager<A, D> {
 
 #[cfg(test)]
 mod tests {
-    use futures::{
-        channel::{mpsc, oneshot},
-        StreamExt,
-    };
+    use futures::{channel::mpsc, StreamExt};
 
     use super::{AddResult::*, Manager, SendError};
     use crate::validator_network::mock::key;
@@ -319,27 +320,27 @@ mod tests {
             String::from("a/b/c"),
             String::from("43.43.43.43:43000"),
         ];
-        let (tx, rx) = oneshot::channel();
+        let (tx, mut rx) = mpsc::unbounded();
         // try add unknown peer
         assert_eq!(manager.add_incoming(peer_id.clone(), tx), Uninterested);
         // rx should fail
-        assert!(rx.await.is_err());
+        assert!(rx.try_next().expect("channel should be closed").is_none());
         // add peer, this time for real
         assert!(manager.add_peer(peer_id.clone(), addresses.clone()));
-        let (tx, mut rx) = oneshot::channel();
+        let (tx, mut rx) = mpsc::unbounded();
         // should just add
         assert_eq!(manager.add_incoming(peer_id.clone(), tx), Added);
         // the exit channel should be open
-        assert!(rx.try_recv().is_ok());
-        let (tx, mut rx2) = oneshot::channel();
+        assert!(rx.try_next().is_err());
+        let (tx, mut rx2) = mpsc::unbounded();
         // should replace now
         assert_eq!(manager.add_incoming(peer_id.clone(), tx), Replaced);
         // receiving should fail on old, but work on new channel
-        assert!(rx.try_recv().is_err());
-        assert!(rx2.try_recv().is_ok());
+        assert!(rx.try_next().expect("channel should be closed").is_none());
+        assert!(rx2.try_next().is_err());
         // remove peer
         manager.remove_peer(&peer_id);
         // receiving should fail
-        assert!(rx2.try_recv().is_err());
+        assert!(rx2.try_next().expect("channel should be closed").is_none());
     }
 }

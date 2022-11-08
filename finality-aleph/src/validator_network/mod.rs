@@ -5,15 +5,12 @@ use codec::Codec;
 use sp_core::crypto::KeyTypeId;
 use tokio::io::{AsyncRead, AsyncWrite};
 
-mod handshake;
-mod heartbeat;
 mod incoming;
 mod io;
 mod manager;
 #[cfg(test)]
 pub mod mock;
 mod outgoing;
-mod protocol_negotiation;
 mod protocols;
 mod service;
 

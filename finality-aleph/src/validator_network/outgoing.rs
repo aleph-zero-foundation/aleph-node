@@ -8,8 +8,9 @@ use tokio::time::{sleep, Duration};
 use crate::{
     crypto::AuthorityPen,
     validator_network::{
-        protocol_negotiation::{protocol, ProtocolNegotiationError},
-        protocols::ProtocolError,
+        protocols::{
+            protocol, ConnectionType, ProtocolError, ProtocolNegotiationError, ResultForService,
+        },
         ConnectionInfo, Data, Dialer, PeerAddressInfo,
     },
 };
@@ -44,7 +45,8 @@ async fn manage_outgoing<D: Data, A: Data, ND: Dialer<A>>(
     peer_id: AuthorityId,
     mut dialer: ND,
     addresses: Vec<A>,
-    result_for_parent: mpsc::UnboundedSender<(AuthorityId, Option<mpsc::UnboundedSender<D>>)>,
+    result_for_parent: mpsc::UnboundedSender<ResultForService<D>>,
+    data_for_user: mpsc::UnboundedSender<D>,
 ) -> Result<(), OutgoingError<A, ND>> {
     debug!(target: "validator-network", "Trying to connect to {}.", peer_id);
     let stream = dialer
@@ -58,7 +60,13 @@ async fn manage_outgoing<D: Data, A: Data, ND: Dialer<A>>(
         .map_err(|e| OutgoingError::ProtocolNegotiation(peer_address_info.clone(), e))?;
     debug!(target: "validator-network", "Negotiated protocol, running.");
     protocol
-        .manage_outgoing(stream, authority_pen, peer_id, result_for_parent)
+        .manage_outgoing(
+            stream,
+            authority_pen,
+            peer_id,
+            result_for_parent,
+            data_for_user,
+        )
         .await
         .map_err(|e| OutgoingError::Protocol(peer_address_info.clone(), e))
 }
@@ -73,7 +81,8 @@ pub async fn outgoing<D: Data, A: Data + Debug, ND: Dialer<A>>(
     peer_id: AuthorityId,
     dialer: ND,
     addresses: Vec<A>,
-    result_for_parent: mpsc::UnboundedSender<(AuthorityId, Option<mpsc::UnboundedSender<D>>)>,
+    result_for_parent: mpsc::UnboundedSender<ResultForService<D>>,
+    data_for_user: mpsc::UnboundedSender<D>,
 ) {
     if let Err(e) = manage_outgoing(
         authority_pen,
@@ -81,12 +90,16 @@ pub async fn outgoing<D: Data, A: Data + Debug, ND: Dialer<A>>(
         dialer,
         addresses.clone(),
         result_for_parent.clone(),
+        data_for_user,
     )
     .await
     {
         info!(target: "validator-network", "Outgoing connection to {} {:?} failed: {}, will retry after {}s.", peer_id, addresses, e, RETRY_DELAY.as_secs());
         sleep(RETRY_DELAY).await;
-        if result_for_parent.unbounded_send((peer_id, None)).is_err() {
+        if result_for_parent
+            .unbounded_send((peer_id, None, ConnectionType::LegacyOutgoing))
+            .is_err()
+        {
             debug!(target: "validator-network", "Could not send the closing message, we've probably been terminated by the parent service.");
         }
     }
