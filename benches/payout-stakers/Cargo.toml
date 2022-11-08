@@ -17,7 +17,7 @@ rand = "0.8.5"
 sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal", features = ["full_crypto"] }
 sp-keyring = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
 
-substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "aleph-v0.9.26" }
+substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "liminal" }
 
 aleph_client = { path = "../../aleph-client" }
 primitives = { path = "../../primitives" }

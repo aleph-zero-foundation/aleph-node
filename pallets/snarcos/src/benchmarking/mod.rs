@@ -1,25 +1,27 @@
+//! To benchmark pallet on your machine, run:
+//! ```shell
+//! export NODE_ID=5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH
+//!
+//! cargo run --release -p aleph-node --features runtime-benchmarks -- bootstrap-chain \
+//!     --base-path /tmp/ \
+//!     --account-ids $NODE_ID \
+//!     --sudo-account-id $NODE_ID \
+//!     --chain-id a0snarknet \
+//!     --token-symbol SNRKZERO \
+//!     --chain-name 'Aleph Zero Snarknet' \
+//!     > ./chainspec.json
+//!
+//! cargo run --release -p aleph-node --features runtime-benchmarks -- benchmark pallet \
+//!     --chain=chainspec.json \
+//!     --pallet=pallet_snarcos \
+//!     --extrinsic='*' \
+//!     --steps=20 \
+//!     --repeat=50 \
+//!     --template=.maintain/pallet-weight-template.hbs \
+//!     --execution=wasm \
+//!     --wasm-execution=compiled \
+//!     --output=pallets/snarcos/src/weights.rs
+//! ```
+
+mod import;
 mod suite;
-
-fn xor_vk() -> &'static [u8] {
-    include_bytes!("resources/xor.vk.bytes")
-}
-
-fn xor_proof() -> &'static [u8] {
-    include_bytes!("resources/xor.proof.bytes")
-}
-
-fn xor_input() -> &'static [u8] {
-    include_bytes!("resources/xor.public_input.bytes")
-}
-
-fn linear_vk() -> &'static [u8] {
-    include_bytes!("resources/linear-equation.vk.bytes")
-}
-
-fn linear_proof() -> &'static [u8] {
-    include_bytes!("resources/linear-equation.proof.bytes")
-}
-
-fn linear_input() -> &'static [u8] {
-    include_bytes!("resources/linear-equation.public_input.bytes")
-}

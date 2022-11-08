@@ -1,5 +1,5 @@
 use codec::Decode;
-use frame_support::log::error;
+use frame_support::{log::error, pallet_prelude::Weight};
 use pallet_contracts::chain_extension::{
     ChainExtension, Environment, Ext, InitState, RetVal, SysConfig,
 };
@@ -123,6 +123,23 @@ impl SnarcosChainExtension {
         Ok(RetVal::Converging(return_status))
     }
 
+    fn weight_of_verify(system: Option<ProvingSystem>) -> Weight {
+        match system {
+            Some(ProvingSystem::Groth16) => {
+                <<Runtime as Config>::WeightInfo as WeightInfo>::verify_groth16()
+            }
+            Some(ProvingSystem::Gm17) => {
+                <<Runtime as Config>::WeightInfo as WeightInfo>::verify_gm17()
+            }
+            Some(ProvingSystem::Marlin) => {
+                <<Runtime as Config>::WeightInfo as WeightInfo>::verify_marlin()
+            }
+            None => Self::weight_of_verify(Some(ProvingSystem::Groth16))
+                .max(Self::weight_of_verify(Some(ProvingSystem::Gm17)))
+                .max(Self::weight_of_verify(Some(ProvingSystem::Marlin))),
+        }
+    }
+
     fn snarcos_verify<E: Ext>(env: Environment<E, InitState>) -> Result<RetVal, DispatchError>
     where
         <E::T as SysConfig>::AccountId: UncheckedFrom<<E::T as SysConfig>::Hash> + AsRef<[u8]>,
@@ -131,21 +148,23 @@ impl SnarcosChainExtension {
         let mut env = env.buf_in_buf_out();
 
         // We charge optimistically, i.e. assuming that decoding succeeds and the verification
-        // key is present.
+        // key is present. However, since we don't know the system yet, we have to charge maximal
+        // possible fee. We will adjust it as soon as possible.
         //
         // Currently, we cannot do more in terms of charging due to insufficiently flexible
         // weighting (`pallet_snarcos::WeightInfo` API). Once we have functions like
         // `pallet_snarcos::WeightInfo::verify_decoding_failure`, we can both charge less here
         // (with further `env.adjust_weight`) and in the pallet itself (returning
         // `DispatchErrorWithPostInfo` reducing actual fee and the block weight).
-        let _pre_charge =
-            env.charge_weight(<<Runtime as Config>::WeightInfo as WeightInfo>::verify())?;
+        let pre_charge = env.charge_weight(Self::weight_of_verify(None))?;
 
         // Parsing is done here for similar reasons as in `Self::snarcos_store_key`.
         let bytes = env.read(env.in_len())?;
 
         let args: VerifyArgs = VerifyArgs::decode(&mut &*bytes)
             .map_err(|_| DispatchError::Other("Failed to decode arguments"))?;
+
+        env.adjust_weight(pre_charge, Self::weight_of_verify(Some(args.system)));
 
         let result =
             Snarcos::<Runtime>::bare_verify(args.identifier, args.proof, args.input, args.system);

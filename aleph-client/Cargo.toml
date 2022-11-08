@@ -13,8 +13,8 @@ rayon = "1.5"
 serde_json = { version = "1.0" }
 thiserror = "1.0"
 
-ac-primitives = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "aleph-v0.9.26" }
-substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "aleph-v0.9.26", features = ["staking-xt"] }
+ac-primitives = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "liminal" }
+substrate-api-client = { git = "https://github.com/Cardinal-Cryptography/substrate-api-client.git", branch = "liminal", features = ["staking-xt"] }
 
 frame-support = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal", default-features = false }
 sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal", features = ["full_crypto"] }

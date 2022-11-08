@@ -108,7 +108,13 @@ pub mod pallet {
         /// system)
         /// - verifying procedure fails (e.g. incompatible verification key and proof)
         /// - proof is incorrect
-        #[pallet::weight(T::WeightInfo::verify())]
+        #[pallet::weight(
+            match system {
+                ProvingSystem::Groth16 => T::WeightInfo::verify_groth16(),
+                ProvingSystem::Gm17 => T::WeightInfo::verify_gm17(),
+                ProvingSystem::Marlin => T::WeightInfo::verify_marlin(),
+            }
+        )]
         pub fn verify(
             _origin: OriginFor<T>,
             verification_key_identifier: VerificationKeyIdentifier,
