@@ -8,6 +8,9 @@ use futures::channel::mpsc;
 
 use crate::{network::PeerId, validator_network::Data};
 
+#[allow(dead_code)]
+mod direction;
+
 /// Error during sending data through the Manager
 #[derive(Debug, PartialEq, Eq)]
 pub enum SendError {

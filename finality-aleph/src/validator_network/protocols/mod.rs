@@ -14,6 +14,8 @@ use crate::{
 mod handshake;
 mod negotiation;
 mod v0;
+#[allow(dead_code)]
+mod v1;
 
 use handshake::HandshakeError;
 pub use negotiation::{protocol, ProtocolNegotiationError};
@@ -24,6 +26,7 @@ pub type Version = u32;
 /// protocol. Remove after it's no longer needed.
 #[derive(PartialEq, Debug, Eq, Clone, Copy)]
 pub enum ConnectionType {
+    New,
     LegacyIncoming,
     LegacyOutgoing,
 }
