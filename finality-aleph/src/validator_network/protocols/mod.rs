@@ -14,7 +14,6 @@ use crate::{
 mod handshake;
 mod negotiation;
 mod v0;
-#[allow(dead_code)]
 mod v1;
 
 use handshake::HandshakeError;
@@ -46,6 +45,9 @@ pub type ResultForService<D> = (
 pub enum Protocol {
     /// The first version of the protocol, with unidirectional connections.
     V0,
+    /// The current version of the protocol, with pseudorandom connection direction and
+    /// multiplexing.
+    V1,
 }
 
 /// Protocol error.
@@ -102,7 +104,7 @@ impl Protocol {
     const MIN_VERSION: Version = 0;
 
     /// Maximal supported protocol version.
-    const MAX_VERSION: Version = 0;
+    const MAX_VERSION: Version = 1;
 
     /// Launches the proper variant of the protocol (receiver half).
     pub async fn manage_incoming<D: Data, S: Splittable>(
@@ -115,6 +117,7 @@ impl Protocol {
         use Protocol::*;
         match self {
             V0 => v0::incoming(stream, authority_pen, result_for_service, data_for_user).await,
+            V1 => v1::incoming(stream, authority_pen, result_for_service, data_for_user).await,
         }
     }
 
@@ -125,11 +128,21 @@ impl Protocol {
         authority_pen: AuthorityPen,
         peer_id: AuthorityId,
         result_for_service: mpsc::UnboundedSender<ResultForService<D>>,
-        _data_for_user: mpsc::UnboundedSender<D>,
+        data_for_user: mpsc::UnboundedSender<D>,
     ) -> Result<(), ProtocolError> {
         use Protocol::*;
         match self {
             V0 => v0::outgoing(stream, authority_pen, peer_id, result_for_service).await,
+            V1 => {
+                v1::outgoing(
+                    stream,
+                    authority_pen,
+                    peer_id,
+                    result_for_service,
+                    data_for_user,
+                )
+                .await
+            }
         }
     }
 }
@@ -140,6 +153,7 @@ impl TryFrom<Version> for Protocol {
     fn try_from(version: Version) -> Result<Self, Self::Error> {
         match version {
             0 => Ok(Protocol::V0),
+            1 => Ok(Protocol::V1),
             unknown_version => Err(unknown_version),
         }
     }

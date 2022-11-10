@@ -96,8 +96,10 @@ pub async fn outgoing<D: Data, A: Data + Debug, ND: Dialer<A>>(
     {
         info!(target: "validator-network", "Outgoing connection to {} {:?} failed: {}, will retry after {}s.", peer_id, addresses, e, RETRY_DELAY.as_secs());
         sleep(RETRY_DELAY).await;
+        // we send the "new" connection type, because we always assume it's new until proven
+        // otherwise, and here we did not even get the chance to attempt negotiating a protocol
         if result_for_parent
-            .unbounded_send((peer_id, None, ConnectionType::LegacyOutgoing))
+            .unbounded_send((peer_id, None, ConnectionType::New))
             .is_err()
         {
             debug!(target: "validator-network", "Could not send the closing message, we've probably been terminated by the parent service.");
