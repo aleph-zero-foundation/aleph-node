@@ -187,24 +187,13 @@ impl MultiaddressT for Multiaddress {
 /// Name of the network protocol used by Aleph Zero. This is how messages
 /// are subscribed to ensure that we are gossiping and communicating with our
 /// own network.
-const LEGACY_ALEPH_PROTOCOL_NAME: &str = "/cardinals/aleph/2";
-
-/// Name of the network protocol used by Aleph Zero. This is how messages
-/// are subscribed to ensure that we are gossiping and communicating with our
-/// own network.
 const AUTHENTICATION_PROTOCOL_NAME: &str = "/aleph/1";
-
-/// Name of the network protocol used by Aleph Zero validators. Similar to
-/// ALEPH_PROTOCOL_NAME, but only used by validators that authenticated to each other.
-const LEGACY_ALEPH_VALIDATOR_PROTOCOL_NAME: &str = "/cardinals/aleph_validator/1";
 
 /// Returns the canonical name of the protocol.
 pub fn protocol_name(protocol: &Protocol) -> Cow<'static, str> {
     use Protocol::*;
     match protocol {
         Authentication => Cow::Borrowed(AUTHENTICATION_PROTOCOL_NAME),
-        Generic => Cow::Borrowed(LEGACY_ALEPH_PROTOCOL_NAME),
-        Validator => Cow::Borrowed(LEGACY_ALEPH_VALIDATOR_PROTOCOL_NAME),
     }
 }
 
@@ -212,8 +201,6 @@ pub fn protocol_name(protocol: &Protocol) -> Cow<'static, str> {
 fn to_protocol(protocol_name: &str) -> Result<Protocol, ()> {
     match protocol_name {
         AUTHENTICATION_PROTOCOL_NAME => Ok(Protocol::Authentication),
-        LEGACY_ALEPH_PROTOCOL_NAME => Ok(Protocol::Generic),
-        LEGACY_ALEPH_VALIDATOR_PROTOCOL_NAME => Ok(Protocol::Validator),
         _ => Err(()),
     }
 }

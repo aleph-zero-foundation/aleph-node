@@ -6,6 +6,8 @@ services:
     networks:
       - main
       - Node0
+    environment:
+      - PUBLIC_VALIDATOR_ADDRESS=Node0:30343
 
   Node1:
     extends:
@@ -15,6 +17,7 @@ services:
       - main
       - Node1
     environment:
+      - PUBLIC_VALIDATOR_ADDRESS=Node1:30344
       - BOOT_NODES=/dns4/Node0/tcp/30333/p2p/$BOOTNODE_PEER_ID
 
   Node2:
@@ -25,6 +28,7 @@ services:
       - main
       - Node2
     environment:
+      - PUBLIC_VALIDATOR_ADDRESS=Node2:30345
       - BOOT_NODES=/dns4/Node0/tcp/30333/p2p/$BOOTNODE_PEER_ID
 
   Node3:
@@ -35,6 +39,7 @@ services:
       - main
       - Node3
     environment:
+      - PUBLIC_VALIDATOR_ADDRESS=Node3:30346
       - BOOT_NODES=/dns4/Node0/tcp/30333/p2p/$BOOTNODE_PEER_ID
 
   Node4:
@@ -45,6 +50,7 @@ services:
       - main
       - Node4
     environment:
+      - PUBLIC_VALIDATOR_ADDRESS=Node4:30347
       - BOOT_NODES=/dns4/Node0/tcp/30333/p2p/$BOOTNODE_PEER_ID
 
 networks:

@@ -70,13 +70,9 @@ pub trait Multiaddress: Debug + Hash + Codec + Clone + Eq + Send + Sync {
     fn add_matching_peer_id(self, peer_id: Self::PeerId) -> Option<Self>;
 }
 
-/// The Generic protocol is used for validator discovery.
-/// The Validator protocol is used for validator-specific messages, i.e. ones needed for
-/// finalization.
+/// The Authentication protocol is used for validator discovery.
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub enum Protocol {
-    Generic,
-    Validator,
     Authentication,
 }
 
@@ -165,7 +161,7 @@ pub trait RequestBlocks<B: Block>: Clone + Send + Sync + 'static {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum DataCommand<PID: PeerId> {
     Broadcast,
-    SendTo(PID, Protocol),
+    SendTo(PID),
 }
 
 /// Commands for manipulating the reserved peers set.

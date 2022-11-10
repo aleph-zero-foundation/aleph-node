@@ -195,10 +195,6 @@ fn setup(
     config
         .network
         .extra_sets
-        .push(finality_aleph::peers_set_config(Protocol::Generic));
-    config
-        .network
-        .extra_sets
         .push(finality_aleph::peers_set_config(Protocol::Authentication));
 
     let (network, system_rpc_tx, network_starter) =
@@ -246,7 +242,7 @@ fn setup(
 
 /// Builds a new service for a full client.
 pub fn new_authority(
-    mut config: Configuration,
+    config: Configuration,
     aleph_config: AlephCli,
 ) -> Result<TaskManager, ServiceError> {
     let sc_service::PartialComponents {
@@ -259,10 +255,6 @@ pub fn new_authority(
         transaction_pool,
         other: (block_import, justification_tx, justification_rx, mut telemetry, metrics),
     } = new_partial(&config)?;
-    config
-        .network
-        .extra_sets
-        .push(finality_aleph::peers_set_config(Protocol::Validator));
 
     let backup_path = get_backup_path(
         &aleph_config,

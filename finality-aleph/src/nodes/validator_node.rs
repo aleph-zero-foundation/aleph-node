@@ -121,27 +121,12 @@ where
             .expect("Failed to run connection manager")
     };
 
-    let (legacy_connection_io, legacy_network_io, legacy_session_io) = setup_io();
-
-    let legacy_connection_manager = ConnectionManager::new(
-        network.clone(),
-        ConnectionManagerConfig::with_session_period(&session_period, &millisecs_per_block),
-    );
-
-    let legacy_connection_manager_task = async move {
-        legacy_connection_io
-            .run(legacy_connection_manager)
-            .await
-            .expect("Failed to legacy connection manager")
-    };
-
-    let session_manager = SessionManager::new(session_io, legacy_session_io);
+    let session_manager = SessionManager::new(session_io);
     let network = NetworkService::new(
         network.clone(),
         validator_network,
         spawn_handle.clone(),
         network_io,
-        legacy_network_io,
     );
     let network_task = async move { network.run().await };
 
@@ -149,11 +134,6 @@ where
     debug!(target: "aleph-party", "JustificationHandler has started.");
 
     spawn_handle.spawn("aleph/connection_manager", None, connection_manager_task);
-    spawn_handle.spawn(
-        "aleph/legacy_connection_manager",
-        None,
-        legacy_connection_manager_task,
-    );
     spawn_handle.spawn("aleph/network", None, network_task);
     debug!(target: "aleph-party", "Network has started.");
 

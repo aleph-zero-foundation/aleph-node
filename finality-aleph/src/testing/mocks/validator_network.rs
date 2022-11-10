@@ -86,14 +86,23 @@ impl<D: Data> NetworkIdentity for MockNetwork<D> {
     }
 }
 
+pub async fn random_authority_id() -> AuthorityId {
+    let key_store = Arc::new(KeyStore::new());
+    key_store
+        .ed25519_generate_new(KEY_TYPE, None)
+        .await
+        .unwrap()
+        .into()
+}
+
+pub async fn random_identity(address: String) -> (Vec<MockMultiaddress>, AuthorityId) {
+    let id = random_authority_id().await;
+    (vec![(id.clone(), address)], id)
+}
+
 impl<D: Data> MockNetwork<D> {
     pub async fn new(address: &str) -> Self {
-        let key_store = Arc::new(KeyStore::new());
-        let id: AuthorityId = key_store
-            .ed25519_generate_new(KEY_TYPE, None)
-            .await
-            .unwrap()
-            .into();
+        let id = random_authority_id().await;
         let addresses = vec![(id.clone(), String::from(address))];
         MockNetwork {
             add_connection: Channel::new(),
@@ -105,8 +114,19 @@ impl<D: Data> MockNetwork<D> {
         }
     }
 
+    pub fn from(addresses: Vec<MockMultiaddress>, id: AuthorityId) -> Self {
+        MockNetwork {
+            add_connection: Channel::new(),
+            remove_connection: Channel::new(),
+            send: Channel::new(),
+            next: Channel::new(),
+            addresses,
+            id,
+        }
+    }
+
     // Consumes the network asserting there are no unreceived messages in the channels.
-    pub async fn _close_channels(self) {
+    pub async fn close_channels(self) {
         assert!(self.add_connection.close().await.is_none());
         assert!(self.remove_connection.close().await.is_none());
         assert!(self.send.close().await.is_none());

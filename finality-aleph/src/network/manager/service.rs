@@ -19,7 +19,7 @@ use crate::{
             Connections, Discovery, DiscoveryMessage, NetworkData, SessionHandler,
             SessionHandlerError,
         },
-        ConnectionCommand, Data, DataCommand, Multiaddress, NetworkIdentity, PeerId, Protocol,
+        ConnectionCommand, Data, DataCommand, Multiaddress, NetworkIdentity, PeerId,
     },
     MillisecsPerBlock, NodeIndex, SessionId, SessionPeriod, STATUS_REPORT_INTERVAL,
 };
@@ -448,22 +448,12 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
                 Recipient::Everyone => (0..handler.node_count().0)
                     .map(NodeIndex)
                     .flat_map(|node_id| handler.peer_id(&node_id))
-                    .map(|peer_id| {
-                        (
-                            to_send.clone(),
-                            DataCommand::SendTo(peer_id, Protocol::Validator),
-                        )
-                    })
+                    .map(|peer_id| (to_send.clone(), DataCommand::SendTo(peer_id)))
                     .collect(),
                 Recipient::Node(node_id) => handler
                     .peer_id(&node_id)
                     .into_iter()
-                    .map(|peer_id| {
-                        (
-                            to_send.clone(),
-                            DataCommand::SendTo(peer_id, Protocol::Validator),
-                        )
-                    })
+                    .map(|peer_id| (to_send.clone(), DataCommand::SendTo(peer_id)))
                     .collect(),
             }
         } else {
@@ -782,7 +772,7 @@ mod tests {
         network::{
             manager::{DiscoveryMessage, NetworkData},
             mock::{crypto_basics, MockNetworkIdentity},
-            ConnectionCommand, DataCommand, Protocol,
+            ConnectionCommand, DataCommand,
         },
         Recipient, SessionId,
     };
@@ -934,13 +924,10 @@ mod tests {
                 addresses.into_iter().collect()
             ))
         );
-        assert_eq!(data.len(), 2);
+        assert_eq!(data.len(), 1);
         assert!(data
             .iter()
             .any(|(_, command)| command == &DataCommand::Broadcast));
-        assert!(data
-            .iter()
-            .any(|(_, command)| matches!(command, &DataCommand::SendTo(_, _))));
     }
 
     #[tokio::test]
@@ -975,10 +962,7 @@ mod tests {
         let messages = service.on_user_message(2137, session_id, Recipient::Everyone);
         assert_eq!(messages.len(), 1);
         let (network_data, data_command) = &messages[0];
-        assert!(matches!(
-            data_command,
-            DataCommand::SendTo(_, Protocol::Validator)
-        ));
+        assert!(matches!(data_command, DataCommand::SendTo(_)));
         assert_eq!(network_data, &NetworkData::Data(2137, session_id));
     }
 }

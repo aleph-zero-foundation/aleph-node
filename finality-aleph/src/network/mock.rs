@@ -2,6 +2,7 @@ use std::{
     collections::{HashSet, VecDeque},
     fmt,
     sync::Arc,
+    time::Duration,
 };
 
 use aleph_primitives::KEY_TYPE;
@@ -14,6 +15,7 @@ use futures::{
 use parking_lot::Mutex;
 use rand::random;
 use sp_keystore::{testing::KeyStore, CryptoStore};
+use tokio::time::timeout;
 
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
@@ -106,6 +108,8 @@ pub struct Channel<T>(
     pub Arc<tokio::sync::Mutex<mpsc::UnboundedReceiver<T>>>,
 );
 
+const TIMEOUT_FAIL: Duration = Duration::from_secs(10);
+
 impl<T> Channel<T> {
     pub fn new() -> Self {
         let (tx, rx) = mpsc::unbounded();
@@ -117,7 +121,19 @@ impl<T> Channel<T> {
     }
 
     pub async fn next(&mut self) -> Option<T> {
-        self.1.lock().await.next().await
+        timeout(TIMEOUT_FAIL, self.1.lock().await.next())
+            .await
+            .ok()
+            .flatten()
+    }
+
+    pub async fn take(&mut self, n: usize) -> Vec<T> {
+        timeout(
+            TIMEOUT_FAIL,
+            self.1.lock().await.by_ref().take(n).collect::<Vec<_>>(),
+        )
+        .await
+        .unwrap_or(Vec::new())
     }
 
     pub async fn try_next(&self) -> Option<T> {
@@ -142,38 +158,24 @@ pub type MockData = Vec<u8>;
 type MessageForUser<D, M> = (NetworkData<D, M>, DataCommand<<M as Multiaddress>::PeerId>);
 type NetworkServiceIO<M> = NetworkIO<NetworkData<MockData, M>, M>;
 
-pub struct MockIO<M: Multiaddress, LM: Multiaddress> {
+pub struct MockIO<M: Multiaddress> {
     pub messages_for_user: mpsc::UnboundedSender<MessageForUser<MockData, M>>,
     pub messages_from_user: mpsc::UnboundedReceiver<NetworkData<MockData, M>>,
     pub commands_for_manager: mpsc::UnboundedSender<ConnectionCommand<M>>,
-    pub legacy_messages_for_user: mpsc::UnboundedSender<MessageForUser<MockData, LM>>,
-    pub legacy_messages_from_user: mpsc::UnboundedReceiver<NetworkData<MockData, LM>>,
-    pub legacy_commands_for_manager: mpsc::UnboundedSender<ConnectionCommand<LM>>,
 }
 
-impl<M: Multiaddress + 'static, LM: Multiaddress + 'static> MockIO<M, LM> {
-    pub fn new() -> (MockIO<M, LM>, NetworkServiceIO<M>, NetworkServiceIO<LM>) {
+impl<M: Multiaddress + 'static> MockIO<M> {
+    pub fn new() -> (MockIO<M>, NetworkServiceIO<M>) {
         let (mock_messages_for_user, messages_from_user) = mpsc::unbounded();
         let (messages_for_user, mock_messages_from_user) = mpsc::unbounded();
         let (mock_commands_for_manager, commands_from_manager) = mpsc::unbounded();
-        let (legacy_mock_messages_for_user, legacy_messages_from_user) = mpsc::unbounded();
-        let (legacy_messages_for_user, legacy_mock_messages_from_user) = mpsc::unbounded();
-        let (legacy_mock_commands_for_manager, legacy_commands_from_manager) = mpsc::unbounded();
         (
             MockIO {
                 messages_for_user: mock_messages_for_user,
                 messages_from_user: mock_messages_from_user,
                 commands_for_manager: mock_commands_for_manager,
-                legacy_messages_for_user: legacy_mock_messages_for_user,
-                legacy_messages_from_user: legacy_mock_messages_from_user,
-                legacy_commands_for_manager: legacy_mock_commands_for_manager,
             },
             NetworkServiceIO::new(messages_from_user, messages_for_user, commands_from_manager),
-            NetworkServiceIO::new(
-                legacy_messages_from_user,
-                legacy_messages_for_user,
-                legacy_commands_from_manager,
-            ),
         )
     }
 }

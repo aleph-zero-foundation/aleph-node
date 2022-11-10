@@ -5,12 +5,12 @@ use std::{
 };
 
 use codec::{Decode, Encode};
-use log::{debug, info, trace, warn};
+use log::{debug, info, trace};
 
 use crate::{
     network::{
         manager::{Authentication, SessionHandler},
-        DataCommand, Multiaddress, Protocol,
+        DataCommand, Multiaddress,
     },
     NodeIndex, SessionId,
 };
@@ -33,7 +33,7 @@ impl<M: Multiaddress> DiscoveryMessage<M> {
     }
 }
 
-/// Handles creating and responding to discovery messages.
+/// Handles creating and rebroadcasting discovery messages.
 pub struct Discovery<M: Multiaddress> {
     cooldown: Duration,
     last_broadcast: HashMap<NodeIndex, Instant>,
@@ -51,16 +51,6 @@ fn authentication_broadcast<M: Multiaddress>(
     (
         DiscoveryMessage::AuthenticationBroadcast(authentication),
         DataCommand::Broadcast,
-    )
-}
-
-fn response<M: Multiaddress>(
-    authentication: Authentication<M>,
-    peer_id: M::PeerId,
-) -> DiscoveryCommand<M> {
-    (
-        DiscoveryMessage::Authentication(authentication),
-        DataCommand::SendTo(peer_id, Protocol::Generic),
     )
 }
 
@@ -122,16 +112,6 @@ impl<M: Multiaddress> Discovery<M> {
         }
         let node_id = authentication.0.creator();
         let mut messages = Vec::new();
-        match handler.peer_id(&node_id) {
-            Some(peer_id) => {
-                if let Some(handler_authentication) = handler.authentication() {
-                    messages.push(response(handler_authentication, peer_id));
-                }
-            }
-            None => {
-                warn!(target: "aleph-network", "Id of correctly authenticated peer not present.")
-            }
-        }
         if self.should_rebroadcast(&node_id) {
             trace!(target: "aleph-network", "Rebroadcasting {:?}.", authentication);
             self.last_broadcast.insert(node_id, Instant::now());
@@ -256,7 +236,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn rebroadcasts_responds_and_accepts_addresses() {
+    async fn rebroadcasts_and_accepts_addresses() {
         let (mut discovery, mut handlers, _) = build().await;
         let authentication = handlers[1].authentication().unwrap();
         let handler = &mut handlers[0];
@@ -265,19 +245,15 @@ mod tests {
             handler,
         );
         assert_eq!(addresses, authentication.0.addresses());
-        assert_eq!(commands.len(), 2);
+        assert_eq!(commands.len(), 1);
         assert!(commands.iter().any(|command| matches!(command, (
                 DiscoveryMessage::AuthenticationBroadcast(rebroadcast_authentication),
                 DataCommand::Broadcast,
             ) if rebroadcast_authentication == &authentication)));
-        assert!(commands.iter().any(|command| matches!(command, (
-                DiscoveryMessage::Authentication(authentication),
-                DataCommand::SendTo(_, _),
-            ) if *authentication == handler.authentication().unwrap())));
     }
 
     #[tokio::test]
-    async fn non_validators_rebroadcasts_responds() {
+    async fn non_validators_rebroadcasts() {
         let (mut discovery, handlers, mut non_validator) = build().await;
         let authentication = handlers[1].authentication().unwrap();
         let (addresses, commands) = discovery.handle_message(
@@ -293,7 +269,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn does_not_rebroadcast_nor_respond_to_wrong_authentications() {
+    async fn does_not_rebroadcast_wrong_authentications() {
         let (mut discovery, mut handlers, _) = build().await;
         let (auth_data, _) = handlers[1].authentication().unwrap();
         let (_, signature) = handlers[2].authentication().unwrap();
@@ -305,31 +281,6 @@ mod tests {
         );
         assert!(addresses.is_empty());
         assert!(commands.is_empty());
-    }
-
-    #[tokio::test]
-    async fn does_not_rebroadcast_quickly_but_still_responds() {
-        let (mut discovery, mut handlers, _) = build().await;
-        let authentication = handlers[1].authentication().unwrap();
-        let handler = &mut handlers[0];
-        discovery.handle_message(
-            DiscoveryMessage::AuthenticationBroadcast(authentication.clone()),
-            handler,
-        );
-        let (addresses, commands) = discovery.handle_message(
-            DiscoveryMessage::AuthenticationBroadcast(authentication.clone()),
-            handler,
-        );
-        assert_eq!(addresses.len(), authentication.0.addresses().len());
-        assert_eq!(
-            addresses[0].encode(),
-            authentication.0.addresses()[0].encode()
-        );
-        assert_eq!(commands.len(), 1);
-        assert!(matches!(&commands[0], (
-                DiscoveryMessage::Authentication(authentication),
-                DataCommand::SendTo(_, _),
-            ) if *authentication == handler.authentication().unwrap()));
     }
 
     #[tokio::test]
