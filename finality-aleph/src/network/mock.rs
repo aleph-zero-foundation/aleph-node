@@ -152,7 +152,7 @@ impl<T> Default for Channel<T> {
     }
 }
 
-pub type MockEvent = Event<MockMultiaddress>;
+pub type MockEvent = Event<MockMultiaddress, MockPeerId>;
 
 pub type MockData = Vec<u8>;
 type MessageForUser<D, M> = (NetworkData<D, M>, DataCommand<<M as Multiaddress>::PeerId>);
@@ -183,7 +183,7 @@ impl<M: Multiaddress + 'static> MockIO<M> {
 pub struct MockEventStream(mpsc::UnboundedReceiver<MockEvent>);
 
 #[async_trait]
-impl EventStream<MockMultiaddress> for MockEventStream {
+impl EventStream<MockMultiaddress, MockPeerId> for MockEventStream {
     async fn next_event(&mut self) -> Option<MockEvent> {
         self.0.next().await
     }

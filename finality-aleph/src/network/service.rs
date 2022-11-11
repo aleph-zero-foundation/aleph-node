@@ -187,7 +187,7 @@ impl<
 
     fn handle_network_event(
         &mut self,
-        event: Event<N::Multiaddress>,
+        event: Event<N::Multiaddress, N::PeerId>,
     ) -> Result<(), mpsc::TrySendError<NetworkData<D, A>>> {
         use Event::*;
         match event {

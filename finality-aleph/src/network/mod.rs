@@ -89,26 +89,26 @@ pub trait NetworkSender: Send + Sync + 'static {
 }
 
 #[derive(Clone)]
-pub enum Event<M: Multiaddress> {
+pub enum Event<M, P> {
     Connected(M),
-    Disconnected(M::PeerId),
-    StreamOpened(M::PeerId, Protocol),
-    StreamClosed(M::PeerId, Protocol),
+    Disconnected(P),
+    StreamOpened(P, Protocol),
+    StreamClosed(P, Protocol),
     Messages(Vec<(Protocol, Bytes)>),
 }
 
 #[async_trait]
-pub trait EventStream<M: Multiaddress> {
-    async fn next_event(&mut self) -> Option<Event<M>>;
+pub trait EventStream<M, P> {
+    async fn next_event(&mut self) -> Option<Event<M, P>>;
 }
 
 /// Abstraction over a network.
 pub trait Network: Clone + Send + Sync + 'static {
     type SenderError: std::error::Error;
     type NetworkSender: NetworkSender;
-    type PeerId: PeerId;
-    type Multiaddress: Multiaddress<PeerId = Self::PeerId>;
-    type EventStream: EventStream<Self::Multiaddress>;
+    type PeerId: Clone + Debug + Eq + Hash + Send;
+    type Multiaddress: Debug + Eq + Hash;
+    type EventStream: EventStream<Self::Multiaddress, Self::PeerId>;
 
     /// Returns a stream of events representing what happens on the network.
     fn event_stream(&self) -> Self::EventStream;
