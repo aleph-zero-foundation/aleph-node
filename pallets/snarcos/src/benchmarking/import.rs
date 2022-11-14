@@ -38,7 +38,7 @@ macro_rules! get_artifacts {
 macro_rules! get_artifact {
     ($system:tt, $relation:tt, $artifact:tt $(,)?) => {
         include_bytes!(concat!(
-            "resources/",
+            "../resources/",
             $crate::system!($system),
             "/",
             $crate::relation!($relation),

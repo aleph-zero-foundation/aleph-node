@@ -2,9 +2,14 @@
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
+mod systems;
+#[cfg(test)]
+mod tests;
 mod weights;
+
 use frame_support::pallet_prelude::StorageVersion;
 pub use pallet::*;
+pub use systems::ProvingSystem;
 pub use weights::{AlephWeight, WeightInfo};
 
 /// The current storage version.
@@ -12,9 +17,6 @@ const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 
 /// We store verification keys under short identifiers.
 pub type VerificationKeyIdentifier = [u8; 4];
-
-mod systems;
-pub use systems::ProvingSystem;
 
 #[frame_support::pallet]
 pub mod pallet {

@@ -36,6 +36,9 @@ sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptogr
 
 primitives = { path = "../../primitives", default-features = false }
 
+[dev-dependencies]
+sp-runtime = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+
 [features]
 default = ["std"]
 std = [
@@ -61,6 +64,7 @@ std = [
     "sp-core/std",
     "sp-io/std",
     "sp-std/std",
+    "sp-runtime/std",
 
     "primitives/std",
 ]
