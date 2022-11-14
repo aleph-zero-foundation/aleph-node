@@ -38,6 +38,7 @@ pub mod pallet {
     }
 
     #[pallet::error]
+    #[derive(Clone, Eq, PartialEq)]
     pub enum Error<T> {
         /// This verification key identifier is already taken.
         IdentifierAlreadyInUse,
