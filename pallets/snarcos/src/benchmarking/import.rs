@@ -15,8 +15,6 @@ pub(super) struct Artifacts {
 ///
 /// let Artifacts { key, proof, input } = get_artifacts!(Groth16, LinearEquation);
 /// ```
-///
-///
 #[macro_export]
 macro_rules! get_artifacts {
     ($system:tt, $relation:tt $(,)?) => {{

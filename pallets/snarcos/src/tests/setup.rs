@@ -58,7 +58,7 @@ impl pallet_snarcos::Config for TestRuntime {
     type MaximumVerificationKeyLength = ConstU32<10_000>;
 }
 
-pub(super) fn new_test_ext() -> TestExternalities {
+pub fn new_test_ext() -> TestExternalities {
     let t = frame_system::GenesisConfig::default()
         .build_storage::<TestRuntime>()
         .unwrap();

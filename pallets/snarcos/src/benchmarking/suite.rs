@@ -2,7 +2,10 @@ use frame_benchmarking::{account, benchmarks, vec, Vec};
 use frame_support::{traits::Get, BoundedVec};
 use frame_system::RawOrigin;
 
-use crate::{benchmarking::import::Artifacts, ProvingSystem::*, *};
+use crate::{
+    benchmarking::import::Artifacts, get_artifacts, Call, Config, Pallet, ProvingSystem::*,
+    VerificationKeyIdentifier, VerificationKeys,
+};
 
 const SEED: u32 = 41;
 const IDENTIFIER: VerificationKeyIdentifier = [0; 4];
@@ -103,4 +106,7 @@ benchmarks! {
         let _ = insert_key::<T>(key);
     } : verify(caller::<T>(), IDENTIFIER, proof, input, Marlin)
 
+    // Benchmarks as unit tests
+
+    impl_benchmark_test_suite!(Pallet, crate::tests::new_test_ext(), crate::tests::TestRuntime);
 }
