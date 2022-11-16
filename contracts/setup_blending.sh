@@ -7,6 +7,7 @@ ROOT_DIR=$(pwd)
 
 TOKENS=1000
 VK_BYTES=0x00000000
+MERKLE_LEAVES=1024
 
 INSTANTIATE_CMD="cargo contract instantiate --skip-confirm --suri ${SURI}"
 CALL_CMD="cargo contract call --quiet --skip-confirm --suri ${SURI}"
@@ -58,7 +59,7 @@ build_blender_contract() {
 
 deploy_blender_contract() {
   cd "$ROOT_DIR"/blender/
-  result=$($INSTANTIATE_CMD)
+  result=$($INSTANTIATE_CMD --args ${MERKLE_LEAVES})
   BLENDER_ADDRESS=$(echo "$result" | grep Contract | tail -1 | cut -c 14-)
   echo "Blender address: ${BLENDER_ADDRESS}"
 }

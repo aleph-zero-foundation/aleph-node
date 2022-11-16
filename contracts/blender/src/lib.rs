@@ -1,12 +1,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use ink_env::Hash;
+use ink_prelude::vec::Vec;
 use ink_storage::Mapping;
 use snarcos_extension::{ProvingSystem, VerificationKeyIdentifier};
 
 mod contract;
 mod error;
-mod merkle_tree;
 
 type Scalar = u64;
 type Nullifier = Scalar;
@@ -32,3 +32,16 @@ const SYSTEM: ProvingSystem = ProvingSystem::Groth16;
 
 /// PSP22 standard selector for transferring on behalf.
 const PSP22_TRANSFER_FROM_SELECTOR: [u8; 4] = [0x54, 0xb3, 0xc7, 0x6e];
+
+/// Temporary implementation of two-to-one hashing function.
+fn kinder_blender(left: &Hash, right: &Hash) -> Hash {
+    left.as_ref()
+        .iter()
+        .cloned()
+        .zip(right.as_ref().iter().cloned())
+        .map(|(l, r)| l ^ r)
+        .collect::<Vec<_>>()
+        .as_slice()
+        .try_into()
+        .unwrap()
+}

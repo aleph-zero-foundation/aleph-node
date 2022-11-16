@@ -15,8 +15,8 @@ mod blender {
     use scale_info::TypeInfo;
 
     use crate::{
-        error::BlenderError, merkle_tree::MerkleTree, MerkleRoot, Note, Nullifier, Set,
-        TokenAmount, TokenId, DEPOSIT_VK_IDENTIFIER, PSP22_TRANSFER_FROM_SELECTOR, SYSTEM,
+        error::BlenderError, kinder_blender, MerkleRoot, Note, Nullifier, Set, TokenAmount,
+        TokenId, DEPOSIT_VK_IDENTIFIER, PSP22_TRANSFER_FROM_SELECTOR, SYSTEM,
         WITHDRAW_VK_IDENTIFIER,
     };
 
@@ -42,9 +42,16 @@ mod blender {
     #[ink(storage)]
     #[derive(SpreadAllocate)]
     pub struct Blender {
-        /// Merkle tree holding all the notes.
-        notes: MerkleTree<1024>,
-        /// All the seen Merkle roots (including the current).
+        /// Merkle tree holding notes in its leaves.
+        ///
+        /// Root is at [1], children are at [2n] and [2n+1].
+        notes: Mapping<u32, Hash>,
+        /// Marker of the first 'non-occupied' leaf.
+        next_free_leaf: u32,
+        /// Tree capacity.
+        max_leaves: u32,
+
+        /// All the observed Merkle roots (including the current, excluding the initial).
         merkle_roots: Set<MerkleRoot>,
         /// Set of presented nullifiers.
         nullifiers: Set<Nullifier>,
@@ -52,22 +59,22 @@ mod blender {
         /// List of registered (supported) token contracts.
         registered_tokens: Mapping<TokenId, AccountId>,
 
-        /// Mister Blendermaster (contract admin).
+        /// Mister Blendermaster (the contract admin).
         blendermaster: AccountId,
     }
 
-    impl Default for Blender {
-        fn default() -> Self {
-            Self::new()
-        }
-    }
-
     impl Blender {
-        /// Instantiate contract. Set caller as blendermaster.
+        /// Instantiate the contract. Set the caller as the blendermaster.
         #[ink(constructor)]
-        pub fn new() -> Self {
+        pub fn new(max_leaves: u32) -> Self {
+            if !max_leaves.is_power_of_two() {
+                panic!("Please have 2^n leaves")
+            }
+
             ink_lang::utils::initialize_contract(|blender: &mut Self| {
                 blender.blendermaster = Self::env().caller();
+                blender.max_leaves = max_leaves;
+                blender.next_free_leaf = max_leaves;
             })
         }
 
@@ -82,19 +89,44 @@ mod blender {
         ) -> Result<()> {
             self.acquire_deposit(token_id, value)?;
             self.verify_deposit(token_id, value, note, proof)?;
-            let leaf_idx = self
-                .notes
-                .add(note)
-                .map_err(|_| BlenderError::TooManyNotes)?;
-            self.merkle_roots.insert(self.notes.root(), &());
+            self.create_new_leaf(note)?;
+            self.merkle_roots.insert(self.current_root(), &());
 
             self.env().emit_event(Deposited {
                 token_id,
                 value,
                 note,
-                leaf_idx,
+                leaf_idx: self.next_free_leaf - 1,
             });
 
+            Ok(())
+        }
+
+        /// Get the value from the root node.
+        fn current_root(&self) -> Hash {
+            self.notes.get(1).unwrap_or_else(Hash::clear)
+        }
+
+        /// Add `value` to the first 'non-occupied' leaf.
+        ///
+        /// Returns `Err(_)` iff there are no free leafs.
+        fn create_new_leaf(&mut self, value: Hash) -> Result<()> {
+            if self.next_free_leaf == 2 * self.max_leaves {
+                return Err(BlenderError::TooManyNotes);
+            }
+
+            self.notes.insert(self.next_free_leaf, &value);
+
+            let mut parent = self.next_free_leaf / 2;
+            while parent > 0 {
+                let left_child = &self.notes.get(2 * parent).unwrap_or_else(Hash::clear);
+                let right_child = &self.notes.get(2 * parent + 1).unwrap_or_else(Hash::clear);
+                self.notes
+                    .insert(parent, &kinder_blender(left_child, right_child));
+                parent /= 2;
+            }
+
+            self.next_free_leaf += 1;
             Ok(())
         }
 
