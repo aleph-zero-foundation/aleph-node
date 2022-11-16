@@ -114,14 +114,14 @@ type MessageForNetwork<D, M> = (NetworkData<D, M>, DataCommand<<M as Multiaddres
 
 pub struct ServiceActions<D: Data, M: Multiaddress> {
     maybe_command: Option<ConnectionCommand<M>>,
-    data: Vec<MessageForNetwork<D, M>>,
+    maybe_data: Option<MessageForNetwork<D, M>>,
 }
 
 impl<D: Data, M: Multiaddress> ServiceActions<D, M> {
     fn noop() -> Self {
         ServiceActions {
             maybe_command: None,
-            data: Vec::new(),
+            maybe_data: None,
         }
     }
 }
@@ -195,29 +195,25 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
     fn discover_authorities(
         &mut self,
         session_id: &SessionId,
-    ) -> Vec<MessageForNetwork<D, NI::Multiaddress>> {
-        if let Some(Session {
-            handler, discovery, ..
-        }) = self.sessions.get_mut(session_id)
-        {
-            discovery
-                .discover_authorities(handler)
-                .into_iter()
-                .map(Self::network_message)
-                .collect()
-        } else {
-            Vec::new()
-        }
+    ) -> Option<MessageForNetwork<D, NI::Multiaddress>> {
+        self.sessions.get_mut(session_id).and_then(
+            |Session {
+                 handler, discovery, ..
+             }| {
+                discovery
+                    .discover_authorities(handler)
+                    .map(Self::network_message)
+            },
+        )
     }
 
     /// Returns all the network messages that should be sent as part of discovery at this moment.
     pub fn discovery(&mut self) -> Vec<MessageForNetwork<D, NI::Multiaddress>> {
-        let mut result = Vec::new();
         let sessions: Vec<_> = self.sessions.keys().cloned().collect();
-        for session_id in sessions {
-            result.append(&mut self.discover_authorities(&session_id));
-        }
-        result
+        sessions
+            .iter()
+            .flat_map(|session_id| self.discover_authorities(session_id))
+            .collect()
     }
 
     fn addresses(&self) -> Vec<NI::Multiaddress> {
@@ -235,7 +231,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
         addresses: Vec<NI::Multiaddress>,
     ) -> Result<
         (
-            Vec<MessageForNetwork<D, NI::Multiaddress>>,
+            Option<MessageForNetwork<D, NI::Multiaddress>>,
             mpsc::UnboundedReceiver<D>,
         ),
         SessionHandlerError,
@@ -276,12 +272,12 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
         let session = match self.sessions.get_mut(&pre_session.session_id) {
             Some(session) => session,
             None => {
-                let (data, data_from_network) =
+                let (maybe_data, data_from_network) =
                     self.start_validator_session(pre_session, addresses).await?;
                 return Ok((
                     ServiceActions {
                         maybe_command: None,
-                        data,
+                        maybe_data,
                     },
                     data_from_network,
                 ));
@@ -313,7 +309,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
         Ok((
             ServiceActions {
                 maybe_command,
-                data: self.discover_authorities(&session_id),
+                maybe_data: self.discover_authorities(&session_id),
             },
             data_from_network,
         ))
@@ -425,7 +421,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
             }
             Stop(session_id) => Ok(ServiceActions {
                 maybe_command: self.finish_session(session_id),
-                data: Vec::new(),
+                maybe_data: None,
             }),
         }
     }
@@ -473,7 +469,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
             Some(Session {
                 handler, discovery, ..
             }) => {
-                let (addresses, responses) = discovery.handle_message(message, handler);
+                let (addresses, response) = discovery.handle_message(message, handler);
                 let maybe_command = match !addresses.is_empty() && handler.is_validator() {
                     true => {
                         debug!(target: "aleph-network", "Adding addresses for session {:?} to reserved: {:?}", session_id, addresses);
@@ -489,7 +485,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
                 };
                 ServiceActions {
                     maybe_command,
-                    data: responses.into_iter().map(Self::network_message).collect(),
+                    maybe_data: response.map(Self::network_message),
                 }
             }
             None => {
@@ -671,14 +667,14 @@ impl<D: Data, M: Multiaddress> IO<D, M> {
         &self,
         ServiceActions {
             maybe_command,
-            data,
+            maybe_data,
         }: ServiceActions<D, M>,
     ) -> Result<(), Error> {
         if let Some(command) = maybe_command {
             self.send_command(command)?;
         }
-        for data_to_send in data {
-            self.send_data(data_to_send)?;
+        if let Some(data) = maybe_data {
+            self.send_data(data)?;
         }
         Ok(())
     }
@@ -796,13 +792,13 @@ mod tests {
         let session_id = SessionId(43);
         let ServiceActions {
             maybe_command,
-            data,
+            maybe_data,
         } = service
             .on_command(SessionCommand::StartNonvalidator(session_id, verifier))
             .await
             .unwrap();
         assert!(maybe_command.is_none());
-        assert!(data.is_empty());
+        assert!(maybe_data.is_none());
         assert_eq!(
             service.send_session_data(&session_id, -43),
             Err(Error::NoSession)
@@ -818,7 +814,7 @@ mod tests {
         let (result_for_user, result_from_service) = oneshot::channel();
         let ServiceActions {
             maybe_command,
-            data,
+            maybe_data,
         } = service
             .on_command(SessionCommand::StartValidator(
                 session_id,
@@ -830,10 +826,10 @@ mod tests {
             .await
             .unwrap();
         assert!(maybe_command.is_none());
-        assert_eq!(data.len(), 1);
-        assert!(data
-            .iter()
-            .all(|(_, command)| command == &DataCommand::Broadcast));
+        assert_eq!(
+            maybe_data.expect("there is a message").1,
+            DataCommand::Broadcast
+        );
         let _data_from_network = result_from_service.await.unwrap();
         assert_eq!(service.send_session_data(&session_id, -43), Ok(()));
     }
@@ -847,7 +843,7 @@ mod tests {
         let (result_for_user, result_from_service) = oneshot::channel();
         let ServiceActions {
             maybe_command,
-            data,
+            maybe_data,
         } = service
             .on_command(SessionCommand::StartValidator(
                 session_id,
@@ -859,22 +855,22 @@ mod tests {
             .await
             .unwrap();
         assert!(maybe_command.is_none());
-        assert_eq!(data.len(), 1);
-        assert!(data
-            .iter()
-            .all(|(_, command)| command == &DataCommand::Broadcast));
+        assert_eq!(
+            maybe_data.expect("there is a message").1,
+            DataCommand::Broadcast
+        );
         assert_eq!(service.send_session_data(&session_id, -43), Ok(()));
         let mut data_from_network = result_from_service.await.unwrap();
         assert_eq!(data_from_network.next().await, Some(-43));
         let ServiceActions {
             maybe_command,
-            data,
+            maybe_data,
         } = service
             .on_command(SessionCommand::Stop(session_id))
             .await
             .unwrap();
         assert!(maybe_command.is_none());
-        assert!(data.is_empty());
+        assert!(maybe_data.is_none());
         assert_eq!(
             service.send_session_data(&session_id, -43),
             Err(Error::NoSession)
@@ -900,15 +896,18 @@ mod tests {
             .unwrap();
         let mut other_service = build();
         let (node_id, pen) = validator_data[1].clone();
-        let ServiceActions { data, .. } = other_service
+        let ServiceActions { maybe_data, .. } = other_service
             .on_command(SessionCommand::StartValidator(
                 session_id, verifier, node_id, pen, None,
             ))
             .await
             .unwrap();
-        let broadcast = match data[0].clone() {
-            (NetworkData::Meta(broadcast), DataCommand::Broadcast) => broadcast,
-            _ => panic!("Expected discovery massage broadcast, got: {:?}", data[0]),
+        let broadcast = match maybe_data {
+            Some((NetworkData::Meta(broadcast), DataCommand::Broadcast)) => broadcast,
+            maybe_data => panic!(
+                "Expected discovery massage broadcast, got: {:?}",
+                maybe_data
+            ),
         };
         let addresses = match &broadcast {
             DiscoveryMessage::AuthenticationBroadcast((auth_data, _)) => auth_data.addresses(),
@@ -916,7 +915,7 @@ mod tests {
         };
         let ServiceActions {
             maybe_command,
-            data,
+            maybe_data,
         } = service.on_discovery_message(broadcast);
         assert_eq!(
             maybe_command,
@@ -924,10 +923,10 @@ mod tests {
                 addresses.into_iter().collect()
             ))
         );
-        assert_eq!(data.len(), 1);
-        assert!(data
-            .iter()
-            .any(|(_, command)| command == &DataCommand::Broadcast));
+        assert_eq!(
+            maybe_data.expect("there is a message").1,
+            DataCommand::Broadcast
+        );
     }
 
     #[tokio::test]
@@ -948,15 +947,18 @@ mod tests {
             .unwrap();
         let mut other_service = build();
         let (node_id, pen) = validator_data[1].clone();
-        let ServiceActions { data, .. } = other_service
+        let ServiceActions { maybe_data, .. } = other_service
             .on_command(SessionCommand::StartValidator(
                 session_id, verifier, node_id, pen, None,
             ))
             .await
             .unwrap();
-        let broadcast = match data[0].clone() {
-            (NetworkData::Meta(broadcast), DataCommand::Broadcast) => broadcast,
-            _ => panic!("Expected discovery massage broadcast, got: {:?}", data[0]),
+        let broadcast = match maybe_data {
+            Some((NetworkData::Meta(broadcast), DataCommand::Broadcast)) => broadcast,
+            maybe_data => panic!(
+                "Expected discovery massage broadcast, got: {:?}",
+                maybe_data
+            ),
         };
         service.on_discovery_message(broadcast);
         let messages = service.on_user_message(2137, session_id, Recipient::Everyone);
