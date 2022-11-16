@@ -7,22 +7,24 @@ mod blender {
     use ink_env::call::{build_call, Call, ExecutionInput, Selector};
     #[allow(unused_imports)]
     use ink_env::*;
+    use ink_lang::{
+        codegen::{EmitEvent, Env},
+        reflect::ContractEventBase,
+    };
     use ink_prelude::{vec, vec::Vec};
     use ink_storage::{traits::SpreadAllocate, Mapping};
     use openbrush::contracts::psp22::PSP22Error;
     use scale::{Decode, Encode};
-    #[cfg(feature = "std")]
-    use scale_info::TypeInfo;
 
     use crate::{
         error::BlenderError, kinder_blender, MerkleRoot, Note, Nullifier, Set, TokenAmount,
-        TokenId, DEPOSIT_VK_IDENTIFIER, PSP22_TRANSFER_FROM_SELECTOR, SYSTEM,
-        WITHDRAW_VK_IDENTIFIER,
+        TokenId, DEPOSIT_VK_IDENTIFIER, PSP22_TRANSFER_FROM_SELECTOR, PSP22_TRANSFER_SELECTOR,
+        SYSTEM, WITHDRAW_VK_IDENTIFIER,
     };
 
     /// Supported relations - used for registering verifying keys.
     #[derive(Eq, PartialEq, Debug, Decode, Encode)]
-    #[cfg_attr(feature = "std", derive(TypeInfo))]
+    #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
     pub enum Relation {
         Deposit,
         Withdraw,
@@ -33,11 +35,21 @@ mod blender {
         #[ink(topic)]
         token_id: TokenId,
         value: TokenAmount,
-        note: Note,
+        leaf_idx: u32,
+    }
+
+    #[ink(event)]
+    pub struct Withdrawn {
+        #[ink(topic)]
+        token_id: TokenId,
+        value: TokenAmount,
+        #[ink(topic)]
+        recipient: AccountId,
         leaf_idx: u32,
     }
 
     type Result<T> = core::result::Result<T, BlenderError>;
+    type Event = <Blender as ContractEventBase>::Type;
 
     #[ink(storage)]
     #[derive(SpreadAllocate)]
@@ -89,100 +101,63 @@ mod blender {
         ) -> Result<()> {
             self.acquire_deposit(token_id, value)?;
             self.verify_deposit(token_id, value, note, proof)?;
+
             self.create_new_leaf(note)?;
             self.merkle_roots.insert(self.current_root(), &());
 
-            self.env().emit_event(Deposited {
-                token_id,
-                value,
-                note,
-                leaf_idx: self.next_free_leaf - 1,
-            });
+            Self::emit_event(
+                self.env(),
+                Event::Deposited(Deposited {
+                    token_id,
+                    value,
+                    leaf_idx: self.next_free_leaf - 1,
+                }),
+            );
 
             Ok(())
         }
 
-        /// Get the value from the root node.
-        fn current_root(&self) -> Hash {
-            self.notes.get(1).unwrap_or_else(Hash::clear)
-        }
-
-        /// Add `value` to the first 'non-occupied' leaf.
-        ///
-        /// Returns `Err(_)` iff there are no free leafs.
-        fn create_new_leaf(&mut self, value: Hash) -> Result<()> {
-            if self.next_free_leaf == 2 * self.max_leaves {
-                return Err(BlenderError::TooManyNotes);
-            }
-
-            self.notes.insert(self.next_free_leaf, &value);
-
-            let mut parent = self.next_free_leaf / 2;
-            while parent > 0 {
-                let left_child = &self.notes.get(2 * parent).unwrap_or_else(Hash::clear);
-                let right_child = &self.notes.get(2 * parent + 1).unwrap_or_else(Hash::clear);
-                self.notes
-                    .insert(parent, &kinder_blender(left_child, right_child));
-                parent /= 2;
-            }
-
-            self.next_free_leaf += 1;
-            Ok(())
-        }
-
-        /// Transfer `deposit` tokens of type `token_id` from the caller to this contract.
-        fn acquire_deposit(&self, token_id: TokenId, deposit: TokenAmount) -> Result<()> {
-            let token_contract = self
-                .registered_token_address(token_id)
-                .ok_or(BlenderError::TokenIdNotRegistered)?;
-
-            build_call::<super::blender::Environment>()
-                .call_type(Call::new().callee(token_contract))
-                .exec_input(
-                    ExecutionInput::new(Selector::new(PSP22_TRANSFER_FROM_SELECTOR))
-                        .push_arg(self.env().caller())
-                        .push_arg(self.env().account_id())
-                        .push_arg(deposit as Balance)
-                        .push_arg::<Vec<u8>>(vec![]),
-                )
-                .call_flags(CallFlags::default().set_allow_reentry(true))
-                .returns::<core::result::Result<(), PSP22Error>>()
-                .fire()??;
-            Ok(())
-        }
-
-        /// Serialize with `ark-serialize::CanonicalSerialize`.
-        pub fn serialize<T: CanonicalSerialize + ?Sized>(t: &T) -> Vec<u8> {
-            let mut bytes = vec![0; t.serialized_size()];
-            t.serialize(&mut bytes[..]).expect("Failed to serialize");
-            bytes.to_vec()
-        }
-
-        /// Call `pallet_snarcos::verify` for the `deposit` relation with `(token_id, value, note)`
-        /// as public input.
-        fn verify_deposit(
-            &self,
+        /// Trigger withdraw action (see ADR for detailed description).
+        #[allow(clippy::too_many_arguments)]
+        #[ink(message, selector = 2)]
+        pub fn withdraw(
+            &mut self,
             token_id: TokenId,
             value: TokenAmount,
-            note: Note,
+            recipient: AccountId,
+            fee_for_caller: Option<TokenAmount>,
+            merkle_root: MerkleRoot,
+            nullifier: Nullifier,
+            new_note: Note,
             proof: Vec<u8>,
         ) -> Result<()> {
-            // For now we assume naive input encoding (from typed arguments).
-            let serialized_input = [
-                Self::serialize(&token_id),
-                Self::serialize(&value),
-                Self::serialize(note.as_ref()),
-            ]
-            .concat();
+            self.verify_fee(fee_for_caller, value)?;
+            self.verify_merkle_root(merkle_root)?;
+            self.verify_nullifier(nullifier)?;
+            self.verify_withdrawal(token_id, value, merkle_root, nullifier, new_note, proof)?;
 
-            self.env().extension().verify(
-                DEPOSIT_VK_IDENTIFIER,
-                proof,
-                serialized_input,
-                SYSTEM,
-            )?;
+            self.create_new_leaf(new_note)?;
+            self.nullifiers.insert(nullifier, &());
+
+            self.withdraw_funds(token_id, value, fee_for_caller, recipient)?;
+
+            Self::emit_event(
+                self.env(),
+                Event::Withdrawn(Withdrawn {
+                    token_id,
+                    value,
+                    recipient,
+                    leaf_idx: self.next_free_leaf - 1,
+                }),
+            );
 
             Ok(())
+        }
+
+        /// Read the current root of the Merkle tree with notes.
+        #[ink(message, selector = 3)]
+        pub fn current_merkle_root(&self) -> Hash {
+            self.current_root()
         }
 
         /// Register a verifying key for one of the `Relation`.
@@ -221,12 +196,201 @@ mod blender {
                 .then(|| self.registered_tokens.insert(token_id, &token_address))
                 .ok_or(BlenderError::TokenIdAlreadyRegistered)
         }
+    }
+
+    /// Auxiliary contract methods.
+    impl Blender {
+        fn tree_value(&self, idx: u32) -> Hash {
+            self.notes.get(idx).unwrap_or_else(Hash::clear)
+        }
+
+        /// Get the value from the root node.
+        fn current_root(&self) -> Hash {
+            self.tree_value(1)
+        }
+
+        /// Add `value` to the first 'non-occupied' leaf.
+        ///
+        /// Returns `Err(_)` iff there are no free leafs.
+        fn create_new_leaf(&mut self, value: Hash) -> Result<()> {
+            if self.next_free_leaf == 2 * self.max_leaves {
+                return Err(BlenderError::TooManyNotes);
+            }
+
+            self.notes.insert(self.next_free_leaf, &value);
+
+            let mut parent = self.next_free_leaf / 2;
+            while parent > 0 {
+                let left_child = self.tree_value(2 * parent);
+                let right_child = self.tree_value(2 * parent + 1);
+                self.notes
+                    .insert(parent, &kinder_blender(&left_child, &right_child));
+                parent /= 2;
+            }
+
+            self.next_free_leaf += 1;
+            Ok(())
+        }
+
+        /// Serialize with `ark-serialize::CanonicalSerialize`.
+        pub fn serialize<T: CanonicalSerialize + ?Sized>(t: &T) -> Vec<u8> {
+            let mut bytes = vec![0; t.serialized_size()];
+            t.serialize(&mut bytes[..]).expect("Failed to serialize");
+            bytes.to_vec()
+        }
+
+        /// Transfer `deposit` tokens of type `token_id` from the caller to this contract.
+        fn acquire_deposit(&self, token_id: TokenId, deposit: TokenAmount) -> Result<()> {
+            let token_contract = self
+                .registered_token_address(token_id)
+                .ok_or(BlenderError::TokenIdNotRegistered)?;
+
+            build_call::<super::blender::Environment>()
+                .call_type(Call::new().callee(token_contract))
+                .exec_input(
+                    ExecutionInput::new(Selector::new(PSP22_TRANSFER_FROM_SELECTOR))
+                        .push_arg(self.env().caller())
+                        .push_arg(self.env().account_id())
+                        .push_arg(deposit as Balance)
+                        .push_arg::<Vec<u8>>(vec![]),
+                )
+                .call_flags(CallFlags::default().set_allow_reentry(true))
+                .returns::<core::result::Result<(), PSP22Error>>()
+                .fire()??;
+            Ok(())
+        }
+
+        /// Call `pallet_snarcos::verify` for the `deposit` relation with `(token_id, value, note)`
+        /// as public input.
+        fn verify_deposit(
+            &self,
+            token_id: TokenId,
+            value: TokenAmount,
+            note: Note,
+            proof: Vec<u8>,
+        ) -> Result<()> {
+            // For now we assume naive input encoding (from typed arguments).
+            let serialized_input = [
+                Self::serialize(&token_id),
+                Self::serialize(&value),
+                Self::serialize(note.as_ref()),
+            ]
+            .concat();
+
+            self.env().extension().verify(
+                DEPOSIT_VK_IDENTIFIER,
+                proof,
+                serialized_input,
+                SYSTEM,
+            )?;
+
+            Ok(())
+        }
+
+        fn verify_fee(
+            &self,
+            fee_for_caller: Option<TokenAmount>,
+            value_to_withdraw: TokenAmount,
+        ) -> Result<()> {
+            match fee_for_caller {
+                Some(fee) if fee > value_to_withdraw => Err(BlenderError::TooHighFee),
+                _ => Ok(()),
+            }
+        }
+
+        fn verify_merkle_root(&self, merkle_root: MerkleRoot) -> Result<()> {
+            self.merkle_roots
+                .contains(merkle_root)
+                .then_some(())
+                .ok_or(BlenderError::UnknownMerkleRoot)
+        }
+
+        fn verify_nullifier(&self, nullifier: Nullifier) -> Result<()> {
+            self.nullifiers
+                .contains(nullifier)
+                .not()
+                .then_some(())
+                .ok_or(BlenderError::NullifierAlreadyUsed)
+        }
+
+        fn verify_withdrawal(
+            &self,
+            token_id: TokenId,
+            value_out: TokenAmount,
+            merkle_root: MerkleRoot,
+            nullifier: Nullifier,
+            new_note: Note,
+            proof: Vec<u8>,
+        ) -> Result<()> {
+            // For now we assume naive input encoding (from typed arguments).
+            let serialized_input = [
+                Self::serialize(&token_id),
+                Self::serialize(&value_out),
+                Self::serialize(merkle_root.as_ref()),
+                Self::serialize(&nullifier),
+                Self::serialize(new_note.as_ref()),
+            ]
+            .concat();
+
+            self.env().extension().verify(
+                WITHDRAW_VK_IDENTIFIER,
+                proof,
+                serialized_input,
+                SYSTEM,
+            )?;
+
+            Ok(())
+        }
+
+        fn withdraw_funds(
+            &self,
+            token_id: TokenId,
+            value: TokenAmount,
+            fee_for_caller: Option<TokenAmount>,
+            recipient: AccountId,
+        ) -> Result<()> {
+            let token_contract = self
+                .registered_token_address(token_id)
+                .ok_or(BlenderError::TokenIdNotRegistered)?;
+
+            match fee_for_caller {
+                Some(fee) => {
+                    self.transfer(token_contract, fee, self.env().caller())?;
+                    self.transfer(token_contract, value - fee, recipient)
+                }
+                None => self.transfer(token_contract, value, recipient),
+            }
+        }
+
+        fn transfer(
+            &self,
+            token_contract: AccountId,
+            value: TokenAmount,
+            recipient: AccountId,
+        ) -> Result<()> {
+            build_call::<super::blender::Environment>()
+                .call_type(Call::new().callee(token_contract))
+                .exec_input(
+                    ExecutionInput::new(Selector::new(PSP22_TRANSFER_SELECTOR))
+                        .push_arg(recipient)
+                        .push_arg(value as Balance)
+                        .push_arg::<Vec<u8>>(vec![]),
+                )
+                .returns::<core::result::Result<(), PSP22Error>>()
+                .fire()??;
+            Ok(())
+        }
 
         /// Check if the caller is the blendermaster.
         fn ensure_mr_blendermaster(&self) -> Result<()> {
             (self.env().caller() == self.blendermaster)
                 .then_some(())
                 .ok_or(BlenderError::InsufficientPermission)
+        }
+
+        /// Emit event with correct type boundaries.
+        fn emit_event<EE: EmitEvent<Blender>>(emitter: EE, event: Event) {
+            emitter.emit_event(event);
         }
     }
 }

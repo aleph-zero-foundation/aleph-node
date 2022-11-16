@@ -10,6 +10,12 @@ pub enum BlenderError {
     InsufficientPermission,
     /// Merkle tree is full - no new notes can be created.
     TooManyNotes,
+    /// There was no such merkle root.
+    UnknownMerkleRoot,
+    /// Cannot reuse nullifier.
+    NullifierAlreadyUsed,
+    /// Fee exceeds the withdrawn amount.
+    TooHighFee,
 
     /// Pallet returned an error (through chain extension).
     ChainExtension(SnarcosError),

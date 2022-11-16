@@ -67,6 +67,7 @@ deploy_blender_contract() {
 register_vk() {
   cd "$ROOT_DIR"/blender/
   $CALL_CMD --contract ${BLENDER_ADDRESS} --message "register_vk" --args Deposit ${VK_BYTES} | grep "Success"
+  $CALL_CMD --contract ${BLENDER_ADDRESS} --message "register_vk" --args Withdraw ${VK_BYTES} | grep "Success"
 }
 
 register_token() {
@@ -92,8 +93,8 @@ deploy_blender_contract || error "Failed to deploy blender contract"
 log_progress "Setting allowance for Blender..."
 set_allowance || error "Failed to set allowance"
 
-log_progress "Registering verifying key..."
-register_vk || error "Failed to register verifying key"
+log_progress "Registering verifying keys..."
+register_vk || error "Failed to register verifying keys"
 
 log_progress "Registering token..."
 register_token || error "Failed to register token"
