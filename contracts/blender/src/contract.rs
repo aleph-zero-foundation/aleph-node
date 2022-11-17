@@ -36,6 +36,7 @@ mod blender {
         token_id: TokenId,
         value: TokenAmount,
         leaf_idx: u32,
+        note: Note,
     }
 
     #[ink(event)]
@@ -46,10 +47,29 @@ mod blender {
         #[ink(topic)]
         recipient: AccountId,
         leaf_idx: u32,
+        new_note: Note,
     }
 
     type Result<T> = core::result::Result<T, BlenderError>;
     type Event = <Blender as ContractEventBase>::Type;
+
+    /// Describes a path from a leaf to the root.
+    ///
+    /// The path is given in a ~optimized way:
+    ///  - it does not contain leaf (it is the note that you have submitted)
+    ///  - it does not contain parents (i.e. results of hashing intermediate children)
+    #[derive(Clone, Eq, PartialEq, Debug, Decode, Encode)]
+    #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+    pub struct MerklePath {
+        /// Whether the leaf was the right child.
+        leaf_is_right_child: bool,
+        /// The second base-level hash.
+        leaf_sibling: Note,
+        /// Uncles, from bottom to top.
+        auth_path: Vec<Hash>,
+        /// Indicators whether the corresponding uncle was right.
+        path: Vec<bool>,
+    }
 
     #[ink(storage)]
     #[derive(SpreadAllocate)]
@@ -111,6 +131,7 @@ mod blender {
                     token_id,
                     value,
                     leaf_idx: self.next_free_leaf - 1,
+                    note,
                 }),
             );
 
@@ -148,6 +169,7 @@ mod blender {
                     value,
                     recipient,
                     leaf_idx: self.next_free_leaf - 1,
+                    new_note,
                 }),
             );
 
@@ -158,6 +180,38 @@ mod blender {
         #[ink(message, selector = 3)]
         pub fn current_merkle_root(&self) -> Hash {
             self.current_root()
+        }
+
+        /// Retrieve the path from the leaf to the root. `None` if the leaf does not exist.
+        #[ink(message, selector = 4)]
+        pub fn merkle_path(&self, leaf_idx: u32) -> Option<MerklePath> {
+            if self.max_leaves > leaf_idx || leaf_idx >= self.next_free_leaf {
+                return None;
+            }
+
+            let mut current_idx = leaf_idx / 2;
+            let mut auth_path = vec![];
+            let mut path = vec![];
+            while current_idx > 1 {
+                // We push our sibling.
+                auth_path.push(self.tree_value(current_idx ^ 1));
+                // Sibling is right if we are even.
+                path.push(current_idx & 1 == 0);
+                current_idx /= 2;
+            }
+
+            Some(MerklePath {
+                leaf_is_right_child: leaf_idx & 1 == 1,
+                leaf_sibling: self.tree_value(leaf_idx ^ 1),
+                auth_path,
+                path,
+            })
+        }
+
+        /// Check whether `nullifier` has been already used.
+        #[ink(message, selector = 5)]
+        pub fn contains_nullifier(&self, nullifier: Nullifier) -> bool {
+            self.nullifiers.contains(nullifier)
         }
 
         /// Register a verifying key for one of the `Relation`.
@@ -200,6 +254,7 @@ mod blender {
 
     /// Auxiliary contract methods.
     impl Blender {
+        /// Get the value at this node idx or the clean hash (`[0u8; 32]`).
         fn tree_value(&self, idx: u32) -> Hash {
             self.notes.get(idx).unwrap_or_else(Hash::clear)
         }
