@@ -1,5 +1,5 @@
 use ink_prelude::{format, string::String};
-use openbrush::contracts::psp22::PSP22Error;
+use openbrush::contracts::{ownable::OwnableError, psp22::PSP22Error};
 use scale::{Decode, Encode};
 use snarcos_extension::SnarcosError;
 
@@ -7,7 +7,7 @@ use snarcos_extension::SnarcosError;
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
 pub enum BlenderError {
     /// Caller is missing some permission.
-    InsufficientPermission,
+    InsufficientPermission(OwnableError),
     /// Merkle tree is full - no new notes can be created.
     TooManyNotes,
     /// There was no such merkle root.
@@ -40,6 +40,12 @@ impl From<SnarcosError> for BlenderError {
 impl From<PSP22Error> for BlenderError {
     fn from(e: PSP22Error) -> Self {
         BlenderError::Psp22(e)
+    }
+}
+
+impl From<OwnableError> for BlenderError {
+    fn from(e: OwnableError) -> Self {
+        BlenderError::InsufficientPermission(e)
     }
 }
 

@@ -1,4 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+#![feature(min_specialization)]
 
 use ink_env::Hash;
 use ink_prelude::vec::Vec;

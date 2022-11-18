@@ -26,7 +26,7 @@ scale-info = { version = "2", default-features = false, features = ["derive"], o
 
 ark-serialize = { version = "^0.3.0", default-features = false }
 
-openbrush = { git = "https://github.com/Supercolony-net/openbrush-contracts", rev = "v2.3.0", default-features = false, features = ["psp22"] }
+openbrush = { git = "https://github.com/Supercolony-net/openbrush-contracts", rev = "v2.3.0", default-features = false, features = ["psp22", "ownable"] }
 
 snarcos-extension = { path = "../../bin/runtime/src/chain_extension/snarcos-extension", default-features = false, features = ["ink-as-dependency"] }
 

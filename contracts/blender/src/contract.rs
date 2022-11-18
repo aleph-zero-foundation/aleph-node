@@ -13,7 +13,11 @@ mod blender {
     };
     use ink_prelude::{vec, vec::Vec};
     use ink_storage::{traits::SpreadAllocate, Mapping};
-    use openbrush::contracts::psp22::PSP22Error;
+    use openbrush::{
+        contracts::{ownable::*, psp22::PSP22Error},
+        modifiers,
+        traits::Storage,
+    };
     use scale::{Decode, Encode};
 
     use crate::{
@@ -65,7 +69,7 @@ mod blender {
     pub type MerklePath = Vec<Hash>;
 
     #[ink(storage)]
-    #[derive(SpreadAllocate)]
+    #[derive(SpreadAllocate, Storage)]
     pub struct Blender {
         /// Merkle tree holding notes in its leaves.
         ///
@@ -84,12 +88,15 @@ mod blender {
         /// List of registered (supported) token contracts.
         registered_tokens: Mapping<TokenId, AccountId>,
 
-        /// Mister Blendermaster (the contract admin).
-        blendermaster: AccountId,
+        /// `Openbrush::Ownable` data.
+        #[storage_field]
+        ownable: ownable::Data,
     }
 
+    impl Ownable for Blender {}
+
     impl Blender {
-        /// Instantiate the contract. Set the caller as the blendermaster.
+        /// Instantiate the contract. Set the caller as the owner.
         #[ink(constructor)]
         pub fn new(max_leaves: u32) -> Self {
             if !max_leaves.is_power_of_two() {
@@ -97,7 +104,7 @@ mod blender {
             }
 
             ink_lang::utils::initialize_contract(|blender: &mut Self| {
-                blender.blendermaster = Self::env().caller();
+                blender._init_with_owner(Self::env().caller());
                 blender.max_leaves = max_leaves;
                 blender.next_free_leaf = max_leaves;
             })
@@ -201,10 +208,10 @@ mod blender {
 
         /// Register a verifying key for one of the `Relation`.
         ///
-        /// For blendermaster use only.
+        /// For owner use only.
         #[ink(message, selector = 8)]
+        #[modifiers(only_owner)]
         pub fn register_vk(&mut self, relation: Relation, vk: Vec<u8>) -> Result<()> {
-            self.ensure_mr_blendermaster()?;
             let identifier = match relation {
                 Relation::Deposit => DEPOSIT_VK_IDENTIFIER,
                 Relation::Withdraw => WITHDRAW_VK_IDENTIFIER,
@@ -221,14 +228,14 @@ mod blender {
 
         /// Register a token contract (`token_address`) at `token_id`.
         ///
-        /// For blendermaster use only.
+        /// For owner use only.
         #[ink(message, selector = 10)]
+        #[modifiers(only_owner)]
         pub fn register_new_token(
             &mut self,
             token_id: TokenId,
             token_address: AccountId,
         ) -> Result<()> {
-            self.ensure_mr_blendermaster()?;
             self.registered_tokens
                 .contains(token_id)
                 .not()
@@ -419,13 +426,6 @@ mod blender {
                 .returns::<core::result::Result<(), PSP22Error>>()
                 .fire()??;
             Ok(())
-        }
-
-        /// Check if the caller is the blendermaster.
-        fn ensure_mr_blendermaster(&self) -> Result<()> {
-            (self.env().caller() == self.blendermaster)
-                .then_some(())
-                .ok_or(BlenderError::InsufficientPermission)
         }
 
         /// Emit event with correct type boundaries.
