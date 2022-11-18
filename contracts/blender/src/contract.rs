@@ -58,18 +58,11 @@ mod blender {
     /// The path is given in a ~optimized way:
     ///  - it does not contain leaf (it is the note that you have submitted)
     ///  - it does not contain parents (i.e. results of hashing intermediate children)
-    #[derive(Clone, Eq, PartialEq, Debug, Decode, Encode)]
-    #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
-    pub struct MerklePath {
-        /// Whether the leaf was the right child.
-        leaf_is_right_child: bool,
-        /// The second base-level hash.
-        leaf_sibling: Note,
-        /// Uncles, from bottom to top.
-        auth_path: Vec<Hash>,
-        /// Indicators whether the corresponding uncle was right.
-        path: Vec<bool>,
-    }
+    ///
+    /// So effectively it is just siblings, from bottom to top - the first one is the leaf sibling,
+    /// the next one is their uncle and so forth. You can recreate shape of this path knowing leaf
+    /// index.
+    pub type MerklePath = Vec<Hash>;
 
     #[ink(storage)]
     #[derive(SpreadAllocate)]
@@ -189,23 +182,15 @@ mod blender {
                 return None;
             }
 
+            let mut auth_path = vec![self.tree_value(leaf_idx ^ 1)];
+
             let mut current_idx = leaf_idx / 2;
-            let mut auth_path = vec![];
-            let mut path = vec![];
             while current_idx > 1 {
-                // We push our sibling.
                 auth_path.push(self.tree_value(current_idx ^ 1));
-                // Sibling is right if we are even.
-                path.push(current_idx & 1 == 0);
                 current_idx /= 2;
             }
 
-            Some(MerklePath {
-                leaf_is_right_child: leaf_idx & 1 == 1,
-                leaf_sibling: self.tree_value(leaf_idx ^ 1),
-                auth_path,
-                path,
-            })
+            Some(auth_path)
         }
 
         /// Check whether `nullifier` has been already used.
