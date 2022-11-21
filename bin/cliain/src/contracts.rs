@@ -3,50 +3,25 @@ use std::{
     path::Path,
 };
 
-use aleph_client::{send_xt, wait_for_event, AnyConnection, Balance, Connection, SignedConnection};
+use aleph_client::{
+    api::contracts::events::{CodeRemoved, CodeStored, Instantiated},
+    pallet_contracts::wasm::OwnerInfo,
+    pallets::contract::{ContractsApi, ContractsUserApi},
+    waiting::{AlephWaiting, BlockStatus},
+    AccountId, Connection, SignedConnection, TxStatus,
+};
 use anyhow::anyhow;
-use codec::{Compact, Decode, Encode};
+use codec::{Compact, Decode};
 use contract_metadata::ContractMetadata;
 use contract_transcode::ContractMessageTranscoder;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
-use sp_core::{Pair, H256};
-use substrate_api_client::{
-    compose_extrinsic, utils::storage_key, AccountId, GenericAddress, StorageKey, XtStatus,
-};
+use subxt::ext::sp_core::H256;
 
 use crate::commands::{
     ContractCall, ContractInstantiate, ContractInstantiateWithCode, ContractOptions,
     ContractOwnerInfo, ContractRemoveCode, ContractUploadCode,
 };
-
-#[derive(Debug, Decode, Encode, Clone)]
-pub struct OwnerInfo {
-    /// The account that has deployed the contract and hence is allowed to remove it.
-    pub owner: AccountId,
-    /// The amount of balance that was deposited by the owner in order to deploy the contract.
-    #[codec(compact)]
-    pub deposit: Balance,
-    /// The number of contracts that share (use) this code.
-    #[codec(compact)]
-    pub refcount: u64,
-}
-
-#[derive(Debug, Decode, Clone)]
-pub struct ContractCodeRemovedEvent {
-    code_hash: H256,
-}
-
-#[derive(Debug, Decode, Clone)]
-pub struct ContractInstantiatedEvent {
-    deployer: AccountId,
-    contract: AccountId,
-}
-
-#[derive(Debug, Decode, Clone)]
-pub struct ContractCodeStoredEvent {
-    code_hash: H256,
-}
 
 #[derive(Debug, Decode, Clone, Serialize, Deserialize)]
 pub struct InstantiateWithCodeReturnValue {
@@ -58,48 +33,47 @@ fn storage_deposit(storage_deposit_limit: Option<u128>) -> Option<Compact<u128>>
     storage_deposit_limit.map(Compact)
 }
 
-pub fn upload_code(
+pub async fn upload_code(
     signed_connection: SignedConnection,
     command: ContractUploadCode,
-) -> anyhow::Result<ContractCodeStoredEvent> {
+) -> anyhow::Result<CodeStored> {
     let ContractUploadCode {
         wasm_path,
         storage_deposit_limit,
     } = command;
 
-    let connection = signed_connection.as_connection();
-
     let wasm = fs::read(wasm_path).expect("WASM artifact not found");
     debug!(target: "contracts", "Found WASM contract code {:?}", wasm);
 
-    let xt = compose_extrinsic!(
-        connection,
-        "Contracts",
-        "upload_code",
-        wasm, // code
-        storage_deposit(storage_deposit_limit)
-    );
+    let connection = signed_connection.connection.clone();
+    let event_handler = tokio::spawn(async move {
+        connection
+            .wait_for_event(
+                |e: &CodeStored| {
+                    info!(target : "contracts", "Received CodeStored event {:?}", e);
+                    true
+                },
+                BlockStatus::Finalized,
+            )
+            .await
+    });
 
-    debug!(target: "contracts", "Prepared `upload_code` extrinsic {:?}", xt);
-
-    let _block_hash = send_xt(&connection, xt, Some("upload_code"), XtStatus::InBlock);
-
-    let code_stored_event: ContractCodeStoredEvent = wait_for_event(
-        &connection,
-        ("Contracts", "CodeStored"),
-        |e: ContractCodeStoredEvent| {
-            info!(target : "contracts", "Received CodeStored event {:?}", e);
-            true
-        },
-    )?;
+    let _block_hash = signed_connection
+        .upload_code(
+            wasm,
+            storage_deposit(storage_deposit_limit),
+            TxStatus::InBlock,
+        )
+        .await?;
+    let code_stored_event = event_handler.await?;
 
     Ok(code_stored_event)
 }
 
-pub fn instantiate(
+pub async fn instantiate(
     signed_connection: SignedConnection,
     command: ContractInstantiate,
-) -> anyhow::Result<ContractInstantiatedEvent> {
+) -> anyhow::Result<Instantiated> {
     let ContractInstantiate {
         code_hash,
         metadata_path,
@@ -114,46 +88,45 @@ pub fn instantiate(
         storage_deposit_limit,
     } = options;
 
-    let connection = signed_connection.as_connection();
-
     let metadata = load_metadata(&metadata_path)?;
     let transcoder = ContractMessageTranscoder::new(&metadata);
     let data = transcoder.encode(&constructor, &args.unwrap_or_default())?;
 
     debug!("Encoded constructor data {:?}", data);
 
-    let xt = compose_extrinsic!(
-        connection,
-        "Contracts",
-        "instantiate",
-        Compact(balance),
-        Compact(gas_limit),
-        storage_deposit(storage_deposit_limit),
-        code_hash,
-        data,             // The input data to pass to the contract constructor
-        Vec::<u8>::new()  // salt used for the address derivation
-    );
+    let connection = signed_connection.connection.clone();
+    let signer_id = signed_connection.signer.account_id().clone();
 
-    debug!(target: "contracts", "Prepared `instantiate` extrinsic {:?}", xt);
+    let event_handler = tokio::spawn(async move {
+        connection
+            .wait_for_event(
+                |e: &Instantiated| {
+                    info!(target : "contracts", "Received ContractInstantiated event {:?}", e);
+                    signer_id.eq(&e.deployer)
+                },
+                BlockStatus::Finalized,
+            )
+            .await
+    });
 
-    let _block_hash = send_xt(&connection, xt, Some("instantiate"), XtStatus::InBlock);
+    let _block_hash = signed_connection
+        .instantiate(
+            code_hash,
+            balance,
+            gas_limit,
+            storage_deposit(storage_deposit_limit),
+            data,
+            vec![],
+            TxStatus::InBlock,
+        )
+        .await?;
 
-    let contract_instantiated_event: ContractInstantiatedEvent = wait_for_event(
-        &connection,
-        ("Contracts", "Instantiated"),
-        |e: ContractInstantiatedEvent| {
-            info!(target : "contracts", "Received ContractInstantiated event {:?}", e);
-            match &connection.signer {
-                Some(signer) => AccountId::from(signer.public()).eq(&e.deployer),
-                None => panic!("Should never get here"),
-            }
-        },
-    )?;
+    let contract_instantiated_event = event_handler.await?;
 
     Ok(contract_instantiated_event)
 }
 
-pub fn instantiate_with_code(
+pub async fn instantiate_with_code(
     signed_connection: SignedConnection,
     command: ContractInstantiateWithCode,
 ) -> anyhow::Result<InstantiateWithCodeReturnValue> {
@@ -171,8 +144,6 @@ pub fn instantiate_with_code(
         storage_deposit_limit,
     } = options;
 
-    let connection = signed_connection.as_connection();
-
     let wasm = fs::read(wasm_path).expect("WASM artifact not found");
     debug!(target: "contracts", "Found WASM contract code {:?}", wasm);
 
@@ -182,48 +153,49 @@ pub fn instantiate_with_code(
 
     debug!("Encoded constructor data {:?}", data);
 
-    let xt = compose_extrinsic!(
-        connection,
-        "Contracts",
-        "instantiate_with_code",
-        Compact(balance),
-        Compact(gas_limit),
-        storage_deposit(storage_deposit_limit),
-        wasm,             // code
-        data,             // The input data to pass to the contract constructor
-        Vec::<u8>::new()  // salt used for the address derivation
-    );
+    let signer_id = signed_connection.signer.account_id().clone();
+    let connection_0 = signed_connection.connection.clone();
+    let connection_1 = signed_connection.connection.clone();
 
-    debug!(target: "contracts", "Prepared `instantiate_with_code` extrinsic {:?}", xt);
+    let event_handler_0 = tokio::spawn(async move {
+        connection_0
+            .wait_for_event(
+                |e: &CodeStored| {
+                    info!(target : "contracts", "Received CodeStored event {:?}", e);
+                    // TODO : can we pre-calculate what the code hash will be?
+                    true
+                },
+                BlockStatus::Finalized,
+            )
+            .await
+    });
 
-    let _block_hash = send_xt(
-        &connection,
-        xt,
-        Some("instantiate_with_code"),
-        XtStatus::InBlock,
-    );
+    let event_handler_1 = tokio::spawn(async move {
+        connection_1
+            .wait_for_event(
+                |e: &Instantiated| {
+                    info!(target : "contracts", "Received ContractInstantiated event {:?}", e);
+                    signer_id.eq(&e.deployer)
+                },
+                BlockStatus::Finalized,
+            )
+            .await
+    });
 
-    let code_stored_event: ContractCodeStoredEvent = wait_for_event(
-        &connection,
-        ("Contracts", "CodeStored"),
-        |e: ContractCodeStoredEvent| {
-            info!(target : "contracts", "Received CodeStored event {:?}", e);
-            // TODO : can we pre-calculate what the code hash will be?
-            true
-        },
-    )?;
+    let _block_hash = signed_connection
+        .instantiate_with_code(
+            wasm,
+            balance,
+            gas_limit,
+            storage_deposit(storage_deposit_limit),
+            data,
+            vec![],
+            TxStatus::InBlock,
+        )
+        .await?;
 
-    let contract_instantiated_event: ContractInstantiatedEvent = wait_for_event(
-        &connection,
-        ("Contracts", "Instantiated"),
-        |e: ContractInstantiatedEvent| {
-            info!(target : "contracts", "Received ContractInstantiated event {:?}", e);
-            match &connection.signer {
-                Some(signer) => AccountId::from(signer.public()).eq(&e.deployer),
-                None => panic!("Should never get here"),
-            }
-        },
-    )?;
+    let code_stored_event = event_handler_0.await?;
+    let contract_instantiated_event = event_handler_1.await?;
 
     Ok(InstantiateWithCodeReturnValue {
         contract: contract_instantiated_event.contract,
@@ -231,7 +203,10 @@ pub fn instantiate_with_code(
     })
 }
 
-pub fn call(signed_connection: SignedConnection, command: ContractCall) -> anyhow::Result<()> {
+pub async fn call(
+    signed_connection: SignedConnection,
+    command: ContractCall,
+) -> anyhow::Result<()> {
     let ContractCall {
         destination,
         message,
@@ -246,64 +221,57 @@ pub fn call(signed_connection: SignedConnection, command: ContractCall) -> anyho
         storage_deposit_limit,
     } = options;
 
-    let connection = signed_connection.as_connection();
-
     let metadata = load_metadata(&metadata_path)?;
     let transcoder = ContractMessageTranscoder::new(&metadata);
     let data = transcoder.encode(&message, &args.unwrap_or_default())?;
 
     debug!("Encoded call data {:?}", data);
 
-    let xt = compose_extrinsic!(
-        connection,
-        "Contracts",
-        "call",
-        GenericAddress::Id(destination),
-        Compact(balance),
-        Compact(gas_limit),
-        storage_deposit(storage_deposit_limit),
-        data // The input data to pass to the contract message
-    );
+    let _block_hash = signed_connection
+        .call(
+            destination,
+            balance,
+            gas_limit,
+            storage_deposit(storage_deposit_limit),
+            data,
+            TxStatus::InBlock,
+        )
+        .await?;
 
-    debug!(target: "contracts", "Prepared `call` extrinsic {:?}", xt);
-
-    let _block_hash = send_xt(&connection, xt, Some("call"), XtStatus::Finalized);
     Ok(())
 }
 
-pub fn owner_info(connection: Connection, command: ContractOwnerInfo) -> Option<OwnerInfo> {
+pub async fn owner_info(connection: Connection, command: ContractOwnerInfo) -> Option<OwnerInfo> {
     let ContractOwnerInfo { code_hash } = command;
-    let mut code_hash_bytes: Vec<u8> = Vec::from(code_hash.0);
-    let mut bytes = storage_key("Contracts", "OwnerInfoOf").0;
-    bytes.append(&mut code_hash_bytes);
-    let storage_key = StorageKey(bytes);
 
-    connection
-        .get_storage_by_key_hash::<OwnerInfo>(storage_key, None)
-        .ok()?
+    connection.get_owner_info(code_hash, None).await
 }
 
-pub fn remove_code(
+pub async fn remove_code(
     signed_connection: SignedConnection,
     command: ContractRemoveCode,
-) -> anyhow::Result<ContractCodeRemovedEvent> {
+) -> anyhow::Result<CodeRemoved> {
     let ContractRemoveCode { code_hash } = command;
-    let connection = signed_connection.as_connection();
 
-    let xt = compose_extrinsic!(connection, "Contracts", "remove_code", code_hash);
+    let connection = signed_connection.connection.clone();
 
-    debug!(target: "contracts", "Prepared `remove_code` extrinsic {:?}", xt);
+    let event_handler = tokio::spawn(async move {
+        connection
+            .wait_for_event(
+                |e: &CodeRemoved| {
+                    info!(target : "contracts", "Received ContractCodeRemoved event {:?}", e);
+                    e.code_hash.eq(&code_hash)
+                },
+                BlockStatus::Finalized,
+            )
+            .await
+    });
 
-    let _block_hash = send_xt(&connection, xt, Some("remove_code"), XtStatus::InBlock);
+    let _block_hash = signed_connection
+        .remove_code(code_hash, TxStatus::InBlock)
+        .await?;
 
-    let contract_removed_event: ContractCodeRemovedEvent = wait_for_event(
-        &connection,
-        ("Contracts", "CodeRemoved"),
-        |e: ContractCodeRemovedEvent| {
-            info!(target : "contracts", "Received ContractCodeRemoved event {:?}", e);
-            e.code_hash.eq(&code_hash)
-        },
-    )?;
+    let contract_removed_event = event_handler.await?;
 
     Ok(contract_removed_event)
 }

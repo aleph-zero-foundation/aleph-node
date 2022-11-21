@@ -1,11 +1,16 @@
 use std::{collections::HashSet, iter::empty};
 
-use aleph_client::{get_validators_for_session, AccountId, ReadStorage};
+use aleph_client::{
+    pallets::session::SessionApi,
+    primitives::{CommitteeSeats, EraValidators},
+    utility::BlocksApi,
+    AccountId, Connection,
+};
 use log::debug;
-use primitives::{CommitteeSeats, EraValidators, SessionIndex};
+use primitives::SessionIndex;
 
-pub fn get_and_test_members_for_session<C: ReadStorage>(
-    connection: &C,
+pub async fn get_and_test_members_for_session(
+    connection: &Connection,
     seats: CommitteeSeats,
     era_validators: &EraValidators<AccountId>,
     session: SessionIndex,
@@ -35,9 +40,8 @@ pub fn get_and_test_members_for_session<C: ReadStorage>(
         .collect();
 
     let members_active_set: HashSet<_> = members_active.iter().cloned().collect();
-    let network_members: HashSet<_> = get_validators_for_session(connection, session)
-        .into_iter()
-        .collect();
+    let block = connection.first_block_of_session(session).await;
+    let network_members: HashSet<_> = connection.get_validators(block).await.into_iter().collect();
 
     debug!(
         "expected era validators for session {}: reserved - {:?}, non-reserved - {:?}",

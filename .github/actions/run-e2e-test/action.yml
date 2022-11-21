@@ -90,10 +90,3 @@ runs:
       if: inputs.follow-up-finalization-check == 'true'
       shell: bash
       run: ./.github/scripts/run_e2e_test.sh -t finalization -m "${{ inputs.min-validator-count }}"
-
-    - name: Print debug if failed
-      if: ${{ failure() }}
-      shell: bash
-      run: |
-        cd bin/cliain
-        cargo run -- --seed //Alice debug-storage

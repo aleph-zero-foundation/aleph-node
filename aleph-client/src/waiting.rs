@@ -1,56 +1,120 @@
-use std::sync::mpsc::channel;
+use futures::StreamExt;
+use log::info;
+use primitives::{EraIndex, SessionIndex};
+use subxt::events::StaticEvent;
 
-use anyhow::{anyhow, Result as AnyResult};
-use codec::Decode;
-use log::{error, info};
-use substrate_api_client::ApiResult;
+use crate::{
+    aleph_zero,
+    api::session::events::NewSession,
+    pallets::{session::SessionApi, staking::StakingApi},
+    Connection,
+};
 
-use crate::{AnyConnection, BlockNumber, Header};
+pub enum BlockStatus {
+    Best,
+    Finalized,
+}
 
-pub fn wait_for_event<C: AnyConnection, E: Decode + Clone, P: Fn(E) -> bool>(
-    connection: &C,
-    event: (&str, &str),
-    predicate: P,
-) -> AnyResult<E> {
-    let (module, variant) = event;
-    info!(target: "aleph-client", "Creating event subscription {}/{}", module, variant);
+#[async_trait::async_trait]
+pub trait AlephWaiting {
+    async fn wait_for_block<P: Fn(u32) -> bool + Send>(&self, predicate: P, status: BlockStatus);
+    async fn wait_for_event<T: StaticEvent, P: Fn(&T) -> bool + Send>(
+        &self,
+        predicate: P,
+        status: BlockStatus,
+    ) -> T;
+    async fn wait_for_era(&self, era: EraIndex, status: BlockStatus);
+    async fn wait_for_session(&self, session: SessionIndex, status: BlockStatus);
+}
 
-    let (events_in, events_out) = channel();
-    connection.as_connection().subscribe_events(events_in)?;
+#[async_trait::async_trait]
+pub trait WaitingExt {
+    async fn wait_for_n_sessions(&self, n: SessionIndex, status: BlockStatus);
+    async fn wait_for_n_eras(&self, n: EraIndex, status: BlockStatus);
+}
 
-    loop {
-        let args: ApiResult<E> =
-            connection
-                .as_connection()
-                .wait_for_event(module, variant, None, &events_out);
+#[async_trait::async_trait]
+impl AlephWaiting for Connection {
+    async fn wait_for_block<P: Fn(u32) -> bool + Send>(&self, predicate: P, status: BlockStatus) {
+        let mut block_sub = match status {
+            BlockStatus::Best => self.client.rpc().subscribe_blocks().await.unwrap(),
+            BlockStatus::Finalized => self
+                .client
+                .rpc()
+                .subscribe_finalized_blocks()
+                .await
+                .unwrap(),
+        };
 
-        match args {
-            Ok(event) if predicate(event.clone()) => return Ok(event),
-            Ok(_) => (),
-            Err(why) => error!(target: "aleph-client", "Error {:?}", why),
+        while let Some(Ok(block)) = block_sub.next().await {
+            if predicate(block.number) {
+                return;
+            }
         }
+    }
+
+    async fn wait_for_event<T: StaticEvent, P: Fn(&T) -> bool + Send>(
+        &self,
+        predicate: P,
+        status: BlockStatus,
+    ) -> T {
+        let mut event_sub = match status {
+            BlockStatus::Best => self.client.events().subscribe().await.unwrap().boxed(),
+            BlockStatus::Finalized => self
+                .client
+                .events()
+                .subscribe_finalized()
+                .await
+                .unwrap()
+                .boxed(),
+        };
+
+        info!(target: "aleph-client", "waiting for event {}.{}", T::PALLET, T::EVENT);
+
+        loop {
+            let events = match event_sub.next().await {
+                Some(Ok(events)) => events,
+                _ => continue,
+            };
+            for event in events.iter() {
+                let event = event.unwrap();
+                if let Ok(Some(ev)) = event.as_event::<T>() {
+                    if predicate(&ev) {
+                        return ev;
+                    }
+                }
+            }
+        }
+    }
+
+    async fn wait_for_era(&self, era: EraIndex, status: BlockStatus) {
+        let addrs = aleph_zero::api::constants().staking().sessions_per_era();
+        let sessions_per_era = self.client.constants().at(&addrs).unwrap();
+        let first_session_in_era = era * sessions_per_era;
+
+        self.wait_for_session(first_session_in_era, status).await;
+    }
+
+    async fn wait_for_session(&self, session: SessionIndex, status: BlockStatus) {
+        self.wait_for_event(|event: &NewSession| {
+            info!(target: "aleph-client", "waiting for session {:?}, current session {:?}", session, event.session_index);
+            event.session_index >= session
+        }, status)
+            .await;
     }
 }
 
-pub fn wait_for_finalized_block<C: AnyConnection>(
-    connection: &C,
-    block_number: BlockNumber,
-) -> AnyResult<BlockNumber> {
-    let (sender, receiver) = channel();
-    connection
-        .as_connection()
-        .subscribe_finalized_heads(sender)?;
+#[async_trait::async_trait]
+impl WaitingExt for Connection {
+    async fn wait_for_n_sessions(&self, n: SessionIndex, status: BlockStatus) {
+        let current_session = self.get_session(None).await;
 
-    while let Ok(header) = receiver
-        .recv()
-        .map(|h| serde_json::from_str::<Header>(&h).expect("Should deserialize header"))
-    {
-        info!(target: "aleph-client", "Received header for a block number {:?}", header.number);
-
-        if header.number.ge(&block_number) {
-            return Ok(block_number);
-        }
+        self.wait_for_session(current_session + n, status).await;
     }
 
-    Err(anyhow!("Waiting for finalization is no longer possible"))
+    async fn wait_for_n_eras(&self, n: EraIndex, status: BlockStatus) {
+        let current_era = self.get_current_era(None).await;
+
+        self.wait_for_era(current_era + n, status).await;
+    }
 }

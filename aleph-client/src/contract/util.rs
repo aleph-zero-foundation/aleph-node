@@ -2,7 +2,7 @@
 
 use anyhow::{anyhow, Result};
 use contract_transcode::Value;
-use sp_core::crypto::Ss58Codec;
+use subxt::ext::sp_core::crypto::Ss58Codec;
 
 use crate::AccountId;
 

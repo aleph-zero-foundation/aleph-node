@@ -20,56 +20,71 @@ use crate::{
     },
 };
 
-pub type TestCase = fn(&Config) -> anyhow::Result<()>;
+pub async fn run_testcase(id: &str, config: &Config) -> anyhow::Result<()> {
+    match id {
+        "finalization" => test_finalization(config).await,
+        "version_upgrade" => test_schedule_version_change(config).await,
+        "rewards_disable_node" => test_disable_node(config).await,
+        "token_transfer" => test_token_transfer(config).await,
+        "channeling_fee_and_tip" => test_channeling_fee_and_tip(config).await,
+        "treasury_access" => test_treasury_access(config).await,
+        "batch_transactions" => test_batch_transactions(config).await,
+        "staking_era_payouts" => test_staking_era_payouts(config).await,
+        "validators_rotate" => test_validators_rotate(config).await,
+        "staking_new_validator" => test_staking_new_validator(config).await,
+        "change_validators" => test_change_validators(config).await,
+        "fee_calculation" => test_fee_calculation(config).await,
+        "era_payout" => test_era_payout(config).await,
+        "era_validators" => test_era_validators(config).await,
+        "rewards_change_stake_and_force_new_era" => {
+            test_change_stake_and_force_new_era(config).await
+        }
+        "points_basic" => test_points_basic(config).await,
+        "rewards_force_new_era" => test_force_new_era(config).await,
+        "rewards_stake_change" => test_points_stake_change(config).await,
+        "authorities_are_staking" => test_authorities_are_staking(config).await,
 
-pub type PossibleTestCases = Vec<(&'static str, TestCase)>;
+        "clearing_session_count" => test_clearing_session_count(config).await,
+        "ban_automatic" => test_ban_automatic(config).await,
+        "ban_manual" => test_ban_manual(config).await,
+        "ban_threshold" => test_ban_threshold(config).await,
+        "doomed_version_upgrade" => {
+            test_schedule_doomed_version_change_and_verify_finalization_stopped(config).await
+        }
+        _ => panic!("unknown testcase"),
+    }
+}
 
-/// Get a Vec with test cases that the e2e suite is able to handle.
-/// The order of items is important for tests when more than one case is handled in order.
-/// This comes up in local tests.
-pub fn possible_test_cases() -> PossibleTestCases {
-    vec![
-        ("finalization", test_finalization as TestCase),
-        ("version_upgrade", test_schedule_version_change),
-        (
-            "doomed_version_upgrade",
-            test_schedule_doomed_version_change_and_verify_finalization_stopped,
-        ),
-        ("rewards_disable_node", test_disable_node as TestCase),
-        ("token_transfer", test_token_transfer as TestCase),
-        (
-            "channeling_fee_and_tip",
-            test_channeling_fee_and_tip as TestCase,
-        ),
-        ("treasury_access", test_treasury_access as TestCase),
-        ("batch_transactions", test_batch_transactions as TestCase),
-        ("staking_era_payouts", test_staking_era_payouts as TestCase),
-        ("validators_rotate", test_validators_rotate as TestCase),
-        (
-            "staking_new_validator",
-            test_staking_new_validator as TestCase,
-        ),
-        ("change_validators", test_change_validators as TestCase),
-        ("fee_calculation", test_fee_calculation as TestCase),
-        ("era_payout", test_era_payout as TestCase),
-        ("era_validators", test_era_validators as TestCase),
-        (
-            "rewards_change_stake_and_force_new_era",
-            test_change_stake_and_force_new_era as TestCase,
-        ),
-        ("points_basic", test_points_basic as TestCase),
-        ("rewards_force_new_era", test_force_new_era as TestCase),
-        ("rewards_stake_change", test_points_stake_change as TestCase),
-        (
-            "authorities_are_staking",
-            test_authorities_are_staking as TestCase,
-        ),
-        ("ban_automatic", test_ban_automatic as TestCase),
-        ("ban_manual", test_ban_manual as TestCase),
-        (
-            "clearing_session_count",
-            test_clearing_session_count as TestCase,
-        ),
-        ("ban_threshold", test_ban_threshold as TestCase),
-    ]
+pub async fn run_all_testcases(config: &Config) -> anyhow::Result<()> {
+    let all = vec![
+        "finalization",
+        "version_upgrade",
+        "rewards_disable_node",
+        "token_transfer",
+        "channeling_fee_and_tip",
+        "treasury_access",
+        "batch_transactions",
+        "staking_era_payouts",
+        "validators_rotate",
+        "staking_new_validator",
+        "change_validators",
+        "fee_calculation",
+        "era_payout",
+        "era_validators",
+        "rewards_change_stake_and_force_new_era",
+        "points_basic",
+        "rewards_force_new_era",
+        "rewards_stake_change",
+        "authorities_are_staking",
+        "clearing_session_count",
+        "ban_automatic",
+        "ban_manual",
+        "ban_threshold",
+        "doomed_version_upgrade",
+    ];
+
+    for testcase in all {
+        run_testcase(testcase, config).await?;
+    }
+    Ok(())
 }

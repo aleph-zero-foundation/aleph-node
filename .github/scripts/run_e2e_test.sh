@@ -59,7 +59,7 @@ function set_randomized_test_params {
 
 ARGS=(
   --network "container:Node0"
-  -e NODE_URL="127.0.0.1:9943"
+  -e NODE_URL="ws://127.0.0.1:9943"
   -e RUST_LOG=info
 )
 

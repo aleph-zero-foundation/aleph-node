@@ -1,28 +1,33 @@
 use aleph_client::{
-    approve_treasury_proposal, make_treasury_proposal, reject_treasury_proposal, RootConnection,
-    SignedConnection,
+    pallets::treasury::{TreasurySudoApi, TreasuryUserApi},
+    AccountId, RootConnection, SignedConnection, TxStatus,
 };
 use primitives::{Balance, TOKEN};
-use sp_core::crypto::Ss58Codec;
-use substrate_api_client::AccountId;
+use subxt::ext::sp_core::crypto::Ss58Codec;
 
 /// Delegates to `aleph_client::make_treasury_proposal`.
-pub fn propose(connection: SignedConnection, amount_in_tokens: u64, beneficiary: String) {
+pub async fn propose(connection: SignedConnection, amount_in_tokens: u64, beneficiary: String) {
     let beneficiary = AccountId::from_ss58check(&beneficiary).expect("Address should be valid");
     let endowment = amount_in_tokens as Balance * TOKEN;
 
-    make_treasury_proposal(&connection, endowment, &beneficiary)
-        .expect("Should successfully make a proposal");
+    connection
+        .propose_spend(endowment, beneficiary, TxStatus::Finalized)
+        .await
+        .unwrap();
 }
 
 /// Delegates to `aleph_client::approve_treasury_proposal`.
-pub fn approve(connection: RootConnection, proposal_id: u32) {
-    approve_treasury_proposal(&connection, proposal_id)
-        .expect("Should successfully approve the proposal")
+pub async fn approve(connection: RootConnection, proposal_id: u32) {
+    connection
+        .approve(proposal_id, TxStatus::Finalized)
+        .await
+        .unwrap();
 }
 
 /// Delegates to `aleph_client::reject_treasury_proposal`.
-pub fn reject(connection: RootConnection, proposal_id: u32) {
-    reject_treasury_proposal(&connection, proposal_id)
-        .expect("Should successfully reject the proposal")
+pub async fn reject(connection: RootConnection, proposal_id: u32) {
+    connection
+        .reject(proposal_id, TxStatus::Finalized)
+        .await
+        .unwrap();
 }

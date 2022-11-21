@@ -439,7 +439,7 @@ jobs:
           node-count: 6
           reserved-seats: 3
           non-reserved-seats: 3
-          follow-up-finalization-check: true
+          follow-up-finalization-check: false
         timeout-minutes: 15
 
   run-e2e-ban-automatic:

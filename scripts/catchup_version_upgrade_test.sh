@@ -8,7 +8,7 @@ UPGRADE_VERSION=${UPGRADE_VERSION:-1}
 NODES=${NODES:-"Node1:Node2"}
 PORTS=${PORTS:-9934:9935}
 UPGRADE_BEFORE_DISABLE=${UPGRADE_BEFORE_DISABLE:-false}
-SEED=${SEED:-"//0"}
+SEED=${SEED:-"//Alice"}
 ALL_NODES=${ALL_NODES:-"Node0:Node1:Node2:Node3:Node4"}
 ALL_NODES_PORTS=${ALL_NODES_PORTS:-"9933:9934:9935:9936:9937"}
 WAIT_BLOCKS=${WAIT_BLOCKS:-30}
@@ -58,7 +58,7 @@ function set_upgrade_session {
     local seed=$5
     local status=$6
 
-    docker run --rm --network container:$validator cliain:latest --node 127.0.0.1:$port --seed $seed version-upgrade-schedule --version $version --session $session --expected-state $status
+    docker run --rm --network container:$validator cliain:latest --node ws://127.0.0.1:$port --seed $seed version-upgrade-schedule --version $version --session $session --expected-state $status
 }
 
 function check_if_disconnected() {
@@ -163,6 +163,7 @@ ALL_NODES_PORTS=(${result[@]})
 
 log "initializing nodes..."
 DOCKER_COMPOSE=./docker/docker-compose.bridged.yml ./.github/scripts/run_consensus.sh 1>&2
+sleep 10
 log "awaiting finalization of $INIT_BLOCK blocks..."
 initialize $INIT_BLOCK "Node0" 9933
 log "nodes initialized"

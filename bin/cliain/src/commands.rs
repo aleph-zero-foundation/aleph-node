@@ -3,12 +3,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use aleph_client::{BlockNumber, XtStatus};
+use aleph_client::{AccountId, TxStatus};
 use clap::{clap_derive::ValueEnum, Args, Subcommand};
-use primitives::{Balance, CommitteeSeats, SessionIndex};
+use primitives::{Balance, BlockNumber, CommitteeSeats, SessionIndex};
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
-use substrate_api_client::AccountId;
 
 #[derive(Debug, Clone, Args)]
 pub struct ContractOptions {
@@ -16,7 +15,7 @@ pub struct ContractOptions {
     #[clap(long, default_value = "0")]
     pub balance: u128,
     /// The gas limit enforced when executing the constructor
-    #[clap(long, default_value = "1_000_000_000")]
+    #[clap(long, default_value = "1000000000")]
     pub gas_limit: u64,
     /// The maximum amount of balance that can be charged/reserved from the caller to pay for the storage consumed
     #[clap(long)]
@@ -132,11 +131,11 @@ pub enum ExtrinsicState {
     Finalized,
 }
 
-impl From<ExtrinsicState> for XtStatus {
+impl From<ExtrinsicState> for TxStatus {
     fn from(state: ExtrinsicState) -> Self {
         match state {
-            ExtrinsicState::InBlock => XtStatus::InBlock,
-            ExtrinsicState::Finalized => XtStatus::Finalized,
+            ExtrinsicState::InBlock => TxStatus::InBlock,
+            ExtrinsicState::Finalized => TxStatus::Finalized,
         }
     }
 }
@@ -320,9 +319,6 @@ pub enum Command {
         #[clap(long)]
         starting_block: BlockNumber,
     },
-
-    /// Print debug info of storage
-    DebugStorage,
 
     /// Deploys a new contract, returns its code hash and the AccountId of the instance.
     ///

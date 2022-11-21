@@ -1,3 +1,5 @@
+extern crate core;
+
 mod commands;
 mod contracts;
 mod finalization;
@@ -11,9 +13,7 @@ mod validators;
 mod version_upgrade;
 mod vesting;
 
-use aleph_client::{
-    create_connection, keypair_from_string, Connection, RootConnection, SignedConnection,
-};
+use aleph_client::{keypair_from_string, Connection, RootConnection, SignedConnection};
 pub use commands::Command;
 pub use contracts::{
     call, instantiate, instantiate_with_code, owner_info, remove_code, upload_code,
@@ -43,23 +43,25 @@ impl ConnectionConfig {
             signer_seed,
         }
     }
-}
 
-impl From<ConnectionConfig> for Connection {
-    fn from(cfg: ConnectionConfig) -> Self {
-        create_connection(cfg.node_endpoint.as_str())
+    pub async fn get_connection(&self) -> Connection {
+        Connection::new(self.node_endpoint.clone()).await
     }
-}
 
-impl From<ConnectionConfig> for SignedConnection {
-    fn from(cfg: ConnectionConfig) -> Self {
-        let key = keypair_from_string(&cfg.signer_seed);
-        SignedConnection::new(cfg.node_endpoint.as_str(), key)
+    pub async fn get_signed_connection(&self) -> SignedConnection {
+        SignedConnection::new(
+            self.node_endpoint.clone(),
+            keypair_from_string(&self.signer_seed),
+        )
+        .await
     }
-}
 
-impl From<ConnectionConfig> for RootConnection {
-    fn from(cfg: ConnectionConfig) -> Self {
-        RootConnection::from(Into::<SignedConnection>::into(cfg))
+    pub async fn get_root_connection(&self) -> RootConnection {
+        RootConnection::new(
+            self.node_endpoint.clone(),
+            keypair_from_string(&self.signer_seed),
+        )
+        .await
+        .expect("signer should be root")
     }
 }

@@ -6,7 +6,7 @@
 //! ```no_run
 //! # use anyhow::{Result, Context};
 //! # use sp_core::crypto::AccountId32;
-//! # use aleph_client::{Connection, SignedConnection};
+//! # use aleph_client::{AccountId, Connection, SignedConnection};
 //! # use aleph_client::contract::ContractInstance;
 //! # use aleph_client::contract::util::to_u128;
 //! #
@@ -16,7 +16,7 @@
 //! }
 //!
 //! impl PSP22TokenInstance {
-//!     fn new(address: AccountId32, metadata_path: &Option<String>) -> Result<Self> {
+//!     fn new(address: AccountId, metadata_path: &Option<String>) -> Result<Self> {
 //!         let metadata_path = metadata_path
 //!             .as_ref()
 //!             .context("PSP22Token metadata not set.")?;
@@ -25,7 +25,7 @@
 //!         })
 //!     }
 //!
-//!     fn transfer(&self, conn: &SignedConnection, to: AccountId32, amount: u128) -> Result<()> {
+//!     fn transfer(&self, conn: &SignedConnection, to: AccountId, amount: u128) -> Result<()> {
 //!         self.contract.contract_exec(
 //!             conn,
 //!             "PSP22::transfer",
@@ -33,7 +33,7 @@
 //!         )
 //!     }
 //!
-//!     fn balance_of(&self, conn: &Connection, account: AccountId32) -> Result<u128> {
+//!     fn balance_of(&self, conn: &Connection, account: AccountId) -> Result<u128> {
 //!         to_u128(self.contract.contract_read(
 //!             conn,
 //!             "PSP22::balance_of",
@@ -43,7 +43,6 @@
 //! }
 //! ```
 
-pub mod event;
 pub mod util;
 
 use std::{
@@ -52,18 +51,20 @@ use std::{
 };
 
 use anyhow::{anyhow, Context, Result};
+use codec::{Compact, Decode};
 use contract_metadata::ContractMetadata;
-use contract_transcode::{ContractMessageTranscoder, Value};
+use contract_transcode::ContractMessageTranscoder;
 use ink_metadata::{InkProject, MetadataVersioned};
-use serde_json::{from_reader, from_str, from_value, json};
-use sp_core::crypto::AccountId32;
-use substrate_api_client::{compose_extrinsic, GenericAddress, XtStatus};
+use serde_json::{from_reader, from_value};
 
-use crate::{try_send_xt, AnyConnection, SignedConnection};
+use crate::{
+    pallets::contract::{ContractCallArgs, ContractRpc, ContractsUserApi},
+    AccountId, Connection, SignedConnection, TxStatus,
+};
 
 /// Represents a contract instantiated on the chain.
 pub struct ContractInstance {
-    address: AccountId32,
+    address: AccountId,
     ink_project: InkProject,
 }
 
@@ -71,10 +72,10 @@ impl ContractInstance {
     const MAX_READ_GAS: u64 = 500000000000u64;
     const MAX_GAS: u64 = 10000000000u64;
     const PAYABLE_VALUE: u64 = 0u64;
-    const STORAGE_FEE_LIMIT: Option<u128> = None;
+    const STORAGE_FEE_LIMIT: Option<Compact<u128>> = None;
 
     /// Creates a new contract instance under `address` with metadata read from `metadata_path`.
-    pub fn new(address: AccountId32, metadata_path: &str) -> Result<Self> {
+    pub fn new(address: AccountId, metadata_path: &str) -> Result<Self> {
         Ok(Self {
             address,
             ink_project: load_metadata(metadata_path)?,
@@ -82,7 +83,7 @@ impl ContractInstance {
     }
 
     /// The address of this contract instance.
-    pub fn address(&self) -> &AccountId32 {
+    pub fn address(&self) -> &AccountId {
         &self.address
     }
 
@@ -92,83 +93,60 @@ impl ContractInstance {
     }
 
     /// Reads the value of a read-only, 0-argument call via RPC.
-    pub fn contract_read0<C: AnyConnection>(&self, conn: &C, message: &str) -> Result<Value> {
-        self.contract_read(conn, message, &[])
+    pub async fn contract_read0<T: Decode>(&self, conn: &Connection, message: &str) -> Result<T> {
+        self.contract_read(conn, message, &[]).await
     }
 
     /// Reads the value of a read-only call via RPC.
-    pub fn contract_read<C: AnyConnection>(
+    pub async fn contract_read<T: Decode>(
         &self,
-        conn: &C,
+        conn: &Connection,
         message: &str,
         args: &[&str],
-    ) -> Result<Value> {
+    ) -> Result<T> {
         let payload = self.encode(message, args)?;
-        let request = self.contract_read_request(&payload);
-        let response = conn
-            .as_connection()
-            .get_request(request)?
-            .context("RPC request error - there may be more info in node logs.")?;
-        let response_data = from_str::<serde_json::Value>(&response)?;
-        let hex_data = response_data["result"]["Ok"]["data"]
-            .as_str()
-            .context("Contract response data not found - the contract address might be invalid.")?;
-        self.decode_response(message, hex_data)
+        let args = ContractCallArgs {
+            origin: self.address.clone(),
+            dest: self.address.clone(),
+            value: 0,
+            gas_limit: Self::MAX_READ_GAS,
+            input_data: payload,
+            storage_deposit_limit: None,
+        };
+        conn.call_and_get(args)
+            .await
+            .context("RPC request error - there may be more info in node logs.")
     }
 
     /// Executes a 0-argument contract call.
-    pub fn contract_exec0(&self, conn: &SignedConnection, message: &str) -> Result<()> {
-        self.contract_exec(conn, message, &[])
+    pub async fn contract_exec0(&self, conn: &SignedConnection, message: &str) -> Result<()> {
+        self.contract_exec(conn, message, &[]).await
     }
 
     /// Executes a contract call.
-    pub fn contract_exec(
+    pub async fn contract_exec(
         &self,
         conn: &SignedConnection,
         message: &str,
         args: &[&str],
     ) -> Result<()> {
         let data = self.encode(message, args)?;
-        let xt = compose_extrinsic!(
-            conn.as_connection(),
-            "Contracts",
-            "call",
-            GenericAddress::Id(self.address.clone()),
-            Compact(Self::PAYABLE_VALUE),
-            Compact(Self::MAX_GAS),
+        conn.call(
+            self.address.clone(),
+            Self::PAYABLE_VALUE as u128,
+            Self::MAX_GAS,
             Self::STORAGE_FEE_LIMIT,
-            data
-        );
+            data,
+            TxStatus::InBlock,
+        )
+        .await
+        .context("Failed to exec contract message")?;
 
-        try_send_xt(conn, xt, Some("Contracts call"), XtStatus::InBlock)
-            .context("Failed to exec contract message")?;
         Ok(())
-    }
-
-    fn contract_read_request(&self, payload: &[u8]) -> serde_json::Value {
-        let payload = hex::encode(payload);
-        json!({
-            "jsonrpc": "2.0",
-            "method": "contracts_call",
-            "params": [{
-                "origin": self.address,
-                "dest": self.address,
-                "value": 0,
-                "gasLimit": Self::MAX_READ_GAS,
-                "inputData": payload
-            }],
-            "id": 1
-        })
     }
 
     fn encode(&self, message: &str, args: &[&str]) -> Result<Vec<u8>> {
         ContractMessageTranscoder::new(&self.ink_project).encode(message, args)
-    }
-
-    fn decode_response(&self, from: &str, contract_response: &str) -> Result<Value> {
-        let contract_response = contract_response.trim_start_matches("0x");
-        let bytes = hex::decode(contract_response)?;
-        ContractMessageTranscoder::new(&self.ink_project).decode_return(from, &mut bytes.as_slice())
     }
 }
 
