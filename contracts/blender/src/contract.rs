@@ -21,9 +21,9 @@ mod blender {
     use scale::{Decode, Encode};
 
     use crate::{
-        error::BlenderError, kinder_blender, MerkleRoot, Note, Nullifier, Set, TokenAmount,
-        TokenId, DEPOSIT_VK_IDENTIFIER, PSP22_TRANSFER_FROM_SELECTOR, PSP22_TRANSFER_SELECTOR,
-        SYSTEM, WITHDRAW_VK_IDENTIFIER,
+        crypto::compute_parent_hash, error::BlenderError, MerkleHash, MerkleRoot, Note, Nullifier,
+        Set, TokenAmount, TokenId, DEPOSIT_VK_IDENTIFIER, PSP22_TRANSFER_FROM_SELECTOR,
+        PSP22_TRANSFER_SELECTOR, SYSTEM, WITHDRAW_VK_IDENTIFIER,
     };
 
     /// Supported relations - used for registering verifying keys.
@@ -66,7 +66,7 @@ mod blender {
     /// So effectively it is just siblings, from bottom to top - the first one is the leaf sibling,
     /// the next one is their uncle and so forth. You can recreate shape of this path knowing leaf
     /// index.
-    pub type MerklePath = Vec<Hash>;
+    pub type MerklePath = Vec<MerkleHash>;
 
     #[ink(storage)]
     #[derive(SpreadAllocate, Storage)]
@@ -74,7 +74,7 @@ mod blender {
         /// Merkle tree holding notes in its leaves.
         ///
         /// Root is at [1], children are at [2n] and [2n+1].
-        notes: Mapping<u32, Hash>,
+        notes: Mapping<u32, MerkleHash>,
         /// Marker of the first 'non-occupied' leaf.
         next_free_leaf: u32,
         /// Tree capacity.
@@ -178,7 +178,7 @@ mod blender {
 
         /// Read the current root of the Merkle tree with notes.
         #[ink(message, selector = 3)]
-        pub fn current_merkle_root(&self) -> Hash {
+        pub fn current_merkle_root(&self) -> MerkleRoot {
             self.current_root()
         }
 
@@ -246,20 +246,20 @@ mod blender {
 
     /// Auxiliary contract methods.
     impl Blender {
-        /// Get the value at this node idx or the clean hash (`[0u8; 32]`).
-        fn tree_value(&self, idx: u32) -> Hash {
-            self.notes.get(idx).unwrap_or_else(Hash::clear)
+        /// Get the value at this node idx or the clean hash (`[0u64; 4]`).
+        fn tree_value(&self, idx: u32) -> MerkleHash {
+            self.notes.get(idx).unwrap_or_default()
         }
 
         /// Get the value from the root node.
-        fn current_root(&self) -> Hash {
+        fn current_root(&self) -> MerkleRoot {
             self.tree_value(1)
         }
 
         /// Add `value` to the first 'non-occupied' leaf.
         ///
         /// Returns `Err(_)` iff there are no free leafs.
-        fn create_new_leaf(&mut self, value: Hash) -> Result<()> {
+        fn create_new_leaf(&mut self, value: Note) -> Result<()> {
             if self.next_free_leaf == 2 * self.max_leaves {
                 return Err(BlenderError::TooManyNotes);
             }
@@ -271,7 +271,7 @@ mod blender {
                 let left_child = self.tree_value(2 * parent);
                 let right_child = self.tree_value(2 * parent + 1);
                 self.notes
-                    .insert(parent, &kinder_blender(&left_child, &right_child));
+                    .insert(parent, &compute_parent_hash(&left_child, &right_child));
                 parent /= 2;
             }
 

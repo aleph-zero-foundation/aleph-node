@@ -24,6 +24,7 @@ ink_storage = { version = "~3.4.0", default-features = false }
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
 
+ark-ff = { version = "^0.3.0", default-features = false }
 ark-serialize = { version = "^0.3.0", default-features = false }
 
 openbrush = { git = "https://github.com/Supercolony-net/openbrush-contracts", rev = "v2.3.0", default-features = false, features = ["psp22", "ownable"] }
@@ -43,6 +44,7 @@ std = [
     "scale/std",
     "scale-info/std",
 
+    "ark-ff/std",
     "ark-serialize/std",
 
     "openbrush/std",

@@ -1,21 +1,22 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![feature(min_specialization)]
 
-use ink_env::Hash;
-use ink_prelude::vec::Vec;
 use ink_storage::Mapping;
 use snarcos_extension::{ProvingSystem, VerificationKeyIdentifier};
 
 mod contract;
+mod crypto;
 mod error;
 
 type Scalar = u64;
 type Nullifier = Scalar;
 
+/// Tangling output type.
+type MerkleHash = [u64; 4];
 /// Type of the value in the Merkle tree leaf.
-type Note = Hash;
+type Note = MerkleHash;
 /// Type of the value in the Merkle tree root.
-type MerkleRoot = Hash;
+type MerkleRoot = MerkleHash;
 
 /// Short identifier of a registered token contract.
 type TokenId = u16;
@@ -35,16 +36,3 @@ const SYSTEM: ProvingSystem = ProvingSystem::Groth16;
 const PSP22_TRANSFER_FROM_SELECTOR: [u8; 4] = [0x54, 0xb3, 0xc7, 0x6e];
 /// PSP22 standard selector for transferring own tokens.
 const PSP22_TRANSFER_SELECTOR: [u8; 4] = [0xdb, 0x20, 0xf9, 0xf5];
-
-/// Temporary implementation of two-to-one hashing function.
-fn kinder_blender(left: &Hash, right: &Hash) -> Hash {
-    left.as_ref()
-        .iter()
-        .cloned()
-        .zip(right.as_ref().iter().cloned())
-        .map(|(l, r)| l ^ r)
-        .collect::<Vec<_>>()
-        .as_slice()
-        .try_into()
-        .unwrap()
-}
