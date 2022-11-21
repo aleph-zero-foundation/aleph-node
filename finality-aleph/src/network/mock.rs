@@ -20,8 +20,8 @@ use tokio::time::timeout;
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{
-        manager::NetworkData, ConnectionCommand, DataCommand, Event, EventStream, Multiaddress,
-        Network, NetworkIdentity, NetworkSender, NetworkServiceIO as NetworkIO, PeerId, Protocol,
+        manager::VersionedAuthentication, AddressedData, ConnectionCommand, Event, EventStream,
+        Multiaddress, Network, NetworkIdentity, NetworkSender, NetworkServiceIO, PeerId, Protocol,
     },
     AuthorityId, NodeIndex,
 };
@@ -155,27 +155,40 @@ impl<T> Default for Channel<T> {
 pub type MockEvent = Event<MockMultiaddress, MockPeerId>;
 
 pub type MockData = Vec<u8>;
-type MessageForUser<D, M> = (NetworkData<D, M>, DataCommand<<M as Multiaddress>::PeerId>);
-type NetworkServiceIO<M> = NetworkIO<NetworkData<MockData, M>, M>;
 
 pub struct MockIO<M: Multiaddress> {
-    pub messages_for_user: mpsc::UnboundedSender<MessageForUser<MockData, M>>,
-    pub messages_from_user: mpsc::UnboundedReceiver<NetworkData<MockData, M>>,
-    pub commands_for_manager: mpsc::UnboundedSender<ConnectionCommand<M>>,
+    pub messages_for_network: mpsc::UnboundedSender<VersionedAuthentication<M>>,
+    pub data_for_network: mpsc::UnboundedSender<AddressedData<MockData, M::PeerId>>,
+    pub messages_from_network: mpsc::UnboundedReceiver<VersionedAuthentication<M>>,
+    pub data_from_network: mpsc::UnboundedReceiver<MockData>,
+    pub commands_for_network: mpsc::UnboundedSender<ConnectionCommand<M>>,
 }
 
 impl<M: Multiaddress + 'static> MockIO<M> {
-    pub fn new() -> (MockIO<M>, NetworkServiceIO<M>) {
-        let (mock_messages_for_user, messages_from_user) = mpsc::unbounded();
-        let (messages_for_user, mock_messages_from_user) = mpsc::unbounded();
-        let (mock_commands_for_manager, commands_from_manager) = mpsc::unbounded();
+    pub fn new() -> (
+        MockIO<M>,
+        NetworkServiceIO<VersionedAuthentication<M>, MockData, M>,
+    ) {
+        let (messages_for_network, messages_from_user) = mpsc::unbounded();
+        let (data_for_network, data_from_user) = mpsc::unbounded();
+        let (messages_for_user, messages_from_network) = mpsc::unbounded();
+        let (data_for_user, data_from_network) = mpsc::unbounded();
+        let (commands_for_network, commands_from_manager) = mpsc::unbounded();
         (
             MockIO {
-                messages_for_user: mock_messages_for_user,
-                messages_from_user: mock_messages_from_user,
-                commands_for_manager: mock_commands_for_manager,
+                messages_for_network,
+                data_for_network,
+                messages_from_network,
+                data_from_network,
+                commands_for_network,
             },
-            NetworkServiceIO::new(messages_from_user, messages_for_user, commands_from_manager),
+            NetworkServiceIO::new(
+                data_from_user,
+                messages_from_user,
+                data_for_user,
+                messages_for_user,
+                commands_from_manager,
+            ),
         )
     }
 }

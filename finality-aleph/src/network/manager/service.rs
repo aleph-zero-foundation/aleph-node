@@ -16,10 +16,10 @@ use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{
         manager::{
-            Connections, Discovery, DiscoveryMessage, NetworkData, SessionHandler,
-            SessionHandlerError,
+            Connections, DataInSession, Discovery, DiscoveryMessage, SessionHandler,
+            SessionHandlerError, VersionedAuthentication,
         },
-        ConnectionCommand, Data, DataCommand, Multiaddress, NetworkIdentity, PeerId,
+        AddressedData, ConnectionCommand, Data, Multiaddress, NetworkIdentity, PeerId,
     },
     MillisecsPerBlock, NodeIndex, SessionId, SessionPeriod, STATUS_REPORT_INTERVAL,
 };
@@ -110,18 +110,19 @@ impl Config {
     }
 }
 
-type MessageForNetwork<D, M> = (NetworkData<D, M>, DataCommand<<M as Multiaddress>::PeerId>);
-
-pub struct ServiceActions<D: Data, M: Multiaddress> {
+/// Actions that the service wants to take as the result of some information. Might contain a
+/// command for connecting to or disconnecting from some peers or a message to broadcast for
+/// discovery  purposes.
+pub struct ServiceActions<M: Multiaddress> {
     maybe_command: Option<ConnectionCommand<M>>,
-    maybe_data: Option<MessageForNetwork<D, M>>,
+    maybe_message: Option<DiscoveryMessage<M>>,
 }
 
-impl<D: Data, M: Multiaddress> ServiceActions<D, M> {
+impl<M: Multiaddress> ServiceActions<M> {
     fn noop() -> Self {
         ServiceActions {
             maybe_command: None,
-            maybe_data: None,
+            maybe_message: None,
         }
     }
 }
@@ -186,29 +187,19 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
         Self::delete_reserved(self.connections.remove_session(session_id))
     }
 
-    fn network_message(
-        (message, command): (DiscoveryMessage<NI::Multiaddress>, DataCommand<NI::PeerId>),
-    ) -> MessageForNetwork<D, NI::Multiaddress> {
-        (NetworkData::Meta(message), command)
-    }
-
     fn discover_authorities(
         &mut self,
         session_id: &SessionId,
-    ) -> Option<MessageForNetwork<D, NI::Multiaddress>> {
+    ) -> Option<DiscoveryMessage<NI::Multiaddress>> {
         self.sessions.get_mut(session_id).and_then(
             |Session {
                  handler, discovery, ..
-             }| {
-                discovery
-                    .discover_authorities(handler)
-                    .map(Self::network_message)
-            },
+             }| { discovery.discover_authorities(handler) },
         )
     }
 
     /// Returns all the network messages that should be sent as part of discovery at this moment.
-    pub fn discovery(&mut self) -> Vec<MessageForNetwork<D, NI::Multiaddress>> {
+    pub fn discovery(&mut self) -> Vec<DiscoveryMessage<NI::Multiaddress>> {
         let sessions: Vec<_> = self.sessions.keys().cloned().collect();
         sessions
             .iter()
@@ -231,7 +222,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
         addresses: Vec<NI::Multiaddress>,
     ) -> Result<
         (
-            Option<MessageForNetwork<D, NI::Multiaddress>>,
+            Option<DiscoveryMessage<NI::Multiaddress>>,
             mpsc::UnboundedReceiver<D>,
         ),
         SessionHandlerError,
@@ -261,23 +252,18 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
     async fn update_validator_session(
         &mut self,
         pre_session: PreValidatorSession,
-    ) -> Result<
-        (
-            ServiceActions<D, NI::Multiaddress>,
-            mpsc::UnboundedReceiver<D>,
-        ),
-        SessionHandlerError,
-    > {
+    ) -> Result<(ServiceActions<NI::Multiaddress>, mpsc::UnboundedReceiver<D>), SessionHandlerError>
+    {
         let addresses = self.addresses();
         let session = match self.sessions.get_mut(&pre_session.session_id) {
             Some(session) => session,
             None => {
-                let (maybe_data, data_from_network) =
+                let (maybe_message, data_from_network) =
                     self.start_validator_session(pre_session, addresses).await?;
                 return Ok((
                     ServiceActions {
                         maybe_command: None,
-                        maybe_data,
+                        maybe_message,
                     },
                     data_from_network,
                 ));
@@ -309,7 +295,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
         Ok((
             ServiceActions {
                 maybe_command,
-                maybe_data: self.discover_authorities(&session_id),
+                maybe_message: self.discover_authorities(&session_id),
             },
             data_from_network,
         ))
@@ -319,7 +305,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
         &mut self,
         pre_session: PreValidatorSession,
         result_for_user: Option<oneshot::Sender<mpsc::UnboundedReceiver<D>>>,
-    ) -> Result<ServiceActions<D, NI::Multiaddress>, SessionHandlerError> {
+    ) -> Result<ServiceActions<NI::Multiaddress>, SessionHandlerError> {
         match self.update_validator_session(pre_session.clone()).await {
             Ok((actions, data_from_network)) => {
                 if let Some(result_for_user) = result_for_user {
@@ -393,12 +379,11 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
     }
 
     /// Handle a session command.
-    /// Returns a command possibly changing what we should stay connected to and a list of data to
-    /// be sent over the network.
+    /// Returns actions the service wants to take or an error if the session command is invalid.
     pub async fn on_command(
         &mut self,
         command: SessionCommand<D>,
-    ) -> Result<ServiceActions<D, NI::Multiaddress>, SessionHandlerError> {
+    ) -> Result<ServiceActions<NI::Multiaddress>, SessionHandlerError> {
         use SessionCommand::*;
         match command {
             StartValidator(session_id, verifier, node_id, pen, result_for_user) => {
@@ -421,7 +406,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
             }
             Stop(session_id) => Ok(ServiceActions {
                 maybe_command: self.finish_session(session_id),
-                maybe_data: None,
+                maybe_message: None,
             }),
         }
     }
@@ -430,26 +415,26 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
     /// Returns a list of data to be sent over the network.
     pub fn on_user_message(
         &self,
-        message: D,
+        data: D,
         session_id: SessionId,
         recipient: Recipient,
-    ) -> Vec<MessageForNetwork<D, NI::Multiaddress>> {
+    ) -> Vec<AddressedData<DataInSession<D>, <NI::Multiaddress as Multiaddress>::PeerId>> {
         if let Some(handler) = self
             .sessions
             .get(&session_id)
             .map(|session| &session.handler)
         {
-            let to_send = NetworkData::Data(message, session_id);
+            let to_send = DataInSession { data, session_id };
             match recipient {
                 Recipient::Everyone => (0..handler.node_count().0)
                     .map(NodeIndex)
                     .flat_map(|node_id| handler.peer_id(&node_id))
-                    .map(|peer_id| (to_send.clone(), DataCommand::SendTo(peer_id)))
+                    .map(|peer_id| (to_send.clone(), peer_id))
                     .collect(),
                 Recipient::Node(node_id) => handler
                     .peer_id(&node_id)
                     .into_iter()
-                    .map(|peer_id| (to_send.clone(), DataCommand::SendTo(peer_id)))
+                    .map(|peer_id| (to_send.clone(), peer_id))
                     .collect(),
             }
         } else {
@@ -458,18 +443,17 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
     }
 
     /// Handle a discovery message.
-    /// Returns a command possibly changing what we should stay connected to and a list of data to
-    /// be sent over the network.
+    /// Returns actions the service wants to take.
     pub fn on_discovery_message(
         &mut self,
         message: DiscoveryMessage<NI::Multiaddress>,
-    ) -> ServiceActions<D, NI::Multiaddress> {
+    ) -> ServiceActions<NI::Multiaddress> {
         let session_id = message.session_id();
         match self.sessions.get_mut(&session_id) {
             Some(Session {
                 handler, discovery, ..
             }) => {
-                let (addresses, response) = discovery.handle_message(message, handler);
+                let (addresses, maybe_message) = discovery.handle_message(message, handler);
                 let maybe_command = match !addresses.is_empty() && handler.is_validator() {
                     true => {
                         debug!(target: "aleph-network", "Adding addresses for session {:?} to reserved: {:?}", session_id, addresses);
@@ -485,7 +469,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
                 };
                 ServiceActions {
                     maybe_command,
-                    maybe_data: response.map(Self::network_message),
+                    maybe_message,
                 }
             }
             None => {
@@ -514,7 +498,7 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
     /// the request.
     pub async fn retry_session_start(
         &mut self,
-    ) -> Result<ServiceActions<D, NI::Multiaddress>, SessionHandlerError> {
+    ) -> Result<ServiceActions<NI::Multiaddress>, SessionHandlerError> {
         let (pre_session, result_for_user) = match self.to_retry.pop() {
             Some(to_retry) => to_retry,
             None => return Ok(ServiceActions::noop()),
@@ -614,10 +598,12 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
 /// Input/output interface for the connectiona manager service.
 pub struct IO<D: Data, M: Multiaddress> {
     commands_for_network: mpsc::UnboundedSender<ConnectionCommand<M>>,
-    messages_for_network: mpsc::UnboundedSender<MessageForNetwork<D, M>>,
+    data_for_network: mpsc::UnboundedSender<AddressedData<DataInSession<D>, M::PeerId>>,
+    authentications_for_network: mpsc::UnboundedSender<VersionedAuthentication<M>>,
     commands_from_user: mpsc::UnboundedReceiver<SessionCommand<D>>,
     messages_from_user: mpsc::UnboundedReceiver<(D, SessionId, Recipient)>,
-    messages_from_network: mpsc::UnboundedReceiver<NetworkData<D, M>>,
+    data_from_network: mpsc::UnboundedReceiver<DataInSession<D>>,
+    authentications_from_network: mpsc::UnboundedReceiver<VersionedAuthentication<M>>,
 }
 
 /// Errors that can happen during the network service operations.
@@ -637,23 +623,33 @@ pub enum Error {
 impl<D: Data, M: Multiaddress> IO<D, M> {
     pub fn new(
         commands_for_network: mpsc::UnboundedSender<ConnectionCommand<M>>,
-        messages_for_network: mpsc::UnboundedSender<MessageForNetwork<D, M>>,
+        data_for_network: mpsc::UnboundedSender<AddressedData<DataInSession<D>, M::PeerId>>,
+        authentications_for_network: mpsc::UnboundedSender<VersionedAuthentication<M>>,
         commands_from_user: mpsc::UnboundedReceiver<SessionCommand<D>>,
         messages_from_user: mpsc::UnboundedReceiver<(D, SessionId, Recipient)>,
-        messages_from_network: mpsc::UnboundedReceiver<NetworkData<D, M>>,
+        data_from_network: mpsc::UnboundedReceiver<DataInSession<D>>,
+        authentications_from_network: mpsc::UnboundedReceiver<VersionedAuthentication<M>>,
     ) -> IO<D, M> {
         IO {
             commands_for_network,
-            messages_for_network,
+            data_for_network,
+            authentications_for_network,
             commands_from_user,
             messages_from_user,
-            messages_from_network,
+            data_from_network,
+            authentications_from_network,
         }
     }
 
-    fn send_data(&self, to_send: MessageForNetwork<D, M>) -> Result<(), Error> {
-        self.messages_for_network
+    fn send_data(&self, to_send: AddressedData<DataInSession<D>, M::PeerId>) -> Result<(), Error> {
+        self.data_for_network
             .unbounded_send(to_send)
+            .map_err(|_| Error::NetworkSend)
+    }
+
+    fn send_authentication(&self, to_send: DiscoveryMessage<M>) -> Result<(), Error> {
+        self.authentications_for_network
+            .unbounded_send(VersionedAuthentication::V1(to_send))
             .map_err(|_| Error::NetworkSend)
     }
 
@@ -667,28 +663,16 @@ impl<D: Data, M: Multiaddress> IO<D, M> {
         &self,
         ServiceActions {
             maybe_command,
-            maybe_data,
-        }: ServiceActions<D, M>,
+            maybe_message,
+        }: ServiceActions<M>,
     ) -> Result<(), Error> {
         if let Some(command) = maybe_command {
             self.send_command(command)?;
         }
-        if let Some(data) = maybe_data {
-            self.send_data(data)?;
+        if let Some(message) = maybe_message {
+            self.send_authentication(message)?;
         }
         Ok(())
-    }
-
-    fn on_network_message<NI: NetworkIdentity<Multiaddress = M, PeerId = M::PeerId>>(
-        &self,
-        service: &mut Service<NI, D>,
-        message: NetworkData<D, M>,
-    ) -> Result<(), Error> {
-        use NetworkData::*;
-        match message {
-            Meta(message) => self.send(service.on_discovery_message(message)),
-            Data(data, session_id) => service.send_session_data(&session_id, data),
-        }
     }
 
     /// Run the connection manager service with this IO.
@@ -726,15 +710,25 @@ impl<D: Data, M: Multiaddress> IO<D, M> {
                         None => return Err(Error::MessageChannel),
                     }
                 },
-                maybe_message = self.messages_from_network.next() => {
-                    trace!(target: "aleph-network", "Manager received a message from network");
-                    match maybe_message {
-                        Some(message) => if let Err(e) = self.on_network_message(&mut service, message) {
+                maybe_data = self.data_from_network.next() => {
+                    trace!(target: "aleph-network", "Manager received some data from network");
+                    match maybe_data {
+                        Some(DataInSession{data, session_id}) => if let Err(e) = service.send_session_data(&session_id, data) {
                             match e {
                                 Error::UserSend => trace!(target: "aleph-network", "Failed to send to user in session."),
                                 Error::NoSession => trace!(target: "aleph-network", "Received message for unknown session."),
                                 _ => return Err(e),
                             }
+                        },
+                        None => return Err(Error::NetworkChannel),
+                    }
+                },
+                maybe_authentication = self.authentications_from_network.next() => {
+                    trace!(target: "aleph-network", "Manager received an authentication from network");
+                    match maybe_authentication {
+                        Some(authentication) => match authentication.try_into() {
+                            Ok(message) => self.send(service.on_discovery_message(message))?,
+                            Err(e) => warn!(target: "aleph-network", "Error casting versioned authentication to discovery message: {:?}", e),
                         },
                         None => return Err(Error::NetworkChannel),
                     }
@@ -746,7 +740,7 @@ impl<D: Data, M: Multiaddress> IO<D, M> {
                         Err(e) => warn!(target: "aleph-network", "Retry failed to update handler: {:?}", e),
                     }
                     for to_send in service.discovery() {
-                        self.send_data(to_send)?;
+                        self.send_authentication(to_send)?;
                     }
                 },
                 _ = status_ticker.tick() => {
@@ -766,9 +760,9 @@ mod tests {
     use super::{Config, Error, Service, ServiceActions, SessionCommand};
     use crate::{
         network::{
-            manager::{DiscoveryMessage, NetworkData},
+            manager::{DataInSession, DiscoveryMessage},
             mock::{crypto_basics, MockNetworkIdentity},
-            ConnectionCommand, DataCommand,
+            ConnectionCommand,
         },
         Recipient, SessionId,
     };
@@ -792,13 +786,13 @@ mod tests {
         let session_id = SessionId(43);
         let ServiceActions {
             maybe_command,
-            maybe_data,
+            maybe_message,
         } = service
             .on_command(SessionCommand::StartNonvalidator(session_id, verifier))
             .await
             .unwrap();
         assert!(maybe_command.is_none());
-        assert!(maybe_data.is_none());
+        assert!(maybe_message.is_none());
         assert_eq!(
             service.send_session_data(&session_id, -43),
             Err(Error::NoSession)
@@ -814,7 +808,7 @@ mod tests {
         let (result_for_user, result_from_service) = oneshot::channel();
         let ServiceActions {
             maybe_command,
-            maybe_data,
+            maybe_message,
         } = service
             .on_command(SessionCommand::StartValidator(
                 session_id,
@@ -826,10 +820,7 @@ mod tests {
             .await
             .unwrap();
         assert!(maybe_command.is_none());
-        assert_eq!(
-            maybe_data.expect("there is a message").1,
-            DataCommand::Broadcast
-        );
+        assert!(maybe_message.is_some());
         let _data_from_network = result_from_service.await.unwrap();
         assert_eq!(service.send_session_data(&session_id, -43), Ok(()));
     }
@@ -843,7 +834,7 @@ mod tests {
         let (result_for_user, result_from_service) = oneshot::channel();
         let ServiceActions {
             maybe_command,
-            maybe_data,
+            maybe_message,
         } = service
             .on_command(SessionCommand::StartValidator(
                 session_id,
@@ -855,22 +846,19 @@ mod tests {
             .await
             .unwrap();
         assert!(maybe_command.is_none());
-        assert_eq!(
-            maybe_data.expect("there is a message").1,
-            DataCommand::Broadcast
-        );
+        assert!(maybe_message.is_some());
         assert_eq!(service.send_session_data(&session_id, -43), Ok(()));
         let mut data_from_network = result_from_service.await.unwrap();
         assert_eq!(data_from_network.next().await, Some(-43));
         let ServiceActions {
             maybe_command,
-            maybe_data,
+            maybe_message,
         } = service
             .on_command(SessionCommand::Stop(session_id))
             .await
             .unwrap();
         assert!(maybe_command.is_none());
-        assert!(maybe_data.is_none());
+        assert!(maybe_message.is_none());
         assert_eq!(
             service.send_session_data(&session_id, -43),
             Err(Error::NoSession)
@@ -896,37 +884,28 @@ mod tests {
             .unwrap();
         let mut other_service = build();
         let (node_id, pen) = validator_data[1].clone();
-        let ServiceActions { maybe_data, .. } = other_service
+        let ServiceActions { maybe_message, .. } = other_service
             .on_command(SessionCommand::StartValidator(
                 session_id, verifier, node_id, pen, None,
             ))
             .await
             .unwrap();
-        let broadcast = match maybe_data {
-            Some((NetworkData::Meta(broadcast), DataCommand::Broadcast)) => broadcast,
-            maybe_data => panic!(
-                "Expected discovery massage broadcast, got: {:?}",
-                maybe_data
-            ),
-        };
-        let addresses = match &broadcast {
+        let message = maybe_message.expect("there should be a discovery message");
+        let addresses = match &message {
             DiscoveryMessage::AuthenticationBroadcast((auth_data, _)) => auth_data.addresses(),
-            _ => panic!("Expected an authentication broadcast, got {:?}", broadcast),
+            _ => panic!("Expected an authentication broadcast, got {:?}", message),
         };
         let ServiceActions {
             maybe_command,
-            maybe_data,
-        } = service.on_discovery_message(broadcast);
+            maybe_message,
+        } = service.on_discovery_message(message);
         assert_eq!(
             maybe_command,
             Some(ConnectionCommand::AddReserved(
                 addresses.into_iter().collect()
             ))
         );
-        assert_eq!(
-            maybe_data.expect("there is a message").1,
-            DataCommand::Broadcast
-        );
+        assert!(maybe_message.is_some());
     }
 
     #[tokio::test]
@@ -947,24 +926,23 @@ mod tests {
             .unwrap();
         let mut other_service = build();
         let (node_id, pen) = validator_data[1].clone();
-        let ServiceActions { maybe_data, .. } = other_service
+        let ServiceActions { maybe_message, .. } = other_service
             .on_command(SessionCommand::StartValidator(
                 session_id, verifier, node_id, pen, None,
             ))
             .await
             .unwrap();
-        let broadcast = match maybe_data {
-            Some((NetworkData::Meta(broadcast), DataCommand::Broadcast)) => broadcast,
-            maybe_data => panic!(
-                "Expected discovery massage broadcast, got: {:?}",
-                maybe_data
-            ),
-        };
-        service.on_discovery_message(broadcast);
+        let message = maybe_message.expect("there should be a discovery message");
+        service.on_discovery_message(message);
         let messages = service.on_user_message(2137, session_id, Recipient::Everyone);
         assert_eq!(messages.len(), 1);
-        let (network_data, data_command) = &messages[0];
-        assert!(matches!(data_command, DataCommand::SendTo(_)));
-        assert_eq!(network_data, &NetworkData::Data(2137, session_id));
+        let (network_data, _) = &messages[0];
+        assert_eq!(
+            network_data,
+            &DataInSession {
+                data: 2137,
+                session_id
+            }
+        );
     }
 }

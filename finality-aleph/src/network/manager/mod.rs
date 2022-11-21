@@ -77,16 +77,3 @@ impl<D: Data> Encode for DataInSession<D> {
         self.session_id.encode_to(dest);
     }
 }
-
-impl<D: Data, M: Multiaddress> From<DataInSession<D>> for NetworkData<D, M> {
-    fn from(data: DataInSession<D>) -> Self {
-        NetworkData::Data(data.data, data.session_id)
-    }
-}
-
-/// The data that should be sent to the network service.
-#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
-pub enum NetworkData<D: Data, M: Multiaddress> {
-    Meta(DiscoveryMessage<M>),
-    Data(D, SessionId),
-}

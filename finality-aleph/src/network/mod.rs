@@ -37,8 +37,7 @@ pub use split::{split, Split};
 #[cfg(test)]
 pub mod testing {
     pub use super::manager::{
-        Authentication, DataInSession, DiscoveryMessage, NetworkData, SessionHandler,
-        VersionedAuthentication,
+        Authentication, DataInSession, DiscoveryMessage, SessionHandler, VersionedAuthentication,
     };
 }
 
@@ -156,14 +155,6 @@ pub trait RequestBlocks<B: Block>: Clone + Send + Sync + 'static {
     fn is_major_syncing(&self) -> bool;
 }
 
-/// What do do with a specific piece of data.
-/// Note that broadcast does not specify the protocol, as we only broadcast Generic messages in this sense.
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum DataCommand<PID: PeerId> {
-    Broadcast,
-    SendTo(PID),
-}
-
 /// Commands for manipulating the reserved peers set.
 #[derive(Debug, PartialEq, Eq)]
 pub enum ConnectionCommand<M: Multiaddress> {
@@ -181,6 +172,9 @@ pub enum SendError {
 pub trait Data: Clone + Codec + Send + Sync + 'static {}
 
 impl<D: Clone + Codec + Send + Sync + 'static> Data for D {}
+
+// In practice D: Data and P: PeerId, but we cannot require that in type aliases.
+type AddressedData<D, P> = (D, P);
 
 /// A generic interface for sending and receiving data.
 #[async_trait::async_trait]

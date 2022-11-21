@@ -10,7 +10,7 @@ use log::{debug, info, trace};
 use crate::{
     network::{
         manager::{Authentication, SessionHandler},
-        DataCommand, Multiaddress,
+        Multiaddress,
     },
     NodeIndex, SessionId,
 };
@@ -40,20 +40,6 @@ pub struct Discovery<M: Multiaddress> {
     _phantom: PhantomData<M>,
 }
 
-type DiscoveryCommand<M> = (
-    DiscoveryMessage<M>,
-    DataCommand<<M as Multiaddress>::PeerId>,
-);
-
-fn authentication_broadcast<M: Multiaddress>(
-    authentication: Authentication<M>,
-) -> DiscoveryCommand<M> {
-    (
-        DiscoveryMessage::AuthenticationBroadcast(authentication),
-        DataCommand::Broadcast,
-    )
-}
-
 impl<M: Multiaddress> Discovery<M> {
     /// Create a new discovery handler with the given response/broadcast cooldown.
     pub fn new(cooldown: Duration) -> Self {
@@ -68,7 +54,7 @@ impl<M: Multiaddress> Discovery<M> {
     pub fn discover_authorities(
         &mut self,
         handler: &SessionHandler<M>,
-    ) -> Option<DiscoveryCommand<M>> {
+    ) -> Option<DiscoveryMessage<M>> {
         let authentication = match handler.authentication() {
             Some(authentication) => authentication,
             None => return None,
@@ -77,7 +63,7 @@ impl<M: Multiaddress> Discovery<M> {
         let missing_authorities = handler.missing_nodes();
         let node_count = handler.node_count();
         info!(target: "aleph-network", "{}/{} authorities known for session {}.", node_count.0-missing_authorities.len(), node_count.0, handler.session_id().0);
-        Some(authentication_broadcast(authentication))
+        Some(DiscoveryMessage::AuthenticationBroadcast(authentication))
     }
 
     /// Checks the authentication using the handler and returns the addresses we should be
@@ -104,7 +90,7 @@ impl<M: Multiaddress> Discovery<M> {
         &mut self,
         authentication: Authentication<M>,
         handler: &mut SessionHandler<M>,
-    ) -> (Vec<M>, Option<DiscoveryCommand<M>>) {
+    ) -> (Vec<M>, Option<DiscoveryMessage<M>>) {
         debug!(target: "aleph-network", "Handling broadcast with authentication {:?}.", authentication);
         let addresses = self.handle_authentication(authentication.clone(), handler);
         if addresses.is_empty() {
@@ -116,7 +102,10 @@ impl<M: Multiaddress> Discovery<M> {
         }
         trace!(target: "aleph-network", "Rebroadcasting {:?}.", authentication);
         self.last_broadcast.insert(node_id, Instant::now());
-        (addresses, Some(authentication_broadcast(authentication)))
+        (
+            addresses,
+            Some(DiscoveryMessage::AuthenticationBroadcast(authentication)),
+        )
     }
 
     /// Analyzes the provided message and returns all the new multiaddresses we should
@@ -126,7 +115,7 @@ impl<M: Multiaddress> Discovery<M> {
         &mut self,
         message: DiscoveryMessage<M>,
         handler: &mut SessionHandler<M>,
-    ) -> (Vec<M>, Option<DiscoveryCommand<M>>) {
+    ) -> (Vec<M>, Option<DiscoveryMessage<M>>) {
         use DiscoveryMessage::*;
         match message {
             AuthenticationBroadcast(authentication) => {
@@ -150,7 +139,6 @@ mod tests {
         network::{
             manager::SessionHandler,
             mock::{crypto_basics, MockMultiaddress, MockPeerId},
-            DataCommand,
         },
         SessionId,
     };
@@ -216,10 +204,7 @@ mod tests {
             let message = discovery.discover_authorities(handler);
             assert_eq!(
                 message.expect("there is a discovery message"),
-                (
-                    DiscoveryMessage::AuthenticationBroadcast(handler.authentication().unwrap()),
-                    DataCommand::Broadcast
-                )
+                DiscoveryMessage::AuthenticationBroadcast(handler.authentication().unwrap()),
             );
         }
     }
@@ -241,10 +226,9 @@ mod tests {
             handler,
         );
         assert_eq!(addresses, authentication.0.addresses());
-        assert!(matches!(command, Some((
+        assert!(matches!(command, Some(
                 DiscoveryMessage::AuthenticationBroadcast(rebroadcast_authentication),
-                DataCommand::Broadcast,
-            )) if rebroadcast_authentication == authentication));
+            ) if rebroadcast_authentication == authentication));
     }
 
     #[tokio::test]
@@ -256,10 +240,9 @@ mod tests {
             &mut non_validator,
         );
         assert_eq!(addresses, authentication.0.addresses());
-        assert!(matches!(command, Some((
+        assert!(matches!(command, Some(
                 DiscoveryMessage::AuthenticationBroadcast(rebroadcast_authentication),
-                DataCommand::Broadcast,
-            )) if rebroadcast_authentication == authentication));
+            ) if rebroadcast_authentication == authentication));
     }
 
     #[tokio::test]
@@ -292,10 +275,9 @@ mod tests {
             handler,
         );
         assert_eq!(addresses, authentication.0.addresses());
-        assert!(matches!(command, Some((
+        assert!(matches!(command, Some(
                 DiscoveryMessage::AuthenticationBroadcast(rebroadcast_authentication),
-                DataCommand::Broadcast,
-            )) if rebroadcast_authentication == authentication));
+            ) if rebroadcast_authentication == authentication));
     }
 
     #[tokio::test]

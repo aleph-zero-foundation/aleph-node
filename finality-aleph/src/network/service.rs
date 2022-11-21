@@ -5,25 +5,21 @@ use std::{
 };
 
 use aleph_primitives::AuthorityId;
-use codec::{Decode, Encode};
 use futures::{channel::mpsc, StreamExt};
 use log::{debug, error, info, trace, warn};
 use sc_service::SpawnTaskHandle;
 use sc_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnboundedSender};
 use tokio::time;
 
-use super::manager::DataInSession;
 use crate::{
     network::{
-        manager::{NetworkData, VersionedAuthentication},
-        ConnectionCommand, Data, DataCommand, Event, EventStream, Multiaddress, Network,
+        AddressedData, ConnectionCommand, Data, Event, EventStream, Multiaddress, Network,
         NetworkSender, Protocol,
     },
     validator_network::Network as ValidatorNetwork,
     STATUS_REPORT_INTERVAL,
 };
 
-type MessageFromUser<D, A> = (NetworkData<D, A>, DataCommand<<A as Multiaddress>::PeerId>);
 /// A service managing all the direct interaction with the underlying network implementation. It
 /// handles:
 /// 1. Incoming network events
@@ -31,41 +27,48 @@ type MessageFromUser<D, A> = (NetworkData<D, A>, DataCommand<<A as Multiaddress>
 ///   2. Various forms of (dis)connecting, keeping track of all currently connected nodes.
 /// 2. Commands from the network manager, modifying the reserved peer set.
 /// 3. Outgoing messages, sending them out, using 1.2. to broadcast.
-/// For the time of transition from old validator network (called legacy here) to new tcp validator network
-/// we need to support both networks here. To do that we rename legacy network methods to have prefix `legacy_`.
-/// We also support two connection managers one for each network.
+/// Currently this also handles the validator network for sending in-session data, but this is
+/// likely to change in the future.
 pub struct Service<
     N: Network,
     D: Data,
+    VD: Data,
     A: Data + Multiaddress<PeerId = AuthorityId>,
-    VN: ValidatorNetwork<A, DataInSession<D>>,
+    VN: ValidatorNetwork<A, VD>,
 > {
     network: N,
     validator_network: VN,
-    messages_from_user: mpsc::UnboundedReceiver<MessageFromUser<D, A>>,
-    messages_for_user: mpsc::UnboundedSender<NetworkData<D, A>>,
+    data_from_user: mpsc::UnboundedReceiver<AddressedData<VD, A::PeerId>>,
+    messages_from_user: mpsc::UnboundedReceiver<D>,
+    data_for_user: mpsc::UnboundedSender<VD>,
+    messages_for_user: mpsc::UnboundedSender<D>,
     commands_from_manager: mpsc::UnboundedReceiver<ConnectionCommand<A>>,
     authentication_connected_peers: HashSet<N::PeerId>,
-    authentication_peer_senders:
-        HashMap<N::PeerId, TracingUnboundedSender<VersionedAuthentication<A>>>,
+    authentication_peer_senders: HashMap<N::PeerId, TracingUnboundedSender<D>>,
     spawn_handle: SpawnTaskHandle,
 }
 
 /// Input/output channels for the network service.
-pub struct IO<D: Data, M: Multiaddress> {
-    pub messages_from_user: mpsc::UnboundedReceiver<(D, DataCommand<M::PeerId>)>,
+pub struct IO<D: Data, VD: Data, M: Multiaddress> {
+    pub data_from_user: mpsc::UnboundedReceiver<AddressedData<VD, M::PeerId>>,
+    pub messages_from_user: mpsc::UnboundedReceiver<D>,
+    pub data_for_user: mpsc::UnboundedSender<VD>,
     pub messages_for_user: mpsc::UnboundedSender<D>,
     pub commands_from_manager: mpsc::UnboundedReceiver<ConnectionCommand<M>>,
 }
 
-impl<D: Data, M: Multiaddress> IO<D, M> {
+impl<D: Data, VD: Data, M: Multiaddress> IO<D, VD, M> {
     pub fn new(
-        messages_from_user: mpsc::UnboundedReceiver<(D, DataCommand<M::PeerId>)>,
+        data_from_user: mpsc::UnboundedReceiver<AddressedData<VD, M::PeerId>>,
+        messages_from_user: mpsc::UnboundedReceiver<D>,
+        data_for_user: mpsc::UnboundedSender<VD>,
         messages_for_user: mpsc::UnboundedSender<D>,
         commands_from_manager: mpsc::UnboundedReceiver<ConnectionCommand<M>>,
-    ) -> IO<D, M> {
+    ) -> IO<D, VD, M> {
         IO {
+            data_from_user,
             messages_from_user,
+            data_for_user,
             messages_for_user,
             commands_from_manager,
         }
@@ -81,20 +84,23 @@ enum SendError {
 impl<
         N: Network,
         D: Data,
+        VD: Data,
         A: Data + Multiaddress<PeerId = AuthorityId>,
-        VN: ValidatorNetwork<A, DataInSession<D>>,
-    > Service<N, D, A, VN>
+        VN: ValidatorNetwork<A, VD>,
+    > Service<N, D, VD, A, VN>
 {
     pub fn new(
         network: N,
         validator_network: VN,
         spawn_handle: SpawnTaskHandle,
-        io: IO<NetworkData<D, A>, A>,
-    ) -> Service<N, D, A, VN> {
+        io: IO<D, VD, A>,
+    ) -> Service<N, D, VD, A, VN> {
         Service {
             network,
             validator_network,
+            data_from_user: io.data_from_user,
             messages_from_user: io.messages_from_user,
+            data_for_user: io.data_for_user,
             messages_for_user: io.messages_for_user,
             commands_from_manager: io.commands_from_manager,
             spawn_handle,
@@ -107,7 +113,7 @@ impl<
         &mut self,
         peer: &N::PeerId,
         protocol: Protocol,
-    ) -> Option<&mut TracingUnboundedSender<VersionedAuthentication<A>>> {
+    ) -> Option<&mut TracingUnboundedSender<D>> {
         match protocol {
             Protocol::Authentication => self.authentication_peer_senders.get_mut(peer),
         }
@@ -116,7 +122,7 @@ impl<
     fn peer_sender(
         &self,
         peer_id: N::PeerId,
-        mut receiver: TracingUnboundedReceiver<VersionedAuthentication<A>>,
+        mut receiver: TracingUnboundedReceiver<D>,
         protocol: Protocol,
     ) -> impl Future<Output = ()> + Send + 'static {
         let network = self.network.clone();
@@ -149,7 +155,7 @@ impl<
 
     fn send_to_peer(
         &mut self,
-        data: VersionedAuthentication<A>,
+        data: D,
         peer: N::PeerId,
         protocol: Protocol,
     ) -> Result<(), SendError> {
@@ -171,14 +177,11 @@ impl<
         }
     }
 
-    fn broadcast(&mut self, data: VersionedAuthentication<A>, protocol: Protocol) {
+    fn broadcast(&mut self, data: D, protocol: Protocol) {
         let peers = match protocol {
-            // Validator protocol will never broadcast.
             Protocol::Authentication => self.authentication_connected_peers.clone(),
         };
         for peer in peers {
-            // We only broadcast authentication information in this sense, so we use the generic
-            // Protocol.
             if let Err(e) = self.send_to_peer(data.clone(), peer.clone(), protocol) {
                 trace!(target: "aleph-network", "Failed to send broadcast to peer{:?}, {:?}", peer, e);
             }
@@ -188,7 +191,7 @@ impl<
     fn handle_network_event(
         &mut self,
         event: Event<N::Multiaddress, N::PeerId>,
-    ) -> Result<(), mpsc::TrySendError<NetworkData<D, A>>> {
+    ) -> Result<(), mpsc::TrySendError<D>> {
         use Event::*;
         match event {
             Connected(multiaddress) => {
@@ -229,19 +232,12 @@ impl<
             Messages(messages) => {
                 for (protocol, data) in messages.into_iter() {
                     match protocol {
-                        Protocol::Authentication => {
-                            match VersionedAuthentication::<A>::decode(&mut &data[..])
-                                .map(|a| a.try_into())
-                            {
-                                Ok(Ok(data)) => self.messages_for_user.unbounded_send(data)?,
-                                Ok(Err(e)) => {
-                                    warn!(target: "aleph-network", "Error decoding authentication protocol message: {}", e)
-                                }
-                                Err(e) => {
-                                    warn!(target: "aleph-network", "Error decoding authentication protocol message: {}", e)
-                                }
+                        Protocol::Authentication => match D::decode(&mut &data[..]) {
+                            Ok(data) => self.messages_for_user.unbounded_send(data)?,
+                            Err(e) => {
+                                warn!(target: "aleph-network", "Error decoding authentication protocol message: {}", e)
                             }
-                        }
+                        },
                     };
                 }
             }
@@ -249,11 +245,8 @@ impl<
         Ok(())
     }
 
-    fn handle_validator_network_data(
-        &mut self,
-        data: DataInSession<D>,
-    ) -> Result<(), mpsc::TrySendError<NetworkData<D, A>>> {
-        self.messages_for_user.unbounded_send(data.into())
+    fn handle_validator_network_data(&mut self, data: VD) -> Result<(), mpsc::TrySendError<VD>> {
+        self.data_for_user.unbounded_send(data)
     }
 
     fn on_manager_command(&mut self, command: ConnectionCommand<A>) {
@@ -269,32 +262,6 @@ impl<
             DelReserved(peers) => {
                 for peer in peers {
                     self.validator_network.remove_connection(peer);
-                }
-            }
-        }
-    }
-
-    fn on_user_message(&mut self, data: NetworkData<D, A>, command: DataCommand<A::PeerId>) {
-        use DataCommand::*;
-
-        match data {
-            NetworkData::Meta(discovery_message) => {
-                let data: VersionedAuthentication<A> = discovery_message.into();
-                match command {
-                    Broadcast => self.broadcast(data, Protocol::Authentication),
-                    SendTo(_) => {
-                        // We ignore this for now. Sending Meta messages to peer is an optimization done for the sake of tests.
-                    }
-                }
-            }
-            NetworkData::Data(data, session_id) => {
-                match command {
-                    Broadcast => {
-                        // We ignore this for now. AlephBFT does not broadcast data.
-                    }
-                    SendTo(peer) => self
-                        .validator_network
-                        .send(DataInSession { data, session_id }, peer),
                 }
             }
         }
@@ -336,8 +303,15 @@ impl<
                         error!(target: "aleph-network", "Validator network event stream ended.");
                     }
                 },
+                maybe_data = self.data_from_user.next() => match maybe_data {
+                    Some((data, peer_id)) => self.validator_network.send(data, peer_id),
+                    None => {
+                        error!(target: "aleph-network", "User data stream ended.");
+                        return;
+                    }
+                },
                 maybe_message = self.messages_from_user.next() => match maybe_message {
-                    Some((data, command)) => self.on_user_message(data, command),
+                    Some(message) => self.broadcast(message, Protocol::Authentication),
                     None => {
                         error!(target: "aleph-network", "User message stream ended.");
                         return;
@@ -367,19 +341,18 @@ mod tests {
     use sc_service::TaskManager;
     use tokio::{runtime::Handle, task::JoinHandle};
 
-    use super::{ConnectionCommand, DataCommand, Service};
+    use super::{ConnectionCommand, Service};
     use crate::{
         network::{
-            manager::{DataInSession, SessionHandler, VersionedAuthentication},
+            manager::{SessionHandler, VersionedAuthentication},
             mock::{
                 crypto_basics, MockData, MockEvent, MockIO,
                 MockMultiaddress as MockAuthMultiaddress, MockNetwork,
                 MockPeerId as MockAuthPeerId, MockSenderError,
             },
-            testing::{DiscoveryMessage, NetworkData},
+            testing::DiscoveryMessage,
             NetworkIdentity, Protocol,
         },
-        // session::SessionId,
         testing::mocks::validator_network::{
             random_authority_id, MockMultiaddress, MockNetwork as MockValidatorNetwork,
         },
@@ -390,7 +363,7 @@ mod tests {
         pub service_handle: JoinHandle<()>,
         pub exit_tx: oneshot::Sender<()>,
         pub network: MockNetwork,
-        pub validator_network: MockValidatorNetwork<DataInSession<MockData>>,
+        pub validator_network: MockValidatorNetwork<MockData>,
         pub mock_io: MockIO<MockMultiaddress>,
         // `TaskManager` can't be dropped for `SpawnTaskHandle` to work
         _task_manager: TaskManager,
@@ -457,16 +430,13 @@ mod tests {
         }
     }
 
-    fn message(i: u8) -> DataInSession<MockData> {
-        DataInSession {
-            data: vec![i, i + 1, i + 2],
-            session_id: SessionId(1),
-        }
+    fn message(i: u8) -> MockData {
+        vec![i, i + 1, i + 2]
     }
 
     async fn authentication(
         multiaddresses: Vec<MockMultiaddress>,
-    ) -> DiscoveryMessage<MockMultiaddress> {
+    ) -> VersionedAuthentication<MockMultiaddress> {
         let crypto_basics = crypto_basics(1).await;
         let handler = SessionHandler::new(
             Some(crypto_basics.0[0].clone()),
@@ -476,7 +446,9 @@ mod tests {
         )
         .await
         .unwrap();
-        DiscoveryMessage::AuthenticationBroadcast(handler.authentication().unwrap())
+        VersionedAuthentication::V1(DiscoveryMessage::AuthenticationBroadcast(
+            handler.authentication().unwrap(),
+        ))
     }
 
     #[tokio::test]
@@ -546,8 +518,8 @@ mod tests {
         let message = authentication(test_data.validator_network.identity().0).await;
         test_data
             .mock_io
-            .messages_for_user
-            .unbounded_send((NetworkData::Meta(message.clone()), DataCommand::Broadcast))
+            .messages_for_network
+            .unbounded_send(message.clone())
             .unwrap();
 
         let broadcasted_messages = HashSet::<_>::from_iter(
@@ -559,13 +531,11 @@ mod tests {
                 .into_iter(),
         );
 
-        let expected_messages = HashSet::from_iter(peer_ids.into_iter().map(|peer_id| {
-            (
-                VersionedAuthentication::V1(message.clone()).encode(),
-                peer_id,
-                Protocol::Authentication,
-            )
-        }));
+        let expected_messages = HashSet::from_iter(
+            peer_ids
+                .into_iter()
+                .map(|peer_id| (message.clone().encode(), peer_id, Protocol::Authentication)),
+        );
 
         assert_eq!(broadcasted_messages, expected_messages);
 
@@ -600,8 +570,8 @@ mod tests {
         let message = authentication(test_data.validator_network.identity().0).await;
         test_data
             .mock_io
-            .messages_for_user
-            .unbounded_send((NetworkData::Meta(message.clone()), DataCommand::Broadcast))
+            .messages_for_network
+            .unbounded_send(message.clone())
             .unwrap();
 
         let broadcasted_messages = HashSet::<_>::from_iter(
@@ -617,13 +587,7 @@ mod tests {
             peer_ids
                 .into_iter()
                 .take(opened_authorities_n)
-                .map(|peer_id| {
-                    (
-                        VersionedAuthentication::V1(message.clone()).encode(),
-                        peer_id,
-                        Protocol::Authentication,
-                    )
-                }),
+                .map(|peer_id| (message.clone().encode(), peer_id, Protocol::Authentication)),
         );
 
         assert_eq!(broadcasted_messages, expected_messages);
@@ -632,7 +596,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_validator_data_command_send_to() {
+    async fn test_send_validator_data() {
         let mut test_data = TestData::prepare().await;
 
         let peer_id = random_authority_id().await;
@@ -641,8 +605,8 @@ mod tests {
 
         test_data
             .mock_io
-            .messages_for_user
-            .unbounded_send((message.clone().into(), DataCommand::SendTo(peer_id.clone())))
+            .data_for_network
+            .unbounded_send((message.clone(), peer_id.clone()))
             .unwrap();
 
         let expected = (message, peer_id);
@@ -668,16 +632,14 @@ mod tests {
 
         test_data.validator_network.next.send(message.clone());
 
-        let expected: NetworkData<_, _> = message.into();
-
         assert_eq!(
             test_data
                 .mock_io
-                .messages_from_user
+                .data_from_network
                 .next()
                 .await
                 .expect("Should receive message"),
-            expected,
+            message,
         );
 
         test_data.cleanup().await
@@ -709,21 +671,17 @@ mod tests {
 
         test_data
             .mock_io
-            .messages_for_user
-            .unbounded_send((NetworkData::Meta(message_1), DataCommand::Broadcast))
+            .messages_for_network
+            .unbounded_send(message_1)
             .unwrap();
 
         test_data
             .mock_io
-            .messages_for_user
-            .unbounded_send((NetworkData::Meta(message_2.clone()), DataCommand::Broadcast))
+            .messages_for_network
+            .unbounded_send(message_2.clone())
             .unwrap();
 
-        let expected = (
-            VersionedAuthentication::V1(message_2).encode(),
-            peer_id,
-            Protocol::Authentication,
-        );
+        let expected = (message_2.encode(), peer_id, Protocol::Authentication);
 
         assert_eq!(
             test_data
@@ -764,21 +722,17 @@ mod tests {
 
         test_data
             .mock_io
-            .messages_for_user
-            .unbounded_send((NetworkData::Meta(message_1), DataCommand::Broadcast))
+            .messages_for_network
+            .unbounded_send(message_1)
             .unwrap();
 
         test_data
             .mock_io
-            .messages_for_user
-            .unbounded_send((NetworkData::Meta(message_2.clone()), DataCommand::Broadcast))
+            .messages_for_network
+            .unbounded_send(message_2.clone())
             .unwrap();
 
-        let expected = (
-            VersionedAuthentication::V1(message_2).encode(),
-            peer_id,
-            Protocol::Authentication,
-        );
+        let expected = (message_2.encode(), peer_id, Protocol::Authentication);
 
         assert_eq!(
             test_data
@@ -805,19 +759,17 @@ mod tests {
 
         test_data.network.emit_event(MockEvent::Messages(vec![(
             Protocol::Authentication,
-            VersionedAuthentication::V1(message.clone()).encode().into(),
+            message.clone().encode().into(),
         )]));
-
-        let expected = NetworkData::Meta(message);
 
         assert_eq!(
             test_data
                 .mock_io
-                .messages_from_user
+                .messages_from_network
                 .next()
                 .await
                 .expect("Should receive message"),
-            expected
+            message,
         );
 
         test_data.cleanup().await
@@ -832,7 +784,7 @@ mod tests {
 
         test_data
             .mock_io
-            .commands_for_manager
+            .commands_for_network
             .unbounded_send(ConnectionCommand::AddReserved(
                 iter::once(multiaddress.clone()).collect(),
             ))
@@ -861,7 +813,7 @@ mod tests {
 
         test_data
             .mock_io
-            .commands_for_manager
+            .commands_for_network
             .unbounded_send(ConnectionCommand::DelReserved(
                 iter::once(peer_id.clone()).collect(),
             ))

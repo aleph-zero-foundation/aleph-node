@@ -7,10 +7,7 @@ use codec::{Decode, Encode, Error as CodecError, Input as CodecInput};
 use log::warn;
 
 use crate::{
-    network::{
-        manager::{DiscoveryMessage, NetworkData},
-        Data, Multiaddress,
-    },
+    network::{manager::DiscoveryMessage, Multiaddress},
     Version,
 };
 
@@ -26,13 +23,13 @@ pub enum VersionedAuthentication<M: Multiaddress> {
     V1(DiscoveryMessage<M>),
 }
 
-impl<D: Data, M: Multiaddress> TryInto<NetworkData<D, M>> for VersionedAuthentication<M> {
+impl<M: Multiaddress> TryInto<DiscoveryMessage<M>> for VersionedAuthentication<M> {
     type Error = Error;
 
-    fn try_into(self) -> Result<NetworkData<D, M>, Self::Error> {
+    fn try_into(self) -> Result<DiscoveryMessage<M>, Self::Error> {
         use VersionedAuthentication::*;
         match self {
-            V1(message) => Ok(NetworkData::Meta(message)),
+            V1(message) => Ok(message),
             Other(v, _) => Err(Error::UnknownVersion(v)),
         }
     }
