@@ -121,7 +121,7 @@ mod blender {
             proof: Vec<u8>,
         ) -> Result<()> {
             self.acquire_deposit(token_id, value)?;
-            self.verify_deposit(token_id, value, note, proof)?;
+            // self.verify_deposit(token_id, value, note, proof)?;
 
             self.create_new_leaf(note)?;
             self.merkle_roots.insert(self.current_root(), &());
