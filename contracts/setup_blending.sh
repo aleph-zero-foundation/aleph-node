@@ -12,24 +12,17 @@ DAMIAN_ACCOUNT=5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH
 HANS_ACCOUNT=5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o
 
 # Token economics
-TOTAL_TOKEN_ISSUANCE_PER_CONTRACT=2000
+TOTAL_TOKEN_ISSUANCE_PER_CONTRACT=4000
 TOKEN_PER_PERSON=1000
 TOKEN_ALLOWANCE=500
 
+# TODO : slurp bytes from disk
 # Hardcoded auxiliary data
 VK_BYTES=0x00000000
+
 MERKLE_LEAVES=65536
 
-# Command shortcuts
-INSTANTIATE_CMD="cargo contract instantiate --skip-confirm --suri ${CONTRACTS_ADMIN}"
-CALL_CMD="cargo contract call --quiet --skip-confirm"
-
-# Contract addresses
-TOKEN_A_ADDRESS=""
-TOKEN_B_ADDRESS=""
-BLENDER_ADDRESS=""
-
-usage(){
+usage() {
   cat << EOF
 Sets up the environment for testing Blender application. Precisely:
  - we start local chain with "./scripts/run_nodes.sh -b false", so make sure that you have your binary already built in release mode,
@@ -41,16 +34,41 @@ Sets up the environment for testing Blender application. Precisely:
 
 Make sure to have "cargo contract" installed (version 1.5).
 EOF
-  exit 0
 }
 
+while getopts r:n: flag
+do
+  case "${flag}" in
+    r) RUN_CHAIN=${OPTARG};;
+    n) NODE=${OPTARG};;
+    *)
+      usage
+      exit
+      ;;
+  esac
+done
+
+# defaults
+
+RUN_CHAIN="${RUN_CHAIN:-true}"
+NODE="${NODE:-ws://127.0.0.1:9944}"
+
+# Command shortcuts
+INSTANTIATE_CMD="cargo contract instantiate --skip-confirm --url ${NODE} --suri ${CONTRACTS_ADMIN}"
+CALL_CMD="cargo contract call --quiet --skip-confirm  --url ${NODE}"
+
+# Contract addresses
+TOKEN_A_ADDRESS=""
+TOKEN_B_ADDRESS=""
+BLENDER_ADDRESS=""
+
 get_timestamp() {
- echo "$(date +'%Y-%m-%d %H:%M:%S')"
+  echo "$(date +'%Y-%m-%d %H:%M:%S')"
 }
 
 error() {
-   echo -e "[$(get_timestamp)] [ERROR] $*"
-   exit 1
+  echo -e "[$(get_timestamp)] [ERROR] $*"
+  exit 1
 }
 
 log_progress() {
@@ -91,6 +109,9 @@ distribute_tokens() {
 
 set_allowances() {
   cd "${ROOT_DIR}"/public_token/
+  $CALL_CMD --contract "${TOKEN_A_ADDRESS}" --message "PSP22::approve" --args "${BLENDER_ADDRESS}" "${TOKEN_ALLOWANCE}" --suri "${CONTRACTS_ADMIN}" | grep "Success"
+  $CALL_CMD --contract "${TOKEN_B_ADDRESS}" --message "PSP22::approve" --args "${BLENDER_ADDRESS}" "${TOKEN_ALLOWANCE}" --suri "${CONTRACTS_ADMIN}" | grep "Success"
+
   $CALL_CMD --contract "${TOKEN_A_ADDRESS}" --message "PSP22::approve" --args "${BLENDER_ADDRESS}" "${TOKEN_ALLOWANCE}" --suri "${DAMIAN}" | grep "Success"
   $CALL_CMD --contract "${TOKEN_B_ADDRESS}" --message "PSP22::approve" --args "${BLENDER_ADDRESS}" "${TOKEN_ALLOWANCE}" --suri "${DAMIAN}" | grep "Success"
 
@@ -123,8 +144,11 @@ register_tokens() {
 }
 
 set_up_blending() {
-  log_progress "Launching local chain..."
-  run_chain || error "Failed to launch chain"
+
+  if [ $RUN_CHAIN = true ]; then
+    log_progress "Launching local chain..."
+    run_chain || error "Failed to launch chain"
+  fi
 
   log_progress "Building token contract..."
   build_token_contract || error "Failed to build token contract"
@@ -150,18 +174,5 @@ set_up_blending() {
   log_progress "Registering token contracts..."
   register_tokens || error "Failed to register token contracts"
 }
-
-if [[ $# -gt 0 ]]; then
-  case $1 in
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    *)
-      echo "Unknown flag"
-      exit 2
-      ;;
-  esac
-fi
 
 set_up_blending
