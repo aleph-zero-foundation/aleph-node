@@ -3,6 +3,7 @@
 mod blender {
     use core::ops::Not;
 
+    use ark_ff::BigInteger256;
     use ark_serialize::CanonicalSerialize;
     use ink_env::call::{build_call, Call, ExecutionInput, Selector};
     #[allow(unused_imports)]
@@ -21,9 +22,9 @@ mod blender {
     use scale::{Decode, Encode};
 
     use crate::{
-        crypto::compute_parent_hash, error::BlenderError, MerkleHash, MerkleRoot, Note, Nullifier,
-        Set, TokenAmount, TokenId, DEPOSIT_VK_IDENTIFIER, PSP22_TRANSFER_FROM_SELECTOR,
-        PSP22_TRANSFER_SELECTOR, SYSTEM, WITHDRAW_VK_IDENTIFIER,
+        crypto::compute_parent_hash, error::BlenderError, CircuitField, MerkleHash, MerkleRoot,
+        Note, Nullifier, Set, TokenAmount, TokenId, DEPOSIT_VK_IDENTIFIER,
+        PSP22_TRANSFER_FROM_SELECTOR, PSP22_TRANSFER_SELECTOR, SYSTEM, WITHDRAW_VK_IDENTIFIER,
     };
 
     /// Supported relations - used for registering verifying keys.
@@ -155,7 +156,16 @@ mod blender {
             self.verify_fee(fee_for_caller, value)?;
             self.verify_merkle_root(merkle_root)?;
             self.verify_nullifier(nullifier)?;
-            self.verify_withdrawal(token_id, value, merkle_root, nullifier, new_note, proof)?;
+            self.verify_withdrawal(
+                token_id,
+                value,
+                merkle_root,
+                nullifier,
+                new_note,
+                proof,
+                fee_for_caller.unwrap_or_default(),
+                recipient,
+            )?;
 
             self.create_new_leaf(new_note)?;
             self.nullifiers.insert(nullifier, &());
@@ -316,18 +326,16 @@ mod blender {
             note: Note,
             proof: Vec<u8>,
         ) -> Result<()> {
-            // For now we assume naive input encoding (from typed arguments).
-            let serialized_input = [
-                Self::serialize(&token_id),
-                Self::serialize(&value),
-                Self::serialize(note.as_ref()),
-            ]
-            .concat();
+            let input = [
+                CircuitField::from(BigInteger256::new(note)),
+                CircuitField::from(token_id),
+                CircuitField::from(value),
+            ];
 
             self.env().extension().verify(
                 DEPOSIT_VK_IDENTIFIER,
                 proof,
-                serialized_input,
+                Self::serialize(input.as_ref()),
                 SYSTEM,
             )?;
 
@@ -360,6 +368,7 @@ mod blender {
                 .ok_or(BlenderError::NullifierAlreadyUsed)
         }
 
+        #[allow(clippy::too_many_arguments)]
         fn verify_withdrawal(
             &self,
             token_id: TokenId,
@@ -368,21 +377,30 @@ mod blender {
             nullifier: Nullifier,
             new_note: Note,
             proof: Vec<u8>,
+            fee: TokenAmount,
+            recipient: AccountId,
         ) -> Result<()> {
-            // For now we assume naive input encoding (from typed arguments).
-            let serialized_input = [
-                Self::serialize(&token_id),
-                Self::serialize(&value_out),
-                Self::serialize(merkle_root.as_ref()),
-                Self::serialize(&nullifier),
-                Self::serialize(new_note.as_ref()),
-            ]
-            .concat();
+            let recipient_bytes: &[u8; 32] = recipient.as_ref();
+
+            let input = [
+                CircuitField::from(fee),
+                CircuitField::from(BigInteger256::new([
+                    u64::from_le_bytes(recipient_bytes[0..8].try_into().unwrap()),
+                    u64::from_le_bytes(recipient_bytes[8..16].try_into().unwrap()),
+                    u64::from_le_bytes(recipient_bytes[16..24].try_into().unwrap()),
+                    u64::from_le_bytes(recipient_bytes[24..32].try_into().unwrap()),
+                ])),
+                CircuitField::from(token_id),
+                CircuitField::from(nullifier),
+                CircuitField::from(BigInteger256::new(new_note)),
+                CircuitField::from(value_out),
+                CircuitField::from(BigInteger256::new(merkle_root)),
+            ];
 
             self.env().extension().verify(
                 WITHDRAW_VK_IDENTIFIER,
                 proof,
-                serialized_input,
+                Self::serialize(input.as_ref()),
                 SYSTEM,
             )?;
 

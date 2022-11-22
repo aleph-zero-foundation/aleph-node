@@ -26,6 +26,7 @@ scale-info = { version = "2", default-features = false, features = ["derive"], o
 
 ark-ff = { version = "^0.3.0", default-features = false }
 ark-serialize = { version = "^0.3.0", default-features = false }
+ark-bls12-381 = { version = "^0.3.0", default-features = false, features = ["scalar_field"] }
 
 openbrush = { git = "https://github.com/Supercolony-net/openbrush-contracts", rev = "v2.3.0", default-features = false, features = ["psp22", "ownable"] }
 
@@ -44,6 +45,7 @@ std = [
     "scale/std",
     "scale-info/std",
 
+    "ark-bls12-381/std",
     "ark-ff/std",
     "ark-serialize/std",
 

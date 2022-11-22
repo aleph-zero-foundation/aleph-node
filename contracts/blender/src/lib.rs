@@ -25,6 +25,9 @@ type TokenAmount = u64;
 
 type Set<T> = Mapping<T, ()>;
 
+/// The field used in the circuits.
+type CircuitField = ark_bls12_381::Fr;
+
 /// Verification key identifier for the `deposit` relation (to be registered in `pallet_snarcos`).
 const DEPOSIT_VK_IDENTIFIER: VerificationKeyIdentifier = [b'd', b'p', b's', b't'];
 /// Verification key identifier for the `withdraw` relation (to be registered in `pallet_snarcos`).
