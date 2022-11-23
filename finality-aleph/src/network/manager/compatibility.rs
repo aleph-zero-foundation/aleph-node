@@ -130,34 +130,107 @@ impl Display for Error {
 
 #[cfg(test)]
 mod test {
+    use std::sync::Arc;
+
     use codec::{Decode, Encode};
+    use sp_keystore::testing::KeyStore;
 
     use super::{DiscoveryMessage, VersionedAuthentication};
     use crate::{
+        crypto::AuthorityVerifier,
         network::{
             manager::{compatibility::MAX_AUTHENTICATION_SIZE, SessionHandler},
-            mock::{crypto_basics, MockMultiaddress, MockNetworkIdentity},
+            mock::MockMultiaddress,
             NetworkIdentity,
         },
-        SessionId, Version,
+        nodes::testing::new_pen,
+        tcp_network::{testing::new_identity, TcpMultiaddress},
+        NodeIndex, SessionId, Version,
     };
 
-    #[tokio::test]
-    async fn correctly_decodes_v1() {
-        let crypto_basics = crypto_basics(1).await;
-        let handler = SessionHandler::new(
-            Some(crypto_basics.0[0].clone()),
-            crypto_basics.1.clone(),
-            SessionId(43),
-            MockNetworkIdentity::new().identity().0,
+    /// Session Handler used for generating versioned authentication in `raw_authentication_v1`
+    async fn handler() -> SessionHandler<TcpMultiaddress> {
+        let mnemonic = "ring cool spatial rookie need wing opinion pond fork garbage more april";
+        let external_addresses = vec![
+            String::from("addr1"),
+            String::from("addr2"),
+            String::from("addr3"),
+        ];
+
+        let keystore = Arc::new(KeyStore::new());
+        let pen = new_pen(mnemonic, keystore).await;
+        let identity = new_identity(
+            external_addresses.into_iter().map(String::from).collect(),
+            pen.authority_id(),
+        );
+
+        SessionHandler::new(
+            Some((NodeIndex(21), pen)),
+            AuthorityVerifier::new(vec![]),
+            SessionId(37),
+            identity.identity().0,
         )
         .await
-        .unwrap();
+        .unwrap()
+    }
+
+    /// Versioned authentication for authority with:
+    /// external_addresses: [String::from("addr1"), String::from("addr2"), String::from("addr3")]
+    /// derived from mnemonic "ring cool spatial rookie need wing opinion pond fork garbage more april"
+    /// for node index 21 and session id 37
+    /// encoded at version of Aleph Node from r-8.0
+    fn raw_authentication_v1() -> Vec<u8> {
+        vec![
+            1, 0, 192, 0, 1, 12, 50, 40, 192, 239, 72, 72, 119, 156, 76, 37, 212, 220, 76, 165, 39,
+            73, 20, 89, 77, 66, 171, 174, 61, 31, 254, 137, 186, 1, 7, 141, 187, 219, 20, 97, 100,
+            100, 114, 49, 50, 40, 192, 239, 72, 72, 119, 156, 76, 37, 212, 220, 76, 165, 39, 73,
+            20, 89, 77, 66, 171, 174, 61, 31, 254, 137, 186, 1, 7, 141, 187, 219, 20, 97, 100, 100,
+            114, 50, 50, 40, 192, 239, 72, 72, 119, 156, 76, 37, 212, 220, 76, 165, 39, 73, 20, 89,
+            77, 66, 171, 174, 61, 31, 254, 137, 186, 1, 7, 141, 187, 219, 20, 97, 100, 100, 114,
+            51, 21, 0, 0, 0, 0, 0, 0, 0, 37, 0, 0, 0, 166, 39, 166, 74, 57, 190, 80, 240, 169, 85,
+            240, 126, 250, 119, 54, 24, 244, 91, 199, 127, 32, 78, 52, 98, 159, 182, 227, 170, 251,
+            49, 47, 89, 13, 171, 79, 190, 220, 22, 65, 254, 25, 115, 232, 103, 177, 252, 161, 222,
+            74, 18, 216, 213, 105, 220, 223, 247, 221, 85, 31, 146, 177, 96, 254, 9,
+        ]
+    }
+
+    #[tokio::test]
+    async fn correcly_encodes_v1_to_bytes() {
+        let handler = handler().await;
+        let raw = raw_authentication_v1();
+
         let authentication_v1 = VersionedAuthentication::V1(DiscoveryMessage::Authentication(
             handler.authentication().unwrap(),
         ));
+
+        assert_eq!(authentication_v1.encode(), raw);
+    }
+
+    #[tokio::test]
+    async fn correcly_decodes_v1_from_bytes() {
+        let handler = handler().await;
+        let raw = raw_authentication_v1();
+
+        let authentication_v1 = VersionedAuthentication::V1(DiscoveryMessage::Authentication(
+            handler.authentication().unwrap(),
+        ));
+
+        let decoded = VersionedAuthentication::decode(&mut raw.as_slice());
+
+        assert_eq!(decoded, Ok(authentication_v1));
+    }
+
+    #[tokio::test]
+    async fn correctly_decodes_v1_roundtrip() {
+        let handler = handler().await;
+
+        let authentication_v1 = VersionedAuthentication::V1(DiscoveryMessage::Authentication(
+            handler.authentication().unwrap(),
+        ));
+
         let encoded = authentication_v1.encode();
         let decoded = VersionedAuthentication::decode(&mut encoded.as_slice());
+
         assert_eq!(decoded, Ok(authentication_v1))
     }
 

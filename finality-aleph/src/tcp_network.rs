@@ -127,6 +127,21 @@ impl NetworkIdentity for TcpNetworkIdentity {
     }
 }
 
+impl TcpNetworkIdentity {
+    fn new(external_addresses: Vec<String>, peer_id: AuthorityId) -> TcpNetworkIdentity {
+        TcpNetworkIdentity {
+            addresses: external_addresses
+                .into_iter()
+                .map(|address| TcpMultiaddress {
+                    peer_id: peer_id.clone(),
+                    address,
+                })
+                .collect(),
+            peer_id,
+        }
+    }
+}
+
 /// Create a new tcp network, including an identity that can be used for constructing
 /// authentications for other peers.
 pub async fn new_tcp_network<A: ToSocketAddrs>(
@@ -139,15 +154,21 @@ pub async fn new_tcp_network<A: ToSocketAddrs>(
     impl NetworkIdentity<Multiaddress = TcpMultiaddress, PeerId = AuthorityId>,
 )> {
     let listener = TcpListener::bind(listening_addresses).await?;
-    let identity = TcpNetworkIdentity {
-        addresses: external_addresses
-            .into_iter()
-            .map(|address| TcpMultiaddress {
-                peer_id: peer_id.clone(),
-                address,
-            })
-            .collect(),
-        peer_id,
-    };
+    let identity = TcpNetworkIdentity::new(external_addresses, peer_id);
     Ok((TcpDialer {}, listener, identity))
+}
+
+#[cfg(test)]
+pub mod testing {
+    use aleph_primitives::AuthorityId;
+
+    use super::{TcpMultiaddress, TcpNetworkIdentity};
+    use crate::network::NetworkIdentity;
+
+    pub fn new_identity(
+        external_addresses: Vec<String>,
+        peer_id: AuthorityId,
+    ) -> impl NetworkIdentity<Multiaddress = TcpMultiaddress, PeerId = AuthorityId> {
+        TcpNetworkIdentity::new(external_addresses, peer_id)
+    }
 }
