@@ -589,6 +589,7 @@ jobs:
         run: docker load -i cliain.tar
 
       - name: Call catchup_test.sh
+        timeout-minutes: 10
         env:
           UPGRADE_BLOCK: 31
           NODES: ${{ matrix.nodes }}
@@ -596,7 +597,6 @@ jobs:
           EXT_STATUS: ${{ matrix.ext_status }}
           UPGRADE_BEFORE_DISABLE: ${{ matrix.upgrade_before_disable }}
           DOCKER_COMPOSE: docker/docker-compose.bridged.yml
-
         run: |
           ./scripts/catchup_version_upgrade_test.sh
 
