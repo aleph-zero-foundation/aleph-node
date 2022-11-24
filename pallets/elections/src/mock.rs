@@ -4,7 +4,7 @@ use frame_election_provider_support::{data_provider, ElectionDataProvider, VoteW
 use frame_support::{
     construct_runtime, parameter_types, sp_io,
     traits::{ConstU32, GenesisBuild},
-    weights::RuntimeDbWeight,
+    weights::{RuntimeDbWeight, Weight},
     BasicExternalities, BoundedVec,
 };
 use primitives::{BanConfig, CommitteeSeats};
@@ -41,7 +41,7 @@ pub(crate) type Balance = u128;
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
     pub BlockWeights: frame_system::limits::BlockWeights =
-        frame_system::limits::BlockWeights::simple_max(1024);
+        frame_system::limits::BlockWeights::simple_max(Weight::from_ref_time(1024));
     pub const TestDbWeight: RuntimeDbWeight = RuntimeDbWeight {
         read: 25,
         write: 100

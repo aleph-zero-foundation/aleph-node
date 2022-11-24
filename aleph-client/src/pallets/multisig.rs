@@ -1,6 +1,9 @@
 use primitives::{Balance, BlockNumber};
 
-use crate::{api, api::runtime_types, AccountId, BlockHash, SignedConnection, TxStatus};
+use crate::{
+    api, api::runtime_types, frame_support::weights::weight_v2::Weight, AccountId, BlockHash,
+    SignedConnection, TxStatus,
+};
 
 pub type CallHash = [u8; 32];
 pub type Call = Vec<u8>;
@@ -14,7 +17,7 @@ pub trait MultisigUserApi {
         threshold: u16,
         other_signatories: Vec<AccountId>,
         timepoint: Option<Timepoint>,
-        max_weight: u64,
+        max_weight: Weight,
         call_hash: CallHash,
         status: TxStatus,
     ) -> anyhow::Result<BlockHash>;
@@ -35,7 +38,7 @@ impl MultisigUserApi for SignedConnection {
         threshold: u16,
         other_signatories: Vec<AccountId>,
         timepoint: Option<Timepoint>,
-        max_weight: u64,
+        max_weight: Weight,
         call_hash: CallHash,
         status: TxStatus,
     ) -> anyhow::Result<BlockHash> {

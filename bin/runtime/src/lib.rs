@@ -20,7 +20,7 @@ pub use frame_support::{
 };
 use frame_support::{
     sp_runtime::Perquintill,
-    traits::{ConstU32, ConstU64, EqualPrivilegeOnly, SortedMembers, U128CurrencyToVote},
+    traits::{ConstU32, EqualPrivilegeOnly, SortedMembers, U128CurrencyToVote},
     weights::constants::WEIGHT_PER_MILLIS,
     PalletId,
 };
@@ -108,7 +108,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 38,
+    spec_version: 40,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 13,
@@ -135,7 +135,7 @@ pub const PICO_AZERO: Balance = NANO_AZERO / 1000;
 pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 // The whole process for a single block should take 1s, of which 400ms is for creation,
 // 200ms for propagation and 400ms for validation. Hence the block weight should be within 400ms.
-pub const MAX_BLOCK_WEIGHT: Weight = 400 * WEIGHT_PER_MILLIS;
+pub const MAX_BLOCK_WEIGHT: Weight = WEIGHT_PER_MILLIS.saturating_mul(400);
 // We agreed to 5MB as the block size limit.
 pub const MAX_BLOCK_SIZE: u32 = 5 * 1024 * 1024;
 
@@ -648,10 +648,10 @@ parameter_types! {
     // Maximum size of the lazy deletion queue of terminated contracts.
     // The weight needed for decoding the queue should be less or equal than a tenth
     // of the overall weight dedicated to the lazy deletion.
-    pub DeletionQueueDepth: u32 = ((DeletionWeightLimit::get() / (
+    pub DeletionQueueDepth: u32 = (DeletionWeightLimit::get().saturating_div((
             <Runtime as pallet_contracts::Config>::WeightInfo::on_initialize_per_queue_item(1) -
             <Runtime as pallet_contracts::Config>::WeightInfo::on_initialize_per_queue_item(0)
-        )) / 10) as u32; // 2228
+        ).ref_time()) * 10).ref_time() as u32; // 2228
     pub Schedule: pallet_contracts::Schedule<Runtime> = Default::default();
 }
 
@@ -673,7 +673,7 @@ impl pallet_contracts::Config for Runtime {
     type Schedule = Schedule;
     type CallStack = [pallet_contracts::Frame<Self>; 31];
     type AddressGenerator = pallet_contracts::DefaultAddressGenerator;
-    type ContractAccessWeight = ConstU64<0>;
+    type ContractAccessWeight = pallet_contracts::DefaultContractAccessWeight<BlockWeights>;
     type MaxCodeLen = ConstU32<{ 128 * 1024 }>;
     type RelaxedMaxCodeLen = ConstU32<{ 256 * 1024 }>;
     type MaxStorageKeyLen = ConstU32<128>;
@@ -922,7 +922,7 @@ impl_runtime_apis! {
             storage_deposit_limit: Option<Balance>,
             input_data: Vec<u8>,
         ) -> ContractExecResult<Balance> {
-            Contracts::bare_call(origin, dest, value, gas_limit, storage_deposit_limit, input_data, CONTRACTS_DEBUG_OUTPUT)
+            Contracts::bare_call(origin, dest, value, Weight::from_ref_time(gas_limit), storage_deposit_limit, input_data, CONTRACTS_DEBUG_OUTPUT)
         }
 
         fn instantiate(
@@ -935,7 +935,7 @@ impl_runtime_apis! {
             salt: Vec<u8>,
         ) -> ContractInstantiateResult<AccountId, Balance>
         {
-            Contracts::bare_instantiate(origin, value, gas_limit, storage_deposit_limit, code, data, salt, CONTRACTS_DEBUG_OUTPUT)
+            Contracts::bare_instantiate(origin, value, Weight::from_ref_time(gas_limit), storage_deposit_limit, code, data, salt, CONTRACTS_DEBUG_OUTPUT)
         }
 
         fn upload_code(
@@ -957,17 +957,20 @@ impl_runtime_apis! {
     }
 
     #[cfg(feature = "try-runtime")]
-    impl frame_try_runtime::TryRuntime<Block> for Runtime {
-        fn on_runtime_upgrade() -> (frame_support::weights::Weight, frame_support::weights::Weight) {
-            log::info!(target: "aleph-runtime", "try-runtime::on_runtime_upgrade");
-            let weight = Executive::try_runtime_upgrade().unwrap();
-            (weight, BlockWeights::get().max_block)
-        }
+     impl frame_try_runtime::TryRuntime<Block> for Runtime {
+          fn on_runtime_upgrade() -> (Weight, Weight) {
+               let weight = Executive::try_runtime_upgrade().unwrap();
+               (weight, BlockWeights::get().max_block)
+          }
 
-        fn execute_block_no_check(block: Block) -> frame_support::weights::Weight {
-            Executive::execute_block_no_check(block)
+          fn execute_block(
+               block: Block,
+               state_root_check: bool,
+               select: frame_try_runtime::TryStateSelect
+          ) -> Weight {
+            Executive::try_execute_block(block, state_root_check, select).unwrap()
         }
-    }
+     }
 }
 
 #[cfg(test)]

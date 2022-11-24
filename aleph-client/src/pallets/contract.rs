@@ -7,8 +7,8 @@ use subxt::{
 };
 
 use crate::{
-    api, pallet_contracts::wasm::OwnerInfo, AccountId, BlockHash, Connection, SignedConnection,
-    TxStatus,
+    api, frame_support::weights::weight_v2::Weight, pallet_contracts::wasm::OwnerInfo, AccountId,
+    BlockHash, Connection, SignedConnection, TxStatus,
 };
 
 #[derive(Encode)]
@@ -16,7 +16,7 @@ pub struct ContractCallArgs {
     pub origin: AccountId,
     pub dest: AccountId,
     pub value: Balance,
-    pub gas_limit: u64,
+    pub gas_limit: Weight,
     pub storage_deposit_limit: Option<Balance>,
     pub input_data: Vec<u8>,
 }
@@ -43,7 +43,7 @@ pub trait ContractsUserApi {
         &self,
         code_hash: BlockHash,
         balance: Balance,
-        gas_limit: u64,
+        gas_limit: Weight,
         storage_limit: Option<Compact<u128>>,
         data: Vec<u8>,
         salt: Vec<u8>,
@@ -54,7 +54,7 @@ pub trait ContractsUserApi {
         &self,
         code: Vec<u8>,
         balance: Balance,
-        gas_limit: u64,
+        gas_limit: Weight,
         storage_limit: Option<Compact<u128>>,
         data: Vec<u8>,
         salt: Vec<u8>,
@@ -64,7 +64,7 @@ pub trait ContractsUserApi {
         &self,
         destination: AccountId,
         balance: Balance,
-        gas_limit: u64,
+        gas_limit: Weight,
         storage_limit: Option<Compact<u128>>,
         data: Vec<u8>,
         status: TxStatus,
@@ -111,7 +111,7 @@ impl ContractsUserApi for SignedConnection {
         &self,
         code_hash: BlockHash,
         balance: Balance,
-        gas_limit: u64,
+        gas_limit: Weight,
         storage_limit: Option<Compact<u128>>,
         data: Vec<u8>,
         salt: Vec<u8>,
@@ -133,7 +133,7 @@ impl ContractsUserApi for SignedConnection {
         &self,
         code: Vec<u8>,
         balance: Balance,
-        gas_limit: u64,
+        gas_limit: Weight,
         storage_limit: Option<Compact<u128>>,
         data: Vec<u8>,
         salt: Vec<u8>,
@@ -155,7 +155,7 @@ impl ContractsUserApi for SignedConnection {
         &self,
         destination: AccountId,
         balance: Balance,
-        gas_limit: u64,
+        gas_limit: Weight,
         storage_limit: Option<Compact<u128>>,
         data: Vec<u8>,
         status: TxStatus,

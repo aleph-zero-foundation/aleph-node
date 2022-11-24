@@ -1,6 +1,6 @@
 [package]
 name = "cliain"
-version = "0.6.0"
+version = "0.7.0"
 edition = "2021"
 license = "GPL-3.0-or-later"
 
@@ -16,11 +16,11 @@ env_logger = "0.8"
 hex = "0.4.3"
 ink_metadata = { version = "3.0", features = ["derive"] }
 log = "0.4"
-pallet-staking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.28" }
+pallet-staking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.29" }
 primitives = { path = "../../primitives" }
 serde = { version = "1.0.137", features = ["derive"] }
 serde_json = "1.0.81"
-sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.28", features = ["full_crypto"] }
+sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.29", features = ["full_crypto"] }
 tokio = { version = "1.21.2", features = ["full"] }
 subxt = "0.24.0"
 

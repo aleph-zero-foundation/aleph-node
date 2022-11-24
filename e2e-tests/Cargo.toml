@@ -1,6 +1,6 @@
 [package]
 name = "aleph-e2e-client"
-version = "0.9.0"
+version = "0.9.1"
 edition = "2021"
 license = "Apache 2.0"
 
@@ -16,12 +16,12 @@ rayon = "1.5"
 tokio = { version = "1.21.2", features = ["full"] }
 futures = "0.3.25"
 
-sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.28", default-features = false, features = ["full_crypto"] }
-sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.28", default-features = false }
-frame-support = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.28", default-features = false }
-system = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.28", package = "frame-system" }
-pallet-staking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.28", default-features = false }
-pallet-balances = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.28", default-features = false }
+sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.29", default-features = false, features = ["full_crypto"] }
+sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.29", default-features = false }
+frame-support = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.29", default-features = false }
+system = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.29", package = "frame-system" }
+pallet-staking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.29", default-features = false }
+pallet-balances = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.29", default-features = false }
 
 aleph_client = { path = "../aleph-client" }
 primitives = { path = "../primitives", features = ["short_session"], default-features = false }

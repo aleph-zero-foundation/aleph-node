@@ -5,6 +5,7 @@ use std::{
 
 use aleph_client::{
     api::contracts::events::{CodeRemoved, CodeStored, Instantiated},
+    frame_support::weights::weight_v2::Weight,
     pallet_contracts::wasm::OwnerInfo,
     pallets::contract::{ContractsApi, ContractsUserApi},
     waiting::{AlephWaiting, BlockStatus},
@@ -113,7 +114,7 @@ pub async fn instantiate(
         .instantiate(
             code_hash,
             balance,
-            gas_limit,
+            Weight::new(gas_limit),
             storage_deposit(storage_deposit_limit),
             data,
             vec![],
@@ -186,7 +187,7 @@ pub async fn instantiate_with_code(
         .instantiate_with_code(
             wasm,
             balance,
-            gas_limit,
+            Weight::new(gas_limit),
             storage_deposit(storage_deposit_limit),
             data,
             vec![],
@@ -231,7 +232,7 @@ pub async fn call(
         .call(
             destination,
             balance,
-            gas_limit,
+            Weight::new(gas_limit),
             storage_deposit(storage_deposit_limit),
             data,
             TxStatus::InBlock,
