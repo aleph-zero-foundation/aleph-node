@@ -3,15 +3,19 @@ use std::{io::Result as IoResult, net::ToSocketAddrs as _};
 use aleph_primitives::AuthorityId;
 use codec::{Decode, Encode};
 use log::info;
+use sp_core::crypto::KeyTypeId;
 use tokio::net::{
     tcp::{OwnedReadHalf, OwnedWriteHalf},
     TcpListener, TcpStream, ToSocketAddrs,
 };
 
 use crate::{
+    crypto::{verify, AuthorityPen, Signature},
     network::{Multiaddress, NetworkIdentity, PeerId},
-    validator_network::{ConnectionInfo, Dialer, Listener, Splittable},
+    validator_network::{ConnectionInfo, Dialer, Listener, PublicKey, SecretKey, Splittable},
 };
+
+pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"a0vn");
 
 impl ConnectionInfo for TcpStream {
     fn peer_address_info(&self) -> String {
@@ -65,6 +69,28 @@ impl Listener for TcpListener {
 }
 
 impl PeerId for AuthorityId {}
+
+impl PublicKey for AuthorityId {
+    type Signature = Signature;
+
+    fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool {
+        verify(self, message, signature)
+    }
+}
+
+#[async_trait::async_trait]
+impl SecretKey for AuthorityPen {
+    type Signature = Signature;
+    type PublicKey = AuthorityId;
+
+    async fn sign(&self, message: &[u8]) -> Self::Signature {
+        AuthorityPen::sign(self, message).await
+    }
+
+    fn public_key(&self) -> Self::PublicKey {
+        self.authority_id()
+    }
+}
 
 /// A representation of a single TCP address with an associated peer ID.
 #[derive(Debug, Hash, Encode, Decode, Clone, PartialEq, Eq)]

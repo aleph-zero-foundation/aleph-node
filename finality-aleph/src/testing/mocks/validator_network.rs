@@ -59,7 +59,7 @@ pub struct MockNetwork<D: Data> {
 }
 
 #[async_trait::async_trait]
-impl<D: Data> Network<MockMultiaddress, D> for MockNetwork<D> {
+impl<D: Data> Network<AuthorityId, MockMultiaddress, D> for MockNetwork<D> {
     fn add_connection(&mut self, peer: AuthorityId, addresses: Vec<MockMultiaddress>) {
         self.add_connection.send((peer, addresses));
     }

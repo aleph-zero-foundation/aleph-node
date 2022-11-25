@@ -3,35 +3,34 @@ use std::{
     fmt::{Display, Error as FmtError, Formatter},
 };
 
-use aleph_primitives::AuthorityId;
 use futures::channel::mpsc;
 
 use crate::{
     network::PeerId,
     validator_network::{
         manager::{AddResult, SendError},
-        Data,
+        Data, PublicKey,
     },
 };
 
 /// Network component responsible for holding the list of peers that we
 /// want to connect to, and managing the established connections.
-pub struct Manager<A: Data, D: Data> {
-    addresses: HashMap<AuthorityId, Vec<A>>,
-    outgoing: HashMap<AuthorityId, mpsc::UnboundedSender<D>>,
-    incoming: HashMap<AuthorityId, mpsc::UnboundedSender<D>>,
+pub struct Manager<PK: PublicKey + PeerId, A: Data, D: Data> {
+    addresses: HashMap<PK, Vec<A>>,
+    outgoing: HashMap<PK, mpsc::UnboundedSender<D>>,
+    incoming: HashMap<PK, mpsc::UnboundedSender<D>>,
 }
 
-struct ManagerStatus {
+struct ManagerStatus<PK: PublicKey + PeerId> {
     wanted_peers: usize,
-    both_ways_peers: HashSet<AuthorityId>,
-    outgoing_peers: HashSet<AuthorityId>,
-    incoming_peers: HashSet<AuthorityId>,
-    missing_peers: HashSet<AuthorityId>,
+    both_ways_peers: HashSet<PK>,
+    outgoing_peers: HashSet<PK>,
+    incoming_peers: HashSet<PK>,
+    missing_peers: HashSet<PK>,
 }
 
-impl ManagerStatus {
-    fn new<A: Data, D: Data>(manager: &Manager<A, D>) -> Self {
+impl<PK: PublicKey + PeerId> ManagerStatus<PK> {
+    fn new<A: Data, D: Data>(manager: &Manager<PK, A, D>) -> Self {
         let incoming: HashSet<_> = manager
             .incoming
             .iter()
@@ -65,7 +64,7 @@ impl ManagerStatus {
     }
 }
 
-impl Display for ManagerStatus {
+impl<PK: PublicKey + PeerId> Display for ManagerStatus<PK> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
         if self.wanted_peers == 0 {
             return write!(f, "not maintaining any connections; ");
@@ -81,7 +80,7 @@ impl Display for ManagerStatus {
             let peers = self
                 .both_ways_peers
                 .iter()
-                .map(|authority_id| authority_id.to_short_string())
+                .map(|peer_id| peer_id.to_short_string())
                 .collect::<Vec<_>>()
                 .join(", ");
             write!(
@@ -96,7 +95,7 @@ impl Display for ManagerStatus {
             let peers = self
                 .incoming_peers
                 .iter()
-                .map(|authority_id| authority_id.to_short_string())
+                .map(|peer_id| peer_id.to_short_string())
                 .collect::<Vec<_>>()
                 .join(", ");
             write!(
@@ -111,7 +110,7 @@ impl Display for ManagerStatus {
             let peers = self
                 .outgoing_peers
                 .iter()
-                .map(|authority_id| authority_id.to_short_string())
+                .map(|peer_id| peer_id.to_short_string())
                 .collect::<Vec<_>>()
                 .join(", ");
             write!(
@@ -126,7 +125,7 @@ impl Display for ManagerStatus {
             let peers = self
                 .missing_peers
                 .iter()
-                .map(|authority_id| authority_id.to_short_string())
+                .map(|peer_id| peer_id.to_short_string())
                 .collect::<Vec<_>>()
                 .join(", ");
             write!(f, "missing - {:?} [{}];", self.missing_peers.len(), peers)?;
@@ -136,7 +135,7 @@ impl Display for ManagerStatus {
     }
 }
 
-impl<A: Data, D: Data> Manager<A, D> {
+impl<PK: PublicKey + PeerId, A: Data, D: Data> Manager<PK, A, D> {
     /// Create a new Manager with empty list of peers.
     pub fn new() -> Self {
         Manager {
@@ -149,13 +148,13 @@ impl<A: Data, D: Data> Manager<A, D> {
     /// Add a peer to the list of peers we want to stay connected to, or
     /// update the list of addresses if the peer was already added.
     /// Returns whether this peer is a new peer.
-    pub fn add_peer(&mut self, peer_id: AuthorityId, addresses: Vec<A>) -> bool {
+    pub fn add_peer(&mut self, peer_id: PK, addresses: Vec<A>) -> bool {
         self.addresses.insert(peer_id, addresses).is_none()
     }
 
     /// Return Option containing addresses of the given peer, or None if
     /// the peer is unknown.
-    pub fn peer_addresses(&self, peer_id: &AuthorityId) -> Option<Vec<A>> {
+    pub fn peer_addresses(&self, peer_id: &PK) -> Option<Vec<A>> {
         self.addresses.get(peer_id).cloned()
     }
 
@@ -163,7 +162,7 @@ impl<A: Data, D: Data> Manager<A, D> {
     /// but only if the peer is on the list of peers that we want to stay connected with.
     pub fn add_outgoing(
         &mut self,
-        peer_id: AuthorityId,
+        peer_id: PK,
         data_for_network: mpsc::UnboundedSender<D>,
     ) -> AddResult {
         use AddResult::*;
@@ -178,11 +177,7 @@ impl<A: Data, D: Data> Manager<A, D> {
 
     /// Add an established incoming connection with a known peer,
     /// but only if the peer is on the list of peers that we want to stay connected with.
-    pub fn add_incoming(
-        &mut self,
-        peer_id: AuthorityId,
-        exit: mpsc::UnboundedSender<D>,
-    ) -> AddResult {
+    pub fn add_incoming(&mut self, peer_id: PK, exit: mpsc::UnboundedSender<D>) -> AddResult {
         use AddResult::*;
         if !self.addresses.contains_key(&peer_id) {
             return Uninterested;
@@ -195,7 +190,7 @@ impl<A: Data, D: Data> Manager<A, D> {
 
     /// Remove a peer from the list of peers that we want to stay connected with.
     /// Close any incoming and outgoing connections that were established.
-    pub fn remove_peer(&mut self, peer_id: &AuthorityId) {
+    pub fn remove_peer(&mut self, peer_id: &PK) {
         self.addresses.remove(peer_id);
         self.incoming.remove(peer_id);
         self.outgoing.remove(peer_id);
@@ -204,7 +199,7 @@ impl<A: Data, D: Data> Manager<A, D> {
     /// Send data to a peer.
     /// Returns error if there is no outgoing connection to the peer,
     /// or if the connection is dead.
-    pub fn send_to(&mut self, peer_id: &AuthorityId, data: D) -> Result<(), SendError> {
+    pub fn send_to(&mut self, peer_id: &PK, data: D) -> Result<(), SendError> {
         self.outgoing
             .get(peer_id)
             .ok_or(SendError::PeerNotFound)?
@@ -220,6 +215,7 @@ impl<A: Data, D: Data> Manager<A, D> {
 
 #[cfg(test)]
 mod tests {
+    use aleph_primitives::AuthorityId;
     use futures::{channel::mpsc, StreamExt};
 
     use super::{AddResult::*, Manager, SendError};
@@ -230,7 +226,7 @@ mod tests {
 
     #[tokio::test]
     async fn add_remove() {
-        let mut manager = Manager::<Address, Data>::new();
+        let mut manager = Manager::<AuthorityId, Address, Data>::new();
         let (peer_id, _) = key().await;
         let (peer_id_b, _) = key().await;
         let addresses = vec![
@@ -254,7 +250,7 @@ mod tests {
 
     #[tokio::test]
     async fn outgoing() {
-        let mut manager = Manager::<Address, Data>::new();
+        let mut manager = Manager::<AuthorityId, Address, Data>::new();
         let data = String::from("DATA");
         let (peer_id, _) = key().await;
         let addresses = vec![
@@ -285,7 +281,7 @@ mod tests {
 
     #[tokio::test]
     async fn incoming() {
-        let mut manager = Manager::<Address, Data>::new();
+        let mut manager = Manager::<AuthorityId, Address, Data>::new();
         let (peer_id, _) = key().await;
         let addresses = vec![
             String::from(""),

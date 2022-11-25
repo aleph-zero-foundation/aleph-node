@@ -1,18 +1,14 @@
-use aleph_primitives::AuthorityId;
 use futures::{channel::mpsc, StreamExt};
 use log::{debug, info, trace};
 use tokio::io::{AsyncRead, AsyncWrite};
 
-use crate::{
-    crypto::AuthorityPen,
-    validator_network::{
-        io::{receive_data, send_data},
-        protocols::{
-            handshake::{v0_handshake_incoming, v0_handshake_outgoing},
-            ConnectionType, ProtocolError, ResultForService,
-        },
-        Data, Splittable,
+use crate::validator_network::{
+    io::{receive_data, send_data},
+    protocols::{
+        handshake::{v0_handshake_incoming, v0_handshake_outgoing},
+        ConnectionType, ProtocolError, ResultForService,
     },
+    Data, PublicKey, SecretKey, Splittable,
 };
 
 mod heartbeat;
@@ -21,10 +17,10 @@ use heartbeat::{heartbeat_receiver, heartbeat_sender};
 
 /// Receives data from the parent service and sends it over the network.
 /// Exits when the parent channel is closed, or if the network connection is broken.
-async fn sending<D: Data, S: AsyncWrite + Unpin + Send>(
+async fn sending<PK: PublicKey, D: Data, S: AsyncWrite + Unpin + Send>(
     mut sender: S,
     mut data_from_user: mpsc::UnboundedReceiver<D>,
-) -> Result<(), ProtocolError> {
+) -> Result<(), ProtocolError<PK>> {
     loop {
         sender = match data_from_user.next().await {
             Some(data) => send_data(sender, data).await?,
@@ -36,19 +32,19 @@ async fn sending<D: Data, S: AsyncWrite + Unpin + Send>(
 
 /// Performs the handshake, and then keeps sending data received from the parent service.
 /// Exits on parent request, or in case of broken or dead network connection.
-pub async fn outgoing<D: Data, S: Splittable>(
+pub async fn outgoing<SK: SecretKey, D: Data, S: Splittable>(
     stream: S,
-    authority_pen: AuthorityPen,
-    peer_id: AuthorityId,
-    result_for_parent: mpsc::UnboundedSender<ResultForService<D>>,
-) -> Result<(), ProtocolError> {
-    trace!(target: "validator-network", "Extending hand to {}.", peer_id);
-    let (sender, receiver) = v0_handshake_outgoing(stream, authority_pen, peer_id.clone()).await?;
-    info!(target: "validator-network", "Outgoing handshake with {} finished successfully.", peer_id);
+    secret_key: SK,
+    public_key: SK::PublicKey,
+    result_for_parent: mpsc::UnboundedSender<ResultForService<SK::PublicKey, D>>,
+) -> Result<(), ProtocolError<SK::PublicKey>> {
+    trace!(target: "validator-network", "Extending hand to {}.", public_key);
+    let (sender, receiver) = v0_handshake_outgoing(stream, secret_key, public_key.clone()).await?;
+    info!(target: "validator-network", "Outgoing handshake with {} finished successfully.", public_key);
     let (data_for_network, data_from_user) = mpsc::unbounded();
     result_for_parent
         .unbounded_send((
-            peer_id.clone(),
+            public_key.clone(),
             Some(data_for_network),
             ConnectionType::LegacyOutgoing,
         ))
@@ -57,7 +53,7 @@ pub async fn outgoing<D: Data, S: Splittable>(
     let sending = sending(sender, data_from_user);
     let heartbeat = heartbeat_receiver(receiver);
 
-    debug!(target: "validator-network", "Starting worker for sending to {}.", peer_id);
+    debug!(target: "validator-network", "Starting worker for sending to {}.", public_key);
     loop {
         tokio::select! {
             _ = heartbeat => return Err(ProtocolError::CardiacArrest),
@@ -68,10 +64,10 @@ pub async fn outgoing<D: Data, S: Splittable>(
 
 /// Receives data from the network and sends it to the parent service.
 /// Exits when the parent channel is closed, or if the network connection is broken.
-async fn receiving<D: Data, S: AsyncRead + Unpin + Send>(
+async fn receiving<PK: PublicKey, D: Data, S: AsyncRead + Unpin + Send>(
     mut stream: S,
     data_for_user: mpsc::UnboundedSender<D>,
-) -> Result<(), ProtocolError> {
+) -> Result<(), ProtocolError<PK>> {
     loop {
         let (old_stream, data) = receive_data(stream).await?;
         stream = old_stream;
@@ -83,20 +79,20 @@ async fn receiving<D: Data, S: AsyncRead + Unpin + Send>(
 
 /// Performs the handshake, and then keeps sending data received from the network to the parent service.
 /// Exits on parent request, or in case of broken or dead network connection.
-pub async fn incoming<D: Data, S: Splittable>(
+pub async fn incoming<SK: SecretKey, D: Data, S: Splittable>(
     stream: S,
-    authority_pen: AuthorityPen,
-    result_for_parent: mpsc::UnboundedSender<ResultForService<D>>,
+    secret_key: SK,
+    result_for_parent: mpsc::UnboundedSender<ResultForService<SK::PublicKey, D>>,
     data_for_user: mpsc::UnboundedSender<D>,
-) -> Result<(), ProtocolError> {
+) -> Result<(), ProtocolError<SK::PublicKey>> {
     trace!(target: "validator-network", "Waiting for extended hand...");
-    let (sender, receiver, peer_id) = v0_handshake_incoming(stream, authority_pen).await?;
-    info!(target: "validator-network", "Incoming handshake with {} finished successfully.", peer_id);
+    let (sender, receiver, public_key) = v0_handshake_incoming(stream, secret_key).await?;
+    info!(target: "validator-network", "Incoming handshake with {} finished successfully.", public_key);
 
     let (tx_exit, mut exit) = mpsc::unbounded();
     result_for_parent
         .unbounded_send((
-            peer_id.clone(),
+            public_key.clone(),
             Some(tx_exit),
             ConnectionType::LegacyIncoming,
         ))
@@ -105,7 +101,7 @@ pub async fn incoming<D: Data, S: Splittable>(
     let receiving = receiving(receiver, data_for_user);
     let heartbeat = heartbeat_sender(sender);
 
-    debug!(target: "validator-network", "Starting worker for receiving from {}.", peer_id);
+    debug!(target: "validator-network", "Starting worker for receiving from {}.", public_key);
     loop {
         tokio::select! {
             _ = heartbeat => return Err(ProtocolError::CardiacArrest),
@@ -138,11 +134,11 @@ mod tests {
         AuthorityPen,
         AuthorityId,
         AuthorityPen,
-        impl futures::Future<Output = Result<(), ProtocolError>>,
-        impl futures::Future<Output = Result<(), ProtocolError>>,
+        impl futures::Future<Output = Result<(), ProtocolError<AuthorityId>>>,
+        impl futures::Future<Output = Result<(), ProtocolError<AuthorityId>>>,
         UnboundedReceiver<D>,
-        UnboundedReceiver<ResultForService<D>>,
-        UnboundedReceiver<ResultForService<D>>,
+        UnboundedReceiver<ResultForService<AuthorityId, D>>,
+        UnboundedReceiver<ResultForService<AuthorityId, D>>,
     ) {
         let (stream_incoming, stream_outgoing) = MockSplittable::new(4096);
         let (id_incoming, pen_incoming) = key().await;

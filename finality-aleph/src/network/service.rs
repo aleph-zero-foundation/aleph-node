@@ -4,7 +4,6 @@ use std::{
     iter,
 };
 
-use aleph_primitives::AuthorityId;
 use futures::{channel::mpsc, StreamExt};
 use log::{debug, error, info, trace, warn};
 use sc_service::SpawnTaskHandle;
@@ -16,7 +15,7 @@ use crate::{
         AddressedData, ConnectionCommand, Data, Event, EventStream, Multiaddress, Network,
         NetworkSender, Protocol,
     },
-    validator_network::Network as ValidatorNetwork,
+    validator_network::{Network as ValidatorNetwork, PublicKey},
     STATUS_REPORT_INTERVAL,
 };
 
@@ -33,9 +32,11 @@ pub struct Service<
     N: Network,
     D: Data,
     VD: Data,
-    A: Data + Multiaddress<PeerId = AuthorityId>,
-    VN: ValidatorNetwork<A, VD>,
-> {
+    A: Data + Multiaddress,
+    VN: ValidatorNetwork<A::PeerId, A, VD>,
+> where
+    A::PeerId: PublicKey,
+{
     network: N,
     validator_network: VN,
     data_from_user: mpsc::UnboundedReceiver<AddressedData<VD, A::PeerId>>,
@@ -85,9 +86,11 @@ impl<
         N: Network,
         D: Data,
         VD: Data,
-        A: Data + Multiaddress<PeerId = AuthorityId>,
-        VN: ValidatorNetwork<A, VD>,
+        A: Data + Multiaddress,
+        VN: ValidatorNetwork<A::PeerId, A, VD>,
     > Service<N, D, VD, A, VN>
+where
+    A::PeerId: PublicKey,
 {
     pub fn new(
         network: N,

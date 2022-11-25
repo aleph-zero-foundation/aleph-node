@@ -22,8 +22,8 @@ use crate::{
         ConsensusParty, ConsensusPartyParams,
     },
     session_map::{AuthorityProviderImpl, FinalityNotificatorImpl, SessionMapUpdater},
-    tcp_network::new_tcp_network,
-    validator_network::{Service, KEY_TYPE},
+    tcp_network::{new_tcp_network, KEY_TYPE},
+    validator_network::Service,
     AlephConfig,
 };
 
