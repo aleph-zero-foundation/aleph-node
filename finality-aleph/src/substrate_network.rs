@@ -5,12 +5,13 @@ use futures::stream::{Stream, StreamExt};
 use log::error;
 use sc_consensus::JustificationSyncLink;
 use sc_network::{
-    multiaddr::Protocol as MultiaddressProtocol, Event as SubstrateEvent, ExHashT, Multiaddr,
+    multiaddr::Protocol as MultiaddressProtocol, Event as SubstrateEvent, Multiaddr,
     NetworkService, NetworkSyncForkRequest, PeerId,
 };
 use sc_network_common::{
     protocol::ProtocolName,
     service::{NetworkEventStream as _, NetworkNotification, NetworkPeers, NotificationSender},
+    ExHashT,
 };
 use sp_api::NumberFor;
 use sp_consensus::SyncOracle;

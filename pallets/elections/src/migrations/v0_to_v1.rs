@@ -83,17 +83,17 @@ impl<T: Config, P: PalletInfoAccess> OnRuntimeUpgrade for Migration<T, P> {
     }
 
     #[cfg(feature = "try-runtime")]
-    fn pre_upgrade() -> Result<(), &'static str> {
+    fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
         ensure_storage_version::<P>(0)?;
 
         let members = Members::<T>::get().ok_or("No `Members` storage")?;
         Self::store_temp("members", members);
 
-        Ok(())
+        Ok(Vec::new())
     }
 
     #[cfg(feature = "try-runtime")]
-    fn post_upgrade() -> Result<(), &'static str> {
+    fn post_upgrade(_state: Vec<u8>) -> Result<(), &'static str> {
         ensure_storage_version::<P>(1)?;
 
         let mps = MembersPerSession::get().ok_or("No `MembersPerSession` in the storage")?;

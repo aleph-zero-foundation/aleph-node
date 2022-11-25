@@ -10,7 +10,8 @@ use futures::{
 };
 use sc_client_api::{backend::Backend, BlockchainEvents, Finalizer, LockImportRun, TransactionFor};
 use sc_consensus::BlockImport;
-use sc_network::{ExHashT, NetworkService};
+use sc_network::NetworkService;
+use sc_network_common::ExHashT;
 use sc_service::SpawnTaskHandle;
 use sp_api::{NumberFor, ProvideRuntimeApi};
 use sp_blockchain::{HeaderBackend, HeaderMetadata};
@@ -70,10 +71,10 @@ enum Error {
 }
 
 /// Returns a NonDefaultSetConfig for the specified protocol.
-pub fn peers_set_config(protocol: Protocol) -> sc_network::config::NonDefaultSetConfig {
+pub fn peers_set_config(protocol: Protocol) -> sc_network_common::config::NonDefaultSetConfig {
     let name = protocol_name(&protocol);
 
-    let mut config = sc_network::config::NonDefaultSetConfig::new(
+    let mut config = sc_network_common::config::NonDefaultSetConfig::new(
         name,
         // max_notification_size should be larger than the maximum possible honest message size (in bytes).
         // Max size of alert is UNIT_SIZE * MAX_UNITS_IN_ALERT ~ 100 * 5000 = 50000 bytes
@@ -83,7 +84,7 @@ pub fn peers_set_config(protocol: Protocol) -> sc_network::config::NonDefaultSet
     );
 
     config.set_config = match protocol {
-        Protocol::Authentication => sc_network::config::SetConfig::default(),
+        Protocol::Authentication => sc_network_common::config::SetConfig::default(),
     };
     config
 }

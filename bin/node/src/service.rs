@@ -13,7 +13,6 @@ use finality_aleph::{
 };
 use futures::channel::mpsc;
 use log::warn;
-use sc_client_api::ExecutorProvider;
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
 use sc_network::NetworkService;
 use sc_service::{
@@ -128,7 +127,7 @@ pub fn new_partial(
 
     let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
 
-    let import_queue = sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _, _>(
+    let import_queue = sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _>(
         ImportQueueParams {
             block_import: aleph_block_import.clone(),
             justification_import: Some(Box::new(aleph_block_import.clone())),
@@ -142,13 +141,10 @@ pub fn new_partial(
                         slot_duration,
                     );
 
-                Ok((timestamp, slot))
+                Ok((slot, timestamp))
             },
             spawner: &task_manager.spawn_essential_handle(),
             registry: config.prometheus_registry(),
-            can_author_with: sp_consensus::CanAuthorWithNativeVersion::new(
-                client.executor().clone(),
-            ),
             check_for_equivocation: Default::default(),
             telemetry: telemetry.as_ref().map(|x| x.handle()),
         },
@@ -197,7 +193,7 @@ fn setup(
         .extra_sets
         .push(finality_aleph::peers_set_config(Protocol::Authentication));
 
-    let (network, system_rpc_tx, network_starter) =
+    let (network, system_rpc_tx, tx_handler_controller, network_starter) =
         sc_service::build_network(sc_service::BuildNetworkParams {
             config: &config,
             client: client.clone(),
@@ -233,6 +229,7 @@ fn setup(
         rpc_builder,
         backend,
         system_rpc_tx,
+        tx_handler_controller,
         config,
         telemetry: telemetry.as_mut(),
     })?;
@@ -304,11 +301,9 @@ pub fn new_authority(
     );
     proposer_factory.set_default_block_size_limit(MAX_BLOCK_SIZE as usize);
 
-    let can_author_with = sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
-
     let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
 
-    let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _, _, _, _, _, _>(
+    let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _, _, _, _, _>(
         StartAuraParams {
             slot_duration,
             client: client.clone(),
@@ -324,12 +319,11 @@ pub fn new_authority(
                         slot_duration,
                     );
 
-                Ok((timestamp, slot))
+                Ok((slot, timestamp))
             },
             force_authoring,
             backoff_authoring_blocks,
             keystore: keystore_container.sync_keystore(),
-            can_author_with,
             sync_oracle: network.clone(),
             justification_sync_link: network.clone(),
             block_proposal_slot_portion: SlotProportion::new(2f32 / 3f32),

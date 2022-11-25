@@ -79,7 +79,7 @@ impl<T: Config, P: PalletInfoAccess> OnRuntimeUpgrade for Migration<T, P> {
     }
 
     #[cfg(feature = "try-runtime")]
-    fn pre_upgrade() -> Result<(), &'static str> {
+    fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
         #[storage_alias]
         type SessionForValidatorsChange = StorageValue<Aleph, Option<SessionIndex>>;
         #[storage_alias]
@@ -90,11 +90,11 @@ impl<T: Config, P: PalletInfoAccess> OnRuntimeUpgrade for Migration<T, P> {
         Self::store_temp("session", SessionForValidatorsChange::get());
         Self::store_temp("validators", Validators::<T>::get());
 
-        Ok(())
+        Ok(Vec::new())
     }
 
     #[cfg(feature = "try-runtime")]
-    fn post_upgrade() -> Result<(), &'static str> {
+    fn post_upgrade(_state: Vec<u8>) -> Result<(), &'static str> {
         ensure_storage_version::<P>(1)?;
 
         let new_session = SessionForValidatorsChange::get();

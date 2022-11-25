@@ -8,6 +8,8 @@ use frame_support::{
 #[cfg(feature = "try-runtime")]
 use pallets_support::ensure_storage_version;
 use pallets_support::StorageMigration;
+#[cfg(feature = "try-runtime")]
+use sp_std::vec::Vec;
 
 use crate::Config;
 
@@ -81,12 +83,13 @@ impl<T: Config, P: PalletInfoAccess> OnRuntimeUpgrade for Migration<T, P> {
     }
 
     #[cfg(feature = "try-runtime")]
-    fn pre_upgrade() -> Result<(), &'static str> {
-        ensure_storage_version::<P>(1)
+    fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
+        ensure_storage_version::<P>(1)?;
+        Ok(Vec::new())
     }
 
     #[cfg(feature = "try-runtime")]
-    fn post_upgrade() -> Result<(), &'static str> {
+    fn post_upgrade(_state: Vec<u8>) -> Result<(), &'static str> {
         ensure_storage_version::<P>(2)?;
 
         ensure!(

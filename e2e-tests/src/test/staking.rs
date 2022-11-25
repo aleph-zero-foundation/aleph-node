@@ -9,7 +9,7 @@ use aleph_client::{
         staking::{StakingApi, StakingUserApi},
     },
     primitives::CommitteeSeats,
-    sp_runtime::bounded::bounded_vec::BoundedVec,
+    sp_core::bounded::bounded_vec::BoundedVec,
     waiting::{BlockStatus, WaitingExt},
     AccountId, KeyPair, Pair, SignedConnection, TxStatus,
 };
@@ -194,7 +194,7 @@ pub async fn staking_new_validator(config: &Config) -> anyhow::Result<()> {
             total: MIN_VALIDATOR_BOND,
             active: MIN_VALIDATOR_BOND,
             unlocking: BoundedVec(vec![]),
-            claimed_rewards: vec![],
+            claimed_rewards: BoundedVec(vec![]),
         }
     );
 

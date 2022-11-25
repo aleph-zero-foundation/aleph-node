@@ -5,9 +5,9 @@ use std::{
 
 use aleph_client::{
     api::contracts::events::{CodeRemoved, CodeStored, Instantiated},
-    frame_support::weights::weight_v2::Weight,
     pallet_contracts::wasm::OwnerInfo,
     pallets::contract::{ContractsApi, ContractsUserApi},
+    sp_weights::weight_v2::Weight,
     waiting::{AlephWaiting, BlockStatus},
     AccountId, Connection, SignedConnection, TxStatus,
 };

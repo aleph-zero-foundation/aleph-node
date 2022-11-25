@@ -5,7 +5,7 @@ use aleph_client::{
         staking::StakingApi,
     },
     primitives::{BanInfo, BanReason},
-    sp_runtime::bounded::bounded_vec::BoundedVec,
+    sp_core::bounded::bounded_vec::BoundedVec,
     waiting::{BlockStatus, WaitingExt},
     SignedConnection, TxStatus,
 };

@@ -17,6 +17,11 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
 
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          version: '3.6.1'
+
       - name: Cargo | Build release binary
         run: |
           cd ./bin/cliain && cargo build --release

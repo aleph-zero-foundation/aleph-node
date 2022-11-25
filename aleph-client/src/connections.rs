@@ -12,9 +12,7 @@ use subxt::{
     SubstrateConfig,
 };
 
-use crate::{
-    api, frame_support::weights::weight_v2::Weight, BlockHash, Call, Client, KeyPair, TxStatus,
-};
+use crate::{api, sp_weights::weight_v2::Weight, BlockHash, Call, Client, KeyPair, TxStatus};
 
 #[derive(Clone)]
 pub struct Connection {

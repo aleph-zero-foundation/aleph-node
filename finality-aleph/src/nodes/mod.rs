@@ -8,7 +8,8 @@ use codec::Encode;
 use log::warn;
 pub use nonvalidator_node::run_nonvalidator_node;
 use sc_client_api::Backend;
-use sc_network::{ExHashT, NetworkService};
+use sc_network::NetworkService;
+use sc_network_common::ExHashT;
 use sp_runtime::{
     traits::{Block, Header, NumberFor},
     RuntimeAppPublic,

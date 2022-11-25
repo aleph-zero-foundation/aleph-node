@@ -1,8 +1,8 @@
 use primitives::{Balance, BlockNumber};
 
 use crate::{
-    api, api::runtime_types, frame_support::weights::weight_v2::Weight, AccountId, BlockHash,
-    SignedConnection, TxStatus,
+    api, api::runtime_types, sp_weights::weight_v2::Weight, AccountId, BlockHash, SignedConnection,
+    TxStatus,
 };
 
 pub type CallHash = [u8; 32];

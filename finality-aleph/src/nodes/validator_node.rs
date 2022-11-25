@@ -4,7 +4,7 @@ use bip39::{Language, Mnemonic, MnemonicType};
 use futures::channel::oneshot;
 use log::{debug, error};
 use sc_client_api::Backend;
-use sc_network::ExHashT;
+use sc_network_common::ExHashT;
 use sp_consensus::SelectChain;
 use sp_keystore::CryptoStore;
 use sp_runtime::traits::Block;

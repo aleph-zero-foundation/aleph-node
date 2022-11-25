@@ -27,6 +27,11 @@ jobs:
       - name: Install Rust Toolchain
         uses: actions-rs/toolchain@v1
 
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          version: '3.6.1'        
+
       - name: Install clippy and fmt
         run: rustup component add clippy rustfmt
 

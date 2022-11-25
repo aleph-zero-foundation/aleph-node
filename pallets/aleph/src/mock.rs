@@ -55,8 +55,8 @@ impl frame_system::Config for Test {
     type BaseCallFilter = frame_support::traits::Everything;
     type BlockWeights = ();
     type BlockLength = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = u64;
     type Hash = H256;
@@ -64,7 +64,7 @@ impl frame_system::Config for Test {
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type DbWeight = TestDbWeight;
     type Version = ();
@@ -92,7 +92,7 @@ impl pallet_balances::Config for Test {
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
     type DustRemoval = ();
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = ();
@@ -100,7 +100,7 @@ impl pallet_balances::Config for Test {
 }
 
 impl pallet_session::Config for Test {
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type ValidatorId = u64;
     type ValidatorIdOf = ConvertInto;
     type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
@@ -113,10 +113,10 @@ impl pallet_session::Config for Test {
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
 where
-    Call: From<C>,
+    RuntimeCall: From<C>,
 {
-    type Extrinsic = TestXt<Call, ()>;
-    type OverarchingCall = Call;
+    type Extrinsic = TestXt<RuntimeCall, ()>;
+    type OverarchingCall = RuntimeCall;
 }
 
 parameter_types! {
@@ -132,7 +132,7 @@ impl pallet_timestamp::Config for Test {
 
 impl Config for Test {
     type AuthorityId = AuthorityId;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type SessionInfoProvider = Session;
     type SessionManager = ();
 }

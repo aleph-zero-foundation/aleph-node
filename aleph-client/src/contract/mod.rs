@@ -58,8 +58,8 @@ use ink_metadata::{InkProject, MetadataVersioned};
 use serde_json::{from_reader, from_value};
 
 use crate::{
-    frame_support::weights::weight_v2::Weight,
     pallets::contract::{ContractCallArgs, ContractRpc, ContractsUserApi},
+    sp_weights::weight_v2::Weight,
     AccountId, Connection, SignedConnection, TxStatus,
 };
 

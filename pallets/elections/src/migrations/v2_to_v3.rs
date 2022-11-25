@@ -9,6 +9,8 @@ use frame_support::{
 use pallets_support::ensure_storage_version;
 use pallets_support::StorageMigration;
 use primitives::CommitteeSeats;
+#[cfg(feature = "try-runtime")]
+use sp_std::vec::Vec;
 
 use crate::{migrations::Validators, Config, EraValidators};
 
@@ -97,7 +99,7 @@ impl<T: Config, P: PalletInfoAccess> OnRuntimeUpgrade for Migration<T, P> {
     }
 
     #[cfg(feature = "try-runtime")]
-    fn pre_upgrade() -> Result<(), &'static str> {
+    fn pre_upgrade() -> Result<Vec<u8>, &'static str> {
         #[storage_alias]
         type CommitteeSize = StorageValue<Elections, u32>;
         #[storage_alias]
@@ -111,11 +113,11 @@ impl<T: Config, P: PalletInfoAccess> OnRuntimeUpgrade for Migration<T, P> {
         let next_era_committee_size = NextEraCommitteeSize::get();
         Self::store_temp("next_era_committee_size", next_era_committee_size);
 
-        Ok(())
+        Ok(Vec::new())
     }
 
     #[cfg(feature = "try-runtime")]
-    fn post_upgrade() -> Result<(), &'static str> {
+    fn post_upgrade(_state: Vec<u8>) -> Result<(), &'static str> {
         ensure_storage_version::<P>(3)?;
 
         let new_committee_size = CommitteeSize::get().ok_or("No `CommitteeSize` in the storage")?;

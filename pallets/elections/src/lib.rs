@@ -85,7 +85,7 @@ pub mod pallet {
     pub trait Config: frame_system::Config {
         /// Something that provides information about ongoing eras.
         type EraInfoProvider: EraInfoProvider<AccountId = Self::AccountId>;
-        type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Something that provides data for elections.
         type DataProvider: ElectionDataProvider<
             AccountId = Self::AccountId,
@@ -540,6 +540,10 @@ pub mod pallet {
             }
 
             Ok(supports.into_iter().collect())
+        }
+
+        fn ongoing() -> bool {
+            false
         }
     }
 }
