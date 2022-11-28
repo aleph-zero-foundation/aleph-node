@@ -1,12 +1,8 @@
-use std::{
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::time::{Duration, Instant};
 
 use futures::{channel::mpsc, Stream, StreamExt};
 use futures_timer::Delay;
 use log::{debug, error};
-use sc_client_api::HeaderBackend;
 use sp_api::BlockT;
 use sp_runtime::traits::Header;
 use tokio::time::timeout;
@@ -17,53 +13,52 @@ use crate::{
         requester::BlockRequester, JustificationHandlerConfig, JustificationNotification,
         JustificationRequestScheduler, SessionInfo, SessionInfoProvider, Verifier,
     },
-    network, Metrics, STATUS_REPORT_INTERVAL,
+    network, BlockchainBackend, Metrics, STATUS_REPORT_INTERVAL,
 };
 
-pub struct JustificationHandler<B, V, RB, C, S, SI, F>
+pub struct JustificationHandler<B, V, RB, S, SI, F, BB>
 where
     B: BlockT,
     V: Verifier<B>,
     RB: network::RequestBlocks<B> + 'static,
-    C: HeaderBackend<B> + Send + Sync + 'static,
     S: JustificationRequestScheduler,
     SI: SessionInfoProvider<B, V>,
     F: BlockFinalizer<B>,
+    BB: BlockchainBackend<B> + 'static,
 {
     session_info_provider: SI,
-    block_requester: BlockRequester<B, RB, C, S, F, V>,
+    block_requester: BlockRequester<B, RB, S, F, V, BB>,
     verifier_timeout: Duration,
     notification_timeout: Duration,
 }
 
-impl<B, V, RB, C, S, SI, F> JustificationHandler<B, V, RB, C, S, SI, F>
+impl<B, V, RB, S, SI, F, BB> JustificationHandler<B, V, RB, S, SI, F, BB>
 where
     B: BlockT,
     V: Verifier<B>,
     RB: network::RequestBlocks<B> + 'static,
-    C: HeaderBackend<B> + Send + Sync + 'static,
     S: JustificationRequestScheduler,
     SI: SessionInfoProvider<B, V>,
     F: BlockFinalizer<B>,
+    BB: BlockchainBackend<B> + 'static,
 {
     pub fn new(
         session_info_provider: SI,
         block_requester: RB,
-        client: Arc<C>,
+        blockchain_backend: BB,
         finalizer: F,
         justification_request_scheduler: S,
         metrics: Option<Metrics<<B::Header as Header>::Hash>>,
-        justification_handler_config: JustificationHandlerConfig<B>,
+        justification_handler_config: JustificationHandlerConfig,
     ) -> Self {
         Self {
             session_info_provider,
             block_requester: BlockRequester::new(
                 block_requester,
-                client,
+                blockchain_backend,
                 finalizer,
                 justification_request_scheduler,
                 metrics,
-                justification_handler_config.min_allowed_delay,
             ),
             verifier_timeout: justification_handler_config.verifier_timeout,
             notification_timeout: justification_handler_config.notification_timeout,

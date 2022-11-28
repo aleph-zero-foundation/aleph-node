@@ -8,7 +8,7 @@ use futures::{
     channel::{mpsc, oneshot},
     Future,
 };
-use sc_client_api::{backend::Backend, BlockchainEvents, Finalizer, LockImportRun, TransactionFor};
+use sc_client_api::{Backend, BlockchainEvents, Finalizer, LockImportRun, TransactionFor};
 use sc_consensus::BlockImport;
 use sc_network::NetworkService;
 use sc_network_common::ExHashT;
@@ -243,9 +243,10 @@ impl<H, N> From<(H, N)> for HashNum<H, N> {
 
 pub type BlockHashNum<B> = HashNum<<B as Block>::Hash, NumberFor<B>>;
 
-pub struct AlephConfig<B: Block, H: ExHashT, C, SC> {
+pub struct AlephConfig<B: Block, H: ExHashT, C, SC, BB> {
     pub network: Arc<NetworkService<B, H>>,
     pub client: Arc<C>,
+    pub blockchain_backend: BB,
     pub select_chain: SC,
     pub spawn_handle: SpawnTaskHandle,
     pub keystore: Arc<dyn CryptoStore>,
@@ -257,4 +258,13 @@ pub struct AlephConfig<B: Block, H: ExHashT, C, SC> {
     pub backup_saving_path: Option<PathBuf>,
     pub external_addresses: Vec<String>,
     pub validator_port: u16,
+}
+
+pub trait BlockchainBackend<B: Block> {
+    fn children(&self, parent_hash: <B as Block>::Hash) -> Vec<<B as Block>::Hash>;
+    fn info(&self) -> sp_blockchain::Info<B>;
+    fn header(
+        &self,
+        block_id: sp_api::BlockId<B>,
+    ) -> sp_blockchain::Result<Option<<B as Block>::Header>>;
 }

@@ -1,11 +1,14 @@
 use sp_api::BlockId;
-use sp_blockchain::{BlockStatus, HeaderBackend, Info};
+use sp_blockchain::Info;
 use sp_runtime::traits::Block;
 
-use crate::testing::mocks::{TBlock, THash, THeader, TNumber};
+use crate::{
+    testing::mocks::{TBlock, THash, THeader, TNumber},
+    BlockchainBackend,
+};
 
 #[derive(Clone)]
-pub(crate) struct Client {
+pub(crate) struct Backend {
     blocks: Vec<TBlock>,
     next_block_to_finalize: TBlock,
 }
@@ -25,7 +28,7 @@ pub(crate) fn create_block(parent_hash: THash, number: TNumber) -> TBlock {
 
 const GENESIS_HASH: [u8; 32] = [0u8; 32];
 
-impl Client {
+impl Backend {
     pub(crate) fn new(finalized_height: u64) -> Self {
         let mut blocks: Vec<TBlock> = vec![];
 
@@ -40,7 +43,7 @@ impl Client {
         let next_block_to_finalize =
             create_block(blocks.last().unwrap().hash(), finalized_height + 1);
 
-        Client {
+        Backend {
             blocks,
             next_block_to_finalize,
         }
@@ -70,11 +73,30 @@ impl Client {
     }
 }
 
-impl HeaderBackend<TBlock> for Client {
+impl BlockchainBackend<TBlock> for Backend {
+    fn children(&self, parent_hash: THash) -> Vec<THash> {
+        if self.next_block_to_finalize.hash() == parent_hash {
+            Vec::new()
+        } else if self
+            .blocks
+            .last()
+            .map(|b| b.hash())
+            .unwrap()
+            .eq(&parent_hash)
+        {
+            vec![self.next_block_to_finalize.hash()]
+        } else {
+            self.blocks
+                .windows(2)
+                .flat_map(<&[TBlock; 2]>::try_from)
+                .find(|[parent, _]| parent.header.hash().eq(&parent_hash))
+                .map(|[_, c]| vec![c.hash()])
+                .unwrap_or_default()
+        }
+    }
     fn header(&self, id: BlockId<TBlock>) -> sp_blockchain::Result<Option<THeader>> {
         Ok(self.get_block(id).map(|b| b.header))
     }
-
     fn info(&self) -> Info<TBlock> {
         Info {
             best_hash: self.next_block_to_finalize.hash(),
@@ -87,23 +109,8 @@ impl HeaderBackend<TBlock> for Client {
             block_gap: None,
         }
     }
-
-    fn status(&self, id: BlockId<TBlock>) -> sp_blockchain::Result<BlockStatus> {
-        Ok(match self.get_block(id) {
-            Some(_) => BlockStatus::InChain,
-            _ => BlockStatus::Unknown,
-        })
-    }
-
-    fn number(&self, hash: THash) -> sp_blockchain::Result<Option<TNumber>> {
-        Ok(self.get_block(BlockId::hash(hash)).map(|b| b.header.number))
-    }
-
-    fn hash(&self, number: TNumber) -> sp_blockchain::Result<Option<THash>> {
-        Ok(self.get_block(BlockId::Number(number)).map(|b| b.hash()))
-    }
 }
 
-unsafe impl Send for Client {}
+unsafe impl Send for Backend {}
 
-unsafe impl Sync for Client {}
+unsafe impl Sync for Backend {}

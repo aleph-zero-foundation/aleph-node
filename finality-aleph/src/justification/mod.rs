@@ -55,36 +55,29 @@ pub struct JustificationNotification<Block: BlockT> {
 }
 
 #[derive(Clone)]
-pub struct JustificationHandlerConfig<B: BlockT> {
+pub struct JustificationHandlerConfig {
     /// How long should we wait when the session verifier is not yet available.
     verifier_timeout: Duration,
     /// How long should we wait for any notification.
     notification_timeout: Duration,
-    ///Distance (in amount of blocks) between the best and the block we want to request justification
-    min_allowed_delay: NumberFor<B>,
 }
 
-impl<B: BlockT> Default for JustificationHandlerConfig<B> {
+impl Default for JustificationHandlerConfig {
     fn default() -> Self {
         Self {
             verifier_timeout: Duration::from_millis(500),
-            notification_timeout: Duration::from_millis(1000),
-            min_allowed_delay: 3u32.into(),
+            // request justifications slightly more frequently than they're created
+            notification_timeout: Duration::from_millis(800),
         }
     }
 }
 
 #[cfg(test)]
-impl<B: BlockT> JustificationHandlerConfig<B> {
-    pub fn new(
-        verifier_timeout: Duration,
-        notification_timeout: Duration,
-        min_allowed_delay: NumberFor<B>,
-    ) -> Self {
+impl JustificationHandlerConfig {
+    pub fn new(verifier_timeout: Duration, notification_timeout: Duration) -> Self {
         Self {
             verifier_timeout,
             notification_timeout,
-            min_allowed_delay,
         }
     }
 }
