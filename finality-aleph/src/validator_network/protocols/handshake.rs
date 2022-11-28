@@ -182,23 +182,19 @@ pub async fn v0_handshake_outgoing<SK: SecretKey, S: Splittable>(
 
 #[cfg(test)]
 mod tests {
-    use aleph_primitives::AuthorityId;
     use futures::{join, try_join};
 
     use super::{
         execute_v0_handshake_incoming, execute_v0_handshake_outgoing, Challenge, HandshakeError,
         Response,
     };
-    use crate::{
-        crypto::AuthorityPen,
-        validator_network::{
-            io::{receive_data, send_data},
-            mock::{key, MockSplittable},
-            Splittable,
-        },
+    use crate::validator_network::{
+        io::{receive_data, send_data},
+        mock::{key, MockPublicKey, MockSecretKey, MockSplittable},
+        SecretKey, Splittable,
     };
 
-    fn assert_send_error<T: std::fmt::Debug>(result: Result<T, HandshakeError<AuthorityId>>) {
+    fn assert_send_error<T: std::fmt::Debug>(result: Result<T, HandshakeError<MockPublicKey>>) {
         match result {
             Err(HandshakeError::SendError(_)) => (),
             x => panic!(
@@ -208,7 +204,7 @@ mod tests {
         };
     }
 
-    fn assert_receive_error<T: std::fmt::Debug>(result: Result<T, HandshakeError<AuthorityId>>) {
+    fn assert_receive_error<T: std::fmt::Debug>(result: Result<T, HandshakeError<MockPublicKey>>) {
         match result {
             Err(HandshakeError::ReceiveError(_)) => (),
             x => panic!(
@@ -218,7 +214,9 @@ mod tests {
         };
     }
 
-    fn assert_signature_error<T: std::fmt::Debug>(result: Result<T, HandshakeError<AuthorityId>>) {
+    fn assert_signature_error<T: std::fmt::Debug>(
+        result: Result<T, HandshakeError<MockPublicKey>>,
+    ) {
         match result {
             Err(HandshakeError::SignatureError) => (),
             x => panic!(
@@ -228,7 +226,9 @@ mod tests {
         };
     }
 
-    fn assert_challenge_error<T: std::fmt::Debug>(result: Result<T, HandshakeError<AuthorityId>>) {
+    fn assert_challenge_error<T: std::fmt::Debug>(
+        result: Result<T, HandshakeError<MockPublicKey>>,
+    ) {
         match result {
             Err(HandshakeError::ChallengeError(_, _)) => (),
             x => panic!(
@@ -241,8 +241,8 @@ mod tests {
     #[tokio::test]
     async fn handshake() {
         let (stream_a, stream_b) = MockSplittable::new(4096);
-        let (id_a, pen_a) = key().await;
-        let (id_b, pen_b) = key().await;
+        let (id_a, pen_a) = key();
+        let (id_b, pen_b) = key();
         assert_ne!(id_a, id_b);
         let ((_, _, received_id_b), (_, _)) = try_join!(
             execute_v0_handshake_incoming(stream_a, pen_a),
@@ -255,7 +255,7 @@ mod tests {
     #[tokio::test]
     async fn handshake_with_malicious_server_peer() {
         async fn execute_malicious_v0_handshake_incoming<S: Splittable>(stream: S) {
-            let (fake_id, _) = key().await;
+            let (fake_id, _) = key();
             // send challenge with incorrect id
             let our_challenge = Challenge::new(fake_id);
             send_data(stream, our_challenge.clone())
@@ -266,8 +266,8 @@ mod tests {
         }
 
         let (stream_a, stream_b) = MockSplittable::new(4096);
-        let (id_a, _) = key().await;
-        let (_, pen_b) = key().await;
+        let (id_a, _) = key();
+        let (_, pen_b) = key();
         tokio::select! {
             _ = execute_malicious_v0_handshake_incoming(stream_a) => panic!("should wait"),
             result = execute_v0_handshake_outgoing(stream_b, pen_b, id_a) => assert_challenge_error(result),
@@ -278,24 +278,24 @@ mod tests {
     async fn handshake_with_malicious_client_peer_fake_challenge() {
         pub async fn execute_malicious_v0_handshake_outgoing_fake_challenge<S: Splittable>(
             stream: S,
-            authority_pen: AuthorityPen,
+            secret_key: MockSecretKey,
         ) {
             // receive challenge
-            let (stream, _) = receive_data::<_, Challenge<AuthorityId>>(stream)
+            let (stream, _) = receive_data::<_, Challenge<MockPublicKey>>(stream)
                 .await
                 .expect("should receive");
             // prepare fake challenge
-            let (fake_id, _) = key().await;
+            let (fake_id, _) = key();
             let fake_challenge = Challenge::new(fake_id);
             // send response with substituted challenge
-            let our_response = Response::new(&authority_pen, &fake_challenge).await;
+            let our_response = Response::new(&secret_key, &fake_challenge).await;
             send_data(stream, our_response).await.expect("should send");
             futures::future::pending::<()>().await;
         }
 
         let (stream_a, stream_b) = MockSplittable::new(4096);
-        let (_, pen_a) = key().await;
-        let (_, pen_b) = key().await;
+        let (_, pen_a) = key();
+        let (_, pen_b) = key();
         tokio::select! {
             result = execute_v0_handshake_incoming(stream_a, pen_a) => assert_signature_error(result),
             _ = execute_malicious_v0_handshake_outgoing_fake_challenge(stream_b, pen_b) => panic!("should wait"),
@@ -306,24 +306,24 @@ mod tests {
     async fn handshake_with_malicious_client_peer_fake_signature() {
         pub async fn execute_malicious_v0_handshake_outgoing_fake_signature<S: Splittable>(
             stream: S,
-            authority_pen: AuthorityPen,
+            secret_key: MockSecretKey,
         ) {
             // receive challenge
-            let (stream, challenge) = receive_data::<_, Challenge<AuthorityId>>(stream)
+            let (stream, challenge) = receive_data::<_, Challenge<MockPublicKey>>(stream)
                 .await
                 .expect("should receive");
             // prepare fake id
-            let (fake_id, _) = key().await;
+            let (fake_id, _) = key();
             // send response with substituted id
-            let mut our_response = Response::new(&authority_pen, &challenge).await;
+            let mut our_response = Response::new(&secret_key, &challenge).await;
             our_response.public_key = fake_id;
             send_data(stream, our_response).await.expect("should send");
             futures::future::pending::<()>().await;
         }
 
         let (stream_a, stream_b) = MockSplittable::new(4096);
-        let (_, pen_a) = key().await;
-        let (_, pen_b) = key().await;
+        let (_, pen_a) = key();
+        let (_, pen_b) = key();
         tokio::select! {
             result = execute_v0_handshake_incoming(stream_a, pen_a) => assert_signature_error(result),
             _ = execute_malicious_v0_handshake_outgoing_fake_signature(stream_b, pen_b) => panic!("should wait"),
@@ -334,19 +334,19 @@ mod tests {
     async fn broken_incoming_connection_step_one() {
         // break the connection even before the handshake starts by dropping the stream
         let (stream_a, _) = MockSplittable::new(4096);
-        let (_, pen_a) = key().await;
+        let (_, pen_a) = key();
         assert_send_error(execute_v0_handshake_incoming(stream_a, pen_a).await);
     }
 
     #[tokio::test]
     async fn broken_incoming_connection_step_two() {
         let (stream_a, stream_b) = MockSplittable::new(4096);
-        let (_, pen_a) = key().await;
+        let (_, pen_a) = key();
         let (result, _) = join!(
             execute_v0_handshake_incoming(stream_a, pen_a),
             // mock outgoing handshake: receive the first message and terminate
             async {
-                receive_data::<_, Challenge<AuthorityId>>(stream_b)
+                receive_data::<_, Challenge<MockPublicKey>>(stream_b)
                     .await
                     .expect("should receive");
             },
@@ -358,18 +358,18 @@ mod tests {
     async fn broken_outgoing_connection_step_one() {
         // break the connection even before the handshake starts by dropping the stream
         let (stream_a, _) = MockSplittable::new(4096);
-        let (_, pen_a) = key().await;
-        let (id_b, _) = key().await;
+        let (_, pen_a) = key();
+        let (id_b, _) = key();
         assert_receive_error(execute_v0_handshake_outgoing(stream_a, pen_a, id_b).await);
     }
 
     #[tokio::test]
     async fn broken_outgoing_connection_step_two() {
         let (stream_a, stream_b) = MockSplittable::new(4096);
-        let (id_a, pen_a) = key().await;
-        let (_, pen_b) = key().await;
+        let (id_a, pen_a) = key();
+        let (_, pen_b) = key();
         // mock incoming handshake: send the first message and terminate
-        send_data(stream_a, Challenge::new(pen_a.authority_id()))
+        send_data(stream_a, Challenge::new(pen_a.public_key()))
             .await
             .expect("should send");
         assert_send_error(execute_v0_handshake_outgoing(stream_b, pen_b, id_a).await);

@@ -7,13 +7,11 @@ use std::{
 
 use aleph_primitives::KEY_TYPE;
 use async_trait::async_trait;
-use codec::{Decode, Encode};
 use futures::{
     channel::{mpsc, oneshot},
     StreamExt,
 };
 use parking_lot::Mutex;
-use rand::random;
 use sp_keystore::{testing::KeyStore, CryptoStore};
 use tokio::time::timeout;
 
@@ -21,84 +19,31 @@ use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{
         manager::VersionedAuthentication, AddressedData, ConnectionCommand, Event, EventStream,
-        Multiaddress, Network, NetworkIdentity, NetworkSender, NetworkServiceIO, PeerId, Protocol,
+        Multiaddress, Network, NetworkIdentity, NetworkSender, NetworkServiceIO, Protocol,
     },
+    testing::mocks::validator_network::{random_identity, MockMultiaddress},
+    validator_network::mock::MockPublicKey,
     AuthorityId, NodeIndex,
 };
 
-#[derive(PartialEq, Eq, Copy, Clone, Debug, Hash, Encode, Decode)]
-pub struct MockPeerId(u32);
-
-impl MockPeerId {
-    pub fn random() -> Self {
-        MockPeerId(random())
-    }
-}
-impl fmt::Display for MockPeerId {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl PeerId for MockPeerId {}
-
-#[derive(PartialEq, Eq, Clone, Debug, Hash, Encode, Decode)]
-pub struct MockMultiaddress {
-    peer_id: Option<MockPeerId>,
-    address: u32,
-}
-
-impl MockMultiaddress {
-    pub fn random_with_id(peer_id: MockPeerId) -> Self {
-        MockMultiaddress {
-            peer_id: Some(peer_id),
-            address: random(),
-        }
-    }
-}
-
-impl Multiaddress for MockMultiaddress {
-    type PeerId = MockPeerId;
-
-    fn get_peer_id(&self) -> Option<Self::PeerId> {
-        self.peer_id
-    }
-
-    fn add_matching_peer_id(mut self, peer_id: Self::PeerId) -> Option<Self> {
-        match self.peer_id {
-            Some(old_peer_id) => match old_peer_id == peer_id {
-                true => Some(self),
-                false => None,
-            },
-            None => {
-                self.peer_id = Some(peer_id);
-                Some(self)
-            }
-        }
-    }
-}
-
 pub struct MockNetworkIdentity {
     addresses: Vec<MockMultiaddress>,
-    peer_id: MockPeerId,
+    peer_id: MockPublicKey,
 }
 
 impl MockNetworkIdentity {
     pub fn new() -> Self {
-        let peer_id = MockPeerId::random();
-        let addresses = (0..3)
-            .map(|_| MockMultiaddress::random_with_id(peer_id))
-            .collect();
+        let (addresses, peer_id) = random_identity();
         MockNetworkIdentity { addresses, peer_id }
     }
 }
 
 impl NetworkIdentity for MockNetworkIdentity {
-    type PeerId = MockPeerId;
+    type PeerId = MockPublicKey;
     type Multiaddress = MockMultiaddress;
 
     fn identity(&self) -> (Vec<Self::Multiaddress>, Self::PeerId) {
-        (self.addresses.clone(), self.peer_id)
+        (self.addresses.clone(), self.peer_id.clone())
     }
 }
 
@@ -133,7 +78,7 @@ impl<T> Channel<T> {
             self.1.lock().await.by_ref().take(n).collect::<Vec<_>>(),
         )
         .await
-        .unwrap_or(Vec::new())
+        .unwrap_or_default()
     }
 
     pub async fn try_next(&self) -> Option<T> {
@@ -152,7 +97,7 @@ impl<T> Default for Channel<T> {
     }
 }
 
-pub type MockEvent = Event<MockMultiaddress, MockPeerId>;
+pub type MockEvent = Event<MockMultiaddress, MockPublicKey>;
 
 pub type MockData = Vec<u8>;
 
@@ -196,15 +141,15 @@ impl<M: Multiaddress + 'static> MockIO<M> {
 pub struct MockEventStream(mpsc::UnboundedReceiver<MockEvent>);
 
 #[async_trait]
-impl EventStream<MockMultiaddress, MockPeerId> for MockEventStream {
+impl EventStream<MockMultiaddress, MockPublicKey> for MockEventStream {
     async fn next_event(&mut self) -> Option<MockEvent> {
         self.0.next().await
     }
 }
 
 pub struct MockNetworkSender {
-    sender: mpsc::UnboundedSender<(Vec<u8>, MockPeerId, Protocol)>,
-    peer_id: MockPeerId,
+    sender: mpsc::UnboundedSender<(Vec<u8>, MockPublicKey, Protocol)>,
+    peer_id: MockPublicKey,
     protocol: Protocol,
     error: Result<(), MockSenderError>,
 }
@@ -219,7 +164,7 @@ impl NetworkSender for MockNetworkSender {
     ) -> Result<(), MockSenderError> {
         self.error?;
         self.sender
-            .unbounded_send((data.into(), self.peer_id, self.protocol))
+            .unbounded_send((data.into(), self.peer_id.clone(), self.protocol))
             .unwrap();
         Ok(())
     }
@@ -228,8 +173,8 @@ impl NetworkSender for MockNetworkSender {
 #[derive(Clone)]
 pub struct MockNetwork {
     pub add_reserved: Channel<(HashSet<MockMultiaddress>, Protocol)>,
-    pub remove_reserved: Channel<(HashSet<MockPeerId>, Protocol)>,
-    pub send_message: Channel<(Vec<u8>, MockPeerId, Protocol)>,
+    pub remove_reserved: Channel<(HashSet<MockPublicKey>, Protocol)>,
+    pub send_message: Channel<(Vec<u8>, MockPublicKey, Protocol)>,
     pub event_sinks: Arc<Mutex<Vec<mpsc::UnboundedSender<MockEvent>>>>,
     event_stream_taken_oneshot: Arc<Mutex<Option<oneshot::Sender<()>>>>,
     pub create_sender_errors: Arc<Mutex<VecDeque<MockSenderError>>>,
@@ -256,7 +201,7 @@ impl std::error::Error for MockSenderError {}
 impl Network for MockNetwork {
     type SenderError = MockSenderError;
     type NetworkSender = MockNetworkSender;
-    type PeerId = MockPeerId;
+    type PeerId = MockPublicKey;
     type Multiaddress = MockMultiaddress;
     type EventStream = MockEventStream;
 

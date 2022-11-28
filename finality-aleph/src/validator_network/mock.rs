@@ -1,43 +1,87 @@
-use std::sync::Arc;
-#[cfg(test)]
 use std::{
     collections::HashMap,
+    fmt::{Display, Error as FmtError, Formatter},
     io::Result as IoResult,
     pin::Pin,
     task::{Context, Poll},
 };
 
-use aleph_primitives::{AuthorityId, KEY_TYPE};
-use sp_keystore::{testing::KeyStore, CryptoStore};
+use codec::{Decode, Encode};
 use tokio::io::{duplex, AsyncRead, AsyncWrite, DuplexStream, ReadBuf};
 
 use crate::{
-    crypto::AuthorityPen,
-    validator_network::{ConnectionInfo, PeerAddressInfo, Splittable},
+    network::PeerId,
+    validator_network::{ConnectionInfo, PeerAddressInfo, PublicKey, SecretKey, Splittable},
 };
 
-/// Create a random authority id and pen pair.
-pub async fn key() -> (AuthorityId, AuthorityPen) {
-    let keystore = Arc::new(KeyStore::new());
-    let id: AuthorityId = keystore
-        .ed25519_generate_new(KEY_TYPE, None)
-        .await
-        .unwrap()
-        .into();
-    let pen = AuthorityPen::new(id.clone(), keystore)
-        .await
-        .expect("keys shoud sign successfully");
-    (id, pen)
+/// A mock secret key that is able to sign messages.
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub struct MockSecretKey([u8; 4]);
+
+/// A mock public key for verifying signatures.
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Hash, Encode, Decode)]
+pub struct MockPublicKey([u8; 4]);
+
+impl Display for MockPublicKey {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
+        write!(f, "PublicKey({:?})", self.0)
+    }
 }
 
-/// Create a HashMap with authority ids as keys and pens as values.
-pub async fn random_keys(n_peers: usize) -> HashMap<AuthorityId, AuthorityPen> {
-    let mut result = HashMap::with_capacity(n_peers);
-    for _ in 0..n_peers {
-        let (id, pen) = key().await;
-        result.insert(id, pen);
+impl AsRef<[u8]> for MockPublicKey {
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_ref()
     }
-    assert_eq!(result.len(), n_peers);
+}
+
+/// A mock signature, able to discern whether the correct key has been used to sign a specific
+/// message.
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Encode, Decode)]
+pub struct MockSignature {
+    message: Vec<u8>,
+    key_id: [u8; 4],
+}
+
+impl PublicKey for MockPublicKey {
+    type Signature = MockSignature;
+
+    fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool {
+        (message == signature.message.as_slice()) && (self.0 == signature.key_id)
+    }
+}
+
+impl PeerId for MockPublicKey {}
+
+#[async_trait::async_trait]
+impl SecretKey for MockSecretKey {
+    type Signature = MockSignature;
+    type PublicKey = MockPublicKey;
+
+    async fn sign(&self, message: &[u8]) -> Self::Signature {
+        MockSignature {
+            message: message.to_vec(),
+            key_id: self.0,
+        }
+    }
+
+    fn public_key(&self) -> Self::PublicKey {
+        MockPublicKey(self.0)
+    }
+}
+
+/// Create a random key pair.
+pub fn key() -> (MockPublicKey, MockSecretKey) {
+    let secret_key = MockSecretKey(rand::random());
+    (secret_key.public_key(), secret_key)
+}
+
+/// Create a HashMap with public keys as keys and secret keys as values.
+pub fn random_keys(n_peers: usize) -> HashMap<MockPublicKey, MockSecretKey> {
+    let mut result = HashMap::with_capacity(n_peers);
+    while result.len() < n_peers {
+        let (pk, sk) = key();
+        result.insert(pk, sk);
+    }
     result
 }
 

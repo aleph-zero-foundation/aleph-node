@@ -113,36 +113,32 @@ pub async fn incoming<SK: SecretKey, D: Data, S: Splittable>(
 
 #[cfg(test)]
 mod tests {
-    use aleph_primitives::AuthorityId;
     use futures::{
         channel::{mpsc, mpsc::UnboundedReceiver},
         pin_mut, FutureExt, StreamExt,
     };
 
     use super::{incoming, outgoing, ProtocolError};
-    use crate::{
-        crypto::AuthorityPen,
-        validator_network::{
-            mock::{key, MockSplittable},
-            protocols::{ConnectionType, ResultForService},
-            Data,
-        },
+    use crate::validator_network::{
+        mock::{key, MockPublicKey, MockSecretKey, MockSplittable},
+        protocols::{ConnectionType, ResultForService},
+        Data,
     };
 
-    async fn prepare<D: Data>() -> (
-        AuthorityId,
-        AuthorityPen,
-        AuthorityId,
-        AuthorityPen,
-        impl futures::Future<Output = Result<(), ProtocolError<AuthorityId>>>,
-        impl futures::Future<Output = Result<(), ProtocolError<AuthorityId>>>,
+    fn prepare<D: Data>() -> (
+        MockPublicKey,
+        MockSecretKey,
+        MockPublicKey,
+        MockSecretKey,
+        impl futures::Future<Output = Result<(), ProtocolError<MockPublicKey>>>,
+        impl futures::Future<Output = Result<(), ProtocolError<MockPublicKey>>>,
         UnboundedReceiver<D>,
-        UnboundedReceiver<ResultForService<AuthorityId, D>>,
-        UnboundedReceiver<ResultForService<AuthorityId, D>>,
+        UnboundedReceiver<ResultForService<MockPublicKey, D>>,
+        UnboundedReceiver<ResultForService<MockPublicKey, D>>,
     ) {
         let (stream_incoming, stream_outgoing) = MockSplittable::new(4096);
-        let (id_incoming, pen_incoming) = key().await;
-        let (id_outgoing, pen_outgoing) = key().await;
+        let (id_incoming, pen_incoming) = key();
+        let (id_outgoing, pen_outgoing) = key();
         assert_ne!(id_incoming, id_outgoing);
         let (incoming_result_for_service, result_from_incoming) = mpsc::unbounded();
         let (outgoing_result_for_service, result_from_outgoing) = mpsc::unbounded();
@@ -184,7 +180,7 @@ mod tests {
             mut data_from_incoming,
             _result_from_incoming,
             mut result_from_outgoing,
-        ) = prepare::<Vec<i32>>().await;
+        ) = prepare::<Vec<i32>>();
         let incoming_handle = incoming_handle.fuse();
         let outgoing_handle = outgoing_handle.fuse();
         pin_mut!(incoming_handle);
@@ -233,7 +229,7 @@ mod tests {
             _data_from_incoming,
             mut result_from_incoming,
             _result_from_outgoing,
-        ) = prepare::<Vec<i32>>().await;
+        ) = prepare::<Vec<i32>>();
         let incoming_handle = incoming_handle.fuse();
         let outgoing_handle = outgoing_handle.fuse();
         pin_mut!(incoming_handle);
@@ -265,7 +261,7 @@ mod tests {
             _data_from_incoming,
             result_from_incoming,
             _result_from_outgoing,
-        ) = prepare::<Vec<i32>>().await;
+        ) = prepare::<Vec<i32>>();
         std::mem::drop(result_from_incoming);
         let incoming_handle = incoming_handle.fuse();
         let outgoing_handle = outgoing_handle.fuse();
@@ -293,7 +289,7 @@ mod tests {
             data_from_incoming,
             _result_from_incoming,
             mut result_from_outgoing,
-        ) = prepare::<Vec<i32>>().await;
+        ) = prepare::<Vec<i32>>();
         std::mem::drop(data_from_incoming);
         let incoming_handle = incoming_handle.fuse();
         let outgoing_handle = outgoing_handle.fuse();
@@ -334,7 +330,7 @@ mod tests {
             _data_from_incoming,
             _result_from_incoming,
             _result_from_outgoing,
-        ) = prepare::<Vec<i32>>().await;
+        ) = prepare::<Vec<i32>>();
         std::mem::drop(outgoing_handle);
         match incoming_handle.await {
             Err(ProtocolError::HandshakeError(_)) => (),
@@ -355,7 +351,7 @@ mod tests {
             _data_from_incoming,
             mut result_from_incoming,
             _result_from_outgoing,
-        ) = prepare::<Vec<i32>>().await;
+        ) = prepare::<Vec<i32>>();
         let incoming_handle = incoming_handle.fuse();
         pin_mut!(incoming_handle);
         let (_, _exit, connection_type) = tokio::select! {
@@ -384,7 +380,7 @@ mod tests {
             _data_from_incoming,
             _result_from_incoming,
             _result_from_outgoing,
-        ) = prepare::<Vec<i32>>().await;
+        ) = prepare::<Vec<i32>>();
         std::mem::drop(incoming_handle);
         match outgoing_handle.await {
             Err(ProtocolError::HandshakeError(_)) => (),
@@ -405,7 +401,7 @@ mod tests {
             _data_from_incoming,
             mut result_from_incoming,
             _result_from_outgoing,
-        ) = prepare::<Vec<i32>>().await;
+        ) = prepare::<Vec<i32>>();
         let outgoing_handle = outgoing_handle.fuse();
         pin_mut!(outgoing_handle);
         let (_, _exit, connection_type) = tokio::select! {
@@ -436,7 +432,7 @@ mod tests {
             _data_from_incoming,
             mut result_from_incoming,
             _result_from_outgoing,
-        ) = prepare::<Vec<i32>>().await;
+        ) = prepare::<Vec<i32>>();
         let outgoing_handle = outgoing_handle.fuse();
         pin_mut!(outgoing_handle);
         let (_, _exit, connection_type) = tokio::select! {

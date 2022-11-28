@@ -2,11 +2,9 @@ use std::{
     collections::{BTreeMap, HashMap, HashSet},
     io::Result as IoResult,
     pin::Pin,
-    sync::Arc,
     task::{Context, Poll},
 };
 
-use aleph_primitives::{AuthorityId, KEY_TYPE};
 use codec::{Decode, Encode, Output};
 use futures::{
     channel::{mpsc, oneshot},
@@ -15,7 +13,6 @@ use futures::{
 use log::info;
 use rand::{thread_rng, Rng};
 use sc_service::{SpawnTaskHandle, TaskManager};
-use sp_keystore::{testing::KeyStore, CryptoStore};
 use tokio::{
     io::{duplex, AsyncRead, AsyncWrite, DuplexStream, ReadBuf},
     runtime::Handle,
@@ -23,18 +20,18 @@ use tokio::{
 };
 
 use crate::{
-    crypto::AuthorityPen,
     network::{mock::Channel, Data, Multiaddress, NetworkIdentity},
     validator_network::{
-        mock::random_keys, ConnectionInfo, Dialer as DialerT, Listener as ListenerT, Network,
-        PeerAddressInfo, Service, Splittable,
+        mock::{key, random_keys, MockPublicKey, MockSecretKey},
+        ConnectionInfo, Dialer as DialerT, Listener as ListenerT, Network, PeerAddressInfo,
+        SecretKey, Service, Splittable,
     },
 };
 
-pub type MockMultiaddress = (AuthorityId, String);
+pub type MockMultiaddress = (MockPublicKey, String);
 
 impl Multiaddress for MockMultiaddress {
-    type PeerId = AuthorityId;
+    type PeerId = MockPublicKey;
 
     fn get_peer_id(&self) -> Option<Self::PeerId> {
         Some(self.0.clone())
@@ -50,25 +47,25 @@ impl Multiaddress for MockMultiaddress {
 
 #[derive(Clone)]
 pub struct MockNetwork<D: Data> {
-    pub add_connection: Channel<(AuthorityId, Vec<MockMultiaddress>)>,
-    pub remove_connection: Channel<AuthorityId>,
-    pub send: Channel<(D, AuthorityId)>,
+    pub add_connection: Channel<(MockPublicKey, Vec<MockMultiaddress>)>,
+    pub remove_connection: Channel<MockPublicKey>,
+    pub send: Channel<(D, MockPublicKey)>,
     pub next: Channel<D>,
-    id: AuthorityId,
+    id: MockPublicKey,
     addresses: Vec<MockMultiaddress>,
 }
 
 #[async_trait::async_trait]
-impl<D: Data> Network<AuthorityId, MockMultiaddress, D> for MockNetwork<D> {
-    fn add_connection(&mut self, peer: AuthorityId, addresses: Vec<MockMultiaddress>) {
+impl<D: Data> Network<MockPublicKey, MockMultiaddress, D> for MockNetwork<D> {
+    fn add_connection(&mut self, peer: MockPublicKey, addresses: Vec<MockMultiaddress>) {
         self.add_connection.send((peer, addresses));
     }
 
-    fn remove_connection(&mut self, peer: AuthorityId) {
+    fn remove_connection(&mut self, peer: MockPublicKey) {
         self.remove_connection.send(peer);
     }
 
-    fn send(&self, data: D, recipient: AuthorityId) {
+    fn send(&self, data: D, recipient: MockPublicKey) {
         self.send.send((data, recipient));
     }
 
@@ -78,7 +75,7 @@ impl<D: Data> Network<AuthorityId, MockMultiaddress, D> for MockNetwork<D> {
 }
 
 impl<D: Data> NetworkIdentity for MockNetwork<D> {
-    type PeerId = AuthorityId;
+    type PeerId = MockPublicKey;
     type Multiaddress = MockMultiaddress;
 
     fn identity(&self) -> (Vec<Self::Multiaddress>, Self::PeerId) {
@@ -86,23 +83,32 @@ impl<D: Data> NetworkIdentity for MockNetwork<D> {
     }
 }
 
-pub async fn random_authority_id() -> AuthorityId {
-    let key_store = Arc::new(KeyStore::new());
-    key_store
-        .ed25519_generate_new(KEY_TYPE, None)
-        .await
-        .unwrap()
-        .into()
+pub fn random_peer_id() -> MockPublicKey {
+    key().0
 }
 
-pub async fn random_identity(address: String) -> (Vec<MockMultiaddress>, AuthorityId) {
-    let id = random_authority_id().await;
+pub fn random_identity_with_address(address: String) -> (Vec<MockMultiaddress>, MockPublicKey) {
+    let id = random_peer_id();
     (vec![(id.clone(), address)], id)
+}
+
+pub fn random_identity() -> (Vec<MockMultiaddress>, MockPublicKey) {
+    random_identity_with_address(
+        rand::thread_rng()
+            .sample_iter(&rand::distributions::Alphanumeric)
+            .map(char::from)
+            .take(43)
+            .collect(),
+    )
+}
+
+pub fn random_multiaddress() -> MockMultiaddress {
+    random_identity().0.pop().expect("we created an address")
 }
 
 impl<D: Data> MockNetwork<D> {
     pub async fn new(address: &str) -> Self {
-        let id = random_authority_id().await;
+        let id = random_peer_id();
         let addresses = vec![(id.clone(), String::from(address))];
         MockNetwork {
             add_connection: Channel::new(),
@@ -114,7 +120,7 @@ impl<D: Data> MockNetwork<D> {
         }
     }
 
-    pub fn from(addresses: Vec<MockMultiaddress>, id: AuthorityId) -> Self {
+    pub fn from(addresses: Vec<MockMultiaddress>, id: MockPublicKey) -> Self {
         MockNetwork {
             add_connection: Channel::new(),
             remove_connection: Channel::new(),
@@ -272,8 +278,8 @@ impl Splittable for UnreliableSplittable {
 }
 
 type Address = u32;
-type Addresses = HashMap<AuthorityId, Vec<Address>>;
-type Callers = HashMap<AuthorityId, (MockDialer, MockListener)>;
+type Addresses = HashMap<MockPublicKey, Vec<Address>>;
+type Callers = HashMap<MockPublicKey, (MockDialer, MockListener)>;
 type Connection = UnreliableSplittable;
 
 const TWICE_MAX_DATA_SIZE: usize = 32 * 1024 * 1024;
@@ -319,7 +325,7 @@ pub struct UnreliableConnectionMaker {
 }
 
 impl UnreliableConnectionMaker {
-    pub fn new(ids: Vec<AuthorityId>) -> (Self, Callers, Addresses) {
+    pub fn new(ids: Vec<MockPublicKey>) -> (Self, Callers, Addresses) {
         let mut listeners = Vec::with_capacity(ids.len());
         let mut callers = HashMap::with_capacity(ids.len());
         let (tx_dialer, dialers) = mpsc::unbounded();
@@ -422,18 +428,18 @@ impl Decode for MockData {
 
 #[allow(clippy::too_many_arguments)]
 fn spawn_peer(
-    pen: AuthorityPen,
+    secret_key: MockSecretKey,
     addr: Addresses,
     n_msg: usize,
     large_message_interval: Option<usize>,
     corrupted_message_interval: Option<usize>,
     dialer: MockDialer,
     listener: MockListener,
-    report: mpsc::UnboundedSender<(AuthorityId, usize)>,
+    report: mpsc::UnboundedSender<(MockPublicKey, usize)>,
     spawn_handle: SpawnTaskHandle,
 ) {
-    let our_id = pen.authority_id();
-    let (service, mut interface) = Service::new(dialer, listener, pen, spawn_handle);
+    let our_id = secret_key.public_key();
+    let (service, mut interface) = Service::new(dialer, listener, secret_key, spawn_handle);
     // run the service
     tokio::spawn(async {
         let (_exit, rx) = oneshot::channel();
@@ -470,7 +476,7 @@ fn spawn_peer(
                     }
                     let data: MockData = MockData::new(thread_rng().gen_range(0..n_msg) as u32, filler_size, decodes);
                     // choose a peer
-                    let peer: AuthorityId = peer_ids[thread_rng().gen_range(0..peer_ids.len())].clone();
+                    let peer: MockPublicKey = peer_ids[thread_rng().gen_range(0..peer_ids.len())].clone();
                     // send
                     interface.send(data, peer);
                 },
@@ -502,7 +508,7 @@ pub async fn scenario(
     let spawn_handle = task_manager.spawn_handle();
     // create peer identities
     info!(target: "validator-network", "generating keys...");
-    let keys = random_keys(n_peers).await;
+    let keys = random_keys(n_peers);
     info!(target: "validator-network", "done");
     // prepare and run the manager
     let (mut connection_manager, mut callers, addr) =
@@ -511,17 +517,17 @@ pub async fn scenario(
         connection_manager.run(broken_connection_interval).await;
     });
     // channel for receiving status updates from spawned peers
-    let (tx_report, mut rx_report) = mpsc::unbounded::<(AuthorityId, usize)>();
-    let mut reports: BTreeMap<AuthorityId, usize> =
+    let (tx_report, mut rx_report) = mpsc::unbounded::<(MockPublicKey, usize)>();
+    let mut reports: BTreeMap<MockPublicKey, usize> =
         keys.keys().cloned().map(|id| (id, 0)).collect();
     // spawn peers
-    for (id, pen) in keys.into_iter() {
+    for (id, secret_key) in keys.into_iter() {
         let mut addr = addr.clone();
         // do not connect with itself
-        addr.remove(&pen.authority_id());
+        addr.remove(&secret_key.public_key());
         let (dialer, listener) = callers.remove(&id).expect("should contain all ids");
         spawn_peer(
-            pen,
+            secret_key,
             addr,
             n_msg,
             large_message_interval,

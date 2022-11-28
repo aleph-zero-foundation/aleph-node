@@ -348,16 +348,13 @@ mod tests {
     use crate::{
         network::{
             manager::{SessionHandler, VersionedAuthentication},
-            mock::{
-                crypto_basics, MockData, MockEvent, MockIO,
-                MockMultiaddress as MockAuthMultiaddress, MockNetwork,
-                MockPeerId as MockAuthPeerId, MockSenderError,
-            },
+            mock::{crypto_basics, MockData, MockEvent, MockIO, MockNetwork, MockSenderError},
             testing::DiscoveryMessage,
             NetworkIdentity, Protocol,
         },
         testing::mocks::validator_network::{
-            random_authority_id, MockMultiaddress, MockNetwork as MockValidatorNetwork,
+            random_multiaddress, random_peer_id, MockMultiaddress,
+            MockNetwork as MockValidatorNetwork,
         },
         SessionId,
     };
@@ -419,7 +416,7 @@ mod tests {
 
         // We do this only to make sure that NotificationStreamOpened/NotificationStreamClosed events are handled
         async fn wait_for_events_handled(&mut self) {
-            let address = MockAuthMultiaddress::random_with_id(MockAuthPeerId::random());
+            let address = random_multiaddress();
             self.network
                 .emit_event(MockEvent::Connected(address.clone()));
             assert_eq!(
@@ -458,7 +455,7 @@ mod tests {
     async fn test_sync_connected() {
         let mut test_data = TestData::prepare().await;
 
-        let address = MockAuthMultiaddress::random_with_id(MockAuthPeerId::random());
+        let address = random_multiaddress();
         test_data
             .network
             .emit_event(MockEvent::Connected(address.clone()));
@@ -482,11 +479,11 @@ mod tests {
     async fn test_sync_disconnected() {
         let mut test_data = TestData::prepare().await;
 
-        let peer_id = MockAuthPeerId::random();
+        let peer_id = random_peer_id();
 
         test_data
             .network
-            .emit_event(MockEvent::Disconnected(peer_id));
+            .emit_event(MockEvent::Disconnected(peer_id.clone()));
 
         let expected = (iter::once(peer_id).collect(), Protocol::Authentication);
 
@@ -507,12 +504,13 @@ mod tests {
     async fn test_notification_stream_opened() {
         let mut test_data = TestData::prepare().await;
 
-        let peer_ids: Vec<_> = (0..3).map(|_| MockAuthPeerId::random()).collect();
+        let peer_ids: Vec<_> = (0..3).map(|_| random_peer_id()).collect();
 
         peer_ids.iter().for_each(|peer_id| {
-            test_data
-                .network
-                .emit_event(MockEvent::StreamOpened(*peer_id, Protocol::Authentication));
+            test_data.network.emit_event(MockEvent::StreamOpened(
+                peer_id.clone(),
+                Protocol::Authentication,
+            ));
         });
 
         // We do this only to make sure that NotificationStreamOpened events are handled
@@ -549,22 +547,24 @@ mod tests {
     async fn test_notification_stream_closed() {
         let mut test_data = TestData::prepare().await;
 
-        let peer_ids: Vec<_> = (0..3).map(|_| MockAuthPeerId::random()).collect();
+        let peer_ids: Vec<_> = (0..3).map(|_| random_peer_id()).collect();
         let opened_authorities_n = 2;
 
         peer_ids.iter().for_each(|peer_id| {
-            test_data
-                .network
-                .emit_event(MockEvent::StreamOpened(*peer_id, Protocol::Authentication));
+            test_data.network.emit_event(MockEvent::StreamOpened(
+                peer_id.clone(),
+                Protocol::Authentication,
+            ));
         });
 
         peer_ids
             .iter()
             .skip(opened_authorities_n)
             .for_each(|peer_id| {
-                test_data
-                    .network
-                    .emit_event(MockEvent::StreamClosed(*peer_id, Protocol::Authentication));
+                test_data.network.emit_event(MockEvent::StreamClosed(
+                    peer_id.clone(),
+                    Protocol::Authentication,
+                ));
             });
 
         // We do this only to make sure that NotificationStreamClosed events are handled
@@ -602,7 +602,7 @@ mod tests {
     async fn test_send_validator_data() {
         let mut test_data = TestData::prepare().await;
 
-        let peer_id = random_authority_id().await;
+        let peer_id = random_peer_id();
 
         let message = message(1);
 
@@ -658,16 +658,15 @@ mod tests {
             .lock()
             .push_back(MockSenderError::SomeError);
 
-        let peer_id = MockAuthPeerId::random();
+        let peer_id = random_peer_id();
 
-        let message_1 =
-            authentication(vec![(random_authority_id().await, String::from("other_1"))]).await;
-        let message_2 =
-            authentication(vec![(random_authority_id().await, String::from("other_2"))]).await;
+        let message_1 = authentication(vec![(random_peer_id(), String::from("other_1"))]).await;
+        let message_2 = authentication(vec![(random_peer_id(), String::from("other_2"))]).await;
 
-        test_data
-            .network
-            .emit_event(MockEvent::StreamOpened(peer_id, Protocol::Authentication));
+        test_data.network.emit_event(MockEvent::StreamOpened(
+            peer_id.clone(),
+            Protocol::Authentication,
+        ));
 
         // We do this only to make sure that NotificationStreamOpened events are handled
         test_data.wait_for_events_handled().await;
@@ -709,16 +708,15 @@ mod tests {
             .lock()
             .push_back(MockSenderError::SomeError);
 
-        let peer_id = MockAuthPeerId::random();
+        let peer_id = random_peer_id();
 
-        let message_1 =
-            authentication(vec![(random_authority_id().await, String::from("other_1"))]).await;
-        let message_2 =
-            authentication(vec![(random_authority_id().await, String::from("other_2"))]).await;
+        let message_1 = authentication(vec![(random_peer_id(), String::from("other_1"))]).await;
+        let message_2 = authentication(vec![(random_peer_id(), String::from("other_2"))]).await;
 
-        test_data
-            .network
-            .emit_event(MockEvent::StreamOpened(peer_id, Protocol::Authentication));
+        test_data.network.emit_event(MockEvent::StreamOpened(
+            peer_id.clone(),
+            Protocol::Authentication,
+        ));
 
         // We do this only to make sure that NotificationStreamOpened events are handled
         test_data.wait_for_events_handled().await;
@@ -754,11 +752,7 @@ mod tests {
     async fn test_notification_received() {
         let mut test_data = TestData::prepare().await;
 
-        let message = authentication(vec![(
-            random_authority_id().await,
-            String::from("other_addr"),
-        )])
-        .await;
+        let message = authentication(vec![(random_peer_id(), String::from("other_addr"))]).await;
 
         test_data.network.emit_event(MockEvent::Messages(vec![(
             Protocol::Authentication,
@@ -782,8 +776,7 @@ mod tests {
     async fn test_command_add_reserved() {
         let mut test_data = TestData::prepare().await;
 
-        let multiaddress: MockMultiaddress =
-            (random_authority_id().await, String::from("other_addr"));
+        let multiaddress: MockMultiaddress = (random_peer_id(), String::from("other_addr"));
 
         test_data
             .mock_io
@@ -812,7 +805,7 @@ mod tests {
     async fn test_command_remove_reserved() {
         let mut test_data = TestData::prepare().await;
 
-        let peer_id = random_authority_id().await;
+        let peer_id = random_peer_id();
 
         test_data
             .mock_io

@@ -4,7 +4,6 @@ use std::{
     time::Duration,
 };
 
-use aleph_primitives::AuthorityId as MockPeerId;
 use codec::{Decode, Encode};
 use futures::channel::oneshot;
 use sc_service::TaskManager;
@@ -13,15 +12,16 @@ use tokio::{runtime::Handle, task::JoinHandle, time::timeout};
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{
-        mock::{crypto_basics, MockData, MockEvent, MockNetwork, MockPeerId as MockAuthPeerId},
+        mock::{crypto_basics, MockData, MockEvent, MockNetwork},
         setup_io,
         testing::{DataInSession, DiscoveryMessage, SessionHandler, VersionedAuthentication},
         ConnectionManager, ConnectionManagerConfig, DataNetwork, NetworkIdentity, Protocol,
         Service as NetworkService, SessionManager,
     },
     testing::mocks::validator_network::{
-        random_identity, MockMultiaddress, MockNetwork as MockValidatorNetwork,
+        random_identity_with_address, MockMultiaddress, MockNetwork as MockValidatorNetwork,
     },
+    validator_network::mock::{key, MockPublicKey},
     MillisecsPerBlock, NodeIndex, Recipient, SessionId, SessionPeriod,
 };
 
@@ -34,8 +34,8 @@ const NODES_N: usize = 3;
 struct Authority {
     pen: AuthorityPen,
     addresses: Vec<MockMultiaddress>,
-    peer_id: MockPeerId,
-    auth_peer_id: MockAuthPeerId,
+    peer_id: MockPublicKey,
+    auth_peer_id: MockPublicKey,
 }
 
 impl Authority {
@@ -47,17 +47,17 @@ impl Authority {
         self.addresses.clone()
     }
 
-    fn peer_id(&self) -> MockPeerId {
+    fn peer_id(&self) -> MockPublicKey {
         self.peer_id.clone()
     }
 
-    fn auth_peer_id(&self) -> MockAuthPeerId {
-        self.auth_peer_id
+    fn auth_peer_id(&self) -> MockPublicKey {
+        self.auth_peer_id.clone()
     }
 }
 
 impl NetworkIdentity for Authority {
-    type PeerId = MockPeerId;
+    type PeerId = MockPublicKey;
     type Multiaddress = MockMultiaddress;
 
     fn identity(&self) -> (Vec<Self::Multiaddress>, Self::PeerId) {
@@ -84,8 +84,8 @@ async fn prepare_one_session_test_data() -> TestData {
     let (authority_pens, authority_verifier) = crypto_basics(NODES_N).await;
     let mut authorities = Vec::new();
     for (index, p) in authority_pens {
-        let identity = random_identity(index.0.to_string()).await;
-        let auth_peer_id = MockAuthPeerId::random();
+        let identity = random_identity_with_address(index.0.to_string());
+        let auth_peer_id = key().0;
         authorities.push(Authority {
             pen: p,
             addresses: identity.0,
@@ -152,7 +152,7 @@ async fn prepare_one_session_test_data() -> TestData {
 }
 
 impl TestData {
-    fn connect_identity_to_network(&mut self, peer_id: MockAuthPeerId, protocol: Protocol) {
+    fn connect_identity_to_network(&mut self, peer_id: MockPublicKey, protocol: Protocol) {
         self.network
             .emit_event(MockEvent::StreamOpened(peer_id, protocol));
     }
@@ -248,7 +248,7 @@ impl TestData {
         &mut self,
     ) -> Option<(
         VersionedAuthentication<MockMultiaddress>,
-        MockAuthPeerId,
+        MockPublicKey,
         Protocol,
     )> {
         loop {
@@ -275,7 +275,7 @@ impl TestData {
         self.network_service_exit_tx.send(()).unwrap();
         self.network_manager_handle.await.unwrap();
         self.network_service_handle.await.unwrap();
-        while let Some(_) = self.network.send_message.try_next().await {}
+        while self.network.send_message.try_next().await.is_some() {}
         self.network.close_channels().await;
         self.validator_network.close_channels().await;
     }
@@ -286,7 +286,7 @@ async fn test_sends_discovery_message() {
     let session_id = 43;
     let mut test_data = prepare_one_session_test_data().await;
     let connected_peer_id = test_data.authorities[1].auth_peer_id();
-    test_data.connect_identity_to_network(connected_peer_id, Protocol::Authentication);
+    test_data.connect_identity_to_network(connected_peer_id.clone(), Protocol::Authentication);
     let mut data_network = test_data.start_validator_session(0, session_id).await;
     let handler = test_data.get_session_handler(0, session_id).await;
 

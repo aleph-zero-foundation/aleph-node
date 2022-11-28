@@ -215,20 +215,19 @@ impl<PK: PublicKey + PeerId, A: Data, D: Data> Manager<PK, A, D> {
 
 #[cfg(test)]
 mod tests {
-    use aleph_primitives::AuthorityId;
     use futures::{channel::mpsc, StreamExt};
 
     use super::{AddResult::*, Manager, SendError};
-    use crate::validator_network::mock::key;
+    use crate::validator_network::mock::{key, MockPublicKey};
 
     type Data = String;
     type Address = String;
 
-    #[tokio::test]
-    async fn add_remove() {
-        let mut manager = Manager::<AuthorityId, Address, Data>::new();
-        let (peer_id, _) = key().await;
-        let (peer_id_b, _) = key().await;
+    #[test]
+    fn add_remove() {
+        let mut manager = Manager::<MockPublicKey, Address, Data>::new();
+        let (peer_id, _) = key();
+        let (peer_id_b, _) = key();
         let addresses = vec![
             String::from(""),
             String::from("a/b/c"),
@@ -250,9 +249,9 @@ mod tests {
 
     #[tokio::test]
     async fn outgoing() {
-        let mut manager = Manager::<AuthorityId, Address, Data>::new();
+        let mut manager = Manager::<MockPublicKey, Address, Data>::new();
         let data = String::from("DATA");
-        let (peer_id, _) = key().await;
+        let (peer_id, _) = key();
         let addresses = vec![
             String::from(""),
             String::from("a/b/c"),
@@ -279,10 +278,10 @@ mod tests {
         assert!(rx.next().await.is_none());
     }
 
-    #[tokio::test]
-    async fn incoming() {
-        let mut manager = Manager::<AuthorityId, Address, Data>::new();
-        let (peer_id, _) = key().await;
+    #[test]
+    fn incoming() {
+        let mut manager = Manager::<MockPublicKey, Address, Data>::new();
+        let (peer_id, _) = key();
         let addresses = vec![
             String::from(""),
             String::from("a/b/c"),
@@ -294,7 +293,7 @@ mod tests {
         // rx should fail
         assert!(rx.try_next().expect("channel should be closed").is_none());
         // add peer, this time for real
-        assert!(manager.add_peer(peer_id.clone(), addresses.clone()));
+        assert!(manager.add_peer(peer_id.clone(), addresses));
         let (tx, mut rx) = mpsc::unbounded();
         // should just add
         assert_eq!(manager.add_incoming(peer_id.clone(), tx), Added);

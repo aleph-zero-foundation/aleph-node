@@ -140,11 +140,11 @@ mod test {
         crypto::AuthorityVerifier,
         network::{
             manager::{compatibility::MAX_AUTHENTICATION_SIZE, SessionHandler},
-            mock::MockMultiaddress,
             NetworkIdentity,
         },
         nodes::testing::new_pen,
         tcp_network::{testing::new_identity, TcpMultiaddress},
+        testing::mocks::validator_network::MockMultiaddress,
         NodeIndex, SessionId, Version,
     };
 
