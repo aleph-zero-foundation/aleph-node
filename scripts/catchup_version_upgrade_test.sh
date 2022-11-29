@@ -14,40 +14,10 @@ ALL_NODES_PORTS=${ALL_NODES_PORTS:-"9933:9934:9935:9936:9937"}
 WAIT_BLOCKS=${WAIT_BLOCKS:-30}
 EXT_STATUS=${EXT_STATUS:-"in-block"}
 
-function log() {
-    echo $1 1>&2
-}
-
-function into_array() {
-    result=()
-    local tmp=$IFS
-    IFS=:
-    for e in $1; do
-        result+=($e)
-    done
-    IFS=$tmp
-}
+source ./scripts/common.sh
 
 function initialize {
     wait_for_finalized_block $1 $2 $3
-}
-
-function wait_for_finalized_block() {
-    local block_to_be_finalized=$1
-    local node=$2
-    local port=$3
-
-    while [[ $(get_best_finalized $node $port) -le $block_to_be_finalized ]]; do
-        sleep 3
-    done
-}
-
-function get_best_finalized {
-    local validator=$1
-    local rpc_port=$2
-
-    local best_finalized=$(VALIDATOR=$validator RPC_HOST="127.0.0.1" RPC_PORT=$rpc_port ./.github/scripts/check_finalization.sh | sed 's/Last finalized block number: "\(.*\)"/\1/')
-    printf "%d" $best_finalized
 }
 
 function set_upgrade_session {
@@ -107,45 +77,6 @@ function disconnect_nodes {
         log "disconnecting node $node..."
         docker network disconnect main-network $node
         log "node $node disconnected"
-    done
-}
-
-function wait_for_block {
-    local block=$1
-    local validator=$2
-    local rpc_port=$3
-
-    local last_block=""
-    while [[ -z "$last_block" ]]; do
-        last_block=$(docker run --rm --network container:$validator appropriate/curl:latest \
-                            -H "Content-Type: application/json" \
-                            -d '{"id":1, "jsonrpc":"2.0", "method": "chain_getBlockHash", "params": '$block'}' http://127.0.0.1:$rpc_port | jq '.result')
-    done
-}
-
-function get_last_block {
-    local validator=$1
-    local rpc_port=$2
-
-    local last_block_number=$(docker run --rm --network container:$validator appropriate/curl:latest \
-                                     -H "Content-Type: application/json" \
-                                     -d '{"id":1, "jsonrpc":"2.0", "method": "chain_getBlock"}' http://127.0.0.1:$rpc_port | jq '.result.block.header.number')
-    printf "%d" $last_block_number
-}
-
-function check_finalization {
-    local block_to_check=$1
-    local -n nodes=$2
-    local -n ports=$3
-
-    log "checking finalization for block $block_to_check"
-
-    for i in "${!nodes[@]}"; do
-        local node=${nodes[$i]}
-        local rpc_port=${ports[$i]}
-
-        log "checking finalization at node $node"
-        wait_for_finalized_block $block_to_check $node $rpc_port
     done
 }
 
