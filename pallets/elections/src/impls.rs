@@ -12,7 +12,7 @@ use sp_std::{
 };
 
 use crate::{
-    traits::{EraInfoProvider, SessionInfoProvider, ValidatorRewardsHandler},
+    traits::{EraInfoProvider, SessionInfoProvider, ValidatorExtractor, ValidatorRewardsHandler},
     BanConfig, Banned, CommitteeSize, Config, CurrentEraValidators, NextEraCommitteeSize,
     NextEraNonReservedValidators, NextEraReservedValidators, Pallet, SessionValidatorBlockCount,
     UnderperformedValidatorSessionCount, ValidatorEraTotalReward, ValidatorTotalRewards,
@@ -347,11 +347,16 @@ where
     }
 
     pub fn ban_validator(validator: &T::AccountId, reason: BanReason) {
+        // we do not ban reserved validators
+        if NextEraReservedValidators::<T>::get().contains(validator) {
+            return;
+        }
         // current era is the latest planned era for which validators are already chosen
         // so we ban from the next era
         let start: EraIndex = T::EraInfoProvider::current_era()
             .unwrap_or(0)
             .saturating_add(1);
+        T::ValidatorExtractor::remove_validator(validator);
         Banned::<T>::insert(validator, BanInfo { reason, start });
     }
 

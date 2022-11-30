@@ -18,7 +18,9 @@ use sp_std::{cell::RefCell, collections::btree_set::BTreeSet};
 
 use super::*;
 use crate as pallet_elections;
-use crate::traits::{EraInfoProvider, SessionInfoProvider, ValidatorRewardsHandler};
+use crate::traits::{
+    EraInfoProvider, SessionInfoProvider, ValidatorExtractor, ValidatorRewardsHandler,
+};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -168,6 +170,12 @@ impl EraInfoProvider for MockProvider {
     }
 }
 
+impl ValidatorExtractor for MockProvider {
+    type AccountId = AccountId;
+
+    fn remove_validator(_who: &AccountId) {}
+}
+
 impl Config for Test {
     type EraInfoProvider = MockProvider;
     type RuntimeEvent = RuntimeEvent;
@@ -176,6 +184,7 @@ impl Config for Test {
     type SessionManager = ();
     type SessionInfoProvider = MockProvider;
     type ValidatorRewardsHandler = MockProvider;
+    type ValidatorExtractor = MockProvider;
     type MaximumBanReasonLength = ConstU32<300>;
 }
 

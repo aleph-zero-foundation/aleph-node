@@ -79,7 +79,9 @@ pub mod pallet {
     use sp_runtime::Perbill;
 
     use super::*;
-    use crate::traits::{EraInfoProvider, SessionInfoProvider, ValidatorRewardsHandler};
+    use crate::traits::{
+        EraInfoProvider, SessionInfoProvider, ValidatorExtractor, ValidatorRewardsHandler,
+    };
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -100,6 +102,8 @@ pub mod pallet {
         type SessionInfoProvider: SessionInfoProvider<Self>;
         /// Something that handles addition of rewards for validators.
         type ValidatorRewardsHandler: ValidatorRewardsHandler<Self>;
+        /// Something that removes validators from candidates in elections
+        type ValidatorExtractor: ValidatorExtractor<AccountId = Self::AccountId>;
 
         /// Maximum acceptable ban reason length.
         #[pallet::constant]

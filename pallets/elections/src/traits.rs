@@ -86,3 +86,21 @@ where
         pallet_staking::ErasStakers::<T>::iter_key_prefix(era).collect()
     }
 }
+
+pub trait ValidatorExtractor {
+    type AccountId;
+
+    /// Removes given validator from pallet's staking validators list
+    fn remove_validator(who: &Self::AccountId);
+}
+
+impl<T> ValidatorExtractor for pallet_staking::Pallet<T>
+where
+    T: pallet_staking::Config,
+{
+    type AccountId = T::AccountId;
+
+    fn remove_validator(who: &Self::AccountId) {
+        pallet_staking::Pallet::<T>::do_remove_validator(who);
+    }
+}
