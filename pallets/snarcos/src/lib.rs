@@ -8,6 +8,7 @@ mod tests;
 mod weights;
 
 use frame_support::pallet_prelude::StorageVersion;
+use frame_system::ensure_root;
 pub use pallet::*;
 pub use systems::ProvingSystem;
 pub use weights::{AlephWeight, WeightInfo};
@@ -99,6 +100,44 @@ pub mod pallet {
             Self::bare_store_key(identifier, key).map_err(|e| e.into())
         }
 
+        /// Deletes a key stored under `identifier` in `VerificationKeys` map.
+        ///
+        /// Can only be called by a root account.
+        #[pallet::weight(T::DbWeight::get().writes(1))]
+        pub fn delete_key(
+            origin: OriginFor<T>,
+            identifier: VerificationKeyIdentifier,
+        ) -> DispatchResult {
+            ensure_root(origin)?;
+            VerificationKeys::<T>::remove(identifier);
+            Ok(())
+        }
+
+        /// Overwrites a key stored under `identifier` in `VerificationKeys` map with a new value `key`
+        ///
+        /// Fails if `key.len()` is greater than `MaximumVerificationKeyLength`.
+        /// Can only be called by a root account.
+        #[pallet::weight(T::WeightInfo::overwrite_key(key.len() as u32))]
+        pub fn overwrite_key(
+            origin: OriginFor<T>,
+            identifier: VerificationKeyIdentifier,
+            key: Vec<u8>,
+        ) -> DispatchResult {
+            ensure_root(origin)?;
+
+            VerificationKeys::<T>::try_mutate_exists(identifier, |value| -> DispatchResult {
+                ensure!(
+                    key.len() <= T::MaximumVerificationKeyLength::get() as usize,
+                    Error::<T>::VerificationKeyTooLong
+                );
+
+                // should never fail, since length is checked above
+                *value = Some(BoundedVec::try_from(key).unwrap());
+
+                Ok(())
+            })
+        }
+
         /// Verifies `proof` against `public_input` with a key that has been stored under
         /// `verification_key_identifier`. All is done within `system` proving system.
         ///
@@ -142,6 +181,7 @@ pub mod pallet {
                 key.len() <= T::MaximumVerificationKeyLength::get() as usize,
                 Error::<T>::VerificationKeyTooLong
             );
+
             ensure!(
                 !VerificationKeys::<T>::contains_key(identifier),
                 Error::<T>::IdentifierAlreadyInUse

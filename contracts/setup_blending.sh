@@ -36,11 +36,12 @@ Make sure to have "cargo contract" installed (version 1.5).
 EOF
 }
 
-while getopts r:n: flag
+while getopts r:n:k: flag
 do
   case "${flag}" in
     r) RUN_CHAIN=${OPTARG};;
     n) NODE=${OPTARG};;
+    k) REGISTER_KEYS=${OPTARG};;
     *)
       usage
       exit
@@ -50,8 +51,9 @@ done
 
 # defaults
 
-RUN_CHAIN="${RUN_CHAIN:-true}"
-NODE="${NODE:-ws://127.0.0.1:9944}"
+RUN_CHAIN="${RUN_CHAIN:-false}"
+REGISTER_KEYS="${REGISTER_KEYS:-false}"
+NODE="${NODE:-ws://127.0.0.1:9943}"
 
 # Command shortcuts
 INSTANTIATE_CMD="cargo contract instantiate --skip-confirm --url ${NODE} --suri ${CONTRACTS_ADMIN}"
@@ -77,6 +79,10 @@ log_progress() {
   echo "[$(get_timestamp)] [INFO] ${bold}${1}${normal}"
 }
 
+random_salt() {
+  hexdump -vn16 -e'4/4 "%08X" 1 "\n"' /dev/urandom
+}
+
 run_chain() {
   cd "${ROOT_DIR}"/../
   ./scripts/run_nodes.sh -b false 1> /dev/null 2> /dev/null
@@ -89,11 +95,11 @@ build_token_contract() {
 
 deploy_token_contracts() {
   cd "${ROOT_DIR}"/public_token/
-  result=$($INSTANTIATE_CMD --args "${TOTAL_TOKEN_ISSUANCE_PER_CONTRACT}" --salt "0x1111")
+  result=$($INSTANTIATE_CMD --args "${TOTAL_TOKEN_ISSUANCE_PER_CONTRACT}" --salt 0x$(random_salt))
   TOKEN_A_ADDRESS=$(echo "$result" | grep Contract | tail -1 | cut -c 14-)
   echo "Token A address: ${TOKEN_A_ADDRESS}"
 
-  result=$($INSTANTIATE_CMD --args "${TOTAL_TOKEN_ISSUANCE_PER_CONTRACT}" --salt "0x2222")
+  result=$($INSTANTIATE_CMD --args "${TOTAL_TOKEN_ISSUANCE_PER_CONTRACT}" --salt 0x$(random_salt))
   TOKEN_B_ADDRESS=$(echo "$result" | grep Contract | tail -1 | cut -c 14-)
   echo "Token B address: ${TOKEN_B_ADDRESS}"
 }
@@ -126,7 +132,7 @@ build_blender_contract() {
 
 deploy_blender_contract() {
   cd "${ROOT_DIR}"/blender/
-  result=$($INSTANTIATE_CMD --args ${MERKLE_LEAVES})
+  result=$($INSTANTIATE_CMD --args ${MERKLE_LEAVES} --salt 0x$(random_salt))
   BLENDER_ADDRESS=$(echo "$result" | grep Contract | tail -1 | cut -c 14-)
   echo "Blender address: ${BLENDER_ADDRESS}"
 }
@@ -168,8 +174,10 @@ set_up_blending() {
   log_progress "Setting allowances for Blender..."
   set_allowances || error "Failed to set allowances"
 
-  log_progress "Registering verifying keys..."
-  register_vk || error "Failed to register verifying keys"
+  if [ $REGISTER_KEYS = true ]; then
+    log_progress "Registering verifying keys..."
+    register_vk || error "Failed to register verifying keys"
+  fi
 
   log_progress "Registering token contracts..."
   register_tokens || error "Failed to register token contracts"

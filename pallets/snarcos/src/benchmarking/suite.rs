@@ -25,6 +25,11 @@ benchmarks! {
         let key = vec![0u8; l as usize];
     } : _(caller::<T>(), IDENTIFIER, key)
 
+    overwrite_key {
+        let l in 1 .. T::MaximumVerificationKeyLength::get();
+        let key = vec![0u8; l as usize];
+    } : _(RawOrigin::Root, IDENTIFIER, key)
+
     // Groth16 benchmarks
 
     verify_groth16_xor {

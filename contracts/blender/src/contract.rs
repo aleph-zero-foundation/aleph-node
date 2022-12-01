@@ -55,6 +55,13 @@ mod blender {
         new_note: Note,
     }
 
+    #[ink(event)]
+    pub struct TokenRegistered {
+        #[ink(topic)]
+        token_id: TokenId,
+        token_address: AccountId,
+    }
+
     type Result<T> = core::result::Result<T, BlenderError>;
     type Event = <Blender as ContractEventBase>::Type;
 
@@ -121,7 +128,7 @@ mod blender {
             proof: Vec<u8>,
         ) -> Result<()> {
             self.acquire_deposit(token_id, value)?;
-            // self.verify_deposit(token_id, value, note, proof)?;
+            self.verify_deposit(token_id, value, note, proof)?;
 
             self.create_new_leaf(note)?;
             self.merkle_roots.insert(self.current_root(), &());
@@ -240,17 +247,25 @@ mod blender {
         ///
         /// For owner use only.
         #[ink(message, selector = 10)]
-        #[modifiers(only_owner)]
         pub fn register_new_token(
             &mut self,
             token_id: TokenId,
             token_address: AccountId,
         ) -> Result<()> {
-            self.registered_tokens
+            let _ = self
+                .registered_tokens
                 .contains(token_id)
                 .not()
                 .then(|| self.registered_tokens.insert(token_id, &token_address))
-                .ok_or(BlenderError::TokenIdAlreadyRegistered)
+                .ok_or(BlenderError::TokenIdAlreadyRegistered)?;
+            Self::emit_event(
+                self.env(),
+                Event::TokenRegistered(TokenRegistered {
+                    token_id,
+                    token_address,
+                }),
+            );
+            Ok(())
         }
     }
 
@@ -374,7 +389,7 @@ mod blender {
             token_id: TokenId,
             value_out: TokenAmount,
             merkle_root: MerkleRoot,
-            nullifier: Nullifier,
+            old_nullifier: Nullifier,
             new_note: Note,
             proof: Vec<u8>,
             fee: TokenAmount,
@@ -384,14 +399,14 @@ mod blender {
 
             let input = [
                 CircuitField::from(fee),
-                CircuitField::from(BigInteger256::new([
+                CircuitField::new(BigInteger256::new([
                     u64::from_le_bytes(recipient_bytes[0..8].try_into().unwrap()),
                     u64::from_le_bytes(recipient_bytes[8..16].try_into().unwrap()),
                     u64::from_le_bytes(recipient_bytes[16..24].try_into().unwrap()),
                     u64::from_le_bytes(recipient_bytes[24..32].try_into().unwrap()),
                 ])),
                 CircuitField::from(token_id),
-                CircuitField::from(nullifier),
+                CircuitField::from(old_nullifier),
                 CircuitField::from(BigInteger256::new(new_note)),
                 CircuitField::from(value_out),
                 CircuitField::from(BigInteger256::new(merkle_root)),
