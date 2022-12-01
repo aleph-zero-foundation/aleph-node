@@ -8,9 +8,11 @@ use log::info;
 use primitives::Balance;
 use sp_runtime::{FixedPointNumber, FixedU128};
 
-use crate::{config::Config, transfer::setup_for_transfer};
+use crate::{config::setup_test, transfer::setup_for_transfer};
 
-pub async fn fee_calculation(config: &Config) -> anyhow::Result<()> {
+#[tokio::test]
+pub async fn fee_calculation() -> anyhow::Result<()> {
+    let config = setup_test();
     // An initial transfer is needed to establish the fee multiplier.
     let (connection, to) = setup_for_transfer(config).await;
     let root_connection = config.create_root_connection().await;

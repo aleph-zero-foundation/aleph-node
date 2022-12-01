@@ -4,6 +4,6 @@ set -e
 
 cd e2e-tests/
 
-RUST_LOG=aleph_e2e_client=info,aleph-client=info cargo run -- --node ws://127.0.0.1:9943
+E2E_CONFIG="--node ws://127.0.0.1:9943" RUST_LOG=info cargo test -- --nocapture
 
 exit $?

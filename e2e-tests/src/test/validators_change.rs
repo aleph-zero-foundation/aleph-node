@@ -8,9 +8,12 @@ use aleph_client::{
 };
 use log::info;
 
-use crate::{accounts::get_validators_keys, config::Config};
+use crate::{accounts::get_validators_keys, config::setup_test};
 
-pub async fn change_validators(config: &Config) -> anyhow::Result<()> {
+#[tokio::test]
+pub async fn change_validators() -> anyhow::Result<()> {
+    let config = setup_test();
+
     let accounts = get_validators_keys(config);
     let connection = config.create_root_connection().await;
 

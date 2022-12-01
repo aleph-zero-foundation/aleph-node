@@ -6,7 +6,7 @@ use aleph_client::{
 };
 use primitives::SessionIndex;
 
-use crate::Config;
+use crate::config::setup_test;
 
 const UPGRADE_TO_VERSION: u32 = 1;
 
@@ -15,7 +15,9 @@ const UPGRADE_SESSION: SessionIndex = 3;
 const UPGRADE_FINALIZATION_WAIT_SESSIONS: u32 = 3;
 
 // Simple test that schedules a version upgrade, awaits it, and checks if node is still finalizing after planned upgrade session.
-pub async fn schedule_version_change(config: &Config) -> anyhow::Result<()> {
+#[tokio::test]
+pub async fn schedule_version_change() -> anyhow::Result<()> {
+    let config = setup_test();
     let connection = config.create_root_connection().await;
     let test_case_params = config.test_case_params.clone();
 
@@ -53,9 +55,10 @@ pub async fn schedule_version_change(config: &Config) -> anyhow::Result<()> {
 
 // A test that schedules a version upgrade which is supposed to fail, awaits it, and checks if finalization stopped.
 // It's up to the user of this test to ensure that version upgrade will actually break finalization (non-compatible change in protocol, # updated nodes k is f < k < 2/3n).
-pub async fn schedule_doomed_version_change_and_verify_finalization_stopped(
-    config: &Config,
-) -> anyhow::Result<()> {
+#[tokio::test]
+pub async fn schedule_doomed_version_change_and_verify_finalization_stopped() -> anyhow::Result<()>
+{
+    let config = setup_test();
     let connection = config.create_root_connection().await;
     let test_case_params = config.test_case_params.clone();
 

@@ -1,12 +1,16 @@
-pub use cases::{run_all_testcases, run_testcase};
-pub use config::Config;
-
+#[cfg(test)]
 mod accounts;
+#[cfg(test)]
 mod ban;
-mod cases;
+#[cfg(test)]
 mod config;
+#[cfg(test)]
 mod elections;
+#[cfg(test)]
 mod rewards;
+#[cfg(test)]
 mod test;
+#[cfg(test)]
 mod transfer;
+#[cfg(test)]
 mod validators;

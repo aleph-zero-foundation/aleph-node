@@ -165,7 +165,8 @@ jobs:
       - name: Build binary and docker image
         run: |
           cd e2e-tests/
-          cargo build --release
+          rm -f target/release/deps/aleph_e2e_client*
+          cp $(cargo test --no-run --release --message-format=json | jq -r .executable | grep aleph_e2e_client) target/release/aleph-e2e-client
           docker build --tag aleph-e2e-client:latest -f Dockerfile .
           docker save -o aleph-e2e-client.tar aleph-e2e-client:latest
 
@@ -192,7 +193,7 @@ jobs:
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
         with:
-          test-case: finalization
+          test-case: finalization::finalization
         timeout-minutes: 2
 
 
@@ -207,7 +208,7 @@ jobs:
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
         with:
-          test-case: rewards_disable_node
+          test-case: rewards::disable_node
           follow-up-finalization-check: true
         timeout-minutes: 15
 
@@ -360,7 +361,7 @@ jobs:
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
         with:
-          test-case: era_payout
+          test-case: era_payout::era_payout
           follow-up-finalization-check: true
         timeout-minutes: 10
 
@@ -390,7 +391,7 @@ jobs:
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
         with:
-          test-case: rewards_force_new_era
+          test-case: rewards::force_new_era
           follow-up-finalization-check: true
         timeout-minutes: 10
 
@@ -405,7 +406,7 @@ jobs:
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
         with:
-          test-case: rewards_stake_change
+          test-case: rewards::points_stake_change
           follow-up-finalization-check: true
         timeout-minutes: 10
 
@@ -420,7 +421,7 @@ jobs:
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
         with:
-          test-case: rewards_change_stake_and_force_new_era
+          test-case: rewards::change_stake_and_force_new_era
           follow-up-finalization-check: true
         timeout-minutes: 10
 
@@ -528,7 +529,7 @@ jobs:
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
         with:
-          test-case: version_upgrade
+          test-case: version_upgrade::schedule_version_change
         env:
           UPGRADE_VERSION: 1
           UPGRADE_SESSION: 3
@@ -556,7 +557,6 @@ jobs:
 #          UPGRADE_FINALIZATION_WAIT_SESSIONS: 2
 #          ONLY_LEGACY: true
 #        timeout-minutes: 10
-
 #  run-e2e-version-upgrade-catchup:
 #    needs: [build-test-docker, build-cliain-image]
 #    name: Run series of tests where some of the nodes need to do version-upgrade during catch-up

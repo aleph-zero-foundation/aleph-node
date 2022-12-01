@@ -10,7 +10,7 @@ use aleph_client::{
 use futures::future::join_all;
 use primitives::{staking::MIN_VALIDATOR_BOND, TOKEN};
 
-use crate::{accounts::get_validators_raw_keys, Config};
+use crate::{accounts::get_validators_raw_keys, config::Config};
 
 /// Get all validators assumed for test
 pub fn get_test_validators(config: &Config) -> EraValidators<KeyPair> {

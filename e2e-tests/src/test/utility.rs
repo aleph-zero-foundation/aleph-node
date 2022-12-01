@@ -2,9 +2,11 @@ use std::iter::repeat;
 
 use aleph_client::{pallets::balances::BalanceUserBatchExtApi, TxStatus};
 
-use crate::{config::Config, transfer::setup_for_transfer};
+use crate::{config::setup_test, transfer::setup_for_transfer};
 
-pub async fn batch_transactions(config: &Config) -> anyhow::Result<()> {
+#[tokio::test]
+pub async fn batch_transactions() -> anyhow::Result<()> {
+    let config = setup_test();
     const NUMBER_OF_TRANSACTIONS: usize = 100;
 
     let (connection, to) = setup_for_transfer(config).await;

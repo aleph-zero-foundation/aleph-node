@@ -14,8 +14,8 @@ use log::info;
 use primitives::EraIndex;
 
 use crate::{
+    config::setup_test,
     validators::{prepare_validators, setup_accounts},
-    Config,
 };
 
 /// Verify that `pallet_staking::ErasStakers` contains all target validators.
@@ -147,7 +147,10 @@ async fn chill_validators(node: &str, chilling: Vec<KeyPair>) {
 /// parameter to set `MinimumValidatorCount` in the chain spec as the chain is set up.
 /// For this specific test case, we use `node-count = 6` and `min-validator-count = 4`, which
 /// satisfies the outlined conditions.
-pub async fn authorities_are_staking(config: &Config) -> anyhow::Result<()> {
+#[tokio::test]
+pub async fn authorities_are_staking() -> anyhow::Result<()> {
+    let config = setup_test();
+
     let node = &config.node;
     let root_connection = config.create_root_connection().await;
 

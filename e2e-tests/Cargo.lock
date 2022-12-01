@@ -60,6 +60,7 @@ dependencies = [
  "futures",
  "hex",
  "log",
+ "once_cell",
  "pallet-balances",
  "pallet-elections",
  "pallet-staking",
@@ -2267,6 +2268,7 @@ name = "pallets-support"
 version = "0.1.2"
 dependencies = [
  "frame-support",
+ "sp-std 4.0.0 (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.30)",
 ]
 
 [[package]]

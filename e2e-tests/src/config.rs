@@ -1,8 +1,22 @@
+use std::env;
+
 use aleph_client::{RootConnection, SignedConnection};
 use clap::{Args, Parser};
+use once_cell::sync::Lazy;
 use primitives::SessionIndex;
 
 use crate::accounts::{get_sudo_key, get_validators_keys, get_validators_seeds, NodeKeys};
+
+static GLOBAL_CONFIG: Lazy<Config> = Lazy::new(|| {
+    let unparsed = env::var("E2E_CONFIG").unwrap_or("".to_string());
+    let unparsed = format!("e2e {}", unparsed);
+    Config::parse_from(unparsed.split_whitespace())
+});
+
+pub fn setup_test() -> &'static Config {
+    let _ = env_logger::builder().is_test(true).try_init();
+    &GLOBAL_CONFIG
+}
 
 #[derive(Debug, Parser, Clone)]
 #[clap(version = "1.0")]

@@ -21,7 +21,7 @@ use sp_runtime::Perquintill;
 
 use crate::{
     accounts::{get_validators_keys, get_validators_seeds, NodeKeys},
-    Config,
+    config::Config,
 };
 
 const COMMITTEE_SEATS: CommitteeSeats = CommitteeSeats {
@@ -51,7 +51,9 @@ pub async fn set_invalid_keys_for_validator(
 }
 
 /// Rotates session_keys of a given `controller`, making it able to rejoin the `consensus`.
-pub async fn reset_validator_keys(controller_connection: &SignedConnection) -> anyhow::Result<()> {
+pub(super) async fn reset_validator_keys(
+    controller_connection: &SignedConnection,
+) -> anyhow::Result<()> {
     let validator_keys = controller_connection.connection.author_rotate_keys().await;
     controller_connection
         .set_keys(validator_keys, TxStatus::InBlock)

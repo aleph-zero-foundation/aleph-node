@@ -25,6 +25,6 @@ if [[ -n "${UPGRADE_VERSION:-}" && -n "${UPGRADE_SESSION:-}" && -n "${UPGRADE_FI
     )
 fi
 
-aleph-e2e-client "${ARGS[@]}"
+E2E_CONFIG="${ARGS[*]}" aleph-e2e-client $TEST_CASES --nocapture
 
 echo "Done!"

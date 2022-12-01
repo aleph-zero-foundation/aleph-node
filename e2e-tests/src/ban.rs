@@ -12,8 +12,8 @@ use primitives::{SessionCount, SessionIndex};
 use sp_runtime::Perbill;
 
 use crate::{
-    accounts::account_ids_from_keys, elections::get_members_subset_for_session,
-    validators::get_test_validators, Config,
+    accounts::account_ids_from_keys, config::Config, elections::get_members_subset_for_session,
+    validators::get_test_validators,
 };
 
 const RESERVED_SEATS: u32 = 2;

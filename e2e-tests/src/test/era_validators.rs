@@ -8,7 +8,7 @@ use aleph_client::{
 
 use crate::{
     accounts::{account_ids_from_keys, get_validators_raw_keys},
-    Config,
+    config::{setup_test, Config},
 };
 
 fn get_initial_reserved_validators(config: &Config) -> Vec<KeyPair> {
@@ -58,7 +58,9 @@ async fn get_current_and_next_era_non_reserved_validators(
     (current_non_reserved, stored_non_reserved)
 }
 
-pub async fn era_validators(config: &Config) -> anyhow::Result<()> {
+#[tokio::test]
+pub async fn era_validators() -> anyhow::Result<()> {
+    let config = setup_test();
     let connection = config.get_first_signed_connection().await;
     let root_connection = config.create_root_connection().await;
 

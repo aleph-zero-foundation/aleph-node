@@ -13,7 +13,7 @@ use log::info;
 use primitives::Balance;
 
 use crate::{
-    accounts::get_validators_raw_keys, config::Config, test::fee::current_fees,
+    accounts::get_validators_raw_keys, config::setup_test, test::fee::current_fees,
     transfer::setup_for_transfer,
 };
 
@@ -33,7 +33,9 @@ async fn balance_info(connection: &Connection) -> (Balance, Balance) {
     (treasury_balance, issuance)
 }
 
-pub async fn channeling_fee_and_tip(config: &Config) -> anyhow::Result<()> {
+#[tokio::test]
+pub async fn channeling_fee_and_tip() -> anyhow::Result<()> {
+    let config = setup_test();
     let (transfer_amount, tip) = (1_000u128, 10_000u128);
     let (connection, to) = setup_for_transfer(config).await;
 
@@ -100,7 +102,9 @@ fn check_treasury_balance(
     );
 }
 
-pub async fn treasury_access(config: &Config) -> anyhow::Result<()> {
+#[tokio::test]
+pub async fn treasury_access() -> anyhow::Result<()> {
+    let config = setup_test();
     let proposer = KeyPair::new(get_validators_raw_keys(config)[0].clone());
     let beneficiary = account_from_keypair(proposer.signer());
     let connection = SignedConnection::new(config.node.clone(), proposer).await;

@@ -89,4 +89,4 @@ runs:
     - name: Run finalization e2e test
       if: inputs.follow-up-finalization-check == 'true'
       shell: bash
-      run: ./.github/scripts/run_e2e_test.sh -t finalization -m "${{ inputs.min-validator-count }}"
+      run: ./.github/scripts/run_e2e_test.sh -t finalization::finalization -m "${{ inputs.min-validator-count }}"
