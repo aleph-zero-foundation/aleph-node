@@ -1,5 +1,7 @@
-use clap::{Parser, Subcommand as ClapSubcommand};
-use sc_cli::{ChainSpec, RunCmd, RuntimeVersion, SubstrateCli};
+use sc_cli::{
+    clap::{self, Parser, Subcommand as ClapSubcommand},
+    ChainSpec, RunCmd, RuntimeVersion, SubstrateCli,
+};
 
 use crate::{
     aleph_cli::AlephCli,
@@ -10,13 +12,13 @@ use crate::{
 #[derive(Debug, Parser)]
 #[clap(subcommand_negates_reqs(true), version(env!("SUBSTRATE_CLI_IMPL_VERSION")))]
 pub struct Cli {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     pub subcommand: Option<Subcommand>,
 
-    #[clap(flatten)]
+    #[command(flatten)]
     pub aleph: AlephCli,
 
-    #[clap(flatten)]
+    #[command(flatten)]
     pub run: RunCmd,
 }
 
@@ -67,7 +69,7 @@ impl SubstrateCli for Cli {
 #[derive(Debug, ClapSubcommand)]
 pub enum Subcommand {
     /// Key management cli utilities
-    #[clap(subcommand)]
+    #[command(subcommand)]
     Key(sc_cli::KeySubcommand),
 
     /// Populate authorities keystore and generate chainspec in JSON format (printed to stdout)

@@ -39,9 +39,13 @@ pub trait SudoCall {
 impl SudoCall for RootConnection {
     async fn sudo_unchecked(&self, call: Call, status: TxStatus) -> anyhow::Result<BlockHash> {
         info!(target: "aleph-client", "sending call as sudo_unchecked {:?}", call);
-        let sudo = api::tx()
-            .sudo()
-            .sudo_unchecked_weight(call, Weight { ref_time: 0 });
+        let sudo = api::tx().sudo().sudo_unchecked_weight(
+            call,
+            Weight {
+                ref_time: 0,
+                proof_size: 0,
+            },
+        );
 
         self.as_signed().send_tx(sudo, status).await
     }

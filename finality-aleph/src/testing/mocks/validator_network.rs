@@ -466,14 +466,14 @@ fn spawn_peer(
                 _ = send_ticker.tick() => {
                     counter += 1;
                     // generate random message
-                    let mut filler_size = 0;
-                    if let Some(lmi) = large_message_interval && counter % lmi == 0 {
-                        filler_size = TWICE_MAX_DATA_SIZE;
-                    }
-                    let mut decodes = true;
-                    if let Some(cmi) = corrupted_message_interval && counter % cmi == 0 {
-                        decodes = false;
-                    }
+                    let filler_size = match large_message_interval {
+                        Some(lmi) if counter % lmi == 0 => TWICE_MAX_DATA_SIZE,
+                        _ => 0,
+                    };
+                    let decodes = match corrupted_message_interval {
+                        Some(cmi) if counter % cmi == 0 => false,
+                        _ => true,
+                    };
                     let data: MockData = MockData::new(thread_rng().gen_range(0..n_msg) as u32, filler_size, decodes);
                     // choose a peer
                     let peer: MockPublicKey = peer_ids[thread_rng().gen_range(0..peer_ids.len())].clone();

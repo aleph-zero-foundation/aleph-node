@@ -50,11 +50,11 @@ use std::{
     fs::File,
 };
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use codec::{Compact, Decode};
 use contract_metadata::ContractMetadata;
 use contract_transcode::ContractMessageTranscoder;
-use ink_metadata::{InkProject, MetadataVersioned};
+use ink_metadata::InkProject;
 use serde_json::{from_reader, from_value};
 
 use crate::{
@@ -67,6 +67,7 @@ use crate::{
 pub struct ContractInstance {
     address: AccountId,
     ink_project: InkProject,
+    transcoder: ContractMessageTranscoder,
 }
 
 impl ContractInstance {
@@ -80,6 +81,7 @@ impl ContractInstance {
         Ok(Self {
             address,
             ink_project: load_metadata(metadata_path)?,
+            transcoder: ContractMessageTranscoder::new(load_metadata(metadata_path)?),
         })
     }
 
@@ -112,6 +114,7 @@ impl ContractInstance {
             value: 0,
             gas_limit: Weight {
                 ref_time: Self::MAX_READ_GAS,
+                proof_size: u64::MAX,
             },
             input_data: payload,
             storage_deposit_limit: None,
@@ -139,6 +142,7 @@ impl ContractInstance {
             Self::PAYABLE_VALUE as u128,
             Weight {
                 ref_time: Self::MAX_GAS,
+                proof_size: u64::MAX,
             },
             Self::STORAGE_FEE_LIMIT,
             data,
@@ -151,7 +155,7 @@ impl ContractInstance {
     }
 
     fn encode(&self, message: &str, args: &[&str]) -> Result<Vec<u8>> {
-        ContractMessageTranscoder::new(&self.ink_project).encode(message, args)
+        self.transcoder.encode(message, args)
     }
 }
 
@@ -174,9 +178,5 @@ fn load_metadata(path: &str) -> Result<InkProject> {
     let metadata: ContractMetadata = from_reader(file)?;
     let ink_metadata = from_value(serde_json::Value::Object(metadata.abi))?;
 
-    if let MetadataVersioned::V3(ink_project) = ink_metadata {
-        Ok(ink_project)
-    } else {
-        Err(anyhow!("Unsupported ink metadata version. Expected V3"))
-    }
+    Ok(ink_metadata)
 }

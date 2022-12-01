@@ -7,7 +7,7 @@
 
 use std::sync::Arc;
 
-use aleph_runtime::{opaque::Block, AccountId, Balance, BlockNumber, Hash, Index};
+use aleph_runtime::{opaque::Block, AccountId, Balance, Index};
 use finality_aleph::JustificationNotification;
 use futures::channel::mpsc;
 use jsonrpsee::RpcModule;
@@ -36,14 +36,12 @@ where
     C: ProvideRuntimeApi<Block>,
     C: HeaderBackend<Block> + HeaderMetadata<Block, Error = BlockChainError> + 'static,
     C: Send + Sync + 'static,
-    C::Api: pallet_contracts_rpc::ContractsRuntimeApi<Block, AccountId, Balance, BlockNumber, Hash>,
     C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>,
     C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
     C::Api: BlockBuilder<Block>,
     P: TransactionPool + 'static,
     B: BlockT,
 {
-    use pallet_contracts_rpc::{Contracts, ContractsApiServer};
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
     use substrate_frame_rpc_system::{System, SystemApiServer};
 
@@ -57,9 +55,7 @@ where
 
     module.merge(System::new(client.clone(), pool, deny_unsafe).into_rpc())?;
 
-    module.merge(TransactionPayment::new(client.clone()).into_rpc())?;
-
-    module.merge(Contracts::new(client).into_rpc())?;
+    module.merge(TransactionPayment::new(client).into_rpc())?;
 
     use crate::aleph_node_rpc::{AlephNode, AlephNodeApiServer};
     module.merge(AlephNode::new(import_justification_tx).into_rpc())?;

@@ -188,7 +188,7 @@ impl ContractRpc for Connection {
 
         let res: ContractExecResult<Balance> =
             self.rpc_call("state_call".to_string(), params).await?;
-        let res = T::decode(&mut (res.result.unwrap().data.0.as_slice()))?;
+        let res = T::decode(&mut (res.result.unwrap().data.as_slice()))?;
 
         Ok(res)
     }

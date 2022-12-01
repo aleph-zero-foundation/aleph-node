@@ -1,6 +1,6 @@
 [package]
 name = "payout-stakers"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Cardinal Cryptography"]
 edition = "2021"
 
@@ -14,10 +14,10 @@ log = "0.4"
 futures = "0.3.25"
 rand = "0.8.5"
 
-sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.30", features = ["full_crypto"] }
-sp-keyring = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.30" }
+sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31", features = ["full_crypto"] }
+sp-keyring = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
 
-subxt = "0.24.0"
+subxt = "0.25.0"
 tokio = { version = "1.21.2", features = ["full"] }
 
 aleph_client = { path = "../../aleph-client" }

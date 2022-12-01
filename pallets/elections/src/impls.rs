@@ -361,14 +361,14 @@ where
     }
 
     fn mark_validator_underperformance(thresholds: &BanConfigStruct, validator: &T::AccountId) {
-        let counter = UnderperformedValidatorSessionCount::<T>::mutate(&validator, |count| {
+        let counter = UnderperformedValidatorSessionCount::<T>::mutate(validator, |count| {
             *count += 1;
             *count
         });
         if counter >= thresholds.underperformed_session_count_threshold {
             let reason = BanReason::InsufficientUptime(counter);
             Self::ban_validator(validator, reason);
-            UnderperformedValidatorSessionCount::<T>::remove(&validator);
+            UnderperformedValidatorSessionCount::<T>::remove(validator);
         }
     }
 

@@ -303,7 +303,7 @@ impl StakingRawApi for Connection {
     ) -> Vec<StorageKey> {
         let key_addrs = api::storage().staking().eras_stakers_root();
         let mut key = key_addrs.to_root_bytes();
-        StorageMapKey::new(&era, StorageHasher::Twox64Concat).to_bytes(&mut key);
+        StorageMapKey::new(era, StorageHasher::Twox64Concat).to_bytes(&mut key);
         self.client
             .storage()
             .fetch_keys(&key, 10, None, at)
@@ -319,7 +319,7 @@ impl StakingRawApi for Connection {
     ) -> Vec<StorageKey> {
         let key_addrs = api::storage().staking().eras_stakers_root();
         let mut key = key_addrs.to_root_bytes();
-        StorageMapKey::new(&era, StorageHasher::Twox64Concat).to_bytes(&mut key);
+        StorageMapKey::new(era, StorageHasher::Twox64Concat).to_bytes(&mut key);
         accounts
             .iter()
             .map(|account| {

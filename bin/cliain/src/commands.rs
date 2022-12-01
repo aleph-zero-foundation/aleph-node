@@ -118,7 +118,7 @@ impl std::str::FromStr for ChangeValidatorArgs {
     fn from_str(change_validator_args: &str) -> Result<Self, Self::Err> {
         let path = Path::new(change_validator_args);
         if path.exists() {
-            let file = File::open(&path).expect("Failed to open metadata file");
+            let file = File::open(path).expect("Failed to open metadata file");
             return serde_json::from_reader(file);
         }
         serde_json::from_str(change_validator_args)

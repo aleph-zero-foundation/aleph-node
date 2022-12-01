@@ -48,8 +48,8 @@ pub type ABFTBackup = (Saver, Loader);
 
 /// Find all `*.abfts` files at `session_path` and return their indexes sorted, if all are present.
 fn get_session_backup_idxs(session_path: &Path) -> Result<Vec<usize>, BackupLoadError> {
-    fs::create_dir_all(&session_path)?;
-    let mut session_backups: Vec<_> = fs::read_dir(&session_path)?
+    fs::create_dir_all(session_path)?;
+    let mut session_backups: Vec<_> = fs::read_dir(session_path)?
         .filter_map(|r| r.ok())
         .filter_map(|x| x.file_name().into_string().ok())
         .filter_map(|s| usize::from_str(s.strip_suffix(BACKUP_FILE_EXTENSION)?).ok())
@@ -132,7 +132,7 @@ pub fn remove(path: Option<PathBuf>, session_id: u32) {
         Some(path) => path.join(session_id.to_string()),
         None => return,
     };
-    match fs::remove_dir_all(&path) {
+    match fs::remove_dir_all(path) {
         Ok(()) => {
             debug!(target: "aleph-party", "Removed backup for session {}", session_id);
         }

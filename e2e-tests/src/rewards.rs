@@ -97,14 +97,8 @@ fn check_rewards(
     retrieved_reward_points: HashMap<AccountId, u32>,
     max_relative_difference: f64,
 ) -> anyhow::Result<()> {
-    let our_sum: f64 = validator_reward_points
-        .iter()
-        .map(|(_, reward)| reward)
-        .sum();
-    let retrieved_sum: u32 = retrieved_reward_points
-        .iter()
-        .map(|(_, reward)| reward)
-        .sum();
+    let our_sum: f64 = validator_reward_points.values().sum();
+    let retrieved_sum: u32 = retrieved_reward_points.values().sum();
 
     for (account, reward) in &validator_reward_points {
         let reward = *reward;
