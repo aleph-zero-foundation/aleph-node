@@ -5,7 +5,7 @@ use snarcos_extension::SnarcosError;
 
 #[derive(Eq, PartialEq, Debug, Decode, Encode)]
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
-pub enum BlenderError {
+pub enum ShielderError {
     /// Caller is missing some permission.
     InsufficientPermission(OwnableError),
     /// Merkle tree is full - no new notes can be created.
@@ -31,26 +31,26 @@ pub enum BlenderError {
     TokenIdNotRegistered,
 }
 
-impl From<SnarcosError> for BlenderError {
+impl From<SnarcosError> for ShielderError {
     fn from(e: SnarcosError) -> Self {
-        BlenderError::ChainExtension(e)
+        ShielderError::ChainExtension(e)
     }
 }
 
-impl From<PSP22Error> for BlenderError {
+impl From<PSP22Error> for ShielderError {
     fn from(e: PSP22Error) -> Self {
-        BlenderError::Psp22(e)
+        ShielderError::Psp22(e)
     }
 }
 
-impl From<OwnableError> for BlenderError {
+impl From<OwnableError> for ShielderError {
     fn from(e: OwnableError) -> Self {
-        BlenderError::InsufficientPermission(e)
+        ShielderError::InsufficientPermission(e)
     }
 }
 
-impl From<ink_env::Error> for BlenderError {
+impl From<ink_env::Error> for ShielderError {
     fn from(e: ink_env::Error) -> Self {
-        BlenderError::InkEnv(format!("{:?}", e))
+        ShielderError::InkEnv(format!("{:?}", e))
     }
 }

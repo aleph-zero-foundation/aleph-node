@@ -12,14 +12,14 @@ members = [
 ]
 
 exclude = [
-  "flooder",
-  "e2e-tests",
-  "aleph-client",
-  "fork-off",
-  "benches/payout-stakers",
-  "bin/cliain",
-  "bin/runtime/src/chain_extension/snarcos-extension",
-  "contracts/blender",
-  "contracts/public_token",
-  "contracts/snarcos-contract",
+    "flooder",
+    "e2e-tests",
+    "aleph-client",
+    "fork-off",
+    "benches/payout-stakers",
+    "bin/cliain",
+    "bin/runtime/src/chain_extension/snarcos-extension",
+    "contracts/public_token",
+    "contracts/shielder",
+    "contracts/snarcos-contract",
 ]

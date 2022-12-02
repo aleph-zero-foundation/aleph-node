@@ -1,5 +1,5 @@
 [package]
-name = "blender"
+name = "shielder"
 version = "0.1.0"
 authors = ["Cardinal Cryptography"]
 edition = "2021"
@@ -9,7 +9,7 @@ license = "Apache 2.0"
 publish = false
 
 [lib]
-name = "blender"
+name = "shielder"
 path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
 

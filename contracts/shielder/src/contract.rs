@@ -1,6 +1,6 @@
 #[ink_lang::contract(env = snarcos_extension::DefaultEnvironment)]
 #[allow(clippy::let_unit_value)] // Clippy shouts about returning anything from messages.
-mod blender {
+mod shielder {
     use core::ops::Not;
 
     use ark_ff::BigInteger256;
@@ -22,7 +22,7 @@ mod blender {
     use scale::{Decode, Encode};
 
     use crate::{
-        crypto::compute_parent_hash, error::BlenderError, CircuitField, MerkleHash, MerkleRoot,
+        crypto::compute_parent_hash, error::ShielderError, CircuitField, MerkleHash, MerkleRoot,
         Note, Nullifier, Set, TokenAmount, TokenId, DEPOSIT_VK_IDENTIFIER,
         PSP22_TRANSFER_FROM_SELECTOR, PSP22_TRANSFER_SELECTOR, SYSTEM, WITHDRAW_VK_IDENTIFIER,
     };
@@ -62,8 +62,8 @@ mod blender {
         token_address: AccountId,
     }
 
-    type Result<T> = core::result::Result<T, BlenderError>;
-    type Event = <Blender as ContractEventBase>::Type;
+    type Result<T> = core::result::Result<T, ShielderError>;
+    type Event = <Shielder as ContractEventBase>::Type;
 
     /// Describes a path from a leaf to the root.
     ///
@@ -78,7 +78,7 @@ mod blender {
 
     #[ink(storage)]
     #[derive(SpreadAllocate, Storage)]
-    pub struct Blender {
+    pub struct Shielder {
         /// Merkle tree holding notes in its leaves.
         ///
         /// Root is at [1], children are at [2n] and [2n+1].
@@ -101,9 +101,9 @@ mod blender {
         ownable: ownable::Data,
     }
 
-    impl Ownable for Blender {}
+    impl Ownable for Shielder {}
 
-    impl Blender {
+    impl Shielder {
         /// Instantiate the contract. Set the caller as the owner.
         #[ink(constructor)]
         pub fn new(max_leaves: u32) -> Self {
@@ -111,10 +111,10 @@ mod blender {
                 panic!("Please have 2^n leaves")
             }
 
-            ink_lang::utils::initialize_contract(|blender: &mut Self| {
-                blender._init_with_owner(Self::env().caller());
-                blender.max_leaves = max_leaves;
-                blender.next_free_leaf = max_leaves;
+            ink_lang::utils::initialize_contract(|shielder: &mut Self| {
+                shielder._init_with_owner(Self::env().caller());
+                shielder.max_leaves = max_leaves;
+                shielder.next_free_leaf = max_leaves;
             })
         }
 
@@ -257,7 +257,7 @@ mod blender {
                 .contains(token_id)
                 .not()
                 .then(|| self.registered_tokens.insert(token_id, &token_address))
-                .ok_or(BlenderError::TokenIdAlreadyRegistered)?;
+                .ok_or(ShielderError::TokenIdAlreadyRegistered)?;
             Self::emit_event(
                 self.env(),
                 Event::TokenRegistered(TokenRegistered {
@@ -270,7 +270,7 @@ mod blender {
     }
 
     /// Auxiliary contract methods.
-    impl Blender {
+    impl Shielder {
         /// Get the value at this node idx or the clean hash (`[0u64; 4]`).
         fn tree_value(&self, idx: u32) -> MerkleHash {
             self.notes.get(idx).unwrap_or_default()
@@ -286,7 +286,7 @@ mod blender {
         /// Returns `Err(_)` iff there are no free leafs.
         fn create_new_leaf(&mut self, value: Note) -> Result<()> {
             if self.next_free_leaf == 2 * self.max_leaves {
-                return Err(BlenderError::TooManyNotes);
+                return Err(ShielderError::TooManyNotes);
             }
 
             self.notes.insert(self.next_free_leaf, &value);
@@ -315,9 +315,9 @@ mod blender {
         fn acquire_deposit(&self, token_id: TokenId, deposit: TokenAmount) -> Result<()> {
             let token_contract = self
                 .registered_token_address(token_id)
-                .ok_or(BlenderError::TokenIdNotRegistered)?;
+                .ok_or(ShielderError::TokenIdNotRegistered)?;
 
-            build_call::<super::blender::Environment>()
+            build_call::<super::shielder::Environment>()
                 .call_type(Call::new().callee(token_contract))
                 .exec_input(
                     ExecutionInput::new(Selector::new(PSP22_TRANSFER_FROM_SELECTOR))
@@ -363,7 +363,7 @@ mod blender {
             value_to_withdraw: TokenAmount,
         ) -> Result<()> {
             match fee_for_caller {
-                Some(fee) if fee > value_to_withdraw => Err(BlenderError::TooHighFee),
+                Some(fee) if fee > value_to_withdraw => Err(ShielderError::TooHighFee),
                 _ => Ok(()),
             }
         }
@@ -372,7 +372,7 @@ mod blender {
             self.merkle_roots
                 .contains(merkle_root)
                 .then_some(())
-                .ok_or(BlenderError::UnknownMerkleRoot)
+                .ok_or(ShielderError::UnknownMerkleRoot)
         }
 
         fn verify_nullifier(&self, nullifier: Nullifier) -> Result<()> {
@@ -380,7 +380,7 @@ mod blender {
                 .contains(nullifier)
                 .not()
                 .then_some(())
-                .ok_or(BlenderError::NullifierAlreadyUsed)
+                .ok_or(ShielderError::NullifierAlreadyUsed)
         }
 
         #[allow(clippy::too_many_arguments)]
@@ -431,7 +431,7 @@ mod blender {
         ) -> Result<()> {
             let token_contract = self
                 .registered_token_address(token_id)
-                .ok_or(BlenderError::TokenIdNotRegistered)?;
+                .ok_or(ShielderError::TokenIdNotRegistered)?;
 
             match fee_for_caller {
                 Some(fee) => {
@@ -448,7 +448,7 @@ mod blender {
             value: TokenAmount,
             recipient: AccountId,
         ) -> Result<()> {
-            build_call::<super::blender::Environment>()
+            build_call::<super::shielder::Environment>()
                 .call_type(Call::new().callee(token_contract))
                 .exec_input(
                     ExecutionInput::new(Selector::new(PSP22_TRANSFER_SELECTOR))
@@ -462,7 +462,7 @@ mod blender {
         }
 
         /// Emit event with correct type boundaries.
-        fn emit_event<EE: EmitEvent<Blender>>(emitter: EE, event: Event) {
+        fn emit_event<EE: EmitEvent<Shielder>>(emitter: EE, event: Event) {
             emitter.emit_event(event);
         }
     }

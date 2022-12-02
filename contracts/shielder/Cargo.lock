@@ -144,25 +144,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "blender"
-version = "0.1.0"
-dependencies = [
- "ark-bls12-381",
- "ark-ff",
- "ark-serialize",
- "ink_env",
- "ink_lang",
- "ink_metadata",
- "ink_prelude",
- "ink_primitives",
- "ink_storage",
- "openbrush",
- "parity-scale-codec",
- "scale-info",
- "snarcos-extension",
-]
-
-[[package]]
 name = "block-buffer"
 version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1025,6 +1006,25 @@ checksum = "e2904bea16a1ae962b483322a1c7b81d976029203aea1f461e51cd7705db7ba9"
 dependencies = [
  "digest 0.10.5",
  "keccak",
+]
+
+[[package]]
+name = "shielder"
+version = "0.1.0"
+dependencies = [
+ "ark-bls12-381",
+ "ark-ff",
+ "ark-serialize",
+ "ink_env",
+ "ink_lang",
+ "ink_metadata",
+ "ink_prelude",
+ "ink_primitives",
+ "ink_storage",
+ "openbrush",
+ "parity-scale-codec",
+ "scale-info",
+ "snarcos-extension",
 ]
 
 [[package]]

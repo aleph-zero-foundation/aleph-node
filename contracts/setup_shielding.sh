@@ -24,11 +24,11 @@ MERKLE_LEAVES=65536
 
 usage() {
   cat << EOF
-Sets up the environment for testing Blender application. Precisely:
+Sets up the environment for testing Shielder application. Precisely:
  - we start local chain with "./scripts/run_nodes.sh -b false", so make sure that you have your binary already built in release mode,
- - we build and deploy token contracts (each with 2000 tokens of initial supply) and the Blender contract
+ - we build and deploy token contracts (each with 2000 tokens of initial supply) and the Shielder contract
  - we endow //0 and //1 with 1000 tokens each (of both types)
- - for both tokens, for both actors, we set allowance for Blender to spend up to 500 tokens
+ - for both tokens, for both actors, we set allowance for Shielder to spend up to 500 tokens
  - we register (dummy) verifying key for both 'deposit' and 'withdraw' relation
  - we register both token contracts
 
@@ -53,7 +53,7 @@ done
 
 RUN_CHAIN="${RUN_CHAIN:-false}"
 REGISTER_KEYS="${REGISTER_KEYS:-false}"
-NODE="${NODE:-ws://127.0.0.1:9943}"
+NODE="${NODE:-ws://127.0.0.1:9944}"
 
 # Command shortcuts
 INSTANTIATE_CMD="cargo contract instantiate --skip-confirm --url ${NODE} --suri ${CONTRACTS_ADMIN}"
@@ -62,7 +62,7 @@ CALL_CMD="cargo contract call --quiet --skip-confirm  --url ${NODE}"
 # Contract addresses
 TOKEN_A_ADDRESS=""
 TOKEN_B_ADDRESS=""
-BLENDER_ADDRESS=""
+SHIELDER_ADDRESS=""
 
 get_timestamp() {
   echo "$(date +'%Y-%m-%d %H:%M:%S')"
@@ -115,41 +115,41 @@ distribute_tokens() {
 
 set_allowances() {
   cd "${ROOT_DIR}"/public_token/
-  $CALL_CMD --contract "${TOKEN_A_ADDRESS}" --message "PSP22::approve" --args "${BLENDER_ADDRESS}" "${TOKEN_ALLOWANCE}" --suri "${CONTRACTS_ADMIN}" | grep "Success"
-  $CALL_CMD --contract "${TOKEN_B_ADDRESS}" --message "PSP22::approve" --args "${BLENDER_ADDRESS}" "${TOKEN_ALLOWANCE}" --suri "${CONTRACTS_ADMIN}" | grep "Success"
+  $CALL_CMD --contract "${TOKEN_A_ADDRESS}" --message "PSP22::approve" --args "${SHIELDER_ADDRESS}" "${TOKEN_ALLOWANCE}" --suri "${CONTRACTS_ADMIN}" | grep "Success"
+  $CALL_CMD --contract "${TOKEN_B_ADDRESS}" --message "PSP22::approve" --args "${SHIELDER_ADDRESS}" "${TOKEN_ALLOWANCE}" --suri "${CONTRACTS_ADMIN}" | grep "Success"
 
-  $CALL_CMD --contract "${TOKEN_A_ADDRESS}" --message "PSP22::approve" --args "${BLENDER_ADDRESS}" "${TOKEN_ALLOWANCE}" --suri "${DAMIAN}" | grep "Success"
-  $CALL_CMD --contract "${TOKEN_B_ADDRESS}" --message "PSP22::approve" --args "${BLENDER_ADDRESS}" "${TOKEN_ALLOWANCE}" --suri "${DAMIAN}" | grep "Success"
+  $CALL_CMD --contract "${TOKEN_A_ADDRESS}" --message "PSP22::approve" --args "${SHIELDER_ADDRESS}" "${TOKEN_ALLOWANCE}" --suri "${DAMIAN}" | grep "Success"
+  $CALL_CMD --contract "${TOKEN_B_ADDRESS}" --message "PSP22::approve" --args "${SHIELDER_ADDRESS}" "${TOKEN_ALLOWANCE}" --suri "${DAMIAN}" | grep "Success"
 
-  $CALL_CMD --contract "${TOKEN_A_ADDRESS}" --message "PSP22::approve" --args "${BLENDER_ADDRESS}" "${TOKEN_ALLOWANCE}" --suri "${HANS}" | grep "Success"
-  $CALL_CMD --contract "${TOKEN_B_ADDRESS}" --message "PSP22::approve" --args "${BLENDER_ADDRESS}" "${TOKEN_ALLOWANCE}" --suri "${HANS}" | grep "Success"
+  $CALL_CMD --contract "${TOKEN_A_ADDRESS}" --message "PSP22::approve" --args "${SHIELDER_ADDRESS}" "${TOKEN_ALLOWANCE}" --suri "${HANS}" | grep "Success"
+  $CALL_CMD --contract "${TOKEN_B_ADDRESS}" --message "PSP22::approve" --args "${SHIELDER_ADDRESS}" "${TOKEN_ALLOWANCE}" --suri "${HANS}" | grep "Success"
 }
 
-build_blender_contract() {
-  cd "${ROOT_DIR}"/blender/
+build_shielder_contract() {
+  cd "${ROOT_DIR}"/shielder/
   cargo contract build --quiet --release 1> /dev/null 2> /dev/null
 }
 
-deploy_blender_contract() {
-  cd "${ROOT_DIR}"/blender/
+deploy_shielder_contract() {
+  cd "${ROOT_DIR}"/shielder/
   result=$($INSTANTIATE_CMD --args ${MERKLE_LEAVES} --salt 0x$(random_salt))
-  BLENDER_ADDRESS=$(echo "$result" | grep Contract | tail -1 | cut -c 14-)
-  echo "Blender address: ${BLENDER_ADDRESS}"
+  SHIELDER_ADDRESS=$(echo "$result" | grep Contract | tail -1 | cut -c 14-)
+  echo "Shielder address: ${SHIELDER_ADDRESS}"
 }
 
 register_vk() {
-  cd "${ROOT_DIR}"/blender/
-  $CALL_CMD --contract "${BLENDER_ADDRESS}" --message "register_vk" --args Deposit "${VK_BYTES}" --suri "${CONTRACTS_ADMIN}" | grep "Success"
-  $CALL_CMD --contract "${BLENDER_ADDRESS}" --message "register_vk" --args Withdraw "${VK_BYTES}" --suri "${CONTRACTS_ADMIN}" | grep "Success"
+  cd "${ROOT_DIR}"/shielder/
+  $CALL_CMD --contract "${SHIELDER_ADDRESS}" --message "register_vk" --args Deposit "${VK_BYTES}" --suri "${CONTRACTS_ADMIN}" | grep "Success"
+  $CALL_CMD --contract "${SHIELDER_ADDRESS}" --message "register_vk" --args Withdraw "${VK_BYTES}" --suri "${CONTRACTS_ADMIN}" | grep "Success"
 }
 
 register_tokens() {
-  cd "${ROOT_DIR}"/blender/
-  $CALL_CMD --contract "${BLENDER_ADDRESS}" --message "register_new_token" --args 0 "${TOKEN_A_ADDRESS}" --suri "${CONTRACTS_ADMIN}" | grep "Success"
-  $CALL_CMD --contract "${BLENDER_ADDRESS}" --message "register_new_token" --args 1 "${TOKEN_B_ADDRESS}" --suri "${CONTRACTS_ADMIN}" | grep "Success"
+  cd "${ROOT_DIR}"/shielder/
+  $CALL_CMD --contract "${SHIELDER_ADDRESS}" --message "register_new_token" --args 0 "${TOKEN_A_ADDRESS}" --suri "${CONTRACTS_ADMIN}" | grep "Success"
+  $CALL_CMD --contract "${SHIELDER_ADDRESS}" --message "register_new_token" --args 1 "${TOKEN_B_ADDRESS}" --suri "${CONTRACTS_ADMIN}" | grep "Success"
 }
 
-set_up_blending() {
+set_up_shielding() {
 
   if [ $RUN_CHAIN = true ]; then
     log_progress "Launching local chain..."
@@ -165,13 +165,13 @@ set_up_blending() {
   log_progress "Distributing tokens..."
   distribute_tokens || error "Failed to distribute tokens"
 
-  log_progress "Building blender contract..."
-  build_blender_contract || error "Failed to build blender contract"
+  log_progress "Building Shielder contract..."
+  build_shielder_contract || error "Failed to build Shielder contract"
 
-  log_progress "Deploying blender contract..."
-  deploy_blender_contract || error "Failed to deploy blender contract"
+  log_progress "Deploying Shielder contract..."
+  deploy_shielder_contract || error "Failed to deploy Shielder contract"
 
-  log_progress "Setting allowances for Blender..."
+  log_progress "Setting allowances for Shielder..."
   set_allowances || error "Failed to set allowances"
 
   if [ $REGISTER_KEYS = true ]; then
@@ -183,4 +183,4 @@ set_up_blending() {
   register_tokens || error "Failed to register token contracts"
 }
 
-set_up_blending
+set_up_shielding
