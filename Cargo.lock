@@ -281,7 +281,7 @@ dependencies = [
 
 [[package]]
 name = "aleph-runtime"
-version = "0.8.3"
+version = "0.8.4"
 dependencies = [
  "frame-executive",
  "frame-support",
@@ -298,6 +298,7 @@ dependencies = [
  "pallet-identity",
  "pallet-multisig",
  "pallet-nomination-pools",
+ "pallet-nomination-pools-runtime-api",
  "pallet-randomness-collective-flip",
  "pallet-scheduler",
  "pallet-session",
@@ -4354,6 +4355,16 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-staking",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-nomination-pools-runtime-api"
+version = "1.0.0-dev"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.31#46bfeea179cafbdd8aba7b26300064c64a661415"
+dependencies = [
+ "parity-scale-codec",
+ "sp-api",
  "sp-std",
 ]
 

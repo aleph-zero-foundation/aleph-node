@@ -1,6 +1,6 @@
 [package]
 name = "aleph-runtime"
-version = "0.8.3"
+version = "0.8.4"
 authors = ["Cardinal Cryptography"]
 edition = "2021"
 homepage = "https://alephzero.org"
@@ -40,6 +40,7 @@ pallet-vesting = { default-features = false, git = "https://github.com/Cardinal-
 pallet-multisig = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
 pallet-utility = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
 pallet-nomination-pools = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
+pallet-nomination-pools-runtime-api = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
 
 sp-api = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
 sp-block-builder = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
@@ -107,6 +108,7 @@ std = [
     "pallet-contracts-primitives/std",
     "pallet-contracts/std",
     "pallet-nomination-pools/std",
+    "pallet-nomination-pools-runtime-api/std",
 ]
 short_session = ["primitives/short_session"]
 try-runtime = [
