@@ -1,6 +1,6 @@
 [package]
 name = "finality-aleph"
-version = "0.5.3"
+version = "0.5.4"
 authors = ["Cardinal Cryptography"]
 edition = "2021"
 license = "Apache 2.0"
@@ -35,29 +35,29 @@ serde = "1.0"
 tiny-bip39 = "1.0"
 tokio = { version = "1.17", features = [ "sync", "macros", "time", "rt-multi-thread" ] }
 
-prometheus-endpoint = { package = "substrate-prometheus-endpoint", git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
-sp-keystore = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
-sc-network = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
-sc-network-common = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
-sc-telemetry = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
-sc-service = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
-sp-application-crypto = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
-sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
-sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
-sp-state-machine = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
-sp-trie = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
-sc-utils = {  git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
-sp-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
-sp-blockchain = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
-sc-consensus = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
-sp-consensus = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
-sc-client-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
-sp-io = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
+prometheus-endpoint = { package = "substrate-prometheus-endpoint", git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
+sp-keystore = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
+sc-network = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
+sc-network-common = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
+sc-telemetry = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
+sc-service = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
+sp-application-crypto = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
+sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
+sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
+sp-state-machine = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
+sp-trie = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
+sc-utils = {  git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
+sp-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
+sp-blockchain = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
+sc-consensus = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
+sp-consensus = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
+sc-client-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
+sp-io = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
 
 [dev-dependencies]
-substrate-test-runtime-client = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
-substrate-test-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
-sc-block-builder = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
+substrate-test-runtime-client = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
+substrate-test-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
+sc-block-builder = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
 
 [features]
 only_legacy = []

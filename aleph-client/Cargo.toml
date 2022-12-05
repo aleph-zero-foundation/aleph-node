@@ -1,6 +1,6 @@
 [package]
 name = "aleph_client"
-version = "2.3.0"
+version = "2.4.0"
 edition = "2021"
 license = "Apache 2.0"
 
@@ -19,8 +19,8 @@ subxt = "0.25.0"
 futures = "0.3.25"
 serde = { version = "1.0", features = ["derive"] }
 
-frame-support = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
-sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31", features = ["full_crypto"] }
-sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
-pallet-contracts-primitives = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.31" }
+frame-support = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
+sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32", features = ["full_crypto"] }
+sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
+pallet-contracts-primitives = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.32" }
 primitives = { path = "../primitives" }
