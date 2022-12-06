@@ -138,7 +138,7 @@ impl<PK: PublicKey + PeerId> Display for ManagerStatus<PK> {
                     write!(
                         f,
                         "have - {:?} [{}]; ",
-                        self.incoming_peers.len(),
+                        self.outgoing_peers.len(),
                         pretty_peer_id_set(&self.outgoing_peers),
                     )?;
                 }
@@ -146,7 +146,7 @@ impl<PK: PublicKey + PeerId> Display for ManagerStatus<PK> {
                     write!(
                         f,
                         "missing - {:?} [{}]; ",
-                        self.missing_incoming.len(),
+                        self.missing_outgoing.len(),
                         pretty_peer_id_set(&self.missing_outgoing),
                     )?;
                 }
