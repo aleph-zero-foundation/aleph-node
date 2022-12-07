@@ -88,17 +88,15 @@ pub trait NetworkSender: Send + Sync + 'static {
 }
 
 #[derive(Clone)]
-pub enum Event<M, P> {
-    Connected(M),
-    Disconnected(P),
+pub enum Event<P> {
     StreamOpened(P, Protocol),
     StreamClosed(P, Protocol),
     Messages(Vec<(Protocol, Bytes)>),
 }
 
 #[async_trait]
-pub trait EventStream<M, P> {
-    async fn next_event(&mut self) -> Option<Event<M, P>>;
+pub trait EventStream<P> {
+    async fn next_event(&mut self) -> Option<Event<P>>;
 }
 
 /// Abstraction over a network.
@@ -106,8 +104,7 @@ pub trait Network: Clone + Send + Sync + 'static {
     type SenderError: std::error::Error;
     type NetworkSender: NetworkSender;
     type PeerId: Clone + Debug + Eq + Hash + Send;
-    type Multiaddress: Debug + Eq + Hash;
-    type EventStream: EventStream<Self::Multiaddress, Self::PeerId>;
+    type EventStream: EventStream<Self::PeerId>;
 
     /// Returns a stream of events representing what happens on the network.
     fn event_stream(&self) -> Self::EventStream;
@@ -118,12 +115,6 @@ pub trait Network: Clone + Send + Sync + 'static {
         peer_id: Self::PeerId,
         protocol: Protocol,
     ) -> Result<Self::NetworkSender, Self::SenderError>;
-
-    /// Add peers to one of the reserved sets.
-    fn add_reserved(&self, addresses: HashSet<Self::Multiaddress>, protocol: Protocol);
-
-    /// Remove peers from one of the reserved sets.
-    fn remove_reserved(&self, peers: HashSet<Self::PeerId>, protocol: Protocol);
 }
 
 /// Abstraction for requesting own network addresses and PeerId.

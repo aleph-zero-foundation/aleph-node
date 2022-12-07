@@ -1,7 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
     future::Future,
-    iter,
 };
 
 use futures::{channel::mpsc, StreamExt};
@@ -147,20 +146,10 @@ impl<N: Network, D: Data> Service<N, D> {
 
     fn handle_network_event(
         &mut self,
-        event: Event<N::Multiaddress, N::PeerId>,
+        event: Event<N::PeerId>,
     ) -> Result<(), mpsc::TrySendError<D>> {
         use Event::*;
         match event {
-            Connected(multiaddress) => {
-                trace!(target: "aleph-network", "Connected event from address {:?}", multiaddress);
-                self.network
-                    .add_reserved(iter::once(multiaddress).collect(), Protocol::Authentication);
-            }
-            Disconnected(peer) => {
-                trace!(target: "aleph-network", "Disconnected event for peer {:?}", peer);
-                self.network
-                    .remove_reserved(iter::once(peer).collect(), Protocol::Authentication);
-            }
             StreamOpened(peer, protocol) => {
                 trace!(target: "aleph-network", "StreamOpened event for peer {:?} and the protocol {:?}.", peer, protocol);
                 let rx = match &protocol {
@@ -246,7 +235,7 @@ impl<N: Network, D: Data> Service<N, D> {
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashSet, iter, iter::FromIterator};
+    use std::collections::HashSet;
 
     use codec::Encode;
     use futures::{
@@ -262,7 +251,7 @@ mod tests {
             mock::{MockData, MockEvent, MockNetwork, MockSenderError},
             NetworkServiceIO, Protocol,
         },
-        testing::mocks::validator_network::{random_multiaddress, random_peer_id},
+        testing::mocks::validator_network::random_peer_id,
     };
 
     const PROTOCOL: Protocol = Protocol::Authentication;
@@ -307,57 +296,6 @@ mod tests {
 
     fn message(i: u8) -> MockData {
         vec![i, i + 1, i + 2]
-    }
-
-    #[tokio::test]
-    async fn test_sync_connected() {
-        let mut test_data = TestData::prepare().await;
-
-        let address = random_multiaddress();
-        test_data
-            .service
-            .handle_network_event(MockEvent::Connected(address.clone()))
-            .expect("Should handle");
-
-        let expected = (iter::once(address).collect(), PROTOCOL);
-
-        assert_eq!(
-            test_data
-                .network
-                .add_reserved
-                .next()
-                .await
-                .expect("Should receive message"),
-            expected
-        );
-
-        test_data.cleanup().await
-    }
-
-    #[tokio::test]
-    async fn test_sync_disconnected() {
-        let mut test_data = TestData::prepare().await;
-
-        let peer_id = random_peer_id();
-
-        test_data
-            .service
-            .handle_network_event(MockEvent::Disconnected(peer_id.clone()))
-            .expect("Should handle");
-
-        let expected = (iter::once(peer_id).collect(), PROTOCOL);
-
-        assert_eq!(
-            test_data
-                .network
-                .remove_reserved
-                .next()
-                .await
-                .expect("Should receive message"),
-            expected
-        );
-
-        test_data.cleanup().await
     }
 
     #[tokio::test]
@@ -452,7 +390,7 @@ mod tests {
             .network
             .create_sender_errors
             .lock()
-            .push_back(MockSenderError::SomeError);
+            .push_back(MockSenderError);
 
         let peer_id = random_peer_id();
 
@@ -491,7 +429,7 @@ mod tests {
             .network
             .send_errors
             .lock()
-            .push_back(MockSenderError::SomeError);
+            .push_back(MockSenderError);
 
         let peer_id = random_peer_id();
 

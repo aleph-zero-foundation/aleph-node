@@ -1,12 +1,12 @@
-use std::{collections::HashSet, fmt, iter, pin::Pin, sync::Arc};
+use std::{fmt, iter, pin::Pin, sync::Arc};
 
 use async_trait::async_trait;
 use futures::stream::{Stream, StreamExt};
-use log::error;
+use log::{error, trace};
 use sc_consensus::JustificationSyncLink;
 use sc_network::{
-    multiaddr::Protocol as MultiaddressProtocol, Event as SubstrateEvent, Multiaddr,
-    NetworkService, NetworkSyncForkRequest, PeerId,
+    multiaddr::Protocol as MultiaddressProtocol, Event as SubstrateEvent, NetworkService,
+    NetworkSyncForkRequest, PeerId,
 };
 use sc_network_common::{
     protocol::ProtocolName,
@@ -122,22 +122,40 @@ impl NetworkSender for SubstrateNetworkSender {
     }
 }
 
-type NetworkEventStream = Pin<Box<dyn Stream<Item = SubstrateEvent> + Send>>;
+pub struct NetworkEventStream<B: Block, H: ExHashT> {
+    stream: Pin<Box<dyn Stream<Item = SubstrateEvent> + Send>>,
+    network: Arc<NetworkService<B, H>>,
+}
 
 #[async_trait]
-impl EventStream<Multiaddr, PeerId> for NetworkEventStream {
-    async fn next_event(&mut self) -> Option<Event<Multiaddr, PeerId>> {
+impl<B: Block, H: ExHashT> EventStream<PeerId> for NetworkEventStream<B, H> {
+    async fn next_event(&mut self) -> Option<Event<PeerId>> {
         use Event::*;
         use SubstrateEvent::*;
         loop {
-            match self.next().await {
+            match self.stream.next().await {
                 Some(event) => match event {
                     SyncConnected { remote } => {
-                        return Some(Connected(
-                            iter::once(MultiaddressProtocol::P2p(remote.into())).collect(),
-                        ))
+                        let multiaddress =
+                            iter::once(MultiaddressProtocol::P2p(remote.into())).collect();
+                        trace!(target: "aleph-network", "Connected event from address {:?}", multiaddress);
+                        if let Err(e) = self.network.add_peers_to_reserved_set(
+                            protocol_name(&Protocol::Authentication),
+                            iter::once(multiaddress).collect(),
+                        ) {
+                            error!(target: "aleph-network", "add_reserved failed: {}", e);
+                        }
+                        continue;
                     }
-                    SyncDisconnected { remote } => return Some(Disconnected(remote)),
+                    SyncDisconnected { remote } => {
+                        trace!(target: "aleph-network", "Disconnected event for peer {:?}", remote);
+                        let addresses = iter::once(remote).collect();
+                        self.network.remove_peers_from_reserved_set(
+                            protocol_name(&Protocol::Authentication),
+                            addresses,
+                        );
+                        continue;
+                    }
                     NotificationStreamOpened {
                         remote, protocol, ..
                     } => match to_protocol(protocol.as_ref()) {
@@ -177,11 +195,13 @@ impl<B: Block, H: ExHashT> Network for Arc<NetworkService<B, H>> {
     type SenderError = SenderError;
     type NetworkSender = SubstrateNetworkSender;
     type PeerId = PeerId;
-    type Multiaddress = Multiaddr;
-    type EventStream = NetworkEventStream;
+    type EventStream = NetworkEventStream<B, H>;
 
     fn event_stream(&self) -> Self::EventStream {
-        Box::pin(self.as_ref().event_stream("aleph-network"))
+        NetworkEventStream {
+            stream: Box::pin(self.as_ref().event_stream("aleph-network")),
+            network: self.clone(),
+        }
     }
 
     fn sender(
@@ -197,18 +217,5 @@ impl<B: Block, H: ExHashT> Network for Arc<NetworkService<B, H>> {
                 .map_err(|_| SenderError::CannotCreateSender(peer_id, protocol))?,
             peer_id,
         })
-    }
-
-    fn add_reserved(&self, addresses: HashSet<Self::Multiaddress>, protocol: Protocol) {
-        if let Err(e) = self
-            .add_peers_to_reserved_set(protocol_name(&protocol), addresses.into_iter().collect())
-        {
-            error!(target: "aleph-network", "add_reserved failed: {}", e);
-        }
-    }
-
-    fn remove_reserved(&self, peers: HashSet<Self::PeerId>, protocol: Protocol) {
-        let addresses = peers.into_iter().collect();
-        self.remove_peers_from_reserved_set(protocol_name(&protocol), addresses);
     }
 }
