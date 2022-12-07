@@ -102,7 +102,7 @@ async fn prepare_one_session_test_data() -> TestData {
     let validator_network =
         MockValidatorNetwork::from(authorities[0].addresses(), authorities[0].peer_id());
 
-    let (connection_io, network_io, session_io) = setup_io();
+    let (connection_io, network_io, session_io) = setup_io(validator_network.clone());
 
     let connection_manager = ConnectionManager::new(
         validator_network.clone(),
@@ -111,12 +111,8 @@ async fn prepare_one_session_test_data() -> TestData {
 
     let session_manager = SessionManager::new(session_io);
 
-    let network_service = NetworkService::new(
-        network.clone(),
-        validator_network.clone(),
-        task_manager.spawn_handle(),
-        network_io,
-    );
+    let network_service =
+        NetworkService::new(network.clone(), task_manager.spawn_handle(), network_io);
 
     let network_manager_task = async move {
         tokio::select! {

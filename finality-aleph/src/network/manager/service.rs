@@ -21,6 +21,7 @@ use crate::{
         },
         AddressedData, ConnectionCommand, Data, Multiaddress, NetworkIdentity, PeerId,
     },
+    validator_network::{Network as ValidatorNetwork, PublicKey},
     MillisecsPerBlock, NodeIndex, SessionId, SessionPeriod, STATUS_REPORT_INTERVAL,
 };
 
@@ -595,22 +596,22 @@ impl<NI: NetworkIdentity, D: Data> Service<NI, D> {
     }
 }
 
-/// Input/output interface for the connectiona manager service.
-pub struct IO<D: Data, M: Multiaddress> {
-    commands_for_network: mpsc::UnboundedSender<ConnectionCommand<M>>,
-    data_for_network: mpsc::UnboundedSender<AddressedData<DataInSession<D>, M::PeerId>>,
+/// Input/output interface for the connection manager service.
+pub struct IO<D: Data, M: Multiaddress, VN: ValidatorNetwork<M::PeerId, M, DataInSession<D>>>
+where
+    M::PeerId: PublicKey,
+{
     authentications_for_network: mpsc::UnboundedSender<VersionedAuthentication<M>>,
     commands_from_user: mpsc::UnboundedReceiver<SessionCommand<D>>,
     messages_from_user: mpsc::UnboundedReceiver<(D, SessionId, Recipient)>,
-    data_from_network: mpsc::UnboundedReceiver<DataInSession<D>>,
     authentications_from_network: mpsc::UnboundedReceiver<VersionedAuthentication<M>>,
+    validator_network: VN,
 }
 
 /// Errors that can happen during the network service operations.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     NetworkSend,
-    CommandSend,
     /// Should never be fatal.
     UserSend,
     /// Should never be fatal.
@@ -620,31 +621,28 @@ pub enum Error {
     NetworkChannel,
 }
 
-impl<D: Data, M: Multiaddress> IO<D, M> {
+impl<D: Data, M: Multiaddress, VN: ValidatorNetwork<M::PeerId, M, DataInSession<D>>> IO<D, M, VN>
+where
+    M::PeerId: PublicKey,
+{
     pub fn new(
-        commands_for_network: mpsc::UnboundedSender<ConnectionCommand<M>>,
-        data_for_network: mpsc::UnboundedSender<AddressedData<DataInSession<D>, M::PeerId>>,
         authentications_for_network: mpsc::UnboundedSender<VersionedAuthentication<M>>,
         commands_from_user: mpsc::UnboundedReceiver<SessionCommand<D>>,
         messages_from_user: mpsc::UnboundedReceiver<(D, SessionId, Recipient)>,
-        data_from_network: mpsc::UnboundedReceiver<DataInSession<D>>,
         authentications_from_network: mpsc::UnboundedReceiver<VersionedAuthentication<M>>,
-    ) -> IO<D, M> {
+        validator_network: VN,
+    ) -> IO<D, M, VN> {
         IO {
-            commands_for_network,
-            data_for_network,
             authentications_for_network,
             commands_from_user,
             messages_from_user,
-            data_from_network,
             authentications_from_network,
+            validator_network,
         }
     }
 
-    fn send_data(&self, to_send: AddressedData<DataInSession<D>, M::PeerId>) -> Result<(), Error> {
-        self.data_for_network
-            .unbounded_send(to_send)
-            .map_err(|_| Error::NetworkSend)
+    fn send_data(&self, to_send: AddressedData<DataInSession<D>, M::PeerId>) {
+        self.validator_network.send(to_send.0, to_send.1)
     }
 
     fn send_authentication(&self, to_send: DiscoveryMessage<M>) -> Result<(), Error> {
@@ -653,21 +651,32 @@ impl<D: Data, M: Multiaddress> IO<D, M> {
             .map_err(|_| Error::NetworkSend)
     }
 
-    fn send_command(&self, to_send: ConnectionCommand<M>) -> Result<(), Error> {
-        self.commands_for_network
-            .unbounded_send(to_send)
-            .map_err(|_| Error::CommandSend)
+    fn handle_connection_command(&mut self, connection_command: ConnectionCommand<M>) {
+        match connection_command {
+            ConnectionCommand::AddReserved(addresses) => {
+                for multi in addresses {
+                    if let Some(peer_id) = multi.get_peer_id() {
+                        self.validator_network.add_connection(peer_id, vec![multi]);
+                    }
+                }
+            }
+            ConnectionCommand::DelReserved(peers) => {
+                for peer in peers {
+                    self.validator_network.remove_connection(peer);
+                }
+            }
+        };
     }
 
-    fn send(
-        &self,
+    fn handle_service_actions(
+        &mut self,
         ServiceActions {
             maybe_command,
             maybe_message,
         }: ServiceActions<M>,
     ) -> Result<(), Error> {
         if let Some(command) = maybe_command {
-            self.send_command(command)?;
+            self.handle_connection_command(command);
         }
         if let Some(message) = maybe_message {
             self.send_authentication(message)?;
@@ -695,7 +704,7 @@ impl<D: Data, M: Multiaddress> IO<D, M> {
                     trace!(target: "aleph-network", "Manager received a command from user");
                     match maybe_command {
                         Some(command) => match service.on_command(command).await {
-                            Ok(to_send) => self.send(to_send)?,
+                            Ok(to_send) => self.handle_service_actions(to_send)?,
                             Err(e) => warn!(target: "aleph-network", "Failed to update handler: {:?}", e),
                         },
                         None => return Err(Error::CommandsChannel),
@@ -705,12 +714,12 @@ impl<D: Data, M: Multiaddress> IO<D, M> {
                     trace!(target: "aleph-network", "Manager received a message from user");
                     match maybe_message {
                         Some((message, session_id, recipient)) => for message in service.on_user_message(message, session_id, recipient) {
-                            self.send_data(message)?;
+                            self.send_data(message);
                         },
                         None => return Err(Error::MessageChannel),
                     }
                 },
-                maybe_data = self.data_from_network.next() => {
+                maybe_data = self.validator_network.next() => {
                     trace!(target: "aleph-network", "Manager received some data from network");
                     match maybe_data {
                         Some(DataInSession{data, session_id}) => if let Err(e) = service.send_session_data(&session_id, data) {
@@ -727,7 +736,7 @@ impl<D: Data, M: Multiaddress> IO<D, M> {
                     trace!(target: "aleph-network", "Manager received an authentication from network");
                     match maybe_authentication {
                         Some(authentication) => match authentication.try_into() {
-                            Ok(message) => self.send(service.on_discovery_message(message))?,
+                            Ok(message) => self.handle_service_actions(service.on_discovery_message(message))?,
                             Err(e) => warn!(target: "aleph-network", "Error casting versioned authentication to discovery message: {:?}", e),
                         },
                         None => return Err(Error::NetworkChannel),
@@ -736,7 +745,7 @@ impl<D: Data, M: Multiaddress> IO<D, M> {
                 _ = maintenance.tick() => {
                     debug!(target: "aleph-network", "Manager starts maintenence");
                     match service.retry_session_start().await {
-                        Ok(to_send) => self.send(to_send)?,
+                        Ok(to_send) => self.handle_service_actions(to_send)?,
                         Err(e) => warn!(target: "aleph-network", "Retry failed to update handler: {:?}", e),
                     }
                     for to_send in service.discovery() {

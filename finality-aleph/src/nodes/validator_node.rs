@@ -115,7 +115,7 @@ where
             session_map: session_authorities.clone(),
         });
 
-    let (connection_io, network_io, session_io) = setup_io();
+    let (connection_io, network_io, session_io) = setup_io(validator_network);
 
     let connection_manager = ConnectionManager::new(
         network_identity,
@@ -130,12 +130,7 @@ where
     };
 
     let session_manager = SessionManager::new(session_io);
-    let network = NetworkService::new(
-        network.clone(),
-        validator_network,
-        spawn_handle.clone(),
-        network_io,
-    );
+    let network = NetworkService::new(network.clone(), spawn_handle.clone(), network_io);
     let network_task = async move { network.run().await };
 
     spawn_handle.spawn("aleph/justification_handler", None, handler_task);

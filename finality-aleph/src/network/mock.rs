@@ -17,10 +17,7 @@ use tokio::time::timeout;
 
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
-    network::{
-        manager::VersionedAuthentication, AddressedData, ConnectionCommand, Event, EventStream,
-        Multiaddress, Network, NetworkIdentity, NetworkSender, NetworkServiceIO, Protocol,
-    },
+    network::{Event, EventStream, Network, NetworkIdentity, NetworkSender, Protocol},
     testing::mocks::validator_network::{random_identity, MockMultiaddress},
     validator_network::mock::MockPublicKey,
     AuthorityId, NodeIndex,
@@ -100,43 +97,6 @@ impl<T> Default for Channel<T> {
 pub type MockEvent = Event<MockMultiaddress, MockPublicKey>;
 
 pub type MockData = Vec<u8>;
-
-pub struct MockIO<M: Multiaddress> {
-    pub messages_for_network: mpsc::UnboundedSender<VersionedAuthentication<M>>,
-    pub data_for_network: mpsc::UnboundedSender<AddressedData<MockData, M::PeerId>>,
-    pub messages_from_network: mpsc::UnboundedReceiver<VersionedAuthentication<M>>,
-    pub data_from_network: mpsc::UnboundedReceiver<MockData>,
-    pub commands_for_network: mpsc::UnboundedSender<ConnectionCommand<M>>,
-}
-
-impl<M: Multiaddress + 'static> MockIO<M> {
-    pub fn new() -> (
-        MockIO<M>,
-        NetworkServiceIO<VersionedAuthentication<M>, MockData, M>,
-    ) {
-        let (messages_for_network, messages_from_user) = mpsc::unbounded();
-        let (data_for_network, data_from_user) = mpsc::unbounded();
-        let (messages_for_user, messages_from_network) = mpsc::unbounded();
-        let (data_for_user, data_from_network) = mpsc::unbounded();
-        let (commands_for_network, commands_from_manager) = mpsc::unbounded();
-        (
-            MockIO {
-                messages_for_network,
-                data_for_network,
-                messages_from_network,
-                data_from_network,
-                commands_for_network,
-            },
-            NetworkServiceIO::new(
-                data_from_user,
-                messages_from_user,
-                data_for_user,
-                messages_for_user,
-                commands_from_manager,
-            ),
-        )
-    }
-}
 
 pub struct MockEventStream(mpsc::UnboundedReceiver<MockEvent>);
 
