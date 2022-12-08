@@ -31,6 +31,7 @@ jobs:
     if: (github.event.label.name == '[AZERO] DEPLOY-FEATURE-ENV') || (github.event.label.name == '[AZERO] DEPLOY-HOT-FEATURE-ENV')
     name: Build runtime and aleph-node binary artefacts
     uses: ./.github/workflows/build-node-and-runtime.yml
+    secrets: inherit
 
   push_pr_image:
     if: (github.event.label.name == '[AZERO] DEPLOY-FEATURE-ENV') || (github.event.label.name == '[AZERO] DEPLOY-HOT-FEATURE-ENV')

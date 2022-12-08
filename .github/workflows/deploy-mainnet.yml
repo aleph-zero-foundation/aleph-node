@@ -72,6 +72,30 @@ jobs:
           docker push ${{ env.DOCKERHUB_MAINNET_IMAGE }}
           docker push ${{ env.DOCKERHUB_MAINNET_LATEST_IMAGE }}
 
+      - name: S3 CI | Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        env:
+          AWS_REGION: us-east-1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: S3 CI | Download release runtime from S3 bucket
+        shell: bash
+        env:
+          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get_branch.outputs.sha_short }}/aleph-runtime
+          S3BUCKET_FILE: aleph-runtime-${{ steps.get_branch.outputs.sha_short }}.tar.gz
+        run: |
+          aws s3 cp ${{ env.S3BUCKET_URL }}/${{ S3BUCKET_FILE }} ${{ env.S3BUCKET_FILE }}
+
+      - name: RELEASE ASSET | Add runtime to the release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            aleph-runtime-${{ steps.get_branch.outputs.sha_short }}.tar.gz
+
       - name: GIT | Checkout aleph-apps repo
         uses: actions/checkout@master
         with:
