@@ -6,8 +6,10 @@ use crate::{
         pallet_elections::pallet::Call::set_ban_config,
         primitives::{BanReason, CommitteeSeats, EraValidators},
     },
-    pallet_elections::pallet::Call::{ban_from_committee, change_validators},
-    primitives::{BanConfig, BanInfo},
+    pallet_elections::pallet::Call::{
+        ban_from_committee, change_validators, set_elections_openness,
+    },
+    primitives::{BanConfig, BanInfo, ElectionOpenness},
     AccountId, BlockHash,
     Call::Elections,
     Connection, RootConnection, SudoCall, TxStatus,
@@ -66,6 +68,11 @@ pub trait ElectionsSudoApi {
         &self,
         account: AccountId,
         ban_reason: Vec<u8>,
+        status: TxStatus,
+    ) -> anyhow::Result<BlockHash>;
+    async fn set_election_openness(
+        &self,
+        mode: ElectionOpenness,
         status: TxStatus,
     ) -> anyhow::Result<BlockHash>;
 }
@@ -210,6 +217,16 @@ impl ElectionsSudoApi for RootConnection {
             banned: account,
             ban_reason,
         });
+        self.sudo_unchecked(call, status).await
+    }
+
+    async fn set_election_openness(
+        &self,
+        mode: ElectionOpenness,
+        status: TxStatus,
+    ) -> anyhow::Result<BlockHash> {
+        let call = Elections(set_elections_openness { openness: mode });
+
         self.sudo_unchecked(call, status).await
     }
 }

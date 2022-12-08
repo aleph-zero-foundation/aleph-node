@@ -1,10 +1,12 @@
+use std::collections::HashSet;
+
 use aleph_client::{
     pallets::{
         elections::{ElectionsApi, ElectionsSudoApi},
         session::SessionApi,
-        staking::StakingApi,
+        staking::{StakingApi, StakingUserApi},
     },
-    primitives::{BanInfo, BanReason},
+    primitives::{BanInfo, BanReason, CommitteeSeats, ElectionOpenness},
     sp_core::bounded::bounded_vec::BoundedVec,
     waiting::{BlockStatus, WaitingExt},
     SignedConnection, TxStatus,
@@ -16,7 +18,7 @@ use primitives::{
 };
 
 use crate::{
-    accounts::{get_validator_seed, NodeKeys},
+    accounts::{account_ids_from_keys, get_validator_seed, NodeKeys},
     ban::{
         check_ban_config, check_ban_event, check_ban_info_for_validator,
         check_underperformed_count_for_sessions, check_underperformed_validator_reason,
@@ -24,6 +26,7 @@ use crate::{
     },
     config,
     rewards::set_invalid_keys_for_validator,
+    validators::get_test_validators,
 };
 
 const SESSIONS_TO_CHECK: SessionCount = 5;
@@ -48,6 +51,17 @@ async fn disable_validator(validator_address: &str, validator_seed: u32) -> anyh
         SignedConnection::new(validator_address.to_string(), controller_key_to_disable).await;
 
     set_invalid_keys_for_validator(&connection_to_disable).await
+}
+
+async fn signed_connection_for_disabled_controller() -> SignedConnection {
+    let validator_seed = get_validator_seed(VALIDATOR_TO_DISABLE_OVERALL_INDEX);
+    let stash_controller = NodeKeys::from(validator_seed);
+    let controller_key_to_disable = stash_controller.controller;
+    SignedConnection::new(
+        NODE_TO_DISABLE_ADDRESS.to_string(),
+        controller_key_to_disable,
+    )
+    .await
 }
 
 /// Runs a chain, sets up a committee and validators. Sets an incorrect key for one of the
@@ -268,6 +282,83 @@ pub async fn clearing_session_count() -> anyhow::Result<()> {
     // checks no one was banned
     assert_eq!(next_era_reserved_validators, reserved_validators);
     assert_eq!(next_era_non_reserved_validators, non_reserved_validators);
+
+    Ok(())
+}
+
+/// Setup reserved validators, non_reserved are set to empty vec. Set ban config ban_period to 2.
+/// Set Openness to Permissionless.
+/// Ban manually one validator. Check if the banned validator is out of the non_reserved and is back
+/// after ban period.
+#[tokio::test]
+pub async fn permissionless_ban() -> anyhow::Result<()> {
+    let config = config::setup_test();
+    let root_connection = config.create_root_connection().await;
+
+    let validator_keys = get_test_validators(config);
+    let reserved_validators = account_ids_from_keys(&validator_keys.reserved);
+    let non_reserved_validators = account_ids_from_keys(&validator_keys.non_reserved);
+
+    let seats = CommitteeSeats {
+        reserved_seats: 2,
+        non_reserved_seats: 2,
+    };
+
+    let validator_to_ban =
+        &non_reserved_validators[VALIDATOR_TO_DISABLE_NON_RESERVED_INDEX as usize];
+    let mut non_reserved_without_banned = non_reserved_validators.to_vec();
+    non_reserved_without_banned.remove(VALIDATOR_TO_DISABLE_NON_RESERVED_INDEX as usize);
+
+    let ban_period = 2;
+    root_connection
+        .change_validators(
+            Some(reserved_validators),
+            Some(non_reserved_validators.clone()),
+            Some(seats),
+            TxStatus::InBlock,
+        )
+        .await?;
+    root_connection
+        .set_election_openness(ElectionOpenness::Permissionless, TxStatus::InBlock)
+        .await?;
+    root_connection
+        .set_ban_config(None, None, None, Some(ban_period), TxStatus::InBlock)
+        .await?;
+    root_connection
+        .ban_from_committee(validator_to_ban.clone(), vec![], TxStatus::InBlock)
+        .await?;
+    root_connection
+        .connection
+        .wait_for_n_eras(2, BlockStatus::Finalized)
+        .await;
+
+    let without_banned = HashSet::<_>::from_iter(non_reserved_without_banned);
+    let non_reserved = HashSet::<_>::from_iter(
+        root_connection
+            .connection
+            .get_current_era_validators(None)
+            .await
+            .non_reserved,
+    );
+    assert_eq!(without_banned, non_reserved);
+
+    let signed_connection = signed_connection_for_disabled_controller().await;
+    // validate again
+    signed_connection.validate(0, TxStatus::InBlock).await?;
+    root_connection
+        .connection
+        .wait_for_n_eras(2, BlockStatus::Finalized)
+        .await;
+    let expected_non_reserved = HashSet::<_>::from_iter(non_reserved_validators);
+    let non_reserved = HashSet::<_>::from_iter(
+        root_connection
+            .connection
+            .get_current_era_validators(None)
+            .await
+            .non_reserved,
+    );
+
+    assert_eq!(expected_non_reserved, non_reserved);
 
     Ok(())
 }

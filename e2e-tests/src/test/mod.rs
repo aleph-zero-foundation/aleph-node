@@ -1,4 +1,6 @@
-pub use ban::{ban_automatic, ban_manual, ban_threshold, clearing_session_count};
+pub use ban::{
+    ban_automatic, ban_manual, ban_threshold, clearing_session_count, permissionless_ban,
+};
 pub use electing_validators::authorities_are_staking;
 pub use era_payout::era_payouts_calculated_correctly;
 pub use era_validators::era_validators;

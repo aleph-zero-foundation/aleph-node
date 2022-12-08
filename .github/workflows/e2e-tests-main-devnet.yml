@@ -518,6 +518,21 @@ jobs:
           follow-up-finalization-check: true
         timeout-minutes: 15
 
+  run-e2e-permissionless-ban:
+    needs: [ build-test-docker, build-test-client ]
+    name: Run permissionless ban test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: permissionless_ban
+          follow-up-finalization-check: true
+        timeout-minutes: 15
+
   run-e2e-version-upgrade:
     needs: [build-test-docker, build-test-client]
     name: Run basic (positive) version-upgrade test
@@ -642,6 +657,7 @@ jobs:
       run-e2e-ban-counter-clearing,
       run-e2e-ban-threshold,
       run-e2e-version-upgrade,
+      run-e2e-permissionless-ban,
 #      run-e2e-failing-version-upgrade,
 #      run-e2e-version-upgrade-catchup,
     ]
