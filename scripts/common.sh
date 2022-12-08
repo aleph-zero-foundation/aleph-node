@@ -103,7 +103,7 @@ function get_last_block() {
     local validator=$1
     local rpc_port=$2
 
-    local last_block=0
+    local last_block=""
     while [[ -z "$last_block" ]]; do
         last_block=$(retrieve_last_block $validator $rpc_port)
         sleep 1
