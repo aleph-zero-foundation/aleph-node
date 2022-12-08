@@ -1,4 +1,4 @@
-use std::{io::Result as IoResult, net::ToSocketAddrs as _};
+use std::{io::Error as IoError, iter, net::ToSocketAddrs as _};
 
 use aleph_primitives::AuthorityId;
 use codec::{Decode, Encode};
@@ -11,7 +11,7 @@ use tokio::net::{
 
 use crate::{
     crypto::{verify, AuthorityPen, Signature},
-    network::{Multiaddress, NetworkIdentity, PeerId},
+    network::{AddressingInformation, NetworkIdentity, PeerId},
     validator_network::{ConnectionInfo, Dialer, Listener, PublicKey, SecretKey, Splittable},
 };
 
@@ -94,23 +94,97 @@ impl SecretKey for AuthorityPen {
 
 /// A representation of a single TCP address with an associated peer ID.
 #[derive(Debug, Hash, Encode, Decode, Clone, PartialEq, Eq)]
-pub struct TcpMultiaddress {
+pub struct LegacyTcpMultiaddress {
     peer_id: AuthorityId,
     address: String,
 }
 
-impl Multiaddress for TcpMultiaddress {
+/// What can go wrong when handling addressing information.
+#[derive(Debug, Hash, Clone, PartialEq, Eq)]
+pub enum AddressingInformationError {
+    /// Construction of an addressing information object requires at least one address.
+    NoAddress,
+}
+
+/// A representation of TCP addressing information with an associated peer ID.
+#[derive(Debug, Hash, Encode, Decode, Clone, PartialEq, Eq)]
+pub struct TcpAddressingInformation {
+    peer_id: AuthorityId,
+    // Easiest way to ensure that the Vec below is nonempty...
+    primary_address: String,
+    other_addresses: Vec<String>,
+}
+
+impl TryFrom<Vec<LegacyTcpMultiaddress>> for TcpAddressingInformation {
+    type Error = AddressingInformationError;
+
+    fn try_from(legacy: Vec<LegacyTcpMultiaddress>) -> Result<Self, Self::Error> {
+        let mut legacy = legacy.into_iter();
+        let (peer_id, primary_address) = match legacy.next() {
+            Some(LegacyTcpMultiaddress { peer_id, address }) => (peer_id, address),
+            None => return Err(AddressingInformationError::NoAddress),
+        };
+        let other_addresses = legacy
+            .filter(|la| la.peer_id == peer_id)
+            .map(|la| la.address)
+            .collect();
+        Ok(TcpAddressingInformation {
+            peer_id,
+            primary_address,
+            other_addresses,
+        })
+    }
+}
+
+impl From<TcpAddressingInformation> for Vec<LegacyTcpMultiaddress> {
+    fn from(address: TcpAddressingInformation) -> Self {
+        let TcpAddressingInformation {
+            peer_id,
+            primary_address,
+            other_addresses,
+        } = address;
+        iter::once(primary_address)
+            .chain(other_addresses)
+            .map(|address| LegacyTcpMultiaddress {
+                peer_id: peer_id.clone(),
+                address,
+            })
+            .collect()
+    }
+}
+
+impl AddressingInformation for TcpAddressingInformation {
     type PeerId = AuthorityId;
 
-    fn get_peer_id(&self) -> Option<Self::PeerId> {
-        Some(self.peer_id.clone())
+    fn peer_id(&self) -> Self::PeerId {
+        self.peer_id.clone()
     }
+}
 
-    fn add_matching_peer_id(self, peer_id: Self::PeerId) -> Option<Self> {
-        match self.peer_id == peer_id {
-            true => Some(self),
-            false => None,
-        }
+impl NetworkIdentity for TcpAddressingInformation {
+    type PeerId = AuthorityId;
+    type AddressingInformation = TcpAddressingInformation;
+
+    fn identity(&self) -> Self::AddressingInformation {
+        self.clone()
+    }
+}
+
+impl TcpAddressingInformation {
+    fn new(
+        addresses: Vec<String>,
+        peer_id: AuthorityId,
+    ) -> Result<TcpAddressingInformation, AddressingInformationError> {
+        let mut addresses = addresses.into_iter();
+        let primary_address = match addresses.next() {
+            Some(address) => address,
+            None => return Err(AddressingInformationError::NoAddress),
+        };
+        Ok(TcpAddressingInformation {
+            primary_address,
+            other_addresses: addresses.collect(),
+            peer_id,
+        })
     }
 }
 
@@ -118,17 +192,22 @@ impl Multiaddress for TcpMultiaddress {
 struct TcpDialer;
 
 #[async_trait::async_trait]
-impl Dialer<TcpMultiaddress> for TcpDialer {
+impl Dialer<TcpAddressingInformation> for TcpDialer {
     type Connection = TcpStream;
     type Error = std::io::Error;
 
     async fn connect(
         &mut self,
-        addresses: Vec<TcpMultiaddress>,
+        address: TcpAddressingInformation,
     ) -> Result<Self::Connection, Self::Error> {
-        let parsed_addresses: Vec<_> = addresses
-            .into_iter()
-            .filter_map(|address| address.address.to_socket_addrs().ok())
+        let TcpAddressingInformation {
+            primary_address,
+            other_addresses,
+            ..
+        } = address;
+        let parsed_addresses: Vec<_> = iter::once(primary_address)
+            .chain(other_addresses)
+            .filter_map(|address| address.to_socket_addrs().ok())
             .flatten()
             .collect();
         let stream = TcpStream::connect(&parsed_addresses[..]).await?;
@@ -139,32 +218,22 @@ impl Dialer<TcpMultiaddress> for TcpDialer {
     }
 }
 
-struct TcpNetworkIdentity {
-    peer_id: AuthorityId,
-    addresses: Vec<TcpMultiaddress>,
+/// Possible errors when creating a TCP network.
+#[derive(Debug)]
+pub enum Error {
+    Io(IoError),
+    AddressingInformation(AddressingInformationError),
 }
 
-impl NetworkIdentity for TcpNetworkIdentity {
-    type PeerId = AuthorityId;
-    type Multiaddress = TcpMultiaddress;
-
-    fn identity(&self) -> (Vec<Self::Multiaddress>, Self::PeerId) {
-        (self.addresses.clone(), self.peer_id.clone())
+impl From<IoError> for Error {
+    fn from(e: IoError) -> Self {
+        Error::Io(e)
     }
 }
 
-impl TcpNetworkIdentity {
-    fn new(external_addresses: Vec<String>, peer_id: AuthorityId) -> TcpNetworkIdentity {
-        TcpNetworkIdentity {
-            addresses: external_addresses
-                .into_iter()
-                .map(|address| TcpMultiaddress {
-                    peer_id: peer_id.clone(),
-                    address,
-                })
-                .collect(),
-            peer_id,
-        }
+impl From<AddressingInformationError> for Error {
+    fn from(e: AddressingInformationError) -> Self {
+        Error::AddressingInformation(e)
     }
 }
 
@@ -174,13 +243,16 @@ pub async fn new_tcp_network<A: ToSocketAddrs>(
     listening_addresses: A,
     external_addresses: Vec<String>,
     peer_id: AuthorityId,
-) -> IoResult<(
-    impl Dialer<TcpMultiaddress>,
-    impl Listener,
-    impl NetworkIdentity<Multiaddress = TcpMultiaddress, PeerId = AuthorityId>,
-)> {
+) -> Result<
+    (
+        impl Dialer<TcpAddressingInformation>,
+        impl Listener,
+        impl NetworkIdentity<AddressingInformation = TcpAddressingInformation, PeerId = AuthorityId>,
+    ),
+    Error,
+> {
     let listener = TcpListener::bind(listening_addresses).await?;
-    let identity = TcpNetworkIdentity::new(external_addresses, peer_id);
+    let identity = TcpAddressingInformation::new(external_addresses, peer_id)?;
     Ok((TcpDialer {}, listener, identity))
 }
 
@@ -188,13 +260,16 @@ pub async fn new_tcp_network<A: ToSocketAddrs>(
 pub mod testing {
     use aleph_primitives::AuthorityId;
 
-    use super::{TcpMultiaddress, TcpNetworkIdentity};
+    use super::TcpAddressingInformation;
     use crate::network::NetworkIdentity;
 
+    /// Creates a realistic identity.
     pub fn new_identity(
         external_addresses: Vec<String>,
         peer_id: AuthorityId,
-    ) -> impl NetworkIdentity<Multiaddress = TcpMultiaddress, PeerId = AuthorityId> {
-        TcpNetworkIdentity::new(external_addresses, peer_id)
+    ) -> impl NetworkIdentity<AddressingInformation = TcpAddressingInformation, PeerId = AuthorityId>
+    {
+        TcpAddressingInformation::new(external_addresses, peer_id)
+            .expect("the provided addresses are fine")
     }
 }

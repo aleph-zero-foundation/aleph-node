@@ -16,7 +16,7 @@ use crate::{
 /// Network component responsible for holding the list of peers that we
 /// want to connect to, and managing the established connections.
 pub struct Manager<PK: PublicKey + PeerId, A: Data, D: Data> {
-    addresses: HashMap<PK, Vec<A>>,
+    addresses: HashMap<PK, A>,
     outgoing: HashMap<PK, mpsc::UnboundedSender<D>>,
     incoming: HashMap<PK, mpsc::UnboundedSender<D>>,
 }
@@ -146,15 +146,15 @@ impl<PK: PublicKey + PeerId, A: Data, D: Data> Manager<PK, A, D> {
     }
 
     /// Add a peer to the list of peers we want to stay connected to, or
-    /// update the list of addresses if the peer was already added.
+    /// update the address if the peer was already added.
     /// Returns whether this peer is a new peer.
-    pub fn add_peer(&mut self, peer_id: PK, addresses: Vec<A>) -> bool {
-        self.addresses.insert(peer_id, addresses).is_none()
+    pub fn add_peer(&mut self, peer_id: PK, address: A) -> bool {
+        self.addresses.insert(peer_id, address).is_none()
     }
 
-    /// Return Option containing addresses of the given peer, or None if
+    /// Return Option containing the address of the given peer, or None if
     /// the peer is unknown.
-    pub fn peer_addresses(&self, peer_id: &PK) -> Option<Vec<A>> {
+    pub fn peer_address(&self, peer_id: &PK) -> Option<A> {
         self.addresses.get(peer_id).cloned()
     }
 
@@ -228,23 +228,19 @@ mod tests {
         let mut manager = Manager::<MockPublicKey, Address, Data>::new();
         let (peer_id, _) = key();
         let (peer_id_b, _) = key();
-        let addresses = vec![
-            String::from(""),
-            String::from("a/b/c"),
-            String::from("43.43.43.43:43000"),
-        ];
+        let address = String::from("43.43.43.43:43000");
         // add new peer - returns true
-        assert!(manager.add_peer(peer_id.clone(), addresses.clone()));
+        assert!(manager.add_peer(peer_id.clone(), address.clone()));
         // add known peer - returns false
-        assert!(!manager.add_peer(peer_id.clone(), addresses.clone()));
+        assert!(!manager.add_peer(peer_id.clone(), address.clone()));
         // get address
-        assert_eq!(manager.peer_addresses(&peer_id), Some(addresses));
+        assert_eq!(manager.peer_address(&peer_id), Some(address));
         // try to get address of an unknown peer
-        assert_eq!(manager.peer_addresses(&peer_id_b), None);
+        assert_eq!(manager.peer_address(&peer_id_b), None);
         // remove peer
         manager.remove_peer(&peer_id);
         // try to get address of removed peer
-        assert_eq!(manager.peer_addresses(&peer_id), None);
+        assert_eq!(manager.peer_address(&peer_id), None);
     }
 
     #[tokio::test]
@@ -252,11 +248,7 @@ mod tests {
         let mut manager = Manager::<MockPublicKey, Address, Data>::new();
         let data = String::from("DATA");
         let (peer_id, _) = key();
-        let addresses = vec![
-            String::from(""),
-            String::from("a/b/c"),
-            String::from("43.43.43.43:43000"),
-        ];
+        let address = String::from("43.43.43.43:43000");
         let (tx, _rx) = mpsc::unbounded();
         // try add unknown peer
         manager.add_outgoing(peer_id.clone(), tx);
@@ -266,7 +258,7 @@ mod tests {
             Err(SendError::PeerNotFound)
         );
         // add peer, this time for real
-        assert!(manager.add_peer(peer_id.clone(), addresses.clone()));
+        assert!(manager.add_peer(peer_id.clone(), address.clone()));
         let (tx, mut rx) = mpsc::unbounded();
         assert_eq!(manager.add_outgoing(peer_id.clone(), tx), Added);
         // send and receive
@@ -282,18 +274,14 @@ mod tests {
     fn incoming() {
         let mut manager = Manager::<MockPublicKey, Address, Data>::new();
         let (peer_id, _) = key();
-        let addresses = vec![
-            String::from(""),
-            String::from("a/b/c"),
-            String::from("43.43.43.43:43000"),
-        ];
+        let address = String::from("43.43.43.43:43000");
         let (tx, mut rx) = mpsc::unbounded();
         // try add unknown peer
         assert_eq!(manager.add_incoming(peer_id.clone(), tx), Uninterested);
         // rx should fail
         assert!(rx.try_next().expect("channel should be closed").is_none());
         // add peer, this time for real
-        assert!(manager.add_peer(peer_id.clone(), addresses));
+        assert!(manager.add_peer(peer_id.clone(), address));
         let (tx, mut rx) = mpsc::unbounded();
         // should just add
         assert_eq!(manager.add_incoming(peer_id.clone(), tx), Added);

@@ -1,28 +1,34 @@
+use std::fmt::Debug;
+
 use futures::channel::mpsc;
 
 use crate::{
     network::{
         manager::{DataInSession, VersionedAuthentication},
-        ConnectionManagerIO, Data, Multiaddress, NetworkServiceIO as NetworkIO, SessionManagerIO,
+        AddressingInformation, ConnectionManagerIO, Data, NetworkServiceIO as NetworkIO,
+        SessionManagerIO,
     },
     validator_network::{Network as ValidatorNetwork, PublicKey},
 };
 
-type AuthenticationNetworkIO<M> = NetworkIO<VersionedAuthentication<M>>;
+type AuthenticationNetworkIO<M, A> = NetworkIO<VersionedAuthentication<M, A>>;
+
+type FullIO<D, M, A, VN> = (
+    ConnectionManagerIO<D, M, A, VN>,
+    AuthenticationNetworkIO<M, A>,
+    SessionManagerIO<D>,
+);
 
 pub fn setup<
     D: Data,
-    M: Multiaddress + 'static,
-    VN: ValidatorNetwork<M::PeerId, M, DataInSession<D>>,
+    M: Data + Debug,
+    A: AddressingInformation + TryFrom<Vec<M>> + Into<Vec<M>>,
+    VN: ValidatorNetwork<A::PeerId, A, DataInSession<D>>,
 >(
     validator_network: VN,
-) -> (
-    ConnectionManagerIO<D, M, VN>,
-    AuthenticationNetworkIO<M>,
-    SessionManagerIO<D>,
-)
+) -> FullIO<D, M, A, VN>
 where
-    M::PeerId: PublicKey,
+    A::PeerId: PublicKey,
 {
     // Prepare and start the network
     let (messages_for_network, messages_from_user) = mpsc::unbounded();

@@ -20,7 +20,7 @@ use crate::{
 };
 
 enum ServiceCommand<PK: PublicKey, D: Data, A: Data> {
-    AddConnection(PK, Vec<A>),
+    AddConnection(PK, A),
     DelConnection(PK),
     SendData(D, PK),
 }
@@ -33,10 +33,10 @@ struct ServiceInterface<PK: PublicKey, D: Data, A: Data> {
 #[async_trait::async_trait]
 impl<PK: PublicKey, D: Data, A: Data> Network<PK, A, D> for ServiceInterface<PK, D, A> {
     /// Add the peer to the set of connected peers.
-    fn add_connection(&mut self, peer: PK, addresses: Vec<A>) {
+    fn add_connection(&mut self, peer: PK, address: A) {
         if self
             .commands_for_service
-            .unbounded_send(ServiceCommand::AddConnection(peer, addresses))
+            .unbounded_send(ServiceCommand::AddConnection(peer, address))
             .is_err()
         {
             info!(target: "validator-network", "Service is dead.");
@@ -126,7 +126,7 @@ where
     fn spawn_new_outgoing(
         &self,
         public_key: SK::PublicKey,
-        addresses: Vec<A>,
+        address: A,
         result_for_parent: mpsc::UnboundedSender<ResultForService<SK::PublicKey, D>>,
     ) {
         let secret_key = self.secret_key.clone();
@@ -138,7 +138,7 @@ where
                     secret_key,
                     public_key,
                     dialer,
-                    addresses,
+                    address,
                     result_for_parent,
                     next_to_interface,
                 )
@@ -159,10 +159,10 @@ where
             });
     }
 
-    fn peer_addresses(&self, public_key: &SK::PublicKey) -> Option<Vec<A>> {
+    fn peer_address(&self, public_key: &SK::PublicKey) -> Option<A> {
         match self.legacy_connected.contains(public_key) {
-            true => self.legacy_manager.peer_addresses(public_key),
-            false => self.manager.peer_addresses(public_key),
+            true => self.legacy_manager.peer_address(public_key),
+            false => self.manager.peer_address(public_key),
         }
     }
 
@@ -200,8 +200,8 @@ where
     fn unmark_legacy(&mut self, public_key: &SK::PublicKey) {
         self.legacy_connected.remove(public_key);
         // Put it back if we still want to be connected.
-        if let Some(addresses) = self.legacy_manager.peer_addresses(public_key) {
-            self.manager.add_peer(public_key.clone(), addresses);
+        if let Some(address) = self.legacy_manager.peer_address(public_key) {
+            self.manager.add_peer(public_key.clone(), address);
         }
     }
 
@@ -241,17 +241,17 @@ where
                 },
                 // got a new command from the interface
                 Some(command) = self.commands_from_interface.next() => match command {
-                    // register new peer in manager or update its list of addresses if already there
+                    // register new peer in manager or update its address if already there
                     // spawn a worker managing outgoing connection if the peer was not known
-                    AddConnection(public_key, addresses) => {
+                    AddConnection(public_key, address) => {
                         // we add all the peers to the legacy manager so we don't lose the
-                        // addresses, but only care about its opinion when it turns out we have to
+                        // address, but only care about its opinion when it turns out we have to
                         // in particular the first time we add a peer we never know whether it
                         // requires legacy connecting, so we only attempt to connect to it if the
                         // new criterion is satisfied, otherwise we wait for it to connect to us
-                        self.legacy_manager.add_peer(public_key.clone(), addresses.clone());
-                        if self.manager.add_peer(public_key.clone(), addresses.clone()) {
-                            self.spawn_new_outgoing(public_key, addresses, result_for_parent.clone());
+                        self.legacy_manager.add_peer(public_key.clone(), address.clone());
+                        if self.manager.add_peer(public_key.clone(), address.clone()) {
+                            self.spawn_new_outgoing(public_key, address, result_for_parent.clone());
                         };
                     },
                     // remove the peer from the manager all workers will be killed automatically, due to closed channels
@@ -278,8 +278,8 @@ where
                 // check if we still want to be connected to the peer, and if so, spawn a new worker or actually add proper connection
                 Some((public_key, maybe_data_for_network, connection_type)) = worker_results.next() => {
                     if self.check_for_legacy(&public_key, connection_type) {
-                        match self.legacy_manager.peer_addresses(&public_key) {
-                            Some(addresses) => self.spawn_new_outgoing(public_key.clone(), addresses, result_for_parent.clone()),
+                        match self.legacy_manager.peer_address(&public_key) {
+                            Some(address) => self.spawn_new_outgoing(public_key.clone(), address, result_for_parent.clone()),
                             None => {
                                 // We received a result from a worker we are no longer interested
                                 // in.
@@ -294,8 +294,8 @@ where
                             Added => info!(target: "validator-network", "New connection with peer {}.", public_key),
                             Replaced => info!(target: "validator-network", "Replaced connection with peer {}.", public_key),
                         },
-                        None => if let Some(addresses) = self.peer_addresses(&public_key) {
-                            self.spawn_new_outgoing(public_key, addresses, result_for_parent.clone());
+                        None => if let Some(address) = self.peer_address(&public_key) {
+                            self.spawn_new_outgoing(public_key, address, result_for_parent.clone());
                         }
                     }
                 },

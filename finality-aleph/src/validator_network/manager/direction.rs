@@ -9,7 +9,7 @@ use crate::validator_network::{Data, PublicKey};
 /// case also keeps the peers' addresses.
 pub struct DirectedPeers<PK: PublicKey, A: Data> {
     own_id: PK,
-    outgoing: HashMap<PK, Vec<A>>,
+    outgoing: HashMap<PK, A>,
     incoming: HashSet<PK>,
 }
 
@@ -38,24 +38,24 @@ impl<PK: PublicKey, A: Data> DirectedPeers<PK, A> {
     }
 
     /// Add a peer to the list of peers we want to stay connected to, or
-    /// update the list of addresses if the peer was already added.
+    /// update the address if the peer was already added.
     /// Returns whether we should start attempts at connecting with the peer, which is the case
     /// exactly when the peer is one with which we should attempt connections AND it was added for
     /// the first time.
-    pub fn add_peer(&mut self, peer_id: PK, addresses: Vec<A>) -> bool {
+    pub fn add_peer(&mut self, peer_id: PK, address: A) -> bool {
         match should_we_call(self.own_id.as_ref(), peer_id.as_ref()) {
-            true => self.outgoing.insert(peer_id, addresses).is_none(),
+            true => self.outgoing.insert(peer_id, address).is_none(),
             false => {
-                // We discard the addresses here, as we will never want to call this peer anyway,
-                // so we don't need them.
+                // We discard the address here, as we will never want to call this peer anyway,
+                // so we don't need it.
                 self.incoming.insert(peer_id);
                 false
             }
         }
     }
 
-    /// Return the addresses of the given peer, or None if we shouldn't attempt connecting with the peer.
-    pub fn peer_addresses(&self, peer_id: &PK) -> Option<Vec<A>> {
+    /// Return the address of the given peer, or None if we shouldn't attempt connecting with the peer.
+    pub fn peer_address(&self, peer_id: &PK) -> Option<A> {
         self.outgoing.get(peer_id).cloned()
     }
 
@@ -95,31 +95,27 @@ mod tests {
         (container, id)
     }
 
-    fn some_addresses() -> Vec<Address> {
-        vec![
-            String::from(""),
-            String::from("a/b/c"),
-            String::from("43.43.43.43:43000"),
-        ]
+    fn some_address() -> Address {
+        String::from("43.43.43.43:43000")
     }
 
     #[test]
     fn exactly_one_direction_attempts_connections() {
         let (mut container0, id0) = container_with_id();
         let (mut container1, id1) = container_with_id();
-        let addresses = some_addresses();
-        assert!(container0.add_peer(id1, addresses.clone()) != container1.add_peer(id0, addresses));
+        let address = some_address();
+        assert!(container0.add_peer(id1, address.clone()) != container1.add_peer(id0, address));
     }
 
     fn container_with_added_connecting_peer(
     ) -> (DirectedPeers<MockPublicKey, Address>, MockPublicKey) {
         let (mut container0, id0) = container_with_id();
         let (mut container1, id1) = container_with_id();
-        let addresses = some_addresses();
-        match container0.add_peer(id1.clone(), addresses.clone()) {
+        let address = some_address();
+        match container0.add_peer(id1.clone(), address.clone()) {
             true => (container0, id1),
             false => {
-                container1.add_peer(id0.clone(), addresses);
+                container1.add_peer(id0.clone(), address);
                 (container1, id0)
             }
         }
@@ -129,11 +125,11 @@ mod tests {
     ) -> (DirectedPeers<MockPublicKey, Address>, MockPublicKey) {
         let (mut container0, id0) = container_with_id();
         let (mut container1, id1) = container_with_id();
-        let addresses = some_addresses();
-        match container0.add_peer(id1.clone(), addresses.clone()) {
+        let address = some_address();
+        match container0.add_peer(id1.clone(), address.clone()) {
             false => (container0, id1),
             true => {
-                container1.add_peer(id0.clone(), addresses);
+                container1.add_peer(id0.clone(), address);
                 (container1, id0)
             }
         }
@@ -142,20 +138,20 @@ mod tests {
     #[test]
     fn no_connecting_on_subsequent_add() {
         let (mut container0, id1) = container_with_added_connecting_peer();
-        let addresses = some_addresses();
-        assert!(!container0.add_peer(id1, addresses));
+        let address = some_address();
+        assert!(!container0.add_peer(id1, address));
     }
 
     #[test]
-    fn peer_addresses_when_connecting() {
+    fn peer_address_when_connecting() {
         let (container0, id1) = container_with_added_connecting_peer();
-        assert!(container0.peer_addresses(&id1).is_some());
+        assert!(container0.peer_address(&id1).is_some());
     }
 
     #[test]
-    fn no_peer_addresses_when_nonconnecting() {
+    fn no_peer_address_when_nonconnecting() {
         let (container0, id1) = container_with_added_nonconnecting_peer();
-        assert!(container0.peer_addresses(&id1).is_none());
+        assert!(container0.peer_address(&id1).is_none());
     }
 
     #[test]

@@ -31,7 +31,7 @@ impl<D: Clone + Codec + Send + Sync + 'static> Data for D {}
 #[async_trait::async_trait]
 pub trait Network<PK: PublicKey, A: Data, D: Data>: Send + 'static {
     /// Add the peer to the set of connected peers.
-    fn add_connection(&mut self, peer: PK, addresses: Vec<A>);
+    fn add_connection(&mut self, peer: PK, address: A);
 
     /// Remove the peer from the set of connected peers and close the connection.
     fn remove_connection(&mut self, peer: PK);
@@ -67,9 +67,8 @@ pub trait Dialer<A: Data>: Clone + Send + 'static {
     type Connection: Splittable;
     type Error: Display + Send;
 
-    /// Attempt to connect to a peer using the provided addresses. Should work if at least one of
-    /// the addresses is correct.
-    async fn connect(&mut self, addresses: Vec<A>) -> Result<Self::Connection, Self::Error>;
+    /// Attempt to connect to a peer using the provided addressing information.
+    async fn connect(&mut self, address: A) -> Result<Self::Connection, Self::Error>;
 }
 
 /// Accepts new connections. Usually will be created listening on a specific interface and this is

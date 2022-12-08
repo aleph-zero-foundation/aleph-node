@@ -12,32 +12,10 @@ use tokio::time::timeout;
 
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
-    network::{Event, EventStream, Network, NetworkIdentity, NetworkSender, Protocol},
-    testing::mocks::validator_network::{random_identity, MockMultiaddress},
+    network::{Event, EventStream, Network, NetworkSender, Protocol},
     validator_network::mock::MockPublicKey,
     AuthorityId, NodeIndex,
 };
-
-pub struct MockNetworkIdentity {
-    addresses: Vec<MockMultiaddress>,
-    peer_id: MockPublicKey,
-}
-
-impl MockNetworkIdentity {
-    pub fn new() -> Self {
-        let (addresses, peer_id) = random_identity();
-        MockNetworkIdentity { addresses, peer_id }
-    }
-}
-
-impl NetworkIdentity for MockNetworkIdentity {
-    type PeerId = MockPublicKey;
-    type Multiaddress = MockMultiaddress;
-
-    fn identity(&self) -> (Vec<Self::Multiaddress>, Self::PeerId) {
-        (self.addresses.clone(), self.peer_id.clone())
-    }
-}
 
 #[derive(Clone)]
 pub struct Channel<T>(

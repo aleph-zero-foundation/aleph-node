@@ -36,9 +36,36 @@ pub use session::{Manager as SessionManager, ManagerError, Sender, IO as Session
 pub use split::{split, Split};
 #[cfg(test)]
 pub mod testing {
+    use super::manager::LegacyAuthentication;
     pub use super::manager::{
-        Authentication, DataInSession, DiscoveryMessage, SessionHandler, VersionedAuthentication,
+        Authentication, DataInSession, DiscoveryMessage, LegacyDiscoveryMessage,
+        PeerAuthentications, SessionHandler, VersionedAuthentication,
     };
+    use crate::testing::mocks::validator_network::MockAddressingInformation;
+
+    pub fn legacy_authentication(
+        handler: &SessionHandler<MockAddressingInformation, MockAddressingInformation>,
+    ) -> LegacyAuthentication<MockAddressingInformation> {
+        match handler
+            .authentication()
+            .expect("this is a validator handler")
+        {
+            PeerAuthentications::Both(_, authentication) => authentication,
+            _ => panic!("handler doesn't have both authentications"),
+        }
+    }
+
+    pub fn authentication(
+        handler: &SessionHandler<MockAddressingInformation, MockAddressingInformation>,
+    ) -> Authentication<MockAddressingInformation> {
+        match handler
+            .authentication()
+            .expect("this is a validator handler")
+        {
+            PeerAuthentications::Both(authentication, _) => authentication,
+            _ => panic!("handler doesn't have both authentications"),
+        }
+    }
 }
 
 /// Represents the id of an arbitrary node.
@@ -59,14 +86,11 @@ pub trait PeerId: PartialEq + Eq + Clone + Debug + Display + Hash + Codec + Send
 }
 
 /// Represents the address of an arbitrary node.
-pub trait Multiaddress: Debug + Hash + Codec + Clone + Eq + Send + Sync + 'static {
+pub trait AddressingInformation: Debug + Hash + Codec + Clone + Eq + Send + Sync + 'static {
     type PeerId: PeerId;
 
     /// Returns the peer id associated with this multiaddress if it exists and is unique.
-    fn get_peer_id(&self) -> Option<Self::PeerId>;
-
-    /// Returns the address extended by the peer id, unless it already contained another peer id.
-    fn add_matching_peer_id(self, peer_id: Self::PeerId) -> Option<Self>;
+    fn peer_id(&self) -> Self::PeerId;
 }
 
 /// The Authentication protocol is used for validator discovery.
@@ -117,13 +141,13 @@ pub trait Network: Clone + Send + Sync + 'static {
     ) -> Result<Self::NetworkSender, Self::SenderError>;
 }
 
-/// Abstraction for requesting own network addresses and PeerId.
+/// Abstraction for requesting own network addressing information.
 pub trait NetworkIdentity {
     type PeerId: PeerId;
-    type Multiaddress: Multiaddress<PeerId = Self::PeerId>;
+    type AddressingInformation: AddressingInformation<PeerId = Self::PeerId>;
 
-    /// The external identity of this node, consisting of addresses and the PeerId.
-    fn identity(&self) -> (Vec<Self::Multiaddress>, Self::PeerId);
+    /// The external identity of this node.
+    fn identity(&self) -> Self::AddressingInformation;
 }
 
 /// Abstraction for requesting justifications for finalized blocks and stale blocks.
@@ -148,9 +172,9 @@ pub trait RequestBlocks<B: Block>: Clone + Send + Sync + 'static {
 
 /// Commands for manipulating the reserved peers set.
 #[derive(Debug, PartialEq, Eq)]
-pub enum ConnectionCommand<M: Multiaddress> {
-    AddReserved(HashSet<M>),
-    DelReserved(HashSet<M::PeerId>),
+pub enum ConnectionCommand<A: AddressingInformation> {
+    AddReserved(HashSet<A>),
+    DelReserved(HashSet<A::PeerId>),
 }
 
 /// Returned when something went wrong when sending data using a DataNetwork.

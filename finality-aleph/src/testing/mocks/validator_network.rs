@@ -20,7 +20,7 @@ use tokio::{
 };
 
 use crate::{
-    network::{mock::Channel, Data, Multiaddress, NetworkIdentity},
+    network::{mock::Channel, AddressingInformation, Data, NetworkIdentity},
     validator_network::{
         mock::{key, random_keys, MockPublicKey, MockSecretKey},
         ConnectionInfo, Dialer as DialerT, Listener as ListenerT, Network, PeerAddressInfo,
@@ -28,37 +28,77 @@ use crate::{
     },
 };
 
-pub type MockMultiaddress = (MockPublicKey, String);
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Encode, Decode)]
+pub struct MockAddressingInformation {
+    peer_id: MockPublicKey,
+    address: String,
+}
 
-impl Multiaddress for MockMultiaddress {
+impl AddressingInformation for MockAddressingInformation {
     type PeerId = MockPublicKey;
 
-    fn get_peer_id(&self) -> Option<Self::PeerId> {
-        Some(self.0.clone())
+    fn peer_id(&self) -> Self::PeerId {
+        self.peer_id.clone()
     }
+}
 
-    fn add_matching_peer_id(self, peer_id: Self::PeerId) -> Option<Self> {
-        match self.0 == peer_id {
-            true => Some(self),
-            false => None,
+impl NetworkIdentity for MockAddressingInformation {
+    type PeerId = MockPublicKey;
+    type AddressingInformation = MockAddressingInformation;
+
+    fn identity(&self) -> Self::AddressingInformation {
+        self.clone()
+    }
+}
+
+impl From<MockAddressingInformation> for Vec<MockAddressingInformation> {
+    fn from(address: MockAddressingInformation) -> Self {
+        vec![address]
+    }
+}
+
+impl TryFrom<Vec<MockAddressingInformation>> for MockAddressingInformation {
+    type Error = ();
+
+    fn try_from(mut addresses: Vec<MockAddressingInformation>) -> Result<Self, Self::Error> {
+        match addresses.pop() {
+            Some(address) => Ok(address),
+            None => Err(()),
         }
     }
 }
 
+pub fn random_peer_id() -> MockPublicKey {
+    key().0
+}
+
+pub fn random_address_from(address: String) -> MockAddressingInformation {
+    let peer_id = random_peer_id();
+    MockAddressingInformation { peer_id, address }
+}
+
+pub fn random_address() -> MockAddressingInformation {
+    random_address_from(
+        rand::thread_rng()
+            .sample_iter(&rand::distributions::Alphanumeric)
+            .map(char::from)
+            .take(43)
+            .collect(),
+    )
+}
+
 #[derive(Clone)]
 pub struct MockNetwork<D: Data> {
-    pub add_connection: Channel<(MockPublicKey, Vec<MockMultiaddress>)>,
+    pub add_connection: Channel<(MockPublicKey, MockAddressingInformation)>,
     pub remove_connection: Channel<MockPublicKey>,
     pub send: Channel<(D, MockPublicKey)>,
     pub next: Channel<D>,
-    id: MockPublicKey,
-    addresses: Vec<MockMultiaddress>,
 }
 
 #[async_trait::async_trait]
-impl<D: Data> Network<MockPublicKey, MockMultiaddress, D> for MockNetwork<D> {
-    fn add_connection(&mut self, peer: MockPublicKey, addresses: Vec<MockMultiaddress>) {
-        self.add_connection.send((peer, addresses));
+impl<D: Data> Network<MockPublicKey, MockAddressingInformation, D> for MockNetwork<D> {
+    fn add_connection(&mut self, peer: MockPublicKey, address: MockAddressingInformation) {
+        self.add_connection.send((peer, address));
     }
 
     fn remove_connection(&mut self, peer: MockPublicKey) {
@@ -74,60 +114,13 @@ impl<D: Data> Network<MockPublicKey, MockMultiaddress, D> for MockNetwork<D> {
     }
 }
 
-impl<D: Data> NetworkIdentity for MockNetwork<D> {
-    type PeerId = MockPublicKey;
-    type Multiaddress = MockMultiaddress;
-
-    fn identity(&self) -> (Vec<Self::Multiaddress>, Self::PeerId) {
-        (self.addresses.clone(), self.id.clone())
-    }
-}
-
-pub fn random_peer_id() -> MockPublicKey {
-    key().0
-}
-
-pub fn random_identity_with_address(address: String) -> (Vec<MockMultiaddress>, MockPublicKey) {
-    let id = random_peer_id();
-    (vec![(id.clone(), address)], id)
-}
-
-pub fn random_identity() -> (Vec<MockMultiaddress>, MockPublicKey) {
-    random_identity_with_address(
-        rand::thread_rng()
-            .sample_iter(&rand::distributions::Alphanumeric)
-            .map(char::from)
-            .take(43)
-            .collect(),
-    )
-}
-
-pub fn random_multiaddress() -> MockMultiaddress {
-    random_identity().0.pop().expect("we created an address")
-}
-
 impl<D: Data> MockNetwork<D> {
-    pub async fn new(address: &str) -> Self {
-        let id = random_peer_id();
-        let addresses = vec![(id.clone(), String::from(address))];
+    pub fn new() -> Self {
         MockNetwork {
             add_connection: Channel::new(),
             remove_connection: Channel::new(),
             send: Channel::new(),
             next: Channel::new(),
-            addresses,
-            id,
-        }
-    }
-
-    pub fn from(addresses: Vec<MockMultiaddress>, id: MockPublicKey) -> Self {
-        MockNetwork {
-            add_connection: Channel::new(),
-            remove_connection: Channel::new(),
-            send: Channel::new(),
-            next: Channel::new(),
-            addresses,
-            id,
         }
     }
 
@@ -278,7 +271,7 @@ impl Splittable for UnreliableSplittable {
 }
 
 type Address = u32;
-type Addresses = HashMap<MockPublicKey, Vec<Address>>;
+type Addresses = HashMap<MockPublicKey, Address>;
 type Callers = HashMap<MockPublicKey, (MockDialer, MockListener)>;
 type Connection = UnreliableSplittable;
 
@@ -296,10 +289,10 @@ impl DialerT<Address> for MockDialer {
     type Connection = Connection;
     type Error = std::io::Error;
 
-    async fn connect(&mut self, addresses: Vec<Address>) -> Result<Self::Connection, Self::Error> {
+    async fn connect(&mut self, address: Address) -> Result<Self::Connection, Self::Error> {
         let (tx, rx) = oneshot::channel();
         self.channel_connect
-            .unbounded_send((self.own_address, addresses[0], tx))
+            .unbounded_send((self.own_address, address, tx))
             .expect("should send");
         Ok(rx.await.expect("should receive"))
     }
@@ -336,13 +329,13 @@ impl UnreliableConnectionMaker {
             .clone()
             .into_iter()
             .zip(0..ids.len())
-            .map(|(id, u)| (id, vec![u as u32]))
+            .map(|(id, u)| (id, u as u32))
             .collect();
         // create callers for every peer, keep channels for communicating with them
         for id in ids.into_iter() {
             let (tx_listener, rx_listener) = mpsc::unbounded();
             let dialer = MockDialer {
-                own_address: addr.get(&id).expect("should be there")[0],
+                own_address: *addr.get(&id).expect("should be there"),
                 channel_connect: tx_dialer.clone(),
             };
             let listener = MockListener {
