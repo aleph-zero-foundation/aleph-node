@@ -2,7 +2,7 @@ use std::fmt::{Debug, Display, Error as FmtError, Formatter};
 
 use futures::channel::mpsc;
 use log::{debug, info};
-use tokio::time::{sleep, Duration};
+use tokio::time::{sleep, timeout, Duration};
 
 use crate::validator_network::{
     protocols::{
@@ -15,6 +15,7 @@ enum OutgoingError<PK: PublicKey, A: Data, ND: Dialer<A>> {
     Dial(ND::Error),
     ProtocolNegotiation(PeerAddressInfo, ProtocolNegotiationError),
     Protocol(PeerAddressInfo, ProtocolError<PK>),
+    TimedOut,
 }
 
 impl<PK: PublicKey, A: Data, ND: Dialer<A>> Display for OutgoingError<PK, A, ND> {
@@ -32,9 +33,13 @@ impl<PK: PublicKey, A: Data, ND: Dialer<A>> Display for OutgoingError<PK, A, ND>
                 "communication with {} failed, protocol error: {}",
                 addr, e
             ),
+            TimedOut => write!(f, "dial timeout",),
         }
     }
 }
+
+/// Arbitrarily chosen timeout, should be more than enough.
+const DIAL_TIMEOUT: Duration = Duration::from_secs(60);
 
 async fn manage_outgoing<SK: SecretKey, D: Data, A: Data, ND: Dialer<A>>(
     secret_key: SK,
@@ -45,7 +50,10 @@ async fn manage_outgoing<SK: SecretKey, D: Data, A: Data, ND: Dialer<A>>(
     data_for_user: mpsc::UnboundedSender<D>,
 ) -> Result<(), OutgoingError<SK::PublicKey, A, ND>> {
     debug!(target: "validator-network", "Trying to connect to {}.", public_key);
-    let stream = dialer.connect(address).await.map_err(OutgoingError::Dial)?;
+    let stream = timeout(DIAL_TIMEOUT, dialer.connect(address))
+        .await
+        .map_err(|_| OutgoingError::TimedOut)?
+        .map_err(OutgoingError::Dial)?;
     let peer_address_info = stream.peer_address_info();
     debug!(target: "validator-network", "Performing outgoing protocol negotiation.");
     let (stream, protocol) = protocol(stream)
