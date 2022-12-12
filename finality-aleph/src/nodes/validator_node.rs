@@ -76,7 +76,7 @@ where
     let (dialer, listener, network_identity) = new_tcp_network(
         ("0.0.0.0", validator_port),
         external_addresses,
-        network_authority_pen.authority_id(),
+        &network_authority_pen,
     )
     .await
     .expect("we should have working networking");

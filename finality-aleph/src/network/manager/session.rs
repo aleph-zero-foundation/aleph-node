@@ -152,6 +152,9 @@ impl<M: Data, A: AddressingInformation + TryFrom<Vec<M>> + Into<Vec<M>>> Handler
         let (auth_data, signature) = &authentication;
 
         let address = auth_data.address();
+        if !address.verify() {
+            return None;
+        }
         let peer_id = address.peer_id();
         if peer_id == self.own_peer_id {
             return None;
@@ -274,7 +277,7 @@ mod tests {
             testing::{authentication, legacy_authentication},
             AddressingInformation,
         },
-        testing::mocks::validator_network::random_address,
+        testing::mocks::validator_network::{random_address, random_invalid_address},
         NodeIndex, SessionId,
     };
 
@@ -444,6 +447,31 @@ mod tests {
         assert_eq!(missing_nodes, expected_missing);
         let peer_id1 = address.peer_id();
         assert_eq!(handler0.peer_id(&NodeIndex(1)), Some(peer_id1));
+    }
+
+    #[tokio::test]
+    async fn ignores_invalid_authentication() {
+        let crypto_basics = crypto_basics(NUM_NODES).await;
+        let mut handler0 = Handler::new(
+            Some(crypto_basics.0[0].clone()),
+            crypto_basics.1.clone(),
+            SessionId(43),
+            random_address(),
+        )
+        .await;
+        let handler1 = Handler::new(
+            Some(crypto_basics.0[1].clone()),
+            crypto_basics.1.clone(),
+            SessionId(43),
+            random_invalid_address(),
+        )
+        .await;
+        assert!(handler0
+            .handle_authentication(authentication(&handler1))
+            .is_none());
+        let missing_nodes = handler0.missing_nodes();
+        let expected_missing: Vec<_> = (1..NUM_NODES).map(NodeIndex).collect();
+        assert_eq!(missing_nodes, expected_missing);
     }
 
     #[tokio::test]

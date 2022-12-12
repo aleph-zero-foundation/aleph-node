@@ -87,7 +87,7 @@ async fn prepare_one_session_test_data() -> TestData {
     let (authority_pens, authority_verifier) = crypto_basics(NODES_N).await;
     let mut authorities = Vec::new();
     for (index, p) in authority_pens {
-        let address = random_address_from(index.0.to_string());
+        let address = random_address_from(index.0.to_string(), true);
         let auth_peer_id = key().0;
         authorities.push(Authority {
             pen: p,

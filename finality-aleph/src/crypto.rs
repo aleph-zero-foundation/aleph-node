@@ -2,7 +2,7 @@ use std::{convert::TryInto, sync::Arc};
 
 use aleph_primitives::{AuthorityId, AuthoritySignature, KEY_TYPE};
 use codec::{Decode, Encode};
-use sp_core::crypto::KeyTypeId;
+use sp_core::{crypto::KeyTypeId, ed25519::Signature as RawSignature};
 use sp_keystore::{CryptoStore, Error as KeystoreError};
 use sp_runtime::RuntimeAppPublic;
 
@@ -21,6 +21,13 @@ pub struct Signature(AuthoritySignature);
 impl From<AuthoritySignature> for Signature {
     fn from(authority_signature: AuthoritySignature) -> Signature {
         Signature(authority_signature)
+    }
+}
+
+// This is here just for a compatibility hack, remove when removing legacy/v1 authentications.
+impl From<[u8; 64]> for Signature {
+    fn from(bytes: [u8; 64]) -> Signature {
+        Signature(RawSignature::from_raw(bytes).into())
     }
 }
 

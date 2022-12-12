@@ -89,8 +89,11 @@ pub trait PeerId: PartialEq + Eq + Clone + Debug + Display + Hash + Codec + Send
 pub trait AddressingInformation: Debug + Hash + Codec + Clone + Eq + Send + Sync + 'static {
     type PeerId: PeerId;
 
-    /// Returns the peer id associated with this multiaddress if it exists and is unique.
+    /// Returns the peer id associated with this address.
     fn peer_id(&self) -> Self::PeerId;
+
+    /// Verify the information.
+    fn verify(&self) -> bool;
 }
 
 /// The Authentication protocol is used for validator discovery.

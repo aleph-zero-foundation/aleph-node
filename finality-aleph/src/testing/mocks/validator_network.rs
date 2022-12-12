@@ -32,6 +32,7 @@ use crate::{
 pub struct MockAddressingInformation {
     peer_id: MockPublicKey,
     address: String,
+    valid: bool,
 }
 
 impl AddressingInformation for MockAddressingInformation {
@@ -39,6 +40,10 @@ impl AddressingInformation for MockAddressingInformation {
 
     fn peer_id(&self) -> Self::PeerId {
         self.peer_id.clone()
+    }
+
+    fn verify(&self) -> bool {
+        self.valid
     }
 }
 
@@ -72,9 +77,13 @@ pub fn random_peer_id() -> MockPublicKey {
     key().0
 }
 
-pub fn random_address_from(address: String) -> MockAddressingInformation {
+pub fn random_address_from(address: String, valid: bool) -> MockAddressingInformation {
     let peer_id = random_peer_id();
-    MockAddressingInformation { peer_id, address }
+    MockAddressingInformation {
+        peer_id,
+        address,
+        valid,
+    }
 }
 
 pub fn random_address() -> MockAddressingInformation {
@@ -84,6 +93,18 @@ pub fn random_address() -> MockAddressingInformation {
             .map(char::from)
             .take(43)
             .collect(),
+        true,
+    )
+}
+
+pub fn random_invalid_address() -> MockAddressingInformation {
+    random_address_from(
+        rand::thread_rng()
+            .sample_iter(&rand::distributions::Alphanumeric)
+            .map(char::from)
+            .take(43)
+            .collect(),
+        false,
     )
 }
 

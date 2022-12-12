@@ -259,13 +259,15 @@ mod test {
             NetworkIdentity,
         },
         nodes::testing::new_pen,
-        tcp_network::{testing::new_identity, LegacyTcpMultiaddress, TcpAddressingInformation},
+        tcp_network::{
+            testing::new_identity, LegacyTcpMultiaddress, SignedTcpAddressingInformation,
+        },
         testing::mocks::validator_network::MockAddressingInformation,
         NodeIndex, SessionId, Version,
     };
 
     /// Session Handler used for generating versioned authentication in `raw_authentication_v1`
-    async fn handler() -> SessionHandler<LegacyTcpMultiaddress, TcpAddressingInformation> {
+    async fn handler() -> SessionHandler<LegacyTcpMultiaddress, SignedTcpAddressingInformation> {
         let mnemonic = "ring cool spatial rookie need wing opinion pond fork garbage more april";
         let external_addresses = vec![
             String::from("addr1"),
@@ -275,7 +277,7 @@ mod test {
 
         let keystore = Arc::new(KeyStore::new());
         let pen = new_pen(mnemonic, keystore).await;
-        let identity = new_identity(external_addresses, pen.authority_id());
+        let identity = new_identity(external_addresses, &pen).await;
 
         SessionHandler::new(
             Some((NodeIndex(21), pen)),
@@ -287,8 +289,8 @@ mod test {
     }
 
     fn authentication_v1(
-        handler: SessionHandler<LegacyTcpMultiaddress, TcpAddressingInformation>,
-    ) -> VersionedAuthentication<LegacyTcpMultiaddress, TcpAddressingInformation> {
+        handler: SessionHandler<LegacyTcpMultiaddress, SignedTcpAddressingInformation>,
+    ) -> VersionedAuthentication<LegacyTcpMultiaddress, SignedTcpAddressingInformation> {
         match handler
             .authentication()
             .expect("should have authentication")
@@ -301,8 +303,8 @@ mod test {
     }
 
     fn authentication_v2(
-        handler: SessionHandler<LegacyTcpMultiaddress, TcpAddressingInformation>,
-    ) -> VersionedAuthentication<LegacyTcpMultiaddress, TcpAddressingInformation> {
+        handler: SessionHandler<LegacyTcpMultiaddress, SignedTcpAddressingInformation>,
+    ) -> VersionedAuthentication<LegacyTcpMultiaddress, SignedTcpAddressingInformation> {
         match handler
             .authentication()
             .expect("should have authentication")
@@ -342,13 +344,16 @@ mod test {
     fn raw_authentication_v2() -> Vec<u8> {
         //TODO: this will fail, check what it should be
         vec![
-            2, 0, 127, 0, 50, 40, 192, 239, 72, 72, 119, 156, 76, 37, 212, 220, 76, 165, 39, 73,
+            2, 0, 191, 0, 50, 40, 192, 239, 72, 72, 119, 156, 76, 37, 212, 220, 76, 165, 39, 73,
             20, 89, 77, 66, 171, 174, 61, 31, 254, 137, 186, 1, 7, 141, 187, 219, 20, 97, 100, 100,
-            114, 49, 8, 20, 97, 100, 100, 114, 50, 20, 97, 100, 100, 114, 51, 21, 0, 0, 0, 0, 0, 0,
-            0, 37, 0, 0, 0, 62, 4, 215, 148, 82, 197, 128, 124, 68, 183, 132, 114, 101, 15, 49,
-            220, 175, 29, 128, 15, 163, 6, 147, 56, 103, 140, 125, 92, 92, 243, 194, 168, 63, 65,
-            101, 78, 165, 63, 169, 132, 73, 212, 6, 10, 231, 78, 48, 219, 70, 23, 180, 227, 95,
-            141, 111, 60, 245, 119, 27, 84, 187, 33, 77, 2,
+            114, 49, 8, 20, 97, 100, 100, 114, 50, 20, 97, 100, 100, 114, 51, 193, 134, 174, 215,
+            223, 67, 113, 105, 253, 217, 120, 59, 47, 176, 146, 72, 205, 114, 242, 242, 115, 214,
+            97, 112, 69, 56, 119, 168, 164, 170, 74, 7, 97, 149, 53, 122, 42, 209, 198, 146, 6,
+            169, 37, 242, 131, 152, 209, 10, 52, 78, 218, 52, 69, 81, 235, 254, 58, 44, 134, 201,
+            119, 132, 5, 8, 21, 0, 0, 0, 0, 0, 0, 0, 37, 0, 0, 0, 230, 134, 124, 175, 213, 131, 76,
+            99, 89, 247, 169, 129, 87, 134, 249, 172, 99, 77, 203, 254, 12, 171, 178, 163, 47, 145,
+            104, 166, 75, 174, 164, 119, 197, 78, 101, 221, 52, 51, 116, 221, 67, 45, 196, 65, 61,
+            5, 246, 111, 56, 215, 145, 48, 170, 241, 60, 68, 231, 187, 72, 201, 18, 82, 249, 11,
         ]
     }
 

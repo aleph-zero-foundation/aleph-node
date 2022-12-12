@@ -106,9 +106,8 @@ pub enum AddressingInformationError {
     NoAddress,
 }
 
-/// A representation of TCP addressing information with an associated peer ID.
 #[derive(Debug, Hash, Encode, Decode, Clone, PartialEq, Eq)]
-pub struct TcpAddressingInformation {
+struct TcpAddressingInformation {
     peer_id: AuthorityId,
     // Easiest way to ensure that the Vec below is nonempty...
     primary_address: String,
@@ -153,23 +152,6 @@ impl From<TcpAddressingInformation> for Vec<LegacyTcpMultiaddress> {
     }
 }
 
-impl AddressingInformation for TcpAddressingInformation {
-    type PeerId = AuthorityId;
-
-    fn peer_id(&self) -> Self::PeerId {
-        self.peer_id.clone()
-    }
-}
-
-impl NetworkIdentity for TcpAddressingInformation {
-    type PeerId = AuthorityId;
-    type AddressingInformation = TcpAddressingInformation;
-
-    fn identity(&self) -> Self::AddressingInformation {
-        self.clone()
-    }
-}
-
 impl TcpAddressingInformation {
     fn new(
         addresses: Vec<String>,
@@ -186,25 +168,100 @@ impl TcpAddressingInformation {
             peer_id,
         })
     }
+
+    fn peer_id(&self) -> AuthorityId {
+        self.peer_id.clone()
+    }
+}
+
+/// A representation of TCP addressing information with an associated peer ID, self-signed.
+#[derive(Debug, Hash, Encode, Decode, Clone, PartialEq, Eq)]
+pub struct SignedTcpAddressingInformation {
+    addressing_information: TcpAddressingInformation,
+    signature: Signature,
+}
+
+impl TryFrom<Vec<LegacyTcpMultiaddress>> for SignedTcpAddressingInformation {
+    type Error = AddressingInformationError;
+
+    fn try_from(legacy: Vec<LegacyTcpMultiaddress>) -> Result<Self, Self::Error> {
+        let addressing_information = legacy.try_into()?;
+        // This will never get validated, but that is alright and working as intended.
+        // We temporarily accept legacy messages and there is no way to verify them completely,
+        // since they were unsigned previously. In the next update we will remove this, and the
+        // problem will be completely gone.
+        let signature = [0; 64].into();
+        Ok(SignedTcpAddressingInformation {
+            addressing_information,
+            signature,
+        })
+    }
+}
+
+impl From<SignedTcpAddressingInformation> for Vec<LegacyTcpMultiaddress> {
+    fn from(address: SignedTcpAddressingInformation) -> Self {
+        address.addressing_information.into()
+    }
+}
+
+impl AddressingInformation for SignedTcpAddressingInformation {
+    type PeerId = AuthorityId;
+
+    fn peer_id(&self) -> Self::PeerId {
+        self.addressing_information.peer_id()
+    }
+
+    fn verify(&self) -> bool {
+        self.peer_id()
+            .verify(&self.addressing_information.encode(), &self.signature)
+    }
+}
+
+impl NetworkIdentity for SignedTcpAddressingInformation {
+    type PeerId = AuthorityId;
+    type AddressingInformation = SignedTcpAddressingInformation;
+
+    fn identity(&self) -> Self::AddressingInformation {
+        self.clone()
+    }
+}
+
+impl SignedTcpAddressingInformation {
+    async fn new(
+        addresses: Vec<String>,
+        authority_pen: &AuthorityPen,
+    ) -> Result<SignedTcpAddressingInformation, AddressingInformationError> {
+        let peer_id = authority_pen.authority_id();
+        let addressing_information = TcpAddressingInformation::new(addresses, peer_id)?;
+        let signature = authority_pen.sign(&addressing_information.encode()).await;
+        Ok(SignedTcpAddressingInformation {
+            addressing_information,
+            signature,
+        })
+    }
 }
 
 #[derive(Clone)]
 struct TcpDialer;
 
 #[async_trait::async_trait]
-impl Dialer<TcpAddressingInformation> for TcpDialer {
+impl Dialer<SignedTcpAddressingInformation> for TcpDialer {
     type Connection = TcpStream;
     type Error = std::io::Error;
 
     async fn connect(
         &mut self,
-        address: TcpAddressingInformation,
+        address: SignedTcpAddressingInformation,
     ) -> Result<Self::Connection, Self::Error> {
+        let SignedTcpAddressingInformation {
+            addressing_information,
+            ..
+        } = address;
         let TcpAddressingInformation {
             primary_address,
             other_addresses,
             ..
-        } = address;
+        } = addressing_information;
         let parsed_addresses: Vec<_> = iter::once(primary_address)
             .chain(other_addresses)
             .filter_map(|address| address.to_socket_addrs().ok())
@@ -242,17 +299,20 @@ impl From<AddressingInformationError> for Error {
 pub async fn new_tcp_network<A: ToSocketAddrs>(
     listening_addresses: A,
     external_addresses: Vec<String>,
-    peer_id: AuthorityId,
+    authority_pen: &AuthorityPen,
 ) -> Result<
     (
-        impl Dialer<TcpAddressingInformation>,
+        impl Dialer<SignedTcpAddressingInformation>,
         impl Listener,
-        impl NetworkIdentity<AddressingInformation = TcpAddressingInformation, PeerId = AuthorityId>,
+        impl NetworkIdentity<
+            AddressingInformation = SignedTcpAddressingInformation,
+            PeerId = AuthorityId,
+        >,
     ),
     Error,
 > {
     let listener = TcpListener::bind(listening_addresses).await?;
-    let identity = TcpAddressingInformation::new(external_addresses, peer_id)?;
+    let identity = SignedTcpAddressingInformation::new(external_addresses, authority_pen).await?;
     Ok((TcpDialer {}, listener, identity))
 }
 
@@ -260,16 +320,17 @@ pub async fn new_tcp_network<A: ToSocketAddrs>(
 pub mod testing {
     use aleph_primitives::AuthorityId;
 
-    use super::TcpAddressingInformation;
-    use crate::network::NetworkIdentity;
+    use super::SignedTcpAddressingInformation;
+    use crate::{crypto::AuthorityPen, network::NetworkIdentity};
 
     /// Creates a realistic identity.
-    pub fn new_identity(
+    pub async fn new_identity(
         external_addresses: Vec<String>,
-        peer_id: AuthorityId,
-    ) -> impl NetworkIdentity<AddressingInformation = TcpAddressingInformation, PeerId = AuthorityId>
+        authority_pen: &AuthorityPen,
+    ) -> impl NetworkIdentity<AddressingInformation = SignedTcpAddressingInformation, PeerId = AuthorityId>
     {
-        TcpAddressingInformation::new(external_addresses, peer_id)
+        SignedTcpAddressingInformation::new(external_addresses, authority_pen)
+            .await
             .expect("the provided addresses are fine")
     }
 }
