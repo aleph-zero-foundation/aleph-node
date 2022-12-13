@@ -8,31 +8,22 @@ use codec::Codec;
 use sp_api::NumberFor;
 use sp_runtime::traits::Block;
 
-use crate::abft::Recipient;
-
-mod component;
+pub mod data;
 mod gossip;
 mod io;
 mod manager;
 #[cfg(test)]
 pub mod mock;
 mod session;
-mod split;
 mod substrate;
 
-pub use component::{
-    Network as ComponentNetwork, NetworkExt as ComponentNetworkExt,
-    NetworkMap as ComponentNetworkMap, Receiver as ReceiverComponent, Sender as SenderComponent,
-    SimpleNetwork,
-};
 pub use gossip::{Network as GossipNetwork, Protocol, Service as GossipService};
 pub use io::setup as setup_io;
 use manager::SessionCommand;
 pub use manager::{
     ConnectionIO as ConnectionManagerIO, ConnectionManager, ConnectionManagerConfig,
 };
-pub use session::{Manager as SessionManager, ManagerError, Sender, IO as SessionManagerIO};
-pub use split::{split, Split};
+pub use session::{Manager as SessionManager, ManagerError, SessionSender, IO as SessionManagerIO};
 pub use substrate::protocol_name;
 #[cfg(test)]
 pub mod testing {
@@ -135,23 +126,10 @@ pub enum ConnectionCommand<A: AddressingInformation> {
     DelReserved(HashSet<A::PeerId>),
 }
 
-/// Returned when something went wrong when sending data using a DataNetwork.
-#[derive(Debug)]
-pub enum SendError {
-    SendFailed,
-}
-
-/// What the data sent using the network has to satisfy.
+/// A basic alias for properties we expect basic data to satisfy.
 pub trait Data: Clone + Codec + Send + Sync + 'static {}
 
 impl<D: Clone + Codec + Send + Sync + 'static> Data for D {}
 
 // In practice D: Data and P: PeerId, but we cannot require that in type aliases.
 type AddressedData<D, P> = (D, P);
-
-/// A generic interface for sending and receiving data.
-#[async_trait::async_trait]
-pub trait DataNetwork<D: Data>: Send + Sync {
-    fn send(&self, data: D, recipient: Recipient) -> Result<(), SendError>;
-    async fn next(&mut self) -> Option<D>;
-}

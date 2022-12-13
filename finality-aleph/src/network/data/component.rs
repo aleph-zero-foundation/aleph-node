@@ -4,7 +4,10 @@ use futures::{channel::mpsc, StreamExt};
 use log::warn;
 
 use crate::{
-    network::{Data, DataNetwork, SendError},
+    network::{
+        data::{Network as DataNetwork, SendError},
+        Data,
+    },
     Recipient,
 };
 
@@ -185,8 +188,11 @@ mod tests {
     use super::{DataNetwork, NetworkMap, Receiver, Sender};
     use crate::{
         network::{
-            component::{Network, ReceiverMap, SenderMap},
-            Data, SendError,
+            data::{
+                component::{Network, ReceiverMap, SenderMap},
+                SendError,
+            },
+            Data,
         },
         Recipient,
     };

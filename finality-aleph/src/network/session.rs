@@ -1,21 +1,26 @@
 use futures::channel::{mpsc, oneshot};
 
-use super::SimpleNetwork;
 use crate::{
     abft::Recipient,
     crypto::{AuthorityPen, AuthorityVerifier},
-    network::{Data, SendError, SenderComponent, SessionCommand},
+    network::{
+        data::{
+            component::{Sender, SimpleNetwork},
+            SendError,
+        },
+        Data, SessionCommand,
+    },
     NodeIndex, SessionId,
 };
 
 /// Sends data within a single session.
 #[derive(Clone)]
-pub struct Sender<D: Data> {
+pub struct SessionSender<D: Data> {
     session_id: SessionId,
     messages_for_network: mpsc::UnboundedSender<(D, SessionId, Recipient)>,
 }
 
-impl<D: Data> SenderComponent<D> for Sender<D> {
+impl<D: Data> Sender<D> for SessionSender<D> {
     fn send(&self, data: D, recipient: Recipient) -> Result<(), SendError> {
         self.messages_for_network
             .unbounded_send((data, self.session_id, recipient))
@@ -24,7 +29,7 @@ impl<D: Data> SenderComponent<D> for Sender<D> {
 }
 
 /// Sends and receives data within a single session.
-type Network<D> = SimpleNetwork<D, mpsc::UnboundedReceiver<D>, Sender<D>>;
+type Network<D> = SimpleNetwork<D, mpsc::UnboundedReceiver<D>, SessionSender<D>>;
 
 /// Manages sessions for which the network should be active.
 pub struct Manager<D: Data> {
@@ -105,7 +110,7 @@ impl<D: Data> Manager<D> {
 
         Ok(Network::new(
             data_from_network,
-            Sender {
+            SessionSender {
                 session_id,
                 messages_for_network,
             },

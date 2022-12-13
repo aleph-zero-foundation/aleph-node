@@ -11,7 +11,7 @@ use crate::{
         NetworkWrapper, SpawnHandleT,
     },
     data_io::{AlephData, OrderedDataInterpreter},
-    network::DataNetwork,
+    network::data::Network,
     oneshot,
     party::{
         backup::ABFTBackup,
@@ -26,7 +26,7 @@ pub const VERSION: u32 = 0;
 pub fn run_member<
     B: Block,
     C: HeaderBackend<B> + Send + 'static,
-    ADN: DataNetwork<LegacyNetworkData<B>> + 'static,
+    ADN: Network<LegacyNetworkData<B>> + 'static,
 >(
     subtask_common: SubtaskCommon,
     multikeychain: Keychain,

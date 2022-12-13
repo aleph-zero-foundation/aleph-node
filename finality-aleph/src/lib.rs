@@ -22,7 +22,7 @@ use tokio::time::Duration;
 use crate::{
     abft::{CurrentNetworkData, LegacyNetworkData},
     aggregation::{CurrentRmcNetworkData, LegacyRmcNetworkData},
-    network::{protocol_name, Split},
+    network::{data::split::Split, protocol_name},
     session::{
         first_block_of_session, last_block_of_session, session_id_from_block_num,
         SessionBoundaries, SessionId,

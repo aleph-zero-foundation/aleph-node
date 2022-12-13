@@ -9,8 +9,11 @@ use tokio::sync::Mutex;
 
 use crate::{
     network::{
-        ComponentNetwork, ComponentNetworkExt, Data, ReceiverComponent, SendError, SenderComponent,
-        SimpleNetwork,
+        data::{
+            component::{Network, NetworkExt, Receiver, Sender, SimpleNetwork},
+            SendError,
+        },
+        Data,
     },
     Recipient, Version, Versioned,
 };
@@ -65,7 +68,7 @@ impl<A: Data, B: Data> Convert for ToRightSplitConvert<A, B> {
 struct SplitSender<
     LeftData: Data,
     RightData: Data,
-    S: SenderComponent<Split<LeftData, RightData>>,
+    S: Sender<Split<LeftData, RightData>>,
     Conv: Convert,
 > {
     sender: S,
@@ -75,9 +78,9 @@ struct SplitSender<
 impl<
         LeftData: Data,
         RightData: Data,
-        S: SenderComponent<Split<LeftData, RightData>>,
+        S: Sender<Split<LeftData, RightData>>,
         Conv: Convert<To = Split<LeftData, RightData>> + Clone + Send + Sync,
-    > SenderComponent<Conv::From> for SplitSender<LeftData, RightData, S, Conv>
+    > Sender<Conv::From> for SplitSender<LeftData, RightData, S, Conv>
 where
     <Conv as Convert>::From: Data,
     <Conv as Convert>::To: Data,
@@ -96,7 +99,7 @@ type RightSender<LeftData, RightData, S> =
 struct SplitReceiver<
     LeftData: Data,
     RightData: Data,
-    R: ReceiverComponent<Split<LeftData, RightData>>,
+    R: Receiver<Split<LeftData, RightData>>,
     TranslatedData: Data,
 > {
     receiver: Arc<Mutex<R>>,
@@ -110,9 +113,9 @@ struct SplitReceiver<
 impl<
         LeftData: Data,
         RightData: Data,
-        R: ReceiverComponent<Split<LeftData, RightData>>,
+        R: Receiver<Split<LeftData, RightData>>,
         TranslatedData: Data,
-    > ReceiverComponent<TranslatedData> for SplitReceiver<LeftData, RightData, R, TranslatedData>
+    > Receiver<TranslatedData> for SplitReceiver<LeftData, RightData, R, TranslatedData>
 {
     async fn next(&mut self) -> Option<TranslatedData> {
         loop {
@@ -137,7 +140,7 @@ type RightReceiver<LeftData, RightData, R> = SplitReceiver<LeftData, RightData, 
 async fn forward_or_wait<
     LeftData: Data,
     RightData: Data,
-    R: ReceiverComponent<Split<LeftData, RightData>>,
+    R: Receiver<Split<LeftData, RightData>>,
 >(
     receiver: &Arc<Mutex<R>>,
     left_sender: &mpsc::UnboundedSender<LeftData>,
@@ -169,7 +172,7 @@ async fn forward_or_wait<
     }
 }
 
-fn split_sender<LeftData: Data, RightData: Data, S: SenderComponent<Split<LeftData, RightData>>>(
+fn split_sender<LeftData: Data, RightData: Data, S: Sender<Split<LeftData, RightData>>>(
     sender: S,
 ) -> (
     LeftSender<LeftData, RightData, S>,
@@ -187,11 +190,7 @@ fn split_sender<LeftData: Data, RightData: Data, S: SenderComponent<Split<LeftDa
     )
 }
 
-fn split_receiver<
-    LeftData: Data,
-    RightData: Data,
-    R: ReceiverComponent<Split<LeftData, RightData>>,
->(
+fn split_receiver<LeftData: Data, RightData: Data, R: Receiver<Split<LeftData, RightData>>>(
     receiver: R,
     left_name: &'static str,
     right_name: &'static str,
@@ -229,14 +228,11 @@ fn split_receiver<
 ///
 /// The main example for now is creating an `aleph_bft::Network` and a separate one for accumulating
 /// signatures for justifications.
-pub fn split<LeftData: Data, RightData: Data, CN: ComponentNetwork<Split<LeftData, RightData>>>(
+pub fn split<LeftData: Data, RightData: Data, CN: Network<Split<LeftData, RightData>>>(
     network: CN,
     left_name: &'static str,
     right_name: &'static str,
-) -> (
-    impl ComponentNetworkExt<LeftData>,
-    impl ComponentNetworkExt<RightData>,
-) {
+) -> (impl NetworkExt<LeftData>, impl NetworkExt<RightData>) {
     let (sender, receiver) = network.into();
     let (left_sender, right_sender) = split_sender(sender);
     let (left_receiver, right_receiver) = split_receiver(receiver, left_name, right_name);

@@ -21,8 +21,11 @@ use crate::{
     data_io::{ChainTracker, DataStore, OrderedDataInterpreter},
     mpsc,
     network::{
-        split, ComponentNetworkMap, ManagerError, RequestBlocks, Sender, SessionManager,
-        SimpleNetwork,
+        data::{
+            component::{Network, NetworkMap, SimpleNetwork},
+            split::split,
+        },
+        ManagerError, RequestBlocks, SessionManager, SessionSender,
     },
     party::{
         backup::ABFTBackup, manager::aggregator::AggregatorVersion, traits::NodeSessionManager,
@@ -44,7 +47,6 @@ pub use task::{Handle, Task};
 use crate::{
     abft::{CURRENT_VERSION, LEGACY_VERSION},
     data_io::DataProvider,
-    network::ComponentNetwork,
 };
 
 #[cfg(feature = "only_legacy")]
@@ -53,12 +55,12 @@ const ONLY_LEGACY_ENV: &str = "ONLY_LEGACY_PROTOCOL";
 type LegacyNetworkType<B> = SimpleNetwork<
     LegacyRmcNetworkData<B>,
     mpsc::UnboundedReceiver<LegacyRmcNetworkData<B>>,
-    Sender<LegacyRmcNetworkData<B>>,
+    SessionSender<LegacyRmcNetworkData<B>>,
 >;
 type CurrentNetworkType<B> = SimpleNetwork<
     CurrentRmcNetworkData<B>,
     mpsc::UnboundedReceiver<CurrentRmcNetworkData<B>>,
-    Sender<CurrentRmcNetworkData<B>>,
+    SessionSender<CurrentRmcNetworkData<B>>,
 >;
 
 struct SubtasksParams<C, SC, B, N, BE>
@@ -67,7 +69,7 @@ where
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
-    N: ComponentNetwork<VersionedNetworkData<B>> + 'static,
+    N: Network<VersionedNetworkData<B>> + 'static,
 {
     n_members: usize,
     node_id: NodeIndex,
@@ -143,7 +145,7 @@ where
         }
     }
 
-    fn legacy_subtasks<N: ComponentNetwork<VersionedNetworkData<B>> + 'static>(
+    fn legacy_subtasks<N: Network<VersionedNetworkData<B>> + 'static>(
         &self,
         params: SubtasksParams<C, SC, B, N, BE>,
     ) -> Subtasks {
@@ -201,7 +203,7 @@ where
         )
     }
 
-    fn current_subtasks<N: ComponentNetwork<VersionedNetworkData<B>> + 'static>(
+    fn current_subtasks<N: Network<VersionedNetworkData<B>> + 'static>(
         &self,
         params: SubtasksParams<C, SC, B, N, BE>,
     ) -> Subtasks {

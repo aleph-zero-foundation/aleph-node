@@ -12,7 +12,7 @@ use crate::{
     },
     crypto::Signature,
     data_io::{AlephData, OrderedDataInterpreter},
-    network::DataNetwork,
+    network::data::Network,
     oneshot,
     party::{
         backup::ABFTBackup,
@@ -27,7 +27,7 @@ pub const VERSION: u32 = 1;
 pub fn run_member<
     B: Block,
     C: HeaderBackend<B> + Send + 'static,
-    ADN: DataNetwork<CurrentNetworkData<B>> + 'static,
+    ADN: Network<CurrentNetworkData<B>> + 'static,
 >(
     subtask_common: SubtaskCommon,
     multikeychain: Keychain,

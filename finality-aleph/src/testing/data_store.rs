@@ -18,7 +18,10 @@ use tokio::time::timeout;
 
 use crate::{
     data_io::{AlephData, AlephNetworkMessage, DataStore, DataStoreConfig, MAX_DATA_BRANCH_LEN},
-    network::{ComponentNetwork, Data, DataNetwork, RequestBlocks},
+    network::{
+        data::{component::Network as ComponentNetwork, Network as DataNetwork},
+        Data, RequestBlocks,
+    },
     session::{SessionBoundaries, SessionId, SessionPeriod},
     testing::{
         client_chain_builder::ClientChainBuilder,

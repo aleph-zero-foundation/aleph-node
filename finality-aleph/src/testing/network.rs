@@ -12,14 +12,15 @@ use tokio::{runtime::Handle, task::JoinHandle, time::timeout};
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{
+        data::Network,
         mock::{crypto_basics, MockData},
         setup_io,
         testing::{
             authentication, legacy_authentication, DataInSession, LegacyDiscoveryMessage,
             MockEvent, MockRawNetwork, SessionHandler, VersionedAuthentication,
         },
-        AddressingInformation, ConnectionManager, ConnectionManagerConfig, DataNetwork,
-        GossipService, NetworkIdentity, Protocol, SessionManager,
+        AddressingInformation, ConnectionManager, ConnectionManagerConfig, GossipService,
+        NetworkIdentity, Protocol, SessionManager,
     },
     testing::mocks::validator_network::{
         random_address_from, MockAddressingInformation, MockNetwork as MockValidatorNetwork,
@@ -159,7 +160,7 @@ impl TestData {
         &self,
         node_id: usize,
         session_id: u32,
-    ) -> impl DataNetwork<MockData> {
+    ) -> impl Network<MockData> {
         self.session_manager
             .start_validator_session(
                 SessionId(session_id),
@@ -242,7 +243,7 @@ impl TestData {
         }
     }
 
-    async fn start_session(&mut self, session_id: u32) -> impl DataNetwork<MockData> {
+    async fn start_session(&mut self, session_id: u32) -> impl Network<MockData> {
         let data_network = self.start_validator_session(0, session_id).await;
         self.connect_session_authorities(session_id).await;
         self.check_add_connection().await;

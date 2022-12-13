@@ -15,7 +15,7 @@ use crate::{
     crypto::Signature,
     justification::{AlephJustification, JustificationNotification},
     metrics::Checkpoint,
-    network::DataNetwork,
+    network::data::Network,
     party::{
         manager::aggregator::AggregatorVersion::{Current, Legacy},
         AuthoritySubtaskCommon, Task,
@@ -36,8 +36,8 @@ async fn process_new_block_data<B, CN, LN>(
     metrics: &Option<Metrics<<B::Header as Header>::Hash>>,
 ) where
     B: Block,
-    CN: DataNetwork<CurrentRmcNetworkData<B>>,
-    LN: DataNetwork<LegacyRmcNetworkData<B>>,
+    CN: Network<CurrentRmcNetworkData<B>>,
+    LN: Network<LegacyRmcNetworkData<B>>,
     <B as Block>::Hash: AsRef<[u8]>,
 {
     trace!(target: "aleph-party", "Received unit {:?} in aggregator.", block);
@@ -83,8 +83,8 @@ async fn run_aggregator<B, C, CN, LN>(
 where
     B: Block,
     C: HeaderBackend<B> + Send + Sync + 'static,
-    LN: DataNetwork<LegacyRmcNetworkData<B>>,
-    CN: DataNetwork<CurrentRmcNetworkData<B>>,
+    LN: Network<LegacyRmcNetworkData<B>>,
+    CN: Network<CurrentRmcNetworkData<B>>,
     <B as Block>::Hash: AsRef<[u8]>,
 {
     let IO {
@@ -169,8 +169,8 @@ pub fn task<B, C, CN, LN>(
 where
     B: Block,
     C: HeaderBackend<B> + Send + Sync + 'static,
-    LN: DataNetwork<LegacyRmcNetworkData<B>> + 'static,
-    CN: DataNetwork<CurrentRmcNetworkData<B>> + 'static,
+    LN: Network<LegacyRmcNetworkData<B>> + 'static,
+    CN: Network<CurrentRmcNetworkData<B>> + 'static,
 {
     let AuthoritySubtaskCommon {
         spawn_handle,
