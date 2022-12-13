@@ -12,8 +12,7 @@ use sp_runtime::traits::Block;
 use crate::{
     crypto::AuthorityPen,
     network::{
-        setup_io, ConnectionManager, ConnectionManagerConfig, Service as NetworkService,
-        SessionManager,
+        setup_io, ConnectionManager, ConnectionManagerConfig, GossipService, SessionManager,
     },
     nodes::{setup_justification_handler, JustificationParams},
     party::{
@@ -92,6 +91,10 @@ where
         validator_network_service.run(exit).await
     });
 
+    let (gossip_network_service, gossip_network) =
+        GossipService::new(network.clone(), spawn_handle.clone());
+    let gossip_network_task = async move { gossip_network_service.run().await };
+
     let block_requester = network.clone();
     let map_updater = SessionMapUpdater::<_, _, B>::new(
         AuthorityProviderImpl::new(client.clone()),
@@ -106,7 +109,7 @@ where
     let (authority_justification_tx, handler_task) =
         setup_justification_handler(JustificationParams {
             justification_rx,
-            network: network.clone(),
+            network,
             client: client.clone(),
             blockchain_backend,
             metrics: metrics.clone(),
@@ -115,7 +118,7 @@ where
             session_map: session_authorities.clone(),
         });
 
-    let (connection_io, network_io, session_io) = setup_io(validator_network);
+    let (connection_io, session_io) = setup_io(validator_network, gossip_network);
 
     let connection_manager = ConnectionManager::new(
         network_identity,
@@ -123,22 +126,19 @@ where
     );
 
     let connection_manager_task = async move {
-        connection_io
-            .run(connection_manager)
-            .await
-            .expect("Failed to run connection manager")
+        if let Err(e) = connection_io.run(connection_manager).await {
+            panic!("Failed to run connection manager: {}", e);
+        }
     };
 
     let session_manager = SessionManager::new(session_io);
-    let network = NetworkService::new(network.clone(), spawn_handle.clone(), network_io);
-    let network_task = async move { network.run().await };
 
     spawn_handle.spawn("aleph/justification_handler", None, handler_task);
     debug!(target: "aleph-party", "JustificationHandler has started.");
 
     spawn_handle.spawn("aleph/connection_manager", None, connection_manager_task);
-    spawn_handle.spawn("aleph/network", None, network_task);
-    debug!(target: "aleph-party", "Network has started.");
+    spawn_handle.spawn("aleph/gossip_network", None, gossip_network_task);
+    debug!(target: "aleph-party", "Gossip network has started.");
 
     let party = ConsensusParty::new(ConsensusPartyParams {
         session_authorities,

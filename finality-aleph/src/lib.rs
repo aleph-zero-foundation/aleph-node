@@ -22,12 +22,11 @@ use tokio::time::Duration;
 use crate::{
     abft::{CurrentNetworkData, LegacyNetworkData},
     aggregation::{CurrentRmcNetworkData, LegacyRmcNetworkData},
-    network::Split,
+    network::{protocol_name, Split},
     session::{
         first_block_of_session, last_block_of_session, session_id_from_block_num,
         SessionBoundaries, SessionId,
     },
-    substrate_network::protocol_name,
     VersionedTryFromError::{ExpectedNewGotOld, ExpectedOldGotNew},
 };
 
@@ -45,7 +44,6 @@ mod nodes;
 mod party;
 mod session;
 mod session_map;
-mod substrate_network;
 mod tcp_network;
 #[cfg(test)]
 pub mod testing;

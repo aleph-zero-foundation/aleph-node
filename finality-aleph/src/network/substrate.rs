@@ -17,7 +17,10 @@ use sp_api::NumberFor;
 use sp_consensus::SyncOracle;
 use sp_runtime::traits::Block;
 
-use crate::network::{Event, EventStream, Network, NetworkSender, Protocol, RequestBlocks};
+use crate::network::{
+    gossip::{Event, EventStream, NetworkSender, Protocol, RawNetwork},
+    RequestBlocks,
+};
 
 impl<B: Block, H: ExHashT> RequestBlocks<B> for Arc<NetworkService<B, H>> {
     fn request_justification(&self, hash: &B::Hash, number: NumberFor<B>) {
@@ -191,7 +194,7 @@ impl<B: Block, H: ExHashT> EventStream<PeerId> for NetworkEventStream<B, H> {
     }
 }
 
-impl<B: Block, H: ExHashT> Network for Arc<NetworkService<B, H>> {
+impl<B: Block, H: ExHashT> RawNetwork for Arc<NetworkService<B, H>> {
     type SenderError = SenderError;
     type NetworkSender = SubstrateNetworkSender;
     type PeerId = PeerId;

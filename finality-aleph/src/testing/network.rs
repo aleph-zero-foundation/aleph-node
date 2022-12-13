@@ -12,14 +12,14 @@ use tokio::{runtime::Handle, task::JoinHandle, time::timeout};
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{
-        mock::{crypto_basics, MockData, MockEvent, MockNetwork},
+        mock::{crypto_basics, MockData},
         setup_io,
         testing::{
             authentication, legacy_authentication, DataInSession, LegacyDiscoveryMessage,
-            SessionHandler, VersionedAuthentication,
+            MockEvent, MockRawNetwork, SessionHandler, VersionedAuthentication,
         },
         AddressingInformation, ConnectionManager, ConnectionManagerConfig, DataNetwork,
-        NetworkIdentity, Protocol, Service as NetworkService, SessionManager,
+        GossipService, NetworkIdentity, Protocol, SessionManager,
     },
     testing::mocks::validator_network::{
         random_address_from, MockAddressingInformation, MockNetwork as MockValidatorNetwork,
@@ -72,12 +72,12 @@ struct TestData {
     pub authorities: Vec<Authority>,
     pub authority_verifier: AuthorityVerifier,
     pub session_manager: SessionManager<MockData>,
-    pub network: MockNetwork,
+    pub network: MockRawNetwork,
     pub validator_network: MockValidatorNetwork<DataInSession<MockData>>,
     network_manager_exit_tx: oneshot::Sender<()>,
-    network_service_exit_tx: oneshot::Sender<()>,
+    gossip_service_exit_tx: oneshot::Sender<()>,
     network_manager_handle: JoinHandle<()>,
-    network_service_handle: JoinHandle<()>,
+    gossip_service_handle: JoinHandle<()>,
     // `TaskManager` can't be dropped for `SpawnTaskHandle` to work
     _task_manager: TaskManager,
 }
@@ -100,11 +100,14 @@ async fn prepare_one_session_test_data() -> TestData {
     // Prepare Network
     let (event_stream_tx, event_stream_rx) = oneshot::channel();
     let (network_manager_exit_tx, network_manager_exit_rx) = oneshot::channel();
-    let (network_service_exit_tx, network_service_exit_rx) = oneshot::channel();
-    let network = MockNetwork::new(event_stream_tx);
+    let (gossip_service_exit_tx, gossip_service_exit_rx) = oneshot::channel();
+    let network = MockRawNetwork::new(event_stream_tx);
     let validator_network = MockValidatorNetwork::new();
 
-    let (connection_io, network_io, session_io) = setup_io(validator_network.clone());
+    let (gossip_service, gossip_network) =
+        GossipService::new(network.clone(), task_manager.spawn_handle());
+
+    let (connection_io, session_io) = setup_io(validator_network.clone(), gossip_network);
 
     let connection_manager = ConnectionManager::new(
         authorities[0].clone(),
@@ -112,9 +115,6 @@ async fn prepare_one_session_test_data() -> TestData {
     );
 
     let session_manager = SessionManager::new(session_io);
-
-    let network_service =
-        NetworkService::new(network.clone(), task_manager.spawn_handle(), network_io);
 
     let network_manager_task = async move {
         tokio::select! {
@@ -124,14 +124,14 @@ async fn prepare_one_session_test_data() -> TestData {
         };
     };
 
-    let network_service_task = async move {
+    let gossip_service_task = async move {
         tokio::select! {
-            _ = network_service.run() => { },
-            _ = network_service_exit_rx => { },
+            _ = gossip_service.run() => { },
+            _ = gossip_service_exit_rx => { },
         };
     };
     let network_manager_handle = tokio::spawn(network_manager_task);
-    let network_service_handle = tokio::spawn(network_service_task);
+    let gossip_service_handle = tokio::spawn(gossip_service_task);
 
     event_stream_rx.await.unwrap();
 
@@ -142,9 +142,9 @@ async fn prepare_one_session_test_data() -> TestData {
         network,
         validator_network,
         network_manager_exit_tx,
-        network_service_exit_tx,
+        gossip_service_exit_tx,
         network_manager_handle,
-        network_service_handle,
+        gossip_service_handle,
         _task_manager: task_manager,
     }
 }
@@ -279,9 +279,9 @@ impl TestData {
 
     async fn cleanup(self) {
         self.network_manager_exit_tx.send(()).unwrap();
-        self.network_service_exit_tx.send(()).unwrap();
+        self.gossip_service_exit_tx.send(()).unwrap();
         self.network_manager_handle.await.unwrap();
-        self.network_service_handle.await.unwrap();
+        self.gossip_service_handle.await.unwrap();
         while self.network.send_message.try_next().await.is_some() {}
         self.network.close_channels().await;
         self.validator_network.close_channels().await;

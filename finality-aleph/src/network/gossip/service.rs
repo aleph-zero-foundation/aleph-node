@@ -1,5 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
+    fmt::{Display, Error as FmtError, Formatter},
     future::Future,
 };
 
@@ -10,7 +11,10 @@ use sc_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnbound
 use tokio::time;
 
 use crate::{
-    network::{Data, Event, EventStream, Network, NetworkSender, Protocol},
+    network::{
+        gossip::{Event, EventStream, Network, NetworkSender, Protocol, RawNetwork},
+        Data,
+    },
     STATUS_REPORT_INTERVAL,
 };
 
@@ -20,7 +24,7 @@ use crate::{
 ///   1. Messages are forwarded to the user.
 ///   2. Various forms of (dis)connecting, keeping track of all currently connected nodes.
 /// 3. Outgoing messages, sending them out, using 1.2. to broadcast.
-pub struct Service<N: Network, D: Data> {
+pub struct Service<N: RawNetwork, D: Data> {
     network: N,
     messages_from_user: mpsc::UnboundedReceiver<D>,
     messages_for_user: mpsc::UnboundedSender<D>,
@@ -29,21 +33,43 @@ pub struct Service<N: Network, D: Data> {
     spawn_handle: SpawnTaskHandle,
 }
 
-/// Input/output channels for the network service.
-pub struct IO<D: Data> {
-    pub messages_from_user: mpsc::UnboundedReceiver<D>,
-    pub messages_for_user: mpsc::UnboundedSender<D>,
+struct ServiceInterface<D: Data> {
+    messages_from_service: mpsc::UnboundedReceiver<D>,
+    messages_for_service: mpsc::UnboundedSender<D>,
 }
 
-impl<D: Data> IO<D> {
-    pub fn new(
-        messages_from_user: mpsc::UnboundedReceiver<D>,
-        messages_for_user: mpsc::UnboundedSender<D>,
-    ) -> IO<D> {
-        IO {
-            messages_from_user,
-            messages_for_user,
+/// What can go wrong when receiving or sending data.
+#[derive(Debug)]
+pub enum Error {
+    ServiceStopped,
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
+        use Error::*;
+        match self {
+            ServiceStopped => {
+                write!(f, "gossip network service stopped")
+            }
         }
+    }
+}
+
+#[async_trait::async_trait]
+impl<D: Data> Network<D> for ServiceInterface<D> {
+    type Error = Error;
+
+    fn broadcast(&mut self, data: D) -> Result<(), Self::Error> {
+        self.messages_for_service
+            .unbounded_send(data)
+            .map_err(|_| Error::ServiceStopped)
+    }
+
+    async fn next(&mut self) -> Result<D, Self::Error> {
+        self.messages_from_service
+            .next()
+            .await
+            .ok_or(Error::ServiceStopped)
     }
 }
 
@@ -53,16 +79,27 @@ enum SendError {
     SendingFailed,
 }
 
-impl<N: Network, D: Data> Service<N, D> {
-    pub fn new(network: N, spawn_handle: SpawnTaskHandle, io: IO<D>) -> Service<N, D> {
-        Service {
-            network,
-            messages_from_user: io.messages_from_user,
-            messages_for_user: io.messages_for_user,
-            spawn_handle,
-            authentication_connected_peers: HashSet::new(),
-            authentication_peer_senders: HashMap::new(),
-        }
+impl<N: RawNetwork, D: Data> Service<N, D> {
+    pub fn new(
+        network: N,
+        spawn_handle: SpawnTaskHandle,
+    ) -> (Service<N, D>, impl Network<D, Error = Error>) {
+        let (messages_for_user, messages_from_service) = mpsc::unbounded();
+        let (messages_for_service, messages_from_user) = mpsc::unbounded();
+        (
+            Service {
+                network,
+                messages_from_user,
+                messages_for_user,
+                spawn_handle,
+                authentication_connected_peers: HashSet::new(),
+                authentication_peer_senders: HashMap::new(),
+            },
+            ServiceInterface {
+                messages_from_service,
+                messages_for_service,
+            },
+        )
     }
 
     fn get_sender(
@@ -238,18 +275,19 @@ mod tests {
     use std::collections::HashSet;
 
     use codec::Encode;
-    use futures::{
-        channel::{mpsc, oneshot},
-        StreamExt,
-    };
+    use futures::channel::oneshot;
     use sc_service::TaskManager;
     use tokio::runtime::Handle;
 
-    use super::Service;
+    use super::{Error, Service};
     use crate::{
         network::{
-            mock::{MockData, MockEvent, MockNetwork, MockSenderError},
-            NetworkServiceIO, Protocol,
+            gossip::{
+                mock::{MockEvent, MockRawNetwork, MockSenderError},
+                Network,
+            },
+            mock::MockData,
+            Protocol,
         },
         testing::mocks::validator_network::random_peer_id,
     };
@@ -257,9 +295,9 @@ mod tests {
     const PROTOCOL: Protocol = Protocol::Authentication;
 
     pub struct TestData {
-        pub network: MockNetwork,
-        pub messages_from_network: mpsc::UnboundedReceiver<MockData>,
-        pub service: Service<MockNetwork, MockData>,
+        pub network: MockRawNetwork,
+        gossip_network: Box<dyn Network<MockData, Error = Error>>,
+        pub service: Service<MockRawNetwork, MockData>,
         // `TaskManager` can't be dropped for `SpawnTaskHandle` to work
         _task_manager: TaskManager,
     }
@@ -268,29 +306,39 @@ mod tests {
         async fn prepare() -> Self {
             let task_manager = TaskManager::new(Handle::current(), None).unwrap();
 
-            // Prepare communication with service
-            // We can drop the sender, as we will call service.broadcast directly
-            let (_, messages_from_user) = mpsc::unbounded();
-            let (messages_for_user, messages_from_network) = mpsc::unbounded();
-            let io = NetworkServiceIO::new(messages_from_user, messages_for_user);
             // Event stream will never be taken, so we can drop the receiver
             let (event_stream_oneshot_tx, _) = oneshot::channel();
 
             // Prepare service
-            let network = MockNetwork::new(event_stream_oneshot_tx);
-            let service = Service::new(network.clone(), task_manager.spawn_handle(), io);
+            let network = MockRawNetwork::new(event_stream_oneshot_tx);
+            let (service, gossip_network) =
+                Service::new(network.clone(), task_manager.spawn_handle());
+            let gossip_network = Box::new(gossip_network);
 
             // `TaskManager` needs to be passed, so sender threads are running in background.
             Self {
                 network,
                 service,
-                messages_from_network,
+                gossip_network,
                 _task_manager: task_manager,
             }
         }
 
         async fn cleanup(self) {
             self.network.close_channels().await;
+        }
+    }
+
+    #[async_trait::async_trait]
+    impl Network<MockData> for TestData {
+        type Error = Error;
+
+        fn broadcast(&mut self, data: MockData) -> Result<(), Self::Error> {
+            self.gossip_network.broadcast(data)
+        }
+
+        async fn next(&mut self) -> Result<MockData, Self::Error> {
+            self.gossip_network.next().await
         }
     }
 
@@ -475,11 +523,7 @@ mod tests {
             .expect("Should handle");
 
         assert_eq!(
-            test_data
-                .messages_from_network
-                .next()
-                .await
-                .expect("Should receive message"),
+            test_data.next().await.expect("Should receive message"),
             message,
         );
 
