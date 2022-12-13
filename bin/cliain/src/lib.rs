@@ -6,6 +6,7 @@ mod finalization;
 mod keys;
 mod runtime;
 mod secret;
+mod snarcos;
 mod staking;
 mod transfer;
 mod treasury;
@@ -22,6 +23,7 @@ pub use finalization::{finalize, set_emergency_finalizer};
 pub use keys::{next_session_keys, prepare_keys, rotate_keys, set_keys};
 pub use runtime::update_runtime;
 pub use secret::prompt_password_hidden;
+pub use snarcos::{delete_key, overwrite_key, store_key, verify};
 pub use staking::{bond, force_new_era, nominate, set_staking_limits, validate};
 pub use transfer::transfer;
 pub use treasury::{

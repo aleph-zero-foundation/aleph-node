@@ -1,7 +1,7 @@
 #[allow(dead_code, unused_imports, non_camel_case_types)]
 pub mod api {
     use super::api as root_mod;
-    pub static PALLETS: [&str; 21usize] = [
+    pub static PALLETS: [&str; 22usize] = [
         "System",
         "RandomnessCollectiveFlip",
         "Scheduler",
@@ -23,6 +23,7 @@ pub mod api {
         "Contracts",
         "NominationPools",
         "Identity",
+        "Snarcos",
     ];
     #[derive(
         :: subxt :: ext :: codec :: Decode,
@@ -65,6 +66,8 @@ pub mod api {
         NominationPools(nomination_pools::Event),
         #[codec(index = 20)]
         Identity(identity::Event),
+        #[codec(index = 21)]
+        Snarcos(snarcos::Event),
     }
     pub mod system {
         use super::{root_mod, runtime_types};
@@ -763,10 +766,10 @@ pub mod api {
                         "Events",
                         vec![],
                         [
-                            216u8, 9u8, 134u8, 163u8, 54u8, 128u8, 220u8, 43u8, 43u8, 179u8, 114u8,
-                            84u8, 50u8, 83u8, 254u8, 52u8, 221u8, 241u8, 121u8, 101u8, 173u8,
-                            106u8, 44u8, 250u8, 183u8, 171u8, 221u8, 98u8, 96u8, 151u8, 31u8,
-                            195u8,
+                            143u8, 179u8, 135u8, 158u8, 233u8, 208u8, 54u8, 83u8, 34u8, 204u8,
+                            47u8, 195u8, 14u8, 31u8, 119u8, 195u8, 18u8, 208u8, 33u8, 42u8, 171u8,
+                            136u8, 153u8, 45u8, 197u8, 173u8, 138u8, 12u8, 57u8, 218u8, 207u8,
+                            102u8,
                         ],
                     )
                 }
@@ -1211,9 +1214,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            160u8, 122u8, 166u8, 98u8, 70u8, 13u8, 129u8, 239u8, 167u8, 62u8, 11u8,
-                            246u8, 17u8, 49u8, 47u8, 76u8, 60u8, 242u8, 23u8, 95u8, 39u8, 112u8,
-                            156u8, 52u8, 238u8, 120u8, 109u8, 142u8, 99u8, 162u8, 90u8, 105u8,
+                            155u8, 178u8, 143u8, 27u8, 155u8, 241u8, 239u8, 199u8, 97u8, 225u8,
+                            57u8, 233u8, 136u8, 128u8, 115u8, 95u8, 125u8, 161u8, 247u8, 55u8,
+                            208u8, 166u8, 232u8, 44u8, 199u8, 127u8, 66u8, 178u8, 49u8, 195u8,
+                            239u8, 69u8,
                         ],
                     )
                 }
@@ -1257,9 +1261,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            241u8, 1u8, 109u8, 65u8, 241u8, 150u8, 239u8, 46u8, 131u8, 127u8,
-                            143u8, 100u8, 173u8, 39u8, 64u8, 173u8, 52u8, 53u8, 97u8, 167u8, 133u8,
-                            29u8, 1u8, 140u8, 117u8, 62u8, 114u8, 35u8, 234u8, 88u8, 98u8, 57u8,
+                            199u8, 208u8, 168u8, 245u8, 16u8, 51u8, 240u8, 219u8, 124u8, 186u8,
+                            195u8, 240u8, 61u8, 157u8, 157u8, 144u8, 176u8, 57u8, 152u8, 146u8,
+                            138u8, 122u8, 187u8, 243u8, 153u8, 68u8, 9u8, 25u8, 189u8, 82u8, 78u8,
+                            110u8,
                         ],
                     )
                 }
@@ -1304,10 +1309,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            179u8, 25u8, 53u8, 84u8, 52u8, 141u8, 229u8, 81u8, 112u8, 150u8, 200u8,
-                            165u8, 20u8, 24u8, 170u8, 147u8, 202u8, 126u8, 168u8, 49u8, 193u8,
-                            66u8, 99u8, 170u8, 254u8, 94u8, 123u8, 165u8, 202u8, 241u8, 242u8,
-                            136u8,
+                            119u8, 236u8, 147u8, 33u8, 174u8, 6u8, 120u8, 50u8, 205u8, 112u8,
+                            202u8, 3u8, 152u8, 1u8, 143u8, 27u8, 80u8, 206u8, 11u8, 198u8, 35u8,
+                            94u8, 156u8, 232u8, 108u8, 50u8, 255u8, 155u8, 162u8, 220u8, 230u8,
+                            243u8,
                         ],
                     )
                 }
@@ -1338,9 +1343,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            20u8, 231u8, 171u8, 36u8, 252u8, 236u8, 111u8, 24u8, 212u8, 86u8, 50u8,
-                            21u8, 82u8, 97u8, 124u8, 183u8, 92u8, 224u8, 42u8, 251u8, 165u8, 238u8,
-                            243u8, 244u8, 155u8, 235u8, 13u8, 70u8, 46u8, 39u8, 126u8, 135u8,
+                            103u8, 41u8, 156u8, 240u8, 240u8, 44u8, 136u8, 242u8, 172u8, 165u8,
+                            94u8, 74u8, 167u8, 215u8, 255u8, 138u8, 168u8, 73u8, 173u8, 185u8,
+                            50u8, 99u8, 222u8, 73u8, 47u8, 174u8, 168u8, 21u8, 110u8, 45u8, 245u8,
+                            100u8,
                         ],
                     )
                 }
@@ -8164,9 +8170,9 @@ pub mod api {
                         "batch",
                         Batch { calls },
                         [
-                            54u8, 11u8, 245u8, 114u8, 34u8, 80u8, 69u8, 105u8, 126u8, 6u8, 220u8,
-                            2u8, 216u8, 9u8, 219u8, 47u8, 138u8, 8u8, 208u8, 214u8, 243u8, 4u8,
-                            85u8, 107u8, 173u8, 220u8, 160u8, 221u8, 38u8, 158u8, 252u8, 58u8,
+                            104u8, 4u8, 189u8, 40u8, 157u8, 168u8, 223u8, 156u8, 36u8, 47u8, 2u8,
+                            252u8, 244u8, 77u8, 248u8, 2u8, 37u8, 114u8, 151u8, 133u8, 111u8, 99u8,
+                            163u8, 162u8, 237u8, 46u8, 38u8, 84u8, 240u8, 106u8, 194u8, 32u8,
                         ],
                     )
                 }
@@ -8196,10 +8202,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            191u8, 114u8, 113u8, 241u8, 126u8, 1u8, 120u8, 104u8, 111u8, 31u8,
-                            211u8, 99u8, 236u8, 200u8, 182u8, 124u8, 111u8, 105u8, 67u8, 60u8,
-                            234u8, 149u8, 34u8, 203u8, 159u8, 115u8, 60u8, 71u8, 55u8, 164u8,
-                            185u8, 53u8,
+                            58u8, 78u8, 217u8, 64u8, 173u8, 171u8, 49u8, 147u8, 195u8, 213u8,
+                            155u8, 112u8, 198u8, 107u8, 255u8, 126u8, 79u8, 141u8, 111u8, 60u8,
+                            243u8, 71u8, 65u8, 176u8, 74u8, 109u8, 143u8, 242u8, 4u8, 182u8, 243u8,
+                            229u8,
                         ],
                     )
                 }
@@ -8226,10 +8232,9 @@ pub mod api {
                         "batch_all",
                         BatchAll { calls },
                         [
-                            85u8, 206u8, 217u8, 145u8, 85u8, 186u8, 156u8, 252u8, 97u8, 70u8,
-                            227u8, 127u8, 83u8, 57u8, 255u8, 254u8, 104u8, 173u8, 33u8, 227u8,
-                            179u8, 209u8, 156u8, 199u8, 50u8, 88u8, 44u8, 236u8, 208u8, 3u8, 84u8,
-                            12u8,
+                            141u8, 157u8, 224u8, 101u8, 87u8, 136u8, 179u8, 236u8, 120u8, 34u8,
+                            63u8, 144u8, 140u8, 81u8, 152u8, 150u8, 122u8, 135u8, 31u8, 8u8, 112u8,
+                            254u8, 125u8, 113u8, 188u8, 74u8, 47u8, 167u8, 37u8, 243u8, 120u8, 4u8,
                         ],
                     )
                 }
@@ -8256,9 +8261,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            243u8, 77u8, 65u8, 192u8, 160u8, 219u8, 211u8, 207u8, 19u8, 140u8,
-                            175u8, 74u8, 74u8, 20u8, 245u8, 48u8, 139u8, 14u8, 26u8, 32u8, 4u8,
-                            30u8, 95u8, 39u8, 53u8, 69u8, 242u8, 253u8, 184u8, 189u8, 119u8, 61u8,
+                            40u8, 163u8, 243u8, 170u8, 81u8, 23u8, 90u8, 204u8, 253u8, 14u8, 35u8,
+                            108u8, 90u8, 6u8, 175u8, 181u8, 8u8, 78u8, 7u8, 20u8, 11u8, 155u8,
+                            212u8, 146u8, 166u8, 232u8, 36u8, 168u8, 57u8, 77u8, 0u8, 40u8,
                         ],
                     )
                 }
@@ -8285,10 +8290,9 @@ pub mod api {
                         "force_batch",
                         ForceBatch { calls },
                         [
-                            14u8, 136u8, 251u8, 244u8, 242u8, 109u8, 234u8, 84u8, 124u8, 199u8,
-                            213u8, 229u8, 93u8, 156u8, 232u8, 71u8, 214u8, 32u8, 225u8, 249u8,
-                            229u8, 144u8, 161u8, 85u8, 135u8, 194u8, 64u8, 181u8, 98u8, 79u8,
-                            114u8, 154u8,
+                            94u8, 38u8, 183u8, 213u8, 130u8, 203u8, 80u8, 22u8, 23u8, 47u8, 67u8,
+                            195u8, 162u8, 237u8, 189u8, 178u8, 53u8, 100u8, 14u8, 153u8, 0u8,
+                            151u8, 71u8, 26u8, 247u8, 40u8, 216u8, 33u8, 18u8, 163u8, 20u8, 150u8,
                         ],
                     )
                 }
@@ -8512,10 +8516,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            20u8, 94u8, 155u8, 221u8, 119u8, 110u8, 119u8, 198u8, 12u8, 174u8,
-                            40u8, 255u8, 44u8, 82u8, 16u8, 105u8, 241u8, 48u8, 143u8, 12u8, 114u8,
-                            209u8, 182u8, 50u8, 162u8, 84u8, 131u8, 193u8, 196u8, 154u8, 104u8,
-                            162u8,
+                            58u8, 239u8, 109u8, 214u8, 156u8, 169u8, 183u8, 139u8, 93u8, 0u8,
+                            117u8, 199u8, 158u8, 203u8, 46u8, 172u8, 77u8, 109u8, 67u8, 66u8,
+                            161u8, 90u8, 152u8, 214u8, 76u8, 9u8, 222u8, 168u8, 213u8, 175u8,
+                            215u8, 157u8,
                         ],
                     )
                 }
@@ -8585,9 +8589,10 @@ pub mod api {
                             max_weight,
                         },
                         [
-                            33u8, 244u8, 252u8, 206u8, 157u8, 156u8, 15u8, 171u8, 200u8, 78u8,
-                            16u8, 115u8, 71u8, 183u8, 155u8, 205u8, 56u8, 43u8, 57u8, 23u8, 89u8,
-                            58u8, 77u8, 184u8, 210u8, 55u8, 203u8, 51u8, 13u8, 205u8, 53u8, 207u8,
+                            186u8, 3u8, 240u8, 37u8, 139u8, 153u8, 202u8, 37u8, 229u8, 219u8,
+                            144u8, 62u8, 197u8, 94u8, 215u8, 46u8, 78u8, 1u8, 125u8, 54u8, 37u8,
+                            139u8, 235u8, 97u8, 86u8, 149u8, 29u8, 253u8, 102u8, 173u8, 56u8,
+                            148u8,
                         ],
                     )
                 }
@@ -9000,9 +9005,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            1u8, 212u8, 200u8, 244u8, 140u8, 196u8, 5u8, 118u8, 183u8, 21u8, 254u8,
-                            36u8, 218u8, 175u8, 219u8, 228u8, 40u8, 247u8, 248u8, 127u8, 54u8,
-                            23u8, 253u8, 137u8, 188u8, 151u8, 39u8, 128u8, 218u8, 39u8, 86u8, 7u8,
+                            51u8, 168u8, 34u8, 101u8, 141u8, 43u8, 88u8, 39u8, 8u8, 158u8, 170u8,
+                            229u8, 205u8, 158u8, 60u8, 100u8, 179u8, 128u8, 37u8, 253u8, 146u8,
+                            248u8, 93u8, 142u8, 221u8, 241u8, 209u8, 159u8, 211u8, 103u8, 248u8,
+                            239u8,
                         ],
                     )
                 }
@@ -9029,10 +9035,9 @@ pub mod api {
                             weight,
                         },
                         [
-                            159u8, 128u8, 183u8, 121u8, 190u8, 62u8, 61u8, 158u8, 184u8, 132u8,
-                            158u8, 127u8, 95u8, 143u8, 129u8, 60u8, 234u8, 68u8, 232u8, 97u8,
-                            101u8, 71u8, 186u8, 17u8, 32u8, 174u8, 90u8, 220u8, 93u8, 103u8, 111u8,
-                            81u8,
+                            230u8, 90u8, 42u8, 229u8, 6u8, 21u8, 242u8, 19u8, 40u8, 242u8, 169u8,
+                            50u8, 39u8, 123u8, 141u8, 12u8, 96u8, 146u8, 14u8, 181u8, 68u8, 217u8,
+                            72u8, 124u8, 143u8, 123u8, 235u8, 232u8, 149u8, 154u8, 150u8, 43u8,
                         ],
                     )
                 }
@@ -9091,9 +9096,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            36u8, 12u8, 9u8, 231u8, 250u8, 8u8, 177u8, 195u8, 94u8, 66u8, 211u8,
-                            201u8, 222u8, 228u8, 70u8, 62u8, 45u8, 22u8, 243u8, 231u8, 73u8, 155u8,
-                            241u8, 9u8, 205u8, 126u8, 73u8, 214u8, 195u8, 153u8, 73u8, 33u8,
+                            198u8, 33u8, 112u8, 86u8, 220u8, 207u8, 197u8, 0u8, 199u8, 204u8,
+                            215u8, 93u8, 81u8, 250u8, 150u8, 193u8, 171u8, 124u8, 168u8, 111u8,
+                            182u8, 28u8, 118u8, 222u8, 93u8, 97u8, 109u8, 83u8, 91u8, 183u8, 121u8,
+                            9u8,
                         ],
                     )
                 }
@@ -12870,6 +12876,274 @@ pub mod api {
             }
         }
     }
+    pub mod snarcos {
+        use super::{root_mod, runtime_types};
+        #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
+        pub mod calls {
+            use super::{root_mod, runtime_types};
+            type DispatchError = runtime_types::sp_runtime::DispatchError;
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            pub struct StoreKey {
+                pub identifier: [::core::primitive::u8; 4usize],
+                pub key: ::std::vec::Vec<::core::primitive::u8>,
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            pub struct DeleteKey {
+                pub identifier: [::core::primitive::u8; 4usize],
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            pub struct OverwriteKey {
+                pub identifier: [::core::primitive::u8; 4usize],
+                pub key: ::std::vec::Vec<::core::primitive::u8>,
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            pub struct Verify {
+                pub verification_key_identifier: [::core::primitive::u8; 4usize],
+                pub proof: ::std::vec::Vec<::core::primitive::u8>,
+                pub public_input: ::std::vec::Vec<::core::primitive::u8>,
+                pub system: runtime_types::pallet_snarcos::systems::ProvingSystem,
+            }
+            pub struct TransactionApi;
+            impl TransactionApi {
+                #[doc = "Stores `key` under `identifier` in `VerificationKeys` map."]
+                #[doc = ""]
+                #[doc = "Fails if:"]
+                #[doc = "- `key.len()` is greater than `MaximumVerificationKeyLength`, or"]
+                #[doc = "- `identifier` has been already used"]
+                #[doc = ""]
+                #[doc = "`key` can come from any proving system - there are no checks that verify it, in"]
+                #[doc = "particular, `key` can contain just trash bytes."]
+                pub fn store_key(
+                    &self,
+                    identifier: [::core::primitive::u8; 4usize],
+                    key: ::std::vec::Vec<::core::primitive::u8>,
+                ) -> ::subxt::tx::StaticTxPayload<StoreKey> {
+                    ::subxt::tx::StaticTxPayload::new(
+                        "Snarcos",
+                        "store_key",
+                        StoreKey { identifier, key },
+                        [
+                            82u8, 244u8, 238u8, 30u8, 70u8, 12u8, 77u8, 111u8, 6u8, 219u8, 132u8,
+                            67u8, 7u8, 86u8, 96u8, 78u8, 16u8, 94u8, 113u8, 141u8, 137u8, 159u8,
+                            73u8, 199u8, 222u8, 59u8, 147u8, 146u8, 89u8, 254u8, 147u8, 71u8,
+                        ],
+                    )
+                }
+                #[doc = "Deletes a key stored under `identifier` in `VerificationKeys` map."]
+                #[doc = ""]
+                #[doc = "Can only be called by a root account."]
+                pub fn delete_key(
+                    &self,
+                    identifier: [::core::primitive::u8; 4usize],
+                ) -> ::subxt::tx::StaticTxPayload<DeleteKey> {
+                    ::subxt::tx::StaticTxPayload::new(
+                        "Snarcos",
+                        "delete_key",
+                        DeleteKey { identifier },
+                        [
+                            90u8, 90u8, 9u8, 204u8, 113u8, 9u8, 121u8, 115u8, 82u8, 197u8, 188u8,
+                            78u8, 181u8, 133u8, 181u8, 87u8, 24u8, 207u8, 6u8, 156u8, 114u8, 218u8,
+                            11u8, 97u8, 47u8, 252u8, 29u8, 101u8, 95u8, 208u8, 17u8, 95u8,
+                        ],
+                    )
+                }
+                #[doc = "Overwrites a key stored under `identifier` in `VerificationKeys` map with a new value `key`"]
+                #[doc = ""]
+                #[doc = "Fails if `key.len()` is greater than `MaximumVerificationKeyLength`."]
+                #[doc = "Can only be called by a root account."]
+                pub fn overwrite_key(
+                    &self,
+                    identifier: [::core::primitive::u8; 4usize],
+                    key: ::std::vec::Vec<::core::primitive::u8>,
+                ) -> ::subxt::tx::StaticTxPayload<OverwriteKey> {
+                    ::subxt::tx::StaticTxPayload::new(
+                        "Snarcos",
+                        "overwrite_key",
+                        OverwriteKey { identifier, key },
+                        [
+                            187u8, 3u8, 92u8, 67u8, 8u8, 151u8, 35u8, 150u8, 161u8, 251u8, 238u8,
+                            106u8, 50u8, 233u8, 177u8, 251u8, 111u8, 221u8, 33u8, 1u8, 30u8, 215u8,
+                            69u8, 251u8, 249u8, 3u8, 139u8, 195u8, 4u8, 75u8, 86u8, 199u8,
+                        ],
+                    )
+                }
+                #[doc = "Verifies `proof` against `public_input` with a key that has been stored under"]
+                #[doc = "`verification_key_identifier`. All is done within `system` proving system."]
+                #[doc = ""]
+                #[doc = "Fails if:"]
+                #[doc = "- there is no verification key under `verification_key_identifier`"]
+                #[doc = "- verification key under `verification_key_identifier` cannot be deserialized"]
+                #[doc = "(e.g. it has been produced for another proving system)"]
+                #[doc = "- `proof` cannot be deserialized (e.g. it has been produced for another proving system)"]
+                #[doc = "- `public_input` cannot be deserialized (e.g. it has been produced for another proving"]
+                #[doc = "system)"]
+                #[doc = "- verifying procedure fails (e.g. incompatible verification key and proof)"]
+                #[doc = "- proof is incorrect"]
+                pub fn verify(
+                    &self,
+                    verification_key_identifier: [::core::primitive::u8; 4usize],
+                    proof: ::std::vec::Vec<::core::primitive::u8>,
+                    public_input: ::std::vec::Vec<::core::primitive::u8>,
+                    system: runtime_types::pallet_snarcos::systems::ProvingSystem,
+                ) -> ::subxt::tx::StaticTxPayload<Verify> {
+                    ::subxt::tx::StaticTxPayload::new(
+                        "Snarcos",
+                        "verify",
+                        Verify {
+                            verification_key_identifier,
+                            proof,
+                            public_input,
+                            system,
+                        },
+                        [
+                            19u8, 255u8, 124u8, 213u8, 240u8, 67u8, 232u8, 85u8, 160u8, 172u8,
+                            141u8, 161u8, 111u8, 92u8, 145u8, 8u8, 96u8, 2u8, 71u8, 112u8, 78u8,
+                            123u8, 51u8, 120u8, 181u8, 103u8, 38u8, 49u8, 10u8, 6u8, 143u8, 218u8,
+                        ],
+                    )
+                }
+            }
+        }
+        #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
+        pub type Event = runtime_types::pallet_snarcos::pallet::Event;
+        pub mod events {
+            use super::runtime_types;
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            #[doc = "Verification key has been successfully stored."]
+            pub struct VerificationKeyStored;
+            impl ::subxt::events::StaticEvent for VerificationKeyStored {
+                const PALLET: &'static str = "Snarcos";
+                const EVENT: &'static str = "VerificationKeyStored";
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            #[doc = "Proof has been successfully verified."]
+            pub struct VerificationSucceeded;
+            impl ::subxt::events::StaticEvent for VerificationSucceeded {
+                const PALLET: &'static str = "Snarcos";
+                const EVENT: &'static str = "VerificationSucceeded";
+            }
+        }
+        pub mod storage {
+            use super::runtime_types;
+            pub struct StorageApi;
+            impl StorageApi {
+                pub fn verification_keys(
+                    &self,
+                    _0: impl ::std::borrow::Borrow<[::core::primitive::u8; 4usize]>,
+                ) -> ::subxt::storage::address::StaticStorageAddress<
+                    ::subxt::metadata::DecodeStaticType<
+                        runtime_types::sp_core::bounded::bounded_vec::BoundedVec<
+                            ::core::primitive::u8,
+                        >,
+                    >,
+                    ::subxt::storage::address::Yes,
+                    (),
+                    ::subxt::storage::address::Yes,
+                > {
+                    ::subxt::storage::address::StaticStorageAddress::new(
+                        "Snarcos",
+                        "VerificationKeys",
+                        vec![::subxt::storage::address::StorageMapKey::new(
+                            _0.borrow(),
+                            ::subxt::storage::address::StorageHasher::Twox64Concat,
+                        )],
+                        [
+                            138u8, 202u8, 229u8, 120u8, 126u8, 213u8, 192u8, 164u8, 44u8, 147u8,
+                            126u8, 95u8, 210u8, 56u8, 118u8, 171u8, 85u8, 56u8, 75u8, 195u8, 233u8,
+                            18u8, 246u8, 109u8, 114u8, 55u8, 181u8, 28u8, 42u8, 211u8, 83u8, 138u8,
+                        ],
+                    )
+                }
+                pub fn verification_keys_root(
+                    &self,
+                ) -> ::subxt::storage::address::StaticStorageAddress<
+                    ::subxt::metadata::DecodeStaticType<
+                        runtime_types::sp_core::bounded::bounded_vec::BoundedVec<
+                            ::core::primitive::u8,
+                        >,
+                    >,
+                    (),
+                    (),
+                    ::subxt::storage::address::Yes,
+                > {
+                    ::subxt::storage::address::StaticStorageAddress::new(
+                        "Snarcos",
+                        "VerificationKeys",
+                        Vec::new(),
+                        [
+                            138u8, 202u8, 229u8, 120u8, 126u8, 213u8, 192u8, 164u8, 44u8, 147u8,
+                            126u8, 95u8, 210u8, 56u8, 118u8, 171u8, 85u8, 56u8, 75u8, 195u8, 233u8,
+                            18u8, 246u8, 109u8, 114u8, 55u8, 181u8, 28u8, 42u8, 211u8, 83u8, 138u8,
+                        ],
+                    )
+                }
+            }
+        }
+        pub mod constants {
+            use super::runtime_types;
+            pub struct ConstantsApi;
+            impl ConstantsApi {
+                pub fn maximum_verification_key_length(
+                    &self,
+                ) -> ::subxt::constants::StaticConstantAddress<
+                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
+                > {
+                    ::subxt::constants::StaticConstantAddress::new(
+                        "Snarcos",
+                        "MaximumVerificationKeyLength",
+                        [
+                            98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
+                            125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
+                            178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
+                            145u8,
+                        ],
+                    )
+                }
+            }
+        }
+    }
     pub mod runtime_types {
         use super::runtime_types;
         pub mod aleph_runtime {
@@ -12944,6 +13218,8 @@ pub mod api {
                 NominationPools(runtime_types::pallet_nomination_pools::pallet::Call),
                 #[codec(index = 20)]
                 Identity(runtime_types::pallet_identity::pallet::Call),
+                #[codec(index = 21)]
+                Snarcos(runtime_types::pallet_snarcos::pallet::Call),
             }
             #[derive(
                 :: subxt :: ext :: codec :: Decode,
@@ -12986,6 +13262,8 @@ pub mod api {
                 NominationPools(runtime_types::pallet_nomination_pools::pallet::Event),
                 #[codec(index = 20)]
                 Identity(runtime_types::pallet_identity::pallet::Event),
+                #[codec(index = 21)]
+                Snarcos(runtime_types::pallet_snarcos::pallet::Event),
             }
             #[derive(
                 :: subxt :: ext :: codec :: Decode,
@@ -16514,6 +16792,142 @@ pub mod api {
                 }
             }
         }
+        pub mod pallet_snarcos {
+            use super::runtime_types;
+            pub mod pallet {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
+                pub enum Call {
+                    #[codec(index = 0)]
+                    #[doc = "Stores `key` under `identifier` in `VerificationKeys` map."]
+                    #[doc = ""]
+                    #[doc = "Fails if:"]
+                    #[doc = "- `key.len()` is greater than `MaximumVerificationKeyLength`, or"]
+                    #[doc = "- `identifier` has been already used"]
+                    #[doc = ""]
+                    #[doc = "`key` can come from any proving system - there are no checks that verify it, in"]
+                    #[doc = "particular, `key` can contain just trash bytes."]
+                    store_key {
+                        identifier: [::core::primitive::u8; 4usize],
+                        key: ::std::vec::Vec<::core::primitive::u8>,
+                    },
+                    #[codec(index = 1)]
+                    #[doc = "Deletes a key stored under `identifier` in `VerificationKeys` map."]
+                    #[doc = ""]
+                    #[doc = "Can only be called by a root account."]
+                    delete_key {
+                        identifier: [::core::primitive::u8; 4usize],
+                    },
+                    #[codec(index = 2)]
+                    #[doc = "Overwrites a key stored under `identifier` in `VerificationKeys` map with a new value `key`"]
+                    #[doc = ""]
+                    #[doc = "Fails if `key.len()` is greater than `MaximumVerificationKeyLength`."]
+                    #[doc = "Can only be called by a root account."]
+                    overwrite_key {
+                        identifier: [::core::primitive::u8; 4usize],
+                        key: ::std::vec::Vec<::core::primitive::u8>,
+                    },
+                    #[codec(index = 3)]
+                    #[doc = "Verifies `proof` against `public_input` with a key that has been stored under"]
+                    #[doc = "`verification_key_identifier`. All is done within `system` proving system."]
+                    #[doc = ""]
+                    #[doc = "Fails if:"]
+                    #[doc = "- there is no verification key under `verification_key_identifier`"]
+                    #[doc = "- verification key under `verification_key_identifier` cannot be deserialized"]
+                    #[doc = "(e.g. it has been produced for another proving system)"]
+                    #[doc = "- `proof` cannot be deserialized (e.g. it has been produced for another proving system)"]
+                    #[doc = "- `public_input` cannot be deserialized (e.g. it has been produced for another proving"]
+                    #[doc = "system)"]
+                    #[doc = "- verifying procedure fails (e.g. incompatible verification key and proof)"]
+                    #[doc = "- proof is incorrect"]
+                    verify {
+                        verification_key_identifier: [::core::primitive::u8; 4usize],
+                        proof: ::std::vec::Vec<::core::primitive::u8>,
+                        public_input: ::std::vec::Vec<::core::primitive::u8>,
+                        system: runtime_types::pallet_snarcos::systems::ProvingSystem,
+                    },
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
+                pub enum Error {
+                    #[codec(index = 0)]
+                    #[doc = "This verification key identifier is already taken."]
+                    IdentifierAlreadyInUse,
+                    #[codec(index = 1)]
+                    #[doc = "There is no verification key available under this identifier."]
+                    UnknownVerificationKeyIdentifier,
+                    #[codec(index = 2)]
+                    #[doc = "Provided verification key is longer than `MaximumVerificationKeyLength` limit."]
+                    VerificationKeyTooLong,
+                    #[codec(index = 3)]
+                    #[doc = "Couldn't deserialize proof."]
+                    DeserializingProofFailed,
+                    #[codec(index = 4)]
+                    #[doc = "Couldn't deserialize public input."]
+                    DeserializingPublicInputFailed,
+                    #[codec(index = 5)]
+                    #[doc = "Couldn't deserialize verification key from storage."]
+                    DeserializingVerificationKeyFailed,
+                    #[codec(index = 6)]
+                    #[doc = "Verification procedure has failed. Proof still can be correct."]
+                    VerificationFailed,
+                    #[codec(index = 7)]
+                    #[doc = "Proof has been found as incorrect."]
+                    IncorrectProof,
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
+                pub enum Event {
+                    #[codec(index = 0)]
+                    #[doc = "Verification key has been successfully stored."]
+                    VerificationKeyStored,
+                    #[codec(index = 1)]
+                    #[doc = "Proof has been successfully verified."]
+                    VerificationSucceeded,
+                }
+            }
+            pub mod systems {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                pub enum ProvingSystem {
+                    #[codec(index = 0)]
+                    Groth16,
+                    #[codec(index = 1)]
+                    Gm17,
+                    #[codec(index = 2)]
+                    Marlin,
+                }
+            }
+        }
         pub mod pallet_staking {
             use super::runtime_types;
             pub mod pallet {
@@ -19406,6 +19820,9 @@ pub mod api {
         pub fn identity(&self) -> identity::constants::ConstantsApi {
             identity::constants::ConstantsApi
         }
+        pub fn snarcos(&self) -> snarcos::constants::ConstantsApi {
+            snarcos::constants::ConstantsApi
+        }
     }
     pub struct StorageApi;
     impl StorageApi {
@@ -19471,6 +19888,9 @@ pub mod api {
         pub fn identity(&self) -> identity::storage::StorageApi {
             identity::storage::StorageApi
         }
+        pub fn snarcos(&self) -> snarcos::storage::StorageApi {
+            snarcos::storage::StorageApi
+        }
     }
     pub struct TransactionApi;
     impl TransactionApi {
@@ -19525,6 +19945,9 @@ pub mod api {
         pub fn identity(&self) -> identity::calls::TransactionApi {
             identity::calls::TransactionApi
         }
+        pub fn snarcos(&self) -> snarcos::calls::TransactionApi {
+            snarcos::calls::TransactionApi
+        }
     }
     #[doc = r" check whether the Client you are using is aligned with the statically generated codegen."]
     pub fn validate_codegen<T: ::subxt::Config, C: ::subxt::client::OfflineClientT<T>>(
@@ -19533,9 +19956,9 @@ pub mod api {
         let runtime_metadata_hash = client.metadata().metadata_hash(&PALLETS);
         if runtime_metadata_hash
             != [
-                155u8, 236u8, 207u8, 138u8, 149u8, 114u8, 96u8, 168u8, 143u8, 247u8, 148u8, 106u8,
-                148u8, 203u8, 48u8, 129u8, 14u8, 48u8, 155u8, 234u8, 78u8, 212u8, 73u8, 65u8,
-                212u8, 201u8, 174u8, 194u8, 72u8, 70u8, 240u8, 233u8,
+                52u8, 162u8, 241u8, 195u8, 204u8, 185u8, 84u8, 1u8, 187u8, 56u8, 167u8, 57u8, 92u8,
+                31u8, 149u8, 68u8, 5u8, 122u8, 151u8, 5u8, 169u8, 14u8, 109u8, 214u8, 183u8, 87u8,
+                219u8, 112u8, 77u8, 253u8, 179u8, 243u8,
             ]
         {
             Err(::subxt::error::MetadataError::IncompatibleMetadata)

@@ -3,7 +3,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use aleph_client::{AccountId, TxStatus};
+use aleph_client::{
+    pallet_snarcos::systems::ProvingSystem, pallets::snarcos::VerificationKeyIdentifier, AccountId,
+    TxStatus,
+};
+use anyhow::anyhow;
 use clap::{clap_derive::ValueEnum, Args, Subcommand};
 use primitives::{Balance, BlockNumber, CommitteeSeats, SessionIndex};
 use serde::{Deserialize, Serialize};
@@ -361,4 +365,75 @@ pub enum Command {
         #[clap(long, value_enum, default_value_t=ExtrinsicState::Finalized)]
         expected_state: ExtrinsicState,
     },
+
+    /// Store a verification key under an identifier in the pallet's storage.
+    SnarcosStoreKey {
+        /// The key identifier.
+        #[clap(long, value_parser(parse_identifier))]
+        identifier: VerificationKeyIdentifier,
+
+        /// Path to a file containing the verification key.
+        #[clap(long)]
+        vk_file: PathBuf,
+    },
+
+    /// Delete the verification key under an identifier in the pallet's storage.
+    SnarcosDeleteKey {
+        /// The key identifier.
+        #[clap(long, value_parser(parse_identifier))]
+        identifier: VerificationKeyIdentifier,
+    },
+
+    /// Overwrite the verification key under an identifier in the pallet's storage.
+    SnarcosOverwriteKey {
+        /// The key identifier.
+        #[clap(long, value_parser(parse_identifier))]
+        identifier: VerificationKeyIdentifier,
+
+        /// Path to a file containing the verification key.
+        #[clap(long)]
+        vk_file: PathBuf,
+    },
+
+    /// Verify a proof against public input with a stored verification key.
+    SnarcosVerify {
+        /// The key identifier.
+        #[clap(long, value_parser(parse_identifier))]
+        identifier: VerificationKeyIdentifier,
+
+        /// Path to a file containing the proof.
+        #[clap(long)]
+        proof_file: PathBuf,
+
+        /// Path to a file containing the public input.
+        #[clap(long)]
+        input_file: PathBuf,
+
+        /// The proving system to be used.
+        #[clap(long, value_parser(parse_system))]
+        system: ProvingSystem,
+    },
+}
+
+/// Try to convert `&str` to `VerificationKeyIdentifier`.
+///
+/// We handle one, most probable error type ourselves (i.e. incorrect length) to give a better
+/// message than the default `"could not convert slice to array"`.
+fn parse_identifier(ident: &str) -> anyhow::Result<VerificationKeyIdentifier> {
+    match ident.len() {
+        4 => Ok(ident.as_bytes().try_into()?),
+        _ => Err(anyhow!(
+            "Identifier has an incorrect length (should be 4 characters)"
+        )),
+    }
+}
+
+/// Try to convert `&str` to `ProvingSystem`.
+fn parse_system(system: &str) -> anyhow::Result<ProvingSystem> {
+    match system.to_lowercase().as_str() {
+        "groth16" => Ok(ProvingSystem::Groth16),
+        "gm17" => Ok(ProvingSystem::Gm17),
+        "marlin" => Ok(ProvingSystem::Marlin),
+        _ => Err(anyhow!("Unknown proving system")),
+    }
 }

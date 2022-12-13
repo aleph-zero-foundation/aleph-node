@@ -6,6 +6,7 @@ pub mod elections;
 pub mod fee;
 pub mod multisig;
 pub mod session;
+pub mod snarcos;
 pub mod staking;
 pub mod system;
 pub mod treasury;
