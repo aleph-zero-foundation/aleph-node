@@ -27,6 +27,11 @@ jobs:
       - name: Install Rust Toolchain
         uses: actions-rs/toolchain@v1
 
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          version: '3.6.1'        
+
       - name: Install clippy and fmt
         run: rustup component add clippy rustfmt
 
@@ -37,7 +42,7 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           target-key: debug
-          cache-version: v1
+          cache-version: v2
 
       - name: Run Format Checks
         uses: actions-rs/cargo@v1

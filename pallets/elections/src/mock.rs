@@ -4,10 +4,10 @@ use frame_election_provider_support::{data_provider, ElectionDataProvider, VoteW
 use frame_support::{
     construct_runtime, parameter_types, sp_io,
     traits::{ConstU32, GenesisBuild},
-    weights::RuntimeDbWeight,
+    weights::{RuntimeDbWeight, Weight},
     BasicExternalities, BoundedVec,
 };
-use primitives::CommitteeSeats;
+use primitives::{BanConfig, CommitteeSeats};
 use sp_core::H256;
 use sp_runtime::{
     testing::{Header, TestXt},
@@ -18,7 +18,9 @@ use sp_std::{cell::RefCell, collections::btree_set::BTreeSet};
 
 use super::*;
 use crate as pallet_elections;
-use crate::traits::{EraInfoProvider, SessionInfoProvider, ValidatorRewardsHandler};
+use crate::traits::{
+    EraInfoProvider, SessionInfoProvider, ValidatorExtractor, ValidatorRewardsHandler,
+};
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -41,7 +43,7 @@ pub(crate) type Balance = u128;
 parameter_types! {
     pub const BlockHashCount: u64 = 250;
     pub BlockWeights: frame_system::limits::BlockWeights =
-        frame_system::limits::BlockWeights::simple_max(1024);
+        frame_system::limits::BlockWeights::simple_max(Weight::from_ref_time(1024));
     pub const TestDbWeight: RuntimeDbWeight = RuntimeDbWeight {
         read: 25,
         write: 100
@@ -52,8 +54,8 @@ impl frame_system::Config for Test {
     type BaseCallFilter = frame_support::traits::Everything;
     type BlockWeights = ();
     type BlockLength = ();
-    type Origin = Origin;
-    type Call = Call;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeCall = RuntimeCall;
     type Index = u64;
     type BlockNumber = u64;
     type Hash = H256;
@@ -61,7 +63,7 @@ impl frame_system::Config for Test {
     type AccountId = u64;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Header = Header;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type DbWeight = TestDbWeight;
     type Version = ();
@@ -84,7 +86,7 @@ impl pallet_balances::Config for Test {
     type MaxReserves = ();
     type ReserveIdentifier = [u8; 8];
     type DustRemoval = ();
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = ();
@@ -93,10 +95,10 @@ impl pallet_balances::Config for Test {
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
 where
-    Call: From<C>,
+    RuntimeCall: From<C>,
 {
-    type Extrinsic = TestXt<Call, ()>;
-    type OverarchingCall = Call;
+    type Extrinsic = TestXt<RuntimeCall, ()>;
+    type OverarchingCall = RuntimeCall;
 }
 
 parameter_types! {
@@ -128,11 +130,16 @@ impl ValidatorRewardsHandler<Test> for MockProvider {
 
 thread_local! {
     static ACTIVE_ERA: RefCell<EraIndex> = RefCell::new(Default::default());
+    static CURRENT_ERA: RefCell<EraIndex> = RefCell::new(Default::default());
     static ELECTED_VALIDATORS: RefCell<BTreeMap<EraIndex, Vec<AccountId>>> = RefCell::new(Default::default());
 }
 
 pub fn with_active_era(era: EraIndex) {
     ACTIVE_ERA.with(|ae| *ae.borrow_mut() = era);
+}
+
+pub fn with_current_era(era: EraIndex) {
+    CURRENT_ERA.with(|ce| *ce.borrow_mut() = era);
 }
 
 pub fn with_elected_validators(era: EraIndex, validators: Vec<AccountId>) {
@@ -143,6 +150,10 @@ impl EraInfoProvider for MockProvider {
     type AccountId = AccountId;
 
     fn active_era() -> Option<EraIndex> {
+        Some(ACTIVE_ERA.with(|ae| *ae.borrow()))
+    }
+
+    fn current_era() -> Option<EraIndex> {
         Some(ACTIVE_ERA.with(|ae| *ae.borrow()))
     }
 
@@ -159,14 +170,22 @@ impl EraInfoProvider for MockProvider {
     }
 }
 
+impl ValidatorExtractor for MockProvider {
+    type AccountId = AccountId;
+
+    fn remove_validator(_who: &AccountId) {}
+}
+
 impl Config for Test {
     type EraInfoProvider = MockProvider;
-    type Event = Event;
+    type RuntimeEvent = RuntimeEvent;
     type DataProvider = StakingMock;
     type SessionPeriod = SessionPeriod;
     type SessionManager = ();
     type SessionInfoProvider = MockProvider;
     type ValidatorRewardsHandler = MockProvider;
+    type ValidatorExtractor = MockProvider;
+    type MaximumBanReasonLength = ConstU32<300>;
 }
 
 type MaxVotesPerVoter = ConstU32<1>;
@@ -213,6 +232,7 @@ pub struct TestExtBuilder {
     reserved_validators: Vec<AccountId>,
     non_reserved_validators: Vec<AccountId>,
     committee_seats: CommitteeSeats,
+    committee_ban_config: BanConfig,
     storage_version: StorageVersion,
 }
 
@@ -228,6 +248,7 @@ impl TestExtBuilder {
             },
             reserved_validators,
             non_reserved_validators,
+            committee_ban_config: BanConfig::default(),
             storage_version: STORAGE_VERSION,
         }
     }
@@ -267,6 +288,7 @@ impl TestExtBuilder {
             non_reserved_validators: self.non_reserved_validators,
             reserved_validators: self.reserved_validators,
             committee_seats: self.committee_seats,
+            committee_ban_config: self.committee_ban_config,
         }
         .assimilate_storage(&mut t)
         .unwrap();

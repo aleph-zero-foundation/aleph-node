@@ -23,11 +23,11 @@ fn input() -> Vec<u8> {
 }
 
 fn caller() -> OriginFor<TestRuntime> {
-    <TestRuntime as Config>::Origin::signed(0)
+    <TestRuntime as Config>::RuntimeOrigin::signed(0)
 }
 
 fn root() -> OriginFor<TestRuntime> {
-    <TestRuntime as Config>::Origin::root()
+    <TestRuntime as Config>::RuntimeOrigin::root()
 }
 
 fn put_key() {
@@ -35,6 +35,7 @@ fn put_key() {
 }
 
 #[test]
+#[allow(let_unit_value)]
 fn stores_vk_with_fresh_identifier() {
     new_test_ext().execute_with(|| {
         assert_ok!(Snarcos::store_key(caller(), IDENTIFIER, vk()));

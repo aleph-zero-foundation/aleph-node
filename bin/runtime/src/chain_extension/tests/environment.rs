@@ -1,6 +1,5 @@
 use std::{
     marker::PhantomData,
-    ops::Neg,
     sync::mpsc::{channel, Sender},
 };
 
@@ -136,15 +135,13 @@ where
     }
 
     fn charge_weight(&mut self, amount: Weight) -> Result<Weight, DispatchError> {
-        self.charging_channel
-            .send(amount as RevertibleWeight)
-            .unwrap();
+        self.charging_channel.send(amount.into()).unwrap();
         Ok(amount)
     }
 
     fn adjust_weight(&mut self, charged: Weight, actual_weight: Weight) {
         self.charging_channel
-            .send(((charged - actual_weight) as RevertibleWeight).neg())
+            .send(RevertibleWeight::neg(charged - actual_weight))
             .unwrap();
     }
 }

@@ -138,3 +138,15 @@ class Node:
         cmd = [self.binary, 'key', 'inspect-node-key', '--file', op.join(self.path, 'p2p_secret')]
         output = subprocess.check_output(cmd).decode().strip()
         return f'/dns4/localhost/tcp/{port}/p2p/{output}'
+
+    def validator_address(self, port=None):
+        """Get the public validator address of this node. Returned value is of the form
+        localhost:{PORT}. This method needs to know node's validator port -
+        if it's not supplied a as parameter, it must be present in `self.flags`.
+        """
+        if port is None:
+            if 'validator_port' in self.flags:
+                port = self.flags['validator_port']
+            else:
+                return None
+        return f'localhost:{port}'

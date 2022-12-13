@@ -1,14 +1,12 @@
 use std::{convert::TryInto, sync::Arc};
 
-use aleph_bft::{
-    Keychain as AlephKeychain, MultiKeychain, NodeCount, NodeIndex, PartialMultisignature,
-    SignatureSet,
-};
 use aleph_primitives::{AuthorityId, AuthoritySignature, KEY_TYPE};
 use codec::{Decode, Encode};
 use sp_core::crypto::KeyTypeId;
 use sp_keystore::{CryptoStore, Error as KeystoreError};
 use sp_runtime::RuntimeAppPublic;
+
+use crate::abft::{NodeCount, NodeIndex, SignatureSet};
 
 #[derive(Debug)]
 pub enum Error {
@@ -17,7 +15,7 @@ pub enum Error {
     Conversion,
 }
 
-#[derive(PartialEq, Eq, Clone, Debug, Decode, Encode)]
+#[derive(PartialEq, Eq, Clone, Debug, Hash, Decode, Encode)]
 pub struct Signature(AuthoritySignature);
 
 impl From<AuthoritySignature> for Signature {
@@ -36,7 +34,31 @@ pub struct AuthorityPen {
 }
 
 impl AuthorityPen {
-    /// Constructs a new authority cryptography keystore for the given ID.
+    /// Constructs a new authority cryptography keystore for the given ID and key type.
+    /// Will attempt to sign a test message to verify that signing works.
+    /// Returns errors if anything goes wrong during this attempt, otherwise we assume the
+    /// AuthorityPen will work for any future attempts at signing.
+    pub async fn new_with_key_type(
+        authority_id: AuthorityId,
+        keystore: Arc<dyn CryptoStore>,
+        key_type: KeyTypeId,
+    ) -> Result<Self, Error> {
+        // Check whether this signing setup works
+        let _: AuthoritySignature = keystore
+            .sign_with(key_type, &authority_id.clone().into(), b"test")
+            .await
+            .map_err(Error::Keystore)?
+            .ok_or_else(|| Error::KeyMissing(authority_id.clone()))?
+            .try_into()
+            .map_err(|_| Error::Conversion)?;
+        Ok(AuthorityPen {
+            key_type_id: key_type,
+            authority_id,
+            keystore,
+        })
+    }
+
+    /// Constructs a new authority cryptography keystore for the given ID and the aleph key type.
     /// Will attempt to sign a test message to verify that signing works.
     /// Returns errors if anything goes wrong during this attempt, otherwise we assume the
     /// AuthorityPen will work for any future attempts at signing.
@@ -44,19 +66,7 @@ impl AuthorityPen {
         authority_id: AuthorityId,
         keystore: Arc<dyn CryptoStore>,
     ) -> Result<Self, Error> {
-        // Check whether this signing setup works
-        let _: AuthoritySignature = keystore
-            .sign_with(KEY_TYPE, &authority_id.clone().into(), b"test")
-            .await
-            .map_err(Error::Keystore)?
-            .ok_or_else(|| Error::KeyMissing(authority_id.clone()))?
-            .try_into()
-            .map_err(|_| Error::Conversion)?;
-        Ok(AuthorityPen {
-            key_type_id: KEY_TYPE,
-            authority_id,
-            keystore,
-        })
+        Self::new_with_key_type(authority_id, keystore, KEY_TYPE).await
     }
 
     /// Cryptographically signs the message.
@@ -71,6 +81,16 @@ impl AuthorityPen {
                 .expect("the bytes encode a signature"),
         )
     }
+
+    /// Return the associated AuthorityId.
+    pub fn authority_id(&self) -> AuthorityId {
+        self.authority_id.clone()
+    }
+}
+
+/// Verify the signature given an authority id.
+pub fn verify(authority: &AuthorityId, message: &[u8], signature: &Signature) -> bool {
+    authority.verify(&message, &signature.0)
 }
 
 /// Holds the public authority keys for a session allowing for verification of messages from that
@@ -90,7 +110,7 @@ impl AuthorityVerifier {
     /// node of the given index.
     pub fn verify(&self, msg: &[u8], sgn: &Signature, index: NodeIndex) -> bool {
         match self.authorities.get(index.0) {
-            Some(authority) => authority.verify(&msg, &sgn.0),
+            Some(authority) => verify(authority, msg, sgn),
             None => false,
         }
     }
@@ -114,72 +134,6 @@ impl AuthorityVerifier {
     }
 }
 
-/// Keychain combines an AuthorityPen and AuthorityVerifier into one object implementing the AlephBFT
-/// MultiKeychain trait.
-#[derive(Clone)]
-pub struct Keychain {
-    id: NodeIndex,
-    authority_pen: AuthorityPen,
-    authority_verifier: AuthorityVerifier,
-}
-
-impl Keychain {
-    /// Constructs a new keychain from a signing contraption and verifier, with the specified node
-    /// index.
-    pub fn new(
-        id: NodeIndex,
-        authority_verifier: AuthorityVerifier,
-        authority_pen: AuthorityPen,
-    ) -> Self {
-        Keychain {
-            id,
-            authority_pen,
-            authority_verifier,
-        }
-    }
-}
-
-impl aleph_bft::Index for Keychain {
-    fn index(&self) -> NodeIndex {
-        self.id
-    }
-}
-
-#[async_trait::async_trait]
-impl AlephKeychain for Keychain {
-    type Signature = Signature;
-
-    fn node_count(&self) -> NodeCount {
-        self.authority_verifier.node_count()
-    }
-
-    async fn sign(&self, msg: &[u8]) -> Signature {
-        self.authority_pen.sign(msg).await
-    }
-
-    fn verify(&self, msg: &[u8], sgn: &Signature, index: NodeIndex) -> bool {
-        self.authority_verifier.verify(msg, sgn, index)
-    }
-}
-
-impl MultiKeychain for Keychain {
-    // Using `SignatureSet` is slow, but Substrate has not yet implemented aggregation.
-    // We probably should do this for them at some point.
-    type PartialMultisignature = SignatureSet<Signature>;
-
-    fn bootstrap_multi(
-        &self,
-        signature: &Signature,
-        index: NodeIndex,
-    ) -> Self::PartialMultisignature {
-        SignatureSet::add_signature(SignatureSet::with_size(self.node_count()), signature, index)
-    }
-
-    fn is_complete(&self, msg: &[u8], partial: &Self::PartialMultisignature) -> bool {
-        self.authority_verifier.is_complete(msg, partial)
-    }
-}
-
 /// Old format of signatures, needed for backwards compatibility.
 #[derive(PartialEq, Eq, Clone, Debug, Decode, Encode)]
 pub struct SignatureV1 {
@@ -198,6 +152,7 @@ mod tests {
     use sp_keystore::{testing::KeyStore, CryptoStore};
 
     use super::*;
+    use crate::abft::NodeIndex;
 
     async fn generate_keys(names: &[String]) -> (Vec<AuthorityPen>, AuthorityVerifier) {
         let key_store = Arc::new(KeyStore::new());

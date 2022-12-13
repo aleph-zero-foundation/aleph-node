@@ -594,7 +594,7 @@ dependencies = [
 [[package]]
 name = "sp-std"
 version = "4.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=liminal#d6a5cc42cfe07b8002759caf3bb6b307f446abd3"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=liminal-v0.9.32#f0c4d4700e400f398b945d7cccbda0ec1acba57b"
 
 [[package]]
 name = "static_assertions"

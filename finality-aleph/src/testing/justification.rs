@@ -1,6 +1,5 @@
-use std::{cell::RefCell, collections::VecDeque, sync::Arc, time::Duration};
+use std::{cell::RefCell, collections::VecDeque, time::Duration};
 
-use aleph_bft::SignatureSet;
 use futures::{
     channel::mpsc::{unbounded, UnboundedSender},
     Future,
@@ -13,11 +12,11 @@ use AcceptancePolicy::*;
 use crate::{
     justification::{AlephJustification, JustificationHandler, JustificationHandlerConfig},
     testing::mocks::{
-        create_block, AcceptancePolicy, Client, JustificationRequestSchedulerImpl,
+        create_block, AcceptancePolicy, Backend, JustificationRequestSchedulerImpl,
         MockedBlockFinalizer, MockedBlockRequester, SessionInfoProviderImpl, TBlock,
         VerifierWrapper,
     },
-    JustificationNotification, SessionPeriod,
+    JustificationNotification, SessionPeriod, SignatureSet,
 };
 
 const SESSION_PERIOD: SessionPeriod = SessionPeriod(5u32);
@@ -27,15 +26,15 @@ type TJustHandler = JustificationHandler<
     TBlock,
     VerifierWrapper,
     MockedBlockRequester,
-    Client,
     JustificationRequestSchedulerImpl,
     SessionInfoProviderImpl,
     MockedBlockFinalizer,
+    Backend,
 >;
 type Sender = UnboundedSender<JustificationNotification<TBlock>>;
 type Environment = (
     TJustHandler,
-    Client,
+    Backend,
     MockedBlockRequester,
     MockedBlockFinalizer,
     JustificationRequestSchedulerImpl,
@@ -68,7 +67,7 @@ fn prepare_env(
     verification_policy: AcceptancePolicy,
     request_policy: AcceptancePolicy,
 ) -> Environment {
-    let client = Client::new(finalization_height);
+    let backend = Backend::new(finalization_height);
     let info_provider = SessionInfoProviderImpl::new(SESSION_PERIOD, verification_policy);
     let finalizer = MockedBlockFinalizer::new();
     let requester = MockedBlockRequester::new();
@@ -78,7 +77,7 @@ fn prepare_env(
     let justification_handler = JustificationHandler::new(
         info_provider,
         requester.clone(),
-        Arc::new(client.clone()),
+        backend.clone(),
         finalizer.clone(),
         justification_request_scheduler.clone(),
         None,
@@ -87,7 +86,7 @@ fn prepare_env(
 
     (
         justification_handler,
-        client,
+        backend,
         requester,
         finalizer,
         justification_request_scheduler,
@@ -126,19 +125,19 @@ where
     S: FnOnce(
         Sender,
         Sender,
-        Client,
+        Backend,
         MockedBlockRequester,
         MockedBlockFinalizer,
         JustificationRequestSchedulerImpl,
     ) -> F,
 {
-    let (justification_handler, client, requester, finalizer, justification_request_scheduler) =
+    let (justification_handler, backend, requester, finalizer, justification_request_scheduler) =
         env;
     let (handle_run, auth_just_tx, imp_just_tx) = run_justification_handler(justification_handler);
     scenario(
         auth_just_tx.clone(),
         imp_just_tx.clone(),
-        client,
+        backend,
         requester,
         finalizer,
         justification_request_scheduler,
@@ -187,8 +186,8 @@ async fn expect_not_requested(
 async fn leads_to_finalization_when_appropriate_justification_comes() {
     run_test(
         prepare_env(FINALIZED_HEIGHT, AlwaysAccept, AlwaysReject),
-        |_, imp_just_tx, client, _, finalizer, justification_request_scheduler| async move {
-            let block = client.next_block_to_finalize();
+        |_, imp_just_tx, backend, _, finalizer, justification_request_scheduler| async move {
+            let block = backend.next_block_to_finalize();
             let message = create_justification_notification_for(block.clone());
             imp_just_tx.unbounded_send(message).unwrap();
             expect_finalized(&finalizer, &justification_request_scheduler, block).await;
@@ -202,8 +201,8 @@ async fn waits_for_verifier_before_finalizing() {
     let verification_policy = FromSequence(RefCell::new(VecDeque::from(vec![false, false, true])));
     run_test(
         prepare_env(FINALIZED_HEIGHT, verification_policy, AlwaysReject),
-        |_, imp_just_tx, client, _, finalizer, justification_request_scheduler| async move {
-            let block = client.next_block_to_finalize();
+        |_, imp_just_tx, backend, _, finalizer, justification_request_scheduler| async move {
+            let block = backend.next_block_to_finalize();
             let message = create_justification_notification_for(block.clone());
 
             imp_just_tx.unbounded_send(message.clone()).unwrap();
@@ -223,8 +222,8 @@ async fn waits_for_verifier_before_finalizing() {
 async fn keeps_finalizing_block_if_not_finalized_yet() {
     run_test(
         prepare_env(FINALIZED_HEIGHT, AlwaysAccept, AlwaysReject),
-        |auth_just_tx, imp_just_tx, client, _, finalizer, justification_request_scheduler| async move {
-            let block = client.next_block_to_finalize();
+        |auth_just_tx, imp_just_tx, backend, _, finalizer, justification_request_scheduler| async move {
+            let block = backend.next_block_to_finalize();
             let message = create_justification_notification_for(block.clone());
 
             imp_just_tx.unbounded_send(message.clone()).unwrap();
@@ -241,8 +240,8 @@ async fn keeps_finalizing_block_if_not_finalized_yet() {
 async fn ignores_notifications_for_old_blocks() {
     run_test(
         prepare_env(FINALIZED_HEIGHT, AlwaysAccept, AlwaysReject),
-        |_, imp_just_tx, client, _, finalizer, justification_request_scheduler| async move {
-            let block = client.get_block(BlockId::Number(1u64)).unwrap();
+        |_, imp_just_tx, backend, _, finalizer, justification_request_scheduler| async move {
+            let block = backend.get_block(BlockId::Number(1u64)).unwrap();
             let message = create_justification_notification_for(block);
             imp_just_tx.unbounded_send(message).unwrap();
             expect_not_finalized(&finalizer, &justification_request_scheduler).await;
@@ -269,8 +268,8 @@ async fn ignores_notifications_from_future_session() {
 async fn does_not_buffer_notifications_from_future_session() {
     run_test(
         prepare_env((SESSION_PERIOD.0 - 2) as u64, AlwaysAccept, AlwaysReject),
-        |_, imp_just_tx, client, _, finalizer, justification_request_scheduler| async move {
-            let current_block = client.next_block_to_finalize();
+        |_, imp_just_tx, backend, _, finalizer, justification_request_scheduler| async move {
+            let current_block = backend.next_block_to_finalize();
             let future_block = create_block(current_block.hash(), SESSION_PERIOD.0 as u64);
 
             let message = create_justification_notification_for(future_block);
@@ -291,8 +290,8 @@ async fn does_not_buffer_notifications_from_future_session() {
 async fn requests_for_session_ending_justification() {
     run_test(
         prepare_env((SESSION_PERIOD.0 - 2) as u64, AlwaysReject, AlwaysAccept),
-        |_, imp_just_tx, client, requester, _, justification_request_scheduler| async move {
-            let last_block = client.next_block_to_finalize();
+        |_, imp_just_tx, backend, requester, _, justification_request_scheduler| async move {
+            let last_block = backend.next_block_to_finalize();
 
             // doesn't need any notification passed to keep asking
             expect_requested(
@@ -322,14 +321,14 @@ async fn requests_for_session_ending_justification() {
 async fn does_not_request_for_session_ending_justification_too_often() {
     run_test(
         prepare_env((SESSION_PERIOD.0 - 2) as u64, AlwaysReject, AlwaysReject),
-        |_, _, client, requester, _, justification_request_scheduler| async move {
+        |_, _, backend, requester, _, justification_request_scheduler| async move {
             expect_not_requested(&requester, &justification_request_scheduler).await;
 
             justification_request_scheduler.update_policy(AlwaysAccept);
             expect_requested(
                 &requester,
                 &justification_request_scheduler,
-                client.next_block_to_finalize(),
+                backend.next_block_to_finalize(),
             )
             .await;
 
@@ -344,10 +343,10 @@ async fn does_not_request_for_session_ending_justification_too_often() {
 async fn does_not_request_nor_finalize_when_verifier_is_not_available() {
     run_test(
         prepare_env((SESSION_PERIOD.0 - 2) as u64, Unavailable, AlwaysAccept),
-        |_, imp_just_tx, client, requester, finalizer, justification_request_scheduler| async move {
+        |_, imp_just_tx, backend, requester, finalizer, justification_request_scheduler| async move {
             expect_not_requested(&requester, &justification_request_scheduler).await;
 
-            let block = client.next_block_to_finalize();
+            let block = backend.next_block_to_finalize();
             imp_just_tx
                 .unbounded_send(create_justification_notification_for(block))
                 .unwrap();

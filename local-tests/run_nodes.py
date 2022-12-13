@@ -36,7 +36,7 @@ chain.set_flags('validator',
                 execution='Native',
                 rpc_cors='all',
                 rpc_methods='Unsafe',
-                pruning='archive')
+                state_pruning='archive')
 addresses = [n.address() for n in chain]
 chain.set_flags(bootnodes=addresses[0], public_addr=addresses)
 

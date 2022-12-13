@@ -20,6 +20,7 @@ BASE_PATH=${BASE_PATH:?'Base path should be specified'}
 RPC_PORT=${RPC_PORT:-9933}
 WS_PORT=${WS_PORT:-9943}
 PORT=${PORT:-30333}
+VALIDATOR_PORT=${VALIDATOR_PORT:-30343}
 EXTERNAL_PORT=${EXTERNAL_PORT:-${PORT}}
 VALIDATOR=${VALIDATOR:-true}
 WS_MAX_CONNECTIONS=${WS_MAX_CONNECTIONS:-100}
@@ -39,7 +40,7 @@ fi
 
 ARGS=(
   --validator
-  --pruning archive
+  --state-pruning archive
   --execution Native
   --name "${NAME}"
   --base-path "${BASE_PATH}"
@@ -47,7 +48,10 @@ ARGS=(
   --chain "${CHAIN}"
   --node-key-file "${NODE_KEY_PATH}"
   --backup-path "${BACKUP_PATH}"
-  --rpc-port "${RPC_PORT}" --ws-port "${WS_PORT}" --port "${PORT}"
+  --rpc-port "${RPC_PORT}"
+  --ws-port "${WS_PORT}"
+  --port "${PORT}"
+  --validator-port "${VALIDATOR_PORT}"
   --rpc-cors all
   --no-mdns
   --ws-max-connections "${WS_MAX_CONNECTIONS}"
@@ -106,11 +110,17 @@ fi
 
 if [[ "true" == "${VALIDATOR}" ]]; then
   ARGS+=(--rpc-methods Unsafe)
+  PUBLIC_VALIDATOR_ADDRESS=${PUBLIC_VALIDATOR_ADDRESS:?'Public validator address should be specified'}
 fi
 
 if [[ "false" == "${VALIDATOR}" ]]; then
   ARGS+=(--rpc-methods Safe)
+  # We will never use this address, but because of the current shape of our code we need to have something here.
+  # This address is one reserved for documentation, so attempting to connect to it should always fail.
+  PUBLIC_VALIDATOR_ADDRESS=${PUBLIC_VALIDATOR_ADDRESS:-"192.0.2.1:${VALIDATOR_PORT}"}
 fi
+
+ARGS+=(--public-validator-addresses "${PUBLIC_VALIDATOR_ADDRESS}")
 
 if [[ -n "${UNIT_CREATION_DELAY:-}" ]]; then
   ARGS+=(--unit-creation-delay="${UNIT_CREATION_DELAY}")

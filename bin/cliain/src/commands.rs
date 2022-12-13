@@ -3,12 +3,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use aleph_client::BlockNumber;
-use clap::{Args, Subcommand};
-use primitives::{Balance, CommitteeSeats};
+use aleph_client::{AccountId, TxStatus};
+use clap::{clap_derive::ValueEnum, Args, Subcommand};
+use primitives::{Balance, BlockNumber, CommitteeSeats, SessionIndex};
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
-use substrate_api_client::AccountId;
 
 #[derive(Debug, Clone, Args)]
 pub struct ContractOptions {
@@ -16,7 +15,7 @@ pub struct ContractOptions {
     #[clap(long, default_value = "0")]
     pub balance: u128,
     /// The gas limit enforced when executing the constructor
-    #[clap(long, default_value = "1_000_000_000")]
+    #[clap(long, default_value = "1000000000")]
     pub gas_limit: u64,
     /// The maximum amount of balance that can be charged/reserved from the caller to pay for the storage consumed
     #[clap(long)]
@@ -91,8 +90,15 @@ pub struct ContractCall {
 }
 
 #[derive(Debug, Clone, Args)]
+pub struct ContractOwnerInfo {
+    /// Code hash of the contract code
+    #[clap(long, parse(try_from_str))]
+    pub code_hash: H256,
+}
+
+#[derive(Debug, Clone, Args)]
 pub struct ContractRemoveCode {
-    /// Code hash of the deployed contract
+    /// Code hash of the contract code
     #[clap(long, parse(try_from_str))]
     pub code_hash: H256,
 }
@@ -104,16 +110,33 @@ pub struct ChangeValidatorArgs {
     pub committee_size: Option<CommitteeSeats>,
 }
 
+pub type Version = u32;
+
 impl std::str::FromStr for ChangeValidatorArgs {
     type Err = serde_json::Error;
 
     fn from_str(change_validator_args: &str) -> Result<Self, Self::Err> {
         let path = Path::new(change_validator_args);
         if path.exists() {
-            let file = File::open(&path).expect("Failed to open metadata file");
+            let file = File::open(path).expect("Failed to open metadata file");
             return serde_json::from_reader(file);
         }
         serde_json::from_str(change_validator_args)
+    }
+}
+
+#[derive(Debug, Clone, ValueEnum)]
+pub enum ExtrinsicState {
+    InBlock,
+    Finalized,
+}
+
+impl From<ExtrinsicState> for TxStatus {
+    fn from(state: ExtrinsicState) -> Self {
+        match state {
+            ExtrinsicState::InBlock => TxStatus::InBlock,
+            ExtrinsicState::Finalized => TxStatus::Finalized,
+        }
     }
 }
 
@@ -162,6 +185,13 @@ pub enum Command {
         /// If not given, a user is prompted to provide finalizer seed
         #[clap(long)]
         finalizer_seed: Option<String>,
+    },
+
+    /// Gets next session keys for a validator with specified AccountId
+    NextSessionKeys {
+        /// SS58 id of the validator for which we want to retrieve the keys
+        #[clap(long)]
+        account_id: String,
     },
 
     /// Declare the desire to nominate target account
@@ -290,9 +320,6 @@ pub enum Command {
         starting_block: BlockNumber,
     },
 
-    /// Print debug info of storage
-    DebugStorage,
-
     /// Deploys a new contract, returns its code hash and the AccountId of the instance.
     ///
     /// Contract cannot already exist on-chain
@@ -314,9 +341,24 @@ pub enum Command {
     /// API signature: https://polkadot.js.org/docs/substrate/extrinsics/#calldest-multiaddress-value-compactu128-gas_limit-compactu64-storage_deposit_limit-optioncompactu128-data-bytes
     ContractCall(ContractCall),
 
+    /// Returns OwnerInfo if code hash is stored on chain
+    ContractOwnerInfo(ContractOwnerInfo),
+
     /// Removes the code stored under code_hash and refund the deposit to its owner.
     ///
     /// Code can only be removed by its original uploader (its owner) and only if it is not used by any contract.
     /// API signature: https://polkadot.js.org/docs/substrate/extrinsics/#removecodecode_hash-h256
     ContractRemoveCode(ContractRemoveCode),
+
+    /// Schedules a version upgrade of the network.
+    VersionUpgradeSchedule {
+        #[clap(long)]
+        version: Version,
+
+        #[clap(long)]
+        session: SessionIndex,
+
+        #[clap(long, value_enum, default_value_t=ExtrinsicState::Finalized)]
+        expected_state: ExtrinsicState,
+    },
 }

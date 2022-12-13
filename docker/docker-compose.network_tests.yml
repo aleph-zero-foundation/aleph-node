@@ -1,0 +1,50 @@
+services:
+  Node0:
+    image: aleph-node:network_tests
+    networks:
+      - main
+    environment:
+      - PURGE_BEFORE_START=false
+    cap_add:
+      - NET_ADMIN
+      - SYS_PTRACE
+
+  Node1:
+    image: aleph-node:network_tests
+    networks:
+      - main
+    environment:
+      - PURGE_BEFORE_START=false
+    cap_add:
+      - NET_ADMIN
+      - SYS_PTRACE
+
+  Node2:
+    image: aleph-node:network_tests
+    networks:
+      - main
+    environment:
+      - PURGE_BEFORE_START=false
+    cap_add:
+      - NET_ADMIN
+      - SYS_PTRACE
+
+  Node3:
+    image: aleph-node:network_tests
+    networks:
+      - main
+    environment:
+      - PURGE_BEFORE_START=false
+    cap_add:
+      - NET_ADMIN
+      - SYS_PTRACE
+
+  Node4:
+    image: aleph-node:network_tests
+    networks:
+      - main
+    environment:
+      - PURGE_BEFORE_START=false
+    cap_add:
+      - NET_ADMIN
+      - SYS_PTRACE

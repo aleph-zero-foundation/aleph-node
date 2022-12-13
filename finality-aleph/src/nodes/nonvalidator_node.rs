@@ -1,27 +1,29 @@
 use log::{debug, error};
 use sc_client_api::Backend;
-use sc_network::ExHashT;
+use sc_network_common::ExHashT;
 use sp_consensus::SelectChain;
 use sp_runtime::traits::Block;
 
 use crate::{
     nodes::{setup_justification_handler, JustificationParams},
     session_map::{AuthorityProviderImpl, FinalityNotificatorImpl, SessionMapUpdater},
-    AlephConfig,
+    AlephConfig, BlockchainBackend,
 };
 
-pub async fn run_nonvalidator_node<B, H, C, BE, SC>(aleph_config: AlephConfig<B, H, C, SC>)
+pub async fn run_nonvalidator_node<B, H, C, BB, BE, SC>(aleph_config: AlephConfig<B, H, C, SC, BB>)
 where
     B: Block,
     H: ExHashT,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     C::Api: aleph_primitives::AlephSessionApi<B>,
     BE: Backend<B> + 'static,
+    BB: BlockchainBackend<B> + Send + 'static,
     SC: SelectChain<B> + 'static,
 {
     let AlephConfig {
         network,
         client,
+        blockchain_backend,
         metrics,
         session_period,
         millisecs_per_block,
@@ -42,6 +44,7 @@ where
         justification_rx,
         network,
         client,
+        blockchain_backend,
         metrics,
         session_period,
         millisecs_per_block,

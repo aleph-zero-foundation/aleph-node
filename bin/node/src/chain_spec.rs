@@ -8,9 +8,12 @@ use aleph_runtime::{
     AccountId, AuraConfig, BalancesConfig, ElectionsConfig, GenesisConfig, Perbill, SessionConfig,
     SessionKeys, StakingConfig, SudoConfig, SystemConfig, VestingConfig, WASM_BINARY,
 };
-use clap::Args;
 use libp2p::PeerId;
 use pallet_staking::{Forcing, StakerStatus};
+use sc_cli::{
+    clap::{self, Args},
+    Error as CliError,
+};
 use sc_service::ChainType;
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Number, Value};
@@ -75,17 +78,17 @@ pub fn account_id_from_string(seed: &str) -> AccountId {
 }
 
 /// Generate AccountId based on string command line argument.
-fn parse_account_id(s: &str) -> AccountId {
-    AccountId::from_string(s).expect("Passed string is not a hex encoding of a public key")
+fn parse_account_id(s: &str) -> Result<AccountId, CliError> {
+    Ok(AccountId::from_string(s).expect("Passed string is not a hex encoding of a public key"))
 }
 
-fn parse_chaintype(s: &str) -> ChainType {
-    match s {
+fn parse_chaintype(s: &str) -> Result<ChainType, CliError> {
+    Ok(match s {
         CHAINTYPE_DEV => ChainType::Development,
         CHAINTYPE_LOCAL => ChainType::Local,
         CHAINTYPE_LIVE => ChainType::Live,
         s => panic!("Wrong chain type {} Possible values: dev local live", s),
-    }
+    })
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -103,35 +106,35 @@ fn to_account_ids(authorities: &[AuthorityKeys]) -> impl Iterator<Item = Account
 #[derive(Debug, Args, Clone)]
 pub struct ChainParams {
     /// Chain ID is a short identifier of the chain
-    #[clap(long, value_name = "ID", default_value = DEFAULT_CHAIN_ID)]
+    #[arg(long, value_name = "ID", default_value = DEFAULT_CHAIN_ID)]
     chain_id: String,
 
     /// The type of the chain. Possible values: "dev", "local", "live" (default)
-    #[clap(long, value_name = "TYPE", parse(from_str = parse_chaintype), default_value = CHAINTYPE_LIVE)]
+    #[arg(long, value_name = "TYPE", value_parser = parse_chaintype, default_value = CHAINTYPE_LIVE)]
     chain_type: ChainType,
 
     /// Chain name. Default is "Aleph Zero Development"
-    #[clap(long, default_value = "Aleph Zero Development")]
+    #[arg(long, default_value = "Aleph Zero Development")]
     chain_name: String,
 
     /// Token symbol. Default is DZERO
-    #[clap(long, default_value = "DZERO")]
+    #[arg(long, default_value = "DZERO")]
     token_symbol: String,
 
     /// AccountIds of authorities forming the committee at the genesis (comma delimited)
-    #[clap(long, takes_value = true, require_value_delimiter = true, value_delimiter = ',', parse(from_str = parse_account_id), min_values = 1)]
+    #[arg(long, value_delimiter = ',', value_parser = parse_account_id, num_args=1..)]
     account_ids: Vec<AccountId>,
 
     /// AccountId of the sudo account
-    #[clap(long, parse(from_str = parse_account_id), default_value(DEFAULT_SUDO_ACCOUNT))]
+    #[arg(long, value_parser = parse_account_id, default_value(DEFAULT_SUDO_ACCOUNT))]
     sudo_account_id: AccountId,
 
     /// AccountIds of the optional rich account
-    #[clap(long, takes_value = true, require_value_delimiter = true, value_delimiter = ',', parse(from_str = parse_account_id), min_values = 1)]
+    #[arg(long, value_delimiter = ',', value_parser = parse_account_id, num_args=1..)]
     rich_account_ids: Option<Vec<AccountId>>,
 
     /// Minimum number of stakers before chain enters emergency state.
-    #[clap(long, default_value = "4")]
+    #[arg(long, default_value = "4")]
     min_validator_count: u32,
 }
 
@@ -380,6 +383,7 @@ fn generate_genesis_config(
             reserved_validators: accounts_config.members.clone(),
             non_reserved_validators: vec![],
             committee_seats: Default::default(),
+            committee_ban_config: Default::default(),
         },
         session: SessionConfig {
             keys: accounts_config.keys,

@@ -36,16 +36,19 @@ pub const SNARCOS_VERIFY_VERIFICATION_FAIL: u32 = 11_005;
 pub const SNARCOS_VERIFY_INCORRECT_PROOF: u32 = 11_006;
 pub const SNARCOS_VERIFY_ERROR_UNKNOWN: u32 = 11_007;
 
+#[derive(Default)]
 pub struct SnarcosChainExtension;
 
 impl ChainExtension<Runtime> for SnarcosChainExtension {
     fn call<E: Ext>(
-        func_id: u32,
+        &mut self,
         env: SubstrateEnvironment<E, InitState>,
     ) -> Result<RetVal, DispatchError>
     where
         <E::T as SysConfig>::AccountId: UncheckedFrom<<E::T as SysConfig>::Hash> + AsRef<[u8]>,
     {
+        let func_id = env.func_id() as u32;
+
         match func_id {
             SNARCOS_STORE_KEY_FUNC_ID => {
                 Self::snarcos_store_key::<_, Runtime>(env.buf_in_buf_out())

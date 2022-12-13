@@ -1,51 +1,68 @@
 use aleph_client::{
-    change_validators, get_current_block_number, get_current_era_non_reserved_validators,
-    get_current_era_reserved_validators, get_current_session, get_next_era_non_reserved_validators,
-    get_next_era_reserved_validators, wait_for_finalized_block, wait_for_full_era_completion,
-    wait_for_next_era, wait_for_session, AccountId, KeyPair, SignedConnection, XtStatus,
+    pallets::elections::{ElectionsApi, ElectionsSudoApi},
+    primitives::CommitteeSeats,
+    utility::BlocksApi,
+    waiting::{AlephWaiting, BlockStatus, WaitingExt},
+    AccountId, Connection, KeyPair, TxStatus,
 };
-use primitives::CommitteeSeats;
 
 use crate::{
-    accounts::{account_ids_from_keys, get_validators_keys},
-    Config,
+    accounts::{account_ids_from_keys, get_validators_raw_keys},
+    config::{setup_test, Config},
 };
 
 fn get_initial_reserved_validators(config: &Config) -> Vec<KeyPair> {
-    get_validators_keys(config)[..2].to_vec()
+    get_validators_raw_keys(config)[..2]
+        .iter()
+        .map(|k| KeyPair::new(k.clone()))
+        .collect()
 }
 
 fn get_initial_non_reserved_validators(config: &Config) -> Vec<KeyPair> {
-    get_validators_keys(config)[2..].to_vec()
+    get_validators_raw_keys(config)[2..]
+        .iter()
+        .map(|k| KeyPair::new(k.clone()))
+        .collect()
 }
 
 fn get_new_reserved_validators(config: &Config) -> Vec<KeyPair> {
-    get_validators_keys(config)[3..].to_vec()
+    get_validators_raw_keys(config)[3..]
+        .iter()
+        .map(|k| KeyPair::new(k.clone()))
+        .collect()
 }
 
 fn get_new_non_reserved_validators(config: &Config) -> Vec<KeyPair> {
-    get_validators_keys(config)[..3].to_vec()
+    get_validators_raw_keys(config)[..3]
+        .iter()
+        .map(|k| KeyPair::new(k.clone()))
+        .collect()
 }
 
-fn get_current_and_next_era_reserved_validators(
-    connection: &SignedConnection,
+async fn get_current_and_next_era_reserved_validators(
+    connection: &Connection,
 ) -> (Vec<AccountId>, Vec<AccountId>) {
-    let stored_reserved = get_next_era_reserved_validators(connection);
-    let current_reserved = get_current_era_reserved_validators(connection);
+    let stored_reserved = connection.get_next_era_reserved_validators(None).await;
+    let current_reserved = connection.get_current_era_validators(None).await.reserved;
     (current_reserved, stored_reserved)
 }
 
-fn get_current_and_next_era_non_reserved_validators(
-    connection: &SignedConnection,
+async fn get_current_and_next_era_non_reserved_validators(
+    connection: &Connection,
 ) -> (Vec<AccountId>, Vec<AccountId>) {
-    let stored_non_reserved = get_next_era_non_reserved_validators(connection);
-    let current_non_reserved = get_current_era_non_reserved_validators(connection);
+    let stored_non_reserved = connection.get_next_era_non_reserved_validators(None).await;
+    let current_non_reserved = connection
+        .get_current_era_validators(None)
+        .await
+        .non_reserved;
     (current_non_reserved, stored_non_reserved)
 }
 
-pub fn era_validators(config: &Config) -> anyhow::Result<()> {
-    let connection = config.get_first_signed_connection();
-    let root_connection = config.create_root_connection();
+#[tokio::test]
+pub async fn era_validators() -> anyhow::Result<()> {
+    let config = setup_test();
+    let connection = config.get_first_signed_connection().await;
+    let root_connection = config.create_root_connection().await;
 
     let initial_reserved_validators_keys = get_initial_reserved_validators(config);
     let initial_reserved_validators = account_ids_from_keys(&initial_reserved_validators_keys);
@@ -60,36 +77,42 @@ pub fn era_validators(config: &Config) -> anyhow::Result<()> {
     let new_non_reserved_validators_keys = get_new_non_reserved_validators(config);
     let new_non_reserved_validators = account_ids_from_keys(&new_non_reserved_validators_keys);
 
-    change_validators(
-        &root_connection,
-        Some(initial_reserved_validators.clone()),
-        Some(initial_non_reserved_validators.clone()),
-        Some(CommitteeSeats {
-            reserved_seats: 2,
-            non_reserved_seats: 2,
-        }),
-        XtStatus::InBlock,
-    );
-    wait_for_full_era_completion(&connection)?;
+    root_connection
+        .change_validators(
+            Some(initial_reserved_validators.clone()),
+            Some(initial_non_reserved_validators.clone()),
+            Some(CommitteeSeats {
+                reserved_seats: 2,
+                non_reserved_seats: 2,
+            }),
+            TxStatus::InBlock,
+        )
+        .await?;
+    root_connection
+        .connection
+        .wait_for_n_eras(1, BlockStatus::Finalized)
+        .await;
 
-    change_validators(
-        &root_connection,
-        Some(new_reserved_validators.clone()),
-        Some(new_non_reserved_validators.clone()),
-        Some(CommitteeSeats {
-            reserved_seats: 2,
-            non_reserved_seats: 2,
-        }),
-        XtStatus::InBlock,
-    );
+    root_connection
+        .change_validators(
+            Some(new_reserved_validators.clone()),
+            Some(new_non_reserved_validators.clone()),
+            Some(CommitteeSeats {
+                reserved_seats: 2,
+                non_reserved_seats: 2,
+            }),
+            TxStatus::InBlock,
+        )
+        .await?;
 
-    let current_session = get_current_session(&connection);
-    wait_for_session(&connection, current_session + 1)?;
-
+    root_connection
+        .connection
+        .wait_for_session(1, BlockStatus::Finalized)
+        .await;
     let (eras_reserved, stored_reserved) =
-        get_current_and_next_era_reserved_validators(&connection);
+        get_current_and_next_era_reserved_validators(&connection.connection).await;
     let (eras_non_reserved, stored_non_reserved) =
-        get_current_and_next_era_non_reserved_validators(&connection);
+        get_current_and_next_era_non_reserved_validators(&connection.connection).await;
 
     assert_eq!(
         stored_reserved, new_reserved_validators,
@@ -109,12 +132,15 @@ pub fn era_validators(config: &Config) -> anyhow::Result<()> {
         "Non-reserved validators set has been updated too early."
     );
 
-    wait_for_next_era(&connection)?;
+    connection
+        .connection
+        .wait_for_n_eras(1, BlockStatus::Finalized)
+        .await;
 
     let (eras_reserved, stored_reserved) =
-        get_current_and_next_era_reserved_validators(&connection);
+        get_current_and_next_era_reserved_validators(&connection.connection).await;
     let (eras_non_reserved, stored_non_reserved) =
-        get_current_and_next_era_non_reserved_validators(&connection);
+        get_current_and_next_era_non_reserved_validators(&connection.connection).await;
 
     assert_eq!(
         stored_reserved, new_reserved_validators,
@@ -134,8 +160,11 @@ pub fn era_validators(config: &Config) -> anyhow::Result<()> {
         "Non-reserved validators set is not properly updated in the next era."
     );
 
-    let block_number = get_current_block_number(&connection);
-    wait_for_finalized_block(&connection, block_number)?;
+    let block_number = connection.connection.get_best_block().await;
+    connection
+        .connection
+        .wait_for_block(|n| n >= block_number, BlockStatus::Finalized)
+        .await;
 
     Ok(())
 }

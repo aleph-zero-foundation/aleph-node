@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use aleph_bft::NodeCount;
 use codec::Encode;
 
 use crate::{
+    abft::NodeCount,
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{
         manager::{AuthData, Authentication},
@@ -214,14 +214,20 @@ impl<M: Multiaddress> Handler<M> {
             }
             return false;
         }
-        self.peers_by_node.insert(auth_data.node_id, peer_id);
+        self.peers_by_node
+            .insert(auth_data.node_id, peer_id.clone());
         self.authentications.insert(peer_id, (authentication, None));
         true
     }
 
     /// Returns the PeerId of the node with the given NodeIndex, if known.
     pub fn peer_id(&self, node_id: &NodeIndex) -> Option<M::PeerId> {
-        self.peers_by_node.get(node_id).copied()
+        self.peers_by_node.get(node_id).cloned()
+    }
+
+    /// Returns maping from NodeIndex to PeerId
+    pub fn peers(&self) -> HashMap<NodeIndex, M::PeerId> {
+        self.peers_by_node.clone()
     }
 
     /// Updates the handler with the given keychain and set of own addresses.
@@ -269,9 +275,10 @@ mod tests {
     use super::{get_common_peer_id, Handler, HandlerError};
     use crate::{
         network::{
-            mock::{crypto_basics, MockMultiaddress, MockNetworkIdentity, MockPeerId},
+            mock::{crypto_basics, MockNetworkIdentity},
             NetworkIdentity,
         },
+        testing::mocks::validator_network::{random_multiaddress, MockMultiaddress},
         NodeIndex, SessionId,
     };
 
@@ -372,10 +379,7 @@ mod tests {
     #[tokio::test]
     async fn fails_to_create_with_non_unique_peer_id() {
         let mut crypto_basics = crypto_basics(NUM_NODES).await;
-        let addresses = vec![
-            MockMultiaddress::random_with_id(MockPeerId::random()),
-            MockMultiaddress::random_with_id(MockPeerId::random()),
-        ];
+        let addresses = vec![random_multiaddress(), random_multiaddress()];
         assert!(matches!(
             Handler::new(
                 Some(crypto_basics.0.pop().unwrap()),

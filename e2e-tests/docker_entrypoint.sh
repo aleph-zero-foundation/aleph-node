@@ -17,6 +17,14 @@ if [[ -n "${RESERVED_SEATS:-}" && -n "${NON_RESERVED_SEATS:-}" ]]; then
   )
 fi
 
-aleph-e2e-client "${ARGS[@]}"
+if [[ -n "${UPGRADE_VERSION:-}" && -n "${UPGRADE_SESSION:-}" && -n "${UPGRADE_FINALIZATION_WAIT_SESSIONS:-}" ]]; then
+    ARGS+=(
+        --upgrade-to-version "${UPGRADE_VERSION}"
+        --upgrade-session "${UPGRADE_SESSION}"
+        --upgrade-finalization-wait-sessions "${UPGRADE_FINALIZATION_WAIT_SESSIONS}"
+    )
+fi
+
+E2E_CONFIG="${ARGS[*]}" aleph-e2e-client $TEST_CASES --nocapture
 
 echo "Done!"

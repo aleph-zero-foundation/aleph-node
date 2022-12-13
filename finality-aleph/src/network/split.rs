@@ -2,7 +2,6 @@
 // you might find that it will require you to leak all private types declared here.
 use std::{marker::PhantomData, sync::Arc};
 
-use aleph_bft::Recipient;
 use codec::{Decode, Encode};
 use futures::channel::mpsc;
 use log::{debug, trace};
@@ -13,7 +12,7 @@ use crate::{
         ComponentNetwork, ComponentNetworkExt, Data, ReceiverComponent, SendError, SenderComponent,
         SimpleNetwork,
     },
-    Version, Versioned,
+    Recipient, Version, Versioned,
 };
 
 /// Used for routing data through split networks.

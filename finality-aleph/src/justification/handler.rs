@@ -1,9 +1,8 @@
-use std::{sync::Arc, time::Duration};
+use std::time::{Duration, Instant};
 
 use futures::{channel::mpsc, Stream, StreamExt};
 use futures_timer::Delay;
 use log::{debug, error};
-use sc_client_api::HeaderBackend;
 use sp_api::BlockT;
 use sp_runtime::traits::Header;
 use tokio::time::timeout;
@@ -14,53 +13,52 @@ use crate::{
         requester::BlockRequester, JustificationHandlerConfig, JustificationNotification,
         JustificationRequestScheduler, SessionInfo, SessionInfoProvider, Verifier,
     },
-    network, Metrics,
+    network, BlockchainBackend, Metrics, STATUS_REPORT_INTERVAL,
 };
 
-pub struct JustificationHandler<B, V, RB, C, S, SI, F>
+pub struct JustificationHandler<B, V, RB, S, SI, F, BB>
 where
     B: BlockT,
     V: Verifier<B>,
     RB: network::RequestBlocks<B> + 'static,
-    C: HeaderBackend<B> + Send + Sync + 'static,
     S: JustificationRequestScheduler,
     SI: SessionInfoProvider<B, V>,
     F: BlockFinalizer<B>,
+    BB: BlockchainBackend<B> + 'static,
 {
     session_info_provider: SI,
-    block_requester: BlockRequester<B, RB, C, S, F, V>,
+    block_requester: BlockRequester<B, RB, S, F, V, BB>,
     verifier_timeout: Duration,
     notification_timeout: Duration,
 }
 
-impl<B, V, RB, C, S, SI, F> JustificationHandler<B, V, RB, C, S, SI, F>
+impl<B, V, RB, S, SI, F, BB> JustificationHandler<B, V, RB, S, SI, F, BB>
 where
     B: BlockT,
     V: Verifier<B>,
     RB: network::RequestBlocks<B> + 'static,
-    C: HeaderBackend<B> + Send + Sync + 'static,
     S: JustificationRequestScheduler,
     SI: SessionInfoProvider<B, V>,
     F: BlockFinalizer<B>,
+    BB: BlockchainBackend<B> + 'static,
 {
     pub fn new(
         session_info_provider: SI,
         block_requester: RB,
-        client: Arc<C>,
+        blockchain_backend: BB,
         finalizer: F,
         justification_request_scheduler: S,
         metrics: Option<Metrics<<B::Header as Header>::Hash>>,
-        justification_handler_config: JustificationHandlerConfig<B>,
+        justification_handler_config: JustificationHandlerConfig,
     ) -> Self {
         Self {
             session_info_provider,
             block_requester: BlockRequester::new(
                 block_requester,
-                client,
+                blockchain_backend,
                 finalizer,
                 justification_request_scheduler,
                 metrics,
-                justification_handler_config.min_allowed_delay,
             ),
             verifier_timeout: justification_handler_config.verifier_timeout,
             notification_timeout: justification_handler_config.notification_timeout,
@@ -75,6 +73,7 @@ where
         let import_stream = wrap_channel_with_logging(import_justification_rx, "import");
         let authority_stream = wrap_channel_with_logging(authority_justification_rx, "aggregator");
         let mut notification_stream = futures::stream::select(import_stream, authority_stream);
+        let mut last_status_report = Instant::now();
 
         loop {
             let last_finalized_number = self.block_requester.finalized_number();
@@ -106,7 +105,13 @@ where
                 Err(_) => {} //Timeout passed
             }
 
-            self.block_requester.request_justification(stop_h)
+            self.block_requester.request_justification(stop_h);
+            if Instant::now().saturating_duration_since(last_status_report)
+                >= STATUS_REPORT_INTERVAL
+            {
+                self.block_requester.status_report();
+                last_status_report = Instant::now();
+            }
         }
     }
 }

@@ -28,6 +28,11 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
 
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          version: '3.6.1'
+
       - name: Install WASM target
         run: rustup target add wasm32-unknown-unknown
 
@@ -35,16 +40,16 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           target-key: release
-          cache-version: v1
+          cache-version: v2
 
       - name: Build binary and runtime
-        run: cargo build --release -p aleph-node
+        run: cargo build --profile production -p aleph-node
 
       - name: Upload release binary
         uses: actions/upload-artifact@v2
         with:
           name: ${{ inputs.artifact-prefix }}aleph-release-node
-          path: target/release/aleph-node
+          path: target/production/aleph-node
           if-no-files-found: error
           retention-days: 7
 
@@ -52,12 +57,12 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ${{ inputs.artifact-prefix }}aleph-release-runtime
-          path: target/release/wbuild/aleph-runtime/aleph_runtime.compact.wasm
+          path: target/production/wbuild/aleph-runtime/aleph_runtime.compact.wasm
           if-no-files-found: error
           retention-days: 7
 
       - name: Build test binary
-        run: cargo build --release -p aleph-node --features "short_session enable_treasury_proposals"
+        run: cargo build --release -p aleph-node --features "short_session enable_treasury_proposals only_legacy"
 
       - name: Upload test binary
         uses: actions/upload-artifact@v2

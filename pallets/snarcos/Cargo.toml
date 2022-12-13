@@ -27,17 +27,17 @@ ark-groth16 = { version = "^0.3.0", default-features = false }
 ark-gm17 = { version = "^0.3.0", default-features = false }
 ark-marlin = { version = "^0.3.0", default-features = false }
 
-frame-benchmarking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal", optional = true }
-frame-support = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-frame-system = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-core = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-io = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+frame-benchmarking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32", optional = true }
+frame-support = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+frame-system = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-core = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-io = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
 
 primitives = { path = "../../primitives", default-features = false }
 
 [dev-dependencies]
-sp-runtime = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sp-runtime = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
 
 [features]
 default = ["std"]
@@ -74,4 +74,7 @@ runtime-benchmarks = [
     "frame-support/runtime-benchmarks",
     "frame-system/runtime-benchmarks",
     "sp-runtime/runtime-benchmarks",
+]
+try-runtime = [
+    "frame-support/try-runtime",
 ]

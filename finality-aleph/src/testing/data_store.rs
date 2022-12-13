@@ -1,6 +1,5 @@
 use std::{future::Future, sync::Arc, time::Duration};
 
-use aleph_bft::Recipient;
 use futures::{
     channel::{
         mpsc::{self, UnboundedReceiver, UnboundedSender},
@@ -25,7 +24,7 @@ use crate::{
         client_chain_builder::ClientChainBuilder,
         mocks::{aleph_data_from_blocks, aleph_data_from_headers},
     },
-    BlockHashNum,
+    BlockHashNum, Recipient,
 };
 
 #[derive(Clone)]

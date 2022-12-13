@@ -76,13 +76,14 @@ run_node() {
   is_validator=$2
   auth=node-$i
   account_id=${account_ids[$i]}
+  validator_port=$((30343 + i))
 
   [[ $is_validator = true ]] && validator=--validator || validator=""
 
   ./target/release/aleph-node purge-chain --base-path $BASE_PATH/$account_id --chain $BASE_PATH/chainspec.json -y
   ./target/release/aleph-node \
     $validator \
-    --pruning=archive \
+    --state-pruning=archive \
     --chain $BASE_PATH/chainspec.json \
     --base-path $BASE_PATH/$account_id \
     --name $auth \
@@ -96,8 +97,11 @@ run_node() {
     --execution Native \
     --rpc-cors=all \
     --no-mdns \
+    --public-validator-addresses 127.0.0.1:${validator_port} \
+    --validator-port ${validator_port} \
     -laleph-party=debug \
     -laleph-network=debug \
+    -lvalidator-network=debug \
     -laleph-finality=debug \
     -laleph-justification=debug \
     -laleph-data-store=debug \

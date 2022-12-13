@@ -1,10 +1,10 @@
-use aleph_bft::Recipient;
 use futures::channel::{mpsc, oneshot};
 
 use super::SimpleNetwork;
 use crate::{
+    abft::Recipient,
     crypto::{AuthorityPen, AuthorityVerifier},
-    network::{ComponentNetworkExt, Data, SendError, SenderComponent, SessionCommand},
+    network::{Data, SendError, SenderComponent, SessionCommand},
     NodeIndex, SessionId,
 };
 
@@ -39,15 +39,29 @@ pub enum ManagerError {
     NetworkReceiveFailed,
 }
 
-impl<D: Data> Manager<D> {
-    /// Create a new manager with the given channels to the service.
+pub struct IO<D: Data> {
+    pub commands_for_service: mpsc::UnboundedSender<SessionCommand<D>>,
+    pub messages_for_service: mpsc::UnboundedSender<(D, SessionId, Recipient)>,
+}
+
+impl<D: Data> IO<D> {
     pub fn new(
         commands_for_service: mpsc::UnboundedSender<SessionCommand<D>>,
         messages_for_service: mpsc::UnboundedSender<(D, SessionId, Recipient)>,
     ) -> Self {
-        Manager {
+        IO {
             commands_for_service,
             messages_for_service,
+        }
+    }
+}
+
+impl<D: Data> Manager<D> {
+    /// Create a new manager with the given channels to the service.
+    pub fn new(io: IO<D>) -> Self {
+        Manager {
+            commands_for_service: io.commands_for_service,
+            messages_for_service: io.messages_for_service,
         }
     }
 
@@ -72,7 +86,7 @@ impl<D: Data> Manager<D> {
         verifier: AuthorityVerifier,
         node_id: NodeIndex,
         pen: AuthorityPen,
-    ) -> Result<impl ComponentNetworkExt<D>, ManagerError> {
+    ) -> Result<Network<D>, ManagerError> {
         let (result_for_us, result_from_service) = oneshot::channel();
         self.commands_for_service
             .unbounded_send(SessionCommand::StartValidator(
@@ -83,10 +97,12 @@ impl<D: Data> Manager<D> {
                 Some(result_for_us),
             ))
             .map_err(|_| ManagerError::CommandSendFailed)?;
+
         let data_from_network = result_from_service
             .await
             .map_err(|_| ManagerError::NetworkReceiveFailed)?;
         let messages_for_network = self.messages_for_service.clone();
+
         Ok(Network::new(
             data_from_network,
             Sender {

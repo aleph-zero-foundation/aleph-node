@@ -39,7 +39,7 @@ impl<Field: PrimeField> ConstraintSynthesizer<Field> for XorRelation {
         let private_xoree = UInt8::new_witness(ark_relations::ns!(cs, "private_xoree"), || {
             Ok(&self.private_xoree)
         })?;
-        let result = UInt8::new_constant(ark_relations::ns!(cs, "result"), &self.result)?;
+        let result = UInt8::new_constant(ark_relations::ns!(cs, "result"), self.result)?;
 
         let xor = UInt8::xor(&public_xoree, &private_xoree)?;
         xor.enforce_equal(&result)

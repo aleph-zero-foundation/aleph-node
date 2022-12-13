@@ -48,7 +48,7 @@ pub fn save_snapshot_to_file(snapshot: Storage, path: String) {
 
 pub fn read_snapshot_from_file(path: String) -> Storage {
     let snapshot: Storage =
-        serde_json::from_str(&fs::read_to_string(&path).expect("Could not read snapshot file"))
+        serde_json::from_str(&fs::read_to_string(path).expect("Could not read snapshot file"))
             .expect("could not parse from snapshot");
     info!("Read snapshot of {} key-val pairs", snapshot.len());
     snapshot

@@ -1,6 +1,6 @@
 [package]
 name = "primitives"
-version = "0.4.1"
+version = "0.5.4"
 authors = ["Cardinal Cryptography"]
 edition = "2021"
 license = "Apache 2.0"
@@ -10,12 +10,12 @@ codec = { package = "parity-scale-codec", version = "3.0", default-features = fa
 serde = { version = "1.0", features = ["derive"] }
 scale-info = { version = "2.0", default-features = false, features = ["derive"] }
 
-sp-api = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-application-crypto = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-core = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-runtime = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-staking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+sp-api = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-application-crypto = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-core = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-runtime = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-staking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
 
 [features]
 default = ["std"]

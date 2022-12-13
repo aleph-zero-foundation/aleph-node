@@ -1,9 +1,10 @@
-use aleph_client::{keypair_from_string, AccountId, KeyPair};
-use sp_core::Pair;
+use aleph_client::{
+    keypair_from_string, raw_keypair_from_string, AccountId, KeyPair, Pair, RawKeyPair,
+};
 
 use crate::config::Config;
 
-fn get_validator_seed(seed: u32) -> String {
+pub fn get_validator_seed(seed: u32) -> String {
     format!("//{}", seed)
 }
 
@@ -20,12 +21,22 @@ pub fn get_validators_seeds(config: &Config) -> Vec<String> {
 pub fn get_validators_keys(config: &Config) -> Vec<KeyPair> {
     accounts_seeds_to_keys(&get_validators_seeds(config))
 }
+pub fn get_validators_raw_keys(config: &Config) -> Vec<RawKeyPair> {
+    accounts_seeds_to_raw_keys(&get_validators_seeds(config))
+}
 
 pub fn accounts_seeds_to_keys(seeds: &[String]) -> Vec<KeyPair> {
     seeds
         .iter()
         .map(String::as_str)
         .map(keypair_from_string)
+        .collect()
+}
+pub fn accounts_seeds_to_raw_keys(seeds: &[String]) -> Vec<RawKeyPair> {
+    seeds
+        .iter()
+        .map(String::as_str)
+        .map(raw_keypair_from_string)
         .collect()
 }
 
@@ -53,6 +64,6 @@ fn get_validators_controller_seed(seed: &str) -> String {
 
 pub fn account_ids_from_keys(keys: &[KeyPair]) -> Vec<AccountId> {
     keys.iter()
-        .map(|pair| AccountId::from(pair.public()))
+        .map(|pair| AccountId::from(pair.signer().public()))
         .collect()
 }

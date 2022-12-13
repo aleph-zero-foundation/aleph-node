@@ -72,7 +72,7 @@ jobs:
           DOCKERHUB_TESTNET_IMAGE: cardinalcryptography/aleph-zero:testnet-${{ steps.vars.outputs.branch }}
           DOCKERHUB_TESTNET_LATEST_IMAGE: cardinalcryptography/aleph-zero:testnet-latest
         run: |
-          echo "FROM ${{ env.DOCKERHUB_TESTNET_IMAGE }}" > Dockerfile.dockerhub
+          echo "FROM ${{ env.TESTNET_IMAGE }}" > Dockerfile.dockerhub
           echo 'ENTRYPOINT ["/usr/local/bin/aleph-node"]' >> Dockerfile.dockerhub
           docker build -t ${{ env.DOCKERHUB_TESTNET_IMAGE }} -f Dockerfile.dockerhub .
           docker tag ${{ env.DOCKERHUB_TESTNET_IMAGE }} ${{ env.DOCKERHUB_TESTNET_LATEST_IMAGE }}

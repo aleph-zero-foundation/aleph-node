@@ -1,12 +1,12 @@
 #!/bin/bash
 
-RPC_HOST=127.0.0.1
-RPC_PORT=9933
+RPC_HOST=${RPC_HOST:-127.0.0.1}
+RPC_PORT=${RPC_PORT:-9933}
 LAST_FINALIZED=""
-VALIDATOR=damian
+VALIDATOR=${VALIDATOR:-damian}
 
 while [[ "$LAST_FINALIZED" =~ "0x0" ]] || [[ -z "$LAST_FINALIZED" ]]; do
-  block_hash=$(docker run --network container:$VALIDATOR appropriate/curl:latest \
+  block_hash=$(docker run --rm --network container:$VALIDATOR appropriate/curl:latest \
                       -H "Content-Type: application/json" \
                       -d '{"id":1, "jsonrpc":"2.0", "method": "chain_getFinalizedHead"}' http://$RPC_HOST:$RPC_PORT | jq '.result')
   ret_val=$?
@@ -15,7 +15,7 @@ while [[ "$LAST_FINALIZED" =~ "0x0" ]] || [[ -z "$LAST_FINALIZED" ]]; do
     continue
   fi
 
-  finalized_block=$(docker run --network container:$VALIDATOR appropriate/curl:latest \
+  finalized_block=$(docker run --rm --network container:$VALIDATOR appropriate/curl:latest \
                            -H "Content-Type: application/json" \
                            -d '{"id":1, "jsonrpc":"2.0", "method": "chain_getBlock", "params": ['$block_hash']}' http://$RPC_HOST:$RPC_PORT | jq '.result.block.header.number')
 
@@ -25,9 +25,9 @@ while [[ "$LAST_FINALIZED" =~ "0x0" ]] || [[ -z "$LAST_FINALIZED" ]]; do
     continue
   else
     LAST_FINALIZED=$finalized_block
-    echo "Last finalized block number: $LAST_FINALIZED"
   fi
 
 done
 
+echo "Last finalized block number: $LAST_FINALIZED"
 exit $?

@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     justification::{JustificationHandlerConfig, JustificationRequestScheduler, SchedulerActions},
-    testing::mocks::{single_action_mock::SingleActionMock, AcceptancePolicy, TBlock},
+    testing::mocks::{single_action_mock::SingleActionMock, AcceptancePolicy},
 };
 
 #[derive(Clone)]
@@ -58,12 +58,11 @@ impl JustificationRequestScheduler for JustificationRequestSchedulerImpl {
 const DEFAULT_VERIFIER_TIMEOUT_MS: u64 = 10u64;
 const DEFAULT_NOTIFICATION_TIMEOUT_MS: u64 = 10u64;
 
-impl JustificationHandlerConfig<TBlock> {
+impl JustificationHandlerConfig {
     pub fn test() -> Self {
         JustificationHandlerConfig::new(
             Duration::from_millis(DEFAULT_VERIFIER_TIMEOUT_MS),
             Duration::from_millis(DEFAULT_NOTIFICATION_TIMEOUT_MS),
-            3u32.into(),
         )
     }
 }

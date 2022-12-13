@@ -1,0 +1,79 @@
+# When increasing number of nodes in this file, change default value of --validators-count param in e2e-tests/src/config.rs
+
+services:
+  Node0:
+    extends:
+      file: common.yml
+      service: AlephBootNode
+    container_name: Node0
+    environment:
+      - RPC_PORT=9933
+      - WS_PORT=9943
+      - PORT=30333
+      - VALIDATOR_PORT=30343
+      - PUBLIC_VALIDATOR_ADDRESS=127.0.0.1:30343
+      - NAME=Node0
+
+  Node1:
+    extends:
+      file: common.yml
+      service: AlephNonBootNode
+    container_name: Node1
+    environment:
+      - RPC_PORT=9934
+      - WS_PORT=9944
+      - PORT=30334
+      - VALIDATOR_PORT=30344
+      - PUBLIC_VALIDATOR_ADDRESS=127.0.0.1:30344
+      - NAME=Node1
+      # key derived from "//1"
+      - BASE_PATH=/data/5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o
+      - NODE_KEY_PATH=/data/5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o/p2p_secret
+
+  Node2:
+    extends:
+      file: common.yml
+      service: AlephNonBootNode
+    container_name: Node2
+    environment:
+      - RPC_PORT=9935
+      - WS_PORT=9945
+      - PORT=30335
+      - VALIDATOR_PORT=30345
+      - PUBLIC_VALIDATOR_ADDRESS=127.0.0.1:30345
+      - NAME=Node2
+      # key derived from "//2"
+      - BASE_PATH=/data/5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9
+      - NODE_KEY_PATH=/data/5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9/p2p_secret
+
+  Node3:
+    extends:
+      file: common.yml
+      service: AlephNonBootNode
+    container_name: Node3
+    environment:
+      - RPC_PORT=9936
+      - WS_PORT=9946
+      - PORT=30336
+      - VALIDATOR_PORT=30346
+      - PUBLIC_VALIDATOR_ADDRESS=127.0.0.1:30346
+      - NAME=Node3
+      # key derived from "//3"
+      - BASE_PATH=/data/5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK
+      - NODE_KEY_PATH=/data/5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK/p2p_secret
+
+  Node4:
+    extends:
+      file: common.yml
+      service: AlephNonBootNode
+    container_name: Node4
+    environment:
+      - RPC_PORT=9937
+      - WS_PORT=9947
+      - PORT=30337
+      - VALIDATOR_PORT=30347
+      - PUBLIC_VALIDATOR_ADDRESS=127.0.0.1:30347
+      - NAME=Node4
+      # key derived from "//4"
+      - BASE_PATH=/data/5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW
+      - NODE_KEY_PATH=/data/5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW/p2p_secret

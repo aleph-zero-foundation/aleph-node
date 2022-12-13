@@ -5,10 +5,10 @@ use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::KeyTypeId;
-use sp_runtime::{
+pub use sp_runtime::{
     generic::Header as GenericHeader,
-    traits::{BlakeTwo256, Header as HeaderT},
-    ConsensusEngineId,
+    traits::{BlakeTwo256, ConstU32, Header as HeaderT},
+    BoundedVec, ConsensusEngineId, Perbill,
 };
 pub use sp_staking::{EraIndex, SessionIndex};
 use sp_std::vec::Vec;
@@ -35,6 +35,8 @@ pub type Balance = u128;
 pub type Header = GenericHeader<BlockNumber, BlakeTwo256>;
 pub type BlockHash = <Header as HeaderT>::Hash;
 pub type BlockNumber = u32;
+pub type SessionCount = u32;
+pub type BlockCount = u32;
 
 pub const MILLISECS_PER_BLOCK: u64 = 1000;
 
@@ -58,10 +60,26 @@ pub const DEFAULT_UNIT_CREATION_DELAY: u64 = 300;
 
 pub const DEFAULT_COMMITTEE_SIZE: u32 = 4;
 
+pub const DEFAULT_BAN_MINIMAL_EXPECTED_PERFORMANCE: Perbill = Perbill::from_percent(0);
+pub const DEFAULT_BAN_SESSION_COUNT_THRESHOLD: SessionCount = 3;
+pub const DEFAULT_BAN_REASON_LENGTH: u32 = 300;
+pub const DEFAULT_CLEAN_SESSION_COUNTER_DELAY: SessionCount = 960;
+pub const DEFAULT_BAN_PERIOD: EraIndex = 10;
+
+/// Openness of the process of the elections
+#[derive(Decode, Encode, TypeInfo, Debug, Clone, PartialEq, Eq)]
+pub enum ElectionOpenness {
+    Permissioned,
+    Permissionless,
+}
+
+/// Represent desirable size of a committee in a session
 #[derive(Decode, Encode, TypeInfo, Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct CommitteeSeats {
+    /// Size of reserved validators in a session
     pub reserved_seats: u32,
+    /// Size of non reserved valiadtors in a session
     pub non_reserved_seats: u32,
 }
 
@@ -80,9 +98,58 @@ impl Default for CommitteeSeats {
     }
 }
 
+/// Configurable parameters for ban validator mechanism
+#[derive(Decode, Encode, TypeInfo, Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct BanConfig {
+    /// performance ratio threshold in a session
+    /// calculated as ratio of number of blocks produced to expected number of blocks for a single validator
+    pub minimal_expected_performance: Perbill,
+    /// how many bad uptime sessions force validator to be removed from the committee
+    pub underperformed_session_count_threshold: SessionCount,
+    /// underperformed session counter is cleared every subsequent `clean_session_counter_delay` sessions
+    pub clean_session_counter_delay: SessionCount,
+    /// how many eras a validator is banned for
+    pub ban_period: EraIndex,
+}
+
+impl Default for BanConfig {
+    fn default() -> Self {
+        BanConfig {
+            minimal_expected_performance: DEFAULT_BAN_MINIMAL_EXPECTED_PERFORMANCE,
+            underperformed_session_count_threshold: DEFAULT_BAN_SESSION_COUNT_THRESHOLD,
+            clean_session_counter_delay: DEFAULT_CLEAN_SESSION_COUNTER_DELAY,
+            ban_period: DEFAULT_BAN_PERIOD,
+        }
+    }
+}
+
+/// Represent any possible reason a validator can be removed from the committee due to
+#[derive(PartialEq, Eq, Clone, Encode, Decode, TypeInfo, Debug)]
+pub enum BanReason {
+    /// Validator has been removed from the committee due to insufficient uptime in a given number
+    /// of sessions
+    InsufficientUptime(u32),
+
+    /// Any arbitrary reason
+    OtherReason(BoundedVec<u8, ConstU32<DEFAULT_BAN_REASON_LENGTH>>),
+}
+
+/// Details of why and for how long a validator is removed from the committee
+#[derive(PartialEq, Eq, Clone, Encode, Decode, TypeInfo, Debug)]
+pub struct BanInfo {
+    /// reason for banning a validator
+    pub reason: BanReason,
+    /// index of the first era when a ban starts
+    pub start: EraIndex,
+}
+
+/// Represent committee, ie set of nodes that produce and finalize blocks in the session
 #[derive(Eq, PartialEq, Decode, Encode, TypeInfo)]
 pub struct EraValidators<AccountId> {
+    /// Validators that are chosen to be in committee every single session.
     pub reserved: Vec<AccountId>,
+    /// Validators that can be banned out from the committee, under the circumstances
     pub non_reserved: Vec<AccountId>,
 }
 
@@ -124,6 +191,14 @@ impl SessionAuthorityData {
     }
 }
 
+pub type Version = u32;
+
+#[derive(Clone, Debug, Decode, Encode, PartialEq, Eq, TypeInfo)]
+pub struct VersionChange {
+    pub version_incoming: Version,
+    pub session: SessionIndex,
+}
+
 sp_api::decl_runtime_apis! {
     pub trait AlephSessionApi
     {
@@ -133,6 +208,8 @@ sp_api::decl_runtime_apis! {
         fn authority_data() -> SessionAuthorityData;
         fn session_period() -> u32;
         fn millisecs_per_block() -> u64;
+        fn finality_version() -> Version;
+        fn next_session_finality_version() -> Version;
     }
 }
 

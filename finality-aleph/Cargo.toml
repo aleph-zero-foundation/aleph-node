@@ -1,18 +1,26 @@
 [package]
 name = "finality-aleph"
-version = "0.5.0"
+version = "0.5.4"
 authors = ["Cardinal Cryptography"]
 edition = "2021"
 license = "Apache 2.0"
 
 [dependencies]
-aleph-bft = "0.18.1"
-aleph-bft-rmc = "0.4.0"
+# fixed version to 'freeze' some types used in abft, mainly `SignatureSet` used in justification and signature aggregation
+aleph-bft-crypto = "0.4.0"
+
+current-aleph-bft = { package = "aleph-bft", version = "0.19.1" }
+current-aleph-bft-rmc = { package = "aleph-bft-rmc", version = "0.5.0" }
+legacy-aleph-bft = { package = "aleph-bft", version = "0.18.1" }
+legacy-aleph-bft-rmc = { package = "aleph-bft-rmc", version = "0.4.0" }
+
 aleph-primitives = { package = "primitives", path = "../primitives" }
+legacy-aleph-aggregator = { package = "aggregator", git = "https://github.com/Cardinal-Cryptography/aleph-node.git", tag = "aggregator-v0.1.0" }
+current-aleph-aggregator = { path = "../aggregator", package = "aggregator" }
 
 async-trait = "0.1"
 bytes = "1.0"
-codec = { package = "parity-scale-codec", version = "3.0", default-features = false, features = ["derive"] }
+codec = { package = "parity-scale-codec", version = "3.1", default-features = false, features = ["derive"] }
 derive_more = "0.99"
 env_logger = "0.9"
 futures = "0.3"
@@ -21,31 +29,35 @@ hash-db = { version = "0.15.2", default-features = false }
 ip_network = "0.4"
 log = "0.4"
 lru = "0.7"
-parity-util-mem = "0.11"
 parking_lot = "0.12"
 rand = "0.8"
 serde = "1.0"
+tiny-bip39 = "1.0"
 tokio = { version = "1.17", features = [ "sync", "macros", "time", "rt-multi-thread" ] }
 
-prometheus-endpoint = { package = "substrate-prometheus-endpoint", git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-keystore = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sc-network = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sc-telemetry = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sc-service = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-application-crypto = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-state-machine = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-trie = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sc-utils = {  git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-blockchain = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sc-consensus = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-consensus = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sc-client-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-io = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+prometheus-endpoint = { package = "substrate-prometheus-endpoint", git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-keystore = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sc-network = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sc-network-common = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sc-telemetry = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sc-service = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-application-crypto = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-state-machine = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-trie = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sc-utils = {  git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-blockchain = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sc-consensus = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-consensus = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sc-client-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-io = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
 
 [dev-dependencies]
-substrate-test-runtime-client = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-substrate-test-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sc-block-builder = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+substrate-test-runtime-client = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+substrate-test-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sc-block-builder = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+
+[features]
+only_legacy = []

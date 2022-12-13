@@ -1,6 +1,6 @@
 [package]
 name = "pallet-elections"
-version = "0.4.0"
+version = "0.5.4"
 edition = "2021"
 license = "Apache 2.0"
 
@@ -8,23 +8,21 @@ license = "Apache 2.0"
 codec = { package = "parity-scale-codec", version = "3.0", default-features = false, features = ["derive"] }
 scale-info = { version = "2.0", default-features = false, features = ["derive"] }
 
-frame-support = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-frame-system = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-frame-election-provider-support = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-pallet-authorship = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-pallet-balances = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-pallet-session = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-pallet-staking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-core = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-io = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-staking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
-sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+frame-support = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+frame-system = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+frame-election-provider-support = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+pallet-authorship = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+pallet-balances = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+pallet-session = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+pallet-staking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-core = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-io = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-staking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-runtime = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
 
 pallets-support = { path = "../support", default-features = false }
 primitives = { path = "../../primitives", default-features = false }
-
-[dev-dependencies]
-sp-runtime = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
 
 [features]
 default = ["std"]
@@ -42,6 +40,7 @@ std = [
     "primitives/std",
     "pallet-balances/std",
     "sp-staking/std",
+    "sp-runtime/std",
 ]
 try-runtime = [
     "frame-support/try-runtime",

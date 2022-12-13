@@ -1,5 +1,4 @@
 use std::{
-    ffi::OsStr,
     fs,
     io::{self, Write},
     path::{Path, PathBuf},
@@ -7,9 +6,11 @@ use std::{
 
 use aleph_primitives::AuthorityId as AlephId;
 use aleph_runtime::AccountId;
-use clap::{Args, Parser};
 use libp2p::identity::{ed25519 as libp2p_ed25519, PublicKey};
-use sc_cli::{CliConfiguration, DatabaseParams, Error, KeystoreParams, SharedParams};
+use sc_cli::{
+    clap::{self, Args, Parser},
+    CliConfiguration, DatabaseParams, Error, KeystoreParams, SharedParams,
+};
 use sc_keystore::LocalKeystore;
 use sc_service::{
     config::{BasePath, KeystoreConfig},
@@ -28,22 +29,22 @@ use crate::chain_spec::{
 pub struct NodeParams {
     /// For `bootstrap-node` and `purge-chain` it works with this directory as base.
     /// For `bootstrap-chain` the base path is appended with an account id for each node.
-    #[clap(long, short = 'd', value_name = "PATH", parse(from_os_str = parse_base_path))]
-    base_path: BasePath,
+    #[arg(long, short = 'd', value_name = "PATH")]
+    base_path: PathBuf,
 
     /// Specify filename to write node private p2p keys to
     /// Resulting keys will be stored at: base_path/account_id/node_key_file for each node
-    #[clap(long, default_value = "p2p_secret")]
+    #[arg(long, default_value = "p2p_secret")]
     node_key_file: String,
 
     /// Directory under which AlephBFT backup is stored
-    #[clap(long, default_value = DEFAULT_BACKUP_FOLDER)]
+    #[arg(long, default_value = DEFAULT_BACKUP_FOLDER)]
     backup_dir: String,
 }
 
 impl NodeParams {
-    pub fn base_path(&self) -> &BasePath {
-        &self.base_path
+    pub fn base_path(&self) -> BasePath {
+        BasePath::new(&self.base_path)
     }
 
     pub fn node_key_file(&self) -> &str {
@@ -53,10 +54,6 @@ impl NodeParams {
     pub fn backup_dir(&self) -> &str {
         &self.backup_dir
     }
-}
-
-fn parse_base_path(path: &OsStr) -> BasePath {
-    BasePath::new(path)
 }
 
 /// returns Aura key, if absent a new key is generated
@@ -85,7 +82,7 @@ fn aleph_key(keystore: &impl SyncCryptoStore) -> AlephId {
 fn p2p_key(node_key_path: &Path) -> SerializablePeerId {
     if node_key_path.exists() {
         let mut file_content =
-            hex::decode(fs::read(&node_key_path).unwrap()).expect("Failed to decode secret as hex");
+            hex::decode(fs::read(node_key_path).unwrap()).expect("Failed to decode secret as hex");
         let secret =
             libp2p_ed25519::SecretKey::from_bytes(&mut file_content).expect("Bad node key file");
         let keypair = libp2p_ed25519::Keypair::from(secret);
@@ -160,7 +157,7 @@ fn authority_keys(
 #[derive(Debug, Parser)]
 pub struct BootstrapChainCmd {
     /// Force raw genesis storage output.
-    #[clap(long = "raw")]
+    #[arg(long = "raw")]
     pub raw: bool,
 
     #[clap(flatten)]
@@ -217,11 +214,11 @@ pub struct BootstrapNodeCmd {
     ///
     /// Expects a string with an account id (hex encoding of an sr2559 public key)
     /// If this argument is not passed a random account id will be generated using account-seed argument as a seed
-    #[clap(long)]
+    #[arg(long)]
     account_id: Option<String>,
 
     /// Pass seed used to generate the account private key (sr2559) and the corresponding AccountId
-    #[clap(long, required_unless_present = "account-id")]
+    #[arg(long, required_unless_present = "account_id")]
     pub account_seed: Option<String>,
 
     #[clap(flatten)]
@@ -243,7 +240,7 @@ impl BootstrapNodeCmd {
 
         bootstrap_backup(base_path.path(), backup_dir);
         let chain_id = self.chain_params.chain_id();
-        let keystore = open_keystore(&self.keystore_params, chain_id, base_path);
+        let keystore = open_keystore(&self.keystore_params, chain_id, &base_path);
 
         // Does not rely on the account id in the path
         let account_id = self.account_id();
@@ -272,7 +269,7 @@ impl BootstrapNodeCmd {
 #[derive(Debug, Parser)]
 pub struct ConvertChainspecToRawCmd {
     /// Specify path to JSON chainspec
-    #[clap(long, parse(from_os_str))]
+    #[arg(long)]
     pub chain: PathBuf,
 }
 
@@ -306,7 +303,7 @@ pub struct PurgeChainCmd {
 impl PurgeChainCmd {
     pub fn run(&self, database_config: DatabaseSource) -> Result<(), Error> {
         self.purge_chain.run(database_config)?;
-        self.purge_backup.run()
+        self.purge_backup.run(self.purge_chain.yes)
     }
 }
 
@@ -322,21 +319,18 @@ impl CliConfiguration for PurgeChainCmd {
 
 #[derive(Debug, Parser)]
 pub struct PurgeBackupCmd {
-    /// Skip interactive prompt by answering yes automatically.
-    #[clap(short = 'y')]
-    pub yes: bool,
     #[clap(flatten)]
     pub node_params: NodeParams,
 }
 
 impl PurgeBackupCmd {
-    pub fn run(&self) -> Result<(), Error> {
+    pub fn run(&self, skip_prompt: bool) -> Result<(), Error> {
         let backup_path = backup_path(
             self.node_params.base_path().path(),
             self.node_params.backup_dir(),
         );
 
-        if !self.yes {
+        if !skip_prompt {
             print!(
                 "Are you sure you want to remove {:?}? [y/N]: ",
                 &backup_path

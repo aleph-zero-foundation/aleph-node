@@ -1,14 +1,19 @@
-use std::{collections::HashSet, fmt::Debug, hash::Hash};
+use std::{
+    collections::HashSet,
+    fmt::{Debug, Display},
+    hash::Hash,
+};
 
-use aleph_bft::Recipient;
 use async_trait::async_trait;
 use bytes::Bytes;
 use codec::Codec;
 use sp_api::NumberFor;
 use sp_runtime::traits::Block;
 
-mod aleph;
+use crate::abft::Recipient;
+
 mod component;
+mod io;
 mod manager;
 #[cfg(test)]
 pub mod mock;
@@ -16,28 +21,45 @@ mod service;
 mod session;
 mod split;
 
-pub use aleph::{NetworkData as AlephNetworkData, NetworkWrapper};
 pub use component::{
     Network as ComponentNetwork, NetworkExt as ComponentNetworkExt,
     NetworkMap as ComponentNetworkMap, Receiver as ReceiverComponent, Sender as SenderComponent,
     SimpleNetwork,
 };
+pub use io::setup as setup_io;
 use manager::SessionCommand;
-pub use manager::{ConnectionIO, ConnectionManager, ConnectionManagerConfig};
-pub use service::{Service, IO};
-pub use session::{Manager as SessionManager, ManagerError};
+pub use manager::{
+    ConnectionIO as ConnectionManagerIO, ConnectionManager, ConnectionManagerConfig,
+};
+pub use service::{Service, IO as NetworkServiceIO};
+pub use session::{Manager as SessionManager, ManagerError, Sender, IO as SessionManagerIO};
 pub use split::{split, Split};
-
 #[cfg(test)]
 pub mod testing {
-    pub use super::manager::{Authentication, DiscoveryMessage, NetworkData, SessionHandler};
+    pub use super::manager::{
+        Authentication, DataInSession, DiscoveryMessage, SessionHandler, VersionedAuthentication,
+    };
 }
 
 /// Represents the id of an arbitrary node.
-pub trait PeerId: PartialEq + Eq + Copy + Clone + Debug + Hash + Codec + Send {}
+pub trait PeerId: PartialEq + Eq + Clone + Debug + Display + Hash + Codec + Send {
+    /// This function is used for logging. It implements a shorter version of `to_string` for ids implementing display.
+    fn to_short_string(&self) -> String {
+        let id = format!("{}", self);
+        if id.len() <= 12 {
+            return id;
+        }
+
+        let prefix: String = id.chars().take(4).collect();
+
+        let suffix: String = id.chars().skip(id.len().saturating_sub(8)).collect();
+
+        format!("{}…{}", &prefix, &suffix)
+    }
+}
 
 /// Represents the address of an arbitrary node.
-pub trait Multiaddress: Debug + Hash + Codec + Clone + Eq {
+pub trait Multiaddress: Debug + Hash + Codec + Clone + Eq + Send + Sync {
     type PeerId: PeerId;
 
     /// Returns the peer id associated with this multiaddress if it exists and is unique.
@@ -47,13 +69,10 @@ pub trait Multiaddress: Debug + Hash + Codec + Clone + Eq {
     fn add_matching_peer_id(self, peer_id: Self::PeerId) -> Option<Self>;
 }
 
-/// The Generic protocol is used for validator discovery.
-/// The Validator protocol is used for validator-specific messages, i.e. ones needed for
-/// finalization.
+/// The Authentication protocol is used for validator discovery.
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub enum Protocol {
-    Generic,
-    Validator,
+    Authentication,
 }
 
 /// Abstraction over a sender to network.
@@ -69,26 +88,26 @@ pub trait NetworkSender: Send + Sync + 'static {
 }
 
 #[derive(Clone)]
-pub enum Event<M: Multiaddress> {
+pub enum Event<M, P> {
     Connected(M),
-    Disconnected(M::PeerId),
-    StreamOpened(M::PeerId, Protocol),
-    StreamClosed(M::PeerId, Protocol),
-    Messages(Vec<Bytes>),
+    Disconnected(P),
+    StreamOpened(P, Protocol),
+    StreamClosed(P, Protocol),
+    Messages(Vec<(Protocol, Bytes)>),
 }
 
 #[async_trait]
-pub trait EventStream<M: Multiaddress> {
-    async fn next_event(&mut self) -> Option<Event<M>>;
+pub trait EventStream<M, P> {
+    async fn next_event(&mut self) -> Option<Event<M, P>>;
 }
 
 /// Abstraction over a network.
 pub trait Network: Clone + Send + Sync + 'static {
     type SenderError: std::error::Error;
     type NetworkSender: NetworkSender;
-    type PeerId: PeerId;
-    type Multiaddress: Multiaddress<PeerId = Self::PeerId>;
-    type EventStream: EventStream<Self::Multiaddress>;
+    type PeerId: Clone + Debug + Eq + Hash + Send;
+    type Multiaddress: Debug + Eq + Hash;
+    type EventStream: EventStream<Self::Multiaddress, Self::PeerId>;
 
     /// Returns a stream of events representing what happens on the network.
     fn event_stream(&self) -> Self::EventStream;
@@ -136,14 +155,6 @@ pub trait RequestBlocks<B: Block>: Clone + Send + Sync + 'static {
     fn is_major_syncing(&self) -> bool;
 }
 
-/// What do do with a specific piece of data.
-/// Note that broadcast does not specify the protocol, as we only broadcast Generic messages in this sense.
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum DataCommand<PID: PeerId> {
-    Broadcast,
-    SendTo(PID, Protocol),
-}
-
 /// Commands for manipulating the reserved peers set.
 #[derive(Debug, PartialEq, Eq)]
 pub enum ConnectionCommand<M: Multiaddress> {
@@ -161,6 +172,9 @@ pub enum SendError {
 pub trait Data: Clone + Codec + Send + Sync + 'static {}
 
 impl<D: Clone + Codec + Send + Sync + 'static> Data for D {}
+
+// In practice D: Data and P: PeerId, but we cannot require that in type aliases.
+type AddressedData<D, P> = (D, P);
 
 /// A generic interface for sending and receiving data.
 #[async_trait::async_trait]

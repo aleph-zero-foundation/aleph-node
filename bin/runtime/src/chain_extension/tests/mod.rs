@@ -1,4 +1,5 @@
-use std::sync::mpsc::Receiver;
+use core::iter::Sum;
+use std::{ops::Neg, sync::mpsc::Receiver};
 
 use environment::{CorruptedMode, MockedEnvironment, StandardMode, StoreKeyMode, VerifyMode};
 
@@ -12,7 +13,28 @@ mod executor;
 
 /// In order to compute final fee (after all adjustments) sometimes we will have to subtract
 /// weights.
-type RevertibleWeight = i64;
+#[derive(Debug, PartialEq, Eq)]
+pub struct RevertibleWeight(i64);
+
+impl RevertibleWeight {
+    fn neg(weight: Weight) -> Self {
+        RevertibleWeight((weight.ref_time() as i64).neg())
+    }
+
+    const ZERO: RevertibleWeight = RevertibleWeight(0);
+}
+
+impl From<Weight> for RevertibleWeight {
+    fn from(w: Weight) -> Self {
+        RevertibleWeight(w.ref_time() as i64)
+    }
+}
+
+impl Sum for RevertibleWeight {
+    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+        RevertibleWeight(iter.map(|rw| rw.0).sum())
+    }
+}
 
 const IDENTIFIER: VerificationKeyIdentifier = [1, 7, 2, 9];
 const VK: [u8; 2] = [4, 1];
@@ -61,7 +83,7 @@ fn store_key__charges_before_reading() {
     assert!(matches!(result, Err(_)));
     assert_eq!(
         charged(charging_listener),
-        weight_of_store_key(key_length) as RevertibleWeight
+        weight_of_store_key(key_length).into()
     );
 }
 
@@ -79,7 +101,7 @@ fn store_key__too_much_to_read() {
         result,
         Ok(RetVal::Converging(SNARCOS_STORE_KEY_TOO_LONG_KEY))
     ));
-    assert_eq!(charged(charging_listener), 0);
+    assert_eq!(charged(charging_listener), RevertibleWeight::ZERO);
 }
 
 fn simulate_store_key<Exc: Executor>(expected_ret_val: u32) {
@@ -91,7 +113,7 @@ fn simulate_store_key<Exc: Executor>(expected_ret_val: u32) {
     assert!(matches!(result, Ok(RetVal::Converging(ret_val)) if ret_val == expected_ret_val));
     assert_eq!(
         charged(charging_listener),
-        weight_of_store_key(VK.len() as ByteCount) as RevertibleWeight
+        weight_of_store_key(VK.len() as ByteCount).into()
     );
 }
 
@@ -125,10 +147,7 @@ fn verify__charges_before_reading() {
     let result = SnarcosChainExtension::snarcos_verify::<_, Panicker>(env);
 
     assert!(matches!(result, Err(_)));
-    assert_eq!(
-        charged(charging_listener),
-        weight_of_verify(None) as RevertibleWeight
-    );
+    assert_eq!(charged(charging_listener), weight_of_verify(None).into());
 }
 
 fn simulate_verify<Exc: Executor>(expected_ret_val: u32) {
@@ -140,7 +159,7 @@ fn simulate_verify<Exc: Executor>(expected_ret_val: u32) {
     assert!(matches!(result, Ok(RetVal::Converging(ret_val)) if ret_val == expected_ret_val));
     assert_eq!(
         charged(charging_listener),
-        weight_of_verify(Some(SYSTEM)) as RevertibleWeight
+        weight_of_verify(Some(SYSTEM)).into()
     );
 }
 

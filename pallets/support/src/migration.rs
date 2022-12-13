@@ -2,6 +2,7 @@
 use frame_support::{
     codec::{Decode, Encode},
     sp_io,
+    sp_std::vec::Vec,
     storage::storage_prefix,
 };
 use frame_support::{
@@ -25,7 +26,7 @@ pub trait StorageMigration: OnRuntimeUpgrade {
         let weight = Self::on_runtime_upgrade();
 
         #[cfg(feature = "try-runtime")]
-        Self::post_upgrade().expect("Post upgrade should succeed");
+        Self::post_upgrade(Vec::new()).expect("Post upgrade should succeed");
 
         weight
     }

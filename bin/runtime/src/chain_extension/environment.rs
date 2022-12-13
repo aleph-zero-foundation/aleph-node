@@ -44,11 +44,11 @@ where
         self.read(max_len)
     }
 
-    fn charge_weight(&mut self, amount: Weight) -> Result<ChargedAmount, DispatchError> {
+    fn charge_weight(&mut self, amount: Weight) -> Result<Self::ChargedAmount, DispatchError> {
         self.charge_weight(amount)
     }
 
-    fn adjust_weight(&mut self, charged: ChargedAmount, actual_weight: Weight) {
+    fn adjust_weight(&mut self, charged: Self::ChargedAmount, actual_weight: Weight) {
         self.adjust_weight(charged, actual_weight)
     }
 }

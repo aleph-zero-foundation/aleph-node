@@ -21,7 +21,7 @@ impl<PID: PeerId> Connections<PID> {
     pub fn add_peers(&mut self, session_id: SessionId, peers: impl IntoIterator<Item = PID>) {
         for peer in peers {
             self.associated_sessions
-                .entry(peer)
+                .entry(peer.clone())
                 .or_default()
                 .insert(session_id);
             self.peers_by_session
@@ -56,10 +56,13 @@ mod tests {
     use std::collections::HashSet;
 
     use super::Connections;
-    use crate::{network::mock::MockPeerId, SessionId};
+    use crate::{
+        validator_network::mock::{random_keys, MockPublicKey},
+        SessionId,
+    };
 
-    fn random_peer_ids(num: usize) -> HashSet<MockPeerId> {
-        (0..num).map(|_| MockPeerId::random()).collect()
+    fn random_peer_ids(num: usize) -> HashSet<MockPublicKey> {
+        random_keys(num).into_keys().collect()
     }
 
     #[test]

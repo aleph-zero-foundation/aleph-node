@@ -1,6 +1,7 @@
 #![cfg(test)]
 
 use frame_support::{storage_alias, traits::OneSessionHandler};
+use primitives::VersionChange;
 
 use crate::mock::*;
 
@@ -128,5 +129,42 @@ fn test_emergency_signer() {
 
         assert_eq!(Aleph::emergency_finalizer(), Some(to_authority(&21)));
         assert_eq!(Aleph::queued_emergency_finalizer(), Some(to_authority(&37)));
+    })
+}
+
+#[test]
+fn test_finality_version_scheduling() {
+    new_test_ext(&[(1u64, 1u64), (2u64, 2u64)]).execute_with(|| {
+        initialize_session();
+
+        run_session(1);
+
+        let version_to_schedule = VersionChange {
+            version_incoming: 1,
+            session: 4,
+        };
+
+        let scheduling_result =
+            Aleph::do_schedule_finality_version_change(version_to_schedule.clone());
+        assert_eq!(scheduling_result, Ok(()));
+
+        let scheduled_version_change = Aleph::finality_version_change();
+        assert_eq!(scheduled_version_change, Some(version_to_schedule.clone()));
+
+        run_session(4);
+
+        let current_version = Aleph::finality_version();
+        assert_eq!(current_version, version_to_schedule.version_incoming);
+
+        let scheduled_version_change = Aleph::finality_version_change();
+        assert_eq!(scheduled_version_change, None);
+
+        let version_to_schedule = VersionChange {
+            version_incoming: 1,
+            session: 5,
+        };
+
+        let scheduling_result = Aleph::do_schedule_finality_version_change(version_to_schedule);
+        assert!(scheduling_result.is_err());
     })
 }

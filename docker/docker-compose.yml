@@ -3,63 +3,30 @@
 services:
   Node0:
     extends:
-      file: common.yml
-      service: AlephBootNode
-    container_name: Node0
-    environment:
-      - RPC_PORT=9933
-      - WS_PORT=9943
-      - PORT=30333
-      - NAME=Node0
+      file: docker-compose.base.yml
+      service: Node0
+    network_mode: host
 
   Node1:
     extends:
-      file: common.yml
-      service: AlephNonBootNode
-    container_name: Node1
-    environment:
-      - RPC_PORT=9934
-      - WS_PORT=9944
-      - PORT=30334
-      - NAME=Node1
-      - BASE_PATH=/data/5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o
-      - NODE_KEY_PATH=/data/5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o/p2p_secret
+      file: docker-compose.base.yml
+      service: Node1
+    network_mode: host
 
   Node2:
     extends:
-      file: common.yml
-      service: AlephNonBootNode
-    container_name: Node2
-    environment:
-      - RPC_PORT=9935
-      - WS_PORT=9945
-      - PORT=30335
-      - NAME=Node2
-      - BASE_PATH=/data/5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9
-      - NODE_KEY_PATH=/data/5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9/p2p_secret
+      file: docker-compose.base.yml
+      service: Node2
+    network_mode: host
 
   Node3:
     extends:
-      file: common.yml
-      service: AlephNonBootNode
-    container_name: Node3
-    environment:
-      - RPC_PORT=9936
-      - WS_PORT=9946
-      - PORT=30336
-      - NAME=Node3
-      - BASE_PATH=/data/5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK
-      - NODE_KEY_PATH=/data/5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK/p2p_secret
+      file: docker-compose.base.yml
+      service: Node3
+    network_mode: host
 
   Node4:
     extends:
-      file: common.yml
-      service: AlephNonBootNode
-    container_name: Node4
-    environment:
-      - RPC_PORT=9937
-      - WS_PORT=9947
-      - PORT=30337
-      - NAME=Node4
-      - BASE_PATH=/data/5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW
-      - NODE_KEY_PATH=/data/5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW/p2p_secret
+      file: docker-compose.base.yml
+      service: Node4
+    network_mode: host

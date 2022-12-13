@@ -35,8 +35,8 @@ impl<Field: PrimeField> ConstraintSynthesizer<Field> for LinearEquationRelation 
         // TODO: migrate from real values to values in the finite field (see FpVar)
         // Watch out for overflows!!!
         let x = UInt32::new_witness(ark_relations::ns!(cs, "x"), || Ok(&self.x))?;
-        let b = UInt32::new_constant(ark_relations::ns!(cs, "b"), &self.b)?;
-        let y = UInt32::new_constant(ark_relations::ns!(cs, "y"), &self.y)?;
+        let b = UInt32::new_constant(ark_relations::ns!(cs, "b"), self.b)?;
+        let y = UInt32::new_constant(ark_relations::ns!(cs, "y"), self.y)?;
 
         let mut left = std::iter::repeat(x)
             .take(self.a as usize)

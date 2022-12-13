@@ -1,17 +1,20 @@
 use aleph_client::{
-    create_connection, get_current_era, get_payout_for_era, staking_force_new_era,
-    wait_for_next_era, wait_for_session, ReadStorage, XtStatus,
+    pallets::staking::{StakingApi, StakingSudoApi},
+    waiting::{AlephWaiting, BlockStatus, WaitingExt},
+    Connection, TxStatus,
 };
 use primitives::{
     staking::era_payout, Balance, EraIndex, DEFAULT_SESSIONS_PER_ERA, DEFAULT_SESSION_PERIOD,
     MILLISECS_PER_BLOCK,
 };
 
-use crate::Config;
+use crate::config::{setup_test, Config};
 
-pub fn era_payouts_calculated_correctly(config: &Config) -> anyhow::Result<()> {
-    normal_era_payout(config)?;
-    force_era_payout(config)?;
+#[tokio::test]
+pub async fn era_payouts_calculated_correctly() -> anyhow::Result<()> {
+    let config = setup_test();
+    normal_era_payout(config).await?;
+    force_era_payout(config).await?;
 
     Ok(())
 }
@@ -29,29 +32,40 @@ fn payout_within_two_block_delta(expected_payout: Balance, payout: Balance) {
     );
 }
 
-fn wait_to_second_era<C: ReadStorage>(connection: &C) -> EraIndex {
-    let current_era = get_current_era(connection);
-    if current_era < 2 {
-        wait_for_next_era(connection).expect("Era is active");
-        wait_for_next_era(connection).expect("Era is active");
+async fn wait_to_second_era(connection: &Connection) -> EraIndex {
+    let active_era = connection.get_active_era(None).await;
+    if active_era < 2 {
+        connection.wait_for_n_eras(2, BlockStatus::Best).await;
     }
-    get_current_era(connection)
+    connection.get_active_era(None).await
 }
 
-fn force_era_payout(config: &Config) -> anyhow::Result<()> {
-    let root_connection = config.create_root_connection();
-    let current_era = wait_to_second_era(&root_connection);
-    wait_for_next_era(&root_connection)?;
-    let current_era = current_era + 1;
+async fn force_era_payout(config: &Config) -> anyhow::Result<()> {
+    let root_connection = config.create_root_connection().await;
+    let active_era = wait_to_second_era(&root_connection.connection).await;
+    root_connection
+        .connection
+        .wait_for_n_eras(1, BlockStatus::Best)
+        .await;
+    let active_era = active_era + 1;
 
-    let starting_session = current_era * DEFAULT_SESSIONS_PER_ERA;
-    wait_for_session(&root_connection, starting_session + 1)?;
+    let starting_session = active_era * DEFAULT_SESSIONS_PER_ERA;
+    root_connection
+        .connection
+        .wait_for_session(starting_session + 1, BlockStatus::Best)
+        .await;
 
     // new era will start in the session `starting_session + 3`
-    staking_force_new_era(&root_connection, XtStatus::InBlock);
-    wait_for_session(&root_connection, starting_session + 3)?;
+    root_connection.force_new_era(TxStatus::InBlock).await?;
+    root_connection
+        .connection
+        .wait_for_session(starting_session + 3, BlockStatus::Best)
+        .await;
 
-    let payout = get_payout_for_era(&root_connection, current_era);
+    let payout = root_connection
+        .connection
+        .get_payout_for_era(active_era, None)
+        .await;
     let expected_payout = era_payout((3 * DEFAULT_SESSION_PERIOD) as u64 * MILLISECS_PER_BLOCK).0;
 
     payout_within_two_block_delta(expected_payout, payout);
@@ -59,11 +73,14 @@ fn force_era_payout(config: &Config) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn normal_era_payout(config: &Config) -> anyhow::Result<()> {
-    let connection = create_connection(&config.node);
+async fn normal_era_payout(config: &Config) -> anyhow::Result<()> {
+    let root_connection = config.create_root_connection().await;
 
-    let current_era = wait_to_second_era(&connection);
-    let payout = get_payout_for_era(&connection, current_era - 1);
+    let active_era = wait_to_second_era(&root_connection.connection).await;
+    let payout = root_connection
+        .connection
+        .get_payout_for_era(active_era - 1, None)
+        .await;
     let expected_payout = era_payout(
         (DEFAULT_SESSIONS_PER_ERA * DEFAULT_SESSION_PERIOD) as u64 * MILLISECS_PER_BLOCK,
     )

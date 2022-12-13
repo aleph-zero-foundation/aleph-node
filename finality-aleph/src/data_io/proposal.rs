@@ -82,7 +82,7 @@ impl<B: BlockT> UnvalidatedAlephProposal<B> {
     ) -> Result<AlephProposal<B>, ValidationError<B>> {
         use ValidationError::*;
 
-        if self.branch.len() > MAX_DATA_BRANCH_LEN as usize {
+        if self.branch.len() > MAX_DATA_BRANCH_LEN {
             return Err(BranchTooLong {
                 branch_size: self.branch.len(),
             });

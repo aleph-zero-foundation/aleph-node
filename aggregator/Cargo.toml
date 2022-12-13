@@ -1,0 +1,17 @@
+[package]
+name = "aggregator"
+version = "0.2.0"
+authors = ["Cardinal Cryptography"]
+edition = "2021"
+license = "Apache 2.0"
+
+
+[dependencies]
+aleph-bft-rmc = "0.5.0"
+aleph-bft-types = "0.6.0"
+
+async-trait = "0.1"
+futures = "0.3"
+codec = { package = "parity-scale-codec", version = "3.0", default-features = false, features = ["derive"] }
+tokio = { version = "1.17", features = [ "sync", "macros", "time", "rt-multi-thread" ] }
+log = "0.4"

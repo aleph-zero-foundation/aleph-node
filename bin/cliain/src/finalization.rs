@@ -1,25 +1,31 @@
 use std::str::FromStr;
 
 use aleph_client::{
-    emergency_finalize, finalization_set_emergency_finalizer, AlephKeyPair, BlockHash, BlockNumber,
-    SignedConnection,
+    pallets::aleph::{AlephRpc, AlephSudoApi},
+    AccountId, AlephKeyPair, Connection, TxStatus,
 };
-use substrate_api_client::{AccountId, XtStatus};
+use primitives::{BlockHash, BlockNumber};
 
 use crate::RootConnection;
 
 /// Sets the emergency finalized, the provided string should be the seed phrase of the desired finalizer.
-pub fn set_emergency_finalizer(connection: RootConnection, finalizer: AccountId) {
-    finalization_set_emergency_finalizer(&connection, finalizer, XtStatus::Finalized)
+pub async fn set_emergency_finalizer(connection: RootConnection, finalizer: AccountId) {
+    connection
+        .set_emergency_finalizer(finalizer, TxStatus::Finalized)
+        .await
+        .unwrap();
 }
 
 /// Finalizes the given block using the key pair from provided seed as emergency finalizer.
-pub fn finalize(
-    connection: SignedConnection,
+pub async fn finalize(
+    connection: Connection,
     number: BlockNumber,
     hash: String,
     key_pair: AlephKeyPair,
 ) {
     let hash = BlockHash::from_str(&hash).expect("Hash is properly hex encoded");
-    emergency_finalize(&connection, number, hash, key_pair).unwrap();
+    connection
+        .emergency_finalize(number, hash, key_pair)
+        .await
+        .unwrap();
 }

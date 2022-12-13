@@ -11,6 +11,7 @@ use crate::{
         status_provider::get_proposal_status,
         AlephData, ChainInfoProvider,
     },
+    mpsc::TrySendError,
     BlockHashNum, SessionBoundaries,
 };
 
@@ -66,7 +67,22 @@ impl<B: BlockT, C: HeaderBackend<B>> OrderedDataInterpreter<B, C> {
         }
     }
 
-    fn blocks_to_finalize_from_data(&mut self, new_data: AlephData<B>) -> Vec<BlockHashNum<B>> {
+    pub fn set_last_finalized(&mut self, block: BlockHashNum<B>) {
+        self.last_finalized_by_aleph = block;
+    }
+
+    pub fn chain_info_provider(&mut self) -> &mut InterpretersChainInfoProvider<B, C> {
+        &mut self.chain_info_provider
+    }
+
+    pub fn send_block_to_finalize(
+        &mut self,
+        block: BlockHashNum<B>,
+    ) -> Result<(), TrySendError<BlockHashNum<B>>> {
+        self.blocks_to_finalize_tx.unbounded_send(block)
+    }
+
+    pub fn blocks_to_finalize_from_data(&mut self, new_data: AlephData<B>) -> Vec<BlockHashNum<B>> {
         let unvalidated_proposal = new_data.head_proposal;
         let proposal = match unvalidated_proposal.validate_bounds(&self.session_boundaries) {
             Ok(proposal) => proposal,
@@ -95,18 +111,14 @@ impl<B: BlockT, C: HeaderBackend<B>> OrderedDataInterpreter<B, C> {
             }
         }
     }
-}
 
-impl<B: BlockT, C: HeaderBackend<B> + Send + 'static> aleph_bft::FinalizationHandler<AlephData<B>>
-    for OrderedDataInterpreter<B, C>
-{
-    fn data_finalized(&mut self, data: AlephData<B>) {
+    pub fn data_finalized(&mut self, data: AlephData<B>) {
         for block in self.blocks_to_finalize_from_data(data) {
-            self.last_finalized_by_aleph = block.clone();
-            self.chain_info_provider
+            self.set_last_finalized(block.clone());
+            self.chain_info_provider()
                 .inner()
                 .update_aux_finalized(block.clone());
-            if let Err(err) = self.blocks_to_finalize_tx.unbounded_send(block) {
+            if let Err(err) = self.send_block_to_finalize(block) {
                 error!(target: "aleph-finality", "Error in sending a block from FinalizationHandler, {}", err);
             }
         }

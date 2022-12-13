@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
+    "aggregator",
     "bin/node",
     "bin/runtime",
     "finality-aleph",
@@ -24,3 +25,12 @@ exclude = [
     "fork-off",
     "relations",
 ]
+
+[profile.release]
+# Substrate runtime requires unwinding.
+panic = "unwind"
+
+[profile.production]
+inherits = "release"
+lto = true
+codegen-units = 1

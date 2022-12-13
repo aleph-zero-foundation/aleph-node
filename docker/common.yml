@@ -1,7 +1,6 @@
 services:
   AlephNodeService:
     image: aleph-node:latest
-    network_mode: host
     environment:
       - PURGE_BEFORE_START=true
       - RUST_LOG=info

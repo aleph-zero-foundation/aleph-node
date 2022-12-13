@@ -1,25 +1,21 @@
 use std::env;
 
-use aleph_client::{
-    account_from_keypair, aleph_keypair_from_string, keypair_from_string, print_storages,
-    SignedConnection,
-};
+use aleph_client::{account_from_keypair, aleph_keypair_from_string, keypair_from_string, Pair};
 use clap::Parser;
 use cliain::{
     bond, call, change_validators, finalize, force_new_era, instantiate, instantiate_with_code,
-    nominate, prepare_keys, prompt_password_hidden, remove_code, rotate_keys,
-    set_emergency_finalizer, set_keys, set_staking_limits, transfer, treasury_approve,
-    treasury_propose, treasury_reject, update_runtime, upload_code, validate, vest, vest_other,
-    vested_transfer, Command, ConnectionConfig,
+    next_session_keys, nominate, owner_info, prepare_keys, prompt_password_hidden, remove_code,
+    rotate_keys, schedule_upgrade, set_emergency_finalizer, set_keys, set_staking_limits, transfer,
+    treasury_approve, treasury_propose, treasury_reject, update_runtime, upload_code, validate,
+    vest, vest_other, vested_transfer, Command, ConnectionConfig,
 };
 use log::{error, info};
-use sp_core::Pair;
 
 #[derive(Debug, Parser, Clone)]
 #[clap(version = "1.0")]
 struct Config {
     /// WS endpoint address of the node to connect to
-    #[clap(long, default_value = "127.0.0.1:9944")]
+    #[clap(long, default_value = "ws://127.0.0.1:9944")]
     pub node: String,
 
     /// The seed of the key to use for signing calls.
@@ -40,9 +36,10 @@ fn read_seed(command: &Command, seed: Option<String>) -> String {
             hash: _,
             finalizer_seed: _,
         }
+        | Command::NextSessionKeys { account_id: _ }
         | Command::RotateKeys
-        | Command::DebugStorage
-        | Command::SeedToSS58 { input: _ } => String::new(),
+        | Command::SeedToSS58 { input: _ }
+        | Command::ContractOwnerInfo { .. } => String::new(),
         _ => read_secret(seed, "Provide seed for the signer account:"),
     }
 }
@@ -60,7 +57,8 @@ fn read_secret(secret: Option<String>, message: &str) -> String {
     }
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     init_env();
 
     let Config {
@@ -74,16 +72,23 @@ fn main() {
     match command {
         Command::ChangeValidators {
             change_validators_args,
-        } => change_validators(cfg.into(), change_validators_args),
+        } => change_validators(cfg.get_root_connection().await, change_validators_args).await,
         Command::PrepareKeys => {
             let key = keypair_from_string(&seed);
-            let controller_account_id = account_from_keypair(&key);
-            prepare_keys(cfg.into(), controller_account_id);
+            let controller_account_id = account_from_keypair(key.signer());
+            prepare_keys(cfg.get_root_connection().await, controller_account_id).await;
         }
         Command::Bond {
             controller_account,
             initial_stake_tokens,
-        } => bond(cfg.into(), initial_stake_tokens, controller_account),
+        } => {
+            bond(
+                cfg.get_signed_connection().await,
+                initial_stake_tokens,
+                controller_account,
+            )
+            .await
+        }
         Command::Finalize {
             block,
             hash,
@@ -91,70 +96,102 @@ fn main() {
         } => {
             let finalizer_seed = read_secret(finalizer_seed, "Provide finalizer seed:");
             let finalizer = aleph_keypair_from_string(&finalizer_seed);
-            finalize(cfg.into(), block, hash, finalizer);
+            finalize(cfg.get_connection().await, block, hash, finalizer).await;
         }
         Command::SetEmergencyFinalizer { finalizer_seed } => {
             let finalizer_seed = read_secret(finalizer_seed, "Provide finalizer seed:");
             let finalizer = aleph_keypair_from_string(&finalizer_seed);
             let finalizer = account_from_keypair(&finalizer);
-            set_emergency_finalizer(cfg.into(), finalizer);
+            set_emergency_finalizer(cfg.get_root_connection().await, finalizer).await;
         }
-        Command::SetKeys { new_keys } => set_keys(cfg.into(), new_keys),
+        Command::SetKeys { new_keys } => {
+            set_keys(cfg.get_signed_connection().await, new_keys).await
+        }
         Command::Validate {
             commission_percentage,
-        } => validate(cfg.into(), commission_percentage),
+        } => validate(cfg.get_signed_connection().await, commission_percentage).await,
         Command::Transfer {
             amount_in_tokens,
             to_account,
-        } => transfer(cfg.into(), amount_in_tokens, to_account),
+        } => {
+            transfer(
+                cfg.get_signed_connection().await,
+                amount_in_tokens,
+                to_account,
+            )
+            .await
+        }
         Command::TreasuryPropose {
             amount_in_tokens,
             beneficiary,
-        } => treasury_propose(cfg.into(), amount_in_tokens, beneficiary),
-        Command::TreasuryApprove { proposal_id } => treasury_approve(cfg.into(), proposal_id),
-        Command::TreasuryReject { proposal_id } => treasury_reject(cfg.into(), proposal_id),
-        Command::RotateKeys => rotate_keys::<SignedConnection>(cfg.into()),
+        } => {
+            treasury_propose(
+                cfg.get_signed_connection().await,
+                amount_in_tokens,
+                beneficiary,
+            )
+            .await
+        }
+        Command::TreasuryApprove { proposal_id } => {
+            treasury_approve(cfg.get_root_connection().await, proposal_id).await
+        }
+        Command::TreasuryReject { proposal_id } => {
+            treasury_reject(cfg.get_root_connection().await, proposal_id).await
+        }
+        Command::RotateKeys => rotate_keys(cfg.get_connection().await).await,
+        Command::NextSessionKeys { account_id } => {
+            next_session_keys(cfg.get_connection().await, account_id).await
+        }
         Command::SetStakingLimits {
             minimal_nominator_stake,
             minimal_validator_stake,
             max_nominators_count,
             max_validators_count,
-        } => set_staking_limits(
-            cfg.into(),
-            minimal_nominator_stake,
-            minimal_validator_stake,
-            max_nominators_count,
-            max_validators_count,
-        ),
+        } => {
+            set_staking_limits(
+                cfg.get_root_connection().await,
+                minimal_nominator_stake,
+                minimal_validator_stake,
+                max_nominators_count,
+                max_validators_count,
+            )
+            .await
+        }
         Command::ForceNewEra => {
-            force_new_era(cfg.into());
+            force_new_era(cfg.get_root_connection().await).await;
         }
         Command::SeedToSS58 { input } => {
             let input = read_secret(input, "Provide seed:");
             info!(
                 "SS58 Address: {}",
-                keypair_from_string(&input).public().to_string()
+                keypair_from_string(&input).signer().public().to_string()
             )
         }
-        Command::DebugStorage => print_storages::<SignedConnection>(&cfg.into()),
-        Command::UpdateRuntime { runtime } => update_runtime(cfg.into(), runtime),
-        Command::Vest => vest(cfg.into()),
-        Command::VestOther { vesting_account } => vest_other(cfg.into(), vesting_account),
+        Command::UpdateRuntime { runtime } => {
+            update_runtime(cfg.get_root_connection().await, runtime).await
+        }
+        Command::Vest => vest(cfg.get_signed_connection().await).await,
+        Command::VestOther { vesting_account } => {
+            vest_other(cfg.get_signed_connection().await, vesting_account).await
+        }
         Command::VestedTransfer {
             to_account,
             amount_in_tokens,
             per_block,
             starting_block,
-        } => vested_transfer(
-            cfg.into(),
-            to_account,
-            amount_in_tokens,
-            per_block,
-            starting_block,
-        ),
-        Command::Nominate { nominee } => nominate(cfg.into(), nominee),
+        } => {
+            vested_transfer(
+                cfg.get_signed_connection().await,
+                to_account,
+                amount_in_tokens,
+                per_block,
+                starting_block,
+            )
+            .await
+        }
+        Command::Nominate { nominee } => nominate(cfg.get_signed_connection().await, nominee).await,
         Command::ContractInstantiateWithCode(command) => {
-            match instantiate_with_code(cfg.into(), command) {
+            match instantiate_with_code(cfg.get_signed_connection().await, command).await {
                 Ok(result) => println!(
                     "{}",
                     serde_json::to_string(&result).expect("Can't encode the result as JSON")
@@ -162,21 +199,50 @@ fn main() {
                 Err(why) => error!("Contract deployment failed {:?}", why),
             };
         }
-        Command::ContractUploadCode(command) => match upload_code(cfg.into(), command) {
-            Ok(result) => println!("{:?}", result),
-            Err(why) => error!("Contract upload failed {:?}", why),
-        },
-        Command::ContractCall(command) => match call(cfg.into(), command) {
-            Ok(result) => println!("{:?}", result),
-            Err(why) => error!("Contract call failed {:?}", why),
-        },
-        Command::ContractInstantiate(command) => match instantiate(cfg.into(), command) {
-            Ok(result) => println!("{:?}", result),
-            Err(why) => error!("Contract instantiate failed {:?}", why),
-        },
-        Command::ContractRemoveCode(command) => match remove_code(cfg.into(), command) {
-            Ok(result) => println!("{:?}", result),
-            Err(why) => error!("Contract remove code failed {:?}", why),
+        Command::ContractUploadCode(command) => {
+            match upload_code(cfg.get_signed_connection().await, command).await {
+                Ok(result) => println!("{:?}", result),
+                Err(why) => error!("Contract upload failed {:?}", why),
+            }
+        }
+        Command::ContractCall(command) => {
+            match call(cfg.get_signed_connection().await, command).await {
+                Ok(result) => println!("{:?}", result),
+                Err(why) => error!("Contract call failed {:?}", why),
+            }
+        }
+        Command::ContractInstantiate(command) => {
+            match instantiate(cfg.get_signed_connection().await, command).await {
+                Ok(result) => println!("{:?}", result),
+                Err(why) => error!("Contract instantiate failed {:?}", why),
+            }
+        }
+        Command::ContractOwnerInfo(command) => {
+            println!(
+                "{:#?}",
+                owner_info(cfg.get_connection().await, command).await
+            )
+        }
+        Command::ContractRemoveCode(command) => {
+            match remove_code(cfg.get_signed_connection().await, command).await {
+                Ok(result) => println!("{:?}", result),
+                Err(why) => error!("Contract remove code failed {:?}", why),
+            }
+        }
+        Command::VersionUpgradeSchedule {
+            version,
+            session: session_for_upgrade,
+            expected_state,
+        } => match schedule_upgrade(
+            cfg.get_root_connection().await,
+            version,
+            session_for_upgrade,
+            expected_state,
+        )
+        .await
+        {
+            Ok(_) => {}
+            Err(why) => error!("Unable to schedule an upgrade {:?}", why),
         },
     }
 }

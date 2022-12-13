@@ -3,25 +3,30 @@ use aleph_node::ExecutorDispatch;
 use aleph_node::{new_authority, new_full, new_partial, Cli, Subcommand};
 #[cfg(any(feature = "try-runtime", feature = "runtime-benchmarks"))]
 use aleph_runtime::Block;
-use clap::Parser;
 #[cfg(feature = "runtime-benchmarks")]
 use frame_benchmarking_cli::BenchmarkCmd;
-use sc_cli::SubstrateCli;
+use log::warn;
+use sc_cli::{clap::Parser, SubstrateCli};
 use sc_network::config::Role;
 use sc_service::PartialComponents;
 
 fn main() -> sc_cli::Result<()> {
     let mut cli = Cli::parse();
-
-    if cli
-        .run
-        .import_params
-        .pruning_params
-        .pruning
-        .replace(String::from("archive"))
-        .map_or(false, |x| x != "archive")
-    {
-        println!("Pruning not supported. Switching to 'archive' mode.");
+    if !cli.aleph.experimental_pruning() {
+        if cli
+            .run
+            .import_params
+            .pruning_params
+            .blocks_pruning
+            .is_some()
+            || cli.run.import_params.pruning_params.state_pruning != Some("archive".into())
+        {
+            warn!("Pruning not supported. Switching to keeping all block bodies and states.");
+            cli.run.import_params.pruning_params.blocks_pruning = None;
+            cli.run.import_params.pruning_params.state_pruning = Some("archive".into());
+        }
+    } else {
+        warn!("Pruning not supported, but flag experimental_pruning was turned on. Usage of this flag can lead to misbehaviour, which can be punished.");
     }
 
     match &cli.subcommand {
@@ -135,8 +140,6 @@ fn main() -> sc_cli::Result<()> {
                     Role::Full => {
                         new_full(config, aleph_cli_config).map_err(sc_cli::Error::Service)
                     }
-                    // TODO: introduce appropriate error here (no error in the sc_cli::Error is good here)
-                    Role::Light => panic!("no light client yet"),
                 }
             })
         }

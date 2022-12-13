@@ -1,15 +1,17 @@
 [package]
 name = "pallets-support"
-version = "0.1.0"
+version = "0.1.4"
 edition = "2021"
 
 [dependencies]
-frame-support = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal" }
+frame-support = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
 
 [features]
 default = ["std"]
 std = [
     "frame-support/std",
+    "sp-std/std"
 ]
 try-runtime = [
     "frame-support/try-runtime",

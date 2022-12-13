@@ -178,7 +178,7 @@ class Chain:
                 'update-runtime', '--runtime', check_file(runtime)]
         subprocess.run(cmd, check=True)
 
-    def wait_for_finalization(self, old_finalized, nodes=None, timeout=300, finalized_delta=3, catchup=True, catchup_delta=10):
+    def wait_for_finalization(self, old_finalized, nodes=None, timeout=600, finalized_delta=3, catchup=True, catchup_delta=10):
         """Wait for finalization to catch up with the newest blocks. Requires providing the number
         of the last finalized block, which will be used as a reference against recently finalized blocks.
         The finalization is considered "recovered" when all provided `nodes` (all nodes if None)
@@ -202,7 +202,7 @@ class Chain:
                     print(f'Finalization restored, but failed to catch up with recent blocks within {timeout} seconds')
                     break
 
-    def wait_for_authorities(self, nodes=None, timeout=300):
+    def wait_for_authorities(self, nodes=None, timeout=600):
         """Wait for the selected `nodes` (all validator nodes if None) to connect to all known authorities.
         If not successful within the given `timeout` (in seconds), raise TimeoutError."""
         nodes = [self.nodes[i] for i in nodes] if nodes else self.validator_nodes
