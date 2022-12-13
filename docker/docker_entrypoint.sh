@@ -31,6 +31,7 @@ TELEMETRY_URL=${TELEMETRY_URL:-'wss://telemetry.polkadot.io/submit/'}
 TELEMETRY_VERBOSITY_LVL=${TELEMETRY_VERBOSITY_LVL:-'0'}
 UNIT_CREATION_DELAY=${UNIT_CREATION_DELAY:-300}
 DB_CACHE=${DB_CACHE:-1024}
+RUNTIME_CACHE_SIZE=${RUNTIME_CACHE_SIZE:-2}
 BACKUP_PATH=${BACKUP_PATH:-${BASE_PATH}/backup-stash}
 
 if [[ "true" == "$PURGE_BEFORE_START" ]]; then
@@ -58,6 +59,7 @@ ARGS=(
   --unsafe-ws-external --unsafe-rpc-external
   --enable-log-reloading
   --db-cache "${DB_CACHE}"
+  --runtime-cache-size "${RUNTIME_CACHE_SIZE}"
 )
 
 if [[ -n "${BOOT_NODES:-}" ]]; then
