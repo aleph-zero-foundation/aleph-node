@@ -59,7 +59,6 @@ sp-io = { default-features = false, git = "https://github.com/Cardinal-Cryptogra
 
 # Benchmarking stuff
 frame-benchmarking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32", optional = true }
-hex-literal = { version = "0.3.4", optional = true }
 
 primitives = { path = "../../primitives", default-features = false }
 pallet-aleph = { path = "../../pallets/aleph", default-features = false }
@@ -145,7 +144,6 @@ try-runtime = [
 ]
 enable_treasury_proposals = []
 runtime-benchmarks = [
-    "hex-literal",
     "frame-system/runtime-benchmarks",
     "frame-benchmarking/runtime-benchmarks",
     "pallet-snarcos/runtime-benchmarks",

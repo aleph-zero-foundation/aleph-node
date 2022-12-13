@@ -291,7 +291,6 @@ dependencies = [
  "frame-system",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
- "hex-literal",
  "pallet-aleph",
  "pallet-aura",
  "pallet-authorship",
