@@ -1,15 +1,16 @@
-#[cfg(feature = "try-runtime")]
-use frame_support::ensure;
 use frame_support::{
     log, storage_alias,
     traits::{Get, OnRuntimeUpgrade, PalletInfoAccess, StorageVersion},
     weights::Weight,
 };
-#[cfg(feature = "try-runtime")]
-use pallets_support::ensure_storage_version;
-use pallets_support::StorageMigration;
 use primitives::SessionIndex;
 use sp_std::vec::Vec;
+#[cfg(feature = "try-runtime")]
+use {
+    codec::{Decode, Encode},
+    frame_support::ensure,
+    pallets_support::ensure_storage_version,
+};
 
 use crate::Config;
 
@@ -24,9 +25,11 @@ type Validators<T> = StorageValue<Aleph, Accounts<T>>;
 /// Flattening double `Option<>` storage.
 pub struct Migration<T, P>(sp_std::marker::PhantomData<(T, P)>);
 
-impl<T: Config, P: PalletInfoAccess> StorageMigration for Migration<T, P> {
-    #[cfg(feature = "try-runtime")]
-    const MIGRATION_STORAGE_PREFIX: &'static [u8] = b"PALLET_ALEPH::V0_TO_V1_MIGRATION";
+#[cfg(feature = "try-runtime")]
+#[derive(Decode, Encode)]
+struct MigrationChecksState<T: Config> {
+    session: Option<Option<SessionIndex>>,
+    validators: Option<Option<Accounts<T>>>,
 }
 
 impl<T: Config, P: PalletInfoAccess> OnRuntimeUpgrade for Migration<T, P> {
@@ -87,18 +90,27 @@ impl<T: Config, P: PalletInfoAccess> OnRuntimeUpgrade for Migration<T, P> {
 
         ensure_storage_version::<P>(0)?;
 
-        Self::store_temp("session", SessionForValidatorsChange::get());
-        Self::store_temp("validators", Validators::<T>::get());
+        let session = SessionForValidatorsChange::get();
+        let validators = Validators::<T>::get();
 
-        Ok(Vec::new())
+        Ok(MigrationChecksState::<T> {
+            session,
+            validators,
+        }
+        .encode())
     }
 
     #[cfg(feature = "try-runtime")]
-    fn post_upgrade(_state: Vec<u8>) -> Result<(), &'static str> {
+    fn post_upgrade(state: Vec<u8>) -> Result<(), &'static str> {
         ensure_storage_version::<P>(1)?;
 
+        let MigrationChecksState {
+            session: old_session,
+            validators: old_validators,
+        } = <MigrationChecksState<T>>::decode(&mut &*state)
+            .map_err(|_| "Failed to decode old state")?;
+
         let new_session = SessionForValidatorsChange::get();
-        let old_session = Self::read_temp::<Option<Option<SessionIndex>>>("session");
 
         match old_session {
             Some(Some(session)) => ensure!(
@@ -106,20 +118,22 @@ impl<T: Config, P: PalletInfoAccess> OnRuntimeUpgrade for Migration<T, P> {
                 "Mismatch on `SessionForValidatorsChange`",
             ),
             _ => ensure!(
-                None == new_session,
+                new_session.is_none(),
                 "New `SessionForValidatorsChange` should be `None`"
             ),
         };
 
         let new_validators = Validators::<T>::get();
-        let old_validators = Self::read_temp::<Option<Option<Accounts<T>>>>("validators");
 
         match old_validators {
             Some(Some(validators)) => ensure!(
                 Some(validators) == new_validators,
                 "Mismatch on `Validators`",
             ),
-            _ => ensure!(None == new_validators, "New `Validators` should be `None`"),
+            _ => ensure!(
+                new_validators.is_none(),
+                "New `Validators` should be `None`"
+            ),
         };
 
         Ok(())
