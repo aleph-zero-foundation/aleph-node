@@ -3,12 +3,13 @@ use std::env;
 use aleph_client::{account_from_keypair, aleph_keypair_from_string, keypair_from_string, Pair};
 use clap::Parser;
 use cliain::{
-    bond, call, change_validators, delete_key, finalize, force_new_era, instantiate,
-    instantiate_with_code, next_session_keys, nominate, overwrite_key, owner_info, prepare_keys,
-    prompt_password_hidden, remove_code, rotate_keys, schedule_upgrade, set_emergency_finalizer,
-    set_keys, set_staking_limits, store_key, transfer, treasury_approve, treasury_propose,
-    treasury_reject, update_runtime, upload_code, validate, verify, vest, vest_other,
-    vested_transfer, Command, ConnectionConfig,
+    bond, call, change_validators, delete_key, finalize, force_new_era, generate_keys,
+    generate_keys_from_srs, generate_proof, generate_srs, instantiate, instantiate_with_code,
+    next_session_keys, nominate, overwrite_key, owner_info, prepare_keys, prompt_password_hidden,
+    remove_code, rotate_keys, schedule_upgrade, set_emergency_finalizer, set_keys,
+    set_staking_limits, store_key, transfer, treasury_approve, treasury_propose, treasury_reject,
+    update_runtime, upload_code, validate, verify, verify_proof, vest, vest_other, vested_transfer,
+    Command, ConnectionConfig, Snarcos, SnarkRelation,
 };
 use log::{error, info};
 
@@ -37,9 +38,10 @@ fn read_seed(command: &Command, seed: Option<String>) -> String {
             hash: _,
             finalizer_seed: _,
         }
-        | Command::NextSessionKeys { account_id: _ }
+        | Command::NextSessionKeys { .. }
         | Command::RotateKeys
-        | Command::SeedToSS58 { input: _ }
+        | Command::SeedToSS58 { .. }
+        | Command::SnarkRelation { .. }
         | Command::ContractOwnerInfo { .. } => String::new(),
         _ => read_secret(seed, "Provide seed for the signer account:"),
     }
@@ -245,49 +247,84 @@ async fn main() {
             Ok(_) => {}
             Err(why) => error!("Unable to schedule an upgrade {:?}", why),
         },
-        Command::SnarcosStoreKey {
-            identifier,
-            vk_file,
-        } => {
-            if let Err(why) =
-                store_key(cfg.get_signed_connection().await, identifier, vk_file).await
-            {
-                error!("Unable to store key: {why:?}")
+
+        Command::Snarcos(cmd) => match cmd {
+            Snarcos::StoreKey {
+                identifier,
+                vk_file,
+            } => {
+                if let Err(why) =
+                    store_key(cfg.get_signed_connection().await, identifier, vk_file).await
+                {
+                    error!("Unable to store key: {why:?}")
+                }
             }
-        }
-        Command::SnarcosDeleteKey { identifier } => {
-            if let Err(why) = delete_key(cfg.get_root_connection().await, identifier).await {
-                error!("Unable to delete key: {why:?}")
+            Snarcos::DeleteKey { identifier } => {
+                if let Err(why) = delete_key(cfg.get_root_connection().await, identifier).await {
+                    error!("Unable to delete key: {why:?}")
+                }
             }
-        }
-        Command::SnarcosOverwriteKey {
-            identifier,
-            vk_file,
-        } => {
-            if let Err(why) =
-                overwrite_key(cfg.get_root_connection().await, identifier, vk_file).await
-            {
-                error!("Unable to overwrite key: {why:?}")
+            Snarcos::OverwriteKey {
+                identifier,
+                vk_file,
+            } => {
+                if let Err(why) =
+                    overwrite_key(cfg.get_root_connection().await, identifier, vk_file).await
+                {
+                    error!("Unable to overwrite key: {why:?}")
+                }
             }
-        }
-        Command::SnarcosVerify {
-            identifier,
-            proof_file,
-            input_file,
-            system,
-        } => {
-            if let Err(why) = verify(
-                cfg.get_signed_connection().await,
+            Snarcos::Verify {
                 identifier,
                 proof_file,
                 input_file,
                 system,
-            )
-            .await
-            {
-                error!("Unable to verify proof: {why:?}")
+            } => {
+                if let Err(why) = verify(
+                    cfg.get_signed_connection().await,
+                    identifier,
+                    proof_file,
+                    input_file,
+                    system,
+                )
+                .await
+                {
+                    error!("Unable to verify proof: {why:?}")
+                }
             }
-        }
+        },
+
+        Command::SnarkRelation(cmd) => match cmd {
+            SnarkRelation::GenerateSrs {
+                system,
+                num_constraints,
+                num_variables,
+                degree,
+            } => generate_srs(system, num_constraints, num_variables, degree),
+            SnarkRelation::GenerateKeysFromSrs {
+                relation,
+                system,
+                srs_file,
+            } => generate_keys_from_srs(relation, system, srs_file),
+            SnarkRelation::GenerateKeys { relation, system } => generate_keys(relation, system),
+            SnarkRelation::GenerateProof {
+                relation,
+                system,
+                proving_key_file,
+            } => generate_proof(relation, system, proving_key_file),
+            SnarkRelation::Verify {
+                verifying_key_file,
+                proof_file,
+                public_input_file,
+                system,
+            } => {
+                if verify_proof(verifying_key_file, proof_file, public_input_file, system) {
+                    println!("Proof is correct")
+                } else {
+                    error!("Incorrect proof!")
+                }
+            }
+        },
     }
 }
 

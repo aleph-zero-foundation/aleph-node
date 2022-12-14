@@ -7,7 +7,7 @@ mod shielder;
 mod utils;
 mod xor;
 
-pub use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError};
+pub use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, Result, SynthesisError};
 pub use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 pub use environment::{
     CircuitField, Groth16, Marlin, MarlinPolynomialCommitment, NonUniversalSystem, ProvingSystem,
