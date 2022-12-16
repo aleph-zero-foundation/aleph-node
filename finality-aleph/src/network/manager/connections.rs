@@ -57,7 +57,7 @@ mod tests {
 
     use super::Connections;
     use crate::{
-        validator_network::mock::{random_keys, MockPublicKey},
+        network::clique::mock::{random_keys, MockPublicKey},
         SessionId,
     };
 

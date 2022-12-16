@@ -3,9 +3,9 @@ use std::fmt::{Display, Error as FmtError, Formatter};
 use futures::channel::mpsc;
 use log::{debug, info};
 
-use crate::validator_network::{
+use crate::network::clique::{
     protocols::{protocol, ProtocolError, ProtocolNegotiationError, ResultForService},
-    Data, PublicKey, SecretKey, Splittable,
+    Data, PublicKey, SecretKey, Splittable, LOG_TARGET,
 };
 
 enum IncomingError<PK: PublicKey> {
@@ -41,9 +41,12 @@ async fn manage_incoming<SK: SecretKey, D: Data, S: Splittable>(
     result_for_parent: mpsc::UnboundedSender<ResultForService<SK::PublicKey, D>>,
     data_for_user: mpsc::UnboundedSender<D>,
 ) -> Result<(), IncomingError<SK::PublicKey>> {
-    debug!(target: "validator-network", "Performing incoming protocol negotiation.");
+    debug!(
+        target: LOG_TARGET,
+        "Performing incoming protocol negotiation."
+    );
     let (stream, protocol) = protocol(stream).await?;
-    debug!(target: "validator-network", "Negotiated protocol, running.");
+    debug!(target: LOG_TARGET, "Negotiated protocol, running.");
     Ok(protocol
         .manage_incoming(stream, secret_key, result_for_parent, data_for_user)
         .await?)
@@ -62,6 +65,9 @@ pub async fn incoming<SK: SecretKey, D: Data, S: Splittable>(
 ) {
     let addr = stream.peer_address_info();
     if let Err(e) = manage_incoming(secret_key, stream, result_for_parent, data_for_user).await {
-        info!(target: "validator-network", "Incoming connection from {} failed: {}.", addr, e);
+        info!(
+            target: LOG_TARGET,
+            "Incoming connection from {} failed: {}.", addr, e
+        );
     }
 }

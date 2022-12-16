@@ -2,26 +2,24 @@ use std::fmt::Debug;
 
 use futures::channel::mpsc;
 
-use crate::{
-    network::{
-        manager::{DataInSession, VersionedAuthentication},
-        AddressingInformation, ConnectionManagerIO, Data, GossipNetwork, SessionManagerIO,
-    },
-    validator_network::{Network as ValidatorNetwork, PublicKey},
+use crate::network::{
+    clique::{Network as CliqueNetwork, PublicKey},
+    manager::{DataInSession, VersionedAuthentication},
+    AddressingInformation, ConnectionManagerIO, Data, GossipNetwork, SessionManagerIO,
 };
 
-type FullIO<D, M, A, VN, GN> = (ConnectionManagerIO<D, M, A, VN, GN>, SessionManagerIO<D>);
+type FullIO<D, M, A, CN, GN> = (ConnectionManagerIO<D, M, A, CN, GN>, SessionManagerIO<D>);
 
 pub fn setup<
     D: Data,
     M: Data + Debug,
     A: AddressingInformation + TryFrom<Vec<M>> + Into<Vec<M>>,
-    VN: ValidatorNetwork<A::PeerId, A, DataInSession<D>>,
+    CN: CliqueNetwork<A::PeerId, A, DataInSession<D>>,
     GN: GossipNetwork<VersionedAuthentication<M, A>>,
 >(
-    validator_network: VN,
+    validator_network: CN,
     gossip_network: GN,
-) -> FullIO<D, M, A, VN, GN>
+) -> FullIO<D, M, A, CN, GN>
 where
     A::PeerId: PublicKey,
 {

@@ -12,7 +12,10 @@ use sp_runtime::traits::Block;
 use crate::{
     crypto::AuthorityPen,
     network::{
-        setup_io, ConnectionManager, ConnectionManagerConfig, GossipService, SessionManager,
+        clique::Service,
+        setup_io,
+        tcp::{new_tcp_network, KEY_TYPE},
+        ConnectionManager, ConnectionManagerConfig, GossipService, SessionManager,
     },
     nodes::{setup_justification_handler, JustificationParams},
     party::{
@@ -21,8 +24,6 @@ use crate::{
         ConsensusParty, ConsensusPartyParams,
     },
     session_map::{AuthorityProviderImpl, FinalityNotificatorImpl, SessionMapUpdater},
-    tcp_network::{new_tcp_network, KEY_TYPE},
-    validator_network::Service,
     AlephConfig, BlockchainBackend,
 };
 

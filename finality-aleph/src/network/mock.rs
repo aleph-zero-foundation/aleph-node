@@ -1,6 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
 use aleph_primitives::KEY_TYPE;
+use codec::{Decode, Encode, Output};
 use futures::{channel::mpsc, StreamExt};
 use sp_keystore::{testing::KeyStore, CryptoStore};
 use tokio::time::timeout;
@@ -10,7 +11,64 @@ use crate::{
     AuthorityId, NodeIndex,
 };
 
-pub type MockData = Vec<u8>;
+#[derive(Hash, Debug, Clone, PartialEq, Eq)]
+pub struct MockData {
+    data: u32,
+    filler: Vec<u8>,
+    decodes: bool,
+}
+
+impl MockData {
+    pub fn new(data: u32, filler_size: usize) -> MockData {
+        MockData {
+            data,
+            filler: vec![0; filler_size],
+            decodes: true,
+        }
+    }
+
+    pub fn new_undecodable(data: u32, filler_size: usize) -> MockData {
+        MockData {
+            data,
+            filler: vec![0; filler_size],
+            decodes: false,
+        }
+    }
+
+    pub fn data(&self) -> u32 {
+        self.data
+    }
+}
+
+impl Encode for MockData {
+    fn size_hint(&self) -> usize {
+        self.data.size_hint() + self.filler.size_hint() + self.decodes.size_hint()
+    }
+
+    fn encode_to<T: Output + ?Sized>(&self, dest: &mut T) {
+        // currently this is exactly the default behaviour, but we still
+        // need it here to make sure that decode works in the future
+        self.data.encode_to(dest);
+        self.filler.encode_to(dest);
+        self.decodes.encode_to(dest);
+    }
+}
+
+impl Decode for MockData {
+    fn decode<I: codec::Input>(value: &mut I) -> Result<Self, codec::Error> {
+        let data = u32::decode(value)?;
+        let filler = Vec::<u8>::decode(value)?;
+        let decodes = bool::decode(value)?;
+        if !decodes {
+            return Err("Simulated decode failure.".into());
+        }
+        Ok(Self {
+            data,
+            filler,
+            decodes,
+        })
+    }
+}
 
 #[derive(Clone)]
 pub struct Channel<T>(

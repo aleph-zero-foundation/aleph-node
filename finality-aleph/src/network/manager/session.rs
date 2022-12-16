@@ -273,11 +273,11 @@ mod tests {
     use super::{Handler, HandlerError};
     use crate::{
         network::{
+            clique::mock::{random_address, random_invalid_address},
             mock::crypto_basics,
             testing::{authentication, legacy_authentication},
             AddressingInformation,
         },
-        testing::mocks::validator_network::{random_address, random_invalid_address},
         NodeIndex, SessionId,
     };
 

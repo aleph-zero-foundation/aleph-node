@@ -1,7 +1,9 @@
+//! A network for maintaining direct connections between all nodes.
 use std::fmt::Display;
 
-use codec::Codec;
 use tokio::io::{AsyncRead, AsyncWrite};
+
+use crate::network::Data;
 
 mod crypto;
 mod incoming;
@@ -16,12 +18,9 @@ mod service;
 pub use crypto::{PublicKey, SecretKey};
 pub use service::Service;
 
-/// What the data sent using the network has to satisfy.
-pub trait Data: Clone + Codec + Send + Sync + 'static {}
+const LOG_TARGET: &str = "clique-network";
 
-impl<D: Clone + Codec + Send + Sync + 'static> Data for D {}
-
-/// Network represents an interface for opening and closing connections with other Validators,
+/// Network represents an interface for opening and closing connections with other nodes,
 /// and sending direct messages between them.
 ///
 /// Note on Network reliability and security: it is neither assumed that the sent messages must be

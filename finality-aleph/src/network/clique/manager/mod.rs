@@ -5,10 +5,7 @@ use std::{
 
 use futures::channel::mpsc;
 
-use crate::{
-    network::PeerId,
-    validator_network::{Data, PublicKey},
-};
+use crate::network::{clique::PublicKey, Data, PeerId};
 
 mod direction;
 mod legacy;
@@ -242,7 +239,7 @@ mod tests {
     use futures::{channel::mpsc, StreamExt};
 
     use super::{AddResult::*, Manager, SendError};
-    use crate::validator_network::mock::{key, MockPublicKey};
+    use crate::network::clique::mock::{key, MockPublicKey};
 
     type Data = String;
     type Address = String;

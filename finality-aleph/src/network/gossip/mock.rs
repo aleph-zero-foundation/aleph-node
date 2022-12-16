@@ -7,12 +7,10 @@ use futures::{
 };
 use parking_lot::Mutex;
 
-use crate::{
-    network::{
-        gossip::{Event, EventStream, NetworkSender, Protocol, RawNetwork},
-        mock::Channel,
-    },
-    validator_network::mock::MockPublicKey,
+use crate::network::{
+    clique::mock::MockPublicKey,
+    gossip::{Event, EventStream, NetworkSender, Protocol, RawNetwork},
+    mock::Channel,
 };
 
 pub type MockEvent = Event<MockPublicKey>;

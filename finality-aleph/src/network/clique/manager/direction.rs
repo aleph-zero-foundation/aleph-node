@@ -3,7 +3,7 @@ use std::{
     ops::BitXor,
 };
 
-use crate::validator_network::{Data, PublicKey};
+use crate::network::{clique::PublicKey, Data};
 
 /// Data about peers we know and whether we should connect to them or they to us. For the former
 /// case also keeps the peers' addresses.
@@ -85,7 +85,7 @@ impl<PK: PublicKey, A: Data> DirectedPeers<PK, A> {
 #[cfg(test)]
 mod tests {
     use super::DirectedPeers;
-    use crate::validator_network::mock::{key, MockPublicKey};
+    use crate::network::clique::mock::{key, MockPublicKey};
 
     type Address = String;
 

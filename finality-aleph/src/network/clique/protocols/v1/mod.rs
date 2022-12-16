@@ -6,13 +6,13 @@ use tokio::{
     time::{timeout, Duration},
 };
 
-use crate::validator_network::{
+use crate::network::clique::{
     io::{receive_data, send_data},
     protocols::{
         handshake::{v0_handshake_incoming, v0_handshake_outgoing},
         ConnectionType, ProtocolError, ResultForService,
     },
-    Data, PublicKey, SecretKey, Splittable,
+    Data, PublicKey, SecretKey, Splittable, LOG_TARGET,
 };
 
 const HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(5);
@@ -92,9 +92,12 @@ pub async fn outgoing<SK: SecretKey, D: Data, S: Splittable>(
     result_for_parent: mpsc::UnboundedSender<ResultForService<SK::PublicKey, D>>,
     data_for_user: mpsc::UnboundedSender<D>,
 ) -> Result<(), ProtocolError<SK::PublicKey>> {
-    trace!(target: "validator-network", "Extending hand to {}.", public_key);
+    trace!(target: LOG_TARGET, "Extending hand to {}.", public_key);
     let (sender, receiver) = v0_handshake_outgoing(stream, secret_key, public_key.clone()).await?;
-    info!(target: "validator-network", "Outgoing handshake with {} finished successfully.", public_key);
+    info!(
+        target: LOG_TARGET,
+        "Outgoing handshake with {} finished successfully.", public_key
+    );
     let (data_for_network, data_from_user) = mpsc::unbounded();
     result_for_parent
         .unbounded_send((
@@ -103,7 +106,10 @@ pub async fn outgoing<SK: SecretKey, D: Data, S: Splittable>(
             ConnectionType::New,
         ))
         .map_err(|_| ProtocolError::NoParentConnection)?;
-    debug!(target: "validator-network", "Starting worker for communicating with {}.", public_key);
+    debug!(
+        target: LOG_TARGET,
+        "Starting worker for communicating with {}.", public_key
+    );
     manage_connection(sender, receiver, data_from_user, data_for_user).await
 }
 
@@ -116,9 +122,12 @@ pub async fn incoming<SK: SecretKey, D: Data, S: Splittable>(
     result_for_parent: mpsc::UnboundedSender<ResultForService<SK::PublicKey, D>>,
     data_for_user: mpsc::UnboundedSender<D>,
 ) -> Result<(), ProtocolError<SK::PublicKey>> {
-    trace!(target: "validator-network", "Waiting for extended hand...");
+    trace!(target: LOG_TARGET, "Waiting for extended hand...");
     let (sender, receiver, public_key) = v0_handshake_incoming(stream, secret_key).await?;
-    info!(target: "validator-network", "Incoming handshake with {} finished successfully.", public_key);
+    info!(
+        target: LOG_TARGET,
+        "Incoming handshake with {} finished successfully.", public_key
+    );
     let (data_for_network, data_from_user) = mpsc::unbounded();
     result_for_parent
         .unbounded_send((
@@ -127,7 +136,10 @@ pub async fn incoming<SK: SecretKey, D: Data, S: Splittable>(
             ConnectionType::New,
         ))
         .map_err(|_| ProtocolError::NoParentConnection)?;
-    debug!(target: "validator-network", "Starting worker for communicating with {}.", public_key);
+    debug!(
+        target: LOG_TARGET,
+        "Starting worker for communicating with {}.", public_key
+    );
     manage_connection(sender, receiver, data_from_user, data_for_user).await
 }
 
@@ -139,7 +151,7 @@ mod tests {
     };
 
     use super::{incoming, outgoing, ProtocolError};
-    use crate::validator_network::{
+    use crate::network::clique::{
         mock::{key, MockPublicKey, MockSecretKey, MockSplittable},
         protocols::{ConnectionType, ResultForService},
         Data,

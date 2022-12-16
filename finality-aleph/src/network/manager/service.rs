@@ -17,6 +17,7 @@ use crate::{
     abft::Recipient,
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{
+        clique::{Network as CliqueNetwork, PublicKey},
         manager::{
             compatibility::PeerAuthentications, Connections, DataInSession, Discovery,
             DiscoveryMessage, SessionHandler, SessionHandlerError, VersionedAuthentication,
@@ -24,7 +25,6 @@ use crate::{
         AddressedData, AddressingInformation, ConnectionCommand, Data, GossipNetwork,
         NetworkIdentity, PeerId,
     },
-    validator_network::{Network as ValidatorNetwork, PublicKey},
     MillisecsPerBlock, NodeIndex, SessionId, SessionPeriod, STATUS_REPORT_INTERVAL,
 };
 
@@ -558,14 +558,14 @@ pub struct IO<
     D: Data,
     M: Data,
     A: AddressingInformation + TryFrom<Vec<M>> + Into<Vec<M>>,
-    VN: ValidatorNetwork<A::PeerId, A, DataInSession<D>>,
+    CN: CliqueNetwork<A::PeerId, A, DataInSession<D>>,
     GN: GossipNetwork<VersionedAuthentication<M, A>>,
 > where
     A::PeerId: PublicKey,
 {
     commands_from_user: mpsc::UnboundedReceiver<SessionCommand<D>>,
     messages_from_user: mpsc::UnboundedReceiver<(D, SessionId, Recipient)>,
-    validator_network: VN,
+    validator_network: CN,
     gossip_network: GN,
     _phantom: PhantomData<(M, A)>,
 }
@@ -595,18 +595,18 @@ impl<
         D: Data,
         M: Data + Debug,
         A: AddressingInformation + TryFrom<Vec<M>> + Into<Vec<M>>,
-        VN: ValidatorNetwork<A::PeerId, A, DataInSession<D>>,
+        CN: CliqueNetwork<A::PeerId, A, DataInSession<D>>,
         GN: GossipNetwork<VersionedAuthentication<M, A>>,
-    > IO<D, M, A, VN, GN>
+    > IO<D, M, A, CN, GN>
 where
     A::PeerId: PublicKey,
 {
     pub fn new(
         commands_from_user: mpsc::UnboundedReceiver<SessionCommand<D>>,
         messages_from_user: mpsc::UnboundedReceiver<(D, SessionId, Recipient)>,
-        validator_network: VN,
+        validator_network: CN,
         gossip_network: GN,
-    ) -> IO<D, M, A, VN, GN> {
+    ) -> IO<D, M, A, CN, GN> {
         IO {
             commands_from_user,
             messages_from_user,
@@ -742,11 +742,11 @@ mod tests {
     use super::{Config, SendError, Service, ServiceActions, SessionCommand};
     use crate::{
         network::{
+            clique::mock::{random_address, MockAddressingInformation},
             manager::{compatibility::PeerAuthentications, DataInSession, DiscoveryMessage},
             mock::crypto_basics,
             ConnectionCommand,
         },
-        testing::mocks::validator_network::{random_address, MockAddressingInformation},
         Recipient, SessionId,
     };
 

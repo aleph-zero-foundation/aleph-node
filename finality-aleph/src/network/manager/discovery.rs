@@ -122,11 +122,11 @@ mod tests {
     use super::Discovery;
     use crate::{
         network::{
+            clique::mock::{random_address, MockAddressingInformation},
             manager::{compatibility::PeerAuthentications, SessionHandler},
             mock::crypto_basics,
             testing::{authentication, legacy_authentication},
         },
-        testing::mocks::validator_network::{random_address, MockAddressingInformation},
         SessionId,
     };
 

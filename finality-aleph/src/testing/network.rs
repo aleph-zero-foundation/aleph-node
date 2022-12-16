@@ -12,6 +12,10 @@ use tokio::{runtime::Handle, task::JoinHandle, time::timeout};
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{
+        clique::mock::{
+            key, random_address_from, MockAddressingInformation, MockNetwork as MockCliqueNetwork,
+            MockPublicKey,
+        },
         data::Network,
         mock::{crypto_basics, MockData},
         setup_io,
@@ -22,10 +26,6 @@ use crate::{
         AddressingInformation, ConnectionManager, ConnectionManagerConfig, GossipService,
         NetworkIdentity, Protocol, SessionManager,
     },
-    testing::mocks::validator_network::{
-        random_address_from, MockAddressingInformation, MockNetwork as MockValidatorNetwork,
-    },
-    validator_network::mock::{key, MockPublicKey},
     MillisecsPerBlock, NodeIndex, Recipient, SessionId, SessionPeriod,
 };
 
@@ -74,7 +74,7 @@ struct TestData {
     pub authority_verifier: AuthorityVerifier,
     pub session_manager: SessionManager<MockData>,
     pub network: MockRawNetwork,
-    pub validator_network: MockValidatorNetwork<DataInSession<MockData>>,
+    pub validator_network: MockCliqueNetwork<DataInSession<MockData>>,
     network_manager_exit_tx: oneshot::Sender<()>,
     gossip_service_exit_tx: oneshot::Sender<()>,
     network_manager_handle: JoinHandle<()>,
@@ -103,7 +103,7 @@ async fn prepare_one_session_test_data() -> TestData {
     let (network_manager_exit_tx, network_manager_exit_rx) = oneshot::channel();
     let (gossip_service_exit_tx, gossip_service_exit_rx) = oneshot::channel();
     let network = MockRawNetwork::new(event_stream_tx);
-    let validator_network = MockValidatorNetwork::new();
+    let validator_network = MockCliqueNetwork::new();
 
     let (gossip_service, gossip_network) =
         GossipService::new(network.clone(), task_manager.spawn_handle());
@@ -414,7 +414,7 @@ async fn test_connects_to_others() {
     let mut test_data = prepare_one_session_test_data().await;
     let mut data_network = test_data.start_session(session_id).await;
 
-    let data = vec![1, 2, 3];
+    let data = MockData::new(43, 3);
     test_data.validator_network.next.send(DataInSession {
         data: data.clone(),
         session_id: SessionId(session_id),
@@ -439,7 +439,7 @@ async fn test_connects_to_others_early_validator() {
 
     let mut data_network = test_data.start_validator_session(0, session_id).await;
 
-    let data = vec![1, 2, 3];
+    let data = MockData::new(43, 3);
     test_data.validator_network.next.send(DataInSession {
         data: data.clone(),
         session_id: SessionId(session_id),
@@ -497,10 +497,10 @@ async fn test_receives_data_in_correct_session() {
 
     let mut data_network_2 = test_data.start_session(session_id_2).await;
 
-    let data_1_1 = vec![1, 2, 3];
-    let data_1_2 = vec![4, 5, 6];
-    let data_2_1 = vec![7, 8, 9];
-    let data_2_2 = vec![10, 11, 12];
+    let data_1_1 = MockData::new(43, 3);
+    let data_1_2 = MockData::new(44, 3);
+    let data_2_1 = MockData::new(45, 3);
+    let data_2_2 = MockData::new(46, 3);
     test_data.validator_network.next.send(DataInSession {
         data: data_1_1.clone(),
         session_id: SessionId(session_id_1),
@@ -558,8 +558,8 @@ async fn test_sends_data_to_correct_session() {
 
     let mut expected_data = HashSet::new();
     for node_id in 1..NODES_N {
-        let data_1 = vec![2 * node_id as u8 - 1];
-        let data_2 = vec![2 * node_id as u8];
+        let data_1 = MockData::new((node_id - 1) as u32, 1);
+        let data_2 = MockData::new(node_id as u32, 1);
 
         expected_data.insert((
             data_1.clone(),
@@ -610,8 +610,8 @@ async fn test_broadcasts_data_to_correct_session() {
     let mut data_network_1 = test_data.start_session(session_id_1).await;
     let mut data_network_2 = test_data.start_session(session_id_2).await;
 
-    let data_1 = vec![1, 2, 3];
-    let data_2 = vec![4, 5, 6];
+    let data_1 = MockData::new(43, 3);
+    let data_2 = MockData::new(44, 3);
     data_network_1
         .send(data_1.clone(), Recipient::Everyone)
         .expect("Should send");

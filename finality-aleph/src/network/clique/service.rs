@@ -8,13 +8,15 @@ use log::{debug, info, trace, warn};
 use tokio::time;
 
 use crate::{
-    network::PeerId,
-    validator_network::{
-        incoming::incoming,
-        manager::{AddResult, LegacyManager, Manager},
-        outgoing::outgoing,
-        protocols::{ConnectionType, ResultForService},
-        Data, Dialer, Listener, Network, PublicKey, SecretKey,
+    network::{
+        clique::{
+            incoming::incoming,
+            manager::{AddResult, LegacyManager, Manager},
+            outgoing::outgoing,
+            protocols::{ConnectionType, ResultForService},
+            Dialer, Listener, Network, PublicKey, SecretKey, LOG_TARGET,
+        },
+        Data, PeerId,
     },
     SpawnTaskHandle, STATUS_REPORT_INTERVAL,
 };
@@ -39,7 +41,7 @@ impl<PK: PublicKey, D: Data, A: Data> Network<PK, A, D> for ServiceInterface<PK,
             .unbounded_send(ServiceCommand::AddConnection(peer, address))
             .is_err()
         {
-            info!(target: "validator-network", "Service is dead.");
+            info!(target: LOG_TARGET, "Service is dead.");
         };
     }
 
@@ -50,7 +52,7 @@ impl<PK: PublicKey, D: Data, A: Data> Network<PK, A, D> for ServiceInterface<PK,
             .unbounded_send(ServiceCommand::DelConnection(peer))
             .is_err()
         {
-            info!(target: "validator-network", "Service is dead.");
+            info!(target: LOG_TARGET, "Service is dead.");
         };
     }
 
@@ -62,7 +64,7 @@ impl<PK: PublicKey, D: Data, A: Data> Network<PK, A, D> for ServiceInterface<PK,
             .unbounded_send(ServiceCommand::SendData(data, recipient))
             .is_err()
         {
-            info!(target: "validator-network", "Service is dead.");
+            info!(target: LOG_TARGET, "Service is dead.");
         };
     }
 
@@ -72,7 +74,7 @@ impl<PK: PublicKey, D: Data, A: Data> Network<PK, A, D> for ServiceInterface<PK,
     }
 }
 
-/// A service that has to be run for the validator network to work.
+/// A service that has to be run for the clique network to work.
 pub struct Service<SK: SecretKey, D: Data, A: Data, ND: Dialer<A>, NL: Listener>
 where
     SK::PublicKey: PeerId,
@@ -93,7 +95,7 @@ impl<SK: SecretKey, D: Data, A: Data + Debug, ND: Dialer<A>, NL: Listener> Servi
 where
     SK::PublicKey: PeerId,
 {
-    /// Create a new validator network service plus an interface for interacting with it.
+    /// Create a new clique network service plus an interface for interacting with it.
     pub fn new(
         dialer: ND,
         listener: NL,
@@ -133,7 +135,7 @@ where
         let dialer = self.dialer.clone();
         let next_to_interface = self.next_to_interface.clone();
         self.spawn_handle
-            .spawn("aleph/validator_network_outgoing", None, async move {
+            .spawn("aleph/clique_network_outgoing", None, async move {
                 outgoing(
                     secret_key,
                     public_key,
@@ -154,7 +156,7 @@ where
         let secret_key = self.secret_key.clone();
         let next_to_interface = self.next_to_interface.clone();
         self.spawn_handle
-            .spawn("aleph/validator_network_incoming", None, async move {
+            .spawn("aleph/clique_network_incoming", None, async move {
                 incoming(secret_key, stream, result_for_parent, next_to_interface).await;
             });
     }
@@ -237,7 +239,7 @@ where
                 // got new incoming connection from the listener - spawn an incoming worker
                 maybe_stream = self.listener.accept() => match maybe_stream {
                     Ok(stream) => self.spawn_new_incoming(stream, result_for_parent.clone()),
-                    Err(e) => warn!(target: "validator-network", "Listener failed to accept connection: {}", e),
+                    Err(e) => warn!(target: LOG_TARGET, "Listener failed to accept connection: {}", e),
                 },
                 // got a new command from the interface
                 Some(command) = self.commands_from_interface.next() => match command {
@@ -264,12 +266,12 @@ where
                     SendData(data, public_key) => {
                         match self.legacy_connected.contains(&public_key) {
                             true => match self.legacy_manager.send_to(&public_key, data) {
-                                Ok(_) => trace!(target: "validator-network", "Sending data to {} through legacy.", public_key),
-                                Err(e) => trace!(target: "validator-network", "Failed sending to {} through legacy: {}", public_key, e),
+                                Ok(_) => trace!(target: LOG_TARGET, "Sending data to {} through legacy.", public_key),
+                                Err(e) => trace!(target: LOG_TARGET, "Failed sending to {} through legacy: {}", public_key, e),
                             },
                             false => match self.manager.send_to(&public_key, data) {
-                                Ok(_) => trace!(target: "validator-network", "Sending data to {}.", public_key),
-                                Err(e) => trace!(target: "validator-network", "Failed sending to {}: {}", public_key, e),
+                                Ok(_) => trace!(target: LOG_TARGET, "Sending data to {}.", public_key),
+                                Err(e) => trace!(target: LOG_TARGET, "Failed sending to {}: {}", public_key, e),
                             },
                         }
                     },
@@ -290,9 +292,9 @@ where
                     use AddResult::*;
                     match maybe_data_for_network {
                         Some(data_for_network) => match self.add_connection(public_key.clone(), data_for_network, connection_type) {
-                            Uninterested => warn!(target: "validator-network", "Established connection with peer {} for unknown reasons.", public_key),
-                            Added => info!(target: "validator-network", "New connection with peer {}.", public_key),
-                            Replaced => info!(target: "validator-network", "Replaced connection with peer {}.", public_key),
+                            Uninterested => warn!(target: LOG_TARGET, "Established connection with peer {} for unknown reasons.", public_key),
+                            Added => info!(target: LOG_TARGET, "New connection with peer {}.", public_key),
+                            Replaced => info!(target: LOG_TARGET, "Replaced connection with peer {}.", public_key),
                         },
                         None => if let Some(address) = self.peer_address(&public_key) {
                             self.spawn_new_outgoing(public_key, address, result_for_parent.clone());
@@ -301,8 +303,8 @@ where
                 },
                 // periodically reporting what we are trying to do
                 _ = status_ticker.tick() => {
-                    info!(target: "validator-network", "Validator Network status: {}", self.manager.status_report());
-                    debug!(target: "validator-network", "Validator Network legacy status: {}", self.legacy_manager.status_report());
+                    info!(target: LOG_TARGET, "Clique Network status: {}", self.manager.status_report());
+                    debug!(target: LOG_TARGET, "Clique Network legacy status: {}", self.legacy_manager.status_report());
                 }
                 // received exit signal, stop the network
                 // all workers will be killed automatically after the manager gets dropped

@@ -252,17 +252,15 @@ mod test {
     use crate::{
         crypto::AuthorityVerifier,
         network::{
+            clique::mock::MockAddressingInformation,
             manager::{
                 compatibility::{PeerAuthentications, MAX_AUTHENTICATION_SIZE},
                 LegacyDiscoveryMessage, SessionHandler,
             },
+            tcp::{testing::new_identity, LegacyTcpMultiaddress, SignedTcpAddressingInformation},
             NetworkIdentity,
         },
         nodes::testing::new_pen,
-        tcp_network::{
-            testing::new_identity, LegacyTcpMultiaddress, SignedTcpAddressingInformation,
-        },
-        testing::mocks::validator_network::MockAddressingInformation,
         NodeIndex, SessionId, Version,
     };
 

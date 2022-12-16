@@ -4,7 +4,7 @@ use tokio::{
     time::{sleep, timeout, Duration},
 };
 
-use crate::validator_network::io::{receive_data, send_data};
+use crate::network::clique::io::{receive_data, send_data};
 
 const HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(5);
 const MAX_MISSED_HEARTBEATS: u32 = 4;
@@ -54,7 +54,7 @@ mod tests {
     };
 
     use super::{heartbeat_receiver, heartbeat_sender};
-    use crate::validator_network::mock::MockSplittable;
+    use crate::network::clique::mock::MockSplittable;
 
     #[tokio::test]
     async fn sender_closed_on_broken_connection() {

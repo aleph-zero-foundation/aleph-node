@@ -5,12 +5,12 @@ use std::{
 
 use futures::channel::mpsc;
 
-use crate::{
-    network::PeerId,
-    validator_network::{
+use crate::network::{
+    clique::{
         manager::{AddResult, SendError},
-        Data, PublicKey,
+        PublicKey,
     },
+    Data, PeerId,
 };
 
 /// Network component responsible for holding the list of peers that we
@@ -218,7 +218,7 @@ mod tests {
     use futures::{channel::mpsc, StreamExt};
 
     use super::{AddResult::*, Manager, SendError};
-    use crate::validator_network::mock::{key, MockPublicKey};
+    use crate::network::clique::mock::{key, MockPublicKey};
 
     type Data = String;
     type Address = String;

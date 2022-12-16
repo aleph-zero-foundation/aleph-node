@@ -2,7 +2,7 @@ use std::fmt::{Display, Error as FmtError, Formatter};
 
 use futures::channel::mpsc;
 
-use crate::validator_network::{
+use crate::network::clique::{
     io::{ReceiveError, SendError},
     Data, PublicKey, SecretKey, Splittable,
 };

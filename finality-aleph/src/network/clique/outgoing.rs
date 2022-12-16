@@ -4,11 +4,11 @@ use futures::channel::mpsc;
 use log::{debug, info};
 use tokio::time::{sleep, timeout, Duration};
 
-use crate::validator_network::{
+use crate::network::clique::{
     protocols::{
         protocol, ConnectionType, ProtocolError, ProtocolNegotiationError, ResultForService,
     },
-    ConnectionInfo, Data, Dialer, PeerAddressInfo, PublicKey, SecretKey,
+    ConnectionInfo, Data, Dialer, PeerAddressInfo, PublicKey, SecretKey, LOG_TARGET,
 };
 
 enum OutgoingError<PK: PublicKey, A: Data, ND: Dialer<A>> {
@@ -49,17 +49,20 @@ async fn manage_outgoing<SK: SecretKey, D: Data, A: Data, ND: Dialer<A>>(
     result_for_parent: mpsc::UnboundedSender<ResultForService<SK::PublicKey, D>>,
     data_for_user: mpsc::UnboundedSender<D>,
 ) -> Result<(), OutgoingError<SK::PublicKey, A, ND>> {
-    debug!(target: "validator-network", "Trying to connect to {}.", public_key);
+    debug!(target: LOG_TARGET, "Trying to connect to {}.", public_key);
     let stream = timeout(DIAL_TIMEOUT, dialer.connect(address))
         .await
         .map_err(|_| OutgoingError::TimedOut)?
         .map_err(OutgoingError::Dial)?;
     let peer_address_info = stream.peer_address_info();
-    debug!(target: "validator-network", "Performing outgoing protocol negotiation.");
+    debug!(
+        target: LOG_TARGET,
+        "Performing outgoing protocol negotiation."
+    );
     let (stream, protocol) = protocol(stream)
         .await
         .map_err(|e| OutgoingError::ProtocolNegotiation(peer_address_info.clone(), e))?;
-    debug!(target: "validator-network", "Negotiated protocol, running.");
+    debug!(target: LOG_TARGET, "Negotiated protocol, running.");
     protocol
         .manage_outgoing(
             stream,
@@ -95,7 +98,14 @@ pub async fn outgoing<SK: SecretKey, D: Data, A: Data + Debug, ND: Dialer<A>>(
     )
     .await
     {
-        info!(target: "validator-network", "Outgoing connection to {} {:?} failed: {}, will retry after {}s.", public_key, address, e, RETRY_DELAY.as_secs());
+        info!(
+            target: LOG_TARGET,
+            "Outgoing connection to {} {:?} failed: {}, will retry after {}s.",
+            public_key,
+            address,
+            e,
+            RETRY_DELAY.as_secs()
+        );
         sleep(RETRY_DELAY).await;
         // we send the "new" connection type, because we always assume it's new until proven
         // otherwise, and here we did not even get the chance to attempt negotiating a protocol
@@ -103,7 +113,7 @@ pub async fn outgoing<SK: SecretKey, D: Data, A: Data + Debug, ND: Dialer<A>>(
             .unbounded_send((public_key, None, ConnectionType::New))
             .is_err()
         {
-            debug!(target: "validator-network", "Could not send the closing message, we've probably been terminated by the parent service.");
+            debug!(target: LOG_TARGET, "Could not send the closing message, we've probably been terminated by the parent service.");
         }
     }
 }

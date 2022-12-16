@@ -8,7 +8,7 @@ use tokio::{
     time::{timeout, Duration},
 };
 
-use crate::validator_network::protocols::{Protocol, Version};
+use crate::network::clique::protocols::{Protocol, Version};
 
 const PROTOCOL_NEGOTIATION_TIMEOUT: Duration = Duration::from_secs(5);
 
@@ -141,7 +141,7 @@ mod tests {
     use tokio::io::duplex;
 
     use super::{negotiate_protocol_version, supported_protocol_range, ProtocolNegotiationError};
-    use crate::validator_network::protocols::Protocol;
+    use crate::network::clique::protocols::Protocol;
 
     fn correct_negotiation<S>(result: Result<(S, Protocol), ProtocolNegotiationError>) {
         match result {

@@ -280,16 +280,14 @@ mod tests {
     use tokio::runtime::Handle;
 
     use super::{Error, Service};
-    use crate::{
-        network::{
-            gossip::{
-                mock::{MockEvent, MockRawNetwork, MockSenderError},
-                Network,
-            },
-            mock::MockData,
-            Protocol,
+    use crate::network::{
+        clique::mock::random_peer_id,
+        gossip::{
+            mock::{MockEvent, MockRawNetwork, MockSenderError},
+            Network,
         },
-        testing::mocks::validator_network::random_peer_id,
+        mock::MockData,
+        Protocol,
     };
 
     const PROTOCOL: Protocol = Protocol::Authentication;
@@ -343,7 +341,7 @@ mod tests {
     }
 
     fn message(i: u8) -> MockData {
-        vec![i, i + 1, i + 2]
+        MockData::new(i.into(), 3)
     }
 
     #[tokio::test]

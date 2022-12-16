@@ -8,6 +8,7 @@ use codec::Codec;
 use sp_api::NumberFor;
 use sp_runtime::traits::Block;
 
+pub mod clique;
 pub mod data;
 mod gossip;
 mod io;
@@ -16,6 +17,7 @@ mod manager;
 pub mod mock;
 mod session;
 mod substrate;
+pub mod tcp;
 
 pub use gossip::{Network as GossipNetwork, Protocol, Service as GossipService};
 pub use io::setup as setup_io;
@@ -29,13 +31,13 @@ pub use substrate::protocol_name;
 pub mod testing {
     use super::manager::LegacyAuthentication;
     pub use super::{
+        clique::mock::MockAddressingInformation,
         gossip::mock::{MockEvent, MockRawNetwork},
         manager::{
             Authentication, DataInSession, DiscoveryMessage, LegacyDiscoveryMessage,
             PeerAuthentications, SessionHandler, VersionedAuthentication,
         },
     };
-    use crate::testing::mocks::validator_network::MockAddressingInformation;
 
     pub fn legacy_authentication(
         handler: &SessionHandler<MockAddressingInformation, MockAddressingInformation>,

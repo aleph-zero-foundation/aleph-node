@@ -4,7 +4,7 @@ use codec::{Decode, Encode};
 use rand::Rng;
 use tokio::time::{timeout, Duration};
 
-use crate::validator_network::{
+use crate::network::clique::{
     io::{receive_data, send_data, ReceiveError, SendError},
     PublicKey, SecretKey, Splittable,
 };
@@ -188,7 +188,7 @@ mod tests {
         execute_v0_handshake_incoming, execute_v0_handshake_outgoing, Challenge, HandshakeError,
         Response,
     };
-    use crate::validator_network::{
+    use crate::network::clique::{
         io::{receive_data, send_data},
         mock::{key, MockPublicKey, MockSecretKey, MockSplittable},
         SecretKey, Splittable,
