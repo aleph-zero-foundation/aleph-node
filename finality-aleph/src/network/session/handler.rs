@@ -6,7 +6,7 @@ use crate::{
     abft::NodeCount,
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{
-        manager::{
+        session::{
             compatibility::PeerAuthentications, AuthData, Authentication, LegacyAuthData,
             LegacyAuthentication,
         },
@@ -269,17 +269,41 @@ impl<M: Data, A: AddressingInformation + TryFrom<Vec<M>> + Into<Vec<M>>> Handler
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::{Handler, HandlerError};
     use crate::{
         network::{
-            clique::mock::{random_address, random_invalid_address},
+            clique::mock::{random_address, random_invalid_address, MockAddressingInformation},
             mock::crypto_basics,
-            testing::{authentication, legacy_authentication},
+            session::{compatibility::PeerAuthentications, Authentication, LegacyAuthentication},
             AddressingInformation,
         },
         NodeIndex, SessionId,
     };
+
+    pub fn legacy_authentication(
+        handler: &Handler<MockAddressingInformation, MockAddressingInformation>,
+    ) -> LegacyAuthentication<MockAddressingInformation> {
+        match handler
+            .authentication()
+            .expect("this is a validator handler")
+        {
+            PeerAuthentications::Both(_, authentication) => authentication,
+            _ => panic!("handler doesn't have both authentications"),
+        }
+    }
+
+    pub fn authentication(
+        handler: &Handler<MockAddressingInformation, MockAddressingInformation>,
+    ) -> Authentication<MockAddressingInformation> {
+        match handler
+            .authentication()
+            .expect("this is a validator handler")
+        {
+            PeerAuthentications::Both(authentication, _) => authentication,
+            _ => panic!("handler doesn't have both authentications"),
+        }
+    }
 
     const NUM_NODES: usize = 7;
 

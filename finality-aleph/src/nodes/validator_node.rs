@@ -13,9 +13,9 @@ use crate::{
     crypto::AuthorityPen,
     network::{
         clique::Service,
-        setup_io,
+        session::{ConnectionManager, ConnectionManagerConfig},
         tcp::{new_tcp_network, KEY_TYPE},
-        ConnectionManager, ConnectionManagerConfig, GossipService, SessionManager,
+        GossipService,
     },
     nodes::{setup_justification_handler, JustificationParams},
     party::{
@@ -119,20 +119,18 @@ where
             session_map: session_authorities.clone(),
         });
 
-    let (connection_io, session_io) = setup_io(validator_network, gossip_network);
-
-    let connection_manager = ConnectionManager::new(
+    let (connection_manager_service, connection_manager) = ConnectionManager::new(
         network_identity,
+        validator_network,
+        gossip_network,
         ConnectionManagerConfig::with_session_period(&session_period, &millisecs_per_block),
     );
 
     let connection_manager_task = async move {
-        if let Err(e) = connection_io.run(connection_manager).await {
+        if let Err(e) = connection_manager_service.run().await {
             panic!("Failed to run connection manager: {}", e);
         }
     };
-
-    let session_manager = SessionManager::new(session_io);
 
     spawn_handle.spawn("aleph/justification_handler", None, handler_task);
     debug!(target: "aleph-party", "JustificationHandler has started.");
@@ -158,7 +156,7 @@ where
             block_requester,
             metrics,
             spawn_handle.into(),
-            session_manager,
+            connection_manager,
             keystore,
         ),
         _phantom: PhantomData,

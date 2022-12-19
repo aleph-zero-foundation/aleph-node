@@ -8,7 +8,7 @@ use log::warn;
 
 use crate::{
     network::{
-        manager::{AuthData, Authentication, LegacyAuthentication},
+        session::{AuthData, Authentication, LegacyAuthentication},
         AddressingInformation, Data,
     },
     SessionId, Version,
@@ -253,7 +253,7 @@ mod test {
         crypto::AuthorityVerifier,
         network::{
             clique::mock::MockAddressingInformation,
-            manager::{
+            session::{
                 compatibility::{PeerAuthentications, MAX_AUTHENTICATION_SIZE},
                 LegacyDiscoveryMessage, SessionHandler,
             },

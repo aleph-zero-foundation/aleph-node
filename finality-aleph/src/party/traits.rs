@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 
 use async_trait::async_trait;
 use sp_runtime::traits::{Block as BlockT, NumberFor};
@@ -34,7 +34,7 @@ pub trait ChainState<B: Block> {
 #[async_trait]
 /// Abstraction over session related tasks.
 pub trait NodeSessionManager {
-    type Error: Debug;
+    type Error: Display;
 
     /// Spawns every task needed for an authority to run in a session.
     async fn spawn_authority_task_for_session(
@@ -49,6 +49,7 @@ pub trait NodeSessionManager {
     async fn early_start_validator_session(
         &self,
         session: SessionId,
+        node_id: NodeIndex,
         authorities: &[AuthorityId],
     ) -> Result<(), Self::Error>;
 

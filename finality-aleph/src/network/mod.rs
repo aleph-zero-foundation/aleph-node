@@ -1,5 +1,4 @@
 use std::{
-    collections::HashSet,
     fmt::{Debug, Display},
     hash::Hash,
 };
@@ -11,58 +10,16 @@ use sp_runtime::traits::Block;
 pub mod clique;
 pub mod data;
 mod gossip;
-mod io;
-mod manager;
 #[cfg(test)]
 pub mod mock;
-mod session;
+pub mod session;
 mod substrate;
 pub mod tcp;
 
-pub use gossip::{Network as GossipNetwork, Protocol, Service as GossipService};
-pub use io::setup as setup_io;
-use manager::SessionCommand;
-pub use manager::{
-    ConnectionIO as ConnectionManagerIO, ConnectionManager, ConnectionManagerConfig,
-};
-pub use session::{Manager as SessionManager, ManagerError, SessionSender, IO as SessionManagerIO};
-pub use substrate::protocol_name;
 #[cfg(test)]
-pub mod testing {
-    use super::manager::LegacyAuthentication;
-    pub use super::{
-        clique::mock::MockAddressingInformation,
-        gossip::mock::{MockEvent, MockRawNetwork},
-        manager::{
-            Authentication, DataInSession, DiscoveryMessage, LegacyDiscoveryMessage,
-            PeerAuthentications, SessionHandler, VersionedAuthentication,
-        },
-    };
-
-    pub fn legacy_authentication(
-        handler: &SessionHandler<MockAddressingInformation, MockAddressingInformation>,
-    ) -> LegacyAuthentication<MockAddressingInformation> {
-        match handler
-            .authentication()
-            .expect("this is a validator handler")
-        {
-            PeerAuthentications::Both(_, authentication) => authentication,
-            _ => panic!("handler doesn't have both authentications"),
-        }
-    }
-
-    pub fn authentication(
-        handler: &SessionHandler<MockAddressingInformation, MockAddressingInformation>,
-    ) -> Authentication<MockAddressingInformation> {
-        match handler
-            .authentication()
-            .expect("this is a validator handler")
-        {
-            PeerAuthentications::Both(authentication, _) => authentication,
-            _ => panic!("handler doesn't have both authentications"),
-        }
-    }
-}
+pub use gossip::mock::{MockEvent, MockRawNetwork};
+pub use gossip::{Network as GossipNetwork, Protocol, Service as GossipService};
+pub use substrate::protocol_name;
 
 /// Represents the id of an arbitrary node.
 pub trait PeerId: PartialEq + Eq + Clone + Debug + Display + Hash + Codec + Send {
@@ -121,17 +78,7 @@ pub trait RequestBlocks<B: Block>: Clone + Send + Sync + 'static {
     fn is_major_syncing(&self) -> bool;
 }
 
-/// Commands for manipulating the reserved peers set.
-#[derive(Debug, PartialEq, Eq)]
-pub enum ConnectionCommand<A: AddressingInformation> {
-    AddReserved(HashSet<A>),
-    DelReserved(HashSet<A::PeerId>),
-}
-
 /// A basic alias for properties we expect basic data to satisfy.
 pub trait Data: Clone + Codec + Send + Sync + 'static {}
 
 impl<D: Clone + Codec + Send + Sync + 'static> Data for D {}
-
-// In practice D: Data and P: PeerId, but we cannot require that in type aliases.
-type AddressedData<D, P> = (D, P);

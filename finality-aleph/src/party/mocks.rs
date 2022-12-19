@@ -1,5 +1,6 @@
 use std::{
     collections::HashSet,
+    fmt::{Debug, Display, Error as FmtError, Formatter},
     hash::Hash,
     sync::{Arc, Mutex},
 };
@@ -111,9 +112,17 @@ impl MockNodeSessionManager {
     }
 }
 
+pub struct MockNodeSessionManagerError;
+
+impl Display for MockNodeSessionManagerError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
+        write!(f, "mock node session manager error")
+    }
+}
+
 #[async_trait]
 impl NodeSessionManager for Arc<MockNodeSessionManager> {
-    type Error = ();
+    type Error = MockNodeSessionManagerError;
 
     async fn spawn_authority_task_for_session(
         &self,
@@ -133,6 +142,7 @@ impl NodeSessionManager for Arc<MockNodeSessionManager> {
     async fn early_start_validator_session(
         &self,
         session: SessionId,
+        _node_id: NodeIndex,
         _authorities: &[AuthorityId],
     ) -> Result<(), Self::Error> {
         self.insert(self.session_early_started.clone(), session);

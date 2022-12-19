@@ -18,13 +18,12 @@ use crate::{
         },
         data::Network,
         mock::{crypto_basics, MockData},
-        setup_io,
-        testing::{
-            authentication, legacy_authentication, DataInSession, LegacyDiscoveryMessage,
-            MockEvent, MockRawNetwork, SessionHandler, VersionedAuthentication,
+        session::{
+            authentication, legacy_authentication, ConnectionManager, ConnectionManagerConfig,
+            DataInSession, LegacyDiscoveryMessage, ManagerError, SessionHandler, SessionManager,
+            VersionedAuthentication,
         },
-        AddressingInformation, ConnectionManager, ConnectionManagerConfig, GossipService,
-        NetworkIdentity, Protocol, SessionManager,
+        AddressingInformation, GossipService, MockEvent, MockRawNetwork, Protocol,
     },
     MillisecsPerBlock, NodeIndex, Recipient, SessionId, SessionPeriod,
 };
@@ -60,19 +59,10 @@ impl Authority {
     }
 }
 
-impl NetworkIdentity for Authority {
-    type PeerId = MockPublicKey;
-    type AddressingInformation = MockAddressingInformation;
-
-    fn identity(&self) -> Self::AddressingInformation {
-        self.address.clone()
-    }
-}
-
 struct TestData {
     pub authorities: Vec<Authority>,
     pub authority_verifier: AuthorityVerifier,
-    pub session_manager: SessionManager<MockData>,
+    pub session_manager: Box<dyn SessionManager<MockData, Error = ManagerError>>,
     pub network: MockRawNetwork,
     pub validator_network: MockCliqueNetwork<DataInSession<MockData>>,
     network_manager_exit_tx: oneshot::Sender<()>,
@@ -108,19 +98,17 @@ async fn prepare_one_session_test_data() -> TestData {
     let (gossip_service, gossip_network) =
         GossipService::new(network.clone(), task_manager.spawn_handle());
 
-    let (connection_io, session_io) = setup_io(validator_network.clone(), gossip_network);
-
-    let connection_manager = ConnectionManager::new(
-        authorities[0].clone(),
+    let (connection_manager_service, session_manager) = ConnectionManager::new(
+        authorities[0].address(),
+        validator_network.clone(),
+        gossip_network,
         ConnectionManagerConfig::with_session_period(&SESSION_PERIOD, &MILLISECS_PER_BLOCK),
     );
-
-    let session_manager = SessionManager::new(session_io);
+    let session_manager = Box::new(session_manager);
 
     let network_manager_task = async move {
         tokio::select! {
-            _ = connection_io
-            .run(connection_manager) => { },
+            _ =connection_manager_service.run() => { },
             _ = network_manager_exit_rx => { },
         };
     };
@@ -161,7 +149,8 @@ impl TestData {
         node_id: usize,
         session_id: u32,
     ) -> impl Network<MockData> {
-        self.session_manager
+        match self
+            .session_manager
             .start_validator_session(
                 SessionId(session_id),
                 self.authority_verifier.clone(),
@@ -169,18 +158,21 @@ impl TestData {
                 self.authorities[node_id].pen(),
             )
             .await
-            .expect("Failed to start validator session!")
+        {
+            Ok(network) => network,
+            Err(e) => panic!("Failed to start validator session: {}", e),
+        }
     }
 
     fn early_start_validator_session(&self, node_id: usize, session_id: u32) {
-        self.session_manager
-            .early_start_validator_session(
-                SessionId(session_id),
-                self.authority_verifier.clone(),
-                NodeIndex(node_id),
-                self.authorities[node_id].pen(),
-            )
-            .expect("Failed to start validator session!");
+        if let Err(e) = self.session_manager.early_start_validator_session(
+            SessionId(session_id),
+            self.authority_verifier.clone(),
+            NodeIndex(node_id),
+            self.authorities[node_id].pen(),
+        ) {
+            panic!("Failed to start validator session: {}", e);
+        }
     }
 
     async fn get_session_handler(

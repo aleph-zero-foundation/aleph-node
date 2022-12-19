@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fmt::Debug, marker::PhantomData, sync::Arc};
+use std::{collections::HashSet, marker::PhantomData, sync::Arc};
 
 use aleph_primitives::{AlephSessionApi, KEY_TYPE};
 use async_trait::async_trait;
@@ -25,7 +25,8 @@ use crate::{
             component::{Network, NetworkMap, SimpleNetwork},
             split::split,
         },
-        ManagerError, RequestBlocks, SessionManager, SessionSender,
+        session::{SessionManager, SessionSender},
+        RequestBlocks,
     },
     party::{
         backup::ABFTBackup, manager::aggregator::AggregatorVersion, traits::NodeSessionManager,
@@ -87,13 +88,14 @@ where
     phantom: PhantomData<BE>,
 }
 
-pub struct NodeSessionManagerImpl<C, SC, B, RB, BE>
+pub struct NodeSessionManagerImpl<C, SC, B, RB, BE, SM>
 where
     B: BlockT,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
     RB: RequestBlocks<B>,
+    SM: SessionManager<VersionedNetworkData<B>> + 'static,
 {
     client: Arc<C>,
     select_chain: SC,
@@ -103,12 +105,12 @@ where
     block_requester: RB,
     metrics: Option<Metrics<<B::Header as Header>::Hash>>,
     spawn_handle: SpawnHandle,
-    session_manager: SessionManager<VersionedNetworkData<B>>,
+    session_manager: SM,
     keystore: Arc<dyn CryptoStore>,
     _phantom: PhantomData<BE>,
 }
 
-impl<C, SC, B, RB, BE> NodeSessionManagerImpl<C, SC, B, RB, BE>
+impl<C, SC, B, RB, BE, SM> NodeSessionManagerImpl<C, SC, B, RB, BE, SM>
 where
     B: BlockT,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
@@ -116,6 +118,7 @@ where
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
     RB: RequestBlocks<B>,
+    SM: SessionManager<VersionedNetworkData<B>>,
 {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -127,7 +130,7 @@ where
         block_requester: RB,
         metrics: Option<Metrics<<B::Header as Header>::Hash>>,
         spawn_handle: SpawnHandle,
-        session_manager: SessionManager<VersionedNetworkData<B>>,
+        session_manager: SM,
         keystore: Arc<dyn CryptoStore>,
     ) -> Self {
         Self {
@@ -305,11 +308,14 @@ where
             justifications_for_chain: self.authority_justification_tx.clone(),
         };
 
-        let data_network = self
+        let data_network = match self
             .session_manager
             .start_validator_session(session_id, authority_verifier, node_id, authority_pen)
             .await
-            .expect("Failed to start validator session!");
+        {
+            Ok(data_network) => data_network,
+            Err(e) => panic!("Failed to start validator session: {}", e),
+        };
 
         let last_block_of_previous_session = session_boundaries
             .first_block()
@@ -359,14 +365,8 @@ where
     }
 }
 
-#[derive(Debug)]
-pub enum SessionManagerError {
-    NotAuthority,
-    ManagerError(ManagerError),
-}
-
 #[async_trait]
-impl<C, SC, B, RB, BE> NodeSessionManager for NodeSessionManagerImpl<C, SC, B, RB, BE>
+impl<C, SC, B, RB, BE, SM> NodeSessionManager for NodeSessionManagerImpl<C, SC, B, RB, BE, SM>
 where
     B: BlockT,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
@@ -374,8 +374,9 @@ where
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
     RB: RequestBlocks<B>,
+    SM: SessionManager<VersionedNetworkData<B>>,
 {
-    type Error = SessionManagerError;
+    type Error = SM::Error;
 
     async fn spawn_authority_task_for_session(
         &self,
@@ -404,20 +405,20 @@ where
     async fn early_start_validator_session(
         &self,
         session: SessionId,
+        node_id: NodeIndex,
         authorities: &[AuthorityId],
     ) -> Result<(), Self::Error> {
-        let node_id = match self.node_idx(authorities).await {
-            Some(id) => id,
-            None => return Err(SessionManagerError::NotAuthority),
-        };
         let authority_verifier = AuthorityVerifier::new(authorities.to_vec());
         let authority_pen =
             AuthorityPen::new(authorities[node_id.0].clone(), self.keystore.clone())
                 .await
                 .expect("The keys should sign successfully");
-        self.session_manager
-            .early_start_validator_session(session, authority_verifier, node_id, authority_pen)
-            .map_err(SessionManagerError::ManagerError)
+        self.session_manager.early_start_validator_session(
+            session,
+            authority_verifier,
+            node_id,
+            authority_pen,
+        )
     }
 
     fn start_nonvalidator_session(
@@ -429,13 +430,10 @@ where
 
         self.session_manager
             .start_nonvalidator_session(session, authority_verifier)
-            .map_err(SessionManagerError::ManagerError)
     }
 
     fn stop_session(&self, session: SessionId) -> Result<(), Self::Error> {
-        self.session_manager
-            .stop_session(session)
-            .map_err(SessionManagerError::ManagerError)
+        self.session_manager.stop_session(session)
     }
 
     async fn node_idx(&self, authorities: &[AuthorityId]) -> Option<NodeIndex> {
