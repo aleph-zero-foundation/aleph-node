@@ -766,10 +766,9 @@ pub mod api {
                         "Events",
                         vec![],
                         [
-                            143u8, 179u8, 135u8, 158u8, 233u8, 208u8, 54u8, 83u8, 34u8, 204u8,
-                            47u8, 195u8, 14u8, 31u8, 119u8, 195u8, 18u8, 208u8, 33u8, 42u8, 171u8,
-                            136u8, 153u8, 45u8, 197u8, 173u8, 138u8, 12u8, 57u8, 218u8, 207u8,
-                            102u8,
+                            11u8, 236u8, 50u8, 171u8, 31u8, 56u8, 117u8, 141u8, 172u8, 16u8, 124u8,
+                            103u8, 71u8, 79u8, 241u8, 118u8, 146u8, 56u8, 208u8, 175u8, 154u8,
+                            29u8, 133u8, 76u8, 226u8, 7u8, 179u8, 119u8, 245u8, 6u8, 72u8, 222u8,
                         ],
                     )
                 }
@@ -13058,6 +13057,34 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            #[doc = "Verification key has been successfully deleted."]
+            pub struct VerificationKeyDeleted;
+            impl ::subxt::events::StaticEvent for VerificationKeyDeleted {
+                const PALLET: &'static str = "Snarcos";
+                const EVENT: &'static str = "VerificationKeyDeleted";
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            #[doc = "Verification key has been successfully overwritten."]
+            pub struct VerificationKeyOverwritten;
+            impl ::subxt::events::StaticEvent for VerificationKeyOverwritten {
+                const PALLET: &'static str = "Snarcos";
+                const EVENT: &'static str = "VerificationKeyOverwritten";
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
             #[doc = "Proof has been successfully verified."]
             pub struct VerificationSucceeded;
             impl ::subxt::events::StaticEvent for VerificationSucceeded {
@@ -13125,6 +13152,10 @@ pub mod api {
             use super::runtime_types;
             pub struct ConstantsApi;
             impl ConstantsApi {
+                #[doc = " Limits how many bytes verification key can have."]
+                #[doc = ""]
+                #[doc = " Verification keys are stored, therefore this is separated from the limits on proof or"]
+                #[doc = " public input."]
                 pub fn maximum_verification_key_length(
                     &self,
                 ) -> ::subxt::constants::StaticConstantAddress<
@@ -13133,6 +13164,23 @@ pub mod api {
                     ::subxt::constants::StaticConstantAddress::new(
                         "Snarcos",
                         "MaximumVerificationKeyLength",
+                        [
+                            98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
+                            125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
+                            178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
+                            145u8,
+                        ],
+                    )
+                }
+                #[doc = " Limits how many bytes proof or public input can have."]
+                pub fn maximum_data_length(
+                    &self,
+                ) -> ::subxt::constants::StaticConstantAddress<
+                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
+                > {
+                    ::subxt::constants::StaticConstantAddress::new(
+                        "Snarcos",
+                        "MaximumDataLength",
                         [
                             98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
                             125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
@@ -16875,18 +16923,21 @@ pub mod api {
                     #[doc = "Provided verification key is longer than `MaximumVerificationKeyLength` limit."]
                     VerificationKeyTooLong,
                     #[codec(index = 3)]
+                    #[doc = "Either proof or public input is longer than `MaximumDataLength` limit."]
+                    DataTooLong,
+                    #[codec(index = 4)]
                     #[doc = "Couldn't deserialize proof."]
                     DeserializingProofFailed,
-                    #[codec(index = 4)]
+                    #[codec(index = 5)]
                     #[doc = "Couldn't deserialize public input."]
                     DeserializingPublicInputFailed,
-                    #[codec(index = 5)]
+                    #[codec(index = 6)]
                     #[doc = "Couldn't deserialize verification key from storage."]
                     DeserializingVerificationKeyFailed,
-                    #[codec(index = 6)]
+                    #[codec(index = 7)]
                     #[doc = "Verification procedure has failed. Proof still can be correct."]
                     VerificationFailed,
-                    #[codec(index = 7)]
+                    #[codec(index = 8)]
                     #[doc = "Proof has been found as incorrect."]
                     IncorrectProof,
                 }
@@ -16904,6 +16955,12 @@ pub mod api {
                     #[doc = "Verification key has been successfully stored."]
                     VerificationKeyStored,
                     #[codec(index = 1)]
+                    #[doc = "Verification key has been successfully deleted."]
+                    VerificationKeyDeleted,
+                    #[codec(index = 2)]
+                    #[doc = "Verification key has been successfully overwritten."]
+                    VerificationKeyOverwritten,
+                    #[codec(index = 3)]
                     #[doc = "Proof has been successfully verified."]
                     VerificationSucceeded,
                 }
@@ -19956,9 +20013,9 @@ pub mod api {
         let runtime_metadata_hash = client.metadata().metadata_hash(&PALLETS);
         if runtime_metadata_hash
             != [
-                52u8, 162u8, 241u8, 195u8, 204u8, 185u8, 84u8, 1u8, 187u8, 56u8, 167u8, 57u8, 92u8,
-                31u8, 149u8, 68u8, 5u8, 122u8, 151u8, 5u8, 169u8, 14u8, 109u8, 214u8, 183u8, 87u8,
-                219u8, 112u8, 77u8, 253u8, 179u8, 243u8,
+                184u8, 75u8, 165u8, 118u8, 24u8, 136u8, 242u8, 16u8, 162u8, 22u8, 102u8, 227u8,
+                209u8, 51u8, 103u8, 153u8, 169u8, 179u8, 166u8, 180u8, 8u8, 94u8, 119u8, 91u8,
+                36u8, 120u8, 31u8, 194u8, 89u8, 201u8, 250u8, 173u8,
             ]
         {
             Err(::subxt::error::MetadataError::IncompatibleMetadata)

@@ -165,12 +165,6 @@ impl SnarcosChainExtension {
         // We charge optimistically, i.e. assuming that decoding succeeds and the verification
         // key is present. However, since we don't know the system yet, we have to charge maximal
         // possible fee. We will adjust it as soon as possible.
-        //
-        // Currently, we cannot do more in terms of charging due to insufficiently flexible
-        // weighting (`pallet_snarcos::WeightInfo` API). Once we have functions like
-        // `pallet_snarcos::WeightInfo::verify_decoding_failure`, we can both charge less here
-        // (with further `env.adjust_weight`) and in the pallet itself (returning
-        // `DispatchErrorWithPostInfo` reducing actual fee and the block weight).
         let pre_charge = env.charge_weight(weight_of_verify(None))?;
 
         // Parsing is done here for similar reasons as in `Self::snarcos_store_key`.
@@ -179,22 +173,30 @@ impl SnarcosChainExtension {
         let args: VerifyArgs = VerifyArgs::decode(&mut &*bytes)
             .map_err(|_| DispatchError::Other("Failed to decode arguments"))?;
 
-        // Now we know the proving system and we can charge appropriate amount of gas.
-        env.adjust_weight(pre_charge, weight_of_verify(Some(args.system)));
-
         let result = Exc::verify(args.identifier, args.proof, args.input, args.system);
+
+        // Adjust weight
+        match &result {
+            // Positive case: we can adjust weight based on the system used.
+            Ok(_) => env.adjust_weight(pre_charge, weight_of_verify(Some(args.system))),
+            // Negative case: Now we inspect how we should adjust weighting. In case pallet provides
+            // us with post-dispatch weight, we will use it. Otherwise, we weight the call in the
+            // same way as in the positive case.
+            Err((_, Some(actual_weight))) => env.adjust_weight(pre_charge, *actual_weight),
+            Err((_, None)) => env.adjust_weight(pre_charge, weight_of_verify(Some(args.system))),
+        };
 
         let return_status = match result {
             Ok(_) => SNARCOS_VERIFY_OK,
-            // In case `DispatchResultWithPostInfo` was returned (or some simpler equivalent for
-            // `bare_verify`), we could adjust weight. However, we don't support it yet.
-            Err(DeserializingProofFailed) => SNARCOS_VERIFY_DESERIALIZING_PROOF_FAIL,
-            Err(DeserializingPublicInputFailed) => SNARCOS_VERIFY_DESERIALIZING_INPUT_FAIL,
-            Err(UnknownVerificationKeyIdentifier) => SNARCOS_VERIFY_UNKNOWN_IDENTIFIER,
-            Err(DeserializingVerificationKeyFailed) => SNARCOS_VERIFY_DESERIALIZING_KEY_FAIL,
-            Err(VerificationFailed) => SNARCOS_VERIFY_VERIFICATION_FAIL,
-            Err(IncorrectProof) => SNARCOS_VERIFY_INCORRECT_PROOF,
-            _ => SNARCOS_VERIFY_ERROR_UNKNOWN,
+            Err((error, _)) => match error {
+                DeserializingProofFailed => SNARCOS_VERIFY_DESERIALIZING_PROOF_FAIL,
+                DeserializingPublicInputFailed => SNARCOS_VERIFY_DESERIALIZING_INPUT_FAIL,
+                UnknownVerificationKeyIdentifier => SNARCOS_VERIFY_UNKNOWN_IDENTIFIER,
+                DeserializingVerificationKeyFailed => SNARCOS_VERIFY_DESERIALIZING_KEY_FAIL,
+                VerificationFailed => SNARCOS_VERIFY_VERIFICATION_FAIL,
+                IncorrectProof => SNARCOS_VERIFY_INCORRECT_PROOF,
+                _ => SNARCOS_VERIFY_ERROR_UNKNOWN,
+            },
         };
         Ok(RetVal::Converging(return_status))
     }

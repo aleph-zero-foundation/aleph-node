@@ -56,6 +56,7 @@ impl pallet_snarcos::Config for TestRuntime {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
     type MaximumVerificationKeyLength = ConstU32<10_000>;
+    type MaximumDataLength = ConstU32<10_000>;
 }
 
 pub fn new_test_ext() -> TestExternalities {

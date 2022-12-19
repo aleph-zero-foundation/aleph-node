@@ -35,7 +35,6 @@ fn put_key() {
 }
 
 #[test]
-#[allow(let_unit_value)]
 fn stores_vk_with_fresh_identifier() {
     new_test_ext().execute_with(|| {
         assert_ok!(Snarcos::store_key(caller(), IDENTIFIER, vk()));
@@ -121,51 +120,96 @@ fn verifies_proof() {
 }
 
 #[test]
-fn verify_shouts_when_no_key_was_registered() {
+fn verify_shouts_when_data_is_too_long() {
     new_test_ext().execute_with(|| {
-        assert_err!(
-            Snarcos::verify(caller(), IDENTIFIER, proof(), input(), SYSTEM),
-            Error::<TestRuntime>::UnknownVerificationKeyIdentifier
+        let limit: u32 = <TestRuntime as crate::Config>::MaximumDataLength::get();
+
+        let result = Snarcos::verify(
+            caller(),
+            IDENTIFIER,
+            vec![0; (limit + 1) as usize],
+            input(),
+            SYSTEM,
         );
+        assert_err!(
+            result.map_err(|e| e.error),
+            Error::<TestRuntime>::DataTooLong
+        );
+        assert!(result.unwrap_err().post_info.actual_weight.is_some());
+
+        let result = Snarcos::verify(
+            caller(),
+            IDENTIFIER,
+            proof(),
+            vec![0; (limit + 1) as usize],
+            SYSTEM,
+        );
+        assert_err!(
+            result.map_err(|e| e.error),
+            Error::<TestRuntime>::DataTooLong
+        );
+        assert!(result.unwrap_err().post_info.actual_weight.is_some());
     });
 }
 
 #[test]
-fn verify_shouts_when_key_is_not_decodable() {
+fn verify_shouts_when_no_key_was_registered() {
+    new_test_ext().execute_with(|| {
+        let result = Snarcos::verify(caller(), IDENTIFIER, proof(), input(), SYSTEM);
+
+        assert_err!(
+            result.map_err(|e| e.error),
+            Error::<TestRuntime>::UnknownVerificationKeyIdentifier
+        );
+        assert!(result.unwrap_err().post_info.actual_weight.is_some());
+    });
+}
+
+#[test]
+fn verify_shouts_when_key_is_not_deserializable() {
     new_test_ext().execute_with(|| {
         VerificationKeys::<TestRuntime>::insert(
             IDENTIFIER,
             BoundedVec::try_from(vec![0, 1, 2]).unwrap(),
         );
 
+        let result = Snarcos::verify(caller(), IDENTIFIER, proof(), input(), SYSTEM);
+
         assert_err!(
-            Snarcos::verify(caller(), IDENTIFIER, proof(), input(), SYSTEM),
+            result.map_err(|e| e.error),
             Error::<TestRuntime>::DeserializingVerificationKeyFailed
         );
+        assert!(result.unwrap_err().post_info.actual_weight.is_some());
     });
 }
 
 #[test]
-fn verify_shouts_when_proof_is_not_decodable() {
+fn verify_shouts_when_proof_is_not_deserializable() {
     new_test_ext().execute_with(|| {
         put_key();
 
+        let result = Snarcos::verify(caller(), IDENTIFIER, input(), input(), SYSTEM);
+
         assert_err!(
-            Snarcos::verify(caller(), IDENTIFIER, input(), input(), SYSTEM),
+            result.map_err(|e| e.error),
             Error::<TestRuntime>::DeserializingProofFailed
         );
+        assert!(result.unwrap_err().post_info.actual_weight.is_some());
     });
 }
 
 #[test]
-fn verify_shouts_when_input_is_not_decodable() {
+fn verify_shouts_when_input_is_not_deserializable() {
     new_test_ext().execute_with(|| {
         put_key();
 
+        let result = Snarcos::verify(caller(), IDENTIFIER, proof(), proof(), SYSTEM);
+
         assert_err!(
-            Snarcos::verify(caller(), IDENTIFIER, proof(), proof(), SYSTEM),
+            result.map_err(|e| e.error),
             Error::<TestRuntime>::DeserializingPublicInputFailed
         );
+        assert!(result.unwrap_err().post_info.actual_weight.is_some());
     });
 }
 
@@ -175,10 +219,10 @@ fn verify_shouts_when_verification_fails() {
         put_key();
         let other_input = include_bytes!("../resources/groth16/linear_equation.public_input.bytes");
 
-        assert_err!(
-            Snarcos::verify(caller(), IDENTIFIER, proof(), other_input.to_vec(), SYSTEM),
-            Error::<TestRuntime>::VerificationFailed
-        );
+        let result = Snarcos::verify(caller(), IDENTIFIER, proof(), other_input.to_vec(), SYSTEM);
+
+        assert_err!(result, Error::<TestRuntime>::VerificationFailed);
+        assert!(result.unwrap_err().post_info.actual_weight.is_none());
     });
 }
 
@@ -188,9 +232,9 @@ fn verify_shouts_when_proof_is_incorrect() {
         put_key();
         let other_proof = include_bytes!("../resources/groth16/linear_equation.proof.bytes");
 
-        assert_err!(
-            Snarcos::verify(caller(), IDENTIFIER, other_proof.to_vec(), input(), SYSTEM),
-            Error::<TestRuntime>::IncorrectProof
-        );
+        let result = Snarcos::verify(caller(), IDENTIFIER, other_proof.to_vec(), input(), SYSTEM);
+
+        assert_err!(result, Error::<TestRuntime>::IncorrectProof);
+        assert!(result.unwrap_err().post_info.actual_weight.is_none());
     });
 }

@@ -22,7 +22,9 @@ pub type VerificationKeyIdentifier = [u8; 4];
 #[frame_support::pallet]
 pub mod pallet {
     use ark_serialize::CanonicalDeserialize;
-    use frame_support::{log, pallet_prelude::*};
+    use frame_support::{
+        dispatch::PostDispatchInfo, log, pallet_prelude::*, sp_runtime::DispatchErrorWithPostInfo,
+    };
     use frame_system::pallet_prelude::OriginFor;
     use sp_std::prelude::Vec;
 
@@ -34,8 +36,16 @@ pub mod pallet {
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         type WeightInfo: WeightInfo;
 
+        /// Limits how many bytes verification key can have.
+        ///
+        /// Verification keys are stored, therefore this is separated from the limits on proof or
+        /// public input.
         #[pallet::constant]
         type MaximumVerificationKeyLength: Get<u32>;
+
+        /// Limits how many bytes proof or public input can have.
+        #[pallet::constant]
+        type MaximumDataLength: Get<u32>;
     }
 
     #[pallet::error]
@@ -47,6 +57,9 @@ pub mod pallet {
         UnknownVerificationKeyIdentifier,
         /// Provided verification key is longer than `MaximumVerificationKeyLength` limit.
         VerificationKeyTooLong,
+
+        /// Either proof or public input is longer than `MaximumDataLength` limit.
+        DataTooLong,
         /// Couldn't deserialize proof.
         DeserializingProofFailed,
         /// Couldn't deserialize public input.
@@ -64,6 +77,13 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// Verification key has been successfully stored.
         VerificationKeyStored,
+
+        /// Verification key has been successfully deleted.
+        VerificationKeyDeleted,
+
+        /// Verification key has been successfully overwritten.
+        VerificationKeyOverwritten,
+
         /// Proof has been successfully verified.
         VerificationSucceeded,
     }
@@ -110,6 +130,7 @@ pub mod pallet {
         ) -> DispatchResult {
             ensure_root(origin)?;
             VerificationKeys::<T>::remove(identifier);
+            Self::deposit_event(Event::VerificationKeyDeleted);
             Ok(())
         }
 
@@ -125,17 +146,20 @@ pub mod pallet {
         ) -> DispatchResult {
             ensure_root(origin)?;
 
-            VerificationKeys::<T>::try_mutate_exists(identifier, |value| -> DispatchResult {
-                ensure!(
-                    key.len() <= T::MaximumVerificationKeyLength::get() as usize,
-                    Error::<T>::VerificationKeyTooLong
-                );
+            ensure!(
+                key.len() <= T::MaximumVerificationKeyLength::get() as usize,
+                Error::<T>::VerificationKeyTooLong
+            );
 
+            VerificationKeys::<T>::try_mutate_exists(identifier, |value| -> DispatchResult {
                 // should never fail, since length is checked above
                 *value = Some(BoundedVec::try_from(key).unwrap());
 
                 Ok(())
-            })
+            })?;
+
+            Self::deposit_event(Event::VerificationKeyOverwritten);
+            Ok(())
         }
 
         /// Verifies `proof` against `public_input` with a key that has been stored under
@@ -163,9 +187,16 @@ pub mod pallet {
             proof: Vec<u8>,
             public_input: Vec<u8>,
             system: ProvingSystem,
-        ) -> DispatchResult {
+        ) -> DispatchResultWithPostInfo {
             Self::bare_verify(verification_key_identifier, proof, public_input, system)
-                .map_err(|e| e.into())
+                .map(|_| ().into())
+                .map_err(|(error, actual_weight)| DispatchErrorWithPostInfo {
+                    post_info: PostDispatchInfo {
+                        pays_fee: Pays::Yes,
+                        actual_weight,
+                    },
+                    error: error.into(),
+                })
         }
     }
 
@@ -204,7 +235,7 @@ pub mod pallet {
             proof: Vec<u8>,
             public_input: Vec<u8>,
             system: ProvingSystem,
-        ) -> Result<(), Error<T>> {
+        ) -> Result<(), (Error<T>, Option<Weight>)> {
             match system {
                 ProvingSystem::Groth16 => {
                     Self::_bare_verify::<Groth16>(verification_key_identifier, proof, public_input)
@@ -222,31 +253,61 @@ pub mod pallet {
             verification_key_identifier: VerificationKeyIdentifier,
             proof: Vec<u8>,
             public_input: Vec<u8>,
-        ) -> Result<(), Error<T>> {
+        ) -> Result<(), (Error<T>, Option<Weight>)> {
+            let data_length_limit = T::MaximumDataLength::get() as usize;
+            let data_length_excess = proof.len().saturating_sub(data_length_limit)
+                + public_input.len().saturating_sub(data_length_limit);
+            ensure!(
+                data_length_excess == 0,
+                (
+                    Error::<T>::DataTooLong,
+                    Some(T::WeightInfo::verify_data_too_long(
+                        data_length_excess as u32
+                    ))
+                )
+            );
+
+            let proof_len = proof.len() as u32;
             let proof: S::Proof = CanonicalDeserialize::deserialize(&*proof).map_err(|e| {
                 log::error!("Deserializing proof failed: {:?}", e);
-                Error::<T>::DeserializingProofFailed
+                (
+                    Error::<T>::DeserializingProofFailed,
+                    Some(T::WeightInfo::verify_data_deserializing_fails(proof_len)),
+                )
             })?;
 
             let public_input: Vec<S::CircuitField> =
                 CanonicalDeserialize::deserialize(&*public_input).map_err(|e| {
                     log::error!("Deserializing public input failed: {:?}", e);
-                    Error::<T>::DeserializingPublicInputFailed
+                    (
+                        Error::<T>::DeserializingPublicInputFailed,
+                        Some(T::WeightInfo::verify_data_deserializing_fails(
+                            proof_len + public_input.len() as u32,
+                        )),
+                    )
                 })?;
 
-            let verification_key = VerificationKeys::<T>::get(verification_key_identifier)
-                .ok_or(Error::<T>::UnknownVerificationKeyIdentifier)?;
+            let verification_key =
+                VerificationKeys::<T>::get(verification_key_identifier).ok_or((
+                    Error::<T>::UnknownVerificationKeyIdentifier,
+                    Some(T::WeightInfo::verify_key_deserializing_fails(0)),
+                ))?;
             let verification_key: S::VerifyingKey =
                 CanonicalDeserialize::deserialize(&**verification_key).map_err(|e| {
                     log::error!("Deserializing verification key failed: {:?}", e);
-                    Error::<T>::DeserializingVerificationKeyFailed
+                    (
+                        Error::<T>::DeserializingVerificationKeyFailed,
+                        Some(T::WeightInfo::verify_key_deserializing_fails(
+                            verification_key.len() as u32,
+                        )),
+                    )
                 })?;
 
             // At some point we should enhance error type from `S::verify` and be more verbose here.
             let valid_proof = S::verify(&verification_key, &public_input, &proof)
-                .map_err(|_| Error::<T>::VerificationFailed)?;
+                .map_err(|_| (Error::<T>::VerificationFailed, None))?;
 
-            ensure!(valid_proof, Error::<T>::IncorrectProof);
+            ensure!(valid_proof, (Error::<T>::IncorrectProof, None));
 
             Self::deposit_event(Event::VerificationSucceeded);
             Ok(())
