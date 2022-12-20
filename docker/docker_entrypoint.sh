@@ -32,6 +32,7 @@ TELEMETRY_VERBOSITY_LVL=${TELEMETRY_VERBOSITY_LVL:-'0'}
 UNIT_CREATION_DELAY=${UNIT_CREATION_DELAY:-300}
 DB_CACHE=${DB_CACHE:-1024}
 RUNTIME_CACHE_SIZE=${RUNTIME_CACHE_SIZE:-2}
+MAX_RUNTIME_INSTANCES=${MAX_RUNTIME_INSTANCES:-8}
 BACKUP_PATH=${BACKUP_PATH:-${BASE_PATH}/backup-stash}
 
 if [[ "true" == "$PURGE_BEFORE_START" ]]; then
@@ -60,6 +61,7 @@ ARGS=(
   --enable-log-reloading
   --db-cache "${DB_CACHE}"
   --runtime-cache-size "${RUNTIME_CACHE_SIZE}"
+  --max-runtime-instances "${MAX_RUNTIME_INSTANCES}"
 )
 
 if [[ -n "${BOOT_NODES:-}" ]]; then
