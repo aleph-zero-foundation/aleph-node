@@ -294,7 +294,7 @@ async fn main() {
             }
         },
 
-        Command::SnarkRelation(cmd) => match cmd {
+        Command::SnarkRelation(cmd) => match *cmd {
             SnarkRelation::GenerateSrs {
                 system,
                 num_constraints,

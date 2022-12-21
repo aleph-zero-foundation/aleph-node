@@ -6,3 +6,18 @@ pub trait GetPublicInput<CircuitField: PrimeField + CanonicalSerialize> {
         vec![]
     }
 }
+
+pub(super) mod state {
+    pub enum NoInput {}
+    pub enum OnlyPublicInput {}
+    pub enum FullInput {}
+
+    pub trait State {}
+    impl State for NoInput {}
+    impl State for OnlyPublicInput {}
+    impl State for FullInput {}
+
+    pub trait WithPublicInput: State {}
+    impl WithPublicInput for OnlyPublicInput {}
+    impl WithPublicInput for FullInput {}
+}

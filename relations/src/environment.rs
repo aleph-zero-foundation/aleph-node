@@ -97,7 +97,7 @@ macro_rules! impl_non_universal_system_for_snark {
             ) -> Self::Proof {
                 let mut rng = dummy_rng();
                 <$system as SNARK<CircuitField>>::prove(pk, circuit, &mut rng)
-                    .expect("Failed to generate keys")
+                    .expect("Failed to generate proof")
             }
 
             fn verify(

@@ -14,7 +14,7 @@ pub use environment::{
     RawKeys, UniversalSystem, GM17,
 };
 pub use linear::LinearEquationRelation;
-pub use merkle_tree::MerkleTreeRelation;
+pub use merkle_tree::{MerkleTreeRelation, Root};
 pub use relation::GetPublicInput;
 pub use serialization::serialize;
 pub use shielder::{

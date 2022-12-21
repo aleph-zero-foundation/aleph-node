@@ -1,8 +1,13 @@
+use std::marker::PhantomData;
+
 use ark_ff::BigInteger256;
 use ark_r1cs_std::alloc::AllocVar;
 use ark_relations::{
     ns,
-    r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError},
+    r1cs::{
+        ConstraintSynthesizer, ConstraintSystemRef, SynthesisError,
+        SynthesisError::AssignmentMissing,
+    },
 };
 
 use super::{
@@ -12,64 +17,112 @@ use super::{
         FrontendNote, FrontendNullifier, FrontendTokenAmount, FrontendTokenId, FrontendTrapdoor,
     },
 };
-use crate::{environment::CircuitField, relation::GetPublicInput};
+use crate::{
+    environment::CircuitField,
+    relation::{
+        state::{FullInput, NoInput, OnlyPublicInput, State, WithPublicInput},
+        GetPublicInput,
+    },
+};
 
 /// 'Deposit' relation for the Shielder application.
 ///
 /// It expresses the fact that `note` is a prefix of the result of tangling together `token_id`,
 /// `token_amount`, `trapdoor` and `nullifier`.
-///
-/// When providing a public input to proof verification, you should keep the order of variable
-/// declarations in circuit, i.e.: `note`, `token_id`, `token_amount`.
 #[derive(Clone)]
-pub struct DepositRelation {
+pub struct DepositRelation<S: State> {
     // Public inputs
-    pub note: BackendNote,
-    pub token_id: BackendTokenId,
-    pub token_amount: BackendTokenAmount,
+    pub note: Option<BackendNote>,
+    pub token_id: Option<BackendTokenId>,
+    pub token_amount: Option<BackendTokenAmount>,
 
     // Private inputs
-    pub trapdoor: BackendTrapdoor,
-    pub nullifier: BackendNullifier,
+    pub trapdoor: Option<BackendTrapdoor>,
+    pub nullifier: Option<BackendNullifier>,
+
+    _phantom: PhantomData<S>,
 }
 
-impl DepositRelation {
-    pub fn new(
+impl DepositRelation<NoInput> {
+    pub fn without_input() -> Self {
+        DepositRelation {
+            note: None,
+            token_id: None,
+            token_amount: None,
+            trapdoor: None,
+            nullifier: None,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl DepositRelation<OnlyPublicInput> {
+    pub fn with_public_input(
+        note: FrontendNote,
+        token_id: FrontendTokenId,
+        token_amount: FrontendTokenAmount,
+    ) -> Self {
+        DepositRelation {
+            note: Some(BackendNote::from(BigInteger256::new(note))),
+            token_id: Some(BackendTokenId::from(token_id)),
+            token_amount: Some(BackendTokenAmount::from(token_amount)),
+            trapdoor: None,
+            nullifier: None,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl DepositRelation<FullInput> {
+    pub fn with_full_input(
         note: FrontendNote,
         token_id: FrontendTokenId,
         token_amount: FrontendTokenAmount,
         trapdoor: FrontendTrapdoor,
         nullifier: FrontendNullifier,
     ) -> Self {
-        Self {
-            note: BackendNote::from(BigInteger256::new(note)),
-            token_id: BackendTokenId::from(token_id),
-            token_amount: BackendTokenAmount::from(token_amount),
-            trapdoor: BackendTrapdoor::from(trapdoor),
-            nullifier: BackendNullifier::from(nullifier),
+        DepositRelation {
+            note: Some(BackendNote::from(BigInteger256::new(note))),
+            token_id: Some(BackendTokenId::from(token_id)),
+            token_amount: Some(BackendTokenAmount::from(token_amount)),
+            trapdoor: Some(BackendTrapdoor::from(trapdoor)),
+            nullifier: Some(BackendNullifier::from(nullifier)),
+            _phantom: PhantomData,
         }
     }
 }
 
-impl ConstraintSynthesizer<CircuitField> for DepositRelation {
+impl<S: State> ConstraintSynthesizer<CircuitField> for DepositRelation<S> {
     fn generate_constraints(
         self,
         cs: ConstraintSystemRef<CircuitField>,
     ) -> Result<(), SynthesisError> {
-        let note = FpVar::new_input(ns!(cs, "note"), || Ok(&self.note))?;
-        let token_id = FpVar::new_input(ns!(cs, "token id"), || Ok(&self.token_id))?;
-        let token_amount = FpVar::new_input(ns!(cs, "token amount"), || Ok(&self.token_amount))?;
+        let note = FpVar::new_input(ns!(cs, "note"), || self.note.ok_or(AssignmentMissing))?;
+        let token_id = FpVar::new_input(ns!(cs, "token id"), || {
+            self.token_id.ok_or(AssignmentMissing)
+        })?;
+        let token_amount = FpVar::new_input(ns!(cs, "token amount"), || {
+            self.token_amount.ok_or(AssignmentMissing)
+        })?;
 
-        let trapdoor = FpVar::new_witness(ns!(cs, "trapdoor"), || Ok(&self.trapdoor))?;
-        let nullifier = FpVar::new_witness(ns!(cs, "nullifier"), || Ok(&self.nullifier))?;
+        let trapdoor = FpVar::new_witness(ns!(cs, "trapdoor"), || {
+            self.trapdoor.ok_or(AssignmentMissing)
+        })?;
+        let nullifier = FpVar::new_witness(ns!(cs, "nullifier"), || {
+            self.nullifier.ok_or(AssignmentMissing)
+        })?;
 
         check_note(&token_id, &token_amount, &trapdoor, &nullifier, &note)
     }
 }
 
-impl GetPublicInput<CircuitField> for DepositRelation {
+impl<S: WithPublicInput> GetPublicInput<CircuitField> for DepositRelation<S> {
     fn public_input(&self) -> Vec<CircuitField> {
-        vec![self.note, self.token_id, self.token_amount]
+        vec![
+            self.note.unwrap(),
+            self.token_id.unwrap(),
+            self.token_amount.unwrap(),
+        ]
     }
 }
 
@@ -83,26 +136,19 @@ mod tests {
     use super::*;
     use crate::shielder::note::compute_note;
 
-    fn get_circuit_and_input() -> (DepositRelation, [CircuitField; 3]) {
+    fn get_circuit_with_full_input() -> DepositRelation<FullInput> {
         let token_id: FrontendTokenId = 1;
         let token_amount: FrontendTokenAmount = 10;
         let trapdoor: FrontendTrapdoor = 17;
         let nullifier: FrontendNullifier = 19;
         let note = compute_note(token_id, token_amount, trapdoor, nullifier);
 
-        let circuit = DepositRelation::new(note, token_id, token_amount, trapdoor, nullifier);
-        let input = [
-            CircuitField::from(BigInteger256::new(note)),
-            CircuitField::from(token_id),
-            CircuitField::from(token_amount),
-        ];
-
-        (circuit, input)
+        DepositRelation::with_full_input(note, token_id, token_amount, trapdoor, nullifier)
     }
 
     #[test]
     fn deposit_constraints_correctness() {
-        let (circuit, _input) = get_circuit_and_input();
+        let circuit = get_circuit_with_full_input();
 
         let cs = ConstraintSystem::new_ref();
         circuit.generate_constraints(cs.clone()).unwrap();
@@ -117,11 +163,14 @@ mod tests {
 
     #[test]
     fn deposit_proving_procedure() {
-        let (circuit, input) = get_circuit_and_input();
+        let circuit_wo_input = DepositRelation::without_input();
 
         let mut rng = ark_std::test_rng();
         let (pk, vk) =
-            Groth16::<Bls12_381>::circuit_specific_setup(circuit.clone(), &mut rng).unwrap();
+            Groth16::<Bls12_381>::circuit_specific_setup(circuit_wo_input, &mut rng).unwrap();
+
+        let circuit = get_circuit_with_full_input();
+        let input = circuit.public_input();
 
         let proof = Groth16::prove(&pk, circuit, &mut rng).unwrap();
         let valid_proof = Groth16::verify(&vk, &input, &proof).unwrap();

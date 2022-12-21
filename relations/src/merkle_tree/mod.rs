@@ -13,3 +13,4 @@ mod relation;
 mod tree;
 
 pub use relation::MerkleTreeRelation;
+pub use tree::Root;

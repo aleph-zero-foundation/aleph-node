@@ -1,5 +1,3 @@
-extern crate core;
-
 mod commands;
 mod contracts;
 mod finalization;

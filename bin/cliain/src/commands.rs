@@ -511,8 +511,10 @@ pub enum Command {
     Snarcos(Snarcos),
 
     /// Interact with `relations` crate.
+    ///
+    /// Inner object is boxed, because it is significantly bigger than any other variant (clippy).
     #[clap(subcommand)]
-    SnarkRelation(SnarkRelation),
+    SnarkRelation(Box<SnarkRelation>),
 }
 
 mod parsing {
