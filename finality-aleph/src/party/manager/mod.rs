@@ -3,7 +3,7 @@ use std::{collections::HashSet, marker::PhantomData, sync::Arc};
 use aleph_primitives::{AlephSessionApi, KEY_TYPE};
 use async_trait::async_trait;
 use futures::channel::oneshot;
-use log::{debug, trace, warn};
+use log::{debug, info, trace, warn};
 use sc_client_api::Backend;
 use sp_consensus::SelectChain;
 use sp_keystore::CryptoStore;
@@ -344,9 +344,18 @@ where
             .next_session_finality_version(&BlockId::Number(last_block_of_previous_session))
         {
             #[cfg(feature = "only_legacy")]
-            _ if self.only_legacy() => self.legacy_subtasks(params),
-            Ok(version) if version == CURRENT_VERSION => self.current_subtasks(params),
-            Ok(version) if version == LEGACY_VERSION => self.legacy_subtasks(params),
+            _ if self.only_legacy() => {
+                info!(target: "aleph-party", "Running session with legacy-only AlephBFT version.");
+                self.legacy_subtasks(params)
+            }
+            Ok(version) if version == CURRENT_VERSION => {
+                info!(target: "aleph-party", "Running session with AlephBFT version {}, which is current.", version);
+                self.current_subtasks(params)
+            }
+            Ok(version) if version == LEGACY_VERSION => {
+                info!(target: "aleph-party", "Running session with AlephBFT version {}, which is legacy.", version);
+                self.legacy_subtasks(params)
+            }
             Ok(version) => {
                 panic!("Unsupported version {}. Supported versions: {} or {}. Potentially outdated node.", version, LEGACY_VERSION, CURRENT_VERSION)
             }
