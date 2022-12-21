@@ -44,7 +44,7 @@ pub const MILLISECS_PER_BLOCK: u64 = 1000;
 #[cfg(feature = "short_session")]
 pub const DEFAULT_SESSION_PERIOD: u32 = 30;
 #[cfg(feature = "short_session")]
-pub const DEFAULT_SESSIONS_PER_ERA: SessionIndex = 5;
+pub const DEFAULT_SESSIONS_PER_ERA: SessionIndex = 3;
 
 // Default values outside testing
 #[cfg(not(feature = "short_session"))]

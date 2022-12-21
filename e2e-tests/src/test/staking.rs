@@ -198,7 +198,9 @@ pub async fn staking_new_validator() -> anyhow::Result<()> {
             total: MIN_VALIDATOR_BOND,
             active: MIN_VALIDATOR_BOND,
             unlocking: BoundedVec(vec![]),
-            claimed_rewards: BoundedVec(vec![]),
+            // since era is 3 sessions, validate is done in the first block of 2nd session,
+            // that is already after elections has been done for 1st era
+            claimed_rewards: BoundedVec(vec![0]),
         }
     );
 
