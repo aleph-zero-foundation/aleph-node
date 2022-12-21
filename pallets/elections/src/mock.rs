@@ -275,10 +275,7 @@ impl TestExtBuilder {
             .chain(self.reserved_validators.iter())
             .collect();
 
-        let balances: Vec<_> = validators
-            .iter()
-            .map(|i| (**i as u64, 10_000_000))
-            .collect();
+        let balances: Vec<_> = validators.iter().map(|i| (**i, 10_000_000)).collect();
 
         pallet_balances::GenesisConfig::<Test> { balances }
             .assimilate_storage(&mut t)

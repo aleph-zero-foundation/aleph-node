@@ -8,7 +8,7 @@ use crate::accounts::{get_sudo_key, get_validators_keys, get_validators_seeds, N
 
 static GLOBAL_CONFIG: Lazy<Config> = Lazy::new(|| {
     let node = get_env("NODE_URL").unwrap_or_else(|| "ws://127.0.0.1:9943".to_string());
-    let validator_count = get_env("VALIDATOR_COUNT").unwrap_or_else(|| 5);
+    let validator_count = get_env("VALIDATOR_COUNT").unwrap_or(5);
     let validators_seeds = env::var("VALIDATORS_SEEDS")
         .ok()
         .map(|s| s.split(',').map(|s| s.to_string()).collect());
@@ -41,7 +41,7 @@ where
 {
     env::var(name).ok().map(|v| {
         v.parse()
-            .expect(&format!("Failed to parse env var {}", name))
+            .unwrap_or_else(|_| panic!("Failed to parse env var {}", name))
     })
 }
 

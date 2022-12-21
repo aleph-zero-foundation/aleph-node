@@ -8,8 +8,8 @@ use std::{
 
 use codec::{Decode, Encode};
 use futures::{
-    channel::{mpsc, oneshot},
-    StreamExt,
+    channel::{mpsc, mpsc::UnboundedReceiver, oneshot},
+    Future, StreamExt,
 };
 use log::info;
 use rand::Rng;
@@ -17,6 +17,7 @@ use tokio::io::{duplex, AsyncRead, AsyncWrite, DuplexStream, ReadBuf};
 
 use crate::network::{
     clique::{
+        protocols::{ProtocolError, ResultForService},
         ConnectionInfo, Dialer, Listener, Network, PeerAddressInfo, PublicKey, SecretKey,
         Splittable, LOG_TARGET,
     },
@@ -290,6 +291,12 @@ impl<D: Data> MockNetwork<D> {
     }
 }
 
+impl<D: Data> Default for MockNetwork<D> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Bidirectional in-memory stream that closes abruptly after a specified
 /// number of poll_write calls.
 #[derive(Debug)]
@@ -534,4 +541,17 @@ impl UnreliableConnectionMaker {
                 .expect("should send");
         }
     }
+}
+
+pub struct MockPrelims<D> {
+    pub id_incoming: MockPublicKey,
+    pub pen_incoming: MockSecretKey,
+    pub id_outgoing: MockPublicKey,
+    pub pen_outgoing: MockSecretKey,
+    pub incoming_handle: Pin<Box<dyn Future<Output = Result<(), ProtocolError<MockPublicKey>>>>>,
+    pub outgoing_handle: Pin<Box<dyn Future<Output = Result<(), ProtocolError<MockPublicKey>>>>>,
+    pub data_from_incoming: UnboundedReceiver<D>,
+    pub data_from_outgoing: Option<UnboundedReceiver<D>>,
+    pub result_from_incoming: UnboundedReceiver<ResultForService<MockPublicKey, D>>,
+    pub result_from_outgoing: UnboundedReceiver<ResultForService<MockPublicKey, D>>,
 }
