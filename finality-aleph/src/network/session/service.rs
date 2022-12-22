@@ -385,7 +385,7 @@ where
                     }
                 },
                 maybe_authentication = self.gossip_network.next() => {
-                    let authentication = maybe_authentication.map_err(Error::GossipNetwork)?;
+                    let (authentication, _) = maybe_authentication.map_err(Error::GossipNetwork)?;
                     trace!(target: "aleph-network", "Manager received an authentication from network");
                     match authentication.try_into() {
                         Ok(message) => {

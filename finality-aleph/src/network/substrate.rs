@@ -171,8 +171,9 @@ impl<B: Block, H: ExHashT> EventStream<PeerId> for NetworkEventStream<B, H> {
                             Err(_) => continue,
                         }
                     }
-                    NotificationsReceived { messages, .. } => {
+                    NotificationsReceived { messages, remote } => {
                         return Some(Messages(
+                            remote,
                             messages
                                 .into_iter()
                                 .filter_map(|(protocol, data)| {

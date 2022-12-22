@@ -227,10 +227,13 @@ impl TestData {
             for versioned_authentication in
                 Vec::<VersionedAuthentication<_, _>>::from(handler.authentication().unwrap())
             {
-                self.network.emit_event(MockEvent::Messages(vec![(
-                    Protocol::Authentication,
-                    versioned_authentication.encode().into(),
-                )]));
+                self.network.emit_event(MockEvent::Messages(
+                    authority.auth_peer_id(),
+                    vec![(
+                        Protocol::Authentication,
+                        versioned_authentication.encode().into(),
+                    )],
+                ));
             }
         }
     }
@@ -334,10 +337,13 @@ async fn test_forwards_authentication_broadcast() {
     for versioned_authentication in
         Vec::<VersionedAuthentication<_, _>>::from(sending_peer_handler.authentication().unwrap())
     {
-        test_data.network.emit_event(MockEvent::Messages(vec![(
-            Protocol::Authentication,
-            versioned_authentication.encode().into(),
-        )]));
+        test_data.network.emit_event(MockEvent::Messages(
+            sending_peer.auth_peer_id(),
+            vec![(
+                Protocol::Authentication,
+                versioned_authentication.encode().into(),
+            )],
+        ));
     }
 
     for _ in 0..2 {
