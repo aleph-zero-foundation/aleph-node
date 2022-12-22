@@ -1,21 +1,21 @@
 [package]
 name = "finality-aleph"
-version = "0.5.4"
+version = "0.6.0"
 authors = ["Cardinal Cryptography"]
 edition = "2021"
 license = "Apache 2.0"
 
 [dependencies]
 # fixed version to 'freeze' some types used in abft, mainly `SignatureSet` used in justification and signature aggregation
-aleph-bft-crypto = "0.4.0"
+aleph-bft-crypto = "0.5"
 
-current-aleph-bft = { package = "aleph-bft", version = "0.19.1" }
-current-aleph-bft-rmc = { package = "aleph-bft-rmc", version = "0.5.0" }
-legacy-aleph-bft = { package = "aleph-bft", version = "0.18.1" }
-legacy-aleph-bft-rmc = { package = "aleph-bft-rmc", version = "0.4.0" }
+current-aleph-bft = { package = "aleph-bft", version = "0.20" }
+current-aleph-bft-rmc = { package = "aleph-bft-rmc", version = "0.6" }
+legacy-aleph-bft = { package = "aleph-bft", version = "0.19" }
+legacy-aleph-bft-rmc = { package = "aleph-bft-rmc", version = "0.5" }
 
 aleph-primitives = { package = "primitives", path = "../primitives" }
-legacy-aleph-aggregator = { package = "aggregator", git = "https://github.com/Cardinal-Cryptography/aleph-node.git", tag = "aggregator-v0.1.0" }
+legacy-aleph-aggregator = { package = "aggregator", git = "https://github.com/Cardinal-Cryptography/aleph-node.git", tag = "aggregator-v0.2.1" }
 current-aleph-aggregator = { path = "../aggregator", package = "aggregator" }
 
 async-trait = "0.1"

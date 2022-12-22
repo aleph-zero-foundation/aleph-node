@@ -220,7 +220,7 @@ where
     fn send(
         &self,
         data: D,
-        recipient: legacy_aleph_bft::Recipient,
+        recipient: current_aleph_bft::Recipient,
     ) -> Result<(), CurrentNetworkError> {
         self.0.send(data, recipient.into()).map_err(|e| match e {
             SendError::SendFailed => CurrentNetworkError::SendFail,

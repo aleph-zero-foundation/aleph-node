@@ -37,7 +37,7 @@ use sp_std::prelude::*;
 /// The current storage version.
 const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
 
-const DEFAULT_FINALITY_VERSION: Version = 0;
+const DEFAULT_FINALITY_VERSION: Version = 2;
 
 #[frame_support::pallet]
 pub mod pallet {
