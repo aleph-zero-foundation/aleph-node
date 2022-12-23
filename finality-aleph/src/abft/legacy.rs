@@ -17,7 +17,7 @@ use crate::{
 };
 
 /// Version of the legacy abft
-pub const VERSION: u32 = 1;
+pub const VERSION: u16 = 1;
 
 pub fn run_member<
     B: Block,

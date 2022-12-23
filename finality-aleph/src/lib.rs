@@ -20,7 +20,7 @@ use sp_runtime::traits::{BlakeTwo256, Block, Header};
 use tokio::time::Duration;
 
 use crate::{
-    abft::{CurrentNetworkData, LegacyNetworkData},
+    abft::{CurrentNetworkData, LegacyNetworkData, CURRENT_VERSION, LEGACY_VERSION},
     aggregation::{CurrentRmcNetworkData, LegacyRmcNetworkData},
     network::{data::split::Split, protocol_name},
     session::{
@@ -95,11 +95,11 @@ pub type LegacySplitData<B> = Split<LegacyNetworkData<B>, LegacyRmcNetworkData<B
 pub type CurrentSplitData<B> = Split<CurrentNetworkData<B>, CurrentRmcNetworkData<B>>;
 
 impl<B: Block> Versioned for LegacyNetworkData<B> {
-    const VERSION: Version = Version(0);
+    const VERSION: Version = Version(LEGACY_VERSION);
 }
 
 impl<B: Block> Versioned for CurrentNetworkData<B> {
-    const VERSION: Version = Version(1);
+    const VERSION: Version = Version(CURRENT_VERSION);
 }
 
 /// The main purpose of this data type is to enable a seamless transition between protocol versions at the Network level. It

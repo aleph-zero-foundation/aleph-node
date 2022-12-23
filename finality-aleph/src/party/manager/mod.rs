@@ -348,11 +348,13 @@ where
                 info!(target: "aleph-party", "Running session with legacy-only AlephBFT version.");
                 self.legacy_subtasks(params)
             }
-            Ok(version) if version == CURRENT_VERSION => {
+            // The `as`es here should be removed, but this would require a pallet migration and I
+            // am lazy.
+            Ok(version) if version == CURRENT_VERSION as u32 => {
                 info!(target: "aleph-party", "Running session with AlephBFT version {}, which is current.", version);
                 self.current_subtasks(params)
             }
-            Ok(version) if version == LEGACY_VERSION => {
+            Ok(version) if version == LEGACY_VERSION as u32 => {
                 info!(target: "aleph-party", "Running session with AlephBFT version {}, which is legacy.", version);
                 self.legacy_subtasks(params)
             }
