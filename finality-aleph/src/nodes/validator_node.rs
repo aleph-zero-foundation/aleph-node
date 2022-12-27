@@ -15,7 +15,7 @@ use crate::{
         clique::Service,
         session::{ConnectionManager, ConnectionManagerConfig},
         tcp::{new_tcp_network, KEY_TYPE},
-        GossipService,
+        GossipService, SubstrateNetwork,
     },
     nodes::{setup_justification_handler, JustificationParams},
     party::{
@@ -62,6 +62,7 @@ where
         backup_saving_path,
         external_addresses,
         validator_port,
+        protocol_naming,
         ..
     } = aleph_config;
 
@@ -92,8 +93,10 @@ where
         validator_network_service.run(exit).await
     });
 
-    let (gossip_network_service, gossip_network) =
-        GossipService::new(network.clone(), spawn_handle.clone());
+    let (gossip_network_service, authentication_network, _block_sync_network) = GossipService::new(
+        SubstrateNetwork::new(network.clone(), protocol_naming),
+        spawn_handle.clone(),
+    );
     let gossip_network_task = async move { gossip_network_service.run().await };
 
     let block_requester = network.clone();
@@ -122,7 +125,7 @@ where
     let (connection_manager_service, connection_manager) = ConnectionManager::new(
         network_identity,
         validator_network,
-        gossip_network,
+        authentication_network,
         ConnectionManagerConfig::with_session_period(&session_period, &millisecs_per_block),
     );
 

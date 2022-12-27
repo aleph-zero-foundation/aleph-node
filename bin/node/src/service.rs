@@ -9,11 +9,11 @@ use aleph_primitives::AlephSessionApi;
 use aleph_runtime::{self, opaque::Block, RuntimeApi, MAX_BLOCK_SIZE};
 use finality_aleph::{
     run_nonvalidator_node, run_validator_node, AlephBlockImport, AlephConfig,
-    JustificationNotification, Metrics, MillisecsPerBlock, Protocol, SessionPeriod,
+    JustificationNotification, Metrics, MillisecsPerBlock, Protocol, ProtocolNaming, SessionPeriod,
 };
 use futures::channel::mpsc;
 use log::warn;
-use sc_client_api::{Backend, HeaderBackend};
+use sc_client_api::{Backend, BlockBackend, HeaderBackend};
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
 use sc_consensus_slots::BackoffAuthoringBlocksStrategy;
 use sc_network::NetworkService;
@@ -212,14 +212,35 @@ fn setup(
     (
         RpcHandlers,
         Arc<NetworkService<Block, <Block as BlockT>::Hash>>,
+        ProtocolNaming,
         NetworkStarter,
     ),
     ServiceError,
 > {
+    let genesis_hash = client
+        .block_hash(0)
+        .ok()
+        .flatten()
+        .expect("we should have a hash");
+    let chain_prefix = match config.chain_spec.fork_id() {
+        Some(fork_id) => format!("/{}/{}", genesis_hash, fork_id),
+        None => format!("/{}", genesis_hash),
+    };
+    let protocol_naming = ProtocolNaming::new(chain_prefix);
     config
         .network
         .extra_sets
-        .push(finality_aleph::peers_set_config(Protocol::Authentication));
+        .push(finality_aleph::peers_set_config(
+            protocol_naming.clone(),
+            Protocol::Authentication,
+        ));
+    config
+        .network
+        .extra_sets
+        .push(finality_aleph::peers_set_config(
+            protocol_naming.clone(),
+            Protocol::BlockSync,
+        ));
 
     let (network, system_rpc_tx, tx_handler_controller, network_starter) =
         sc_service::build_network(sc_service::BuildNetworkParams {
@@ -262,7 +283,7 @@ fn setup(
         telemetry: telemetry.as_mut(),
     })?;
 
-    Ok((rpc_handlers, network, network_starter))
+    Ok((rpc_handlers, network, protocol_naming, network_starter))
 }
 
 /// Builds a new service for a full client.
@@ -308,7 +329,7 @@ pub fn new_authority(
     let backoff_authoring_blocks = Some(LimitNonfinalized(aleph_config.max_nonfinalized_blocks()));
     let prometheus_registry = config.prometheus_registry().cloned();
 
-    let (_rpc_handlers, network, network_starter) = setup(
+    let (_rpc_handlers, network, protocol_naming, network_starter) = setup(
         config,
         backend.clone(),
         &keystore_container,
@@ -383,6 +404,7 @@ pub fn new_authority(
         backup_saving_path: backup_path,
         external_addresses: aleph_config.external_addresses(),
         validator_port: aleph_config.validator_port(),
+        protocol_naming,
     };
     task_manager.spawn_essential_handle().spawn_blocking(
         "aleph",
@@ -418,7 +440,7 @@ pub fn new_full(
             .path(),
     );
 
-    let (_rpc_handlers, network, network_starter) = setup(
+    let (_rpc_handlers, network, protocol_naming, network_starter) = setup(
         config,
         backend.clone(),
         &keystore_container,
@@ -460,6 +482,7 @@ pub fn new_full(
         backup_saving_path: backup_path,
         external_addresses: aleph_config.external_addresses(),
         validator_port: aleph_config.validator_port(),
+        protocol_naming,
     };
 
     task_manager.spawn_essential_handle().spawn_blocking(

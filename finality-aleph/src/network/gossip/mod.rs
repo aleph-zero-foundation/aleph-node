@@ -46,10 +46,13 @@ pub trait Network<D: Data>: Send + 'static {
     async fn next(&mut self) -> Result<(D, Self::PeerId), Self::Error>;
 }
 
-/// The Authentication protocol is used for validator discovery.
+/// Protocols used by the network.
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub enum Protocol {
+    /// The authentication protocol is used for validator discovery.
     Authentication,
+    /// The block synchronization protocol.
+    BlockSync,
 }
 
 /// Abstraction over a sender to the raw network.

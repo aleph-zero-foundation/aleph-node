@@ -1,12 +1,12 @@
-use std::{fmt, iter, pin::Pin, sync::Arc};
+use std::{collections::HashMap, fmt, iter, pin::Pin, sync::Arc};
 
 use async_trait::async_trait;
 use futures::stream::{Stream, StreamExt};
 use log::{error, trace};
 use sc_consensus::JustificationSyncLink;
 use sc_network::{
-    multiaddr::Protocol as MultiaddressProtocol, Event as SubstrateEvent, NetworkService,
-    NetworkSyncForkRequest, PeerId,
+    multiaddr::Protocol as MultiaddressProtocol, Event as SubstrateEvent, Multiaddr,
+    NetworkService, NetworkSyncForkRequest, PeerId,
 };
 use sc_network_common::{
     protocol::ProtocolName,
@@ -45,24 +45,70 @@ impl<B: Block, H: ExHashT> RequestBlocks<B> for Arc<NetworkService<B, H>> {
     }
 }
 
-/// Name of the network protocol used by Aleph Zero. This is how messages
-/// are subscribed to ensure that we are gossiping and communicating with our
-/// own network.
-const AUTHENTICATION_PROTOCOL_NAME: &str = "/aleph/1";
+/// Name of the network protocol used by Aleph Zero to disseminate validator
+/// authentications.
+const AUTHENTICATION_PROTOCOL_NAME: &str = "/auth/0";
 
-/// Returns the canonical name of the protocol.
-pub fn protocol_name(protocol: &Protocol) -> ProtocolName {
-    use Protocol::*;
-    match protocol {
-        Authentication => AUTHENTICATION_PROTOCOL_NAME.into(),
-    }
+/// Legacy name of the network protocol used by Aleph Zero to disseminate validator
+/// authentications. Might be removed after some updates.
+const LEGACY_AUTHENTICATION_PROTOCOL_NAME: &str = "/aleph/1";
+
+/// Name of the network protocol used by Aleph Zero to synchronize the block state.
+const BLOCK_SYNC_PROTOCOL_NAME: &str = "/sync/0";
+
+/// Convert protocols to their names and vice versa.
+#[derive(Clone)]
+pub struct ProtocolNaming {
+    authentication_name: ProtocolName,
+    authentication_fallback_names: Vec<ProtocolName>,
+    block_sync_name: ProtocolName,
+    protocols_by_name: HashMap<ProtocolName, Protocol>,
 }
 
-/// Attempts to convert the protocol name to a protocol.
-fn to_protocol(protocol_name: &str) -> Result<Protocol, ()> {
-    match protocol_name {
-        AUTHENTICATION_PROTOCOL_NAME => Ok(Protocol::Authentication),
-        _ => Err(()),
+impl ProtocolNaming {
+    /// Create a new protocol naming scheme with the given chain prefix.
+    pub fn new(chain_prefix: String) -> Self {
+        let authentication_name: ProtocolName =
+            format!("{}{}", chain_prefix, AUTHENTICATION_PROTOCOL_NAME).into();
+        let mut protocols_by_name = HashMap::new();
+        protocols_by_name.insert(authentication_name.clone(), Protocol::Authentication);
+        let authentication_fallback_names: Vec<ProtocolName> =
+            vec![LEGACY_AUTHENTICATION_PROTOCOL_NAME.into()];
+        for protocol_name in &authentication_fallback_names {
+            protocols_by_name.insert(protocol_name.clone(), Protocol::Authentication);
+        }
+        let block_sync_name: ProtocolName =
+            format!("{}{}", chain_prefix, BLOCK_SYNC_PROTOCOL_NAME).into();
+        protocols_by_name.insert(block_sync_name.clone(), Protocol::BlockSync);
+        ProtocolNaming {
+            authentication_name,
+            authentication_fallback_names,
+            block_sync_name,
+            protocols_by_name,
+        }
+    }
+
+    /// Returns the canonical name of the protocol.
+    pub fn protocol_name(&self, protocol: &Protocol) -> ProtocolName {
+        use Protocol::*;
+        match protocol {
+            Authentication => self.authentication_name.clone(),
+            BlockSync => self.block_sync_name.clone(),
+        }
+    }
+
+    /// Returns the fallback names of the protocol.
+    pub fn fallback_protocol_names(&self, protocol: &Protocol) -> Vec<ProtocolName> {
+        use Protocol::*;
+        match protocol {
+            Authentication => self.authentication_fallback_names.clone(),
+            _ => Vec::new(),
+        }
+    }
+
+    /// Attempts to convert the protocol name to a protocol.
+    fn to_protocol(&self, protocol_name: &str) -> Option<Protocol> {
+        self.protocols_by_name.get(protocol_name).copied()
     }
 }
 
@@ -127,6 +173,7 @@ impl NetworkSender for SubstrateNetworkSender {
 
 pub struct NetworkEventStream<B: Block, H: ExHashT> {
     stream: Pin<Box<dyn Stream<Item = SubstrateEvent> + Send>>,
+    naming: ProtocolNaming,
     network: Arc<NetworkService<B, H>>,
 }
 
@@ -139,36 +186,46 @@ impl<B: Block, H: ExHashT> EventStream<PeerId> for NetworkEventStream<B, H> {
             match self.stream.next().await {
                 Some(event) => match event {
                     SyncConnected { remote } => {
-                        let multiaddress =
+                        let multiaddress: Multiaddr =
                             iter::once(MultiaddressProtocol::P2p(remote.into())).collect();
                         trace!(target: "aleph-network", "Connected event from address {:?}", multiaddress);
                         if let Err(e) = self.network.add_peers_to_reserved_set(
-                            protocol_name(&Protocol::Authentication),
+                            self.naming.protocol_name(&Protocol::Authentication),
+                            iter::once(multiaddress.clone()).collect(),
+                        ) {
+                            error!(target: "aleph-network", "add_reserved failed for authentications: {}", e);
+                        }
+                        if let Err(e) = self.network.add_peers_to_reserved_set(
+                            self.naming.protocol_name(&Protocol::BlockSync),
                             iter::once(multiaddress).collect(),
                         ) {
-                            error!(target: "aleph-network", "add_reserved failed: {}", e);
+                            error!(target: "aleph-network", "add_reserved failed for block sync: {}", e);
                         }
                         continue;
                     }
                     SyncDisconnected { remote } => {
                         trace!(target: "aleph-network", "Disconnected event for peer {:?}", remote);
-                        let addresses = iter::once(remote).collect();
+                        let addresses: Vec<_> = iter::once(remote).collect();
                         self.network.remove_peers_from_reserved_set(
-                            protocol_name(&Protocol::Authentication),
+                            self.naming.protocol_name(&Protocol::Authentication),
+                            addresses.clone(),
+                        );
+                        self.network.remove_peers_from_reserved_set(
+                            self.naming.protocol_name(&Protocol::BlockSync),
                             addresses,
                         );
                         continue;
                     }
                     NotificationStreamOpened {
                         remote, protocol, ..
-                    } => match to_protocol(protocol.as_ref()) {
-                        Ok(protocol) => return Some(StreamOpened(remote, protocol)),
-                        Err(_) => continue,
+                    } => match self.naming.to_protocol(protocol.as_ref()) {
+                        Some(protocol) => return Some(StreamOpened(remote, protocol)),
+                        None => continue,
                     },
                     NotificationStreamClosed { remote, protocol } => {
-                        match to_protocol(protocol.as_ref()) {
-                            Ok(protocol) => return Some(StreamClosed(remote, protocol)),
-                            Err(_) => continue,
+                        match self.naming.to_protocol(protocol.as_ref()) {
+                            Some(protocol) => return Some(StreamClosed(remote, protocol)),
+                            None => continue,
                         }
                     }
                     NotificationsReceived { messages, remote } => {
@@ -177,12 +234,9 @@ impl<B: Block, H: ExHashT> EventStream<PeerId> for NetworkEventStream<B, H> {
                             messages
                                 .into_iter()
                                 .filter_map(|(protocol, data)| {
-                                    match to_protocol(protocol.as_ref()) {
-                                        Ok(protocol) => Some((protocol, data)),
-                                        // This might end with us returning an empty vec, but it's probably not
-                                        // worth it to handle this situation here.
-                                        Err(_) => None,
-                                    }
+                                    self.naming
+                                        .to_protocol(protocol.as_ref())
+                                        .map(|protocol| (protocol, data))
                                 })
                                 .collect(),
                         ));
@@ -195,7 +249,21 @@ impl<B: Block, H: ExHashT> EventStream<PeerId> for NetworkEventStream<B, H> {
     }
 }
 
-impl<B: Block, H: ExHashT> RawNetwork for Arc<NetworkService<B, H>> {
+/// A wrapper around the substrate network that includes information about protocol names.
+#[derive(Clone)]
+pub struct SubstrateNetwork<B: Block, H: ExHashT> {
+    network: Arc<NetworkService<B, H>>,
+    naming: ProtocolNaming,
+}
+
+impl<B: Block, H: ExHashT> SubstrateNetwork<B, H> {
+    /// Create a new substrate network wrapper.
+    pub fn new(network: Arc<NetworkService<B, H>>, naming: ProtocolNaming) -> Self {
+        SubstrateNetwork { network, naming }
+    }
+}
+
+impl<B: Block, H: ExHashT> RawNetwork for SubstrateNetwork<B, H> {
     type SenderError = SenderError;
     type NetworkSender = SubstrateNetworkSender;
     type PeerId = PeerId;
@@ -203,8 +271,9 @@ impl<B: Block, H: ExHashT> RawNetwork for Arc<NetworkService<B, H>> {
 
     fn event_stream(&self) -> Self::EventStream {
         NetworkEventStream {
-            stream: Box::pin(self.as_ref().event_stream("aleph-network")),
-            network: self.clone(),
+            stream: Box::pin(self.network.as_ref().event_stream("aleph-network")),
+            naming: self.naming.clone(),
+            network: self.network.clone(),
         }
     }
 
@@ -217,7 +286,8 @@ impl<B: Block, H: ExHashT> RawNetwork for Arc<NetworkService<B, H>> {
             // Currently method `notification_sender` does not distinguish whether we are not connected to the peer
             // or there is no such protocol so we need to have this worthless `SenderError::CannotCreateSender` error here
             notification_sender: self
-                .notification_sender(peer_id, protocol_name(&protocol))
+                .network
+                .notification_sender(peer_id, self.naming.protocol_name(&protocol))
                 .map_err(|_| SenderError::CannotCreateSender(peer_id, protocol))?,
             peer_id,
         })

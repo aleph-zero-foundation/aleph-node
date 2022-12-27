@@ -35,13 +35,17 @@ enum Command<D: Data, P: Clone + Debug + Eq + Hash + Send + 'static> {
 pub struct Service<N: RawNetwork, D: Data> {
     network: N,
     messages_from_user: mpsc::UnboundedReceiver<Command<D, N::PeerId>>,
-    messages_for_user: mpsc::UnboundedSender<(D, N::PeerId)>,
+    messages_for_authentication_user: mpsc::UnboundedSender<(D, N::PeerId)>,
+    messages_for_block_sync_user: mpsc::UnboundedSender<(D, N::PeerId)>,
     authentication_connected_peers: HashSet<N::PeerId>,
     authentication_peer_senders: HashMap<N::PeerId, TracingUnboundedSender<D>>,
+    block_sync_connected_peers: HashSet<N::PeerId>,
+    block_sync_peer_senders: HashMap<N::PeerId, TracingUnboundedSender<D>>,
     spawn_handle: SpawnTaskHandle,
 }
 
 struct ServiceInterface<D: Data, P: Clone + Debug + Eq + Hash + Send + 'static> {
+    protocol: Protocol,
     messages_from_service: mpsc::UnboundedReceiver<(D, P)>,
     messages_for_service: mpsc::UnboundedSender<Command<D, P>>,
 }
@@ -70,7 +74,7 @@ impl<D: Data, P: Clone + Debug + Eq + Hash + Send + 'static> Network<D> for Serv
 
     fn send_to(&mut self, data: D, peer_id: Self::PeerId) -> Result<(), Self::Error> {
         self.messages_for_service
-            .unbounded_send(Command::Send(data, peer_id, Protocol::Authentication))
+            .unbounded_send(Command::Send(data, peer_id, self.protocol))
             .map_err(|_| Error::ServiceStopped)
     }
 
@@ -80,17 +84,13 @@ impl<D: Data, P: Clone + Debug + Eq + Hash + Send + 'static> Network<D> for Serv
         peer_ids: HashSet<Self::PeerId>,
     ) -> Result<(), Self::Error> {
         self.messages_for_service
-            .unbounded_send(Command::SendToRandom(
-                data,
-                peer_ids,
-                Protocol::Authentication,
-            ))
+            .unbounded_send(Command::SendToRandom(data, peer_ids, self.protocol))
             .map_err(|_| Error::ServiceStopped)
     }
 
     fn broadcast(&mut self, data: D) -> Result<(), Self::Error> {
         self.messages_for_service
-            .unbounded_send(Command::Broadcast(data, Protocol::Authentication))
+            .unbounded_send(Command::Broadcast(data, self.protocol))
             .map_err(|_| Error::ServiceStopped)
     }
 
@@ -115,20 +115,32 @@ impl<N: RawNetwork, D: Data> Service<N, D> {
     ) -> (
         Service<N, D>,
         impl Network<D, Error = Error, PeerId = N::PeerId>,
+        impl Network<D, Error = Error, PeerId = N::PeerId>,
     ) {
-        let (messages_for_user, messages_from_service) = mpsc::unbounded();
+        let (messages_for_authentication_user, messages_from_authentication_service) =
+            mpsc::unbounded();
+        let (messages_for_block_sync_user, messages_from_block_sync_service) = mpsc::unbounded();
         let (messages_for_service, messages_from_user) = mpsc::unbounded();
         (
             Service {
                 network,
                 messages_from_user,
-                messages_for_user,
+                messages_for_authentication_user,
+                messages_for_block_sync_user,
                 spawn_handle,
                 authentication_connected_peers: HashSet::new(),
                 authentication_peer_senders: HashMap::new(),
+                block_sync_connected_peers: HashSet::new(),
+                block_sync_peer_senders: HashMap::new(),
             },
             ServiceInterface {
-                messages_from_service,
+                protocol: Protocol::Authentication,
+                messages_from_service: messages_from_authentication_service,
+                messages_for_service: messages_for_service.clone(),
+            },
+            ServiceInterface {
+                protocol: Protocol::BlockSync,
+                messages_from_service: messages_from_block_sync_service,
                 messages_for_service,
             },
         )
@@ -141,6 +153,7 @@ impl<N: RawNetwork, D: Data> Service<N, D> {
     ) -> Option<&mut TracingUnboundedSender<D>> {
         match protocol {
             Protocol::Authentication => self.authentication_peer_senders.get_mut(peer),
+            Protocol::BlockSync => self.block_sync_peer_senders.get_mut(peer),
         }
     }
 
@@ -211,6 +224,7 @@ impl<N: RawNetwork, D: Data> Service<N, D> {
     fn protocol_peers(&self, protocol: Protocol) -> &HashSet<N::PeerId> {
         match protocol {
             Protocol::Authentication => &self.authentication_connected_peers,
+            Protocol::BlockSync => &self.block_sync_connected_peers,
         }
     }
 
@@ -262,6 +276,12 @@ impl<N: RawNetwork, D: Data> Service<N, D> {
                         self.authentication_peer_senders.insert(peer.clone(), tx);
                         rx
                     }
+                    Protocol::BlockSync => {
+                        let (tx, rx) = tracing_unbounded("mpsc_notification_stream_block_sync");
+                        self.block_sync_connected_peers.insert(peer.clone());
+                        self.block_sync_peer_senders.insert(peer.clone(), tx);
+                        rx
+                    }
                 };
                 self.spawn_handle.spawn(
                     "aleph/network/peer_sender",
@@ -276,6 +296,10 @@ impl<N: RawNetwork, D: Data> Service<N, D> {
                         self.authentication_connected_peers.remove(&peer);
                         self.authentication_peer_senders.remove(&peer);
                     }
+                    Protocol::BlockSync => {
+                        self.block_sync_connected_peers.remove(&peer);
+                        self.block_sync_peer_senders.remove(&peer);
+                    }
                 }
             }
             Messages(peer_id, messages) => {
@@ -283,10 +307,20 @@ impl<N: RawNetwork, D: Data> Service<N, D> {
                     match protocol {
                         Protocol::Authentication => match D::decode(&mut &data[..]) {
                             Ok(data) => self
-                                .messages_for_user
+                                .messages_for_authentication_user
                                 .unbounded_send((data, peer_id.clone()))?,
                             Err(e) => {
                                 warn!(target: "aleph-network", "Error decoding authentication protocol message: {}", e)
+                            }
+                        },
+                        // This is a bit of a placeholder for now, as we are not yet using this
+                        // protocol. In the future we will not be using the same D as above.
+                        Protocol::BlockSync => match D::decode(&mut &data[..]) {
+                            Ok(data) => self
+                                .messages_for_block_sync_user
+                                .unbounded_send((data, peer_id.clone()))?,
+                            Err(e) => {
+                                warn!(target: "aleph-network", "Error decoding block sync protocol message: {}", e)
                             }
                         },
                     };
@@ -302,6 +336,10 @@ impl<N: RawNetwork, D: Data> Service<N, D> {
         status.push_str(&format!(
             "authentication connected peers - {:?}; ",
             self.authentication_connected_peers.len()
+        ));
+        status.push_str(&format!(
+            "block sync connected peers - {:?}; ",
+            self.block_sync_connected_peers.len()
         ));
 
         info!(target: "aleph-network", "{}", status);
@@ -379,7 +417,7 @@ mod tests {
 
             // Prepare service
             let network = MockRawNetwork::new(event_stream_oneshot_tx);
-            let (service, gossip_network) =
+            let (service, gossip_network, _) =
                 Service::new(network.clone(), task_manager.spawn_handle());
             let gossip_network = Box::new(gossip_network);
 
