@@ -1,4 +1,5 @@
 use ark_ff::{One, Zero};
+use ark_std::{string::String, vec::Vec};
 
 /// Convert `u8` into an 8-tuple of bits over `F` (little endian).
 pub fn byte_to_bits<F: Zero + One + Copy>(byte: u8) -> [F; 8] {

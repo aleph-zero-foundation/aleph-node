@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use ark_ff::PrimeField;
 use ark_r1cs_std::{
     prelude::{AllocVar, EqGadget},
@@ -8,6 +6,7 @@ use ark_r1cs_std::{
 use ark_relations::r1cs::{
     ConstraintSynthesizer, ConstraintSystemRef, SynthesisError, SynthesisError::AssignmentMissing,
 };
+use ark_std::{marker::PhantomData, vec::Vec};
 
 use crate::{
     relation::{
@@ -70,7 +69,7 @@ impl<Field: PrimeField, S: State> ConstraintSynthesizer<Field> for LinearEquatio
         let b = UInt32::new_constant(ark_relations::ns!(cs, "b"), self.b)?;
         let y = UInt32::new_constant(ark_relations::ns!(cs, "y"), self.y)?;
 
-        let mut left = std::iter::repeat(x)
+        let mut left = ark_std::iter::repeat(x)
             .take(self.a as usize)
             .collect::<Vec<UInt32<Field>>>();
 

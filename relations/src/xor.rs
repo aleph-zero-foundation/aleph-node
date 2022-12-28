@@ -1,10 +1,9 @@
-use std::marker::PhantomData;
-
 use ark_ff::PrimeField;
 use ark_r1cs_std::prelude::{AllocVar, EqGadget, UInt8};
 use ark_relations::r1cs::{
     ConstraintSynthesizer, ConstraintSystemRef, SynthesisError, SynthesisError::AssignmentMissing,
 };
+use ark_std::{marker::PhantomData, vec::Vec};
 
 use crate::{
     byte_to_bits,

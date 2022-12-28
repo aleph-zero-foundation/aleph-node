@@ -1,5 +1,6 @@
 use ark_ff::PrimeField;
 use ark_serialize::CanonicalSerialize;
+use ark_std::{vec, vec::Vec};
 
 pub trait GetPublicInput<CircuitField: PrimeField + CanonicalSerialize> {
     fn public_input(&self) -> Vec<CircuitField> {

@@ -1,5 +1,7 @@
 // use super::CircuitField;
 
+use ark_std::vec::Vec;
+
 use crate::environment::CircuitField;
 
 /// The circuit lifting for `CircuitField`.

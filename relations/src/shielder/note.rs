@@ -3,6 +3,7 @@
 use ark_ff::{BigInteger, BigInteger256};
 use ark_r1cs_std::{eq::EqGadget, ToBytesGadget};
 use ark_relations::r1cs::SynthesisError;
+use ark_std::{vec, vec::Vec};
 
 use super::{
     tangle::{tangle, tangle_in_field},

@@ -1,7 +1,4 @@
-use std::{
-    marker::PhantomData,
-    ops::{Add, Div},
-};
+use core::ops::{Add, Div};
 
 use ark_ff::{BigInteger, BigInteger256, Zero};
 use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget, fields::FieldVar, R1CSVar, ToBytesGadget};
@@ -12,6 +9,7 @@ use ark_relations::{
         SynthesisError::{AssignmentMissing, UnconstrainedVariable},
     },
 };
+use ark_std::{marker::PhantomData, vec, vec::Vec};
 
 use super::{
     note::check_note,

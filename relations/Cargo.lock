@@ -197,7 +197,9 @@ checksum = "a71ddfa72bad1446cab7bbecb6018dbbdc9abcbc3a0065483ae5186ad2a64dcd"
 dependencies = [
  "ark-ec",
  "ark-ff",
+ "ark-nonnative-field",
  "ark-poly",
+ "ark-relations",
  "ark-serialize",
  "ark-std",
  "derivative",

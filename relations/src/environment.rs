@@ -3,7 +3,10 @@ use ark_poly_commit::marlin_pc::MarlinKZG10;
 use ark_relations::r1cs::ConstraintSynthesizer;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_snark::SNARK;
-use ark_std::rand::{rngs::StdRng, SeedableRng};
+use ark_std::{
+    rand::{rngs::StdRng, SeedableRng},
+    vec::Vec,
+};
 use blake2::Blake2s;
 
 // For now, we can settle with these types.

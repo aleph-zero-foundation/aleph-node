@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use ark_crypto_primitives::{
     crh::{TwoToOneCRH, TwoToOneCRHGadget},
     PathVar, CRH,
@@ -8,6 +6,7 @@ use ark_r1cs_std::{boolean::Boolean, eq::EqGadget, prelude::AllocVar, uint8::UIn
 use ark_relations::r1cs::{
     ConstraintSynthesizer, ConstraintSystemRef, SynthesisError, SynthesisError::AssignmentMissing,
 };
+use ark_std::{marker::PhantomData, string::String, vec, vec::Vec};
 
 use crate::{
     byte_to_bits,
@@ -112,6 +111,7 @@ impl<S: State> ConstraintSynthesizer<CircuitField> for MerkleTreeRelation<S> {
     ) -> Result<(), SynthesisError> {
         let path = SimplePathVar::new_witness(ark_relations::ns!(cs, "path"), || {
             self.merkle_path.ok_or_else(|| {
+            #[cfg(feature = "std")]
             if cs.is_in_setup_mode() {
                 eprintln!("Unfortunately, `MerkleTreeRelation` requires path even for keys generation. Blame `arkworks`.");
             }

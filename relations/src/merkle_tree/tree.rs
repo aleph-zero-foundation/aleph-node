@@ -4,7 +4,10 @@ use ark_crypto_primitives::{
     MerkleTree, Path, CRH,
 };
 use ark_ed_on_bls12_381::EdwardsProjective;
-use ark_std::rand::{prelude::StdRng, SeedableRng};
+use ark_std::{
+    rand::{prelude::StdRng, SeedableRng},
+    vec::Vec,
+};
 
 use crate::merkle_tree::hash_functions::{LeafHash, TwoToOneHash};
 

@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use ark_ff::BigInteger256;
 use ark_r1cs_std::alloc::AllocVar;
 use ark_relations::{
@@ -9,6 +7,7 @@ use ark_relations::{
         SynthesisError::AssignmentMissing,
     },
 };
+use ark_std::{marker::PhantomData, vec, vec::Vec};
 
 use super::{
     note::check_note,
