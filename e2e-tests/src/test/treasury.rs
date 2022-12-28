@@ -41,7 +41,7 @@ pub async fn channeling_fee_and_tip() -> anyhow::Result<()> {
 
     let (treasury_balance_before, issuance_before) = balance_info(&connection.connection).await;
     let possible_treasury_gain_from_staking =
-        connection.connection.possible_treasury_payout().await;
+        connection.connection.possible_treasury_payout().await?;
     let (fee, _) = current_fees(&connection, to, Some(tip), transfer_amount).await;
     let (treasury_balance_after, issuance_after) = balance_info(&connection.connection).await;
 

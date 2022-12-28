@@ -14,6 +14,7 @@ use aleph_client::{
     waiting::{AlephWaiting, BlockStatus, WaitingExt},
     AccountId, SignedConnection, TxStatus,
 };
+use anyhow::anyhow;
 use log::{debug, info};
 use pallet_elections::LENIENT_THRESHOLD;
 use primitives::{Balance, BlockHash, EraIndex, SessionIndex, TOKEN};
@@ -54,7 +55,10 @@ pub async fn set_invalid_keys_for_validator(
 pub(super) async fn reset_validator_keys(
     controller_connection: &SignedConnection,
 ) -> anyhow::Result<()> {
-    let validator_keys = controller_connection.connection.author_rotate_keys().await;
+    let validator_keys = controller_connection
+        .connection
+        .author_rotate_keys()
+        .await?;
     controller_connection
         .set_keys(validator_keys, TxStatus::InBlock)
         .await
@@ -164,7 +168,7 @@ pub async fn check_points(
     members_per_session: u32,
     max_relative_difference: f64,
 ) -> anyhow::Result<()> {
-    let session_period = connection.connection.get_session_period().await;
+    let session_period = connection.connection.get_session_period().await?;
 
     info!("Era: {} | session: {}.", era, session);
 
@@ -179,15 +183,15 @@ pub async fn check_points(
     let beginning_of_session_block_hash = connection
         .connection
         .get_block_hash(beginning_of_session_block)
-        .await;
+        .await?;
     let end_of_session_block_hash = connection
         .connection
         .get_block_hash(end_of_session_block)
-        .await;
+        .await?;
     let before_end_of_session_block_hash = connection
         .connection
         .get_block_hash(end_of_session_block - 1)
-        .await;
+        .await?;
     info!(
         "End-of-session block hash: {:?}.",
         end_of_session_block_hash
@@ -313,8 +317,8 @@ pub async fn setup_validators(
     let first_block_in_session = root_connection
         .connection
         .first_block_of_session(session)
-        .await
-        .unwrap();
+        .await?
+        .ok_or(anyhow!("First block of session {} is None!", session))?;
     let network_seats = root_connection
         .connection
         .get_committee_seats(Some(first_block_in_session))
@@ -349,7 +353,7 @@ pub async fn setup_validators(
     let first_block_in_session = root_connection
         .connection
         .first_block_of_session(session)
-        .await;
+        .await?;
     let network_validators = root_connection
         .connection
         .get_current_era_validators(first_block_in_session)

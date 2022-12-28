@@ -37,8 +37,18 @@ pub trait WaitingExt {
 impl AlephWaiting for Connection {
     async fn wait_for_block<P: Fn(u32) -> bool + Send>(&self, predicate: P, status: BlockStatus) {
         let mut block_sub = match status {
-            BlockStatus::Best => self.client.blocks().subscribe_best().await.unwrap(),
-            BlockStatus::Finalized => self.client.blocks().subscribe_finalized().await.unwrap(),
+            BlockStatus::Best => self
+                .client
+                .blocks()
+                .subscribe_best()
+                .await
+                .expect("Failed to subscribe to the best block stream!"),
+            BlockStatus::Finalized => self
+                .client
+                .blocks()
+                .subscribe_finalized()
+                .await
+                .expect("Failed to subscribe to the finalized block stream!"),
         };
 
         while let Some(Ok(block)) = block_sub.next().await {
@@ -54,8 +64,18 @@ impl AlephWaiting for Connection {
         status: BlockStatus,
     ) -> T {
         let mut block_sub = match status {
-            BlockStatus::Best => self.client.blocks().subscribe_best().await.unwrap(),
-            BlockStatus::Finalized => self.client.blocks().subscribe_finalized().await.unwrap(),
+            BlockStatus::Best => self
+                .client
+                .blocks()
+                .subscribe_best()
+                .await
+                .expect("Failed to subscribe to the best block stream!"),
+            BlockStatus::Finalized => self
+                .client
+                .blocks()
+                .subscribe_finalized()
+                .await
+                .expect("Failed to subscribe to the finalized block stream!"),
         };
 
         info!(target: "aleph-client", "waiting for event {}.{}", T::PALLET, T::EVENT);
@@ -67,7 +87,7 @@ impl AlephWaiting for Connection {
             };
 
             for event in events.iter() {
-                let event = event.unwrap();
+                let event = event.expect("Failed to obtain event from the block!");
                 if let Ok(Some(ev)) = event.as_event::<T>() {
                     if predicate(&ev) {
                         return ev;
@@ -81,7 +101,11 @@ impl AlephWaiting for Connection {
 
     async fn wait_for_era(&self, era: EraIndex, status: BlockStatus) {
         let addrs = aleph_zero::api::constants().staking().sessions_per_era();
-        let sessions_per_era = self.client.constants().at(&addrs).unwrap();
+        let sessions_per_era = self
+            .client
+            .constants()
+            .at(&addrs)
+            .expect("Failed to obtain sessions_per_era const!");
         let first_session_in_era = era * sessions_per_era;
 
         self.wait_for_session(first_session_in_era, status).await;

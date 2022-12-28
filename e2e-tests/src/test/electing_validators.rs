@@ -25,10 +25,10 @@ async fn assert_validators_are_elected_stakers(
     connection: &Connection,
     current_era: EraIndex,
     expected_validators_as_keys: Vec<Vec<u8>>,
-) {
+) -> anyhow::Result<()> {
     let stakers = connection
         .get_stakers_storage_keys(current_era, None)
-        .await
+        .await?
         .into_iter()
         .map(|key| key.0);
     let stakers_tree = BTreeSet::from_iter(stakers);
@@ -39,6 +39,8 @@ async fn assert_validators_are_elected_stakers(
         "Expected another set of staking validators.\n\tExpected: {:?}\n\tActual: {:?}",
         expected_validators_as_keys, stakers_tree
     );
+
+    Ok(())
 }
 
 // There are v non-reserved validators and s non-reserved seats. We will have seen all
@@ -180,7 +182,7 @@ pub async fn authorities_are_staking() -> anyhow::Result<()> {
 
     let desired_validator_count = reserved_seats + non_reserved_seats;
     let accounts = setup_accounts(desired_validator_count);
-    prepare_validators(&root_connection.as_signed(), node, &accounts).await;
+    prepare_validators(&root_connection.as_signed(), node, &accounts).await?;
     info!("New validators are set up");
 
     let reserved_validators = accounts.get_stash_accounts()[..reserved_seats as usize].to_vec();
@@ -249,7 +251,7 @@ pub async fn authorities_are_staking() -> anyhow::Result<()> {
             .map(|k| k.0)
             .collect(),
     )
-    .await;
+    .await?;
 
     let min_num_sessions =
         min_num_sessions_to_see_all_non_reserved_validators(non_reserved_count, non_reserved_seats);
@@ -288,7 +290,7 @@ pub async fn authorities_are_staking() -> anyhow::Result<()> {
             .map(|k| k.0)
             .collect(),
     )
-    .await;
+    .await?;
     assert_validators_are_used_as_authorities(
         &connection.connection,
         &BTreeSet::from_iter(left_stashes.into_iter()),

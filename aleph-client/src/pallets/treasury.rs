@@ -33,7 +33,7 @@ pub trait TreasuryUserApi {
 
 #[async_trait::async_trait]
 pub trait TreasureApiExt {
-    async fn possible_treasury_payout(&self) -> Balance;
+    async fn possible_treasury_payout(&self) -> anyhow::Result<Balance>;
 }
 
 #[async_trait::async_trait]
@@ -106,12 +106,12 @@ impl TreasurySudoApi for RootConnection {
 
 #[async_trait::async_trait]
 impl TreasureApiExt for Connection {
-    async fn possible_treasury_payout(&self) -> Balance {
-        let session_period = self.get_session_period().await;
-        let sessions_per_era = self.get_session_per_era().await;
+    async fn possible_treasury_payout(&self) -> anyhow::Result<Balance> {
+        let session_period = self.get_session_period().await?;
+        let sessions_per_era = self.get_session_per_era().await?;
 
         let millisecs_per_era =
             MILLISECS_PER_BLOCK * session_period as u64 * sessions_per_era as u64;
-        primitives::staking::era_payout(millisecs_per_era).1
+        Ok(primitives::staking::era_payout(millisecs_per_era).1)
     }
 }

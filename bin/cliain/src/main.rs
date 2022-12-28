@@ -58,7 +58,7 @@ fn read_secret(secret: Option<String>, message: &str) -> String {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     init_env();
 
     let Config {
@@ -76,7 +76,7 @@ async fn main() {
         Command::PrepareKeys => {
             let key = keypair_from_string(&seed);
             let controller_account_id = account_from_keypair(key.signer());
-            prepare_keys(cfg.get_root_connection().await, controller_account_id).await;
+            prepare_keys(cfg.get_root_connection().await, controller_account_id).await?
         }
         Command::Bond {
             controller_account,
@@ -245,6 +245,7 @@ async fn main() {
             Err(why) => error!("Unable to schedule an upgrade {:?}", why),
         },
     }
+    Ok(())
 }
 
 fn init_env() {

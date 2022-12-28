@@ -24,8 +24,16 @@ impl From<Vec<u8>> for SessionKeys {
     fn from(bytes: Vec<u8>) -> Self {
         assert_eq!(bytes.len(), 64);
         Self {
-            aura: AuraPublic(SrPublic(bytes[..32].try_into().unwrap())),
-            aleph: AlephPublic(EdPublic(bytes[32..64].try_into().unwrap())),
+            aura: AuraPublic(SrPublic(
+                bytes[..32]
+                    .try_into()
+                    .expect("Failed to convert bytes slice to an Aura key!"),
+            )),
+            aleph: AlephPublic(EdPublic(
+                bytes[32..64]
+                    .try_into()
+                    .expect("Failed to convert bytes slice to an Aleph key!"),
+            )),
         }
     }
 }
