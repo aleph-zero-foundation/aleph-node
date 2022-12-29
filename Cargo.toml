@@ -18,6 +18,7 @@ exclude = [
   "fork-off",
   "benches/payout-stakers",
   "bin/cliain",
+  "contracts/adder"
 ]
 
 [profile.release]

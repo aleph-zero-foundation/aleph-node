@@ -1,10 +1,7 @@
-use codec::{Compact, Decode, Encode};
+use codec::{Compact, Encode};
 use pallet_contracts_primitives::ContractExecResult;
 use primitives::Balance;
-use subxt::{
-    ext::{sp_core::Bytes, sp_runtime::MultiAddress},
-    rpc_params,
-};
+use subxt::{ext::sp_core::Bytes, rpc_params};
 
 use crate::{
     api, pallet_contracts::wasm::OwnerInfo, sp_weights::weight_v2::Weight, AccountId, BlockHash,
@@ -16,7 +13,7 @@ pub struct ContractCallArgs {
     pub origin: AccountId,
     pub dest: AccountId,
     pub value: Balance,
-    pub gas_limit: Weight,
+    pub gas_limit: Option<Weight>,
     pub storage_deposit_limit: Option<Balance>,
     pub input_data: Vec<u8>,
 }
@@ -78,7 +75,10 @@ pub trait ContractsUserApi {
 
 #[async_trait::async_trait]
 pub trait ContractRpc {
-    async fn call_and_get<T: Decode>(&self, args: ContractCallArgs) -> anyhow::Result<T>;
+    async fn call_and_get(
+        &self,
+        args: ContractCallArgs,
+    ) -> anyhow::Result<ContractExecResult<Balance>>;
 }
 
 #[async_trait::async_trait]
@@ -160,13 +160,10 @@ impl ContractsUserApi for SignedConnection {
         data: Vec<u8>,
         status: TxStatus,
     ) -> anyhow::Result<BlockHash> {
-        let tx = api::tx().contracts().call(
-            MultiAddress::Id(destination),
-            balance,
-            gas_limit,
-            storage_limit,
-            data,
-        );
+        let tx =
+            api::tx()
+                .contracts()
+                .call(destination.into(), balance, gas_limit, storage_limit, data);
         self.send_tx(tx, status).await
     }
 
@@ -183,19 +180,11 @@ impl ContractsUserApi for SignedConnection {
 
 #[async_trait::async_trait]
 impl ContractRpc for Connection {
-    async fn call_and_get<T: Decode>(&self, args: ContractCallArgs) -> anyhow::Result<T> {
+    async fn call_and_get(
+        &self,
+        args: ContractCallArgs,
+    ) -> anyhow::Result<ContractExecResult<Balance>> {
         let params = rpc_params!["ContractsApi_call", Bytes(args.encode())];
-
-        let res: ContractExecResult<Balance> =
-            self.rpc_call("state_call".to_string(), params).await?;
-        let res = T::decode(
-            &mut (res
-                .result
-                .expect("Failed to decode execution result of the wasm code!")
-                .data
-                .as_slice()),
-        )?;
-
-        Ok(res)
+        self.rpc_call("state_call".to_string(), params).await
     }
 }

@@ -552,6 +552,31 @@ jobs:
           UPGRADE_FINALIZATION_WAIT_SESSIONS: 2
         timeout-minutes: 10
 
+  run-e2e-adder-contract-test:
+    needs: [build-test-docker, build-test-client]
+    name: Run e2e adder contract test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Install cargo-contract
+        uses: baptiste0928/cargo-install@v1
+        with:
+          crate: cargo-contract
+          version: "2.0.0-beta.1"
+
+      - name: Install rust-src
+        working-directory: ./contracts
+        run: rustup component add rust-src
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          deploy-adder: true
+          test-case: adder
+        timeout-minutes: 10
+
 # The tests below were written under the assumption that nonfinalized blocks are being produced, they need a rewrite before being reenabled.
 # TODO(A0-1644): Reenable these tests.
 #  run-e2e-failing-version-upgrade:
@@ -659,6 +684,7 @@ jobs:
       run-e2e-ban-threshold,
       run-e2e-version-upgrade,
       run-e2e-permissionless-ban,
+      run-e2e-adder-contract-test,
 #      run-e2e-failing-version-upgrade,
 #      run-e2e-version-upgrade-catchup,
     ]

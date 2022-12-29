@@ -142,12 +142,14 @@ impl SignedConnection {
         if let Some(details) = tx.validation_details() {
             info!(target:"aleph-client", "Sending extrinsic {}.{} with params: {:?}", details.pallet_name, details.call_name, params);
         }
+
         let progress = self
             .connection
             .client
             .tx()
             .sign_and_submit_then_watch(&tx, &self.signer, params)
-            .await?;
+            .await
+            .map_err(|e| anyhow!("Failed to submit transaction: {:?}", e))?;
 
         // In case of Submitted hash does not mean anything
         let hash = match status {

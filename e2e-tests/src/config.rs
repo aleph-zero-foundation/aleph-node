@@ -13,11 +13,6 @@ static GLOBAL_CONFIG: Lazy<Config> = Lazy::new(|| {
         .ok()
         .map(|s| s.split(',').map(|s| s.to_string()).collect());
     let sudo_seed = get_env("SUDO_SEED").unwrap_or_else(|| "//Alice".to_string());
-    let reserved_seats = get_env("RESERVED_SEATS");
-    let non_reserved_seats = get_env("NON_RESERVED_SEATS");
-    let upgrade_to_version = get_env("UPGRADE_VERSION");
-    let upgrade_session = get_env("UPGRADE_SESSION");
-    let upgrade_finalization_wait_sessions = get_env("UPGRADE_FINALIZATION_WAIT_SESSIONS");
 
     Config {
         node,
@@ -25,11 +20,13 @@ static GLOBAL_CONFIG: Lazy<Config> = Lazy::new(|| {
         validators_seeds,
         sudo_seed,
         test_case_params: TestCaseParams {
-            reserved_seats,
-            non_reserved_seats,
-            upgrade_to_version,
-            upgrade_session,
-            upgrade_finalization_wait_sessions,
+            reserved_seats: get_env("RESERVED_SEATS"),
+            non_reserved_seats: get_env("NON_RESERVED_SEATS"),
+            upgrade_to_version: get_env("UPGRADE_VERSION"),
+            upgrade_session: get_env("UPGRADE_SESSION"),
+            upgrade_finalization_wait_sessions: get_env("UPGRADE_FINALIZATION_WAIT_SESSIONS"),
+            adder: get_env("ADDER"),
+            adder_metadata: get_env("ADDER_METADATA"),
         },
     }
 });
@@ -113,4 +110,10 @@ pub struct TestCaseParams {
 
     /// How many sessions we should wait after upgrade in VersionUpgrade test.
     pub upgrade_finalization_wait_sessions: Option<u32>,
+
+    /// Adder contract address.
+    pub adder: Option<String>,
+
+    /// Adder contract metadata.
+    pub adder_metadata: Option<String>,
 }

@@ -53,12 +53,14 @@ version = "0.10.0"
 dependencies = [
  "aleph_client",
  "anyhow",
+ "assert2",
  "clap",
- "env_logger 0.8.4",
+ "env_logger",
  "frame-support",
  "frame-system",
  "futures",
  "hex",
+ "itertools",
  "log",
  "once_cell",
  "pallet-balances",
@@ -66,6 +68,7 @@ dependencies = [
  "pallet-staking",
  "parity-scale-codec",
  "primitives",
+ "rand 0.8.5",
  "rayon",
  "serde_json",
  "sp-core 6.0.0",
@@ -153,6 +156,29 @@ name = "arrayvec"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8da52d66c7071e2e3fa2a1e5c6d088fec47b593032b254f5e980de8ea54454d6"
+
+[[package]]
+name = "assert2"
+version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce1b167af16149cd41ff2b784bf511bb4208b21c3b05f3f61e30823ce3986361"
+dependencies = [
+ "assert2-macros",
+ "atty",
+ "yansi",
+]
+
+[[package]]
+name = "assert2-macros"
+version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6ac27dd1c8f16b282d1c22a8a5ae17119acc757101dec79054458fef62c447e"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "rustc_version",
+ "syn",
+]
 
 [[package]]
 name = "async-lock"
@@ -435,9 +461,9 @@ checksum = "e4c78c047431fee22c1a7bb92e00ad095a02a983affe4d8a72e2a2c62c1b94f3"
 
 [[package]]
 name = "contract-metadata"
-version = "2.0.0-beta"
+version = "2.0.0-beta.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40248c6a648b3679ea52bb83d8921246d0347644eaf7b0eec4c5601fa8feb651"
+checksum = "7bff7703529b16e9d8ba0d54e842b2051691772a822eb9bc130a91183ff9f6a6"
 dependencies = [
  "anyhow",
  "impl-serde",
@@ -449,13 +475,12 @@ dependencies = [
 
 [[package]]
 name = "contract-transcode"
-version = "2.0.0-beta"
+version = "2.0.0-beta.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61159f8e266d4892be25f2b1e7ff2c4c6dd4338ca26498d907e5532a52a28e5f"
+checksum = "d25e184ac4c29748e28c026f4c443fb94c002ad0877f0b190dccd624df8f893f"
 dependencies = [
  "anyhow",
  "contract-metadata",
- "env_logger 0.9.3",
  "escape8259",
  "hex",
  "indexmap",
@@ -842,19 +867,6 @@ name = "env_logger"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a19187fea3ac7e84da7dacf48de0c45d63c6a76f9490dae389aead16c243fce3"
-dependencies = [
- "atty",
- "humantime",
- "log",
- "regex",
- "termcolor",
-]
-
-[[package]]
-name = "env_logger"
-version = "0.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a12e6657c4c97ebab115a42dcee77225f7f482cdd841cf7088c657a42e9e00e7"
 dependencies = [
  "atty",
  "humantime",
@@ -2775,6 +2787,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3e75f6a532d0fd9f7f13144f392b6ad56a32696bfcd9c78f797f16bbb6f072d6"
 
 [[package]]
+name = "rustc_version"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bfa0f585226d2e68097d4f95d113b15b83a82e819ab25717ec0590d9584ef366"
+dependencies = [
+ "semver",
+]
+
+[[package]]
 name = "rustls"
 version = "0.20.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3009,18 +3030,18 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.148"
+version = "1.0.150"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e53f64bb4ba0191d6d0676e1b141ca55047d83b74f5607e6d8eb88126c52c2dc"
+checksum = "e326c9ec8042f1b5da33252c8a37e9ffbd2c9bef0155215b6e6c80c790e05f91"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.148"
+version = "1.0.150"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a55492425aa53521babf6137309e7d34c20bbfbbfcfe2c7f3a047fd1f6b92c0c"
+checksum = "42a3df25b0713732468deadad63ab9da1f1fd75a48a15024b50363f128db627e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4798,6 +4819,12 @@ name = "xxhash-rust"
 version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "735a71d46c4d68d71d4b24d03fdc2b98e38cea81730595801db779c04fe80d70"
+
+[[package]]
+name = "yansi"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09041cd90cf85f7f8b2df60c646f853b7f535ce68f85244eb6731cf89fa498ec"
 
 [[package]]
 name = "yap"

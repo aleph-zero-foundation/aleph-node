@@ -1,5 +1,9 @@
+#![feature(auto_traits)]
+#![feature(negative_impls)]
+
 extern crate core;
 
+pub use contract_transcode;
 pub use subxt::ext::sp_core::Pair;
 use subxt::{
     ext::sp_core::{ed25519, sr25519, H256},
