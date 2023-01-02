@@ -4,7 +4,10 @@ use std::{
 };
 
 mod substrate;
+mod task_queue;
 mod ticker;
+
+const LOG_TARGET: &str = "aleph-block-sync";
 
 /// The identifier of a block, the least amount of knowledge we can have about a block.
 pub trait BlockIdentifier: Clone + Hash + Debug + Eq {
