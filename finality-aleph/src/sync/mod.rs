@@ -59,23 +59,25 @@ pub trait Finalizer<J: Justification> {
     fn finalize(&self, justification: J) -> Result<(), Self::Error>;
 }
 
-/// A notification about the chain state changing.
-pub enum ChainStateNotification<BI: BlockIdentifier> {
+/// A notification about the chain status changing.
+pub enum ChainStatusNotification<BI: BlockIdentifier> {
     /// A block has been imported.
     BlockImported(BI),
     /// A block has been finalized.
     BlockFinalized(BI),
 }
 
-/// A stream of notifications about the chain state in the database changing.
+/// A stream of notifications about the chain status in the database changing.
 #[async_trait::async_trait]
-pub trait ChainStateNotifier<BI: BlockIdentifier> {
-    /// Returns a chain state notification when it is available.
-    async fn next(&self) -> ChainStateNotification<BI>;
+pub trait ChainStatusNotifier<BI: BlockIdentifier> {
+    type Error: Display;
+
+    /// Returns a chain status notification when it is available.
+    async fn next(&mut self) -> Result<ChainStatusNotification<BI>, Self::Error>;
 }
 
-/// The state of a block in the database.
-pub enum BlockState<J: Justification> {
+/// The status of a block in the database.
+pub enum BlockStatus<J: Justification> {
     /// The block is justified and thus finalized.
     Justified(J),
     /// The block is present, might be finalized if a descendant is justified.
@@ -84,10 +86,10 @@ pub enum BlockState<J: Justification> {
     Unknown,
 }
 
-/// The knowledge about the chain state.
-pub trait ChainState<J: Justification> {
-    /// The state of the block.
-    fn state_of(&self, id: <J::Header as Header>::Identifier) -> BlockState<J>;
+/// The knowledge about the chain status.
+pub trait ChainStatus<J: Justification> {
+    /// The status of the block.
+    fn status_of(&self, id: <J::Header as Header>::Identifier) -> BlockStatus<J>;
 
     /// The header of the best block.
     fn best_block(&self) -> J::Header;
