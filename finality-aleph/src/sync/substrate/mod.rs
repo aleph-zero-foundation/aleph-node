@@ -3,7 +3,10 @@ use std::hash::{Hash, Hasher};
 use aleph_primitives::BlockNumber;
 use sp_runtime::traits::{CheckedSub, Header as SubstrateHeader, One};
 
-use crate::sync::{BlockIdentifier, Header};
+use crate::{
+    sync::{BlockIdentifier, Header, Justification as JustificationT},
+    AlephJustification,
+};
 
 mod status_notifier;
 
@@ -45,5 +48,25 @@ impl<H: SubstrateHeader<Number = BlockNumber>> Header for H {
             hash: *self.parent_hash(),
             number,
         })
+    }
+}
+
+/// A justification, including the related header.
+#[derive(Clone)]
+pub struct Justification<H: SubstrateHeader<Number = BlockNumber>> {
+    header: H,
+    raw_justification: AlephJustification,
+}
+
+impl<H: SubstrateHeader<Number = BlockNumber>> JustificationT for Justification<H> {
+    type Header = H;
+    type Unverified = Self;
+
+    fn header(&self) -> &Self::Header {
+        &self.header
+    }
+
+    fn into_unverified(self) -> Self::Unverified {
+        self
     }
 }
