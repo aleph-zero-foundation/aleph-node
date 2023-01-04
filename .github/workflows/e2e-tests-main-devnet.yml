@@ -68,7 +68,8 @@ jobs:
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
         with:
-          version: '3.6.1'        
+          version: '3.6.1'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Restore cache
         uses: ./.github/actions/restore-cache
@@ -115,7 +116,8 @@ jobs:
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
         with:
-          version: '3.6.1'        
+          version: '3.6.1'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install WASM target
         run: rustup target add wasm32-unknown-unknown
@@ -153,7 +155,8 @@ jobs:
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
         with:
-          version: '3.6.1'        
+          version: '3.6.1'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Restore cache
         uses: ./.github/actions/restore-cache
@@ -839,7 +842,8 @@ jobs:
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
         with:
-          version: '3.6.1'        
+          version: '3.6.1'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install WASM target
         run: rustup target add wasm32-unknown-unknown

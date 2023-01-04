@@ -19,3 +19,23 @@ interact with its web-ui.
 Additionally, this folder contains an example .js script introducing API of the synthetic-network. You can use it by executing
 `run_script_for_synthetic-network.sh --script-path ./latency.js`.
 
+# How to run e2e-tests that use synthetic-network
+
+All following commands are run from within root folder of this repository.
+
+```shell
+# build aleph-node docker-image
+# it assumes that aleph-node binary is stored at ./target/release/aleph-node
+docker build -t aleph-node:latest -f docker/Dockerfile .
+
+# run synthetic-network with aleph-node using docker-compose
+# by default, it should build for you a docker-image for synthetic-network
+# consult its help for available options
+./scripts/synthetic-network/run_consensus_synthetic-network.sh
+
+# run e2e-tests
+cd e2e-tests
+# set an ENV variable required by the e2e-test, namely a list of URLs for synthetic-network configuration endpoints
+export SYNTHETIC_URLS="http://localhost:3000/qos,http://localhost:3001/qos,http://localhost:3002/qos,http://localhost:3003/qos,http://localhost:3004/qos"
+cargo test latency
+```

@@ -30,7 +30,8 @@ jobs:
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
         with:
-          version: '3.6.1'        
+          version: '3.6.1'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install clippy and fmt
         run: rustup component add clippy rustfmt

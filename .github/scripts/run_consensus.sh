@@ -8,11 +8,12 @@ NODE_COUNT=5
 MIN_VALIDATOR_COUNT=4
 DOCKER_COMPOSE=${DOCKER_COMPOSE:-"docker/docker-compose.yml"}
 OVERRIDE_DOCKER_COMPOSE=${OVERRIDE_DOCKER_COMPOSE:-""}
+NODE_IMAGE=${NODE_IMAGE:-aleph-node:latest}
 
 # default minimum validator count
 MIN_VALIDATOR_COUNT=4
 
-export NODE_IMAGE=aleph-node:latest
+export NODE_IMAGE
 
 mkdir -p docker/data/
 

@@ -30,6 +30,7 @@ pallet-balances = { git = "https://github.com/Cardinal-Cryptography/substrate.gi
 aleph_client = { path = "../aleph-client" }
 primitives = { path = "../primitives", features = ["short_session"], default-features = false }
 pallet-elections = { path = "../pallets/elections" }
+synthetic-link = { path = "../scripts/synthetic-network/synthetic-link" }
 
 [features]
 default = ["std"]

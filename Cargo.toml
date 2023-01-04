@@ -18,7 +18,8 @@ exclude = [
   "fork-off",
   "benches/payout-stakers",
   "bin/cliain",
-  "contracts/adder"
+  "contracts/adder",
+  "scripts/synthetic-network/synthetic-link",
 ]
 
 [profile.release]

@@ -27,6 +27,10 @@ static GLOBAL_CONFIG: Lazy<Config> = Lazy::new(|| {
             upgrade_finalization_wait_sessions: get_env("UPGRADE_FINALIZATION_WAIT_SESSIONS"),
             adder: get_env("ADDER"),
             adder_metadata: get_env("ADDER_METADATA"),
+            out_latency: get_env("OUT_LATENCY"),
+            synthetic_network_urls: env::var("SYNTHETIC_URLS")
+                .ok()
+                .map(|s| s.split(',').map(|s| s.to_string()).collect()),
         },
     }
 });
@@ -34,7 +38,7 @@ static GLOBAL_CONFIG: Lazy<Config> = Lazy::new(|| {
 fn get_env<T>(name: &str) -> Option<T>
 where
     T: FromStr,
-    <T as FromStr>::Err: std::fmt::Debug,
+    T::Err: std::fmt::Debug,
 {
     env::var(name).ok().map(|v| {
         v.parse()
@@ -82,12 +86,38 @@ impl Config {
         RootConnection::new(&self.node, sudo_keypair).await.unwrap()
     }
 
+    pub fn validator_names<'a>(&'a self) -> Vec<String> {
+        (0..self.validator_count)
+            .map(|id| format!("Node{}", id))
+            .collect()
+    }
+
+    pub fn synthetic_network_urls(&self) -> Vec<String> {
+        match &self.test_case_params.synthetic_network_urls {
+            Some(urls) => urls.clone(),
+            None => self
+                .validator_names()
+                .into_iter()
+                .map(|node_name| format!("http://{}:80/qos", node_name))
+                .collect(),
+        }
+    }
+
     /// Get a `SignedConnection` where the signer is the first validator.
     pub async fn get_first_signed_connection(&self) -> SignedConnection {
         let node = &self.node;
         let mut accounts = get_validators_keys(self);
         let sender = accounts.remove(0);
         SignedConnection::new(node, sender).await
+    }
+
+    pub async fn create_signed_connections(&self) -> Vec<SignedConnection> {
+        futures::future::join_all(
+            get_validators_keys(self)
+                .into_iter()
+                .map(|account| async { SignedConnection::new(&self.node, account).await }),
+        )
+        .await
     }
 }
 
@@ -114,4 +144,10 @@ pub struct TestCaseParams {
 
     /// Adder contract metadata.
     pub adder_metadata: Option<String>,
+
+    /// Milliseconds of network latency
+    pub out_latency: Option<u64>,
+
+    /// List of URLs for the configuration endpoints of the synthetic-network
+    pub synthetic_network_urls: Option<Vec<String>>,
 }

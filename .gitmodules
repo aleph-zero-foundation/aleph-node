@@ -1,0 +1,3 @@
+[submodule "scripts/synthetic-network/vendor/synthetic-network"]
+	path = scripts/synthetic-network/vendor/synthetic-network
+	url = https://github.com/daily-co/synthetic-network.git

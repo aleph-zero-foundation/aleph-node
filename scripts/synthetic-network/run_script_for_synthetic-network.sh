@@ -12,24 +12,24 @@ Usage:
   IMPORTANT: first you need to call 'scripts/run_consensus_synthetic-network.sh' and let it run in background.
              It spawns docker-compose configured with synthetic-network.
              It requires node.js to run.
-    --commit 72bbb4fde915e4132c19cd7ce3605364abac58a5
-        commit hash used to build synthetic-network, default is 72bbb4fde915e4132c19cd7ce3605364abac58a5
     --script-path scripts/vendor/synthetic-network/frontend/udp_rate_sine_demo.js
         path to a synthetic-network scrypt. Default is a demo scripts/vendor/synthetic-network/frontend/udp_rate_sine_demo.js
         from the synthetic-network repo. Please consult synthetic-network repo for details: https://github.com/daily-co/synthetic-network
+    --no-update
+        skip git-submodule update for the synthetic-network repository
 EOF
     exit 0
 }
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --commit)
-            GIT_COMMIT="$2"
-            shift;shift
-            ;;
         --script-path)
             SCRIPT_PATH="$2"
             shift;shift
+            ;;
+        --no-update)
+            UPDATE=false
+            shift
             ;;
         --help)
             usage
@@ -41,23 +41,16 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-GIT_COMMIT=${GIT_COMMIT:-72bbb4fde915e4132c19cd7ce3605364abac58a5}
 SCRIPT_PATH=${SCRIPT_PATH:-scripts/vendor/synthetic-network/frontend/udp_rate_sine_demo.js}
 SCRIPT_PATH=$(realpath $SCRIPT_PATH)
+UPDATE=${UPDATE:-true}
 
-TMPDIR="$(dirname $0)/vendor"
-mkdir -p $TMPDIR
-log "created a temporary folder at $TMPDIR"
-
-log "cloning synthetic-network's git repo"
-cd $TMPDIR
-if [[ ! -d ./synthetic-network ]]; then
-    git clone https://github.com/daily-co/synthetic-network.git
+if [[ "$UPDATE" = true ]]; then
+    git submodule init
+    git submodule update
 fi
-cd synthetic-network
-git fetch origin
-git checkout $GIT_COMMIT
-cd frontend
+
+cd synthetic-network/frontend
 
 log "running .js script"
 node $SCRIPT_PATH ${@:1}

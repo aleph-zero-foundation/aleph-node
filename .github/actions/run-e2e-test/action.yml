@@ -30,6 +30,18 @@ inputs:
     description: 'Whether to deploy the adder sample contract to the node.'
     required: false
     default: 'false'
+  image-path:
+    description: 'Custom path to docker image for aleph-node'
+    required: false
+    default: aleph-test-docker
+  node-image:
+    description: 'Custom name of aleph-node image'
+    required: false
+    default: aleph-node:latest
+  compose-file:
+    description: 'Custom docker-compose configuration'
+    required: false
+    default: ''
 
 runs:
   using: 'composite'
@@ -38,7 +50,7 @@ runs:
     - name: Download artifact with docker image
       uses: actions/download-artifact@v2
       with:
-        name: aleph-test-docker
+        name: ${{ inputs.image-path }}
 
     - name: Load node docker image
       shell: bash
@@ -46,7 +58,7 @@ runs:
 
     - name: Run consensus party
       shell: bash
-      run: ./.github/scripts/run_consensus.sh -m ${{ inputs.min-validator-count }} -n ${{ inputs.node-count }}
+      run: NODE_IMAGE=${{ inputs.node-image }} DOCKER_COMPOSE=${{ inputs.compose-file }} ./.github/scripts/run_consensus.sh -m ${{ inputs.min-validator-count }} -n ${{ inputs.node-count }}
 
     - name: Sleep
       shell: bash

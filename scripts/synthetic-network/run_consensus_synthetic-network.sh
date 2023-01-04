@@ -15,17 +15,16 @@ Usage:
   IMPORTANT: this script requires aleph-node:latest docker image.
     --no-build-image
         skip docker image build
-    --commit 72bbb4fde915e4132c19cd7ce3605364abac58a5
-        commit hash used to build synthetic-network, default is 72bbb4fde915e4132c19cd7ce3605364abac58a5
+    --no-update
+        skip git-submodule update for the synthetic-network repository
 EOF
     exit 0
 }
 
 function build_test_image() {
-    local commit=$1
-    local path=$2
+    local path=$1
 
-    GIT_COMMIT=$commit ${path}/build_synthetic-network.sh
+    ${path}/build_synthetic-network.sh
 }
 
 while [[ $# -gt 0 ]]; do
@@ -34,9 +33,9 @@ while [[ $# -gt 0 ]]; do
             BUILD_IMAGE=false
             shift
             ;;
-        --commit)
-            GIT_COMMIT="$2"
-            shift;shift
+        --no-update)
+            UPDATE=false
+            shift
             ;;
         --help)
             usage
@@ -49,12 +48,17 @@ while [[ $# -gt 0 ]]; do
 done
 
 BUILD_IMAGE=${BUILD_IMAGE:-true}
-GIT_COMMIT=${GIT_COMMIT:-72bbb4fde915e4132c19cd7ce3605364abac58a5}
+UPDATE=${UPDATE:-true}
+
+if [[ "$UPDATE" = true ]]; then
+    git submodule init
+    git submodule update
+fi
 
 if [[ "$BUILD_IMAGE" = true ]]; then
     log "building custom docker image for synthetic-network tests"
     path=$(dirname $0)
-    build_test_image $GIT_COMMIT $path
+    build_test_image $path
 fi
 
 log "running synthetic-network"
