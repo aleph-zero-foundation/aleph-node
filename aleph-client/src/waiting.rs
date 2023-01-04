@@ -6,8 +6,8 @@ use subxt::events::StaticEvent;
 use crate::{
     aleph_zero,
     api::session::events::NewSession,
+    connections::AsConnection,
     pallets::{session::SessionApi, staking::StakingApi},
-    Connection,
 };
 
 pub enum BlockStatus {
@@ -34,17 +34,19 @@ pub trait WaitingExt {
 }
 
 #[async_trait::async_trait]
-impl AlephWaiting for Connection {
+impl<C: AsConnection + Sync> AlephWaiting for C {
     async fn wait_for_block<P: Fn(u32) -> bool + Send>(&self, predicate: P, status: BlockStatus) {
         let mut block_sub = match status {
             BlockStatus::Best => self
-                .client
+                .as_connection()
+                .as_client()
                 .blocks()
                 .subscribe_best()
                 .await
                 .expect("Failed to subscribe to the best block stream!"),
             BlockStatus::Finalized => self
-                .client
+                .as_connection()
+                .as_client()
                 .blocks()
                 .subscribe_finalized()
                 .await
@@ -65,13 +67,15 @@ impl AlephWaiting for Connection {
     ) -> T {
         let mut block_sub = match status {
             BlockStatus::Best => self
-                .client
+                .as_connection()
+                .as_client()
                 .blocks()
                 .subscribe_best()
                 .await
                 .expect("Failed to subscribe to the best block stream!"),
             BlockStatus::Finalized => self
-                .client
+                .as_connection()
+                .as_client()
                 .blocks()
                 .subscribe_finalized()
                 .await
@@ -102,7 +106,8 @@ impl AlephWaiting for Connection {
     async fn wait_for_era(&self, era: EraIndex, status: BlockStatus) {
         let addrs = aleph_zero::api::constants().staking().sessions_per_era();
         let sessions_per_era = self
-            .client
+            .as_connection()
+            .as_client()
             .constants()
             .at(&addrs)
             .expect("Failed to obtain sessions_per_era const!");
@@ -121,7 +126,7 @@ impl AlephWaiting for Connection {
 }
 
 #[async_trait::async_trait]
-impl WaitingExt for Connection {
+impl<C: AsConnection + Sync> WaitingExt for C {
     async fn wait_for_n_sessions(&self, n: SessionIndex, status: BlockStatus) {
         let current_session = self.get_session(None).await;
 

@@ -4,7 +4,7 @@ use aleph_client::{
     primitives::{BanConfig, BanInfo, CommitteeSeats, EraValidators},
     utility::BlocksApi,
     waiting::{AlephWaiting, BlockStatus, WaitingExt},
-    AccountId, Connection, RootConnection, TxStatus,
+    AccountId, RootConnection, TxStatus,
 };
 use codec::Encode;
 use log::info;
@@ -47,10 +47,7 @@ pub async fn setup_test(
         )
         .await?;
 
-    root_connection
-        .connection
-        .wait_for_n_eras(2, BlockStatus::Best)
-        .await;
+    root_connection.wait_for_n_eras(2, BlockStatus::Best).await;
 
     Ok((
         root_connection,
@@ -71,8 +68,8 @@ pub fn check_validators(
     era_validators
 }
 
-pub async fn check_ban_config(
-    connection: &Connection,
+pub async fn check_ban_config<C: ElectionsApi>(
+    connection: &C,
     expected_minimal_expected_performance: Perbill,
     expected_session_count_threshold: SessionCount,
     expected_clean_session_counter_delay: SessionCount,
@@ -95,8 +92,8 @@ pub async fn check_ban_config(
     ban_config
 }
 
-pub async fn check_underperformed_validator_session_count(
-    connection: &Connection,
+pub async fn check_underperformed_validator_session_count<C: ElectionsApi>(
+    connection: &C,
     validator: &AccountId,
     expected_session_count: SessionCount,
 ) -> SessionCount {
@@ -113,8 +110,8 @@ pub async fn check_underperformed_validator_session_count(
     underperformed_validator_session_count
 }
 
-pub async fn check_underperformed_validator_reason(
-    connection: &Connection,
+pub async fn check_underperformed_validator_reason<C: ElectionsApi>(
+    connection: &C,
     validator: &AccountId,
     expected_info: Option<&BanInfo>,
 ) -> Option<BanInfo> {
@@ -126,8 +123,8 @@ pub async fn check_underperformed_validator_reason(
     validator_ban_info
 }
 
-pub async fn check_ban_info_for_validator(
-    connection: &Connection,
+pub async fn check_ban_info_for_validator<C: ElectionsApi>(
+    connection: &C,
     validator: &AccountId,
     expected_info: Option<&BanInfo>,
 ) -> Option<BanInfo> {
@@ -140,8 +137,8 @@ pub async fn check_ban_info_for_validator(
     validator_ban_info
 }
 
-pub async fn check_ban_event(
-    connection: &Connection,
+pub async fn check_ban_event<C: AlephWaiting>(
+    connection: &C,
     expected_banned_validators: &[(AccountId, BanInfo)],
 ) -> anyhow::Result<BanValidators> {
     let event = connection
@@ -177,8 +174,8 @@ pub fn get_members_for_session(
 /// Checks whether underperformed counts for validators change predictably. Assumes: (a) that the
 /// sessions checked are in the past, (b) that all the checked validators are underperforming in
 /// those sessions (e.g. due to a prohibitively high performance threshold).
-pub async fn check_underperformed_count_for_sessions(
-    connection: &Connection,
+pub async fn check_underperformed_count_for_sessions<C: ElectionsApi + BlocksApi>(
+    connection: &C,
     reserved_validators: &[AccountId],
     non_reserved_validators: &[AccountId],
     seats: &CommitteeSeats,

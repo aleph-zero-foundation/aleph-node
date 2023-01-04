@@ -3,7 +3,7 @@ use aleph_client::{
     primitives::CommitteeSeats,
     utility::BlocksApi,
     waiting::{AlephWaiting, BlockStatus, WaitingExt},
-    AccountId, Connection, KeyPair, TxStatus,
+    AccountId, KeyPair, TxStatus,
 };
 use anyhow::anyhow;
 
@@ -40,16 +40,16 @@ fn get_new_non_reserved_validators(config: &Config) -> Vec<KeyPair> {
         .collect()
 }
 
-async fn get_current_and_next_era_reserved_validators(
-    connection: &Connection,
+async fn get_current_and_next_era_reserved_validators<C: ElectionsApi>(
+    connection: &C,
 ) -> (Vec<AccountId>, Vec<AccountId>) {
     let stored_reserved = connection.get_next_era_reserved_validators(None).await;
     let current_reserved = connection.get_current_era_validators(None).await.reserved;
     (current_reserved, stored_reserved)
 }
 
-async fn get_current_and_next_era_non_reserved_validators(
-    connection: &Connection,
+async fn get_current_and_next_era_non_reserved_validators<C: ElectionsApi>(
+    connection: &C,
 ) -> (Vec<AccountId>, Vec<AccountId>) {
     let stored_non_reserved = connection.get_next_era_non_reserved_validators(None).await;
     let current_non_reserved = connection
@@ -90,7 +90,6 @@ pub async fn era_validators() -> anyhow::Result<()> {
         )
         .await?;
     root_connection
-        .connection
         .wait_for_n_eras(1, BlockStatus::Finalized)
         .await;
 
@@ -107,13 +106,12 @@ pub async fn era_validators() -> anyhow::Result<()> {
         .await?;
 
     root_connection
-        .connection
         .wait_for_session(1, BlockStatus::Finalized)
         .await;
     let (eras_reserved, stored_reserved) =
-        get_current_and_next_era_reserved_validators(&connection.connection).await;
+        get_current_and_next_era_reserved_validators(&connection).await;
     let (eras_non_reserved, stored_non_reserved) =
-        get_current_and_next_era_non_reserved_validators(&connection.connection).await;
+        get_current_and_next_era_non_reserved_validators(&connection).await;
 
     assert_eq!(
         stored_reserved, new_reserved_validators,
@@ -133,15 +131,12 @@ pub async fn era_validators() -> anyhow::Result<()> {
         "Non-reserved validators set has been updated too early."
     );
 
-    connection
-        .connection
-        .wait_for_n_eras(1, BlockStatus::Finalized)
-        .await;
+    connection.wait_for_n_eras(1, BlockStatus::Finalized).await;
 
     let (eras_reserved, stored_reserved) =
-        get_current_and_next_era_reserved_validators(&connection.connection).await;
+        get_current_and_next_era_reserved_validators(&connection).await;
     let (eras_non_reserved, stored_non_reserved) =
-        get_current_and_next_era_non_reserved_validators(&connection.connection).await;
+        get_current_and_next_era_non_reserved_validators(&connection).await;
 
     assert_eq!(
         stored_reserved, new_reserved_validators,
@@ -162,12 +157,10 @@ pub async fn era_validators() -> anyhow::Result<()> {
     );
 
     let block_number = connection
-        .connection
         .get_best_block()
         .await?
         .ok_or(anyhow!("Failed to retrieve best block number!"))?;
     connection
-        .connection
         .wait_for_block(|n| n >= block_number, BlockStatus::Finalized)
         .await;
 

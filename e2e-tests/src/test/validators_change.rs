@@ -18,18 +18,9 @@ pub async fn change_validators() -> anyhow::Result<()> {
     let accounts = get_validators_keys(config);
     let connection = config.create_root_connection().await;
 
-    let reserved_before = connection
-        .connection
-        .get_next_era_reserved_validators(None)
-        .await;
-    let non_reserved_before = connection
-        .connection
-        .get_next_era_non_reserved_validators(None)
-        .await;
-    let committee_size_before = connection
-        .connection
-        .get_next_era_committee_seats(None)
-        .await;
+    let reserved_before = connection.get_next_era_reserved_validators(None).await;
+    let non_reserved_before = connection.get_next_era_non_reserved_validators(None).await;
+    let committee_size_before = connection.get_next_era_committee_seats(None).await;
 
     info!(
         "[+] state before tx: reserved: {:#?}, non_reserved: {:#?}, committee_size: {:#?}",
@@ -52,7 +43,7 @@ pub async fn change_validators() -> anyhow::Result<()> {
         )
         .await?;
 
-    connection.connection.wait_for_event(|e: &ChangeValidators| {
+    connection.wait_for_event(|e: &ChangeValidators| {
         info!("[+] NewValidatorsEvent: reserved: {:#?}, non_reserved: {:#?}, committee_size: {:#?}", e.0, e.1, e.2);
 
         e.0 == new_validators[0..2]
@@ -64,18 +55,9 @@ pub async fn change_validators() -> anyhow::Result<()> {
         }
     }, BlockStatus::Best).await;
 
-    let reserved_after = connection
-        .connection
-        .get_next_era_reserved_validators(None)
-        .await;
-    let non_reserved_after = connection
-        .connection
-        .get_next_era_non_reserved_validators(None)
-        .await;
-    let committee_size_after = connection
-        .connection
-        .get_next_era_committee_seats(None)
-        .await;
+    let reserved_after = connection.get_next_era_reserved_validators(None).await;
+    let non_reserved_after = connection.get_next_era_non_reserved_validators(None).await;
+    let committee_size_after = connection.get_next_era_committee_seats(None).await;
 
     info!(
         "[+] state before tx: reserved: {:#?}, non_reserved: {:#?}, committee_size: {:#?}",
@@ -91,13 +73,12 @@ pub async fn change_validators() -> anyhow::Result<()> {
         },
         committee_size_after
     );
+
     let block_number = connection
-        .connection
         .get_best_block()
         .await?
         .ok_or(anyhow!("Failed to retrieve best block!"))?;
     connection
-        .connection
         .wait_for_block(|n| n >= block_number, BlockStatus::Finalized)
         .await;
 

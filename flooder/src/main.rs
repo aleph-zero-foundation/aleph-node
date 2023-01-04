@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use aleph_client::{
     account_from_keypair, pallets::balances::BalanceUserApi, raw_keypair_from_string, AccountId,
-    KeyPair, SignedConnection, TxStatus,
+    KeyPair, SignedConnection, SignedConnectionApi, TxStatus,
 };
 use clap::Parser;
 use config::Config;
@@ -72,7 +72,7 @@ async fn initialize_n_accounts<F: Fn(u32) -> String>(
     for i in 0..n {
         let seed = i.to_string();
         let signer = KeyPair::new(raw_keypair_from_string(&("//".to_string() + &seed)));
-        connections.push(SignedConnection::new(node(i), signer).await);
+        connections.push(SignedConnection::new(&node(i), signer).await);
     }
 
     if skip {
@@ -81,7 +81,7 @@ async fn initialize_n_accounts<F: Fn(u32) -> String>(
     for conn in connections.iter() {
         connection
             .transfer(
-                conn.signer.account_id().clone(),
+                conn.account_id().clone(),
                 account_balance,
                 TxStatus::Submitted,
             )
@@ -90,11 +90,7 @@ async fn initialize_n_accounts<F: Fn(u32) -> String>(
     }
 
     connection
-        .transfer(
-            connection.signer.account_id().clone(),
-            1,
-            TxStatus::Finalized,
-        )
+        .transfer(connection.account_id().clone(), 1, TxStatus::Finalized)
         .await
         .unwrap();
 
@@ -138,7 +134,7 @@ async fn main() -> anyhow::Result<()> {
         .unwrap(),
     };
     let main_connection =
-        SignedConnection::new(config.nodes[0].to_string(), KeyPair::new(account.clone())).await;
+        SignedConnection::new(&config.nodes[0], KeyPair::new(account.clone())).await;
 
     let nodes = config.nodes.clone();
 

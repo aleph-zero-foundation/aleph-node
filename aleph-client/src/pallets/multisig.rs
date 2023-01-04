@@ -1,8 +1,8 @@
 use primitives::{Balance, BlockNumber};
 
 use crate::{
-    api, api::runtime_types, sp_weights::weight_v2::Weight, AccountId, BlockHash, SignedConnection,
-    TxStatus,
+    api, api::runtime_types, sp_weights::weight_v2::Weight, AccountId, BlockHash,
+    SignedConnectionApi, TxStatus,
 };
 
 pub type CallHash = [u8; 32];
@@ -32,7 +32,7 @@ pub trait MultisigUserApi {
 }
 
 #[async_trait::async_trait]
-impl MultisigUserApi for SignedConnection {
+impl<S: SignedConnectionApi> MultisigUserApi for S {
     async fn approve_as_multi(
         &self,
         threshold: u16,

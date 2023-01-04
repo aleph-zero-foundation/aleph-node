@@ -48,7 +48,7 @@ async fn disable_validator(validator_address: &str, validator_seed: u32) -> anyh
 
     // This connection has to be set up with the controller key.
     let connection_to_disable =
-        SignedConnection::new(validator_address.to_string(), controller_key_to_disable).await;
+        SignedConnection::new(validator_address, controller_key_to_disable).await;
 
     set_invalid_keys_for_validator(&connection_to_disable).await
 }
@@ -57,11 +57,7 @@ async fn signed_connection_for_disabled_controller() -> SignedConnection {
     let validator_seed = get_validator_seed(VALIDATOR_TO_DISABLE_OVERALL_INDEX);
     let stash_controller = NodeKeys::from(validator_seed);
     let controller_key_to_disable = stash_controller.controller;
-    SignedConnection::new(
-        NODE_TO_DISABLE_ADDRESS.to_string(),
-        controller_key_to_disable,
-    )
-    .await
+    SignedConnection::new(NODE_TO_DISABLE_ADDRESS, controller_key_to_disable).await
 }
 
 /// Runs a chain, sets up a committee and validators. Sets an incorrect key for one of the
@@ -79,14 +75,11 @@ pub async fn ban_automatic() -> anyhow::Result<()> {
     check_validators(
         &reserved_validators,
         &non_reserved_validators,
-        root_connection
-            .connection
-            .get_current_era_validators(None)
-            .await,
+        root_connection.get_current_era_validators(None).await,
     );
 
     check_ban_config(
-        &root_connection.connection,
+        &root_connection,
         DEFAULT_BAN_MINIMAL_EXPECTED_PERFORMANCE,
         DEFAULT_BAN_SESSION_COUNT_THRESHOLD,
         DEFAULT_CLEAN_SESSION_COUNTER_DELAY,
@@ -98,37 +91,25 @@ pub async fn ban_automatic() -> anyhow::Result<()> {
 
     info!("Validator to disable: {}", validator_to_disable);
 
-    check_underperformed_validator_session_count(
-        &root_connection.connection,
-        validator_to_disable,
-        0,
-    )
-    .await;
-    check_underperformed_validator_reason(&root_connection.connection, validator_to_disable, None)
-        .await;
+    check_underperformed_validator_session_count(&root_connection, validator_to_disable, 0).await;
+    check_underperformed_validator_reason(&root_connection, validator_to_disable, None).await;
 
     disable_validator(NODE_TO_DISABLE_ADDRESS, VALIDATOR_TO_DISABLE_OVERALL_INDEX).await?;
 
     root_connection
-        .connection
         .wait_for_n_sessions(SESSIONS_TO_MEET_BAN_THRESHOLD, BlockStatus::Best)
         .await;
 
     // The session count for underperforming validators is reset to 0 immediately on reaching the
     // threshold.
-    check_underperformed_validator_session_count(
-        &root_connection.connection,
-        validator_to_disable,
-        0,
-    )
-    .await;
+    check_underperformed_validator_session_count(&root_connection, validator_to_disable, 0).await;
 
     let reason = BanReason::InsufficientUptime(DEFAULT_BAN_SESSION_COUNT_THRESHOLD);
-    let start = root_connection.connection.get_current_era(None).await + 1;
+    let start = root_connection.get_current_era(None).await + 1;
     let expected_ban_info = BanInfo { reason, start };
 
     check_underperformed_validator_reason(
-        &root_connection.connection,
+        &root_connection,
         validator_to_disable,
         Some(&expected_ban_info),
     )
@@ -138,16 +119,13 @@ pub async fn ban_automatic() -> anyhow::Result<()> {
         &non_reserved_validators[(VALIDATOR_TO_DISABLE_NON_RESERVED_INDEX + 1) as usize..];
 
     let expected_banned_validators = vec![(validator_to_disable.clone(), expected_ban_info)];
-    check_ban_event(&root_connection.connection, &expected_banned_validators).await?;
+    check_ban_event(&root_connection, &expected_banned_validators).await?;
 
     // Check current validators.
     check_validators(
         &reserved_validators,
         expected_non_reserved,
-        root_connection
-            .connection
-            .get_current_era_validators(None)
-            .await,
+        root_connection.get_current_era_validators(None).await,
     );
 
     Ok(())
@@ -166,14 +144,11 @@ pub async fn ban_manual() -> anyhow::Result<()> {
     check_validators(
         &reserved_validators,
         &non_reserved_validators,
-        root_connection
-            .connection
-            .get_current_era_validators(None)
-            .await,
+        root_connection.get_current_era_validators(None).await,
     );
 
     check_ban_config(
-        &root_connection.connection,
+        &root_connection,
         DEFAULT_BAN_MINIMAL_EXPECTED_PERFORMANCE,
         DEFAULT_BAN_SESSION_COUNT_THRESHOLD,
         DEFAULT_CLEAN_SESSION_COUNTER_DELAY,
@@ -185,14 +160,9 @@ pub async fn ban_manual() -> anyhow::Result<()> {
 
     info!("Validator to manually ban: {}", validator_to_manually_ban);
 
-    check_underperformed_validator_session_count(
-        &root_connection.connection,
-        validator_to_manually_ban,
-        0,
-    )
-    .await;
-    check_ban_info_for_validator(&root_connection.connection, validator_to_manually_ban, None)
+    check_underperformed_validator_session_count(&root_connection, validator_to_manually_ban, 0)
         .await;
+    check_ban_info_for_validator(&root_connection, validator_to_manually_ban, None).await;
 
     let bounded_reason = BoundedVec(MANUAL_BAN_REASON.as_bytes().to_vec());
 
@@ -205,10 +175,10 @@ pub async fn ban_manual() -> anyhow::Result<()> {
         .await?;
 
     let reason = BanReason::OtherReason(bounded_reason);
-    let start = root_connection.connection.get_current_era(None).await + 1;
+    let start = root_connection.get_current_era(None).await + 1;
     let expected_ban_info = BanInfo { reason, start };
     check_ban_info_for_validator(
-        &root_connection.connection,
+        &root_connection,
         validator_to_manually_ban,
         Some(&expected_ban_info),
     )
@@ -216,7 +186,7 @@ pub async fn ban_manual() -> anyhow::Result<()> {
 
     let expected_banned_validators = vec![(validator_to_manually_ban.clone(), expected_ban_info)];
 
-    check_ban_event(&root_connection.connection, &expected_banned_validators).await?;
+    check_ban_event(&root_connection, &expected_banned_validators).await?;
 
     let expected_non_reserved: Vec<_> = non_reserved_validators
         .clone()
@@ -228,10 +198,7 @@ pub async fn ban_manual() -> anyhow::Result<()> {
     check_validators(
         &reserved_validators,
         &expected_non_reserved,
-        root_connection
-            .connection
-            .get_current_era_validators(None)
-            .await,
+        root_connection.get_current_era_validators(None).await,
     );
 
     Ok(())
@@ -257,12 +224,10 @@ pub async fn clearing_session_count() -> anyhow::Result<()> {
     disable_validator(NODE_TO_DISABLE_ADDRESS, VALIDATOR_TO_DISABLE_OVERALL_INDEX).await?;
 
     root_connection
-        .connection
         .wait_for_n_sessions(5, BlockStatus::Best)
         .await;
 
     let underperformed_validator_session_count = root_connection
-        .connection
         .get_underperformed_validator_session_count(validator_to_disable.clone(), None)
         .await
         .unwrap_or_default();
@@ -270,12 +235,8 @@ pub async fn clearing_session_count() -> anyhow::Result<()> {
     // it only has to be ge than 0 and should be cleared before reaching values larger than 3.
     assert!(underperformed_validator_session_count <= 2);
 
-    let next_era_reserved_validators = root_connection
-        .connection
-        .get_next_era_reserved_validators(None)
-        .await;
+    let next_era_reserved_validators = root_connection.get_next_era_reserved_validators(None).await;
     let next_era_non_reserved_validators = root_connection
-        .connection
         .get_next_era_non_reserved_validators(None)
         .await;
 
@@ -328,14 +289,12 @@ pub async fn permissionless_ban() -> anyhow::Result<()> {
         .ban_from_committee(validator_to_ban.clone(), vec![], TxStatus::InBlock)
         .await?;
     root_connection
-        .connection
         .wait_for_n_eras(2, BlockStatus::Finalized)
         .await;
 
     let without_banned = HashSet::<_>::from_iter(non_reserved_without_banned);
     let non_reserved = HashSet::<_>::from_iter(
         root_connection
-            .connection
             .get_current_era_validators(None)
             .await
             .non_reserved,
@@ -346,13 +305,11 @@ pub async fn permissionless_ban() -> anyhow::Result<()> {
     // validate again
     signed_connection.validate(0, TxStatus::InBlock).await?;
     root_connection
-        .connection
         .wait_for_n_eras(2, BlockStatus::Finalized)
         .await;
     let expected_non_reserved = HashSet::<_>::from_iter(non_reserved_validators);
     let non_reserved = HashSet::<_>::from_iter(
         root_connection
-            .connection
             .get_current_era_validators(None)
             .await
             .non_reserved,
@@ -376,14 +333,11 @@ pub async fn ban_threshold() -> anyhow::Result<()> {
     check_validators(
         &reserved_validators,
         &non_reserved_validators,
-        root_connection
-            .connection
-            .get_current_era_validators(None)
-            .await,
+        root_connection.get_current_era_validators(None).await,
     );
 
     check_ban_config(
-        &root_connection.connection,
+        &root_connection,
         DEFAULT_BAN_MINIMAL_EXPECTED_PERFORMANCE,
         DEFAULT_BAN_SESSION_COUNT_THRESHOLD,
         DEFAULT_CLEAN_SESSION_COUNTER_DELAY,
@@ -401,16 +355,15 @@ pub async fn ban_threshold() -> anyhow::Result<()> {
         )
         .await?;
 
-    let ban_config_change_session = root_connection.connection.get_session(None).await;
+    let ban_config_change_session = root_connection.get_session(None).await;
     let check_start_session = ban_config_change_session + 1;
     let check_end_session = check_start_session + SESSIONS_TO_CHECK - 1;
     root_connection
-        .connection
         .wait_for_n_sessions(SESSIONS_TO_CHECK, BlockStatus::Finalized)
         .await;
 
     check_underperformed_count_for_sessions(
-        &root_connection.connection,
+        &root_connection,
         &reserved_validators,
         &non_reserved_validators,
         &seats,

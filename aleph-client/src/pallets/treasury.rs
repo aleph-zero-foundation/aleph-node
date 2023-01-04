@@ -5,11 +5,12 @@ use subxt::ext::sp_runtime::MultiAddress;
 
 use crate::{
     api,
+    connections::AsConnection,
     pallet_treasury::pallet::Call::{approve_proposal, reject_proposal},
     pallets::{elections::ElectionsApi, staking::StakingApi},
     AccountId, BlockHash,
     Call::Treasury,
-    Connection, RootConnection, SignedConnection, SudoCall, TxStatus,
+    ConnectionApi, RootConnection, SignedConnectionApi, SudoCall, TxStatus,
 };
 
 #[async_trait::async_trait]
@@ -43,7 +44,7 @@ pub trait TreasurySudoApi {
 }
 
 #[async_trait::async_trait]
-impl TreasuryApi for Connection {
+impl<C: ConnectionApi> TreasuryApi for C {
     async fn treasury_account(&self) -> AccountId {
         PalletId(*b"a0/trsry").into_account_truncating()
     }
@@ -62,7 +63,7 @@ impl TreasuryApi for Connection {
 }
 
 #[async_trait::async_trait]
-impl TreasuryUserApi for SignedConnection {
+impl<S: SignedConnectionApi> TreasuryUserApi for S {
     async fn propose_spend(
         &self,
         amount: Balance,
@@ -105,11 +106,10 @@ impl TreasurySudoApi for RootConnection {
 }
 
 #[async_trait::async_trait]
-impl TreasureApiExt for Connection {
+impl<C: AsConnection + Sync> TreasureApiExt for C {
     async fn possible_treasury_payout(&self) -> anyhow::Result<Balance> {
         let session_period = self.get_session_period().await?;
         let sessions_per_era = self.get_session_per_era().await?;
-
         let millisecs_per_era =
             MILLISECS_PER_BLOCK * session_period as u64 * sessions_per_era as u64;
         Ok(primitives::staking::era_payout(millisecs_per_era).1)

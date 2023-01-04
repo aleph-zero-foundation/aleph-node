@@ -1,12 +1,13 @@
 use aleph_client::{
     pallets::{
+        elections::ElectionsApi,
         session::SessionApi,
         staking::{StakingApi, StakingSudoApi},
     },
     primitives::{CommitteeSeats, EraValidators},
-    utility::SessionEraApi,
+    utility::{BlocksApi, SessionEraApi},
     waiting::{AlephWaiting, BlockStatus, WaitingExt},
-    AccountId, SignedConnection, TxStatus,
+    AccountId, SignedConnection, SignedConnectionApi, TxStatus,
 };
 use log::info;
 use primitives::{staking::MIN_VALIDATOR_BOND, EraIndex, SessionIndex};
@@ -32,11 +33,8 @@ pub async fn points_basic() -> anyhow::Result<()> {
 
     let connection = config.get_first_signed_connection().await;
 
-    connection
-        .connection
-        .wait_for_n_eras(1, BlockStatus::Best)
-        .await;
-    let end_session = connection.connection.get_session(None).await;
+    connection.wait_for_n_eras(1, BlockStatus::Best).await;
+    let end_session = connection.get_session(None).await;
     let members_per_session = committee_size.reserved_seats + committee_size.non_reserved_seats;
 
     info!(
@@ -45,12 +43,9 @@ pub async fn points_basic() -> anyhow::Result<()> {
     );
 
     for session in start_session..end_session {
-        let era = connection
-            .connection
-            .get_active_era_for_session(session)
-            .await?;
+        let era = connection.get_active_era_for_session(session).await?;
         let (members_active, members_bench) = get_and_test_members_for_session(
-            &connection.connection,
+            &connection,
             committee_size.clone(),
             &era_validators,
             session,
@@ -92,12 +87,9 @@ pub async fn points_stake_change() -> anyhow::Result<()> {
     .await;
 
     let connection = config.get_first_signed_connection().await;
-    let start_session = connection.connection.get_session(None).await;
-    connection
-        .connection
-        .wait_for_n_eras(1, BlockStatus::Best)
-        .await;
-    let end_session = connection.connection.get_session(None).await;
+    let start_session = connection.get_session(None).await;
+    connection.wait_for_n_eras(1, BlockStatus::Best).await;
+    let end_session = connection.get_session(None).await;
     let members_per_session = committee_size.reserved_seats + committee_size.non_reserved_seats;
 
     info!(
@@ -106,12 +98,9 @@ pub async fn points_stake_change() -> anyhow::Result<()> {
     );
 
     for session in start_session..end_session {
-        let era = connection
-            .connection
-            .get_active_era_for_session(session)
-            .await?;
+        let era = connection.get_active_era_for_session(session).await?;
         let (members_active, members_bench) = get_and_test_members_for_session(
-            &connection.connection,
+            &connection,
             committee_size.clone(),
             &era_validators,
             session,
@@ -142,18 +131,15 @@ pub async fn disable_node() -> anyhow::Result<()> {
 
     let root_connection = config.create_root_connection().await;
     let controller_connection =
-        SignedConnection::new(config.node.clone(), config.node_keys().controller).await;
+        SignedConnection::new(&config.node, config.node_keys().controller).await;
 
     // this should `disable` this node by setting invalid session_keys
     set_invalid_keys_for_validator(&controller_connection).await?;
     // this should `re-enable` this node, i.e. by means of the `rotate keys` procedure
     reset_validator_keys(&controller_connection).await?;
 
-    root_connection
-        .connection
-        .wait_for_n_eras(1, BlockStatus::Best)
-        .await;
-    let end_session = root_connection.connection.get_session(None).await;
+    root_connection.wait_for_n_eras(1, BlockStatus::Best).await;
+    let end_session = root_connection.get_session(None).await;
     let members_per_session = committee_size.reserved_seats + committee_size.non_reserved_seats;
 
     info!(
@@ -162,12 +148,9 @@ pub async fn disable_node() -> anyhow::Result<()> {
     );
 
     for session in start_session..end_session {
-        let era = root_connection
-            .connection
-            .get_active_era_for_session(session)
-            .await?;
+        let era = root_connection.get_active_era_for_session(session).await?;
         let (members_active, members_bench) = get_and_test_members_for_session(
-            &controller_connection.connection,
+            &controller_connection,
             committee_size.clone(),
             &era_validators,
             session,
@@ -200,20 +183,16 @@ pub async fn force_new_era() -> anyhow::Result<()> {
 
     let connection = config.get_first_signed_connection().await;
     let root_connection = config.create_root_connection().await;
-    let start_era = connection
-        .connection
-        .get_active_era_for_session(start_session)
-        .await?;
+    let start_era = connection.get_active_era_for_session(start_session).await?;
 
     info!("Start | era: {}, session: {}", start_era, start_session);
 
     root_connection.force_new_era(TxStatus::Finalized).await?;
     connection
-        .connection
         .wait_for_session(start_session + 2, BlockStatus::Finalized)
         .await;
-    let active_era = connection.connection.get_active_era(None).await;
-    let current_session = connection.connection.get_session(None).await;
+    let active_era = connection.get_active_era(None).await;
+    let current_session = connection.get_session(None).await;
     info!(
         "After ForceNewEra | era: {}, session: {}",
         active_era, current_session
@@ -245,10 +224,7 @@ pub async fn change_stake_and_force_new_era() -> anyhow::Result<()> {
     let connection = config.get_first_signed_connection().await;
     let root_connection = config.create_root_connection().await;
 
-    let start_era = connection
-        .connection
-        .get_active_era_for_session(start_session)
-        .await?;
+    let start_era = connection.get_active_era_for_session(start_session).await?;
     info!("Start | era: {}, session: {}", start_era, start_session);
 
     validators_bond_extra_stakes(
@@ -264,13 +240,12 @@ pub async fn change_stake_and_force_new_era() -> anyhow::Result<()> {
     .await;
 
     root_connection.force_new_era(TxStatus::Finalized).await?;
-    let start_session = root_connection.connection.get_session(None).await;
+    let start_session = root_connection.get_session(None).await;
     connection
-        .connection
         .wait_for_session(start_session + 2, BlockStatus::Finalized)
         .await;
-    let active_era = connection.connection.get_active_era(None).await;
-    let current_session = connection.connection.get_session(None).await;
+    let active_era = connection.get_active_era(None).await;
+    let current_session = connection.get_session(None).await;
     info!(
         "After ForceNewEra | era: {}, session: {}",
         active_era, current_session
@@ -288,8 +263,10 @@ pub async fn change_stake_and_force_new_era() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn check_points_after_force_new_era(
-    connection: &SignedConnection,
+async fn check_points_after_force_new_era<
+    S: SignedConnectionApi + BlocksApi + ElectionsApi + AlephWaiting + StakingApi,
+>(
+    connection: &S,
     start_session: SessionIndex,
     start_era: EraIndex,
     era_validators: &EraValidators<AccountId>,
@@ -311,7 +288,7 @@ async fn check_points_after_force_new_era(
         );
 
         let (members_active, members_bench) = get_and_test_members_for_session(
-            &connection.connection,
+            connection,
             seats.clone(),
             era_validators,
             session_to_check,

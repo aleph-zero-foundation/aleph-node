@@ -9,6 +9,7 @@ use subxt::{
 
 use crate::{
     api,
+    connections::AsConnection,
     pallet_staking::{
         pallet::pallet::{
             Call::{bond, force_new_era, nominate, set_staking_configs},
@@ -22,7 +23,7 @@ use crate::{
     sp_arithmetic::per_things::Perbill,
     AccountId, BlockHash,
     Call::{Staking, Sudo},
-    Connection, RootConnection, SignedConnection, SudoCall, TxStatus,
+    ConnectionApi, RootConnection, SignedConnectionApi, SudoCall, TxStatus,
 };
 
 #[async_trait::async_trait]
@@ -123,7 +124,7 @@ pub trait StakingRawApi {
 }
 
 #[async_trait::async_trait]
-impl StakingApi for Connection {
+impl<C: ConnectionApi + AsConnection> StakingApi for C {
     async fn get_active_era(&self, at: Option<BlockHash>) -> EraIndex {
         let addrs = api::storage().staking().active_era();
 
@@ -183,13 +184,16 @@ impl StakingApi for Connection {
 
     async fn get_session_per_era(&self) -> anyhow::Result<u32> {
         let addrs = api::constants().staking().sessions_per_era();
-
-        self.client.constants().at(&addrs).map_err(|e| e.into())
+        self.as_connection()
+            .as_client()
+            .constants()
+            .at(&addrs)
+            .map_err(|e| e.into())
     }
 }
 
 #[async_trait::async_trait]
-impl StakingUserApi for SignedConnection {
+impl<S: SignedConnectionApi> StakingUserApi for S {
     async fn bond(
         &self,
         initial_stake: Balance,
@@ -295,7 +299,7 @@ impl StakingSudoApi for RootConnection {
 }
 
 #[async_trait::async_trait]
-impl StakingRawApi for Connection {
+impl<C: AsConnection + Sync> StakingRawApi for C {
     async fn get_stakers_storage_keys(
         &self,
         era: EraIndex,
@@ -304,7 +308,8 @@ impl StakingRawApi for Connection {
         let key_addrs = api::storage().staking().eras_stakers_root();
         let mut key = key_addrs.to_root_bytes();
         StorageMapKey::new(era, StorageHasher::Twox64Concat).to_bytes(&mut key);
-        self.client
+        self.as_connection()
+            .as_client()
             .storage()
             .fetch_keys(&key, 10, None, at)
             .await
@@ -356,7 +361,7 @@ impl StakingApiExt for RootConnection {
             })
             .collect();
 
-        self.as_signed().batch_call(calls, status).await
+        self.batch_call(calls, status).await
     }
 
     async fn batch_nominate(
@@ -377,6 +382,6 @@ impl StakingApiExt for RootConnection {
             })
             .collect();
 
-        self.as_signed().batch_call(calls, status).await
+        self.batch_call(calls, status).await
     }
 }

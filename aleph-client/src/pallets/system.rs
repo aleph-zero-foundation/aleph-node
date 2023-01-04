@@ -7,7 +7,7 @@ use crate::{
     sp_arithmetic::per_things::Perbill,
     AccountId, BlockHash,
     Call::System,
-    Connection, RootConnection, SudoCall, TxStatus,
+    ConnectionApi, RootConnection, SudoCall, TxStatus,
 };
 
 #[async_trait::async_trait]
@@ -47,7 +47,7 @@ impl SystemSudoApi for RootConnection {
 }
 
 #[async_trait::async_trait]
-impl SystemApi for Connection {
+impl<C: ConnectionApi> SystemApi for C {
     async fn get_free_balance(&self, account: AccountId, at: Option<BlockHash>) -> Balance {
         let addrs = api::storage().system().account(&account);
 

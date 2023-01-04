@@ -2,8 +2,9 @@ use log::info;
 use primitives::{BlockNumber, EraIndex, SessionIndex};
 
 use crate::{
+    connections::AsConnection,
     pallets::{elections::ElectionsApi, staking::StakingApi},
-    BlockHash, Connection,
+    BlockHash,
 };
 
 #[async_trait::async_trait]
@@ -16,6 +17,10 @@ pub trait BlocksApi {
     async fn get_best_block(&self) -> anyhow::Result<Option<BlockNumber>>;
     async fn get_finalized_block_hash(&self) -> anyhow::Result<BlockHash>;
     async fn get_block_number(&self, block: BlockHash) -> anyhow::Result<Option<BlockNumber>>;
+    async fn get_block_number_opt(
+        &self,
+        block: Option<BlockHash>,
+    ) -> anyhow::Result<Option<BlockNumber>>;
 }
 
 #[async_trait::async_trait]
@@ -23,22 +28,8 @@ pub trait SessionEraApi {
     async fn get_active_era_for_session(&self, session: SessionIndex) -> anyhow::Result<EraIndex>;
 }
 
-impl Connection {
-    async fn get_block_number_inner(
-        &self,
-        block: Option<BlockHash>,
-    ) -> anyhow::Result<Option<BlockNumber>> {
-        self.client
-            .rpc()
-            .header(block)
-            .await
-            .map(|maybe_header| maybe_header.map(|header| header.number))
-            .map_err(|e| e.into())
-    }
-}
-
 #[async_trait::async_trait]
-impl BlocksApi for Connection {
+impl<C: AsConnection + Sync> BlocksApi for C {
     async fn first_block_of_session(
         &self,
         session: SessionIndex,
@@ -51,7 +42,8 @@ impl BlocksApi for Connection {
 
     async fn get_block_hash(&self, block: BlockNumber) -> anyhow::Result<Option<BlockHash>> {
         info!(target: "aleph-client", "querying block hash for number #{}", block);
-        self.client
+        self.as_connection()
+            .as_client()
             .rpc()
             .block_hash(Some(block.into()))
             .await
@@ -59,24 +51,38 @@ impl BlocksApi for Connection {
     }
 
     async fn get_best_block(&self) -> anyhow::Result<Option<BlockNumber>> {
-        self.get_block_number_inner(None).await
+        self.get_block_number_opt(None).await
     }
 
     async fn get_finalized_block_hash(&self) -> anyhow::Result<BlockHash> {
-        self.client
+        self.as_connection()
+            .as_client()
             .rpc()
             .finalized_head()
             .await
             .map_err(|e| e.into())
     }
 
+    async fn get_block_number_opt(
+        &self,
+        block: Option<BlockHash>,
+    ) -> anyhow::Result<Option<BlockNumber>> {
+        self.as_connection()
+            .as_client()
+            .rpc()
+            .header(block)
+            .await
+            .map(|maybe_header| maybe_header.map(|header| header.number))
+            .map_err(|e| e.into())
+    }
+
     async fn get_block_number(&self, block: BlockHash) -> anyhow::Result<Option<BlockNumber>> {
-        self.get_block_number_inner(Some(block)).await
+        self.get_block_number_opt(Some(block)).await
     }
 }
 
 #[async_trait::async_trait]
-impl SessionEraApi for Connection {
+impl<C: AsConnection + Sync> SessionEraApi for C {
     async fn get_active_era_for_session(&self, session: SessionIndex) -> anyhow::Result<EraIndex> {
         let block = self.first_block_of_session(session).await?;
         Ok(self.get_active_era(block).await)

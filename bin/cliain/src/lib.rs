@@ -45,23 +45,16 @@ impl ConnectionConfig {
     }
 
     pub async fn get_connection(&self) -> Connection {
-        Connection::new(self.node_endpoint.clone()).await
+        Connection::new(&self.node_endpoint).await
     }
 
     pub async fn get_signed_connection(&self) -> SignedConnection {
-        SignedConnection::new(
-            self.node_endpoint.clone(),
-            keypair_from_string(&self.signer_seed),
-        )
-        .await
+        SignedConnection::new(&self.node_endpoint, keypair_from_string(&self.signer_seed)).await
     }
 
     pub async fn get_root_connection(&self) -> RootConnection {
-        RootConnection::new(
-            self.node_endpoint.clone(),
-            keypair_from_string(&self.signer_seed),
-        )
-        .await
-        .expect("signer should be root")
+        RootConnection::new(&self.node_endpoint, keypair_from_string(&self.signer_seed))
+            .await
+            .expect("signer should be root")
     }
 }

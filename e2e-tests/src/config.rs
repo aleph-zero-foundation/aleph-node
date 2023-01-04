@@ -79,9 +79,7 @@ impl Config {
 
     pub async fn create_root_connection(&self) -> RootConnection {
         let sudo_keypair = get_sudo_key(self);
-        RootConnection::new(self.node.clone(), sudo_keypair)
-            .await
-            .unwrap()
+        RootConnection::new(&self.node, sudo_keypair).await.unwrap()
     }
 
     /// Get a `SignedConnection` where the signer is the first validator.
@@ -89,7 +87,7 @@ impl Config {
         let node = &self.node;
         let mut accounts = get_validators_keys(self);
         let sender = accounts.remove(0);
-        SignedConnection::new(node.clone(), sender).await
+        SignedConnection::new(node, sender).await
     }
 }
 

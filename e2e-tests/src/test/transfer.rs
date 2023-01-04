@@ -11,10 +11,7 @@ pub async fn token_transfer() -> anyhow::Result<()> {
     let config = setup_test();
     let (connection, to) = setup_for_transfer(config).await;
 
-    let balance_before = connection
-        .connection
-        .get_free_balance(to.clone(), None)
-        .await;
+    let balance_before = connection.get_free_balance(to.clone(), None).await;
     info!("[+] Account {} balance before tx: {}", to, balance_before);
 
     let transfer_value = 1000;
@@ -22,10 +19,7 @@ pub async fn token_transfer() -> anyhow::Result<()> {
         .transfer(to.clone(), transfer_value, TxStatus::Finalized)
         .await?;
 
-    let balance_after = connection
-        .connection
-        .get_free_balance(to.clone(), None)
-        .await;
+    let balance_after = connection.get_free_balance(to.clone(), None).await;
     info!("[+] Account {} balance after tx: {}", to, balance_after);
 
     assert_eq!(

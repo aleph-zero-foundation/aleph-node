@@ -54,7 +54,7 @@ use crate::{
     contract_transcode::Value,
     pallets::contract::{ContractCallArgs, ContractRpc, ContractsUserApi},
     sp_weights::weight_v2::Weight,
-    AccountId, Connection, SignedConnection, TxStatus,
+    AccountId, ConnectionApi, SignedConnectionApi, TxStatus,
 };
 
 /// Represents a contract instantiated on the chain.
@@ -80,21 +80,25 @@ impl ContractInstance {
     }
 
     /// Reads the value of a read-only, 0-argument call via RPC.
-    pub async fn contract_read0<T: TryFrom<ConvertibleValue, Error = anyhow::Error>>(
+    pub async fn contract_read0<
+        T: TryFrom<ConvertibleValue, Error = anyhow::Error>,
+        C: ConnectionApi,
+    >(
         &self,
-        conn: &Connection,
+        conn: &C,
         message: &str,
     ) -> Result<T> {
-        self.contract_read::<String, T>(conn, message, &[]).await
+        self.contract_read::<String, T, C>(conn, message, &[]).await
     }
 
     /// Reads the value of a read-only call via RPC.
     pub async fn contract_read<
         S: AsRef<str> + Debug,
         T: TryFrom<ConvertibleValue, Error = anyhow::Error>,
+        C: ConnectionApi,
     >(
         &self,
-        conn: &Connection,
+        conn: &C,
         message: &str,
         args: &[S],
     ) -> Result<T> {
@@ -119,35 +123,40 @@ impl ContractInstance {
     }
 
     /// Executes a 0-argument contract call.
-    pub async fn contract_exec0(&self, conn: &SignedConnection, message: &str) -> Result<()> {
-        self.contract_exec::<String>(conn, message, &[]).await
+    pub async fn contract_exec0<C: SignedConnectionApi>(
+        &self,
+        conn: &C,
+        message: &str,
+    ) -> Result<()> {
+        self.contract_exec::<C, String>(conn, message, &[]).await
     }
 
     /// Executes a contract call.
-    pub async fn contract_exec<S: AsRef<str> + Debug>(
+    pub async fn contract_exec<C: SignedConnectionApi, S: AsRef<str> + Debug>(
         &self,
-        conn: &SignedConnection,
+        conn: &C,
         message: &str,
         args: &[S],
     ) -> Result<()> {
-        self.contract_exec_value(conn, message, args, 0).await
+        self.contract_exec_value::<C, S>(conn, message, args, 0)
+            .await
     }
 
     /// Executes a 0-argument contract call sending the given amount of value with it.
-    pub async fn contract_exec_value0(
+    pub async fn contract_exec_value0<C: SignedConnectionApi>(
         &self,
-        conn: &SignedConnection,
+        conn: &C,
         message: &str,
         value: u128,
     ) -> Result<()> {
-        self.contract_exec_value::<String>(conn, message, &[], value)
+        self.contract_exec_value::<C, String>(conn, message, &[], value)
             .await
     }
 
     /// Executes a contract call sending the given amount of value with it.
-    pub async fn contract_exec_value<S: AsRef<str> + Debug>(
+    pub async fn contract_exec_value<C: SignedConnectionApi, S: AsRef<str> + Debug>(
         &self,
-        conn: &SignedConnection,
+        conn: &C,
         message: &str,
         args: &[S],
         value: u128,
