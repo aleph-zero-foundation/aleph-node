@@ -13,14 +13,27 @@ use crate::{
     ConnectionApi, Pair, RootConnection, SudoCall, TxStatus,
 };
 
+// TODO replace docs with link to pallet aleph docs, once they are published
+/// Pallet aleph API that requires sudo.
 #[async_trait::async_trait]
 pub trait AlephSudoApi {
+    /// Sets the emergency finalization key.
+    /// * `finalizer` - a new finalizer key
+    /// * `status` - a [`TxStatus`] of a tx to wait for
+    /// # Returns
+    /// Block hash of block where transaction was put or error
     async fn set_emergency_finalizer(
         &self,
         finalizer: AccountId,
         status: TxStatus,
     ) -> anyhow::Result<BlockHash>;
 
+    /// Schedules a finality version change for a future session.
+    /// * `version` - next version of the finalizer
+    /// * `session` - from which session the next version applies
+    /// * `status` - a [`TxStatus`] of a tx to wait for
+    /// # Returns
+    /// Block hash of block where transaction was put or error
     async fn schedule_finality_version_change(
         &self,
         version: u32,
@@ -29,8 +42,12 @@ pub trait AlephSudoApi {
     ) -> anyhow::Result<BlockHash>;
 }
 
+/// Pallet aleph RPC api.
 #[async_trait::async_trait]
 pub trait AlephRpc {
+    /// Finalize the block with given hash and number using attached signature.
+    /// # Returns
+    /// Block hash of block where transaction was put or error
     async fn emergency_finalize(
         &self,
         number: BlockNumber,

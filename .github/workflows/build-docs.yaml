@@ -1,0 +1,21 @@
+# this workflow builds rustdoc for aleph-node crates
+name: build-docs
+
+on:
+  push:
+
+jobs:
+  build-aleph-client-docs:
+    name: Build docs
+    runs-on: ubuntu-20.04
+    steps:
+      - name: GIT | Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+
+      - name: rustdoc | Build aleph-client docs
+        run: |
+          cd aleph-client && cargo doc --no-deps
+

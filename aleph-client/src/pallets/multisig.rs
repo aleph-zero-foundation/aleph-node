@@ -1,17 +1,20 @@
-use primitives::{Balance, BlockNumber};
+use primitives::BlockNumber;
 
 use crate::{
-    api, api::runtime_types, sp_weights::weight_v2::Weight, AccountId, BlockHash,
-    SignedConnectionApi, TxStatus,
+    api, sp_weights::weight_v2::Weight, AccountId, BlockHash, SignedConnectionApi, TxStatus,
 };
 
+/// An alias for a call hash.
 pub type CallHash = [u8; 32];
+/// An alias for a call.
 pub type Call = Vec<u8>;
+/// An alias for a timepoint.
 pub type Timepoint = api::runtime_types::pallet_multisig::Timepoint<BlockNumber>;
-pub type Multisig = runtime_types::pallet_multisig::Multisig<BlockNumber, Balance, AccountId>;
 
+/// Pallet multisig api.
 #[async_trait::async_trait]
 pub trait MultisigUserApi {
+    /// API for [`approve_as_multi`](https://paritytech.github.io/substrate/master/pallet_multisig/pallet/struct.Pallet.html#method.approve_as_multi) call.
     async fn approve_as_multi(
         &self,
         threshold: u16,
@@ -21,6 +24,8 @@ pub trait MultisigUserApi {
         call_hash: CallHash,
         status: TxStatus,
     ) -> anyhow::Result<BlockHash>;
+
+    /// API for [`cancel_as_multi`](https://paritytech.github.io/substrate/master/pallet_multisig/pallet/struct.Pallet.html#method.cancel_as_multi) call.
     async fn cancel_as_multi(
         &self,
         threshold: u16,
