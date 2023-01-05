@@ -185,6 +185,25 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  run-aleph-client-subxt-codegen-check:
+    needs: [build-test-docker]
+    name: Checks if runtime file in aleph-client is up-to-date
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run one node in the background
+        uses: ./.github/actions/run-e2e-test
+        with:
+          node-count: 1
+          min-validator-count: 1
+
+      - name: check if runtime metadata matches
+        run: |
+          cd aleph-client
+          docker pull public.ecr.aws/p6e8q1z1/subxt-client-integration:latest
+          docker run --rm --network host --mount type=bind,source="$(pwd)/..",target=/subxt/aleph-node public.ecr.aws/p6e8q1z1/subxt-client-integration:latest
 
   run-e2e-finalization-test:
     needs: [build-test-docker, build-test-client]

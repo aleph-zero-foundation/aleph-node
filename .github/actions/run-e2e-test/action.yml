@@ -12,7 +12,7 @@ inputs:
     default: '4'
   test-case:
     description: 'Name of test to run.'
-    required: true
+    required: false
   randomized:
     description: 'Whether to use randomized test params.'
     required: false
@@ -69,15 +69,18 @@ runs:
       run: docker logs Node0 --follow &
 
     - name: Download artifact with the test suite image
+      if: inputs.test-case != ''
       uses: actions/download-artifact@v2
       with:
         name: aleph-e2e-client
 
     - name: Load test suite docker image
+      if: inputs.test-case != ''
       shell: bash
       run: docker load -i aleph-e2e-client.tar
 
     - name: Run single e2e test
+      if: inputs.test-case != ''
       shell: bash
       run: |
         ARGS=(
