@@ -43,6 +43,7 @@
 //! ```
 
 mod convertible_value;
+pub mod event;
 
 use std::fmt::{Debug, Formatter};
 

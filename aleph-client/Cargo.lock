@@ -53,7 +53,7 @@ version = "2.6.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "contract-metadata",
+ "contract-metadata 2.0.0-beta.1",
  "contract-transcode",
  "frame-support",
  "futures",
@@ -69,6 +69,7 @@ dependencies = [
  "sp-runtime 6.0.0",
  "subxt",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]
@@ -362,8 +363,21 @@ checksum = "e4c78c047431fee22c1a7bb92e00ad095a02a983affe4d8a72e2a2c62c1b94f3"
 [[package]]
 name = "contract-metadata"
 version = "2.0.0-beta"
+source = "git+https://github.com/obrok/cargo-contract?branch=send-sync-env-types#c0ade59847f09ef558c8bca0dc2cf8f78b031188"
+dependencies = [
+ "anyhow",
+ "impl-serde",
+ "semver",
+ "serde",
+ "serde_json",
+ "url",
+]
+
+[[package]]
+name = "contract-metadata"
+version = "2.0.0-beta.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40248c6a648b3679ea52bb83d8921246d0347644eaf7b0eec4c5601fa8feb651"
+checksum = "7bff7703529b16e9d8ba0d54e842b2051691772a822eb9bc130a91183ff9f6a6"
 dependencies = [
  "anyhow",
  "impl-serde",
@@ -376,11 +390,10 @@ dependencies = [
 [[package]]
 name = "contract-transcode"
 version = "2.0.0-beta"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61159f8e266d4892be25f2b1e7ff2c4c6dd4338ca26498d907e5532a52a28e5f"
+source = "git+https://github.com/obrok/cargo-contract?branch=send-sync-env-types#c0ade59847f09ef558c8bca0dc2cf8f78b031188"
 dependencies = [
  "anyhow",
- "contract-metadata",
+ "contract-metadata 2.0.0-beta",
  "env_logger",
  "escape8259",
  "hex",
@@ -2578,18 +2591,18 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.148"
+version = "1.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e53f64bb4ba0191d6d0676e1b141ca55047d83b74f5607e6d8eb88126c52c2dc"
+checksum = "97fed41fc1a24994d044e6db6935e69511a1153b52c15eb42493b26fa87feba0"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.148"
+version = "1.0.151"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a55492425aa53521babf6137309e7d34c20bbfbbfcfe2c7f3a047fd1f6b92c0c"
+checksum = "255abe9a125a985c05190d687b320c12f9b1f0b99445e608c21ba0782c719ad8"
 dependencies = [
  "proc-macro2",
  "quote",

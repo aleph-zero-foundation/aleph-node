@@ -73,12 +73,12 @@ pub fn alephs(basic_unit_amount: Balance) -> Balance {
 /// Prepares a `(conn, authority, account)` triple with some money in `account` for fees.
 pub async fn basic_test_context(
     config: &Config,
-) -> Result<(SignedConnection, KeyPairWrapper, KeyPairWrapper)> {
-    let conn = config.get_first_signed_connection().await;
+) -> Result<(Connection, KeyPairWrapper, KeyPairWrapper)> {
+    let conn = Connection::new(&config.node).await;
     let authority = KeyPairWrapper(aleph_client::keypair_from_string(&config.sudo_seed));
     let account = random_account();
 
-    transfer(&conn, &account, alephs(100)).await?;
+    transfer(&authority.sign(&conn), &account, alephs(100)).await?;
 
-    Ok((conn.clone(), authority, account))
+    Ok((conn, authority, account))
 }
