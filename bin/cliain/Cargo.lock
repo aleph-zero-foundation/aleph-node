@@ -53,8 +53,8 @@ version = "2.6.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "contract-metadata 2.0.0-beta",
- "contract-transcode",
+ "contract-metadata 2.0.0-beta (registry+https://github.com/rust-lang/crates.io-index)",
+ "contract-transcode 2.0.0-beta (git+https://github.com/obrok/cargo-contract?branch=send-sync-env-types)",
  "frame-support",
  "futures",
  "hex",
@@ -399,7 +399,7 @@ dependencies = [
  "anyhow",
  "clap",
  "contract-metadata 0.6.0",
- "contract-transcode",
+ "contract-transcode 2.0.0-beta (registry+https://github.com/rust-lang/crates.io-index)",
  "dialoguer",
  "env_logger 0.8.4",
  "hex",
@@ -472,13 +472,51 @@ dependencies = [
 ]
 
 [[package]]
+name = "contract-metadata"
+version = "2.0.0-beta"
+source = "git+https://github.com/obrok/cargo-contract?branch=send-sync-env-types#d9db29d579c5ba9d19a8f9b64ef1b00112604d5c"
+dependencies = [
+ "anyhow",
+ "impl-serde 0.4.0",
+ "semver",
+ "serde",
+ "serde_json",
+ "url",
+]
+
+[[package]]
 name = "contract-transcode"
 version = "2.0.0-beta"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61159f8e266d4892be25f2b1e7ff2c4c6dd4338ca26498d907e5532a52a28e5f"
 dependencies = [
  "anyhow",
- "contract-metadata 2.0.0-beta",
+ "contract-metadata 2.0.0-beta (registry+https://github.com/rust-lang/crates.io-index)",
+ "env_logger 0.9.3",
+ "escape8259",
+ "hex",
+ "indexmap",
+ "ink_env",
+ "ink_metadata",
+ "itertools",
+ "nom",
+ "nom-supreme",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "serde_json",
+ "sp-core 7.0.0",
+ "sp-runtime 7.0.0",
+ "tracing",
+]
+
+[[package]]
+name = "contract-transcode"
+version = "2.0.0-beta"
+source = "git+https://github.com/obrok/cargo-contract?branch=send-sync-env-types#d9db29d579c5ba9d19a8f9b64ef1b00112604d5c"
+dependencies = [
+ "anyhow",
+ "contract-metadata 2.0.0-beta (git+https://github.com/obrok/cargo-contract?branch=send-sync-env-types)",
  "env_logger 0.9.3",
  "escape8259",
  "hex",
