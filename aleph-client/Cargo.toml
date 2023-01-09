@@ -14,7 +14,7 @@ log = "0.4"
 serde_json = { version = "1.0" }
 thiserror = "1.0"
 contract-metadata = "2.0.0-beta"
-contract-transcode = { git = "https://github.com/obrok/cargo-contract", branch = "send-sync-env-types" }
+contract-transcode = { git = "https://github.com/paritytech/cargo-contract", rev = "7ca8c365fc1e157cd52901c54949b2faf1cd8899" }
 ink_metadata = "4.0.0-beta"
 subxt = "0.25.0"
 futures = "0.3.25"
