@@ -34,11 +34,13 @@ pub struct RootConnection {
     connection: SignedConnection,
 }
 
-pub(crate) trait AsConnection {
+/// Castability to a plain connection.
+pub trait AsConnection {
     fn as_connection(&self) -> &Connection;
 }
 
-pub(crate) trait AsSigned {
+/// Castability to a signed connection.
+pub trait AsSigned {
     fn as_signed(&self) -> &SignedConnection;
 }
 
@@ -337,7 +339,8 @@ impl Connection {
         }
     }
 
-    pub(crate) fn as_client(&self) -> &SubxtClient {
+    /// Casts self to the underlying RPC client.
+    pub fn as_client(&self) -> &SubxtClient {
         &self.client
     }
 }
