@@ -91,12 +91,17 @@ pub enum BlockStatus<J: Justification> {
 
 /// The knowledge about the chain status.
 pub trait ChainStatus<J: Justification> {
+    type Error: Display;
+
     /// The status of the block.
-    fn status_of(&self, id: <J::Header as Header>::Identifier) -> BlockStatus<J>;
+    fn status_of(
+        &self,
+        id: <J::Header as Header>::Identifier,
+    ) -> Result<BlockStatus<J>, Self::Error>;
 
     /// The header of the best block.
-    fn best_block(&self) -> J::Header;
+    fn best_block(&self) -> Result<J::Header, Self::Error>;
 
     /// The justification of the top finalized block.
-    fn top_finalized(&self) -> J;
+    fn top_finalized(&self) -> Result<J, Self::Error>;
 }
