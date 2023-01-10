@@ -9,6 +9,7 @@ use crate::{
 };
 
 mod chain_status;
+mod finalizer;
 mod status_notifier;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
