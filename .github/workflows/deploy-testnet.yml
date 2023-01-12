@@ -79,15 +79,6 @@ jobs:
           docker push ${{ env.DOCKERHUB_TESTNET_IMAGE }}
           docker push ${{ env.DOCKERHUB_TESTNET_LATEST_IMAGE }}
 
-      - name: S3 CI | Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        env:
-          AWS_REGION: us-east-1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
       - name: S3 CI | Download release runtime from S3 bucket
         shell: bash
         env:
