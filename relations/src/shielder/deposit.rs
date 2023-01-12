@@ -12,12 +12,12 @@ use ark_std::{marker::PhantomData, vec, vec::Vec};
 use super::{
     note::check_note,
     types::{
-        BackendNote, BackendNullifier, BackendTokenAmount, BackendTokenId, BackendTrapdoor, FpVar,
+        BackendNote, BackendNullifier, BackendTokenAmount, BackendTokenId, BackendTrapdoor,
         FrontendNote, FrontendNullifier, FrontendTokenAmount, FrontendTokenId, FrontendTrapdoor,
     },
 };
 use crate::{
-    environment::CircuitField,
+    environment::{CircuitField, FpVar},
     relation::{
         state::{FullInput, NoInput, OnlyPublicInput, State, WithPublicInput},
         GetPublicInput,

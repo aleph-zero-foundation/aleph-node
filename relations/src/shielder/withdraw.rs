@@ -16,13 +16,13 @@ use super::{
     tangle::tangle_in_field,
     types::{
         BackendAccount, BackendLeafIndex, BackendMerklePath, BackendMerkleRoot, BackendNote,
-        BackendNullifier, BackendTokenAmount, BackendTokenId, BackendTrapdoor, ByteVar, FpVar,
+        BackendNullifier, BackendTokenAmount, BackendTokenId, BackendTrapdoor, ByteVar,
         FrontendAccount, FrontendLeafIndex, FrontendMerklePath, FrontendMerkleRoot, FrontendNote,
         FrontendNullifier, FrontendTokenAmount, FrontendTokenId, FrontendTrapdoor,
     },
 };
 use crate::{
-    environment::CircuitField,
+    environment::{CircuitField, FpVar},
     relation::{
         state::{FullInput, NoInput, OnlyPublicInput, State, WithPublicInput},
         GetPublicInput,

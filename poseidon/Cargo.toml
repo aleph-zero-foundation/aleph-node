@@ -1,0 +1,34 @@
+[package]
+name = "poseidon"
+version = "0.1.0"
+edition = "2021"
+license = "Apache 2.0"
+authors = ["Cardinal Cryptography"]
+description = "An instantiation of the Poseidon SNARK-friendly hash function."
+
+[dependencies]
+ark-bls12-381 = { version = "^0.3.0" }
+ark-ff = { version = "^0.3.0", default-features = false }
+ark-r1cs-std = {version = "^0.3.0" , default-features = false }
+ark-relations = { version = "^0.3.0", default-features = false }
+ark-sponge = { git = "https://github.com/penumbra-zone/sponge", branch = "r1cs", default-features = false, features = ["r1cs"] }
+once_cell = "1.8"
+poseidon-paramgen = { version = "0.1", default-features = false }
+poseidon-permutation = { git = "https://github.com/penumbra-zone/poseidon377", default-features = false }
+ark-std = { version = "^0.3.0", default-features = false }
+
+[build-dependencies]
+ark-bls12-381 = { version = "^0.3.0" }
+ark-ff = { version = "^0.3.0" }
+poseidon-paramgen = { version = "0.1" }
+ark-std = { version = "^0.3.0" }
+
+[features]
+default = ["std"]
+std = [
+    "ark-bls12-381/std",
+    "ark-ff/std",
+    "ark-r1cs-std/std",
+    "ark-relations/std",
+    "ark-sponge/std",
+]

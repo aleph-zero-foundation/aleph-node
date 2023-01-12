@@ -9,8 +9,11 @@ pub trait GetPublicInput<CircuitField: PrimeField + CanonicalSerialize> {
 }
 
 pub(super) mod state {
+    #[derive(Clone, Debug)]
     pub enum NoInput {}
+    #[derive(Clone, Debug)]
     pub enum OnlyPublicInput {}
+    #[derive(Clone, Debug)]
     pub enum FullInput {}
 
     pub trait State {}

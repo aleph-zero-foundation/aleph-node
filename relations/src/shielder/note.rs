@@ -8,10 +8,11 @@ use ark_std::{vec, vec::Vec};
 use super::{
     tangle::{tangle, tangle_in_field},
     types::{
-        ByteVar, FpVar, FrontendNote, FrontendNullifier, FrontendTokenAmount, FrontendTokenId,
+        ByteVar, FrontendNote, FrontendNullifier, FrontendTokenAmount, FrontendTokenId,
         FrontendTrapdoor,
     },
 };
+use crate::environment::FpVar;
 
 /// Verify that `note` is indeed the result of tangling `(token_id, token_amount, trapdoor,
 /// nullifier)`.

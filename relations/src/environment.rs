@@ -14,6 +14,8 @@ use blake2::Blake2s;
 pub type PairingEngine = ark_bls12_381::Bls12_381;
 /// Common scalar field.
 pub type CircuitField = ark_bls12_381::Fr;
+/// variable in the Fr field
+pub type FpVar = ark_r1cs_std::fields::fp::FpVar<CircuitField>;
 
 // Systems with hardcoded parameters.
 pub type Groth16 = ark_groth16::Groth16<PairingEngine>;

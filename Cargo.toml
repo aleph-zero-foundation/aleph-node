@@ -22,6 +22,7 @@ exclude = [
     "flooder",
     "fork-off",
     "relations",
+    "poseidon",
 ]
 
 [profile.release]

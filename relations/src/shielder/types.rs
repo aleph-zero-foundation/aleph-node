@@ -4,8 +4,6 @@ use ark_std::vec::Vec;
 
 use crate::environment::CircuitField;
 
-/// The circuit lifting for `CircuitField`.
-pub type FpVar = ark_r1cs_std::fields::fp::FpVar<CircuitField>;
 /// The circuit lifting for the byte type.
 pub type ByteVar = ark_r1cs_std::uint8::UInt8<CircuitField>;
 
