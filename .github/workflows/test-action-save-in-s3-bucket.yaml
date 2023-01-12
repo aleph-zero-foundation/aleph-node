@@ -1,0 +1,137 @@
+name: Test save-in-s3-bucket action
+
+on:
+  #pull_request:
+  #  paths:
+  #    - '.github/actions/save-in-s3-bucket/*'
+  push:
+    #paths:
+    #  - '.github/actions/save-in-s3-bucket/*'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  save-files-in-s3-bucket:
+    name: Save files in S3 bucket
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Get branch name and commit SHA
+        id: get_branch
+        uses: ./.github/actions/get-branch
+
+      - name: Create directory with files to be saved in S3
+        run: |
+          mkdir test-directory1
+          mkdir test-directory1/sub-directory1
+          echo "new test-file 1" > test-directory1/test-file1.txt
+          echo "new test-file 2" > test-directory1/test-file2.txt
+          echo "new test-file 3" > test-directory1/sub-directory1/test-file3.txt
+
+
+      - name: Save directory to S3 bucket
+        uses: ./.github/actions/save-in-s3-bucket
+        with:
+          aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+          s3bucket-name: ${{ secrets.CI_MAINNET_S3BUCKET_NAME }}
+          source-type: dir
+          source-dir: test-directory1
+          target-type: path
+          target-dir: action-tests/save-in-s3-bucket
+          target-filename: test-dir1.tar.gz
+
+      - name: Save file to S3 bucket
+        uses: ./.github/actions/save-in-s3-bucket
+        with:
+          aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+          s3bucket-name: ${{ secrets.CI_MAINNET_S3BUCKET_NAME }}
+          source-type: file
+          source-dir: test-directory1
+          source-file: test-file1.txt
+          target-type: path
+          target-dir: action-tests/save-in-s3-bucket
+          target-filename: test-file1.tar.gz
+
+
+      - name: Save directory as commit artifact to S3 bucket
+        uses: ./.github/actions/save-in-s3-bucket
+        with:
+          aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+          s3bucket-name: ${{ secrets.CI_MAINNET_S3BUCKET_NAME }}
+          source-type: dir
+          source-dir: test-directory1
+          target-type: commit
+          target-repo: aleph-node
+          target-name: aleph-node
+          target-commit: "${{ steps.get_branch.outputs.sha_short }}"
+          target-filename: test-dir1-commit.tar.gz
+
+      - name: Save file as commit artifact to S3 bucket
+        uses: ./.github/actions/save-in-s3-bucket
+        with:
+          aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+          s3bucket-name: ${{ secrets.CI_MAINNET_S3BUCKET_NAME }}
+          source-type: file
+          source-dir: test-directory1
+          source-file: test-file1.txt
+          target-type: commit
+          target-repo: aleph-node
+          target-name: aleph-node
+          target-commit: "${{ steps.get_branch.outputs.sha_short }}"
+          target-filename: test-file1-commit.tar.gz
+  
+
+      - name: Save directory as cache artifact to S3 bucket
+        uses: ./.github/actions/save-in-s3-bucket
+        with:
+          aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+          s3bucket-name: ${{ secrets.CI_MAINNET_S3BUCKET_NAME }}
+          source-type: dir
+          source-dir: test-directory1
+          target-type: cache
+          target-key: "aleph-node-${{ steps.get_branch.outputs.sha_short }}"
+          target-filename: test-dir1-cache.tar.gz
+
+      - name: Save file as cache artifact to S3 bucket
+        uses: ./.github/actions/save-in-s3-bucket
+        with:
+          aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+          s3bucket-name: ${{ secrets.CI_MAINNET_S3BUCKET_NAME }}
+          source-type: file
+          source-dir: test-directory1
+          source-file: test-file1.txt
+          target-type: cache
+          target-repo: "aleph-node-${{ steps.get_branch.outputs.sha_short }}"
+          target-filename: test-file1-cache.tar.gz
+
+  test-if-files-in-s3-bucket:
+    name: Test if files were saved in S3
+    needs: ['save-files-in-s3-bucket']
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Download saved directory and check for files
+        run: |
+          mkdir test-directory1
+          aws s3 cp s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/action-tests/save-in-s3-bucket/test-dir1.tar.gz .
+          tar -zxvf test-dir1.tar.gz
+          cat test-file1.txt
+          cat test-file2.txt
+          cat sub-directory1/test-file3.txt
