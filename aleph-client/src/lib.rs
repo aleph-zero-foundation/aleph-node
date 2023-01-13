@@ -58,7 +58,8 @@ pub type TxHash = H256;
 pub type SubxtClient = OnlineClient<AlephConfig>;
 
 pub use connections::{
-    Connection, ConnectionApi, RootConnection, SignedConnection, SignedConnectionApi, SudoCall,
+    AsConnection, AsSigned, Connection, ConnectionApi, RootConnection, SignedConnection,
+    SignedConnectionApi, SudoCall,
 };
 
 /// When submitting a transaction, wait for given status before proceeding.

@@ -39,11 +39,13 @@ pub struct RootConnection {
 
 /// Castability to a plain connection.
 pub trait AsConnection {
+    /// Allows cast to [`Connection`] reference
     fn as_connection(&self) -> &Connection;
 }
 
 /// Castability to a signed connection.
 pub trait AsSigned {
+    /// Allows cast to [`SignedConnection`] reference
     fn as_signed(&self) -> &SignedConnection;
 }
 
