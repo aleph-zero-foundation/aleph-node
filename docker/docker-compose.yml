@@ -30,3 +30,9 @@ services:
       file: docker-compose.base.yml
       service: Node4
     network_mode: host
+
+  Node5:
+    extends:
+      file: docker-compose.base.yml
+      service: Node5
+    network_mode: host

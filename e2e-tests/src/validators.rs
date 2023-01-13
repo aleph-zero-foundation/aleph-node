@@ -108,6 +108,7 @@ pub async fn prepare_validators<S: SignedConnectionApi + AuthorRpc>(
     connection: &S,
     node: &str,
     accounts: &Accounts,
+    controller_connections: Vec<SignedConnection>,
 ) -> anyhow::Result<()> {
     connection
         .batch_transfer(
@@ -138,9 +139,8 @@ pub async fn prepare_validators<S: SignedConnectionApi + AuthorRpc>(
         }));
     }
 
-    for controller in accounts.controller_raw_keys.iter() {
+    for connection in controller_connections {
         let keys = connection.author_rotate_keys().await?;
-        let connection = SignedConnection::new(node, KeyPair::new(controller.clone())).await;
         handles.push(tokio::spawn(async move {
             connection
                 .set_keys(keys, TxStatus::Finalized)
@@ -152,4 +152,29 @@ pub async fn prepare_validators<S: SignedConnectionApi + AuthorRpc>(
 
     join_all(handles).await;
     Ok(())
+}
+
+// Assumes the same ip address and consecutive ports for nodes, e.g. ws://127.0.0.1:9943,
+// ws://127.0.0.1:9944, etc.
+pub async fn get_controller_connections_to_nodes(
+    first_node_address: &str,
+    controller_raw_keys: Vec<RawKeyPair>,
+) -> anyhow::Result<Vec<SignedConnection>> {
+    let address_tokens = first_node_address.split(':').collect::<Vec<_>>();
+    let prefix = format!("{}:{}", address_tokens[0], address_tokens[1]);
+    let address_prefix = prefix.as_str();
+    let first_port = address_tokens[2].parse::<u16>()?;
+    let controller_connections =
+        controller_raw_keys
+            .into_iter()
+            .enumerate()
+            .map(|(port_idx, controller)| async move {
+                SignedConnection::new(
+                    format!("{}:{}", address_prefix, first_port + port_idx as u16).as_str(),
+                    KeyPair::new(controller),
+                )
+                .await
+            });
+    let connections = join_all(controller_connections.collect::<Vec<_>>()).await;
+    Ok(connections)
 }

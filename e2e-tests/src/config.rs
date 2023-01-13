@@ -86,7 +86,7 @@ impl Config {
         RootConnection::new(&self.node, sudo_keypair).await.unwrap()
     }
 
-    pub fn validator_names<'a>(&'a self) -> Vec<String> {
+    pub fn validator_names(&self) -> Vec<String> {
         (0..self.validator_count)
             .map(|id| format!("Node{}", id))
             .collect()

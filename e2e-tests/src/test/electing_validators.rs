@@ -15,7 +15,7 @@ use primitives::EraIndex;
 
 use crate::{
     config::setup_test,
-    validators::{prepare_validators, setup_accounts},
+    validators::{get_controller_connections_to_nodes, prepare_validators, setup_accounts},
 };
 
 /// Verify that `pallet_staking::ErasStakers` contains all target validators.
@@ -179,7 +179,10 @@ pub async fn authorities_are_staking() -> anyhow::Result<()> {
 
     let desired_validator_count = reserved_seats + non_reserved_seats;
     let accounts = setup_accounts(desired_validator_count);
-    prepare_validators(&root_connection, node, &accounts).await?;
+    let controller_connections =
+        get_controller_connections_to_nodes(node, accounts.get_controller_raw_keys().clone())
+            .await?;
+    prepare_validators(&root_connection, node, &accounts, controller_connections).await?;
     info!("New validators are set up");
 
     let reserved_validators = accounts.get_stash_accounts()[..reserved_seats as usize].to_vec();

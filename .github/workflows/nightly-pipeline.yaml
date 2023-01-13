@@ -170,7 +170,8 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: authorities_are_staking
-          randomized: true
+          node-count: 6
+          follow-up-finalization-check: true
         timeout-minutes: 60
 
   run-e2e-high-out-latency:

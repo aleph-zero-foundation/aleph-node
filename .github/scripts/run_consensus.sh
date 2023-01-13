@@ -3,8 +3,10 @@
 set -euo pipefail
 
 # default node count
-# change when increasing the number of node containers
 NODE_COUNT=5
+# max node count that will not crash current GH machines
+MAX_NODE_COUNT=6
+# default minimum validator count
 MIN_VALIDATOR_COUNT=4
 DOCKER_COMPOSE=${DOCKER_COMPOSE:-"docker/docker-compose.yml"}
 OVERRIDE_DOCKER_COMPOSE=${OVERRIDE_DOCKER_COMPOSE:-""}
@@ -50,6 +52,11 @@ while [[ $# -gt 0 ]]; do
 done
 
 export NODE_COUNT
+
+if [[ ${NODE_COUNT} -gt ${MAX_NODE_COUNT} ]]; then
+  echo "Tried to run ${NODE_COUNT} nodes. Max node count allowed: ${MAX_NODE_COUNT}."
+  exit 1
+fi
 
 function generate_authorities {
   local authorities_count="$1"

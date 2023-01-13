@@ -49,7 +49,7 @@ dependencies = [
 
 [[package]]
 name = "aleph-e2e-client"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "aleph_client",
  "anyhow",
@@ -78,7 +78,7 @@ dependencies = [
 
 [[package]]
 name = "aleph_client"
-version = "2.6.0"
+version = "2.7.0"
 dependencies = [
  "anyhow",
  "async-trait",
