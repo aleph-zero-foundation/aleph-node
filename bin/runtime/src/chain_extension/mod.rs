@@ -193,7 +193,7 @@ impl SnarcosChainExtension {
                 DeserializingPublicInputFailed => SNARCOS_VERIFY_DESERIALIZING_INPUT_FAIL,
                 UnknownVerificationKeyIdentifier => SNARCOS_VERIFY_UNKNOWN_IDENTIFIER,
                 DeserializingVerificationKeyFailed => SNARCOS_VERIFY_DESERIALIZING_KEY_FAIL,
-                VerificationFailed => SNARCOS_VERIFY_VERIFICATION_FAIL,
+                VerificationFailed(_) => SNARCOS_VERIFY_VERIFICATION_FAIL,
                 IncorrectProof => SNARCOS_VERIFY_INCORRECT_PROOF,
                 _ => SNARCOS_VERIFY_ERROR_UNKNOWN,
             },

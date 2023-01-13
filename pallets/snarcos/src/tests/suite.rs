@@ -3,7 +3,7 @@ use frame_system::{pallet_prelude::OriginFor, Config};
 use sp_runtime::traits::Get;
 
 use super::setup::*;
-use crate::{Error, ProvingSystem, VerificationKeyIdentifier, VerificationKeys};
+use crate::{Error, ProvingSystem, VerificationError, VerificationKeyIdentifier, VerificationKeys};
 
 type Snarcos = crate::Pallet<TestRuntime>;
 
@@ -221,7 +221,10 @@ fn verify_shouts_when_verification_fails() {
 
         let result = Snarcos::verify(caller(), IDENTIFIER, proof(), other_input.to_vec(), SYSTEM);
 
-        assert_err!(result, Error::<TestRuntime>::VerificationFailed);
+        assert_err!(
+            result,
+            Error::<TestRuntime>::VerificationFailed(VerificationError::MalformedVerifyingKey)
+        );
         assert!(result.unwrap_err().post_info.actual_weight.is_none());
     });
 }

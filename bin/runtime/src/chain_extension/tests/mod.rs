@@ -2,6 +2,7 @@ use core::iter::Sum;
 use std::{ops::Neg, sync::mpsc::Receiver};
 
 use environment::{CorruptedMode, MockedEnvironment, StandardMode, StoreKeyMode, VerifyMode};
+use pallet_snarcos::VerificationError;
 
 use super::*;
 use crate::chain_extension::tests::executor::{
@@ -214,7 +215,7 @@ fn verify__pallet_says_vk_deserialization_failed() {
 #[allow(non_snake_case)]
 fn verify__pallet_says_verification_failed() {
     simulate_verify::<
-        VerifyErrorer<{ VerificationFailed }, { None }>,
+        VerifyErrorer<{ VerificationFailed(VerificationError::MalformedVerifyingKey) }, { None }>,
         { None },
         SNARCOS_VERIFY_VERIFICATION_FAIL,
     >()

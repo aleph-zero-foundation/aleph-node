@@ -10,7 +10,7 @@ mod weights;
 use frame_support::pallet_prelude::StorageVersion;
 use frame_system::ensure_root;
 pub use pallet::*;
-pub use systems::ProvingSystem;
+pub use systems::{ProvingSystem, VerificationError};
 pub use weights::{AlephWeight, WeightInfo};
 
 /// The current storage version.
@@ -29,7 +29,7 @@ pub mod pallet {
     use sp_std::prelude::Vec;
 
     use super::*;
-    use crate::systems::{Gm17, Groth16, Marlin, VerifyingSystem};
+    use crate::systems::{Gm17, Groth16, Marlin, VerificationError, VerifyingSystem};
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -67,7 +67,7 @@ pub mod pallet {
         /// Couldn't deserialize verification key from storage.
         DeserializingVerificationKeyFailed,
         /// Verification procedure has failed. Proof still can be correct.
-        VerificationFailed,
+        VerificationFailed(VerificationError),
         /// Proof has been found as incorrect.
         IncorrectProof,
     }
@@ -303,9 +303,8 @@ pub mod pallet {
                     )
                 })?;
 
-            // At some point we should enhance error type from `S::verify` and be more verbose here.
             let valid_proof = S::verify(&verification_key, &public_input, &proof)
-                .map_err(|_| (Error::<T>::VerificationFailed, None))?;
+                .map_err(|err| (Error::<T>::VerificationFailed(err), None))?;
 
             ensure!(valid_proof, (Error::<T>::IncorrectProof, None));
 
