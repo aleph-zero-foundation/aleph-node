@@ -1,10 +1,12 @@
+use anyhow::anyhow;
 use log::info;
 use primitives::{BlockNumber, EraIndex, SessionIndex};
+use subxt::{blocks::ExtrinsicEvents, ext::sp_runtime::traits::Hash, Config};
 
 use crate::{
-    connections::AsConnection,
+    connections::{AsConnection, TxInfo},
     pallets::{elections::ElectionsApi, staking::StakingApi},
-    BlockHash,
+    AlephConfig, BlockHash,
 };
 
 /// Block info API.
@@ -38,6 +40,9 @@ pub trait BlocksApi {
         &self,
         block: Option<BlockHash>,
     ) -> anyhow::Result<Option<BlockNumber>>;
+
+    /// Fetch all events that corresponds to the transaction identified by `tx_info`.
+    async fn get_tx_events(&self, tx_info: TxInfo) -> anyhow::Result<ExtrinsicEvents<AlephConfig>>;
 }
 
 /// Interaction logic between pallet session and pallet staking.
@@ -98,6 +103,27 @@ impl<C: AsConnection + Sync> BlocksApi for C {
 
     async fn get_block_number(&self, block: BlockHash) -> anyhow::Result<Option<BlockNumber>> {
         self.get_block_number_opt(Some(block)).await
+    }
+
+    async fn get_tx_events(&self, tx_info: TxInfo) -> anyhow::Result<ExtrinsicEvents<AlephConfig>> {
+        let block_body = self
+            .as_connection()
+            .as_client()
+            .blocks()
+            .at(Some(tx_info.block_hash))
+            .await?
+            .body()
+            .await?;
+
+        let extrinsic_events = block_body
+            .extrinsics()
+            .find(|tx| tx_info.tx_hash == <AlephConfig as Config>::Hashing::hash_of(&tx.bytes()))
+            .ok_or(anyhow!("Couldn't find the transaction in the block."))?
+            .events()
+            .await
+            .map_err(|e| anyhow!("Couldn't fetch events for the transaction: {e:?}"))?;
+
+        Ok(extrinsic_events)
     }
 }
 

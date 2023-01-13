@@ -5,7 +5,7 @@ use subxt::ext::sp_runtime::MultiAddress;
 
 use crate::{
     api,
-    connections::AsConnection,
+    connections::{AsConnection, TxInfo},
     pallet_treasury::pallet::Call::{approve_proposal, reject_proposal},
     pallets::{elections::ElectionsApi, staking::StakingApi},
     AccountId, BlockHash,
@@ -37,13 +37,13 @@ pub trait TreasuryUserApi {
         amount: Balance,
         beneficiary: AccountId,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash>;
+    ) -> anyhow::Result<TxInfo>;
 
     /// API for [`approve_proposal`](https://paritytech.github.io/substrate/master/pallet_treasury/pallet/struct.Pallet.html#method.approve_proposal) call.
-    async fn approve(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<BlockHash>;
+    async fn approve(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<TxInfo>;
 
     /// API for [`reject_proposal`](https://paritytech.github.io/substrate/master/pallet_treasury/pallet/struct.Pallet.html#method.reject_proposal) call.
-    async fn reject(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<BlockHash>;
+    async fn reject(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<TxInfo>;
 }
 
 /// Pallet treasury funcionality that is not directly related to any pallet call.
@@ -59,11 +59,11 @@ pub trait TreasureApiExt {
 pub trait TreasurySudoApi {
     /// API for [`approve_proposal`](https://paritytech.github.io/substrate/master/pallet_treasury/pallet/struct.Pallet.html#method.approve_proposal) call.
     /// wrapped  in [`sudo_unchecked_weight`](https://paritytech.github.io/substrate/master/pallet_sudo/pallet/struct.Pallet.html#method.sudo_unchecked_weight)
-    async fn approve(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<BlockHash>;
+    async fn approve(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<TxInfo>;
 
     /// API for [`reject_proposal`](https://paritytech.github.io/substrate/master/pallet_treasury/pallet/struct.Pallet.html#method.reject_proposal) call.
     /// wrapped [`sudo_unchecked_weight`](https://paritytech.github.io/substrate/master/pallet_sudo/pallet/struct.Pallet.html#method.sudo_unchecked_weight)
-    async fn reject(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<BlockHash>;
+    async fn reject(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<TxInfo>;
 }
 
 #[async_trait::async_trait]
@@ -92,7 +92,7 @@ impl<S: SignedConnectionApi> TreasuryUserApi for S {
         amount: Balance,
         beneficiary: AccountId,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash> {
+    ) -> anyhow::Result<TxInfo> {
         let tx = api::tx()
             .treasury()
             .propose_spend(amount, MultiAddress::Id(beneficiary));
@@ -100,13 +100,13 @@ impl<S: SignedConnectionApi> TreasuryUserApi for S {
         self.send_tx(tx, status).await
     }
 
-    async fn approve(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<BlockHash> {
+    async fn approve(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<TxInfo> {
         let tx = api::tx().treasury().approve_proposal(proposal_id);
 
         self.send_tx(tx, status).await
     }
 
-    async fn reject(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<BlockHash> {
+    async fn reject(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<TxInfo> {
         let tx = api::tx().treasury().reject_proposal(proposal_id);
 
         self.send_tx(tx, status).await
@@ -115,13 +115,13 @@ impl<S: SignedConnectionApi> TreasuryUserApi for S {
 
 #[async_trait::async_trait]
 impl TreasurySudoApi for RootConnection {
-    async fn approve(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<BlockHash> {
+    async fn approve(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<TxInfo> {
         let call = Treasury(approve_proposal { proposal_id });
 
         self.sudo_unchecked(call, status).await
     }
 
-    async fn reject(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<BlockHash> {
+    async fn reject(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<TxInfo> {
         let call = Treasury(reject_proposal { proposal_id });
 
         self.sudo_unchecked(call, status).await

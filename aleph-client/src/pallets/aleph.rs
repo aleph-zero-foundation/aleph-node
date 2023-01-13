@@ -7,6 +7,7 @@ use crate::{
         pallet_aleph::pallet::Call::set_emergency_finalizer, primitives::app::Public,
         sp_core::ed25519::Public as EdPublic,
     },
+    connections::TxInfo,
     pallet_aleph::pallet::Call::schedule_finality_version_change,
     AccountId, AlephKeyPair, BlockHash,
     Call::Aleph,
@@ -26,7 +27,7 @@ pub trait AlephSudoApi {
         &self,
         finalizer: AccountId,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash>;
+    ) -> anyhow::Result<TxInfo>;
 
     /// Schedules a finality version change for a future session.
     /// * `version` - next version of the finalizer
@@ -39,7 +40,7 @@ pub trait AlephSudoApi {
         version: u32,
         session: SessionIndex,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash>;
+    ) -> anyhow::Result<TxInfo>;
 }
 
 /// Pallet aleph RPC api.
@@ -62,7 +63,7 @@ impl AlephSudoApi for RootConnection {
         &self,
         finalizer: AccountId,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash> {
+    ) -> anyhow::Result<TxInfo> {
         let call = Aleph(set_emergency_finalizer {
             emergency_finalizer: Public(EdPublic(finalizer.into())),
         });
@@ -74,7 +75,7 @@ impl AlephSudoApi for RootConnection {
         version: u32,
         session: SessionIndex,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash> {
+    ) -> anyhow::Result<TxInfo> {
         let call = Aleph(schedule_finality_version_change {
             version_incoming: version,
             session,

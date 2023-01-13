@@ -3,6 +3,7 @@ use subxt::ext::sp_runtime::Perbill as SPerbill;
 
 use crate::{
     api,
+    connections::TxInfo,
     frame_system::pallet::Call::{fill_block, set_code},
     sp_arithmetic::per_things::Perbill,
     AccountId, BlockHash,
@@ -25,7 +26,7 @@ pub trait SystemApi {
 #[async_trait::async_trait]
 pub trait SystemSudoApi {
     /// API for [`set_code`](https://paritytech.github.io/substrate/master/frame_system/pallet/struct.Pallet.html#method.set_code) call.
-    async fn set_code(&self, code: Vec<u8>, status: TxStatus) -> anyhow::Result<BlockHash>;
+    async fn set_code(&self, code: Vec<u8>, status: TxStatus) -> anyhow::Result<TxInfo>;
 
     /// A dispatch that will fill the block weight up to the given ratio.
     /// * `target_ratio_percent` - ratio to fill block
@@ -34,12 +35,12 @@ pub trait SystemSudoApi {
         &self,
         target_ratio_percent: u8,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash>;
+    ) -> anyhow::Result<TxInfo>;
 }
 
 #[async_trait::async_trait]
 impl SystemSudoApi for RootConnection {
-    async fn set_code(&self, code: Vec<u8>, status: TxStatus) -> anyhow::Result<BlockHash> {
+    async fn set_code(&self, code: Vec<u8>, status: TxStatus) -> anyhow::Result<TxInfo> {
         let call = System(set_code { code });
 
         self.sudo_unchecked(call, status).await
@@ -49,7 +50,7 @@ impl SystemSudoApi for RootConnection {
         &self,
         target_ratio_percent: u8,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash> {
+    ) -> anyhow::Result<TxInfo> {
         let call = System(fill_block {
             ratio: Perbill(SPerbill::from_percent(target_ratio_percent as u32).deconstruct()),
         });

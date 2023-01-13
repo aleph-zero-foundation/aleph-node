@@ -4,8 +4,8 @@ use primitives::Balance;
 use subxt::{ext::sp_core::Bytes, rpc_params};
 
 use crate::{
-    api, pallet_contracts::wasm::OwnerInfo, sp_weights::weight_v2::Weight, AccountId, BlockHash,
-    ConnectionApi, SignedConnectionApi, TxStatus,
+    api, connections::TxInfo, pallet_contracts::wasm::OwnerInfo, sp_weights::weight_v2::Weight,
+    AccountId, BlockHash, ConnectionApi, SignedConnectionApi, TxStatus,
 };
 
 /// Arguments to [`ContractRpc::call_and_get`].
@@ -47,7 +47,7 @@ pub trait ContractsUserApi {
         code: Vec<u8>,
         storage_limit: Option<Compact<u128>>,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash>;
+    ) -> anyhow::Result<TxInfo>;
 
     /// API for [`instantiate`](https://paritytech.github.io/substrate/master/pallet_contracts/pallet/struct.Pallet.html#method.instantiate) call.
     #[allow(clippy::too_many_arguments)]
@@ -60,7 +60,7 @@ pub trait ContractsUserApi {
         data: Vec<u8>,
         salt: Vec<u8>,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash>;
+    ) -> anyhow::Result<TxInfo>;
 
     /// API for [`instantiate_with_code`](https://paritytech.github.io/substrate/master/pallet_contracts/pallet/struct.Pallet.html#method.instantiate_with_code) call.
     #[allow(clippy::too_many_arguments)]
@@ -73,7 +73,7 @@ pub trait ContractsUserApi {
         data: Vec<u8>,
         salt: Vec<u8>,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash>;
+    ) -> anyhow::Result<TxInfo>;
 
     /// API for [`call`](https://paritytech.github.io/substrate/master/pallet_contracts/pallet/struct.Pallet.html#method.call) call.
     async fn call(
@@ -84,14 +84,10 @@ pub trait ContractsUserApi {
         storage_limit: Option<Compact<u128>>,
         data: Vec<u8>,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash>;
+    ) -> anyhow::Result<TxInfo>;
 
     /// API for [`remove_code`](https://paritytech.github.io/substrate/master/pallet_contracts/pallet/struct.Pallet.html#method.remove_code) call.
-    async fn remove_code(
-        &self,
-        code_hash: BlockHash,
-        status: TxStatus,
-    ) -> anyhow::Result<BlockHash>;
+    async fn remove_code(&self, code_hash: BlockHash, status: TxStatus) -> anyhow::Result<TxInfo>;
 }
 
 /// RPC for runtime ContractsApi
@@ -124,7 +120,7 @@ impl<S: SignedConnectionApi> ContractsUserApi for S {
         code: Vec<u8>,
         storage_limit: Option<Compact<u128>>,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash> {
+    ) -> anyhow::Result<TxInfo> {
         let tx = api::tx().contracts().upload_code(code, storage_limit);
 
         self.send_tx(tx, status).await
@@ -139,7 +135,7 @@ impl<S: SignedConnectionApi> ContractsUserApi for S {
         data: Vec<u8>,
         salt: Vec<u8>,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash> {
+    ) -> anyhow::Result<TxInfo> {
         let tx = api::tx().contracts().instantiate(
             balance,
             gas_limit,
@@ -161,7 +157,7 @@ impl<S: SignedConnectionApi> ContractsUserApi for S {
         data: Vec<u8>,
         salt: Vec<u8>,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash> {
+    ) -> anyhow::Result<TxInfo> {
         let tx = api::tx().contracts().instantiate_with_code(
             balance,
             gas_limit,
@@ -182,7 +178,7 @@ impl<S: SignedConnectionApi> ContractsUserApi for S {
         storage_limit: Option<Compact<u128>>,
         data: Vec<u8>,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash> {
+    ) -> anyhow::Result<TxInfo> {
         let tx =
             api::tx()
                 .contracts()
@@ -190,11 +186,7 @@ impl<S: SignedConnectionApi> ContractsUserApi for S {
         self.send_tx(tx, status).await
     }
 
-    async fn remove_code(
-        &self,
-        code_hash: BlockHash,
-        status: TxStatus,
-    ) -> anyhow::Result<BlockHash> {
+    async fn remove_code(&self, code_hash: BlockHash, status: TxStatus) -> anyhow::Result<TxInfo> {
         let tx = api::tx().contracts().remove_code(code_hash);
 
         self.send_tx(tx, status).await

@@ -6,7 +6,7 @@ use crate::{
         pallet_elections::pallet::Call::set_ban_config,
         primitives::{BanReason, CommitteeSeats, EraValidators},
     },
-    connections::AsConnection,
+    connections::{AsConnection, TxInfo},
     pallet_elections::pallet::Call::{
         ban_from_committee, change_validators, set_elections_openness,
     },
@@ -99,7 +99,7 @@ pub trait ElectionsSudoApi {
         clean_session_counter_delay: Option<u32>,
         ban_period: Option<EraIndex>,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash>;
+    ) -> anyhow::Result<TxInfo>;
 
     /// Issues `elections.change_validators` that sets the committee for the next era.
     /// * `new_reserved_validators` - reserved validators to be in place in the next era; optional
@@ -112,7 +112,7 @@ pub trait ElectionsSudoApi {
         new_non_reserved_validators: Option<Vec<AccountId>>,
         committee_size: Option<CommitteeSeats>,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash>;
+    ) -> anyhow::Result<TxInfo>;
 
     /// Schedule a non-reserved node to be banned out from the committee at the end of the era.
     /// * `account` - account to be banned,
@@ -123,7 +123,7 @@ pub trait ElectionsSudoApi {
         account: AccountId,
         ban_reason: Vec<u8>,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash>;
+    ) -> anyhow::Result<TxInfo>;
 
     /// Set openness of the elections.
     /// * `mode` - new elections openness mode
@@ -132,7 +132,7 @@ pub trait ElectionsSudoApi {
         &self,
         mode: ElectionOpenness,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash>;
+    ) -> anyhow::Result<TxInfo>;
 }
 
 #[async_trait::async_trait]
@@ -241,7 +241,7 @@ impl ElectionsSudoApi for RootConnection {
         clean_session_counter_delay: Option<u32>,
         ban_period: Option<EraIndex>,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash> {
+    ) -> anyhow::Result<TxInfo> {
         let call = Elections(set_ban_config {
             minimal_expected_performance,
             underperformed_session_count_threshold,
@@ -258,7 +258,7 @@ impl ElectionsSudoApi for RootConnection {
         new_non_reserved_validators: Option<Vec<AccountId>>,
         committee_size: Option<CommitteeSeats>,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash> {
+    ) -> anyhow::Result<TxInfo> {
         let call = Elections(change_validators {
             reserved_validators: new_reserved_validators,
             non_reserved_validators: new_non_reserved_validators,
@@ -273,7 +273,7 @@ impl ElectionsSudoApi for RootConnection {
         account: AccountId,
         ban_reason: Vec<u8>,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash> {
+    ) -> anyhow::Result<TxInfo> {
         let call = Elections(ban_from_committee {
             banned: account,
             ban_reason,
@@ -285,7 +285,7 @@ impl ElectionsSudoApi for RootConnection {
         &self,
         mode: ElectionOpenness,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash> {
+    ) -> anyhow::Result<TxInfo> {
         let call = Elections(set_elections_openness { openness: mode });
 
         self.sudo_unchecked(call, status).await

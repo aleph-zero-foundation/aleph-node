@@ -58,7 +58,7 @@ pub async fn upload_code(
             .await
     });
 
-    let _block_hash = signed_connection
+    let _tx_info = signed_connection
         .upload_code(
             wasm,
             storage_deposit(storage_deposit_limit),
@@ -109,7 +109,7 @@ pub async fn instantiate(
             .await
     });
 
-    let _block_hash = signed_connection
+    let _tx_info = signed_connection
         .instantiate(
             code_hash,
             balance,
@@ -182,7 +182,7 @@ pub async fn instantiate_with_code(
             .await
     });
 
-    let _block_hash = signed_connection
+    let _tx_info = signed_connection
         .instantiate_with_code(
             wasm,
             balance,
@@ -227,7 +227,7 @@ pub async fn call(
 
     debug!("Encoded call data {:?}", data);
 
-    let _block_hash = signed_connection
+    let _tx_info = signed_connection
         .call(
             destination,
             balance,
@@ -267,7 +267,7 @@ pub async fn remove_code(
             .await
     });
 
-    let _block_hash = signed_connection
+    let _tx_info = signed_connection
         .remove_code(code_hash, TxStatus::InBlock)
         .await?;
 

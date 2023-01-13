@@ -3,7 +3,9 @@ use std::{thread::sleep, time::Duration};
 use anyhow::anyhow;
 use codec::Decode;
 use log::info;
+use serde::{Deserialize, Serialize};
 use subxt::{
+    blocks::ExtrinsicEvents,
     ext::sp_core::Bytes,
     metadata::DecodeWithMetadata,
     rpc::RpcParams,
@@ -13,7 +15,8 @@ use subxt::{
 };
 
 use crate::{
-    api, sp_weights::weight_v2::Weight, AccountId, BlockHash, Call, KeyPair, SubxtClient, TxStatus,
+    api, sp_weights::weight_v2::Weight, AccountId, AlephConfig, BlockHash, Call, KeyPair,
+    SubxtClient, TxHash, TxStatus,
 };
 
 /// Capable of communicating with a live Aleph chain.
@@ -105,6 +108,22 @@ pub trait ConnectionApi: Sync {
     async fn rpc_call<R: Decode>(&self, func_name: String, params: RpcParams) -> anyhow::Result<R>;
 }
 
+/// Data regarding submitted transaction.
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
+pub struct TxInfo {
+    pub block_hash: BlockHash,
+    pub tx_hash: TxHash,
+}
+
+impl From<ExtrinsicEvents<AlephConfig>> for TxInfo {
+    fn from(ee: ExtrinsicEvents<AlephConfig>) -> Self {
+        Self {
+            block_hash: ee.block_hash(),
+            tx_hash: ee.extrinsic_hash(),
+        }
+    }
+}
+
 /// Signed connection should be able to sends transactions to chain
 #[async_trait::async_trait]
 pub trait SignedConnectionApi: ConnectionApi {
@@ -112,32 +131,32 @@ pub trait SignedConnectionApi: ConnectionApi {
     /// * `tx` - encoded transaction payload
     /// * `status` - a [`TxStatus`] for a tx to wait for
     /// # Returns
-    /// Block hash of block where transaction was put or error
+    /// Block hash of block where transaction was put together with transaction hash, or error.
     /// # Examples
     /// ```ignore
-    ///      let tx = api::tx()
-    ///             .balances()
-    ///             .transfer(MultiAddress::Id(dest), amount);
-    ///         send_tx(tx, status).await
+    ///     let tx = api::tx()
+    ///         .balances()
+    ///         .transfer(MultiAddress::Id(dest), amount);
+    ///     send_tx(tx, status).await
     /// ```
     async fn send_tx<Call: TxPayload + Send + Sync>(
         &self,
         tx: Call,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash>;
+    ) -> anyhow::Result<TxInfo>;
 
     /// Send a transaction to a chain. It waits for a given tx `status`.
     /// * `tx` - encoded transaction payload
     /// * `params` - optional tx params e.g. tip
     /// * `status` - a [`TxStatus`] of a tx to wait for
     /// # Returns
-    /// Block hash of block where transaction was put or error
+    /// Block hash of block where transaction was put together with transaction hash, or error.
     async fn send_tx_with_params<Call: TxPayload + Send + Sync>(
         &self,
         tx: Call,
         params: BaseExtrinsicParamsBuilder<SubstrateConfig, PlainTip>,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash>;
+    ) -> anyhow::Result<TxInfo>;
 
     /// Returns account id which signs this connection
     fn account_id(&self) -> &AccountId;
@@ -153,14 +172,14 @@ pub trait SignedConnectionApi: ConnectionApi {
 #[async_trait::async_trait]
 pub trait SudoCall {
     /// API for [`sudo_unchecked_weight`](https://paritytech.github.io/substrate/master/pallet_sudo/pallet/enum.Call.html#variant.sudo_unchecked_weight) call.
-    async fn sudo_unchecked(&self, call: Call, status: TxStatus) -> anyhow::Result<BlockHash>;
+    async fn sudo_unchecked(&self, call: Call, status: TxStatus) -> anyhow::Result<TxInfo>;
     /// API for [`sudo`](https://paritytech.github.io/substrate/master/pallet_sudo/pallet/enum.Call.html#variant.sudo) call.
-    async fn sudo(&self, call: Call, status: TxStatus) -> anyhow::Result<BlockHash>;
+    async fn sudo(&self, call: Call, status: TxStatus) -> anyhow::Result<TxInfo>;
 }
 
 #[async_trait::async_trait]
 impl SudoCall for RootConnection {
-    async fn sudo_unchecked(&self, call: Call, status: TxStatus) -> anyhow::Result<BlockHash> {
+    async fn sudo_unchecked(&self, call: Call, status: TxStatus) -> anyhow::Result<TxInfo> {
         info!(target: "aleph-client", "sending call as sudo_unchecked {:?}", call);
         let sudo = api::tx().sudo().sudo_unchecked_weight(
             call,
@@ -173,7 +192,7 @@ impl SudoCall for RootConnection {
         self.as_signed().send_tx(sudo, status).await
     }
 
-    async fn sudo(&self, call: Call, status: TxStatus) -> anyhow::Result<BlockHash> {
+    async fn sudo(&self, call: Call, status: TxStatus) -> anyhow::Result<TxInfo> {
         info!(target: "aleph-client", "sending call as sudo {:?}", call);
         let sudo = api::tx().sudo().sudo(call);
 
@@ -263,7 +282,7 @@ impl<S: AsSigned + Sync> SignedConnectionApi for S {
         &self,
         tx: Call,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash> {
+    ) -> anyhow::Result<TxInfo> {
         self.send_tx_with_params(tx, Default::default(), status)
             .await
     }
@@ -273,7 +292,7 @@ impl<S: AsSigned + Sync> SignedConnectionApi for S {
         tx: Call,
         params: BaseExtrinsicParamsBuilder<SubstrateConfig, PlainTip>,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash> {
+    ) -> anyhow::Result<TxInfo> {
         if let Some(details) = tx.validation_details() {
             info!(target:"aleph-client", "Sending extrinsic {}.{} with params: {:?}", details.pallet_name, details.call_name, params);
         }
@@ -286,15 +305,25 @@ impl<S: AsSigned + Sync> SignedConnectionApi for S {
             .await
             .map_err(|e| anyhow!("Failed to submit transaction: {:?}", e))?;
 
-        // In case of Submitted hash does not mean anything
-        let hash = match status {
-            TxStatus::InBlock => progress.wait_for_in_block().await?.block_hash(),
-            TxStatus::Finalized => progress.wait_for_finalized_success().await?.block_hash(),
-            TxStatus::Submitted => return Ok(BlockHash::from_low_u64_be(0)),
+        let info: TxInfo = match status {
+            TxStatus::InBlock => progress
+                .wait_for_in_block()
+                .await?
+                .wait_for_success()
+                .await?
+                .into(),
+            TxStatus::Finalized => progress.wait_for_finalized_success().await?.into(),
+            // In case of Submitted block hash does not mean anything
+            TxStatus::Submitted => {
+                return Ok(TxInfo {
+                    block_hash: Default::default(),
+                    tx_hash: progress.extrinsic_hash(),
+                })
+            }
         };
-        info!(target: "aleph-client", "tx included in block {:?}", hash);
+        info!(target: "aleph-client", "tx with hash {:?} included in block {:?}", info.tx_hash, info.block_hash);
 
-        Ok(hash)
+        Ok(info)
     }
 
     fn account_id(&self) -> &AccountId {

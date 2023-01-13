@@ -1,8 +1,8 @@
 use subxt::ext::sp_runtime::MultiAddress;
 
 use crate::{
-    api, pallet_vesting::vesting_info::VestingInfo, AccountId, BlockHash, ConnectionApi,
-    SignedConnectionApi, TxStatus,
+    api, connections::TxInfo, pallet_vesting::vesting_info::VestingInfo, AccountId, BlockHash,
+    ConnectionApi, SignedConnectionApi, TxStatus,
 };
 
 /// Read only pallet vesting API.
@@ -22,10 +22,10 @@ pub trait VestingApi {
 #[async_trait::async_trait]
 pub trait VestingUserApi {
     /// API for [`vest`](https://paritytech.github.io/substrate/master/pallet_vesting/pallet/enum.Call.html#variant.vest) call.
-    async fn vest(&self, status: TxStatus) -> anyhow::Result<BlockHash>;
+    async fn vest(&self, status: TxStatus) -> anyhow::Result<TxInfo>;
 
     /// API for [`vest_other`](https://paritytech.github.io/substrate/master/pallet_vesting/pallet/enum.Call.html#variant.vest_other) call.
-    async fn vest_other(&self, status: TxStatus, other: AccountId) -> anyhow::Result<BlockHash>;
+    async fn vest_other(&self, status: TxStatus, other: AccountId) -> anyhow::Result<TxInfo>;
 
     /// API for [`vested_transfer`](https://paritytech.github.io/substrate/master/pallet_vesting/pallet/enum.Call.html#variant.vested_transfer) call.
     async fn vested_transfer(
@@ -33,7 +33,7 @@ pub trait VestingUserApi {
         receiver: AccountId,
         schedule: VestingInfo<u128, u32>,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash>;
+    ) -> anyhow::Result<TxInfo>;
 
     /// API for [`merge_schedules`](https://paritytech.github.io/substrate/master/pallet_vesting/pallet/enum.Call.html#variant.merge_schedules) call.
     async fn merge_schedules(
@@ -41,7 +41,7 @@ pub trait VestingUserApi {
         idx1: u32,
         idx2: u32,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash>;
+    ) -> anyhow::Result<TxInfo>;
 }
 
 #[async_trait::async_trait]
@@ -59,13 +59,13 @@ impl<C: ConnectionApi> VestingApi for C {
 
 #[async_trait::async_trait]
 impl<S: SignedConnectionApi> VestingUserApi for S {
-    async fn vest(&self, status: TxStatus) -> anyhow::Result<BlockHash> {
+    async fn vest(&self, status: TxStatus) -> anyhow::Result<TxInfo> {
         let tx = api::tx().vesting().vest();
 
         self.send_tx(tx, status).await
     }
 
-    async fn vest_other(&self, status: TxStatus, other: AccountId) -> anyhow::Result<BlockHash> {
+    async fn vest_other(&self, status: TxStatus, other: AccountId) -> anyhow::Result<TxInfo> {
         let tx = api::tx().vesting().vest_other(MultiAddress::Id(other));
 
         self.send_tx(tx, status).await
@@ -76,7 +76,7 @@ impl<S: SignedConnectionApi> VestingUserApi for S {
         receiver: AccountId,
         schedule: VestingInfo<u128, u32>,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash> {
+    ) -> anyhow::Result<TxInfo> {
         let tx = api::tx()
             .vesting()
             .vested_transfer(MultiAddress::Id(receiver), schedule);
@@ -89,7 +89,7 @@ impl<S: SignedConnectionApi> VestingUserApi for S {
         idx1: u32,
         idx2: u32,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash> {
+    ) -> anyhow::Result<TxInfo> {
         let tx = api::tx().vesting().merge_schedules(idx1, idx2);
 
         self.send_tx(tx, status).await

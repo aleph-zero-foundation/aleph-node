@@ -1,8 +1,8 @@
 use primitives::SessionIndex;
 
 use crate::{
-    api, api::runtime_types::aleph_runtime::SessionKeys, AccountId, BlockHash, ConnectionApi,
-    SignedConnectionApi, TxStatus,
+    api, api::runtime_types::aleph_runtime::SessionKeys, connections::TxInfo, AccountId, BlockHash,
+    ConnectionApi, SignedConnectionApi, TxStatus,
 };
 
 /// Pallet session read-only api.
@@ -26,7 +26,7 @@ pub trait SessionApi {
 #[async_trait::async_trait]
 pub trait SessionUserApi {
     /// API for [`set_keys`](https://paritytech.github.io/substrate/master/pallet_session/pallet/struct.Pallet.html#method.set_keys) call.
-    async fn set_keys(&self, new_keys: SessionKeys, status: TxStatus) -> anyhow::Result<BlockHash>;
+    async fn set_keys(&self, new_keys: SessionKeys, status: TxStatus) -> anyhow::Result<TxInfo>;
 }
 
 #[async_trait::async_trait]
@@ -58,7 +58,7 @@ impl<C: ConnectionApi> SessionApi for C {
 
 #[async_trait::async_trait]
 impl<S: SignedConnectionApi> SessionUserApi for S {
-    async fn set_keys(&self, new_keys: SessionKeys, status: TxStatus) -> anyhow::Result<BlockHash> {
+    async fn set_keys(&self, new_keys: SessionKeys, status: TxStatus) -> anyhow::Result<TxInfo> {
         let tx = api::tx().session().set_keys(new_keys, vec![]);
 
         self.send_tx(tx, status).await
