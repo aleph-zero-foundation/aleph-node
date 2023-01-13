@@ -303,8 +303,14 @@ pub mod pallet {
                     )
                 })?;
 
-            let valid_proof = S::verify(&verification_key, &public_input, &proof)
-                .map_err(|err| (Error::<T>::VerificationFailed(err), None))?;
+            let parent_hash = <frame_system::Pallet<T>>::parent_hash();
+            let valid_proof = S::verify(
+                &verification_key,
+                &public_input,
+                &proof,
+                parent_hash.as_ref(),
+            )
+            .map_err(|err| (Error::<T>::VerificationFailed(err), None))?;
 
             ensure!(valid_proof, (Error::<T>::IncorrectProof, None));
 

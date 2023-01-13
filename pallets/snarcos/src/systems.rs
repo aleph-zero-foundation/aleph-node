@@ -3,7 +3,10 @@ use ark_poly_commit::marlin_pc::MarlinKZG10;
 use ark_relations::r1cs::SynthesisError;
 use ark_serialize::CanonicalDeserialize;
 use ark_snark::SNARK;
-use ark_std::rand::{prelude::StdRng, SeedableRng};
+use ark_std::{
+    rand::{prelude::StdRng, SeedableRng},
+    vec::Vec,
+};
 use blake2::Blake2s;
 use codec::{Decode, Encode};
 use frame_support::{
@@ -78,6 +81,7 @@ pub(super) trait VerifyingSystem {
         key: &Self::VerifyingKey,
         input: &[Self::CircuitField],
         proof: &Self::Proof,
+        randomness: &[u8],
     ) -> Result<bool, VerificationError>;
 }
 
@@ -96,6 +100,7 @@ impl VerifyingSystem for Groth16 {
         key: &Self::VerifyingKey,
         input: &[Self::CircuitField],
         proof: &Self::Proof,
+        _: &[u8],
     ) -> Result<bool, VerificationError> {
         ark_groth16::Groth16::verify(key, input, proof).map_err(Into::into)
     }
@@ -111,6 +116,7 @@ impl VerifyingSystem for Gm17 {
         key: &Self::VerifyingKey,
         input: &[Self::CircuitField],
         proof: &Self::Proof,
+        _: &[u8],
     ) -> Result<bool, VerificationError> {
         ark_gm17::GM17::verify(key, input, proof).map_err(Into::into)
     }
@@ -130,8 +136,17 @@ impl VerifyingSystem for Marlin {
         key: &Self::VerifyingKey,
         input: &[Self::CircuitField],
         proof: &Self::Proof,
+        randomness: &[u8],
     ) -> Result<bool, VerificationError> {
-        let mut rng = StdRng::from_seed([0u8; 32]);
+        let seed = randomness
+            .iter()
+            .cloned()
+            .cycle()
+            .take(32)
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap_or_default();
+        let mut rng = StdRng::from_seed(seed);
         ark_marlin::Marlin::<_, _, Blake2s>::verify(key, input, proof, &mut rng).map_err(Into::into)
     }
 }
