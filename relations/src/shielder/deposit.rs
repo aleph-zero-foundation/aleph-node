@@ -116,6 +116,7 @@ impl<S: State> ConstraintSynthesizer<CircuitField> for DepositRelation<S> {
 }
 
 impl<S: WithPublicInput> GetPublicInput<CircuitField> for DepositRelation<S> {
+    // The order here should match the order of registation inputs in generate_constraints
     fn public_input(&self) -> Vec<CircuitField> {
         vec![
             self.note.unwrap(),
