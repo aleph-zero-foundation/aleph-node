@@ -3,7 +3,7 @@ rec {
   rustToolchain =
     let
       # use Rust toolchain declared by the rust-toolchain file
-      rustToolchain = with nixpkgs; overrideRustTarget ( rustChannelOf { rustToolchain = rustToolchainFile; } );
+      rustToolchain = with nixpkgs; overrideRustTarget ( rustChannelOf { date = "2022-08-12"; channel = "nightly"; } );
 
       overrideRustTarget = rustChannel: rustChannel // {
         rust = rustChannel.rust.override {
@@ -31,10 +31,6 @@ rec {
         sha256 = "1wg61h4gndm3vcprdcg7rc4s1v3jkm5xd7lw8r2f67w502y94gcy";
       }) { overlays = [
              rustOverlay
-             # we override rust toolchain
-             (self: super: {
-               rust = rustToolchain.rust;
-             })
            ];
          };
     in

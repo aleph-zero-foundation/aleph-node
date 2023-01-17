@@ -53,7 +53,7 @@ is stored at `/lib64/ld-linux-x86-64.so.2`, you can execute `patchelf --set-inte
 aleph-node>`. Alternatively, you can use our nix-build script (used by docker based approach), i.q. `nix/nix-build.sh`.
 
 Note: we recommend using `direnv` together with `nix-direnv` for setting up nix-shell. This way you can use your preferred shell,
-instead of one provided by nix-shell.  
+instead of one provided by nix-shell.
 Example configuration for `direnv`. Copy it into `.envrc` file and then run `direnv-allow`:
 ```
 # installs nix-direnv, https://github.com/nix-community/nix-direnv
@@ -88,7 +88,7 @@ It might influence some of the build scripts of our build dependencies and it mi
 the environment flags related with the build process, like `CXXFLAGS` etc.
 Example build procedure using Ubuntu 20.04 LTS and bash shell:
 ```
-sudo apt install build-essential curl git clang libclang-dev pkg-config libssl-dev
+sudo apt install build-essential curl git clang libclang-dev pkg-config libssl-dev protobuf-compiler
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source "$HOME/.cargo/env"
 git clone https://github.com/Cardinal-Cryptography/aleph-node.git
