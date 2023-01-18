@@ -35,6 +35,7 @@ pub mod utility;
 /// Waiting for some events API.
 pub mod waiting;
 
+pub use ::primitives::{Balance, BlockNumber};
 pub use aleph_zero::api;
 pub use runtime_types::*;
 

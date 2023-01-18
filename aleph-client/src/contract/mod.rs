@@ -5,7 +5,7 @@
 //!
 //! ```no_run
 //! # use anyhow::{Result, Context};
-//! # use aleph_client::AccountId;
+//! # use aleph_client::{AccountId, Balance};
 //! # use aleph_client::{Connection, SignedConnection};
 //! # use aleph_client::contract::ContractInstance;
 //! #
@@ -24,7 +24,7 @@
 //!         })
 //!     }
 //!
-//!     async fn transfer(&self, conn: &SignedConnection, to: AccountId, amount: u128) -> Result<()> {
+//!     async fn transfer(&self, conn: &SignedConnection, to: AccountId, amount: Balance) -> Result<()> {
 //!         self.contract.contract_exec(
 //!             conn,
 //!             "PSP22::transfer",
@@ -32,7 +32,7 @@
 //!         ).await
 //!     }
 //!
-//!     async fn balance_of(&self, conn: &Connection, account: AccountId) -> Result<u128> {
+//!     async fn balance_of(&self, conn: &Connection, account: AccountId) -> Result<Balance> {
 //!         self.contract.contract_read(
 //!             conn,
 //!             "PSP22::balance_of",
@@ -55,7 +55,7 @@ use crate::{
     contract_transcode::Value,
     pallets::contract::{ContractCallArgs, ContractRpc, ContractsUserApi},
     sp_weights::weight_v2::Weight,
-    AccountId, ConnectionApi, SignedConnectionApi, TxStatus,
+    AccountId, Balance, ConnectionApi, SignedConnectionApi, TxStatus,
 };
 
 /// Represents a contract instantiated on the chain.
@@ -148,7 +148,7 @@ impl ContractInstance {
         &self,
         conn: &C,
         message: &str,
-        value: u128,
+        value: Balance,
     ) -> Result<()> {
         self.contract_exec_value::<C, String>(conn, message, &[], value)
             .await
@@ -160,7 +160,7 @@ impl ContractInstance {
         conn: &C,
         message: &str,
         args: &[S],
-        value: u128,
+        value: Balance,
     ) -> Result<()> {
         let data = self.encode(message, args)?;
         conn.call(

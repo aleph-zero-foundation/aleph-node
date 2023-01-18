@@ -1,4 +1,3 @@
-use primitives::Balance;
 use subxt::{ext::sp_runtime::MultiAddress, tx::PolkadotExtrinsicParamsBuilder};
 
 use crate::{
@@ -6,7 +5,7 @@ use crate::{
     connections::TxInfo,
     pallet_balances::pallet::Call::transfer,
     pallets::utility::UtilityApi,
-    AccountId, BlockHash,
+    AccountId, Balance, BlockHash,
     Call::Balances,
     ConnectionApi, SignedConnectionApi, TxStatus,
 };

@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use aleph_client::{
     account_from_keypair, pallets::balances::BalanceUserApi, raw_keypair_from_string, AccountId,
-    KeyPair, SignedConnection, SignedConnectionApi, TxStatus,
+    Balance, KeyPair, SignedConnection, SignedConnectionApi, TxStatus,
 };
 use clap::Parser;
 use config::Config;
@@ -16,7 +16,7 @@ mod config;
 async fn flood(
     connections: Vec<SignedConnection>,
     dest: AccountId,
-    transfer_amount: u128,
+    transfer_amount: Balance,
     tx_count: u64,
     rate_limiting: Option<(u64, u64)>,
     status: TxStatus,
@@ -65,7 +65,7 @@ async fn initialize_n_accounts<F: Fn(u32) -> String>(
     connection: SignedConnection,
     n: u32,
     node: F,
-    account_balance: u128,
+    account_balance: Balance,
     skip: bool,
 ) -> Vec<SignedConnection> {
     let mut connections = vec![];

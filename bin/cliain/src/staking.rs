@@ -1,6 +1,6 @@
 use aleph_client::{
     pallets::staking::{StakingSudoApi, StakingUserApi},
-    AccountId, RootConnection, SignedConnection, TxStatus,
+    AccountId, Balance, RootConnection, SignedConnection, TxStatus,
 };
 use primitives::TOKEN;
 use subxt::ext::sp_core::crypto::Ss58Codec;
@@ -13,7 +13,7 @@ pub async fn bond(
     let controller_account =
         AccountId::from_ss58check(&controller_account).expect("Address is valid");
 
-    let initial_stake = initial_stake_in_tokens as u128 * TOKEN;
+    let initial_stake = initial_stake_in_tokens as Balance * TOKEN;
     stash_connection
         .bond(initial_stake, controller_account, TxStatus::Finalized)
         .await
@@ -44,8 +44,8 @@ pub async fn set_staking_limits(
 ) {
     root_connection
         .set_staking_config(
-            Some(minimal_nominator_stake_tokens as u128 * TOKEN),
-            Some(minimal_validator_stake_tokens as u128 * TOKEN),
+            Some(minimal_nominator_stake_tokens as Balance * TOKEN),
+            Some(minimal_validator_stake_tokens as Balance * TOKEN),
             max_nominators_count,
             max_validators_count,
             TxStatus::Finalized,

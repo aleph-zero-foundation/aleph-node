@@ -1,4 +1,3 @@
-use primitives::Balance;
 use subxt::ext::sp_runtime::Perbill as SPerbill;
 
 use crate::{
@@ -6,7 +5,7 @@ use crate::{
     connections::TxInfo,
     frame_system::pallet::Call::{fill_block, set_code},
     sp_arithmetic::per_things::Perbill,
-    AccountId, BlockHash,
+    AccountId, Balance, BlockHash,
     Call::System,
     ConnectionApi, RootConnection, SudoCall, TxStatus,
 };

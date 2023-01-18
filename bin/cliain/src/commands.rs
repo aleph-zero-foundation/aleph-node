@@ -3,9 +3,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use aleph_client::{AccountId, TxStatus};
+use aleph_client::{AccountId, Balance, TxStatus};
 use clap::{clap_derive::ValueEnum, Args, Subcommand};
-use primitives::{Balance, BlockNumber, CommitteeSeats, SessionIndex};
+use primitives::{BlockNumber, CommitteeSeats, SessionIndex};
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
 
@@ -13,13 +13,13 @@ use sp_core::H256;
 pub struct ContractOptions {
     /// balance to transfer from the call origin to the contract
     #[clap(long, default_value = "0")]
-    pub balance: u128,
+    pub balance: Balance,
     /// The gas limit enforced when executing the constructor
     #[clap(long, default_value = "1000000000")]
     pub gas_limit: u64,
     /// The maximum amount of balance that can be charged/reserved from the caller to pay for the storage consumed
     #[clap(long)]
-    pub storage_deposit_limit: Option<u128>,
+    pub storage_deposit_limit: Option<Balance>,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -29,7 +29,7 @@ pub struct ContractUploadCode {
     pub wasm_path: PathBuf,
     /// The maximum amount of balance that can be charged/reserved from the caller to pay for the storage consumed
     #[clap(long)]
-    pub storage_deposit_limit: Option<u128>,
+    pub storage_deposit_limit: Option<Balance>,
 }
 
 #[derive(Debug, Clone, Args)]

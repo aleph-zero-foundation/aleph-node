@@ -1,4 +1,6 @@
-use aleph_client::{pallets::balances::BalanceUserApi, AccountId, SignedConnection, TxStatus};
+use aleph_client::{
+    pallets::balances::BalanceUserApi, AccountId, Balance, SignedConnection, TxStatus,
+};
 use primitives::TOKEN;
 use subxt::ext::sp_core::crypto::Ss58Codec;
 
@@ -7,7 +9,7 @@ pub async fn transfer(connection: SignedConnection, amount_in_tokens: u64, to_ac
     connection
         .transfer(
             to_account,
-            amount_in_tokens as u128 * TOKEN,
+            amount_in_tokens as Balance * TOKEN,
             TxStatus::Finalized,
         )
         .await

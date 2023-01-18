@@ -50,7 +50,7 @@ pub trait StakingApi {
     /// Returns [`eras_validator_reward`](https://paritytech.github.io/substrate/master/pallet_staking/struct.Pallet.html#method.eras_validator_reward) for a given era.
     /// * `era` - an era index
     /// * `at` - optional hash of a block to query state from
-    async fn get_payout_for_era(&self, era: EraIndex, at: Option<BlockHash>) -> u128;
+    async fn get_payout_for_era(&self, era: EraIndex, at: Option<BlockHash>) -> Balance;
 
     /// Returns [`eras_stakers`](https://paritytech.github.io/substrate/master/pallet_staking/struct.Pallet.html#method.eras_stakers) for a given era and account id.
     /// * `era` - an era index
@@ -61,7 +61,7 @@ pub trait StakingApi {
         era: EraIndex,
         account_id: &AccountId,
         at: Option<BlockHash>,
-    ) -> Exposure<AccountId, u128>;
+    ) -> Exposure<AccountId, Balance>;
 
     /// Returns [`eras_reward_points`](https://paritytech.github.io/substrate/master/pallet_staking/struct.Pallet.html#method.eras_reward_points) for a given era.
     /// * `era` - an era index
@@ -198,8 +198,8 @@ pub trait StakingSudoApi {
     /// API for [`set_staking_config`](https://paritytech.github.io/substrate/master/pallet_staking/struct.Pallet.html#method.set_staking_configs) call.
     async fn set_staking_config(
         &self,
-        minimal_nominator_bond: Option<u128>,
-        minimal_validator_bond: Option<u128>,
+        minimal_nominator_bond: Option<Balance>,
+        minimal_validator_bond: Option<Balance>,
         max_nominators_count: Option<u32>,
         max_validators_count: Option<u32>,
         status: TxStatus,
@@ -267,7 +267,7 @@ impl<C: ConnectionApi + AsConnection> StakingApi for C {
         self.get_storage_entry(&addrs, at).await
     }
 
-    async fn get_payout_for_era(&self, era: EraIndex, at: Option<BlockHash>) -> u128 {
+    async fn get_payout_for_era(&self, era: EraIndex, at: Option<BlockHash>) -> Balance {
         let addrs = api::storage().staking().eras_validator_reward(era);
 
         self.get_storage_entry(&addrs, at).await
@@ -278,7 +278,7 @@ impl<C: ConnectionApi + AsConnection> StakingApi for C {
         era: EraIndex,
         account_id: &AccountId,
         at: Option<BlockHash>,
-    ) -> Exposure<AccountId, u128> {
+    ) -> Exposure<AccountId, Balance> {
         let addrs = api::storage().staking().eras_stakers(era, account_id);
 
         self.get_storage_entry(&addrs, at).await
@@ -392,8 +392,8 @@ impl StakingSudoApi for RootConnection {
 
     async fn set_staking_config(
         &self,
-        min_nominator_bond: Option<u128>,
-        min_validator_bond: Option<u128>,
+        min_nominator_bond: Option<Balance>,
+        min_validator_bond: Option<Balance>,
         max_nominator_count: Option<u32>,
         max_validator_count: Option<u32>,
         status: TxStatus,

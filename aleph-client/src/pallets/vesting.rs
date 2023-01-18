@@ -1,8 +1,9 @@
+use primitives::BlockNumber;
 use subxt::ext::sp_runtime::MultiAddress;
 
 use crate::{
-    api, connections::TxInfo, pallet_vesting::vesting_info::VestingInfo, AccountId, BlockHash,
-    ConnectionApi, SignedConnectionApi, TxStatus,
+    api, connections::TxInfo, pallet_vesting::vesting_info::VestingInfo, AccountId, Balance,
+    BlockHash, ConnectionApi, SignedConnectionApi, TxStatus,
 };
 
 /// Read only pallet vesting API.
@@ -15,7 +16,7 @@ pub trait VestingApi {
         &self,
         who: AccountId,
         at: Option<BlockHash>,
-    ) -> Vec<VestingInfo<u128, u32>>;
+    ) -> Vec<VestingInfo<Balance, BlockNumber>>;
 }
 
 /// Pallet vesting api.
@@ -31,7 +32,7 @@ pub trait VestingUserApi {
     async fn vested_transfer(
         &self,
         receiver: AccountId,
-        schedule: VestingInfo<u128, u32>,
+        schedule: VestingInfo<Balance, BlockNumber>,
         status: TxStatus,
     ) -> anyhow::Result<TxInfo>;
 
@@ -50,7 +51,7 @@ impl<C: ConnectionApi> VestingApi for C {
         &self,
         who: AccountId,
         at: Option<BlockHash>,
-    ) -> Vec<VestingInfo<u128, u32>> {
+    ) -> Vec<VestingInfo<Balance, BlockNumber>> {
         let addrs = api::storage().vesting().vesting(who);
 
         self.get_storage_entry(&addrs, at).await.0
@@ -74,7 +75,7 @@ impl<S: SignedConnectionApi> VestingUserApi for S {
     async fn vested_transfer(
         &self,
         receiver: AccountId,
-        schedule: VestingInfo<u128, u32>,
+        schedule: VestingInfo<Balance, BlockNumber>,
         status: TxStatus,
     ) -> anyhow::Result<TxInfo> {
         let tx = api::tx()

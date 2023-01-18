@@ -1,11 +1,10 @@
 use codec::{Compact, Encode};
 use pallet_contracts_primitives::ContractExecResult;
-use primitives::Balance;
 use subxt::{ext::sp_core::Bytes, rpc_params};
 
 use crate::{
     api, connections::TxInfo, pallet_contracts::wasm::OwnerInfo, sp_weights::weight_v2::Weight,
-    AccountId, BlockHash, ConnectionApi, SignedConnectionApi, TxStatus,
+    AccountId, Balance, BlockHash, ConnectionApi, SignedConnectionApi, TxStatus,
 };
 
 /// Arguments to [`ContractRpc::call_and_get`].
@@ -45,7 +44,7 @@ pub trait ContractsUserApi {
     async fn upload_code(
         &self,
         code: Vec<u8>,
-        storage_limit: Option<Compact<u128>>,
+        storage_limit: Option<Compact<Balance>>,
         status: TxStatus,
     ) -> anyhow::Result<TxInfo>;
 
@@ -56,7 +55,7 @@ pub trait ContractsUserApi {
         code_hash: BlockHash,
         balance: Balance,
         gas_limit: Weight,
-        storage_limit: Option<Compact<u128>>,
+        storage_limit: Option<Compact<Balance>>,
         data: Vec<u8>,
         salt: Vec<u8>,
         status: TxStatus,
@@ -69,7 +68,7 @@ pub trait ContractsUserApi {
         code: Vec<u8>,
         balance: Balance,
         gas_limit: Weight,
-        storage_limit: Option<Compact<u128>>,
+        storage_limit: Option<Compact<Balance>>,
         data: Vec<u8>,
         salt: Vec<u8>,
         status: TxStatus,
@@ -81,7 +80,7 @@ pub trait ContractsUserApi {
         destination: AccountId,
         balance: Balance,
         gas_limit: Weight,
-        storage_limit: Option<Compact<u128>>,
+        storage_limit: Option<Compact<Balance>>,
         data: Vec<u8>,
         status: TxStatus,
     ) -> anyhow::Result<TxInfo>;
@@ -118,7 +117,7 @@ impl<S: SignedConnectionApi> ContractsUserApi for S {
     async fn upload_code(
         &self,
         code: Vec<u8>,
-        storage_limit: Option<Compact<u128>>,
+        storage_limit: Option<Compact<Balance>>,
         status: TxStatus,
     ) -> anyhow::Result<TxInfo> {
         let tx = api::tx().contracts().upload_code(code, storage_limit);
@@ -131,7 +130,7 @@ impl<S: SignedConnectionApi> ContractsUserApi for S {
         code_hash: BlockHash,
         balance: Balance,
         gas_limit: Weight,
-        storage_limit: Option<Compact<u128>>,
+        storage_limit: Option<Compact<Balance>>,
         data: Vec<u8>,
         salt: Vec<u8>,
         status: TxStatus,
@@ -153,7 +152,7 @@ impl<S: SignedConnectionApi> ContractsUserApi for S {
         code: Vec<u8>,
         balance: Balance,
         gas_limit: Weight,
-        storage_limit: Option<Compact<u128>>,
+        storage_limit: Option<Compact<Balance>>,
         data: Vec<u8>,
         salt: Vec<u8>,
         status: TxStatus,
@@ -175,7 +174,7 @@ impl<S: SignedConnectionApi> ContractsUserApi for S {
         destination: AccountId,
         balance: Balance,
         gas_limit: Weight,
-        storage_limit: Option<Compact<u128>>,
+        storage_limit: Option<Compact<Balance>>,
         data: Vec<u8>,
         status: TxStatus,
     ) -> anyhow::Result<TxInfo> {

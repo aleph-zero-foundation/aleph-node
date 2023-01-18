@@ -9,7 +9,7 @@ use aleph_client::{
     pallets::contract::{ContractsApi, ContractsUserApi},
     sp_weights::weight_v2::Weight,
     waiting::{AlephWaiting, BlockStatus},
-    AccountId, Connection, SignedConnection, SignedConnectionApi, TxStatus,
+    AccountId, Balance, Connection, SignedConnection, SignedConnectionApi, TxStatus,
 };
 use codec::{Compact, Decode};
 use contract_metadata::ContractMetadata;
@@ -29,7 +29,7 @@ pub struct InstantiateWithCodeReturnValue {
     pub code_hash: H256,
 }
 
-fn storage_deposit(storage_deposit_limit: Option<u128>) -> Option<Compact<u128>> {
+fn storage_deposit(storage_deposit_limit: Option<Balance>) -> Option<Compact<u128>> {
     storage_deposit_limit.map(Compact)
 }
 

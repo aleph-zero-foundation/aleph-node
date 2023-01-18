@@ -7,8 +7,8 @@ use aleph_client::{
         staking::{StakingApi, StakingApiExt, StakingUserApi},
     },
     waiting::{BlockStatus, WaitingExt},
-    AccountId, ConnectionApi, KeyPair, RootConnection, SignedConnection, SignedConnectionApi,
-    TxStatus,
+    AccountId, Balance, ConnectionApi, KeyPair, RootConnection, SignedConnection,
+    SignedConnectionApi, TxStatus,
 };
 use clap::{ArgGroup, Parser};
 use futures::future::join_all;
@@ -235,7 +235,7 @@ async fn nominate_validator(
         .chunks(BOND_CALL_BATCH_LIMIT)
         .map(|c| c.to_vec())
     {
-        let stake = (rng.gen::<u128>() % 100) * TOKEN + MIN_NOMINATOR_BOND;
+        let stake = (rng.gen::<Balance>() % 100) * TOKEN + MIN_NOMINATOR_BOND;
         connection
             .batch_bond(&chunk, stake, TxStatus::Submitted)
             .await
