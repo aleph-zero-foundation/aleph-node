@@ -60,7 +60,7 @@ pub async fn transfer<S: SignedConnectionApi>(
     to: &KeyPair,
     amount: Balance,
 ) -> Result<()> {
-    conn.transfer(to.signer().public().into(), amount, TxStatus::InBlock)
+    conn.transfer(to.signer().public().into(), amount, TxStatus::Finalized)
         .await
         .map(|_| ())
 }
@@ -78,7 +78,7 @@ pub async fn basic_test_context(
     let authority = KeyPairWrapper(aleph_client::keypair_from_string(&config.sudo_seed));
     let account = random_account();
 
-    transfer(&authority.sign(&conn), &account, alephs(100)).await?;
+    transfer(&authority.sign(&conn), &account, alephs(1)).await?;
 
     Ok((conn, authority, account))
 }
