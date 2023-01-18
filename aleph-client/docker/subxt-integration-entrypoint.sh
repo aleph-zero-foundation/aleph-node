@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 
-# an ugly workaround for the fact we want to ignore rustdoc warnings in generated runtime file
-echo "#[doc(hidden)]" > aleph_zero.rs
-subxt codegen --derive Clone --derive Debug --derive Eq --derive PartialEq | rustfmt --edition=2021 --config-path aleph-node/rustfmt.toml >> aleph_zero.rs
+subxt codegen --derive Clone --derive Debug --derive Eq --derive PartialEq | rustfmt --edition=2021 --config-path aleph-node/rustfmt.toml > aleph_zero.rs
 
 diff -y -W 200 --suppress-common-lines aleph_zero.rs aleph-node/aleph-client/src/aleph_zero.rs
 diff_exit_code=$?

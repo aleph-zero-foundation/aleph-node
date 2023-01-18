@@ -1,4 +1,3 @@
-#[doc(hidden)]
 #[allow(dead_code, unused_imports, non_camel_case_types)]
 pub mod api {
     use super::api as root_mod;
