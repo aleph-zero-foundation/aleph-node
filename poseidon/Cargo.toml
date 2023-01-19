@@ -14,7 +14,7 @@ ark-relations = { version = "^0.3.0", default-features = false }
 ark-sponge = { git = "https://github.com/penumbra-zone/sponge", branch = "r1cs", default-features = false, features = ["r1cs"] }
 once_cell = "1.8"
 poseidon-paramgen = { version = "0.1", default-features = false }
-poseidon-permutation = { git = "https://github.com/penumbra-zone/poseidon377", default-features = false }
+poseidon-permutation = { version = "0.1", default-features = false }
 ark-std = { version = "^0.3.0", default-features = false }
 
 [build-dependencies]

@@ -388,7 +388,8 @@ dependencies = [
 [[package]]
 name = "poseidon-permutation"
 version = "0.1.0"
-source = "git+https://github.com/penumbra-zone/poseidon377#a2d8c7a3288e2e877ac88a4d8fd3cc4ff2b52c04"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e97b6e4e4c598be46fb53201f09fc1c255807f3721eb72edbe09beafd53453af"
 dependencies = [
  "ark-ff",
  "once_cell",

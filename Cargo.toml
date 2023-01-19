@@ -17,7 +17,6 @@ exclude = [
     "benches/payout-stakers",
     "bin/cliain",
     "bin/runtime/src/chain_extension/snarcos-extension",
-    "contracts/snarcos-contract",
     "e2e-tests",
     "flooder",
     "fork-off",

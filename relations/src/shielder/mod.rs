@@ -11,7 +11,7 @@ mod tangle;
 pub mod types;
 mod withdraw;
 
-use std::ops::Div;
+use core::ops::Div;
 
 use ark_ff::{BigInteger, Zero};
 use ark_r1cs_std::{
@@ -24,6 +24,7 @@ use ark_relations::{
         SynthesisError::{AssignmentMissing, UnconstrainedVariable},
     },
 };
+use ark_std::{vec, vec::Vec};
 pub use deposit::DepositRelation;
 pub use deposit_and_merge::DepositAndMergeRelation;
 pub use note::{bytes_from_note, compute_note, compute_parent_hash, note_from_bytes};
@@ -36,7 +37,8 @@ pub use types::{
 pub use withdraw::WithdrawRelation;
 
 use crate::environment::{CircuitField, FpVar};
-pub(crate) fn check_merkle_proof(
+
+fn check_merkle_proof(
     merkle_root: Option<BackendMerkleRoot>,
     leaf_index: Option<BackendLeafIndex>,
     leaf_bytes: Vec<UInt8<CircuitField>>,

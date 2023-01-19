@@ -17,19 +17,19 @@ path = "lib.rs"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-ink_env = { version = "~3.4.0", default-features = false }
-ink_lang = { version = "~3.4.0", default-features = false }
+ink = { git = "https://github.com/paritytech/ink", rev = "4655a8b4413cb50cbc38d1b7c173ad426ab06cde", default-features = false }
 
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
-scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
+scale-info = { version = "2.3", default-features = false, features = ["derive"], optional = true }
 
 sp-std = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32", default-features = false }
 
 [features]
 default = ["std"]
 std = [
-    "ink_env/std",
+    "ink/std",
     "scale/std",
     "scale-info/std",
+    "sp-std/std",
 ]
 ink-as-dependency = []

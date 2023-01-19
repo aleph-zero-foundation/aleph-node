@@ -3,6 +3,7 @@
 mod environment;
 mod linear;
 mod merkle_tree;
+#[cfg(any(feature = "preimage", feature = "preimage-std"))]
 mod preimage;
 mod relation;
 mod serialization;
@@ -18,6 +19,7 @@ pub use environment::{
 };
 pub use linear::LinearEquationRelation;
 pub use merkle_tree::{MerkleTreeRelation, Root};
+#[cfg(any(feature = "preimage", feature = "preimage-std"))]
 pub use preimage::PreimageRelation;
 pub use relation::GetPublicInput;
 pub use serialization::serialize;

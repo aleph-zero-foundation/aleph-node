@@ -22,10 +22,13 @@ ark-serialize = { version = "^0.3.0", default-features = false }
 ark-snark = { version = "^0.3.0", default-features = false }
 ark-std = { version = "^0.3.0", default-features = false }
 blake2 = { version = "0.9.2", default-features = false }
-poseidon = { path = "../poseidon", default-features = false }
+
+poseidon = { path = "../poseidon", default-features = false, optional = true }
 
 [features]
 default = ["std"]
+preimage = ["poseidon"]
+preimage-std = ["std", "poseidon/std"]
 std = [
     "ark-bls12-381/std",
     "ark-crypto-primitives/std",
@@ -41,5 +44,4 @@ std = [
     "ark-relations/std",
     "ark-serialize/std",
     "blake2/std",
-    "poseidon/std",
 ]

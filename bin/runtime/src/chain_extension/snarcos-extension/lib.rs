@@ -1,7 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use ink_env::Environment;
-use ink_lang as ink;
+use ink::env::Environment;
 use scale::{Decode, Encode};
 #[cfg(feature = "std")]
 use scale_info::TypeInfo;
@@ -32,7 +31,7 @@ pub enum SnarcosError {
     UnknownError,
 }
 
-impl ink_env::chain_extension::FromStatusCode for SnarcosError {
+impl ink::env::chain_extension::FromStatusCode for SnarcosError {
     fn from_status_code(status_code: u32) -> Result<(), Self> {
         match status_code {
             // Success codes
@@ -95,13 +94,13 @@ pub trait SnarcosExtension {
 pub enum DefaultEnvironment {}
 
 impl Environment for DefaultEnvironment {
-    const MAX_EVENT_TOPICS: usize = <ink_env::DefaultEnvironment as Environment>::MAX_EVENT_TOPICS;
+    const MAX_EVENT_TOPICS: usize = <ink::env::DefaultEnvironment as Environment>::MAX_EVENT_TOPICS;
 
-    type AccountId = <ink_env::DefaultEnvironment as Environment>::AccountId;
-    type Balance = <ink_env::DefaultEnvironment as Environment>::Balance;
-    type Hash = <ink_env::DefaultEnvironment as Environment>::Hash;
-    type Timestamp = <ink_env::DefaultEnvironment as Environment>::Timestamp;
-    type BlockNumber = <ink_env::DefaultEnvironment as Environment>::BlockNumber;
+    type AccountId = <ink::env::DefaultEnvironment as Environment>::AccountId;
+    type Balance = <ink::env::DefaultEnvironment as Environment>::Balance;
+    type Hash = <ink::env::DefaultEnvironment as Environment>::Hash;
+    type Timestamp = <ink::env::DefaultEnvironment as Environment>::Timestamp;
+    type BlockNumber = <ink::env::DefaultEnvironment as Environment>::BlockNumber;
 
     type ChainExtension = SnarcosExtension;
 }
