@@ -102,7 +102,7 @@ pub fn verify(authority: &AuthorityId, message: &[u8], signature: &Signature) ->
 
 /// Holds the public authority keys for a session allowing for verification of messages from that
 /// session.
-#[derive(Clone)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct AuthorityVerifier {
     authorities: Vec<AuthorityId>,
 }

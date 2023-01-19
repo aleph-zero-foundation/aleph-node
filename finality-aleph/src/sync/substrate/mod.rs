@@ -11,6 +11,9 @@ use crate::{
 mod chain_status;
 mod finalizer;
 mod status_notifier;
+mod verification;
+
+pub use verification::SessionVerifier;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BlockId<H: SubstrateHeader<Number = BlockNumber>> {
@@ -18,6 +21,7 @@ pub struct BlockId<H: SubstrateHeader<Number = BlockNumber>> {
     number: H::Number,
 }
 
+/// An identifier uniquely specifying a block and its height.
 impl<SH: SubstrateHeader<Number = BlockNumber>> Hash for BlockId<SH> {
     fn hash<H>(&self, state: &mut H)
     where

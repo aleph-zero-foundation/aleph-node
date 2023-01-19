@@ -14,7 +14,8 @@ use crate::{
         manager::AuthorityTask,
         traits::{Block, ChainState, NodeSessionManager, SessionInfo, SyncState},
     },
-    AuthorityId, NodeIndex, SessionId,
+    session::{first_block_of_session, last_block_of_session, session_id_from_block_num},
+    AuthorityId, NodeIndex, SessionId, SessionPeriod,
 };
 
 type AMutex<T> = Arc<Mutex<T>>;
@@ -183,25 +184,27 @@ impl NodeSessionManager for Arc<MockNodeSessionManager> {
 }
 
 pub struct MockSessionInfo {
-    pub session_period: u32,
+    pub session_period: SessionPeriod,
 }
 
 impl MockSessionInfo {
     pub fn new(session_period: u32) -> Self {
-        Self { session_period }
+        Self {
+            session_period: SessionPeriod(session_period),
+        }
     }
 }
 
 impl SessionInfo<SimpleBlock> for MockSessionInfo {
     fn session_id_from_block_num(&self, n: u32) -> SessionId {
-        SessionId(n / self.session_period)
+        session_id_from_block_num(n, self.session_period)
     }
 
     fn last_block_of_session(&self, session_id: SessionId) -> u32 {
-        (session_id.0 + 1) * self.session_period - 1
+        last_block_of_session(session_id, self.session_period)
     }
 
     fn first_block_of_session(&self, session_id: SessionId) -> u32 {
-        session_id.0 * self.session_period
+        first_block_of_session(session_id, self.session_period)
     }
 }

@@ -313,7 +313,7 @@ where
     }
 
     async fn update_session(&mut self, session_id: SessionId, period: SessionPeriod) {
-        let first_block = first_block_of_session::<B>(session_id, period);
+        let first_block = first_block_of_session(session_id, period);
         self.handle_first_block_of_session(first_block, session_id)
             .await;
     }
@@ -321,7 +321,7 @@ where
     fn catch_up_boundaries(&self, period: SessionPeriod) -> (SessionId, SessionId) {
         let last_finalized = self.finality_notificator.last_finalized();
 
-        let current_session = session_id_from_block_num::<B>(last_finalized, period);
+        let current_session = session_id_from_block_num(last_finalized, period);
         let starting_session = SessionId(current_session.0.saturating_sub(PRUNING_THRESHOLD));
 
         (starting_session, current_session)
@@ -343,7 +343,7 @@ where
             let last_finalized = header.number();
             trace!(target: "aleph-session-updater", "got FinalityNotification about #{:?}", last_finalized);
 
-            let session_id = session_id_from_block_num::<B>(*last_finalized, period);
+            let session_id = session_id_from_block_num(*last_finalized, period);
 
             if last_updated >= session_id {
                 continue;
@@ -366,7 +366,6 @@ mod tests {
     use sc_block_builder::BlockBuilderProvider;
     use sc_utils::mpsc::tracing_unbounded;
     use sp_consensus::BlockOrigin;
-    use sp_runtime::testing::UintAuthorityId;
     use substrate_test_runtime_client::{
         ClientBlockImportExt, DefaultTestClientBuilderExt, TestClient, TestClientBuilder,
         TestClientBuilderExt,
@@ -374,7 +373,7 @@ mod tests {
     use tokio::sync::oneshot::error::TryRecvError;
 
     use super::*;
-    use crate::testing::mocks::TBlock;
+    use crate::{session::testing::authority_data, testing::mocks::TBlock};
 
     struct MockProvider {
         pub session_map: HashMap<NumberFor<TBlock>, SessionAuthorityData>,
@@ -430,15 +429,6 @@ mod tests {
         fn last_finalized(&self) -> NumberFor<TBlock> {
             self.last_finalized
         }
-    }
-
-    fn authority_data(from: u64, to: u64) -> SessionAuthorityData {
-        SessionAuthorityData::new(
-            (from..to)
-                .map(|id| UintAuthorityId(id).to_public_key())
-                .collect(),
-            None,
-        )
     }
 
     fn n_new_blocks(client: &mut Arc<TestClient>, n: u64) -> Vec<TBlock> {
