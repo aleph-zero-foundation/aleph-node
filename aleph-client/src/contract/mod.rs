@@ -6,7 +6,7 @@
 //! ```no_run
 //! # use anyhow::{Result, Context};
 //! # use aleph_client::{AccountId, Balance};
-//! # use aleph_client::{Connection, SignedConnection};
+//! # use aleph_client::{Connection, SignedConnection, TxInfo};
 //! # use aleph_client::contract::ContractInstance;
 //! #
 //! #[derive(Debug)]
@@ -24,7 +24,7 @@
 //!         })
 //!     }
 //!
-//!     async fn transfer(&self, conn: &SignedConnection, to: AccountId, amount: Balance) -> Result<()> {
+//!     async fn transfer(&self, conn: &SignedConnection, to: AccountId, amount: Balance) -> Result<TxInfo> {
 //!         self.contract.contract_exec(
 //!             conn,
 //!             "PSP22::transfer",
@@ -52,6 +52,7 @@ use contract_transcode::ContractMessageTranscoder;
 pub use convertible_value::ConvertibleValue;
 
 use crate::{
+    connections::TxInfo,
     contract_transcode::Value,
     pallets::contract::{ContractCallArgs, ContractRpc, ContractsUserApi},
     sp_weights::weight_v2::Weight,
@@ -128,7 +129,7 @@ impl ContractInstance {
         &self,
         conn: &C,
         message: &str,
-    ) -> Result<()> {
+    ) -> Result<TxInfo> {
         self.contract_exec::<C, String>(conn, message, &[]).await
     }
 
@@ -138,7 +139,7 @@ impl ContractInstance {
         conn: &C,
         message: &str,
         args: &[S],
-    ) -> Result<()> {
+    ) -> Result<TxInfo> {
         self.contract_exec_value::<C, S>(conn, message, args, 0)
             .await
     }
@@ -149,7 +150,7 @@ impl ContractInstance {
         conn: &C,
         message: &str,
         value: Balance,
-    ) -> Result<()> {
+    ) -> Result<TxInfo> {
         self.contract_exec_value::<C, String>(conn, message, &[], value)
             .await
     }
@@ -161,7 +162,7 @@ impl ContractInstance {
         message: &str,
         args: &[S],
         value: Balance,
-    ) -> Result<()> {
+    ) -> Result<TxInfo> {
         let data = self.encode(message, args)?;
         conn.call(
             self.address.clone(),
@@ -175,7 +176,6 @@ impl ContractInstance {
             TxStatus::InBlock,
         )
         .await
-        .map(|_| ())
     }
 
     fn encode<S: AsRef<str> + Debug>(&self, message: &str, args: &[S]) -> Result<Vec<u8>> {

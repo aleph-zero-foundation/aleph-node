@@ -61,7 +61,7 @@ pub type SubxtClient = OnlineClient<AlephConfig>;
 
 pub use connections::{
     AsConnection, AsSigned, Connection, ConnectionApi, RootConnection, SignedConnection,
-    SignedConnectionApi, SudoCall,
+    SignedConnectionApi, SudoCall, TxInfo,
 };
 
 /// When submitting a transaction, wait for given status before proceeding.

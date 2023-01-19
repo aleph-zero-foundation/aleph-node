@@ -113,7 +113,9 @@ pub trait ConnectionApi: Sync {
 /// Data regarding submitted transaction.
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
 pub struct TxInfo {
+    /// Hash of the block containing tx.
     pub block_hash: BlockHash,
+    /// Hash of the transaction itself.
     pub tx_hash: TxHash,
 }
 
