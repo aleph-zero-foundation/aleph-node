@@ -14,12 +14,8 @@ members = [
 
 exclude = [
     "aleph-client",
-    "benches/payout-stakers",
     "bin/cliain",
     "bin/runtime/src/chain_extension/snarcos-extension",
-    "e2e-tests",
-    "flooder",
-    "fork-off",
     "relations",
     "poseidon",
 ]
