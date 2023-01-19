@@ -40,43 +40,36 @@ impl Deref for ConvertibleValue {
     }
 }
 
-impl TryFrom<ConvertibleValue> for bool {
-    type Error = anyhow::Error;
+macro_rules! try_from_flat_value {
+    ($ty: ty, $variant: ident, $desc: literal) => {
+        impl TryFrom<ConvertibleValue> for $ty {
+            type Error = anyhow::Error;
 
-    fn try_from(value: ConvertibleValue) -> Result<bool, Self::Error> {
-        match value.0 {
-            Value::Bool(value) => Ok(value),
-            _ => bail!("Expected {:?} to be a boolean", value.0),
+            fn try_from(value: ConvertibleValue) -> anyhow::Result<$ty> {
+                match value.0 {
+                    Value::$variant(value) => Ok(value.try_into()?),
+                    _ => anyhow::bail!("Expected {:?} to be {}", value, $desc),
+                }
+            }
         }
-    }
+    };
 }
 
-impl TryFrom<ConvertibleValue> for u128 {
-    type Error = anyhow::Error;
-
-    fn try_from(value: ConvertibleValue) -> Result<u128, Self::Error> {
-        match value.0 {
-            Value::UInt(value) => Ok(value),
-            _ => bail!("Expected {:?} to be an integer", value.0),
-        }
-    }
-}
-
-impl TryFrom<ConvertibleValue> for u32 {
-    type Error = anyhow::Error;
-
-    fn try_from(value: ConvertibleValue) -> Result<u32, Self::Error> {
-        match value.0 {
-            Value::UInt(value) => Ok(value.try_into()?),
-            _ => bail!("Expected {:?} to be an integer", value.0),
-        }
-    }
-}
+try_from_flat_value!(bool, Bool, "boolean");
+try_from_flat_value!(char, Char, "char");
+try_from_flat_value!(u16, UInt, "unsigned integer");
+try_from_flat_value!(u32, UInt, "unsigned integer");
+try_from_flat_value!(u64, UInt, "unsigned integer");
+try_from_flat_value!(u128, UInt, "unsigned integer");
+try_from_flat_value!(i16, Int, "signed integer");
+try_from_flat_value!(i32, Int, "signed integer");
+try_from_flat_value!(i64, Int, "signed integer");
+try_from_flat_value!(i128, Int, "signed integer");
 
 impl TryFrom<ConvertibleValue> for AccountId {
     type Error = anyhow::Error;
 
-    fn try_from(value: ConvertibleValue) -> Result<AccountId, Self::Error> {
+    fn try_from(value: ConvertibleValue) -> Result<AccountId> {
         match value.0 {
             Value::Literal(value) => {
                 AccountId::from_str(&value).map_err(|_| anyhow!("Invalid account id"))
@@ -92,7 +85,7 @@ where
 {
     type Error = anyhow::Error;
 
-    fn try_from(value: ConvertibleValue) -> Result<Result<T>, Self::Error> {
+    fn try_from(value: ConvertibleValue) -> Result<Result<T>> {
         if let Value::Tuple(tuple) = &value.0 {
             match tuple.ident() {
                 Some(x) if x == "Ok" => {
@@ -122,7 +115,7 @@ where
 impl TryFrom<ConvertibleValue> for String {
     type Error = anyhow::Error;
 
-    fn try_from(value: ConvertibleValue) -> std::result::Result<String, Self::Error> {
+    fn try_from(value: ConvertibleValue) -> Result<String> {
         let seq = match value.0 {
             Value::Seq(seq) => seq,
             _ =>  bail!("Failed parsing `ConvertibleValue` to `String`. Expected `Seq(Value::UInt)` but instead got: {:?}", value),
@@ -157,7 +150,7 @@ where
 {
     type Error = anyhow::Error;
 
-    fn try_from(value: ConvertibleValue) -> std::result::Result<Option<T>, Self::Error> {
+    fn try_from(value: ConvertibleValue) -> Result<Option<T>> {
         let tuple = match &value.0 {
             Value::Tuple(tuple) => tuple,
             _ => bail!("Expected {:?} to be a Some(_) or None Tuple.", &value),
@@ -191,5 +184,126 @@ where
                 &tuple
             ),
         }
+    }
+}
+
+impl<Elem: TryFrom<ConvertibleValue, Error = anyhow::Error>> TryFrom<ConvertibleValue>
+    for Vec<Elem>
+{
+    type Error = anyhow::Error;
+
+    fn try_from(value: ConvertibleValue) -> Result<Self> {
+        let seq = match value.0 {
+            Value::Seq(seq) => seq,
+            _ =>  bail!("Failed parsing `ConvertibleValue` to `Vec<T>`. Expected `Seq(_)` but instead got: {:?}", value),
+        };
+
+        let mut result = vec![];
+        for element in seq.elems() {
+            result.push(ConvertibleValue(element.clone()).try_into()?);
+        }
+
+        Ok(result)
+    }
+}
+
+impl<const N: usize, Elem: TryFrom<ConvertibleValue, Error = anyhow::Error> + Debug>
+    TryFrom<ConvertibleValue> for [Elem; N]
+{
+    type Error = anyhow::Error;
+
+    fn try_from(value: ConvertibleValue) -> Result<Self> {
+        Vec::<Elem>::try_from(value)?
+            .try_into()
+            .map_err(|e| anyhow!("Failed to convert vector to an array: {e:?}"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use contract_transcode::Value::{Bool, Char, Int, Seq, UInt};
+
+    use crate::contract::ConvertibleValue;
+
+    #[test]
+    fn converts_boolean() {
+        let cast: bool = ConvertibleValue(Bool(true))
+            .try_into()
+            .expect("Should cast successfully");
+        assert_eq!(true, cast);
+    }
+
+    #[test]
+    fn converts_char() {
+        let cast: char = ConvertibleValue(Char('x'))
+            .try_into()
+            .expect("Should cast successfully");
+        assert_eq!('x', cast);
+    }
+
+    #[test]
+    fn converts_biguint() {
+        let long_uint = 41414141414141414141414141414141414141u128;
+        let cast: u128 = ConvertibleValue(UInt(long_uint))
+            .try_into()
+            .expect("Should cast successfully");
+        assert_eq!(long_uint, cast);
+    }
+
+    #[test]
+    fn converts_uint() {
+        let cast: u32 = ConvertibleValue(UInt(41))
+            .try_into()
+            .expect("Should cast successfully");
+        assert_eq!(41, cast);
+    }
+
+    #[test]
+    fn converts_bigint() {
+        let long_int = -41414141414141414141414141414141414141i128;
+        let cast: i128 = ConvertibleValue(Int(long_int))
+            .try_into()
+            .expect("Should cast successfully");
+        assert_eq!(long_int, cast);
+    }
+
+    #[test]
+    fn converts_int() {
+        let cast: i32 = ConvertibleValue(Int(-41))
+            .try_into()
+            .expect("Should cast successfully");
+        assert_eq!(-41, cast);
+    }
+
+    #[test]
+    fn converts_integer_array() {
+        let cv = ConvertibleValue(Seq(vec![UInt(4), UInt(1)].into()));
+        let cast: [u32; 2] = cv.try_into().expect("Should cast successfully");
+        assert_eq!([4u32, 1u32], cast);
+    }
+
+    #[test]
+    fn converts_integer_sequence() {
+        let cv = ConvertibleValue(Seq(vec![UInt(4), UInt(1)].into()));
+        let cast: Vec<u32> = cv.try_into().expect("Should cast successfully");
+        assert_eq!(vec![4u32, 1u32], cast);
+    }
+
+    #[test]
+    fn converts_nested_sequence() {
+        let words = vec![
+            vec!['s', 'u', 'r', 'f', 'i', 'n'],
+            vec![],
+            vec!['b', 'i', 'r', 'd'],
+        ];
+        let encoded_words = words
+            .iter()
+            .map(|word| Seq(word.iter().cloned().map(Char).collect::<Vec<_>>().into()))
+            .collect::<Vec<_>>();
+
+        let cv = ConvertibleValue(Seq(encoded_words.into()));
+        let cast: Vec<Vec<char>> = cv.try_into().expect("Should cast successfully");
+
+        assert_eq!(words, cast);
     }
 }
