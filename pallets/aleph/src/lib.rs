@@ -50,18 +50,19 @@ pub mod pallet {
     use pallets_support::StorageMigration;
 
     use super::*;
-    use crate::traits::SessionInfoProvider;
+    use crate::traits::{NextSessionAuthorityProvider, SessionInfoProvider};
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
         type AuthorityId: Member + Parameter + RuntimeAppPublic + MaybeSerializeDeserialize;
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-        type SessionInfoProvider: SessionInfoProvider<Self>;
+        type SessionInfoProvider: SessionInfoProvider;
         type SessionManager: SessionManager<<Self as frame_system::Config>::AccountId>;
+        type NextSessionAuthorityProvider: NextSessionAuthorityProvider<Self>;
     }
 
     #[pallet::event]
-    #[pallet::generate_deposit(pub(super) fn deposit_event)]
+    #[pallet::generate_deposit(pub (super) fn deposit_event)]
     pub enum Event<T: Config> {
         ChangeEmergencyFinalizer(T::AuthorityId),
         ScheduleFinalityVersionChange(VersionChange),
@@ -105,9 +106,20 @@ pub mod pallet {
         DEFAULT_FINALITY_VERSION
     }
 
+    /// Default value for `NextAuthorities` storage.
+    #[pallet::type_value]
+    pub(crate) fn DefaultNextAuthorities<T: Config>() -> Vec<T::AuthorityId> {
+        T::NextSessionAuthorityProvider::next_authorities()
+    }
+
     #[pallet::storage]
     #[pallet::getter(fn authorities)]
     pub(super) type Authorities<T: Config> = StorageValue<_, Vec<T::AuthorityId>, ValueQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn next_authorities)]
+    pub(super) type NextAuthorities<T: Config> =
+        StorageValue<_, Vec<T::AuthorityId>, ValueQuery, DefaultNextAuthorities<T>>;
 
     #[pallet::storage]
     #[pallet::getter(fn emergency_finalizer)]
@@ -134,18 +146,29 @@ pub mod pallet {
         StorageValue<_, VersionChange, OptionQuery>;
 
     impl<T: Config> Pallet<T> {
-        pub(crate) fn initialize_authorities(authorities: &[T::AuthorityId]) {
+        pub(crate) fn initialize_authorities(
+            authorities: &[T::AuthorityId],
+            next_authorities: &[T::AuthorityId],
+        ) {
             if !authorities.is_empty() {
-                assert!(
-                    <Authorities<T>>::get().is_empty(),
-                    "Authorities are already initialized!"
-                );
-                <Authorities<T>>::put(authorities);
+                if !<Authorities<T>>::get().is_empty() {
+                    log::error!(target: "pallet_aleph","Authorities are already initialized!");
+                } else {
+                    <Authorities<T>>::put(authorities);
+                }
+            }
+            if !next_authorities.is_empty() {
+                // Storage NextAuthorities has default value so should never be empty.
+                <NextAuthorities<T>>::put(next_authorities);
             }
         }
 
-        pub(crate) fn update_authorities(authorities: &[T::AuthorityId]) {
+        pub(crate) fn update_authorities(
+            authorities: &[T::AuthorityId],
+            next_authorities: &[T::AuthorityId],
+        ) {
             <Authorities<T>>::put(authorities);
+            <NextAuthorities<T>>::put(next_authorities);
         }
 
         pub(crate) fn update_emergency_finalizer() {
@@ -262,10 +285,11 @@ pub mod pallet {
             T::AccountId: 'a,
         {
             let (_, authorities): (Vec<_>, Vec<_>) = validators.unzip();
-            Self::initialize_authorities(authorities.as_slice());
+            // it is guaranteed that the first validator set will also be used in the next session
+            Self::initialize_authorities(authorities.as_slice(), authorities.as_slice());
         }
 
-        fn on_new_session<'a, I: 'a>(changed: bool, validators: I, _queued_validators: I)
+        fn on_new_session<'a, I: 'a>(changed: bool, validators: I, queued_validators: I)
         where
             I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
             T::AccountId: 'a,
@@ -273,7 +297,8 @@ pub mod pallet {
             Self::update_emergency_finalizer();
             if changed {
                 let (_, authorities): (Vec<_>, Vec<_>) = validators.unzip();
-                Self::update_authorities(authorities.as_slice());
+                let (_, next_authorities): (Vec<_>, Vec<_>) = queued_validators.unzip();
+                Self::update_authorities(authorities.as_slice(), next_authorities.as_slice());
             }
         }
 

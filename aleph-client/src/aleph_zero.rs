@@ -6338,6 +6338,27 @@ pub mod api {
                         ],
                     )
                 }
+                pub fn next_authorities(
+                    &self,
+                ) -> ::subxt::storage::address::StaticStorageAddress<
+                    ::subxt::metadata::DecodeStaticType<
+                        ::std::vec::Vec<runtime_types::primitives::app::Public>,
+                    >,
+                    ::subxt::storage::address::Yes,
+                    ::subxt::storage::address::Yes,
+                    (),
+                > {
+                    ::subxt::storage::address::StaticStorageAddress::new(
+                        "Aleph",
+                        "NextAuthorities",
+                        vec![],
+                        [
+                            241u8, 145u8, 255u8, 235u8, 191u8, 220u8, 57u8, 89u8, 8u8, 134u8, 72u8,
+                            193u8, 247u8, 37u8, 54u8, 201u8, 136u8, 32u8, 11u8, 199u8, 134u8,
+                            207u8, 154u8, 107u8, 71u8, 121u8, 245u8, 153u8, 9u8, 33u8, 70u8, 3u8,
+                        ],
+                    )
+                }
                 pub fn emergency_finalizer(
                     &self,
                 ) -> ::subxt::storage::address::StaticStorageAddress<
@@ -19532,9 +19553,9 @@ pub mod api {
         let runtime_metadata_hash = client.metadata().metadata_hash(&PALLETS);
         if runtime_metadata_hash
             != [
-                10u8, 121u8, 157u8, 11u8, 147u8, 107u8, 235u8, 73u8, 90u8, 254u8, 82u8, 183u8,
-                112u8, 64u8, 213u8, 99u8, 23u8, 17u8, 10u8, 91u8, 124u8, 231u8, 209u8, 172u8, 59u8,
-                160u8, 15u8, 142u8, 149u8, 200u8, 95u8, 164u8,
+                51u8, 153u8, 218u8, 203u8, 158u8, 62u8, 141u8, 96u8, 177u8, 177u8, 12u8, 204u8,
+                220u8, 53u8, 42u8, 155u8, 22u8, 96u8, 238u8, 212u8, 98u8, 225u8, 39u8, 241u8, 52u8,
+                28u8, 166u8, 99u8, 14u8, 192u8, 65u8, 67u8,
             ]
         {
             Err(::subxt::error::MetadataError::IncompatibleMetadata)

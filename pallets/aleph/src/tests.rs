@@ -53,9 +53,12 @@ fn test_update_authorities() {
         initialize_session();
         run_session(1);
 
-        Aleph::update_authorities(to_authorities(&[2, 3, 4]).as_slice());
+        let authorities = to_authorities(&[2, 3, 4]);
+
+        Aleph::update_authorities(authorities.as_slice(), authorities.as_slice());
 
         assert_eq!(Aleph::authorities(), to_authorities(&[2, 3, 4]));
+        assert_eq!(Aleph::next_authorities(), to_authorities(&[2, 3, 4]));
     });
 }
 
@@ -63,14 +66,18 @@ fn test_update_authorities() {
 fn test_initialize_authorities() {
     new_test_ext(&[(1u64, 1u64), (2u64, 2u64)]).execute_with(|| {
         assert_eq!(Aleph::authorities(), to_authorities(&[1, 2]));
+        assert_eq!(Aleph::next_authorities(), to_authorities(&[1, 2]));
     });
 }
 
 #[test]
-#[should_panic]
 fn fails_to_initialize_again_authorities() {
     new_test_ext(&[(1u64, 1u64), (2u64, 2u64)]).execute_with(|| {
-        Aleph::initialize_authorities(&to_authorities(&[1, 2, 3]));
+        let authorities = to_authorities(&[1, 2, 3]);
+        Aleph::initialize_authorities(&authorities, &authorities);
+
+        // should not update storage
+        assert_eq!(Aleph::authorities(), to_authorities(&[1, 2]));
     });
 }
 
@@ -81,15 +88,20 @@ fn test_current_authorities() {
 
         run_session(1);
 
-        Aleph::update_authorities(to_authorities(&[2, 3, 4]).as_slice());
+        let authorities = to_authorities(&[2, 3, 4]);
+
+        Aleph::update_authorities(&authorities, &authorities);
 
         assert_eq!(Aleph::authorities(), to_authorities(&[2, 3, 4]));
+        assert_eq!(Aleph::next_authorities(), to_authorities(&[2, 3, 4]));
 
         run_session(2);
 
-        Aleph::update_authorities(to_authorities(&[1, 2, 3]).as_slice());
+        let authorities = to_authorities(&[1, 2, 3]);
+        Aleph::update_authorities(&authorities, &authorities);
 
         assert_eq!(Aleph::authorities(), to_authorities(&[1, 2, 3]));
+        assert_eq!(Aleph::next_authorities(), to_authorities(&[1, 2, 3]));
     })
 }
 
@@ -100,9 +112,10 @@ fn test_session_rotation() {
         run_session(1);
 
         let new_validators = new_session_validators(&[3u64, 4u64]);
-        let queued_validators = new_session_validators(&[]);
+        let queued_validators = new_session_validators(&[5, 6]);
         Aleph::on_new_session(true, new_validators, queued_validators);
         assert_eq!(Aleph::authorities(), to_authorities(&[3, 4]));
+        assert_eq!(Aleph::next_authorities(), to_authorities(&[5, 6]));
     })
 }
 

@@ -135,6 +135,7 @@ impl Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type SessionInfoProvider = Session;
     type SessionManager = ();
+    type NextSessionAuthorityProvider = Session;
 }
 
 pub fn to_authority(id: &u64) -> AuthorityId {

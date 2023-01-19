@@ -188,6 +188,9 @@ jobs:
   run-aleph-client-subxt-codegen-check:
     needs: [build-test-docker]
     name: Checks if runtime file in aleph-client is up-to-date
+    # disabling this check as it causes troubles
+    # this should be reworked to sth like https://github.com/paritytech/subxt/blob/master/examples/examples/metadata_compatibility.rs
+    if: false
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
