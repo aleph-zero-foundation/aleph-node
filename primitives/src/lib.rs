@@ -39,6 +39,8 @@ pub type SessionCount = u32;
 pub type BlockCount = u32;
 
 pub const MILLISECS_PER_BLOCK: u64 = 1000;
+// We agreed to 5MB as the block size limit.
+pub const MAX_BLOCK_SIZE: u32 = 5 * 1024 * 1024;
 
 // Quick sessions for testing purposes
 #[cfg(feature = "short_session")]

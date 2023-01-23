@@ -5,8 +5,8 @@ use std::{
     sync::Arc,
 };
 
-use aleph_primitives::AlephSessionApi;
-use aleph_runtime::{self, opaque::Block, RuntimeApi, MAX_BLOCK_SIZE};
+use aleph_primitives::{AlephSessionApi, MAX_BLOCK_SIZE};
+use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use finality_aleph::{
     run_nonvalidator_node, run_validator_node, AlephBlockImport, AlephConfig,
     JustificationNotification, Metrics, MillisecsPerBlock, Protocol, ProtocolNaming, SessionPeriod,

@@ -32,7 +32,7 @@ pub use primitives::Balance;
 use primitives::{
     staking::MAX_NOMINATORS_REWARDED_PER_VALIDATOR, wrap_methods, ApiError as AlephApiError,
     AuthorityId as AlephId, SessionAuthorityData, Version as FinalityVersion, ADDRESSES_ENCODING,
-    DEFAULT_BAN_REASON_LENGTH, DEFAULT_SESSIONS_PER_ERA, DEFAULT_SESSION_PERIOD,
+    DEFAULT_BAN_REASON_LENGTH, DEFAULT_SESSIONS_PER_ERA, DEFAULT_SESSION_PERIOD, MAX_BLOCK_SIZE,
     MILLISECS_PER_BLOCK, TOKEN,
 };
 use sp_api::impl_runtime_apis;
@@ -132,8 +132,6 @@ pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 // The whole process for a single block should take 1s, of which 400ms is for creation,
 // 200ms for propagation and 400ms for validation. Hence the block weight should be within 400ms.
 pub const MAX_BLOCK_WEIGHT: Weight = WEIGHT_PER_MILLIS.saturating_mul(400);
-// We agreed to 5MB as the block size limit.
-pub const MAX_BLOCK_SIZE: u32 = 5 * 1024 * 1024;
 
 // The storage deposit is roughly 1 TOKEN per 1kB
 pub const DEPOSIT_PER_BYTE: Balance = MILLI_AZERO;

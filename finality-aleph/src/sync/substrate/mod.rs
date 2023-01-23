@@ -1,6 +1,7 @@
 use std::hash::{Hash, Hasher};
 
 use aleph_primitives::BlockNumber;
+use codec::{Decode, Encode};
 use sp_runtime::traits::{CheckedSub, Header as SubstrateHeader, One};
 
 use crate::{
@@ -15,7 +16,7 @@ mod verification;
 
 pub use verification::SessionVerifier;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
 pub struct BlockId<H: SubstrateHeader<Number = BlockNumber>> {
     hash: H::Hash,
     number: H::Number,
@@ -58,7 +59,7 @@ impl<H: SubstrateHeader<Number = BlockNumber>> Header for H {
 }
 
 /// A justification, including the related header.
-#[derive(Clone)]
+#[derive(Clone, Debug, Encode, Decode)]
 pub struct Justification<H: SubstrateHeader<Number = BlockNumber>> {
     header: H,
     raw_justification: AlephJustification,
