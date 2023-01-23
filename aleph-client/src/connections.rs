@@ -10,13 +10,12 @@ use subxt::{
     metadata::DecodeWithMetadata,
     rpc::RpcParams,
     storage::{address::Yes, StaticStorageAddress, StorageAddress},
-    tx::{BaseExtrinsicParamsBuilder, PlainTip, TxPayload},
-    SubstrateConfig,
+    tx::TxPayload,
 };
 
 use crate::{
     api, sp_weights::weight_v2::Weight, AccountId, AlephConfig, BlockHash, Call, KeyPair,
-    SubxtClient, TxHash, TxStatus,
+    ParamsBuilder, SubxtClient, TxHash, TxStatus,
 };
 
 /// Capable of communicating with a live Aleph chain.
@@ -26,6 +25,7 @@ pub struct Connection {
 }
 
 /// Any connection that is signed by some key.
+#[derive(Clone)]
 pub struct SignedConnection {
     connection: Connection,
     signer: KeyPair,
@@ -158,7 +158,7 @@ pub trait SignedConnectionApi: ConnectionApi {
     async fn send_tx_with_params<Call: TxPayload + Send + Sync>(
         &self,
         tx: Call,
-        params: BaseExtrinsicParamsBuilder<SubstrateConfig, PlainTip>,
+        params: ParamsBuilder,
         status: TxStatus,
     ) -> anyhow::Result<TxInfo>;
 
@@ -201,15 +201,6 @@ impl SudoCall for RootConnection {
         let sudo = api::tx().sudo().sudo(call);
 
         self.as_signed().send_tx(sudo, status).await
-    }
-}
-
-impl Clone for SignedConnection {
-    fn clone(&self) -> Self {
-        SignedConnection {
-            connection: self.connection.clone(),
-            signer: KeyPair::new(self.signer.signer().clone()),
-        }
     }
 }
 
@@ -294,7 +285,7 @@ impl<S: AsSigned + Sync> SignedConnectionApi for S {
     async fn send_tx_with_params<Call: TxPayload + Send + Sync>(
         &self,
         tx: Call,
-        params: BaseExtrinsicParamsBuilder<SubstrateConfig, PlainTip>,
+        params: ParamsBuilder,
         status: TxStatus,
     ) -> anyhow::Result<TxInfo> {
         if let Some(details) = tx.validation_details() {
@@ -305,7 +296,7 @@ impl<S: AsSigned + Sync> SignedConnectionApi for S {
             .as_connection()
             .as_client()
             .tx()
-            .sign_and_submit_then_watch(&tx, self.as_signed().signer(), params)
+            .sign_and_submit_then_watch(&tx, &self.as_signed().signer().inner, params)
             .await
             .map_err(|e| anyhow!("Failed to submit transaction: {:?}", e))?;
 

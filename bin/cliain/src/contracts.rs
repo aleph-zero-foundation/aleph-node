@@ -9,14 +9,13 @@ use aleph_client::{
     pallets::contract::{ContractsApi, ContractsUserApi},
     sp_weights::weight_v2::Weight,
     waiting::{AlephWaiting, BlockStatus},
-    AccountId, Balance, Connection, SignedConnection, SignedConnectionApi, TxStatus,
+    AccountId, Balance, CodeHash, Connection, SignedConnection, SignedConnectionApi, TxStatus,
 };
 use codec::{Compact, Decode};
 use contract_metadata::ContractMetadata;
 use contract_transcode::ContractMessageTranscoder;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
-use subxt::ext::sp_core::H256;
 
 use crate::commands::{
     ContractCall, ContractInstantiate, ContractInstantiateWithCode, ContractOptions,
@@ -26,7 +25,7 @@ use crate::commands::{
 #[derive(Debug, Decode, Clone, Serialize, Deserialize)]
 pub struct InstantiateWithCodeReturnValue {
     pub contract: AccountId,
-    pub code_hash: H256,
+    pub code_hash: CodeHash,
 }
 
 fn storage_deposit(storage_deposit_limit: Option<Balance>) -> Option<Compact<u128>> {

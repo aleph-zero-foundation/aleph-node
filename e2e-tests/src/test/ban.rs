@@ -1,13 +1,13 @@
 use std::collections::HashSet;
 
 use aleph_client::{
+    api::runtime_types::sp_core::bounded::bounded_vec::BoundedVec,
     pallets::{
         elections::{ElectionsApi, ElectionsSudoApi},
         session::SessionApi,
         staking::{StakingApi, StakingUserApi},
     },
     primitives::{BanInfo, BanReason, CommitteeSeats, ElectionOpenness},
-    sp_core::bounded::bounded_vec::BoundedVec,
     waiting::{BlockStatus, WaitingExt},
     SignedConnection, TxStatus,
 };

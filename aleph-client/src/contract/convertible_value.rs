@@ -230,7 +230,7 @@ mod tests {
         let cast: bool = ConvertibleValue(Bool(true))
             .try_into()
             .expect("Should cast successfully");
-        assert_eq!(true, cast);
+        assert!(cast);
     }
 
     #[test]

@@ -3,8 +3,8 @@ use pallet_contracts_primitives::ContractExecResult;
 use subxt::{ext::sp_core::Bytes, rpc_params};
 
 use crate::{
-    api, connections::TxInfo, pallet_contracts::wasm::OwnerInfo, sp_weights::weight_v2::Weight,
-    AccountId, Balance, BlockHash, ConnectionApi, SignedConnectionApi, TxStatus,
+    api, pallet_contracts::wasm::OwnerInfo, sp_weights::weight_v2::Weight, AccountId, Balance,
+    BlockHash, CodeHash, ConnectionApi, SignedConnectionApi, TxInfo, TxStatus,
 };
 
 /// Arguments to [`ContractRpc::call_and_get`].
@@ -30,11 +30,8 @@ pub trait ContractsApi {
     /// Returns `contracts.owner_info_of` storage for a given code hash.
     /// * `code_hash` - a code hash
     /// * `at` - optional hash of a block to query state from
-    async fn get_owner_info(
-        &self,
-        code_hash: BlockHash,
-        at: Option<BlockHash>,
-    ) -> Option<OwnerInfo>;
+    async fn get_owner_info(&self, code_hash: CodeHash, at: Option<BlockHash>)
+        -> Option<OwnerInfo>;
 }
 
 /// Pallet contracts api.
@@ -52,7 +49,7 @@ pub trait ContractsUserApi {
     #[allow(clippy::too_many_arguments)]
     async fn instantiate(
         &self,
-        code_hash: BlockHash,
+        code_hash: CodeHash,
         balance: Balance,
         gas_limit: Weight,
         storage_limit: Option<Compact<Balance>>,
@@ -103,7 +100,7 @@ pub trait ContractRpc {
 impl<C: ConnectionApi> ContractsApi for C {
     async fn get_owner_info(
         &self,
-        code_hash: BlockHash,
+        code_hash: CodeHash,
         at: Option<BlockHash>,
     ) -> Option<OwnerInfo> {
         let addrs = api::storage().contracts().owner_info_of(code_hash);
@@ -127,7 +124,7 @@ impl<S: SignedConnectionApi> ContractsUserApi for S {
 
     async fn instantiate(
         &self,
-        code_hash: BlockHash,
+        code_hash: CodeHash,
         balance: Balance,
         gas_limit: Weight,
         storage_limit: Option<Compact<Balance>>,

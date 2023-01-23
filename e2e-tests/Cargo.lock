@@ -78,7 +78,7 @@ dependencies = [
 
 [[package]]
 name = "aleph_client"
-version = "2.10.0"
+version = "2.11.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -94,7 +94,6 @@ dependencies = [
  "primitives",
  "serde",
  "serde_json",
- "sp-core 6.0.0",
  "sp-runtime 6.0.0",
  "subxt",
  "thiserror",

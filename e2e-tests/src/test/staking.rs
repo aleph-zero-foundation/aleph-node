@@ -1,5 +1,7 @@
 use aleph_client::{
-    account_from_keypair, keypair_from_string,
+    account_from_keypair,
+    api::runtime_types::sp_core::bounded::bounded_vec::BoundedVec,
+    keypair_from_string,
     pallet_staking::StakingLedger,
     pallets::{
         author::AuthorRpc,
@@ -9,7 +11,6 @@ use aleph_client::{
         staking::{StakingApi, StakingUserApi},
     },
     primitives::CommitteeSeats,
-    sp_core::bounded::bounded_vec::BoundedVec,
     waiting::{BlockStatus, WaitingExt},
     AccountId, KeyPair, Pair, SignedConnection, SignedConnectionApi, TxStatus,
 };
