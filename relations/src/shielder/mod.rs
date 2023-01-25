@@ -25,7 +25,9 @@ use ark_relations::{
     },
 };
 use ark_std::{vec, vec::Vec};
-pub use deposit::DepositRelation;
+pub use deposit::{
+    DepositRelationWithFullInput, DepositRelationWithPublicInput, DepositRelationWithoutInput,
+};
 pub use deposit_and_merge::DepositAndMergeRelation;
 pub use note::{bytes_from_note, compute_note, compute_parent_hash, note_from_bytes};
 use types::{BackendLeafIndex, BackendMerklePath, BackendMerkleRoot, ByteVar};

@@ -148,7 +148,7 @@ impl<S: WithPublicInput> GetPublicInput<CircuitField> for MerkleTreeRelation<S> 
     fn public_input(&self) -> Vec<CircuitField> {
         [
             vec![self.root.unwrap()],
-            byte_to_bits(self.leaf.unwrap()).to_vec(),
+            byte_to_bits(&self.leaf.unwrap()).to_vec(),
         ]
         .concat()
     }

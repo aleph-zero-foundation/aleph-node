@@ -1,18 +1,4 @@
-use ark_ff::PrimeField;
-use ark_r1cs_std::prelude::{AllocVar, EqGadget, UInt8};
-use ark_relations::r1cs::{
-    ConstraintSynthesizer, ConstraintSystemRef, SynthesisError, SynthesisError::AssignmentMissing,
-};
-use ark_std::{marker::PhantomData, vec::Vec};
-
-use crate::{
-    byte_to_bits,
-    relation::{
-        state::{FullInput, NoInput, OnlyPublicInput, State, WithPublicInput},
-        GetPublicInput,
-    },
-    CircuitField,
-};
+use snark_relation_proc_macro::snark_relation;
 
 /// XOR relation: a ⊕ b = c
 ///
@@ -21,69 +7,86 @@ use crate::{
 ///  - 1 private witness (b | `private_xoree`)
 ///  - 1 constant        (c | `result`)
 /// such that: a ^ b = c.
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-pub struct XorRelation<S: State> {
-    // ToDo: Especially for Groth16, it is better to provide public input as a field element.
-    // Otherwise, we have to provide it to circuit bit by bit.
-    pub public_xoree: Option<u8>,
-    pub private_xoree: Option<u8>,
+#[snark_relation]
+mod relation {
+    use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget, uint8::UInt8};
 
-    pub result: u8,
+    use crate::byte_to_bits;
 
-    _phantom: PhantomData<S>,
-}
+    #[circuit_field]
+    pub type CircuitField = crate::CircuitField;
 
-impl XorRelation<NoInput> {
-    pub fn without_input(result: u8) -> Self {
-        Self {
-            public_xoree: None,
-            private_xoree: None,
-            result,
-            _phantom: PhantomData,
-        }
+    #[relation_object_definition]
+    struct XorRelation {
+        // ToDo: Especially for Groth16, it is better to provide public input as a field element.
+        // Otherwise, we have to provide it to circuit bit by bit.
+        #[public_input(serialize_with = "byte_to_bits")]
+        public_xoree: u8,
+        #[private_input]
+        private_xoree: u8,
+        #[constant]
+        result: u8,
     }
-}
 
-impl XorRelation<OnlyPublicInput> {
-    pub fn with_public_input(public_xoree: u8, result: u8) -> Self {
-        Self {
-            public_xoree: Some(public_xoree),
-            private_xoree: None,
-            result,
-            _phantom: PhantomData,
-        }
-    }
-}
-
-impl XorRelation<FullInput> {
-    pub fn with_full_input(public_xoree: u8, private_xoree: u8, result: u8) -> Self {
-        Self {
-            public_xoree: Some(public_xoree),
-            private_xoree: Some(private_xoree),
-            result,
-            _phantom: PhantomData,
-        }
-    }
-}
-
-impl<Field: PrimeField, S: State> ConstraintSynthesizer<Field> for XorRelation<S> {
-    fn generate_constraints(self, cs: ConstraintSystemRef<Field>) -> Result<(), SynthesisError> {
-        // TODO: migrate from u8 values to values in the finite field (see FpVar)
+    #[circuit_definition]
+    fn generate_constraints() {
         let public_xoree = UInt8::new_input(ark_relations::ns!(cs, "public_xoree"), || {
-            self.public_xoree.ok_or(AssignmentMissing)
+            self.public_xoree()
         })?;
         let private_xoree = UInt8::new_witness(ark_relations::ns!(cs, "private_xoree"), || {
-            self.private_xoree.ok_or(AssignmentMissing)
+            self.private_xoree()
         })?;
-        let result = UInt8::new_constant(ark_relations::ns!(cs, "result"), self.result)?;
+        let result = UInt8::new_constant(ark_relations::ns!(cs, "result"), self.result())?;
 
         let xor = UInt8::xor(&public_xoree, &private_xoree)?;
         xor.enforce_equal(&result)
     }
 }
 
-impl<S: WithPublicInput> GetPublicInput<CircuitField> for XorRelation<S> {
-    fn public_input(&self) -> Vec<CircuitField> {
-        byte_to_bits(self.public_xoree.unwrap()).to_vec()
+#[cfg(test)]
+mod tests {
+    use ark_bls12_381::Bls12_381;
+    use ark_groth16::Groth16;
+    use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystem, ConstraintSystemRef};
+    use ark_snark::SNARK;
+
+    use super::*;
+    use crate::CircuitField;
+
+    const A: u8 = 2;
+    const B: u8 = 3;
+    const C: u8 = 1;
+
+    #[test]
+    fn xor_constraints_correctness() {
+        let circuit = XorRelationWithFullInput::new(A, B, C);
+
+        let cs: ConstraintSystemRef<CircuitField> = ConstraintSystem::new_ref();
+        circuit.generate_constraints(cs.clone()).unwrap();
+
+        let is_satisfied = cs.is_satisfied().unwrap();
+        if !is_satisfied {
+            println!("{:?}", cs.which_is_unsatisfied());
+        }
+
+        assert!(is_satisfied);
+    }
+
+    #[test]
+    fn xor_proving_procedure() {
+        let circuit_wo_input = XorRelationWithoutInput::new(C);
+
+        let mut rng = ark_std::test_rng();
+        let (pk, vk) =
+            Groth16::<Bls12_381>::circuit_specific_setup(circuit_wo_input, &mut rng).unwrap();
+
+        let circuit_with_public_input = XorRelationWithPublicInput::new(C, A);
+        let input = circuit_with_public_input.serialize_public_input();
+
+        let circuit_with_full_input = XorRelationWithFullInput::new(C, A, B);
+
+        let proof = Groth16::prove(&pk, circuit_with_full_input, &mut rng).unwrap();
+        let valid_proof = Groth16::verify(&vk, &input, &proof).unwrap();
+        assert!(valid_proof);
     }
 }
