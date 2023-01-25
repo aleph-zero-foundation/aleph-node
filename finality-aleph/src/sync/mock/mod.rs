@@ -1,22 +1,38 @@
-use codec::{Decode, Encode};
+use std::hash::Hash;
 
-use crate::sync::{BlockIdentifier, Header, Justification};
+use codec::{Decode, Encode};
+use sp_core::H256;
+
+use crate::sync::{
+    BlockIdentifier, BlockStatus, ChainStatusNotification, ChainStatusNotifier, Header,
+    Justification as JustificationT, Verifier,
+};
+
+mod backend;
+mod status_notifier;
+mod verifier;
+
+type MockNumber = u32;
+type MockHash = H256;
+
+pub use backend::Backend;
+pub use verifier::MockVerifier;
 
 pub type MockPeerId = u32;
 
 #[derive(Clone, Hash, Debug, PartialEq, Eq, Encode, Decode)]
 pub struct MockIdentifier {
-    number: u32,
-    hash: u32,
+    number: MockNumber,
+    hash: MockHash,
 }
 
 impl MockIdentifier {
-    fn new(number: u32, hash: u32) -> Self {
+    fn new(number: MockNumber, hash: MockHash) -> Self {
         MockIdentifier { number, hash }
     }
 
-    pub fn new_random(number: u32) -> Self {
-        MockIdentifier::new(number, rand::random())
+    pub fn new_random(number: MockNumber) -> Self {
+        MockIdentifier::new(number, MockHash::random())
     }
 }
 
@@ -37,7 +53,7 @@ impl MockHeader {
         MockHeader { id, parent }
     }
 
-    pub fn random_parentless(number: u32) -> Self {
+    pub fn random_parentless(number: MockNumber) -> Self {
         let id = MockIdentifier::new_random(number);
         MockHeader { id, parent: None }
     }
@@ -84,15 +100,26 @@ impl Header for MockHeader {
 #[derive(Clone, Hash, Debug, PartialEq, Eq, Encode, Decode)]
 pub struct MockJustification {
     header: MockHeader,
+    is_correct: bool,
 }
 
 impl MockJustification {
     pub fn for_header(header: MockHeader) -> Self {
-        MockJustification { header }
+        Self {
+            header,
+            is_correct: true,
+        }
+    }
+
+    pub fn for_header_incorrect(header: MockHeader) -> Self {
+        Self {
+            header,
+            is_correct: false,
+        }
     }
 }
 
-impl Justification for MockJustification {
+impl JustificationT for MockJustification {
     type Header = MockHeader;
     type Unverified = Self;
 
@@ -103,4 +130,18 @@ impl Justification for MockJustification {
     fn into_unverified(self) -> Self::Unverified {
         self
     }
+}
+
+type MockNotification = ChainStatusNotification<MockIdentifier>;
+type MockBlockStatus = BlockStatus<MockJustification>;
+
+pub fn setup() -> (
+    Backend,
+    impl Verifier<MockJustification>,
+    impl ChainStatusNotifier<MockIdentifier>,
+) {
+    let (backend, notifier) = backend::setup();
+    let verifier = MockVerifier;
+
+    (backend, verifier, notifier)
 }
