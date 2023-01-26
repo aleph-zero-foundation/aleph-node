@@ -1,11 +1,11 @@
 use clap::Subcommand;
 use relations::{
-    CircuitField, ConstraintSynthesizer, ConstraintSystemRef, DepositRelationWithFullInput,
-    DepositRelationWithPublicInput, DepositRelationWithoutInput, FrontendAccount,
-    FrontendLeafIndex, FrontendMerklePath, FrontendMerkleRoot, FrontendNote, FrontendNullifier,
-    FrontendTokenAmount, FrontendTokenId, FrontendTrapdoor, GetPublicInput, LinearEquationRelation,
-    MerkleTreeRelation, Result as R1CsResult, Root, WithdrawRelation, XorRelationWithFullInput,
-    XorRelationWithPublicInput,
+    CircuitField, ConstraintSynthesizer, ConstraintSystemRef, DepositAndMergeRelation,
+    DepositRelationWithFullInput, DepositRelationWithPublicInput, DepositRelationWithoutInput,
+    FrontendAccount, FrontendLeafIndex, FrontendMerklePath, FrontendMerkleRoot, FrontendNote,
+    FrontendNullifier, FrontendTokenAmount, FrontendTokenId, FrontendTrapdoor, GetPublicInput,
+    LinearEquationRelation, MerkleTreeRelation, Result as R1CsResult, Root, WithdrawRelation,
+    XorRelationWithFullInput, XorRelationWithPublicInput,
 };
 
 use crate::snark_relations::parsing::{
@@ -80,9 +80,56 @@ pub enum RelationArgs {
         nullifier: Option<FrontendNullifier>,
     },
 
+    DepositAndMerge {
+        /// The upper bound for Merkle tree height (circuit constant).
+        #[clap(long, default_value = "16")]
+        max_path_len: u8,
+
+        /// The identifier of the token being unshielded (public input).
+        #[clap(long)]
+        token_id: Option<FrontendTokenId>,
+        /// The amount being shielded (public input).
+        #[clap(long)]
+        token_amount: Option<FrontendTokenAmount>,
+        /// The nullifier that was used for the old note (public input).
+        #[clap(long)]
+        old_nullifier: Option<FrontendNullifier>,
+        /// The Merkle root of the tree containing the old note (public input).
+        #[clap(long, value_parser = parse_frontend_note)]
+        merkle_root: Option<FrontendMerkleRoot>,
+        /// The new note (public input).
+        #[clap(long, value_parser = parse_frontend_note)]
+        new_note: Option<FrontendNote>,
+
+        /// The trapdoor that was used for the old note (private input).
+        #[clap(long)]
+        old_trapdoor: Option<FrontendTrapdoor>,
+        /// The trapdoor that was used for the new note (private input).
+        #[clap(long)]
+        new_trapdoor: Option<FrontendTrapdoor>,
+        /// The nullifier that was used for the new note (private input).
+        #[clap(long)]
+        new_nullifier: Option<FrontendNullifier>,
+        /// The Merkle path proving that the old note is under `merkle_root` (private input).
+        #[clap(long, value_parser = parse_frontend_merkle_path)]
+        merkle_path: Option<FrontendMerklePath>,
+        /// The index of the old note in the Merkle tree (private input).
+        #[clap(long)]
+        leaf_index: Option<FrontendLeafIndex>,
+        /// The old note (private input).
+        #[clap(long, value_parser = parse_frontend_note)]
+        old_note: Option<FrontendNote>,
+        /// The original amount that was shielded (private input).
+        #[clap(long)]
+        old_token_amount: Option<FrontendTokenAmount>,
+        /// The token amount that will be shielded in the new note (private input).
+        #[clap(long)]
+        new_token_amount: Option<FrontendTokenAmount>,
+    },
+
     Withdraw {
         /// The upper bound for Merkle tree height (circuit constant).
-        #[clap(long, default_value = "10")]
+        #[clap(long, default_value = "16")]
         max_path_len: u8,
 
         /// The nullifier that was used for the old note (public input).
@@ -142,6 +189,7 @@ impl RelationArgs {
             RelationArgs::LinearEquation { .. } => String::from("linear_equation"),
             RelationArgs::MerkleTree { .. } => String::from("merkle_tree"),
             RelationArgs::Deposit { .. } => String::from("deposit"),
+            RelationArgs::DepositAndMerge { .. } => String::from("deposit_and_merge"),
             RelationArgs::Withdraw { .. } => String::from("withdraw"),
         }
     }
@@ -187,6 +235,46 @@ impl ConstraintSynthesizer<CircuitField> for RelationArgs {
                     token_amount.unwrap_or_else(|| panic!("You must provide token amount")),
                     trapdoor.unwrap_or_else(|| panic!("You must provide trapdoor")),
                     nullifier.unwrap_or_else(|| panic!("You must provide nullifier")),
+                )
+                .generate_constraints(cs)
+            }
+
+            RelationArgs::DepositAndMerge {
+                max_path_len,
+                token_id,
+                token_amount,
+                old_nullifier,
+                merkle_root,
+                new_note,
+                old_trapdoor,
+                new_trapdoor,
+                new_nullifier,
+                merkle_path,
+                leaf_index,
+                old_note,
+                old_token_amount,
+                new_token_amount,
+            } => {
+                if cs.is_in_setup_mode() {
+                    return DepositAndMergeRelation::without_input(max_path_len)
+                        .generate_constraints(cs);
+                }
+
+                DepositAndMergeRelation::with_full_input(
+                    max_path_len,
+                    token_id.unwrap_or_else(|| panic!("You must provide token id")),
+                    token_amount.unwrap_or_else(|| panic!("You must provide token amount")),
+                    old_nullifier.unwrap_or_else(|| panic!("You must provide old nullifier")),
+                    merkle_root.unwrap_or_else(|| panic!("You must provide merkle root")),
+                    new_note.unwrap_or_else(|| panic!("You must provide new note")),
+                    old_trapdoor.unwrap_or_else(|| panic!("You must provide old trapdoor")),
+                    new_trapdoor.unwrap_or_else(|| panic!("You must provide new trapdoor")),
+                    new_nullifier.unwrap_or_else(|| panic!("You must provide new nullifier")),
+                    merkle_path.unwrap_or_else(|| panic!("You must provide merkle path")),
+                    leaf_index.unwrap_or_else(|| panic!("You must provide leaf index")),
+                    old_note.unwrap_or_else(|| panic!("You must provide old note")),
+                    old_token_amount.unwrap_or_else(|| panic!("You must provide old token amount")),
+                    new_token_amount.unwrap_or_else(|| panic!("You must provide new token amount")),
                 )
                 .generate_constraints(cs)
             }
@@ -280,6 +368,41 @@ impl GetPublicInput<CircuitField> for RelationArgs {
                 }
                 _ => panic!("Provide at least public (note, token id and token amount)"),
             },
+
+            RelationArgs::DepositAndMerge{
+                max_path_len,
+                token_id,
+                token_amount,
+                old_nullifier,
+                merkle_root,
+                new_note,
+                ..
+            } => {
+                match (
+                    token_id,
+                    token_amount,
+                    old_nullifier,
+                    merkle_root,
+                    new_note,
+                ) {
+                    (
+                        Some(token_id),
+                        Some(old_token_amount),
+                        Some(old_nullifier),
+                        Some(merkle_root),
+                        Some(new_note),
+                    ) => DepositAndMergeRelation::with_public_input(
+                        *max_path_len,
+                        *token_id,
+                        *old_token_amount,
+                        *old_nullifier,
+                        *merkle_root,
+                        *new_note,
+                    )
+                    .public_input(),
+                    _ => panic!("Provide at least public (token id, old token amount, old nullifier, merkle root, and new note)"),
+                }
+            }
 
             RelationArgs::Withdraw {
                 max_path_len,
