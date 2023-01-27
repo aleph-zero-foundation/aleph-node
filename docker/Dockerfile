@@ -9,7 +9,7 @@ EXPOSE 30333 30343 9933 9944
 
 WORKDIR node
 
-COPY target/release/aleph-node /usr/local/bin
+COPY target/production/aleph-node /usr/local/bin
 RUN chmod +x /usr/local/bin/aleph-node
 
 COPY docker/docker_entrypoint.sh /node/docker_entrypoint.sh

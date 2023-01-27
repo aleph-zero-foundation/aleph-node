@@ -129,7 +129,7 @@ pub(super) fn plain_field_getters<F: Into<RelationField> + Clone>(
 }
 
 /// Translates every element in `fields` to:
-/// ```no_run
+/// ```ignore
 /// pub fn <ident>(&self) -> Result<<backend_type>> {
 ///     Ok(&self . <ident>)
 /// }
@@ -148,7 +148,7 @@ pub(super) fn successful_field_getters<F: Into<RelationField> + Clone>(
 }
 
 /// Translates every element in `fields` to:
-/// ```no_run
+/// ```ignore
 /// pub fn <ident>(&self) -> Result<<backend_type>> {
 ///     Err(SynthesisError::AssignmentMissing)
 /// }

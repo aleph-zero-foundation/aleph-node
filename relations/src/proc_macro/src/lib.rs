@@ -43,7 +43,7 @@ use crate::{code_generation::generate_code, intermediate_representation::IR};
 ///     check).
 ///  -  Implementation of `ConstraintSynthesizer` trait for `<R>WithFullInput`.
 ///
-/// ```rust, no_run
+/// ```ignore
 ///#[snark_relation]
 ///mod relation {
 ///    #[relation_object_definition]
@@ -85,7 +85,7 @@ use crate::{code_generation::generate_code, intermediate_representation::IR};
 /// All the imports (`use` items) that are present in the module will be copied and moved outside
 /// (together with the generated items).
 ///
-/// ```rust,no_run
+/// ```ignore
 /// use ark_std::{One, Zero};
 /// use snark_relation_proc_macro::snark_relation;
 ///

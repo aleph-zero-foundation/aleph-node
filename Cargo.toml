@@ -17,6 +17,7 @@ exclude = [
     "bin/cliain",
     "bin/runtime/src/chain_extension/snarcos-extension",
     "relations",
+    "relations/src/proc_macro",
     "poseidon",
 ]
 

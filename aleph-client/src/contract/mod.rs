@@ -25,20 +25,20 @@
 //!         })
 //!     }
 //!
-//!     fn transfer(&self, conn: &SignedConnection, to: AccountId, amount: u128) -> Result<()> {
+//!     async fn transfer(&self, conn: &SignedConnection, to: AccountId, amount: u128) -> Result<()> {
 //!         self.contract.contract_exec(
 //!             conn,
 //!             "PSP22::transfer",
 //!             vec![to.to_string().as_str(), amount.to_string().as_str(), "0x00"].as_slice(),
-//!         )
+//!         ).await
 //!     }
 //!
-//!     fn balance_of(&self, conn: &Connection, account: AccountId) -> Result<u128> {
-//!         to_u128(self.contract.contract_read(
+//!     async fn balance_of(&self, conn: &Connection, account: AccountId) -> Result<u128> {
+//!         self.contract.contract_read(
 //!             conn,
 //!             "PSP22::balance_of",
 //!             &vec![account.to_string().as_str()],
-//!         )?)
+//!         ).await
 //!     }
 //! }
 //! ```

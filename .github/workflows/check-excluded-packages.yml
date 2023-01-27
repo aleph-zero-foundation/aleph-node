@@ -2,13 +2,13 @@ name: Check excluded packages
 
 on:
   pull_request:
-    branches:
-      - '**'
-  push:
-    paths-ignore:
-      - '*.md'
-    branches:
-      - main
+    paths:
+      - aleph-client/**
+      - bin/cliain/**
+      - bin/runtime/src/chain_extension/snarcos-extension/**
+      - relations/**
+      - poseidon/**
+      - .github/workflows/check-excluded-packages.yml
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -77,6 +77,7 @@ jobs:
             pushd "$p"
             cargo fmt --all --check
             cargo clippy --all-features -- --no-deps -D warnings
+            cargo test
             popd
           done
 

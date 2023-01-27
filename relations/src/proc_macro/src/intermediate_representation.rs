@@ -209,7 +209,7 @@ fn extract_items(item_mod: ItemMod) -> SynResult<Items> {
 }
 
 /// Returns all the elements of `fields` that are attributed with `field_type`, e.g.
-/// ```rust,no_run
+/// ```ignore
 /// #[public_input]
 /// a: u8
 /// ```

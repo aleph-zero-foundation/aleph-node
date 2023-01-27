@@ -2,13 +2,14 @@ name: unit-tests
 
 on:
   pull_request:
-    branches:
-      - '**'
-  push:
-    paths-ignore:
-      - '*.md'
-    branches:
-      - main
+    paths:
+      - aggregator/**
+      - bin/node/**
+      - bin/runtime/**
+      - finality-aleph/**
+      - pallets/**
+      - primitives/**
+      - .github/workflows/unit_tests.yml
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
