@@ -11,9 +11,9 @@ env:
   LABEL_DESTROYED: 'DESTROYED'
   LABEL_DEPLOYED: 'DEPLOYED'
   LABEL_DEPLOYED_CONTRACTS: 'DEPLOYED-CONTRACTS'
-  REGISTRY_HOST: 573243519133.dkr.ecr.us-east-1.amazonaws.com
-  FE_ALEPHNODE_REGISTRY: 573243519133.dkr.ecr.us-east-1.amazonaws.com/feature-env-aleph-node
-  FE_ALEPHNODE_REGISTRY_ESCAPED: '573243519133.dkr.ecr.us-east-1.amazonaws.com\/feature-env-aleph-node'
+  REGISTRY_HOST: public.ecr.aws
+  FE_ALEPHNODE_REGISTRY: public.ecr.aws/p6e8q1z1/feature-env-aleph-node
+  FE_ALEPHNODE_REGISTRY_ESCAPED: 'public.ecr.aws\/p6e8q1z1\/feature-env-aleph-node'
   FE_IMAGETAG_PREFIX: 'fe-'
   FE_APP_PREFIX: 'fe-'
   PUBLIC_ALEPHNODE_REGISTRY: public.ecr.aws/p6e8q1z1/aleph-node
@@ -68,7 +68,7 @@ jobs:
           username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
           password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
 
-      - name: Push FE aleph-node image to the private feature-env-aleph-node registry
+      - name: Push FE aleph-node image to the feature-env-aleph-node registry
         env:
           IMAGE_TAG: ${{ env.FE_IMAGETAG_PREFIX }}${{ steps.get_branch.outputs.branch_imagetag_full }}
         run: |
