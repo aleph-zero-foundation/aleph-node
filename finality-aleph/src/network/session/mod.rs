@@ -24,36 +24,15 @@ mod handler;
 mod manager;
 mod service;
 
-pub use compatibility::{
-    DiscoveryMessage, LegacyDiscoveryMessage, PeerAuthentications, VersionedAuthentication,
-};
+pub use compatibility::{DiscoveryMessage, VersionedAuthentication};
 use connections::Connections;
 #[cfg(test)]
 pub use data::DataInSession;
 pub use discovery::Discovery;
 #[cfg(test)]
-pub use handler::tests::{authentication, legacy_authentication};
+pub use handler::tests::authentication;
 pub use handler::{Handler as SessionHandler, HandlerError as SessionHandlerError};
 pub use service::{Config as ConnectionManagerConfig, ManagerError, Service as ConnectionManager};
-
-/// Data validators used to use to authenticate themselves for a single session
-/// and disseminate their addresses.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Encode, Decode)]
-pub struct LegacyAuthData<M: Data> {
-    addresses: Vec<M>,
-    node_id: NodeIndex,
-    session_id: SessionId,
-}
-
-impl<M: Data> LegacyAuthData<M> {
-    pub fn session(&self) -> SessionId {
-        self.session_id
-    }
-
-    pub fn creator(&self) -> NodeIndex {
-        self.node_id
-    }
-}
 
 /// Data validators use to authenticate themselves for a single session
 /// and disseminate their addresses.
@@ -78,47 +57,9 @@ impl<A: AddressingInformation> AuthData<A> {
     }
 }
 
-impl<M: Data, A: AddressingInformation + Into<Vec<M>>> From<AuthData<A>> for LegacyAuthData<M> {
-    fn from(auth_data: AuthData<A>) -> Self {
-        let AuthData {
-            address,
-            node_id,
-            session_id,
-        } = auth_data;
-        let addresses = address.into();
-        LegacyAuthData {
-            addresses,
-            node_id,
-            session_id,
-        }
-    }
-}
-
-impl<M: Data, A: AddressingInformation + TryFrom<Vec<M>>> TryFrom<LegacyAuthData<M>>
-    for AuthData<A>
-{
-    type Error = ();
-
-    fn try_from(legacy_auth_data: LegacyAuthData<M>) -> Result<Self, Self::Error> {
-        let LegacyAuthData {
-            addresses,
-            node_id,
-            session_id,
-        } = legacy_auth_data;
-        let address = addresses.try_into().map_err(|_| ())?;
-        Ok(AuthData {
-            address,
-            node_id,
-            session_id,
-        })
-    }
-}
-
-/// A full legacy authentication, consisting of a signed LegacyAuthData.
-pub type LegacyAuthentication<M> = (LegacyAuthData<M>, Signature);
-
 /// A full authentication, consisting of a signed AuthData.
-pub type Authentication<A> = (AuthData<A>, Signature);
+#[derive(Clone, Decode, Encode, Debug, Eq, PartialEq, Hash)]
+pub struct Authentication<A: AddressingInformation>(AuthData<A>, Signature);
 
 /// Sends data within a single session.
 #[derive(Clone)]

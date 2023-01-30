@@ -12,8 +12,8 @@ use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{
         session::{
-            compatibility::PeerAuthentications, data::DataInSession, Connections, Discovery,
-            DiscoveryMessage, SessionHandler, SessionHandlerError,
+            data::DataInSession, Authentication, Connections, Discovery, DiscoveryMessage,
+            SessionHandler, SessionHandlerError,
         },
         AddressingInformation, Data, NetworkIdentity, PeerId,
     },
@@ -30,9 +30,9 @@ pub enum ConnectionCommand<A: AddressingInformation> {
 // In practice D: Data and P: PeerId, but we cannot require that in type aliases.
 pub type AddressedData<D, P> = (D, P);
 
-struct Session<D: Data, M: Data, A: AddressingInformation + TryFrom<Vec<M>> + Into<Vec<M>>> {
-    handler: SessionHandler<M, A>,
-    discovery: Discovery<M, A>,
+struct Session<D: Data, A: AddressingInformation> {
+    handler: SessionHandler<A>,
+    discovery: Discovery<A>,
     data_for_user: Option<mpsc::UnboundedSender<D>>,
 }
 
@@ -55,12 +55,12 @@ pub struct PreNonvalidatorSession {
 /// Actions that the manager wants to take as the result of some information. Might contain a
 /// command for connecting to or disconnecting from some peers or a message to broadcast for
 /// discovery  purposes.
-pub struct ManagerActions<M: Data, A: AddressingInformation + TryFrom<Vec<M>> + Into<Vec<M>>> {
+pub struct ManagerActions<A: AddressingInformation> {
     pub maybe_command: Option<ConnectionCommand<A>>,
-    pub maybe_message: Option<PeerAuthentications<M, A>>,
+    pub maybe_message: Option<Authentication<A>>,
 }
 
-impl<M: Data, A: AddressingInformation + TryFrom<Vec<M>> + Into<Vec<M>>> ManagerActions<M, A> {
+impl<A: AddressingInformation> ManagerActions<A> {
     fn noop() -> Self {
         ManagerActions {
             maybe_command: None,
@@ -78,13 +78,10 @@ impl<M: Data, A: AddressingInformation + TryFrom<Vec<M>> + Into<Vec<M>>> Manager
 ///    1. In-session messages are forwarded to the user.
 ///    2. Authentication messages forwarded to session handlers.
 /// 4. Running periodic maintenance, mostly related to node discovery.
-pub struct Manager<NI: NetworkIdentity, M: Data, D: Data>
-where
-    NI::AddressingInformation: TryFrom<Vec<M>> + Into<Vec<M>>,
-{
+pub struct Manager<NI: NetworkIdentity, D: Data> {
     network_identity: NI,
     connections: Connections<NI::PeerId>,
-    sessions: HashMap<SessionId, Session<D, M, NI::AddressingInformation>>,
+    sessions: HashMap<SessionId, Session<D, NI::AddressingInformation>>,
     discovery_cooldown: Duration,
 }
 
@@ -95,10 +92,7 @@ pub enum SendError {
     NoSession,
 }
 
-impl<NI: NetworkIdentity, M: Data + Debug, D: Data> Manager<NI, M, D>
-where
-    NI::AddressingInformation: TryFrom<Vec<M>> + Into<Vec<M>>,
-{
+impl<NI: NetworkIdentity, D: Data> Manager<NI, D> {
     /// Create a new connection manager.
     pub fn new(network_identity: NI, discovery_cooldown: Duration) -> Self {
         Manager {
@@ -122,7 +116,7 @@ where
     pub fn finish_session(
         &mut self,
         session_id: SessionId,
-    ) -> ManagerActions<M, NI::AddressingInformation> {
+    ) -> ManagerActions<NI::AddressingInformation> {
         self.sessions.remove(&session_id);
         ManagerActions {
             maybe_command: Self::delete_reserved(self.connections.remove_session(session_id)),
@@ -133,7 +127,7 @@ where
     fn discover_authorities(
         &mut self,
         session_id: &SessionId,
-    ) -> Option<PeerAuthentications<M, NI::AddressingInformation>> {
+    ) -> Option<Authentication<NI::AddressingInformation>> {
         self.sessions.get_mut(session_id).and_then(
             |Session {
                  handler, discovery, ..
@@ -142,7 +136,7 @@ where
     }
 
     /// Returns all the network messages that should be sent as part of discovery at this moment.
-    pub fn discovery(&mut self) -> Vec<PeerAuthentications<M, NI::AddressingInformation>> {
+    pub fn discovery(&mut self) -> Vec<Authentication<NI::AddressingInformation>> {
         let sessions: Vec<_> = self.sessions.keys().cloned().collect();
         sessions
             .iter()
@@ -155,7 +149,7 @@ where
         pre_session: PreValidatorSession,
         address: NI::AddressingInformation,
     ) -> (
-        Option<PeerAuthentications<M, NI::AddressingInformation>>,
+        Option<Authentication<NI::AddressingInformation>>,
         mpsc::UnboundedReceiver<D>,
     ) {
         let PreValidatorSession {
@@ -186,7 +180,7 @@ where
         pre_session: PreValidatorSession,
     ) -> Result<
         (
-            ManagerActions<M, NI::AddressingInformation>,
+            ManagerActions<NI::AddressingInformation>,
             mpsc::UnboundedReceiver<D>,
         ),
         SessionHandlerError,
@@ -263,7 +257,7 @@ where
     pub async fn update_nonvalidator_session(
         &mut self,
         pre_session: PreNonvalidatorSession,
-    ) -> Result<ManagerActions<M, NI::AddressingInformation>, SessionHandlerError> {
+    ) -> Result<ManagerActions<NI::AddressingInformation>, SessionHandlerError> {
         let address = self.network_identity.identity();
         match self.sessions.get_mut(&pre_session.session_id) {
             Some(session) => {
@@ -314,22 +308,15 @@ where
     /// Returns actions the manager wants to take.
     pub fn on_discovery_message(
         &mut self,
-        message: DiscoveryMessage<M, NI::AddressingInformation>,
-    ) -> ManagerActions<M, NI::AddressingInformation> {
-        use DiscoveryMessage::*;
+        message: DiscoveryMessage<NI::AddressingInformation>,
+    ) -> ManagerActions<NI::AddressingInformation> {
         let session_id = message.session_id();
         match self.sessions.get_mut(&session_id) {
             Some(Session {
                 handler, discovery, ..
             }) => {
-                let (maybe_address, maybe_message) = match message {
-                    Authentication(authentication) => {
-                        discovery.handle_authentication(authentication, handler)
-                    }
-                    LegacyAuthentication(legacy_authentication) => {
-                        discovery.handle_legacy_authentication(legacy_authentication, handler)
-                    }
-                };
+                let (maybe_address, maybe_message) =
+                    discovery.handle_authentication(message, handler);
                 let maybe_command = match (maybe_address, handler.is_validator()) {
                     (Some(address), true) => {
                         debug!(target: "aleph-network", "Adding addresses for session {:?} to reserved: {:?}", session_id, address);
@@ -458,7 +445,7 @@ mod tests {
         network::{
             clique::mock::{random_address, MockAddressingInformation},
             mock::crypto_basics,
-            session::{compatibility::PeerAuthentications, data::DataInSession, DiscoveryMessage},
+            session::data::DataInSession,
         },
         Recipient, SessionId,
     };
@@ -466,7 +453,7 @@ mod tests {
     const NUM_NODES: usize = 7;
     const DISCOVERY_PERIOD: Duration = Duration::from_secs(60);
 
-    fn build() -> Manager<MockAddressingInformation, MockAddressingInformation, i32> {
+    fn build() -> Manager<MockAddressingInformation, i32> {
         Manager::new(random_address(), DISCOVERY_PERIOD)
     }
 
@@ -584,13 +571,7 @@ mod tests {
             .await
             .unwrap();
         let message = maybe_message.expect("there should be a discovery message");
-        let (address, message) = match message {
-            PeerAuthentications::Both(authentication, _) => (
-                authentication.0.address(),
-                DiscoveryMessage::Authentication(authentication),
-            ),
-            message => panic!("Expected both authentications, got {:?}", message),
-        };
+        let (address, message) = (message.0.address(), message);
         let ManagerActions {
             maybe_command,
             maybe_message,
@@ -630,12 +611,7 @@ mod tests {
             })
             .await
             .unwrap();
-        let message = match maybe_message.expect("there should be a discovery message") {
-            PeerAuthentications::Both(authentication, _) => {
-                DiscoveryMessage::Authentication(authentication)
-            }
-            message => panic!("Expected both authentications, got {:?}", message),
-        };
+        let message = maybe_message.expect("there should be a discovery message");
         manager.on_discovery_message(message);
         let messages = manager.on_user_message(2137, session_id, Recipient::Everyone);
         assert_eq!(messages.len(), 1);

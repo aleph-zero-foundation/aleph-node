@@ -96,13 +96,6 @@ impl SecretKey for AuthorityPen {
     }
 }
 
-/// A representation of a single TCP address with an associated peer ID.
-#[derive(Debug, Hash, Encode, Decode, Clone, PartialEq, Eq)]
-pub struct LegacyTcpMultiaddress {
-    peer_id: AuthorityId,
-    address: String,
-}
-
 /// What can go wrong when handling addressing information.
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub enum AddressingInformationError {
@@ -116,44 +109,6 @@ struct TcpAddressingInformation {
     // Easiest way to ensure that the Vec below is nonempty...
     primary_address: String,
     other_addresses: Vec<String>,
-}
-
-impl TryFrom<Vec<LegacyTcpMultiaddress>> for TcpAddressingInformation {
-    type Error = AddressingInformationError;
-
-    fn try_from(legacy: Vec<LegacyTcpMultiaddress>) -> Result<Self, Self::Error> {
-        let mut legacy = legacy.into_iter();
-        let (peer_id, primary_address) = match legacy.next() {
-            Some(LegacyTcpMultiaddress { peer_id, address }) => (peer_id, address),
-            None => return Err(AddressingInformationError::NoAddress),
-        };
-        let other_addresses = legacy
-            .filter(|la| la.peer_id == peer_id)
-            .map(|la| la.address)
-            .collect();
-        Ok(TcpAddressingInformation {
-            peer_id,
-            primary_address,
-            other_addresses,
-        })
-    }
-}
-
-impl From<TcpAddressingInformation> for Vec<LegacyTcpMultiaddress> {
-    fn from(address: TcpAddressingInformation) -> Self {
-        let TcpAddressingInformation {
-            peer_id,
-            primary_address,
-            other_addresses,
-        } = address;
-        iter::once(primary_address)
-            .chain(other_addresses)
-            .map(|address| LegacyTcpMultiaddress {
-                peer_id: peer_id.clone(),
-                address,
-            })
-            .collect()
-    }
 }
 
 impl TcpAddressingInformation {
@@ -183,29 +138,6 @@ impl TcpAddressingInformation {
 pub struct SignedTcpAddressingInformation {
     addressing_information: TcpAddressingInformation,
     signature: Signature,
-}
-
-impl TryFrom<Vec<LegacyTcpMultiaddress>> for SignedTcpAddressingInformation {
-    type Error = AddressingInformationError;
-
-    fn try_from(legacy: Vec<LegacyTcpMultiaddress>) -> Result<Self, Self::Error> {
-        let addressing_information = legacy.try_into()?;
-        // This will never get validated, but that is alright and working as intended.
-        // We temporarily accept legacy messages and there is no way to verify them completely,
-        // since they were unsigned previously. In the next update we will remove this, and the
-        // problem will be completely gone.
-        let signature = [0; 64].into();
-        Ok(SignedTcpAddressingInformation {
-            addressing_information,
-            signature,
-        })
-    }
-}
-
-impl From<SignedTcpAddressingInformation> for Vec<LegacyTcpMultiaddress> {
-    fn from(address: SignedTcpAddressingInformation) -> Self {
-        address.addressing_information.into()
-    }
 }
 
 impl AddressingInformation for SignedTcpAddressingInformation {

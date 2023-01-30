@@ -19,9 +19,8 @@ use crate::{
         data::Network,
         mock::{crypto_basics, MockData},
         session::{
-            authentication, legacy_authentication, ConnectionManager, ConnectionManagerConfig,
-            DataInSession, LegacyDiscoveryMessage, ManagerError, SessionHandler, SessionManager,
-            VersionedAuthentication,
+            authentication, ConnectionManager, ConnectionManagerConfig, DataInSession,
+            ManagerError, SessionHandler, SessionManager, VersionedAuthentication,
         },
         AddressingInformation, GossipService, MockEvent, MockRawNetwork, Protocol,
     },
@@ -179,7 +178,7 @@ impl TestData {
         &self,
         node_id: usize,
         session_id: u32,
-    ) -> SessionHandler<MockAddressingInformation, MockAddressingInformation> {
+    ) -> SessionHandler<MockAddressingInformation> {
         SessionHandler::new(
             Some((NodeIndex(node_id), self.authorities[node_id].pen())),
             self.authority_verifier.clone(),
@@ -192,15 +191,6 @@ impl TestData {
     async fn check_add_connection(&mut self) {
         let mut reserved_addresses = HashSet::new();
         for _ in self.authorities.iter().skip(1) {
-            let (_, address) = self
-                .validator_network
-                .add_connection
-                .next()
-                .await
-                .expect("Should add reserved nodes");
-            reserved_addresses.insert(address);
-            // Gotta repeat this, because we are adding every address twice, due to legacy
-            // authentications.
             let (_, address) = self
                 .validator_network
                 .add_connection
@@ -225,7 +215,7 @@ impl TestData {
             self.connect_identity_to_network(authority.auth_peer_id(), Protocol::Authentication);
 
             for versioned_authentication in
-                Vec::<VersionedAuthentication<_, _>>::from(handler.authentication().unwrap())
+                Vec::<VersionedAuthentication<_>>::from(handler.authentication().unwrap())
             {
                 self.network.emit_event(MockEvent::Messages(
                     authority.auth_peer_id(),
@@ -249,7 +239,7 @@ impl TestData {
     async fn next_sent_auth(
         &mut self,
     ) -> Option<(
-        VersionedAuthentication<MockAddressingInformation, MockAddressingInformation>,
+        VersionedAuthentication<MockAddressingInformation>,
         MockPublicKey,
         Protocol,
     )> {
@@ -258,10 +248,9 @@ impl TestData {
                 Some((data, peer_id, protocol)) => {
                     if protocol == Protocol::Authentication {
                         return Some((
-                            VersionedAuthentication::<
-                                MockAddressingInformation,
-                                MockAddressingInformation,
-                            >::decode(&mut data.as_slice())
+                            VersionedAuthentication::<MockAddressingInformation>::decode(
+                                &mut data.as_slice(),
+                            )
                             .expect("should decode"),
                             peer_id,
                             protocol,
@@ -295,16 +284,6 @@ async fn test_sends_discovery_message() {
 
     for _ in 0..4 {
         match test_data.next_sent_auth().await {
-            Some((
-                VersionedAuthentication::V1(LegacyDiscoveryMessage::AuthenticationBroadcast(
-                    authentication,
-                )),
-                peer_id,
-                _,
-            )) => {
-                assert_eq!(peer_id, connected_peer_id);
-                assert_eq!(authentication, legacy_authentication(&handler));
-            }
             Some((VersionedAuthentication::V2(new_authentication), peer_id, _)) => {
                 assert_eq!(peer_id, connected_peer_id);
                 assert_eq!(new_authentication, authentication(&handler));
@@ -335,7 +314,7 @@ async fn test_forwards_authentication_broadcast() {
     }
 
     for versioned_authentication in
-        Vec::<VersionedAuthentication<_, _>>::from(sending_peer_handler.authentication().unwrap())
+        Vec::<VersionedAuthentication<_>>::from(sending_peer_handler.authentication().unwrap())
     {
         test_data.network.emit_event(MockEvent::Messages(
             sending_peer.auth_peer_id(),
@@ -346,46 +325,27 @@ async fn test_forwards_authentication_broadcast() {
         ));
     }
 
-    for _ in 0..2 {
-        // Since we send the legacy auth and both are correct this should happen twice.
-        assert_eq!(
-            test_data
-                .validator_network
-                .add_connection
-                .next()
-                .await
-                .expect("Should add reserved nodes"),
-            (sending_peer.peer_id(), sending_peer.address()),
-        );
-    }
+    assert_eq!(
+        test_data
+            .validator_network
+            .add_connection
+            .next()
+            .await
+            .expect("Should add reserved nodes"),
+        (sending_peer.peer_id(), sending_peer.address()),
+    );
 
     let mut expected_authentication = HashMap::new();
-    let mut expected_legacy_authentication = HashMap::new();
     for authority in test_data.authorities.iter().skip(1) {
         expected_authentication.insert(
             authority.auth_peer_id(),
             authentication(&sending_peer_handler),
         );
-        expected_legacy_authentication.insert(
-            authority.auth_peer_id(),
-            legacy_authentication(&sending_peer_handler),
-        );
     }
 
     let mut sent_authentication = HashMap::new();
-    let mut sent_legacy_authentication = HashMap::new();
-    while sent_authentication.len() < NODES_N - 1 || sent_legacy_authentication.len() < NODES_N - 1
-    {
+    while sent_authentication.len() < NODES_N - 1 {
         match test_data.next_sent_auth().await {
-            Some((
-                VersionedAuthentication::V1(LegacyDiscoveryMessage::AuthenticationBroadcast(auth)),
-                peer_id,
-                _,
-            )) => {
-                if auth != legacy_authentication(&handler) {
-                    sent_legacy_authentication.insert(peer_id, auth);
-                }
-            }
             Some((VersionedAuthentication::V2(auth), peer_id, _)) => {
                 if auth != authentication(&handler) {
                     sent_authentication.insert(peer_id, auth);
@@ -397,7 +357,6 @@ async fn test_forwards_authentication_broadcast() {
     }
 
     assert_eq!(sent_authentication, expected_authentication);
-    assert_eq!(sent_legacy_authentication, expected_legacy_authentication);
 
     test_data.cleanup().await;
     assert_eq!(
@@ -477,7 +436,7 @@ async fn test_stops_session() {
 
     // This assert should be before cleanup. We want to check whether `session_manager.stop_session(...)`
     // drops the sender. After cleanup all network tasks end and senders will be dropped.
-    // If assert was after cleanup we wouldn't know whether data_network receiver is droopped
+    // If assert was after cleanup we wouldn't know whether data_network receiver is dropped
     // because of `session_manager.stop_session(...)` or because of cleanup.
     assert_eq!(
         timeout(DEFAULT_TIMEOUT, data_network.next()).await,

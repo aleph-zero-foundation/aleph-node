@@ -173,15 +173,13 @@ impl Config {
 /// The connection manager service.
 pub struct Service<
     D: Data,
-    M: Data + Debug,
     NI: NetworkIdentity,
     CN: CliqueNetwork<NI::PeerId, NI::AddressingInformation, DataInSession<D>>,
-    GN: GossipNetwork<VersionedAuthentication<M, NI::AddressingInformation>>,
+    GN: GossipNetwork<VersionedAuthentication<NI::AddressingInformation>>,
 > where
     NI::PeerId: PublicKey,
-    NI::AddressingInformation: TryFrom<Vec<M>> + Into<Vec<M>>,
 {
-    manager: Manager<NI, M, D>,
+    manager: Manager<NI, D>,
     commands_from_user: mpsc::UnboundedReceiver<SessionCommand<D>>,
     messages_from_user: mpsc::UnboundedReceiver<(D, SessionId, Recipient)>,
     validator_network: CN,
@@ -213,14 +211,12 @@ impl<GE: Display> Display for Error<GE> {
 
 impl<
         D: Data,
-        M: Data + Debug,
         NI: NetworkIdentity,
         CN: CliqueNetwork<NI::PeerId, NI::AddressingInformation, DataInSession<D>>,
-        GN: GossipNetwork<VersionedAuthentication<M, NI::AddressingInformation>>,
-    > Service<D, M, NI, CN, GN>
+        GN: GossipNetwork<VersionedAuthentication<NI::AddressingInformation>>,
+    > Service<D, NI, CN, GN>
 where
     NI::PeerId: PublicKey,
-    NI::AddressingInformation: TryFrom<Vec<M>> + Into<Vec<M>>,
 {
     pub fn new(
         network_identity: NI,
@@ -228,7 +224,7 @@ where
         gossip_network: GN,
         config: Config,
     ) -> (
-        Service<D, M, NI, CN, GN>,
+        Service<D, NI, CN, GN>,
         impl SessionManager<D, Error = ManagerError>,
     ) {
         let Config {
@@ -262,7 +258,7 @@ where
 
     fn send_authentications(
         &mut self,
-        to_send: Vec<VersionedAuthentication<M, NI::AddressingInformation>>,
+        to_send: Vec<VersionedAuthentication<NI::AddressingInformation>>,
     ) -> Result<(), Error<GN::Error>> {
         for auth in to_send {
             self.gossip_network
@@ -296,7 +292,7 @@ where
         ManagerActions {
             maybe_command,
             maybe_message,
-        }: ManagerActions<M, NI::AddressingInformation>,
+        }: ManagerActions<NI::AddressingInformation>,
     ) -> Result<(), Error<GN::Error>> {
         if let Some(command) = maybe_command {
             self.handle_connection_command(command);
@@ -312,7 +308,7 @@ where
     async fn handle_command(
         &mut self,
         command: SessionCommand<D>,
-    ) -> Result<ManagerActions<M, NI::AddressingInformation>, SessionHandlerError> {
+    ) -> Result<ManagerActions<NI::AddressingInformation>, SessionHandlerError> {
         use SessionCommand::*;
         match command {
             StartValidator(session_id, verifier, node_id, pen, result_for_user) => {
