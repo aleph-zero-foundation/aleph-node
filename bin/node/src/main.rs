@@ -4,27 +4,29 @@ use aleph_node::{new_authority, new_full, new_partial, Cli, Subcommand};
 #[cfg(feature = "try-runtime")]
 use aleph_runtime::Block;
 use log::warn;
-use sc_cli::{clap::Parser, SubstrateCli};
+use sc_cli::{clap::Parser, CliConfiguration, PruningParams, SubstrateCli};
 use sc_network::config::Role;
 use sc_service::PartialComponents;
 
+const STATE_PRUNING: &str = "archive";
+const BLOCKS_PRUNING: &str = "archive-canonical";
+
+fn pruning_changed(params: &PruningParams) -> bool {
+    let state_pruning_changed =
+        params.state_pruning != Some(STATE_PRUNING.into()) && params.state_pruning.is_some();
+
+    let blocks_pruning_changed =
+        params.blocks_pruning != Some(BLOCKS_PRUNING.into()) && params.blocks_pruning.is_some();
+
+    state_pruning_changed || blocks_pruning_changed
+}
+
 fn main() -> sc_cli::Result<()> {
     let mut cli = Cli::parse();
+    let overwritten_pruning = pruning_changed(&cli.run.import_params.pruning_params);
     if !cli.aleph.experimental_pruning() {
-        if cli
-            .run
-            .import_params
-            .pruning_params
-            .blocks_pruning
-            .is_some()
-            || cli.run.import_params.pruning_params.state_pruning != Some("archive".into())
-        {
-            warn!("Pruning not supported. Switching to keeping all block bodies and states.");
-            cli.run.import_params.pruning_params.blocks_pruning = None;
-            cli.run.import_params.pruning_params.state_pruning = Some("archive".into());
-        }
-    } else {
-        warn!("Pruning not supported, but flag experimental_pruning was turned on. Usage of this flag can lead to misbehaviour, which can be punished.");
+        cli.run.import_params.pruning_params.state_pruning = Some(STATE_PRUNING.into());
+        cli.run.import_params.pruning_params.blocks_pruning = Some(BLOCKS_PRUNING.into());
     }
 
     match &cli.subcommand {
@@ -112,6 +114,15 @@ fn main() -> sc_cli::Result<()> {
             .into()),
         None => {
             let runner = cli.create_runner(&cli.run)?;
+            if cli.aleph.experimental_pruning() {
+                warn!("Experimental_pruning was turned on. Usage of this flag can lead to misbehaviour, which can be punished. State pruning: {:?}; Blocks pruning: {:?};", 
+                    cli.run.state_pruning()?.unwrap_or_default(),
+                    cli.run.blocks_pruning()?,
+                );
+            } else if overwritten_pruning {
+                warn!("Pruning not supported. Switching to keeping all block bodies and states.");
+            }
+
             let aleph_cli_config = cli.aleph;
             runner.run_node_until_exit(|config| async move {
                 match config.role {
@@ -124,5 +135,33 @@ fn main() -> sc_cli::Result<()> {
                 }
             })
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use sc_service::{BlocksPruning, PruningMode};
+
+    use super::{PruningParams, BLOCKS_PRUNING, STATE_PRUNING};
+
+    #[test]
+    fn pruning_sanity_check() {
+        let state_pruning = Some(String::from(STATE_PRUNING));
+        let blocks_pruning = Some(String::from(BLOCKS_PRUNING));
+
+        let pruning_params = PruningParams {
+            state_pruning,
+            blocks_pruning,
+        };
+
+        assert_eq!(
+            pruning_params.blocks_pruning().unwrap(),
+            BlocksPruning::KeepFinalized
+        );
+
+        assert_eq!(
+            pruning_params.state_pruning().unwrap().unwrap(),
+            PruningMode::ArchiveAll
+        );
     }
 }

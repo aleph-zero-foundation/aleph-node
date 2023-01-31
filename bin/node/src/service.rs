@@ -28,7 +28,7 @@ use sp_blockchain::Backend as _;
 use sp_consensus_aura::{sr25519::AuthorityPair as AuraPair, Slot};
 use sp_runtime::{
     generic::BlockId,
-    traits::{Block as BlockT, Header as HeaderT, Zero},
+    traits::{Block as BlockT, Header as HeaderT},
 };
 
 use crate::{aleph_cli::AlephCli, chain_spec::DEFAULT_BACKUP_FOLDER, executor::AlephExecutor};
@@ -311,17 +311,19 @@ pub fn new_authority(
             .path(),
     );
 
+    let finalized = client.info().finalized_number;
+
     let session_period = SessionPeriod(
         client
             .runtime_api()
-            .session_period(&BlockId::Number(Zero::zero()))
+            .session_period(&BlockId::Number(finalized))
             .unwrap(),
     );
 
     let millisecs_per_block = MillisecsPerBlock(
         client
             .runtime_api()
-            .millisecs_per_block(&BlockId::Number(Zero::zero()))
+            .millisecs_per_block(&BlockId::Number(finalized))
             .unwrap(),
     );
 
@@ -452,17 +454,19 @@ pub fn new_full(
         justification_tx,
     )?;
 
+    let finalized = client.info().finalized_number;
+
     let session_period = SessionPeriod(
         client
             .runtime_api()
-            .session_period(&BlockId::Number(Zero::zero()))
+            .session_period(&BlockId::Number(finalized))
             .unwrap(),
     );
 
     let millisecs_per_block = MillisecsPerBlock(
         client
             .runtime_api()
-            .millisecs_per_block(&BlockId::Number(Zero::zero()))
+            .millisecs_per_block(&BlockId::Number(finalized))
             .unwrap(),
     );
 
