@@ -31,13 +31,13 @@ use frame_support::{
     traits::{OneSessionHandler, StorageVersion},
 };
 pub use pallet::*;
-use primitives::{SessionIndex, Version, VersionChange};
+use primitives::{
+    SessionIndex, Version, VersionChange, DEFAULT_FINALITY_VERSION, LEGACY_FINALITY_VERSION,
+};
 use sp_std::prelude::*;
 
 /// The current storage version.
 const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
-
-const DEFAULT_FINALITY_VERSION: Version = 1;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -48,6 +48,7 @@ pub mod pallet {
     };
     use pallet_session::SessionManager;
     use pallets_support::StorageMigration;
+    use sp_std::marker::PhantomData;
 
     use super::*;
     use crate::traits::{NextSessionAuthorityProvider, SessionInfoProvider};
@@ -303,5 +304,28 @@ pub mod pallet {
         }
 
         fn on_disabled(_validator_index: u32) {}
+    }
+
+    #[pallet::genesis_config]
+    pub struct GenesisConfig<T: Config> {
+        pub finality_version: Version,
+        pub _marker: PhantomData<T>,
+    }
+
+    #[cfg(feature = "std")]
+    impl<T: Config> Default for GenesisConfig<T> {
+        fn default() -> Self {
+            Self {
+                finality_version: LEGACY_FINALITY_VERSION as u32,
+                _marker: Default::default(),
+            }
+        }
+    }
+
+    #[pallet::genesis_build]
+    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+        fn build(&self) {
+            <FinalityVersion<T>>::put(&self.finality_version);
+        }
     }
 }

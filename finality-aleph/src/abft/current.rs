@@ -1,3 +1,4 @@
+pub use aleph_primitives::CURRENT_FINALITY_VERSION as VERSION;
 use current_aleph_bft::{default_config, Config, LocalIO, Terminator};
 use log::debug;
 use sp_blockchain::HeaderBackend;
@@ -15,9 +16,6 @@ use crate::{
     },
     CurrentNetworkData, Hasher, Keychain, NodeIndex, SessionId, SignatureSet, UnitCreationDelay,
 };
-
-/// Version of the current abft
-pub const VERSION: u16 = 2;
 
 pub fn run_member<
     B: Block,

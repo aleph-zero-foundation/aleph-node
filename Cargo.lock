@@ -290,7 +290,7 @@ dependencies = [
 
 [[package]]
 name = "aleph-runtime"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "frame-executive",
  "frame-support",
@@ -1886,7 +1886,7 @@ dependencies = [
 
 [[package]]
 name = "finality-aleph"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "aggregator 0.2.1",
  "aggregator 0.3.0",
@@ -4187,7 +4187,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-aleph"
-version = "0.5.4"
+version = "0.5.5"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -4978,7 +4978,7 @@ dependencies = [
 
 [[package]]
 name = "primitives"
-version = "0.5.4"
+version = "0.5.5"
 dependencies = [
  "parity-scale-codec",
  "scale-info",

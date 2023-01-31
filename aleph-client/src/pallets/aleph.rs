@@ -1,8 +1,9 @@
 use codec::Encode;
-use primitives::{BlockNumber, SessionIndex};
+use primitives::{BlockNumber, SessionIndex, Version};
 use subxt::rpc_params;
 
 use crate::{
+    api,
     api::runtime_types::{
         pallet_aleph::pallet::Call::set_emergency_finalizer, primitives::app::Public,
         sp_core::ed25519::Public as EdPublic,
@@ -15,6 +16,15 @@ use crate::{
 };
 
 // TODO replace docs with link to pallet aleph docs, once they are published
+/// Pallet aleph API which does not require sudo.
+#[async_trait::async_trait]
+pub trait AlephApi {
+    /// Gets the current finality version.
+    async fn finality_version(&self, at: Option<BlockHash>) -> Version;
+    /// Gets the finality version for the next session.
+    async fn next_session_finality_version(&self, at: Option<BlockHash>) -> Version;
+}
+
 /// Pallet aleph API that requires sudo.
 #[async_trait::async_trait]
 pub trait AlephSudoApi {
@@ -55,6 +65,23 @@ pub trait AlephRpc {
         hash: BlockHash,
         key_pair: AlephKeyPair,
     ) -> anyhow::Result<()>;
+}
+
+#[async_trait::async_trait]
+impl<C: ConnectionApi> AlephApi for C {
+    async fn finality_version(&self, at: Option<BlockHash>) -> Version {
+        let addrs = api::storage().aleph().finality_version();
+
+        self.get_storage_entry(&addrs, at).await
+    }
+
+    async fn next_session_finality_version(&self, hash: Option<BlockHash>) -> Version {
+        let method = "state_call";
+        let api_method = "AlephSessionApi_next_session_finality_version";
+        let params = rpc_params![api_method, "0x", hash];
+
+        self.rpc_call(method.to_string(), params).await.unwrap()
+    }
 }
 
 #[async_trait::async_trait]

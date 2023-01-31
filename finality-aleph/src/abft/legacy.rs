@@ -1,3 +1,4 @@
+pub use aleph_primitives::LEGACY_FINALITY_VERSION as VERSION;
 use legacy_aleph_bft::{default_config, Config, LocalIO, Terminator};
 use log::debug;
 use sp_blockchain::HeaderBackend;
@@ -15,9 +16,6 @@ use crate::{
     },
     Keychain, LegacyNetworkData, NodeIndex, SessionId, UnitCreationDelay,
 };
-
-/// Version of the legacy abft
-pub const VERSION: u16 = 1;
 
 pub fn run_member<
     B: Block,

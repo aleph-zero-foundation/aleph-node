@@ -5,6 +5,10 @@ pub use electing_validators::authorities_are_staking;
 pub use era_payout::era_payouts_calculated_correctly;
 pub use era_validators::era_validators;
 pub use fee::fee_calculation;
+pub use finality_version::{
+    finality_version_change, schedule_doomed_version_change_and_verify_finalization_stopped,
+    schedule_version_change,
+};
 pub use finalization::finalization;
 pub use high_latency::{high_out_latency_for_all, high_out_latency_for_each_quorum};
 pub use rewards::{
@@ -15,9 +19,6 @@ pub use transfer::token_transfer;
 pub use treasury::{channeling_fee_and_tip, treasury_access};
 pub use utility::batch_transactions;
 pub use validators_rotate::validators_rotate;
-pub use version_upgrade::{
-    schedule_doomed_version_change_and_verify_finalization_stopped, schedule_version_change,
-};
 
 mod adder;
 mod ban;
@@ -25,6 +26,7 @@ mod electing_validators;
 mod era_payout;
 mod era_validators;
 mod fee;
+mod finality_version;
 mod finalization;
 mod helpers;
 mod high_latency;
@@ -35,4 +37,3 @@ mod treasury;
 mod utility;
 mod validators_change;
 mod validators_rotate;
-mod version_upgrade;

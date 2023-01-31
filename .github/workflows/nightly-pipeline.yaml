@@ -158,22 +158,6 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  run-e2e-authorities-are-staking:
-    needs: [build-test-docker, build-test-client]
-    name: Run authorities are staking test
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v2
-
-      - name: Run e2e test
-        uses: ./.github/actions/run-e2e-test
-        with:
-          test-case: authorities_are_staking
-          node-count: 6
-          follow-up-finalization-check: true
-        timeout-minutes: 60
-
   run-e2e-high-out-latency:
     needs: [build-synthetic-network-docker, build-test-client]
     name: Run high out-latency test
@@ -210,7 +194,6 @@ jobs:
 
   check-e2e-test-suite-completion:
     needs: [
-      run-e2e-authorities-are-staking,
       run-e2e-high-out-latency,
       run-e2e-no-quorum-without-high-out-latency,
     ]
