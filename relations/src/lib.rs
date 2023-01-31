@@ -25,8 +25,10 @@ pub use relation::GetPublicInput;
 pub use serialization::serialize;
 pub use shielder::{
     bytes_from_note, compute_note, compute_parent_hash, note_from_bytes, types::*,
-    DepositAndMergeRelation, DepositRelationWithFullInput, DepositRelationWithPublicInput,
-    DepositRelationWithoutInput, WithdrawRelation,
+    DepositAndMergeRelationWithFullInput, DepositAndMergeRelationWithPublicInput,
+    DepositAndMergeRelationWithoutInput, DepositRelationWithFullInput,
+    DepositRelationWithPublicInput, DepositRelationWithoutInput, WithdrawRelationWithFullInput,
+    WithdrawRelationWithPublicInput, WithdrawRelationWithoutInput,
 };
 pub use utils::*;
 pub use xor::{XorRelationWithFullInput, XorRelationWithPublicInput, XorRelationWithoutInput};

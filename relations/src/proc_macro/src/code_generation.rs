@@ -100,6 +100,7 @@ fn generate_relation_with_public(ir: &IR) -> SynResult<TokenStream2> {
             #(#backend_decls),*
         }
         impl #struct_name {
+            #[allow(clippy::too_many_arguments)]
             pub fn new(#(#frontend_decls),*) -> Self {
                 Self { #(#castings),* }
             }
@@ -160,6 +161,7 @@ fn generate_relation_with_full(ir: &IR) -> SynResult<TokenStream2> {
             #(#backend_decls),*
         }
         impl #struct_name {
+            #[allow(clippy::too_many_arguments)]
             pub fn new(#(#frontend_decls),*) -> Self {
                 Self { #(#castings),* }
             }
