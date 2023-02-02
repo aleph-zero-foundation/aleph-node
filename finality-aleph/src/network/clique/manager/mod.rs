@@ -232,6 +232,10 @@ impl<PK: PublicKey + PeerId, A: Data, D: Data> Manager<PK, A, D> {
     pub fn status_report(&self) -> impl Display {
         ManagerStatus::new(self)
     }
+
+    pub fn is_authorized(&self, public_key: &PK) -> bool {
+        self.wanted.interested(public_key)
+    }
 }
 
 #[cfg(test)]

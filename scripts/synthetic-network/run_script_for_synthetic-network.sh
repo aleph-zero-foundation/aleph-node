@@ -50,7 +50,7 @@ if [[ "$UPDATE" = true ]]; then
     git submodule update
 fi
 
-cd synthetic-network/frontend
+cd scripts/synthetic-network/vendor/synthetic-network/frontend
 
 log "running .js script"
 node $SCRIPT_PATH ${@:1}

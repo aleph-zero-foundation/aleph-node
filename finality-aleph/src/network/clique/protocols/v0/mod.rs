@@ -1,4 +1,7 @@
-use futures::{channel::mpsc, StreamExt};
+use futures::{
+    channel::{mpsc, oneshot},
+    StreamExt,
+};
 use log::{debug, info, trace};
 use tokio::io::{AsyncRead, AsyncWrite};
 
@@ -88,6 +91,7 @@ async fn receiving<PK: PublicKey, D: Data, S: AsyncRead + Unpin + Send>(
 pub async fn incoming<SK: SecretKey, D: Data, S: Splittable>(
     stream: S,
     secret_key: SK,
+    authorization_requests_sender: mpsc::UnboundedSender<(SK::PublicKey, oneshot::Sender<bool>)>,
     result_for_parent: mpsc::UnboundedSender<ResultForService<SK::PublicKey, D>>,
     data_for_user: mpsc::UnboundedSender<D>,
 ) -> Result<(), ProtocolError<SK::PublicKey>> {
@@ -97,6 +101,10 @@ pub async fn incoming<SK: SecretKey, D: Data, S: Splittable>(
         target: LOG_TARGET,
         "Incoming handshake with {} finished successfully.", public_key
     );
+
+    if !check_authorization::<SK>(authorization_requests_sender, public_key.clone()).await? {
+        return Err(ProtocolError::NotAuthorized);
+    }
 
     let (tx_exit, mut exit) = mpsc::unbounded();
     result_for_parent
@@ -123,14 +131,32 @@ pub async fn incoming<SK: SecretKey, D: Data, S: Splittable>(
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use futures::{channel::mpsc, pin_mut, FutureExt, StreamExt};
+pub async fn check_authorization<SK: SecretKey>(
+    authorization_requests_sender: mpsc::UnboundedSender<(SK::PublicKey, oneshot::Sender<bool>)>,
+    public_key: SK::PublicKey,
+) -> Result<bool, ProtocolError<SK::PublicKey>> {
+    let (sender, receiver) = oneshot::channel();
+    authorization_requests_sender
+        .unbounded_send((public_key.clone(), sender))
+        .map_err(|_| ProtocolError::NoParentConnection)?;
+    receiver
+        .await
+        .map_err(|_| ProtocolError::NoParentConnection)
+}
 
-    use super::{incoming, outgoing, ProtocolError};
+#[cfg(test)]
+pub mod tests {
+    use futures::{
+        channel::{mpsc, oneshot},
+        pin_mut, Future, FutureExt, StreamExt,
+    };
+
     use crate::network::clique::{
         mock::{key, MockPrelims, MockSplittable},
-        protocols::ConnectionType,
+        protocols::{
+            v0::{incoming, outgoing},
+            ConnectionType, ProtocolError,
+        },
         Data,
     };
 
@@ -142,9 +168,11 @@ mod tests {
         let (incoming_result_for_service, result_from_incoming) = mpsc::unbounded();
         let (outgoing_result_for_service, result_from_outgoing) = mpsc::unbounded();
         let (data_for_user, data_from_incoming) = mpsc::unbounded::<D>();
+        let (authorization_requests_sender, authorization_requests) = mpsc::unbounded();
         let incoming_handle = Box::pin(incoming(
             stream_incoming,
             pen_incoming.clone(),
+            authorization_requests_sender,
             incoming_result_for_service,
             data_for_user,
         ));
@@ -165,7 +193,41 @@ mod tests {
             data_from_outgoing: None,
             result_from_incoming,
             result_from_outgoing,
+            authorization_requests,
         }
+    }
+
+    fn handle_authorization<PK: Send + 'static>(
+        mut authorization_requests: mpsc::UnboundedReceiver<(PK, oneshot::Sender<bool>)>,
+        handler: impl FnOnce(PK) -> bool + Send + 'static,
+    ) -> impl Future<Output = Result<(), ()>> {
+        tokio::spawn(async move {
+            let (public_key, response_sender) = authorization_requests
+                .next()
+                .await
+                .expect("We should recieve at least one authorization request.");
+            let authorization_result = handler(public_key);
+            response_sender
+                .send(authorization_result)
+                .expect("We should be able to send back an authorization response.");
+            Result::<(), ()>::Ok(())
+        })
+        .map(|result| match result {
+            Ok(ok) => ok,
+            Err(_) => Err(()),
+        })
+    }
+
+    fn all_pass_authorization_handler<PK: Send + 'static>(
+        authorization_requests: mpsc::UnboundedReceiver<(PK, oneshot::Sender<bool>)>,
+    ) -> impl Future<Output = Result<(), ()>> {
+        handle_authorization(authorization_requests, |_| true)
+    }
+
+    fn no_go_authorization_handler<PK: Send + 'static>(
+        authorization_requests: mpsc::UnboundedReceiver<(PK, oneshot::Sender<bool>)>,
+    ) -> impl Future<Output = Result<(), ()>> {
+        handle_authorization(authorization_requests, |_| false)
     }
 
     #[tokio::test]
@@ -176,8 +238,10 @@ mod tests {
             mut data_from_incoming,
             result_from_incoming: _result_from_incoming,
             mut result_from_outgoing,
+            authorization_requests,
             ..
         } = prepare::<Vec<i32>>();
+        let _authorization_handle = all_pass_authorization_handler(authorization_requests);
         let incoming_handle = incoming_handle.fuse();
         let outgoing_handle = outgoing_handle.fuse();
         pin_mut!(incoming_handle);
@@ -223,8 +287,10 @@ mod tests {
             data_from_incoming: _data_from_incoming,
             mut result_from_incoming,
             result_from_outgoing: _result_from_outgoing,
+            authorization_requests,
             ..
         } = prepare::<Vec<i32>>();
+        let _authorization_handle = all_pass_authorization_handler(authorization_requests);
         let incoming_handle = incoming_handle.fuse();
         let outgoing_handle = outgoing_handle.fuse();
         pin_mut!(incoming_handle);
@@ -252,8 +318,10 @@ mod tests {
             data_from_incoming: _data_from_incoming,
             result_from_incoming,
             result_from_outgoing: _result_from_outgoing,
+            authorization_requests,
             ..
         } = prepare::<Vec<i32>>();
+        let _authorization_handle = all_pass_authorization_handler(authorization_requests);
         std::mem::drop(result_from_incoming);
         let incoming_handle = incoming_handle.fuse();
         let outgoing_handle = outgoing_handle.fuse();
@@ -277,8 +345,10 @@ mod tests {
             data_from_incoming,
             result_from_incoming: _result_from_incoming,
             mut result_from_outgoing,
+            authorization_requests,
             ..
         } = prepare::<Vec<i32>>();
+        let _authorization_handle = all_pass_authorization_handler(authorization_requests);
         std::mem::drop(data_from_incoming);
         let incoming_handle = incoming_handle.fuse();
         let outgoing_handle = outgoing_handle.fuse();
@@ -315,8 +385,10 @@ mod tests {
             data_from_incoming: _data_from_incoming,
             result_from_incoming: _result_from_incoming,
             result_from_outgoing: _result_from_outgoing,
+            authorization_requests,
             ..
         } = prepare::<Vec<i32>>();
+        let _authorization_handle = all_pass_authorization_handler(authorization_requests);
         std::mem::drop(outgoing_handle);
         match incoming_handle.await {
             Err(ProtocolError::HandshakeError(_)) => (),
@@ -333,8 +405,10 @@ mod tests {
             data_from_incoming: _data_from_incoming,
             mut result_from_incoming,
             result_from_outgoing: _result_from_outgoing,
+            authorization_requests,
             ..
         } = prepare::<Vec<i32>>();
+        let _authorization_handle = all_pass_authorization_handler(authorization_requests);
         let incoming_handle = incoming_handle.fuse();
         pin_mut!(incoming_handle);
         let (_, _exit, connection_type) = tokio::select! {
@@ -359,8 +433,10 @@ mod tests {
             data_from_incoming: _data_from_incoming,
             result_from_incoming: _result_from_incoming,
             result_from_outgoing: _result_from_outgoing,
+            authorization_requests,
             ..
         } = prepare::<Vec<i32>>();
+        let _authorization_handle = all_pass_authorization_handler(authorization_requests);
         std::mem::drop(incoming_handle);
         match outgoing_handle.await {
             Err(ProtocolError::HandshakeError(_)) => (),
@@ -377,8 +453,10 @@ mod tests {
             data_from_incoming: _data_from_incoming,
             mut result_from_incoming,
             result_from_outgoing: _result_from_outgoing,
+            authorization_requests,
             ..
         } = prepare::<Vec<i32>>();
+        let _authorization_handle = all_pass_authorization_handler(authorization_requests);
         let outgoing_handle = outgoing_handle.fuse();
         pin_mut!(outgoing_handle);
         let (_, _exit, connection_type) = tokio::select! {
@@ -405,8 +483,10 @@ mod tests {
             data_from_incoming: _data_from_incoming,
             mut result_from_incoming,
             result_from_outgoing: _result_from_outgoing,
+            authorization_requests,
             ..
         } = prepare::<Vec<i32>>();
+        let _authorization_handle = all_pass_authorization_handler(authorization_requests);
         let outgoing_handle = outgoing_handle.fuse();
         pin_mut!(outgoing_handle);
         let (_, _exit, connection_type) = tokio::select! {
@@ -420,5 +500,34 @@ mod tests {
             Err(e) => panic!("unexpected error: {}", e),
             Ok(_) => panic!("successfully finished when connection dead"),
         };
+    }
+
+    #[tokio::test]
+    async fn do_not_call_sender_and_receiver_until_authorized() {
+        let MockPrelims {
+            incoming_handle,
+            outgoing_handle,
+            mut data_from_incoming,
+            mut result_from_incoming,
+            authorization_requests,
+            ..
+        } = prepare::<Vec<i32>>();
+
+        let authorization_handle = no_go_authorization_handler(authorization_requests);
+
+        // since we are returning `NotAuthorized` all except `outgoing_handle` should finish hapilly
+        let (incoming_result, outgoing_result, authorization_result) =
+            tokio::join!(incoming_handle, outgoing_handle, authorization_handle);
+
+        assert!(incoming_result.is_err());
+        assert!(outgoing_result.is_err());
+        // this also verifies if it was called at all
+        assert!(authorization_result.is_ok());
+
+        let data_from_incoming = data_from_incoming.try_next();
+        assert!(data_from_incoming.ok().flatten().is_none());
+
+        let result_from_incoming = result_from_incoming.try_next();
+        assert!(result_from_incoming.ok().flatten().is_none());
     }
 }

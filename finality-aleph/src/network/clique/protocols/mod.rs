@@ -1,6 +1,6 @@
 use std::fmt::{Display, Error as FmtError, Formatter};
 
-use futures::channel::mpsc;
+use futures::channel::{mpsc, oneshot};
 
 use crate::network::clique::{
     io::{ReceiveError, SendError},
@@ -57,6 +57,8 @@ pub enum ProtocolError<PK: PublicKey> {
     NoParentConnection,
     /// Data channel closed.
     NoUserConnection,
+    /// Authorization error.
+    NotAuthorized,
 }
 
 impl<PK: PublicKey> Display for ProtocolError<PK> {
@@ -69,6 +71,7 @@ impl<PK: PublicKey> Display for ProtocolError<PK> {
             CardiacArrest => write!(f, "heartbeat stopped"),
             NoParentConnection => write!(f, "cannot send result to service"),
             NoUserConnection => write!(f, "cannot send data to user"),
+            NotAuthorized => write!(f, "peer not authorized"),
         }
     }
 }
@@ -103,13 +106,35 @@ impl Protocol {
         &self,
         stream: S,
         secret_key: SK,
-        result_for_service: mpsc::UnboundedSender<ResultForService<SK::PublicKey, D>>,
+        result_for_parent: mpsc::UnboundedSender<ResultForService<SK::PublicKey, D>>,
         data_for_user: mpsc::UnboundedSender<D>,
+        authorization_requests_sender: mpsc::UnboundedSender<(
+            SK::PublicKey,
+            oneshot::Sender<bool>,
+        )>,
     ) -> Result<(), ProtocolError<SK::PublicKey>> {
         use Protocol::*;
         match self {
-            V0 => v0::incoming(stream, secret_key, result_for_service, data_for_user).await,
-            V1 => v1::incoming(stream, secret_key, result_for_service, data_for_user).await,
+            V0 => {
+                v0::incoming(
+                    stream,
+                    secret_key,
+                    authorization_requests_sender,
+                    result_for_parent,
+                    data_for_user,
+                )
+                .await
+            }
+            V1 => {
+                v1::incoming(
+                    stream,
+                    secret_key,
+                    authorization_requests_sender,
+                    result_for_parent,
+                    data_for_user,
+                )
+                .await
+            }
         }
     }
 

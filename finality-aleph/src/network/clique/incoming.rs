@@ -1,6 +1,6 @@
 use std::fmt::{Display, Error as FmtError, Formatter};
 
-use futures::channel::mpsc;
+use futures::channel::{mpsc, oneshot};
 use log::{debug, info};
 
 use crate::network::clique::{
@@ -40,6 +40,7 @@ async fn manage_incoming<SK: SecretKey, D: Data, S: Splittable>(
     stream: S,
     result_for_parent: mpsc::UnboundedSender<ResultForService<SK::PublicKey, D>>,
     data_for_user: mpsc::UnboundedSender<D>,
+    authorization_requests_sender: mpsc::UnboundedSender<(SK::PublicKey, oneshot::Sender<bool>)>,
 ) -> Result<(), IncomingError<SK::PublicKey>> {
     debug!(
         target: LOG_TARGET,
@@ -48,7 +49,13 @@ async fn manage_incoming<SK: SecretKey, D: Data, S: Splittable>(
     let (stream, protocol) = protocol(stream).await?;
     debug!(target: LOG_TARGET, "Negotiated protocol, running.");
     Ok(protocol
-        .manage_incoming(stream, secret_key, result_for_parent, data_for_user)
+        .manage_incoming(
+            stream,
+            secret_key,
+            result_for_parent,
+            data_for_user,
+            authorization_requests_sender,
+        )
         .await?)
 }
 
@@ -62,9 +69,18 @@ pub async fn incoming<SK: SecretKey, D: Data, S: Splittable>(
     stream: S,
     result_for_parent: mpsc::UnboundedSender<ResultForService<SK::PublicKey, D>>,
     data_for_user: mpsc::UnboundedSender<D>,
+    authorization_requests_sender: mpsc::UnboundedSender<(SK::PublicKey, oneshot::Sender<bool>)>,
 ) {
     let addr = stream.peer_address_info();
-    if let Err(e) = manage_incoming(secret_key, stream, result_for_parent, data_for_user).await {
+    if let Err(e) = manage_incoming(
+        secret_key,
+        stream,
+        result_for_parent,
+        data_for_user,
+        authorization_requests_sender,
+    )
+    .await
+    {
         info!(
             target: LOG_TARGET,
             "Incoming connection from {} failed: {}.", addr, e

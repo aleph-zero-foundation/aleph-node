@@ -554,4 +554,5 @@ pub struct MockPrelims<D> {
     pub data_from_outgoing: Option<UnboundedReceiver<D>>,
     pub result_from_incoming: UnboundedReceiver<ResultForService<MockPublicKey, D>>,
     pub result_from_outgoing: UnboundedReceiver<ResultForService<MockPublicKey, D>>,
+    pub authorization_requests: mpsc::UnboundedReceiver<(MockPublicKey, oneshot::Sender<bool>)>,
 }
