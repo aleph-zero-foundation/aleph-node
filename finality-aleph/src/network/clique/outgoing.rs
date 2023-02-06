@@ -5,9 +5,7 @@ use log::{debug, info};
 use tokio::time::{sleep, timeout, Duration};
 
 use crate::network::clique::{
-    protocols::{
-        protocol, ConnectionType, ProtocolError, ProtocolNegotiationError, ResultForService,
-    },
+    protocols::{protocol, ProtocolError, ProtocolNegotiationError, ResultForService},
     ConnectionInfo, Data, Dialer, PeerAddressInfo, PublicKey, SecretKey, LOG_TARGET,
 };
 
@@ -110,7 +108,7 @@ pub async fn outgoing<SK: SecretKey, D: Data, A: Data + Debug, ND: Dialer<A>>(
         // we send the "new" connection type, because we always assume it's new until proven
         // otherwise, and here we did not even get the chance to attempt negotiating a protocol
         if result_for_parent
-            .unbounded_send((public_key, None, ConnectionType::New))
+            .unbounded_send((public_key, None))
             .is_err()
         {
             debug!(target: LOG_TARGET, "Could not send the closing message, we've probably been terminated by the parent service.");

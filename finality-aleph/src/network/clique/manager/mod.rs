@@ -8,10 +8,7 @@ use futures::channel::mpsc;
 use crate::network::{clique::PublicKey, Data, PeerId};
 
 mod direction;
-mod legacy;
-
 use direction::DirectedPeers;
-pub use legacy::Manager as LegacyManager;
 
 /// Error during sending data through the Manager
 #[derive(Debug, PartialEq, Eq)]

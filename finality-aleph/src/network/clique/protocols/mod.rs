@@ -9,7 +9,6 @@ use crate::network::clique::{
 
 mod handshake;
 mod negotiation;
-mod v0;
 mod v1;
 
 use handshake::HandshakeError;
@@ -17,26 +16,14 @@ pub use negotiation::{protocol, ProtocolNegotiationError};
 
 pub type Version = u32;
 
-/// The types of connections needed for backwards compatibility with the legacy two connections
-/// protocol. Remove after it's no longer needed.
-#[derive(PartialEq, Debug, Eq, Clone, Copy)]
-pub enum ConnectionType {
-    New,
-    LegacyIncoming,
-    LegacyOutgoing,
-}
-
 /// What connections send back to the service after they become established. Starts with a public
 /// key of the remote node, followed by a channel for sending data to that node, with None if the
-/// connection was unsuccessful and should be reestablished. Finally a marker for legacy
-/// compatibility.
-pub type ResultForService<PK, D> = (PK, Option<mpsc::UnboundedSender<D>>, ConnectionType);
+/// connection was unsuccessful and should be reestablished.
+pub type ResultForService<PK, D> = (PK, Option<mpsc::UnboundedSender<D>>);
 
-/// Defines the protocol for communication.
+/// Defines the protocol for communication. Currently single variant, but left in case of protocol change.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Protocol {
-    /// The first version of the protocol, with unidirectional connections.
-    V0,
     /// The current version of the protocol, with pseudorandom connection direction and
     /// multiplexing.
     V1,
@@ -96,7 +83,7 @@ impl<PK: PublicKey> From<ReceiveError> for ProtocolError<PK> {
 
 impl Protocol {
     /// Minimal supported protocol version.
-    const MIN_VERSION: Version = 0;
+    const MIN_VERSION: Version = 1;
 
     /// Maximal supported protocol version.
     const MAX_VERSION: Version = 1;
@@ -115,16 +102,6 @@ impl Protocol {
     ) -> Result<(), ProtocolError<SK::PublicKey>> {
         use Protocol::*;
         match self {
-            V0 => {
-                v0::incoming(
-                    stream,
-                    secret_key,
-                    authorization_requests_sender,
-                    result_for_parent,
-                    data_for_user,
-                )
-                .await
-            }
             V1 => {
                 v1::incoming(
                     stream,
@@ -149,7 +126,6 @@ impl Protocol {
     ) -> Result<(), ProtocolError<SK::PublicKey>> {
         use Protocol::*;
         match self {
-            V0 => v0::outgoing(stream, secret_key, public_key, result_for_service).await,
             V1 => {
                 v1::outgoing(
                     stream,
@@ -169,7 +145,6 @@ impl TryFrom<Version> for Protocol {
 
     fn try_from(version: Version) -> Result<Self, Self::Error> {
         match version {
-            0 => Ok(Protocol::V0),
             1 => Ok(Protocol::V1),
             unknown_version => Err(unknown_version),
         }

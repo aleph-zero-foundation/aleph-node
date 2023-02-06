@@ -13,8 +13,7 @@ use crate::network::clique::{
     io::{receive_data, send_data},
     protocols::{
         handshake::{v0_handshake_incoming, v0_handshake_outgoing},
-        v0::check_authorization,
-        ConnectionType, ProtocolError, ResultForService,
+        ProtocolError, ResultForService,
     },
     Data, PublicKey, SecretKey, Splittable, LOG_TARGET,
 };
@@ -26,6 +25,19 @@ const MAX_MISSED_HEARTBEATS: u32 = 4;
 enum Message<D: Data> {
     Data(D),
     Heartbeat,
+}
+
+async fn check_authorization<SK: SecretKey>(
+    authorization_requests_sender: mpsc::UnboundedSender<(SK::PublicKey, oneshot::Sender<bool>)>,
+    public_key: SK::PublicKey,
+) -> Result<bool, ProtocolError<SK::PublicKey>> {
+    let (sender, receiver) = oneshot::channel();
+    authorization_requests_sender
+        .unbounded_send((public_key.clone(), sender))
+        .map_err(|_| ProtocolError::NoParentConnection)?;
+    receiver
+        .await
+        .map_err(|_| ProtocolError::NoParentConnection)
 }
 
 async fn sending<PK: PublicKey, D: Data, S: AsyncWrite + Unpin + Send>(
@@ -104,11 +116,7 @@ pub async fn outgoing<SK: SecretKey, D: Data, S: Splittable>(
     );
     let (data_for_network, data_from_user) = mpsc::unbounded();
     result_for_parent
-        .unbounded_send((
-            public_key.clone(),
-            Some(data_for_network),
-            ConnectionType::New,
-        ))
+        .unbounded_send((public_key.clone(), Some(data_for_network)))
         .map_err(|_| ProtocolError::NoParentConnection)?;
 
     debug!(
@@ -141,11 +149,7 @@ pub async fn incoming<SK: SecretKey, D: Data, S: Splittable>(
 
     let (data_for_network, data_from_user) = mpsc::unbounded();
     result_for_parent
-        .unbounded_send((
-            public_key.clone(),
-            Some(data_for_network),
-            ConnectionType::New,
-        ))
+        .unbounded_send((public_key.clone(), Some(data_for_network)))
         .map_err(|_| ProtocolError::NoParentConnection)?;
     debug!(
         target: LOG_TARGET,
@@ -165,7 +169,7 @@ mod tests {
         mock::{key, MockPrelims, MockSplittable},
         protocols::{
             v1::{incoming, outgoing},
-            ConnectionType, ProtocolError,
+            ProtocolError,
         },
         Data,
     };
@@ -264,8 +268,7 @@ mod tests {
             _ = &mut incoming_handle => panic!("incoming process unexpectedly finished"),
             _ = &mut outgoing_handle => panic!("outgoing process unexpectedly finished"),
             result = result_from_outgoing.next() => {
-                let (_, maybe_data_for_outgoing, connection_type) = result.expect("the channel shouldn't be dropped");
-                assert_eq!(connection_type, ConnectionType::New);
+                let (_, maybe_data_for_outgoing) = result.expect("the channel shouldn't be dropped");
                 let data_for_outgoing = maybe_data_for_outgoing.expect("successfully connected");
                 data_for_outgoing
                     .unbounded_send(vec![4, 3, 43])
@@ -280,8 +283,7 @@ mod tests {
             _ = &mut incoming_handle => panic!("incoming process unexpectedly finished"),
             _ = &mut outgoing_handle => panic!("outgoing process unexpectedly finished"),
             result = result_from_incoming.next() => {
-                let (_, maybe_data_for_incoming, connection_type) = result.expect("the channel shouldn't be dropped");
-                assert_eq!(connection_type, ConnectionType::New);
+                let (_, maybe_data_for_incoming) = result.expect("the channel shouldn't be dropped");
                 let data_for_incoming = maybe_data_for_incoming.expect("successfully connected");
                 data_for_incoming
                     .unbounded_send(vec![5, 4, 44])
@@ -345,8 +347,7 @@ mod tests {
             _ = &mut outgoing_handle => panic!("outgoing process unexpectedly finished"),
             received = result_from_incoming.next() => {
                 // we drop the data sending channel, thus finishing incoming_handle
-                let (received_id, _, connection_type) = received.expect("the channel shouldn't be dropped");
-                assert_eq!(connection_type, ConnectionType::New);
+                let (received_id, _) = received.expect("the channel shouldn't be dropped");
                 assert_eq!(received_id, id_outgoing);
             },
         };
@@ -405,8 +406,7 @@ mod tests {
             _ = &mut incoming_handle => panic!("incoming process unexpectedly finished"),
             _ = &mut outgoing_handle => panic!("outgoing process unexpectedly finished"),
             result = result_from_outgoing.next() => {
-                let (_, maybe_data_for_outgoing, connection_type) = result.expect("the channel shouldn't be dropped");
-                assert_eq!(connection_type, ConnectionType::New);
+                let (_, maybe_data_for_outgoing) = result.expect("the channel shouldn't be dropped");
                 let data_for_outgoing = maybe_data_for_outgoing.expect("successfully connected");
                 data_for_outgoing
                     .unbounded_send(vec![2, 1, 3, 7])
@@ -460,12 +460,11 @@ mod tests {
         let _authorization_handle = all_pass_authorization_handler(authorization_requests);
         let incoming_handle = incoming_handle.fuse();
         pin_mut!(incoming_handle);
-        let (_, _exit, connection_type) = tokio::select! {
+        let (_, _exit) = tokio::select! {
             _ = &mut incoming_handle => panic!("incoming process unexpectedly finished"),
             _ = outgoing_handle => panic!("outgoing process unexpectedly finished"),
             out = result_from_incoming.next() => out.expect("should receive"),
         };
-        assert_eq!(connection_type, ConnectionType::New);
         // outgoing_handle got consumed by tokio::select!, the sender is dead
         match incoming_handle.await {
             Err(ProtocolError::ReceiveError(_)) => (),
