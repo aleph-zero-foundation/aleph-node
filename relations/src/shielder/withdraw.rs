@@ -18,11 +18,13 @@ use snark_relation_proc_macro::snark_relation;
 mod relation {
     use core::ops::Add;
 
-    use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget, fields::fp::FpVar, ToBytesGadget};
+    use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget, fields::fp::FpVar};
     use ark_relations::ns;
 
     use crate::shielder::{
-        check_merkle_proof, convert_account, convert_hash, convert_vec,
+        check_merkle_proof,
+        circuit_utils::PathShapeVar,
+        convert_account, convert_hash, convert_vec,
         note::check_note,
         types::{
             BackendAccount, BackendLeafIndex, BackendMerklePath, BackendMerkleRoot, BackendNote,
@@ -127,10 +129,15 @@ mod relation {
         //------------------------
         // Check the merkle proof.
         //------------------------
+        let merkle_root = FpVar::new_input(ns!(cs, "merkle root"), || self.merkle_root())?;
+        let path_shape = PathShapeVar::new_witness(ns!(cs, "path shape"), || {
+            Ok((*self.max_path_len(), self.leaf_index().cloned()))
+        })?;
+
         check_merkle_proof(
-            self.merkle_root(),
-            self.leaf_index(),
-            old_note.to_bytes()?,
+            merkle_root,
+            path_shape,
+            old_note,
             self.merkle_path().cloned().unwrap_or_default(),
             *self.max_path_len(),
             cs,
@@ -151,7 +158,7 @@ mod tests {
         FrontendAccount,
     };
 
-    const MAX_PATH_LEN: u8 = 10;
+    const MAX_PATH_LEN: u8 = 4;
 
     fn get_circuit_with_full_input() -> WithdrawRelationWithFullInput {
         let token_id: FrontendTokenId = 1;
@@ -169,13 +176,22 @@ mod tests {
         let old_note = compute_note(token_id, whole_token_amount, old_trapdoor, old_nullifier);
         let new_note = compute_note(token_id, new_token_amount, new_trapdoor, new_nullifier);
 
-        // Our leaf has a left bro. Their parent has a right bro. Our grandpa is the root.
+        //                                          merkle root
+        //                placeholder                                        x
+        //        1                          x                     x                         x
+        //   2        3                x          x            x       x                 x       x
+        // 4  *5*   6   7            x   x      x   x        x   x   x   x             x   x   x   x
         let leaf_index = 5;
 
-        let sibling_note = compute_note(0, 1, 2, 3);
-        let parent_note = compute_parent_hash(sibling_note, old_note);
-        let uncle_note = compute_note(4, 5, 6, 7);
-        let merkle_root = compute_parent_hash(parent_note, uncle_note);
+        let zero_note = FrontendNote::default(); // x
+
+        let sibling_note = compute_note(0, 1, 2, 3); // 4
+        let parent_note = compute_parent_hash(sibling_note, old_note); // 2
+        let uncle_note = compute_note(4, 5, 6, 7); // 3
+        let grandpa_root = compute_parent_hash(parent_note, uncle_note); // 1
+
+        let placeholder = compute_parent_hash(grandpa_root, zero_note);
+        let merkle_root = compute_parent_hash(placeholder, zero_note);
 
         let merkle_path = vec![sibling_note, uncle_note];
 

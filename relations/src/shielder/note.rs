@@ -1,18 +1,16 @@
 //! Module exposing some utilities regarding note generation and verification.
 
-use ark_ff::{BigInteger, BigInteger256};
-use ark_r1cs_std::{eq::EqGadget, ToBytesGadget};
+use ark_r1cs_std::eq::EqGadget;
 use ark_relations::r1cs::SynthesisError;
 use ark_std::{vec, vec::Vec};
 
 use super::{
-    tangle::{tangle, tangle_in_field},
+    tangle::{tangle, tangle_in_circuit},
     types::{
-        ByteVar, FrontendNote, FrontendNullifier, FrontendTokenAmount, FrontendTokenId,
-        FrontendTrapdoor,
+        FrontendNote, FrontendNullifier, FrontendTokenAmount, FrontendTokenId, FrontendTrapdoor,
     },
 };
-use crate::environment::FpVar;
+use crate::{environment::FpVar, shielder::convert_hash, CircuitField};
 
 /// Verify that `note` is indeed the result of tangling `(token_id, token_amount, trapdoor,
 /// nullifier)`.
@@ -25,19 +23,14 @@ pub(super) fn check_note(
     nullifier: &FpVar,
     note: &FpVar,
 ) -> Result<(), SynthesisError> {
-    let bytes: Vec<ByteVar> = [
-        token_id.to_bytes()?,
-        token_amount.to_bytes()?,
-        trapdoor.to_bytes()?,
-        nullifier.to_bytes()?,
-    ]
-    .concat();
-    let bytes = tangle_in_field::<4>(bytes)?;
+    let tangled = tangle_in_circuit(&vec![
+        token_id.clone(),
+        token_amount.clone(),
+        trapdoor.clone(),
+        nullifier.clone(),
+    ])?;
 
-    for (a, b) in note.to_bytes()?.iter().zip(bytes.iter()) {
-        a.enforce_equal(b)?;
-    }
-    Ok(())
+    tangled.enforce_equal(note)
 }
 
 /// Compute note as the result of tangling `(token_id, token_amount, trapdoor, nullifier)`.
@@ -49,24 +42,18 @@ pub fn compute_note(
     trapdoor: FrontendTrapdoor,
     nullifier: FrontendNullifier,
 ) -> FrontendNote {
-    let bytes = [
-        BigInteger256::from(token_id as u64).to_bytes_le(),
-        BigInteger256::from(token_amount).to_bytes_le(),
-        BigInteger256::from(trapdoor).to_bytes_le(),
-        BigInteger256::from(nullifier).to_bytes_le(),
-    ]
-    .concat();
-
-    note_from_bytes(tangle::<4>(bytes).as_slice())
+    tangle(&[
+        CircuitField::from(token_id as u64),
+        CircuitField::from(token_amount),
+        CircuitField::from(trapdoor),
+        CircuitField::from(nullifier),
+    ])
+    .0
+     .0
 }
 
 pub fn compute_parent_hash(left: FrontendNote, right: FrontendNote) -> FrontendNote {
-    let bytes = [
-        BigInteger256::new(left).to_bytes_le(),
-        BigInteger256::new(right).to_bytes_le(),
-    ]
-    .concat();
-    note_from_bytes(tangle::<2>(bytes).as_slice())
+    tangle(&[convert_hash(left), convert_hash(right)]).0 .0
 }
 
 /// Create a note from the first 32 bytes of `bytes`.

@@ -1,13 +1,8 @@
-use ark_ff::BigInteger256;
 use ark_r1cs_std::alloc::AllocVar;
 use ark_relations::ns;
 use snark_relation_proc_macro::snark_relation;
 
 use crate::{BackendNote, FrontendNote};
-
-fn convert_note(front: FrontendNote) -> BackendNote {
-    BackendNote::from(BigInteger256::new(front))
-}
 
 /// 'Deposit' relation for the Shielder application.
 ///
@@ -18,6 +13,7 @@ mod relation {
     use crate::{
         environment::FpVar,
         shielder::{
+            convert_hash,
             note::check_note,
             types::{
                 BackendNullifier, BackendTokenAmount, BackendTokenId, BackendTrapdoor,
@@ -28,7 +24,7 @@ mod relation {
 
     #[relation_object_definition]
     struct DepositRelation {
-        #[public_input(frontend_type = "FrontendNote", parse_with = "convert_note")]
+        #[public_input(frontend_type = "FrontendNote", parse_with = "convert_hash")]
         pub note: BackendNote,
         #[public_input(frontend_type = "FrontendTokenId")]
         pub token_id: BackendTokenId,

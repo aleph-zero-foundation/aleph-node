@@ -27,36 +27,5 @@ pub type BackendTokenId = CircuitField;
 pub type BackendTokenAmount = CircuitField;
 pub type BackendMerkleRoot = CircuitField;
 pub type BackendMerklePath = Vec<CircuitField>;
-pub type BackendLeafIndex = CircuitField;
+pub type BackendLeafIndex = u64;
 pub type BackendAccount = CircuitField;
-
-/*
-This is a setup for using Pedersen hashing (with field element compressing). It would work well, but
-there is a serious problem with keeping/retrieving parameters in the contract. With the window
-parameters defined below, serialized parameters take ~133kB. On the other hand, generating them
-exhausts block capacity.
-
-
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
-pub struct PedersenWindow;
-// We can hash 8 * 128 = 1024 bits.
-impl pedersen::Window for PedersenWindow {
-    const WINDOW_SIZE: usize = 8;
-    const NUM_WINDOWS: usize = 128;
-}
-
-pub type HashFunction = PedersenCRHCompressor<EdwardsProjective, TECompressor, PedersenWindow>;
-pub type HashFunctionParameters = <HashFunction as CRHTrait>::Parameters;
-pub type Hash = <HashFunction as CRHTrait>::Output;
-
-pub type HashFunctionGadget = PedersenCRHCompressorGadget<
-    EdwardsProjective,
-    TECompressor,
-    PedersenWindow,
-    EdwardsVar,
-    TECompressorGadget,
->;
-pub type HashFunctionParametersVar =
-    <HashFunctionGadget as CRHGadget<HashFunction, CircuitField>>::ParametersVar;
-pub type HashVar = <HashFunctionGadget as CRHGadget<HashFunction, CircuitField>>::OutputVar;
- */
