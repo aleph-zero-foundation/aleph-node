@@ -2,6 +2,7 @@ use std::fmt::{Display, Error as FmtError, Formatter};
 
 use crate::sync::{mock::MockJustification, Verifier};
 
+#[derive(Debug)]
 pub struct MockVerifier;
 
 #[derive(Debug)]

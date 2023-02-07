@@ -3,13 +3,12 @@ use std::collections::{
     HashMap, HashSet,
 };
 
-use crate::sync::{BlockIdentifier, Header, Justification, PeerId};
+use crate::sync::{BlockIdFor, BlockIdentifier, Header, Justification, PeerId};
 
 mod vertex;
 
-use vertex::{JustificationAddResult, Vertex};
-
-type BlockIdFor<J> = <<J as Justification>::Header as Header>::Identifier;
+pub use vertex::JustificationAddResult;
+use vertex::Vertex;
 
 pub struct JustificationWithParent<J: Justification> {
     pub justification: J,

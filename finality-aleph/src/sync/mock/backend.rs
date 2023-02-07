@@ -13,7 +13,7 @@ use crate::sync::{
     Justification as JustificationT,
 };
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct MockBlock {
     header: MockHeader,
     justification: Option<MockJustification>,
@@ -36,23 +36,18 @@ impl MockBlock {
     }
 }
 
+#[derive(Clone, Debug)]
 struct BackendStorage {
     blockchain: HashMap<MockIdentifier, MockBlock>,
-    top_finalized: MockIdentifier,
+    finalized: Vec<MockIdentifier>,
     best_block: MockIdentifier,
     genesis_block: MockIdentifier,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Backend {
     inner: Arc<Mutex<BackendStorage>>,
     notification_sender: UnboundedSender<MockNotification>,
-}
-
-pub fn setup() -> (Backend, impl ChainStatusNotifier<MockIdentifier>) {
-    let (notification_sender, notification_receiver) = mpsc::unbounded();
-
-    (Backend::new(notification_sender), notification_receiver)
 }
 
 fn is_predecessor(
@@ -77,6 +72,12 @@ fn is_predecessor(
 }
 
 impl Backend {
+    pub fn setup() -> (Self, impl ChainStatusNotifier<MockIdentifier>) {
+        let (notification_sender, notification_receiver) = mpsc::unbounded();
+
+        (Backend::new(notification_sender), notification_receiver)
+    }
+
     fn new(notification_sender: UnboundedSender<MockNotification>) -> Self {
         let header = MockHeader::random_parentless(0);
         let id = header.id();
@@ -88,7 +89,7 @@ impl Backend {
 
         let storage = Arc::new(Mutex::new(BackendStorage {
             blockchain: HashMap::from([(id.clone(), block)]),
-            top_finalized: id.clone(),
+            finalized: vec![id.clone()],
             best_block: id.clone(),
             genesis_block: id,
         }));
@@ -186,10 +187,11 @@ impl Finalizer<MockJustification> for Backend {
             panic!("finalizing block without a finalized parent: {:?}", header);
         }
 
-        if parent_id != storage.top_finalized {
+        if &parent_id != storage.finalized.last().expect("there is a top finalized") {
             panic!(
                 "finalizing block whose parent is not top finalized: {:?}. Top is {:?}",
-                header, storage.top_finalized
+                header,
+                storage.finalized.last().expect("there is a top finalized")
             );
         }
 
@@ -200,7 +202,7 @@ impl Finalizer<MockJustification> for Backend {
         };
 
         block.finalize(justification);
-        storage.top_finalized = id.clone();
+        storage.finalized.push(id.clone());
         // In case finalization changes best block, we set best block, to top finalized.
         // Whenever a new import happens, best block will update anyway.
         if !is_predecessor(
@@ -246,6 +248,19 @@ impl ChainStatus<MockJustification> for Backend {
         }
     }
 
+    fn finalized_at(&self, number: u32) -> Result<Option<MockJustification>, Self::Error> {
+        let storage = self.inner.lock();
+        let id = match storage.finalized.get(number as usize) {
+            Some(id) => id,
+            None => return Ok(None),
+        };
+        storage
+            .blockchain
+            .get(id)
+            .ok_or(StatusError)
+            .map(|b| b.justification.clone())
+    }
+
     fn best_block(&self) -> Result<MockHeader, Self::Error> {
         let storage = self.inner.lock();
         let id = storage.best_block.clone();
@@ -258,7 +273,11 @@ impl ChainStatus<MockJustification> for Backend {
 
     fn top_finalized(&self) -> Result<MockJustification, Self::Error> {
         let storage = self.inner.lock();
-        let id = storage.top_finalized.clone();
+        let id = storage
+            .finalized
+            .last()
+            .expect("there is a top finalized")
+            .clone();
         storage
             .blockchain
             .get(&id)

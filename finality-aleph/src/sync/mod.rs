@@ -7,6 +7,7 @@ use codec::Codec;
 
 mod data;
 mod forest;
+mod handler;
 #[cfg(test)]
 mod mock;
 mod substrate;
@@ -23,7 +24,7 @@ pub trait PeerId: Clone + Hash + Eq {}
 impl<T: Clone + Hash + Eq> PeerId for T {}
 
 /// The identifier of a block, the least amount of knowledge we can have about a block.
-pub trait BlockIdentifier: Clone + Hash + Debug + Eq {
+pub trait BlockIdentifier: Clone + Hash + Debug + Eq + Codec + Send + Sync + 'static {
     /// The block number, useful when reasoning about hopeless forks.
     fn number(&self) -> u32;
 }
@@ -35,7 +36,7 @@ pub trait Requester<BI: BlockIdentifier> {
 }
 
 /// The header of a block, containing information about the parent relation.
-pub trait Header: Clone {
+pub trait Header: Clone + Codec + Send + Sync + 'static {
     type Identifier: BlockIdentifier;
 
     /// The identifier of this block.
@@ -46,9 +47,9 @@ pub trait Header: Clone {
 }
 
 /// The verified justification of a block, including a header.
-pub trait Justification: Clone {
+pub trait Justification: Clone + Send + Sync + 'static {
     type Header: Header;
-    type Unverified: Clone + Codec + Debug;
+    type Unverified: Clone + Codec + Debug + Send + Sync + 'static;
 
     /// The header of the block.
     fn header(&self) -> &Self::Header;
@@ -56,6 +57,8 @@ pub trait Justification: Clone {
     /// Return an unverified version of this, for sending over the network.
     fn into_unverified(self) -> Self::Unverified;
 }
+
+type BlockIdFor<J> = <<J as Justification>::Header as Header>::Identifier;
 
 /// A verifier of justifications.
 pub trait Verifier<J: Justification> {
@@ -76,6 +79,7 @@ pub trait Finalizer<J: Justification> {
 }
 
 /// A notification about the chain status changing.
+#[derive(Clone, Debug)]
 pub enum ChainStatusNotification<BI: BlockIdentifier> {
     /// A block has been imported.
     BlockImported(BI),
@@ -111,6 +115,10 @@ pub trait ChainStatus<J: Justification> {
         &self,
         id: <J::Header as Header>::Identifier,
     ) -> Result<BlockStatus<J>, Self::Error>;
+
+    /// The justification at this block number, if we have it. Should return None if the
+    /// request is above the top finalized.
+    fn finalized_at(&self, number: u32) -> Result<Option<J>, Self::Error>;
 
     /// The header of the best block.
     fn best_block(&self) -> Result<J::Header, Self::Error>;

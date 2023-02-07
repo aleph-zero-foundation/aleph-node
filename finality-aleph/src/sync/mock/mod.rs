@@ -4,8 +4,7 @@ use codec::{Decode, Encode};
 use sp_core::H256;
 
 use crate::sync::{
-    BlockIdentifier, BlockStatus, ChainStatusNotification, ChainStatusNotifier, Header,
-    Justification as JustificationT, Verifier,
+    BlockIdentifier, BlockStatus, ChainStatusNotification, Header, Justification as JustificationT,
 };
 
 mod backend;
@@ -134,14 +133,3 @@ impl JustificationT for MockJustification {
 
 type MockNotification = ChainStatusNotification<MockIdentifier>;
 type MockBlockStatus = BlockStatus<MockJustification>;
-
-pub fn setup() -> (
-    Backend,
-    impl Verifier<MockJustification>,
-    impl ChainStatusNotifier<MockIdentifier>,
-) {
-    let (backend, notifier) = backend::setup();
-    let verifier = MockVerifier;
-
-    (backend, verifier, notifier)
-}

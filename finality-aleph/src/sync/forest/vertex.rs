@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::sync::{forest::BlockIdFor, Justification, PeerId};
+use crate::sync::{BlockIdFor, Justification, PeerId};
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq)]
 enum HeaderImportance {
