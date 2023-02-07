@@ -26,11 +26,12 @@
 //! All the index intervals used here are closed-open, i.e. they are in form `[a, b)`, which means
 //! that we consider indices `a`, `a+1`, ..., `b-1`. We also use 0-based indexing.
 
-use std::ops::Add;
+use core::ops::Add;
 
 use ark_ff::{Field, Zero};
 use ark_r1cs_std::fields::FieldVar;
 use ark_relations::r1cs::SynthesisError;
+use ark_std::vec::Vec;
 
 use crate::{environment::FpVar, CircuitField};
 
