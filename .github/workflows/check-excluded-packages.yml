@@ -81,5 +81,19 @@ jobs:
             popd
           done
 
+      - name: Install nono
+        run: cargo install cargo-nono
+
+      - name: Assert that packages are compatible with no-std
+        run: |
+          packages=("relations" "bin/runtime/src/chain_extension/snarcos-extension")
+          for p in ${packages[@]}
+          do
+            echo "Checking package $p..."
+            pushd "$p"
+            cargo nono check --no-default-features
+            popd
+          done
+
       - name: Cleanup cache
         uses: ./.github/actions/post-cache
