@@ -1,5 +1,5 @@
 use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
-use quote::quote;
+use quote::quote_spanned;
 use syn::{spanned::Spanned, Error as SynError, Result as SynResult};
 
 use crate::intermediate_representation::{PublicInputField, RelationField};
@@ -37,10 +37,10 @@ pub(super) fn field_frontend_decls<F: Into<RelationField> + Clone>(
         let backend_type = &rf.field.ty;
 
         maybe_frontend_type.as_ref().map_or_else(
-            || quote! { #ident: #backend_type },
+            || quote_spanned! { rf.span()=> #ident: #backend_type },
             |ft| {
                 let ft = Ident::new(ft.as_str(), Span::call_site());
-                quote! { #ident: #ft }
+                quote_spanned! { rf.span()=> #ident: #ft }
             },
         )
     })
@@ -52,7 +52,7 @@ pub(super) fn field_backend_decls<F: Into<RelationField> + Clone>(
 ) -> Vec<TokenStream2> {
     map_fields_with_ident(fields, |rf, ident| {
         let ty = &rf.field.ty;
-        quote! { #ident: #ty }
+        quote_spanned! { rf.span()=> #ident: #ty }
     })
 }
 
@@ -65,10 +65,10 @@ pub(super) fn field_serializations(fields: &[PublicInputField], obj: &Ident) -> 
         .map(|f| {
             let ident = get_ident(&f.inner);
             match &f.serialize_with {
-                None => quote! { ark_std::vec![ #obj . #ident ] },
+                None => quote_spanned! { f.span()=> ark_std::vec![ #obj . #ident ] },
                 Some(serializer) => {
                     let serializer = Ident::new(serializer, Span::call_site());
-                    quote! { #serializer ( & #obj . #ident ) }
+                    quote_spanned! { f.span()=> #serializer ( & #obj . #ident ) }
                 }
             }
         })
@@ -80,8 +80,8 @@ pub(super) fn field_rewrites<F: Into<RelationField> + Clone>(
     fields: &[F],
     obj: &Ident,
 ) -> Vec<TokenStream2> {
-    map_fields_with_ident(fields, |_, ident| {
-        quote! { #ident : #obj . #ident }
+    map_fields_with_ident(fields, |rf, ident| {
+        quote_spanned! { rf.span()=> #ident : #obj . #ident }
     })
 }
 
@@ -98,15 +98,15 @@ pub(super) fn field_castings<F: Into<RelationField> + Clone>(
         let maybe_parser = &rf.parse_with;
 
         match (maybe_frontend_type, maybe_parser) {
-            (None, None) => Ok(quote! { #ident }),
+            (None, None) => Ok(quote_spanned! {rf.span()=> #ident }),
             (None, Some(_)) => Err(SynError::new(
                 rf.field.span(),
                 "Parser is provided, but frontend type is absent.",
             )),
-            (Some(_), None) => Ok(quote! { #ident : #ident . into() }),
+            (Some(_), None) => Ok(quote_spanned! { rf.span()=> #ident : #ident . into() }),
             (Some(_), Some(parser)) => {
                 let parser = Ident::new(parser, Span::call_site());
-                Ok(quote! { #ident : #parser ( #ident ) })
+                Ok(quote_spanned! { rf.span()=> #ident : #parser ( #ident ) })
             }
         }
     })
@@ -120,7 +120,7 @@ pub(super) fn plain_field_getters<F: Into<RelationField> + Clone>(
 ) -> Vec<TokenStream2> {
     map_fields_with_ident(fields, |rf, ident| {
         let backend_type = &rf.field.ty;
-        quote! {
+        quote_spanned! { rf.span()=>
             pub fn #ident(&self) -> & #backend_type {
                 &self . #ident
             }
@@ -139,7 +139,7 @@ pub(super) fn successful_field_getters<F: Into<RelationField> + Clone>(
 ) -> Vec<TokenStream2> {
     map_fields_with_ident(fields, |rf, ident| {
         let backend_type = &rf.field.ty;
-        quote! {
+        quote_spanned! { rf.span()=>
             pub fn #ident(&self) -> core::result::Result<& #backend_type, ark_relations::r1cs::SynthesisError> {
                 Ok(&self . #ident)
             }
@@ -158,7 +158,7 @@ pub(super) fn failing_field_getters<F: Into<RelationField> + Clone>(
 ) -> Vec<TokenStream2> {
     map_fields_with_ident(fields, |rf, ident| {
         let backend_type = &rf.field.ty;
-        quote! {
+        quote_spanned! { rf.span()=>
             pub fn #ident(&self) -> core::result::Result<& #backend_type, ark_relations::r1cs::SynthesisError> {
                 Err(ark_relations::r1cs::SynthesisError::AssignmentMissing)
             }

@@ -45,6 +45,12 @@ pub(super) struct RelationField {
     pub parse_with: Option<String>,
 }
 
+impl RelationField {
+    pub fn span(&self) -> Span {
+        self.field.span()
+    }
+}
+
 impl TryFrom<Field> for RelationField {
     type Error = SynError;
 
@@ -67,6 +73,12 @@ pub(super) struct PublicInputField {
     pub inner: RelationField,
     /// The value of the `serialize_with` modifier, if any.
     pub serialize_with: Option<String>,
+}
+
+impl PublicInputField {
+    pub fn span(&self) -> Span {
+        self.inner.span()
+    }
 }
 
 impl From<PublicInputField> for RelationField {

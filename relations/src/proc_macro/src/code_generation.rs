@@ -1,6 +1,6 @@
 use proc_macro2::{Ident, Span, TokenStream as TokenStream2};
-use quote::quote;
-use syn::Result as SynResult;
+use quote::quote_spanned;
+use syn::{spanned::Spanned, Result as SynResult};
 
 use crate::{
     generation_utils::{
@@ -13,10 +13,14 @@ use crate::{
 
 /// Generates the whole code based on the intermediate representation.
 pub(super) fn generate_code(ir: IR) -> SynResult<TokenStream2> {
-    let imports = &ir.imports;
+    let imports = ir
+        .imports
+        .iter()
+        .map(|i| quote_spanned!(i.span()=> #i))
+        .collect();
 
     let blocks = [
-        quote! { #(#imports)* },
+        imports,
         generate_relation_without_input(&ir)?,
         generate_relation_with_public(&ir)?,
         generate_relation_with_full(&ir)?,
@@ -39,11 +43,14 @@ fn generate_relation_without_input(ir: &IR) -> SynResult<TokenStream2> {
     ]
     .concat();
 
-    Ok(quote! {
+    Ok(quote_spanned! { ir.relation_base_name.span()=>
         pub struct #struct_name {
             #(#const_backend_decls),*
         }
         impl #struct_name {
+            #[allow(clippy::too_many_arguments)]
+            #[allow(clippy::new_without_default)]
+            #[allow(clippy::useless_conversion)]
             pub fn new(#(#const_frontend_decls),*) -> Self {
                 Self { #(#const_castings),* }
             }
@@ -54,12 +61,19 @@ fn generate_relation_without_input(ir: &IR) -> SynResult<TokenStream2> {
 
 fn generate_public_input_serialization(ir: &IR) -> SynResult<TokenStream2> {
     let accesses = field_serializations(&ir.public_inputs, &Ident::new("self", Span::call_site()));
+    let relation_span = ir.relation_base_name.span();
 
-    Ok(quote! {
-        pub fn serialize_public_input(&self) -> ark_std::vec::Vec<ark_bls12_381::Fr> {
-            [ #(#accesses),* ].concat()
-        }
-    })
+    if accesses.is_empty() {
+        Ok(quote_spanned! { relation_span=>
+            pub fn serialize_public_input(&self) -> ark_std::vec::Vec<ark_bls12_381::Fr> { ark_std::vec![] }
+        })
+    } else {
+        Ok(quote_spanned! { relation_span=>
+            pub fn serialize_public_input(&self) -> ark_std::vec::Vec<ark_bls12_381::Fr> {
+                [ #(#accesses),* ].concat()
+            }
+        })
+    }
 }
 
 /// Generates struct, constructor, getters, public input serialization and downcasting for the
@@ -95,12 +109,14 @@ fn generate_relation_with_public(ir: &IR) -> SynResult<TokenStream2> {
 
     let public_input_serialization = generate_public_input_serialization(ir)?;
 
-    Ok(quote! {
+    Ok(quote_spanned! { ir.relation_base_name.span()=>
         pub struct #struct_name {
             #(#backend_decls),*
         }
         impl #struct_name {
             #[allow(clippy::too_many_arguments)]
+            #[allow(clippy::new_without_default)]
+            #[allow(clippy::useless_conversion)]
             pub fn new(#(#frontend_decls),*) -> Self {
                 Self { #(#castings),* }
             }
@@ -156,12 +172,14 @@ fn generate_relation_with_full(ir: &IR) -> SynResult<TokenStream2> {
     ]
     .concat();
 
-    Ok(quote! {
+    Ok(quote_spanned! { ir.relation_base_name.span()=>
         pub struct #struct_name {
             #(#backend_decls),*
         }
         impl #struct_name {
             #[allow(clippy::too_many_arguments)]
+            #[allow(clippy::new_without_default)]
+            #[allow(clippy::useless_conversion)]
             pub fn new(#(#frontend_decls),*) -> Self {
                 Self { #(#castings),* }
             }
@@ -184,7 +202,7 @@ fn generate_circuit_definitions(ir: &IR) -> TokenStream2 {
 
     let body = &ir.circuit_definition.block.stmts;
 
-    quote! {
+    quote_spanned! { ir.circuit_definition.span()=>
         impl ark_relations::r1cs::ConstraintSynthesizer<ark_bls12_381::Fr> for #struct_name_without_input {
             fn generate_constraints(
                 self,
