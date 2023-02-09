@@ -5,9 +5,9 @@ use relations::{
     DepositRelationWithFullInput, DepositRelationWithPublicInput, DepositRelationWithoutInput,
     FrontendAccount, FrontendLeafIndex, FrontendMerklePath, FrontendMerkleRoot, FrontendNote,
     FrontendNullifier, FrontendTokenAmount, FrontendTokenId, FrontendTrapdoor, GetPublicInput,
-    LinearEquationRelation, MerkleTreeRelation, Result as R1CsResult, Root,
-    WithdrawRelationWithFullInput, WithdrawRelationWithPublicInput, WithdrawRelationWithoutInput,
-    XorRelationWithFullInput, XorRelationWithPublicInput,
+    LinearEquationRelationWithFullInput, LinearEquationRelationWithPublicInput, MerkleTreeRelation,
+    Result as R1CsResult, Root, WithdrawRelationWithFullInput, WithdrawRelationWithPublicInput,
+    WithdrawRelationWithoutInput, XorRelationWithFullInput, XorRelationWithPublicInput,
 };
 
 use crate::snark_relations::parsing::{
@@ -208,7 +208,7 @@ impl ConstraintSynthesizer<CircuitField> for RelationArgs {
                 .generate_constraints(cs),
 
             RelationArgs::LinearEquation { a, x, b, y } => {
-                LinearEquationRelation::with_full_input(a, x, b, y).generate_constraints(cs)
+                LinearEquationRelationWithFullInput::new(a, x, b, y).generate_constraints(cs)
             }
 
             RelationArgs::MerkleTree {
@@ -339,7 +339,7 @@ impl GetPublicInput<CircuitField> for RelationArgs {
             } => XorRelationWithPublicInput::new(*result, *public_xoree).serialize_public_input(),
 
             RelationArgs::LinearEquation { a, b, y, .. } => {
-                LinearEquationRelation::without_input(*a, *b, *y).public_input()
+                LinearEquationRelationWithPublicInput::new(*a, *b, *y).serialize_public_input()
             }
 
             RelationArgs::MerkleTree {

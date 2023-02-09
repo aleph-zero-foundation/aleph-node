@@ -13,9 +13,6 @@ mod relation {
 
     use crate::byte_to_bits;
 
-    #[circuit_field]
-    pub type CircuitField = crate::CircuitField;
-
     #[relation_object_definition]
     struct XorRelation {
         // ToDo: Especially for Groth16, it is better to provide public input as a field element.

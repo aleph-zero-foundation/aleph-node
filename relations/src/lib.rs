@@ -17,7 +17,10 @@ pub use environment::{
     CircuitField, Groth16, Marlin, MarlinPolynomialCommitment, NonUniversalSystem, ProvingSystem,
     RawKeys, UniversalSystem, GM17,
 };
-pub use linear::LinearEquationRelation;
+pub use linear::{
+    LinearEquationRelationWithFullInput, LinearEquationRelationWithPublicInput,
+    LinearEquationRelationWithoutInput,
+};
 pub use merkle_tree::{MerkleTreeRelation, Root};
 #[cfg(any(feature = "preimage", feature = "preimage-std"))]
 pub use preimage::PreimageRelation;

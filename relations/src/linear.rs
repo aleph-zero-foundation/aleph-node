@@ -1,77 +1,41 @@
-use ark_ff::PrimeField;
-use ark_r1cs_std::{
-    prelude::{AllocVar, EqGadget},
-    uint32::UInt32,
-};
-use ark_relations::r1cs::{
-    ConstraintSynthesizer, ConstraintSystemRef, SynthesisError, SynthesisError::AssignmentMissing,
-};
-use ark_std::{marker::PhantomData, vec::Vec};
-
-use crate::{
-    relation::{
-        state::{FullInput, NoInput, State},
-        GetPublicInput,
-    },
-    CircuitField,
-};
+use snark_relation_proc_macro::snark_relation;
 
 /// Linear equation relation: a*x + b = y
 ///
 /// Relation with:
 ///  - 1 private witness (x)
-///  - 3 constants        (a, b, y)
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-pub struct LinearEquationRelation<S: State> {
-    /// constant (a slope)
-    pub a: u32,
-    /// private witness
-    pub x: Option<u32>,
-    /// constant(an intercept)
-    pub b: u32,
-    /// constant
-    pub y: u32,
+///  - 3 constants       (a, b, y)
+#[snark_relation]
+mod relation {
+    use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget, uint32::UInt32};
 
-    _phantom: PhantomData<S>,
-}
-
-impl LinearEquationRelation<NoInput> {
-    pub fn without_input(a: u32, b: u32, y: u32) -> Self {
-        Self {
-            a,
-            x: None,
-            b,
-            y,
-            _phantom: PhantomData,
-        }
+    #[relation_object_definition]
+    struct LinearEquationRelation {
+        /// slope
+        #[constant]
+        pub a: u32,
+        /// private witness
+        #[private_input]
+        pub x: u32,
+        /// an intercept
+        #[constant]
+        pub b: u32,
+        /// constant
+        #[constant]
+        pub y: u32,
     }
-}
 
-impl LinearEquationRelation<FullInput> {
-    pub fn with_full_input(a: u32, x: u32, b: u32, y: u32) -> Self {
-        Self {
-            a,
-            x: Some(x),
-            b,
-            y,
-            _phantom: PhantomData,
-        }
-    }
-}
-
-impl<Field: PrimeField, S: State> ConstraintSynthesizer<Field> for LinearEquationRelation<S> {
-    fn generate_constraints(self, cs: ConstraintSystemRef<Field>) -> Result<(), SynthesisError> {
+    #[circuit_definition]
+    fn generate_constraints() {
         // TODO: migrate from real values to values in the finite field (see FpVar)
         // Watch out for overflows!!!
-        let x = UInt32::new_witness(ark_relations::ns!(cs, "x"), || {
-            self.x.ok_or(AssignmentMissing)
-        })?;
-        let b = UInt32::new_constant(ark_relations::ns!(cs, "b"), self.b)?;
-        let y = UInt32::new_constant(ark_relations::ns!(cs, "y"), self.y)?;
+        let x = UInt32::new_witness(ark_relations::ns!(cs, "x"), || self.x())?;
+        let b = UInt32::new_constant(ark_relations::ns!(cs, "b"), self.b())?;
+        let y = UInt32::new_constant(ark_relations::ns!(cs, "y"), self.y())?;
 
         let mut left = ark_std::iter::repeat(x)
-            .take(self.a as usize)
-            .collect::<Vec<UInt32<Field>>>();
+            .take(*self.a() as usize)
+            .collect::<Vec<UInt32<_>>>();
 
         left.push(b);
 
@@ -79,4 +43,51 @@ impl<Field: PrimeField, S: State> ConstraintSynthesizer<Field> for LinearEquatio
     }
 }
 
-impl<S: State> GetPublicInput<CircuitField> for LinearEquationRelation<S> {}
+#[cfg(test)]
+mod tests {
+    use ark_bls12_381::Bls12_381;
+    use ark_groth16::Groth16;
+    use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystem, ConstraintSystemRef};
+    use ark_snark::SNARK;
+
+    use super::*;
+    use crate::CircuitField;
+
+    const A: u32 = 2;
+    const X: u32 = 1;
+    const B: u32 = 1;
+    const Y: u32 = 3;
+
+    #[test]
+    fn linear_constraints_correctness() {
+        let circuit = LinearEquationRelationWithFullInput::new(A, B, Y, X);
+
+        let cs: ConstraintSystemRef<CircuitField> = ConstraintSystem::new_ref();
+        circuit.generate_constraints(cs.clone()).unwrap();
+
+        let is_satisfied = cs.is_satisfied().unwrap();
+        if !is_satisfied {
+            println!("{:?}", cs.which_is_unsatisfied());
+        }
+
+        assert!(is_satisfied);
+    }
+
+    #[test]
+    fn linear_proving_procedure() {
+        let circuit_wo_input = LinearEquationRelationWithoutInput::new(A, B, Y);
+
+        let mut rng = ark_std::test_rng();
+        let (pk, vk) =
+            Groth16::<Bls12_381>::circuit_specific_setup(circuit_wo_input, &mut rng).unwrap();
+
+        let circuit_with_public_input = LinearEquationRelationWithPublicInput::new(A, B, Y);
+        let input = circuit_with_public_input.serialize_public_input();
+
+        let circuit_with_full_input = LinearEquationRelationWithFullInput::new(A, B, Y, X);
+
+        let proof = Groth16::prove(&pk, circuit_with_full_input, &mut rng).unwrap();
+        let valid_proof = Groth16::verify(&vk, &input, &proof).unwrap();
+        assert!(valid_proof);
+    }
+}
