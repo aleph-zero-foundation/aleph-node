@@ -111,6 +111,7 @@ pub mod pallet {
         ///
         /// `key` can come from any proving system - there are no checks that verify it, in
         /// particular, `key` can contain just trash bytes.
+        #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::store_key(key.len() as u32))]
         pub fn store_key(
             _origin: OriginFor<T>,
@@ -123,6 +124,7 @@ pub mod pallet {
         /// Deletes a key stored under `identifier` in `VerificationKeys` map.
         ///
         /// Can only be called by a root account.
+        #[pallet::call_index(1)]
         #[pallet::weight(T::DbWeight::get().writes(1))]
         pub fn delete_key(
             origin: OriginFor<T>,
@@ -138,6 +140,7 @@ pub mod pallet {
         ///
         /// Fails if `key.len()` is greater than `MaximumVerificationKeyLength`.
         /// Can only be called by a root account.
+        #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::overwrite_key(key.len() as u32))]
         pub fn overwrite_key(
             origin: OriginFor<T>,
@@ -181,6 +184,7 @@ pub mod pallet {
                 ProvingSystem::Marlin => T::WeightInfo::verify_marlin(),
             }
         )]
+        #[pallet::call_index(3)]
         pub fn verify(
             _origin: OriginFor<T>,
             verification_key_identifier: VerificationKeyIdentifier,

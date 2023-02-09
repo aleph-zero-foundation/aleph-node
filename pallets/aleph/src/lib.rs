@@ -210,6 +210,7 @@ pub mod pallet {
     impl<T: Config> Pallet<T> {
         /// Sets the emergency finalization key. If called in session `N` the key can be used to
         /// finalize blocks from session `N+2` onwards, until it gets overridden.
+        #[pallet::call_index(0)]
         #[pallet::weight((T::BlockWeights::get().max_block, DispatchClass::Operational))]
         pub fn set_emergency_finalizer(
             origin: OriginFor<T>,
@@ -227,6 +228,7 @@ pub mod pallet {
         /// advance of the provided session of the version change.
         /// In order to cancel a scheduled version change, a new version change should be scheduled
         /// with the same version as the current one.
+        #[pallet::call_index(1)]
         #[pallet::weight((T::BlockWeights::get().max_block, DispatchClass::Operational))]
         pub fn schedule_finality_version_change(
             origin: OriginFor<T>,

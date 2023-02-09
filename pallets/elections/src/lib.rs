@@ -228,6 +228,7 @@ pub mod pallet {
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
+        #[pallet::call_index(0)]
         #[pallet::weight((T::BlockWeights::get().max_block, DispatchClass::Operational))]
         pub fn change_validators(
             origin: OriginFor<T>,
@@ -262,6 +263,7 @@ pub mod pallet {
         }
 
         /// Sets ban config, it has an immediate effect
+        #[pallet::call_index(1)]
         #[pallet::weight((T::BlockWeights::get().max_block, DispatchClass::Operational))]
         pub fn set_ban_config(
             origin: OriginFor<T>,
@@ -312,6 +314,7 @@ pub mod pallet {
         }
 
         /// Schedule a non-reserved node to be banned out from the committee at the end of the era
+        #[pallet::call_index(2)]
         #[pallet::weight((T::BlockWeights::get().max_block, DispatchClass::Operational))]
         pub fn ban_from_committee(
             origin: OriginFor<T>,
@@ -330,6 +333,7 @@ pub mod pallet {
         }
 
         /// Schedule a non-reserved node to be banned out from the committee at the end of the era
+        #[pallet::call_index(3)]
         #[pallet::weight((T::BlockWeights::get().max_block, DispatchClass::Operational))]
         pub fn cancel_ban(origin: OriginFor<T>, banned: T::AccountId) -> DispatchResult {
             ensure_root(origin)?;
@@ -339,6 +343,7 @@ pub mod pallet {
         }
 
         /// Set openness of the elections
+        #[pallet::call_index(4)]
         #[pallet::weight((T::BlockWeights::get().max_block, DispatchClass::Operational))]
         pub fn set_elections_openness(
             origin: OriginFor<T>,
