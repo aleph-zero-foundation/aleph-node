@@ -1,10 +1,10 @@
 use anyhow::Result;
-pub use pallet_snarcos::VerificationKeyIdentifier;
+pub use pallet_baby_liminal::VerificationKeyIdentifier;
 
 use crate::{
-    aleph_runtime::RuntimeCall::Snarcos,
+    aleph_runtime::RuntimeCall::BabyLiminal,
     api,
-    pallet_snarcos::{
+    pallet_baby_liminal::{
         pallet::Call::{delete_key, overwrite_key},
         systems::ProvingSystem,
     },
@@ -12,7 +12,7 @@ use crate::{
 };
 
 #[async_trait::async_trait]
-pub trait SnarcosUserApi {
+pub trait BabyLiminalUserApi {
     async fn store_key(
         &self,
         identifier: VerificationKeyIdentifier,
@@ -31,7 +31,7 @@ pub trait SnarcosUserApi {
 }
 
 #[async_trait::async_trait]
-pub trait SnarcosSudoApi {
+pub trait BabyLiminalSudoApi {
     async fn delete_key(
         &self,
         identifier: VerificationKeyIdentifier,
@@ -47,14 +47,14 @@ pub trait SnarcosSudoApi {
 }
 
 #[async_trait::async_trait]
-impl SnarcosUserApi for SignedConnection {
+impl BabyLiminalUserApi for SignedConnection {
     async fn store_key(
         &self,
         identifier: VerificationKeyIdentifier,
         key: Vec<u8>,
         status: TxStatus,
     ) -> Result<BlockHash> {
-        let tx = api::tx().snarcos().store_key(identifier, key);
+        let tx = api::tx().baby_liminal().store_key(identifier, key);
         self.send_tx(tx, status).await
     }
 
@@ -67,20 +67,20 @@ impl SnarcosUserApi for SignedConnection {
         status: TxStatus,
     ) -> Result<BlockHash> {
         let tx = api::tx()
-            .snarcos()
+            .baby_liminal()
             .verify(identifier, proof, public_input, system);
         self.send_tx(tx, status).await
     }
 }
 
 #[async_trait::async_trait]
-impl SnarcosSudoApi for RootConnection {
+impl BabyLiminalSudoApi for RootConnection {
     async fn delete_key(
         &self,
         identifier: VerificationKeyIdentifier,
         status: TxStatus,
     ) -> Result<BlockHash> {
-        let call = Snarcos(delete_key { identifier });
+        let call = BabyLiminal(delete_key { identifier });
         self.sudo_unchecked(call, status).await
     }
 
@@ -90,7 +90,7 @@ impl SnarcosSudoApi for RootConnection {
         key: Vec<u8>,
         status: TxStatus,
     ) -> Result<BlockHash> {
-        let call = Snarcos(overwrite_key { identifier, key });
+        let call = BabyLiminal(overwrite_key { identifier, key });
         self.sudo_unchecked(call, status).await
     }
 }

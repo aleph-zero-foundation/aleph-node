@@ -2,7 +2,7 @@ use core::iter::Sum;
 use std::{ops::Neg, sync::mpsc::Receiver};
 
 use environment::{CorruptedMode, MockedEnvironment, StandardMode, StoreKeyMode, VerifyMode};
-use pallet_snarcos::VerificationError;
+use pallet_baby_liminal::VerificationError;
 
 use super::*;
 use crate::chain_extension::tests::executor::{
@@ -70,7 +70,7 @@ fn charged(charging_listener: Receiver<RevertibleWeight>) -> RevertibleWeight {
 
 #[test]
 fn extension_is_enabled() {
-    assert!(SnarcosChainExtension::enabled())
+    assert!(BabyLiminalChainExtension::enabled())
 }
 
 #[test]
@@ -79,7 +79,7 @@ fn store_key__charges_before_reading() {
     let (env, charging_listener) = MockedEnvironment::<StoreKeyMode, CorruptedMode>::new(41, None);
     let key_length = env.approx_key_len();
 
-    let result = SnarcosChainExtension::snarcos_store_key::<_, Panicker>(env);
+    let result = BabyLiminalChainExtension::baby_liminal_store_key::<_, Panicker>(env);
 
     assert!(matches!(result, Err(_)));
     assert_eq!(
@@ -96,11 +96,11 @@ fn store_key__too_much_to_read() {
         Some(Box::new(|| panic!("Shouldn't read anything at all"))),
     );
 
-    let result = SnarcosChainExtension::snarcos_store_key::<_, Panicker>(env);
+    let result = BabyLiminalChainExtension::baby_liminal_store_key::<_, Panicker>(env);
 
     assert!(matches!(
         result,
-        Ok(RetVal::Converging(SNARCOS_STORE_KEY_TOO_LONG_KEY))
+        Ok(RetVal::Converging(BABY_LIMINAL_STORE_KEY_TOO_LONG_KEY))
     ));
     assert_eq!(charged(charging_listener), RevertibleWeight::ZERO);
 }
@@ -109,7 +109,7 @@ fn simulate_store_key<Exc: Executor>(expected_ret_val: u32) {
     let (env, charging_listener) =
         MockedEnvironment::<StoreKeyMode, StandardMode>::new(store_key_args());
 
-    let result = SnarcosChainExtension::snarcos_store_key::<_, Exc>(env);
+    let result = BabyLiminalChainExtension::baby_liminal_store_key::<_, Exc>(env);
 
     assert!(matches!(result, Ok(RetVal::Converging(ret_val)) if ret_val == expected_ret_val));
     assert_eq!(
@@ -122,7 +122,7 @@ fn simulate_store_key<Exc: Executor>(expected_ret_val: u32) {
 #[allow(non_snake_case)]
 fn store_key__pallet_says_too_long_vk() {
     simulate_store_key::<StoreKeyErrorer<{ VerificationKeyTooLong }>>(
-        SNARCOS_STORE_KEY_TOO_LONG_KEY,
+        BABY_LIMINAL_STORE_KEY_TOO_LONG_KEY,
     )
 }
 
@@ -130,14 +130,14 @@ fn store_key__pallet_says_too_long_vk() {
 #[allow(non_snake_case)]
 fn store_key__pallet_says_identifier_in_use() {
     simulate_store_key::<StoreKeyErrorer<{ IdentifierAlreadyInUse }>>(
-        SNARCOS_STORE_KEY_IDENTIFIER_IN_USE,
+        BABY_LIMINAL_STORE_KEY_IDENTIFIER_IN_USE,
     )
 }
 
 #[test]
 #[allow(non_snake_case)]
 fn store_key__positive_scenario() {
-    simulate_store_key::<StoreKeyOkayer>(SNARCOS_STORE_KEY_OK)
+    simulate_store_key::<StoreKeyOkayer>(BABY_LIMINAL_STORE_KEY_OK)
 }
 
 #[test]
@@ -145,7 +145,7 @@ fn store_key__positive_scenario() {
 fn verify__charges_before_reading() {
     let (env, charging_listener) = MockedEnvironment::<VerifyMode, CorruptedMode>::new(41, None);
 
-    let result = SnarcosChainExtension::snarcos_verify::<_, Panicker>(env);
+    let result = BabyLiminalChainExtension::baby_liminal_verify::<_, Panicker>(env);
 
     assert!(matches!(result, Err(_)));
     assert_eq!(charged(charging_listener), weight_of_verify(None).into());
@@ -159,7 +159,7 @@ fn simulate_verify<Exc: Executor, const ACTUAL_WEIGHT: Option<u64>, const EXPECT
     let (env, charging_listener) =
         MockedEnvironment::<VerifyMode, StandardMode>::new(verify_args());
 
-    let result = SnarcosChainExtension::snarcos_verify::<_, Exc>(env);
+    let result = BabyLiminalChainExtension::baby_liminal_verify::<_, Exc>(env);
 
     assert!(matches!(result, Ok(RetVal::Converging(ret_val)) if ret_val == EXPECTED_RET_VAL));
 
@@ -177,7 +177,7 @@ fn verify__pallet_says_proof_deserialization_failed() {
     simulate_verify::<
         VerifyErrorer<{ DeserializingProofFailed }, { Some(ADJUSTED_WEIGHT) }>,
         { Some(ADJUSTED_WEIGHT) },
-        SNARCOS_VERIFY_DESERIALIZING_PROOF_FAIL,
+        BABY_LIMINAL_VERIFY_DESERIALIZING_PROOF_FAIL,
     >()
 }
 
@@ -187,7 +187,7 @@ fn verify__pallet_says_input_deserialization_failed() {
     simulate_verify::<
         VerifyErrorer<{ DeserializingPublicInputFailed }, { Some(ADJUSTED_WEIGHT) }>,
         { Some(ADJUSTED_WEIGHT) },
-        SNARCOS_VERIFY_DESERIALIZING_INPUT_FAIL,
+        BABY_LIMINAL_VERIFY_DESERIALIZING_INPUT_FAIL,
     >()
 }
 
@@ -197,7 +197,7 @@ fn verify__pallet_says_no_such_vk() {
     simulate_verify::<
         VerifyErrorer<{ UnknownVerificationKeyIdentifier }, { Some(ADJUSTED_WEIGHT) }>,
         { Some(ADJUSTED_WEIGHT) },
-        SNARCOS_VERIFY_UNKNOWN_IDENTIFIER,
+        BABY_LIMINAL_VERIFY_UNKNOWN_IDENTIFIER,
     >()
 }
 
@@ -207,7 +207,7 @@ fn verify__pallet_says_vk_deserialization_failed() {
     simulate_verify::<
         VerifyErrorer<{ DeserializingVerificationKeyFailed }, { Some(ADJUSTED_WEIGHT) }>,
         { Some(ADJUSTED_WEIGHT) },
-        SNARCOS_VERIFY_DESERIALIZING_KEY_FAIL,
+        BABY_LIMINAL_VERIFY_DESERIALIZING_KEY_FAIL,
     >()
 }
 
@@ -217,7 +217,7 @@ fn verify__pallet_says_verification_failed() {
     simulate_verify::<
         VerifyErrorer<{ VerificationFailed(VerificationError::MalformedVerifyingKey) }, { None }>,
         { None },
-        SNARCOS_VERIFY_VERIFICATION_FAIL,
+        BABY_LIMINAL_VERIFY_VERIFICATION_FAIL,
     >()
 }
 
@@ -227,12 +227,12 @@ fn verify__pallet_says_incorrect_proof() {
     simulate_verify::<
         VerifyErrorer<{ IncorrectProof }, { None }>,
         { None },
-        SNARCOS_VERIFY_INCORRECT_PROOF,
+        BABY_LIMINAL_VERIFY_INCORRECT_PROOF,
     >()
 }
 
 #[test]
 #[allow(non_snake_case)]
 fn verify__positive_scenario() {
-    simulate_verify::<VerifyOkayer, { None }, SNARCOS_VERIFY_OK>()
+    simulate_verify::<VerifyOkayer, { None }, BABY_LIMINAL_VERIFY_OK>()
 }

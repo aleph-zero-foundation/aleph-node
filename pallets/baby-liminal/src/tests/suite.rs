@@ -5,7 +5,7 @@ use sp_runtime::traits::Get;
 use super::setup::*;
 use crate::{Error, ProvingSystem, VerificationError, VerificationKeyIdentifier, VerificationKeys};
 
-type Snarcos = crate::Pallet<TestRuntime>;
+type BabyLiminal = crate::Pallet<TestRuntime>;
 
 const IDENTIFIER: VerificationKeyIdentifier = [0; 4];
 const SYSTEM: ProvingSystem = ProvingSystem::Groth16;
@@ -37,7 +37,7 @@ fn put_key() {
 #[test]
 fn stores_vk_with_fresh_identifier() {
     new_test_ext().execute_with(|| {
-        assert_ok!(Snarcos::store_key(caller(), IDENTIFIER, vk()));
+        assert_ok!(BabyLiminal::store_key(caller(), IDENTIFIER, vk()));
 
         let stored_key = VerificationKeys::<TestRuntime>::get(IDENTIFIER);
         assert!(stored_key.is_some());
@@ -51,7 +51,7 @@ fn does_not_overwrite_registered_key() {
         put_key();
 
         assert_err!(
-            Snarcos::store_key(caller(), IDENTIFIER, vk()),
+            BabyLiminal::store_key(caller(), IDENTIFIER, vk()),
             Error::<TestRuntime>::IdentifierAlreadyInUse
         );
     });
@@ -61,7 +61,7 @@ fn does_not_overwrite_registered_key() {
 fn caller_cannot_delete_key() {
     new_test_ext().execute_with(|| {
         put_key();
-        assert_err!(Snarcos::delete_key(caller(), IDENTIFIER), BadOrigin);
+        assert_err!(BabyLiminal::delete_key(caller(), IDENTIFIER), BadOrigin);
     });
 }
 
@@ -69,7 +69,7 @@ fn caller_cannot_delete_key() {
 fn sudo_can_delete_key() {
     new_test_ext().execute_with(|| {
         put_key();
-        assert_ok!(Snarcos::delete_key(root(), IDENTIFIER));
+        assert_ok!(BabyLiminal::delete_key(root(), IDENTIFIER));
     });
 }
 
@@ -78,7 +78,7 @@ fn caller_cannot_overwrite_key() {
     new_test_ext().execute_with(|| {
         put_key();
         assert_err!(
-            Snarcos::overwrite_key(caller(), IDENTIFIER, vk()),
+            BabyLiminal::overwrite_key(caller(), IDENTIFIER, vk()),
             BadOrigin
         );
     });
@@ -88,7 +88,7 @@ fn caller_cannot_overwrite_key() {
 fn sudo_can_overwrite_key() {
     new_test_ext().execute_with(|| {
         put_key();
-        assert_ok!(Snarcos::overwrite_key(root(), IDENTIFIER, vk()));
+        assert_ok!(BabyLiminal::overwrite_key(root(), IDENTIFIER, vk()));
     });
 }
 
@@ -98,7 +98,7 @@ fn does_not_store_too_long_key() {
         let limit: u32 = <TestRuntime as crate::Config>::MaximumVerificationKeyLength::get();
 
         assert_err!(
-            Snarcos::store_key(caller(), IDENTIFIER, vec![0; (limit + 1) as usize]),
+            BabyLiminal::store_key(caller(), IDENTIFIER, vec![0; (limit + 1) as usize]),
             Error::<TestRuntime>::VerificationKeyTooLong
         );
     });
@@ -109,7 +109,7 @@ fn verifies_proof() {
     new_test_ext().execute_with(|| {
         put_key();
 
-        assert_ok!(Snarcos::verify(
+        assert_ok!(BabyLiminal::verify(
             caller(),
             IDENTIFIER,
             proof(),
@@ -124,7 +124,7 @@ fn verify_shouts_when_data_is_too_long() {
     new_test_ext().execute_with(|| {
         let limit: u32 = <TestRuntime as crate::Config>::MaximumDataLength::get();
 
-        let result = Snarcos::verify(
+        let result = BabyLiminal::verify(
             caller(),
             IDENTIFIER,
             vec![0; (limit + 1) as usize],
@@ -137,7 +137,7 @@ fn verify_shouts_when_data_is_too_long() {
         );
         assert!(result.unwrap_err().post_info.actual_weight.is_some());
 
-        let result = Snarcos::verify(
+        let result = BabyLiminal::verify(
             caller(),
             IDENTIFIER,
             proof(),
@@ -155,7 +155,7 @@ fn verify_shouts_when_data_is_too_long() {
 #[test]
 fn verify_shouts_when_no_key_was_registered() {
     new_test_ext().execute_with(|| {
-        let result = Snarcos::verify(caller(), IDENTIFIER, proof(), input(), SYSTEM);
+        let result = BabyLiminal::verify(caller(), IDENTIFIER, proof(), input(), SYSTEM);
 
         assert_err!(
             result.map_err(|e| e.error),
@@ -173,7 +173,7 @@ fn verify_shouts_when_key_is_not_deserializable() {
             BoundedVec::try_from(vec![0, 1, 2]).unwrap(),
         );
 
-        let result = Snarcos::verify(caller(), IDENTIFIER, proof(), input(), SYSTEM);
+        let result = BabyLiminal::verify(caller(), IDENTIFIER, proof(), input(), SYSTEM);
 
         assert_err!(
             result.map_err(|e| e.error),
@@ -188,7 +188,7 @@ fn verify_shouts_when_proof_is_not_deserializable() {
     new_test_ext().execute_with(|| {
         put_key();
 
-        let result = Snarcos::verify(caller(), IDENTIFIER, input(), input(), SYSTEM);
+        let result = BabyLiminal::verify(caller(), IDENTIFIER, input(), input(), SYSTEM);
 
         assert_err!(
             result.map_err(|e| e.error),
@@ -203,7 +203,7 @@ fn verify_shouts_when_input_is_not_deserializable() {
     new_test_ext().execute_with(|| {
         put_key();
 
-        let result = Snarcos::verify(caller(), IDENTIFIER, proof(), proof(), SYSTEM);
+        let result = BabyLiminal::verify(caller(), IDENTIFIER, proof(), proof(), SYSTEM);
 
         assert_err!(
             result.map_err(|e| e.error),
@@ -219,7 +219,8 @@ fn verify_shouts_when_verification_fails() {
         put_key();
         let other_input = include_bytes!("../resources/groth16/linear_equation.public_input.bytes");
 
-        let result = Snarcos::verify(caller(), IDENTIFIER, proof(), other_input.to_vec(), SYSTEM);
+        let result =
+            BabyLiminal::verify(caller(), IDENTIFIER, proof(), other_input.to_vec(), SYSTEM);
 
         assert_err!(
             result,
@@ -235,7 +236,8 @@ fn verify_shouts_when_proof_is_incorrect() {
         put_key();
         let other_proof = include_bytes!("../resources/groth16/linear_equation.proof.bytes");
 
-        let result = Snarcos::verify(caller(), IDENTIFIER, other_proof.to_vec(), input(), SYSTEM);
+        let result =
+            BabyLiminal::verify(caller(), IDENTIFIER, other_proof.to_vec(), input(), SYSTEM);
 
         assert_err!(result, Error::<TestRuntime>::IncorrectProof);
         assert!(result.unwrap_err().post_info.actual_weight.is_none());

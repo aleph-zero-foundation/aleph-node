@@ -1,5 +1,5 @@
 [package]
-name = "pallet-snarcos"
+name = "pallet-baby-liminal"
 version = "0.1.0"
 authors = ["Cardinal Cryptography"]
 edition = "2021"

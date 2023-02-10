@@ -8,14 +8,14 @@ members = [
     "pallets/aleph",
     "pallets/elections",
     "pallets/support",
-    "pallets/snarcos",
+    "pallets/baby-liminal",
     "primitives",
 ]
 
 exclude = [
     "aleph-client",
     "bin/cliain",
-    "bin/runtime/src/chain_extension/snarcos-extension",
+    "bin/runtime/src/chain_extension/baby-liminal-extension",
     "relations",
     "relations/src/proc_macro",
     "poseidon",

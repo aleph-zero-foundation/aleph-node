@@ -6,18 +6,18 @@ use scale::{Decode, Encode};
 use scale_info::TypeInfo;
 use sp_std::vec::Vec;
 
-/// Gathers all the possible errors that might occur while calling `pallet_snarcos::store_key` or
-/// `pallet_snarcos::verify`.
+/// Gathers all the possible errors that might occur while calling `pallet_baby_liminal::store_key` or
+/// `pallet_baby_liminal::verify`.
 ///
-/// Every variant is already documented in `pallet_snarcos`.
+/// Every variant is already documented in `pallet_baby_liminal`.
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Decode, Encode)]
 #[cfg_attr(feature = "std", derive(TypeInfo))]
-pub enum SnarcosError {
-    // `pallet_snarcos::store_key` errors
+pub enum BabyLiminalError {
+    // `pallet_baby_liminal::store_key` errors
     IdentifierAlreadyInUse,
     VerificationKeyTooLong,
 
-    // `pallet_snarcos::verify` errors
+    // `pallet_baby_liminal::verify` errors
     UnknownVerificationKeyIdentifier,
     DeserializingProofFailed,
     DeserializingPublicInputFailed,
@@ -31,17 +31,17 @@ pub enum SnarcosError {
     UnknownError,
 }
 
-impl ink::env::chain_extension::FromStatusCode for SnarcosError {
+impl ink::env::chain_extension::FromStatusCode for BabyLiminalError {
     fn from_status_code(status_code: u32) -> Result<(), Self> {
         match status_code {
             // Success codes
             10_000 | 11_000 => Ok(()),
 
-            // `pallet_snarcos::store_key` errors
+            // `pallet_baby_liminal::store_key` errors
             10_001 => Err(Self::VerificationKeyTooLong),
             10_002 => Err(Self::IdentifierAlreadyInUse),
 
-            // `pallet_snarcos::verify` errors
+            // `pallet_baby_liminal::verify` errors
             11_001 => Err(Self::DeserializingProofFailed),
             11_002 => Err(Self::DeserializingPublicInputFailed),
             11_003 => Err(Self::UnknownVerificationKeyIdentifier),
@@ -54,10 +54,10 @@ impl ink::env::chain_extension::FromStatusCode for SnarcosError {
     }
 }
 
-/// Copied from `pallet_snarcos`.
+/// Copied from `pallet_baby_liminal`.
 pub type VerificationKeyIdentifier = [u8; 4];
 
-/// Copied from `pallet_snarcos`.
+/// Copied from `pallet_baby_liminal`.
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Decode, Encode)]
 #[cfg_attr(feature = "std", derive(TypeInfo))]
 pub enum ProvingSystem {
@@ -67,18 +67,19 @@ pub enum ProvingSystem {
 }
 
 #[ink::chain_extension]
-pub trait SnarcosExtension {
-    type ErrorCode = SnarcosError;
+pub trait BabyLiminalExtension {
+    type ErrorCode = BabyLiminalError;
 
-    /// Directly call `pallet_snarcos::store_key`.
+    /// Directly call `pallet_baby_liminal::store_key`.
     ///
-    /// The extension method ID matches the one declared in runtime: `SNARCOS_STORE_KEY_FUNC_ID`.
+    /// The extension method ID matches the one declared in runtime:
+    /// `BABY_LIMINAL_STORE_KEY_FUNC_ID`.
     #[ink(extension = 41, returns_result = false)]
     fn store_key(identifier: VerificationKeyIdentifier, key: Vec<u8>);
 
-    /// Directly call `pallet_snarcos::verify`.
+    /// Directly call `pallet_baby_liminal::verify`.
     ///
-    /// The extension method ID matches the one declared in runtime: `SNARCOS_VERIFY_FUNC_ID`.
+    /// The extension method ID matches the one declared in runtime: `BABY_LIMINAL_VERIFY_FUNC_ID`.
     #[ink(extension = 42, returns_result = false)]
     fn verify(
         identifier: VerificationKeyIdentifier,
@@ -90,7 +91,7 @@ pub trait SnarcosExtension {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
-/// All default, except `ChainExtension`, which is set to `SnarcosExtension`.
+/// All default, except `ChainExtension`, which is set to `BabyLiminalExtension`.
 pub enum DefaultEnvironment {}
 
 impl Environment for DefaultEnvironment {
@@ -102,5 +103,5 @@ impl Environment for DefaultEnvironment {
     type Timestamp = <ink::env::DefaultEnvironment as Environment>::Timestamp;
     type BlockNumber = <ink::env::DefaultEnvironment as Environment>::BlockNumber;
 
-    type ChainExtension = SnarcosExtension;
+    type ChainExtension = BabyLiminalExtension;
 }

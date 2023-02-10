@@ -87,7 +87,7 @@ dependencies = [
  "ink_metadata",
  "log",
  "pallet-contracts-primitives",
- "pallet-snarcos",
+ "pallet-baby-liminal",
  "parity-scale-codec",
  "primitives",
  "serde",
@@ -2504,7 +2504,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-snarcos"
+name = "pallet-baby-liminal"
 version = "0.1.0"
 dependencies = [
  "ark-bls12-381",

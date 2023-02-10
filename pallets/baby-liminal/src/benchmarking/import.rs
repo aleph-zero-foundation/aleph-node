@@ -11,7 +11,7 @@ pub(super) struct Artifacts {
 ///
 /// Example of usage:
 /// ```rust, ignore
-/// # use pallet_snarcos::get_artifacts;
+/// # use pallet_baby_liminal::get_artifacts;
 ///
 /// let Artifacts { key, proof, input } = get_artifacts!(Groth16, LinearEquation);
 /// ```

@@ -7,10 +7,10 @@ use super::*;
 
 /// Trait serving as a type-level flag indicating which method we are testing.
 pub(super) trait FunctionMode {}
-/// We are testing `pallet_snarcos::store_key`.
+/// We are testing `pallet_baby_liminal::store_key`.
 pub(super) enum StoreKeyMode {}
 impl FunctionMode for StoreKeyMode {}
-/// We are testing `pallet_snarcos::verify`.
+/// We are testing `pallet_baby_liminal::verify`.
 pub(super) enum VerifyMode {}
 impl FunctionMode for VerifyMode {}
 
@@ -30,7 +30,7 @@ trait _Read {
     fn _read(&self, max_len: ByteCount) -> Result<Vec<u8>, DispatchError>;
 }
 
-/// Testing counterpart for `pallet_snarcos::chain_extension::Environment`.
+/// Testing counterpart for `pallet_baby_liminal::chain_extension::Environment`.
 pub(super) struct MockedEnvironment<FM: FunctionMode, RM: ReadingMode> {
     /// Channel to report all charges.
     ///
@@ -107,7 +107,7 @@ impl<FM: FunctionMode> _Read for MockedEnvironment<FM, StandardMode> {
     }
 }
 
-/// In case we are testing `pallet_snarcos::store_key`, we might want to approximate how long is the
+/// In case we are testing `pallet_baby_liminal::store_key`, we might want to approximate how long is the
 /// verifying key.
 ///
 /// The returned value will be an upperbound - it will be the sum of the whole key encoding

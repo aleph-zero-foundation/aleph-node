@@ -13,14 +13,14 @@
 //!
 //! cargo run --release -p aleph-node --features runtime-benchmarks -- benchmark pallet \
 //!     --chain=chainspec.json \
-//!     --pallet=pallet_snarcos \
+//!     --pallet=pallet_baby_liminal \
 //!     --extrinsic='*' \
 //!     --steps=20 \
 //!     --repeat=50 \
 //!     --template=.maintain/pallet-weight-template.hbs \
 //!     --execution=wasm \
 //!     --wasm-execution=compiled \
-//!     --output=pallets/snarcos/src/weights.rs
+//!     --output=pallets/baby-liminal/src/weights.rs
 //! ```
 
 mod import;

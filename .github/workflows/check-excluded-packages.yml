@@ -5,7 +5,7 @@ on:
     paths:
       - aleph-client/**
       - bin/cliain/**
-      - bin/runtime/src/chain_extension/snarcos-extension/**
+      - bin/runtime/src/chain_extension/baby-liminal-extension/**
       - relations/**
       - poseidon/**
       - .github/workflows/check-excluded-packages.yml
@@ -86,7 +86,7 @@ jobs:
 
       - name: Assert that packages are compatible with no-std
         run: |
-          packages=("relations" "bin/runtime/src/chain_extension/snarcos-extension")
+          packages=("relations" "bin/runtime/src/chain_extension/baby-liminal-extension")
           for p in ${packages[@]}
           do
             echo "Checking package $p..."

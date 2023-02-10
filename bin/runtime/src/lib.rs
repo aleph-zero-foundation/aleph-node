@@ -62,7 +62,7 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
-use crate::chain_extension::SnarcosChainExtension;
+use crate::chain_extension::BabyLiminalChainExtension;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -332,9 +332,9 @@ parameter_types! {
     pub const MaximumDataLength: u32 = 10_000;
 }
 
-impl pallet_snarcos::Config for Runtime {
+impl pallet_baby_liminal::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = pallet_snarcos::AlephWeight<Runtime>;
+    type WeightInfo = pallet_baby_liminal::AlephWeight<Runtime>;
     type MaximumVerificationKeyLength = MaximumVerificationKeyLength;
     type MaximumDataLength = MaximumDataLength;
 }
@@ -690,7 +690,7 @@ impl pallet_contracts::Config for Runtime {
     type DepositPerByte = DepositPerByte;
     type WeightPrice = pallet_transaction_payment::Pallet<Self>;
     type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
-    type ChainExtension = SnarcosChainExtension;
+    type ChainExtension = BabyLiminalChainExtension;
     type DeletionQueueDepth = DeletionQueueDepth;
     type DeletionWeightLimit = DeletionWeightLimit;
     type Schedule = Schedule;
@@ -754,7 +754,7 @@ construct_runtime!(
         Contracts: pallet_contracts,
         NominationPools: pallet_nomination_pools,
         Identity: pallet_identity,
-        Snarcos: pallet_snarcos,
+        BabyLiminal: pallet_baby_liminal,
     }
 );
 
@@ -794,7 +794,7 @@ pub type Executive = frame_executive::Executive<
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benches {
-    frame_benchmarking::define_benchmarks!([pallet_snarcos, Snarcos]);
+    frame_benchmarking::define_benchmarks!([pallet_baby_liminal, BabyLiminal]);
 }
 
 impl_runtime_apis! {

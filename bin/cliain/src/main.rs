@@ -9,7 +9,7 @@ use cliain::{
     remove_code, rotate_keys, schedule_upgrade, set_emergency_finalizer, set_keys,
     set_staking_limits, store_key, transfer, treasury_approve, treasury_propose, treasury_reject,
     update_runtime, upload_code, validate, verify, verify_proof, vest, vest_other, vested_transfer,
-    Command, ConnectionConfig, Snarcos, SnarkRelation,
+    BabyLiminal, Command, ConnectionConfig, SnarkRelation,
 };
 use log::{error, info};
 
@@ -248,8 +248,8 @@ async fn main() {
             Err(why) => error!("Unable to schedule an upgrade {:?}", why),
         },
 
-        Command::Snarcos(cmd) => match cmd {
-            Snarcos::StoreKey {
+        Command::BabyLiminal(cmd) => match cmd {
+            BabyLiminal::StoreKey {
                 identifier,
                 vk_file,
             } => {
@@ -259,12 +259,12 @@ async fn main() {
                     error!("Unable to store key: {why:?}")
                 }
             }
-            Snarcos::DeleteKey { identifier } => {
+            BabyLiminal::DeleteKey { identifier } => {
                 if let Err(why) = delete_key(cfg.get_root_connection().await, identifier).await {
                     error!("Unable to delete key: {why:?}")
                 }
             }
-            Snarcos::OverwriteKey {
+            BabyLiminal::OverwriteKey {
                 identifier,
                 vk_file,
             } => {
@@ -274,7 +274,7 @@ async fn main() {
                     error!("Unable to overwrite key: {why:?}")
                 }
             }
-            Snarcos::Verify {
+            BabyLiminal::Verify {
                 identifier,
                 proof_file,
                 input_file,

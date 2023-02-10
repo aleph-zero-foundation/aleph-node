@@ -1,5 +1,5 @@
 [package]
-name = "snarcos-extension"
+name = "baby-liminal-extension"
 version = "0.1.0"
 authors = ["Cardinal Cryptography"]
 edition = "2021"
@@ -12,7 +12,7 @@ publish = false
 members = []
 
 [lib]
-name = "snarcos_extension"
+name = "baby_liminal_extension"
 path = "lib.rs"
 crate-type = ["cdylib", "rlib"]
 

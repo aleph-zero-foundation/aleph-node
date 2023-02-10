@@ -1,10 +1,10 @@
+mod baby_liminal;
 mod commands;
 mod contracts;
 mod finalization;
 mod keys;
 mod runtime;
 mod secret;
-mod snarcos;
 mod snark_relations;
 mod staking;
 mod transfer;
@@ -14,7 +14,8 @@ mod version_upgrade;
 mod vesting;
 
 use aleph_client::{keypair_from_string, Connection, RootConnection, SignedConnection};
-pub use commands::{Command, Snarcos, SnarkRelation};
+pub use baby_liminal::{delete_key, overwrite_key, store_key, verify};
+pub use commands::{BabyLiminal, Command, SnarkRelation};
 pub use contracts::{
     call, instantiate, instantiate_with_code, owner_info, remove_code, upload_code,
 };
@@ -22,7 +23,6 @@ pub use finalization::{finalize, set_emergency_finalizer};
 pub use keys::{next_session_keys, prepare_keys, rotate_keys, set_keys};
 pub use runtime::update_runtime;
 pub use secret::prompt_password_hidden;
-pub use snarcos::{delete_key, overwrite_key, store_key, verify};
 pub use snark_relations::{
     generate_keys, generate_keys_from_srs, generate_proof, generate_srs, verify as verify_proof,
     NonUniversalProvingSystem, UniversalProvingSystem,

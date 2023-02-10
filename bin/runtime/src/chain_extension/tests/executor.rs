@@ -1,8 +1,8 @@
-use pallet_snarcos::{Error as SnarcosError, ProvingSystem, VerificationKeyIdentifier};
+use pallet_baby_liminal::{Error as BabyLiminalError, ProvingSystem, VerificationKeyIdentifier};
 
 use crate::{chain_extension::executor::Executor, Weight};
 
-type Error = SnarcosError<()>;
+type Error = BabyLiminalError<()>;
 
 /// Describes how the `Executor` should behave when one of its methods is called.
 #[derive(Clone, Eq, PartialEq)]

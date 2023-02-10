@@ -2,10 +2,10 @@ use codec::{Decode, Encode};
 use environment::Environment;
 use executor::Executor;
 use frame_support::{log::error, weights::Weight};
+use pallet_baby_liminal::{Config, Error, ProvingSystem, VerificationKeyIdentifier, WeightInfo};
 use pallet_contracts::chain_extension::{
     ChainExtension, Environment as SubstrateEnvironment, Ext, InitState, RetVal, SysConfig,
 };
-use pallet_snarcos::{Config, Error, ProvingSystem, VerificationKeyIdentifier, WeightInfo};
 use sp_core::crypto::UncheckedFrom;
 use sp_runtime::DispatchError;
 use sp_std::{mem::size_of, vec::Vec};
@@ -17,29 +17,29 @@ mod executor;
 #[cfg(test)]
 mod tests;
 
-pub const SNARCOS_STORE_KEY_FUNC_ID: u32 = 41;
-pub const SNARCOS_VERIFY_FUNC_ID: u32 = 42;
+pub const BABY_LIMINAL_STORE_KEY_FUNC_ID: u32 = 41;
+pub const BABY_LIMINAL_VERIFY_FUNC_ID: u32 = 42;
 
-// Return codes for `SNARCOS_STORE_KEY_FUNC_ID`.
-pub const SNARCOS_STORE_KEY_OK: u32 = 10_000;
-pub const SNARCOS_STORE_KEY_TOO_LONG_KEY: u32 = 10_001;
-pub const SNARCOS_STORE_KEY_IDENTIFIER_IN_USE: u32 = 10_002;
-pub const SNARCOS_STORE_KEY_ERROR_UNKNOWN: u32 = 10_003;
+// Return codes for `BABY_LIMINAL_STORE_KEY_FUNC_ID`.
+pub const BABY_LIMINAL_STORE_KEY_OK: u32 = 10_000;
+pub const BABY_LIMINAL_STORE_KEY_TOO_LONG_KEY: u32 = 10_001;
+pub const BABY_LIMINAL_STORE_KEY_IDENTIFIER_IN_USE: u32 = 10_002;
+pub const BABY_LIMINAL_STORE_KEY_ERROR_UNKNOWN: u32 = 10_003;
 
-// Return codes for `SNARCOS_VERIFY_FUNC_ID`.
-pub const SNARCOS_VERIFY_OK: u32 = 11_000;
-pub const SNARCOS_VERIFY_DESERIALIZING_PROOF_FAIL: u32 = 11_001;
-pub const SNARCOS_VERIFY_DESERIALIZING_INPUT_FAIL: u32 = 11_002;
-pub const SNARCOS_VERIFY_UNKNOWN_IDENTIFIER: u32 = 11_003;
-pub const SNARCOS_VERIFY_DESERIALIZING_KEY_FAIL: u32 = 11_004;
-pub const SNARCOS_VERIFY_VERIFICATION_FAIL: u32 = 11_005;
-pub const SNARCOS_VERIFY_INCORRECT_PROOF: u32 = 11_006;
-pub const SNARCOS_VERIFY_ERROR_UNKNOWN: u32 = 11_007;
+// Return codes for `BABY_LIMINAL_VERIFY_FUNC_ID`.
+pub const BABY_LIMINAL_VERIFY_OK: u32 = 11_000;
+pub const BABY_LIMINAL_VERIFY_DESERIALIZING_PROOF_FAIL: u32 = 11_001;
+pub const BABY_LIMINAL_VERIFY_DESERIALIZING_INPUT_FAIL: u32 = 11_002;
+pub const BABY_LIMINAL_VERIFY_UNKNOWN_IDENTIFIER: u32 = 11_003;
+pub const BABY_LIMINAL_VERIFY_DESERIALIZING_KEY_FAIL: u32 = 11_004;
+pub const BABY_LIMINAL_VERIFY_VERIFICATION_FAIL: u32 = 11_005;
+pub const BABY_LIMINAL_VERIFY_INCORRECT_PROOF: u32 = 11_006;
+pub const BABY_LIMINAL_VERIFY_ERROR_UNKNOWN: u32 = 11_007;
 
 #[derive(Default)]
-pub struct SnarcosChainExtension;
+pub struct BabyLiminalChainExtension;
 
-impl ChainExtension<Runtime> for SnarcosChainExtension {
+impl ChainExtension<Runtime> for BabyLiminalChainExtension {
     fn call<E: Ext>(
         &mut self,
         env: SubstrateEnvironment<E, InitState>,
@@ -50,10 +50,12 @@ impl ChainExtension<Runtime> for SnarcosChainExtension {
         let func_id = env.func_id() as u32;
 
         match func_id {
-            SNARCOS_STORE_KEY_FUNC_ID => {
-                Self::snarcos_store_key::<_, Runtime>(env.buf_in_buf_out())
+            BABY_LIMINAL_STORE_KEY_FUNC_ID => {
+                Self::baby_liminal_store_key::<_, Runtime>(env.buf_in_buf_out())
             }
-            SNARCOS_VERIFY_FUNC_ID => Self::snarcos_verify::<_, Runtime>(env.buf_in_buf_out()),
+            BABY_LIMINAL_VERIFY_FUNC_ID => {
+                Self::baby_liminal_verify::<_, Runtime>(env.buf_in_buf_out())
+            }
             _ => {
                 error!("Called an unregistered `func_id`: {}", func_id);
                 Err(DispatchError::Other("Unimplemented func_id"))
@@ -112,8 +114,8 @@ fn weight_of_verify(system: Option<ProvingSystem>) -> Weight {
     }
 }
 
-impl SnarcosChainExtension {
-    fn snarcos_store_key<Env: Environment, Exc: Executor>(
+impl BabyLiminalChainExtension {
+    fn baby_liminal_store_key<Env: Environment, Exc: Executor>(
         mut env: Env,
     ) -> Result<RetVal, DispatchError> {
         // Check if it makes sense to read and decode data. This is only an upperbound for the key
@@ -123,7 +125,7 @@ impl SnarcosChainExtension {
             .in_len()
             .saturating_sub(size_of::<VerificationKeyIdentifier>() as ByteCount);
         if approx_key_length > MaximumVerificationKeyLength::get() {
-            return Ok(RetVal::Converging(SNARCOS_STORE_KEY_TOO_LONG_KEY));
+            return Ok(RetVal::Converging(BABY_LIMINAL_STORE_KEY_TOO_LONG_KEY));
         }
 
         // We charge now - even if decoding fails and we shouldn't touch storage, we have to incur
@@ -148,18 +150,18 @@ impl SnarcosChainExtension {
         );
 
         let return_status = match Exc::store_key(args.identifier, args.key) {
-            Ok(_) => SNARCOS_STORE_KEY_OK,
+            Ok(_) => BABY_LIMINAL_STORE_KEY_OK,
             // In case `DispatchResultWithPostInfo` was returned (or some simpler equivalent for
             // `bare_store_key`), we could have adjusted weight. However, for the storing key action
             // it doesn't make much sense.
-            Err(VerificationKeyTooLong) => SNARCOS_STORE_KEY_TOO_LONG_KEY,
-            Err(IdentifierAlreadyInUse) => SNARCOS_STORE_KEY_IDENTIFIER_IN_USE,
-            _ => SNARCOS_STORE_KEY_ERROR_UNKNOWN,
+            Err(VerificationKeyTooLong) => BABY_LIMINAL_STORE_KEY_TOO_LONG_KEY,
+            Err(IdentifierAlreadyInUse) => BABY_LIMINAL_STORE_KEY_IDENTIFIER_IN_USE,
+            _ => BABY_LIMINAL_STORE_KEY_ERROR_UNKNOWN,
         };
         Ok(RetVal::Converging(return_status))
     }
 
-    fn snarcos_verify<Env: Environment, Exc: Executor>(
+    fn baby_liminal_verify<Env: Environment, Exc: Executor>(
         mut env: Env,
     ) -> Result<RetVal, DispatchError> {
         // We charge optimistically, i.e. assuming that decoding succeeds and the verification
@@ -167,7 +169,7 @@ impl SnarcosChainExtension {
         // possible fee. We will adjust it as soon as possible.
         let pre_charge = env.charge_weight(weight_of_verify(None))?;
 
-        // Parsing is done here for similar reasons as in `Self::snarcos_store_key`.
+        // Parsing is done here for similar reasons as in `Self::baby_liminal_store_key`.
         let bytes = env.read(env.in_len())?;
 
         let args: VerifyArgs = VerifyArgs::decode(&mut &*bytes)
@@ -187,15 +189,15 @@ impl SnarcosChainExtension {
         };
 
         let return_status = match result {
-            Ok(_) => SNARCOS_VERIFY_OK,
+            Ok(_) => BABY_LIMINAL_VERIFY_OK,
             Err((error, _)) => match error {
-                DeserializingProofFailed => SNARCOS_VERIFY_DESERIALIZING_PROOF_FAIL,
-                DeserializingPublicInputFailed => SNARCOS_VERIFY_DESERIALIZING_INPUT_FAIL,
-                UnknownVerificationKeyIdentifier => SNARCOS_VERIFY_UNKNOWN_IDENTIFIER,
-                DeserializingVerificationKeyFailed => SNARCOS_VERIFY_DESERIALIZING_KEY_FAIL,
-                VerificationFailed(_) => SNARCOS_VERIFY_VERIFICATION_FAIL,
-                IncorrectProof => SNARCOS_VERIFY_INCORRECT_PROOF,
-                _ => SNARCOS_VERIFY_ERROR_UNKNOWN,
+                DeserializingProofFailed => BABY_LIMINAL_VERIFY_DESERIALIZING_PROOF_FAIL,
+                DeserializingPublicInputFailed => BABY_LIMINAL_VERIFY_DESERIALIZING_INPUT_FAIL,
+                UnknownVerificationKeyIdentifier => BABY_LIMINAL_VERIFY_UNKNOWN_IDENTIFIER,
+                DeserializingVerificationKeyFailed => BABY_LIMINAL_VERIFY_DESERIALIZING_KEY_FAIL,
+                VerificationFailed(_) => BABY_LIMINAL_VERIFY_VERIFICATION_FAIL,
+                IncorrectProof => BABY_LIMINAL_VERIFY_INCORRECT_PROOF,
+                _ => BABY_LIMINAL_VERIFY_ERROR_UNKNOWN,
             },
         };
         Ok(RetVal::Converging(return_status))

@@ -4,8 +4,8 @@ use std::{
 };
 
 use aleph_client::{
-    pallet_snarcos::systems::ProvingSystem, pallets::snarcos::VerificationKeyIdentifier, AccountId,
-    TxStatus,
+    pallet_baby_liminal::systems::ProvingSystem, pallets::baby_liminal::VerificationKeyIdentifier,
+    AccountId, TxStatus,
 };
 use clap::{clap_derive::ValueEnum, Args, Subcommand};
 use primitives::{Balance, BlockNumber, CommitteeSeats, SessionIndex};
@@ -149,7 +149,7 @@ impl From<ExtrinsicState> for TxStatus {
 }
 
 #[derive(Debug, Clone, Subcommand)]
-pub enum Snarcos {
+pub enum BabyLiminal {
     /// Store a verification key under an identifier in the pallet's storage.
     StoreKey {
         /// The key identifier.
@@ -506,9 +506,9 @@ pub enum Command {
         expected_state: ExtrinsicState,
     },
 
-    /// Interact with `pallet_snarcos`.
+    /// Interact with `pallet_baby_liminal`.
     #[clap(subcommand)]
-    Snarcos(Snarcos),
+    BabyLiminal(BabyLiminal),
 
     /// Interact with `relations` crate.
     ///
@@ -519,7 +519,8 @@ pub enum Command {
 
 mod parsing {
     use aleph_client::{
-        pallet_snarcos::systems::ProvingSystem, pallets::snarcos::VerificationKeyIdentifier,
+        pallet_baby_liminal::systems::ProvingSystem,
+        pallets::baby_liminal::VerificationKeyIdentifier,
     };
     use anyhow::anyhow;
 
