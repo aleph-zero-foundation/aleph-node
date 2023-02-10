@@ -796,6 +796,9 @@ jobs:
     name: Test catching up
     runs-on: ubuntu-20.04
     needs: build-new-node
+    strategy:
+      matrix:
+        pruning: ['', '--state-pruning 90']
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -815,12 +818,15 @@ jobs:
         env:
           # Relative to local-tests/ directory
           ALEPH_NODE_BINARY: aleph-test-node/aleph-node
-        run: ./.github/scripts/test_catch_up.sh
+        run: ./.github/scripts/test_catch_up.sh ${{ matrix.pruning }}
 
   test-multiple-restarts:
     name: Test multiple restarts
     runs-on: ubuntu-20.04
     needs: build-new-node
+    strategy:
+      matrix:
+        pruning: ['', '--state-pruning 2048']
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -840,7 +846,7 @@ jobs:
         env:
           # Relative to local-tests/ directory
           ALEPH_NODE_BINARY: aleph-release-node/aleph-node
-        run: ./.github/scripts/test_multiple_restarts.sh
+        run: ./.github/scripts/test_multiple_restarts.sh ${{ matrix.pruning }}
 
   check-runtime-change:
     name: Inspect whether runtime version has been changed (compared with main)
