@@ -1,4 +1,4 @@
-use snark_relation_proc_macro::snark_relation;
+use liminal_ark_relation_macro::snark_relation;
 
 /// Linear equation relation: a*x + b = y
 ///

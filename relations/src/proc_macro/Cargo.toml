@@ -1,7 +1,14 @@
 [package]
-name = "snark-relation-proc-macro"
+name = "liminal-ark-relation-macro"
 version = "0.1.0"
 edition = "2021"
+authors = ["Cardinal"]
+documentation = "https://docs.rs/?"
+homepage = "https://alephzero.org"
+license = "Apache 2.0"
+categories = ["cryptography"]
+repository = "https://github.com/Cardinal-Cryptography/aleph-node"
+description = "Procedural macro for concise defining SNARK relations."
 
 [lib]
 proc-macro = true

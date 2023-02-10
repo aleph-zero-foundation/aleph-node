@@ -1,6 +1,6 @@
 use ark_r1cs_std::alloc::AllocVar;
 use ark_relations::ns;
-use snark_relation_proc_macro::snark_relation;
+use liminal_ark_relation_macro::snark_relation;
 
 use crate::{BackendNote, FrontendNote};
 

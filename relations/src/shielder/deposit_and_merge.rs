@@ -1,4 +1,4 @@
-use snark_relation_proc_macro::snark_relation;
+use liminal_ark_relation_macro::snark_relation;
 
 /// It expresses the facts that:
 ///  - `old_note` is a prefix of the result of tangling together `token_id`, `old_token_amount`,

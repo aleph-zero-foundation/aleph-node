@@ -23,7 +23,7 @@ ark-snark = { version = "^0.3.0", default-features = false }
 ark-std = { version = "^0.3.0", default-features = false }
 blake2 = { version = "0.9.2", default-features = false }
 
-snark-relation-proc-macro = { path = "src/proc_macro" }
+liminal-ark-relation-macro = { path = "src/proc_macro" }
 poseidon = { path = "../poseidon", default-features = false, optional = true }
 
 [features]
