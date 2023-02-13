@@ -2,16 +2,78 @@ name: Sync Cardinal-Cryptography repo with Aleph-Zero-Foundation repo
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - release-**
+    tags:
+      - r-*
 
 jobs:
-  sync:
+  sync-main:
     runs-on: ubuntu-20.04
-    if: ${{ github.repository == 'Cardinal-Cryptography/aleph-node'}}
+    if: github.repository == 'Cardinal-Cryptography/aleph-node' && startsWith(github.ref, 'refs/heads/') && github.ref_name == 'main'
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
           token: ${{ secrets.SYNCAZF }}
+
       - name: Push to Aleph-Zero-Foundation
         run: git push https://x-access-token:${{ secrets.SYNCAZF }}@github.com/aleph-zero-foundation/aleph-node.git
+
+
+  sync-release-branch:
+    runs-on: ubuntu-20.04
+    if: github.repository == 'Cardinal-Cryptography/aleph-node' && startsWith(github.ref, 'refs/heads/') && startsWith(github.ref_name, 'release-')
+    steps:
+      - name: GIT | Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.SYNCAZF }}
+
+      - name: Get branch name and commit SHA
+        id: get_branch
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.ref }}
+        run: |
+          echo branch_name=$(echo ${HEAD_REF#refs/heads/}) >> $GITHUB_OUTPUT
+          echo sha_short=$(git rev-parse --short HEAD) >> $GITHUB_OUTPUT
+
+      - name: Push to Aleph-Zero-Foundation
+        run: |
+          git push 'https://x-access-token:${{ secrets.SYNCAZF }}@github.com/aleph-zero-foundation/aleph-node.git' ${{ steps.get_branch.outputs.branch_name }}:${{ steps.get_branch.outputs.branch_name }}
+
+
+  sync-release-tag:
+    runs-on: ubuntu-20.04
+    if: github.repository == 'Cardinal-Cryptography/aleph-node' && startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Get tag name and commit SHA
+        id: get_branch
+        shell: bash
+        env:
+          HEAD_REF: ${{ github.ref }}
+        run: |
+          echo tag_name=$(echo ${HEAD_REF#refs/tags/}) >> $GITHUB_OUTPUT
+          echo sha_short=$(git rev-parse --short HEAD) >> $GITHUB_OUTPUT
+
+      - name: Checkout Aleph-Zero-Foundation repository
+        uses: actions/checkout@v3
+        with:
+          repository: aleph-zero-foundation/aleph-node
+          token: "${{ secrets.SYNCAZF }}"
+          path: aleph-zero-foundation-aleph-node
+          fetch-depth: 0
+
+      - name: Checkout commit SHA and add tag in Aleph-Zero-Foundation repository
+        run: |
+          cd aleph-zero-foundation-aleph-node/
+          git checkout "${{ steps.get_branch.outputs.sha_short }}"
+          git tag "${{ steps.get_branch.outputs.tag_name }}"
+          git push origin "${{ steps.get_branch.outputs.tag_name }}"
