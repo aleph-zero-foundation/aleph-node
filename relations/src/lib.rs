@@ -2,7 +2,6 @@
 
 mod environment;
 mod linear;
-mod merkle_tree;
 #[cfg(any(feature = "preimage", feature = "preimage-std"))]
 mod preimage;
 mod relation;
@@ -21,7 +20,6 @@ pub use linear::{
     LinearEquationRelationWithFullInput, LinearEquationRelationWithPublicInput,
     LinearEquationRelationWithoutInput,
 };
-pub use merkle_tree::{MerkleTreeRelation, Root};
 #[cfg(any(feature = "preimage", feature = "preimage-std"))]
 pub use preimage::PreimageRelation;
 pub use relation::GetPublicInput;

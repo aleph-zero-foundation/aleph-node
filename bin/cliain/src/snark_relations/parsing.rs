@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use anyhow::{anyhow, Error, Result};
 use clap::ValueEnum;
-use relations::{CircuitField, FrontendAccount, FrontendMerklePath, FrontendNote};
+use relations::{FrontendAccount, FrontendMerklePath, FrontendNote};
 
 use crate::{
     snark_relations::systems::SomeProvingSystem, NonUniversalProvingSystem, UniversalProvingSystem,
@@ -22,11 +22,6 @@ pub fn parse_frontend_merkle_path(frontend_merkle_path: &str) -> Result<Frontend
         .split(':')
         .map(|n| parse_frontend_note(n).expect("Each node should be valid note"))
         .collect::<Vec<_>>())
-}
-
-// temporary (until we drop all circuit field constructor arguments)
-pub fn parse_circuit_field(as_str: &str) -> Result<CircuitField> {
-    CircuitField::from_str(as_str).map_err(|_| anyhow!("Failed to parse field element"))
 }
 
 pub fn parse_frontend_account(frontend_account: &str) -> Result<FrontendAccount> {

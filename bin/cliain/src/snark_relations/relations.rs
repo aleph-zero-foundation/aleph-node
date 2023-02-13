@@ -5,13 +5,13 @@ use relations::{
     DepositRelationWithFullInput, DepositRelationWithPublicInput, DepositRelationWithoutInput,
     FrontendAccount, FrontendLeafIndex, FrontendMerklePath, FrontendMerkleRoot, FrontendNote,
     FrontendNullifier, FrontendTokenAmount, FrontendTokenId, FrontendTrapdoor, GetPublicInput,
-    LinearEquationRelationWithFullInput, LinearEquationRelationWithPublicInput, MerkleTreeRelation,
-    Result as R1CsResult, Root, WithdrawRelationWithFullInput, WithdrawRelationWithPublicInput,
+    LinearEquationRelationWithFullInput, LinearEquationRelationWithPublicInput,
+    Result as R1CsResult, WithdrawRelationWithFullInput, WithdrawRelationWithPublicInput,
     WithdrawRelationWithoutInput, XorRelationWithFullInput, XorRelationWithPublicInput,
 };
 
 use crate::snark_relations::parsing::{
-    parse_circuit_field, parse_frontend_account, parse_frontend_merkle_path, parse_frontend_note,
+    parse_frontend_account, parse_frontend_merkle_path, parse_frontend_note,
 };
 
 /// All available relations from `relations` crate.
@@ -43,23 +43,6 @@ pub enum RelationArgs {
         /// The equation right-hand side (circuit constant).
         #[clap(long, default_value = "19")]
         y: u32,
-    },
-
-    MerkleTree {
-        /// Seed bytes for rng, the more the merrier.
-        #[clap(long)]
-        seed: Option<String>,
-        /// Tree leaves (private input).
-        #[clap(long, value_delimiter = ',')]
-        leaves: Option<Vec<u8>>,
-        /// Tree root (public input).
-        ///
-        /// If you know the leaves, then don't provide root - it can be computed from the leaves.
-        #[clap(long, conflicts_with = "leaves", value_parser = parse_circuit_field)]
-        root: Option<Root>,
-        /// The leaf of which membership is to be proven (public input).
-        #[clap(long)]
-        leaf: Option<u8>,
     },
 
     Deposit {
@@ -189,7 +172,6 @@ impl RelationArgs {
         match &self {
             RelationArgs::Xor { .. } => String::from("xor"),
             RelationArgs::LinearEquation { .. } => String::from("linear_equation"),
-            RelationArgs::MerkleTree { .. } => String::from("merkle_tree"),
             RelationArgs::Deposit { .. } => String::from("deposit"),
             RelationArgs::DepositAndMerge { .. } => String::from("deposit_and_merge"),
             RelationArgs::Withdraw { .. } => String::from("withdraw"),
@@ -210,15 +192,6 @@ impl ConstraintSynthesizer<CircuitField> for RelationArgs {
             RelationArgs::LinearEquation { a, x, b, y } => {
                 LinearEquationRelationWithFullInput::new(a, x, b, y).generate_constraints(cs)
             }
-
-            RelationArgs::MerkleTree {
-                seed, leaf, leaves, ..
-            } => MerkleTreeRelation::with_full_input(
-                leaves.unwrap_or_else(|| panic!("You must provide `leaves`")),
-                leaf.expect("You must provide `leaf` input"),
-                seed,
-            )
-            .generate_constraints(cs),
 
             RelationArgs::Deposit {
                 note,
@@ -340,23 +313,6 @@ impl GetPublicInput<CircuitField> for RelationArgs {
 
             RelationArgs::LinearEquation { a, b, y, .. } => {
                 LinearEquationRelationWithPublicInput::new(*a, *b, *y).serialize_public_input()
-            }
-
-            RelationArgs::MerkleTree {
-                seed,
-                root,
-                leaf,
-                leaves,
-            } => {
-                let leaf = leaf.expect("You must provide `leaf` input");
-                if let Some(root) = root {
-                    MerkleTreeRelation::with_public_input(*root, leaf, seed.clone()).public_input()
-                } else if let Some(leaves) = leaves {
-                    MerkleTreeRelation::with_full_input(leaves.clone(), leaf, seed.clone())
-                        .public_input()
-                } else {
-                    panic!("You must provide either `root` or `leaves` input")
-                }
             }
 
             RelationArgs::Deposit {
