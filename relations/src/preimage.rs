@@ -8,7 +8,7 @@ use ark_relations::{
     },
 };
 use ark_std::{marker::PhantomData, vec, vec::Vec};
-use poseidon::circuit;
+use liminal_ark_poseidon::circuit;
 
 use crate::{
     environment::FpVar,
@@ -90,7 +90,7 @@ mod tests {
     use ark_crypto_primitives::SNARK;
     use ark_groth16::Groth16;
     use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystem};
-    use poseidon::hash;
+    use liminal_ark_poseidon::hash;
 
     use super::PreimageRelation;
     use crate::{CircuitField, GetPublicInput};

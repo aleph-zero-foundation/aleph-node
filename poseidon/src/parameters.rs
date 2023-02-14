@@ -1,7 +1,7 @@
 use ark_bls12_381::Fr;
 use ark_sponge::poseidon::PoseidonParameters as ArkSpongePoseidonParameters;
 use once_cell::sync::Lazy;
-use poseidon_paramgen::{Alpha, PoseidonParameters};
+use poseidon_parameters::{Alpha, PoseidonParameters};
 
 // Poseidon parameters generated for the Fr (Fp256) finite field
 pub mod fr_parameters {

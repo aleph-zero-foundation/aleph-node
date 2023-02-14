@@ -1,5 +1,5 @@
 use clap::Subcommand;
-use relations::{
+use liminal_ark_relations::{
     CircuitField, ConstraintSynthesizer, ConstraintSystemRef, DepositAndMergeRelationWithFullInput,
     DepositAndMergeRelationWithPublicInput, DepositAndMergeRelationWithoutInput,
     DepositRelationWithFullInput, DepositRelationWithPublicInput, DepositRelationWithoutInput,

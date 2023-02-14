@@ -8,6 +8,7 @@ use liminal_ark_relation_macro::snark_relation;
 #[snark_relation]
 mod relation {
     use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget, uint32::UInt32};
+    use ark_std::vec::Vec;
 
     #[relation_object_definition]
     struct LinearEquationRelation {

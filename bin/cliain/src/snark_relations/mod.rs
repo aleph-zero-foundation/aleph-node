@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use ::relations::{serialize, GetPublicInput};
+use liminal_ark_relations::{serialize, GetPublicInput};
 pub use systems::{NonUniversalProvingSystem, SomeProvingSystem, UniversalProvingSystem};
 
 pub use self::relations::RelationArgs;

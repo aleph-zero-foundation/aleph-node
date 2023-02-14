@@ -2,7 +2,6 @@
 
 mod environment;
 mod linear;
-#[cfg(any(feature = "preimage", feature = "preimage-std"))]
 mod preimage;
 mod relation;
 mod serialization;
@@ -20,7 +19,6 @@ pub use linear::{
     LinearEquationRelationWithFullInput, LinearEquationRelationWithPublicInput,
     LinearEquationRelationWithoutInput,
 };
-#[cfg(any(feature = "preimage", feature = "preimage-std"))]
 pub use preimage::PreimageRelation;
 pub use relation::GetPublicInput;
 pub use serialization::serialize;

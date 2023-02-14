@@ -1,14 +1,16 @@
 use core::{borrow::Borrow, ops::Index};
-#[cfg(feature = "std")]
-use std::fmt::{Display, Formatter};
 
 use ark_r1cs_std::{
     alloc::{AllocVar, AllocationMode},
     boolean::Boolean,
-    R1CSVar,
 };
 use ark_relations::r1cs::{Namespace, SynthesisError};
 use ark_std::{vec, vec::Vec};
+#[cfg(feature = "std")]
+use {
+    ark_r1cs_std::R1CSVar,
+    std::fmt::{Display, Formatter},
+};
 
 use crate::CircuitField;
 

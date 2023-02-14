@@ -1,5 +1,5 @@
 use clap::ValueEnum;
-use relations::{
+use liminal_ark_relations::{
     serialize, CanonicalDeserialize, CircuitField, ConstraintSynthesizer, Groth16, Marlin,
     NonUniversalSystem, ProvingSystem, RawKeys, UniversalSystem, GM17,
 };
