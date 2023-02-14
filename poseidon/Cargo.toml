@@ -17,6 +17,7 @@ ark-r1cs-std = {version = "^0.3.0" , default-features = false }
 ark-relations = { version = "^0.3.0", default-features = false }
 ark-std = { version = "^0.3.0", default-features = false }
 once_cell = { version = "1.17", default-features = false, features = ["critical-section"] }
+paste = { version = "1.0.11" }
 
 ark-sponge = { git = "https://github.com/penumbra-zone/sponge", branch = "r1cs", default-features = false, features = ["r1cs"] }
 poseidon-parameters = { git = "https://github.com/penumbra-zone/poseidon377", rev = "50699746", default-features = false }
@@ -25,6 +26,7 @@ poseidon-permutation = { git = "https://github.com/penumbra-zone/poseidon377", r
 [build-dependencies]
 ark-bls12-381 = { version = "^0.3.0" }
 ark-ff = { version = "^0.3.0" }
+
 poseidon-paramgen = { git = "https://github.com/penumbra-zone/poseidon377", rev = "50699746" }
 
 [features]

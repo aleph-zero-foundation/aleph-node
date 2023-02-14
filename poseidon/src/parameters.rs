@@ -9,11 +9,15 @@ pub mod fr_parameters {
     include!(concat!(env!("OUT_DIR"), "/parameters.rs"));
 }
 
-// Parameters for the 1:1 hash instance of Poseidon
+/// Parameters for the 1:1 hash instance of Poseidon
 pub static RATE_1_PARAMETERS: Lazy<PoseidonParameters<Fr>> = Lazy::new(fr_parameters::rate_1);
+/// Parameters for the 2:1 hash instance of Poseidon
+pub static RATE_2_PARAMETERS: Lazy<PoseidonParameters<Fr>> = Lazy::new(fr_parameters::rate_2);
+/// Parameters for the 4:1 hash instance of Poseidon
+pub static RATE_4_PARAMETERS: Lazy<PoseidonParameters<Fr>> = Lazy::new(fr_parameters::rate_4);
 
 // taken from Penumbra (https://github.com/penumbra-zone/poseidon377/blob/a2d8c7a3288e2e877ac88a4d8fd3cc4ff2b52c04/poseidon377/src/r1cs.rs#L12)
-pub(crate) fn to_ark_sponge_poseidon_parameters(
+pub fn to_ark_sponge_poseidon_parameters(
     params: PoseidonParameters<Fr>,
 ) -> ArkSpongePoseidonParameters<Fr> {
     let alpha = match params.alpha {

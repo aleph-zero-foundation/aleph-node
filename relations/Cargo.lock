@@ -458,6 +458,7 @@ dependencies = [
  "ark-sponge",
  "ark-std",
  "once_cell",
+ "paste",
  "poseidon-parameters",
  "poseidon-paramgen",
  "poseidon-permutation",
@@ -466,6 +467,8 @@ dependencies = [
 [[package]]
 name = "liminal-ark-relation-macro"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08ec83abae75fb30b7bbec328f25157cdda7e9154f430e83d23825aa535309fb"
 dependencies = [
  "proc-macro2",
  "quote",

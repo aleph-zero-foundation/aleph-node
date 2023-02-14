@@ -68,7 +68,7 @@ impl<S: State> ConstraintSynthesizer<CircuitField> for PreimageRelation<S> {
             self.preimage.ok_or(AssignmentMissing)
         })?;
         let hash = FpVar::new_input(ns!(cs, "hash"), || self.hash.ok_or(AssignmentMissing))?;
-        let hash_result = circuit::one_to_one_hash(cs, preimage)?;
+        let hash_result = circuit::one_to_one_hash(cs, [preimage])?;
 
         hash.enforce_equal(&hash_result)?;
 
@@ -98,7 +98,7 @@ mod tests {
     #[test]
     fn preimage_constraints_correctness() {
         let preimage = CircuitField::from(17u64);
-        let image = hash::one_to_one_hash(preimage);
+        let image = hash::one_to_one_hash([preimage]);
 
         let circuit = PreimageRelation::with_full_input(preimage, image);
 
@@ -116,7 +116,7 @@ mod tests {
     #[test]
     fn unsatisfied_preimage_constraints() {
         let true_preimage = CircuitField::from(17u64);
-        let fake_image = hash::one_to_one_hash(CircuitField::from(19u64));
+        let fake_image = hash::one_to_one_hash([CircuitField::from(19u64)]);
         let circuit = PreimageRelation::with_full_input(true_preimage, fake_image);
 
         let cs = ConstraintSystem::new_ref();
@@ -130,7 +130,7 @@ mod tests {
     #[test]
     fn preimage_proving_and_verifying() {
         let preimage = CircuitField::from(7u64);
-        let image = hash::one_to_one_hash(preimage);
+        let image = hash::one_to_one_hash([preimage]);
 
         let circuit = PreimageRelation::with_full_input(preimage, image);
 

@@ -283,6 +283,7 @@ dependencies = [
  "ark-sponge",
  "ark-std",
  "once_cell",
+ "paste",
  "poseidon-parameters",
  "poseidon-paramgen",
  "poseidon-permutation",
