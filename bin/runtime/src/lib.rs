@@ -105,7 +105,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 47,
+    spec_version: 48,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 14,
@@ -768,21 +768,7 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    (
-        // pallet staking migrations: from V7 to V12
-        // for AlephZero chain, staking migrations from V7 to V11 does not have any side effects
-        migrations::custom_staking_migrations::BumpStorageVersionFromV7ToV11<Runtime>,
-        pallet_staking::migrations::v12::MigrateToV12<Runtime>,
-        // pallet multisig migration
-        pallet_multisig::migrations::v1::MigrateToV1<Runtime>,
-        // migrating to storage V2 and deleting old pools
-        migrations::custom_nomination_pools::CustomMigrateToV2<Runtime>,
-        pallet_nomination_pools::migration::v3::MigrateToV3<Runtime>,
-        // pallet scheduler migrations
-        migrations::custom_scheduler_migration::MigrateToV3<Runtime>,
-        // pallet transaction payment migrations
-        migrations::custom_transaction_payment_migration::BumpTransactionVersionToV2<Runtime>,
-    ),
+    migrations::custom_contracts_migration::CustomMigrateToV8<Runtime>,
 >;
 
 impl_runtime_apis! {
