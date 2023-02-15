@@ -43,7 +43,7 @@ use crate::{
     shielder::circuit_utils::PathShapeVar,
 };
 
-fn convert_hash(front: [u64; 4]) -> CircuitField {
+pub fn convert_hash(front: [u64; 4]) -> CircuitField {
     CircuitField::new(BigInteger256::new(front))
 }
 

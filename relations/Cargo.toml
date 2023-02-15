@@ -31,6 +31,13 @@ liminal-ark-relation-macro = { version = "0.1.0" }
 
 liminal-ark-poseidon = { path = "../poseidon", default-features = false }
 
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "bench"
+harness = false
+
 [features]
 default = ["std"]
 std = [
@@ -46,6 +53,7 @@ std = [
     "ark-poly-commit/std",
     "ark-r1cs-std/std",
     "ark-relations/std",
+    "ark-relations/tracing-subscriber",
     "ark-serialize/std",
     "ark-std/std",
     "blake2/std",

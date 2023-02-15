@@ -19,7 +19,10 @@ pub use linear::{
     LinearEquationRelationWithFullInput, LinearEquationRelationWithPublicInput,
     LinearEquationRelationWithoutInput,
 };
-pub use preimage::PreimageRelation;
+pub use preimage::{
+    preimage_proving, PreimageRelationWithFullInput, PreimageRelationWithPublicInput,
+    PreimageRelationWithoutInput,
+};
 pub use relation::GetPublicInput;
 pub use serialization::serialize;
 pub use shielder::{

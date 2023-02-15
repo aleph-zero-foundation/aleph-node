@@ -11,7 +11,7 @@ use crate::{
 pub fn parse_frontend_note(frontend_note: &str) -> Result<FrontendNote> {
     frontend_note
         .split(',')
-        .map(|l| u64::from_str(l).expect("Each element should be valid `u64`"))
+        .map(|l| u64::from_str(l).expect("Each element should be a valid `u64`"))
         .collect::<Vec<_>>()
         .try_into()
         .map_err(|e| anyhow!("Note consists of 4 `u64` elements: {e:?}"))
