@@ -2,6 +2,7 @@ use codec::{Decode, Encode};
 use environment::Environment;
 use executor::Executor;
 use frame_support::{log::error, weights::Weight};
+use liminal_ark_poseidon::{hash, BigInteger256, Fr};
 use pallet_baby_liminal::{Config, Error, ProvingSystem, VerificationKeyIdentifier, WeightInfo};
 use pallet_contracts::chain_extension::{
     ChainExtension, Environment as SubstrateEnvironment, Ext, InitState, RetVal, SysConfig,
@@ -19,6 +20,9 @@ mod tests;
 
 pub const BABY_LIMINAL_STORE_KEY_FUNC_ID: u32 = 41;
 pub const BABY_LIMINAL_VERIFY_FUNC_ID: u32 = 42;
+pub const POSEIDON_ONE_TO_ONE_FUNC_ID: u32 = 43;
+pub const POSEIDON_TWO_TO_ONE_FUNC_ID: u32 = 44;
+pub const POSEIDON_FOUR_TO_ONE_FUNC_ID: u32 = 45;
 
 // Return codes for `BABY_LIMINAL_STORE_KEY_FUNC_ID`.
 pub const BABY_LIMINAL_STORE_KEY_OK: u32 = 10_000;
@@ -35,6 +39,9 @@ pub const BABY_LIMINAL_VERIFY_DESERIALIZING_KEY_FAIL: u32 = 11_004;
 pub const BABY_LIMINAL_VERIFY_VERIFICATION_FAIL: u32 = 11_005;
 pub const BABY_LIMINAL_VERIFY_INCORRECT_PROOF: u32 = 11_006;
 pub const BABY_LIMINAL_VERIFY_ERROR_UNKNOWN: u32 = 11_007;
+
+// Return codes for `POSEIDON_*_FUNC_ID`.
+pub const POSEIDON_X_TO_ONE_OK: u32 = 12_000;
 
 #[derive(Default)]
 pub struct BabyLiminalChainExtension;
@@ -55,6 +62,15 @@ impl ChainExtension<Runtime> for BabyLiminalChainExtension {
             }
             BABY_LIMINAL_VERIFY_FUNC_ID => {
                 Self::baby_liminal_verify::<_, Runtime>(env.buf_in_buf_out())
+            }
+            POSEIDON_ONE_TO_ONE_FUNC_ID => {
+                Self::poseidon_one_to_one::<_, Runtime>(env.buf_in_buf_out())
+            }
+            POSEIDON_TWO_TO_ONE_FUNC_ID => {
+                Self::poseidon_two_to_one::<_, Runtime>(env.buf_in_buf_out())
+            }
+            POSEIDON_FOUR_TO_ONE_FUNC_ID => {
+                Self::poseidon_four_to_one::<_, Runtime>(env.buf_in_buf_out())
             }
             _ => {
                 error!("Called an unregistered `func_id`: {}", func_id);
@@ -113,6 +129,8 @@ fn weight_of_verify(system: Option<ProvingSystem>) -> Weight {
             .max(weight_of_verify(Some(ProvingSystem::Marlin))),
     }
 }
+
+type SingleHashInput = [u64; 4];
 
 impl BabyLiminalChainExtension {
     fn baby_liminal_store_key<Env: Environment, Exc: Executor>(
@@ -201,5 +219,48 @@ impl BabyLiminalChainExtension {
             },
         };
         Ok(RetVal::Converging(return_status))
+    }
+
+    fn into_field_element(x: SingleHashInput) -> Fr {
+        Fr::new(BigInteger256::new(x))
+    }
+
+    fn poseidon_one_to_one<Env: Environment, Exc: Executor>(
+        mut env: Env,
+    ) -> Result<RetVal, DispatchError> {
+        let input: [SingleHashInput; 1] = env.read_as()?;
+
+        env.charge_weight(<<Runtime as Config>::WeightInfo as WeightInfo>::poseidon_one_to_one())?;
+        let hash = hash::one_to_one_hash(input.map(Self::into_field_element));
+
+        env.write(&hash.0 .0.encode())?;
+
+        Ok(RetVal::Converging(POSEIDON_X_TO_ONE_OK))
+    }
+
+    fn poseidon_two_to_one<Env: Environment, Exc: Executor>(
+        mut env: Env,
+    ) -> Result<RetVal, DispatchError> {
+        let input: [SingleHashInput; 2] = env.read_as()?;
+
+        env.charge_weight(<<Runtime as Config>::WeightInfo as WeightInfo>::poseidon_two_to_one())?;
+        let hash = hash::two_to_one_hash(input.map(Self::into_field_element));
+
+        env.write(&hash.0 .0.encode())?;
+
+        Ok(RetVal::Converging(POSEIDON_X_TO_ONE_OK))
+    }
+
+    fn poseidon_four_to_one<Env: Environment, Exc: Executor>(
+        mut env: Env,
+    ) -> Result<RetVal, DispatchError> {
+        let input: [SingleHashInput; 4] = env.read_as()?;
+
+        env.charge_weight(<<Runtime as Config>::WeightInfo as WeightInfo>::poseidon_four_to_one())?;
+        let hash = hash::four_to_one_hash(input.map(Self::into_field_element));
+
+        env.write(&hash.0 .0.encode())?;
+
+        Ok(RetVal::Converging(POSEIDON_X_TO_ONE_OK))
     }
 }

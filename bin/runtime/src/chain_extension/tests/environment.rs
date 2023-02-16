@@ -3,6 +3,8 @@ use std::{
     sync::mpsc::{channel, Sender},
 };
 
+use codec::MaxEncodedLen;
+
 use super::*;
 
 /// Trait serving as a type-level flag indicating which method we are testing.
@@ -132,6 +134,14 @@ where
 
     fn read(&self, max_len: u32) -> Result<Vec<u8>, DispatchError> {
         self._read(max_len)
+    }
+
+    fn read_as<T: Decode + MaxEncodedLen>(&mut self) -> Result<T, DispatchError> {
+        todo!()
+    }
+
+    fn write(&mut self, buffer: &[u8]) -> Result<(), DispatchError> {
+        todo!()
     }
 
     fn charge_weight(&mut self, amount: Weight) -> Result<Weight, DispatchError> {

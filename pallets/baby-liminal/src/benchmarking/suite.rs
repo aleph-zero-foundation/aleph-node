@@ -156,5 +156,29 @@ benchmarks! {
         )
     }
 
+    // Cryptography
+
+    poseidon_one_to_one {
+        let x in 0 .. u32::MAX;
+    } : {
+        liminal_ark_poseidon::hash::one_to_one_hash([(x as u64).into()]);
+    }
+
+    poseidon_two_to_one {
+        let x in 0 .. u32::MAX;
+        let y in 0 .. u32::MAX;
+    } : {
+        liminal_ark_poseidon::hash::two_to_one_hash([(x as u64).into(), (y as u64).into()]);
+    }
+
+    poseidon_four_to_one {
+        let x in 0 .. u32::MAX;
+        let y in 0 .. u32::MAX;
+        let w in 0 .. u32::MAX;
+        let z in 0 .. u32::MAX;
+    } : {
+        liminal_ark_poseidon::hash::four_to_one_hash([(x as u64).into(), (y as u64).into(), (w as u64).into(), (z as u64).into()]);
+    }
+
     impl_benchmark_test_suite!(Pallet, crate::tests::new_test_ext(), crate::tests::TestRuntime);
 }

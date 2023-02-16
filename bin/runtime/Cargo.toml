@@ -65,6 +65,8 @@ pallet-aleph = { path = "../../pallets/aleph", default-features = false }
 pallet-elections = { path = "../../pallets/elections", default-features = false }
 pallet-baby-liminal = { path = "../../pallets/baby-liminal", default-features = false }
 
+liminal-ark-poseidon = { path = "../../poseidon", default-features = false }
+
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
 
@@ -114,6 +116,7 @@ std = [
     "pallet-contracts/std",
     "pallet-nomination-pools/std",
     "pallet-nomination-pools-runtime-api/std",
+    "liminal-ark-poseidon/std",
 ]
 short_session = ["primitives/short_session"]
 try-runtime = [

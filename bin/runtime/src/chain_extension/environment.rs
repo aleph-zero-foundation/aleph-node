@@ -1,3 +1,4 @@
+use codec::{Decode, MaxEncodedLen};
 use frame_support::weights::Weight;
 use pallet_contracts::{
     chain_extension::{BufInBufOutState, Environment as SubstrateEnvironment, Ext, SysConfig},
@@ -24,6 +25,10 @@ pub(super) trait Environment: Sized {
 
     fn in_len(&self) -> ByteCount;
     fn read(&self, max_len: u32) -> Result<Vec<u8>, DispatchError>;
+    // It has to be `mut`, because there's a leftover in pallet contracts.
+    fn read_as<T: Decode + MaxEncodedLen>(&mut self) -> Result<T, DispatchError>;
+    // It has to be `mut`, because there's a leftover in pallet contracts.
+    fn write(&mut self, buffer: &[u8]) -> Result<(), DispatchError>;
 
     fn charge_weight(&mut self, amount: Weight) -> Result<Self::ChargedAmount, DispatchError>;
     fn adjust_weight(&mut self, charged: Self::ChargedAmount, actual_weight: Weight);
@@ -42,6 +47,14 @@ where
 
     fn read(&self, max_len: u32) -> Result<Vec<u8>, DispatchError> {
         self.read(max_len)
+    }
+
+    fn read_as<T: Decode + MaxEncodedLen>(&mut self) -> Result<T, DispatchError> {
+        self.read_as()
+    }
+
+    fn write(&mut self, buffer: &[u8]) -> Result<(), DispatchError> {
+        self.write(buffer, false, None)
     }
 
     fn charge_weight(&mut self, amount: Weight) -> Result<Self::ChargedAmount, DispatchError> {

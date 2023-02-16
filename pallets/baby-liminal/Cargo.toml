@@ -34,6 +34,7 @@ sp-core = { default-features = false, git = "https://github.com/Cardinal-Cryptog
 sp-io = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
 sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
 
+liminal-ark-poseidon = { path = "../../poseidon", default-features = false, optional = true }
 primitives = { path = "../../primitives", default-features = false }
 
 [dev-dependencies]
@@ -74,6 +75,7 @@ runtime-benchmarks = [
     "frame-support/runtime-benchmarks",
     "frame-system/runtime-benchmarks",
     "sp-runtime/runtime-benchmarks",
+    "liminal-ark-poseidon",
 ]
 try-runtime = [
     "frame-support/try-runtime",

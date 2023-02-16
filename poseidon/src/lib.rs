@@ -1,6 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use ark_bls12_381::Fr;
+pub use ark_bls12_381::Fr;
+pub use ark_ff::biginteger::BigInteger256;
 
 #[cfg(feature = "circuit")]
 pub mod circuit;

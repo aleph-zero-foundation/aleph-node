@@ -35,7 +35,7 @@ impl ink::env::chain_extension::FromStatusCode for BabyLiminalError {
     fn from_status_code(status_code: u32) -> Result<(), Self> {
         match status_code {
             // Success codes
-            10_000 | 11_000 => Ok(()),
+            10_000 | 11_000 | 12_000 => Ok(()),
 
             // `pallet_baby_liminal::store_key` errors
             10_001 => Err(Self::VerificationKeyTooLong),
@@ -87,14 +87,23 @@ pub trait BabyLiminalExtension {
         input: Vec<u8>,
         system: ProvingSystem,
     );
+
+    #[ink(extension = 43, returns_result = false, handle_status = false)]
+    fn poseidon_one_to_one(input: [[u64; 4]; 1]) -> [u64; 4];
+
+    #[ink(extension = 44, returns_result = false, handle_status = false)]
+    fn poseidon_two_to_one(input: [[u64; 4]; 2]) -> [u64; 4];
+
+    #[ink(extension = 45, returns_result = false, handle_status = false)]
+    fn poseidon_four_to_one(input: [[u64; 4]; 4]) -> [u64; 4];
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
 /// All default, except `ChainExtension`, which is set to `BabyLiminalExtension`.
-pub enum DefaultEnvironment {}
+pub enum BabyLiminalEnvironment {}
 
-impl Environment for DefaultEnvironment {
+impl Environment for BabyLiminalEnvironment {
     const MAX_EVENT_TOPICS: usize = <ink::env::DefaultEnvironment as Environment>::MAX_EVENT_TOPICS;
 
     type AccountId = <ink::env::DefaultEnvironment as Environment>::AccountId;
