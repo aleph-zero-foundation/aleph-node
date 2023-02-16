@@ -113,7 +113,7 @@ fi
 
 if [[ -n "${ADDER:-}" ]]; then
     ARGS+=(-e "ADDER=${ADDER}")
-    ARGS+=(-e "ADDER_METADATA=/contracts/adder/target/ink/metadata.json")
+    ARGS+=(-e "ADDER_METADATA=/contracts/adder/target/ink/adder.json")
 fi
 
 if [[ -n "${OUT_LATENCY:-}" ]]; then
