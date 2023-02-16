@@ -1,18 +1,16 @@
 //! Module exposing some utilities regarding note generation and verification.
 
-use ark_r1cs_std::eq::EqGadget;
+use ark_r1cs_std::{eq::EqGadget, R1CSVar};
 use ark_relations::r1cs::SynthesisError;
 use ark_std::{vec, vec::Vec};
+use liminal_ark_poseidon::{circuit, hash};
 
-use super::{
-    tangle::{tangle, tangle_in_circuit},
-    types::{
-        FrontendNote, FrontendNullifier, FrontendTokenAmount, FrontendTokenId, FrontendTrapdoor,
-    },
+use super::types::{
+    FrontendNote, FrontendNullifier, FrontendTokenAmount, FrontendTokenId, FrontendTrapdoor,
 };
 use crate::{environment::FpVar, shielder::convert_hash, CircuitField};
 
-/// Verify that `note` is indeed the result of tangling `(token_id, token_amount, trapdoor,
+/// Verify that `note` is indeed the result of hashing `(token_id, token_amount, trapdoor,
 /// nullifier)`.
 ///
 /// For circuit use only.
@@ -23,17 +21,20 @@ pub(super) fn check_note(
     nullifier: &FpVar,
     note: &FpVar,
 ) -> Result<(), SynthesisError> {
-    let tangled = tangle_in_circuit(&vec![
-        token_id.clone(),
-        token_amount.clone(),
-        trapdoor.clone(),
-        nullifier.clone(),
-    ])?;
+    let hash = circuit::four_to_one_hash(
+        token_id.cs(),
+        [
+            token_id.clone(),
+            token_amount.clone(),
+            trapdoor.clone(),
+            nullifier.clone(),
+        ],
+    )?;
 
-    tangled.enforce_equal(note)
+    hash.enforce_equal(note)
 }
 
-/// Compute note as the result of tangling `(token_id, token_amount, trapdoor, nullifier)`.
+/// Compute note as the result of hashing `(token_id, token_amount, trapdoor, nullifier)`.
 ///
 /// Useful for input preparation and offline note generation.
 pub fn compute_note(
@@ -42,7 +43,7 @@ pub fn compute_note(
     trapdoor: FrontendTrapdoor,
     nullifier: FrontendNullifier,
 ) -> FrontendNote {
-    tangle(&[
+    hash::four_to_one_hash([
         CircuitField::from(token_id as u64),
         CircuitField::from(token_amount),
         CircuitField::from(trapdoor),
@@ -53,7 +54,9 @@ pub fn compute_note(
 }
 
 pub fn compute_parent_hash(left: FrontendNote, right: FrontendNote) -> FrontendNote {
-    tangle(&[convert_hash(left), convert_hash(right)]).0 .0
+    hash::two_to_one_hash([convert_hash(left), convert_hash(right)])
+        .0
+         .0
 }
 
 /// Create a note from the first 32 bytes of `bytes`.

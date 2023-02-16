@@ -6,7 +6,7 @@ use crate::{BackendNote, FrontendNote};
 
 /// 'Deposit' relation for the Shielder application.
 ///
-/// It expresses the fact that `note` is a prefix of the result of tangling together `token_id`,
+/// It expresses the fact that `note` is a prefix of the result of hashing together `token_id`,
 /// `token_amount`, `trapdoor` and `nullifier`.
 #[snark_relation]
 mod relation {

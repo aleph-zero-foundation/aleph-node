@@ -12,6 +12,7 @@ use poseidon_paramgen::poseidon_build;
 fn main() {
     let security_level = match env::var("SECURITY_LEVEL") {
         Ok(level) => match level.as_str() {
+            "32" => 32,
             "80" => 80,
             "128" => 128,
             "256" => 256,

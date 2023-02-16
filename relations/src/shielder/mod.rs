@@ -1,14 +1,10 @@
-//! This module contains two relations that are the core of the Shielder application: `deposit` and
+//! This module contains relations that are the core of the Shielder application: `deposit`, `deposit_and_merge` and
 //! `withdraw`. It also exposes some functions and types that might be useful for input generation.
-//!
-//! Currently, instead of using some real hash function, we chose to incorporate a simple tangling
-//! algorithm. Essentially, it is a procedure that just mangles a byte sequence.
 
 mod circuit_utils;
 mod deposit;
 mod deposit_and_merge;
 mod note;
-mod tangle;
 pub mod types;
 mod withdraw;
 
@@ -27,7 +23,6 @@ pub use deposit_and_merge::{
     DepositAndMergeRelationWithoutInput,
 };
 pub use note::{bytes_from_note, compute_note, compute_parent_hash, note_from_bytes};
-use tangle::tangle_in_circuit;
 use types::BackendMerklePath;
 pub use types::{
     FrontendMerklePath as MerklePath, FrontendMerkleRoot as MerkleRoot, FrontendNote as Note,
@@ -81,7 +76,10 @@ fn check_merkle_proof(
         let left = path_shape[i].select(&current_note, &sibling)?;
         let right = path_shape[i].select(&sibling, &current_note)?;
 
-        current_note = tangle_in_circuit(&[left, right])?;
+        current_note = liminal_ark_poseidon::circuit::two_to_one_hash(
+            cs.clone(),
+            [left.clone(), right.clone()],
+        )?;
     }
 
     merkle_root.enforce_equal(&current_note)

@@ -13,13 +13,11 @@ description = "An instantiation of the Poseidon SNARK-friendly hash function."
 [dependencies]
 ark-bls12-381 = { version = "^0.3.0" }
 ark-ff = { version = "^0.3.0", default-features = false }
-ark-r1cs-std = {version = "^0.3.0" , default-features = false }
-ark-relations = { version = "^0.3.0", default-features = false }
-ark-std = { version = "^0.3.0", default-features = false }
-once_cell = { version = "1.17", default-features = false, features = ["critical-section"] }
+ark-r1cs-std = {version = "^0.3.0" , default-features = false, optional = true }
+ark-relations = { version = "^0.3.0", default-features = false, optional = true }
 paste = { version = "1.0.11" }
 
-ark-sponge = { git = "https://github.com/penumbra-zone/sponge", branch = "r1cs", default-features = false, features = ["r1cs"] }
+ark-sponge = { git = "https://github.com/penumbra-zone/sponge", branch = "r1cs", default-features = false, features = ["r1cs"], optional = true  }
 poseidon-parameters = { git = "https://github.com/penumbra-zone/poseidon377", rev = "50699746", default-features = false }
 poseidon-permutation = { git = "https://github.com/penumbra-zone/poseidon377", rev = "50699746", default-features = false }
 
@@ -36,9 +34,13 @@ std = [
     "ark-ff/std",
     "ark-r1cs-std/std",
     "ark-relations/std",
-    "ark-std/std",
 
     "ark-sponge/std",
     "poseidon-parameters/std",
     "poseidon-permutation/std",
+]
+circuit = [
+    "ark-r1cs-std",
+    "ark-relations",
+    "ark-sponge",
 ]
