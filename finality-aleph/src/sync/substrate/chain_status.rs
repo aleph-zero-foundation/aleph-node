@@ -86,10 +86,9 @@ where
     }
 
     fn justification(&self, hash: B::Hash) -> Result<Option<AlephJustification>, ClientError> {
-        let id = SubstrateBlockId::<B>::Hash(hash);
         let justification = match self
             .client
-            .justifications(id)?
+            .justifications(hash)?
             .and_then(|j| j.into_justification(ALEPH_ENGINE_ID))
         {
             Some(justification) => justification,

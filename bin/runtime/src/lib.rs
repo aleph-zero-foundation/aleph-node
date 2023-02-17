@@ -32,8 +32,8 @@ pub use primitives::Balance;
 use primitives::{
     staking::MAX_NOMINATORS_REWARDED_PER_VALIDATOR, wrap_methods, ApiError as AlephApiError,
     AuthorityId as AlephId, SessionAuthorityData, Version as FinalityVersion, ADDRESSES_ENCODING,
-    DEFAULT_BAN_REASON_LENGTH, DEFAULT_SESSIONS_PER_ERA, DEFAULT_SESSION_PERIOD, MAX_BLOCK_SIZE,
-    MILLISECS_PER_BLOCK, TOKEN,
+    DEFAULT_BAN_REASON_LENGTH, DEFAULT_MAX_WINNERS, DEFAULT_SESSIONS_PER_ERA,
+    DEFAULT_SESSION_PERIOD, MAX_BLOCK_SIZE, MILLISECS_PER_BLOCK, TOKEN,
 };
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::{sr25519::AuthorityId as AuraId, SlotDuration};
@@ -104,7 +104,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 46,
+    spec_version: 47,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 14,
@@ -327,6 +327,7 @@ impl_opaque_keys! {
 parameter_types! {
     pub const SessionPeriod: u32 = DEFAULT_SESSION_PERIOD;
     pub const MaximumBanReasonLength: u32 = DEFAULT_BAN_REASON_LENGTH;
+    pub const MaxWinners: u32 = DEFAULT_MAX_WINNERS;
 }
 
 impl pallet_elections::Config for Runtime {
@@ -339,6 +340,7 @@ impl pallet_elections::Config for Runtime {
     type ValidatorRewardsHandler = Staking;
     type ValidatorExtractor = Staking;
     type MaximumBanReasonLength = MaximumBanReasonLength;
+    type MaxWinners = MaxWinners;
 }
 
 impl pallet_randomness_collective_flip::Config for Runtime {}
@@ -392,11 +394,10 @@ impl pallet_nomination_pools::Config for Runtime {
     type WeightInfo = ();
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
-    type CurrencyBalance = Balance;
     type RewardCounter = FixedU128;
     type BalanceToU256 = BalanceToU256;
     type U256ToBalance = U256ToBalance;
-    type StakingInterface = pallet_staking::Pallet<Self>;
+    type Staking = pallet_staking::Pallet<Self>;
     type PostUnbondingPoolsWindow = PostUnbondPoolsWindow;
     type MaxMetadataLen = ConstU32<256>;
     type MaxUnbonding = ConstU32<8>;
@@ -943,7 +944,8 @@ impl_runtime_apis! {
                 gas_limit,
                 storage_deposit_limit,
                 input_data,
-                CONTRACTS_DEBUG_OUTPUT
+                CONTRACTS_DEBUG_OUTPUT,
+                pallet_contracts::Determinism::Deterministic,
             )
         }
 
@@ -974,9 +976,10 @@ impl_runtime_apis! {
             origin: AccountId,
             code: Vec<u8>,
             storage_deposit_limit: Option<Balance>,
+            determinism: pallet_contracts::Determinism,
         ) -> pallet_contracts_primitives::CodeUploadResult<Hash, Balance>
         {
-            Contracts::bare_upload_code(origin, code, storage_deposit_limit)
+            Contracts::bare_upload_code(origin, code, storage_deposit_limit, determinism)
         }
 
         fn get_storage(

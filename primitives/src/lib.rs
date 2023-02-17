@@ -65,6 +65,7 @@ pub const DEFAULT_COMMITTEE_SIZE: u32 = 4;
 pub const DEFAULT_BAN_MINIMAL_EXPECTED_PERFORMANCE: Perbill = Perbill::from_percent(0);
 pub const DEFAULT_BAN_SESSION_COUNT_THRESHOLD: SessionCount = 3;
 pub const DEFAULT_BAN_REASON_LENGTH: u32 = 300;
+pub const DEFAULT_MAX_WINNERS: u32 = u32::MAX;
 
 pub const DEFAULT_CLEAN_SESSION_COUNTER_DELAY: SessionCount = 960;
 pub const DEFAULT_BAN_PERIOD: EraIndex = 10;

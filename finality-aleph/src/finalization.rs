@@ -3,7 +3,7 @@ use std::{marker::PhantomData, sync::Arc};
 
 use log::{debug, warn};
 use sc_client_api::{Backend, Finalizer, HeaderBackend, LockImportRun};
-use sp_api::{BlockId, NumberFor};
+use sp_api::NumberFor;
 use sp_blockchain::Error;
 use sp_runtime::{traits::Block, Justification};
 
@@ -63,7 +63,7 @@ where
         let update_res = self.client.lock_import_and_run(|import_op| {
             // NOTE: all other finalization logic should come here, inside the lock
             self.client
-                .apply_finality(import_op, BlockId::Hash(hash), justification, true)
+                .apply_finality(import_op, hash, justification, true)
         });
         let status = self.client.info();
         debug!(target: "aleph-finality", "Attempted to finalize block with hash {:?}. Current best: #{:?}.", hash, status.finalized_number);

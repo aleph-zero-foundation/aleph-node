@@ -61,6 +61,7 @@ pub async fn upload_code(
         .upload_code(
             wasm,
             storage_deposit(storage_deposit_limit),
+            aleph_client::pallet_contracts::wasm::Determinism::Deterministic,
             TxStatus::InBlock,
         )
         .await?;

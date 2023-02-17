@@ -7,7 +7,7 @@ use frame_support::{
     weights::{RuntimeDbWeight, Weight},
     BasicExternalities, BoundedVec,
 };
-use primitives::{BanConfig, CommitteeSeats};
+use primitives::{BanConfig, CommitteeSeats, DEFAULT_MAX_WINNERS};
 use sp_core::H256;
 use sp_runtime::{
     testing::{Header, TestXt},
@@ -186,6 +186,7 @@ impl Config for Test {
     type ValidatorRewardsHandler = MockProvider;
     type ValidatorExtractor = MockProvider;
     type MaximumBanReasonLength = ConstU32<300>;
+    type MaxWinners = ConstU32<DEFAULT_MAX_WINNERS>;
 }
 
 type MaxVotesPerVoter = ConstU32<1>;

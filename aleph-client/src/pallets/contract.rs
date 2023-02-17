@@ -3,8 +3,10 @@ use pallet_contracts_primitives::ContractExecResult;
 use subxt::{ext::sp_core::Bytes, rpc_params};
 
 use crate::{
-    api, pallet_contracts::wasm::OwnerInfo, sp_weights::weight_v2::Weight, AccountId, Balance,
-    BlockHash, CodeHash, ConnectionApi, SignedConnectionApi, TxInfo, TxStatus,
+    api,
+    pallet_contracts::wasm::{Determinism, OwnerInfo},
+    sp_weights::weight_v2::Weight,
+    AccountId, Balance, BlockHash, CodeHash, ConnectionApi, SignedConnectionApi, TxInfo, TxStatus,
 };
 
 /// Arguments to [`ContractRpc::call_and_get`].
@@ -42,6 +44,7 @@ pub trait ContractsUserApi {
         &self,
         code: Vec<u8>,
         storage_limit: Option<Compact<Balance>>,
+        determinism: Determinism,
         status: TxStatus,
     ) -> anyhow::Result<TxInfo>;
 
@@ -115,9 +118,12 @@ impl<S: SignedConnectionApi> ContractsUserApi for S {
         &self,
         code: Vec<u8>,
         storage_limit: Option<Compact<Balance>>,
+        determinism: Determinism,
         status: TxStatus,
     ) -> anyhow::Result<TxInfo> {
-        let tx = api::tx().contracts().upload_code(code, storage_limit);
+        let tx = api::tx()
+            .contracts()
+            .upload_code(code, storage_limit, determinism);
 
         self.send_tx(tx, status).await
     }

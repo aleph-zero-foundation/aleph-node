@@ -75,7 +75,7 @@ fn validators_are_elected_only_when_staking() {
                 <Elections as ElectionProvider>::elect().expect("`elect()` should succeed");
 
             assert_eq!(
-                elected,
+                elected.into_inner(),
                 &[
                     (1, support(10, vec![(1, 10)])),
                     (2, no_support()),
