@@ -345,22 +345,6 @@ jobs:
           follow-up-finalization-check: true
         timeout-minutes: 3
 
-
-  run-e2e-fee-calculation:
-    needs: [build-test-docker, build-test-client]
-    name: Run e2e fee calculation test
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v2
-
-      - name: Run e2e test
-        uses: ./.github/actions/run-e2e-test
-        with:
-          test-case: fee_calculation
-        timeout-minutes: 2
-
-
   run-e2e-validators-rotate:
     needs: [build-test-docker, build-test-client]
     name: Run validators rotation test
@@ -706,7 +690,6 @@ jobs:
       run-e2e-staking-era-payouts-test,
       run-e2e-staking-new-validator-test,
       run-e2e-change-validators-test,
-      run-e2e-fee-calculation,
       run-e2e-validators-rotate,
       run-e2e-era-payout,
       run-e2e-era-validators,

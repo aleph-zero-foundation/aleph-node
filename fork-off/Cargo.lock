@@ -225,6 +225,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b645a089122eccb6111b4f81cbc1a49f5900ac4666bb93ac027feaecf15607bf"
 
 [[package]]
+name = "bincode"
+version = "1.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -465,12 +474,39 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5827cebf4670468b8772dd191856768aedcb1b0278a04f989f7766351917b9dc"
 
 [[package]]
+name = "cpp_demangle"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eeaa953eaad386a53111e47172c2fedba671e5684c8dd601a5f474f4f118710f"
+dependencies = [
+ "cfg-if 1.0.0",
+]
+
+[[package]]
 name = "cpufeatures"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28d997bd5e24a5928dd43e46dc529867e207907fe0b239c3477d924f7f2ca320"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "cranelift-entity"
+version = "0.88.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87a0f1b2fdc18776956370cf8d9b009ded3f855350c480c1c52142510961f352"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "crc32fast"
+version = "1.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b540bd8bc810d3885c6ea91e2018302f68baba2129ab3e88f32389ee9370880d"
+dependencies = [
+ "cfg-if 1.0.0",
 ]
 
 [[package]]
@@ -709,6 +745,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "ed25519"
+version = "1.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "91cff35c70bba8a626e3185d8cd48cc11b5437e1a5bcd15b9b5fa3c64b6dfee7"
+dependencies = [
+ "signature",
+]
+
+[[package]]
+name = "ed25519-dalek"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c762bae6dcaf24c4c84667b8579785430908723d5c889f469d76a41d59cc7a9d"
+dependencies = [
+ "curve25519-dalek 3.2.0",
+ "ed25519",
+ "sha2 0.9.9",
+ "zeroize",
+]
+
+[[package]]
 name = "ed25519-zebra"
 version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -776,6 +833,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e48c92028aaa870e83d51c64e5d4e0b6981b360c522198c23959f219a4e1b15b"
 
 [[package]]
+name = "errno"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f639046355ee4f37944e44f60642c6f3a7efa3cf6b78c78a0d989a8ce6c396a1"
+dependencies = [
+ "errno-dragonfly",
+ "libc",
+ "winapi 0.3.9",
+]
+
+[[package]]
+name = "errno-dragonfly"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa68f1b12764fab894d2755d2518754e71b4fd80ecfb822714a1206c2aab39bf"
+dependencies = [
+ "cc",
+ "libc",
+]
+
+[[package]]
 name = "event-listener"
 version = "2.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -786,6 +864,12 @@ name = "fake-simd"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e88a8acf291dafb59c2d96e8f59828f3838bb1a70398823ade51a84de6a6deed"
+
+[[package]]
+name = "fallible-iterator"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4443176a9f2c162692bd3d352d745ef9413eec5782a80d8fd6f8a1ac692a07f7"
 
 [[package]]
 name = "fastrand"
@@ -878,7 +962,7 @@ dependencies = [
 [[package]]
 name = "frame-benchmarking"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "frame-support",
  "frame-system",
@@ -913,7 +997,7 @@ dependencies = [
 [[package]]
 name = "frame-support"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "bitflags",
  "frame-metadata",
@@ -945,7 +1029,7 @@ dependencies = [
 [[package]]
 name = "frame-support-procedural"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "Inflector",
  "cfg-expr",
@@ -959,7 +1043,7 @@ dependencies = [
 [[package]]
 name = "frame-support-procedural-tools"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "frame-support-procedural-tools-derive",
  "proc-macro-crate 1.2.1",
@@ -971,7 +1055,7 @@ dependencies = [
 [[package]]
 name = "frame-support-procedural-tools-derive"
 version = "3.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -981,7 +1065,7 @@ dependencies = [
 [[package]]
 name = "frame-system"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "frame-support",
  "log 0.4.17",
@@ -1169,6 +1253,10 @@ name = "gimli"
 version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22030e2c5a68ec659fde1e949a745124b48e6fa8b045b7ed5bd1fe4ccc5c4e5d"
+dependencies = [
+ "fallible-iterator",
+ "stable_deref_trait",
+]
 
 [[package]]
 name = "group"
@@ -1463,6 +1551,7 @@ checksum = "1885e79c1fc4b10f0e172c475f458b7f7b93061064d98c3293e98c5ba0c8b399"
 dependencies = [
  "autocfg 1.1.0",
  "hashbrown",
+ "serde",
 ]
 
 [[package]]
@@ -1482,6 +1571,12 @@ checksum = "276ec31bcb4a9ee45f58bec6f9ec700ae4cf4f4f8f2fa7e06cb406bd5ffdd770"
 dependencies = [
  "num-traits",
 ]
+
+[[package]]
+name = "io-lifetimes"
+version = "0.7.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59ce5ef949d49ee85593fc4d3f3f95ad61657076395cbbce23e2121fc5542074"
 
 [[package]]
 name = "iovec"
@@ -1715,6 +1810,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "linux-raw-sys"
+version = "0.0.46"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4d2456c373231a208ad294c33dc5bff30051eafd954cd4caae83a712b12854d"
+
+[[package]]
 name = "lock_api"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1761,6 +1862,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "mach"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b823e83b2affd8f40a9ee8c29dbc56404c1e34cd2710921f2801e2cf29527afa"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "matchers"
 version = "0.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1795,6 +1905,15 @@ name = "memchr"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
+
+[[package]]
+name = "memoffset"
+version = "0.6.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5aa361d4faea93603064a027415f07bd8e1d5c88c9fbf68bf56a285428fd79ce"
+dependencies = [
+ "autocfg 1.1.0",
+]
 
 [[package]]
 name = "memory-db"
@@ -2034,6 +2153,9 @@ version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "21158b2c33aa6d4561f1c0a6ea283ca92bc54802a93b263e910746d679a7eb53"
 dependencies = [
+ "crc32fast",
+ "hashbrown",
+ "indexmap",
  "memchr",
 ]
 
@@ -2109,7 +2231,7 @@ checksum = "9b7820b9daea5457c9f21c69448905d723fbd21136ccf521748f23fd49e723ee"
 [[package]]
 name = "pallet-balances"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -2388,6 +2510,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5ea3d908b0e36316caf9e9e2c4625cdde190a7e6f440d794667ed17a1855e725"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "psm"
+version = "0.1.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5787f7cda34e3033a72192c018bc5883100330f362ef279a8cbccfce8bb4e874"
+dependencies = [
+ "cc",
 ]
 
 [[package]]
@@ -2772,6 +2903,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustix"
+version = "0.35.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "727a1a6d65f786ec22df8a81ca3121107f235970dc1705ed681d3e6e8b9cd5f9"
+dependencies = [
+ "bitflags",
+ "errno",
+ "io-lifetimes",
+ "libc",
+ "linux-raw-sys",
+ "windows-sys 0.42.0",
+]
+
+[[package]]
 name = "ryu"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3115,7 +3260,7 @@ dependencies = [
 [[package]]
 name = "sp-api"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "hash-db",
  "log 0.4.17",
@@ -3133,7 +3278,7 @@ dependencies = [
 [[package]]
 name = "sp-api-proc-macro"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "blake2",
  "proc-macro-crate 1.2.1",
@@ -3144,8 +3289,8 @@ dependencies = [
 
 [[package]]
 name = "sp-application-crypto"
-version = "6.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+version = "7.0.0"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -3157,8 +3302,8 @@ dependencies = [
 
 [[package]]
 name = "sp-arithmetic"
-version = "5.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+version = "6.0.0"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "integer-sqrt",
  "num-traits",
@@ -3172,8 +3317,8 @@ dependencies = [
 
 [[package]]
 name = "sp-core"
-version = "6.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+version = "7.0.0"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "array-bytes",
  "base58",
@@ -3217,8 +3362,8 @@ dependencies = [
 
 [[package]]
 name = "sp-core-hashing"
-version = "4.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+version = "5.0.0"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "blake2",
  "byteorder",
@@ -3232,7 +3377,7 @@ dependencies = [
 [[package]]
 name = "sp-core-hashing-proc-macro"
 version = "5.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3242,8 +3387,8 @@ dependencies = [
 
 [[package]]
 name = "sp-debug-derive"
-version = "4.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+version = "5.0.0"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3252,8 +3397,8 @@ dependencies = [
 
 [[package]]
 name = "sp-externalities"
-version = "0.12.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+version = "0.13.0"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "environmental",
  "parity-scale-codec",
@@ -3264,7 +3409,7 @@ dependencies = [
 [[package]]
 name = "sp-inherents"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "async-trait",
  "impl-trait-for-tuples",
@@ -3277,10 +3422,11 @@ dependencies = [
 
 [[package]]
 name = "sp-io"
-version = "6.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+version = "7.0.0"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "bytes 1.3.0",
+ "ed25519-dalek",
  "futures 0.3.25",
  "hash-db",
  "libsecp256k1",
@@ -3303,8 +3449,8 @@ dependencies = [
 
 [[package]]
 name = "sp-keystore"
-version = "0.12.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+version = "0.13.0"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "async-trait",
  "futures 0.3.25",
@@ -3319,8 +3465,8 @@ dependencies = [
 
 [[package]]
 name = "sp-panic-handler"
-version = "4.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+version = "5.0.0"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "backtrace",
  "lazy_static",
@@ -3329,8 +3475,8 @@ dependencies = [
 
 [[package]]
 name = "sp-runtime"
-version = "6.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+version = "7.0.0"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "either",
  "hash256-std-hasher",
@@ -3352,8 +3498,8 @@ dependencies = [
 
 [[package]]
 name = "sp-runtime-interface"
-version = "6.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+version = "7.0.0"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "bytes 1.3.0",
  "impl-trait-for-tuples",
@@ -3370,8 +3516,8 @@ dependencies = [
 
 [[package]]
 name = "sp-runtime-interface-proc-macro"
-version = "5.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+version = "6.0.0"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "Inflector",
  "proc-macro-crate 1.2.1",
@@ -3383,7 +3529,7 @@ dependencies = [
 [[package]]
 name = "sp-staking"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -3393,8 +3539,8 @@ dependencies = [
 
 [[package]]
 name = "sp-state-machine"
-version = "0.12.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+version = "0.13.0"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "hash-db",
  "log 0.4.17",
@@ -3415,13 +3561,13 @@ dependencies = [
 
 [[package]]
 name = "sp-std"
-version = "4.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+version = "5.0.0"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 
 [[package]]
 name = "sp-storage"
-version = "6.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+version = "7.0.0"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "impl-serde",
  "parity-scale-codec",
@@ -3433,8 +3579,8 @@ dependencies = [
 
 [[package]]
 name = "sp-tracing"
-version = "5.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+version = "6.0.0"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "parity-scale-codec",
  "sp-std",
@@ -3445,8 +3591,8 @@ dependencies = [
 
 [[package]]
 name = "sp-trie"
-version = "6.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+version = "7.0.0"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "ahash",
  "hash-db",
@@ -3469,7 +3615,7 @@ dependencies = [
 [[package]]
 name = "sp-version"
 version = "5.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "impl-serde",
  "parity-scale-codec",
@@ -3486,7 +3632,7 @@ dependencies = [
 [[package]]
 name = "sp-version-proc-macro"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "parity-scale-codec",
  "proc-macro2",
@@ -3496,20 +3642,21 @@ dependencies = [
 
 [[package]]
 name = "sp-wasm-interface"
-version = "6.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+version = "7.0.0"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "impl-trait-for-tuples",
  "log 0.4.17",
  "parity-scale-codec",
  "sp-std",
  "wasmi",
+ "wasmtime",
 ]
 
 [[package]]
 name = "sp-weights"
 version = "4.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.33#f404b5d379784b774f462e4e25cf5885b5d1246c"
+source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.34#50339b32edfb33ae1c80cc42b232381d87aeb415"
 dependencies = [
  "impl-trait-for-tuples",
  "parity-scale-codec",
@@ -3546,6 +3693,12 @@ dependencies = [
  "serde_json",
  "unicode-xid",
 ]
+
+[[package]]
+name = "stable_deref_trait"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
 name = "static_assertions"
@@ -3619,6 +3772,12 @@ name = "tap"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
+
+[[package]]
+name = "target-lexicon"
+version = "0.12.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ae9980cab1db3fceee2f6c6f643d5d8de2997c58ee8d25fb0cc8a9e9e7348e5"
 
 [[package]]
 name = "tempfile"
@@ -4244,6 +4403,137 @@ dependencies = [
  "memory_units",
  "num-rational",
  "num-traits",
+]
+
+[[package]]
+name = "wasmparser"
+version = "0.89.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab5d3e08b13876f96dd55608d03cd4883a0545884932d5adf11925876c96daef"
+dependencies = [
+ "indexmap",
+]
+
+[[package]]
+name = "wasmtime"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ad5af6ba38311282f2a21670d96e78266e8c8e2f38cbcd52c254df6ccbc7731"
+dependencies = [
+ "anyhow",
+ "bincode",
+ "cfg-if 1.0.0",
+ "indexmap",
+ "libc",
+ "log 0.4.17",
+ "object",
+ "once_cell",
+ "paste",
+ "psm",
+ "serde",
+ "target-lexicon",
+ "wasmparser",
+ "wasmtime-environ",
+ "wasmtime-jit",
+ "wasmtime-runtime",
+ "windows-sys 0.36.1",
+]
+
+[[package]]
+name = "wasmtime-asm-macros"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45de63ddfc8b9223d1adc8f7b2ee5f35d1f6d112833934ad7ea66e4f4339e597"
+dependencies = [
+ "cfg-if 1.0.0",
+]
+
+[[package]]
+name = "wasmtime-environ"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ebb881c61f4f627b5d45c54e629724974f8a8890d455bcbe634330cc27309644"
+dependencies = [
+ "anyhow",
+ "cranelift-entity",
+ "gimli",
+ "indexmap",
+ "log 0.4.17",
+ "object",
+ "serde",
+ "target-lexicon",
+ "thiserror",
+ "wasmparser",
+ "wasmtime-types",
+]
+
+[[package]]
+name = "wasmtime-jit"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1985c628011fe26adf5e23a5301bdc79b245e0e338f14bb58b39e4e25e4d8681"
+dependencies = [
+ "addr2line",
+ "anyhow",
+ "bincode",
+ "cfg-if 1.0.0",
+ "cpp_demangle",
+ "gimli",
+ "log 0.4.17",
+ "object",
+ "rustc-demangle",
+ "rustix",
+ "serde",
+ "target-lexicon",
+ "thiserror",
+ "wasmtime-environ",
+ "wasmtime-runtime",
+ "windows-sys 0.36.1",
+]
+
+[[package]]
+name = "wasmtime-jit-debug"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f671b588486f5ccec8c5a3dba6b4c07eac2e66ab8c60e6f4e53717c77f709731"
+dependencies = [
+ "once_cell",
+]
+
+[[package]]
+name = "wasmtime-runtime"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee8f92ad4b61736339c29361da85769ebc200f184361959d1792832e592a1afd"
+dependencies = [
+ "anyhow",
+ "cc",
+ "cfg-if 1.0.0",
+ "indexmap",
+ "libc",
+ "log 0.4.17",
+ "mach",
+ "memoffset",
+ "paste",
+ "rand 0.8.5",
+ "rustix",
+ "thiserror",
+ "wasmtime-asm-macros",
+ "wasmtime-environ",
+ "wasmtime-jit-debug",
+ "windows-sys 0.36.1",
+]
+
+[[package]]
+name = "wasmtime-types"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d23d61cb4c46e837b431196dd06abb11731541021916d03476a178b54dc07aeb"
+dependencies = [
+ "cranelift-entity",
+ "serde",
+ "thiserror",
+ "wasmparser",
 ]
 
 [[package]]

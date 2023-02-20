@@ -20,7 +20,9 @@ pub use frame_support::{
 };
 use frame_support::{
     sp_runtime::Perquintill,
-    traits::{ConstU32, EqualPrivilegeOnly, SortedMembers, U128CurrencyToVote, WithdrawReasons},
+    traits::{
+        ConstBool, ConstU32, EqualPrivilegeOnly, SortedMembers, U128CurrencyToVote, WithdrawReasons,
+    },
     weights::constants::WEIGHT_PER_MILLIS,
     PalletId,
 };
@@ -104,7 +106,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 47,
+    spec_version: 52,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 14,
@@ -683,6 +685,7 @@ impl pallet_contracts::Config for Runtime {
     type AddressGenerator = pallet_contracts::DefaultAddressGenerator;
     type MaxCodeLen = ConstU32<{ 128 * 1024 }>;
     type MaxStorageKeyLen = ConstU32<128>;
+    type UnsafeUnstableInterface = ConstBool<false>;
 }
 
 parameter_types! {

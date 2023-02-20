@@ -4,7 +4,6 @@ pub use ban::{
 pub use electing_validators::authorities_are_staking;
 pub use era_payout::era_payouts_calculated_correctly;
 pub use era_validators::era_validators;
-pub use fee::fee_calculation;
 pub use finality_version::{
     finality_version_change, schedule_doomed_version_change_and_verify_finalization_stopped,
     schedule_version_change,
@@ -25,7 +24,6 @@ mod ban;
 mod electing_validators;
 mod era_payout;
 mod era_validators;
-mod fee;
 mod finality_version;
 mod finalization;
 mod helpers;

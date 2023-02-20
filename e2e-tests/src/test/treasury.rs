@@ -1,21 +1,20 @@
 use aleph_client::{
     account_from_keypair,
-    api::treasury::events::Rejected,
+    api::{transaction_payment::events::TransactionFeePaid, treasury::events::Rejected},
     pallets::{
-        balances::BalanceApi,
+        balances::{BalanceApi, BalanceUserApi},
+        fee::TransactionPaymentApi,
         system::SystemApi,
         treasury::{TreasureApiExt, TreasuryApi, TreasuryUserApi},
     },
+    utility::BlocksApi,
     waiting::{AlephWaiting, BlockStatus},
-    ConnectionApi, KeyPair, RootConnection, SignedConnection, TxStatus,
+    AccountId, ConnectionApi, KeyPair, RootConnection, SignedConnection, TxStatus,
 };
 use log::info;
 use primitives::Balance;
 
-use crate::{
-    accounts::get_validators_raw_keys, config::setup_test, test::fee::current_fees,
-    transfer::setup_for_transfer,
-};
+use crate::{accounts::get_validators_raw_keys, config::setup_test, transfer::setup_for_transfer};
 
 /// Returns current treasury free funds and total issuance.
 ///
@@ -154,4 +153,29 @@ async fn reject_treasury_proposal(connection: &RootConnection, id: u32) -> anyho
     handle.await?;
 
     Ok(())
+}
+
+async fn current_fees(
+    connection: &SignedConnection,
+    to: AccountId,
+    tip: Option<Balance>,
+    transfer_value: Balance,
+) -> (Balance, u128) {
+    let actual_multiplier = connection.get_next_fee_multiplier(None).await;
+
+    let tx_info = match tip {
+        None => connection.transfer(to, transfer_value, TxStatus::Finalized),
+        Some(tip) => connection.transfer_with_tip(to, transfer_value, tip, TxStatus::Finalized),
+    }
+    .await
+    .unwrap();
+
+    let events = connection.get_tx_events(tx_info).await.unwrap();
+    let event = events.find_first::<TransactionFeePaid>().unwrap().unwrap();
+
+    let fee = event.actual_fee;
+
+    info!("fee payed: {}", fee);
+
+    (fee, actual_multiplier)
 }
