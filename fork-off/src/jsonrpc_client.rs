@@ -6,7 +6,7 @@ use jsonrpc_core::Error;
 use jsonrpc_core_client::{transports::ws, RpcError};
 use jsonrpc_derive::rpc;
 
-use crate::types::{BlockHash, StorageKey, StorageValue};
+use crate::types::{BlockHash, ChildStorageMap, StorageKey, StorageValue};
 
 #[rpc]
 pub trait Rpc {
@@ -28,6 +28,24 @@ pub trait Rpc {
         start_key: Option<StorageKey>,
         at: Option<BlockHash>,
     ) -> Result<Vec<StorageKey>, Error>;
+
+    #[rpc(name = "childstate_getKeysPaged")]
+    fn get_child_keys_paged(
+        &self,
+        child_storage: StorageKey,
+        prefix: StorageKey,
+        count: usize,
+        start_key: Option<StorageKey>,
+        at: Option<BlockHash>,
+    ) -> Result<Vec<StorageKey>, Error>;
+
+    #[rpc(name = "childstate_getStorageEntries")]
+    fn get_child_storage_entries(
+        &self,
+        child_storage: StorageKey,
+        keys: Vec<StorageKey>,
+        at: Option<BlockHash>,
+    ) -> Result<Vec<StorageValue>, Error>;
 }
 
 type RpcResult<T> = Result<T, RpcError>;
@@ -69,6 +87,68 @@ impl Client {
     ) {
         let (sender, receiver) = bounded(STORAGE_CAP);
         (receiver, self.do_stream_all_keys(sender, at.clone()))
+    }
+
+    /// Returns a map representing a single child trie
+    pub async fn get_child_storage_for_key(
+        &self,
+        child_key: StorageKey,
+        at: &BlockHash,
+    ) -> RpcResult<Option<ChildStorageMap>> {
+        let res = self
+            .get_child_storage_for_key_inner(child_key, at)
+            .await
+            .map(Some);
+
+        if let Err(RpcError::JsonRpcError(err)) = res {
+            // Empty child storage is returned as error
+            if err.message == "Client error: Invalid child storage key" {
+                Ok(None)
+            } else {
+                Err(RpcError::JsonRpcError(err))
+            }
+        } else {
+            res
+        }
+    }
+
+    async fn get_child_storage_for_key_inner(
+        &self,
+        child_key: StorageKey,
+        at: &BlockHash,
+    ) -> RpcResult<ChildStorageMap> {
+        let empty_prefix = StorageKey::new("0x");
+        let mut child_storage_map = ChildStorageMap::new();
+        let mut start_key = None;
+
+        loop {
+            let keys = self
+                .client
+                .get_child_keys_paged(
+                    child_key.clone(),
+                    empty_prefix.clone(),
+                    CHUNK_SIZE,
+                    start_key,
+                    Some(at.clone()),
+                )
+                .await?;
+
+            let values = self
+                .client
+                .get_child_storage_entries(child_key.clone(), keys.clone(), Some(at.clone()))
+                .await?;
+
+            child_storage_map.append(&mut keys.iter().cloned().zip(values).collect());
+
+            let fetched = keys.len();
+            start_key = keys.last().cloned();
+
+            if fetched < CHUNK_SIZE {
+                break;
+            }
+        }
+
+        Ok(child_storage_map)
     }
 
     async fn do_stream_all_keys(&self, sender: Sender<StorageKey>, at: BlockHash) -> RpcResult<()> {

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, iter::repeat_with, sync::Arc};
+use std::{iter::repeat_with, sync::Arc};
 
 use async_channel::Receiver;
 use futures::{future::join_all, join};
@@ -37,10 +37,23 @@ impl StateFetcher {
                 .await
                 .unwrap();
 
+            let child_storage_map_res = self
+                .client
+                .get_child_storage_for_key(key.clone(), &block)
+                .await
+                .unwrap();
+
             let mut output_guard = output.lock();
-            output_guard.insert(key, value);
-            if output_guard.len() % LOG_PROGRESS_FREQUENCY == 0 {
-                info!("Fetched {} values", output_guard.len());
+            output_guard.top.insert(key.clone(), value);
+            if let Some(child_storage_map) = child_storage_map_res {
+                info!("Fetched child trie with {} keys", child_storage_map.len());
+                output_guard
+                    .child_storage
+                    .insert(key.without_child_storage_prefix(), child_storage_map);
+            }
+
+            if output_guard.top.len() % LOG_PROGRESS_FREQUENCY == 0 {
+                info!("Fetched {} values", output_guard.top.len());
             }
         }
     }
@@ -49,7 +62,7 @@ impl StateFetcher {
         info!("Fetching state at block {:?}", block_hash);
 
         let (input, key_fetcher) = self.client.stream_all_keys(&block_hash);
-        let output = Arc::new(Mutex::new(HashMap::new()));
+        let output = Arc::new(Mutex::new(Storage::default()));
 
         let workers = repeat_with(|| {
             self.value_fetching_worker(block_hash.clone(), input.clone(), output.clone())

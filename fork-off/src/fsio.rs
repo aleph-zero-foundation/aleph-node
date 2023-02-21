@@ -40,7 +40,7 @@ pub fn save_snapshot_to_file(snapshot: Storage, path: String) {
     let data = serde_json::to_vec_pretty(&snapshot).unwrap();
     info!(
         "Writing snapshot of {} key-val pairs and {} total bytes",
-        snapshot.len(),
+        snapshot.top.len(),
         data.len()
     );
     write_to_file(path, &data);
@@ -50,6 +50,6 @@ pub fn read_snapshot_from_file(path: String) -> Storage {
     let snapshot: Storage =
         serde_json::from_str(&fs::read_to_string(path).expect("Could not read snapshot file"))
             .expect("could not parse from snapshot");
-    info!("Read snapshot of {} key-val pairs", snapshot.len());
+    info!("Read snapshot of {} key-val pairs", snapshot.top.len());
     snapshot
 }
