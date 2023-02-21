@@ -6,10 +6,11 @@ use aleph_runtime::Block;
 use log::warn;
 use sc_cli::{clap::Parser, CliConfiguration, PruningParams, SubstrateCli};
 use sc_network::config::Role;
-use sc_service::PartialComponents;
+use sc_service::{Configuration, PartialComponents};
 
 const STATE_PRUNING: &str = "archive";
 const BLOCKS_PRUNING: &str = "archive-canonical";
+const HEAP_PAGES: u64 = 4096;
 
 fn pruning_changed(params: &PruningParams) -> bool {
     let state_pruning_changed =
@@ -19,6 +20,12 @@ fn pruning_changed(params: &PruningParams) -> bool {
         params.blocks_pruning != Some(BLOCKS_PRUNING.into()) && params.blocks_pruning.is_some();
 
     state_pruning_changed || blocks_pruning_changed
+}
+
+// The default number of heap pages in substrate is 2048. Every heap page is 64KB,
+// so value of 4096 gives 256MB memory for entire runtime.
+fn enforce_heap_pages(config: &mut Configuration) {
+    config.default_heap_pages = Some(HEAP_PAGES);
 }
 
 fn main() -> sc_cli::Result<()> {
@@ -115,7 +122,7 @@ fn main() -> sc_cli::Result<()> {
         None => {
             let runner = cli.create_runner(&cli.run)?;
             if cli.aleph.experimental_pruning() {
-                warn!("Experimental_pruning was turned on. Usage of this flag can lead to misbehaviour, which can be punished. State pruning: {:?}; Blocks pruning: {:?};", 
+                warn!("Experimental_pruning was turned on. Usage of this flag can lead to misbehaviour, which can be punished. State pruning: {:?}; Blocks pruning: {:?};",
                     cli.run.state_pruning()?.unwrap_or_default(),
                     cli.run.blocks_pruning()?,
                 );
@@ -124,7 +131,9 @@ fn main() -> sc_cli::Result<()> {
             }
 
             let aleph_cli_config = cli.aleph;
-            runner.run_node_until_exit(|config| async move {
+            runner.run_node_until_exit(|mut config| async move {
+                enforce_heap_pages(&mut config);
+
                 match config.role {
                     Role::Authority => {
                         new_authority(config, aleph_cli_config).map_err(sc_cli::Error::Service)
