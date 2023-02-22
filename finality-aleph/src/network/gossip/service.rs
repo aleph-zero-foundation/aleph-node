@@ -237,10 +237,11 @@ impl<N: RawNetwork, D: Data> Service<N, D> {
             .intersection(self.protocol_peers(protocol))
             .into_iter()
             .choose(&mut thread_rng())
-            .or(self
-                .protocol_peers(protocol)
-                .iter()
-                .choose(&mut thread_rng()))
+            .or_else(|| {
+                self.protocol_peers(protocol)
+                    .iter()
+                    .choose(&mut thread_rng())
+            })
     }
 
     fn send_to_random(&mut self, data: D, peer_ids: HashSet<N::PeerId>, protocol: Protocol) {

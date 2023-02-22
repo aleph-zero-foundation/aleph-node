@@ -21,6 +21,13 @@ jobs:
     env:
       CARGO_INCREMENTAL: 0
     steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@v6
+        with:
+          root-reserve-mb: 2048
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
+
       - name: Checkout Source code
         uses: actions/checkout@v2
 
@@ -51,6 +58,7 @@ jobs:
           command: fmt
           args: --all
 
+
       - name: Run Linter
         uses: actions-rs/cargo@v1
         env:
@@ -62,10 +70,7 @@ jobs:
           args: --all-targets --all-features -- --no-deps -D warnings
 
       - name: Run Unit Test Suite
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --lib --features "try-runtime"
+        run: CARGO_TARGET_DIR=$(pwd) cargo test --lib --features "try-runtime"
 
       - name: Cleanup cache
         uses: ./.github/actions/post-cache

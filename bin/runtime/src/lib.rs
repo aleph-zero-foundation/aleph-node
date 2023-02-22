@@ -13,7 +13,9 @@ pub use frame_support::{
         OnUnbalanced, Randomness, ValidatorSet,
     },
     weights::{
-        constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
+        constants::{
+            BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND,
+        },
         IdentityFee, Weight,
     },
     StorageValue,
@@ -23,7 +25,7 @@ use frame_support::{
     traits::{
         ConstBool, ConstU32, EqualPrivilegeOnly, SortedMembers, U128CurrencyToVote, WithdrawReasons,
     },
-    weights::constants::WEIGHT_PER_MILLIS,
+    weights::constants::WEIGHT_REF_TIME_PER_MILLIS,
     PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSignedBy};
@@ -133,7 +135,8 @@ pub const PICO_AZERO: Balance = NANO_AZERO / 1000;
 pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 // The whole process for a single block should take 1s, of which 400ms is for creation,
 // 200ms for propagation and 400ms for validation. Hence the block weight should be within 400ms.
-pub const MAX_BLOCK_WEIGHT: Weight = WEIGHT_PER_MILLIS.saturating_mul(400);
+pub const MAX_BLOCK_WEIGHT: Weight =
+    Weight::from_ref_time(WEIGHT_REF_TIME_PER_MILLIS.saturating_mul(400));
 
 // The storage deposit is roughly 1 TOKEN per 1kB
 pub const DEPOSIT_PER_BYTE: Balance = MILLI_AZERO;
@@ -475,7 +478,7 @@ impl pallet_staking::WeightInfo for PayoutStakersDecreasedWeightInfo {
         (reap_stash(s: u32), SubstrateStakingWeights, Weight),
         (new_era(v: u32, n: u32), SubstrateStakingWeights, Weight),
         (
-            get_npos_voters(v: u32, n: u32, s: u32),
+            get_npos_voters(v: u32, n: u32),
             SubstrateStakingWeights,
             Weight
         ),
