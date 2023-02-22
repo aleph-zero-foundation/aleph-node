@@ -108,7 +108,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 53,
+    spec_version: 54,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 14,
@@ -689,6 +689,7 @@ impl pallet_contracts::Config for Runtime {
     type MaxCodeLen = ConstU32<{ 128 * 1024 }>;
     type MaxStorageKeyLen = ConstU32<128>;
     type UnsafeUnstableInterface = ConstBool<false>;
+    type MaxDebugBufferLen = ConstU32<{ 2 * 1024 * 1024 }>;
 }
 
 parameter_types! {
@@ -998,17 +999,18 @@ impl_runtime_apis! {
 
     #[cfg(feature = "try-runtime")]
      impl frame_try_runtime::TryRuntime<Block> for Runtime {
-          fn on_runtime_upgrade() -> (Weight, Weight) {
-               let weight = Executive::try_runtime_upgrade().unwrap();
+          fn on_runtime_upgrade(checks: bool) -> (Weight, Weight) {
+               let weight = Executive::try_runtime_upgrade(checks).unwrap();
                (weight, BlockWeights::get().max_block)
           }
 
           fn execute_block(
                block: Block,
                state_root_check: bool,
-               select: frame_try_runtime::TryStateSelect
+               checks: bool,
+               select: frame_try_runtime::TryStateSelect,
           ) -> Weight {
-            Executive::try_execute_block(block, state_root_check, select).unwrap()
+            Executive::try_execute_block(block, state_root_check, checks, select).unwrap()
         }
      }
 }

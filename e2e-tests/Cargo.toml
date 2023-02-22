@@ -19,12 +19,12 @@ tokio = { version = "1.21.2", features = ["full"] }
 futures = "0.3.25"
 once_cell = "1.16"
 
-sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.35", default-features = false, features = ["full_crypto"] }
-sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.35", default-features = false }
-frame-support = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.35", default-features = false }
-system = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.35", package = "frame-system" }
-pallet-staking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.35", default-features = false }
-pallet-balances = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.35", default-features = false }
+sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.36", default-features = false, features = ["full_crypto"] }
+sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.36", default-features = false }
+frame-support = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.36", default-features = false }
+system = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.36", package = "frame-system" }
+pallet-staking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.36", default-features = false }
+pallet-balances = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.36", default-features = false }
 
 aleph_client = { path = "../aleph-client" }
 primitives = { path = "../primitives", features = ["short_session"], default-features = false }
