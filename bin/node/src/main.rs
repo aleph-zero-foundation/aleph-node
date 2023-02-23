@@ -1,6 +1,7 @@
 #[cfg(feature = "try-runtime")]
 use aleph_node::ExecutorDispatch;
 use aleph_node::{new_authority, new_full, new_partial, Cli, Subcommand};
+use aleph_primitives::HEAP_PAGES;
 #[cfg(feature = "try-runtime")]
 use aleph_runtime::Block;
 use log::warn;
@@ -16,8 +17,6 @@ fn default_blocks_pruning() -> DatabasePruningMode {
     DatabasePruningMode::ArchiveCanonical
 }
 
-const HEAP_PAGES: u64 = 4096;
-
 fn pruning_changed(params: &PruningParams) -> bool {
     let state_pruning_changed = params.state_pruning != default_state_pruning();
 
@@ -26,8 +25,6 @@ fn pruning_changed(params: &PruningParams) -> bool {
     state_pruning_changed || blocks_pruning_changed
 }
 
-// The default number of heap pages in substrate is 2048. Every heap page is 64KB,
-// so value of 4096 gives 256MB memory for entire runtime.
 fn enforce_heap_pages(config: &mut Configuration) {
     config.default_heap_pages = Some(HEAP_PAGES);
 }

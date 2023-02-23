@@ -326,6 +326,7 @@ dependencies = [
  "primitives",
  "scale-info",
  "serde",
+ "smallvec",
  "sp-api",
  "sp-block-builder",
  "sp-consensus-aura",

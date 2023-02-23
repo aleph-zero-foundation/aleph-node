@@ -64,6 +64,9 @@ pallet-elections = { path = "../../pallets/elections", default-features = false 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.36" }
 
+[dev-dependencies]
+smallvec = { version = "1", default-features = false}
+
 [features]
 default = ["std"]
 std = [
