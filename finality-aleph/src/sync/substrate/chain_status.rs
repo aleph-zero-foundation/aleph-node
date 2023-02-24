@@ -6,10 +6,7 @@ use std::{
 use aleph_primitives::{BlockNumber, ALEPH_ENGINE_ID};
 use log::warn;
 use sp_blockchain::{Backend, Error as ClientError};
-use sp_runtime::{
-    generic::BlockId as SubstrateBlockId,
-    traits::{Block as BlockT, Header as SubstrateHeader},
-};
+use sp_runtime::traits::{Block as BlockT, Header as SubstrateHeader};
 
 use crate::{
     justification::backwards_compatible_decode,
@@ -81,8 +78,7 @@ where
     }
 
     fn header(&self, hash: B::Hash) -> Result<Option<B::Header>, ClientError> {
-        let id = SubstrateBlockId::<B>::Hash(hash);
-        self.client.header(id)
+        self.client.header(hash)
     }
 
     fn justification(&self, hash: B::Hash) -> Result<Option<AlephJustification>, ClientError> {

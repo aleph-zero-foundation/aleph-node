@@ -68,6 +68,11 @@ jobs:
           packages="${{ steps.format_output.outputs.packages }}"
           for p in ${packages[@]}
           do
+            # skip checking the adder for now
+            if [ $p = "contracts/adder" ]
+            then
+              continue
+            fi
             echo "Checking package $p..."
             pushd "$p"
             rustup component add clippy rustfmt

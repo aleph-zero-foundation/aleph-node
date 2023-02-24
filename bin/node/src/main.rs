@@ -9,8 +9,8 @@ use sc_cli::{clap::Parser, CliConfiguration, DatabasePruningMode, PruningParams,
 use sc_network::config::Role;
 use sc_service::{Configuration, PartialComponents};
 
-fn default_state_pruning() -> DatabasePruningMode {
-    DatabasePruningMode::Archive
+fn default_state_pruning() -> Option<DatabasePruningMode> {
+    Some(DatabasePruningMode::Archive)
 }
 
 fn default_blocks_pruning() -> DatabasePruningMode {

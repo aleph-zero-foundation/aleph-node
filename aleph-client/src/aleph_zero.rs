@@ -735,10 +735,10 @@ pub mod api {
                         "Events",
                         vec![],
                         [
-                            216u8, 9u8, 134u8, 163u8, 54u8, 128u8, 220u8, 43u8, 43u8, 179u8, 114u8,
-                            84u8, 50u8, 83u8, 254u8, 52u8, 221u8, 241u8, 121u8, 101u8, 173u8,
-                            106u8, 44u8, 250u8, 183u8, 171u8, 221u8, 98u8, 96u8, 151u8, 31u8,
-                            195u8,
+                            100u8, 112u8, 231u8, 192u8, 184u8, 16u8, 59u8, 201u8, 45u8, 235u8,
+                            104u8, 44u8, 105u8, 65u8, 84u8, 78u8, 86u8, 161u8, 206u8, 209u8, 53u8,
+                            182u8, 73u8, 138u8, 118u8, 194u8, 88u8, 181u8, 76u8, 179u8, 207u8,
+                            180u8,
                         ],
                     )
                 }
@@ -1183,9 +1183,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            92u8, 125u8, 1u8, 227u8, 15u8, 14u8, 163u8, 233u8, 121u8, 5u8, 80u8,
-                            172u8, 25u8, 62u8, 179u8, 250u8, 154u8, 221u8, 186u8, 7u8, 182u8, 60u8,
-                            110u8, 253u8, 117u8, 173u8, 7u8, 246u8, 230u8, 15u8, 25u8, 62u8,
+                            163u8, 73u8, 3u8, 157u8, 229u8, 239u8, 229u8, 245u8, 42u8, 233u8, 35u8,
+                            255u8, 125u8, 76u8, 97u8, 109u8, 13u8, 92u8, 70u8, 113u8, 28u8, 53u8,
+                            201u8, 76u8, 57u8, 76u8, 164u8, 2u8, 53u8, 46u8, 237u8, 242u8,
                         ],
                     )
                 }
@@ -1229,10 +1229,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            192u8, 213u8, 182u8, 108u8, 161u8, 193u8, 232u8, 177u8, 178u8, 98u8,
-                            188u8, 130u8, 137u8, 228u8, 18u8, 154u8, 118u8, 212u8, 42u8, 70u8,
-                            245u8, 72u8, 54u8, 177u8, 161u8, 236u8, 11u8, 8u8, 129u8, 61u8, 8u8,
-                            252u8,
+                            84u8, 195u8, 200u8, 70u8, 66u8, 90u8, 128u8, 97u8, 43u8, 2u8, 252u8,
+                            53u8, 36u8, 196u8, 105u8, 165u8, 216u8, 220u8, 76u8, 163u8, 39u8,
+                            149u8, 178u8, 91u8, 166u8, 142u8, 155u8, 14u8, 31u8, 110u8, 167u8,
+                            158u8,
                         ],
                     )
                 }
@@ -1277,9 +1277,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            84u8, 194u8, 155u8, 233u8, 100u8, 242u8, 158u8, 213u8, 203u8, 205u8,
-                            7u8, 88u8, 157u8, 248u8, 35u8, 110u8, 131u8, 45u8, 179u8, 121u8, 105u8,
-                            89u8, 157u8, 48u8, 119u8, 100u8, 101u8, 13u8, 85u8, 26u8, 11u8, 131u8,
+                            241u8, 215u8, 75u8, 40u8, 248u8, 168u8, 114u8, 76u8, 252u8, 51u8, 30u8,
+                            4u8, 5u8, 175u8, 87u8, 3u8, 109u8, 85u8, 176u8, 27u8, 23u8, 122u8,
+                            157u8, 18u8, 231u8, 3u8, 178u8, 224u8, 15u8, 240u8, 178u8, 239u8,
                         ],
                     )
                 }
@@ -1310,10 +1310,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            2u8, 173u8, 159u8, 127u8, 215u8, 234u8, 101u8, 247u8, 196u8, 86u8,
-                            141u8, 160u8, 137u8, 183u8, 147u8, 152u8, 148u8, 59u8, 113u8, 198u8,
-                            167u8, 13u8, 46u8, 45u8, 37u8, 245u8, 173u8, 70u8, 96u8, 106u8, 127u8,
-                            106u8,
+                            42u8, 35u8, 170u8, 76u8, 223u8, 0u8, 152u8, 106u8, 208u8, 142u8, 156u8,
+                            112u8, 85u8, 40u8, 205u8, 241u8, 240u8, 86u8, 146u8, 11u8, 114u8,
+                            227u8, 138u8, 39u8, 57u8, 197u8, 240u8, 44u8, 251u8, 156u8, 130u8,
+                            171u8,
                         ],
                     )
                 }
@@ -3200,6 +3200,17 @@ pub mod api {
             pub struct ForceApplyMinCommission {
                 pub validator_stash: ::subxt::ext::sp_core::crypto::AccountId32,
             }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            pub struct SetMinCommission {
+                pub new: runtime_types::sp_arithmetic::per_things::Perbill,
+            }
             pub struct TransactionApi;
             impl TransactionApi {
                 #[doc = "Take the origin account as a stash and lock up `value` of its balance. `controller` will"]
@@ -3286,8 +3297,8 @@ pub mod api {
                 #[doc = "the funds out of management ready for transfer."]
                 #[doc = ""]
                 #[doc = "No more than a limited number of unlocking chunks (see `MaxUnlockingChunks`)"]
-                #[doc = "can co-exists at the same time. In that case, [`Call::withdraw_unbonded`] need"]
-                #[doc = "to be called first to remove some of the chunks (if possible)."]
+                #[doc = "can co-exists at the same time. If there are no unlocking chunks slots available"]
+                #[doc = "[`Call::withdraw_unbonded`] is called to remove some of the chunks (if possible)."]
                 #[doc = ""]
                 #[doc = "If a user encounters the `InsufficientBond` error when calling this extrinsic,"]
                 #[doc = "they should call `chill` first in order to free up their bonded funds."]
@@ -3678,7 +3689,7 @@ pub mod api {
                 }
                 #[doc = "Cancel enactment of a deferred slash."]
                 #[doc = ""]
-                #[doc = "Can be called by the `T::SlashCancelOrigin`."]
+                #[doc = "Can be called by the `T::AdminOrigin`."]
                 #[doc = ""]
                 #[doc = "Parameters: era and indices of the slashes for that era to kill."]
                 pub fn cancel_deferred_slash(
@@ -3942,6 +3953,26 @@ pub mod api {
                         ],
                     )
                 }
+                #[doc = "Sets the minimum amount of commission that each validators must maintain."]
+                #[doc = ""]
+                #[doc = "This call has lower privilege requirements than `set_staking_config` and can be called"]
+                #[doc = "by the `T::AdminOrigin`. Root can always call this."]
+                pub fn set_min_commission(
+                    &self,
+                    new: runtime_types::sp_arithmetic::per_things::Perbill,
+                ) -> ::subxt::tx::StaticTxPayload<SetMinCommission> {
+                    ::subxt::tx::StaticTxPayload::new(
+                        "Staking",
+                        "set_min_commission",
+                        SetMinCommission { new },
+                        [
+                            62u8, 139u8, 175u8, 245u8, 212u8, 113u8, 117u8, 130u8, 191u8, 173u8,
+                            78u8, 97u8, 19u8, 104u8, 185u8, 207u8, 201u8, 14u8, 200u8, 208u8,
+                            184u8, 195u8, 242u8, 175u8, 158u8, 156u8, 51u8, 58u8, 118u8, 154u8,
+                            68u8, 221u8,
+                        ],
+                    )
+                }
             }
         }
         #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
@@ -3992,7 +4023,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
-            #[doc = "One staker (and potentially its nominators) has been slashed by the given amount."]
+            #[doc = "A staker (validator or nominator) has been slashed by the given amount."]
             pub struct Slashed {
                 pub staker: ::subxt::ext::sp_core::crypto::AccountId32,
                 pub amount: ::core::primitive::u128,
@@ -4000,6 +4031,25 @@ pub mod api {
             impl ::subxt::events::StaticEvent for Slashed {
                 const PALLET: &'static str = "Staking";
                 const EVENT: &'static str = "Slashed";
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            #[doc = "A slash for the given validator, for the given percentage of their stake, at the given"]
+            #[doc = "era as been reported."]
+            pub struct SlashReported {
+                pub validator: ::subxt::ext::sp_core::crypto::AccountId32,
+                pub fraction: runtime_types::sp_arithmetic::per_things::Perbill,
+                pub slash_era: ::core::primitive::u32,
+            }
+            impl ::subxt::events::StaticEvent for SlashReported {
+                const PALLET: &'static str = "Staking";
+                const EVENT: &'static str = "SlashReported";
             }
             #[derive(
                 :: subxt :: ext :: codec :: CompactAs,
@@ -4169,6 +4219,22 @@ pub mod api {
                 const PALLET: &'static str = "Staking";
                 const EVENT: &'static str = "ValidatorPrefsSet";
             }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            #[doc = "A new force era mode was set."]
+            pub struct ForceEra {
+                pub mode: runtime_types::pallet_staking::Forcing,
+            }
+            impl ::subxt::events::StaticEvent for ForceEra {
+                const PALLET: &'static str = "Staking";
+                const EVENT: &'static str = "ForceEra";
+            }
         }
         pub mod storage {
             use super::runtime_types;
@@ -4239,6 +4305,8 @@ pub mod api {
                     )
                 }
                 #[doc = " Map from all locked \"stash\" accounts to the controller account."]
+                #[doc = ""]
+                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
                 pub fn bonded(
                     &self,
                     _0: impl ::std::borrow::Borrow<::subxt::ext::sp_core::crypto::AccountId32>,
@@ -4263,6 +4331,8 @@ pub mod api {
                     )
                 }
                 #[doc = " Map from all locked \"stash\" accounts to the controller account."]
+                #[doc = ""]
+                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
                 pub fn bonded_root(
                     &self,
                 ) -> ::subxt::storage::address::StaticStorageAddress<
@@ -4319,6 +4389,26 @@ pub mod api {
                             48u8, 105u8, 85u8, 178u8, 142u8, 208u8, 208u8, 19u8, 236u8, 130u8,
                             129u8, 169u8, 35u8, 245u8, 66u8, 182u8, 92u8, 20u8, 22u8, 109u8, 155u8,
                             174u8, 87u8, 118u8, 242u8, 216u8, 193u8, 154u8, 4u8, 5u8, 66u8, 56u8,
+                        ],
+                    )
+                }
+                #[doc = " The minimum active nominator stake of the last successful election."]
+                pub fn minimum_active_stake(
+                    &self,
+                ) -> ::subxt::storage::address::StaticStorageAddress<
+                    ::subxt::metadata::DecodeStaticType<::core::primitive::u128>,
+                    ::subxt::storage::address::Yes,
+                    ::subxt::storage::address::Yes,
+                    (),
+                > {
+                    ::subxt::storage::address::StaticStorageAddress::new(
+                        "Staking",
+                        "MinimumActiveStake",
+                        vec![],
+                        [
+                            172u8, 190u8, 228u8, 47u8, 47u8, 192u8, 182u8, 59u8, 9u8, 18u8, 103u8,
+                            46u8, 175u8, 54u8, 17u8, 79u8, 89u8, 107u8, 255u8, 200u8, 182u8, 107u8,
+                            89u8, 157u8, 55u8, 16u8, 77u8, 46u8, 154u8, 169u8, 103u8, 151u8,
                         ],
                     )
                 }
@@ -4397,6 +4487,8 @@ pub mod api {
                     )
                 }
                 #[doc = " Where the reward payment should be made. Keyed by stash."]
+                #[doc = ""]
+                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
                 pub fn payee(
                     &self,
                     _0: impl ::std::borrow::Borrow<::subxt::ext::sp_core::crypto::AccountId32>,
@@ -4426,6 +4518,8 @@ pub mod api {
                     )
                 }
                 #[doc = " Where the reward payment should be made. Keyed by stash."]
+                #[doc = ""]
+                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
                 pub fn payee_root(
                     &self,
                 ) -> ::subxt::storage::address::StaticStorageAddress<
@@ -4451,6 +4545,8 @@ pub mod api {
                     )
                 }
                 #[doc = " The map from (wannabe) validator stash key to the preferences of that validator."]
+                #[doc = ""]
+                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
                 pub fn validators(
                     &self,
                     _0: impl ::std::borrow::Borrow<::subxt::ext::sp_core::crypto::AccountId32>,
@@ -4478,6 +4574,8 @@ pub mod api {
                     )
                 }
                 #[doc = " The map from (wannabe) validator stash key to the preferences of that validator."]
+                #[doc = ""]
+                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
                 pub fn validators_root(
                     &self,
                 ) -> ::subxt::storage::address::StaticStorageAddress<
@@ -4558,6 +4656,8 @@ pub mod api {
                 #[doc = ""]
                 #[doc = " Lastly, if any of the nominators become non-decodable, they can be chilled immediately via"]
                 #[doc = " [`Call::chill_other`] dispatchable by anyone."]
+                #[doc = ""]
+                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
                 pub fn nominators(
                     &self,
                     _0: impl ::std::borrow::Borrow<::subxt::ext::sp_core::crypto::AccountId32>,
@@ -4598,6 +4698,8 @@ pub mod api {
                 #[doc = ""]
                 #[doc = " Lastly, if any of the nominators become non-decodable, they can be chilled immediately via"]
                 #[doc = " [`Call::chill_other`] dispatchable by anyone."]
+                #[doc = ""]
+                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
                 pub fn nominators_root(
                     &self,
                 ) -> ::subxt::storage::address::StaticStorageAddress<
@@ -5547,29 +5649,6 @@ pub mod api {
                         ],
                     )
                 }
-                #[doc = " True if network has been upgraded to this version."]
-                #[doc = " Storage version of the pallet."]
-                #[doc = ""]
-                #[doc = " This is set to v7.0.0 for new networks."]
-                pub fn storage_version(
-                    &self,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<runtime_types::pallet_staking::Releases>,
-                    ::subxt::storage::address::Yes,
-                    ::subxt::storage::address::Yes,
-                    (),
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Staking",
-                        "StorageVersion",
-                        vec![],
-                        [
-                            70u8, 24u8, 179u8, 189u8, 168u8, 164u8, 175u8, 150u8, 215u8, 43u8,
-                            18u8, 110u8, 180u8, 137u8, 237u8, 187u8, 185u8, 50u8, 31u8, 57u8, 16u8,
-                            110u8, 6u8, 170u8, 19u8, 7u8, 160u8, 134u8, 232u8, 227u8, 151u8, 116u8,
-                        ],
-                    )
-                }
                 #[doc = " The threshold for when users can start calling `chill_other` for other validators /"]
                 #[doc = " nominators. The threshold is compared to the actual number of validators / nominators"]
                 #[doc = " (`CountFor*`) in the system compared to the configured max (`Max*Count`)."]
@@ -6326,10 +6405,10 @@ pub mod api {
                         "NextAuthorities",
                         vec![],
                         [
-                            217u8, 12u8, 37u8, 222u8, 249u8, 100u8, 15u8, 59u8, 130u8, 255u8, 34u8,
-                            57u8, 211u8, 50u8, 162u8, 96u8, 130u8, 157u8, 168u8, 15u8, 137u8,
-                            228u8, 136u8, 35u8, 18u8, 234u8, 43u8, 190u8, 78u8, 112u8, 186u8,
-                            203u8,
+                            120u8, 66u8, 194u8, 154u8, 194u8, 127u8, 75u8, 106u8, 59u8, 172u8,
+                            86u8, 242u8, 209u8, 110u8, 207u8, 132u8, 69u8, 73u8, 186u8, 235u8,
+                            95u8, 97u8, 117u8, 132u8, 76u8, 96u8, 86u8, 87u8, 74u8, 232u8, 91u8,
+                            120u8,
                         ],
                     )
                 }
@@ -7412,6 +7491,23 @@ pub mod api {
                 const PALLET: &'static str = "Treasury";
                 const EVENT: &'static str = "SpendApproved";
             }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            #[doc = "The inactive funds of the pallet have been updated."]
+            pub struct UpdatedInactive {
+                pub reactivated: ::core::primitive::u128,
+                pub deactivated: ::core::primitive::u128,
+            }
+            impl ::subxt::events::StaticEvent for UpdatedInactive {
+                const PALLET: &'static str = "Treasury";
+                const EVENT: &'static str = "UpdatedInactive";
+            }
         }
         pub mod storage {
             use super::runtime_types;
@@ -7493,7 +7589,7 @@ pub mod api {
                     )
                 }
                 #[doc = " The amount which has been reported as inactive to Currency."]
-                pub fn inactive(
+                pub fn deactivated(
                     &self,
                 ) -> ::subxt::storage::address::StaticStorageAddress<
                     ::subxt::metadata::DecodeStaticType<::core::primitive::u128>,
@@ -7503,12 +7599,12 @@ pub mod api {
                 > {
                     ::subxt::storage::address::StaticStorageAddress::new(
                         "Treasury",
-                        "Inactive",
+                        "Deactivated",
                         vec![],
                         [
-                            240u8, 100u8, 242u8, 40u8, 169u8, 252u8, 255u8, 248u8, 66u8, 157u8,
-                            165u8, 206u8, 229u8, 145u8, 80u8, 73u8, 237u8, 44u8, 72u8, 76u8, 101u8,
-                            215u8, 87u8, 33u8, 252u8, 224u8, 54u8, 138u8, 79u8, 99u8, 225u8, 34u8,
+                            159u8, 57u8, 5u8, 85u8, 136u8, 128u8, 70u8, 43u8, 67u8, 76u8, 123u8,
+                            206u8, 48u8, 253u8, 51u8, 40u8, 14u8, 35u8, 162u8, 173u8, 127u8, 79u8,
+                            38u8, 235u8, 9u8, 141u8, 201u8, 37u8, 211u8, 176u8, 119u8, 106u8,
                         ],
                     )
                 }
@@ -8211,9 +8307,9 @@ pub mod api {
                         "batch",
                         Batch { calls },
                         [
-                            4u8, 79u8, 14u8, 89u8, 76u8, 13u8, 179u8, 170u8, 208u8, 214u8, 44u8,
-                            217u8, 82u8, 8u8, 48u8, 198u8, 107u8, 107u8, 58u8, 177u8, 224u8, 192u8,
-                            37u8, 183u8, 144u8, 157u8, 150u8, 218u8, 150u8, 215u8, 23u8, 21u8,
+                            253u8, 30u8, 32u8, 31u8, 20u8, 172u8, 133u8, 153u8, 122u8, 253u8, 33u8,
+                            58u8, 22u8, 223u8, 93u8, 96u8, 179u8, 187u8, 213u8, 219u8, 89u8, 176u8,
+                            23u8, 128u8, 70u8, 236u8, 175u8, 3u8, 77u8, 235u8, 220u8, 193u8,
                         ],
                     )
                 }
@@ -8243,9 +8339,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            7u8, 47u8, 218u8, 3u8, 40u8, 163u8, 23u8, 24u8, 4u8, 156u8, 217u8,
-                            61u8, 124u8, 186u8, 56u8, 1u8, 128u8, 28u8, 220u8, 39u8, 201u8, 122u8,
-                            78u8, 247u8, 135u8, 191u8, 25u8, 173u8, 191u8, 187u8, 28u8, 66u8,
+                            245u8, 248u8, 227u8, 228u8, 1u8, 178u8, 195u8, 152u8, 185u8, 209u8,
+                            117u8, 173u8, 163u8, 17u8, 158u8, 78u8, 81u8, 25u8, 83u8, 49u8, 83u8,
+                            166u8, 21u8, 254u8, 35u8, 86u8, 143u8, 154u8, 56u8, 151u8, 27u8, 233u8,
                         ],
                     )
                 }
@@ -8272,10 +8368,10 @@ pub mod api {
                         "batch_all",
                         BatchAll { calls },
                         [
-                            50u8, 252u8, 99u8, 89u8, 154u8, 233u8, 232u8, 100u8, 115u8, 42u8,
-                            165u8, 26u8, 84u8, 211u8, 84u8, 189u8, 23u8, 63u8, 251u8, 87u8, 188u8,
-                            156u8, 174u8, 148u8, 22u8, 217u8, 238u8, 193u8, 120u8, 13u8, 12u8,
-                            139u8,
+                            225u8, 123u8, 156u8, 170u8, 226u8, 179u8, 43u8, 231u8, 221u8, 106u8,
+                            232u8, 59u8, 142u8, 147u8, 245u8, 91u8, 24u8, 200u8, 20u8, 82u8, 226u8,
+                            213u8, 217u8, 162u8, 254u8, 213u8, 56u8, 5u8, 246u8, 181u8, 188u8,
+                            168u8,
                         ],
                     )
                 }
@@ -8302,9 +8398,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            6u8, 14u8, 186u8, 198u8, 179u8, 173u8, 43u8, 37u8, 192u8, 199u8, 201u8,
-                            38u8, 182u8, 124u8, 116u8, 16u8, 59u8, 96u8, 18u8, 64u8, 188u8, 205u8,
-                            126u8, 253u8, 144u8, 82u8, 131u8, 229u8, 215u8, 49u8, 120u8, 166u8,
+                            159u8, 76u8, 58u8, 40u8, 136u8, 99u8, 98u8, 253u8, 150u8, 94u8, 116u8,
+                            200u8, 101u8, 114u8, 143u8, 183u8, 58u8, 66u8, 4u8, 17u8, 245u8, 195u8,
+                            43u8, 209u8, 169u8, 37u8, 55u8, 71u8, 146u8, 119u8, 149u8, 115u8,
                         ],
                     )
                 }
@@ -8331,9 +8427,10 @@ pub mod api {
                         "force_batch",
                         ForceBatch { calls },
                         [
-                            194u8, 191u8, 203u8, 57u8, 25u8, 76u8, 67u8, 192u8, 237u8, 58u8, 255u8,
-                            253u8, 157u8, 172u8, 201u8, 163u8, 248u8, 68u8, 76u8, 152u8, 104u8,
-                            74u8, 93u8, 26u8, 72u8, 135u8, 185u8, 109u8, 166u8, 138u8, 103u8, 38u8,
+                            159u8, 217u8, 163u8, 140u8, 146u8, 206u8, 206u8, 198u8, 142u8, 164u8,
+                            187u8, 93u8, 130u8, 243u8, 153u8, 50u8, 118u8, 157u8, 145u8, 3u8, 67u8,
+                            120u8, 51u8, 157u8, 134u8, 136u8, 159u8, 29u8, 227u8, 240u8, 151u8,
+                            155u8,
                         ],
                     )
                 }
@@ -8356,9 +8453,9 @@ pub mod api {
                             weight,
                         },
                         [
-                            223u8, 35u8, 6u8, 230u8, 108u8, 3u8, 69u8, 75u8, 64u8, 207u8, 82u8,
-                            78u8, 73u8, 120u8, 215u8, 161u8, 58u8, 242u8, 237u8, 123u8, 33u8,
-                            112u8, 0u8, 219u8, 104u8, 134u8, 73u8, 20u8, 64u8, 158u8, 73u8, 236u8,
+                            75u8, 40u8, 26u8, 228u8, 66u8, 36u8, 170u8, 110u8, 225u8, 120u8, 157u8,
+                            81u8, 64u8, 160u8, 182u8, 120u8, 255u8, 8u8, 40u8, 217u8, 144u8, 165u8,
+                            62u8, 166u8, 68u8, 174u8, 11u8, 108u8, 23u8, 95u8, 209u8, 248u8,
                         ],
                     )
                 }
@@ -8582,10 +8679,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            74u8, 40u8, 223u8, 109u8, 231u8, 102u8, 200u8, 9u8, 197u8, 219u8,
-                            140u8, 137u8, 229u8, 43u8, 163u8, 217u8, 46u8, 90u8, 181u8, 235u8,
-                            142u8, 218u8, 162u8, 137u8, 26u8, 102u8, 248u8, 114u8, 140u8, 20u8,
-                            186u8, 212u8,
+                            25u8, 13u8, 214u8, 120u8, 72u8, 127u8, 224u8, 255u8, 198u8, 111u8,
+                            95u8, 106u8, 148u8, 10u8, 8u8, 74u8, 106u8, 5u8, 78u8, 66u8, 232u8,
+                            26u8, 158u8, 87u8, 190u8, 229u8, 169u8, 97u8, 11u8, 118u8, 117u8, 86u8,
                         ],
                     )
                 }
@@ -8655,9 +8751,10 @@ pub mod api {
                             max_weight,
                         },
                         [
-                            117u8, 8u8, 22u8, 74u8, 40u8, 91u8, 241u8, 193u8, 81u8, 172u8, 187u8,
-                            127u8, 95u8, 132u8, 65u8, 20u8, 183u8, 248u8, 17u8, 66u8, 228u8, 219u8,
-                            244u8, 181u8, 141u8, 92u8, 137u8, 124u8, 94u8, 58u8, 76u8, 109u8,
+                            29u8, 185u8, 118u8, 85u8, 35u8, 204u8, 254u8, 30u8, 169u8, 158u8,
+                            140u8, 49u8, 222u8, 30u8, 230u8, 50u8, 235u8, 19u8, 58u8, 192u8, 167u8,
+                            139u8, 61u8, 254u8, 123u8, 76u8, 12u8, 114u8, 167u8, 55u8, 198u8,
+                            200u8,
                         ],
                     )
                 }
@@ -9069,9 +9166,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            142u8, 65u8, 169u8, 88u8, 195u8, 0u8, 195u8, 187u8, 24u8, 100u8, 175u8,
-                            34u8, 121u8, 202u8, 49u8, 0u8, 132u8, 155u8, 208u8, 40u8, 177u8, 125u8,
-                            100u8, 143u8, 110u8, 49u8, 20u8, 194u8, 255u8, 3u8, 196u8, 4u8,
+                            68u8, 94u8, 245u8, 14u8, 65u8, 18u8, 181u8, 119u8, 41u8, 253u8, 14u8,
+                            26u8, 104u8, 130u8, 47u8, 86u8, 174u8, 125u8, 24u8, 31u8, 134u8, 221u8,
+                            142u8, 116u8, 62u8, 184u8, 66u8, 234u8, 78u8, 126u8, 233u8, 98u8,
                         ],
                     )
                 }
@@ -9098,10 +9195,10 @@ pub mod api {
                             weight,
                         },
                         [
-                            49u8, 4u8, 201u8, 123u8, 217u8, 74u8, 119u8, 132u8, 164u8, 102u8, 15u8,
-                            144u8, 128u8, 119u8, 167u8, 125u8, 218u8, 113u8, 70u8, 220u8, 137u8,
-                            201u8, 174u8, 190u8, 45u8, 218u8, 145u8, 131u8, 44u8, 109u8, 215u8,
-                            216u8,
+                            216u8, 132u8, 15u8, 247u8, 186u8, 238u8, 243u8, 162u8, 253u8, 231u8,
+                            39u8, 133u8, 246u8, 126u8, 140u8, 182u8, 18u8, 255u8, 141u8, 101u8,
+                            148u8, 25u8, 49u8, 7u8, 226u8, 50u8, 130u8, 216u8, 92u8, 165u8, 32u8,
+                            40u8,
                         ],
                     )
                 }
@@ -9160,9 +9257,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            10u8, 158u8, 160u8, 60u8, 57u8, 102u8, 9u8, 180u8, 124u8, 113u8, 4u8,
-                            94u8, 164u8, 212u8, 38u8, 165u8, 25u8, 70u8, 50u8, 52u8, 135u8, 150u8,
-                            18u8, 56u8, 143u8, 99u8, 90u8, 42u8, 37u8, 79u8, 167u8, 166u8,
+                            59u8, 58u8, 109u8, 112u8, 202u8, 173u8, 224u8, 161u8, 95u8, 93u8,
+                            188u8, 120u8, 195u8, 60u8, 216u8, 97u8, 59u8, 23u8, 70u8, 110u8, 185u8,
+                            29u8, 198u8, 234u8, 134u8, 222u8, 99u8, 4u8, 62u8, 6u8, 156u8, 112u8,
                         ],
                     )
                 }
@@ -10191,10 +10288,9 @@ pub mod api {
                         "Contracts",
                         "Schedule",
                         [
-                            216u8, 143u8, 244u8, 2u8, 98u8, 169u8, 138u8, 243u8, 202u8, 101u8,
-                            180u8, 250u8, 10u8, 166u8, 10u8, 41u8, 46u8, 154u8, 236u8, 105u8, 55u8,
-                            175u8, 64u8, 31u8, 188u8, 56u8, 255u8, 25u8, 170u8, 198u8, 178u8,
-                            133u8,
+                            203u8, 98u8, 182u8, 130u8, 165u8, 6u8, 149u8, 28u8, 44u8, 67u8, 79u8,
+                            25u8, 47u8, 191u8, 183u8, 41u8, 65u8, 129u8, 135u8, 29u8, 178u8, 224u8,
+                            196u8, 247u8, 58u8, 215u8, 101u8, 35u8, 77u8, 233u8, 60u8, 155u8,
                         ],
                     )
                 }
@@ -10350,6 +10446,23 @@ pub mod api {
                             165u8, 28u8, 112u8, 190u8, 18u8, 129u8, 182u8, 206u8, 237u8, 1u8, 68u8,
                             252u8, 125u8, 234u8, 185u8, 50u8, 149u8, 164u8, 47u8, 126u8, 134u8,
                             100u8, 14u8, 86u8, 209u8, 39u8, 20u8, 4u8, 233u8, 115u8, 102u8, 131u8,
+                        ],
+                    )
+                }
+                #[doc = " The maximum length of the debug buffer in bytes."]
+                pub fn max_debug_buffer_len(
+                    &self,
+                ) -> ::subxt::constants::StaticConstantAddress<
+                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
+                > {
+                    ::subxt::constants::StaticConstantAddress::new(
+                        "Contracts",
+                        "MaxDebugBufferLen",
+                        [
+                            98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
+                            125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
+                            178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
+                            145u8,
                         ],
                     )
                 }
@@ -10672,9 +10785,12 @@ pub mod api {
                 #[doc = "# Note"]
                 #[doc = ""]
                 #[doc = "If there are too many unlocking chunks to unbond with the pool account,"]
-                #[doc = "[`Call::pool_withdraw_unbonded`] can be called to try and minimize unlocking chunks. If"]
-                #[doc = "there are too many unlocking chunks, the result of this call will likely be the"]
-                #[doc = "`NoMoreChunks` error from the staking system."]
+                #[doc = "[`Call::pool_withdraw_unbonded`] can be called to try and minimize unlocking chunks."]
+                #[doc = "The [`StakingInterface::unbond`] will implicitly call [`Call::pool_withdraw_unbonded`]"]
+                #[doc = "to try to free chunks if necessary (ie. if unbound was called and no unlocking chunks"]
+                #[doc = "are available). However, it may not be possible to release the current unlocking chunks,"]
+                #[doc = "in which case, the result of this call will likely be the `NoMoreChunks` error from the"]
+                #[doc = "staking system."]
                 pub fn unbond(
                     &self,
                     member_account: ::subxt::ext::sp_runtime::MultiAddress<
@@ -11369,6 +11485,8 @@ pub mod api {
                     )
                 }
                 #[doc = " Active members."]
+                #[doc = ""]
+                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
                 pub fn pool_members(
                     &self,
                     _0: impl ::std::borrow::Borrow<::subxt::ext::sp_core::crypto::AccountId32>,
@@ -11396,6 +11514,8 @@ pub mod api {
                     )
                 }
                 #[doc = " Active members."]
+                #[doc = ""]
+                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
                 pub fn pool_members_root(
                     &self,
                 ) -> ::subxt::storage::address::StaticStorageAddress<
@@ -14562,6 +14682,7 @@ pub mod api {
                     pub call_per_cloned_byte: ::core::primitive::u64,
                     pub instantiate: ::core::primitive::u64,
                     pub instantiate_transfer_surcharge: ::core::primitive::u64,
+                    pub instantiate_per_input_byte: ::core::primitive::u64,
                     pub instantiate_per_salt_byte: ::core::primitive::u64,
                     pub hash_sha2_256: ::core::primitive::u64,
                     pub hash_sha2_256_per_byte: ::core::primitive::u64,
@@ -14651,7 +14772,6 @@ pub mod api {
                 )]
                 pub struct Limits {
                     pub event_topics: ::core::primitive::u32,
-                    pub stack_height: ::core::option::Option<::core::primitive::u32>,
                     pub globals: ::core::primitive::u32,
                     pub locals: ::core::primitive::u32,
                     pub parameters: ::core::primitive::u32,
@@ -15941,9 +16061,12 @@ pub mod api {
                     #[doc = "# Note"]
                     #[doc = ""]
                     #[doc = "If there are too many unlocking chunks to unbond with the pool account,"]
-                    #[doc = "[`Call::pool_withdraw_unbonded`] can be called to try and minimize unlocking chunks. If"]
-                    #[doc = "there are too many unlocking chunks, the result of this call will likely be the"]
-                    #[doc = "`NoMoreChunks` error from the staking system."]
+                    #[doc = "[`Call::pool_withdraw_unbonded`] can be called to try and minimize unlocking chunks."]
+                    #[doc = "The [`StakingInterface::unbond`] will implicitly call [`Call::pool_withdraw_unbonded`]"]
+                    #[doc = "to try to free chunks if necessary (ie. if unbound was called and no unlocking chunks"]
+                    #[doc = "are available). However, it may not be possible to release the current unlocking chunks,"]
+                    #[doc = "in which case, the result of this call will likely be the `NoMoreChunks` error from the"]
+                    #[doc = "staking system."]
                     unbond {
                         member_account: ::subxt::ext::sp_runtime::MultiAddress<
                             ::subxt::ext::sp_core::crypto::AccountId32,
@@ -16839,8 +16962,8 @@ pub mod api {
                         #[doc = "the funds out of management ready for transfer."]
                         #[doc = ""]
                         #[doc = "No more than a limited number of unlocking chunks (see `MaxUnlockingChunks`)"]
-                        #[doc = "can co-exists at the same time. In that case, [`Call::withdraw_unbonded`] need"]
-                        #[doc = "to be called first to remove some of the chunks (if possible)."]
+                        #[doc = "can co-exists at the same time. If there are no unlocking chunks slots available"]
+                        #[doc = "[`Call::withdraw_unbonded`] is called to remove some of the chunks (if possible)."]
                         #[doc = ""]
                         #[doc = "If a user encounters the `InsufficientBond` error when calling this extrinsic,"]
                         #[doc = "they should call `chill` first in order to free up their bonded funds."]
@@ -17061,7 +17184,7 @@ pub mod api {
                         #[codec(index = 17)]
                         #[doc = "Cancel enactment of a deferred slash."]
                         #[doc = ""]
-                        #[doc = "Can be called by the `T::SlashCancelOrigin`."]
+                        #[doc = "Can be called by the `T::AdminOrigin`."]
                         #[doc = ""]
                         #[doc = "Parameters: era and indices of the slashes for that era to kill."]
                         cancel_deferred_slash {
@@ -17225,6 +17348,14 @@ pub mod api {
                         force_apply_min_commission {
                             validator_stash: ::subxt::ext::sp_core::crypto::AccountId32,
                         },
+                        #[codec(index = 25)]
+                        #[doc = "Sets the minimum amount of commission that each validators must maintain."]
+                        #[doc = ""]
+                        #[doc = "This call has lower privilege requirements than `set_staking_config` and can be called"]
+                        #[doc = "by the `T::AdminOrigin`. Root can always call this."]
+                        set_min_commission {
+                            new: runtime_types::sp_arithmetic::per_things::Perbill,
+                        },
                     }
                     #[derive(
                         :: subxt :: ext :: codec :: Decode,
@@ -17357,21 +17488,29 @@ pub mod api {
                             amount: ::core::primitive::u128,
                         },
                         #[codec(index = 2)]
-                        #[doc = "One staker (and potentially its nominators) has been slashed by the given amount."]
+                        #[doc = "A staker (validator or nominator) has been slashed by the given amount."]
                         Slashed {
                             staker: ::subxt::ext::sp_core::crypto::AccountId32,
                             amount: ::core::primitive::u128,
                         },
                         #[codec(index = 3)]
+                        #[doc = "A slash for the given validator, for the given percentage of their stake, at the given"]
+                        #[doc = "era as been reported."]
+                        SlashReported {
+                            validator: ::subxt::ext::sp_core::crypto::AccountId32,
+                            fraction: runtime_types::sp_arithmetic::per_things::Perbill,
+                            slash_era: ::core::primitive::u32,
+                        },
+                        #[codec(index = 4)]
                         #[doc = "An old slashing report from a prior era was discarded because it could"]
                         #[doc = "not be processed."]
                         OldSlashingReportDiscarded {
                             session_index: ::core::primitive::u32,
                         },
-                        #[codec(index = 4)]
+                        #[codec(index = 5)]
                         #[doc = "A new set of stakers was elected."]
                         StakersElected,
-                        #[codec(index = 5)]
+                        #[codec(index = 6)]
                         #[doc = "An account has bonded this amount. \\[stash, amount\\]"]
                         #[doc = ""]
                         #[doc = "NOTE: This event is only emitted when funds are bonded via a dispatchable. Notably,"]
@@ -17380,44 +17519,49 @@ pub mod api {
                             stash: ::subxt::ext::sp_core::crypto::AccountId32,
                             amount: ::core::primitive::u128,
                         },
-                        #[codec(index = 6)]
+                        #[codec(index = 7)]
                         #[doc = "An account has unbonded this amount."]
                         Unbonded {
                             stash: ::subxt::ext::sp_core::crypto::AccountId32,
                             amount: ::core::primitive::u128,
                         },
-                        #[codec(index = 7)]
+                        #[codec(index = 8)]
                         #[doc = "An account has called `withdraw_unbonded` and removed unbonding chunks worth `Balance`"]
                         #[doc = "from the unlocking queue."]
                         Withdrawn {
                             stash: ::subxt::ext::sp_core::crypto::AccountId32,
                             amount: ::core::primitive::u128,
                         },
-                        #[codec(index = 8)]
+                        #[codec(index = 9)]
                         #[doc = "A nominator has been kicked from a validator."]
                         Kicked {
                             nominator: ::subxt::ext::sp_core::crypto::AccountId32,
                             stash: ::subxt::ext::sp_core::crypto::AccountId32,
                         },
-                        #[codec(index = 9)]
+                        #[codec(index = 10)]
                         #[doc = "The election failed. No new era is planned."]
                         StakingElectionFailed,
-                        #[codec(index = 10)]
+                        #[codec(index = 11)]
                         #[doc = "An account has stopped participating as either a validator or nominator."]
                         Chilled {
                             stash: ::subxt::ext::sp_core::crypto::AccountId32,
                         },
-                        #[codec(index = 11)]
+                        #[codec(index = 12)]
                         #[doc = "The stakers' rewards are getting paid."]
                         PayoutStarted {
                             era_index: ::core::primitive::u32,
                             validator_stash: ::subxt::ext::sp_core::crypto::AccountId32,
                         },
-                        #[codec(index = 12)]
+                        #[codec(index = 13)]
                         #[doc = "A validator has set their preferences."]
                         ValidatorPrefsSet {
                             stash: ::subxt::ext::sp_core::crypto::AccountId32,
                             prefs: runtime_types::pallet_staking::ValidatorPrefs,
+                        },
+                        #[codec(index = 14)]
+                        #[doc = "A new force era mode was set."]
+                        ForceEra {
+                            mode: runtime_types::pallet_staking::Forcing,
                         },
                     }
                 }
@@ -17536,40 +17680,6 @@ pub mod api {
                 >,
                 pub submitted_in: ::core::primitive::u32,
                 pub suppressed: ::core::primitive::bool,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            pub enum Releases {
-                #[codec(index = 0)]
-                V1_0_0Ancient,
-                #[codec(index = 1)]
-                V2_0_0,
-                #[codec(index = 2)]
-                V3_0_0,
-                #[codec(index = 3)]
-                V4_0_0,
-                #[codec(index = 4)]
-                V5_0_0,
-                #[codec(index = 5)]
-                V6_0_0,
-                #[codec(index = 6)]
-                V7_0_0,
-                #[codec(index = 7)]
-                V8_0_0,
-                #[codec(index = 8)]
-                V9_0_0,
-                #[codec(index = 9)]
-                V10_0_0,
-                #[codec(index = 10)]
-                V11_0_0,
-                #[codec(index = 11)]
-                V12_0_0,
             }
             #[derive(
                 :: subxt :: ext :: codec :: Decode,
@@ -18044,6 +18154,12 @@ pub mod api {
                         proposal_index: ::core::primitive::u32,
                         amount: ::core::primitive::u128,
                         beneficiary: ::subxt::ext::sp_core::crypto::AccountId32,
+                    },
+                    #[codec(index = 8)]
+                    #[doc = "The inactive funds of the pallet have been updated."]
+                    UpdatedInactive {
+                        reactivated: ::core::primitive::u128,
+                        deactivated: ::core::primitive::u128,
                     },
                 }
             }
@@ -18621,6 +18737,22 @@ pub mod api {
                     PartialEq,
                 )]
                 pub struct Permill(pub ::core::primitive::u32);
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            pub enum ArithmeticError {
+                #[codec(index = 0)]
+                Underflow,
+                #[codec(index = 1)]
+                Overflow,
+                #[codec(index = 2)]
+                DivisionByZero,
             }
         }
         pub mod sp_consensus_aura {
@@ -19433,22 +19565,6 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
-            pub enum ArithmeticError {
-                #[codec(index = 0)]
-                Underflow,
-                #[codec(index = 1)]
-                Overflow,
-                #[codec(index = 2)]
-                DivisionByZero,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
             pub enum DispatchError {
                 #[codec(index = 0)]
                 Other,
@@ -19467,7 +19583,7 @@ pub mod api {
                 #[codec(index = 7)]
                 Token(runtime_types::sp_runtime::TokenError),
                 #[codec(index = 8)]
-                Arithmetic(runtime_types::sp_runtime::ArithmeticError),
+                Arithmetic(runtime_types::sp_arithmetic::ArithmeticError),
                 #[codec(index = 9)]
                 Transactional(runtime_types::sp_runtime::TransactionalError),
                 #[codec(index = 10)]
@@ -19795,9 +19911,9 @@ pub mod api {
         let runtime_metadata_hash = client.metadata().metadata_hash(&PALLETS);
         if runtime_metadata_hash
             != [
-                91u8, 91u8, 248u8, 67u8, 48u8, 120u8, 50u8, 73u8, 56u8, 93u8, 91u8, 213u8, 55u8,
-                126u8, 47u8, 180u8, 229u8, 179u8, 13u8, 47u8, 136u8, 60u8, 59u8, 198u8, 195u8,
-                211u8, 133u8, 123u8, 48u8, 192u8, 137u8, 236u8,
+                152u8, 75u8, 71u8, 172u8, 167u8, 231u8, 115u8, 198u8, 49u8, 81u8, 255u8, 71u8,
+                255u8, 99u8, 32u8, 216u8, 101u8, 85u8, 22u8, 250u8, 69u8, 50u8, 197u8, 148u8,
+                199u8, 153u8, 247u8, 146u8, 228u8, 136u8, 182u8, 127u8,
             ]
         {
             Err(::subxt::error::MetadataError::IncompatibleMetadata)

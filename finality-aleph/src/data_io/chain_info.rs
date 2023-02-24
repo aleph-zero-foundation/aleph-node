@@ -1,11 +1,9 @@
 use std::sync::Arc;
 
+use log::error;
 use lru::LruCache;
 use sc_client_api::HeaderBackend;
-use sp_runtime::{
-    generic::BlockId,
-    traits::{Block as BlockT, Header as HeaderT, NumberFor, One},
-};
+use sp_runtime::traits::{Block as BlockT, Header as HeaderT, NumberFor, One};
 
 use crate::{data_io::ChainInfoCacheConfig, BlockHashNum};
 
@@ -25,9 +23,7 @@ where
     C: HeaderBackend<B>,
 {
     fn is_block_imported(&mut self, block: &BlockHashNum<B>) -> bool {
-        let maybe_header = self
-            .header(BlockId::Hash(block.hash))
-            .expect("client must answer a query");
+        let maybe_header = self.header(block.hash).expect("client must answer a query");
         if let Some(header) = maybe_header {
             // If the block number is incorrect, we treat as not imported.
             return *header.number() == block.num;
@@ -40,10 +36,15 @@ where
             return Err(());
         }
 
-        if let Some(header) = self
-            .header(BlockId::Number(num))
-            .expect("client must respond")
-        {
+        let block_hash = match self.hash(num).ok().flatten() {
+            None => {
+                error!(target: "chain-info", "Could not get hash for block #{:?}", num);
+                return Err(());
+            }
+            Some(h) => h,
+        };
+
+        if let Some(header) = self.header(block_hash).expect("client must respond") {
             Ok((header.hash(), num).into())
         } else {
             Err(())
@@ -51,10 +52,7 @@ where
     }
 
     fn get_parent_hash(&mut self, block: &BlockHashNum<B>) -> Result<B::Hash, ()> {
-        if let Some(header) = self
-            .header(BlockId::Hash(block.hash))
-            .expect("client must respond")
-        {
+        if let Some(header) = self.header(block.hash).expect("client must respond") {
             Ok(*header.parent_hash())
         } else {
             Err(())

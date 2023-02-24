@@ -12,6 +12,8 @@ use sc_service::SpawnTaskHandle;
 use sc_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnboundedSender};
 use tokio::time;
 
+const QUEUE_SIZE_WARNING: i64 = 1_000;
+
 use crate::{
     network::{
         gossip::{Event, EventStream, Network, NetworkSender, Protocol, RawNetwork},
@@ -272,13 +274,19 @@ impl<N: RawNetwork, D: Data> Service<N, D> {
                 trace!(target: "aleph-network", "StreamOpened event for peer {:?} and the protocol {:?}.", peer, protocol);
                 let rx = match &protocol {
                     Protocol::Authentication => {
-                        let (tx, rx) = tracing_unbounded("mpsc_notification_stream_authentication");
+                        let (tx, rx) = tracing_unbounded(
+                            "mpsc_notification_stream_authentication",
+                            QUEUE_SIZE_WARNING,
+                        );
                         self.authentication_connected_peers.insert(peer.clone());
                         self.authentication_peer_senders.insert(peer.clone(), tx);
                         rx
                     }
                     Protocol::BlockSync => {
-                        let (tx, rx) = tracing_unbounded("mpsc_notification_stream_block_sync");
+                        let (tx, rx) = tracing_unbounded(
+                            "mpsc_notification_stream_block_sync",
+                            QUEUE_SIZE_WARNING,
+                        );
                         self.block_sync_connected_peers.insert(peer.clone());
                         self.block_sync_peer_senders.insert(peer.clone(), tx);
                         rx
