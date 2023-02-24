@@ -1183,9 +1183,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            163u8, 73u8, 3u8, 157u8, 229u8, 239u8, 229u8, 245u8, 42u8, 233u8, 35u8,
-                            255u8, 125u8, 76u8, 97u8, 109u8, 13u8, 92u8, 70u8, 113u8, 28u8, 53u8,
-                            201u8, 76u8, 57u8, 76u8, 164u8, 2u8, 53u8, 46u8, 237u8, 242u8,
+                            241u8, 199u8, 15u8, 208u8, 101u8, 207u8, 116u8, 231u8, 145u8, 101u8,
+                            182u8, 193u8, 52u8, 246u8, 230u8, 10u8, 238u8, 234u8, 131u8, 246u8,
+                            126u8, 123u8, 214u8, 187u8, 113u8, 138u8, 176u8, 161u8, 56u8, 208u8,
+                            119u8, 119u8,
                         ],
                     )
                 }
@@ -1229,10 +1230,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            84u8, 195u8, 200u8, 70u8, 66u8, 90u8, 128u8, 97u8, 43u8, 2u8, 252u8,
-                            53u8, 36u8, 196u8, 105u8, 165u8, 216u8, 220u8, 76u8, 163u8, 39u8,
-                            149u8, 178u8, 91u8, 166u8, 142u8, 155u8, 14u8, 31u8, 110u8, 167u8,
-                            158u8,
+                            175u8, 81u8, 2u8, 204u8, 241u8, 89u8, 189u8, 119u8, 222u8, 128u8,
+                            246u8, 58u8, 92u8, 75u8, 87u8, 15u8, 102u8, 143u8, 109u8, 32u8, 4u8,
+                            22u8, 209u8, 144u8, 58u8, 173u8, 6u8, 45u8, 93u8, 242u8, 18u8, 170u8,
                         ],
                     )
                 }
@@ -1277,9 +1277,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            241u8, 215u8, 75u8, 40u8, 248u8, 168u8, 114u8, 76u8, 252u8, 51u8, 30u8,
-                            4u8, 5u8, 175u8, 87u8, 3u8, 109u8, 85u8, 176u8, 27u8, 23u8, 122u8,
-                            157u8, 18u8, 231u8, 3u8, 178u8, 224u8, 15u8, 240u8, 178u8, 239u8,
+                            82u8, 60u8, 236u8, 221u8, 124u8, 178u8, 23u8, 207u8, 179u8, 59u8,
+                            206u8, 11u8, 132u8, 15u8, 153u8, 104u8, 203u8, 134u8, 201u8, 255u8,
+                            210u8, 193u8, 51u8, 196u8, 104u8, 134u8, 219u8, 117u8, 75u8, 120u8,
+                            23u8, 244u8,
                         ],
                     )
                 }
@@ -1310,10 +1311,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            42u8, 35u8, 170u8, 76u8, 223u8, 0u8, 152u8, 106u8, 208u8, 142u8, 156u8,
-                            112u8, 85u8, 40u8, 205u8, 241u8, 240u8, 86u8, 146u8, 11u8, 114u8,
-                            227u8, 138u8, 39u8, 57u8, 197u8, 240u8, 44u8, 251u8, 156u8, 130u8,
-                            171u8,
+                            145u8, 124u8, 34u8, 62u8, 145u8, 204u8, 132u8, 210u8, 101u8, 75u8,
+                            171u8, 66u8, 165u8, 150u8, 233u8, 214u8, 1u8, 84u8, 85u8, 140u8, 47u8,
+                            97u8, 45u8, 118u8, 235u8, 240u8, 38u8, 145u8, 132u8, 183u8, 123u8,
+                            157u8,
                         ],
                     )
                 }
@@ -2731,85 +2732,10 @@ pub mod api {
     }
     pub mod authorship {
         use super::{root_mod, runtime_types};
-        #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
-        pub mod calls {
-            use super::{root_mod, runtime_types};
-            type DispatchError = runtime_types::sp_runtime::DispatchError;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            pub struct SetUncles {
-                pub new_uncles: ::std::vec::Vec<
-                    runtime_types::sp_runtime::generic::header::Header<
-                        ::core::primitive::u32,
-                        runtime_types::sp_runtime::traits::BlakeTwo256,
-                    >,
-                >,
-            }
-            pub struct TransactionApi;
-            impl TransactionApi {
-                #[doc = "Provide a set of uncles."]
-                pub fn set_uncles(
-                    &self,
-                    new_uncles: ::std::vec::Vec<
-                        runtime_types::sp_runtime::generic::header::Header<
-                            ::core::primitive::u32,
-                            runtime_types::sp_runtime::traits::BlakeTwo256,
-                        >,
-                    >,
-                ) -> ::subxt::tx::StaticTxPayload<SetUncles> {
-                    ::subxt::tx::StaticTxPayload::new(
-                        "Authorship",
-                        "set_uncles",
-                        SetUncles { new_uncles },
-                        [
-                            181u8, 70u8, 222u8, 83u8, 154u8, 215u8, 200u8, 64u8, 154u8, 228u8,
-                            115u8, 247u8, 117u8, 89u8, 229u8, 102u8, 128u8, 189u8, 90u8, 60u8,
-                            223u8, 19u8, 111u8, 172u8, 5u8, 223u8, 132u8, 37u8, 235u8, 119u8, 42u8,
-                            64u8,
-                        ],
-                    )
-                }
-            }
-        }
         pub mod storage {
             use super::runtime_types;
             pub struct StorageApi;
             impl StorageApi {
-                #[doc = " Uncles"]
-                pub fn uncles(
-                    &self,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<
-                        runtime_types::sp_core::bounded::bounded_vec::BoundedVec<
-                            runtime_types::pallet_authorship::UncleEntryItem<
-                                ::core::primitive::u32,
-                                ::subxt::ext::sp_core::H256,
-                                ::subxt::ext::sp_core::crypto::AccountId32,
-                            >,
-                        >,
-                    >,
-                    ::subxt::storage::address::Yes,
-                    ::subxt::storage::address::Yes,
-                    (),
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Authorship",
-                        "Uncles",
-                        vec![],
-                        [
-                            193u8, 226u8, 196u8, 151u8, 233u8, 82u8, 60u8, 164u8, 27u8, 156u8,
-                            231u8, 51u8, 79u8, 134u8, 170u8, 166u8, 71u8, 120u8, 250u8, 255u8,
-                            52u8, 168u8, 74u8, 199u8, 122u8, 253u8, 248u8, 178u8, 39u8, 233u8,
-                            132u8, 67u8,
-                        ],
-                    )
-                }
                 #[doc = " Author of current block."]
                 pub fn author(
                     &self,
@@ -2828,51 +2754,6 @@ pub mod api {
                             25u8, 131u8, 5u8, 167u8, 237u8, 188u8, 188u8, 33u8, 177u8, 126u8,
                             181u8, 49u8, 126u8, 118u8, 46u8, 128u8, 154u8, 95u8, 15u8, 91u8, 103u8,
                             113u8,
-                        ],
-                    )
-                }
-                #[doc = " Whether uncles were already set in this block."]
-                pub fn did_set_uncles(
-                    &self,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<::core::primitive::bool>,
-                    ::subxt::storage::address::Yes,
-                    ::subxt::storage::address::Yes,
-                    (),
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Authorship",
-                        "DidSetUncles",
-                        vec![],
-                        [
-                            64u8, 3u8, 208u8, 187u8, 50u8, 45u8, 37u8, 88u8, 163u8, 226u8, 37u8,
-                            126u8, 232u8, 107u8, 156u8, 187u8, 29u8, 15u8, 53u8, 46u8, 28u8, 73u8,
-                            83u8, 123u8, 14u8, 244u8, 243u8, 43u8, 245u8, 143u8, 15u8, 115u8,
-                        ],
-                    )
-                }
-            }
-        }
-        pub mod constants {
-            use super::runtime_types;
-            pub struct ConstantsApi;
-            impl ConstantsApi {
-                #[doc = " The number of blocks back we should accept uncles."]
-                #[doc = " This means that we will deal with uncle-parents that are"]
-                #[doc = " `UncleGenerations + 1` before `now`."]
-                pub fn uncle_generations(
-                    &self,
-                ) -> ::subxt::constants::StaticConstantAddress<
-                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
-                > {
-                    ::subxt::constants::StaticConstantAddress::new(
-                        "Authorship",
-                        "UncleGenerations",
-                        [
-                            98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
-                            125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
-                            178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
-                            145u8,
                         ],
                     )
                 }
@@ -8307,9 +8188,9 @@ pub mod api {
                         "batch",
                         Batch { calls },
                         [
-                            253u8, 30u8, 32u8, 31u8, 20u8, 172u8, 133u8, 153u8, 122u8, 253u8, 33u8,
-                            58u8, 22u8, 223u8, 93u8, 96u8, 179u8, 187u8, 213u8, 219u8, 89u8, 176u8,
-                            23u8, 128u8, 70u8, 236u8, 175u8, 3u8, 77u8, 235u8, 220u8, 193u8,
+                            108u8, 189u8, 67u8, 60u8, 83u8, 95u8, 185u8, 30u8, 130u8, 154u8, 187u8,
+                            99u8, 143u8, 45u8, 132u8, 116u8, 211u8, 119u8, 58u8, 200u8, 4u8, 23u8,
+                            20u8, 193u8, 255u8, 12u8, 3u8, 158u8, 2u8, 45u8, 136u8, 36u8,
                         ],
                     )
                 }
@@ -8339,9 +8220,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            245u8, 248u8, 227u8, 228u8, 1u8, 178u8, 195u8, 152u8, 185u8, 209u8,
-                            117u8, 173u8, 163u8, 17u8, 158u8, 78u8, 81u8, 25u8, 83u8, 49u8, 83u8,
-                            166u8, 21u8, 254u8, 35u8, 86u8, 143u8, 154u8, 56u8, 151u8, 27u8, 233u8,
+                            254u8, 23u8, 88u8, 162u8, 231u8, 17u8, 237u8, 30u8, 157u8, 211u8,
+                            148u8, 103u8, 39u8, 87u8, 225u8, 93u8, 120u8, 34u8, 118u8, 248u8,
+                            128u8, 188u8, 223u8, 110u8, 184u8, 178u8, 138u8, 81u8, 133u8, 75u8,
+                            7u8, 167u8,
                         ],
                     )
                 }
@@ -8368,10 +8250,9 @@ pub mod api {
                         "batch_all",
                         BatchAll { calls },
                         [
-                            225u8, 123u8, 156u8, 170u8, 226u8, 179u8, 43u8, 231u8, 221u8, 106u8,
-                            232u8, 59u8, 142u8, 147u8, 245u8, 91u8, 24u8, 200u8, 20u8, 82u8, 226u8,
-                            213u8, 217u8, 162u8, 254u8, 213u8, 56u8, 5u8, 246u8, 181u8, 188u8,
-                            168u8,
+                            138u8, 66u8, 189u8, 225u8, 195u8, 103u8, 222u8, 116u8, 132u8, 62u8,
+                            15u8, 128u8, 68u8, 12u8, 89u8, 62u8, 57u8, 34u8, 168u8, 22u8, 3u8, 1u8,
+                            209u8, 68u8, 53u8, 167u8, 184u8, 104u8, 233u8, 233u8, 235u8, 57u8,
                         ],
                     )
                 }
@@ -8398,9 +8279,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            159u8, 76u8, 58u8, 40u8, 136u8, 99u8, 98u8, 253u8, 150u8, 94u8, 116u8,
-                            200u8, 101u8, 114u8, 143u8, 183u8, 58u8, 66u8, 4u8, 17u8, 245u8, 195u8,
-                            43u8, 209u8, 169u8, 37u8, 55u8, 71u8, 146u8, 119u8, 149u8, 115u8,
+                            109u8, 167u8, 115u8, 62u8, 36u8, 236u8, 215u8, 173u8, 158u8, 114u8,
+                            152u8, 35u8, 233u8, 229u8, 91u8, 220u8, 120u8, 133u8, 134u8, 14u8,
+                            129u8, 195u8, 194u8, 188u8, 238u8, 182u8, 45u8, 124u8, 22u8, 2u8, 36u8,
+                            247u8,
                         ],
                     )
                 }
@@ -8427,10 +8309,9 @@ pub mod api {
                         "force_batch",
                         ForceBatch { calls },
                         [
-                            159u8, 217u8, 163u8, 140u8, 146u8, 206u8, 206u8, 198u8, 142u8, 164u8,
-                            187u8, 93u8, 130u8, 243u8, 153u8, 50u8, 118u8, 157u8, 145u8, 3u8, 67u8,
-                            120u8, 51u8, 157u8, 134u8, 136u8, 159u8, 29u8, 227u8, 240u8, 151u8,
-                            155u8,
+                            93u8, 121u8, 5u8, 140u8, 218u8, 192u8, 35u8, 201u8, 135u8, 37u8, 53u8,
+                            43u8, 241u8, 135u8, 231u8, 121u8, 143u8, 93u8, 15u8, 181u8, 170u8,
+                            19u8, 47u8, 17u8, 64u8, 207u8, 153u8, 211u8, 220u8, 55u8, 70u8, 2u8,
                         ],
                     )
                 }
@@ -8453,9 +8334,9 @@ pub mod api {
                             weight,
                         },
                         [
-                            75u8, 40u8, 26u8, 228u8, 66u8, 36u8, 170u8, 110u8, 225u8, 120u8, 157u8,
-                            81u8, 64u8, 160u8, 182u8, 120u8, 255u8, 8u8, 40u8, 217u8, 144u8, 165u8,
-                            62u8, 166u8, 68u8, 174u8, 11u8, 108u8, 23u8, 95u8, 209u8, 248u8,
+                            62u8, 12u8, 150u8, 112u8, 62u8, 64u8, 240u8, 151u8, 177u8, 30u8, 175u8,
+                            55u8, 59u8, 2u8, 193u8, 42u8, 161u8, 7u8, 164u8, 83u8, 92u8, 233u8,
+                            223u8, 225u8, 54u8, 84u8, 159u8, 156u8, 13u8, 251u8, 196u8, 232u8,
                         ],
                     )
                 }
@@ -8679,9 +8560,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            25u8, 13u8, 214u8, 120u8, 72u8, 127u8, 224u8, 255u8, 198u8, 111u8,
-                            95u8, 106u8, 148u8, 10u8, 8u8, 74u8, 106u8, 5u8, 78u8, 66u8, 232u8,
-                            26u8, 158u8, 87u8, 190u8, 229u8, 169u8, 97u8, 11u8, 118u8, 117u8, 86u8,
+                            44u8, 232u8, 219u8, 245u8, 174u8, 148u8, 89u8, 42u8, 231u8, 7u8, 47u8,
+                            131u8, 203u8, 79u8, 194u8, 27u8, 241u8, 122u8, 110u8, 84u8, 70u8, 63u8,
+                            153u8, 24u8, 250u8, 71u8, 141u8, 132u8, 249u8, 93u8, 68u8, 174u8,
                         ],
                     )
                 }
@@ -8751,10 +8632,9 @@ pub mod api {
                             max_weight,
                         },
                         [
-                            29u8, 185u8, 118u8, 85u8, 35u8, 204u8, 254u8, 30u8, 169u8, 158u8,
-                            140u8, 49u8, 222u8, 30u8, 230u8, 50u8, 235u8, 19u8, 58u8, 192u8, 167u8,
-                            139u8, 61u8, 254u8, 123u8, 76u8, 12u8, 114u8, 167u8, 55u8, 198u8,
-                            200u8,
+                            181u8, 14u8, 83u8, 157u8, 20u8, 12u8, 156u8, 53u8, 15u8, 77u8, 62u8,
+                            232u8, 226u8, 154u8, 187u8, 9u8, 68u8, 200u8, 197u8, 176u8, 227u8,
+                            12u8, 32u8, 180u8, 153u8, 31u8, 236u8, 169u8, 156u8, 131u8, 65u8, 69u8,
                         ],
                     )
                 }
@@ -9166,9 +9046,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            68u8, 94u8, 245u8, 14u8, 65u8, 18u8, 181u8, 119u8, 41u8, 253u8, 14u8,
-                            26u8, 104u8, 130u8, 47u8, 86u8, 174u8, 125u8, 24u8, 31u8, 134u8, 221u8,
-                            142u8, 116u8, 62u8, 184u8, 66u8, 234u8, 78u8, 126u8, 233u8, 98u8,
+                            239u8, 228u8, 136u8, 20u8, 82u8, 135u8, 234u8, 100u8, 176u8, 109u8,
+                            25u8, 209u8, 86u8, 79u8, 108u8, 187u8, 90u8, 171u8, 158u8, 161u8,
+                            143u8, 104u8, 2u8, 219u8, 249u8, 132u8, 147u8, 114u8, 218u8, 229u8,
+                            155u8, 179u8,
                         ],
                     )
                 }
@@ -9195,10 +9076,10 @@ pub mod api {
                             weight,
                         },
                         [
-                            216u8, 132u8, 15u8, 247u8, 186u8, 238u8, 243u8, 162u8, 253u8, 231u8,
-                            39u8, 133u8, 246u8, 126u8, 140u8, 182u8, 18u8, 255u8, 141u8, 101u8,
-                            148u8, 25u8, 49u8, 7u8, 226u8, 50u8, 130u8, 216u8, 92u8, 165u8, 32u8,
-                            40u8,
+                            204u8, 109u8, 231u8, 144u8, 219u8, 116u8, 191u8, 123u8, 199u8, 219u8,
+                            220u8, 47u8, 76u8, 102u8, 122u8, 142u8, 68u8, 156u8, 222u8, 200u8,
+                            193u8, 220u8, 205u8, 85u8, 179u8, 22u8, 1u8, 76u8, 46u8, 246u8, 13u8,
+                            243u8,
                         ],
                     )
                 }
@@ -9257,9 +9138,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            59u8, 58u8, 109u8, 112u8, 202u8, 173u8, 224u8, 161u8, 95u8, 93u8,
-                            188u8, 120u8, 195u8, 60u8, 216u8, 97u8, 59u8, 23u8, 70u8, 110u8, 185u8,
-                            29u8, 198u8, 234u8, 134u8, 222u8, 99u8, 4u8, 62u8, 6u8, 156u8, 112u8,
+                            79u8, 135u8, 29u8, 144u8, 82u8, 118u8, 47u8, 40u8, 226u8, 63u8, 151u8,
+                            248u8, 68u8, 62u8, 138u8, 238u8, 6u8, 176u8, 175u8, 12u8, 244u8, 100u8,
+                            176u8, 119u8, 48u8, 45u8, 158u8, 208u8, 78u8, 62u8, 204u8, 130u8,
                         ],
                     )
                 }
@@ -10288,9 +10169,10 @@ pub mod api {
                         "Contracts",
                         "Schedule",
                         [
-                            203u8, 98u8, 182u8, 130u8, 165u8, 6u8, 149u8, 28u8, 44u8, 67u8, 79u8,
-                            25u8, 47u8, 191u8, 183u8, 41u8, 65u8, 129u8, 135u8, 29u8, 178u8, 224u8,
-                            196u8, 247u8, 58u8, 215u8, 101u8, 35u8, 77u8, 233u8, 60u8, 155u8,
+                            102u8, 52u8, 108u8, 178u8, 197u8, 144u8, 39u8, 115u8, 254u8, 23u8,
+                            38u8, 120u8, 11u8, 166u8, 178u8, 210u8, 91u8, 139u8, 214u8, 231u8,
+                            110u8, 188u8, 37u8, 149u8, 195u8, 73u8, 166u8, 90u8, 55u8, 73u8, 88u8,
+                            111u8,
                         ],
                     )
                 }
@@ -10392,6 +10274,10 @@ pub mod api {
                 #[doc = " The maximum length of a contract code in bytes. This limit applies to the instrumented"]
                 #[doc = " version of the code. Therefore `instantiate_with_code` can fail even when supplying"]
                 #[doc = " a wasm binary below this maximum size."]
+                #[doc = ""]
+                #[doc = " The value should be chosen carefully taking into the account the overall memory limit"]
+                #[doc = " your runtime has, as well as the [maximum allowed callstack"]
+                #[doc = " depth](#associatedtype.CallStack). Look into the `integrity_test()` for some insights."]
                 pub fn max_code_len(
                     &self,
                 ) -> ::subxt::constants::StaticConstantAddress<
@@ -13239,8 +13125,6 @@ pub mod api {
                 Timestamp(runtime_types::pallet_timestamp::pallet::Call),
                 #[codec(index = 5)]
                 Balances(runtime_types::pallet_balances::pallet::Call),
-                #[codec(index = 7)]
-                Authorship(runtime_types::pallet_authorship::pallet::Call),
                 #[codec(index = 8)]
                 Staking(runtime_types::pallet_staking::pallet::pallet::Call),
                 #[codec(index = 10)]
@@ -13850,79 +13734,6 @@ pub mod api {
                 }
             }
         }
-        pub mod pallet_authorship {
-            use super::runtime_types;
-            pub mod pallet {
-                use super::runtime_types;
-                #[derive(
-                    :: subxt :: ext :: codec :: Decode,
-                    :: subxt :: ext :: codec :: Encode,
-                    Clone,
-                    Debug,
-                    Eq,
-                    PartialEq,
-                )]
-                #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
-                pub enum Call {
-                    #[codec(index = 0)]
-                    #[doc = "Provide a set of uncles."]
-                    set_uncles {
-                        new_uncles: ::std::vec::Vec<
-                            runtime_types::sp_runtime::generic::header::Header<
-                                ::core::primitive::u32,
-                                runtime_types::sp_runtime::traits::BlakeTwo256,
-                            >,
-                        >,
-                    },
-                }
-                #[derive(
-                    :: subxt :: ext :: codec :: Decode,
-                    :: subxt :: ext :: codec :: Encode,
-                    Clone,
-                    Debug,
-                    Eq,
-                    PartialEq,
-                )]
-                #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
-                pub enum Error {
-                    #[codec(index = 0)]
-                    #[doc = "The uncle parent not in the chain."]
-                    InvalidUncleParent,
-                    #[codec(index = 1)]
-                    #[doc = "Uncles already set in the block."]
-                    UnclesAlreadySet,
-                    #[codec(index = 2)]
-                    #[doc = "Too many uncles."]
-                    TooManyUncles,
-                    #[codec(index = 3)]
-                    #[doc = "The uncle is genesis."]
-                    GenesisUncle,
-                    #[codec(index = 4)]
-                    #[doc = "The uncle is too high in chain."]
-                    TooHighUncle,
-                    #[codec(index = 5)]
-                    #[doc = "The uncle is already included."]
-                    UncleAlreadyIncluded,
-                    #[codec(index = 6)]
-                    #[doc = "The uncle isn't recent enough to be included."]
-                    OldUncle,
-                }
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            pub enum UncleEntryItem<_0, _1, _2> {
-                #[codec(index = 0)]
-                InclusionHeight(_0),
-                #[codec(index = 1)]
-                Uncle(_1, ::core::option::Option<_2>),
-            }
-        }
         pub mod pallet_balances {
             use super::runtime_types;
             pub mod pallet {
@@ -14495,50 +14306,47 @@ pub mod api {
                     #[doc = "The amount of topics passed to `seal_deposit_events` exceeds the limit."]
                     TooManyTopics,
                     #[codec(index = 17)]
-                    #[doc = "The topics passed to `seal_deposit_events` contains at least one duplicate."]
-                    DuplicateTopics,
-                    #[codec(index = 18)]
                     #[doc = "The chain does not provide a chain extension. Calling the chain extension results"]
                     #[doc = "in this error. Note that this usually  shouldn't happen as deploying such contracts"]
                     #[doc = "is rejected."]
                     NoChainExtension,
-                    #[codec(index = 19)]
+                    #[codec(index = 18)]
                     #[doc = "Removal of a contract failed because the deletion queue is full."]
                     #[doc = ""]
                     #[doc = "This can happen when calling `seal_terminate`."]
                     #[doc = "The queue is filled by deleting contracts and emptied by a fixed amount each block."]
                     #[doc = "Trying again during another block is the only way to resolve this issue."]
                     DeletionQueueFull,
-                    #[codec(index = 20)]
+                    #[codec(index = 19)]
                     #[doc = "A contract with the same AccountId already exists."]
                     DuplicateContract,
-                    #[codec(index = 21)]
+                    #[codec(index = 20)]
                     #[doc = "A contract self destructed in its constructor."]
                     #[doc = ""]
                     #[doc = "This can be triggered by a call to `seal_terminate`."]
                     TerminatedInConstructor,
-                    #[codec(index = 22)]
+                    #[codec(index = 21)]
                     #[doc = "The debug message specified to `seal_debug_message` does contain invalid UTF-8."]
                     DebugMessageInvalidUTF8,
-                    #[codec(index = 23)]
+                    #[codec(index = 22)]
                     #[doc = "A call tried to invoke a contract that is flagged as non-reentrant."]
                     ReentranceDenied,
-                    #[codec(index = 24)]
+                    #[codec(index = 23)]
                     #[doc = "Origin doesn't have enough balance to pay the required storage deposits."]
                     StorageDepositNotEnoughFunds,
-                    #[codec(index = 25)]
+                    #[codec(index = 24)]
                     #[doc = "More storage was created than allowed by the storage deposit limit."]
                     StorageDepositLimitExhausted,
-                    #[codec(index = 26)]
+                    #[codec(index = 25)]
                     #[doc = "Code removal was denied because the code is still in use by at least one contract."]
                     CodeInUse,
-                    #[codec(index = 27)]
+                    #[codec(index = 26)]
                     #[doc = "The contract ran to completion but decided to revert its storage changes."]
                     #[doc = "Please note that this error is only returned from extrinsics. When called directly"]
                     #[doc = "or via RPC an `Ok` will be returned. In this case the caller needs to inspect the flags"]
                     #[doc = "to determine whether a reversion has taken place."]
                     ContractReverted,
-                    #[codec(index = 28)]
+                    #[codec(index = 27)]
                     #[doc = "The contract's code was found to be invalid during validation or instrumentation."]
                     #[doc = ""]
                     #[doc = "The most likely cause of this is that an API was used which is not supported by the"]
@@ -14548,7 +14356,7 @@ pub mod api {
                     #[doc = "A more detailed error can be found on the node console if debug messages are enabled"]
                     #[doc = "by supplying `-lruntime::contracts=debug`."]
                     CodeRejected,
-                    #[codec(index = 29)]
+                    #[codec(index = 28)]
                     #[doc = "An indetermistic code was used in a context where this is not permitted."]
                     Indeterministic,
                 }
@@ -14639,64 +14447,65 @@ pub mod api {
                     PartialEq,
                 )]
                 pub struct HostFnWeights {
-                    pub caller: ::core::primitive::u64,
-                    pub is_contract: ::core::primitive::u64,
-                    pub code_hash: ::core::primitive::u64,
-                    pub own_code_hash: ::core::primitive::u64,
-                    pub caller_is_origin: ::core::primitive::u64,
-                    pub address: ::core::primitive::u64,
-                    pub gas_left: ::core::primitive::u64,
-                    pub balance: ::core::primitive::u64,
-                    pub value_transferred: ::core::primitive::u64,
-                    pub minimum_balance: ::core::primitive::u64,
-                    pub block_number: ::core::primitive::u64,
-                    pub now: ::core::primitive::u64,
-                    pub weight_to_fee: ::core::primitive::u64,
-                    pub gas: ::core::primitive::u64,
-                    pub input: ::core::primitive::u64,
-                    pub input_per_byte: ::core::primitive::u64,
-                    pub r#return: ::core::primitive::u64,
-                    pub return_per_byte: ::core::primitive::u64,
-                    pub terminate: ::core::primitive::u64,
-                    pub random: ::core::primitive::u64,
-                    pub deposit_event: ::core::primitive::u64,
-                    pub deposit_event_per_topic: ::core::primitive::u64,
-                    pub deposit_event_per_byte: ::core::primitive::u64,
-                    pub debug_message: ::core::primitive::u64,
-                    pub set_storage: ::core::primitive::u64,
-                    pub set_storage_per_new_byte: ::core::primitive::u64,
-                    pub set_storage_per_old_byte: ::core::primitive::u64,
-                    pub set_code_hash: ::core::primitive::u64,
-                    pub clear_storage: ::core::primitive::u64,
-                    pub clear_storage_per_byte: ::core::primitive::u64,
-                    pub contains_storage: ::core::primitive::u64,
-                    pub contains_storage_per_byte: ::core::primitive::u64,
-                    pub get_storage: ::core::primitive::u64,
-                    pub get_storage_per_byte: ::core::primitive::u64,
-                    pub take_storage: ::core::primitive::u64,
-                    pub take_storage_per_byte: ::core::primitive::u64,
-                    pub transfer: ::core::primitive::u64,
-                    pub call: ::core::primitive::u64,
-                    pub delegate_call: ::core::primitive::u64,
-                    pub call_transfer_surcharge: ::core::primitive::u64,
-                    pub call_per_cloned_byte: ::core::primitive::u64,
-                    pub instantiate: ::core::primitive::u64,
-                    pub instantiate_transfer_surcharge: ::core::primitive::u64,
-                    pub instantiate_per_input_byte: ::core::primitive::u64,
-                    pub instantiate_per_salt_byte: ::core::primitive::u64,
-                    pub hash_sha2_256: ::core::primitive::u64,
-                    pub hash_sha2_256_per_byte: ::core::primitive::u64,
-                    pub hash_keccak_256: ::core::primitive::u64,
-                    pub hash_keccak_256_per_byte: ::core::primitive::u64,
-                    pub hash_blake2_256: ::core::primitive::u64,
-                    pub hash_blake2_256_per_byte: ::core::primitive::u64,
-                    pub hash_blake2_128: ::core::primitive::u64,
-                    pub hash_blake2_128_per_byte: ::core::primitive::u64,
-                    pub ecdsa_recover: ::core::primitive::u64,
-                    pub ecdsa_to_eth_address: ::core::primitive::u64,
-                    pub reentrance_count: ::core::primitive::u64,
-                    pub account_reentrance_count: ::core::primitive::u64,
-                    pub instantiation_nonce: ::core::primitive::u64,
+                    pub caller: runtime_types::sp_weights::weight_v2::Weight,
+                    pub is_contract: runtime_types::sp_weights::weight_v2::Weight,
+                    pub code_hash: runtime_types::sp_weights::weight_v2::Weight,
+                    pub own_code_hash: runtime_types::sp_weights::weight_v2::Weight,
+                    pub caller_is_origin: runtime_types::sp_weights::weight_v2::Weight,
+                    pub address: runtime_types::sp_weights::weight_v2::Weight,
+                    pub gas_left: runtime_types::sp_weights::weight_v2::Weight,
+                    pub balance: runtime_types::sp_weights::weight_v2::Weight,
+                    pub value_transferred: runtime_types::sp_weights::weight_v2::Weight,
+                    pub minimum_balance: runtime_types::sp_weights::weight_v2::Weight,
+                    pub block_number: runtime_types::sp_weights::weight_v2::Weight,
+                    pub now: runtime_types::sp_weights::weight_v2::Weight,
+                    pub weight_to_fee: runtime_types::sp_weights::weight_v2::Weight,
+                    pub gas: runtime_types::sp_weights::weight_v2::Weight,
+                    pub input: runtime_types::sp_weights::weight_v2::Weight,
+                    pub input_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub r#return: runtime_types::sp_weights::weight_v2::Weight,
+                    pub return_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub terminate: runtime_types::sp_weights::weight_v2::Weight,
+                    pub random: runtime_types::sp_weights::weight_v2::Weight,
+                    pub deposit_event: runtime_types::sp_weights::weight_v2::Weight,
+                    pub deposit_event_per_topic: runtime_types::sp_weights::weight_v2::Weight,
+                    pub deposit_event_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub debug_message: runtime_types::sp_weights::weight_v2::Weight,
+                    pub set_storage: runtime_types::sp_weights::weight_v2::Weight,
+                    pub set_storage_per_new_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub set_storage_per_old_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub set_code_hash: runtime_types::sp_weights::weight_v2::Weight,
+                    pub clear_storage: runtime_types::sp_weights::weight_v2::Weight,
+                    pub clear_storage_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub contains_storage: runtime_types::sp_weights::weight_v2::Weight,
+                    pub contains_storage_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub get_storage: runtime_types::sp_weights::weight_v2::Weight,
+                    pub get_storage_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub take_storage: runtime_types::sp_weights::weight_v2::Weight,
+                    pub take_storage_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub transfer: runtime_types::sp_weights::weight_v2::Weight,
+                    pub call: runtime_types::sp_weights::weight_v2::Weight,
+                    pub delegate_call: runtime_types::sp_weights::weight_v2::Weight,
+                    pub call_transfer_surcharge: runtime_types::sp_weights::weight_v2::Weight,
+                    pub call_per_cloned_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub instantiate: runtime_types::sp_weights::weight_v2::Weight,
+                    pub instantiate_transfer_surcharge:
+                        runtime_types::sp_weights::weight_v2::Weight,
+                    pub instantiate_per_input_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub instantiate_per_salt_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub hash_sha2_256: runtime_types::sp_weights::weight_v2::Weight,
+                    pub hash_sha2_256_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub hash_keccak_256: runtime_types::sp_weights::weight_v2::Weight,
+                    pub hash_keccak_256_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub hash_blake2_256: runtime_types::sp_weights::weight_v2::Weight,
+                    pub hash_blake2_256_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub hash_blake2_128: runtime_types::sp_weights::weight_v2::Weight,
+                    pub hash_blake2_128_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub ecdsa_recover: runtime_types::sp_weights::weight_v2::Weight,
+                    pub ecdsa_to_eth_address: runtime_types::sp_weights::weight_v2::Weight,
+                    pub reentrance_count: runtime_types::sp_weights::weight_v2::Weight,
+                    pub account_reentrance_count: runtime_types::sp_weights::weight_v2::Weight,
+                    pub instantiation_nonce: runtime_types::sp_weights::weight_v2::Weight,
                 }
                 #[derive(
                     :: subxt :: ext :: codec :: Decode,
@@ -14779,7 +14588,6 @@ pub mod api {
                     pub table_size: ::core::primitive::u32,
                     pub br_table_size: ::core::primitive::u32,
                     pub subject_len: ::core::primitive::u32,
-                    pub call_depth: ::core::primitive::u32,
                     pub payload_len: ::core::primitive::u32,
                 }
                 #[derive(
@@ -19485,27 +19293,6 @@ pub mod api {
                         Mortal255(::core::primitive::u8),
                     }
                 }
-                pub mod header {
-                    use super::runtime_types;
-                    #[derive(
-                        :: subxt :: ext :: codec :: Decode,
-                        :: subxt :: ext :: codec :: Encode,
-                        Clone,
-                        Debug,
-                        Eq,
-                        PartialEq,
-                    )]
-                    pub struct Header<_0, _1> {
-                        pub parent_hash: ::subxt::ext::sp_core::H256,
-                        #[codec(compact)]
-                        pub number: _0,
-                        pub state_root: ::subxt::ext::sp_core::H256,
-                        pub extrinsics_root: ::subxt::ext::sp_core::H256,
-                        pub digest: runtime_types::sp_runtime::generic::digest::Digest,
-                        #[codec(skip)]
-                        pub __subxt_unused_type_params: ::core::marker::PhantomData<_1>,
-                    }
-                }
                 pub mod unchecked_extrinsic {
                     use super::runtime_types;
                     #[derive(
@@ -19544,18 +19331,6 @@ pub mod api {
                     #[codec(index = 4)]
                     Address20([::core::primitive::u8; 20usize]),
                 }
-            }
-            pub mod traits {
-                use super::runtime_types;
-                #[derive(
-                    :: subxt :: ext :: codec :: Decode,
-                    :: subxt :: ext :: codec :: Encode,
-                    Clone,
-                    Debug,
-                    Eq,
-                    PartialEq,
-                )]
-                pub struct BlakeTwo256;
             }
             #[derive(
                 :: subxt :: ext :: codec :: Decode,
@@ -19754,9 +19529,6 @@ pub mod api {
         pub fn transaction_payment(&self) -> transaction_payment::constants::ConstantsApi {
             transaction_payment::constants::ConstantsApi
         }
-        pub fn authorship(&self) -> authorship::constants::ConstantsApi {
-            authorship::constants::ConstantsApi
-        }
         pub fn staking(&self) -> staking::constants::ConstantsApi {
             staking::constants::ConstantsApi
         }
@@ -19864,9 +19636,6 @@ pub mod api {
         pub fn balances(&self) -> balances::calls::TransactionApi {
             balances::calls::TransactionApi
         }
-        pub fn authorship(&self) -> authorship::calls::TransactionApi {
-            authorship::calls::TransactionApi
-        }
         pub fn staking(&self) -> staking::calls::TransactionApi {
             staking::calls::TransactionApi
         }
@@ -19911,9 +19680,9 @@ pub mod api {
         let runtime_metadata_hash = client.metadata().metadata_hash(&PALLETS);
         if runtime_metadata_hash
             != [
-                152u8, 75u8, 71u8, 172u8, 167u8, 231u8, 115u8, 198u8, 49u8, 81u8, 255u8, 71u8,
-                255u8, 99u8, 32u8, 216u8, 101u8, 85u8, 22u8, 250u8, 69u8, 50u8, 197u8, 148u8,
-                199u8, 153u8, 247u8, 146u8, 228u8, 136u8, 182u8, 127u8,
+                191u8, 48u8, 69u8, 156u8, 0u8, 234u8, 203u8, 221u8, 166u8, 21u8, 15u8, 202u8,
+                223u8, 93u8, 68u8, 245u8, 104u8, 158u8, 76u8, 167u8, 70u8, 9u8, 196u8, 75u8, 158u8,
+                131u8, 248u8, 255u8, 120u8, 66u8, 210u8, 100u8,
             ]
         {
             Err(::subxt::error::MetadataError::IncompatibleMetadata)

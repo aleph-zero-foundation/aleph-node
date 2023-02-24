@@ -366,6 +366,7 @@ mod tests {
 
     use futures_timer::Delay;
     use sc_block_builder::BlockBuilderProvider;
+    use sc_client_api::FinalizeSummary;
     use sc_utils::mpsc::tracing_unbounded;
     use sp_consensus::BlockOrigin;
     use substrate_test_runtime_client::{
@@ -456,12 +457,14 @@ mod tests {
     }
 
     fn to_notification(block: TBlock) -> FinalityNotification<TBlock> {
-        FinalityNotification {
-            hash: block.header.hash(),
+        let (sender, _) = tracing_unbounded("test", 1);
+        let summary = FinalizeSummary {
             header: block.header,
-            tree_route: Arc::new([]),
-            stale_heads: Arc::new([]),
-        }
+            finalized: vec![],
+            stale_heads: vec![],
+        };
+
+        FinalityNotification::from_summary(summary, sender)
     }
 
     #[tokio::test(flavor = "multi_thread")]
