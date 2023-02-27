@@ -17,7 +17,7 @@ path = "lib.rs"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-ink = { git = "https://github.com/paritytech/ink", rev = "4655a8b4413cb50cbc38d1b7c173ad426ab06cde", default-features = false }
+ink = { version = "~4.0.0", default-features = false }
 
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2.3", default-features = false, features = ["derive"], optional = true }
