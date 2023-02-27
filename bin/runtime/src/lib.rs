@@ -140,8 +140,11 @@ pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 pub const MAX_BLOCK_WEIGHT: Weight =
     Weight::from_ref_time(WEIGHT_REF_TIME_PER_MILLIS.saturating_mul(400));
 
-// The storage deposit is roughly 1 TOKEN per 1kB
-pub const DEPOSIT_PER_BYTE: Balance = MILLI_AZERO;
+// The storage deposit is roughly 1 TOKEN per 1kB -- this is the legacy value, used for pallet Identity and Multisig.
+pub const LEGACY_DEPOSIT_PER_BYTE: Balance = MILLI_AZERO;
+
+// The storage per one byte of contract storage: 4*10^{-5} AZERO per byte.
+pub const CONTRACT_DEPOSIT_PER_BYTE: Balance = 4 * (TOKEN / 100_000);
 
 parameter_types! {
     pub const Version: RuntimeVersion = VERSION;
@@ -580,9 +583,9 @@ impl pallet_vesting::Config for Runtime {
 
 parameter_types! {
     // One storage item; key size is 32+32; value is size 4+4+16+32 bytes = 56 bytes.
-    pub const DepositBase: Balance = 120 * DEPOSIT_PER_BYTE;
+    pub const DepositBase: Balance = 120 * LEGACY_DEPOSIT_PER_BYTE;
     // Additional storage item size of 32 bytes.
-    pub const DepositFactor: Balance = 32 * DEPOSIT_PER_BYTE;
+    pub const DepositFactor: Balance = 32 * LEGACY_DEPOSIT_PER_BYTE;
     pub const MaxSignatories: u16 = 100;
 }
 
@@ -659,9 +662,9 @@ const CONTRACTS_DEBUG_OUTPUT: bool = true;
 
 parameter_types! {
     // Refundable deposit per storage item
-    pub const DepositPerItem: Balance = 32 * DEPOSIT_PER_BYTE;
+    pub const DepositPerItem: Balance = 32 * CONTRACT_DEPOSIT_PER_BYTE;
     // Refundable deposit per byte of storage
-    pub const DepositPerByte: Balance = DEPOSIT_PER_BYTE;
+    pub const DepositPerByte: Balance = CONTRACT_DEPOSIT_PER_BYTE;
     // How much weight of each block can be spent on the lazy deletion queue of terminated contracts
     pub DeletionWeightLimit: Weight = Perbill::from_percent(10) * BlockWeights::get().max_block; // 40ms
     // Maximum size of the lazy deletion queue of terminated contracts.
@@ -696,9 +699,9 @@ impl pallet_contracts::Config for Runtime {
 parameter_types! {
     // bytes count taken from:
     // https://github.com/paritytech/polkadot/blob/016dc7297101710db0483ab6ef199e244dff711d/runtime/kusama/src/lib.rs#L995
-    pub const BasicDeposit: Balance = 258 * DEPOSIT_PER_BYTE;
-    pub const FieldDeposit: Balance = 66 * DEPOSIT_PER_BYTE;
-    pub const SubAccountDeposit: Balance = 53 * DEPOSIT_PER_BYTE;
+    pub const BasicDeposit: Balance = 258 * LEGACY_DEPOSIT_PER_BYTE;
+    pub const FieldDeposit: Balance = 66 * LEGACY_DEPOSIT_PER_BYTE;
+    pub const SubAccountDeposit: Balance = 53 * LEGACY_DEPOSIT_PER_BYTE;
     pub const MaxSubAccounts: u32 = 100;
     pub const MaxAdditionalFields: u32 = 100;
     pub const MaxRegistrars: u32 = 20;
