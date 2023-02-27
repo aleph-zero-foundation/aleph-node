@@ -110,10 +110,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 56,
+    spec_version: 57,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 14,
+    transaction_version: 15,
     state_version: 0,
 };
 
@@ -778,6 +778,14 @@ pub type UncheckedExtrinsic =
     generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 /// Extrinsic type that has already been checked.
 pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, RuntimeCall, SignedExtra>;
+
+// Migrations
+use pallet_balances::migration::MigrateManyToTrackInactive as BalancesV1Migration;
+// All migrations for contracts are bundled into one object -- we must import them all.
+use pallet_contracts::Migration as ContractsMigrations;
+use pallet_scheduler::migration::v3::MigrateToV4 as SchedulerV3V4Migration;
+use pallet_staking::migrations::v13::MigrateToV13 as StakingV13Migration;
+
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
     Runtime,
@@ -785,6 +793,15 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
+    (
+        // This will just kill the custom versioning enum, and set StorageVersion to 1
+        BalancesV1Migration<Runtime, ()>,
+        // This will trigger the v8 -> v9 migration, it translates all contract codes. Should not be too heavy.
+        ContractsMigrations<Runtime>,
+        SchedulerV3V4Migration<Runtime>,
+        // This only kills the custom versioning enum, and sets StorageVersion to 13
+        StakingV13Migration<Runtime>,
+    ),
 >;
 
 impl_runtime_apis! {
