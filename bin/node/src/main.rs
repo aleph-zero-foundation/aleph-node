@@ -18,7 +18,8 @@ fn default_blocks_pruning() -> DatabasePruningMode {
 }
 
 fn pruning_changed(params: &PruningParams) -> bool {
-    let state_pruning_changed = params.state_pruning != default_state_pruning();
+    let state_pruning_changed =
+        params.state_pruning.is_some() && (params.state_pruning != default_state_pruning());
 
     let blocks_pruning_changed = params.blocks_pruning != default_blocks_pruning();
 
