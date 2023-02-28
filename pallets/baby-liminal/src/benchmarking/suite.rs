@@ -3,6 +3,7 @@
 use frame_benchmarking::{account, benchmarks, vec, Vec};
 use frame_support::{traits::Get, BoundedVec};
 use frame_system::RawOrigin;
+use primitives::host_functions::poseidon;
 
 use crate::{
     benchmarking::import::Artifacts, get_artifacts, Call, Config, Pallet, ProvingSystem::*,
@@ -18,6 +19,10 @@ fn caller<T: Config>() -> RawOrigin<<T as frame_system::Config>::AccountId> {
 
 fn insert_key<T: Config>(key: Vec<u8>) {
     VerificationKeys::<T>::insert(IDENTIFIER, BoundedVec::try_from(key).unwrap());
+}
+
+fn gen_poseidon_host_input(x: u32) -> (u64, u64, u64, u64) {
+    (x as u64, 0, 0, 0)
 }
 
 benchmarks! {
@@ -158,26 +163,48 @@ benchmarks! {
 
     // Cryptography
 
-    poseidon_one_to_one {
+    poseidon_one_to_one_wasm {
         let x in 0 .. u32::MAX;
     } : {
         liminal_ark_poseidon::hash::one_to_one_hash([(x as u64).into()]);
     }
 
-    poseidon_two_to_one {
+    poseidon_two_to_one_wasm {
         let x in 0 .. u32::MAX;
         let y in 0 .. u32::MAX;
     } : {
         liminal_ark_poseidon::hash::two_to_one_hash([(x as u64).into(), (y as u64).into()]);
     }
 
-    poseidon_four_to_one {
+    poseidon_four_to_one_wasm {
         let x in 0 .. u32::MAX;
         let y in 0 .. u32::MAX;
         let w in 0 .. u32::MAX;
         let z in 0 .. u32::MAX;
     } : {
         liminal_ark_poseidon::hash::four_to_one_hash([(x as u64).into(), (y as u64).into(), (w as u64).into(), (z as u64).into()]);
+    }
+
+    poseidon_one_to_one_host{
+        let x in 0 .. u32::MAX;
+    } : {
+        poseidon::one_to_one_hash(gen_poseidon_host_input(x));
+    }
+
+    poseidon_two_to_one_host{
+        let x in 0 .. u32::MAX;
+        let y in 0 .. u32::MAX;
+    } : {
+        poseidon::two_to_one_hash(gen_poseidon_host_input(x), gen_poseidon_host_input(y));
+    }
+
+    poseidon_four_to_one_host{
+        let x in 0 .. u32::MAX;
+        let y in 0 .. u32::MAX;
+        let w in 0 .. u32::MAX;
+        let z in 0 .. u32::MAX;
+    } : {
+        poseidon::four_to_one_hash(gen_poseidon_host_input(x), gen_poseidon_host_input(y), gen_poseidon_host_input(w), gen_poseidon_host_input(z));
     }
 
     impl_benchmark_test_suite!(Pallet, crate::tests::new_test_ext(), crate::tests::TestRuntime);

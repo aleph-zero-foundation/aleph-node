@@ -2,11 +2,11 @@ use codec::{Decode, Encode};
 use environment::Environment;
 use executor::Executor;
 use frame_support::{log::error, weights::Weight};
-use liminal_ark_poseidon::{hash, BigInteger256, Fr};
 use pallet_baby_liminal::{Config, Error, ProvingSystem, VerificationKeyIdentifier, WeightInfo};
 use pallet_contracts::chain_extension::{
     ChainExtension, Environment as SubstrateEnvironment, Ext, InitState, RetVal, SysConfig,
 };
+use primitives::host_functions::poseidon;
 use sp_core::crypto::UncheckedFrom;
 use sp_runtime::DispatchError;
 use sp_std::{mem::size_of, vec::Vec};
@@ -130,8 +130,7 @@ fn weight_of_verify(system: Option<ProvingSystem>) -> Weight {
     }
 }
 
-type SingleHashInput = [u64; 4];
-
+type SingleHashInput = primitives::host_functions::Input;
 impl BabyLiminalChainExtension {
     fn baby_liminal_store_key<Env: Environment, Exc: Executor>(
         mut env: Env,
@@ -221,19 +220,19 @@ impl BabyLiminalChainExtension {
         Ok(RetVal::Converging(return_status))
     }
 
-    fn into_field_element(x: SingleHashInput) -> Fr {
-        Fr::new(BigInteger256::new(x))
-    }
-
     fn poseidon_one_to_one<Env: Environment, Exc: Executor>(
         mut env: Env,
     ) -> Result<RetVal, DispatchError> {
         let input: [SingleHashInput; 1] = env.read_as()?;
 
-        env.charge_weight(<<Runtime as Config>::WeightInfo as WeightInfo>::poseidon_one_to_one())?;
-        let hash = hash::one_to_one_hash(input.map(Self::into_field_element));
+        env.charge_weight(
+            <<Runtime as Config>::WeightInfo as WeightInfo>::poseidon_one_to_one_host(),
+        )?;
+        let hash = poseidon::one_to_one_hash(input[0]);
 
-        env.write(&hash.0 .0.encode())?;
+        // hash is of type (u64, u64, u64, u64) but this type has the same encoding
+        // as [u64, u64, u64, u64] so we're fine
+        env.write(&hash.encode())?;
 
         Ok(RetVal::Converging(POSEIDON_X_TO_ONE_OK))
     }
@@ -243,10 +242,14 @@ impl BabyLiminalChainExtension {
     ) -> Result<RetVal, DispatchError> {
         let input: [SingleHashInput; 2] = env.read_as()?;
 
-        env.charge_weight(<<Runtime as Config>::WeightInfo as WeightInfo>::poseidon_two_to_one())?;
-        let hash = hash::two_to_one_hash(input.map(Self::into_field_element));
+        env.charge_weight(
+            <<Runtime as Config>::WeightInfo as WeightInfo>::poseidon_two_to_one_host(),
+        )?;
+        let hash = poseidon::two_to_one_hash(input[0], input[1]);
 
-        env.write(&hash.0 .0.encode())?;
+        // hash is of type (u64, u64, u64, u64) but this type has the same encoding
+        // as [u64, u64, u64, u64] so we're fine
+        env.write(&hash.encode())?;
 
         Ok(RetVal::Converging(POSEIDON_X_TO_ONE_OK))
     }
@@ -256,10 +259,14 @@ impl BabyLiminalChainExtension {
     ) -> Result<RetVal, DispatchError> {
         let input: [SingleHashInput; 4] = env.read_as()?;
 
-        env.charge_weight(<<Runtime as Config>::WeightInfo as WeightInfo>::poseidon_four_to_one())?;
-        let hash = hash::four_to_one_hash(input.map(Self::into_field_element));
+        env.charge_weight(
+            <<Runtime as Config>::WeightInfo as WeightInfo>::poseidon_four_to_one_host(),
+        )?;
+        let hash = poseidon::four_to_one_hash(input[0], input[1], input[2], input[3]);
 
-        env.write(&hash.0 .0.encode())?;
+        // hash is of type (u64, u64, u64, u64) but this type has the same encoding
+        // as [u64, u64, u64, u64] so we're fine
+        env.write(&hash.encode())?;
 
         Ok(RetVal::Converging(POSEIDON_X_TO_ONE_OK))
     }

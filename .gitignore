@@ -2,6 +2,7 @@
 /.idea
 /.vscode
 .projectile
+*.swp
 
 # Rust
 .cargo/config

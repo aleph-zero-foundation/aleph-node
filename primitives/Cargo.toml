@@ -16,6 +16,11 @@ sp-core = { default-features = false, git = "https://github.com/Cardinal-Cryptog
 sp-runtime = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
 sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
 sp-staking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-runtime-interface = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+
+liminal-ark-poseidon = { default-features = false, path="../poseidon" }
+ark-ff = { version = "^0.3.0", default-features = false }
+
 
 [features]
 default = ["std"]
@@ -28,5 +33,8 @@ std = [
     "sp-runtime/std",
     "sp-std/std",
     "sp-staking/std",
+    "sp-runtime-interface/std",
+    "liminal-ark-poseidon/std",
+    "ark-ff/std",
 ]
 short_session = []
