@@ -83,7 +83,6 @@ run_node() {
   ./target/release/aleph-node purge-chain --base-path $BASE_PATH/$account_id --chain $BASE_PATH/chainspec.json -y
   ./target/release/aleph-node \
     $validator \
-    --state-pruning=archive \
     --chain $BASE_PATH/chainspec.json \
     --base-path $BASE_PATH/$account_id \
     --name $auth \
