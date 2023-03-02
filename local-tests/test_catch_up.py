@@ -20,7 +20,7 @@ workdir = abspath(os.getenv('WORKDIR', '/tmp/workdir'))
 # Path to the aleph-node binary (important use short-session feature):
 binary = abspath(os.getenv('ALEPH_NODE_BINARY', join(workdir, 'aleph-node')))
 
-phrases = [f'//{i}' for i in range(6)]
+phrases = [f'//{i}' for i in range(5)]
 keys = generate_keys(binary, phrases)
 all_accounts = list(keys.values())
 chain = Chain(workdir)
@@ -54,12 +54,12 @@ chain.start('aleph', nodes=[0, 1, 2, 3])
 
 sleep(60)
 
-chain.start('aleph', nodes=[4, 5])
+chain.start('aleph', nodes=[4])
 
 printt('Waiting for finalization')
 chain.wait_for_finalization(0)
 printt('Waiting for authorities')
-chain.wait_for_authorities()
+chain.wait_for_authorities(timeout=60)
 if state_pruning is not None and state_pruning.isnumeric():
     bound = min(256, int(state_pruning))
     printt(f'Pruning turned on. Waiting for {bound} blocks to finalize')

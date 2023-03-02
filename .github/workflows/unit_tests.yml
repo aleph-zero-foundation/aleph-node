@@ -17,30 +17,16 @@ concurrency:
 jobs:
   check-test-and-lint:
     name: Run check, test and lints
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       CARGO_INCREMENTAL: 0
+      RUSTC_WRAPPER: sccache
     steps:
-      - name: Maximize build space
-        uses: easimon/maximize-build-space@v6
-        with:
-          root-reserve-mb: 10240
-          swap-size-mb: 1024
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-
       - name: Checkout Source code
         uses: actions/checkout@v2
 
       - name: Install Rust Toolchain
         uses: actions-rs/toolchain@v1
-
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          version: '3.6.1'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install clippy and fmt
         run: rustup component add clippy rustfmt
@@ -48,18 +34,11 @@ jobs:
       - name: Install WASM target
         run: rustup target add wasm32-unknown-unknown
 
-      - name: Restore cache
-        uses: ./.github/actions/restore-cache
-        with:
-          target-key: debug
-          cache-version: v2
-
       - name: Run Format Checks
         uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --all
-
 
       - name: Run Linter
         uses: actions-rs/cargo@v1
@@ -72,7 +51,7 @@ jobs:
           args: --all-targets --all-features -- --no-deps -D warnings
 
       - name: Run Unit Test Suite
-        run: CARGO_TARGET_DIR=$(pwd) cargo test --lib --features "try-runtime"
-
-      - name: Cleanup cache
-        uses: ./.github/actions/post-cache
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --lib --features "try-runtime"

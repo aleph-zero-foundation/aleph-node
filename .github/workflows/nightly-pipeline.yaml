@@ -80,18 +80,13 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       RUST_BACKTRACE: full
+      RUSTC_WRAPPER: sccache
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
-
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          version: '3.6.1'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install WASM target
         run: rustup target add wasm32-unknown-unknown
@@ -118,26 +113,13 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       RUST_BACKTRACE: full
+      RUSTC_WRAPPER: sccache
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
-
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          version: '3.6.1'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Restore cache
-        uses: ./.github/actions/restore-cache
-        with:
-          target-key: e2e
-          cargo-key: e2e
-          cache-version: v2
-          cargo-targets: e2e-tests/target/
 
       - name: Build binary and docker image
         run: |
@@ -146,9 +128,6 @@ jobs:
           cp $(cargo test --no-run --release --message-format=json | jq -r .executable | grep aleph_e2e_client) target/release/aleph-e2e-client
           docker build --tag aleph-e2e-client:latest -f Dockerfile .
           docker save -o aleph-e2e-client.tar aleph-e2e-client:latest
-
-      - name: Stop cache
-        uses: ./.github/actions/post-cache
 
       - name: Upload artifact
         uses: actions/upload-artifact@v2

@@ -15,4 +15,5 @@ chmod +x "$ALEPH_NODE_BINARY"
 pip install -r requirements.txt
 
 echo 'Running test'
+export PYTHONUNBUFFERED=y
 exec ./test_catch_up.py
