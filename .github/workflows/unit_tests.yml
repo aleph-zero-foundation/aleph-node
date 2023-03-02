@@ -18,7 +18,7 @@ concurrency:
 jobs:
   check-test-and-lint:
     name: Run check, test and lints
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       CARGO_INCREMENTAL: 0
     steps:
@@ -28,22 +28,11 @@ jobs:
       - name: Install Rust Toolchain
         uses: actions-rs/toolchain@v1
 
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          version: '3.6.1'
-
       - name: Install clippy and fmt
         run: rustup component add clippy rustfmt
 
       - name: Install WASM target
         run: rustup target add wasm32-unknown-unknown
-
-      - name: Restore cache
-        uses: ./.github/actions/restore-cache
-        with:
-          target-key: debug
-          cache-version: v2
 
       - name: Run Format Checks
         uses: actions-rs/cargo@v1
@@ -66,6 +55,3 @@ jobs:
         with:
           command: test
           args: --lib --features "try-runtime runtime-benchmarks" --workspace --exclude finality-aleph --exclude aleph-node
-
-      - name: Cleanup cache
-        uses: ./.github/actions/post-cache

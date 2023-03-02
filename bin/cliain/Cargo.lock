@@ -2887,6 +2887,8 @@ dependencies = [
 name = "primitives"
 version = "0.5.4"
 dependencies = [
+ "ark-ff",
+ "liminal-ark-poseidon",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -2894,6 +2896,7 @@ dependencies = [
  "sp-application-crypto 6.0.0",
  "sp-core 6.0.0",
  "sp-runtime 6.0.0",
+ "sp-runtime-interface 6.0.0",
  "sp-staking",
  "sp-std 4.0.0",
 ]

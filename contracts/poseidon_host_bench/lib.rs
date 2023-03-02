@@ -20,8 +20,10 @@ mod poseidon_host_bench {
                 panic!("Please have 2^n leaves")
             }
 
-            let mut this = Self::default();
-            this.next_free_leaf = max_leaves;
+            let mut this = PoseidonHostBench {
+                next_free_leaf: max_leaves,
+                ..Default::default()
+            };
 
             this.create_new_leaf([1, 7, 2, 9]);
 

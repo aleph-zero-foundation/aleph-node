@@ -25,21 +25,13 @@ concurrency:
 jobs:
   build-image:
     name: Build binary
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     steps:
       - name: GIT | Checkout source code
         uses: actions/checkout@v2
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
-
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          version: '3.6.1'
-
-      - name: Restore cache
-        uses: ./.github/actions/restore-cache
 
       - name: Cargo | Build release binary
         run: cd ./bin/cliain && cargo build --release
@@ -71,6 +63,3 @@ jobs:
           file: ./bin/cliain/Dockerfile
           push: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.deploy || github.event_name == 'push' }}
           tags: ${{ env.RELEASE_IMAGE }}
-
-      - name: Cleanup cache
-        uses: ./.github/actions/post-cache

@@ -16,10 +16,10 @@ exclude = [
     "aleph-client",
     "bin/cliain",
     "bin/runtime/src/chain_extension/baby-liminal-extension",
+    "contracts/poseidon_host_bench",
     "relations",
     "relations/src/proc_macro",
     "poseidon",
-    "contracts/poseidon_host_bench",
 ]
 
 [profile.release]
