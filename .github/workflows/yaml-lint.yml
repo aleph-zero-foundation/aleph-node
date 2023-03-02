@@ -1,0 +1,39 @@
+---
+name: GH Action YAML linter
+
+on:
+  pull_request:
+    paths:
+      - ".github/**/**.yml"
+      - ".github/**/**.yaml"
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  main:
+    name: YAML Lint
+    runs-on: ubuntu-20.04
+    steps:
+      - name: GIT | Checkout source code
+        uses: actions/checkout@v3
+        with:
+          repository: Cardinal-Cryptography/aleph-node
+          token: ${{ secrets.CI_GH_TOKEN }}
+
+      - name: GIT | Check diff
+        id: check-diff
+        run: |
+          git fetch --quiet origin ${GITHUB_BASE_REF}:refs/remotes/origin/${GITHUB_BASE_REF}
+          YAML_FILES=`git --no-pager diff origin/${GITHUB_BASE_REF} --name-only \
+          | grep -E ".github\/.*\/.*(.yaml|.yml)" | tr '\n' ' '`
+          echo "Changed YAML files: ${YAML_FILES}"
+          echo "YAML_FILES=`echo $YAML_FILES`" >> $GITHUB_ENV
+
+      - name: LINT | Execute yaml-lint
+        uses: ibiqlik/action-yamllint@v3.1.1
+        with:
+          strict: true
+          file_or_dir: ${{ env.YAML_FILES }}
+          config_file: .yamllint
