@@ -1,3 +1,5 @@
+#![cfg_attr(not(feature = "std"), no_std)]
+
 use std::{
     env,
     fs::File,
@@ -12,7 +14,6 @@ use poseidon_paramgen::poseidon_build;
 fn main() {
     let security_level = match env::var("SECURITY_LEVEL") {
         Ok(level) => match level.as_str() {
-            "32" => 32,
             "80" => 80,
             "128" => 128,
             "256" => 256,
@@ -29,14 +30,18 @@ fn main() {
     let parameters =
         poseidon_build::compile::<Fr>(security_level, t_values, FrParameters::MODULUS, true);
 
-    let output_directory = PathBuf::from(
-        env::var("OUT_DIR").expect("OUT_DIR environmental variable should be always set"),
-    )
-    .join("parameters.rs");
+    let output_directory = PathBuf::from("./src/parameters.rs");
 
     let mut file =
         BufWriter::new(File::create(output_directory).expect("can't create source file"));
 
+    let header =
+        "//! This file was generated using `generate_parameters.rs`, do not edit it manually!\n";
+    file.write_all(header.as_bytes())
+        .expect("can write header to file");
+    let import_vec = "\nuse ark_ff::vec;\n";
+    file.write_all(import_vec.as_bytes())
+        .expect("can write import vec to file");
     file.write_all(parameters.as_bytes())
         .expect("can write parameters to file");
 }
