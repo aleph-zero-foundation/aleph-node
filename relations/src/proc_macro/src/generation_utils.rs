@@ -4,14 +4,6 @@ use syn::{spanned::Spanned, Error as SynError, Result as SynResult};
 
 use crate::intermediate_representation::{PublicInputField, RelationField};
 
-/// Forcibly extracts ident from the field.
-fn get_ident(f: &RelationField) -> &Ident {
-    f.field
-        .ident
-        .as_ref()
-        .expect("Expected struct with named fields")
-}
-
 /// Applies `mapper` to every element in `fields` with its ident extracted.
 fn map_fields_with_ident<T, F: Into<RelationField> + Clone, M: Fn(&RelationField, &Ident) -> T>(
     fields: &[F],
@@ -21,7 +13,7 @@ fn map_fields_with_ident<T, F: Into<RelationField> + Clone, M: Fn(&RelationField
         .iter()
         .map(|f| {
             let f = f.clone().into();
-            mapper(&f, get_ident(&f))
+            mapper(&f, f.ident())
         })
         .collect()
 }
@@ -33,7 +25,7 @@ pub(super) fn field_frontend_decls<F: Into<RelationField> + Clone>(
     fields: &[F],
 ) -> Vec<TokenStream2> {
     map_fields_with_ident(fields, |rf, ident| {
-        let maybe_frontend_type = &rf.frontend_type;
+        let maybe_frontend_type = &rf.attrs.frontend_type;
         let backend_type = &rf.field.ty;
 
         maybe_frontend_type.as_ref().map_or_else(
@@ -63,8 +55,8 @@ pub(super) fn field_serializations(fields: &[PublicInputField], obj: &Ident) -> 
     fields
         .iter()
         .map(|f| {
-            let ident = get_ident(&f.inner);
-            match &f.serialize_with {
+            let ident = f.ident();
+            match &f.attrs.serialize_with {
                 None => quote_spanned! { f.span()=> ark_std::vec![ #obj . #ident ] },
                 Some(serializer) => {
                     let serializer = Ident::new(serializer, Span::call_site());
@@ -94,8 +86,8 @@ pub(super) fn field_castings<F: Into<RelationField> + Clone>(
     fields: &[F],
 ) -> SynResult<Vec<TokenStream2>> {
     map_fields_with_ident(fields, |rf, ident| {
-        let maybe_frontend_type = &rf.frontend_type;
-        let maybe_parser = &rf.parse_with;
+        let maybe_frontend_type = &rf.attrs.frontend_type;
+        let maybe_parser = &rf.attrs.parse_with;
 
         match (maybe_frontend_type, maybe_parser) {
             (None, None) => Ok(quote_spanned! {rf.span()=> #ident }),

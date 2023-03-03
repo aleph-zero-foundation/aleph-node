@@ -2,7 +2,7 @@
 
 //! This crate provides `snark_relation` procedural macro for concise defining SNARK relations.
 //!
-//! For details, check [snark_relation].
+//! For details, check `snark_relation` attribute documentation.
 
 mod code_generation;
 mod generation_utils;
@@ -18,10 +18,12 @@ use crate::{code_generation::generate_code, intermediate_representation::IR};
 /// Given minimal relation definition, this macro will generate all the required code for creating
 /// and casting partial relation objects, public input serialization and circuit generation.
 ///
+/// ## General usage
+///
 /// The `#[snark_relation]` attribute is intended for modules. Such module must define two items:
 ///  1. *relation object*: the collection of all constant, public and private relation data. The
-///     struct should be defined with `#[relation_object_definition]` attribute.
-///  2. *circuit definition*: the circuit form. The function should be defined with
+///     struct must be defined with `#[relation_object_definition]` attribute.
+///  2. *circuit definition*: the circuit form. The function must be defined with
 ///     `#[circuit_definition]` attribute. The signature can be arbitrary.
 ///
 /// Provided with these inputs, the macro will generate following items (outside the module).
@@ -63,6 +65,11 @@ use crate::{code_generation::generate_code, intermediate_representation::IR};
 ///}
 /// ```
 ///
+/// All the imports (`use` items) that are present in the module will be copied and moved outside
+/// (together with the generated items).
+///
+/// ## Field attributes
+///
 /// Fields can have additional modifiers. Constants and private inputs can be enriched with:
 ///  -  *frontend type* (e.g. `#[private_input(frontend_type = "u32")]`) - this specifies what type
 ///     should be expected in the constructors. The item type (the backend one) will be then created
@@ -71,6 +78,7 @@ use crate::{code_generation::generate_code, intermediate_representation::IR};
 ///     "u32_to_CF")]`) - this is the method that will be used for translating frontend value to the
 ///     backend type in the constructors. Unless specified, `.into()` will be used. It cannot be
 ///     used without `frontend_type`.
+///
 /// Public inputs can have one more modifier:
 ///  -  *serializator* (e.g. `#[public_input(serialize_with = "flatten_sequence")]`) - the
 ///     serialization process should result in `Vec<CF>` (where `CF` is the circuit field type). By
@@ -82,8 +90,6 @@ use crate::{code_generation::generate_code, intermediate_representation::IR};
 /// All the values in modifiers (function names, types) must be passed as string literals
 /// (within `""`).
 ///
-/// All the imports (`use` items) that are present in the module will be copied and moved outside
-/// (together with the generated items).
 ///
 /// ```ignore
 /// use ark_std::{One, Zero};
