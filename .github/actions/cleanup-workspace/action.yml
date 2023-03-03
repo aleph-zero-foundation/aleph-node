@@ -1,0 +1,14 @@
+name: Clean runner workspace
+description: Removes all the files from the runner working directory
+
+runs:
+  using: composite
+  steps:
+    - name: Remove files and directories from working directory
+      shell: bash
+      run: |
+        rm -rf *
+        rm -rf ~/.cargo
+        rm -rf ~/.cache
+        echo "Running 'ls -al' on $(pwd)"
+        ls -al

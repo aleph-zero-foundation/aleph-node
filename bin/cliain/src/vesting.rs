@@ -40,7 +40,7 @@ pub async fn vested_transfer(
 ) {
     let receiver = account_from_keypair(keypair_from_string(target_seed.as_str()).signer());
     let schedule = VestingInfo {
-        locked: amount_in_tokens as u128 * TOKEN,
+        locked: amount_in_tokens as Balance * TOKEN,
         per_block,
         starting_block,
     };

@@ -31,6 +31,8 @@ TELEMETRY_URL=${TELEMETRY_URL:-'wss://telemetry.polkadot.io/submit/'}
 TELEMETRY_VERBOSITY_LVL=${TELEMETRY_VERBOSITY_LVL:-'0'}
 UNIT_CREATION_DELAY=${UNIT_CREATION_DELAY:-300}
 DB_CACHE=${DB_CACHE:-1024}
+RUNTIME_CACHE_SIZE=${RUNTIME_CACHE_SIZE:-2}
+MAX_RUNTIME_INSTANCES=${MAX_RUNTIME_INSTANCES:-8}
 BACKUP_PATH=${BACKUP_PATH:-${BASE_PATH}/backup-stash}
 
 if [[ "true" == "$PURGE_BEFORE_START" ]]; then
@@ -40,7 +42,6 @@ fi
 
 ARGS=(
   --validator
-  --state-pruning archive
   --execution Native
   --name "${NAME}"
   --base-path "${BASE_PATH}"
@@ -58,6 +59,8 @@ ARGS=(
   --unsafe-ws-external --unsafe-rpc-external
   --enable-log-reloading
   --db-cache "${DB_CACHE}"
+  --runtime-cache-size "${RUNTIME_CACHE_SIZE}"
+  --max-runtime-instances "${MAX_RUNTIME_INSTANCES}"
 )
 
 if [[ -n "${BOOT_NODES:-}" ]]; then
@@ -73,7 +76,7 @@ if [[ -n "${RESERVED_ONLY:-}" ]]; then
 fi
 
 if [[ -n "${FLAG_LAFA:-}" ]]; then
-  ARGS+=(-laleph-party=debug -laleph-network=debug -laleph-finality=debug -laleph-justification=debug -laleph-data-store=debug -laleph-metrics=debug)
+  ARGS+=(-laleph-party=debug -laleph-network=debug -lclique-network=debug -laleph-finality=debug -laleph-justification=debug -laleph-data-store=debug -laleph-metrics=debug)
 fi
 
 if [[ -n "${FLAG_L_ALEPH_BFT:-}" ]]; then

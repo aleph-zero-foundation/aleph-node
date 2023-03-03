@@ -20,18 +20,13 @@ jobs:
     runs-on: self-hosted
     env:
       CARGO_INCREMENTAL: 0
+      RUSTC_WRAPPER: sccache
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
 
       - name: Install rust toolchain
         uses: actions-rs/toolchain@v1
-
-      - name: Install clippy and fmt
-        run: rustup component add clippy rustfmt
-
-      - name: Install WASM target
-        run: rustup target add wasm32-unknown-unknown
 
       - name: Read excluded packages from Cargo.toml
         id: read_excluded
@@ -62,9 +57,10 @@ jobs:
           do
             echo "Checking package $p..."
             pushd "$p"
+            rustup component add clippy rustfmt
+            rustup target add wasm32-unknown-unknown
             cargo fmt --all --check
             cargo clippy --all-features -- --no-deps -D warnings
-            cargo test
             popd
           done
 

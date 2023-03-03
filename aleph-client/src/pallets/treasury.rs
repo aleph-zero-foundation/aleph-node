@@ -5,45 +5,69 @@ use subxt::ext::sp_runtime::MultiAddress;
 
 use crate::{
     api,
+    connections::{AsConnection, TxInfo},
     pallet_treasury::pallet::Call::{approve_proposal, reject_proposal},
     pallets::{elections::ElectionsApi, staking::StakingApi},
     AccountId, BlockHash,
     Call::Treasury,
-    Connection, RootConnection, SignedConnection, SudoCall, TxStatus,
+    ConnectionApi, RootConnection, SignedConnectionApi, SudoCall, TxStatus,
 };
 
+/// Pallet treasury read-only api.
 #[async_trait::async_trait]
 pub trait TreasuryApi {
+    /// Returns an unique account id for all treasury transfers.
     async fn treasury_account(&self) -> AccountId;
+
+    /// Returns storage `proposals_count`.
+    /// * `at` - an optional block hash to query state from
     async fn proposals_count(&self, at: Option<BlockHash>) -> Option<u32>;
+
+    /// Returns storage `approvals`.
+    /// * `at` - an optional block hash to query state from
     async fn approvals(&self, at: Option<BlockHash>) -> Vec<u32>;
 }
 
+/// Pallet treasury api.
 #[async_trait::async_trait]
 pub trait TreasuryUserApi {
+    /// API for [`propose_spend`](https://paritytech.github.io/substrate/master/pallet_treasury/pallet/struct.Pallet.html#method.propose_spend) call.
     async fn propose_spend(
         &self,
         amount: Balance,
         beneficiary: AccountId,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash>;
-    async fn approve(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<BlockHash>;
-    async fn reject(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<BlockHash>;
+    ) -> anyhow::Result<TxInfo>;
+
+    /// API for [`approve_proposal`](https://paritytech.github.io/substrate/master/pallet_treasury/pallet/struct.Pallet.html#method.approve_proposal) call.
+    async fn approve(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<TxInfo>;
+
+    /// API for [`reject_proposal`](https://paritytech.github.io/substrate/master/pallet_treasury/pallet/struct.Pallet.html#method.reject_proposal) call.
+    async fn reject(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<TxInfo>;
 }
 
+/// Pallet treasury funcionality that is not directly related to any pallet call.
 #[async_trait::async_trait]
 pub trait TreasureApiExt {
-    async fn possible_treasury_payout(&self) -> Balance;
+    /// When `staking.payout_stakers` is done, what amount of AZERO is transferred to.
+    /// the treasury
+    async fn possible_treasury_payout(&self) -> anyhow::Result<Balance>;
 }
 
+/// Pallet treasury api issued by the sudo account.
 #[async_trait::async_trait]
 pub trait TreasurySudoApi {
-    async fn approve(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<BlockHash>;
-    async fn reject(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<BlockHash>;
+    /// API for [`approve_proposal`](https://paritytech.github.io/substrate/master/pallet_treasury/pallet/struct.Pallet.html#method.approve_proposal) call.
+    /// wrapped  in [`sudo_unchecked_weight`](https://paritytech.github.io/substrate/master/pallet_sudo/pallet/struct.Pallet.html#method.sudo_unchecked_weight)
+    async fn approve(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<TxInfo>;
+
+    /// API for [`reject_proposal`](https://paritytech.github.io/substrate/master/pallet_treasury/pallet/struct.Pallet.html#method.reject_proposal) call.
+    /// wrapped [`sudo_unchecked_weight`](https://paritytech.github.io/substrate/master/pallet_sudo/pallet/struct.Pallet.html#method.sudo_unchecked_weight)
+    async fn reject(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<TxInfo>;
 }
 
 #[async_trait::async_trait]
-impl TreasuryApi for Connection {
+impl<C: ConnectionApi> TreasuryApi for C {
     async fn treasury_account(&self) -> AccountId {
         PalletId(*b"a0/trsry").into_account_truncating()
     }
@@ -62,13 +86,13 @@ impl TreasuryApi for Connection {
 }
 
 #[async_trait::async_trait]
-impl TreasuryUserApi for SignedConnection {
+impl<S: SignedConnectionApi> TreasuryUserApi for S {
     async fn propose_spend(
         &self,
         amount: Balance,
         beneficiary: AccountId,
         status: TxStatus,
-    ) -> anyhow::Result<BlockHash> {
+    ) -> anyhow::Result<TxInfo> {
         let tx = api::tx()
             .treasury()
             .propose_spend(amount, MultiAddress::Id(beneficiary));
@@ -76,13 +100,13 @@ impl TreasuryUserApi for SignedConnection {
         self.send_tx(tx, status).await
     }
 
-    async fn approve(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<BlockHash> {
+    async fn approve(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<TxInfo> {
         let tx = api::tx().treasury().approve_proposal(proposal_id);
 
         self.send_tx(tx, status).await
     }
 
-    async fn reject(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<BlockHash> {
+    async fn reject(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<TxInfo> {
         let tx = api::tx().treasury().reject_proposal(proposal_id);
 
         self.send_tx(tx, status).await
@@ -91,13 +115,13 @@ impl TreasuryUserApi for SignedConnection {
 
 #[async_trait::async_trait]
 impl TreasurySudoApi for RootConnection {
-    async fn approve(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<BlockHash> {
+    async fn approve(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<TxInfo> {
         let call = Treasury(approve_proposal { proposal_id });
 
         self.sudo_unchecked(call, status).await
     }
 
-    async fn reject(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<BlockHash> {
+    async fn reject(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<TxInfo> {
         let call = Treasury(reject_proposal { proposal_id });
 
         self.sudo_unchecked(call, status).await
@@ -105,13 +129,12 @@ impl TreasurySudoApi for RootConnection {
 }
 
 #[async_trait::async_trait]
-impl TreasureApiExt for Connection {
-    async fn possible_treasury_payout(&self) -> Balance {
-        let session_period = self.get_session_period().await;
-        let sessions_per_era = self.get_session_per_era().await;
-
+impl<C: AsConnection + Sync> TreasureApiExt for C {
+    async fn possible_treasury_payout(&self) -> anyhow::Result<Balance> {
+        let session_period = self.get_session_period().await?;
+        let sessions_per_era = self.get_session_per_era().await?;
         let millisecs_per_era =
             MILLISECS_PER_BLOCK * session_period as u64 * sessions_per_era as u64;
-        primitives::staking::era_payout(millisecs_per_era).1
+        Ok(primitives::staking::era_payout(millisecs_per_era).1)
     }
 }

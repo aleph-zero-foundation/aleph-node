@@ -1,12 +1,14 @@
-use std::{collections::HashSet, str::FromStr};
+use std::{collections::HashSet, str::FromStr, string::ToString};
 
 use aleph_primitives::{
     staking::{MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND},
-    AuthorityId as AlephId, ADDRESSES_ENCODING, TOKEN, TOKEN_DECIMALS,
+    AuthorityId as AlephId, Version as FinalityVersion, ADDRESSES_ENCODING,
+    LEGACY_FINALITY_VERSION, TOKEN, TOKEN_DECIMALS,
 };
 use aleph_runtime::{
-    AccountId, AuraConfig, BalancesConfig, ElectionsConfig, GenesisConfig, Perbill, SessionConfig,
-    SessionKeys, StakingConfig, SudoConfig, SystemConfig, VestingConfig, WASM_BINARY,
+    AccountId, AlephConfig, AuraConfig, BalancesConfig, ElectionsConfig, GenesisConfig, Perbill,
+    SessionConfig, SessionKeys, StakingConfig, SudoConfig, SystemConfig, VestingConfig,
+    WASM_BINARY,
 };
 use libp2p::PeerId;
 use pallet_staking::{Forcing, StakerStatus};
@@ -136,6 +138,10 @@ pub struct ChainParams {
     /// Minimum number of stakers before chain enters emergency state.
     #[arg(long, default_value = "4")]
     min_validator_count: u32,
+
+    /// Finality version at chain inception.
+    #[arg(long, default_value = LEGACY_FINALITY_VERSION.to_string())]
+    finality_version: FinalityVersion,
 }
 
 impl ChainParams {
@@ -169,6 +175,10 @@ impl ChainParams {
 
     pub fn min_validator_count(&self) -> u32 {
         self.min_validator_count
+    }
+
+    pub fn finality_version(&self) -> FinalityVersion {
+        self.finality_version
     }
 }
 
@@ -218,6 +228,7 @@ fn generate_chain_spec_config(
     let sudo_account = chain_params.sudo_account_id();
     let rich_accounts = chain_params.rich_account_ids();
     let min_validator_count = chain_params.min_validator_count();
+    let finality_version = chain_params.finality_version();
 
     Ok(ChainSpec::from_genesis(
         // Name
@@ -233,6 +244,7 @@ fn generate_chain_spec_config(
                 rich_accounts.clone(), // Pre-funded accounts
                 controller_accounts.clone(), // Controller accounts for staking.
                 min_validator_count,
+                finality_version,
             )
         },
         // Bootnodes
@@ -335,6 +347,7 @@ fn generate_genesis_config(
     rich_accounts: Option<Vec<AccountId>>,
     controller_accounts: Vec<AccountId>,
     min_validator_count: u32,
+    finality_version: FinalityVersion,
 ) -> GenesisConfig {
     let special_accounts = {
         let mut all = rich_accounts.unwrap_or_default();
@@ -397,6 +410,10 @@ fn generate_genesis_config(
             stakers: accounts_config.stakers,
             min_validator_bond: MIN_VALIDATOR_BOND,
             min_nominator_bond: MIN_NOMINATOR_BOND,
+            ..Default::default()
+        },
+        aleph: AlephConfig {
+            finality_version,
             ..Default::default()
         },
         treasury: Default::default(),

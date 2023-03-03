@@ -12,35 +12,33 @@ on:
         required: false
         type: string
 
-
 jobs:
   build:
     name: Build binary artifacts
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       RUST_BACKTRACE: full
+      RUSTC_WRAPPER: sccache
+      SECRETS_AWS_MAINNET_ACCESS_KEY_ID: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+      SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+      SECRETS_AWS_DEVNET_ACCESS_KEY_ID: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
+      SECRETS_AWS_DEVNET_SECRET_ACCESS_KEY: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
         with:
           ref: ${{ inputs.ref }}
 
+      - name: Get branch name and commit SHA
+        id: get_branch
+        uses: ./.github/actions/get-branch
+
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
-
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          version: '3.6.1'
 
       - name: Install WASM target
         run: rustup target add wasm32-unknown-unknown
 
-      - name: Restore cache
-        uses: ./.github/actions/restore-cache
-        with:
-          target-key: release
-          cache-version: v2
 
       - name: Build binary and runtime
         run: cargo build --profile production -p aleph-node
@@ -61,6 +59,46 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+
+      - name: S3 CI MAINNET | Configure AWS credentials
+        if: env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' && env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
+        uses: aws-actions/configure-aws-credentials@v1
+        env:
+          AWS_ACCESS_KEY_ID: ""
+          AWS_SECRET_ACCESS_KEY: ""
+          AWS_SESSION_TOKEN: ""
+          AWS_DEFAULT_REGION: ""
+          AWS_REGION: us-east-1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: S3 CI MAINNET | Copy release binary to S3 bucket
+        if: env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' && env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
+        shell: bash
+        env:
+          BINARY_DIR: target/production
+          BINARY_FILE: aleph-node
+          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get_branch.outputs.sha_short }}/aleph-node
+          S3BUCKET_FILE: aleph-node-${{ steps.get_branch.outputs.sha_short }}.tar.gz
+        run: |
+          tar -cvzf ${{ env.S3BUCKET_FILE }} -C ${{ env.BINARY_DIR }} ${{ env.BINARY_FILE }}
+          aws s3 cp ${{ env.S3BUCKET_FILE }} ${{ env.S3BUCKET_URL }}/${{ env.S3BUCKET_FILE }}
+
+      - name: S3 CI MAINNET | Copy release runtime to S3 bucket
+        if: env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' && env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
+        shell: bash
+        env:
+          BINARY_DIR: target/production/wbuild/aleph-runtime
+          BINARY_FILE: aleph_runtime.compact.wasm
+          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get_branch.outputs.sha_short }}/aleph-runtime
+          S3BUCKET_FILE: aleph-runtime-${{ steps.get_branch.outputs.sha_short }}.tar.gz
+        run: |
+          tar -cvzf ${{ env.S3BUCKET_FILE }} -C ${{ env.BINARY_DIR }} ${{ env.BINARY_FILE }}
+          aws s3 cp ${{ env.S3BUCKET_FILE }} ${{ env.S3BUCKET_URL }}/${{ env.S3BUCKET_FILE }}
+
+
       - name: Build test binary
         run: cargo build --release -p aleph-node --features "short_session enable_treasury_proposals only_legacy"
 
@@ -80,5 +118,26 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Cleanup cache
-        uses: ./.github/actions/post-cache
+      - name: S3 CI MAINNET | Copy test binary to S3 bucket
+        if: env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' && env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
+        shell: bash
+        env:
+          BINARY_DIR: target/release
+          BINARY_FILE: aleph-node
+          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get_branch.outputs.sha_short }}/aleph-test-node
+          S3BUCKET_FILE: aleph-test-node-${{ steps.get_branch.outputs.sha_short }}.tar.gz
+        run: |
+          tar -cvzf ${{ env.S3BUCKET_FILE }} -C ${{ env.BINARY_DIR }} ${{ env.BINARY_FILE }}
+          aws s3 cp ${{ env.S3BUCKET_FILE }} ${{ env.S3BUCKET_URL }}/${{ env.S3BUCKET_FILE }}
+
+      - name: S3 CI MAINNET | Copy test runtime to S3 bucket
+        if: env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' && env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
+        shell: bash
+        env:
+          BINARY_DIR: target/release/wbuild/aleph-runtime
+          BINARY_FILE: aleph_runtime.compact.wasm
+          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get_branch.outputs.sha_short }}/aleph-test-runtime
+          S3BUCKET_FILE: aleph-test-runtime-${{ steps.get_branch.outputs.sha_short }}.tar.gz
+        run: |
+          tar -cvzf ${{ env.S3BUCKET_FILE }} -C ${{ env.BINARY_DIR }} ${{ env.BINARY_FILE }}
+          aws s3 cp ${{ env.S3BUCKET_FILE }} ${{ env.S3BUCKET_URL }}/${{ env.S3BUCKET_FILE }}

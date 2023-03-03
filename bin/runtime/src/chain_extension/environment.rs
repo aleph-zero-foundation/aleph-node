@@ -1,8 +1,7 @@
 use codec::{Decode, MaxEncodedLen};
 use frame_support::weights::Weight;
-use pallet_contracts::{
-    chain_extension::{BufInBufOutState, Environment as SubstrateEnvironment, Ext, SysConfig},
-    ChargedAmount,
+use pallet_contracts::chain_extension::{
+    BufInBufOutState, ChargedAmount, Environment as SubstrateEnvironment, Ext, SysConfig,
 };
 use sp_core::crypto::UncheckedFrom;
 use sp_runtime::DispatchError;

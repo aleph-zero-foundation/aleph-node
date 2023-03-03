@@ -16,7 +16,7 @@ concurrency:
 jobs:
   build:
     name: Save cliain binary as an artifact
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       CARGO_INCREMENTAL: 0
     steps:
@@ -36,7 +36,8 @@ jobs:
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
         with:
-          version: '3.6.1'        
+          version: '3.6.1'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build binary
         run: |
@@ -76,7 +77,7 @@ jobs:
 
           docker tag ${{ env.ECR_PUSH_IMAGE }} ${{ env.ECR_LATEST }}
           docker push ${{ env.ECR_LATEST }}
-      
+
       - name: GIT | Checkout aleph-apps repo
         uses: actions/checkout@master
         with:
@@ -89,8 +90,8 @@ jobs:
         with:
           kustomize-version: "3.8.6"
 
-      - name: Update postsync hook docker image                                                                     
-        env:                                                                                                          
+      - name: Update postsync hook docker image
+        env:
           RELEASE_IMAGE: public.ecr.aws/p6e8q1z1/runtime-update-hook:${{ steps.vars.outputs.sha_short }}
           REGIONS_AWS: 'eu-central-1'
         run: |

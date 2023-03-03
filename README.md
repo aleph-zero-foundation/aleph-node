@@ -37,7 +37,7 @@ The code in this repository is licensed as follows:
 - all rest of the crates are licensed under the terms of Apache License 2.0.
 
 [aleph-homepage]: https://alephzero.org
-[aleph-logo]: https://alephzero.org/wp-content/uploads/A0_logotype_dark-1.jpg
+[aleph-logo]: https://assets.alephzero.org/branding/logo/digital/A0-horizontal-light-background.jpg
 [aleph-bft-link]: https://github.com/Cardinal-Cryptography/AlephBFT
 [aleph-bft-paper]: https://arxiv.org/abs/1908.05156
 [aleph-polkadot-link]: https://github.com/Cardinal-Cryptography/apps

@@ -7,7 +7,8 @@ use aleph_client::{
         staking::{StakingApi, StakingApiExt, StakingUserApi},
     },
     waiting::{BlockStatus, WaitingExt},
-    AccountId, Connection, KeyPair, RootConnection, SignedConnection, TxStatus,
+    AccountId, Balance, ConnectionApi, KeyPair, RootConnection, SignedConnection,
+    SignedConnectionApi, TxStatus,
 };
 use clap::{ArgGroup, Parser};
 use futures::future::join_all;
@@ -69,7 +70,7 @@ async fn main() -> anyhow::Result<()> {
 
     let sudoer = get_sudoer_keypair(root_seed_file);
 
-    let connection = RootConnection::new(address.clone(), sudoer).await.unwrap();
+    let connection = RootConnection::new(&address, sudoer).await.unwrap();
 
     let validators = match validators_seed_file {
         Some(validators_seed_file) => {
@@ -109,7 +110,7 @@ async fn main() -> anyhow::Result<()> {
 
     wait_for_successive_eras(
         &address,
-        &connection.connection,
+        &connection,
         validators_and_nominator_stashes,
         ERAS_TO_WAIT,
     )
@@ -151,7 +152,7 @@ async fn setup_test_validators_and_nominator_stashes(
     for (validator_index, validator) in validators.into_iter().enumerate() {
         let (nominator_controller_accounts, nominator_stash_accounts) =
             generate_nominator_accounts_with_minimal_bond(
-                &connection.as_signed(),
+                connection,
                 validator_index as u32,
                 validators_len as u32,
             )
@@ -180,9 +181,9 @@ pub fn derive_user_account_from_numeric_seed(seed: u32) -> KeyPair {
 }
 
 /// For a given number of eras, in each era check whether stash balances of a validator are locked.
-async fn wait_for_successive_eras(
+async fn wait_for_successive_eras<C: ConnectionApi + WaitingExt + StakingApi>(
     address: &str,
-    connection: &Connection,
+    connection: &C,
     validators_and_nominator_stashes: Vec<(KeyPair, Vec<AccountId>)>,
     eras_to_wait: u32,
 ) -> anyhow::Result<()> {
@@ -198,11 +199,8 @@ async fn wait_for_successive_eras(
             current_era - 1
         );
         for (validator, nominators_stashes) in validators_and_nominator_stashes.iter() {
-            let validator_connection = SignedConnection::new(
-                address.to_string(),
-                KeyPair::new(validator.signer().clone()),
-            )
-            .await;
+            let validator_connection =
+                SignedConnection::new(address, KeyPair::new(validator.signer().clone())).await;
             let validator_account = validator.account_id().clone();
             info!("Doing payout_stakers for validator {}", validator_account);
             payout_stakers_and_assert_locked_balance(
@@ -237,7 +235,7 @@ async fn nominate_validator(
         .chunks(BOND_CALL_BATCH_LIMIT)
         .map(|c| c.to_vec())
     {
-        let stake = (rng.gen::<u128>() % 100) * TOKEN + MIN_NOMINATOR_BOND;
+        let stake = (rng.gen::<Balance>() % 100) * TOKEN + MIN_NOMINATOR_BOND;
         connection
             .batch_bond(&chunk, stake, TxStatus::Submitted)
             .await
@@ -269,7 +267,7 @@ async fn bond_validators_funds_and_choose_controllers(
     for (controller, validator) in controllers.into_iter().zip(validators) {
         let validator_address = address.to_string();
         handles.push(tokio::spawn(async move {
-            let connection = SignedConnection::new(validator_address, validator).await;
+            let connection = SignedConnection::new(&validator_address, validator).await;
             let controller_account_id = controller.account_id().clone();
             connection
                 .bond(MIN_VALIDATOR_BOND, controller_account_id, TxStatus::InBlock)
@@ -290,7 +288,7 @@ async fn send_validate_txs(address: &str, controllers: Vec<KeyPair>) {
         let prc = rng.gen::<u8>() % 100;
         handles.push(tokio::spawn(async move {
             let connection =
-                SignedConnection::new(node_address, KeyPair::new(controller.signer().clone()))
+                SignedConnection::new(&node_address, KeyPair::new(controller.signer().clone()))
                     .await;
             connection.validate(prc, TxStatus::InBlock).await.unwrap();
         }));
@@ -301,8 +299,8 @@ async fn send_validate_txs(address: &str, controllers: Vec<KeyPair>) {
 
 /// For a specific validator given by index, generates a predetermined number of nominator accounts.
 /// Nominator accounts are produced as (controller, stash) tuples with initial endowments.
-async fn generate_nominator_accounts_with_minimal_bond(
-    connection: &SignedConnection,
+async fn generate_nominator_accounts_with_minimal_bond<S: SignedConnectionApi>(
+    connection: &S,
     validator_number: u32,
     validators_count: u32,
 ) -> (Vec<AccountId>, Vec<AccountId>) {
@@ -343,7 +341,6 @@ async fn payout_stakers_and_assert_locked_balance(
     era: EraIndex,
 ) {
     let locked_stash_balances_before_payout = stash_connection
-        .connection
         .locks(accounts_to_check_balance, None)
         .await;
     stash_connection
@@ -351,7 +348,6 @@ async fn payout_stakers_and_assert_locked_balance(
         .await
         .unwrap();
     let locked_stash_balances_after_payout = stash_connection
-        .connection
         .locks(accounts_to_check_balance, None)
         .await;
     locked_stash_balances_before_payout.iter()

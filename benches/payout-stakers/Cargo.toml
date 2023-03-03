@@ -14,8 +14,8 @@ log = "0.4"
 futures = "0.3.25"
 rand = "0.8.5"
 
-sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32", features = ["full_crypto"] }
-sp-keyring = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
+sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", features = ["full_crypto"] }
+sp-keyring = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 
 subxt = "0.25.0"
 tokio = { version = "1.21.2", features = ["full"] }

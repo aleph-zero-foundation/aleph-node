@@ -3,13 +3,11 @@ use std::env;
 use aleph_client::{account_from_keypair, aleph_keypair_from_string, keypair_from_string, Pair};
 use clap::Parser;
 use cliain::{
-    bond, call, change_validators, delete_key, finalize, force_new_era, generate_keys,
-    generate_keys_from_srs, generate_proof, generate_srs, instantiate, instantiate_with_code,
-    next_session_keys, nominate, overwrite_key, owner_info, prepare_keys, prompt_password_hidden,
-    remove_code, rotate_keys, schedule_upgrade, set_emergency_finalizer, set_keys,
-    set_staking_limits, store_key, transfer, treasury_approve, treasury_propose, treasury_reject,
-    update_runtime, upload_code, validate, verify, verify_proof, vest, vest_other, vested_transfer,
-    BabyLiminal, Command, ConnectionConfig, SnarkRelation,
+    bond, call, change_validators, finalize, force_new_era, instantiate, instantiate_with_code,
+    next_session_keys, nominate, owner_info, prepare_keys, prompt_password_hidden, remove_code,
+    rotate_keys, schedule_upgrade, set_emergency_finalizer, set_keys, set_staking_limits, transfer,
+    treasury_approve, treasury_propose, treasury_reject, update_runtime, upload_code, validate,
+    vest, vest_other, vested_transfer, Command, ConnectionConfig,
 };
 use log::{error, info};
 
@@ -38,10 +36,9 @@ fn read_seed(command: &Command, seed: Option<String>) -> String {
             hash: _,
             finalizer_seed: _,
         }
-        | Command::NextSessionKeys { .. }
+        | Command::NextSessionKeys { account_id: _ }
         | Command::RotateKeys
-        | Command::SeedToSS58 { .. }
-        | Command::SnarkRelation { .. }
+        | Command::SeedToSS58 { input: _ }
         | Command::ContractOwnerInfo { .. } => String::new(),
         _ => read_secret(seed, "Provide seed for the signer account:"),
     }
@@ -61,7 +58,7 @@ fn read_secret(secret: Option<String>, message: &str) -> String {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     init_env();
 
     let Config {
@@ -79,7 +76,7 @@ async fn main() {
         Command::PrepareKeys => {
             let key = keypair_from_string(&seed);
             let controller_account_id = account_from_keypair(key.signer());
-            prepare_keys(cfg.get_root_connection().await, controller_account_id).await;
+            prepare_keys(cfg.get_root_connection().await, controller_account_id).await?
         }
         Command::Bond {
             controller_account,
@@ -247,85 +244,8 @@ async fn main() {
             Ok(_) => {}
             Err(why) => error!("Unable to schedule an upgrade {:?}", why),
         },
-
-        Command::BabyLiminal(cmd) => match cmd {
-            BabyLiminal::StoreKey {
-                identifier,
-                vk_file,
-            } => {
-                if let Err(why) =
-                    store_key(cfg.get_signed_connection().await, identifier, vk_file).await
-                {
-                    error!("Unable to store key: {why:?}")
-                }
-            }
-            BabyLiminal::DeleteKey { identifier } => {
-                if let Err(why) = delete_key(cfg.get_root_connection().await, identifier).await {
-                    error!("Unable to delete key: {why:?}")
-                }
-            }
-            BabyLiminal::OverwriteKey {
-                identifier,
-                vk_file,
-            } => {
-                if let Err(why) =
-                    overwrite_key(cfg.get_root_connection().await, identifier, vk_file).await
-                {
-                    error!("Unable to overwrite key: {why:?}")
-                }
-            }
-            BabyLiminal::Verify {
-                identifier,
-                proof_file,
-                input_file,
-                system,
-            } => {
-                if let Err(why) = verify(
-                    cfg.get_signed_connection().await,
-                    identifier,
-                    proof_file,
-                    input_file,
-                    system,
-                )
-                .await
-                {
-                    error!("Unable to verify proof: {why:?}")
-                }
-            }
-        },
-
-        Command::SnarkRelation(cmd) => match *cmd {
-            SnarkRelation::GenerateSrs {
-                system,
-                num_constraints,
-                num_variables,
-                degree,
-            } => generate_srs(system, num_constraints, num_variables, degree),
-            SnarkRelation::GenerateKeysFromSrs {
-                relation,
-                system,
-                srs_file,
-            } => generate_keys_from_srs(relation, system, srs_file),
-            SnarkRelation::GenerateKeys { relation, system } => generate_keys(relation, system),
-            SnarkRelation::GenerateProof {
-                relation,
-                system,
-                proving_key_file,
-            } => generate_proof(relation, system, proving_key_file),
-            SnarkRelation::Verify {
-                verifying_key_file,
-                proof_file,
-                public_input_file,
-                system,
-            } => {
-                if verify_proof(verifying_key_file, proof_file, public_input_file, system) {
-                    println!("Proof is correct")
-                } else {
-                    error!("Incorrect proof!")
-                }
-            }
-        },
     }
+    Ok(())
 }
 
 fn init_env() {

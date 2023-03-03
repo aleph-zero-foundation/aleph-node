@@ -34,11 +34,12 @@ where
     let map_updater = SessionMapUpdater::<_, _, B>::new(
         AuthorityProviderImpl::new(client.clone()),
         FinalityNotificatorImpl::new(client.clone()),
+        session_period,
     );
     let session_authorities = map_updater.readonly_session_map();
     spawn_handle.spawn("aleph/updater", None, async move {
         debug!(target: "aleph-party", "SessionMapUpdater has started.");
-        map_updater.run(session_period).await
+        map_updater.run().await
     });
     let (_, handler_task) = setup_justification_handler(JustificationParams {
         justification_rx,

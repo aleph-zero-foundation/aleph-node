@@ -7,7 +7,7 @@ use crate::{
     abft::SignatureSet,
     crypto::Signature,
     data_io::{AlephData, AlephNetworkMessage},
-    network::{Data, DataNetwork},
+    network::{data::Network, Data},
     Hasher, Recipient,
 };
 
@@ -34,12 +34,12 @@ impl<B: Block> AlephNetworkMessage<B>
 }
 
 /// A wrapper needed only because of type system theoretical constraints. Sadness.
-pub struct NetworkWrapper<D: Data, DN: DataNetwork<D>> {
+pub struct NetworkWrapper<D: Data, DN: Network<D>> {
     inner: DN,
     _phantom: PhantomData<D>,
 }
 
-impl<D: Data, DN: DataNetwork<D>> From<DN> for NetworkWrapper<D, DN> {
+impl<D: Data, DN: Network<D>> From<DN> for NetworkWrapper<D, DN> {
     fn from(inner: DN) -> Self {
         NetworkWrapper {
             inner,
@@ -48,7 +48,7 @@ impl<D: Data, DN: DataNetwork<D>> From<DN> for NetworkWrapper<D, DN> {
     }
 }
 
-impl<D: Data, DN: DataNetwork<D>> NetworkWrapper<D, DN> {
+impl<D: Data, DN: Network<D>> NetworkWrapper<D, DN> {
     fn send<R>(&self, data: D, recipient: R)
     where
         R: Into<Recipient>,
@@ -64,7 +64,7 @@ impl<D: Data, DN: DataNetwork<D>> NetworkWrapper<D, DN> {
 }
 
 #[async_trait::async_trait]
-impl<D: Data, DN: DataNetwork<D>> current_aleph_bft::Network<D> for NetworkWrapper<D, DN> {
+impl<D: Data, DN: Network<D>> current_aleph_bft::Network<D> for NetworkWrapper<D, DN> {
     fn send(&self, data: D, recipient: current_aleph_bft::Recipient) {
         NetworkWrapper::send(self, data, recipient)
     }
@@ -75,7 +75,7 @@ impl<D: Data, DN: DataNetwork<D>> current_aleph_bft::Network<D> for NetworkWrapp
 }
 
 #[async_trait::async_trait]
-impl<D: Data, DN: DataNetwork<D>> legacy_aleph_bft::Network<D> for NetworkWrapper<D, DN> {
+impl<D: Data, DN: Network<D>> legacy_aleph_bft::Network<D> for NetworkWrapper<D, DN> {
     fn send(&self, data: D, recipient: legacy_aleph_bft::Recipient) {
         NetworkWrapper::send(self, data, recipient)
     }

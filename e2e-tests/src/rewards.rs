@@ -14,6 +14,7 @@ use aleph_client::{
     waiting::{AlephWaiting, BlockStatus, WaitingExt},
     AccountId, SignedConnection, TxStatus,
 };
+use anyhow::anyhow;
 use log::{debug, info};
 use pallet_elections::LENIENT_THRESHOLD;
 use primitives::{Balance, BlockHash, EraIndex, SessionIndex, TOKEN};
@@ -32,8 +33,8 @@ type RewardPoint = u32;
 
 /// Changes session_keys used by a given `controller` to some `zero`/invalid value,
 /// making it impossible to create new legal blocks.
-pub async fn set_invalid_keys_for_validator(
-    controller_connection: &SignedConnection,
+pub async fn set_invalid_keys_for_validator<S: WaitingExt + SessionUserApi>(
+    controller_connection: &S,
 ) -> anyhow::Result<()> {
     let zero_session_keys = [0; 64].to_vec().into();
 
@@ -43,7 +44,6 @@ pub async fn set_invalid_keys_for_validator(
         .await
         .unwrap();
     controller_connection
-        .connection
         .wait_for_n_sessions(2, BlockStatus::Best)
         .await;
 
@@ -51,10 +51,10 @@ pub async fn set_invalid_keys_for_validator(
 }
 
 /// Rotates session_keys of a given `controller`, making it able to rejoin the `consensus`.
-pub(super) async fn reset_validator_keys(
-    controller_connection: &SignedConnection,
+pub(super) async fn reset_validator_keys<S: AuthorRpc + WaitingExt + SessionUserApi>(
+    controller_connection: &S,
 ) -> anyhow::Result<()> {
-    let validator_keys = controller_connection.connection.author_rotate_keys().await;
+    let validator_keys = controller_connection.author_rotate_keys().await?;
     controller_connection
         .set_keys(validator_keys, TxStatus::InBlock)
         .await
@@ -62,21 +62,19 @@ pub(super) async fn reset_validator_keys(
 
     // wait until our node is forced to use new keys, i.e. current session + 2
     controller_connection
-        .connection
         .wait_for_n_sessions(2, BlockStatus::Best)
         .await;
 
     Ok(())
 }
 
-pub async fn download_exposure(
-    connection: &SignedConnection,
+pub async fn download_exposure<S: StakingApi>(
+    connection: &S,
     era: EraIndex,
     account_id: &AccountId,
     beginning_of_session_block_hash: BlockHash,
 ) -> Balance {
     let exposure = connection
-        .connection
         .get_exposure(era, account_id, Some(beginning_of_session_block_hash))
         .await;
     info!(
@@ -126,14 +124,13 @@ fn check_rewards(
     Ok(())
 }
 
-async fn get_node_performance(
-    connection: &SignedConnection,
+async fn get_node_performance<S: ElectionsApi>(
+    connection: &S,
     account_id: &AccountId,
     before_end_of_session_block_hash: BlockHash,
     blocks_to_produce_per_session: u32,
 ) -> f64 {
     let block_count = connection
-        .connection
         .get_validator_block_count(account_id.clone(), Some(before_end_of_session_block_hash))
         .await
         .unwrap_or_default();
@@ -155,8 +152,8 @@ async fn get_node_performance(
     lenient_performance
 }
 
-pub async fn check_points(
-    connection: &SignedConnection,
+pub async fn check_points<S: ElectionsApi + AlephWaiting + BlocksApi + StakingApi>(
+    connection: &S,
     session: SessionIndex,
     era: EraIndex,
     members: impl IntoIterator<Item = AccountId>,
@@ -164,7 +161,7 @@ pub async fn check_points(
     members_per_session: u32,
     max_relative_difference: f64,
 ) -> anyhow::Result<()> {
-    let session_period = connection.connection.get_session_period().await;
+    let session_period = connection.get_session_period().await?;
 
     info!("Era: {} | session: {}.", era, session);
 
@@ -172,22 +169,15 @@ pub async fn check_points(
     let end_of_session_block = beginning_of_session_block + session_period;
     info!("Waiting for block: {}.", end_of_session_block);
     connection
-        .connection
         .wait_for_block(|n| n >= end_of_session_block, BlockStatus::Finalized)
         .await;
 
     let beginning_of_session_block_hash = connection
-        .connection
         .get_block_hash(beginning_of_session_block)
-        .await;
-    let end_of_session_block_hash = connection
-        .connection
-        .get_block_hash(end_of_session_block)
-        .await;
-    let before_end_of_session_block_hash = connection
-        .connection
-        .get_block_hash(end_of_session_block - 1)
-        .await;
+        .await?;
+    let end_of_session_block_hash = connection.get_block_hash(end_of_session_block).await?;
+    let before_end_of_session_block_hash =
+        connection.get_block_hash(end_of_session_block - 1).await?;
     info!(
         "End-of-session block hash: {:?}.",
         end_of_session_block_hash
@@ -203,7 +193,6 @@ pub async fn check_points(
 
     // get points stored by the Staking pallet
     let validator_reward_points_current_era = connection
-        .connection
         .get_era_reward_points(era, end_of_session_block_hash)
         .await
         .unwrap_or_default()
@@ -211,7 +200,6 @@ pub async fn check_points(
 
     let validator_reward_points_previous_session = HashMap::<AccountId, u32>::from_iter(
         connection
-            .connection
             .get_era_reward_points(era, beginning_of_session_block_hash)
             .await
             .unwrap_or_default()
@@ -282,10 +270,7 @@ pub async fn setup_validators(
 ) -> anyhow::Result<(EraValidators<AccountId>, CommitteeSeats, SessionIndex)> {
     let root_connection = config.create_root_connection().await;
     // we need to wait for at least era 1 since some of the storage items are not available at era 0
-    root_connection
-        .connection
-        .wait_for_n_eras(1, BlockStatus::Best)
-        .await;
+    root_connection.wait_for_n_eras(1, BlockStatus::Best).await;
 
     let seats = COMMITTEE_SEATS;
     let members_seats = seats.reserved_seats + seats.non_reserved_seats;
@@ -305,18 +290,13 @@ pub async fn setup_validators(
     let reserved_members = &members[0..reserved_size];
     let non_reserved_members = &members[reserved_size..];
 
-    let session = root_connection.connection.get_session(None).await;
-    let network_validators = root_connection
-        .connection
-        .get_current_era_validators(None)
-        .await;
+    let session = root_connection.get_session(None).await;
+    let network_validators = root_connection.get_current_era_validators(None).await;
     let first_block_in_session = root_connection
-        .connection
         .first_block_of_session(session)
-        .await
-        .unwrap();
+        .await?
+        .ok_or(anyhow!("First block of session {} is None!", session))?;
     let network_seats = root_connection
-        .connection
         .get_committee_seats(Some(first_block_in_session))
         .await;
 
@@ -340,18 +320,11 @@ pub async fn setup_validators(
         )
         .await?;
 
-    root_connection
-        .connection
-        .wait_for_n_eras(1, BlockStatus::Best)
-        .await;
-    let session = root_connection.connection.get_session(None).await;
+    root_connection.wait_for_n_eras(1, BlockStatus::Best).await;
+    let session = root_connection.get_session(None).await;
 
-    let first_block_in_session = root_connection
-        .connection
-        .first_block_of_session(session)
-        .await;
+    let first_block_in_session = root_connection.first_block_of_session(session).await?;
     let network_validators = root_connection
-        .connection
         .get_current_era_validators(first_block_in_session)
         .await;
     let reserved: HashSet<_> = era_validators.reserved.iter().cloned().collect();
@@ -359,7 +332,6 @@ pub async fn setup_validators(
     let non_reserved: HashSet<_> = era_validators.non_reserved.iter().cloned().collect();
     let network_non_reserved: HashSet<_> = network_validators.non_reserved.into_iter().collect();
     let network_seats = root_connection
-        .connection
         .get_committee_seats(first_block_in_session)
         .await;
 
@@ -386,7 +358,6 @@ pub async fn validators_bond_extra_stakes(config: &Config, additional_stakes: &[
 
     // funds to cover fees
     root_connection
-        .as_signed()
         .batch_transfer(&controller_accounts, TOKEN, TxStatus::Finalized)
         .await
         .unwrap();
@@ -397,11 +368,10 @@ pub async fn validators_bond_extra_stakes(config: &Config, additional_stakes: &[
 
         // Additional TOKEN to cover fees
         root_connection
-            .as_signed()
             .transfer(validator_id, *additional_stake + TOKEN, TxStatus::Finalized)
             .await
             .unwrap();
-        let stash_connection = SignedConnection::new(node.clone(), account_keys.validator).await;
+        let stash_connection = SignedConnection::new(node, account_keys.validator).await;
         stash_connection
             .bond_extra_stake(*additional_stake, TxStatus::Finalized)
             .await

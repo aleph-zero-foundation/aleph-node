@@ -6,9 +6,9 @@ members = [
     "bin/runtime",
     "finality-aleph",
     "pallets/aleph",
+    "pallets/baby-liminal",
     "pallets/elections",
     "pallets/support",
-    "pallets/baby-liminal",
     "primitives",
 ]
 

@@ -12,16 +12,18 @@ use tokio::{runtime::Handle, task::JoinHandle, time::timeout};
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{
-        mock::{crypto_basics, MockData, MockEvent, MockNetwork},
-        setup_io,
-        testing::{DataInSession, DiscoveryMessage, SessionHandler, VersionedAuthentication},
-        ConnectionManager, ConnectionManagerConfig, DataNetwork, NetworkIdentity, Protocol,
-        Service as NetworkService, SessionManager,
+        clique::mock::{
+            key, random_address_from, MockAddressingInformation, MockNetwork as MockCliqueNetwork,
+            MockPublicKey,
+        },
+        data::Network,
+        mock::{crypto_basics, MockData},
+        session::{
+            authentication, ConnectionManager, ConnectionManagerConfig, DataInSession,
+            ManagerError, SessionHandler, SessionManager, VersionedAuthentication,
+        },
+        AddressingInformation, GossipService, MockEvent, MockRawNetwork, Protocol,
     },
-    testing::mocks::validator_network::{
-        random_identity_with_address, MockMultiaddress, MockNetwork as MockValidatorNetwork,
-    },
-    validator_network::mock::{key, MockPublicKey},
     MillisecsPerBlock, NodeIndex, Recipient, SessionId, SessionPeriod,
 };
 
@@ -33,7 +35,7 @@ const NODES_N: usize = 3;
 #[derive(Clone)]
 struct Authority {
     pen: AuthorityPen,
-    addresses: Vec<MockMultiaddress>,
+    address: MockAddressingInformation,
     peer_id: MockPublicKey,
     auth_peer_id: MockPublicKey,
 }
@@ -43,8 +45,8 @@ impl Authority {
         self.pen.clone()
     }
 
-    fn addresses(&self) -> Vec<MockMultiaddress> {
-        self.addresses.clone()
+    fn address(&self) -> MockAddressingInformation {
+        self.address.clone()
     }
 
     fn peer_id(&self) -> MockPublicKey {
@@ -56,25 +58,16 @@ impl Authority {
     }
 }
 
-impl NetworkIdentity for Authority {
-    type PeerId = MockPublicKey;
-    type Multiaddress = MockMultiaddress;
-
-    fn identity(&self) -> (Vec<Self::Multiaddress>, Self::PeerId) {
-        (self.addresses.clone(), self.peer_id.clone())
-    }
-}
-
 struct TestData {
     pub authorities: Vec<Authority>,
     pub authority_verifier: AuthorityVerifier,
-    pub session_manager: SessionManager<MockData>,
-    pub network: MockNetwork,
-    pub validator_network: MockValidatorNetwork<DataInSession<MockData>>,
+    pub session_manager: Box<dyn SessionManager<MockData, Error = ManagerError>>,
+    pub network: MockRawNetwork,
+    pub validator_network: MockCliqueNetwork<DataInSession<MockData>>,
     network_manager_exit_tx: oneshot::Sender<()>,
-    network_service_exit_tx: oneshot::Sender<()>,
+    gossip_service_exit_tx: oneshot::Sender<()>,
     network_manager_handle: JoinHandle<()>,
-    network_service_handle: JoinHandle<()>,
+    gossip_service_handle: JoinHandle<()>,
     // `TaskManager` can't be dropped for `SpawnTaskHandle` to work
     _task_manager: TaskManager,
 }
@@ -84,12 +77,12 @@ async fn prepare_one_session_test_data() -> TestData {
     let (authority_pens, authority_verifier) = crypto_basics(NODES_N).await;
     let mut authorities = Vec::new();
     for (index, p) in authority_pens {
-        let identity = random_identity_with_address(index.0.to_string());
+        let address = random_address_from(index.0.to_string(), true);
         let auth_peer_id = key().0;
         authorities.push(Authority {
             pen: p,
-            addresses: identity.0,
-            peer_id: identity.1,
+            peer_id: address.peer_id(),
+            address,
             auth_peer_id,
         });
     }
@@ -97,43 +90,36 @@ async fn prepare_one_session_test_data() -> TestData {
     // Prepare Network
     let (event_stream_tx, event_stream_rx) = oneshot::channel();
     let (network_manager_exit_tx, network_manager_exit_rx) = oneshot::channel();
-    let (network_service_exit_tx, network_service_exit_rx) = oneshot::channel();
-    let network = MockNetwork::new(event_stream_tx);
-    let validator_network =
-        MockValidatorNetwork::from(authorities[0].addresses(), authorities[0].peer_id());
+    let (gossip_service_exit_tx, gossip_service_exit_rx) = oneshot::channel();
+    let network = MockRawNetwork::new(event_stream_tx);
+    let validator_network = MockCliqueNetwork::new();
 
-    let (connection_io, network_io, session_io) = setup_io();
+    let (gossip_service, gossip_network, _) =
+        GossipService::new(network.clone(), task_manager.spawn_handle());
 
-    let connection_manager = ConnectionManager::new(
+    let (connection_manager_service, session_manager) = ConnectionManager::new(
+        authorities[0].address(),
         validator_network.clone(),
+        gossip_network,
         ConnectionManagerConfig::with_session_period(&SESSION_PERIOD, &MILLISECS_PER_BLOCK),
     );
-
-    let session_manager = SessionManager::new(session_io);
-
-    let network_service = NetworkService::new(
-        network.clone(),
-        validator_network.clone(),
-        task_manager.spawn_handle(),
-        network_io,
-    );
+    let session_manager = Box::new(session_manager);
 
     let network_manager_task = async move {
         tokio::select! {
-            _ = connection_io
-            .run(connection_manager) => { },
+            _ =connection_manager_service.run() => { },
             _ = network_manager_exit_rx => { },
         };
     };
 
-    let network_service_task = async move {
+    let gossip_service_task = async move {
         tokio::select! {
-            _ = network_service.run() => { },
-            _ = network_service_exit_rx => { },
+            _ = gossip_service.run() => { },
+            _ = gossip_service_exit_rx => { },
         };
     };
     let network_manager_handle = tokio::spawn(network_manager_task);
-    let network_service_handle = tokio::spawn(network_service_task);
+    let gossip_service_handle = tokio::spawn(gossip_service_task);
 
     event_stream_rx.await.unwrap();
 
@@ -144,9 +130,9 @@ async fn prepare_one_session_test_data() -> TestData {
         network,
         validator_network,
         network_manager_exit_tx,
-        network_service_exit_tx,
+        gossip_service_exit_tx,
         network_manager_handle,
-        network_service_handle,
+        gossip_service_handle,
         _task_manager: task_manager,
     }
 }
@@ -161,8 +147,9 @@ impl TestData {
         &self,
         node_id: usize,
         session_id: u32,
-    ) -> impl DataNetwork<MockData> {
-        self.session_manager
+    ) -> impl Network<MockData> {
+        match self
+            .session_manager
             .start_validator_session(
                 SessionId(session_id),
                 self.authority_verifier.clone(),
@@ -170,50 +157,52 @@ impl TestData {
                 self.authorities[node_id].pen(),
             )
             .await
-            .expect("Failed to start validator session!")
+        {
+            Ok(network) => network,
+            Err(e) => panic!("Failed to start validator session: {}", e),
+        }
     }
 
     fn early_start_validator_session(&self, node_id: usize, session_id: u32) {
-        self.session_manager
-            .early_start_validator_session(
-                SessionId(session_id),
-                self.authority_verifier.clone(),
-                NodeIndex(node_id),
-                self.authorities[node_id].pen(),
-            )
-            .expect("Failed to start validator session!");
+        if let Err(e) = self.session_manager.early_start_validator_session(
+            SessionId(session_id),
+            self.authority_verifier.clone(),
+            NodeIndex(node_id),
+            self.authorities[node_id].pen(),
+        ) {
+            panic!("Failed to start validator session: {}", e);
+        }
     }
 
     async fn get_session_handler(
         &self,
         node_id: usize,
         session_id: u32,
-    ) -> SessionHandler<MockMultiaddress> {
+    ) -> SessionHandler<MockAddressingInformation> {
         SessionHandler::new(
             Some((NodeIndex(node_id), self.authorities[node_id].pen())),
             self.authority_verifier.clone(),
             SessionId(session_id),
-            self.authorities[node_id].addresses().to_vec(),
+            self.authorities[node_id].address(),
         )
         .await
-        .unwrap()
     }
 
     async fn check_add_connection(&mut self) {
         let mut reserved_addresses = HashSet::new();
         for _ in self.authorities.iter().skip(1) {
-            let (_, addresses) = self
+            let (_, address) = self
                 .validator_network
                 .add_connection
                 .next()
                 .await
                 .expect("Should add reserved nodes");
-            reserved_addresses.extend(addresses.into_iter());
+            reserved_addresses.insert(address);
         }
 
         let mut expected_addresses = HashSet::new();
         for authority in self.authorities.iter().skip(1) {
-            expected_addresses.extend(authority.addresses());
+            expected_addresses.insert(authority.address());
         }
 
         assert_eq!(reserved_addresses, expected_addresses);
@@ -225,18 +214,21 @@ impl TestData {
 
             self.connect_identity_to_network(authority.auth_peer_id(), Protocol::Authentication);
 
-            self.network.emit_event(MockEvent::Messages(vec![(
-                Protocol::Authentication,
-                VersionedAuthentication::V1(DiscoveryMessage::AuthenticationBroadcast(
-                    handler.authentication().unwrap(),
-                ))
-                .encode()
-                .into(),
-            )]));
+            for versioned_authentication in
+                Vec::<VersionedAuthentication<_>>::from(handler.authentication().unwrap())
+            {
+                self.network.emit_event(MockEvent::Messages(
+                    authority.auth_peer_id(),
+                    vec![(
+                        Protocol::Authentication,
+                        versioned_authentication.encode().into(),
+                    )],
+                ));
+            }
         }
     }
 
-    async fn start_session(&mut self, session_id: u32) -> impl DataNetwork<MockData> {
+    async fn start_session(&mut self, session_id: u32) -> impl Network<MockData> {
         let data_network = self.start_validator_session(0, session_id).await;
         self.connect_session_authorities(session_id).await;
         self.check_add_connection().await;
@@ -247,7 +239,7 @@ impl TestData {
     async fn next_sent_auth(
         &mut self,
     ) -> Option<(
-        VersionedAuthentication<MockMultiaddress>,
+        VersionedAuthentication<MockAddressingInformation>,
         MockPublicKey,
         Protocol,
     )> {
@@ -256,7 +248,7 @@ impl TestData {
                 Some((data, peer_id, protocol)) => {
                     if protocol == Protocol::Authentication {
                         return Some((
-                            VersionedAuthentication::<MockMultiaddress>::decode(
+                            VersionedAuthentication::<MockAddressingInformation>::decode(
                                 &mut data.as_slice(),
                             )
                             .expect("should decode"),
@@ -272,9 +264,9 @@ impl TestData {
 
     async fn cleanup(self) {
         self.network_manager_exit_tx.send(()).unwrap();
-        self.network_service_exit_tx.send(()).unwrap();
+        self.gossip_service_exit_tx.send(()).unwrap();
         self.network_manager_handle.await.unwrap();
-        self.network_service_handle.await.unwrap();
+        self.gossip_service_handle.await.unwrap();
         while self.network.send_message.try_next().await.is_some() {}
         self.network.close_channels().await;
         self.validator_network.close_channels().await;
@@ -292,13 +284,9 @@ async fn test_sends_discovery_message() {
 
     for _ in 0..4 {
         match test_data.next_sent_auth().await {
-            Some((
-                VersionedAuthentication::V1(DiscoveryMessage::AuthenticationBroadcast(auth_data)),
-                peer_id,
-                _,
-            )) => {
+            Some((VersionedAuthentication::V2(new_authentication), peer_id, _)) => {
                 assert_eq!(peer_id, connected_peer_id);
-                assert_eq!(auth_data, handler.authentication().unwrap());
+                assert_eq!(new_authentication, authentication(&handler));
             }
             None => panic!("Not sending authentications"),
             _ => panic!("Should broadcast own authentication, nothing else"),
@@ -325,14 +313,17 @@ async fn test_forwards_authentication_broadcast() {
         test_data.connect_identity_to_network(authority.auth_peer_id(), Protocol::Authentication);
     }
 
-    test_data.network.emit_event(MockEvent::Messages(vec![(
-        Protocol::Authentication,
-        VersionedAuthentication::V1(DiscoveryMessage::AuthenticationBroadcast(
-            sending_peer_handler.authentication().unwrap(),
-        ))
-        .encode()
-        .into(),
-    )]));
+    for versioned_authentication in
+        Vec::<VersionedAuthentication<_>>::from(sending_peer_handler.authentication().unwrap())
+    {
+        test_data.network.emit_event(MockEvent::Messages(
+            sending_peer.auth_peer_id(),
+            vec![(
+                Protocol::Authentication,
+                versioned_authentication.encode().into(),
+            )],
+        ));
+    }
 
     assert_eq!(
         test_data
@@ -341,28 +332,27 @@ async fn test_forwards_authentication_broadcast() {
             .next()
             .await
             .expect("Should add reserved nodes"),
-        (sending_peer.peer_id(), sending_peer.addresses()),
+        (sending_peer.peer_id(), sending_peer.address()),
     );
 
     let mut expected_authentication = HashMap::new();
     for authority in test_data.authorities.iter().skip(1) {
         expected_authentication.insert(
             authority.auth_peer_id(),
-            sending_peer_handler.authentication().unwrap(),
+            authentication(&sending_peer_handler),
         );
     }
 
     let mut sent_authentication = HashMap::new();
     while sent_authentication.len() < NODES_N - 1 {
-        if let Some((
-            VersionedAuthentication::V1(DiscoveryMessage::AuthenticationBroadcast(auth_data)),
-            peer_id,
-            _,
-        )) = test_data.next_sent_auth().await
-        {
-            if auth_data != handler.authentication().unwrap() {
-                sent_authentication.insert(peer_id, auth_data);
+        match test_data.next_sent_auth().await {
+            Some((VersionedAuthentication::V2(auth), peer_id, _)) => {
+                if auth != authentication(&handler) {
+                    sent_authentication.insert(peer_id, auth);
+                }
             }
+            None => panic!("not enough authentications sent"),
+            _ => (),
         }
     }
 
@@ -381,7 +371,7 @@ async fn test_connects_to_others() {
     let mut test_data = prepare_one_session_test_data().await;
     let mut data_network = test_data.start_session(session_id).await;
 
-    let data = vec![1, 2, 3];
+    let data = MockData::new(43, 3);
     test_data.validator_network.next.send(DataInSession {
         data: data.clone(),
         session_id: SessionId(session_id),
@@ -406,7 +396,7 @@ async fn test_connects_to_others_early_validator() {
 
     let mut data_network = test_data.start_validator_session(0, session_id).await;
 
-    let data = vec![1, 2, 3];
+    let data = MockData::new(43, 3);
     test_data.validator_network.next.send(DataInSession {
         data: data.clone(),
         session_id: SessionId(session_id),
@@ -446,7 +436,7 @@ async fn test_stops_session() {
 
     // This assert should be before cleanup. We want to check whether `session_manager.stop_session(...)`
     // drops the sender. After cleanup all network tasks end and senders will be dropped.
-    // If assert was after cleanup we wouldn't know whether data_network receiver is droopped
+    // If assert was after cleanup we wouldn't know whether data_network receiver is dropped
     // because of `session_manager.stop_session(...)` or because of cleanup.
     assert_eq!(
         timeout(DEFAULT_TIMEOUT, data_network.next()).await,
@@ -464,10 +454,10 @@ async fn test_receives_data_in_correct_session() {
 
     let mut data_network_2 = test_data.start_session(session_id_2).await;
 
-    let data_1_1 = vec![1, 2, 3];
-    let data_1_2 = vec![4, 5, 6];
-    let data_2_1 = vec![7, 8, 9];
-    let data_2_2 = vec![10, 11, 12];
+    let data_1_1 = MockData::new(43, 3);
+    let data_1_2 = MockData::new(44, 3);
+    let data_2_1 = MockData::new(45, 3);
+    let data_2_2 = MockData::new(46, 3);
     test_data.validator_network.next.send(DataInSession {
         data: data_1_1.clone(),
         session_id: SessionId(session_id_1),
@@ -525,8 +515,8 @@ async fn test_sends_data_to_correct_session() {
 
     let mut expected_data = HashSet::new();
     for node_id in 1..NODES_N {
-        let data_1 = vec![2 * node_id as u8 - 1];
-        let data_2 = vec![2 * node_id as u8];
+        let data_1 = MockData::new((node_id - 1) as u32, 1);
+        let data_2 = MockData::new(node_id as u32, 1);
 
         expected_data.insert((
             data_1.clone(),
@@ -577,8 +567,8 @@ async fn test_broadcasts_data_to_correct_session() {
     let mut data_network_1 = test_data.start_session(session_id_1).await;
     let mut data_network_2 = test_data.start_session(session_id_2).await;
 
-    let data_1 = vec![1, 2, 3];
-    let data_2 = vec![4, 5, 6];
+    let data_1 = MockData::new(43, 3);
+    let data_2 = MockData::new(44, 3);
     data_network_1
         .send(data_1.clone(), Recipient::Everyone)
         .expect("Should send");

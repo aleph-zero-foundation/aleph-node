@@ -61,7 +61,10 @@ fn get_field_config(
             for nm in nested {
                 match nm {
                     NestedMeta::Meta(Meta::NameValue(MetaNameValue { path, lit, .. })) => {
-                        let path = path.get_ident().map(|i| i.to_string()).ok_or(err.clone())?;
+                        let path = path
+                            .get_ident()
+                            .map(|i| i.to_string())
+                            .ok_or_else(|| err.clone())?;
                         if !permissible_config.contains(path.as_str()) {
                             return Err(err);
                         }

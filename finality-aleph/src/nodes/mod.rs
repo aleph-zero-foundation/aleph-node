@@ -3,30 +3,23 @@ mod validator_node;
 
 use std::{future::Future, sync::Arc};
 
-use aleph_primitives::{AuthorityId, SessionAuthorityData};
-use codec::Encode;
-use log::warn;
 pub use nonvalidator_node::run_nonvalidator_node;
 use sc_client_api::Backend;
 use sc_network::NetworkService;
 use sc_network_common::ExHashT;
-use sp_runtime::{
-    traits::{Block, Header, NumberFor},
-    RuntimeAppPublic,
-};
+use sp_runtime::traits::{Block, Header, NumberFor};
 pub use validator_node::run_validator_node;
 
 use crate::{
-    crypto::AuthorityVerifier,
     finalization::AlephFinalizer,
     justification::{
-        AlephJustification, JustificationHandler, JustificationRequestSchedulerImpl, SessionInfo,
-        SessionInfoProvider, Verifier,
+        JustificationHandler, JustificationRequestSchedulerImpl, SessionInfo, SessionInfoProvider,
     },
     last_block_of_session, mpsc,
     mpsc::UnboundedSender,
     session_id_from_block_num,
     session_map::ReadOnlySessionMap,
+    sync::SessionVerifier,
     BlockchainBackend, JustificationNotification, Metrics, MillisecsPerBlock, SessionPeriod,
 };
 
@@ -37,52 +30,6 @@ pub mod testing {
 
 /// Max amount of tries we can not update a finalized block number before we will clear requests queue
 const MAX_ATTEMPTS: u32 = 5;
-
-struct JustificationVerifier {
-    authority_verifier: AuthorityVerifier,
-    emergency_signer: Option<AuthorityId>,
-}
-
-impl From<SessionAuthorityData> for JustificationVerifier {
-    fn from(authority_data: SessionAuthorityData) -> Self {
-        JustificationVerifier {
-            authority_verifier: AuthorityVerifier::new(authority_data.authorities().to_vec()),
-            emergency_signer: authority_data.emergency_finalizer().clone(),
-        }
-    }
-}
-
-impl<B: Block> Verifier<B> for JustificationVerifier {
-    fn verify(&self, justification: &AlephJustification, hash: B::Hash) -> bool {
-        use AlephJustification::*;
-        let encoded_hash = hash.encode();
-        match justification {
-            CommitteeMultisignature(multisignature) => match self
-                .authority_verifier
-                .is_complete(&encoded_hash, multisignature)
-            {
-                true => true,
-                false => {
-                    warn!(target: "aleph-justification", "Bad multisignature for block hash #{:?} {:?}", hash, multisignature);
-                    false
-                }
-            },
-            EmergencySignature(signature) => match &self.emergency_signer {
-                Some(emergency_signer) => match emergency_signer.verify(&encoded_hash, signature) {
-                    true => true,
-                    false => {
-                        warn!(target: "aleph-justification", "Bad emergency signature for block hash #{:?} {:?}", hash, signature);
-                        false
-                    }
-                },
-                None => {
-                    warn!(target: "aleph-justification", "Received emergency signature for block with hash #{:?}, which has no emergency signer defined.", hash);
-                    false
-                }
-            },
-        }
-    }
-}
 
 struct JustificationParams<B: Block, H: ExHashT, C, BB> {
     pub network: Arc<NetworkService<B, H>>,
@@ -110,10 +57,10 @@ impl SessionInfoProviderImpl {
 }
 
 #[async_trait::async_trait]
-impl<B: Block> SessionInfoProvider<B, JustificationVerifier> for SessionInfoProviderImpl {
-    async fn for_block_num(&self, number: NumberFor<B>) -> SessionInfo<B, JustificationVerifier> {
-        let current_session = session_id_from_block_num::<B>(number, self.session_period);
-        let last_block_height = last_block_of_session::<B>(current_session, self.session_period);
+impl<B: Block> SessionInfoProvider<B, SessionVerifier> for SessionInfoProviderImpl {
+    async fn for_block_num(&self, number: NumberFor<B>) -> SessionInfo<B, SessionVerifier> {
+        let current_session = session_id_from_block_num(number, self.session_period);
+        let last_block_height = last_block_of_session(current_session, self.session_period);
         let verifier = self
             .session_authorities
             .get(current_session)

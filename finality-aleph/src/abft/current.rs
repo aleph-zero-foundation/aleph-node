@@ -1,18 +1,14 @@
-use std::time::Duration;
-
-use current_aleph_bft::{Config, LocalIO, Terminator};
+pub use aleph_primitives::CURRENT_FINALITY_VERSION as VERSION;
+use current_aleph_bft::{default_config, Config, LocalIO, Terminator};
 use log::debug;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::traits::Block;
 
 use crate::{
-    abft::{
-        common::{unit_creation_delay_fn, AlephConfig, DelayConfig},
-        NetworkWrapper, SpawnHandleT,
-    },
+    abft::{common::unit_creation_delay_fn, NetworkWrapper, SpawnHandleT},
     crypto::Signature,
     data_io::{AlephData, OrderedDataInterpreter},
-    network::DataNetwork,
+    network::data::Network,
     oneshot,
     party::{
         backup::ABFTBackup,
@@ -21,13 +17,10 @@ use crate::{
     CurrentNetworkData, Hasher, Keychain, NodeIndex, SessionId, SignatureSet, UnitCreationDelay,
 };
 
-/// Version of the current abft
-pub const VERSION: u32 = 1;
-
 pub fn run_member<
     B: Block,
     C: HeaderBackend<B> + Send + 'static,
-    ADN: DataNetwork<CurrentNetworkData<B>> + 'static,
+    ADN: Network<CurrentNetworkData<B>> + 'static,
 >(
     subtask_common: SubtaskCommon,
     multikeychain: Keychain,
@@ -75,13 +68,8 @@ pub fn create_aleph_config(
     session_id: SessionId,
     unit_creation_delay: UnitCreationDelay,
 ) -> Config {
-    let delay_config = DelayConfig {
-        tick_interval: Duration::from_millis(100),
-        requests_interval: Duration::from_millis(3000),
-        unit_rebroadcast_interval_min: Duration::from_millis(15000),
-        unit_rebroadcast_interval_max: Duration::from_millis(20000),
-        unit_creation_delay: unit_creation_delay_fn(unit_creation_delay),
-    };
+    let mut config = default_config(n_members.into(), node_id.into(), session_id.0 as u64);
+    config.delay_config.unit_creation_delay = unit_creation_delay_fn(unit_creation_delay);
 
-    AlephConfig::new(delay_config, n_members, node_id, session_id).into()
+    config
 }

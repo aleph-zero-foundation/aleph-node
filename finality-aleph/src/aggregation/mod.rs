@@ -11,7 +11,10 @@ use crate::{
     crypto::Signature,
     metrics::Checkpoint,
     mpsc,
-    network::{Data, DataNetwork, SendError},
+    network::{
+        data::{Network, SendError},
+        Data,
+    },
     Keychain, Metrics,
 };
 
@@ -50,8 +53,8 @@ pub type CurrentAggregator<'a, B, N> = current_aleph_aggregator::IO<
 enum EitherAggregator<'a, B, CN, LN>
 where
     B: Block,
-    LN: DataNetwork<LegacyRmcNetworkData<B>>,
-    CN: DataNetwork<CurrentRmcNetworkData<B>>,
+    LN: Network<LegacyRmcNetworkData<B>>,
+    CN: Network<CurrentRmcNetworkData<B>>,
     <B as Block>::Hash: AsRef<[u8]>,
 {
     Current(CurrentAggregator<'a, B, CN>),
@@ -63,8 +66,8 @@ where
 pub struct Aggregator<'a, B, CN, LN>
 where
     B: Block,
-    LN: DataNetwork<LegacyRmcNetworkData<B>>,
-    CN: DataNetwork<CurrentRmcNetworkData<B>>,
+    LN: Network<LegacyRmcNetworkData<B>>,
+    CN: Network<CurrentRmcNetworkData<B>>,
     <B as Block>::Hash: AsRef<[u8]>,
 {
     agg: EitherAggregator<'a, B, CN, LN>,
@@ -73,8 +76,8 @@ where
 impl<'a, B, CN, LN> Aggregator<'a, B, CN, LN>
 where
     B: Block,
-    LN: DataNetwork<LegacyRmcNetworkData<B>>,
-    CN: DataNetwork<CurrentRmcNetworkData<B>>,
+    LN: Network<LegacyRmcNetworkData<B>>,
+    CN: Network<CurrentRmcNetworkData<B>>,
     <B as Block>::Hash: AsRef<[u8]>,
 {
     pub fn new_legacy(
@@ -163,9 +166,9 @@ where
     }
 }
 
-pub struct NetworkWrapper<D: Data, N: DataNetwork<D>>(N, PhantomData<D>);
+pub struct NetworkWrapper<D: Data, N: Network<D>>(N, PhantomData<D>);
 
-impl<D: Data, N: DataNetwork<D>> NetworkWrapper<D, N> {
+impl<D: Data, N: Network<D>> NetworkWrapper<D, N> {
     pub fn new(network: N) -> Self {
         Self(network, PhantomData)
     }
@@ -186,7 +189,7 @@ impl<H: Debug + Hash + Eq + Debug + Copy> current_aleph_aggregator::Metrics<H> f
 #[async_trait::async_trait]
 impl<T, D> legacy_aleph_aggregator::ProtocolSink<D> for NetworkWrapper<D, T>
 where
-    T: DataNetwork<D>,
+    T: Network<D>,
     D: Data,
 {
     async fn next(&mut self) -> Option<D> {
@@ -207,7 +210,7 @@ where
 #[async_trait::async_trait]
 impl<T, D> current_aleph_aggregator::ProtocolSink<D> for NetworkWrapper<D, T>
 where
-    T: DataNetwork<D>,
+    T: Network<D>,
     D: Data,
 {
     async fn next(&mut self) -> Option<D> {
@@ -217,7 +220,7 @@ where
     fn send(
         &self,
         data: D,
-        recipient: legacy_aleph_bft::Recipient,
+        recipient: current_aleph_bft::Recipient,
     ) -> Result<(), CurrentNetworkError> {
         self.0.send(data, recipient.into()).map_err(|e| match e {
             SendError::SendFailed => CurrentNetworkError::SendFail,

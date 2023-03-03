@@ -23,11 +23,12 @@ jobs:
   build-new-node:
     name: Build node and runtime artifacts (PR version)
     uses: ./.github/workflows/build-node-and-runtime.yml
+    secrets: inherit
 
   build-test-docker:
     needs: [build-new-node]
     name: Build docker image with the test node artifact
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     steps:
       - name: Checkout Source code
         uses: actions/checkout@v2
@@ -53,28 +54,17 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-
   build-cliain-image:
     name: Build docker image for cliain
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
+    env:
+      RUSTC_WRAPPER: sccache
     steps:
       - name: GIT | Checkout source code
         uses: actions/checkout@v2
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
-
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          version: '3.6.1'        
-
-      - name: Restore cache
-        uses: ./.github/actions/restore-cache
-        with:
-          target-key: cliain
-          cache-version: v2
-          cargo-targets: bin/cliain/target/
 
       - name: Cargo | Build release binary
         run: |
@@ -94,27 +84,19 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Cleanup cache
-        uses: ./.github/actions/post-cache
-
-
   check-determinism:
     needs: [build-new-node]
     name: Verify runtime build determinism
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       RUST_BACKTRACE: full
+      RUSTC_WRAPPER: sccache
     steps:
       - name: Checkout Source code
         uses: actions/checkout@v2
 
       - name: Install Rust Toolchain
         uses: actions-rs/toolchain@v1
-
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          version: '3.6.1'        
 
       - name: Install WASM target
         run: rustup target add wasm32-unknown-unknown
@@ -136,31 +118,18 @@ jobs:
           cargo build --profile production -p aleph-runtime
           sha256sum -c checksum.sha256
 
-
   build-test-client:
     name: Build e2e test client suite
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       RUST_BACKTRACE: full
+      RUSTC_WRAPPER: sccache
     steps:
       - name: Checkout Source code
         uses: actions/checkout@v2
 
       - name: Install Rust Toolchain
         uses: actions-rs/toolchain@v1
-
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          version: '3.6.1'        
-
-      - name: Restore cache
-        uses: ./.github/actions/restore-cache
-        with:
-          target-key: e2e
-          cargo-key: e2e
-          cache-version: v2
-          cargo-targets: e2e-tests/target/
 
       - name: Build binary and docker image
         run: |
@@ -170,9 +139,6 @@ jobs:
           docker build --tag aleph-e2e-client:latest -f Dockerfile .
           docker save -o aleph-e2e-client.tar aleph-e2e-client:latest
 
-      - name: Stop cache
-        uses: ./.github/actions/post-cache
-
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
@@ -181,6 +147,28 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  run-aleph-client-subxt-codegen-check:
+    needs: [build-test-docker]
+    name: Checks if runtime file in aleph-client is up-to-date
+    # disabling this check as it causes troubles
+    # this should be reworked to sth like https://github.com/paritytech/subxt/blob/master/examples/examples/metadata_compatibility.rs
+    if: false
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run one node in the background
+        uses: ./.github/actions/run-e2e-test
+        with:
+          node-count: 1
+          min-validator-count: 1
+
+      - name: check if runtime metadata matches
+        run: |
+          cd aleph-client
+          docker pull public.ecr.aws/p6e8q1z1/subxt-client-integration:latest
+          docker run --rm --network host --mount type=bind,source="$(pwd)/..",target=/subxt/aleph-node public.ecr.aws/p6e8q1z1/subxt-client-integration:latest
 
   run-e2e-finalization-test:
     needs: [build-test-docker, build-test-client]
@@ -319,22 +307,6 @@ jobs:
           follow-up-finalization-check: true
         timeout-minutes: 3
 
-
-  run-e2e-fee-calculation:
-    needs: [build-test-docker, build-test-client]
-    name: Run e2e fee calculation test
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v2
-
-      - name: Run e2e test
-        uses: ./.github/actions/run-e2e-test
-        with:
-          test-case: fee_calculation
-        timeout-minutes: 2
-
-
   run-e2e-validators-rotate:
     needs: [build-test-docker, build-test-client]
     name: Run validators rotation test
@@ -440,23 +412,23 @@ jobs:
           follow-up-finalization-check: true
         timeout-minutes: 10
 
-#  run-e2e-authorities-are-staking:
-#    needs: [build-test-docker, build-test-client]
-#    name: Run authorities are staking test
-#    runs-on: ubuntu-20.04
-#    steps:
-#      - name: Checkout source code
-#        uses: actions/checkout@v2
-#
-#      - name: Run e2e test
-#        uses: ./.github/actions/run-e2e-test
-#        with:
-#          test-case: authorities_are_staking
-#          node-count: 6
-#          reserved-seats: 3
-#          non-reserved-seats: 3
-#          follow-up-finalization-check: false
-#        timeout-minutes: 15
+  run-e2e-authorities-are-staking:
+    needs: [build-test-docker, build-test-client]
+    name: Run authorities are staking test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: authorities_are_staking
+          node-count: 6
+          reserved-seats: 3
+          non-reserved-seats: 3
+          follow-up-finalization-check: true
+        timeout-minutes: 15
 
   run-e2e-ban-automatic:
     needs: [build-test-docker, build-test-client]
@@ -518,6 +490,21 @@ jobs:
           follow-up-finalization-check: true
         timeout-minutes: 15
 
+  run-e2e-permissionless-ban:
+    needs: [ build-test-docker, build-test-client ]
+    name: Run permissionless ban test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: permissionless_ban
+          follow-up-finalization-check: true
+        timeout-minutes: 15
+
   run-e2e-version-upgrade:
     needs: [build-test-docker, build-test-client]
     name: Run basic (positive) version-upgrade test
@@ -529,11 +516,33 @@ jobs:
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
         with:
-          test-case: version_upgrade::schedule_version_change
+          test-case: finality_version::schedule_version_change
         env:
           UPGRADE_VERSION: 1
           UPGRADE_SESSION: 3
           UPGRADE_FINALIZATION_WAIT_SESSIONS: 2
+        timeout-minutes: 10
+
+  run-e2e-adder-contract-test:
+    needs: [build-test-docker, build-test-client]
+    name: Run e2e adder contract test
+    runs-on: self-hosted
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+
+      - name: Install rust-src
+        working-directory: ./contracts
+        run: rustup component add rust-src
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          deploy-adder: true
+          test-case: adder
         timeout-minutes: 10
 
 # The tests below were written under the assumption that nonfinalized blocks are being produced, they need a rewrite before being reenabled.
@@ -617,6 +626,21 @@ jobs:
 #        run: |
 #          ./scripts/catchup_version_upgrade_test.sh
 
+  run-e2e-finality-version-change:
+    needs: [build-test-docker, build-test-client]
+    name: Run finality version change test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: finality_version::finality_version_change
+          follow-up-finalization-check: true
+        timeout-minutes: 10
+
   check-e2e-test-suite-completion:
     needs: [
       run-e2e-finalization-test,
@@ -628,7 +652,6 @@ jobs:
       run-e2e-staking-era-payouts-test,
       run-e2e-staking-new-validator-test,
       run-e2e-change-validators-test,
-      run-e2e-fee-calculation,
       run-e2e-validators-rotate,
       run-e2e-era-payout,
       run-e2e-era-validators,
@@ -636,14 +659,17 @@ jobs:
       run-e2e-rewards-stake-change,
       run-e2e-rewards-change-stake-force-new-era,
       run-e2e-rewards-points-basic,
-#      run-e2e-authorities-are-staking,
+      run-e2e-authorities-are-staking,
       run-e2e-ban-automatic,
       run-e2e-ban-manual,
       run-e2e-ban-counter-clearing,
       run-e2e-ban-threshold,
       run-e2e-version-upgrade,
+      run-e2e-permissionless-ban,
+      run-e2e-adder-contract-test,
 #      run-e2e-failing-version-upgrade,
 #      run-e2e-version-upgrade-catchup,
+      run-e2e-finality-version-change,
     ]
     name: Check e2e test suite completion
     runs-on: ubuntu-20.04
@@ -712,6 +738,9 @@ jobs:
     name: Test catching up
     runs-on: ubuntu-20.04
     needs: build-new-node
+    strategy:
+      matrix:
+        pruning: ['', '--state-pruning 90']
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -731,12 +760,15 @@ jobs:
         env:
           # Relative to local-tests/ directory
           ALEPH_NODE_BINARY: aleph-test-node/aleph-node
-        run: ./.github/scripts/test_catch_up.sh
+        run: ./.github/scripts/test_catch_up.sh ${{ matrix.pruning }}
 
   test-multiple-restarts:
     name: Test multiple restarts
     runs-on: ubuntu-20.04
     needs: build-new-node
+    strategy:
+      matrix:
+        pruning: ['', '--state-pruning 2048']
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -756,7 +788,7 @@ jobs:
         env:
           # Relative to local-tests/ directory
           ALEPH_NODE_BINARY: aleph-release-node/aleph-node
-        run: ./.github/scripts/test_multiple_restarts.sh
+        run: ./.github/scripts/test_multiple_restarts.sh ${{ matrix.pruning }}
 
   check-runtime-change:
     name: Inspect whether runtime version has been changed (compared with main)
@@ -785,7 +817,9 @@ jobs:
     # Disbled check, reenable once we fix the issue with try-runtime test
     # if: ${{ needs.check-runtime-change.outputs.runtime-updated != 0 }}
     if: ${{ false }}
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
+    env:
+      RUSTC_WRAPPER: sccache
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
@@ -793,19 +827,8 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
 
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          version: '3.6.1'        
-
       - name: Install WASM target
         run: rustup target add wasm32-unknown-unknown
-
-      - name: Restore cache
-        uses: ./.github/actions/restore-cache
-        with:
-          target-key: try-runtime
-          cache-version: v2
 
       - name: Build try-runtime
         run: cargo build --release -p aleph-node --features "try-runtime"
@@ -829,12 +852,9 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Cleanup cache
-        uses: ./.github/actions/post-cache
-
   test-runtime-update:
     name: Test runtime update with try-runtime tool
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     needs: [ build-new-runtime-and-try_runtime ]
     steps:
       - name: Checkout source code
@@ -880,3 +900,4 @@ jobs:
           notify-on: "failure"
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+

@@ -60,6 +60,14 @@ impl<B: BlockT> JustificationRequestStatus<B> {
         }
     }
 
+    fn reset(&mut self) {
+        self.block_hash_number = None;
+        self.block_tries = 0;
+        self.parent = None;
+        self.n_children = 0;
+        self.children_tries = 0;
+    }
+
     fn should_report(&self) -> bool {
         self.block_tries >= self.report_threshold || self.children_tries >= self.report_threshold
     }
@@ -166,6 +174,7 @@ where
         match finalization_res {
             Ok(()) => {
                 self.justification_request_scheduler.on_block_finalized();
+                self.request_status.reset();
                 debug!(target: "aleph-justification", "Successfully finalized {:?}", number);
                 if let Some(metrics) = &self.metrics {
                     metrics.report_block(hash, Instant::now(), Checkpoint::Finalized);

@@ -9,7 +9,7 @@ use sp_runtime::traits::Block;
 use crate::{
     abft::SpawnHandleT,
     data_io::{AlephNetworkMessage, DataStore},
-    network::{ReceiverComponent, RequestBlocks},
+    network::{data::component::Receiver, RequestBlocks},
     party::{AuthoritySubtaskCommon, Task},
 };
 
@@ -23,7 +23,7 @@ where
     C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
     RB: RequestBlocks<B> + 'static,
     Message: AlephNetworkMessage<B> + Debug + Send + Sync + Codec + 'static,
-    R: ReceiverComponent<Message> + 'static,
+    R: Receiver<Message> + 'static,
 {
     let AuthoritySubtaskCommon {
         spawn_handle,

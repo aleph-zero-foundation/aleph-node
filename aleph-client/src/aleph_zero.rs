@@ -83,17 +83,6 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
-            pub struct FillBlock {
-                pub ratio: runtime_types::sp_arithmetic::per_things::Perbill,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
             pub struct Remark {
                 pub remark: ::std::vec::Vec<::core::primitive::u8>,
             }
@@ -181,23 +170,6 @@ pub mod api {
             }
             pub struct TransactionApi;
             impl TransactionApi {
-                #[doc = "A dispatch that will fill the block weight up to the given ratio."]
-                pub fn fill_block(
-                    &self,
-                    ratio: runtime_types::sp_arithmetic::per_things::Perbill,
-                ) -> ::subxt::tx::StaticTxPayload<FillBlock> {
-                    ::subxt::tx::StaticTxPayload::new(
-                        "System",
-                        "fill_block",
-                        FillBlock { ratio },
-                        [
-                            48u8, 18u8, 205u8, 90u8, 222u8, 4u8, 20u8, 251u8, 173u8, 76u8, 167u8,
-                            4u8, 83u8, 203u8, 160u8, 89u8, 132u8, 218u8, 191u8, 145u8, 130u8,
-                            245u8, 177u8, 201u8, 169u8, 129u8, 173u8, 105u8, 88u8, 45u8, 136u8,
-                            191u8,
-                        ],
-                    )
-                }
                 #[doc = "Make some on-chain remark."]
                 #[doc = ""]
                 #[doc = "# <weight>"]
@@ -766,9 +738,9 @@ pub mod api {
                         "Events",
                         vec![],
                         [
-                            156u8, 100u8, 192u8, 33u8, 155u8, 231u8, 5u8, 239u8, 48u8, 33u8, 53u8,
-                            24u8, 129u8, 77u8, 88u8, 207u8, 65u8, 90u8, 180u8, 134u8, 5u8, 213u8,
-                            111u8, 129u8, 24u8, 123u8, 93u8, 123u8, 57u8, 235u8, 75u8, 12u8,
+                            80u8, 163u8, 77u8, 2u8, 114u8, 163u8, 90u8, 227u8, 120u8, 148u8, 222u8,
+                            239u8, 255u8, 114u8, 127u8, 214u8, 47u8, 240u8, 5u8, 196u8, 47u8,
+                            195u8, 53u8, 197u8, 200u8, 169u8, 89u8, 246u8, 155u8, 60u8, 157u8, 3u8,
                         ],
                     )
                 }
@@ -1213,9 +1185,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            148u8, 58u8, 201u8, 20u8, 221u8, 14u8, 230u8, 20u8, 186u8, 141u8,
-                            215u8, 53u8, 58u8, 13u8, 229u8, 32u8, 88u8, 161u8, 201u8, 122u8, 87u8,
-                            29u8, 18u8, 10u8, 239u8, 141u8, 5u8, 98u8, 85u8, 34u8, 233u8, 117u8,
+                            203u8, 163u8, 89u8, 109u8, 45u8, 119u8, 227u8, 27u8, 65u8, 243u8, 46u8,
+                            102u8, 187u8, 169u8, 13u8, 66u8, 46u8, 254u8, 113u8, 210u8, 122u8,
+                            239u8, 147u8, 107u8, 55u8, 91u8, 1u8, 98u8, 201u8, 123u8, 203u8, 70u8,
                         ],
                     )
                 }
@@ -1259,9 +1231,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            225u8, 61u8, 131u8, 50u8, 219u8, 59u8, 155u8, 214u8, 55u8, 226u8, 16u8,
-                            97u8, 105u8, 233u8, 120u8, 165u8, 93u8, 190u8, 95u8, 17u8, 98u8, 190u8,
-                            215u8, 5u8, 68u8, 159u8, 175u8, 151u8, 18u8, 225u8, 173u8, 33u8,
+                            18u8, 192u8, 161u8, 114u8, 187u8, 15u8, 78u8, 111u8, 41u8, 148u8, 58u8,
+                            78u8, 11u8, 52u8, 58u8, 227u8, 178u8, 168u8, 168u8, 79u8, 23u8, 20u8,
+                            191u8, 105u8, 4u8, 119u8, 155u8, 163u8, 240u8, 18u8, 231u8, 88u8,
                         ],
                     )
                 }
@@ -1306,10 +1278,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            195u8, 232u8, 95u8, 210u8, 72u8, 173u8, 250u8, 205u8, 177u8, 12u8,
-                            133u8, 150u8, 29u8, 117u8, 36u8, 224u8, 15u8, 96u8, 146u8, 166u8,
-                            150u8, 201u8, 100u8, 39u8, 24u8, 101u8, 106u8, 203u8, 5u8, 254u8,
-                            152u8, 200u8,
+                            19u8, 56u8, 251u8, 84u8, 220u8, 73u8, 53u8, 58u8, 17u8, 107u8, 232u8,
+                            203u8, 42u8, 25u8, 57u8, 47u8, 37u8, 190u8, 91u8, 111u8, 92u8, 18u8,
+                            22u8, 181u8, 55u8, 73u8, 230u8, 255u8, 87u8, 97u8, 33u8, 19u8,
                         ],
                     )
                 }
@@ -1340,10 +1311,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            66u8, 207u8, 170u8, 201u8, 97u8, 14u8, 247u8, 128u8, 228u8, 59u8,
-                            244u8, 247u8, 0u8, 196u8, 211u8, 231u8, 73u8, 247u8, 214u8, 46u8, 38u8,
-                            31u8, 246u8, 0u8, 255u8, 212u8, 125u8, 73u8, 114u8, 243u8, 165u8,
-                            115u8,
+                            11u8, 116u8, 241u8, 215u8, 147u8, 140u8, 121u8, 100u8, 225u8, 1u8,
+                            173u8, 155u8, 196u8, 123u8, 9u8, 145u8, 92u8, 180u8, 132u8, 28u8,
+                            131u8, 142u8, 146u8, 102u8, 229u8, 151u8, 118u8, 245u8, 20u8, 107u8,
+                            170u8, 119u8,
                         ],
                     )
                 }
@@ -2353,6 +2324,27 @@ pub mod api {
                         ],
                     )
                 }
+                #[doc = " The total units of outstanding deactivated balance in the system."]
+                pub fn inactive_issuance(
+                    &self,
+                ) -> ::subxt::storage::address::StaticStorageAddress<
+                    ::subxt::metadata::DecodeStaticType<::core::primitive::u128>,
+                    ::subxt::storage::address::Yes,
+                    ::subxt::storage::address::Yes,
+                    (),
+                > {
+                    ::subxt::storage::address::StaticStorageAddress::new(
+                        "Balances",
+                        "InactiveIssuance",
+                        vec![],
+                        [
+                            74u8, 203u8, 111u8, 142u8, 225u8, 104u8, 173u8, 51u8, 226u8, 12u8,
+                            85u8, 135u8, 41u8, 206u8, 177u8, 238u8, 94u8, 246u8, 184u8, 250u8,
+                            140u8, 213u8, 91u8, 118u8, 163u8, 111u8, 211u8, 46u8, 204u8, 160u8,
+                            154u8, 21u8,
+                        ],
+                    )
+                }
                 #[doc = " The Balances pallet example of storing the balance of an account."]
                 #[doc = ""]
                 #[doc = " # Example"]
@@ -2559,29 +2551,6 @@ pub mod api {
                         ],
                     )
                 }
-                #[doc = " Storage version of the pallet."]
-                #[doc = ""]
-                #[doc = " This is set to v2.0.0 for new networks."]
-                pub fn storage_version(
-                    &self,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<runtime_types::pallet_balances::Releases>,
-                    ::subxt::storage::address::Yes,
-                    ::subxt::storage::address::Yes,
-                    (),
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Balances",
-                        "StorageVersion",
-                        vec![],
-                        [
-                            135u8, 96u8, 28u8, 234u8, 124u8, 212u8, 56u8, 140u8, 40u8, 101u8,
-                            235u8, 128u8, 136u8, 221u8, 182u8, 81u8, 17u8, 9u8, 184u8, 228u8,
-                            174u8, 165u8, 200u8, 162u8, 214u8, 178u8, 227u8, 72u8, 34u8, 5u8,
-                            173u8, 96u8,
-                        ],
-                    )
-                }
             }
         }
         pub mod constants {
@@ -2763,85 +2732,10 @@ pub mod api {
     }
     pub mod authorship {
         use super::{root_mod, runtime_types};
-        #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
-        pub mod calls {
-            use super::{root_mod, runtime_types};
-            type DispatchError = runtime_types::sp_runtime::DispatchError;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            pub struct SetUncles {
-                pub new_uncles: ::std::vec::Vec<
-                    runtime_types::sp_runtime::generic::header::Header<
-                        ::core::primitive::u32,
-                        runtime_types::sp_runtime::traits::BlakeTwo256,
-                    >,
-                >,
-            }
-            pub struct TransactionApi;
-            impl TransactionApi {
-                #[doc = "Provide a set of uncles."]
-                pub fn set_uncles(
-                    &self,
-                    new_uncles: ::std::vec::Vec<
-                        runtime_types::sp_runtime::generic::header::Header<
-                            ::core::primitive::u32,
-                            runtime_types::sp_runtime::traits::BlakeTwo256,
-                        >,
-                    >,
-                ) -> ::subxt::tx::StaticTxPayload<SetUncles> {
-                    ::subxt::tx::StaticTxPayload::new(
-                        "Authorship",
-                        "set_uncles",
-                        SetUncles { new_uncles },
-                        [
-                            181u8, 70u8, 222u8, 83u8, 154u8, 215u8, 200u8, 64u8, 154u8, 228u8,
-                            115u8, 247u8, 117u8, 89u8, 229u8, 102u8, 128u8, 189u8, 90u8, 60u8,
-                            223u8, 19u8, 111u8, 172u8, 5u8, 223u8, 132u8, 37u8, 235u8, 119u8, 42u8,
-                            64u8,
-                        ],
-                    )
-                }
-            }
-        }
         pub mod storage {
             use super::runtime_types;
             pub struct StorageApi;
             impl StorageApi {
-                #[doc = " Uncles"]
-                pub fn uncles(
-                    &self,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<
-                        runtime_types::sp_core::bounded::bounded_vec::BoundedVec<
-                            runtime_types::pallet_authorship::UncleEntryItem<
-                                ::core::primitive::u32,
-                                ::subxt::ext::sp_core::H256,
-                                ::subxt::ext::sp_core::crypto::AccountId32,
-                            >,
-                        >,
-                    >,
-                    ::subxt::storage::address::Yes,
-                    ::subxt::storage::address::Yes,
-                    (),
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Authorship",
-                        "Uncles",
-                        vec![],
-                        [
-                            193u8, 226u8, 196u8, 151u8, 233u8, 82u8, 60u8, 164u8, 27u8, 156u8,
-                            231u8, 51u8, 79u8, 134u8, 170u8, 166u8, 71u8, 120u8, 250u8, 255u8,
-                            52u8, 168u8, 74u8, 199u8, 122u8, 253u8, 248u8, 178u8, 39u8, 233u8,
-                            132u8, 67u8,
-                        ],
-                    )
-                }
                 #[doc = " Author of current block."]
                 pub fn author(
                     &self,
@@ -2860,51 +2754,6 @@ pub mod api {
                             25u8, 131u8, 5u8, 167u8, 237u8, 188u8, 188u8, 33u8, 177u8, 126u8,
                             181u8, 49u8, 126u8, 118u8, 46u8, 128u8, 154u8, 95u8, 15u8, 91u8, 103u8,
                             113u8,
-                        ],
-                    )
-                }
-                #[doc = " Whether uncles were already set in this block."]
-                pub fn did_set_uncles(
-                    &self,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<::core::primitive::bool>,
-                    ::subxt::storage::address::Yes,
-                    ::subxt::storage::address::Yes,
-                    (),
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Authorship",
-                        "DidSetUncles",
-                        vec![],
-                        [
-                            64u8, 3u8, 208u8, 187u8, 50u8, 45u8, 37u8, 88u8, 163u8, 226u8, 37u8,
-                            126u8, 232u8, 107u8, 156u8, 187u8, 29u8, 15u8, 53u8, 46u8, 28u8, 73u8,
-                            83u8, 123u8, 14u8, 244u8, 243u8, 43u8, 245u8, 143u8, 15u8, 115u8,
-                        ],
-                    )
-                }
-            }
-        }
-        pub mod constants {
-            use super::runtime_types;
-            pub struct ConstantsApi;
-            impl ConstantsApi {
-                #[doc = " The number of blocks back we should accept uncles."]
-                #[doc = " This means that we will deal with uncle-parents that are"]
-                #[doc = " `UncleGenerations + 1` before `now`."]
-                pub fn uncle_generations(
-                    &self,
-                ) -> ::subxt::constants::StaticConstantAddress<
-                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
-                > {
-                    ::subxt::constants::StaticConstantAddress::new(
-                        "Authorship",
-                        "UncleGenerations",
-                        [
-                            98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
-                            125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
-                            178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
-                            145u8,
                         ],
                     )
                 }
@@ -3232,6 +3081,17 @@ pub mod api {
             pub struct ForceApplyMinCommission {
                 pub validator_stash: ::subxt::ext::sp_core::crypto::AccountId32,
             }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            pub struct SetMinCommission {
+                pub new: runtime_types::sp_arithmetic::per_things::Perbill,
+            }
             pub struct TransactionApi;
             impl TransactionApi {
                 #[doc = "Take the origin account as a stash and lock up `value` of its balance. `controller` will"]
@@ -3318,8 +3178,8 @@ pub mod api {
                 #[doc = "the funds out of management ready for transfer."]
                 #[doc = ""]
                 #[doc = "No more than a limited number of unlocking chunks (see `MaxUnlockingChunks`)"]
-                #[doc = "can co-exists at the same time. In that case, [`Call::withdraw_unbonded`] need"]
-                #[doc = "to be called first to remove some of the chunks (if possible)."]
+                #[doc = "can co-exists at the same time. If there are no unlocking chunks slots available"]
+                #[doc = "[`Call::withdraw_unbonded`] is called to remove some of the chunks (if possible)."]
                 #[doc = ""]
                 #[doc = "If a user encounters the `InsufficientBond` error when calling this extrinsic,"]
                 #[doc = "they should call `chill` first in order to free up their bonded funds."]
@@ -3541,7 +3401,8 @@ pub mod api {
                         ],
                     )
                 }
-                #[doc = "Increments the ideal number of validators."]
+                #[doc = "Increments the ideal number of validators upto maximum of"]
+                #[doc = "`ElectionProviderBase::MaxWinners`."]
                 #[doc = ""]
                 #[doc = "The dispatch origin must be Root."]
                 #[doc = ""]
@@ -3563,7 +3424,8 @@ pub mod api {
                         ],
                     )
                 }
-                #[doc = "Scale up the ideal number of validators by a factor."]
+                #[doc = "Scale up the ideal number of validators by a factor upto maximum of"]
+                #[doc = "`ElectionProviderBase::MaxWinners`."]
                 #[doc = ""]
                 #[doc = "The dispatch origin must be Root."]
                 #[doc = ""]
@@ -3708,7 +3570,7 @@ pub mod api {
                 }
                 #[doc = "Cancel enactment of a deferred slash."]
                 #[doc = ""]
-                #[doc = "Can be called by the `T::SlashCancelOrigin`."]
+                #[doc = "Can be called by the `T::AdminOrigin`."]
                 #[doc = ""]
                 #[doc = "Parameters: era and indices of the slashes for that era to kill."]
                 pub fn cancel_deferred_slash(
@@ -3972,6 +3834,26 @@ pub mod api {
                         ],
                     )
                 }
+                #[doc = "Sets the minimum amount of commission that each validators must maintain."]
+                #[doc = ""]
+                #[doc = "This call has lower privilege requirements than `set_staking_config` and can be called"]
+                #[doc = "by the `T::AdminOrigin`. Root can always call this."]
+                pub fn set_min_commission(
+                    &self,
+                    new: runtime_types::sp_arithmetic::per_things::Perbill,
+                ) -> ::subxt::tx::StaticTxPayload<SetMinCommission> {
+                    ::subxt::tx::StaticTxPayload::new(
+                        "Staking",
+                        "set_min_commission",
+                        SetMinCommission { new },
+                        [
+                            62u8, 139u8, 175u8, 245u8, 212u8, 113u8, 117u8, 130u8, 191u8, 173u8,
+                            78u8, 97u8, 19u8, 104u8, 185u8, 207u8, 201u8, 14u8, 200u8, 208u8,
+                            184u8, 195u8, 242u8, 175u8, 158u8, 156u8, 51u8, 58u8, 118u8, 154u8,
+                            68u8, 221u8,
+                        ],
+                    )
+                }
             }
         }
         #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
@@ -4022,7 +3904,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
-            #[doc = "One staker (and potentially its nominators) has been slashed by the given amount."]
+            #[doc = "A staker (validator or nominator) has been slashed by the given amount."]
             pub struct Slashed {
                 pub staker: ::subxt::ext::sp_core::crypto::AccountId32,
                 pub amount: ::core::primitive::u128,
@@ -4030,6 +3912,25 @@ pub mod api {
             impl ::subxt::events::StaticEvent for Slashed {
                 const PALLET: &'static str = "Staking";
                 const EVENT: &'static str = "Slashed";
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            #[doc = "A slash for the given validator, for the given percentage of their stake, at the given"]
+            #[doc = "era as been reported."]
+            pub struct SlashReported {
+                pub validator: ::subxt::ext::sp_core::crypto::AccountId32,
+                pub fraction: runtime_types::sp_arithmetic::per_things::Perbill,
+                pub slash_era: ::core::primitive::u32,
+            }
+            impl ::subxt::events::StaticEvent for SlashReported {
+                const PALLET: &'static str = "Staking";
+                const EVENT: &'static str = "SlashReported";
             }
             #[derive(
                 :: subxt :: ext :: codec :: CompactAs,
@@ -4199,12 +4100,28 @@ pub mod api {
                 const PALLET: &'static str = "Staking";
                 const EVENT: &'static str = "ValidatorPrefsSet";
             }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            #[doc = "A new force era mode was set."]
+            pub struct ForceEra {
+                pub mode: runtime_types::pallet_staking::Forcing,
+            }
+            impl ::subxt::events::StaticEvent for ForceEra {
+                const PALLET: &'static str = "Staking";
+                const EVENT: &'static str = "ForceEra";
+            }
         }
         pub mod storage {
             use super::runtime_types;
             pub struct StorageApi;
             impl StorageApi {
-                #[doc = " The ideal number of staking participants."]
+                #[doc = " The ideal number of active validators."]
                 pub fn validator_count(
                     &self,
                 ) -> ::subxt::storage::address::StaticStorageAddress<
@@ -4269,6 +4186,8 @@ pub mod api {
                     )
                 }
                 #[doc = " Map from all locked \"stash\" accounts to the controller account."]
+                #[doc = ""]
+                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
                 pub fn bonded(
                     &self,
                     _0: impl ::std::borrow::Borrow<::subxt::ext::sp_core::crypto::AccountId32>,
@@ -4293,6 +4212,8 @@ pub mod api {
                     )
                 }
                 #[doc = " Map from all locked \"stash\" accounts to the controller account."]
+                #[doc = ""]
+                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
                 pub fn bonded_root(
                     &self,
                 ) -> ::subxt::storage::address::StaticStorageAddress<
@@ -4349,6 +4270,26 @@ pub mod api {
                             48u8, 105u8, 85u8, 178u8, 142u8, 208u8, 208u8, 19u8, 236u8, 130u8,
                             129u8, 169u8, 35u8, 245u8, 66u8, 182u8, 92u8, 20u8, 22u8, 109u8, 155u8,
                             174u8, 87u8, 118u8, 242u8, 216u8, 193u8, 154u8, 4u8, 5u8, 66u8, 56u8,
+                        ],
+                    )
+                }
+                #[doc = " The minimum active nominator stake of the last successful election."]
+                pub fn minimum_active_stake(
+                    &self,
+                ) -> ::subxt::storage::address::StaticStorageAddress<
+                    ::subxt::metadata::DecodeStaticType<::core::primitive::u128>,
+                    ::subxt::storage::address::Yes,
+                    ::subxt::storage::address::Yes,
+                    (),
+                > {
+                    ::subxt::storage::address::StaticStorageAddress::new(
+                        "Staking",
+                        "MinimumActiveStake",
+                        vec![],
+                        [
+                            172u8, 190u8, 228u8, 47u8, 47u8, 192u8, 182u8, 59u8, 9u8, 18u8, 103u8,
+                            46u8, 175u8, 54u8, 17u8, 79u8, 89u8, 107u8, 255u8, 200u8, 182u8, 107u8,
+                            89u8, 157u8, 55u8, 16u8, 77u8, 46u8, 154u8, 169u8, 103u8, 151u8,
                         ],
                     )
                 }
@@ -4427,6 +4368,8 @@ pub mod api {
                     )
                 }
                 #[doc = " Where the reward payment should be made. Keyed by stash."]
+                #[doc = ""]
+                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
                 pub fn payee(
                     &self,
                     _0: impl ::std::borrow::Borrow<::subxt::ext::sp_core::crypto::AccountId32>,
@@ -4456,6 +4399,8 @@ pub mod api {
                     )
                 }
                 #[doc = " Where the reward payment should be made. Keyed by stash."]
+                #[doc = ""]
+                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
                 pub fn payee_root(
                     &self,
                 ) -> ::subxt::storage::address::StaticStorageAddress<
@@ -4481,6 +4426,8 @@ pub mod api {
                     )
                 }
                 #[doc = " The map from (wannabe) validator stash key to the preferences of that validator."]
+                #[doc = ""]
+                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
                 pub fn validators(
                     &self,
                     _0: impl ::std::borrow::Borrow<::subxt::ext::sp_core::crypto::AccountId32>,
@@ -4508,6 +4455,8 @@ pub mod api {
                     )
                 }
                 #[doc = " The map from (wannabe) validator stash key to the preferences of that validator."]
+                #[doc = ""]
+                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
                 pub fn validators_root(
                     &self,
                 ) -> ::subxt::storage::address::StaticStorageAddress<
@@ -4588,6 +4537,8 @@ pub mod api {
                 #[doc = ""]
                 #[doc = " Lastly, if any of the nominators become non-decodable, they can be chilled immediately via"]
                 #[doc = " [`Call::chill_other`] dispatchable by anyone."]
+                #[doc = ""]
+                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
                 pub fn nominators(
                     &self,
                     _0: impl ::std::borrow::Borrow<::subxt::ext::sp_core::crypto::AccountId32>,
@@ -4628,6 +4579,8 @@ pub mod api {
                 #[doc = ""]
                 #[doc = " Lastly, if any of the nominators become non-decodable, they can be chilled immediately via"]
                 #[doc = " [`Call::chill_other`] dispatchable by anyone."]
+                #[doc = ""]
+                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
                 pub fn nominators_root(
                     &self,
                 ) -> ::subxt::storage::address::StaticStorageAddress<
@@ -5577,29 +5530,6 @@ pub mod api {
                         ],
                     )
                 }
-                #[doc = " True if network has been upgraded to this version."]
-                #[doc = " Storage version of the pallet."]
-                #[doc = ""]
-                #[doc = " This is set to v7.0.0 for new networks."]
-                pub fn storage_version(
-                    &self,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<runtime_types::pallet_staking::Releases>,
-                    ::subxt::storage::address::Yes,
-                    ::subxt::storage::address::Yes,
-                    (),
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Staking",
-                        "StorageVersion",
-                        vec![],
-                        [
-                            70u8, 24u8, 179u8, 189u8, 168u8, 164u8, 175u8, 150u8, 215u8, 43u8,
-                            18u8, 110u8, 180u8, 137u8, 237u8, 187u8, 185u8, 50u8, 31u8, 57u8, 16u8,
-                            110u8, 6u8, 170u8, 19u8, 7u8, 160u8, 134u8, 232u8, 227u8, 151u8, 116u8,
-                        ],
-                    )
-                }
                 #[doc = " The threshold for when users can start calling `chill_other` for other validators /"]
                 #[doc = " nominators. The threshold is compared to the actual number of validators / nominators"]
                 #[doc = " (`CountFor*`) in the system compared to the configured max (`Max*Count`)."]
@@ -6341,6 +6271,27 @@ pub mod api {
                         ],
                     )
                 }
+                pub fn next_authorities(
+                    &self,
+                ) -> ::subxt::storage::address::StaticStorageAddress<
+                    ::subxt::metadata::DecodeStaticType<
+                        ::std::vec::Vec<runtime_types::primitives::app::Public>,
+                    >,
+                    ::subxt::storage::address::Yes,
+                    ::subxt::storage::address::Yes,
+                    (),
+                > {
+                    ::subxt::storage::address::StaticStorageAddress::new(
+                        "Aleph",
+                        "NextAuthorities",
+                        vec![],
+                        [
+                            154u8, 154u8, 79u8, 162u8, 210u8, 4u8, 206u8, 179u8, 246u8, 47u8, 39u8,
+                            225u8, 102u8, 36u8, 206u8, 68u8, 16u8, 243u8, 98u8, 193u8, 163u8, 11u8,
+                            207u8, 99u8, 238u8, 105u8, 254u8, 211u8, 28u8, 3u8, 247u8, 95u8,
+                        ],
+                    )
+                }
                 pub fn emergency_finalizer(
                     &self,
                 ) -> ::subxt::storage::address::StaticStorageAddress<
@@ -7039,6 +6990,26 @@ pub mod api {
                         ],
                     )
                 }
+                #[doc = " The maximum number of winners that can be elected by this `ElectionProvider`"]
+                #[doc = " implementation."]
+                #[doc = ""]
+                #[doc = " Note: This must always be greater or equal to `T::DataProvider::desired_targets()`."]
+                pub fn max_winners(
+                    &self,
+                ) -> ::subxt::constants::StaticConstantAddress<
+                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
+                > {
+                    ::subxt::constants::StaticConstantAddress::new(
+                        "Elections",
+                        "MaxWinners",
+                        [
+                            98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
+                            125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
+                            178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
+                            145u8,
+                        ],
+                    )
+                }
             }
         }
     }
@@ -7400,6 +7371,23 @@ pub mod api {
                 const PALLET: &'static str = "Treasury";
                 const EVENT: &'static str = "SpendApproved";
             }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            #[doc = "The inactive funds of the pallet have been updated."]
+            pub struct UpdatedInactive {
+                pub reactivated: ::core::primitive::u128,
+                pub deactivated: ::core::primitive::u128,
+            }
+            impl ::subxt::events::StaticEvent for UpdatedInactive {
+                const PALLET: &'static str = "Treasury";
+                const EVENT: &'static str = "UpdatedInactive";
+            }
         }
         pub mod storage {
             use super::runtime_types;
@@ -7477,6 +7465,26 @@ pub mod api {
                             62u8, 223u8, 55u8, 209u8, 151u8, 134u8, 122u8, 65u8, 207u8, 38u8,
                             113u8, 213u8, 237u8, 48u8, 129u8, 32u8, 91u8, 228u8, 108u8, 91u8, 37u8,
                             49u8, 94u8, 4u8, 75u8, 122u8, 25u8, 34u8, 198u8, 224u8, 246u8, 160u8,
+                        ],
+                    )
+                }
+                #[doc = " The amount which has been reported as inactive to Currency."]
+                pub fn deactivated(
+                    &self,
+                ) -> ::subxt::storage::address::StaticStorageAddress<
+                    ::subxt::metadata::DecodeStaticType<::core::primitive::u128>,
+                    ::subxt::storage::address::Yes,
+                    ::subxt::storage::address::Yes,
+                    (),
+                > {
+                    ::subxt::storage::address::StaticStorageAddress::new(
+                        "Treasury",
+                        "Deactivated",
+                        vec![],
+                        [
+                            159u8, 57u8, 5u8, 85u8, 136u8, 128u8, 70u8, 43u8, 67u8, 76u8, 123u8,
+                            206u8, 48u8, 253u8, 51u8, 40u8, 14u8, 35u8, 162u8, 173u8, 127u8, 79u8,
+                            38u8, 235u8, 9u8, 141u8, 201u8, 37u8, 211u8, 176u8, 119u8, 106u8,
                         ],
                     )
                 }
@@ -8137,17 +8145,29 @@ pub mod api {
             pub struct ForceBatch {
                 pub calls: ::std::vec::Vec<runtime_types::aleph_runtime::RuntimeCall>,
             }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            pub struct WithWeight {
+                pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
+                pub weight: runtime_types::sp_weights::weight_v2::Weight,
+            }
             pub struct TransactionApi;
             impl TransactionApi {
                 #[doc = "Send a batch of dispatch calls."]
                 #[doc = ""]
-                #[doc = "May be called from any origin."]
+                #[doc = "May be called from any origin except `None`."]
                 #[doc = ""]
                 #[doc = "- `calls`: The calls to be dispatched from the same origin. The number of call must not"]
                 #[doc = "  exceed the constant: `batched_calls_limit` (available in constant metadata)."]
                 #[doc = ""]
-                #[doc = "If origin is root then call are dispatch without checking origin filter. (This includes"]
-                #[doc = "bypassing `frame_system::Config::BaseCallFilter`)."]
+                #[doc = "If origin is root then the calls are dispatched without checking origin filter. (This"]
+                #[doc = "includes bypassing `frame_system::Config::BaseCallFilter`)."]
                 #[doc = ""]
                 #[doc = "# <weight>"]
                 #[doc = "- Complexity: O(C) where C is the number of calls to be batched."]
@@ -8167,9 +8187,9 @@ pub mod api {
                         "batch",
                         Batch { calls },
                         [
-                            133u8, 221u8, 235u8, 193u8, 91u8, 7u8, 110u8, 134u8, 44u8, 216u8,
-                            153u8, 186u8, 141u8, 18u8, 35u8, 164u8, 125u8, 26u8, 221u8, 179u8,
-                            87u8, 36u8, 7u8, 143u8, 157u8, 187u8, 247u8, 11u8, 5u8, 99u8, 33u8,
+                            246u8, 95u8, 179u8, 39u8, 249u8, 175u8, 209u8, 240u8, 62u8, 104u8,
+                            94u8, 176u8, 39u8, 221u8, 186u8, 130u8, 30u8, 95u8, 148u8, 150u8,
+                            164u8, 185u8, 61u8, 206u8, 82u8, 150u8, 21u8, 92u8, 250u8, 42u8, 11u8,
                             84u8,
                         ],
                     )
@@ -8200,23 +8220,23 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            89u8, 124u8, 203u8, 121u8, 79u8, 155u8, 107u8, 115u8, 184u8, 130u8,
-                            104u8, 88u8, 113u8, 95u8, 1u8, 95u8, 5u8, 130u8, 97u8, 224u8, 164u8,
-                            229u8, 156u8, 215u8, 124u8, 12u8, 220u8, 19u8, 244u8, 161u8, 34u8,
-                            239u8,
+                            67u8, 121u8, 39u8, 163u8, 227u8, 98u8, 177u8, 171u8, 70u8, 107u8,
+                            117u8, 43u8, 251u8, 191u8, 178u8, 195u8, 174u8, 38u8, 113u8, 177u8,
+                            246u8, 52u8, 253u8, 234u8, 114u8, 205u8, 158u8, 193u8, 170u8, 109u8,
+                            156u8, 90u8,
                         ],
                     )
                 }
                 #[doc = "Send a batch of dispatch calls and atomically execute them."]
                 #[doc = "The whole transaction will rollback and fail if any of the calls failed."]
                 #[doc = ""]
-                #[doc = "May be called from any origin."]
+                #[doc = "May be called from any origin except `None`."]
                 #[doc = ""]
                 #[doc = "- `calls`: The calls to be dispatched from the same origin. The number of call must not"]
                 #[doc = "  exceed the constant: `batched_calls_limit` (available in constant metadata)."]
                 #[doc = ""]
-                #[doc = "If origin is root then call are dispatch without checking origin filter. (This includes"]
-                #[doc = "bypassing `frame_system::Config::BaseCallFilter`)."]
+                #[doc = "If origin is root then the calls are dispatched without checking origin filter. (This"]
+                #[doc = "includes bypassing `frame_system::Config::BaseCallFilter`)."]
                 #[doc = ""]
                 #[doc = "# <weight>"]
                 #[doc = "- Complexity: O(C) where C is the number of calls to be batched."]
@@ -8230,9 +8250,10 @@ pub mod api {
                         "batch_all",
                         BatchAll { calls },
                         [
-                            113u8, 175u8, 42u8, 32u8, 149u8, 19u8, 249u8, 103u8, 107u8, 29u8,
-                            199u8, 119u8, 153u8, 64u8, 17u8, 55u8, 36u8, 179u8, 163u8, 252u8, 40u8,
-                            68u8, 87u8, 159u8, 201u8, 43u8, 186u8, 15u8, 203u8, 51u8, 110u8, 134u8,
+                            232u8, 172u8, 238u8, 163u8, 123u8, 117u8, 137u8, 30u8, 255u8, 209u8,
+                            78u8, 112u8, 182u8, 98u8, 131u8, 111u8, 26u8, 148u8, 102u8, 177u8,
+                            13u8, 44u8, 155u8, 11u8, 177u8, 178u8, 243u8, 26u8, 194u8, 25u8, 49u8,
+                            101u8,
                         ],
                     )
                 }
@@ -8259,22 +8280,22 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            22u8, 78u8, 25u8, 229u8, 141u8, 41u8, 212u8, 143u8, 191u8, 209u8, 85u8,
-                            50u8, 52u8, 182u8, 87u8, 90u8, 220u8, 192u8, 227u8, 22u8, 112u8, 80u8,
-                            219u8, 15u8, 79u8, 71u8, 223u8, 156u8, 50u8, 238u8, 206u8, 22u8,
+                            38u8, 191u8, 59u8, 208u8, 154u8, 238u8, 140u8, 43u8, 105u8, 58u8, 64u8,
+                            80u8, 205u8, 78u8, 158u8, 48u8, 38u8, 45u8, 167u8, 147u8, 48u8, 196u8,
+                            12u8, 19u8, 152u8, 245u8, 107u8, 148u8, 128u8, 145u8, 117u8, 33u8,
                         ],
                     )
                 }
                 #[doc = "Send a batch of dispatch calls."]
                 #[doc = "Unlike `batch`, it allows errors and won't interrupt."]
                 #[doc = ""]
-                #[doc = "May be called from any origin."]
+                #[doc = "May be called from any origin except `None`."]
                 #[doc = ""]
                 #[doc = "- `calls`: The calls to be dispatched from the same origin. The number of call must not"]
                 #[doc = "  exceed the constant: `batched_calls_limit` (available in constant metadata)."]
                 #[doc = ""]
-                #[doc = "If origin is root then call are dispatch without checking origin filter. (This includes"]
-                #[doc = "bypassing `frame_system::Config::BaseCallFilter`)."]
+                #[doc = "If origin is root then the calls are dispatch without checking origin filter. (This"]
+                #[doc = "includes bypassing `frame_system::Config::BaseCallFilter`)."]
                 #[doc = ""]
                 #[doc = "# <weight>"]
                 #[doc = "- Complexity: O(C) where C is the number of calls to be batched."]
@@ -8288,10 +8309,34 @@ pub mod api {
                         "force_batch",
                         ForceBatch { calls },
                         [
-                            120u8, 171u8, 148u8, 121u8, 145u8, 46u8, 33u8, 186u8, 156u8, 175u8,
-                            122u8, 247u8, 127u8, 199u8, 136u8, 252u8, 66u8, 80u8, 212u8, 48u8,
-                            91u8, 133u8, 79u8, 70u8, 2u8, 16u8, 199u8, 188u8, 135u8, 153u8, 192u8,
-                            43u8,
+                            174u8, 39u8, 96u8, 207u8, 85u8, 73u8, 41u8, 31u8, 24u8, 186u8, 150u8,
+                            147u8, 172u8, 151u8, 242u8, 44u8, 226u8, 221u8, 77u8, 249u8, 3u8, 61u8,
+                            32u8, 163u8, 149u8, 128u8, 7u8, 112u8, 133u8, 208u8, 138u8, 231u8,
+                        ],
+                    )
+                }
+                #[doc = "Dispatch a function call with a specified weight."]
+                #[doc = ""]
+                #[doc = "This function does not check the weight of the call, and instead allows the"]
+                #[doc = "Root origin to specify the weight of the call."]
+                #[doc = ""]
+                #[doc = "The dispatch origin for this call must be _Root_."]
+                pub fn with_weight(
+                    &self,
+                    call: runtime_types::aleph_runtime::RuntimeCall,
+                    weight: runtime_types::sp_weights::weight_v2::Weight,
+                ) -> ::subxt::tx::StaticTxPayload<WithWeight> {
+                    ::subxt::tx::StaticTxPayload::new(
+                        "Utility",
+                        "with_weight",
+                        WithWeight {
+                            call: ::std::boxed::Box::new(call),
+                            weight,
+                        },
+                        [
+                            59u8, 14u8, 52u8, 140u8, 87u8, 162u8, 12u8, 101u8, 45u8, 45u8, 252u8,
+                            72u8, 84u8, 253u8, 68u8, 114u8, 134u8, 188u8, 107u8, 120u8, 177u8,
+                            59u8, 0u8, 156u8, 255u8, 22u8, 46u8, 76u8, 22u8, 9u8, 37u8, 246u8,
                         ],
                     )
                 }
@@ -8515,9 +8560,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            239u8, 130u8, 103u8, 0u8, 235u8, 43u8, 173u8, 85u8, 187u8, 251u8, 87u8,
-                            30u8, 24u8, 228u8, 2u8, 227u8, 97u8, 44u8, 144u8, 185u8, 203u8, 192u8,
-                            233u8, 87u8, 85u8, 85u8, 222u8, 20u8, 248u8, 114u8, 60u8, 127u8,
+                            178u8, 178u8, 110u8, 87u8, 35u8, 86u8, 155u8, 171u8, 44u8, 86u8, 151u8,
+                            60u8, 10u8, 245u8, 41u8, 5u8, 156u8, 135u8, 53u8, 252u8, 175u8, 242u8,
+                            166u8, 62u8, 135u8, 164u8, 156u8, 50u8, 123u8, 130u8, 45u8, 237u8,
                         ],
                     )
                 }
@@ -8587,9 +8632,9 @@ pub mod api {
                             max_weight,
                         },
                         [
-                            23u8, 197u8, 186u8, 167u8, 4u8, 196u8, 64u8, 69u8, 137u8, 201u8, 66u8,
-                            46u8, 29u8, 228u8, 12u8, 228u8, 202u8, 85u8, 142u8, 63u8, 202u8, 157u8,
-                            242u8, 22u8, 97u8, 0u8, 239u8, 190u8, 242u8, 112u8, 66u8, 35u8,
+                            174u8, 138u8, 25u8, 3u8, 211u8, 169u8, 147u8, 52u8, 165u8, 8u8, 228u8,
+                            79u8, 34u8, 2u8, 35u8, 149u8, 151u8, 153u8, 28u8, 91u8, 25u8, 117u8,
+                            141u8, 105u8, 20u8, 215u8, 126u8, 255u8, 180u8, 83u8, 143u8, 46u8,
                         ],
                     )
                 }
@@ -8823,10 +8868,9 @@ pub mod api {
                             ),
                         ],
                         [
-                            145u8, 78u8, 57u8, 171u8, 199u8, 158u8, 226u8, 250u8, 224u8, 133u8,
-                            45u8, 251u8, 202u8, 22u8, 171u8, 132u8, 229u8, 110u8, 248u8, 233u8,
-                            38u8, 2u8, 247u8, 140u8, 150u8, 103u8, 211u8, 209u8, 160u8, 158u8,
-                            23u8, 215u8,
+                            69u8, 153u8, 186u8, 204u8, 117u8, 95u8, 119u8, 182u8, 220u8, 87u8, 8u8,
+                            15u8, 123u8, 83u8, 5u8, 188u8, 115u8, 121u8, 163u8, 96u8, 218u8, 3u8,
+                            106u8, 44u8, 44u8, 187u8, 46u8, 238u8, 80u8, 203u8, 175u8, 155u8,
                         ],
                     )
                 }
@@ -8850,10 +8894,9 @@ pub mod api {
                         "Multisigs",
                         Vec::new(),
                         [
-                            145u8, 78u8, 57u8, 171u8, 199u8, 158u8, 226u8, 250u8, 224u8, 133u8,
-                            45u8, 251u8, 202u8, 22u8, 171u8, 132u8, 229u8, 110u8, 248u8, 233u8,
-                            38u8, 2u8, 247u8, 140u8, 150u8, 103u8, 211u8, 209u8, 160u8, 158u8,
-                            23u8, 215u8,
+                            69u8, 153u8, 186u8, 204u8, 117u8, 95u8, 119u8, 182u8, 220u8, 87u8, 8u8,
+                            15u8, 123u8, 83u8, 5u8, 188u8, 115u8, 121u8, 163u8, 96u8, 218u8, 3u8,
+                            106u8, 44u8, 44u8, 187u8, 46u8, 238u8, 80u8, 203u8, 175u8, 155u8,
                         ],
                     )
                 }
@@ -8906,15 +8949,16 @@ pub mod api {
                 pub fn max_signatories(
                     &self,
                 ) -> ::subxt::constants::StaticConstantAddress<
-                    ::subxt::metadata::DecodeStaticType<::core::primitive::u16>,
+                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
                 > {
                     ::subxt::constants::StaticConstantAddress::new(
                         "Multisig",
                         "MaxSignatories",
                         [
-                            116u8, 33u8, 2u8, 170u8, 181u8, 147u8, 171u8, 169u8, 167u8, 227u8,
-                            41u8, 144u8, 11u8, 236u8, 82u8, 100u8, 74u8, 60u8, 184u8, 72u8, 169u8,
-                            90u8, 208u8, 135u8, 15u8, 117u8, 10u8, 123u8, 128u8, 193u8, 29u8, 70u8,
+                            98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
+                            125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
+                            178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
+                            145u8,
                         ],
                     )
                 }
@@ -9002,9 +9046,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            45u8, 75u8, 70u8, 203u8, 174u8, 224u8, 54u8, 238u8, 146u8, 185u8, 77u8,
-                            12u8, 52u8, 100u8, 144u8, 11u8, 240u8, 41u8, 140u8, 4u8, 0u8, 58u8,
-                            39u8, 155u8, 238u8, 140u8, 67u8, 214u8, 119u8, 104u8, 89u8, 22u8,
+                            96u8, 109u8, 155u8, 149u8, 31u8, 0u8, 38u8, 21u8, 17u8, 99u8, 252u8,
+                            216u8, 122u8, 10u8, 113u8, 28u8, 148u8, 88u8, 145u8, 164u8, 114u8, 2u8,
+                            241u8, 122u8, 48u8, 33u8, 202u8, 244u8, 6u8, 154u8, 154u8, 20u8,
                         ],
                     )
                 }
@@ -9031,9 +9075,10 @@ pub mod api {
                             weight,
                         },
                         [
-                            137u8, 232u8, 9u8, 190u8, 69u8, 47u8, 57u8, 207u8, 54u8, 246u8, 248u8,
-                            221u8, 1u8, 83u8, 149u8, 19u8, 28u8, 32u8, 24u8, 165u8, 220u8, 67u8,
-                            76u8, 244u8, 132u8, 160u8, 137u8, 41u8, 180u8, 130u8, 220u8, 200u8,
+                            50u8, 68u8, 242u8, 243u8, 214u8, 56u8, 132u8, 15u8, 170u8, 60u8, 186u8,
+                            80u8, 15u8, 212u8, 89u8, 227u8, 106u8, 164u8, 116u8, 136u8, 156u8,
+                            180u8, 163u8, 197u8, 8u8, 249u8, 166u8, 161u8, 28u8, 197u8, 18u8,
+                            146u8,
                         ],
                     )
                 }
@@ -9092,9 +9137,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            85u8, 36u8, 6u8, 85u8, 135u8, 161u8, 37u8, 24u8, 96u8, 12u8, 20u8, 4u8,
-                            7u8, 108u8, 106u8, 33u8, 73u8, 22u8, 247u8, 138u8, 220u8, 24u8, 243u8,
-                            126u8, 236u8, 251u8, 195u8, 79u8, 28u8, 39u8, 50u8, 248u8,
+                            101u8, 206u8, 145u8, 216u8, 78u8, 11u8, 239u8, 246u8, 140u8, 53u8,
+                            150u8, 48u8, 92u8, 148u8, 124u8, 169u8, 18u8, 208u8, 229u8, 179u8,
+                            219u8, 58u8, 141u8, 100u8, 113u8, 167u8, 91u8, 96u8, 234u8, 43u8, 52u8,
+                            185u8,
                         ],
                     )
                 }
@@ -9259,6 +9305,7 @@ pub mod api {
                 pub code: ::std::vec::Vec<::core::primitive::u8>,
                 pub storage_deposit_limit:
                     ::core::option::Option<::subxt::ext::codec::Compact<::core::primitive::u128>>,
+                pub determinism: runtime_types::pallet_contracts::wasm::Determinism,
             }
             #[derive(
                 :: subxt :: ext :: codec :: Decode,
@@ -9446,6 +9493,10 @@ pub mod api {
                 #[doc = "the in storage version to the current"]
                 #[doc = "[`InstructionWeights::version`](InstructionWeights)."]
                 #[doc = ""]
+                #[doc = "- `determinism`: If this is set to any other value but [`Determinism::Deterministic`]"]
+                #[doc = "  then the only way to use this code is to delegate call into it from an offchain"]
+                #[doc = "  execution. Set to [`Determinism::Deterministic`] if in doubt."]
+                #[doc = ""]
                 #[doc = "# Note"]
                 #[doc = ""]
                 #[doc = "Anyone can instantiate a contract from any uploaded code and thus prevent its removal."]
@@ -9458,6 +9509,7 @@ pub mod api {
                     storage_deposit_limit: ::core::option::Option<
                         ::subxt::ext::codec::Compact<::core::primitive::u128>,
                     >,
+                    determinism: runtime_types::pallet_contracts::wasm::Determinism,
                 ) -> ::subxt::tx::StaticTxPayload<UploadCode> {
                     ::subxt::tx::StaticTxPayload::new(
                         "Contracts",
@@ -9465,11 +9517,13 @@ pub mod api {
                         UploadCode {
                             code,
                             storage_deposit_limit,
+                            determinism,
                         },
                         [
-                            8u8, 32u8, 174u8, 226u8, 212u8, 86u8, 47u8, 247u8, 123u8, 155u8, 40u8,
-                            192u8, 184u8, 216u8, 61u8, 57u8, 94u8, 23u8, 76u8, 59u8, 4u8, 124u8,
-                            252u8, 248u8, 87u8, 233u8, 13u8, 184u8, 133u8, 236u8, 174u8, 85u8,
+                            233u8, 137u8, 54u8, 111u8, 132u8, 124u8, 80u8, 213u8, 182u8, 224u8,
+                            144u8, 240u8, 6u8, 235u8, 148u8, 26u8, 65u8, 39u8, 91u8, 151u8, 131u8,
+                            10u8, 216u8, 101u8, 89u8, 115u8, 160u8, 154u8, 44u8, 239u8, 142u8,
+                            116u8,
                         ],
                     )
                 }
@@ -9895,10 +9949,9 @@ pub mod api {
                             ::subxt::storage::address::StorageHasher::Identity,
                         )],
                         [
-                            167u8, 247u8, 131u8, 220u8, 90u8, 100u8, 172u8, 16u8, 129u8, 235u8,
-                            119u8, 88u8, 60u8, 196u8, 74u8, 173u8, 192u8, 110u8, 106u8, 187u8,
-                            111u8, 255u8, 114u8, 39u8, 76u8, 52u8, 245u8, 79u8, 132u8, 108u8,
-                            141u8, 176u8,
+                            57u8, 55u8, 36u8, 82u8, 39u8, 194u8, 172u8, 147u8, 144u8, 63u8, 101u8,
+                            240u8, 179u8, 25u8, 177u8, 68u8, 253u8, 230u8, 156u8, 228u8, 181u8,
+                            194u8, 48u8, 99u8, 188u8, 117u8, 44u8, 80u8, 121u8, 46u8, 149u8, 48u8,
                         ],
                     )
                 }
@@ -9918,10 +9971,9 @@ pub mod api {
                         "CodeStorage",
                         Vec::new(),
                         [
-                            167u8, 247u8, 131u8, 220u8, 90u8, 100u8, 172u8, 16u8, 129u8, 235u8,
-                            119u8, 88u8, 60u8, 196u8, 74u8, 173u8, 192u8, 110u8, 106u8, 187u8,
-                            111u8, 255u8, 114u8, 39u8, 76u8, 52u8, 245u8, 79u8, 132u8, 108u8,
-                            141u8, 176u8,
+                            57u8, 55u8, 36u8, 82u8, 39u8, 194u8, 172u8, 147u8, 144u8, 63u8, 101u8,
+                            240u8, 179u8, 25u8, 177u8, 68u8, 253u8, 230u8, 156u8, 228u8, 181u8,
+                            194u8, 48u8, 99u8, 188u8, 117u8, 44u8, 80u8, 121u8, 46u8, 149u8, 48u8,
                         ],
                     )
                 }
@@ -10117,9 +10169,10 @@ pub mod api {
                         "Contracts",
                         "Schedule",
                         [
-                            106u8, 133u8, 138u8, 78u8, 95u8, 52u8, 197u8, 85u8, 4u8, 33u8, 173u8,
-                            239u8, 169u8, 196u8, 91u8, 38u8, 210u8, 50u8, 62u8, 67u8, 180u8, 184u8,
-                            32u8, 190u8, 106u8, 252u8, 104u8, 173u8, 5u8, 140u8, 244u8, 249u8,
+                            102u8, 52u8, 108u8, 178u8, 197u8, 144u8, 39u8, 115u8, 254u8, 23u8,
+                            38u8, 120u8, 11u8, 166u8, 178u8, 210u8, 91u8, 139u8, 214u8, 231u8,
+                            110u8, 188u8, 37u8, 149u8, 195u8, 73u8, 166u8, 90u8, 55u8, 73u8, 88u8,
+                            111u8,
                         ],
                     )
                 }
@@ -10215,6 +10268,87 @@ pub mod api {
                             84u8, 157u8, 140u8, 4u8, 93u8, 57u8, 29u8, 133u8, 105u8, 200u8, 214u8,
                             27u8, 144u8, 208u8, 218u8, 160u8, 130u8, 109u8, 101u8, 54u8, 210u8,
                             136u8, 71u8, 63u8, 49u8, 237u8, 234u8, 15u8, 178u8, 98u8, 148u8, 156u8,
+                        ],
+                    )
+                }
+                #[doc = " The maximum length of a contract code in bytes. This limit applies to the instrumented"]
+                #[doc = " version of the code. Therefore `instantiate_with_code` can fail even when supplying"]
+                #[doc = " a wasm binary below this maximum size."]
+                #[doc = ""]
+                #[doc = " The value should be chosen carefully taking into the account the overall memory limit"]
+                #[doc = " your runtime has, as well as the [maximum allowed callstack"]
+                #[doc = " depth](#associatedtype.CallStack). Look into the `integrity_test()` for some insights."]
+                pub fn max_code_len(
+                    &self,
+                ) -> ::subxt::constants::StaticConstantAddress<
+                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
+                > {
+                    ::subxt::constants::StaticConstantAddress::new(
+                        "Contracts",
+                        "MaxCodeLen",
+                        [
+                            98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
+                            125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
+                            178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
+                            145u8,
+                        ],
+                    )
+                }
+                #[doc = " The maximum allowable length in bytes for storage keys."]
+                pub fn max_storage_key_len(
+                    &self,
+                ) -> ::subxt::constants::StaticConstantAddress<
+                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
+                > {
+                    ::subxt::constants::StaticConstantAddress::new(
+                        "Contracts",
+                        "MaxStorageKeyLen",
+                        [
+                            98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
+                            125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
+                            178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
+                            145u8,
+                        ],
+                    )
+                }
+                #[doc = " Make contract callable functions marked as `#[unstable]` available."]
+                #[doc = ""]
+                #[doc = " Contracts that use `#[unstable]` functions won't be able to be uploaded unless"]
+                #[doc = " this is set to `true`. This is only meant for testnets and dev nodes in order to"]
+                #[doc = " experiment with new features."]
+                #[doc = ""]
+                #[doc = " # Warning"]
+                #[doc = ""]
+                #[doc = " Do **not** set to `true` on productions chains."]
+                pub fn unsafe_unstable_interface(
+                    &self,
+                ) -> ::subxt::constants::StaticConstantAddress<
+                    ::subxt::metadata::DecodeStaticType<::core::primitive::bool>,
+                > {
+                    ::subxt::constants::StaticConstantAddress::new(
+                        "Contracts",
+                        "UnsafeUnstableInterface",
+                        [
+                            165u8, 28u8, 112u8, 190u8, 18u8, 129u8, 182u8, 206u8, 237u8, 1u8, 68u8,
+                            252u8, 125u8, 234u8, 185u8, 50u8, 149u8, 164u8, 47u8, 126u8, 134u8,
+                            100u8, 14u8, 86u8, 209u8, 39u8, 20u8, 4u8, 233u8, 115u8, 102u8, 131u8,
+                        ],
+                    )
+                }
+                #[doc = " The maximum length of the debug buffer in bytes."]
+                pub fn max_debug_buffer_len(
+                    &self,
+                ) -> ::subxt::constants::StaticConstantAddress<
+                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
+                > {
+                    ::subxt::constants::StaticConstantAddress::new(
+                        "Contracts",
+                        "MaxDebugBufferLen",
+                        [
+                            98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
+                            125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
+                            178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
+                            145u8,
                         ],
                     )
                 }
@@ -10327,6 +10461,31 @@ pub mod api {
                     ::subxt::ext::sp_core::crypto::AccountId32,
                     (),
                 >,
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            pub struct CreateWithPoolId {
+                #[codec(compact)]
+                pub amount: ::core::primitive::u128,
+                pub root: ::subxt::ext::sp_runtime::MultiAddress<
+                    ::subxt::ext::sp_core::crypto::AccountId32,
+                    (),
+                >,
+                pub nominator: ::subxt::ext::sp_runtime::MultiAddress<
+                    ::subxt::ext::sp_core::crypto::AccountId32,
+                    (),
+                >,
+                pub state_toggler: ::subxt::ext::sp_runtime::MultiAddress<
+                    ::subxt::ext::sp_core::crypto::AccountId32,
+                    (),
+                >,
+                pub pool_id: ::core::primitive::u32,
             }
             #[derive(
                 :: subxt :: ext :: codec :: Decode,
@@ -10512,9 +10671,12 @@ pub mod api {
                 #[doc = "# Note"]
                 #[doc = ""]
                 #[doc = "If there are too many unlocking chunks to unbond with the pool account,"]
-                #[doc = "[`Call::pool_withdraw_unbonded`] can be called to try and minimize unlocking chunks. If"]
-                #[doc = "there are too many unlocking chunks, the result of this call will likely be the"]
-                #[doc = "`NoMoreChunks` error from the staking system."]
+                #[doc = "[`Call::pool_withdraw_unbonded`] can be called to try and minimize unlocking chunks."]
+                #[doc = "The [`StakingInterface::unbond`] will implicitly call [`Call::pool_withdraw_unbonded`]"]
+                #[doc = "to try to free chunks if necessary (ie. if unbound was called and no unlocking chunks"]
+                #[doc = "are available). However, it may not be possible to release the current unlocking chunks,"]
+                #[doc = "in which case, the result of this call will likely be the `NoMoreChunks` error from the"]
+                #[doc = "staking system."]
                 pub fn unbond(
                     &self,
                     member_account: ::subxt::ext::sp_runtime::MultiAddress<
@@ -10651,6 +10813,46 @@ pub mod api {
                             176u8, 210u8, 154u8, 87u8, 218u8, 250u8, 117u8, 90u8, 80u8, 191u8,
                             252u8, 146u8, 29u8, 228u8, 36u8, 15u8, 125u8, 102u8, 87u8, 50u8, 146u8,
                             108u8, 96u8, 145u8, 135u8, 189u8, 18u8, 159u8, 21u8, 74u8, 165u8, 33u8,
+                        ],
+                    )
+                }
+                #[doc = "Create a new delegation pool with a previously used pool id"]
+                #[doc = ""]
+                #[doc = "# Arguments"]
+                #[doc = ""]
+                #[doc = "same as `create` with the inclusion of"]
+                #[doc = "* `pool_id` - `A valid PoolId."]
+                pub fn create_with_pool_id(
+                    &self,
+                    amount: ::core::primitive::u128,
+                    root: ::subxt::ext::sp_runtime::MultiAddress<
+                        ::subxt::ext::sp_core::crypto::AccountId32,
+                        (),
+                    >,
+                    nominator: ::subxt::ext::sp_runtime::MultiAddress<
+                        ::subxt::ext::sp_core::crypto::AccountId32,
+                        (),
+                    >,
+                    state_toggler: ::subxt::ext::sp_runtime::MultiAddress<
+                        ::subxt::ext::sp_core::crypto::AccountId32,
+                        (),
+                    >,
+                    pool_id: ::core::primitive::u32,
+                ) -> ::subxt::tx::StaticTxPayload<CreateWithPoolId> {
+                    ::subxt::tx::StaticTxPayload::new(
+                        "NominationPools",
+                        "create_with_pool_id",
+                        CreateWithPoolId {
+                            amount,
+                            root,
+                            nominator,
+                            state_toggler,
+                            pool_id,
+                        },
+                        [
+                            234u8, 228u8, 116u8, 171u8, 77u8, 41u8, 166u8, 254u8, 20u8, 78u8, 38u8,
+                            28u8, 144u8, 58u8, 2u8, 64u8, 11u8, 27u8, 124u8, 215u8, 8u8, 10u8,
+                            172u8, 189u8, 118u8, 131u8, 102u8, 191u8, 251u8, 208u8, 167u8, 103u8,
                         ],
                     )
                 }
@@ -11169,6 +11371,8 @@ pub mod api {
                     )
                 }
                 #[doc = " Active members."]
+                #[doc = ""]
+                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
                 pub fn pool_members(
                     &self,
                     _0: impl ::std::borrow::Borrow<::subxt::ext::sp_core::crypto::AccountId32>,
@@ -11196,6 +11400,8 @@ pub mod api {
                     )
                 }
                 #[doc = " Active members."]
+                #[doc = ""]
+                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
                 pub fn pool_members_root(
                     &self,
                 ) -> ::subxt::storage::address::StaticStorageAddress<
@@ -13236,8 +13442,6 @@ pub mod api {
                 Timestamp(runtime_types::pallet_timestamp::pallet::Call),
                 #[codec(index = 5)]
                 Balances(runtime_types::pallet_balances::pallet::Call),
-                #[codec(index = 7)]
-                Authorship(runtime_types::pallet_authorship::pallet::Call),
                 #[codec(index = 8)]
                 Staking(runtime_types::pallet_staking::pallet::pallet::Call),
                 #[codec(index = 10)]
@@ -13599,11 +13803,6 @@ pub mod api {
                 #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
                 pub enum Call {
                     #[codec(index = 0)]
-                    #[doc = "A dispatch that will fill the block weight up to the given ratio."]
-                    fill_block {
-                        ratio: runtime_types::sp_arithmetic::per_things::Perbill,
-                    },
-                    #[codec(index = 1)]
                     #[doc = "Make some on-chain remark."]
                     #[doc = ""]
                     #[doc = "# <weight>"]
@@ -13612,10 +13811,10 @@ pub mod api {
                     remark {
                         remark: ::std::vec::Vec<::core::primitive::u8>,
                     },
-                    #[codec(index = 2)]
+                    #[codec(index = 1)]
                     #[doc = "Set the number of pages in the WebAssembly environment's heap."]
                     set_heap_pages { pages: ::core::primitive::u64 },
-                    #[codec(index = 3)]
+                    #[codec(index = 2)]
                     #[doc = "Set the new runtime code."]
                     #[doc = ""]
                     #[doc = "# <weight>"]
@@ -13631,7 +13830,7 @@ pub mod api {
                     set_code {
                         code: ::std::vec::Vec<::core::primitive::u8>,
                     },
-                    #[codec(index = 4)]
+                    #[codec(index = 3)]
                     #[doc = "Set the new runtime code without doing any checks of the given `code`."]
                     #[doc = ""]
                     #[doc = "# <weight>"]
@@ -13644,7 +13843,7 @@ pub mod api {
                     set_code_without_checks {
                         code: ::std::vec::Vec<::core::primitive::u8>,
                     },
-                    #[codec(index = 5)]
+                    #[codec(index = 4)]
                     #[doc = "Set some items of storage."]
                     set_storage {
                         items: ::std::vec::Vec<(
@@ -13652,12 +13851,12 @@ pub mod api {
                             ::std::vec::Vec<::core::primitive::u8>,
                         )>,
                     },
-                    #[codec(index = 6)]
+                    #[codec(index = 5)]
                     #[doc = "Kill some items from storage."]
                     kill_storage {
                         keys: ::std::vec::Vec<::std::vec::Vec<::core::primitive::u8>>,
                     },
-                    #[codec(index = 7)]
+                    #[codec(index = 6)]
                     #[doc = "Kill all storage items with a key that starts with the given prefix."]
                     #[doc = ""]
                     #[doc = "**NOTE:** We rely on the Root origin to provide us the number of subkeys under"]
@@ -13666,7 +13865,7 @@ pub mod api {
                         prefix: ::std::vec::Vec<::core::primitive::u8>,
                         subkeys: ::core::primitive::u32,
                     },
-                    #[codec(index = 8)]
+                    #[codec(index = 7)]
                     #[doc = "Make some on-chain remark and emit event."]
                     remark_with_event {
                         remark: ::std::vec::Vec<::core::primitive::u8>,
@@ -13854,79 +14053,6 @@ pub mod api {
                     #[codec(index = 2)]
                     FinalityVersionChange(runtime_types::primitives::VersionChange),
                 }
-            }
-        }
-        pub mod pallet_authorship {
-            use super::runtime_types;
-            pub mod pallet {
-                use super::runtime_types;
-                #[derive(
-                    :: subxt :: ext :: codec :: Decode,
-                    :: subxt :: ext :: codec :: Encode,
-                    Clone,
-                    Debug,
-                    Eq,
-                    PartialEq,
-                )]
-                #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
-                pub enum Call {
-                    #[codec(index = 0)]
-                    #[doc = "Provide a set of uncles."]
-                    set_uncles {
-                        new_uncles: ::std::vec::Vec<
-                            runtime_types::sp_runtime::generic::header::Header<
-                                ::core::primitive::u32,
-                                runtime_types::sp_runtime::traits::BlakeTwo256,
-                            >,
-                        >,
-                    },
-                }
-                #[derive(
-                    :: subxt :: ext :: codec :: Decode,
-                    :: subxt :: ext :: codec :: Encode,
-                    Clone,
-                    Debug,
-                    Eq,
-                    PartialEq,
-                )]
-                #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
-                pub enum Error {
-                    #[codec(index = 0)]
-                    #[doc = "The uncle parent not in the chain."]
-                    InvalidUncleParent,
-                    #[codec(index = 1)]
-                    #[doc = "Uncles already set in the block."]
-                    UnclesAlreadySet,
-                    #[codec(index = 2)]
-                    #[doc = "Too many uncles."]
-                    TooManyUncles,
-                    #[codec(index = 3)]
-                    #[doc = "The uncle is genesis."]
-                    GenesisUncle,
-                    #[codec(index = 4)]
-                    #[doc = "The uncle is too high in chain."]
-                    TooHighUncle,
-                    #[codec(index = 5)]
-                    #[doc = "The uncle is already included."]
-                    UncleAlreadyIncluded,
-                    #[codec(index = 6)]
-                    #[doc = "The uncle isn't recent enough to be included."]
-                    OldUncle,
-                }
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            pub enum UncleEntryItem<_0, _1, _2> {
-                #[codec(index = 0)]
-                InclusionHeight(_0),
-                #[codec(index = 1)]
-                Uncle(_1, ::core::option::Option<_2>),
             }
         }
         pub mod pallet_baby_liminal {
@@ -14249,7 +14375,7 @@ pub mod api {
                     #[doc = "Account liquidity restrictions prevent withdrawal"]
                     LiquidityRestrictions,
                     #[codec(index = 2)]
-                    #[doc = "Balance too low to send value"]
+                    #[doc = "Balance too low to send value."]
                     InsufficientBalance,
                     #[codec(index = 3)]
                     #[doc = "Value too low to create account due to existential deposit"]
@@ -14397,20 +14523,6 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
-            pub enum Releases {
-                #[codec(index = 0)]
-                V1_0_0,
-                #[codec(index = 1)]
-                V2_0_0,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
             pub struct ReserveData<_0, _1> {
                 pub id: _0,
                 pub amount: _1,
@@ -14485,6 +14597,10 @@ pub mod api {
                     #[doc = "the in storage version to the current"]
                     #[doc = "[`InstructionWeights::version`](InstructionWeights)."]
                     #[doc = ""]
+                    #[doc = "- `determinism`: If this is set to any other value but [`Determinism::Deterministic`]"]
+                    #[doc = "  then the only way to use this code is to delegate call into it from an offchain"]
+                    #[doc = "  execution. Set to [`Determinism::Deterministic`] if in doubt."]
+                    #[doc = ""]
                     #[doc = "# Note"]
                     #[doc = ""]
                     #[doc = "Anyone can instantiate a contract from any uploaded code and thus prevent its removal."]
@@ -14496,6 +14612,7 @@ pub mod api {
                         storage_deposit_limit: ::core::option::Option<
                             ::subxt::ext::codec::Compact<::core::primitive::u128>,
                         >,
+                        determinism: runtime_types::pallet_contracts::wasm::Determinism,
                     },
                     #[codec(index = 4)]
                     #[doc = "Remove the code stored under `code_hash` and refund the deposit to its owner."]
@@ -14675,54 +14792,59 @@ pub mod api {
                     #[doc = "The amount of topics passed to `seal_deposit_events` exceeds the limit."]
                     TooManyTopics,
                     #[codec(index = 17)]
-                    #[doc = "The topics passed to `seal_deposit_events` contains at least one duplicate."]
-                    DuplicateTopics,
-                    #[codec(index = 18)]
                     #[doc = "The chain does not provide a chain extension. Calling the chain extension results"]
                     #[doc = "in this error. Note that this usually  shouldn't happen as deploying such contracts"]
                     #[doc = "is rejected."]
                     NoChainExtension,
-                    #[codec(index = 19)]
+                    #[codec(index = 18)]
                     #[doc = "Removal of a contract failed because the deletion queue is full."]
                     #[doc = ""]
                     #[doc = "This can happen when calling `seal_terminate`."]
                     #[doc = "The queue is filled by deleting contracts and emptied by a fixed amount each block."]
                     #[doc = "Trying again during another block is the only way to resolve this issue."]
                     DeletionQueueFull,
-                    #[codec(index = 20)]
+                    #[codec(index = 19)]
                     #[doc = "A contract with the same AccountId already exists."]
                     DuplicateContract,
-                    #[codec(index = 21)]
+                    #[codec(index = 20)]
                     #[doc = "A contract self destructed in its constructor."]
                     #[doc = ""]
                     #[doc = "This can be triggered by a call to `seal_terminate`."]
                     TerminatedInConstructor,
-                    #[codec(index = 22)]
+                    #[codec(index = 21)]
                     #[doc = "The debug message specified to `seal_debug_message` does contain invalid UTF-8."]
                     DebugMessageInvalidUTF8,
-                    #[codec(index = 23)]
+                    #[codec(index = 22)]
                     #[doc = "A call tried to invoke a contract that is flagged as non-reentrant."]
                     ReentranceDenied,
-                    #[codec(index = 24)]
+                    #[codec(index = 23)]
                     #[doc = "Origin doesn't have enough balance to pay the required storage deposits."]
                     StorageDepositNotEnoughFunds,
-                    #[codec(index = 25)]
+                    #[codec(index = 24)]
                     #[doc = "More storage was created than allowed by the storage deposit limit."]
                     StorageDepositLimitExhausted,
-                    #[codec(index = 26)]
+                    #[codec(index = 25)]
                     #[doc = "Code removal was denied because the code is still in use by at least one contract."]
                     CodeInUse,
-                    #[codec(index = 27)]
+                    #[codec(index = 26)]
                     #[doc = "The contract ran to completion but decided to revert its storage changes."]
                     #[doc = "Please note that this error is only returned from extrinsics. When called directly"]
                     #[doc = "or via RPC an `Ok` will be returned. In this case the caller needs to inspect the flags"]
                     #[doc = "to determine whether a reversion has taken place."]
                     ContractReverted,
-                    #[codec(index = 28)]
+                    #[codec(index = 27)]
                     #[doc = "The contract's code was found to be invalid during validation or instrumentation."]
+                    #[doc = ""]
+                    #[doc = "The most likely cause of this is that an API was used which is not supported by the"]
+                    #[doc = "node. This hapens if an older node is used with a new version of ink!. Try updating"]
+                    #[doc = "your node to the newest available version."]
+                    #[doc = ""]
                     #[doc = "A more detailed error can be found on the node console if debug messages are enabled"]
-                    #[doc = "or in the debug buffer which is returned to RPC clients."]
+                    #[doc = "by supplying `-lruntime::contracts=debug`."]
                     CodeRejected,
+                    #[codec(index = 28)]
+                    #[doc = "An indetermistic code was used in a context where this is not permitted."]
+                    Indeterministic,
                 }
                 #[derive(
                     :: subxt :: ext :: codec :: Decode,
@@ -14811,60 +14933,65 @@ pub mod api {
                     PartialEq,
                 )]
                 pub struct HostFnWeights {
-                    pub caller: ::core::primitive::u64,
-                    pub is_contract: ::core::primitive::u64,
-                    pub code_hash: ::core::primitive::u64,
-                    pub own_code_hash: ::core::primitive::u64,
-                    pub caller_is_origin: ::core::primitive::u64,
-                    pub address: ::core::primitive::u64,
-                    pub gas_left: ::core::primitive::u64,
-                    pub balance: ::core::primitive::u64,
-                    pub value_transferred: ::core::primitive::u64,
-                    pub minimum_balance: ::core::primitive::u64,
-                    pub block_number: ::core::primitive::u64,
-                    pub now: ::core::primitive::u64,
-                    pub weight_to_fee: ::core::primitive::u64,
-                    pub gas: ::core::primitive::u64,
-                    pub input: ::core::primitive::u64,
-                    pub input_per_byte: ::core::primitive::u64,
-                    pub r#return: ::core::primitive::u64,
-                    pub return_per_byte: ::core::primitive::u64,
-                    pub terminate: ::core::primitive::u64,
-                    pub random: ::core::primitive::u64,
-                    pub deposit_event: ::core::primitive::u64,
-                    pub deposit_event_per_topic: ::core::primitive::u64,
-                    pub deposit_event_per_byte: ::core::primitive::u64,
-                    pub debug_message: ::core::primitive::u64,
-                    pub set_storage: ::core::primitive::u64,
-                    pub set_storage_per_new_byte: ::core::primitive::u64,
-                    pub set_storage_per_old_byte: ::core::primitive::u64,
-                    pub set_code_hash: ::core::primitive::u64,
-                    pub clear_storage: ::core::primitive::u64,
-                    pub clear_storage_per_byte: ::core::primitive::u64,
-                    pub contains_storage: ::core::primitive::u64,
-                    pub contains_storage_per_byte: ::core::primitive::u64,
-                    pub get_storage: ::core::primitive::u64,
-                    pub get_storage_per_byte: ::core::primitive::u64,
-                    pub take_storage: ::core::primitive::u64,
-                    pub take_storage_per_byte: ::core::primitive::u64,
-                    pub transfer: ::core::primitive::u64,
-                    pub call: ::core::primitive::u64,
-                    pub delegate_call: ::core::primitive::u64,
-                    pub call_transfer_surcharge: ::core::primitive::u64,
-                    pub call_per_cloned_byte: ::core::primitive::u64,
-                    pub instantiate: ::core::primitive::u64,
-                    pub instantiate_transfer_surcharge: ::core::primitive::u64,
-                    pub instantiate_per_salt_byte: ::core::primitive::u64,
-                    pub hash_sha2_256: ::core::primitive::u64,
-                    pub hash_sha2_256_per_byte: ::core::primitive::u64,
-                    pub hash_keccak_256: ::core::primitive::u64,
-                    pub hash_keccak_256_per_byte: ::core::primitive::u64,
-                    pub hash_blake2_256: ::core::primitive::u64,
-                    pub hash_blake2_256_per_byte: ::core::primitive::u64,
-                    pub hash_blake2_128: ::core::primitive::u64,
-                    pub hash_blake2_128_per_byte: ::core::primitive::u64,
-                    pub ecdsa_recover: ::core::primitive::u64,
-                    pub ecdsa_to_eth_address: ::core::primitive::u64,
+                    pub caller: runtime_types::sp_weights::weight_v2::Weight,
+                    pub is_contract: runtime_types::sp_weights::weight_v2::Weight,
+                    pub code_hash: runtime_types::sp_weights::weight_v2::Weight,
+                    pub own_code_hash: runtime_types::sp_weights::weight_v2::Weight,
+                    pub caller_is_origin: runtime_types::sp_weights::weight_v2::Weight,
+                    pub address: runtime_types::sp_weights::weight_v2::Weight,
+                    pub gas_left: runtime_types::sp_weights::weight_v2::Weight,
+                    pub balance: runtime_types::sp_weights::weight_v2::Weight,
+                    pub value_transferred: runtime_types::sp_weights::weight_v2::Weight,
+                    pub minimum_balance: runtime_types::sp_weights::weight_v2::Weight,
+                    pub block_number: runtime_types::sp_weights::weight_v2::Weight,
+                    pub now: runtime_types::sp_weights::weight_v2::Weight,
+                    pub weight_to_fee: runtime_types::sp_weights::weight_v2::Weight,
+                    pub gas: runtime_types::sp_weights::weight_v2::Weight,
+                    pub input: runtime_types::sp_weights::weight_v2::Weight,
+                    pub input_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub r#return: runtime_types::sp_weights::weight_v2::Weight,
+                    pub return_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub terminate: runtime_types::sp_weights::weight_v2::Weight,
+                    pub random: runtime_types::sp_weights::weight_v2::Weight,
+                    pub deposit_event: runtime_types::sp_weights::weight_v2::Weight,
+                    pub deposit_event_per_topic: runtime_types::sp_weights::weight_v2::Weight,
+                    pub deposit_event_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub debug_message: runtime_types::sp_weights::weight_v2::Weight,
+                    pub set_storage: runtime_types::sp_weights::weight_v2::Weight,
+                    pub set_storage_per_new_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub set_storage_per_old_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub set_code_hash: runtime_types::sp_weights::weight_v2::Weight,
+                    pub clear_storage: runtime_types::sp_weights::weight_v2::Weight,
+                    pub clear_storage_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub contains_storage: runtime_types::sp_weights::weight_v2::Weight,
+                    pub contains_storage_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub get_storage: runtime_types::sp_weights::weight_v2::Weight,
+                    pub get_storage_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub take_storage: runtime_types::sp_weights::weight_v2::Weight,
+                    pub take_storage_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub transfer: runtime_types::sp_weights::weight_v2::Weight,
+                    pub call: runtime_types::sp_weights::weight_v2::Weight,
+                    pub delegate_call: runtime_types::sp_weights::weight_v2::Weight,
+                    pub call_transfer_surcharge: runtime_types::sp_weights::weight_v2::Weight,
+                    pub call_per_cloned_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub instantiate: runtime_types::sp_weights::weight_v2::Weight,
+                    pub instantiate_transfer_surcharge:
+                        runtime_types::sp_weights::weight_v2::Weight,
+                    pub instantiate_per_input_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub instantiate_per_salt_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub hash_sha2_256: runtime_types::sp_weights::weight_v2::Weight,
+                    pub hash_sha2_256_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub hash_keccak_256: runtime_types::sp_weights::weight_v2::Weight,
+                    pub hash_keccak_256_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub hash_blake2_256: runtime_types::sp_weights::weight_v2::Weight,
+                    pub hash_blake2_256_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub hash_blake2_128: runtime_types::sp_weights::weight_v2::Weight,
+                    pub hash_blake2_128_per_byte: runtime_types::sp_weights::weight_v2::Weight,
+                    pub ecdsa_recover: runtime_types::sp_weights::weight_v2::Weight,
+                    pub ecdsa_to_eth_address: runtime_types::sp_weights::weight_v2::Weight,
+                    pub reentrance_count: runtime_types::sp_weights::weight_v2::Weight,
+                    pub account_reentrance_count: runtime_types::sp_weights::weight_v2::Weight,
+                    pub instantiation_nonce: runtime_types::sp_weights::weight_v2::Weight,
                 }
                 #[derive(
                     :: subxt :: ext :: codec :: Decode,
@@ -14876,6 +15003,7 @@ pub mod api {
                 )]
                 pub struct InstructionWeights {
                     pub version: ::core::primitive::u32,
+                    pub fallback: ::core::primitive::u32,
                     pub i64const: ::core::primitive::u32,
                     pub i64load: ::core::primitive::u32,
                     pub i64store: ::core::primitive::u32,
@@ -14888,6 +15016,7 @@ pub mod api {
                     pub call: ::core::primitive::u32,
                     pub call_indirect: ::core::primitive::u32,
                     pub call_indirect_per_param: ::core::primitive::u32,
+                    pub call_per_local: ::core::primitive::u32,
                     pub local_get: ::core::primitive::u32,
                     pub local_set: ::core::primitive::u32,
                     pub local_tee: ::core::primitive::u32,
@@ -14938,14 +15067,13 @@ pub mod api {
                 )]
                 pub struct Limits {
                     pub event_topics: ::core::primitive::u32,
-                    pub stack_height: ::core::option::Option<::core::primitive::u32>,
                     pub globals: ::core::primitive::u32,
+                    pub locals: ::core::primitive::u32,
                     pub parameters: ::core::primitive::u32,
                     pub memory_pages: ::core::primitive::u32,
                     pub table_size: ::core::primitive::u32,
                     pub br_table_size: ::core::primitive::u32,
                     pub subject_len: ::core::primitive::u32,
-                    pub call_depth: ::core::primitive::u32,
                     pub payload_len: ::core::primitive::u32,
                 }
                 #[derive(
@@ -15008,6 +15136,20 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                pub enum Determinism {
+                    #[codec(index = 0)]
+                    Deterministic,
+                    #[codec(index = 1)]
+                    AllowIndeterminism,
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
                 pub struct OwnerInfo {
                     pub owner: ::subxt::ext::sp_core::crypto::AccountId32,
                     #[codec(compact)]
@@ -15033,6 +15175,7 @@ pub mod api {
                     pub code: runtime_types::sp_core::bounded::weak_bounded_vec::WeakBoundedVec<
                         ::core::primitive::u8,
                     >,
+                    pub determinism: runtime_types::pallet_contracts::wasm::Determinism,
                 }
             }
         }
@@ -15550,6 +15693,9 @@ pub mod api {
                     #[codec(index = 16)]
                     #[doc = "The provided judgement was for a different identity."]
                     JudgementForDifferentIdentity,
+                    #[codec(index = 17)]
+                    #[doc = "Error that occurs when there is an issue paying for judgement."]
+                    JudgementPaymentFailed,
                 }
                 #[derive(
                     :: subxt :: ext :: codec :: Decode,
@@ -16118,7 +16264,7 @@ pub mod api {
                 pub when: runtime_types::pallet_multisig::Timepoint<_0>,
                 pub deposit: _1,
                 pub depositor: _2,
-                pub approvals: ::std::vec::Vec<_2>,
+                pub approvals: runtime_types::sp_core::bounded::bounded_vec::BoundedVec<_2>,
             }
             #[derive(
                 :: subxt :: ext :: codec :: Decode,
@@ -16209,9 +16355,12 @@ pub mod api {
                     #[doc = "# Note"]
                     #[doc = ""]
                     #[doc = "If there are too many unlocking chunks to unbond with the pool account,"]
-                    #[doc = "[`Call::pool_withdraw_unbonded`] can be called to try and minimize unlocking chunks. If"]
-                    #[doc = "there are too many unlocking chunks, the result of this call will likely be the"]
-                    #[doc = "`NoMoreChunks` error from the staking system."]
+                    #[doc = "[`Call::pool_withdraw_unbonded`] can be called to try and minimize unlocking chunks."]
+                    #[doc = "The [`StakingInterface::unbond`] will implicitly call [`Call::pool_withdraw_unbonded`]"]
+                    #[doc = "to try to free chunks if necessary (ie. if unbound was called and no unlocking chunks"]
+                    #[doc = "are available). However, it may not be possible to release the current unlocking chunks,"]
+                    #[doc = "in which case, the result of this call will likely be the `NoMoreChunks` error from the"]
+                    #[doc = "staking system."]
                     unbond {
                         member_account: ::subxt::ext::sp_runtime::MultiAddress<
                             ::subxt::ext::sp_core::crypto::AccountId32,
@@ -16293,6 +16442,30 @@ pub mod api {
                         >,
                     },
                     #[codec(index = 7)]
+                    #[doc = "Create a new delegation pool with a previously used pool id"]
+                    #[doc = ""]
+                    #[doc = "# Arguments"]
+                    #[doc = ""]
+                    #[doc = "same as `create` with the inclusion of"]
+                    #[doc = "* `pool_id` - `A valid PoolId."]
+                    create_with_pool_id {
+                        #[codec(compact)]
+                        amount: ::core::primitive::u128,
+                        root: ::subxt::ext::sp_runtime::MultiAddress<
+                            ::subxt::ext::sp_core::crypto::AccountId32,
+                            (),
+                        >,
+                        nominator: ::subxt::ext::sp_runtime::MultiAddress<
+                            ::subxt::ext::sp_core::crypto::AccountId32,
+                            (),
+                        >,
+                        state_toggler: ::subxt::ext::sp_runtime::MultiAddress<
+                            ::subxt::ext::sp_core::crypto::AccountId32,
+                            (),
+                        >,
+                        pool_id: ::core::primitive::u32,
+                    },
+                    #[codec(index = 8)]
                     #[doc = "Nominate on behalf of the pool."]
                     #[doc = ""]
                     #[doc = "The dispatch origin of this call must be signed by the pool nominator or the pool"]
@@ -16304,7 +16477,7 @@ pub mod api {
                         pool_id: ::core::primitive::u32,
                         validators: ::std::vec::Vec<::subxt::ext::sp_core::crypto::AccountId32>,
                     },
-                    #[codec(index = 8)]
+                    #[codec(index = 9)]
                     #[doc = "Set a new state for the pool."]
                     #[doc = ""]
                     #[doc = "If a pool is already in the `Destroying` state, then under no condition can its state"]
@@ -16319,7 +16492,7 @@ pub mod api {
                         pool_id: ::core::primitive::u32,
                         state: runtime_types::pallet_nomination_pools::PoolState,
                     },
-                    #[codec(index = 9)]
+                    #[codec(index = 10)]
                     #[doc = "Set a new metadata for the pool."]
                     #[doc = ""]
                     #[doc = "The dispatch origin of this call must be signed by the state toggler, or the root role"]
@@ -16328,7 +16501,7 @@ pub mod api {
                         pool_id: ::core::primitive::u32,
                         metadata: ::std::vec::Vec<::core::primitive::u8>,
                     },
-                    #[codec(index = 10)]
+                    #[codec(index = 11)]
                     #[doc = "Update configurations for the nomination pools. The origin for this call must be"]
                     #[doc = "Root."]
                     #[doc = ""]
@@ -16356,7 +16529,7 @@ pub mod api {
                             ::core::primitive::u32,
                         >,
                     },
-                    #[codec(index = 11)]
+                    #[codec(index = 12)]
                     #[doc = "Update the roles of the pool."]
                     #[doc = ""]
                     #[doc = "The root is the only entity that can change any of the roles, including itself,"]
@@ -16376,7 +16549,7 @@ pub mod api {
                             ::subxt::ext::sp_core::crypto::AccountId32,
                         >,
                     },
-                    #[codec(index = 12)]
+                    #[codec(index = 13)]
                     #[doc = "Chill on behalf of the pool."]
                     #[doc = ""]
                     #[doc = "The dispatch origin of this call must be signed by the pool nominator or the pool"]
@@ -16487,6 +16660,12 @@ pub mod api {
                     #[codec(index = 20)]
                     #[doc = "Partial unbonding now allowed permissionlessly."]
                     PartialUnbondNotAllowedPermissionlessly,
+                    #[codec(index = 21)]
+                    #[doc = "Pool id currently in use."]
+                    PoolIdInUse,
+                    #[codec(index = 22)]
+                    #[doc = "Pool id provided is not correct/usable."]
+                    InvalidPoolId,
                 }
                 #[derive(
                     :: subxt :: ext :: codec :: Decode,
@@ -17077,8 +17256,8 @@ pub mod api {
                         #[doc = "the funds out of management ready for transfer."]
                         #[doc = ""]
                         #[doc = "No more than a limited number of unlocking chunks (see `MaxUnlockingChunks`)"]
-                        #[doc = "can co-exists at the same time. In that case, [`Call::withdraw_unbonded`] need"]
-                        #[doc = "to be called first to remove some of the chunks (if possible)."]
+                        #[doc = "can co-exists at the same time. If there are no unlocking chunks slots available"]
+                        #[doc = "[`Call::withdraw_unbonded`] is called to remove some of the chunks (if possible)."]
                         #[doc = ""]
                         #[doc = "If a user encounters the `InsufficientBond` error when calling this extrinsic,"]
                         #[doc = "they should call `chill` first in order to free up their bonded funds."]
@@ -17210,7 +17389,8 @@ pub mod api {
                             new: ::core::primitive::u32,
                         },
                         #[codec(index = 10)]
-                        #[doc = "Increments the ideal number of validators."]
+                        #[doc = "Increments the ideal number of validators upto maximum of"]
+                        #[doc = "`ElectionProviderBase::MaxWinners`."]
                         #[doc = ""]
                         #[doc = "The dispatch origin must be Root."]
                         #[doc = ""]
@@ -17222,7 +17402,8 @@ pub mod api {
                             additional: ::core::primitive::u32,
                         },
                         #[codec(index = 11)]
-                        #[doc = "Scale up the ideal number of validators by a factor."]
+                        #[doc = "Scale up the ideal number of validators by a factor upto maximum of"]
+                        #[doc = "`ElectionProviderBase::MaxWinners`."]
                         #[doc = ""]
                         #[doc = "The dispatch origin must be Root."]
                         #[doc = ""]
@@ -17297,7 +17478,7 @@ pub mod api {
                         #[codec(index = 17)]
                         #[doc = "Cancel enactment of a deferred slash."]
                         #[doc = ""]
-                        #[doc = "Can be called by the `T::SlashCancelOrigin`."]
+                        #[doc = "Can be called by the `T::AdminOrigin`."]
                         #[doc = ""]
                         #[doc = "Parameters: era and indices of the slashes for that era to kill."]
                         cancel_deferred_slash {
@@ -17461,6 +17642,14 @@ pub mod api {
                         force_apply_min_commission {
                             validator_stash: ::subxt::ext::sp_core::crypto::AccountId32,
                         },
+                        #[codec(index = 25)]
+                        #[doc = "Sets the minimum amount of commission that each validators must maintain."]
+                        #[doc = ""]
+                        #[doc = "This call has lower privilege requirements than `set_staking_config` and can be called"]
+                        #[doc = "by the `T::AdminOrigin`. Root can always call this."]
+                        set_min_commission {
+                            new: runtime_types::sp_arithmetic::per_things::Perbill,
+                        },
                     }
                     #[derive(
                         :: subxt :: ext :: codec :: Decode,
@@ -17558,8 +17747,8 @@ pub mod api {
                         #[doc = "settings to keep things safe for the runtime."]
                         TooManyNominators,
                         #[codec(index = 22)]
-                        #[doc = "There are too many validators in the system. Governance needs to adjust the staking"]
-                        #[doc = "settings to keep things safe for the runtime."]
+                        #[doc = "There are too many validator candidates in the system. Governance needs to adjust the"]
+                        #[doc = "staking settings to keep things safe for the runtime."]
                         TooManyValidators,
                         #[codec(index = 23)]
                         #[doc = "Commission is too low. Must be at least `MinCommission`."]
@@ -17593,21 +17782,29 @@ pub mod api {
                             amount: ::core::primitive::u128,
                         },
                         #[codec(index = 2)]
-                        #[doc = "One staker (and potentially its nominators) has been slashed by the given amount."]
+                        #[doc = "A staker (validator or nominator) has been slashed by the given amount."]
                         Slashed {
                             staker: ::subxt::ext::sp_core::crypto::AccountId32,
                             amount: ::core::primitive::u128,
                         },
                         #[codec(index = 3)]
+                        #[doc = "A slash for the given validator, for the given percentage of their stake, at the given"]
+                        #[doc = "era as been reported."]
+                        SlashReported {
+                            validator: ::subxt::ext::sp_core::crypto::AccountId32,
+                            fraction: runtime_types::sp_arithmetic::per_things::Perbill,
+                            slash_era: ::core::primitive::u32,
+                        },
+                        #[codec(index = 4)]
                         #[doc = "An old slashing report from a prior era was discarded because it could"]
                         #[doc = "not be processed."]
                         OldSlashingReportDiscarded {
                             session_index: ::core::primitive::u32,
                         },
-                        #[codec(index = 4)]
+                        #[codec(index = 5)]
                         #[doc = "A new set of stakers was elected."]
                         StakersElected,
-                        #[codec(index = 5)]
+                        #[codec(index = 6)]
                         #[doc = "An account has bonded this amount. \\[stash, amount\\]"]
                         #[doc = ""]
                         #[doc = "NOTE: This event is only emitted when funds are bonded via a dispatchable. Notably,"]
@@ -17616,44 +17813,49 @@ pub mod api {
                             stash: ::subxt::ext::sp_core::crypto::AccountId32,
                             amount: ::core::primitive::u128,
                         },
-                        #[codec(index = 6)]
+                        #[codec(index = 7)]
                         #[doc = "An account has unbonded this amount."]
                         Unbonded {
                             stash: ::subxt::ext::sp_core::crypto::AccountId32,
                             amount: ::core::primitive::u128,
                         },
-                        #[codec(index = 7)]
+                        #[codec(index = 8)]
                         #[doc = "An account has called `withdraw_unbonded` and removed unbonding chunks worth `Balance`"]
                         #[doc = "from the unlocking queue."]
                         Withdrawn {
                             stash: ::subxt::ext::sp_core::crypto::AccountId32,
                             amount: ::core::primitive::u128,
                         },
-                        #[codec(index = 8)]
+                        #[codec(index = 9)]
                         #[doc = "A nominator has been kicked from a validator."]
                         Kicked {
                             nominator: ::subxt::ext::sp_core::crypto::AccountId32,
                             stash: ::subxt::ext::sp_core::crypto::AccountId32,
                         },
-                        #[codec(index = 9)]
+                        #[codec(index = 10)]
                         #[doc = "The election failed. No new era is planned."]
                         StakingElectionFailed,
-                        #[codec(index = 10)]
+                        #[codec(index = 11)]
                         #[doc = "An account has stopped participating as either a validator or nominator."]
                         Chilled {
                             stash: ::subxt::ext::sp_core::crypto::AccountId32,
                         },
-                        #[codec(index = 11)]
+                        #[codec(index = 12)]
                         #[doc = "The stakers' rewards are getting paid."]
                         PayoutStarted {
                             era_index: ::core::primitive::u32,
                             validator_stash: ::subxt::ext::sp_core::crypto::AccountId32,
                         },
-                        #[codec(index = 12)]
+                        #[codec(index = 13)]
                         #[doc = "A validator has set their preferences."]
                         ValidatorPrefsSet {
                             stash: ::subxt::ext::sp_core::crypto::AccountId32,
                             prefs: runtime_types::pallet_staking::ValidatorPrefs,
+                        },
+                        #[codec(index = 14)]
+                        #[doc = "A new force era mode was set."]
+                        ForceEra {
+                            mode: runtime_types::pallet_staking::Forcing,
                         },
                     }
                 }
@@ -17772,40 +17974,6 @@ pub mod api {
                 >,
                 pub submitted_in: ::core::primitive::u32,
                 pub suppressed: ::core::primitive::bool,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            pub enum Releases {
-                #[codec(index = 0)]
-                V1_0_0Ancient,
-                #[codec(index = 1)]
-                V2_0_0,
-                #[codec(index = 2)]
-                V3_0_0,
-                #[codec(index = 3)]
-                V4_0_0,
-                #[codec(index = 4)]
-                V5_0_0,
-                #[codec(index = 5)]
-                V6_0_0,
-                #[codec(index = 6)]
-                V7_0_0,
-                #[codec(index = 7)]
-                V8_0_0,
-                #[codec(index = 8)]
-                V9_0_0,
-                #[codec(index = 9)]
-                V10_0_0,
-                #[codec(index = 10)]
-                V11_0_0,
-                #[codec(index = 11)]
-                V12_0_0,
             }
             #[derive(
                 :: subxt :: ext :: codec :: Decode,
@@ -18281,6 +18449,12 @@ pub mod api {
                         amount: ::core::primitive::u128,
                         beneficiary: ::subxt::ext::sp_core::crypto::AccountId32,
                     },
+                    #[codec(index = 8)]
+                    #[doc = "The inactive funds of the pallet have been updated."]
+                    UpdatedInactive {
+                        reactivated: ::core::primitive::u128,
+                        deactivated: ::core::primitive::u128,
+                    },
                 }
             }
             #[derive(
@@ -18315,13 +18489,13 @@ pub mod api {
                     #[codec(index = 0)]
                     #[doc = "Send a batch of dispatch calls."]
                     #[doc = ""]
-                    #[doc = "May be called from any origin."]
+                    #[doc = "May be called from any origin except `None`."]
                     #[doc = ""]
                     #[doc = "- `calls`: The calls to be dispatched from the same origin. The number of call must not"]
                     #[doc = "  exceed the constant: `batched_calls_limit` (available in constant metadata)."]
                     #[doc = ""]
-                    #[doc = "If origin is root then call are dispatch without checking origin filter. (This includes"]
-                    #[doc = "bypassing `frame_system::Config::BaseCallFilter`)."]
+                    #[doc = "If origin is root then the calls are dispatched without checking origin filter. (This"]
+                    #[doc = "includes bypassing `frame_system::Config::BaseCallFilter`)."]
                     #[doc = ""]
                     #[doc = "# <weight>"]
                     #[doc = "- Complexity: O(C) where C is the number of calls to be batched."]
@@ -18357,13 +18531,13 @@ pub mod api {
                     #[doc = "Send a batch of dispatch calls and atomically execute them."]
                     #[doc = "The whole transaction will rollback and fail if any of the calls failed."]
                     #[doc = ""]
-                    #[doc = "May be called from any origin."]
+                    #[doc = "May be called from any origin except `None`."]
                     #[doc = ""]
                     #[doc = "- `calls`: The calls to be dispatched from the same origin. The number of call must not"]
                     #[doc = "  exceed the constant: `batched_calls_limit` (available in constant metadata)."]
                     #[doc = ""]
-                    #[doc = "If origin is root then call are dispatch without checking origin filter. (This includes"]
-                    #[doc = "bypassing `frame_system::Config::BaseCallFilter`)."]
+                    #[doc = "If origin is root then the calls are dispatched without checking origin filter. (This"]
+                    #[doc = "includes bypassing `frame_system::Config::BaseCallFilter`)."]
                     #[doc = ""]
                     #[doc = "# <weight>"]
                     #[doc = "- Complexity: O(C) where C is the number of calls to be batched."]
@@ -18390,19 +18564,30 @@ pub mod api {
                     #[doc = "Send a batch of dispatch calls."]
                     #[doc = "Unlike `batch`, it allows errors and won't interrupt."]
                     #[doc = ""]
-                    #[doc = "May be called from any origin."]
+                    #[doc = "May be called from any origin except `None`."]
                     #[doc = ""]
                     #[doc = "- `calls`: The calls to be dispatched from the same origin. The number of call must not"]
                     #[doc = "  exceed the constant: `batched_calls_limit` (available in constant metadata)."]
                     #[doc = ""]
-                    #[doc = "If origin is root then call are dispatch without checking origin filter. (This includes"]
-                    #[doc = "bypassing `frame_system::Config::BaseCallFilter`)."]
+                    #[doc = "If origin is root then the calls are dispatch without checking origin filter. (This"]
+                    #[doc = "includes bypassing `frame_system::Config::BaseCallFilter`)."]
                     #[doc = ""]
                     #[doc = "# <weight>"]
                     #[doc = "- Complexity: O(C) where C is the number of calls to be batched."]
                     #[doc = "# </weight>"]
                     force_batch {
                         calls: ::std::vec::Vec<runtime_types::aleph_runtime::RuntimeCall>,
+                    },
+                    #[codec(index = 5)]
+                    #[doc = "Dispatch a function call with a specified weight."]
+                    #[doc = ""]
+                    #[doc = "This function does not check the weight of the call, and instead allows the"]
+                    #[doc = "Root origin to specify the weight of the call."]
+                    #[doc = ""]
+                    #[doc = "The dispatch origin for this call must be _Root_."]
+                    with_weight {
+                        call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
+                        weight: runtime_types::sp_weights::weight_v2::Weight,
                     },
                 }
                 #[derive(
@@ -18846,6 +19031,22 @@ pub mod api {
                     PartialEq,
                 )]
                 pub struct Permill(pub ::core::primitive::u32);
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            pub enum ArithmeticError {
+                #[codec(index = 0)]
+                Underflow,
+                #[codec(index = 1)]
+                Overflow,
+                #[codec(index = 2)]
+                DivisionByZero,
             }
         }
         pub mod sp_consensus_aura {
@@ -19578,27 +19779,6 @@ pub mod api {
                         Mortal255(::core::primitive::u8),
                     }
                 }
-                pub mod header {
-                    use super::runtime_types;
-                    #[derive(
-                        :: subxt :: ext :: codec :: Decode,
-                        :: subxt :: ext :: codec :: Encode,
-                        Clone,
-                        Debug,
-                        Eq,
-                        PartialEq,
-                    )]
-                    pub struct Header<_0, _1> {
-                        pub parent_hash: ::subxt::ext::sp_core::H256,
-                        #[codec(compact)]
-                        pub number: _0,
-                        pub state_root: ::subxt::ext::sp_core::H256,
-                        pub extrinsics_root: ::subxt::ext::sp_core::H256,
-                        pub digest: runtime_types::sp_runtime::generic::digest::Digest,
-                        #[codec(skip)]
-                        pub __subxt_unused_type_params: ::core::marker::PhantomData<_1>,
-                    }
-                }
                 pub mod unchecked_extrinsic {
                     use super::runtime_types;
                     #[derive(
@@ -19638,34 +19818,6 @@ pub mod api {
                     Address20([::core::primitive::u8; 20usize]),
                 }
             }
-            pub mod traits {
-                use super::runtime_types;
-                #[derive(
-                    :: subxt :: ext :: codec :: Decode,
-                    :: subxt :: ext :: codec :: Encode,
-                    Clone,
-                    Debug,
-                    Eq,
-                    PartialEq,
-                )]
-                pub struct BlakeTwo256;
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            pub enum ArithmeticError {
-                #[codec(index = 0)]
-                Underflow,
-                #[codec(index = 1)]
-                Overflow,
-                #[codec(index = 2)]
-                DivisionByZero,
-            }
             #[derive(
                 :: subxt :: ext :: codec :: Decode,
                 :: subxt :: ext :: codec :: Encode,
@@ -19692,7 +19844,7 @@ pub mod api {
                 #[codec(index = 7)]
                 Token(runtime_types::sp_runtime::TokenError),
                 #[codec(index = 8)]
-                Arithmetic(runtime_types::sp_runtime::ArithmeticError),
+                Arithmetic(runtime_types::sp_arithmetic::ArithmeticError),
                 #[codec(index = 9)]
                 Transactional(runtime_types::sp_runtime::TransactionalError),
                 #[codec(index = 10)]
@@ -19863,9 +20015,6 @@ pub mod api {
         pub fn transaction_payment(&self) -> transaction_payment::constants::ConstantsApi {
             transaction_payment::constants::ConstantsApi
         }
-        pub fn authorship(&self) -> authorship::constants::ConstantsApi {
-            authorship::constants::ConstantsApi
-        }
         pub fn staking(&self) -> staking::constants::ConstantsApi {
             staking::constants::ConstantsApi
         }
@@ -19979,9 +20128,6 @@ pub mod api {
         pub fn balances(&self) -> balances::calls::TransactionApi {
             balances::calls::TransactionApi
         }
-        pub fn authorship(&self) -> authorship::calls::TransactionApi {
-            authorship::calls::TransactionApi
-        }
         pub fn staking(&self) -> staking::calls::TransactionApi {
             staking::calls::TransactionApi
         }
@@ -20029,9 +20175,9 @@ pub mod api {
         let runtime_metadata_hash = client.metadata().metadata_hash(&PALLETS);
         if runtime_metadata_hash
             != [
-                33u8, 213u8, 174u8, 180u8, 186u8, 206u8, 107u8, 213u8, 6u8, 40u8, 152u8, 5u8, 20u8,
-                170u8, 25u8, 192u8, 31u8, 20u8, 248u8, 185u8, 246u8, 7u8, 106u8, 248u8, 200u8,
-                62u8, 69u8, 101u8, 92u8, 199u8, 33u8, 133u8,
+                135u8, 169u8, 68u8, 42u8, 87u8, 77u8, 91u8, 180u8, 77u8, 221u8, 125u8, 138u8,
+                163u8, 211u8, 156u8, 136u8, 252u8, 171u8, 100u8, 206u8, 137u8, 41u8, 16u8, 129u8,
+                7u8, 101u8, 186u8, 106u8, 100u8, 63u8, 197u8, 104u8,
             ]
         {
             Err(::subxt::error::MetadataError::IncompatibleMetadata)

@@ -1,26 +1,25 @@
 use aleph_client::{
     account_from_keypair,
-    api::treasury::events::Rejected,
+    api::{transaction_payment::events::TransactionFeePaid, treasury::events::Rejected},
     pallets::{
-        balances::BalanceApi,
+        balances::{BalanceApi, BalanceUserApi},
+        fee::TransactionPaymentApi,
         system::SystemApi,
         treasury::{TreasureApiExt, TreasuryApi, TreasuryUserApi},
     },
+    utility::BlocksApi,
     waiting::{AlephWaiting, BlockStatus},
-    Connection, KeyPair, RootConnection, SignedConnection, TxStatus,
+    AccountId, ConnectionApi, KeyPair, RootConnection, SignedConnection, TxStatus,
 };
 use log::info;
 use primitives::Balance;
 
-use crate::{
-    accounts::get_validators_raw_keys, config::setup_test, test::fee::current_fees,
-    transfer::setup_for_transfer,
-};
+use crate::{accounts::get_validators_raw_keys, config::setup_test, transfer::setup_for_transfer};
 
 /// Returns current treasury free funds and total issuance.
 ///
 /// Takes two storage reads.
-async fn balance_info(connection: &Connection) -> (Balance, Balance) {
+async fn balance_info<C: ConnectionApi>(connection: &C) -> (Balance, Balance) {
     let treasury_balance = connection
         .get_free_balance(connection.treasury_account().await, None)
         .await;
@@ -39,11 +38,11 @@ pub async fn channeling_fee_and_tip() -> anyhow::Result<()> {
     let (transfer_amount, tip) = (1_000u128, 10_000u128);
     let (connection, to) = setup_for_transfer(config).await;
 
-    let (treasury_balance_before, issuance_before) = balance_info(&connection.connection).await;
-    let possible_treasury_gain_from_staking =
-        connection.connection.possible_treasury_payout().await;
+    let (treasury_balance_before, issuance_before) = balance_info(&connection).await;
+    let possible_treasury_gain_from_staking = connection.possible_treasury_payout().await?;
+
     let (fee, _) = current_fees(&connection, to, Some(tip), transfer_amount).await;
-    let (treasury_balance_after, issuance_after) = balance_info(&connection.connection).await;
+    let (treasury_balance_after, issuance_after) = balance_info(&connection).await;
 
     check_issuance(
         possible_treasury_gain_from_staking,
@@ -107,24 +106,16 @@ pub async fn treasury_access() -> anyhow::Result<()> {
     let config = setup_test();
     let proposer = KeyPair::new(get_validators_raw_keys(config)[0].clone());
     let beneficiary = account_from_keypair(proposer.signer());
-    let connection = SignedConnection::new(config.node.clone(), proposer).await;
+    let connection = SignedConnection::new(&config.node, proposer).await;
 
-    let proposals_counter_before = connection
-        .connection
-        .proposals_count(None)
-        .await
-        .unwrap_or_default();
+    let proposals_counter_before = connection.proposals_count(None).await.unwrap_or_default();
     connection
         .propose_spend(10, beneficiary.clone(), TxStatus::InBlock)
         .await?;
     connection
         .propose_spend(100, beneficiary.clone(), TxStatus::InBlock)
         .await?;
-    let proposals_counter_after = connection
-        .connection
-        .proposals_count(None)
-        .await
-        .unwrap_or_default();
+    let proposals_counter_after = connection.proposals_count(None).await.unwrap_or_default();
 
     assert_eq!(
         proposals_counter_before + 2,
@@ -141,18 +132,15 @@ pub async fn treasury_access() -> anyhow::Result<()> {
 }
 
 async fn approve_treasury_proposal(connection: &RootConnection, id: u32) -> anyhow::Result<()> {
-    connection
-        .as_signed()
-        .approve(id, TxStatus::Finalized)
-        .await?;
-    let approvals = connection.connection.approvals(None).await;
+    connection.approve(id, TxStatus::Finalized).await?;
+    let approvals = connection.approvals(None).await;
     assert!(approvals.contains(&id));
 
     Ok(())
 }
 
 async fn reject_treasury_proposal(connection: &RootConnection, id: u32) -> anyhow::Result<()> {
-    let handle_connection = connection.connection.clone();
+    let handle_connection = connection.clone();
     let handle = tokio::spawn(async move {
         handle_connection
             .wait_for_event(
@@ -161,11 +149,33 @@ async fn reject_treasury_proposal(connection: &RootConnection, id: u32) -> anyho
             )
             .await;
     });
-    connection
-        .as_signed()
-        .reject(id, TxStatus::Finalized)
-        .await?;
+    connection.reject(id, TxStatus::Finalized).await?;
     handle.await?;
 
     Ok(())
+}
+
+async fn current_fees(
+    connection: &SignedConnection,
+    to: AccountId,
+    tip: Option<Balance>,
+    transfer_value: Balance,
+) -> (Balance, u128) {
+    let actual_multiplier = connection.get_next_fee_multiplier(None).await;
+
+    let tx_info = match tip {
+        None => connection.transfer(to, transfer_value, TxStatus::Finalized),
+        Some(tip) => connection.transfer_with_tip(to, transfer_value, tip, TxStatus::Finalized),
+    }
+    .await
+    .unwrap();
+
+    let events = connection.get_tx_events(tx_info).await.unwrap();
+    let event = events.find_first::<TransactionFeePaid>().unwrap().unwrap();
+
+    let fee = event.actual_fee;
+
+    info!("fee payed: {}", fee);
+
+    (fee, actual_multiplier)
 }

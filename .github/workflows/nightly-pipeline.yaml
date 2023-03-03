@@ -12,6 +12,7 @@ jobs:
   build-new-node:
     name: Build node and runtime artifacts (PR version)
     uses: ./.github/workflows/build-node-and-runtime.yml
+    secrets: inherit
 
   build-test-docker:
     needs: [build-new-node]
@@ -42,23 +43,50 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  build-synthetic-network-docker:
+    needs: [build-test-docker]
+    name: Build docker image with the test node artifact and support for synthetic-network
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Download artifact with docker image for aleph-node
+        uses: actions/download-artifact@v2
+        with:
+          name: aleph-test-docker
+
+      - name: Load node docker image
+        shell: bash
+        run: docker load -i aleph-node.tar
+
+      - name: Build test docker image
+        id: build-image
+        run: |
+          scripts/synthetic-network/build_synthetic-network.sh
+          docker save -o aleph-node.tar aleph-node:syntheticnet
+
+      - name: Upload test docker image
+        uses: actions/upload-artifact@v2
+        with:
+          name: aleph-test-synthetic-docker
+          path: aleph-node.tar
+          if-no-files-found: error
+          retention-days: 7
+
   check-determinism:
     needs: [build-new-node]
     name: Verify runtime build determinism
     runs-on: ubuntu-20.04
     env:
       RUST_BACKTRACE: full
+      RUSTC_WRAPPER: sccache
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
-
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          version: '3.6.1'        
 
       - name: Install WASM target
         run: rustup target add wasm32-unknown-unknown
@@ -85,25 +113,13 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       RUST_BACKTRACE: full
+      RUSTC_WRAPPER: sccache
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
-
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          version: '3.6.1'        
-
-      - name: Restore cache
-        uses: ./.github/actions/restore-cache
-        with:
-          target-key: e2e
-          cargo-key: e2e
-          cache-version: v2
-          cargo-targets: e2e-tests/target/
 
       - name: Build binary and docker image
         run: |
@@ -113,9 +129,6 @@ jobs:
           docker build --tag aleph-e2e-client:latest -f Dockerfile .
           docker save -o aleph-e2e-client.tar aleph-e2e-client:latest
 
-      - name: Stop cache
-        uses: ./.github/actions/post-cache
-
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
@@ -124,9 +137,9 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  run-e2e-authorities-are-staking:
-    needs: [build-test-docker, build-test-client]
-    name: Run authorities are staking test
+  run-e2e-high-out-latency:
+    needs: [build-synthetic-network-docker, build-test-client]
+    name: Run high out-latency test
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -135,13 +148,33 @@ jobs:
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
         with:
-          test-case: authorities_are_staking
-          randomized: true
-        timeout-minutes: 60
+          test-case: high_out_latency_for_all
+          image-path: aleph-test-synthetic-docker
+          node-image: aleph-node:syntheticnet
+          compose-file: docker/docker-compose.synthetic-network.yml
+        timeout-minutes: 30
+
+  run-e2e-no-quorum-without-high-out-latency:
+    needs: [build-synthetic-network-docker, build-test-client]
+    name: Run high out-latency for every quorum
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: high_out_latency_for_each_quorum
+          image-path: aleph-test-synthetic-docker
+          node-image: aleph-node:syntheticnet
+          compose-file: docker/docker-compose.synthetic-network.yml
+        timeout-minutes: 15
 
   check-e2e-test-suite-completion:
     needs: [
-      run-e2e-authorities-are-staking,
+      run-e2e-high-out-latency,
+      run-e2e-no-quorum-without-high-out-latency,
     ]
     name: Check e2e test suite completion
     runs-on: ubuntu-20.04

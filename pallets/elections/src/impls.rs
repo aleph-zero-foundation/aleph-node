@@ -390,8 +390,6 @@ where
             *count += 1;
         });
     }
-
-    fn note_uncle(_author: T::AccountId, _age: T::BlockNumber) {}
 }
 
 impl<T> pallet_session::SessionManager<T::AccountId> for Pallet<T>

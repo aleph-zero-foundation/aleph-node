@@ -1,10 +1,11 @@
 use std::{marker::PhantomData, sync::Arc};
 
 use sc_client_api::Backend;
-use sp_runtime::traits::{Block as BlockT, NumberFor, SaturatedConversion};
+use sp_runtime::traits::{Block as BlockT, NumberFor};
 
 use crate::{
     party::traits::{Block, ChainState, SessionInfo},
+    session::{first_block_of_session, last_block_of_session, session_id_from_block_num},
     ClientForAleph, SessionId, SessionPeriod,
 };
 
@@ -44,14 +45,14 @@ impl SessionInfoImpl {
 
 impl<B: BlockT> SessionInfo<B> for SessionInfoImpl {
     fn session_id_from_block_num(&self, n: NumberFor<B>) -> SessionId {
-        SessionId(n.saturated_into::<u32>() / self.session_period.0)
+        session_id_from_block_num(n, self.session_period)
     }
 
     fn last_block_of_session(&self, session_id: SessionId) -> NumberFor<B> {
-        ((session_id.0 + 1) * self.session_period.0 - 1).into()
+        last_block_of_session(session_id, self.session_period)
     }
 
     fn first_block_of_session(&self, session_id: SessionId) -> NumberFor<B> {
-        (session_id.0 * self.session_period.0).into()
+        first_block_of_session(session_id, self.session_period)
     }
 }

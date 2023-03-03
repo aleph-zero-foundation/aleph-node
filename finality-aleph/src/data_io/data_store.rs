@@ -26,7 +26,13 @@ use crate::{
         status_provider::get_proposal_status,
         AlephNetworkMessage,
     },
-    network::{ComponentNetwork, DataNetwork, ReceiverComponent, RequestBlocks, SimpleNetwork},
+    network::{
+        data::{
+            component::{Network as ComponentNetwork, Receiver, SimpleNetwork},
+            Network as DataNetwork,
+        },
+        RequestBlocks,
+    },
     BlockHashNum, SessionBoundaries,
 };
 
@@ -174,7 +180,7 @@ where
     RB: RequestBlocks<B> + 'static,
     Message:
         AlephNetworkMessage<B> + std::fmt::Debug + Send + Sync + Clone + codec::Codec + 'static,
-    R: ReceiverComponent<Message>,
+    R: Receiver<Message>,
 {
     next_free_id: MessageId,
     pending_proposals: HashMap<AlephProposal<B>, PendingProposalInfo<B>>,
@@ -201,7 +207,7 @@ where
     RB: RequestBlocks<B> + 'static,
     Message:
         AlephNetworkMessage<B> + std::fmt::Debug + Send + Sync + Clone + codec::Codec + 'static,
-    R: ReceiverComponent<Message>,
+    R: Receiver<Message>,
 {
     /// Returns a struct to be run and a network that outputs messages filtered as appropriate
     pub fn new<N: ComponentNetwork<Message, R = R>>(

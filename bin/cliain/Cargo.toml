@@ -1,31 +1,28 @@
 [package]
 name = "cliain"
-version = "0.10.0"
+version = "0.11.0"
 edition = "2021"
 license = "GPL-3.0-or-later"
 
 [dependencies]
+aleph_client = { path = "../../aleph-client" }
 anyhow = "1.0"
 clap = { version = "3.0", features = ["derive"] }
 codec = { package = 'parity-scale-codec', version = "3.0.0", features = ['derive'] }
-contract-transcode = { version = "2.0.0-beta" }
+contract-metadata = { git = "https://github.com/paritytech/cargo-contract.git", tag = "v1.4.0"}
+contract-transcode = { version = "=2.0.0-beta" }
 dialoguer = "0.10.0"
 env_logger = "0.8"
 hex = "0.4.3"
 ink_metadata = { version = "4.0.0-beta", features = ["derive"] }
 log = "0.4"
+pallet-staking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+primitives = { path = "../../primitives" }
 serde = { version = "1.0.137", features = ["derive"] }
 serde_json = "1.0.81"
+sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", features = ["full_crypto"] }
 tokio = { version = "1.21.2", features = ["full"] }
 subxt = "0.25.0"
-
-contract-metadata = { git = "https://github.com/paritytech/cargo-contract.git", tag = "v1.4.0"}
-pallet-staking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32" }
-sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32", features = ["full_crypto"] }
-
-aleph_client = { path = "../../aleph-client" }
-primitives = { path = "../../primitives" }
-liminal-ark-relations = { path = "../../relations" }
 
 [features]
 default = ["std"]

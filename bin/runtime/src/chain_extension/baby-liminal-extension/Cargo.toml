@@ -22,7 +22,7 @@ ink = { version = "~4.0.0", default-features = false }
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2.3", default-features = false, features = ["derive"], optional = true }
 
-sp-std = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "liminal-v0.9.32", default-features = false }
+sp-std = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
 
 [features]
 default = ["std"]

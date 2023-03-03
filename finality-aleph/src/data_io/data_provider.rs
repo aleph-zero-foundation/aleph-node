@@ -6,7 +6,6 @@ use parking_lot::Mutex;
 use sc_client_api::HeaderBackend;
 use sp_consensus::SelectChain;
 use sp_runtime::{
-    generic::BlockId,
     traits::{Block as BlockT, Header as HeaderT, NumberFor, One, Zero},
     SaturatedConversion,
 };
@@ -32,7 +31,7 @@ where
     let mut curr_header = header;
     while curr_header.number() > &num {
         curr_header = client
-            .header(BlockId::Hash(*curr_header.parent_hash()))
+            .header(*curr_header.parent_hash())
             .expect("client must respond")
             .expect("parent hash is known by the client");
     }
@@ -47,10 +46,7 @@ where
     if block.num.is_zero() {
         return None;
     }
-    if let Some(header) = client
-        .header(BlockId::Hash(block.hash))
-        .expect("client must respond")
-    {
+    if let Some(header) = client.header(block.hash).expect("client must respond") {
         Some((*header.parent_hash(), block.num - <NumberFor<B>>::one()).into())
     } else {
         warn!(target: "aleph-data-store", "Trying to fetch the parent of an unknown block {:?}.", block);

@@ -53,6 +53,17 @@ services:
       - PUBLIC_VALIDATOR_ADDRESS=Node4:30347
       - BOOT_NODES=/dns4/Node0/tcp/30333/p2p/$BOOTNODE_PEER_ID
 
+  Node5:
+    extends:
+      file: docker-compose.base.yml
+      service: Node5
+    networks:
+      - main
+      - Node5
+    environment:
+      - PUBLIC_VALIDATOR_ADDRESS=Node4:30348
+      - BOOT_NODES=/dns4/Node0/tcp/30333/p2p/$BOOTNODE_PEER_ID
+
 networks:
   main:
     name: main-network
@@ -66,3 +77,5 @@ networks:
     name: Node3-network
   Node4:
     name: Node4-network
+  Node5:
+    name: Node5-network

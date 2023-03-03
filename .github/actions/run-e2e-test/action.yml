@@ -12,7 +12,7 @@ inputs:
     default: '4'
   test-case:
     description: 'Name of test to run.'
-    required: true
+    required: false
   randomized:
     description: 'Whether to use randomized test params.'
     required: false
@@ -26,6 +26,22 @@ inputs:
   follow-up-finalization-check:
     description: 'Whether to run a follow-up finalization check.'
     required: false
+  deploy-adder:
+    description: 'Whether to deploy the adder sample contract to the node.'
+    required: false
+    default: 'false'
+  image-path:
+    description: 'Custom path to docker image for aleph-node'
+    required: false
+    default: aleph-test-docker
+  node-image:
+    description: 'Custom name of aleph-node image'
+    required: false
+    default: aleph-node:latest
+  compose-file:
+    description: 'Custom docker-compose configuration'
+    required: false
+    default: ''
 
 runs:
   using: 'composite'
@@ -34,7 +50,7 @@ runs:
     - name: Download artifact with docker image
       uses: actions/download-artifact@v2
       with:
-        name: aleph-test-docker
+        name: ${{ inputs.image-path }}
 
     - name: Load node docker image
       shell: bash
@@ -42,7 +58,7 @@ runs:
 
     - name: Run consensus party
       shell: bash
-      run: ./.github/scripts/run_consensus.sh -m ${{ inputs.min-validator-count }} -n ${{ inputs.node-count }}
+      run: NODE_IMAGE=${{ inputs.node-image }} DOCKER_COMPOSE=${{ inputs.compose-file }} ./.github/scripts/run_consensus.sh -m ${{ inputs.min-validator-count }} -n ${{ inputs.node-count }}
 
     - name: Sleep
       shell: bash
@@ -53,15 +69,18 @@ runs:
       run: docker logs Node0 --follow &
 
     - name: Download artifact with the test suite image
+      if: inputs.test-case != ''
       uses: actions/download-artifact@v2
       with:
         name: aleph-e2e-client
 
     - name: Load test suite docker image
+      if: inputs.test-case != ''
       shell: bash
       run: docker load -i aleph-e2e-client.tar
 
     - name: Run single e2e test
+      if: inputs.test-case != ''
       shell: bash
       run: |
         ARGS=(
@@ -72,7 +91,7 @@ runs:
 
         RESERVED_SEATS="${{ inputs.reserved-seats }}"
         NON_RESERVED_SEATS="${{ inputs.non-reserved-seats }}"
-
+        
         if [[ -n "${RANDOMIZED}" ]]; then
           ARGS+=(-r "${RANDOMIZED}")
         fi
@@ -82,6 +101,14 @@ runs:
             -f "${RESERVED_SEATS}"
             -n "${NON_RESERVED_SEATS}"
           )
+        fi
+
+        DEPLOY_ADDER="${{ inputs.deploy-adder }}"
+
+        if [[ "${DEPLOY_ADDER}" = "true" ]]; then
+          pushd contracts/adder
+          export ADDER=$(./deploy.sh)
+          popd
         fi
 
         ./.github/scripts/run_e2e_test.sh "${ARGS[@]}"

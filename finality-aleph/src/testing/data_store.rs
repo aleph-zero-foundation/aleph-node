@@ -18,7 +18,10 @@ use tokio::time::timeout;
 
 use crate::{
     data_io::{AlephData, AlephNetworkMessage, DataStore, DataStoreConfig, MAX_DATA_BRANCH_LEN},
-    network::{ComponentNetwork, Data, DataNetwork, RequestBlocks},
+    network::{
+        data::{component::Network as ComponentNetwork, Network as DataNetwork},
+        Data, RequestBlocks,
+    },
     session::{SessionBoundaries, SessionId, SessionPeriod},
     testing::{
         client_chain_builder::ClientChainBuilder,
@@ -257,7 +260,7 @@ async fn correct_messages_go_through() {
             .await;
 
         for i in 1..=MAX_DATA_BRANCH_LEN {
-            let blocks_branch = blocks[0..(i as usize)].to_vec();
+            let blocks_branch = blocks[0..i].to_vec();
             let test_data: TestData = vec![aleph_data_from_blocks(blocks_branch)];
             test_handler.send_data(test_data.clone());
 
@@ -279,7 +282,7 @@ async fn too_long_branch_message_does_not_go_through() {
 
         test_handler.finalize_block(&blocks[MAX_DATA_BRANCH_LEN + 2].hash());
 
-        let blocks_branch = blocks[0..((MAX_DATA_BRANCH_LEN + 1) as usize)].to_vec();
+        let blocks_branch = blocks[0..(MAX_DATA_BRANCH_LEN + 1)].to_vec();
         let test_data: TestData = vec![aleph_data_from_blocks(blocks_branch)];
         test_handler.send_data(test_data.clone());
         test_handler
@@ -378,7 +381,7 @@ async fn branch_with_not_finalized_ancestor_correctly_handled() {
 
 fn send_proposals_of_each_len(blocks: Vec<Block>, test_handler: &mut TestHandler) {
     for i in 1..=MAX_DATA_BRANCH_LEN {
-        let blocks_branch = blocks[0..(i as usize)].to_vec();
+        let blocks_branch = blocks[0..i].to_vec();
         let test_data: TestData = vec![aleph_data_from_blocks(blocks_branch)];
         test_handler.send_data(test_data.clone());
     }

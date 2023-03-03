@@ -12,8 +12,10 @@ use sp_runtime::traits::Block;
 use crate::{
     crypto::AuthorityPen,
     network::{
-        setup_io, ConnectionManager, ConnectionManagerConfig, Service as NetworkService,
-        SessionManager,
+        clique::Service,
+        session::{ConnectionManager, ConnectionManagerConfig},
+        tcp::{new_tcp_network, KEY_TYPE},
+        GossipService, SubstrateNetwork,
     },
     nodes::{setup_justification_handler, JustificationParams},
     party::{
@@ -22,8 +24,6 @@ use crate::{
         ConsensusParty, ConsensusPartyParams,
     },
     session_map::{AuthorityProviderImpl, FinalityNotificatorImpl, SessionMapUpdater},
-    tcp_network::{new_tcp_network, KEY_TYPE},
-    validator_network::Service,
     AlephConfig, BlockchainBackend,
 };
 
@@ -62,6 +62,7 @@ where
         backup_saving_path,
         external_addresses,
         validator_port,
+        protocol_naming,
         ..
     } = aleph_config;
 
@@ -76,7 +77,7 @@ where
     let (dialer, listener, network_identity) = new_tcp_network(
         ("0.0.0.0", validator_port),
         external_addresses,
-        network_authority_pen.authority_id(),
+        &network_authority_pen,
     )
     .await
     .expect("we should have working networking");
@@ -92,21 +93,28 @@ where
         validator_network_service.run(exit).await
     });
 
+    let (gossip_network_service, authentication_network, _block_sync_network) = GossipService::new(
+        SubstrateNetwork::new(network.clone(), protocol_naming),
+        spawn_handle.clone(),
+    );
+    let gossip_network_task = async move { gossip_network_service.run().await };
+
     let block_requester = network.clone();
     let map_updater = SessionMapUpdater::<_, _, B>::new(
         AuthorityProviderImpl::new(client.clone()),
         FinalityNotificatorImpl::new(client.clone()),
+        session_period,
     );
     let session_authorities = map_updater.readonly_session_map();
     spawn_handle.spawn("aleph/updater", None, async move {
         debug!(target: "aleph-party", "SessionMapUpdater has started.");
-        map_updater.run(session_period).await
+        map_updater.run().await
     });
 
     let (authority_justification_tx, handler_task) =
         setup_justification_handler(JustificationParams {
             justification_rx,
-            network: network.clone(),
+            network,
             client: client.clone(),
             blockchain_backend,
             metrics: metrics.clone(),
@@ -115,35 +123,25 @@ where
             session_map: session_authorities.clone(),
         });
 
-    let (connection_io, network_io, session_io) = setup_io();
-
-    let connection_manager = ConnectionManager::new(
+    let (connection_manager_service, connection_manager) = ConnectionManager::new(
         network_identity,
+        validator_network,
+        authentication_network,
         ConnectionManagerConfig::with_session_period(&session_period, &millisecs_per_block),
     );
 
     let connection_manager_task = async move {
-        connection_io
-            .run(connection_manager)
-            .await
-            .expect("Failed to run connection manager")
+        if let Err(e) = connection_manager_service.run().await {
+            panic!("Failed to run connection manager: {}", e);
+        }
     };
-
-    let session_manager = SessionManager::new(session_io);
-    let network = NetworkService::new(
-        network.clone(),
-        validator_network,
-        spawn_handle.clone(),
-        network_io,
-    );
-    let network_task = async move { network.run().await };
 
     spawn_handle.spawn("aleph/justification_handler", None, handler_task);
     debug!(target: "aleph-party", "JustificationHandler has started.");
 
     spawn_handle.spawn("aleph/connection_manager", None, connection_manager_task);
-    spawn_handle.spawn("aleph/network", None, network_task);
-    debug!(target: "aleph-party", "Network has started.");
+    spawn_handle.spawn("aleph/gossip_network", None, gossip_network_task);
+    debug!(target: "aleph-party", "Gossip network has started.");
 
     let party = ConsensusParty::new(ConsensusPartyParams {
         session_authorities,
@@ -162,7 +160,7 @@ where
             block_requester,
             metrics,
             spawn_handle.into(),
-            session_manager,
+            connection_manager,
             keystore,
         ),
         _phantom: PhantomData,

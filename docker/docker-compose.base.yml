@@ -77,3 +77,19 @@ services:
       # key derived from "//4"
       - BASE_PATH=/data/5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW
       - NODE_KEY_PATH=/data/5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW/p2p_secret
+
+  Node5:
+    extends:
+      file: common.yml
+      service: AlephNonBootNode
+    container_name: Node5
+    environment:
+      - RPC_PORT=9938
+      - WS_PORT=9948
+      - PORT=30338
+      - VALIDATOR_PORT=30348
+      - PUBLIC_VALIDATOR_ADDRESS=127.0.0.1:30348
+      - NAME=Node5
+      # key derived from "//5"
+      - BASE_PATH=/data/5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR
+      - NODE_KEY_PATH=/data/5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR/p2p_secret

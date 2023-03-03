@@ -9,14 +9,13 @@ use aleph_client::{
     pallets::contract::{ContractsApi, ContractsUserApi},
     sp_weights::weight_v2::Weight,
     waiting::{AlephWaiting, BlockStatus},
-    AccountId, Connection, SignedConnection, TxStatus,
+    AccountId, Balance, CodeHash, Connection, SignedConnection, SignedConnectionApi, TxStatus,
 };
 use codec::{Compact, Decode};
 use contract_metadata::ContractMetadata;
 use contract_transcode::ContractMessageTranscoder;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
-use subxt::ext::sp_core::H256;
 
 use crate::commands::{
     ContractCall, ContractInstantiate, ContractInstantiateWithCode, ContractOptions,
@@ -26,10 +25,10 @@ use crate::commands::{
 #[derive(Debug, Decode, Clone, Serialize, Deserialize)]
 pub struct InstantiateWithCodeReturnValue {
     pub contract: AccountId,
-    pub code_hash: H256,
+    pub code_hash: CodeHash,
 }
 
-fn storage_deposit(storage_deposit_limit: Option<u128>) -> Option<Compact<u128>> {
+fn storage_deposit(storage_deposit_limit: Option<Balance>) -> Option<Compact<u128>> {
     storage_deposit_limit.map(Compact)
 }
 
@@ -45,7 +44,7 @@ pub async fn upload_code(
     let wasm = fs::read(wasm_path).expect("WASM artifact not found");
     debug!(target: "contracts", "Found WASM contract code {:?}", wasm);
 
-    let connection = signed_connection.connection.clone();
+    let connection = signed_connection.clone();
     let event_handler = tokio::spawn(async move {
         connection
             .wait_for_event(
@@ -58,10 +57,11 @@ pub async fn upload_code(
             .await
     });
 
-    let _block_hash = signed_connection
+    let _tx_info = signed_connection
         .upload_code(
             wasm,
             storage_deposit(storage_deposit_limit),
+            aleph_client::pallet_contracts::wasm::Determinism::Deterministic,
             TxStatus::InBlock,
         )
         .await?;
@@ -94,8 +94,8 @@ pub async fn instantiate(
 
     debug!("Encoded constructor data {:?}", data);
 
-    let connection = signed_connection.connection.clone();
-    let signer_id = signed_connection.signer.account_id().clone();
+    let connection = signed_connection.clone();
+    let signer_id = signed_connection.account_id().clone();
 
     let event_handler = tokio::spawn(async move {
         connection
@@ -109,7 +109,7 @@ pub async fn instantiate(
             .await
     });
 
-    let _block_hash = signed_connection
+    let _tx_info = signed_connection
         .instantiate(
             code_hash,
             balance,
@@ -153,9 +153,9 @@ pub async fn instantiate_with_code(
 
     debug!("Encoded constructor data {:?}", data);
 
-    let signer_id = signed_connection.signer.account_id().clone();
-    let connection_0 = signed_connection.connection.clone();
-    let connection_1 = signed_connection.connection.clone();
+    let signer_id = signed_connection.account_id().clone();
+    let connection_0 = signed_connection.clone();
+    let connection_1 = signed_connection.clone();
 
     let event_handler_0 = tokio::spawn(async move {
         connection_0
@@ -182,7 +182,7 @@ pub async fn instantiate_with_code(
             .await
     });
 
-    let _block_hash = signed_connection
+    let _tx_info = signed_connection
         .instantiate_with_code(
             wasm,
             balance,
@@ -227,7 +227,7 @@ pub async fn call(
 
     debug!("Encoded call data {:?}", data);
 
-    let _block_hash = signed_connection
+    let _tx_info = signed_connection
         .call(
             destination,
             balance,
@@ -253,7 +253,7 @@ pub async fn remove_code(
 ) -> anyhow::Result<CodeRemoved> {
     let ContractRemoveCode { code_hash } = command;
 
-    let connection = signed_connection.connection.clone();
+    let connection = signed_connection.clone();
 
     let event_handler = tokio::spawn(async move {
         connection
@@ -267,7 +267,7 @@ pub async fn remove_code(
             .await
     });
 
-    let _block_hash = signed_connection
+    let _tx_info = signed_connection
         .remove_code(code_hash, TxStatus::InBlock)
         .await?;
 

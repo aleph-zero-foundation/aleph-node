@@ -1,17 +1,14 @@
-use std::time::Duration;
-
-use legacy_aleph_bft::{Config, LocalIO};
+pub use aleph_primitives::LEGACY_FINALITY_VERSION as VERSION;
+use legacy_aleph_bft::{default_config, Config, LocalIO, Terminator};
 use log::debug;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::traits::Block;
 
+use super::common::unit_creation_delay_fn;
 use crate::{
-    abft::{
-        common::{unit_creation_delay_fn, AlephConfig, DelayConfig},
-        NetworkWrapper, SpawnHandleT,
-    },
+    abft::{NetworkWrapper, SpawnHandleT},
     data_io::{AlephData, OrderedDataInterpreter},
-    network::DataNetwork,
+    network::data::Network,
     oneshot,
     party::{
         backup::ABFTBackup,
@@ -20,13 +17,10 @@ use crate::{
     Keychain, LegacyNetworkData, NodeIndex, SessionId, UnitCreationDelay,
 };
 
-/// Version of the legacy abft
-pub const VERSION: u32 = 0;
-
 pub fn run_member<
     B: Block,
     C: HeaderBackend<B> + Send + 'static,
-    ADN: DataNetwork<LegacyNetworkData<B>> + 'static,
+    ADN: Network<LegacyNetworkData<B>> + 'static,
 >(
     subtask_common: SubtaskCommon,
     multikeychain: Keychain,
@@ -41,6 +35,7 @@ pub fn run_member<
         session_id,
     } = subtask_common;
     let (stop, exit) = oneshot::channel();
+    let member_terminator = Terminator::create_root(exit, "member");
     let local_io = LocalIO::new(data_provider, ordered_data_interpreter, backup.0, backup.1);
 
     let task = {
@@ -53,7 +48,7 @@ pub fn run_member<
                 network,
                 multikeychain,
                 spawn_handle,
-                exit,
+                member_terminator,
             )
             .await;
             debug!(target: "aleph-party", "Member task stopped for {:?}", session_id);
@@ -70,13 +65,8 @@ pub fn create_aleph_config(
     session_id: SessionId,
     unit_creation_delay: UnitCreationDelay,
 ) -> Config {
-    let delay_config = DelayConfig {
-        tick_interval: Duration::from_millis(100),
-        requests_interval: Duration::from_millis(3000),
-        unit_rebroadcast_interval_min: Duration::from_millis(15000),
-        unit_rebroadcast_interval_max: Duration::from_millis(20000),
-        unit_creation_delay: unit_creation_delay_fn(unit_creation_delay),
-    };
+    let mut config = default_config(n_members.into(), node_id.into(), session_id.0 as u64);
+    config.delay_config.unit_creation_delay = unit_creation_delay_fn(unit_creation_delay);
 
-    AlephConfig::new(delay_config, n_members, node_id, session_id).into()
+    config
 }

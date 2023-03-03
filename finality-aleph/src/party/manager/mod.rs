@@ -1,9 +1,9 @@
-use std::{collections::HashSet, fmt::Debug, marker::PhantomData, sync::Arc};
+use std::{collections::HashSet, marker::PhantomData, sync::Arc};
 
 use aleph_primitives::{AlephSessionApi, KEY_TYPE};
 use async_trait::async_trait;
 use futures::channel::oneshot;
-use log::{debug, trace, warn};
+use log::{debug, info, trace, warn};
 use sc_client_api::Backend;
 use sp_consensus::SelectChain;
 use sp_keystore::CryptoStore;
@@ -21,8 +21,12 @@ use crate::{
     data_io::{ChainTracker, DataStore, OrderedDataInterpreter},
     mpsc,
     network::{
-        split, ComponentNetworkMap, ManagerError, RequestBlocks, Sender, SessionManager,
-        SimpleNetwork,
+        data::{
+            component::{Network, NetworkMap, SimpleNetwork},
+            split::split,
+        },
+        session::{SessionManager, SessionSender},
+        RequestBlocks,
     },
     party::{
         backup::ABFTBackup, manager::aggregator::AggregatorVersion, traits::NodeSessionManager,
@@ -44,7 +48,6 @@ pub use task::{Handle, Task};
 use crate::{
     abft::{CURRENT_VERSION, LEGACY_VERSION},
     data_io::DataProvider,
-    network::ComponentNetwork,
 };
 
 #[cfg(feature = "only_legacy")]
@@ -53,12 +56,12 @@ const ONLY_LEGACY_ENV: &str = "ONLY_LEGACY_PROTOCOL";
 type LegacyNetworkType<B> = SimpleNetwork<
     LegacyRmcNetworkData<B>,
     mpsc::UnboundedReceiver<LegacyRmcNetworkData<B>>,
-    Sender<LegacyRmcNetworkData<B>>,
+    SessionSender<LegacyRmcNetworkData<B>>,
 >;
 type CurrentNetworkType<B> = SimpleNetwork<
     CurrentRmcNetworkData<B>,
     mpsc::UnboundedReceiver<CurrentRmcNetworkData<B>>,
-    Sender<CurrentRmcNetworkData<B>>,
+    SessionSender<CurrentRmcNetworkData<B>>,
 >;
 
 struct SubtasksParams<C, SC, B, N, BE>
@@ -67,7 +70,7 @@ where
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
-    N: ComponentNetwork<VersionedNetworkData<B>> + 'static,
+    N: Network<VersionedNetworkData<B>> + 'static,
 {
     n_members: usize,
     node_id: NodeIndex,
@@ -85,13 +88,14 @@ where
     phantom: PhantomData<BE>,
 }
 
-pub struct NodeSessionManagerImpl<C, SC, B, RB, BE>
+pub struct NodeSessionManagerImpl<C, SC, B, RB, BE, SM>
 where
     B: BlockT,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
     RB: RequestBlocks<B>,
+    SM: SessionManager<VersionedNetworkData<B>> + 'static,
 {
     client: Arc<C>,
     select_chain: SC,
@@ -101,12 +105,12 @@ where
     block_requester: RB,
     metrics: Option<Metrics<<B::Header as Header>::Hash>>,
     spawn_handle: SpawnHandle,
-    session_manager: SessionManager<VersionedNetworkData<B>>,
+    session_manager: SM,
     keystore: Arc<dyn CryptoStore>,
     _phantom: PhantomData<BE>,
 }
 
-impl<C, SC, B, RB, BE> NodeSessionManagerImpl<C, SC, B, RB, BE>
+impl<C, SC, B, RB, BE, SM> NodeSessionManagerImpl<C, SC, B, RB, BE, SM>
 where
     B: BlockT,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
@@ -114,6 +118,7 @@ where
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
     RB: RequestBlocks<B>,
+    SM: SessionManager<VersionedNetworkData<B>>,
 {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -125,7 +130,7 @@ where
         block_requester: RB,
         metrics: Option<Metrics<<B::Header as Header>::Hash>>,
         spawn_handle: SpawnHandle,
-        session_manager: SessionManager<VersionedNetworkData<B>>,
+        session_manager: SM,
         keystore: Arc<dyn CryptoStore>,
     ) -> Self {
         Self {
@@ -143,7 +148,7 @@ where
         }
     }
 
-    fn legacy_subtasks<N: ComponentNetwork<VersionedNetworkData<B>> + 'static>(
+    fn legacy_subtasks<N: Network<VersionedNetworkData<B>> + 'static>(
         &self,
         params: SubtasksParams<C, SC, B, N, BE>,
     ) -> Subtasks {
@@ -201,7 +206,7 @@ where
         )
     }
 
-    fn current_subtasks<N: ComponentNetwork<VersionedNetworkData<B>> + 'static>(
+    fn current_subtasks<N: Network<VersionedNetworkData<B>> + 'static>(
         &self,
         params: SubtasksParams<C, SC, B, N, BE>,
     ) -> Subtasks {
@@ -303,11 +308,14 @@ where
             justifications_for_chain: self.authority_justification_tx.clone(),
         };
 
-        let data_network = self
+        let data_network = match self
             .session_manager
             .start_validator_session(session_id, authority_verifier, node_id, authority_pen)
             .await
-            .expect("Failed to start validator session!");
+        {
+            Ok(data_network) => data_network,
+            Err(e) => panic!("Failed to start validator session: {}", e),
+        };
 
         let last_block_of_previous_session = session_boundaries
             .first_block()
@@ -336,9 +344,20 @@ where
             .next_session_finality_version(&BlockId::Number(last_block_of_previous_session))
         {
             #[cfg(feature = "only_legacy")]
-            _ if self.only_legacy() => self.legacy_subtasks(params),
-            Ok(version) if version == CURRENT_VERSION => self.current_subtasks(params),
-            Ok(version) if version == LEGACY_VERSION => self.legacy_subtasks(params),
+            _ if self.only_legacy() => {
+                info!(target: "aleph-party", "Running session with legacy-only AlephBFT version.");
+                self.legacy_subtasks(params)
+            }
+            // The `as`es here should be removed, but this would require a pallet migration and I
+            // am lazy.
+            Ok(version) if version == CURRENT_VERSION as u32 => {
+                info!(target: "aleph-party", "Running session with AlephBFT version {}, which is current.", version);
+                self.current_subtasks(params)
+            }
+            Ok(version) if version == LEGACY_VERSION as u32 => {
+                info!(target: "aleph-party", "Running session with AlephBFT version {}, which is legacy.", version);
+                self.legacy_subtasks(params)
+            }
             Ok(version) => {
                 panic!("Unsupported version {}. Supported versions: {} or {}. Potentially outdated node.", version, LEGACY_VERSION, CURRENT_VERSION)
             }
@@ -357,14 +376,8 @@ where
     }
 }
 
-#[derive(Debug)]
-pub enum SessionManagerError {
-    NotAuthority,
-    ManagerError(ManagerError),
-}
-
 #[async_trait]
-impl<C, SC, B, RB, BE> NodeSessionManager for NodeSessionManagerImpl<C, SC, B, RB, BE>
+impl<C, SC, B, RB, BE, SM> NodeSessionManager for NodeSessionManagerImpl<C, SC, B, RB, BE, SM>
 where
     B: BlockT,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
@@ -372,8 +385,9 @@ where
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
     RB: RequestBlocks<B>,
+    SM: SessionManager<VersionedNetworkData<B>>,
 {
-    type Error = SessionManagerError;
+    type Error = SM::Error;
 
     async fn spawn_authority_task_for_session(
         &self,
@@ -402,20 +416,20 @@ where
     async fn early_start_validator_session(
         &self,
         session: SessionId,
+        node_id: NodeIndex,
         authorities: &[AuthorityId],
     ) -> Result<(), Self::Error> {
-        let node_id = match self.node_idx(authorities).await {
-            Some(id) => id,
-            None => return Err(SessionManagerError::NotAuthority),
-        };
         let authority_verifier = AuthorityVerifier::new(authorities.to_vec());
         let authority_pen =
             AuthorityPen::new(authorities[node_id.0].clone(), self.keystore.clone())
                 .await
                 .expect("The keys should sign successfully");
-        self.session_manager
-            .early_start_validator_session(session, authority_verifier, node_id, authority_pen)
-            .map_err(SessionManagerError::ManagerError)
+        self.session_manager.early_start_validator_session(
+            session,
+            authority_verifier,
+            node_id,
+            authority_pen,
+        )
     }
 
     fn start_nonvalidator_session(
@@ -427,13 +441,10 @@ where
 
         self.session_manager
             .start_nonvalidator_session(session, authority_verifier)
-            .map_err(SessionManagerError::ManagerError)
     }
 
     fn stop_session(&self, session: SessionId) -> Result<(), Self::Error> {
-        self.session_manager
-            .stop_session(session)
-            .map_err(SessionManagerError::ManagerError)
+        self.session_manager.stop_session(session)
     }
 
     async fn node_idx(&self, authorities: &[AuthorityId]) -> Option<NodeIndex> {

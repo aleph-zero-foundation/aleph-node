@@ -1,5 +1,11 @@
 name: Deploy to Devnet
 
+# This workflow performs automatic deployment of aleph-node to the Devnet environment
+# It does it from the scratch, ie it
+#   1) syncs the validators keys from S3,
+#   2) generates raw chainspec from the deployed aleph-node binary,
+#   3) restart nodes with cleaned db
+
 on:
   workflow_dispatch:
 
@@ -22,8 +28,7 @@ jobs:
         id: vars
         shell: bash
         run: |
-          echo "##[set-output name=branch;]$(echo ${GITHUB_REF##*/})"
-          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -49,58 +54,50 @@ jobs:
         with:
           version: 'v1.23.6'
 
-      - name: Run fork-off update
+      - name: Sync all validator's keystores from S3
+        run: |
+          #!/bin/bash
+          aws s3 cp s3://alephzero-devnet-eu-central-1-keys-bucket/data data --recursive
+          # rename validator paths
+          declare -A NAMES=([aleph-node-validator-0]=5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH [aleph-node-validator-1]=5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o [aleph-node-validator-2]=5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9 [aleph-node-validator-3]=5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK [aleph-node-validator-4]=5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW [aleph-node-validator-5]=5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR [aleph-node-validator-6]=5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY [aleph-node-validator-7]=5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ [aleph-node-validator-8]=5CUnSsgAyLND3bxxnfNhgWXSe9Wn676JzLpGLgyJv858qhoX [aleph-node-validator-9]=5CVKn7HAZW1Ky4r7Vkgsr7VEW88C2sHgUNDiwHY9Ct2hjU8q)
+          for NAME in "${!NAMES[@]}"; do
+            mv -v data/$NAME data/${NAMES[$NAME]}
+          done
+
+      - name: Generate chainspec
         env:
           RELEASE_TAG: ${{ steps.vars.outputs.sha_short }}
 
         run: |
           #!/bin/bash
-
-          COMMIT_ID=$(curl -s -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' https://rpc.test.azero.dev | jq -r '.result' | cut -d "-" -f 2 | head -c 7)
-          echo $COMMIT_ID
-
-          # sync all validator's keystores from S3
           aws s3 cp s3://alephzero-devnet-eu-central-1-keys-bucket/data data --recursive
-
-          # rename validator paths
-          declare -A NAMES=([aleph-node-validator-0]=5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH [aleph-node-validator-1]=5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o [aleph-node-validator-2]=5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9 [aleph-node-validator-3]=5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK [aleph-node-validator-4]=5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW [aleph-node-validator-5]=5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR [aleph-node-validator-6]=5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY [aleph-node-validator-7]=5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ [aleph-node-validator-8]=5CUnSsgAyLND3bxxnfNhgWXSe9Wn676JzLpGLgyJv858qhoX [aleph-node-validator-9]=5CVKn7HAZW1Ky4r7Vkgsr7VEW88C2sHgUNDiwHY9Ct2hjU8q)
-
-          for NAME in "${!NAMES[@]}"; do
-            mv -v data/$NAME data/${NAMES[$NAME]}
-          done
-
-          # generate chainspec, it will reuse keys from the synced keystore
-          docker run -i -v $(pwd)/data:/data --env RUST_BACKTRACE=1 --entrypoint "/usr/local/bin/aleph-node" public.ecr.aws/p6e8q1z1/aleph-node:${COMMIT_ID} bootstrap-chain --raw --base-path /data --chain-id a0dnet1 --account-ids 5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH,5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o,5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9,5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK,5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW,5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR,5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY,5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ,5CUnSsgAyLND3bxxnfNhgWXSe9Wn676JzLpGLgyJv858qhoX,5CVKn7HAZW1Ky4r7Vkgsr7VEW88C2sHgUNDiwHY9Ct2hjU8q --sudo-account-id 5F4SvwaUEQubiqkPF8YnRfcN77cLsT2DfG4vFeQmSXNjR7hD > chainspec.skeleton.json
-
-          docker run -i -v $(pwd):/app public.ecr.aws/p6e8q1z1/fork-off:latest --ws-rpc-endpoint=wss://ws.test.azero.dev --initial-spec-path=chainspec.skeleton.json --combined-spec-path=chainspec.json
-
+          docker run -i -v $(pwd)/data:/data --env RUST_BACKTRACE=1 --entrypoint "/usr/local/bin/aleph-node" public.ecr.aws/p6e8q1z1/aleph-node:${RELEASE_TAG} bootstrap-chain --raw --base-path /data --chain-id a0dnet1 --account-ids 5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH,5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o,5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9,5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK,5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW,5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR,5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY,5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ,5CUnSsgAyLND3bxxnfNhgWXSe9Wn676JzLpGLgyJv858qhoX,5CVKn7HAZW1Ky4r7Vkgsr7VEW88C2sHgUNDiwHY9Ct2hjU8q --sudo-account-id 5F4SvwaUEQubiqkPF8YnRfcN77cLsT2DfG4vFeQmSXNjR7hD > chainspec.json
           aws s3 cp chainspec.json s3://alephzero-devnet-eu-central-1-keys-bucket/chainspec.json
 
-          # stop and clean devnet
-
+      - name: Stop and purge db Devnet
+        run: |
+          #!/bin/bash
           aws eks --region eu-central-1 update-kubeconfig --name alephzero-devnet-eu-central-1-eks
 
           kubectl delete sts aleph-node-validator -n devnet --ignore-not-found=true
           kubectl delete pvc -l app=aleph-node-validator -n devnet --ignore-not-found=true
-          kubectl delete job send-runtime-hook -n devnet --ignore-not-found=true
+
+      - name: Start Devnet
+        env:
+          RELEASE_TAG: ${{ steps.vars.outputs.sha_short }}
+        run: |
+          #!/bin/bash
 
           cd aleph-apps/aleph-node-validators/overlays/devnet/eu-central-1
-          kustomize edit set image "aleph-node-validator-image-placeholder=public.ecr.aws/p6e8q1z1/aleph-node:${COMMIT_ID}"
-          kustomize edit remove resource send-runtime-hook.yaml
-          kustomize build . | kubectl apply -f -
-          sleep 2
-          kubectl rollout status --watch --timeout=3600s statefulset/aleph-node-validator -n devnet
-
-          echo "Waiting 15 minutes"
-          sleep 900
-
           kustomize edit set image "aleph-node-validator-image-placeholder=public.ecr.aws/p6e8q1z1/aleph-node:${RELEASE_TAG}"
           kustomize build . | kubectl apply -f -
           sleep 2
           kubectl rollout status --watch --timeout=3600s statefulset/aleph-node-validator -n devnet
 
-          kustomize edit add resource send-runtime-hook.yaml
-          kustomize build . | kubectl apply -f -
+      - name: Waiting 5 minutes for validators to boot
+        run: |
+          #!/bin/bash
+          sleep 300
 
       - name: GIT | Commit changes to aleph-apps repository.
         uses: EndBug/add-and-commit@v5.1.0

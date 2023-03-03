@@ -7,6 +7,7 @@ use aleph_client::{
     waiting::{AlephWaiting, BlockStatus, WaitingExt},
     TxStatus,
 };
+use anyhow::anyhow;
 
 use crate::{
     accounts::account_ids_from_keys, config::setup_test, elections::get_members_subset_for_session,
@@ -40,12 +41,10 @@ pub async fn validators_rotate() -> anyhow::Result<()> {
         )
         .await?;
     root_connection
-        .connection
         .wait_for_n_eras(2, BlockStatus::Finalized)
         .await;
-    let current_session = root_connection.connection.get_session(None).await;
+    let current_session = root_connection.get_session(None).await;
     root_connection
-        .connection
         .wait_for_n_sessions(TEST_LENGTH, BlockStatus::Finalized)
         .await;
 
@@ -53,8 +52,7 @@ pub async fn validators_rotate() -> anyhow::Result<()> {
 
     for session in current_session..current_session + TEST_LENGTH {
         let elected = connection
-            .connection
-            .get_validators(connection.connection.first_block_of_session(session).await)
+            .get_validators(connection.first_block_of_session(session).await?)
             .await;
 
         let non_reserved = get_members_subset_for_session(
@@ -101,9 +99,11 @@ pub async fn validators_rotate() -> anyhow::Result<()> {
     let min_elected = non_reserved_count.values().min().unwrap();
     assert!(max_elected - min_elected <= 1);
 
-    let block_number = connection.connection.get_best_block().await;
+    let block_number = connection
+        .get_best_block()
+        .await?
+        .ok_or(anyhow!("Failed to retrieve best block number!"))?;
     connection
-        .connection
         .wait_for_block(|n| n >= block_number, BlockStatus::Finalized)
         .await;
 

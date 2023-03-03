@@ -25,14 +25,12 @@ fn exponential_slowdown(
 }
 
 pub type DelaySchedule = Arc<dyn Fn(usize) -> Duration + Sync + Send + 'static>;
+pub type RecipientCountSchedule = Arc<dyn Fn(usize) -> usize + Sync + Send + 'static>;
 
 pub fn unit_creation_delay_fn(unit_creation_delay: UnitCreationDelay) -> DelaySchedule {
-    Arc::new(move |t| {
-        if t == 0 {
-            Duration::from_millis(2000)
-        } else {
-            exponential_slowdown(t, unit_creation_delay.0 as f64, 5000, 1.005)
-        }
+    Arc::new(move |t| match t {
+        0 => Duration::from_millis(2000),
+        _ => exponential_slowdown(t, unit_creation_delay.0 as f64, 5000, 1.005),
     })
 }
 
@@ -42,6 +40,11 @@ pub struct DelayConfig {
     pub unit_rebroadcast_interval_min: Duration,
     pub unit_rebroadcast_interval_max: Duration,
     pub unit_creation_delay: DelaySchedule,
+    pub coord_request_delay: DelaySchedule,
+    pub coord_request_recipients: RecipientCountSchedule,
+    pub parent_request_delay: DelaySchedule,
+    pub parent_request_recipients: RecipientCountSchedule,
+    pub newest_request_delay: DelaySchedule,
 }
 
 pub struct AlephConfig {
@@ -83,10 +86,14 @@ impl From<DelayConfig> for current_aleph_bft::DelayConfig {
     fn from(cfg: DelayConfig) -> Self {
         Self {
             tick_interval: cfg.tick_interval,
-            requests_interval: cfg.requests_interval,
             unit_rebroadcast_interval_max: cfg.unit_rebroadcast_interval_max,
             unit_rebroadcast_interval_min: cfg.unit_rebroadcast_interval_min,
             unit_creation_delay: cfg.unit_creation_delay,
+            coord_request_delay: cfg.coord_request_delay,
+            coord_request_recipients: cfg.coord_request_recipients,
+            parent_request_delay: cfg.parent_request_delay,
+            parent_request_recipients: cfg.parent_request_recipients,
+            newest_request_delay: cfg.newest_request_delay,
         }
     }
 }

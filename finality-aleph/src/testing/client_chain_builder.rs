@@ -26,7 +26,7 @@ pub struct ClientChainBuilder {
 
 fn assert_no_blocks_except_genesis(client: &TestClient) {
     assert!(
-        client.header(&BlockId::Number(1)).unwrap().is_none(),
+        client.hash(1).unwrap().is_none(),
         "Client is aware of some blocks beyond genesis"
     );
 }
@@ -54,9 +54,7 @@ impl ClientChainBuilder {
 
     /// Finalize block with given hash without providing justification.
     pub fn finalize_block(&self, hash: &H256) {
-        self.client
-            .finalize_block(BlockId::Hash(*hash), None)
-            .unwrap();
+        self.client.finalize_block(*hash, None).unwrap();
     }
 
     pub fn genesis_hash_num(&self) -> BlockHashNum<Block> {
@@ -119,7 +117,7 @@ impl ClientChainBuilder {
 
     pub fn get_header_at(&self, num: u64) -> Header {
         self.client_builder
-            .header(&BlockId::Number(num))
+            .header(self.client_builder.hash(num).unwrap().unwrap())
             .unwrap()
             .unwrap()
     }

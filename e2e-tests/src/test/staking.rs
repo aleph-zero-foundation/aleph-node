@@ -1,5 +1,7 @@
 use aleph_client::{
-    account_from_keypair, keypair_from_string,
+    account_from_keypair,
+    api::runtime_types::sp_core::bounded::bounded_vec::BoundedVec,
+    keypair_from_string,
     pallet_staking::StakingLedger,
     pallets::{
         author::AuthorRpc,
@@ -9,9 +11,8 @@ use aleph_client::{
         staking::{StakingApi, StakingUserApi},
     },
     primitives::CommitteeSeats,
-    sp_core::bounded::bounded_vec::BoundedVec,
     waiting::{BlockStatus, WaitingExt},
-    AccountId, KeyPair, Pair, SignedConnection, TxStatus,
+    AccountId, KeyPair, Pair, SignedConnection, SignedConnectionApi, TxStatus,
 };
 use log::info;
 use primitives::{
@@ -63,7 +64,7 @@ pub async fn staking_era_payouts() -> anyhow::Result<()> {
         .into_iter()
         .zip(validator_accounts)
     {
-        let connection = SignedConnection::new(node.clone(), nominator).await;
+        let connection = SignedConnection::new(node, nominator).await;
         let nominee_account_id = AccountId::from(nominee.signer().public());
         connection
             .nominate(nominee_account_id, TxStatus::InBlock)
@@ -72,11 +73,8 @@ pub async fn staking_era_payouts() -> anyhow::Result<()> {
 
     // All the above calls influence the next era, so we need to wait that it passes.
     // this test can be speeded up by forcing new era twice, and waiting 4 sessions in total instead of almost 10 sessions
-    connection
-        .connection
-        .wait_for_n_eras(2, BlockStatus::Finalized)
-        .await;
-    let current_era = connection.connection.get_current_era(None).await;
+    connection.wait_for_n_eras(2, BlockStatus::Finalized).await;
+    let current_era = connection.get_current_era(None).await;
     info!(
         "Era {} started, claiming rewards for era {}",
         current_era,
@@ -86,7 +84,7 @@ pub async fn staking_era_payouts() -> anyhow::Result<()> {
     let (_, validator_accounts) = get_validator_stashes_key_pairs(config);
     for key_pair in validator_accounts {
         let stash_account = AccountId::from(key_pair.signer().public());
-        let stash_connection = SignedConnection::new(node.to_string(), key_pair).await;
+        let stash_connection = SignedConnection::new(node, key_pair).await;
         payout_stakers_and_assert_locked_balance(
             &stash_connection,
             &[stash_account.clone()],
@@ -137,13 +135,11 @@ pub async fn staking_new_validator() -> anyhow::Result<()> {
         .await?;
 
     root_connection
-        .connection
         .wait_for_n_sessions(2, BlockStatus::Best)
         .await;
 
     // to cover tx fees as we need a bit more than VALIDATOR_STAKE
     root_connection
-        .as_signed()
         .transfer(
             stash_account.clone(),
             MIN_VALIDATOR_BOND + TOKEN,
@@ -152,12 +148,10 @@ pub async fn staking_new_validator() -> anyhow::Result<()> {
         .await?;
     // to cover txs fees
     root_connection
-        .as_signed()
         .transfer(controller_account.clone(), TOKEN, TxStatus::InBlock)
         .await?;
 
-    let stash_connection =
-        SignedConnection::new(node.to_string(), KeyPair::new(stash.signer().clone())).await;
+    let stash_connection = SignedConnection::new(node, KeyPair::new(stash.signer().clone())).await;
 
     stash_connection
         .bond(
@@ -168,7 +162,6 @@ pub async fn staking_new_validator() -> anyhow::Result<()> {
         .await?;
 
     let bonded_controller_account = root_connection
-        .connection
         .get_bonded(stash_account.clone(), None)
         .await
         .expect("should be bonded to smth");
@@ -178,9 +171,9 @@ pub async fn staking_new_validator() -> anyhow::Result<()> {
         &stash_account, &controller_account, &bonded_controller_account
     );
 
-    let validator_keys = root_connection.connection.author_rotate_keys().await;
+    let validator_keys = root_connection.author_rotate_keys().await?;
     let controller_connection =
-        SignedConnection::new(node.to_string(), KeyPair::new(controller.signer().clone())).await;
+        SignedConnection::new(node, KeyPair::new(controller.signer().clone())).await;
     controller_connection
         .set_keys(validator_keys, TxStatus::InBlock)
         .await?;
@@ -188,7 +181,6 @@ pub async fn staking_new_validator() -> anyhow::Result<()> {
         .validate(10, TxStatus::InBlock)
         .await?;
     let ledger = controller_connection
-        .connection
         .get_ledger(controller_account, None)
         .await;
     assert_eq!(
@@ -198,7 +190,9 @@ pub async fn staking_new_validator() -> anyhow::Result<()> {
             total: MIN_VALIDATOR_BOND,
             active: MIN_VALIDATOR_BOND,
             unlocking: BoundedVec(vec![]),
-            claimed_rewards: BoundedVec(vec![]),
+            // since era is 3 sessions, validate is done in the first block of 2nd session,
+            // that is already after elections has been done for 1st era
+            claimed_rewards: BoundedVec(vec![0]),
         }
     );
 
@@ -215,14 +209,10 @@ pub async fn staking_new_validator() -> anyhow::Result<()> {
         )
         .await?;
     root_connection
-        .connection
         .wait_for_n_sessions(2, BlockStatus::Best)
         .await;
-    root_connection
-        .connection
-        .wait_for_n_eras(2, BlockStatus::Best)
-        .await;
-    let current_era = root_connection.connection.get_current_era(None).await;
+    root_connection.wait_for_n_eras(2, BlockStatus::Best).await;
+    let current_era = root_connection.get_current_era(None).await;
     info!(
         "Era {} started, claiming rewards for era {}",
         current_era,
@@ -243,8 +233,7 @@ pub async fn staking_new_validator() -> anyhow::Result<()> {
 pub async fn multi_bond(node: &str, bonders: &[KeyPair], stake: Balance) {
     for bonder in bonders {
         let controller_account = account_from_keypair(bonder.signer());
-        let connection =
-            SignedConnection::new(node.to_string(), KeyPair::new(bonder.signer().clone())).await;
+        let connection = SignedConnection::new(node, KeyPair::new(bonder.signer().clone())).await;
         connection
             .bond(stake, controller_account, TxStatus::InBlock)
             .await
@@ -252,14 +241,13 @@ pub async fn multi_bond(node: &str, bonders: &[KeyPair], stake: Balance) {
     }
 }
 
-async fn payout_stakers_and_assert_locked_balance(
-    stash_connection: &SignedConnection,
+async fn payout_stakers_and_assert_locked_balance<S: SignedConnectionApi>(
+    stash_connection: &S,
     accounts_to_check_balance: &[AccountId],
     stash_account: &AccountId,
     era: BlockNumber,
 ) {
     let locked_stash_balances_before_payout = stash_connection
-        .connection
         .locks(accounts_to_check_balance, None)
         .await;
     stash_connection
@@ -267,7 +255,6 @@ async fn payout_stakers_and_assert_locked_balance(
         .await
         .unwrap();
     let locked_stash_balances_after_payout = stash_connection
-        .connection
         .locks(accounts_to_check_balance, None)
         .await;
     locked_stash_balances_before_payout.iter()

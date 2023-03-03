@@ -27,6 +27,7 @@ impl Index<&StoragePath> for PathCounter {
     }
 }
 
+/// Combines states - ommiting child state as we assume that it is empty in initial chainspec
 pub fn combine_states(
     mut state: Storage,
     initial_state: Storage,
@@ -40,7 +41,7 @@ pub fn combine_states(
     let mut removed_per_path_count = PathCounter::default();
     let mut added_per_path_cnt = PathCounter::default();
 
-    state.retain(|k, _v| {
+    state.top.retain(|k, _v| {
         match storage_prefixes
             .iter()
             .find(|(_, prefix)| prefix.is_prefix_of(k))
@@ -53,13 +54,13 @@ pub fn combine_states(
         }
     });
 
-    for (k, v) in initial_state.iter() {
+    for (k, v) in initial_state.top.iter() {
         if let Some((path, _)) = storage_prefixes
             .iter()
             .find(|(_, prefix)| prefix.is_prefix_of(k))
         {
             added_per_path_cnt.bump(path);
-            state.insert(k.clone(), v.clone());
+            state.top.insert(k.clone(), v.clone());
         }
     }
 

@@ -52,7 +52,7 @@ validator_ids_string="${validator_ids[*]}"
 validator_ids_string="${validator_ids_string//${IFS:0:1}/,}"
 
 echo "Bootstrapping chain for nodes 0..$((N_VALIDATORS - 1))"
-./target/release/aleph-node bootstrap-chain --base-path "$BASE_PATH" --account-ids "$validator_ids_string" --chain-type local > "$BASE_PATH/chainspec.json"
+./target/release/aleph-node bootstrap-chain --raw --base-path "$BASE_PATH" --account-ids "$validator_ids_string" --chain-type local > "$BASE_PATH/chainspec.json"
 
 for i in $(seq "$N_VALIDATORS" "$(( N_VALIDATORS + N_NON_VALIDATORS - 1 ))"); do
   echo "Bootstrapping node $i"
@@ -83,7 +83,6 @@ run_node() {
   ./target/release/aleph-node purge-chain --base-path $BASE_PATH/$account_id --chain $BASE_PATH/chainspec.json -y
   ./target/release/aleph-node \
     $validator \
-    --state-pruning=archive \
     --chain $BASE_PATH/chainspec.json \
     --base-path $BASE_PATH/$account_id \
     --name $auth \
@@ -101,7 +100,7 @@ run_node() {
     --validator-port ${validator_port} \
     -laleph-party=debug \
     -laleph-network=debug \
-    -lvalidator-network=debug \
+    -lclique-network=debug \
     -laleph-finality=debug \
     -laleph-justification=debug \
     -laleph-data-store=debug \

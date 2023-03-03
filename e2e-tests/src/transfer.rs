@@ -9,7 +9,7 @@ async fn setup(config: &Config) -> (Connection, KeyPair, AccountId) {
         KeyPair::new(accounts[1].clone()),
     );
     let to = AccountId::from(to.signer().public());
-    (Connection::new(config.node.clone()).await, from, to)
+    (Connection::new(&config.node).await, from, to)
 }
 
 pub async fn setup_for_transfer(config: &Config) -> (SignedConnection, AccountId) {

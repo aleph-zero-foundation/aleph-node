@@ -13,9 +13,11 @@ use primitives::staking::MIN_VALIDATOR_BOND;
 use serde_json::json;
 use subxt::ext::sp_core::crypto::Ss58Codec;
 
-pub async fn prepare_keys(connection: RootConnection, controller_account_id: AccountId) {
+pub async fn prepare_keys(
+    connection: RootConnection,
+    controller_account_id: AccountId,
+) -> anyhow::Result<()> {
     connection
-        .as_signed()
         .bond(
             MIN_VALIDATOR_BOND,
             controller_account_id,
@@ -23,12 +25,9 @@ pub async fn prepare_keys(connection: RootConnection, controller_account_id: Acc
         )
         .await
         .unwrap();
-    let new_keys = connection.connection.author_rotate_keys().await;
-    connection
-        .as_signed()
-        .set_keys(new_keys, TxStatus::Finalized)
-        .await
-        .unwrap();
+    let new_keys = connection.author_rotate_keys().await?;
+    connection.set_keys(new_keys, TxStatus::Finalized).await?;
+    Ok(())
 }
 
 pub async fn set_keys(connection: SignedConnection, new_keys: String) {

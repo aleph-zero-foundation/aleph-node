@@ -140,7 +140,7 @@ where
         todo!()
     }
 
-    fn write(&mut self, buffer: &[u8]) -> Result<(), DispatchError> {
+    fn write(&mut self, _buffer: &[u8]) -> Result<(), DispatchError> {
         todo!()
     }
 

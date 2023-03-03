@@ -4,17 +4,17 @@ use aleph_client::{
     pallets::session::SessionApi,
     primitives::{CommitteeSeats, EraValidators},
     utility::BlocksApi,
-    AccountId, Connection,
+    AccountId,
 };
 use log::debug;
 use primitives::SessionIndex;
 
-pub async fn get_and_test_members_for_session(
-    connection: &Connection,
+pub async fn get_and_test_members_for_session<C: SessionApi + BlocksApi>(
+    connection: &C,
     seats: CommitteeSeats,
     era_validators: &EraValidators<AccountId>,
     session: SessionIndex,
-) -> (Vec<AccountId>, Vec<AccountId>) {
+) -> anyhow::Result<(Vec<AccountId>, Vec<AccountId>)> {
     let reserved_members_for_session =
         get_members_subset_for_session(seats.reserved_seats, &era_validators.reserved, session);
     let non_reserved_members_for_session = get_members_subset_for_session(
@@ -40,7 +40,7 @@ pub async fn get_and_test_members_for_session(
         .collect();
 
     let members_active_set: HashSet<_> = members_active.iter().cloned().collect();
-    let block = connection.first_block_of_session(session).await;
+    let block = connection.first_block_of_session(session).await?;
     let network_members: HashSet<_> = connection.get_validators(block).await.into_iter().collect();
 
     debug!(
@@ -55,7 +55,7 @@ pub async fn get_and_test_members_for_session(
 
     assert_eq!(members_active_set, network_members);
 
-    (members_active, members_bench)
+    Ok((members_active, members_bench))
 }
 
 /// Computes a list of validators that should be elected for a given session, based on description in our elections pallet.
