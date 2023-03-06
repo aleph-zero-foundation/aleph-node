@@ -29,7 +29,8 @@ pub use shielder::{
     bytes_from_note, compute_note, compute_parent_hash, note_from_bytes, types::*,
     DepositAndMergeRelationWithFullInput, DepositAndMergeRelationWithPublicInput,
     DepositAndMergeRelationWithoutInput, DepositRelationWithFullInput,
-    DepositRelationWithPublicInput, DepositRelationWithoutInput, WithdrawRelationWithFullInput,
+    DepositRelationWithPublicInput, DepositRelationWithoutInput, MergeRelationWithFullInput,
+    MergeRelationWithPublicInput, MergeRelationWithoutInput, WithdrawRelationWithFullInput,
     WithdrawRelationWithPublicInput, WithdrawRelationWithoutInput,
 };
 pub use utils::*;

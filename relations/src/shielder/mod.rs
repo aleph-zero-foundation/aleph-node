@@ -4,6 +4,7 @@
 mod circuit_utils;
 mod deposit;
 mod deposit_and_merge;
+mod merge;
 mod note;
 pub mod types;
 mod withdraw;
@@ -21,6 +22,9 @@ pub use deposit::{
 pub use deposit_and_merge::{
     DepositAndMergeRelationWithFullInput, DepositAndMergeRelationWithPublicInput,
     DepositAndMergeRelationWithoutInput,
+};
+pub use merge::{
+    MergeRelationWithFullInput, MergeRelationWithPublicInput, MergeRelationWithoutInput,
 };
 pub use note::{bytes_from_note, compute_note, compute_parent_hash, note_from_bytes};
 use types::BackendMerklePath;
