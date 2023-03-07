@@ -38,6 +38,7 @@ impl MockBlock {
 
 #[derive(Clone, Debug)]
 struct BackendStorage {
+    session_period: u32,
     blockchain: HashMap<MockIdentifier, MockBlock>,
     finalized: Vec<MockIdentifier>,
     best_block: MockIdentifier,
@@ -72,13 +73,16 @@ fn is_predecessor(
 }
 
 impl Backend {
-    pub fn setup() -> (Self, impl ChainStatusNotifier<MockIdentifier>) {
+    pub fn setup(session_period: usize) -> (Self, impl ChainStatusNotifier<MockIdentifier>) {
         let (notification_sender, notification_receiver) = mpsc::unbounded();
 
-        (Backend::new(notification_sender), notification_receiver)
+        (
+            Backend::new(notification_sender, session_period as u32),
+            notification_receiver,
+        )
     }
 
-    fn new(notification_sender: UnboundedSender<MockNotification>) -> Self {
+    fn new(notification_sender: UnboundedSender<MockNotification>, session_period: u32) -> Self {
         let header = MockHeader::random_parentless(0);
         let id = header.id();
 
@@ -88,6 +92,7 @@ impl Backend {
         };
 
         let storage = Arc::new(Mutex::new(BackendStorage {
+            session_period,
             blockchain: HashMap::from([(id.clone(), block)]),
             finalized: vec![id.clone()],
             best_block: id.clone(),
@@ -175,24 +180,11 @@ impl Finalizer<MockJustification> for Backend {
         let header = justification.header();
         let parent_id = match justification.header().parent_id() {
             Some(id) => id,
-            None => panic!("finalizing block without a parent: {:?}", header),
+            None => panic!("finalizing block without specified parent: {:?}", header),
         };
 
-        let parent_block = match storage.blockchain.get(&parent_id) {
-            Some(block) => block,
-            None => panic!("finalizing block without an imported parent: {:?}", header),
-        };
-
-        if parent_block.justification.is_none() {
-            panic!("finalizing block without a finalized parent: {:?}", header);
-        }
-
-        if &parent_id != storage.finalized.last().expect("there is a top finalized") {
-            panic!(
-                "finalizing block whose parent is not top finalized: {:?}. Top is {:?}",
-                header,
-                storage.finalized.last().expect("there is a top finalized")
-            );
+        if storage.blockchain.get(&parent_id).is_none() {
+            panic!("finalizing block without imported parent: {:?}", header)
         }
 
         let id = justification.header().id();
@@ -202,6 +194,21 @@ impl Finalizer<MockJustification> for Backend {
         };
 
         block.finalize(justification);
+
+        // Check if the previous block was finalized, or this is the last block of the current
+        // session
+        let allowed_numbers = match storage.finalized.last() {
+            Some(id) => [
+                id.number + 1,
+                id.number + storage.session_period
+                    - (id.number + 1).rem_euclid(storage.session_period),
+            ],
+            None => [0, storage.session_period - 1],
+        };
+        if !allowed_numbers.contains(&id.number) {
+            panic!("finalizing a block that is not a child of top finalized (round {:?}), nor the last of a session (round {:?}): round {:?}", allowed_numbers[0], allowed_numbers[1], id.number);
+        }
+
         storage.finalized.push(id.clone());
         // In case finalization changes best block, we set best block, to top finalized.
         // Whenever a new import happens, best block will update anyway.

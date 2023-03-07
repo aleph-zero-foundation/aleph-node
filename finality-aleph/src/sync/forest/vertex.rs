@@ -79,6 +79,14 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
         )
     }
 
+    /// Whether the vertex represents imported justified block.
+    pub fn justified_block(&self) -> bool {
+        matches!(
+            self.inner,
+            InnerVertex::Justification { imported: true, .. }
+        )
+    }
+
     /// Deconstructs the vertex into a justification if it is ready to be imported,
     /// i.e. the related block has already been imported, otherwise returns it.
     pub fn ready(self) -> Result<J, Self> {
