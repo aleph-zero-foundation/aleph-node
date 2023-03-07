@@ -65,6 +65,8 @@ pallet-aleph = { path = "../../pallets/aleph", default-features = false }
 pallet-elections = { path = "../../pallets/elections", default-features = false }
 pallet-baby-liminal = { path = "../../pallets/baby-liminal", default-features = false }
 
+baby-liminal-extension = { path = "../../baby-liminal-extension", default-features = false, features = ["substrate"] }
+
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 
@@ -117,6 +119,7 @@ std = [
     "pallet-contracts/std",
     "pallet-nomination-pools/std",
     "pallet-nomination-pools-runtime-api/std",
+    "baby-liminal-extension/substrate-std"
 ]
 short_session = ["primitives/short_session"]
 try-runtime = [

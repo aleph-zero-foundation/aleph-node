@@ -1,15 +1,14 @@
-use frame_support::dispatch::Weight;
-use pallet_baby_liminal::{Error, Pallet as BabyLiminal, ProvingSystem, VerificationKeyIdentifier};
-use sp_std::vec::Vec;
+use obce::substrate::{
+    frame_support::weights::Weight,
+    frame_system::Config as SysConfig,
+    pallet_contracts::chain_extension::{BufInBufOutState, Environment, Ext},
+};
+use pallet_baby_liminal::{Config as BabyLiminalConfig, Error, Pallet as BabyLiminal};
 
-use crate::Runtime;
+use crate::{ProvingSystem, Vec, VerificationKeyIdentifier};
 
-/// Abstraction around `Runtime`. Makes testing easier.
-///
-/// Gathers all the methods that are used by `BabyLiminalChainExtension`.
-///
-/// Each method is already documented in `pallet_baby_liminal`.
-pub(super) trait Executor: Sized {
+/// Generalized pallet executor, that can be mocked for testing purposes.
+pub trait Executor<T>: Sized {
     /// The error returned from dispatchables is generic. For most purposes however, it doesn't
     /// matter what type will be passed there. Normally, `Runtime` will be the generic argument,
     /// but in testing it will be sufficient to instantiate it with `()`.
@@ -28,15 +27,18 @@ pub(super) trait Executor: Sized {
     ) -> Result<(), (Error<Self::ErrorGenericType>, Option<Weight>)>;
 }
 
-/// Transparent delegation.
-impl Executor for Runtime {
-    type ErrorGenericType = Runtime;
+impl<'a, 'b, E, T> Executor<T> for Environment<'a, 'b, E, BufInBufOutState>
+where
+    T: SysConfig + BabyLiminalConfig,
+    E: Ext<T = T>,
+{
+    type ErrorGenericType = T;
 
     fn store_key(
         identifier: VerificationKeyIdentifier,
         key: Vec<u8>,
-    ) -> Result<(), Error<Runtime>> {
-        BabyLiminal::<Runtime>::bare_store_key(identifier, key)
+    ) -> Result<(), Error<Self::ErrorGenericType>> {
+        BabyLiminal::<T>::bare_store_key(identifier, key)
     }
 
     fn verify(
@@ -45,11 +47,11 @@ impl Executor for Runtime {
         public_input: Vec<u8>,
         system: ProvingSystem,
     ) -> Result<(), (Error<Self::ErrorGenericType>, Option<Weight>)> {
-        BabyLiminal::<Runtime>::bare_verify(
+        BabyLiminal::<T>::bare_verify(
             verification_key_identifier,
             proof,
             public_input,
-            system,
+            system.into(),
         )
     }
 }

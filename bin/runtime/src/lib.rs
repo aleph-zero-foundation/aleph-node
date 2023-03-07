@@ -10,8 +10,7 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-mod chain_extension;
-
+use baby_liminal_extension::substrate::Extension;
 pub use frame_support::{
     construct_runtime, log, parameter_types,
     traits::{
@@ -67,8 +66,6 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-
-use crate::chain_extension::BabyLiminalChainExtension;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -705,7 +702,7 @@ impl pallet_contracts::Config for Runtime {
     type DepositPerByte = DepositPerByte;
     type WeightPrice = pallet_transaction_payment::Pallet<Self>;
     type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
-    type ChainExtension = BabyLiminalChainExtension;
+    type ChainExtension = Extension;
     type DeletionQueueDepth = DeletionQueueDepth;
     type DeletionWeightLimit = DeletionWeightLimit;
     type Schedule = Schedule;

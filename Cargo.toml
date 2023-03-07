@@ -2,6 +2,7 @@
 
 members = [
     "aggregator",
+    "baby-liminal-extension",
     "bin/node",
     "bin/runtime",
     "finality-aleph",
@@ -15,7 +16,6 @@ members = [
 exclude = [
     "aleph-client",
     "bin/cliain",
-    "bin/runtime/src/chain_extension/baby-liminal-extension",
     "contracts/poseidon_host_bench",
     "relations",
     "relations/src/proc_macro",
