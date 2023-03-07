@@ -25,7 +25,7 @@ use crate::api::runtime_types::aleph_runtime::RuntimeCall as Call;
 #[allow(clippy::all)]
 mod aleph_zero;
 mod connections;
-pub mod contract;
+// pub mod contract;
 /// API for pallets.
 pub mod pallets;
 mod runtime_types;

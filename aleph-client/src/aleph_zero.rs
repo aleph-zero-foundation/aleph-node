@@ -2,7 +2,7 @@
 #[allow(dead_code, unused_imports, non_camel_case_types)]
 pub mod api {
     use super::api as root_mod;
-    pub static PALLETS: [&str; 21usize] = [
+    pub static PALLETS: [&str; 20usize] = [
         "System",
         "RandomnessCollectiveFlip",
         "Scheduler",
@@ -21,7 +21,6 @@ pub mod api {
         "Utility",
         "Multisig",
         "Sudo",
-        "Contracts",
         "NominationPools",
         "Identity",
     ];
@@ -61,10 +60,8 @@ pub mod api {
         #[codec(index = 17)]
         Sudo(sudo::Event),
         #[codec(index = 18)]
-        Contracts(contracts::Event),
-        #[codec(index = 19)]
         NominationPools(nomination_pools::Event),
-        #[codec(index = 20)]
+        #[codec(index = 19)]
         Identity(identity::Event),
     }
     pub mod system {
@@ -764,10 +761,10 @@ pub mod api {
                         "Events",
                         vec![],
                         [
-                            216u8, 9u8, 134u8, 163u8, 54u8, 128u8, 220u8, 43u8, 43u8, 179u8, 114u8,
-                            84u8, 50u8, 83u8, 254u8, 52u8, 221u8, 241u8, 121u8, 101u8, 173u8,
-                            106u8, 44u8, 250u8, 183u8, 171u8, 221u8, 98u8, 96u8, 151u8, 31u8,
-                            195u8,
+                            11u8, 126u8, 180u8, 67u8, 111u8, 37u8, 208u8, 81u8, 25u8, 83u8, 109u8,
+                            158u8, 81u8, 223u8, 231u8, 100u8, 204u8, 141u8, 174u8, 227u8, 224u8,
+                            25u8, 199u8, 1u8, 111u8, 117u8, 153u8, 156u8, 122u8, 149u8, 134u8,
+                            220u8,
                         ],
                     )
                 }
@@ -1212,9 +1209,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            160u8, 122u8, 166u8, 98u8, 70u8, 13u8, 129u8, 239u8, 167u8, 62u8, 11u8,
-                            246u8, 17u8, 49u8, 47u8, 76u8, 60u8, 242u8, 23u8, 95u8, 39u8, 112u8,
-                            156u8, 52u8, 238u8, 120u8, 109u8, 142u8, 99u8, 162u8, 90u8, 105u8,
+                            168u8, 178u8, 179u8, 213u8, 105u8, 146u8, 162u8, 157u8, 134u8, 175u8,
+                            218u8, 248u8, 34u8, 187u8, 243u8, 73u8, 219u8, 58u8, 52u8, 242u8,
+                            199u8, 234u8, 52u8, 101u8, 152u8, 216u8, 2u8, 149u8, 145u8, 116u8,
+                            90u8, 6u8,
                         ],
                     )
                 }
@@ -1258,9 +1256,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            241u8, 1u8, 109u8, 65u8, 241u8, 150u8, 239u8, 46u8, 131u8, 127u8,
-                            143u8, 100u8, 173u8, 39u8, 64u8, 173u8, 52u8, 53u8, 97u8, 167u8, 133u8,
-                            29u8, 1u8, 140u8, 117u8, 62u8, 114u8, 35u8, 234u8, 88u8, 98u8, 57u8,
+                            109u8, 216u8, 15u8, 125u8, 170u8, 255u8, 29u8, 78u8, 49u8, 176u8,
+                            230u8, 198u8, 212u8, 52u8, 92u8, 248u8, 51u8, 84u8, 45u8, 125u8, 252u8,
+                            170u8, 82u8, 198u8, 130u8, 157u8, 166u8, 134u8, 28u8, 64u8, 61u8, 58u8,
                         ],
                     )
                 }
@@ -1305,10 +1303,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            179u8, 25u8, 53u8, 84u8, 52u8, 141u8, 229u8, 81u8, 112u8, 150u8, 200u8,
-                            165u8, 20u8, 24u8, 170u8, 147u8, 202u8, 126u8, 168u8, 49u8, 193u8,
-                            66u8, 99u8, 170u8, 254u8, 94u8, 123u8, 165u8, 202u8, 241u8, 242u8,
-                            136u8,
+                            37u8, 169u8, 134u8, 36u8, 223u8, 236u8, 48u8, 95u8, 194u8, 59u8, 70u8,
+                            142u8, 209u8, 207u8, 22u8, 145u8, 39u8, 57u8, 255u8, 144u8, 121u8,
+                            85u8, 241u8, 126u8, 118u8, 25u8, 202u8, 143u8, 51u8, 140u8, 179u8,
+                            48u8,
                         ],
                     )
                 }
@@ -1339,9 +1337,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            20u8, 231u8, 171u8, 36u8, 252u8, 236u8, 111u8, 24u8, 212u8, 86u8, 50u8,
-                            21u8, 82u8, 97u8, 124u8, 183u8, 92u8, 224u8, 42u8, 251u8, 165u8, 238u8,
-                            243u8, 244u8, 155u8, 235u8, 13u8, 70u8, 46u8, 39u8, 126u8, 135u8,
+                            66u8, 102u8, 219u8, 4u8, 223u8, 67u8, 181u8, 128u8, 58u8, 181u8, 178u8,
+                            228u8, 161u8, 246u8, 91u8, 78u8, 48u8, 241u8, 35u8, 221u8, 119u8,
+                            245u8, 94u8, 78u8, 118u8, 86u8, 230u8, 240u8, 214u8, 10u8, 65u8, 55u8,
                         ],
                     )
                 }
@@ -8164,9 +8162,10 @@ pub mod api {
                         "batch",
                         Batch { calls },
                         [
-                            54u8, 11u8, 245u8, 114u8, 34u8, 80u8, 69u8, 105u8, 126u8, 6u8, 220u8,
-                            2u8, 216u8, 9u8, 219u8, 47u8, 138u8, 8u8, 208u8, 214u8, 243u8, 4u8,
-                            85u8, 107u8, 173u8, 220u8, 160u8, 221u8, 38u8, 158u8, 252u8, 58u8,
+                            140u8, 136u8, 0u8, 223u8, 72u8, 107u8, 164u8, 201u8, 111u8, 141u8,
+                            61u8, 194u8, 184u8, 41u8, 86u8, 232u8, 237u8, 246u8, 119u8, 228u8,
+                            252u8, 20u8, 24u8, 141u8, 44u8, 145u8, 72u8, 245u8, 152u8, 207u8,
+                            166u8, 60u8,
                         ],
                     )
                 }
@@ -8196,10 +8195,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            191u8, 114u8, 113u8, 241u8, 126u8, 1u8, 120u8, 104u8, 111u8, 31u8,
-                            211u8, 99u8, 236u8, 200u8, 182u8, 124u8, 111u8, 105u8, 67u8, 60u8,
-                            234u8, 149u8, 34u8, 203u8, 159u8, 115u8, 60u8, 71u8, 55u8, 164u8,
-                            185u8, 53u8,
+                            236u8, 102u8, 50u8, 90u8, 52u8, 191u8, 45u8, 130u8, 3u8, 18u8, 119u8,
+                            132u8, 156u8, 30u8, 11u8, 157u8, 71u8, 249u8, 36u8, 91u8, 34u8, 191u8,
+                            129u8, 110u8, 54u8, 36u8, 11u8, 53u8, 158u8, 177u8, 198u8, 230u8,
                         ],
                     )
                 }
@@ -8226,10 +8224,10 @@ pub mod api {
                         "batch_all",
                         BatchAll { calls },
                         [
-                            85u8, 206u8, 217u8, 145u8, 85u8, 186u8, 156u8, 252u8, 97u8, 70u8,
-                            227u8, 127u8, 83u8, 57u8, 255u8, 254u8, 104u8, 173u8, 33u8, 227u8,
-                            179u8, 209u8, 156u8, 199u8, 50u8, 88u8, 44u8, 236u8, 208u8, 3u8, 84u8,
-                            12u8,
+                            17u8, 251u8, 47u8, 221u8, 30u8, 52u8, 7u8, 209u8, 16u8, 190u8, 19u8,
+                            53u8, 181u8, 204u8, 93u8, 94u8, 158u8, 220u8, 254u8, 223u8, 250u8,
+                            194u8, 106u8, 148u8, 113u8, 102u8, 221u8, 239u8, 76u8, 19u8, 146u8,
+                            129u8,
                         ],
                     )
                 }
@@ -8256,9 +8254,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            243u8, 77u8, 65u8, 192u8, 160u8, 219u8, 211u8, 207u8, 19u8, 140u8,
-                            175u8, 74u8, 74u8, 20u8, 245u8, 48u8, 139u8, 14u8, 26u8, 32u8, 4u8,
-                            30u8, 95u8, 39u8, 53u8, 69u8, 242u8, 253u8, 184u8, 189u8, 119u8, 61u8,
+                            14u8, 20u8, 185u8, 230u8, 67u8, 27u8, 91u8, 144u8, 249u8, 192u8, 175u8,
+                            111u8, 153u8, 133u8, 109u8, 171u8, 140u8, 255u8, 119u8, 127u8, 216u8,
+                            218u8, 230u8, 219u8, 156u8, 110u8, 169u8, 201u8, 190u8, 208u8, 245u8,
+                            176u8,
                         ],
                     )
                 }
@@ -8285,10 +8284,9 @@ pub mod api {
                         "force_batch",
                         ForceBatch { calls },
                         [
-                            14u8, 136u8, 251u8, 244u8, 242u8, 109u8, 234u8, 84u8, 124u8, 199u8,
-                            213u8, 229u8, 93u8, 156u8, 232u8, 71u8, 214u8, 32u8, 225u8, 249u8,
-                            229u8, 144u8, 161u8, 85u8, 135u8, 194u8, 64u8, 181u8, 98u8, 79u8,
-                            114u8, 154u8,
+                            247u8, 249u8, 182u8, 192u8, 133u8, 48u8, 207u8, 74u8, 98u8, 120u8,
+                            85u8, 199u8, 247u8, 49u8, 71u8, 48u8, 144u8, 245u8, 113u8, 32u8, 157u8,
+                            37u8, 26u8, 108u8, 65u8, 83u8, 10u8, 103u8, 232u8, 235u8, 12u8, 209u8,
                         ],
                     )
                 }
@@ -8512,10 +8510,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            20u8, 94u8, 155u8, 221u8, 119u8, 110u8, 119u8, 198u8, 12u8, 174u8,
-                            40u8, 255u8, 44u8, 82u8, 16u8, 105u8, 241u8, 48u8, 143u8, 12u8, 114u8,
-                            209u8, 182u8, 50u8, 162u8, 84u8, 131u8, 193u8, 196u8, 154u8, 104u8,
-                            162u8,
+                            45u8, 151u8, 238u8, 114u8, 97u8, 143u8, 167u8, 238u8, 105u8, 44u8,
+                            198u8, 15u8, 190u8, 214u8, 155u8, 140u8, 34u8, 165u8, 250u8, 101u8,
+                            137u8, 2u8, 180u8, 105u8, 69u8, 209u8, 148u8, 161u8, 31u8, 186u8,
+                            242u8, 176u8,
                         ],
                     )
                 }
@@ -8585,9 +8583,10 @@ pub mod api {
                             max_weight,
                         },
                         [
-                            33u8, 244u8, 252u8, 206u8, 157u8, 156u8, 15u8, 171u8, 200u8, 78u8,
-                            16u8, 115u8, 71u8, 183u8, 155u8, 205u8, 56u8, 43u8, 57u8, 23u8, 89u8,
-                            58u8, 77u8, 184u8, 210u8, 55u8, 203u8, 51u8, 13u8, 205u8, 53u8, 207u8,
+                            93u8, 209u8, 118u8, 46u8, 20u8, 247u8, 243u8, 228u8, 173u8, 161u8,
+                            244u8, 186u8, 127u8, 122u8, 192u8, 91u8, 166u8, 140u8, 63u8, 12u8,
+                            60u8, 144u8, 215u8, 177u8, 61u8, 146u8, 209u8, 46u8, 7u8, 111u8, 132u8,
+                            53u8,
                         ],
                     )
                 }
@@ -9000,9 +8999,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            1u8, 212u8, 200u8, 244u8, 140u8, 196u8, 5u8, 118u8, 183u8, 21u8, 254u8,
-                            36u8, 218u8, 175u8, 219u8, 228u8, 40u8, 247u8, 248u8, 127u8, 54u8,
-                            23u8, 253u8, 137u8, 188u8, 151u8, 39u8, 128u8, 218u8, 39u8, 86u8, 7u8,
+                            49u8, 72u8, 144u8, 189u8, 4u8, 176u8, 111u8, 72u8, 4u8, 102u8, 197u8,
+                            126u8, 78u8, 158u8, 235u8, 28u8, 232u8, 27u8, 84u8, 34u8, 101u8, 161u8,
+                            193u8, 197u8, 22u8, 144u8, 223u8, 189u8, 154u8, 129u8, 215u8, 49u8,
                         ],
                     )
                 }
@@ -9029,10 +9028,9 @@ pub mod api {
                             weight,
                         },
                         [
-                            159u8, 128u8, 183u8, 121u8, 190u8, 62u8, 61u8, 158u8, 184u8, 132u8,
-                            158u8, 127u8, 95u8, 143u8, 129u8, 60u8, 234u8, 68u8, 232u8, 97u8,
-                            101u8, 71u8, 186u8, 17u8, 32u8, 174u8, 90u8, 220u8, 93u8, 103u8, 111u8,
-                            81u8,
+                            184u8, 26u8, 202u8, 191u8, 140u8, 242u8, 24u8, 161u8, 23u8, 147u8,
+                            42u8, 203u8, 170u8, 223u8, 79u8, 21u8, 124u8, 86u8, 47u8, 67u8, 3u8,
+                            77u8, 82u8, 179u8, 222u8, 221u8, 42u8, 59u8, 71u8, 239u8, 105u8, 171u8,
                         ],
                     )
                 }
@@ -9091,9 +9089,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            36u8, 12u8, 9u8, 231u8, 250u8, 8u8, 177u8, 195u8, 94u8, 66u8, 211u8,
-                            201u8, 222u8, 228u8, 70u8, 62u8, 45u8, 22u8, 243u8, 231u8, 73u8, 155u8,
-                            241u8, 9u8, 205u8, 126u8, 73u8, 214u8, 195u8, 153u8, 73u8, 33u8,
+                            130u8, 238u8, 90u8, 178u8, 19u8, 201u8, 191u8, 31u8, 6u8, 44u8, 180u8,
+                            25u8, 65u8, 105u8, 101u8, 57u8, 159u8, 226u8, 47u8, 88u8, 75u8, 170u8,
+                            11u8, 182u8, 134u8, 168u8, 164u8, 225u8, 154u8, 94u8, 147u8, 236u8,
                         ],
                     )
                 }
@@ -9175,1045 +9173,6 @@ pub mod api {
                             244u8, 73u8, 188u8, 136u8, 218u8, 163u8, 68u8, 179u8, 122u8, 173u8,
                             34u8, 108u8, 137u8, 28u8, 182u8, 16u8, 196u8, 92u8, 138u8, 34u8, 102u8,
                             80u8, 199u8, 88u8, 107u8, 207u8, 36u8, 22u8, 168u8, 167u8, 20u8, 142u8,
-                        ],
-                    )
-                }
-            }
-        }
-    }
-    pub mod contracts {
-        use super::{root_mod, runtime_types};
-        #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
-        pub mod calls {
-            use super::{root_mod, runtime_types};
-            type DispatchError = runtime_types::sp_runtime::DispatchError;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            pub struct CallOldWeight {
-                pub dest: ::subxt::ext::sp_runtime::MultiAddress<
-                    ::subxt::ext::sp_core::crypto::AccountId32,
-                    (),
-                >,
-                #[codec(compact)]
-                pub value: ::core::primitive::u128,
-                #[codec(compact)]
-                pub gas_limit: runtime_types::sp_weights::OldWeight,
-                pub storage_deposit_limit:
-                    ::core::option::Option<::subxt::ext::codec::Compact<::core::primitive::u128>>,
-                pub data: ::std::vec::Vec<::core::primitive::u8>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            pub struct InstantiateWithCodeOldWeight {
-                #[codec(compact)]
-                pub value: ::core::primitive::u128,
-                #[codec(compact)]
-                pub gas_limit: runtime_types::sp_weights::OldWeight,
-                pub storage_deposit_limit:
-                    ::core::option::Option<::subxt::ext::codec::Compact<::core::primitive::u128>>,
-                pub code: ::std::vec::Vec<::core::primitive::u8>,
-                pub data: ::std::vec::Vec<::core::primitive::u8>,
-                pub salt: ::std::vec::Vec<::core::primitive::u8>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            pub struct InstantiateOldWeight {
-                #[codec(compact)]
-                pub value: ::core::primitive::u128,
-                #[codec(compact)]
-                pub gas_limit: runtime_types::sp_weights::OldWeight,
-                pub storage_deposit_limit:
-                    ::core::option::Option<::subxt::ext::codec::Compact<::core::primitive::u128>>,
-                pub code_hash: ::subxt::ext::sp_core::H256,
-                pub data: ::std::vec::Vec<::core::primitive::u8>,
-                pub salt: ::std::vec::Vec<::core::primitive::u8>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            pub struct UploadCode {
-                pub code: ::std::vec::Vec<::core::primitive::u8>,
-                pub storage_deposit_limit:
-                    ::core::option::Option<::subxt::ext::codec::Compact<::core::primitive::u128>>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            pub struct RemoveCode {
-                pub code_hash: ::subxt::ext::sp_core::H256,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            pub struct SetCode {
-                pub dest: ::subxt::ext::sp_runtime::MultiAddress<
-                    ::subxt::ext::sp_core::crypto::AccountId32,
-                    (),
-                >,
-                pub code_hash: ::subxt::ext::sp_core::H256,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            pub struct Call {
-                pub dest: ::subxt::ext::sp_runtime::MultiAddress<
-                    ::subxt::ext::sp_core::crypto::AccountId32,
-                    (),
-                >,
-                #[codec(compact)]
-                pub value: ::core::primitive::u128,
-                pub gas_limit: runtime_types::sp_weights::weight_v2::Weight,
-                pub storage_deposit_limit:
-                    ::core::option::Option<::subxt::ext::codec::Compact<::core::primitive::u128>>,
-                pub data: ::std::vec::Vec<::core::primitive::u8>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            pub struct InstantiateWithCode {
-                #[codec(compact)]
-                pub value: ::core::primitive::u128,
-                pub gas_limit: runtime_types::sp_weights::weight_v2::Weight,
-                pub storage_deposit_limit:
-                    ::core::option::Option<::subxt::ext::codec::Compact<::core::primitive::u128>>,
-                pub code: ::std::vec::Vec<::core::primitive::u8>,
-                pub data: ::std::vec::Vec<::core::primitive::u8>,
-                pub salt: ::std::vec::Vec<::core::primitive::u8>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            pub struct Instantiate {
-                #[codec(compact)]
-                pub value: ::core::primitive::u128,
-                pub gas_limit: runtime_types::sp_weights::weight_v2::Weight,
-                pub storage_deposit_limit:
-                    ::core::option::Option<::subxt::ext::codec::Compact<::core::primitive::u128>>,
-                pub code_hash: ::subxt::ext::sp_core::H256,
-                pub data: ::std::vec::Vec<::core::primitive::u8>,
-                pub salt: ::std::vec::Vec<::core::primitive::u8>,
-            }
-            pub struct TransactionApi;
-            impl TransactionApi {
-                #[doc = "Deprecated version if [`Self::call`] for use in an in-storage `Call`."]
-                pub fn call_old_weight(
-                    &self,
-                    dest: ::subxt::ext::sp_runtime::MultiAddress<
-                        ::subxt::ext::sp_core::crypto::AccountId32,
-                        (),
-                    >,
-                    value: ::core::primitive::u128,
-                    gas_limit: runtime_types::sp_weights::OldWeight,
-                    storage_deposit_limit: ::core::option::Option<
-                        ::subxt::ext::codec::Compact<::core::primitive::u128>,
-                    >,
-                    data: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::StaticTxPayload<CallOldWeight> {
-                    ::subxt::tx::StaticTxPayload::new(
-                        "Contracts",
-                        "call_old_weight",
-                        CallOldWeight {
-                            dest,
-                            value,
-                            gas_limit,
-                            storage_deposit_limit,
-                            data,
-                        },
-                        [
-                            181u8, 255u8, 119u8, 227u8, 10u8, 39u8, 128u8, 22u8, 223u8, 250u8,
-                            247u8, 253u8, 118u8, 113u8, 192u8, 65u8, 224u8, 0u8, 93u8, 16u8, 41u8,
-                            177u8, 150u8, 70u8, 151u8, 216u8, 76u8, 97u8, 27u8, 127u8, 75u8, 67u8,
-                        ],
-                    )
-                }
-                #[doc = "Deprecated version if [`Self::instantiate_with_code`] for use in an in-storage `Call`."]
-                pub fn instantiate_with_code_old_weight(
-                    &self,
-                    value: ::core::primitive::u128,
-                    gas_limit: runtime_types::sp_weights::OldWeight,
-                    storage_deposit_limit: ::core::option::Option<
-                        ::subxt::ext::codec::Compact<::core::primitive::u128>,
-                    >,
-                    code: ::std::vec::Vec<::core::primitive::u8>,
-                    data: ::std::vec::Vec<::core::primitive::u8>,
-                    salt: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::StaticTxPayload<InstantiateWithCodeOldWeight> {
-                    ::subxt::tx::StaticTxPayload::new(
-                        "Contracts",
-                        "instantiate_with_code_old_weight",
-                        InstantiateWithCodeOldWeight {
-                            value,
-                            gas_limit,
-                            storage_deposit_limit,
-                            code,
-                            data,
-                            salt,
-                        },
-                        [
-                            93u8, 124u8, 100u8, 101u8, 7u8, 110u8, 92u8, 199u8, 162u8, 126u8, 35u8,
-                            47u8, 190u8, 42u8, 237u8, 152u8, 169u8, 130u8, 21u8, 33u8, 136u8,
-                            220u8, 110u8, 106u8, 57u8, 211u8, 158u8, 130u8, 112u8, 37u8, 41u8,
-                            39u8,
-                        ],
-                    )
-                }
-                #[doc = "Deprecated version if [`Self::instantiate`] for use in an in-storage `Call`."]
-                pub fn instantiate_old_weight(
-                    &self,
-                    value: ::core::primitive::u128,
-                    gas_limit: runtime_types::sp_weights::OldWeight,
-                    storage_deposit_limit: ::core::option::Option<
-                        ::subxt::ext::codec::Compact<::core::primitive::u128>,
-                    >,
-                    code_hash: ::subxt::ext::sp_core::H256,
-                    data: ::std::vec::Vec<::core::primitive::u8>,
-                    salt: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::StaticTxPayload<InstantiateOldWeight> {
-                    ::subxt::tx::StaticTxPayload::new(
-                        "Contracts",
-                        "instantiate_old_weight",
-                        InstantiateOldWeight {
-                            value,
-                            gas_limit,
-                            storage_deposit_limit,
-                            code_hash,
-                            data,
-                            salt,
-                        },
-                        [
-                            243u8, 56u8, 93u8, 198u8, 169u8, 134u8, 6u8, 135u8, 19u8, 1u8, 20u8,
-                            138u8, 202u8, 59u8, 59u8, 99u8, 58u8, 22u8, 33u8, 94u8, 253u8, 215u8,
-                            203u8, 159u8, 58u8, 21u8, 24u8, 235u8, 30u8, 215u8, 173u8, 23u8,
-                        ],
-                    )
-                }
-                #[doc = "Upload new `code` without instantiating a contract from it."]
-                #[doc = ""]
-                #[doc = "If the code does not already exist a deposit is reserved from the caller"]
-                #[doc = "and unreserved only when [`Self::remove_code`] is called. The size of the reserve"]
-                #[doc = "depends on the instrumented size of the the supplied `code`."]
-                #[doc = ""]
-                #[doc = "If the code already exists in storage it will still return `Ok` and upgrades"]
-                #[doc = "the in storage version to the current"]
-                #[doc = "[`InstructionWeights::version`](InstructionWeights)."]
-                #[doc = ""]
-                #[doc = "# Note"]
-                #[doc = ""]
-                #[doc = "Anyone can instantiate a contract from any uploaded code and thus prevent its removal."]
-                #[doc = "To avoid this situation a constructor could employ access control so that it can"]
-                #[doc = "only be instantiated by permissioned entities. The same is true when uploading"]
-                #[doc = "through [`Self::instantiate_with_code`]."]
-                pub fn upload_code(
-                    &self,
-                    code: ::std::vec::Vec<::core::primitive::u8>,
-                    storage_deposit_limit: ::core::option::Option<
-                        ::subxt::ext::codec::Compact<::core::primitive::u128>,
-                    >,
-                ) -> ::subxt::tx::StaticTxPayload<UploadCode> {
-                    ::subxt::tx::StaticTxPayload::new(
-                        "Contracts",
-                        "upload_code",
-                        UploadCode {
-                            code,
-                            storage_deposit_limit,
-                        },
-                        [
-                            8u8, 32u8, 174u8, 226u8, 212u8, 86u8, 47u8, 247u8, 123u8, 155u8, 40u8,
-                            192u8, 184u8, 216u8, 61u8, 57u8, 94u8, 23u8, 76u8, 59u8, 4u8, 124u8,
-                            252u8, 248u8, 87u8, 233u8, 13u8, 184u8, 133u8, 236u8, 174u8, 85u8,
-                        ],
-                    )
-                }
-                #[doc = "Remove the code stored under `code_hash` and refund the deposit to its owner."]
-                #[doc = ""]
-                #[doc = "A code can only be removed by its original uploader (its owner) and only if it is"]
-                #[doc = "not used by any contract."]
-                pub fn remove_code(
-                    &self,
-                    code_hash: ::subxt::ext::sp_core::H256,
-                ) -> ::subxt::tx::StaticTxPayload<RemoveCode> {
-                    ::subxt::tx::StaticTxPayload::new(
-                        "Contracts",
-                        "remove_code",
-                        RemoveCode { code_hash },
-                        [
-                            43u8, 192u8, 198u8, 182u8, 108u8, 76u8, 21u8, 42u8, 169u8, 41u8, 195u8,
-                            73u8, 31u8, 179u8, 162u8, 56u8, 91u8, 5u8, 64u8, 7u8, 252u8, 194u8,
-                            255u8, 170u8, 67u8, 137u8, 143u8, 192u8, 2u8, 149u8, 38u8, 180u8,
-                        ],
-                    )
-                }
-                #[doc = "Privileged function that changes the code of an existing contract."]
-                #[doc = ""]
-                #[doc = "This takes care of updating refcounts and all other necessary operations. Returns"]
-                #[doc = "an error if either the `code_hash` or `dest` do not exist."]
-                #[doc = ""]
-                #[doc = "# Note"]
-                #[doc = ""]
-                #[doc = "This does **not** change the address of the contract in question. This means"]
-                #[doc = "that the contract address is no longer derived from its code hash after calling"]
-                #[doc = "this dispatchable."]
-                pub fn set_code(
-                    &self,
-                    dest: ::subxt::ext::sp_runtime::MultiAddress<
-                        ::subxt::ext::sp_core::crypto::AccountId32,
-                        (),
-                    >,
-                    code_hash: ::subxt::ext::sp_core::H256,
-                ) -> ::subxt::tx::StaticTxPayload<SetCode> {
-                    ::subxt::tx::StaticTxPayload::new(
-                        "Contracts",
-                        "set_code",
-                        SetCode { dest, code_hash },
-                        [
-                            106u8, 141u8, 239u8, 113u8, 99u8, 74u8, 14u8, 171u8, 80u8, 115u8,
-                            214u8, 203u8, 232u8, 142u8, 48u8, 207u8, 214u8, 59u8, 204u8, 157u8,
-                            101u8, 142u8, 12u8, 69u8, 230u8, 188u8, 60u8, 197u8, 238u8, 146u8,
-                            17u8, 190u8,
-                        ],
-                    )
-                }
-                #[doc = "Makes a call to an account, optionally transferring some balance."]
-                #[doc = ""]
-                #[doc = "# Parameters"]
-                #[doc = ""]
-                #[doc = "* `dest`: Address of the contract to call."]
-                #[doc = "* `value`: The balance to transfer from the `origin` to `dest`."]
-                #[doc = "* `gas_limit`: The gas limit enforced when executing the constructor."]
-                #[doc = "* `storage_deposit_limit`: The maximum amount of balance that can be charged from the"]
-                #[doc = "  caller to pay for the storage consumed."]
-                #[doc = "* `data`: The input data to pass to the contract."]
-                #[doc = ""]
-                #[doc = "* If the account is a smart-contract account, the associated code will be"]
-                #[doc = "executed and any value will be transferred."]
-                #[doc = "* If the account is a regular account, any value will be transferred."]
-                #[doc = "* If no account exists and the call value is not less than `existential_deposit`,"]
-                #[doc = "a regular account will be created and any value will be transferred."]
-                pub fn call(
-                    &self,
-                    dest: ::subxt::ext::sp_runtime::MultiAddress<
-                        ::subxt::ext::sp_core::crypto::AccountId32,
-                        (),
-                    >,
-                    value: ::core::primitive::u128,
-                    gas_limit: runtime_types::sp_weights::weight_v2::Weight,
-                    storage_deposit_limit: ::core::option::Option<
-                        ::subxt::ext::codec::Compact<::core::primitive::u128>,
-                    >,
-                    data: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::StaticTxPayload<Call> {
-                    ::subxt::tx::StaticTxPayload::new(
-                        "Contracts",
-                        "call",
-                        Call {
-                            dest,
-                            value,
-                            gas_limit,
-                            storage_deposit_limit,
-                            data,
-                        },
-                        [
-                            226u8, 219u8, 120u8, 119u8, 106u8, 251u8, 205u8, 112u8, 148u8, 215u8,
-                            196u8, 50u8, 116u8, 75u8, 40u8, 41u8, 224u8, 35u8, 186u8, 29u8, 49u8,
-                            112u8, 51u8, 117u8, 142u8, 69u8, 214u8, 208u8, 241u8, 71u8, 149u8,
-                            163u8,
-                        ],
-                    )
-                }
-                #[doc = "Instantiates a new contract from the supplied `code` optionally transferring"]
-                #[doc = "some balance."]
-                #[doc = ""]
-                #[doc = "This dispatchable has the same effect as calling [`Self::upload_code`] +"]
-                #[doc = "[`Self::instantiate`]. Bundling them together provides efficiency gains. Please"]
-                #[doc = "also check the documentation of [`Self::upload_code`]."]
-                #[doc = ""]
-                #[doc = "# Parameters"]
-                #[doc = ""]
-                #[doc = "* `value`: The balance to transfer from the `origin` to the newly created contract."]
-                #[doc = "* `gas_limit`: The gas limit enforced when executing the constructor."]
-                #[doc = "* `storage_deposit_limit`: The maximum amount of balance that can be charged/reserved"]
-                #[doc = "  from the caller to pay for the storage consumed."]
-                #[doc = "* `code`: The contract code to deploy in raw bytes."]
-                #[doc = "* `data`: The input data to pass to the contract constructor."]
-                #[doc = "* `salt`: Used for the address derivation. See [`Pallet::contract_address`]."]
-                #[doc = ""]
-                #[doc = "Instantiation is executed as follows:"]
-                #[doc = ""]
-                #[doc = "- The supplied `code` is instrumented, deployed, and a `code_hash` is created for that"]
-                #[doc = "  code."]
-                #[doc = "- If the `code_hash` already exists on the chain the underlying `code` will be shared."]
-                #[doc = "- The destination address is computed based on the sender, code_hash and the salt."]
-                #[doc = "- The smart-contract account is created at the computed address."]
-                #[doc = "- The `value` is transferred to the new account."]
-                #[doc = "- The `deploy` function is executed in the context of the newly-created account."]
-                pub fn instantiate_with_code(
-                    &self,
-                    value: ::core::primitive::u128,
-                    gas_limit: runtime_types::sp_weights::weight_v2::Weight,
-                    storage_deposit_limit: ::core::option::Option<
-                        ::subxt::ext::codec::Compact<::core::primitive::u128>,
-                    >,
-                    code: ::std::vec::Vec<::core::primitive::u8>,
-                    data: ::std::vec::Vec<::core::primitive::u8>,
-                    salt: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::StaticTxPayload<InstantiateWithCode> {
-                    ::subxt::tx::StaticTxPayload::new(
-                        "Contracts",
-                        "instantiate_with_code",
-                        InstantiateWithCode {
-                            value,
-                            gas_limit,
-                            storage_deposit_limit,
-                            code,
-                            data,
-                            salt,
-                        },
-                        [
-                            94u8, 238u8, 175u8, 86u8, 230u8, 186u8, 94u8, 60u8, 201u8, 35u8, 117u8,
-                            236u8, 221u8, 10u8, 180u8, 191u8, 140u8, 79u8, 203u8, 134u8, 240u8,
-                            21u8, 31u8, 63u8, 9u8, 17u8, 134u8, 30u8, 244u8, 95u8, 171u8, 164u8,
-                        ],
-                    )
-                }
-                #[doc = "Instantiates a contract from a previously deployed wasm binary."]
-                #[doc = ""]
-                #[doc = "This function is identical to [`Self::instantiate_with_code`] but without the"]
-                #[doc = "code deployment step. Instead, the `code_hash` of an on-chain deployed wasm binary"]
-                #[doc = "must be supplied."]
-                pub fn instantiate(
-                    &self,
-                    value: ::core::primitive::u128,
-                    gas_limit: runtime_types::sp_weights::weight_v2::Weight,
-                    storage_deposit_limit: ::core::option::Option<
-                        ::subxt::ext::codec::Compact<::core::primitive::u128>,
-                    >,
-                    code_hash: ::subxt::ext::sp_core::H256,
-                    data: ::std::vec::Vec<::core::primitive::u8>,
-                    salt: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::StaticTxPayload<Instantiate> {
-                    ::subxt::tx::StaticTxPayload::new(
-                        "Contracts",
-                        "instantiate",
-                        Instantiate {
-                            value,
-                            gas_limit,
-                            storage_deposit_limit,
-                            code_hash,
-                            data,
-                            salt,
-                        },
-                        [
-                            251u8, 49u8, 158u8, 1u8, 138u8, 29u8, 106u8, 187u8, 68u8, 135u8, 44u8,
-                            196u8, 230u8, 237u8, 88u8, 244u8, 170u8, 168u8, 11u8, 91u8, 185u8,
-                            11u8, 45u8, 86u8, 113u8, 79u8, 92u8, 248u8, 113u8, 47u8, 141u8, 10u8,
-                        ],
-                    )
-                }
-            }
-        }
-        #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
-        pub type Event = runtime_types::pallet_contracts::pallet::Event;
-        pub mod events {
-            use super::runtime_types;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[doc = "Contract deployed by address at the specified address."]
-            pub struct Instantiated {
-                pub deployer: ::subxt::ext::sp_core::crypto::AccountId32,
-                pub contract: ::subxt::ext::sp_core::crypto::AccountId32,
-            }
-            impl ::subxt::events::StaticEvent for Instantiated {
-                const PALLET: &'static str = "Contracts";
-                const EVENT: &'static str = "Instantiated";
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[doc = "Contract has been removed."]
-            #[doc = ""]
-            #[doc = "# Note"]
-            #[doc = ""]
-            #[doc = "The only way for a contract to be removed and emitting this event is by calling"]
-            #[doc = "`seal_terminate`."]
-            pub struct Terminated {
-                pub contract: ::subxt::ext::sp_core::crypto::AccountId32,
-                pub beneficiary: ::subxt::ext::sp_core::crypto::AccountId32,
-            }
-            impl ::subxt::events::StaticEvent for Terminated {
-                const PALLET: &'static str = "Contracts";
-                const EVENT: &'static str = "Terminated";
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[doc = "Code with the specified hash has been stored."]
-            pub struct CodeStored {
-                pub code_hash: ::subxt::ext::sp_core::H256,
-            }
-            impl ::subxt::events::StaticEvent for CodeStored {
-                const PALLET: &'static str = "Contracts";
-                const EVENT: &'static str = "CodeStored";
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[doc = "A custom event emitted by the contract."]
-            pub struct ContractEmitted {
-                pub contract: ::subxt::ext::sp_core::crypto::AccountId32,
-                pub data: ::std::vec::Vec<::core::primitive::u8>,
-            }
-            impl ::subxt::events::StaticEvent for ContractEmitted {
-                const PALLET: &'static str = "Contracts";
-                const EVENT: &'static str = "ContractEmitted";
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[doc = "A code with the specified hash was removed."]
-            pub struct CodeRemoved {
-                pub code_hash: ::subxt::ext::sp_core::H256,
-            }
-            impl ::subxt::events::StaticEvent for CodeRemoved {
-                const PALLET: &'static str = "Contracts";
-                const EVENT: &'static str = "CodeRemoved";
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[doc = "A contract's code was updated."]
-            pub struct ContractCodeUpdated {
-                pub contract: ::subxt::ext::sp_core::crypto::AccountId32,
-                pub new_code_hash: ::subxt::ext::sp_core::H256,
-                pub old_code_hash: ::subxt::ext::sp_core::H256,
-            }
-            impl ::subxt::events::StaticEvent for ContractCodeUpdated {
-                const PALLET: &'static str = "Contracts";
-                const EVENT: &'static str = "ContractCodeUpdated";
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[doc = "A contract was called either by a plain account or another contract."]
-            #[doc = ""]
-            #[doc = "# Note"]
-            #[doc = ""]
-            #[doc = "Please keep in mind that like all events this is only emitted for successful"]
-            #[doc = "calls. This is because on failure all storage changes including events are"]
-            #[doc = "rolled back."]
-            pub struct Called {
-                pub caller: ::subxt::ext::sp_core::crypto::AccountId32,
-                pub contract: ::subxt::ext::sp_core::crypto::AccountId32,
-            }
-            impl ::subxt::events::StaticEvent for Called {
-                const PALLET: &'static str = "Contracts";
-                const EVENT: &'static str = "Called";
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[doc = "A contract delegate called a code hash."]
-            #[doc = ""]
-            #[doc = "# Note"]
-            #[doc = ""]
-            #[doc = "Please keep in mind that like all events this is only emitted for successful"]
-            #[doc = "calls. This is because on failure all storage changes including events are"]
-            #[doc = "rolled back."]
-            pub struct DelegateCalled {
-                pub contract: ::subxt::ext::sp_core::crypto::AccountId32,
-                pub code_hash: ::subxt::ext::sp_core::H256,
-            }
-            impl ::subxt::events::StaticEvent for DelegateCalled {
-                const PALLET: &'static str = "Contracts";
-                const EVENT: &'static str = "DelegateCalled";
-            }
-        }
-        pub mod storage {
-            use super::runtime_types;
-            pub struct StorageApi;
-            impl StorageApi {
-                #[doc = " A mapping from an original code hash to the original code, untouched by instrumentation."]
-                pub fn pristine_code(
-                    &self,
-                    _0: impl ::std::borrow::Borrow<::subxt::ext::sp_core::H256>,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<
-                        runtime_types::sp_core::bounded::bounded_vec::BoundedVec<
-                            ::core::primitive::u8,
-                        >,
-                    >,
-                    ::subxt::storage::address::Yes,
-                    (),
-                    ::subxt::storage::address::Yes,
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Contracts",
-                        "PristineCode",
-                        vec![::subxt::storage::address::StorageMapKey::new(
-                            _0.borrow(),
-                            ::subxt::storage::address::StorageHasher::Identity,
-                        )],
-                        [
-                            244u8, 169u8, 220u8, 235u8, 62u8, 153u8, 226u8, 187u8, 220u8, 141u8,
-                            149u8, 75u8, 224u8, 117u8, 181u8, 147u8, 140u8, 84u8, 9u8, 109u8,
-                            230u8, 25u8, 186u8, 26u8, 171u8, 147u8, 19u8, 78u8, 62u8, 170u8, 27u8,
-                            105u8,
-                        ],
-                    )
-                }
-                #[doc = " A mapping from an original code hash to the original code, untouched by instrumentation."]
-                pub fn pristine_code_root(
-                    &self,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<
-                        runtime_types::sp_core::bounded::bounded_vec::BoundedVec<
-                            ::core::primitive::u8,
-                        >,
-                    >,
-                    (),
-                    (),
-                    ::subxt::storage::address::Yes,
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Contracts",
-                        "PristineCode",
-                        Vec::new(),
-                        [
-                            244u8, 169u8, 220u8, 235u8, 62u8, 153u8, 226u8, 187u8, 220u8, 141u8,
-                            149u8, 75u8, 224u8, 117u8, 181u8, 147u8, 140u8, 84u8, 9u8, 109u8,
-                            230u8, 25u8, 186u8, 26u8, 171u8, 147u8, 19u8, 78u8, 62u8, 170u8, 27u8,
-                            105u8,
-                        ],
-                    )
-                }
-                #[doc = " A mapping between an original code hash and instrumented wasm code, ready for execution."]
-                pub fn code_storage(
-                    &self,
-                    _0: impl ::std::borrow::Borrow<::subxt::ext::sp_core::H256>,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<
-                        runtime_types::pallet_contracts::wasm::PrefabWasmModule,
-                    >,
-                    ::subxt::storage::address::Yes,
-                    (),
-                    ::subxt::storage::address::Yes,
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Contracts",
-                        "CodeStorage",
-                        vec![::subxt::storage::address::StorageMapKey::new(
-                            _0.borrow(),
-                            ::subxt::storage::address::StorageHasher::Identity,
-                        )],
-                        [
-                            167u8, 247u8, 131u8, 220u8, 90u8, 100u8, 172u8, 16u8, 129u8, 235u8,
-                            119u8, 88u8, 60u8, 196u8, 74u8, 173u8, 192u8, 110u8, 106u8, 187u8,
-                            111u8, 255u8, 114u8, 39u8, 76u8, 52u8, 245u8, 79u8, 132u8, 108u8,
-                            141u8, 176u8,
-                        ],
-                    )
-                }
-                #[doc = " A mapping between an original code hash and instrumented wasm code, ready for execution."]
-                pub fn code_storage_root(
-                    &self,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<
-                        runtime_types::pallet_contracts::wasm::PrefabWasmModule,
-                    >,
-                    (),
-                    (),
-                    ::subxt::storage::address::Yes,
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Contracts",
-                        "CodeStorage",
-                        Vec::new(),
-                        [
-                            167u8, 247u8, 131u8, 220u8, 90u8, 100u8, 172u8, 16u8, 129u8, 235u8,
-                            119u8, 88u8, 60u8, 196u8, 74u8, 173u8, 192u8, 110u8, 106u8, 187u8,
-                            111u8, 255u8, 114u8, 39u8, 76u8, 52u8, 245u8, 79u8, 132u8, 108u8,
-                            141u8, 176u8,
-                        ],
-                    )
-                }
-                #[doc = " A mapping between an original code hash and its owner information."]
-                pub fn owner_info_of(
-                    &self,
-                    _0: impl ::std::borrow::Borrow<::subxt::ext::sp_core::H256>,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<
-                        runtime_types::pallet_contracts::wasm::OwnerInfo,
-                    >,
-                    ::subxt::storage::address::Yes,
-                    (),
-                    ::subxt::storage::address::Yes,
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Contracts",
-                        "OwnerInfoOf",
-                        vec![::subxt::storage::address::StorageMapKey::new(
-                            _0.borrow(),
-                            ::subxt::storage::address::StorageHasher::Identity,
-                        )],
-                        [
-                            147u8, 6u8, 225u8, 62u8, 211u8, 236u8, 61u8, 116u8, 152u8, 219u8,
-                            220u8, 17u8, 82u8, 221u8, 156u8, 88u8, 63u8, 204u8, 16u8, 11u8, 184u8,
-                            236u8, 181u8, 189u8, 170u8, 160u8, 60u8, 64u8, 71u8, 250u8, 202u8,
-                            186u8,
-                        ],
-                    )
-                }
-                #[doc = " A mapping between an original code hash and its owner information."]
-                pub fn owner_info_of_root(
-                    &self,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<
-                        runtime_types::pallet_contracts::wasm::OwnerInfo,
-                    >,
-                    (),
-                    (),
-                    ::subxt::storage::address::Yes,
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Contracts",
-                        "OwnerInfoOf",
-                        Vec::new(),
-                        [
-                            147u8, 6u8, 225u8, 62u8, 211u8, 236u8, 61u8, 116u8, 152u8, 219u8,
-                            220u8, 17u8, 82u8, 221u8, 156u8, 88u8, 63u8, 204u8, 16u8, 11u8, 184u8,
-                            236u8, 181u8, 189u8, 170u8, 160u8, 60u8, 64u8, 71u8, 250u8, 202u8,
-                            186u8,
-                        ],
-                    )
-                }
-                #[doc = " This is a **monotonic** counter incremented on contract instantiation."]
-                #[doc = ""]
-                #[doc = " This is used in order to generate unique trie ids for contracts."]
-                #[doc = " The trie id of a new contract is calculated from hash(account_id, nonce)."]
-                #[doc = " The nonce is required because otherwise the following sequence would lead to"]
-                #[doc = " a possible collision of storage:"]
-                #[doc = ""]
-                #[doc = " 1. Create a new contract."]
-                #[doc = " 2. Terminate the contract."]
-                #[doc = " 3. Immediately recreate the contract with the same account_id."]
-                #[doc = ""]
-                #[doc = " This is bad because the contents of a trie are deleted lazily and there might be"]
-                #[doc = " storage of the old instantiation still in it when the new contract is created. Please"]
-                #[doc = " note that we can't replace the counter by the block number because the sequence above"]
-                #[doc = " can happen in the same block. We also can't keep the account counter in memory only"]
-                #[doc = " because storage is the only way to communicate across different extrinsics in the"]
-                #[doc = " same block."]
-                #[doc = ""]
-                #[doc = " # Note"]
-                #[doc = ""]
-                #[doc = " Do not use it to determine the number of contracts. It won't be decremented if"]
-                #[doc = " a contract is destroyed."]
-                pub fn nonce(
-                    &self,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<::core::primitive::u64>,
-                    ::subxt::storage::address::Yes,
-                    ::subxt::storage::address::Yes,
-                    (),
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Contracts",
-                        "Nonce",
-                        vec![],
-                        [
-                            122u8, 169u8, 95u8, 131u8, 85u8, 32u8, 154u8, 114u8, 143u8, 56u8, 12u8,
-                            182u8, 64u8, 150u8, 241u8, 249u8, 254u8, 251u8, 160u8, 235u8, 192u8,
-                            41u8, 101u8, 232u8, 186u8, 108u8, 187u8, 149u8, 210u8, 91u8, 179u8,
-                            98u8,
-                        ],
-                    )
-                }
-                #[doc = " The code associated with a given account."]
-                #[doc = ""]
-                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
-                pub fn contract_info_of(
-                    &self,
-                    _0: impl ::std::borrow::Borrow<::subxt::ext::sp_core::crypto::AccountId32>,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<
-                        runtime_types::pallet_contracts::storage::ContractInfo,
-                    >,
-                    ::subxt::storage::address::Yes,
-                    (),
-                    ::subxt::storage::address::Yes,
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Contracts",
-                        "ContractInfoOf",
-                        vec![::subxt::storage::address::StorageMapKey::new(
-                            _0.borrow(),
-                            ::subxt::storage::address::StorageHasher::Twox64Concat,
-                        )],
-                        [
-                            176u8, 73u8, 209u8, 119u8, 242u8, 147u8, 64u8, 203u8, 253u8, 178u8,
-                            8u8, 239u8, 64u8, 68u8, 106u8, 153u8, 28u8, 124u8, 52u8, 226u8, 67u8,
-                            54u8, 177u8, 206u8, 238u8, 179u8, 222u8, 225u8, 242u8, 0u8, 171u8,
-                            184u8,
-                        ],
-                    )
-                }
-                #[doc = " The code associated with a given account."]
-                #[doc = ""]
-                #[doc = " TWOX-NOTE: SAFE since `AccountId` is a secure hash."]
-                pub fn contract_info_of_root(
-                    &self,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<
-                        runtime_types::pallet_contracts::storage::ContractInfo,
-                    >,
-                    (),
-                    (),
-                    ::subxt::storage::address::Yes,
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Contracts",
-                        "ContractInfoOf",
-                        Vec::new(),
-                        [
-                            176u8, 73u8, 209u8, 119u8, 242u8, 147u8, 64u8, 203u8, 253u8, 178u8,
-                            8u8, 239u8, 64u8, 68u8, 106u8, 153u8, 28u8, 124u8, 52u8, 226u8, 67u8,
-                            54u8, 177u8, 206u8, 238u8, 179u8, 222u8, 225u8, 242u8, 0u8, 171u8,
-                            184u8,
-                        ],
-                    )
-                }
-                #[doc = " Evicted contracts that await child trie deletion."]
-                #[doc = ""]
-                #[doc = " Child trie deletion is a heavy operation depending on the amount of storage items"]
-                #[doc = " stored in said trie. Therefore this operation is performed lazily in `on_initialize`."]
-                pub fn deletion_queue(
-                    &self,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<
-                        runtime_types::sp_core::bounded::bounded_vec::BoundedVec<
-                            runtime_types::pallet_contracts::storage::DeletedContract,
-                        >,
-                    >,
-                    ::subxt::storage::address::Yes,
-                    ::subxt::storage::address::Yes,
-                    (),
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Contracts",
-                        "DeletionQueue",
-                        vec![],
-                        [
-                            119u8, 169u8, 146u8, 210u8, 21u8, 216u8, 51u8, 225u8, 107u8, 61u8,
-                            42u8, 155u8, 169u8, 127u8, 140u8, 106u8, 255u8, 137u8, 163u8, 199u8,
-                            91u8, 137u8, 73u8, 61u8, 9u8, 167u8, 16u8, 157u8, 183u8, 212u8, 35u8,
-                            88u8,
-                        ],
-                    )
-                }
-            }
-        }
-        pub mod constants {
-            use super::runtime_types;
-            pub struct ConstantsApi;
-            impl ConstantsApi {
-                #[doc = " Cost schedule and limits."]
-                pub fn schedule(
-                    &self,
-                ) -> ::subxt::constants::StaticConstantAddress<
-                    ::subxt::metadata::DecodeStaticType<
-                        runtime_types::pallet_contracts::schedule::Schedule,
-                    >,
-                > {
-                    ::subxt::constants::StaticConstantAddress::new(
-                        "Contracts",
-                        "Schedule",
-                        [
-                            106u8, 133u8, 138u8, 78u8, 95u8, 52u8, 197u8, 85u8, 4u8, 33u8, 173u8,
-                            239u8, 169u8, 196u8, 91u8, 38u8, 210u8, 50u8, 62u8, 67u8, 180u8, 184u8,
-                            32u8, 190u8, 106u8, 252u8, 104u8, 173u8, 5u8, 140u8, 244u8, 249u8,
-                        ],
-                    )
-                }
-                #[doc = " The maximum number of contracts that can be pending for deletion."]
-                #[doc = ""]
-                #[doc = " When a contract is deleted by calling `seal_terminate` it becomes inaccessible"]
-                #[doc = " immediately, but the deletion of the storage items it has accumulated is performed"]
-                #[doc = " later. The contract is put into the deletion queue. This defines how many"]
-                #[doc = " contracts can be queued up at the same time. If that limit is reached `seal_terminate`"]
-                #[doc = " will fail. The action must be retried in a later block in that case."]
-                #[doc = ""]
-                #[doc = " The reasons for limiting the queue depth are:"]
-                #[doc = ""]
-                #[doc = " 1. The queue is in storage in order to be persistent between blocks. We want to limit"]
-                #[doc = " \tthe amount of storage that can be consumed."]
-                #[doc = " 2. The queue is stored in a vector and needs to be decoded as a whole when reading"]
-                #[doc = "\t\tit at the end of each block. Longer queues take more weight to decode and hence"]
-                #[doc = "\t\tlimit the amount of items that can be deleted per block."]
-                pub fn deletion_queue_depth(
-                    &self,
-                ) -> ::subxt::constants::StaticConstantAddress<
-                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
-                > {
-                    ::subxt::constants::StaticConstantAddress::new(
-                        "Contracts",
-                        "DeletionQueueDepth",
-                        [
-                            98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
-                            125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
-                            178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
-                            145u8,
-                        ],
-                    )
-                }
-                #[doc = " The maximum amount of weight that can be consumed per block for lazy trie removal."]
-                #[doc = ""]
-                #[doc = " The amount of weight that is dedicated per block to work on the deletion queue. Larger"]
-                #[doc = " values allow more trie keys to be deleted in each block but reduce the amount of"]
-                #[doc = " weight that is left for transactions. See [`Self::DeletionQueueDepth`] for more"]
-                #[doc = " information about the deletion queue."]
-                pub fn deletion_weight_limit(
-                    &self,
-                ) -> ::subxt::constants::StaticConstantAddress<
-                    ::subxt::metadata::DecodeStaticType<
-                        runtime_types::sp_weights::weight_v2::Weight,
-                    >,
-                > {
-                    ::subxt::constants::StaticConstantAddress::new(
-                        "Contracts",
-                        "DeletionWeightLimit",
-                        [
-                            206u8, 61u8, 253u8, 247u8, 163u8, 40u8, 161u8, 52u8, 134u8, 140u8,
-                            206u8, 83u8, 44u8, 166u8, 226u8, 115u8, 181u8, 14u8, 227u8, 130u8,
-                            210u8, 32u8, 85u8, 29u8, 230u8, 97u8, 130u8, 165u8, 147u8, 134u8,
-                            106u8, 76u8,
-                        ],
-                    )
-                }
-                #[doc = " The amount of balance a caller has to pay for each byte of storage."]
-                #[doc = ""]
-                #[doc = " # Note"]
-                #[doc = ""]
-                #[doc = " Changing this value for an existing chain might need a storage migration."]
-                pub fn deposit_per_byte(
-                    &self,
-                ) -> ::subxt::constants::StaticConstantAddress<
-                    ::subxt::metadata::DecodeStaticType<::core::primitive::u128>,
-                > {
-                    ::subxt::constants::StaticConstantAddress::new(
-                        "Contracts",
-                        "DepositPerByte",
-                        [
-                            84u8, 157u8, 140u8, 4u8, 93u8, 57u8, 29u8, 133u8, 105u8, 200u8, 214u8,
-                            27u8, 144u8, 208u8, 218u8, 160u8, 130u8, 109u8, 101u8, 54u8, 210u8,
-                            136u8, 71u8, 63u8, 49u8, 237u8, 234u8, 15u8, 178u8, 98u8, 148u8, 156u8,
-                        ],
-                    )
-                }
-                #[doc = " The amount of balance a caller has to pay for each storage item."]
-                #[doc = ""]
-                #[doc = " # Note"]
-                #[doc = ""]
-                #[doc = " Changing this value for an existing chain might need a storage migration."]
-                pub fn deposit_per_item(
-                    &self,
-                ) -> ::subxt::constants::StaticConstantAddress<
-                    ::subxt::metadata::DecodeStaticType<::core::primitive::u128>,
-                > {
-                    ::subxt::constants::StaticConstantAddress::new(
-                        "Contracts",
-                        "DepositPerItem",
-                        [
-                            84u8, 157u8, 140u8, 4u8, 93u8, 57u8, 29u8, 133u8, 105u8, 200u8, 214u8,
-                            27u8, 144u8, 208u8, 218u8, 160u8, 130u8, 109u8, 101u8, 54u8, 210u8,
-                            136u8, 71u8, 63u8, 49u8, 237u8, 234u8, 15u8, 178u8, 98u8, 148u8, 156u8,
                         ],
                     )
                 }
@@ -12939,10 +11898,8 @@ pub mod api {
                 #[codec(index = 17)]
                 Sudo(runtime_types::pallet_sudo::pallet::Call),
                 #[codec(index = 18)]
-                Contracts(runtime_types::pallet_contracts::pallet::Call),
-                #[codec(index = 19)]
                 NominationPools(runtime_types::pallet_nomination_pools::pallet::Call),
-                #[codec(index = 20)]
+                #[codec(index = 19)]
                 Identity(runtime_types::pallet_identity::pallet::Call),
             }
             #[derive(
@@ -12981,10 +11938,8 @@ pub mod api {
                 #[codec(index = 17)]
                 Sudo(runtime_types::pallet_sudo::pallet::Event),
                 #[codec(index = 18)]
-                Contracts(runtime_types::pallet_contracts::pallet::Event),
-                #[codec(index = 19)]
                 NominationPools(runtime_types::pallet_nomination_pools::pallet::Event),
-                #[codec(index = 20)]
+                #[codec(index = 19)]
                 Identity(runtime_types::pallet_identity::pallet::Event),
             }
             #[derive(
@@ -13927,626 +12882,6 @@ pub mod api {
             pub struct ReserveData<_0, _1> {
                 pub id: _0,
                 pub amount: _1,
-            }
-        }
-        pub mod pallet_contracts {
-            use super::runtime_types;
-            pub mod pallet {
-                use super::runtime_types;
-                #[derive(
-                    :: subxt :: ext :: codec :: Decode,
-                    :: subxt :: ext :: codec :: Encode,
-                    Clone,
-                    Debug,
-                    Eq,
-                    PartialEq,
-                )]
-                #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
-                pub enum Call {
-                    #[codec(index = 0)]
-                    #[doc = "Deprecated version if [`Self::call`] for use in an in-storage `Call`."]
-                    call_old_weight {
-                        dest: ::subxt::ext::sp_runtime::MultiAddress<
-                            ::subxt::ext::sp_core::crypto::AccountId32,
-                            (),
-                        >,
-                        #[codec(compact)]
-                        value: ::core::primitive::u128,
-                        #[codec(compact)]
-                        gas_limit: runtime_types::sp_weights::OldWeight,
-                        storage_deposit_limit: ::core::option::Option<
-                            ::subxt::ext::codec::Compact<::core::primitive::u128>,
-                        >,
-                        data: ::std::vec::Vec<::core::primitive::u8>,
-                    },
-                    #[codec(index = 1)]
-                    #[doc = "Deprecated version if [`Self::instantiate_with_code`] for use in an in-storage `Call`."]
-                    instantiate_with_code_old_weight {
-                        #[codec(compact)]
-                        value: ::core::primitive::u128,
-                        #[codec(compact)]
-                        gas_limit: runtime_types::sp_weights::OldWeight,
-                        storage_deposit_limit: ::core::option::Option<
-                            ::subxt::ext::codec::Compact<::core::primitive::u128>,
-                        >,
-                        code: ::std::vec::Vec<::core::primitive::u8>,
-                        data: ::std::vec::Vec<::core::primitive::u8>,
-                        salt: ::std::vec::Vec<::core::primitive::u8>,
-                    },
-                    #[codec(index = 2)]
-                    #[doc = "Deprecated version if [`Self::instantiate`] for use in an in-storage `Call`."]
-                    instantiate_old_weight {
-                        #[codec(compact)]
-                        value: ::core::primitive::u128,
-                        #[codec(compact)]
-                        gas_limit: runtime_types::sp_weights::OldWeight,
-                        storage_deposit_limit: ::core::option::Option<
-                            ::subxt::ext::codec::Compact<::core::primitive::u128>,
-                        >,
-                        code_hash: ::subxt::ext::sp_core::H256,
-                        data: ::std::vec::Vec<::core::primitive::u8>,
-                        salt: ::std::vec::Vec<::core::primitive::u8>,
-                    },
-                    #[codec(index = 3)]
-                    #[doc = "Upload new `code` without instantiating a contract from it."]
-                    #[doc = ""]
-                    #[doc = "If the code does not already exist a deposit is reserved from the caller"]
-                    #[doc = "and unreserved only when [`Self::remove_code`] is called. The size of the reserve"]
-                    #[doc = "depends on the instrumented size of the the supplied `code`."]
-                    #[doc = ""]
-                    #[doc = "If the code already exists in storage it will still return `Ok` and upgrades"]
-                    #[doc = "the in storage version to the current"]
-                    #[doc = "[`InstructionWeights::version`](InstructionWeights)."]
-                    #[doc = ""]
-                    #[doc = "# Note"]
-                    #[doc = ""]
-                    #[doc = "Anyone can instantiate a contract from any uploaded code and thus prevent its removal."]
-                    #[doc = "To avoid this situation a constructor could employ access control so that it can"]
-                    #[doc = "only be instantiated by permissioned entities. The same is true when uploading"]
-                    #[doc = "through [`Self::instantiate_with_code`]."]
-                    upload_code {
-                        code: ::std::vec::Vec<::core::primitive::u8>,
-                        storage_deposit_limit: ::core::option::Option<
-                            ::subxt::ext::codec::Compact<::core::primitive::u128>,
-                        >,
-                    },
-                    #[codec(index = 4)]
-                    #[doc = "Remove the code stored under `code_hash` and refund the deposit to its owner."]
-                    #[doc = ""]
-                    #[doc = "A code can only be removed by its original uploader (its owner) and only if it is"]
-                    #[doc = "not used by any contract."]
-                    remove_code {
-                        code_hash: ::subxt::ext::sp_core::H256,
-                    },
-                    #[codec(index = 5)]
-                    #[doc = "Privileged function that changes the code of an existing contract."]
-                    #[doc = ""]
-                    #[doc = "This takes care of updating refcounts and all other necessary operations. Returns"]
-                    #[doc = "an error if either the `code_hash` or `dest` do not exist."]
-                    #[doc = ""]
-                    #[doc = "# Note"]
-                    #[doc = ""]
-                    #[doc = "This does **not** change the address of the contract in question. This means"]
-                    #[doc = "that the contract address is no longer derived from its code hash after calling"]
-                    #[doc = "this dispatchable."]
-                    set_code {
-                        dest: ::subxt::ext::sp_runtime::MultiAddress<
-                            ::subxt::ext::sp_core::crypto::AccountId32,
-                            (),
-                        >,
-                        code_hash: ::subxt::ext::sp_core::H256,
-                    },
-                    #[codec(index = 6)]
-                    #[doc = "Makes a call to an account, optionally transferring some balance."]
-                    #[doc = ""]
-                    #[doc = "# Parameters"]
-                    #[doc = ""]
-                    #[doc = "* `dest`: Address of the contract to call."]
-                    #[doc = "* `value`: The balance to transfer from the `origin` to `dest`."]
-                    #[doc = "* `gas_limit`: The gas limit enforced when executing the constructor."]
-                    #[doc = "* `storage_deposit_limit`: The maximum amount of balance that can be charged from the"]
-                    #[doc = "  caller to pay for the storage consumed."]
-                    #[doc = "* `data`: The input data to pass to the contract."]
-                    #[doc = ""]
-                    #[doc = "* If the account is a smart-contract account, the associated code will be"]
-                    #[doc = "executed and any value will be transferred."]
-                    #[doc = "* If the account is a regular account, any value will be transferred."]
-                    #[doc = "* If no account exists and the call value is not less than `existential_deposit`,"]
-                    #[doc = "a regular account will be created and any value will be transferred."]
-                    call {
-                        dest: ::subxt::ext::sp_runtime::MultiAddress<
-                            ::subxt::ext::sp_core::crypto::AccountId32,
-                            (),
-                        >,
-                        #[codec(compact)]
-                        value: ::core::primitive::u128,
-                        gas_limit: runtime_types::sp_weights::weight_v2::Weight,
-                        storage_deposit_limit: ::core::option::Option<
-                            ::subxt::ext::codec::Compact<::core::primitive::u128>,
-                        >,
-                        data: ::std::vec::Vec<::core::primitive::u8>,
-                    },
-                    #[codec(index = 7)]
-                    #[doc = "Instantiates a new contract from the supplied `code` optionally transferring"]
-                    #[doc = "some balance."]
-                    #[doc = ""]
-                    #[doc = "This dispatchable has the same effect as calling [`Self::upload_code`] +"]
-                    #[doc = "[`Self::instantiate`]. Bundling them together provides efficiency gains. Please"]
-                    #[doc = "also check the documentation of [`Self::upload_code`]."]
-                    #[doc = ""]
-                    #[doc = "# Parameters"]
-                    #[doc = ""]
-                    #[doc = "* `value`: The balance to transfer from the `origin` to the newly created contract."]
-                    #[doc = "* `gas_limit`: The gas limit enforced when executing the constructor."]
-                    #[doc = "* `storage_deposit_limit`: The maximum amount of balance that can be charged/reserved"]
-                    #[doc = "  from the caller to pay for the storage consumed."]
-                    #[doc = "* `code`: The contract code to deploy in raw bytes."]
-                    #[doc = "* `data`: The input data to pass to the contract constructor."]
-                    #[doc = "* `salt`: Used for the address derivation. See [`Pallet::contract_address`]."]
-                    #[doc = ""]
-                    #[doc = "Instantiation is executed as follows:"]
-                    #[doc = ""]
-                    #[doc = "- The supplied `code` is instrumented, deployed, and a `code_hash` is created for that"]
-                    #[doc = "  code."]
-                    #[doc = "- If the `code_hash` already exists on the chain the underlying `code` will be shared."]
-                    #[doc = "- The destination address is computed based on the sender, code_hash and the salt."]
-                    #[doc = "- The smart-contract account is created at the computed address."]
-                    #[doc = "- The `value` is transferred to the new account."]
-                    #[doc = "- The `deploy` function is executed in the context of the newly-created account."]
-                    instantiate_with_code {
-                        #[codec(compact)]
-                        value: ::core::primitive::u128,
-                        gas_limit: runtime_types::sp_weights::weight_v2::Weight,
-                        storage_deposit_limit: ::core::option::Option<
-                            ::subxt::ext::codec::Compact<::core::primitive::u128>,
-                        >,
-                        code: ::std::vec::Vec<::core::primitive::u8>,
-                        data: ::std::vec::Vec<::core::primitive::u8>,
-                        salt: ::std::vec::Vec<::core::primitive::u8>,
-                    },
-                    #[codec(index = 8)]
-                    #[doc = "Instantiates a contract from a previously deployed wasm binary."]
-                    #[doc = ""]
-                    #[doc = "This function is identical to [`Self::instantiate_with_code`] but without the"]
-                    #[doc = "code deployment step. Instead, the `code_hash` of an on-chain deployed wasm binary"]
-                    #[doc = "must be supplied."]
-                    instantiate {
-                        #[codec(compact)]
-                        value: ::core::primitive::u128,
-                        gas_limit: runtime_types::sp_weights::weight_v2::Weight,
-                        storage_deposit_limit: ::core::option::Option<
-                            ::subxt::ext::codec::Compact<::core::primitive::u128>,
-                        >,
-                        code_hash: ::subxt::ext::sp_core::H256,
-                        data: ::std::vec::Vec<::core::primitive::u8>,
-                        salt: ::std::vec::Vec<::core::primitive::u8>,
-                    },
-                }
-                #[derive(
-                    :: subxt :: ext :: codec :: Decode,
-                    :: subxt :: ext :: codec :: Encode,
-                    Clone,
-                    Debug,
-                    Eq,
-                    PartialEq,
-                )]
-                #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
-                pub enum Error {
-                    #[codec(index = 0)]
-                    #[doc = "A new schedule must have a greater version than the current one."]
-                    InvalidScheduleVersion,
-                    #[codec(index = 1)]
-                    #[doc = "Invalid combination of flags supplied to `seal_call` or `seal_delegate_call`."]
-                    InvalidCallFlags,
-                    #[codec(index = 2)]
-                    #[doc = "The executed contract exhausted its gas limit."]
-                    OutOfGas,
-                    #[codec(index = 3)]
-                    #[doc = "The output buffer supplied to a contract API call was too small."]
-                    OutputBufferTooSmall,
-                    #[codec(index = 4)]
-                    #[doc = "Performing the requested transfer failed. Probably because there isn't enough"]
-                    #[doc = "free balance in the sender's account."]
-                    TransferFailed,
-                    #[codec(index = 5)]
-                    #[doc = "Performing a call was denied because the calling depth reached the limit"]
-                    #[doc = "of what is specified in the schedule."]
-                    MaxCallDepthReached,
-                    #[codec(index = 6)]
-                    #[doc = "No contract was found at the specified address."]
-                    ContractNotFound,
-                    #[codec(index = 7)]
-                    #[doc = "The code supplied to `instantiate_with_code` exceeds the limit specified in the"]
-                    #[doc = "current schedule."]
-                    CodeTooLarge,
-                    #[codec(index = 8)]
-                    #[doc = "No code could be found at the supplied code hash."]
-                    CodeNotFound,
-                    #[codec(index = 9)]
-                    #[doc = "A buffer outside of sandbox memory was passed to a contract API function."]
-                    OutOfBounds,
-                    #[codec(index = 10)]
-                    #[doc = "Input passed to a contract API function failed to decode as expected type."]
-                    DecodingFailed,
-                    #[codec(index = 11)]
-                    #[doc = "Contract trapped during execution."]
-                    ContractTrapped,
-                    #[codec(index = 12)]
-                    #[doc = "The size defined in `T::MaxValueSize` was exceeded."]
-                    ValueTooLarge,
-                    #[codec(index = 13)]
-                    #[doc = "Termination of a contract is not allowed while the contract is already"]
-                    #[doc = "on the call stack. Can be triggered by `seal_terminate`."]
-                    TerminatedWhileReentrant,
-                    #[codec(index = 14)]
-                    #[doc = "`seal_call` forwarded this contracts input. It therefore is no longer available."]
-                    InputForwarded,
-                    #[codec(index = 15)]
-                    #[doc = "The subject passed to `seal_random` exceeds the limit."]
-                    RandomSubjectTooLong,
-                    #[codec(index = 16)]
-                    #[doc = "The amount of topics passed to `seal_deposit_events` exceeds the limit."]
-                    TooManyTopics,
-                    #[codec(index = 17)]
-                    #[doc = "The topics passed to `seal_deposit_events` contains at least one duplicate."]
-                    DuplicateTopics,
-                    #[codec(index = 18)]
-                    #[doc = "The chain does not provide a chain extension. Calling the chain extension results"]
-                    #[doc = "in this error. Note that this usually  shouldn't happen as deploying such contracts"]
-                    #[doc = "is rejected."]
-                    NoChainExtension,
-                    #[codec(index = 19)]
-                    #[doc = "Removal of a contract failed because the deletion queue is full."]
-                    #[doc = ""]
-                    #[doc = "This can happen when calling `seal_terminate`."]
-                    #[doc = "The queue is filled by deleting contracts and emptied by a fixed amount each block."]
-                    #[doc = "Trying again during another block is the only way to resolve this issue."]
-                    DeletionQueueFull,
-                    #[codec(index = 20)]
-                    #[doc = "A contract with the same AccountId already exists."]
-                    DuplicateContract,
-                    #[codec(index = 21)]
-                    #[doc = "A contract self destructed in its constructor."]
-                    #[doc = ""]
-                    #[doc = "This can be triggered by a call to `seal_terminate`."]
-                    TerminatedInConstructor,
-                    #[codec(index = 22)]
-                    #[doc = "The debug message specified to `seal_debug_message` does contain invalid UTF-8."]
-                    DebugMessageInvalidUTF8,
-                    #[codec(index = 23)]
-                    #[doc = "A call tried to invoke a contract that is flagged as non-reentrant."]
-                    ReentranceDenied,
-                    #[codec(index = 24)]
-                    #[doc = "Origin doesn't have enough balance to pay the required storage deposits."]
-                    StorageDepositNotEnoughFunds,
-                    #[codec(index = 25)]
-                    #[doc = "More storage was created than allowed by the storage deposit limit."]
-                    StorageDepositLimitExhausted,
-                    #[codec(index = 26)]
-                    #[doc = "Code removal was denied because the code is still in use by at least one contract."]
-                    CodeInUse,
-                    #[codec(index = 27)]
-                    #[doc = "The contract ran to completion but decided to revert its storage changes."]
-                    #[doc = "Please note that this error is only returned from extrinsics. When called directly"]
-                    #[doc = "or via RPC an `Ok` will be returned. In this case the caller needs to inspect the flags"]
-                    #[doc = "to determine whether a reversion has taken place."]
-                    ContractReverted,
-                    #[codec(index = 28)]
-                    #[doc = "The contract's code was found to be invalid during validation or instrumentation."]
-                    #[doc = "A more detailed error can be found on the node console if debug messages are enabled"]
-                    #[doc = "or in the debug buffer which is returned to RPC clients."]
-                    CodeRejected,
-                }
-                #[derive(
-                    :: subxt :: ext :: codec :: Decode,
-                    :: subxt :: ext :: codec :: Encode,
-                    Clone,
-                    Debug,
-                    Eq,
-                    PartialEq,
-                )]
-                #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
-                pub enum Event {
-                    #[codec(index = 0)]
-                    #[doc = "Contract deployed by address at the specified address."]
-                    Instantiated {
-                        deployer: ::subxt::ext::sp_core::crypto::AccountId32,
-                        contract: ::subxt::ext::sp_core::crypto::AccountId32,
-                    },
-                    #[codec(index = 1)]
-                    #[doc = "Contract has been removed."]
-                    #[doc = ""]
-                    #[doc = "# Note"]
-                    #[doc = ""]
-                    #[doc = "The only way for a contract to be removed and emitting this event is by calling"]
-                    #[doc = "`seal_terminate`."]
-                    Terminated {
-                        contract: ::subxt::ext::sp_core::crypto::AccountId32,
-                        beneficiary: ::subxt::ext::sp_core::crypto::AccountId32,
-                    },
-                    #[codec(index = 2)]
-                    #[doc = "Code with the specified hash has been stored."]
-                    CodeStored {
-                        code_hash: ::subxt::ext::sp_core::H256,
-                    },
-                    #[codec(index = 3)]
-                    #[doc = "A custom event emitted by the contract."]
-                    ContractEmitted {
-                        contract: ::subxt::ext::sp_core::crypto::AccountId32,
-                        data: ::std::vec::Vec<::core::primitive::u8>,
-                    },
-                    #[codec(index = 4)]
-                    #[doc = "A code with the specified hash was removed."]
-                    CodeRemoved {
-                        code_hash: ::subxt::ext::sp_core::H256,
-                    },
-                    #[codec(index = 5)]
-                    #[doc = "A contract's code was updated."]
-                    ContractCodeUpdated {
-                        contract: ::subxt::ext::sp_core::crypto::AccountId32,
-                        new_code_hash: ::subxt::ext::sp_core::H256,
-                        old_code_hash: ::subxt::ext::sp_core::H256,
-                    },
-                    #[codec(index = 6)]
-                    #[doc = "A contract was called either by a plain account or another contract."]
-                    #[doc = ""]
-                    #[doc = "# Note"]
-                    #[doc = ""]
-                    #[doc = "Please keep in mind that like all events this is only emitted for successful"]
-                    #[doc = "calls. This is because on failure all storage changes including events are"]
-                    #[doc = "rolled back."]
-                    Called {
-                        caller: ::subxt::ext::sp_core::crypto::AccountId32,
-                        contract: ::subxt::ext::sp_core::crypto::AccountId32,
-                    },
-                    #[codec(index = 7)]
-                    #[doc = "A contract delegate called a code hash."]
-                    #[doc = ""]
-                    #[doc = "# Note"]
-                    #[doc = ""]
-                    #[doc = "Please keep in mind that like all events this is only emitted for successful"]
-                    #[doc = "calls. This is because on failure all storage changes including events are"]
-                    #[doc = "rolled back."]
-                    DelegateCalled {
-                        contract: ::subxt::ext::sp_core::crypto::AccountId32,
-                        code_hash: ::subxt::ext::sp_core::H256,
-                    },
-                }
-            }
-            pub mod schedule {
-                use super::runtime_types;
-                #[derive(
-                    :: subxt :: ext :: codec :: Decode,
-                    :: subxt :: ext :: codec :: Encode,
-                    Clone,
-                    Debug,
-                    Eq,
-                    PartialEq,
-                )]
-                pub struct HostFnWeights {
-                    pub caller: ::core::primitive::u64,
-                    pub is_contract: ::core::primitive::u64,
-                    pub code_hash: ::core::primitive::u64,
-                    pub own_code_hash: ::core::primitive::u64,
-                    pub caller_is_origin: ::core::primitive::u64,
-                    pub address: ::core::primitive::u64,
-                    pub gas_left: ::core::primitive::u64,
-                    pub balance: ::core::primitive::u64,
-                    pub value_transferred: ::core::primitive::u64,
-                    pub minimum_balance: ::core::primitive::u64,
-                    pub block_number: ::core::primitive::u64,
-                    pub now: ::core::primitive::u64,
-                    pub weight_to_fee: ::core::primitive::u64,
-                    pub gas: ::core::primitive::u64,
-                    pub input: ::core::primitive::u64,
-                    pub input_per_byte: ::core::primitive::u64,
-                    pub r#return: ::core::primitive::u64,
-                    pub return_per_byte: ::core::primitive::u64,
-                    pub terminate: ::core::primitive::u64,
-                    pub random: ::core::primitive::u64,
-                    pub deposit_event: ::core::primitive::u64,
-                    pub deposit_event_per_topic: ::core::primitive::u64,
-                    pub deposit_event_per_byte: ::core::primitive::u64,
-                    pub debug_message: ::core::primitive::u64,
-                    pub set_storage: ::core::primitive::u64,
-                    pub set_storage_per_new_byte: ::core::primitive::u64,
-                    pub set_storage_per_old_byte: ::core::primitive::u64,
-                    pub set_code_hash: ::core::primitive::u64,
-                    pub clear_storage: ::core::primitive::u64,
-                    pub clear_storage_per_byte: ::core::primitive::u64,
-                    pub contains_storage: ::core::primitive::u64,
-                    pub contains_storage_per_byte: ::core::primitive::u64,
-                    pub get_storage: ::core::primitive::u64,
-                    pub get_storage_per_byte: ::core::primitive::u64,
-                    pub take_storage: ::core::primitive::u64,
-                    pub take_storage_per_byte: ::core::primitive::u64,
-                    pub transfer: ::core::primitive::u64,
-                    pub call: ::core::primitive::u64,
-                    pub delegate_call: ::core::primitive::u64,
-                    pub call_transfer_surcharge: ::core::primitive::u64,
-                    pub call_per_cloned_byte: ::core::primitive::u64,
-                    pub instantiate: ::core::primitive::u64,
-                    pub instantiate_transfer_surcharge: ::core::primitive::u64,
-                    pub instantiate_per_salt_byte: ::core::primitive::u64,
-                    pub hash_sha2_256: ::core::primitive::u64,
-                    pub hash_sha2_256_per_byte: ::core::primitive::u64,
-                    pub hash_keccak_256: ::core::primitive::u64,
-                    pub hash_keccak_256_per_byte: ::core::primitive::u64,
-                    pub hash_blake2_256: ::core::primitive::u64,
-                    pub hash_blake2_256_per_byte: ::core::primitive::u64,
-                    pub hash_blake2_128: ::core::primitive::u64,
-                    pub hash_blake2_128_per_byte: ::core::primitive::u64,
-                    pub ecdsa_recover: ::core::primitive::u64,
-                    pub ecdsa_to_eth_address: ::core::primitive::u64,
-                }
-                #[derive(
-                    :: subxt :: ext :: codec :: Decode,
-                    :: subxt :: ext :: codec :: Encode,
-                    Clone,
-                    Debug,
-                    Eq,
-                    PartialEq,
-                )]
-                pub struct InstructionWeights {
-                    pub version: ::core::primitive::u32,
-                    pub i64const: ::core::primitive::u32,
-                    pub i64load: ::core::primitive::u32,
-                    pub i64store: ::core::primitive::u32,
-                    pub select: ::core::primitive::u32,
-                    pub r#if: ::core::primitive::u32,
-                    pub br: ::core::primitive::u32,
-                    pub br_if: ::core::primitive::u32,
-                    pub br_table: ::core::primitive::u32,
-                    pub br_table_per_entry: ::core::primitive::u32,
-                    pub call: ::core::primitive::u32,
-                    pub call_indirect: ::core::primitive::u32,
-                    pub call_indirect_per_param: ::core::primitive::u32,
-                    pub local_get: ::core::primitive::u32,
-                    pub local_set: ::core::primitive::u32,
-                    pub local_tee: ::core::primitive::u32,
-                    pub global_get: ::core::primitive::u32,
-                    pub global_set: ::core::primitive::u32,
-                    pub memory_current: ::core::primitive::u32,
-                    pub memory_grow: ::core::primitive::u32,
-                    pub i64clz: ::core::primitive::u32,
-                    pub i64ctz: ::core::primitive::u32,
-                    pub i64popcnt: ::core::primitive::u32,
-                    pub i64eqz: ::core::primitive::u32,
-                    pub i64extendsi32: ::core::primitive::u32,
-                    pub i64extendui32: ::core::primitive::u32,
-                    pub i32wrapi64: ::core::primitive::u32,
-                    pub i64eq: ::core::primitive::u32,
-                    pub i64ne: ::core::primitive::u32,
-                    pub i64lts: ::core::primitive::u32,
-                    pub i64ltu: ::core::primitive::u32,
-                    pub i64gts: ::core::primitive::u32,
-                    pub i64gtu: ::core::primitive::u32,
-                    pub i64les: ::core::primitive::u32,
-                    pub i64leu: ::core::primitive::u32,
-                    pub i64ges: ::core::primitive::u32,
-                    pub i64geu: ::core::primitive::u32,
-                    pub i64add: ::core::primitive::u32,
-                    pub i64sub: ::core::primitive::u32,
-                    pub i64mul: ::core::primitive::u32,
-                    pub i64divs: ::core::primitive::u32,
-                    pub i64divu: ::core::primitive::u32,
-                    pub i64rems: ::core::primitive::u32,
-                    pub i64remu: ::core::primitive::u32,
-                    pub i64and: ::core::primitive::u32,
-                    pub i64or: ::core::primitive::u32,
-                    pub i64xor: ::core::primitive::u32,
-                    pub i64shl: ::core::primitive::u32,
-                    pub i64shrs: ::core::primitive::u32,
-                    pub i64shru: ::core::primitive::u32,
-                    pub i64rotl: ::core::primitive::u32,
-                    pub i64rotr: ::core::primitive::u32,
-                }
-                #[derive(
-                    :: subxt :: ext :: codec :: Decode,
-                    :: subxt :: ext :: codec :: Encode,
-                    Clone,
-                    Debug,
-                    Eq,
-                    PartialEq,
-                )]
-                pub struct Limits {
-                    pub event_topics: ::core::primitive::u32,
-                    pub stack_height: ::core::option::Option<::core::primitive::u32>,
-                    pub globals: ::core::primitive::u32,
-                    pub parameters: ::core::primitive::u32,
-                    pub memory_pages: ::core::primitive::u32,
-                    pub table_size: ::core::primitive::u32,
-                    pub br_table_size: ::core::primitive::u32,
-                    pub subject_len: ::core::primitive::u32,
-                    pub call_depth: ::core::primitive::u32,
-                    pub payload_len: ::core::primitive::u32,
-                }
-                #[derive(
-                    :: subxt :: ext :: codec :: Decode,
-                    :: subxt :: ext :: codec :: Encode,
-                    Clone,
-                    Debug,
-                    Eq,
-                    PartialEq,
-                )]
-                pub struct Schedule {
-                    pub limits: runtime_types::pallet_contracts::schedule::Limits,
-                    pub instruction_weights:
-                        runtime_types::pallet_contracts::schedule::InstructionWeights,
-                    pub host_fn_weights: runtime_types::pallet_contracts::schedule::HostFnWeights,
-                }
-            }
-            pub mod storage {
-                use super::runtime_types;
-                #[derive(
-                    :: subxt :: ext :: codec :: Decode,
-                    :: subxt :: ext :: codec :: Encode,
-                    Clone,
-                    Debug,
-                    Eq,
-                    PartialEq,
-                )]
-                pub struct ContractInfo {
-                    pub trie_id: runtime_types::sp_core::bounded::bounded_vec::BoundedVec<
-                        ::core::primitive::u8,
-                    >,
-                    pub code_hash: ::subxt::ext::sp_core::H256,
-                    pub storage_bytes: ::core::primitive::u32,
-                    pub storage_items: ::core::primitive::u32,
-                    pub storage_byte_deposit: ::core::primitive::u128,
-                    pub storage_item_deposit: ::core::primitive::u128,
-                    pub storage_base_deposit: ::core::primitive::u128,
-                }
-                #[derive(
-                    :: subxt :: ext :: codec :: Decode,
-                    :: subxt :: ext :: codec :: Encode,
-                    Clone,
-                    Debug,
-                    Eq,
-                    PartialEq,
-                )]
-                pub struct DeletedContract {
-                    pub trie_id: runtime_types::sp_core::bounded::bounded_vec::BoundedVec<
-                        ::core::primitive::u8,
-                    >,
-                }
-            }
-            pub mod wasm {
-                use super::runtime_types;
-                #[derive(
-                    :: subxt :: ext :: codec :: Decode,
-                    :: subxt :: ext :: codec :: Encode,
-                    Clone,
-                    Debug,
-                    Eq,
-                    PartialEq,
-                )]
-                pub struct OwnerInfo {
-                    pub owner: ::subxt::ext::sp_core::crypto::AccountId32,
-                    #[codec(compact)]
-                    pub deposit: ::core::primitive::u128,
-                    #[codec(compact)]
-                    pub refcount: ::core::primitive::u64,
-                }
-                #[derive(
-                    :: subxt :: ext :: codec :: Decode,
-                    :: subxt :: ext :: codec :: Encode,
-                    Clone,
-                    Debug,
-                    Eq,
-                    PartialEq,
-                )]
-                pub struct PrefabWasmModule {
-                    #[codec(compact)]
-                    pub instruction_weights_version: ::core::primitive::u32,
-                    #[codec(compact)]
-                    pub initial: ::core::primitive::u32,
-                    #[codec(compact)]
-                    pub maximum: ::core::primitive::u32,
-                    pub code: runtime_types::sp_core::bounded::weak_bounded_vec::WeakBoundedVec<
-                        ::core::primitive::u8,
-                    >,
-                }
             }
         }
         pub mod pallet_elections {
@@ -19324,16 +17659,6 @@ pub mod api {
                 }
             }
             #[derive(
-                :: subxt :: ext :: codec :: CompactAs,
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            pub struct OldWeight(pub ::core::primitive::u64);
-            #[derive(
                 :: subxt :: ext :: codec :: Decode,
                 :: subxt :: ext :: codec :: Encode,
                 Clone,
@@ -19397,9 +17722,6 @@ pub mod api {
         pub fn multisig(&self) -> multisig::constants::ConstantsApi {
             multisig::constants::ConstantsApi
         }
-        pub fn contracts(&self) -> contracts::constants::ConstantsApi {
-            contracts::constants::ConstantsApi
-        }
         pub fn nomination_pools(&self) -> nomination_pools::constants::ConstantsApi {
             nomination_pools::constants::ConstantsApi
         }
@@ -19462,9 +17784,6 @@ pub mod api {
         pub fn sudo(&self) -> sudo::storage::StorageApi {
             sudo::storage::StorageApi
         }
-        pub fn contracts(&self) -> contracts::storage::StorageApi {
-            contracts::storage::StorageApi
-        }
         pub fn nomination_pools(&self) -> nomination_pools::storage::StorageApi {
             nomination_pools::storage::StorageApi
         }
@@ -19516,9 +17835,6 @@ pub mod api {
         pub fn sudo(&self) -> sudo::calls::TransactionApi {
             sudo::calls::TransactionApi
         }
-        pub fn contracts(&self) -> contracts::calls::TransactionApi {
-            contracts::calls::TransactionApi
-        }
         pub fn nomination_pools(&self) -> nomination_pools::calls::TransactionApi {
             nomination_pools::calls::TransactionApi
         }
@@ -19533,9 +17849,9 @@ pub mod api {
         let runtime_metadata_hash = client.metadata().metadata_hash(&PALLETS);
         if runtime_metadata_hash
             != [
-                10u8, 121u8, 157u8, 11u8, 147u8, 107u8, 235u8, 73u8, 90u8, 254u8, 82u8, 183u8,
-                112u8, 64u8, 213u8, 99u8, 23u8, 17u8, 10u8, 91u8, 124u8, 231u8, 209u8, 172u8, 59u8,
-                160u8, 15u8, 142u8, 149u8, 200u8, 95u8, 164u8,
+                210u8, 32u8, 36u8, 120u8, 206u8, 124u8, 254u8, 169u8, 115u8, 247u8, 219u8, 118u8,
+                132u8, 139u8, 209u8, 168u8, 105u8, 254u8, 148u8, 165u8, 237u8, 59u8, 32u8, 125u8,
+                219u8, 228u8, 96u8, 0u8, 162u8, 243u8, 124u8, 100u8,
             ]
         {
             Err(::subxt::error::MetadataError::IncompatibleMetadata)

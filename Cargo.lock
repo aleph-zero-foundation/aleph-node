@@ -236,7 +236,7 @@ dependencies = [
 
 [[package]]
 name = "aleph-node"
-version = "0.9.0"
+version = "0.9.0+mainnet"
 dependencies = [
  "aleph-runtime",
  "finality-aleph",
@@ -290,7 +290,7 @@ dependencies = [
 
 [[package]]
 name = "aleph-runtime"
-version = "0.9.0"
+version = "0.9.0+mainnet"
 dependencies = [
  "frame-executive",
  "frame-support",
@@ -301,8 +301,6 @@ dependencies = [
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
- "pallet-contracts",
- "pallet-contracts-primitives",
  "pallet-elections",
  "pallet-identity",
  "pallet-multisig",
@@ -4273,56 +4271,6 @@ dependencies = [
  "scale-info",
  "sp-runtime",
  "sp-std",
-]
-
-[[package]]
-name = "pallet-contracts"
-version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.32#50f811363321449799ad0fb5d64b692e009bebc6"
-dependencies = [
- "bitflags",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "impl-trait-for-tuples",
- "log",
- "pallet-contracts-primitives",
- "pallet-contracts-proc-macro",
- "parity-scale-codec",
- "rand 0.8.5",
- "scale-info",
- "serde",
- "smallvec",
- "sp-api",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-sandbox",
- "sp-std",
- "wasm-instrument",
- "wasmi-validation",
-]
-
-[[package]]
-name = "pallet-contracts-primitives"
-version = "6.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.32#50f811363321449799ad0fb5d64b692e009bebc6"
-dependencies = [
- "bitflags",
- "parity-scale-codec",
- "sp-runtime",
- "sp-std",
- "sp-weights",
-]
-
-[[package]]
-name = "pallet-contracts-proc-macro"
-version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.32#50f811363321449799ad0fb5d64b692e009bebc6"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]

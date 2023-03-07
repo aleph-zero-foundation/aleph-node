@@ -5,7 +5,7 @@ pub mod author;
 /// Pallet balances API
 pub mod balances;
 /// Pallet contracts API
-pub mod contract;
+// pub mod contract;
 /// Pallet elections API
 pub mod elections;
 /// Pallet transaction payment API
