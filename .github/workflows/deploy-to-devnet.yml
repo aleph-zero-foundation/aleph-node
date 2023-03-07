@@ -1,3 +1,4 @@
+---
 name: Deploy to Devnet
 
 # This workflow performs automatic deployment of aleph-node to the Devnet environment
@@ -59,7 +60,17 @@ jobs:
           #!/bin/bash
           aws s3 cp s3://alephzero-devnet-eu-central-1-keys-bucket/data data --recursive
           # rename validator paths
-          declare -A NAMES=([aleph-node-validator-0]=5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH [aleph-node-validator-1]=5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o [aleph-node-validator-2]=5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9 [aleph-node-validator-3]=5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK [aleph-node-validator-4]=5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW [aleph-node-validator-5]=5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR [aleph-node-validator-6]=5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY [aleph-node-validator-7]=5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ [aleph-node-validator-8]=5CUnSsgAyLND3bxxnfNhgWXSe9Wn676JzLpGLgyJv858qhoX [aleph-node-validator-9]=5CVKn7HAZW1Ky4r7Vkgsr7VEW88C2sHgUNDiwHY9Ct2hjU8q)
+          declare -A \
+            NAMES=([aleph-node-validator-0]=5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH \
+              [aleph-node-validator-1]=5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o \
+              [aleph-node-validator-2]=5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9 \
+              [aleph-node-validator-3]=5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK \
+              [aleph-node-validator-4]=5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW \
+              [aleph-node-validator-5]=5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR \
+              [aleph-node-validator-6]=5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY \
+              [aleph-node-validator-7]=5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ \
+              [aleph-node-validator-8]=5CUnSsgAyLND3bxxnfNhgWXSe9Wn676JzLpGLgyJv858qhoX \
+              [aleph-node-validator-9]=5CVKn7HAZW1Ky4r7Vkgsr7VEW88C2sHgUNDiwHY9Ct2hjU8q)
           for NAME in "${!NAMES[@]}"; do
             mv -v data/$NAME data/${NAMES[$NAME]}
           done
@@ -68,11 +79,17 @@ jobs:
         env:
           RELEASE_TAG: ${{ steps.vars.outputs.sha_short }}
 
+        # yamllint disable rule:line-length
         run: |
           #!/bin/bash
           aws s3 cp s3://alephzero-devnet-eu-central-1-keys-bucket/data data --recursive
-          docker run -i -v $(pwd)/data:/data --env RUST_BACKTRACE=1 --entrypoint "/usr/local/bin/aleph-node" public.ecr.aws/p6e8q1z1/aleph-node:${RELEASE_TAG} bootstrap-chain --raw --base-path /data --chain-id a0dnet1 --account-ids 5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH,5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o,5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9,5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK,5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW,5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR,5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY,5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ,5CUnSsgAyLND3bxxnfNhgWXSe9Wn676JzLpGLgyJv858qhoX,5CVKn7HAZW1Ky4r7Vkgsr7VEW88C2sHgUNDiwHY9Ct2hjU8q --sudo-account-id 5F4SvwaUEQubiqkPF8YnRfcN77cLsT2DfG4vFeQmSXNjR7hD > chainspec.json
+          docker run -i -v $(pwd)/data:/data --env RUST_BACKTRACE=1 --entrypoint \
+            "/usr/local/bin/aleph-node" public.ecr.aws/p6e8q1z1/aleph-node:${RELEASE_TAG} \
+            bootstrap-chain --raw --base-path /data --chain-id a0dnet1 \
+            --account-ids 5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH,5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o,5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9,5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK,5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW,5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR,5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY,5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ,5CUnSsgAyLND3bxxnfNhgWXSe9Wn676JzLpGLgyJv858qhoX,5CVKn7HAZW1Ky4r7Vkgsr7VEW88C2sHgUNDiwHY9Ct2hjU8q \
+            --sudo-account-id 5F4SvwaUEQubiqkPF8YnRfcN77cLsT2DfG4vFeQmSXNjR7hD > chainspec.json
           aws s3 cp chainspec.json s3://alephzero-devnet-eu-central-1-keys-bucket/chainspec.json
+        # yamllint enable rule:line-length
 
       - name: Stop and purge db Devnet
         run: |
@@ -89,7 +106,8 @@ jobs:
           #!/bin/bash
 
           cd aleph-apps/aleph-node-validators/overlays/devnet/eu-central-1
-          kustomize edit set image "aleph-node-validator-image-placeholder=public.ecr.aws/p6e8q1z1/aleph-node:${RELEASE_TAG}"
+          kustomize edit set image \
+            "aleph-node-validator-image-placeholder=public.ecr.aws/p6e8q1z1/aleph-node:${RELEASE_TAG}"
           kustomize build . | kubectl apply -f -
           sleep 2
           kubectl rollout status --watch --timeout=3600s statefulset/aleph-node-validator -n devnet

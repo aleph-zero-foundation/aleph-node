@@ -1,3 +1,4 @@
+---
 name: Clean runner workspace
 description: Removes all the files from the runner working directory
 

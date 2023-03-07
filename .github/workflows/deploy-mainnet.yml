@@ -1,3 +1,4 @@
+---
 name: Deploy to Mainnet
 
 on:
@@ -13,7 +14,7 @@ jobs:
     runs-on: ubuntu-20.04
     environment: 'mainnet'
     env:
-      AWS_REGION: us-east-1 # this region is used by all public ECR repos
+      AWS_REGION: us-east-1  # this region is used by all public ECR repos
     steps:
       - name: GIT | Checkout
         uses: actions/checkout@v2
@@ -62,7 +63,8 @@ jobs:
       - name: Tag and push image of Mainnet to DockerHub
         env:
           MAINNET_IMAGE: public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.vars.outputs.branch }}
-          DOCKERHUB_MAINNET_IMAGE: cardinalcryptography/aleph-zero:mainnet-${{ steps.vars.outputs.branch }}
+          DOCKERHUB_MAINNET_IMAGE:
+            cardinalcryptography/aleph-zero:mainnet-${{ steps.vars.outputs.branch }}
           DOCKERHUB_MAINNET_LATEST_IMAGE: cardinalcryptography/aleph-zero:mainnet-latest
         run: |
           echo "FROM ${{ env.MAINNET_IMAGE }}" > Dockerfile.dockerhub
@@ -84,6 +86,7 @@ jobs:
       - name: S3 CI | Download release runtime from S3 bucket
         shell: bash
         env:
+          # yamllint disable-line rule:line-length
           S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.vars.outputs.sha_short }}/aleph-runtime
           S3BUCKET_FILE: aleph-runtime-${{ steps.vars.outputs.sha_short }}.tar.gz
         run: |
@@ -119,11 +122,13 @@ jobs:
           for i in "${region_array[@]}"; do
             # Deploy new image version for archivist
             cd ${aleph_path}/aleph-apps/aleph-node-archivists/overlays/mainnet/${i}
-            kustomize edit set image "aleph-node-archivist-image-placeholder=${{ env.MAINNET_IMAGE }}"
+            kustomize edit set image \
+              "aleph-node-archivist-image-placeholder=${{ env.MAINNET_IMAGE }}"
 
             # Deploy new image version for validator
             cd ${aleph_path}/aleph-apps/aleph-node-validators/overlays/mainnet/${i}
-            kustomize edit set image "aleph-node-validator-image-placeholder=${{ env.MAINNET_IMAGE }}"
+            kustomize edit set image \
+              "aleph-node-validator-image-placeholder=${{ env.MAINNET_IMAGE }}"
           done
 
       - name: GIT | Commit changes to aleph-apps repository.

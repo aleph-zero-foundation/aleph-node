@@ -1,14 +1,14 @@
+---
 name: unit-tests
 
 on:
   pull_request:
-    branches:
-      - '**'
-  push:
     paths-ignore:
-      - '*.md'
+      - 'fork-off/**'
+      - 'flooder/**'
+  push:
     branches:
-      - main
+      - 'release-*'
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}

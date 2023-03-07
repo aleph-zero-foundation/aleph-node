@@ -1,18 +1,21 @@
+---
 name: e2e-tests-main-devnet
 
 on:
   pull_request:
     paths-ignore:
-      - '*.md'
+      - 'fork-off/**'
+      - 'flooder/**'
     branches:
       - main
-      - "release-*"
+      - 'release-*'
   push:
     paths-ignore:
-      - '*.md'
+      - 'fork-off/**'
+      - 'flooder/**'
     branches:
       - main
-      - "release-*"
+      - 'release-*'
   workflow_dispatch:
 
 concurrency:
@@ -135,7 +138,8 @@ jobs:
         run: |
           cd e2e-tests/
           rm -f target/release/deps/aleph_e2e_client*
-          cp $(cargo test --no-run --release --message-format=json | jq -r .executable | grep aleph_e2e_client) target/release/aleph-e2e-client
+          cp $(cargo test --no-run --release --message-format=json | jq -r .executable | \
+            grep aleph_e2e_client) target/release/aleph-e2e-client
           docker build --tag aleph-e2e-client:latest -f Dockerfile .
           docker save -o aleph-e2e-client.tar aleph-e2e-client:latest
 
@@ -151,7 +155,8 @@ jobs:
     needs: [build-test-docker]
     name: Checks if runtime file in aleph-client is up-to-date
     # disabling this check as it causes troubles
-    # this should be reworked to sth like https://github.com/paritytech/subxt/blob/master/examples/examples/metadata_compatibility.rs
+    # this should be reworked to sth like
+    # https://github.com/paritytech/subxt/blob/master/examples/examples/metadata_compatibility.rs
     if: false
     runs-on: ubuntu-20.04
     steps:
@@ -168,7 +173,9 @@ jobs:
         run: |
           cd aleph-client
           docker pull public.ecr.aws/p6e8q1z1/subxt-client-integration:latest
-          docker run --rm --network host --mount type=bind,source="$(pwd)/..",target=/subxt/aleph-node public.ecr.aws/p6e8q1z1/subxt-client-integration:latest
+          docker run --rm --network host \
+            --mount type=bind,source="$(pwd)/..",target=/subxt/aleph-node \
+            public.ecr.aws/p6e8q1z1/subxt-client-integration:latest
 
   run-e2e-finalization-test:
     needs: [build-test-docker, build-test-client]
@@ -491,7 +498,7 @@ jobs:
         timeout-minutes: 15
 
   run-e2e-permissionless-ban:
-    needs: [ build-test-docker, build-test-client ]
+    needs: [build-test-docker, build-test-client]
     name: Run permissionless ban test
     runs-on: ubuntu-20.04
     steps:
@@ -545,87 +552,6 @@ jobs:
           test-case: adder
         timeout-minutes: 10
 
-# The tests below were written under the assumption that nonfinalized blocks are being produced, they need a rewrite before being reenabled.
-# TODO(A0-1644): Reenable these tests.
-#  run-e2e-failing-version-upgrade:
-#    needs: [build-test-docker, build-test-client]
-#    name: Run basic (failing) version-upgrade test
-#    runs-on: ubuntu-20.04
-#    steps:
-#      - name: Checkout source code
-#        uses: actions/checkout@v2
-#
-#      - name: Run e2e test
-#        uses: ./.github/actions/run-e2e-test
-#        with:
-#          test-case: doomed_version_upgrade
-#        env:
-#          OVERRIDE_DOCKER_COMPOSE: ./.github/scripts/docker-compose.no_quorum_without_old.override.yml
-#          UPGRADE_VERSION: 1
-#          UPGRADE_SESSION: 3
-#          UPGRADE_FINALIZATION_WAIT_SESSIONS: 2
-#          ONLY_LEGACY: true
-#        timeout-minutes: 10
-#  run-e2e-version-upgrade-catchup:
-#    needs: [build-test-docker, build-cliain-image]
-#    name: Run series of tests where some of the nodes need to do version-upgrade during catch-up
-#    runs-on: ubuntu-20.04
-#    strategy:
-#      matrix:
-#        include:
-#          - nodes: "Node1"
-#            ports: "9934"
-#            ext_status: "finalized"
-#            upgrade_before_disable: "true"
-#
-#          - nodes: "Node1"
-#            ports: "9934"
-#            ext_status: "finalized"
-#            upgrade_before_disable: "false"
-#
-#          - nodes: "Node1:Node2"
-#            ports: "9934:9935"
-#            ext_status: "in-block"
-#            upgrade_before_disable: "true"
-#
-#          - nodes: "Node1:Node2"
-#            ports: "9934:9935"
-#            ext_status: "in-block"
-#            upgrade_before_disable: "false"
-#    steps:
-#      - name: Checkout source code
-#        uses: actions/checkout@v2
-#
-#      - name: Download artifact with docker image for aleph-node
-#        uses: actions/download-artifact@v2
-#        with:
-#          name: aleph-test-docker
-#
-#      - name: Load node docker image
-#        shell: bash
-#        run: docker load -i aleph-node.tar
-#
-#      - name: Download artifact with docker image for cliain
-#        uses: actions/download-artifact@v2
-#        with:
-#          name: cliain-docker
-#
-#      - name: Load cliain docker image
-#        shell: bash
-#        run: docker load -i cliain.tar
-#
-#      - name: Call catchup_test.sh
-#        timeout-minutes: 10
-#        env:
-#          UPGRADE_BLOCK: 31
-#          NODES: ${{ matrix.nodes }}
-#          PORTS: ${{ matrix.ports }}
-#          EXT_STATUS: ${{ matrix.ext_status }}
-#          UPGRADE_BEFORE_DISABLE: ${{ matrix.upgrade_before_disable }}
-#          DOCKER_COMPOSE: docker/docker-compose.bridged.yml
-#        run: |
-#          ./scripts/catchup_version_upgrade_test.sh
-
   run-e2e-finality-version-change:
     needs: [build-test-docker, build-test-client]
     name: Run finality version change test
@@ -674,8 +600,8 @@ jobs:
     name: Check e2e test suite completion
     runs-on: ubuntu-20.04
     steps:
-     - name: All e2e tests completed
-       run: echo "All e2e tests completed."
+      - name: All e2e tests completed
+        run: echo "All e2e tests completed."
 
 
   push-image:
@@ -729,7 +655,8 @@ jobs:
           CURRENT_IMAGE: aleph-node
           ECR_PUSH_IMAGE: public.ecr.aws/p6e8q1z1/aleph-node
         run: |
-          docker tag ${{ env.CURRENT_IMAGE }} ${{ env.ECR_PUSH_IMAGE }}:${{ steps.vars.outputs.sha_short }}
+          docker tag ${{ env.CURRENT_IMAGE }} \
+            ${{ env.ECR_PUSH_IMAGE }}:${{ steps.vars.outputs.sha_short }}
           docker tag ${{ env.CURRENT_IMAGE }} ${{ env.ECR_PUSH_IMAGE }}:latest
           docker push ${{ env.ECR_PUSH_IMAGE }}:${{ steps.vars.outputs.sha_short }}
           docker push ${{ env.ECR_PUSH_IMAGE }}:latest
@@ -813,7 +740,7 @@ jobs:
 
   build-new-runtime-and-try_runtime:
     name: Build new runtime and try_runtime tool
-    needs: [ check-runtime-change ]
+    needs: [check-runtime-change]
     # Disbled check, reenable once we fix the issue with try-runtime test
     # if: ${{ needs.check-runtime-change.outputs.runtime-updated != 0 }}
     if: ${{ false }}
@@ -855,7 +782,7 @@ jobs:
   test-runtime-update:
     name: Test runtime update with try-runtime tool
     runs-on: self-hosted
-    needs: [ build-new-runtime-and-try_runtime ]
+    needs: [build-new-runtime-and-try_runtime]
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3

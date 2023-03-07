@@ -1,14 +1,19 @@
+---
 name: Check excluded packages
 
 on:
   pull_request:
-    branches:
-      - '**'
-  push:
-    paths-ignore:
-      - '*.md'
-    branches:
-      - main
+    paths:
+      - 'flooder/**'
+      - 'e2e-tests/**'
+      - 'aleph-client/**'
+      - 'fork-off/**'
+      - 'bin/cliain/**'
+      - 'benches/**'
+      - 'contracts/**'
+      # TODO this package needs to be moved to /bin
+      - 'scripts/synthetic-network/synthetic-link/**'
+      - .github/workflows/check-excluded-packages.yml
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -38,7 +43,8 @@ jobs:
       - name: Format output
         id: format_output
         run: |
-          packages="$(echo ${{ steps.read_excluded.outputs.value }} | sed 's/[][,]/ /g' | sed 's/\s\+/\n/g' | sed '/^$/d')"
+          packages="$(echo ${{ steps.read_excluded.outputs.value }} \
+          | sed 's/[][,]/ /g' | sed 's/\s\+/\n/g' | sed '/^$/d')"
           targets="$(echo "$packages" | sed -r 's/[A-Za-z0-9_/-]+/&\/target\//g')"
 
           packages="${packages//$'\n'/'%0A'}"

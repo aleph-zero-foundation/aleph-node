@@ -1,17 +1,21 @@
+---
 name: Sync Cardinal-Cryptography repo with Aleph-Zero-Foundation repo
 
 on:
   push:
     branches:
       - main
-      - release-**
+      - 'release-*'
     tags:
-      - r-*
+      - 'r-*'
 
 jobs:
   sync-main:
     runs-on: ubuntu-20.04
-    if: github.repository == 'Cardinal-Cryptography/aleph-node' && startsWith(github.ref, 'refs/heads/') && github.ref_name == 'main'
+    if: >
+      github.repository == 'Cardinal-Cryptography/aleph-node' &&
+      startsWith(github.ref, 'refs/heads/') &&
+      github.ref_name == 'main'
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -20,12 +24,16 @@ jobs:
           token: ${{ secrets.SYNCAZF }}
 
       - name: Push to Aleph-Zero-Foundation
+        # yamllint disable-line rule:line-length
         run: git push https://x-access-token:${{ secrets.SYNCAZF }}@github.com/aleph-zero-foundation/aleph-node.git
 
 
   sync-release-branch:
     runs-on: ubuntu-20.04
-    if: github.repository == 'Cardinal-Cryptography/aleph-node' && startsWith(github.ref, 'refs/heads/') && startsWith(github.ref_name, 'release-')
+    if: >
+      github.repository == 'Cardinal-Cryptography/aleph-node' &&
+      startsWith(github.ref, 'refs/heads/') &&
+      startsWith(github.ref_name, 'release-')
     steps:
       - name: GIT | Checkout
         uses: actions/checkout@v3
@@ -43,8 +51,12 @@ jobs:
           echo sha_short=$(git rev-parse --short HEAD) >> $GITHUB_OUTPUT
 
       - name: Push to Aleph-Zero-Foundation
+        # yamllint disable rule:line-length
         run: |
-          git push 'https://x-access-token:${{ secrets.SYNCAZF }}@github.com/aleph-zero-foundation/aleph-node.git' ${{ steps.get_branch.outputs.branch_name }}:${{ steps.get_branch.outputs.branch_name }}
+          git push \
+            'https://x-access-token:${{ secrets.SYNCAZF }}@github.com/aleph-zero-foundation/aleph-node.git' \
+            ${{ steps.get_branch.outputs.branch_name }}:${{ steps.get_branch.outputs.branch_name }}
+        # yamllint disable rule:line-length
 
 
   sync-release-tag:
