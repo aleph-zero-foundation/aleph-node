@@ -46,7 +46,7 @@ jobs:
           RELEASE_IMAGE: >
             public.ecr.aws/p6e8q1z1/cliain:${{ steps.get_branch.outputs.branch_name == 'main'
             && 'latest' || steps.get_branch.outputs.branch_name }}
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           context: ./bin/cliain
           builder: ${{ steps.buildx.outputs.name }}
