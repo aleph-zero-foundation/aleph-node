@@ -118,7 +118,7 @@ jobs:
           sleep 300
 
       - name: GIT | Commit changes to aleph-apps repository.
-        uses: EndBug/add-and-commit@v5.1.0
+        uses: EndBug/add-and-commit@v9.1.1
         with:
           author_name: AlephZero Automation
           author_email: alephzero@10clouds.com

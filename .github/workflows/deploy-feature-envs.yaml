@@ -320,7 +320,7 @@ jobs:
             $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
 
       - name: GIT | Commit changes to aleph-apps repository.
-        uses: EndBug/add-and-commit@v5.1.0
+        uses: EndBug/add-and-commit@v9.1.1
         env:
           APP_NAME: ${{ env.FE_APP_PREFIX }}${{ steps.get_branch.outputs.branch_appname }}
           GITHUB_TOKEN: ${{ secrets.CI_GH_TOKEN }}
@@ -416,7 +416,7 @@ jobs:
             $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
 
       - name: GIT | Commit changes to aleph-apps repository.
-        uses: EndBug/add-and-commit@v5.1.0
+        uses: EndBug/add-and-commit@v9.1.1
         env:
           IMAGE_TAG:
             ${{ env.FE_IMAGETAG_PREFIX }}${{ steps.get_branch.outputs.branch_imagetag_full }}
