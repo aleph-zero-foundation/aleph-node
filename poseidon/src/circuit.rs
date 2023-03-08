@@ -15,7 +15,9 @@ type FpVar = ark_r1cs_std::fields::fp::FpVar<Fr>;
 macro_rules! n_to_one {
     ($n: literal, $n_as_word: literal) => {
         paste! {
-            /// Compute Poseidon hash of `input`.
+            #[doc = "Compute "]
+            #[doc = stringify!($n)]
+            #[doc = ":1 Poseidon hash of `input`."]
             pub fn [<$n_as_word _to_one_hash>] (cs: ConstraintSystemRef<Fr>, input: [FpVar; $n]) -> Result<FpVar, SynthesisError> {
                 let parameters = [<rate_ $n>]::<Fr>();
 

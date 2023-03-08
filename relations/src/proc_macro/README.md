@@ -1,4 +1,3 @@
-
 # liminal-ark-relation-macro
 
 This crate provides `snark_relation` procedural macro for concise defining SNARK relations.
