@@ -1,15 +1,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
-// For *TESTING PURPOSES ONLY* we use magnificent additional const generics.
-#![cfg_attr(test, allow(incomplete_features))]
-#![cfg_attr(test, feature(adt_const_params))]
-#![cfg_attr(test, feature(generic_const_exprs))]
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+#[cfg(feature = "liminal")]
 use baby_liminal_extension::substrate::Extension;
 pub use frame_support::{
     construct_runtime, log, parameter_types,
@@ -330,12 +327,14 @@ impl pallet_aleph::Config for Runtime {
     type NextSessionAuthorityProvider = Session;
 }
 
+#[cfg(feature = "liminal")]
 parameter_types! {
     // We allow 10kB keys, proofs and public inputs. This is a 100% blind guess.
     pub const MaximumVerificationKeyLength: u32 = 10_000;
     pub const MaximumDataLength: u32 = 10_000;
 }
 
+#[cfg(feature = "liminal")]
 impl pallet_baby_liminal::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = pallet_baby_liminal::AlephWeight<Runtime>;
@@ -702,7 +701,10 @@ impl pallet_contracts::Config for Runtime {
     type DepositPerByte = DepositPerByte;
     type WeightPrice = pallet_transaction_payment::Pallet<Self>;
     type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
+    #[cfg(feature = "liminal")]
     type ChainExtension = Extension;
+    #[cfg(not(feature = "liminal"))]
+    type ChainExtension = ();
     type DeletionQueueDepth = DeletionQueueDepth;
     type DeletionWeightLimit = DeletionWeightLimit;
     type Schedule = Schedule;
@@ -741,6 +743,37 @@ impl pallet_identity::Config for Runtime {
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
+#[cfg(not(feature = "liminal"))]
+construct_runtime!(
+    pub enum Runtime where
+        Block = Block,
+        NodeBlock = opaque::Block,
+        UncheckedExtrinsic = UncheckedExtrinsic
+    {
+        System: frame_system,
+        RandomnessCollectiveFlip: pallet_randomness_collective_flip,
+        Scheduler: pallet_scheduler,
+        Aura: pallet_aura,
+        Timestamp: pallet_timestamp,
+        Balances: pallet_balances,
+        TransactionPayment: pallet_transaction_payment,
+        Authorship: pallet_authorship,
+        Staking: pallet_staking,
+        History: pallet_session::historical,
+        Session: pallet_session,
+        Aleph: pallet_aleph,
+        Elections: pallet_elections,
+        Treasury: pallet_treasury,
+        Vesting: pallet_vesting,
+        Utility: pallet_utility,
+        Multisig: pallet_multisig,
+        Sudo: pallet_sudo,
+        Contracts: pallet_contracts,
+        NominationPools: pallet_nomination_pools,
+        Identity: pallet_identity,
+    }
+);
+#[cfg(feature = "liminal")]
 construct_runtime!(
     pub enum Runtime where
         Block = Block,
@@ -808,7 +841,10 @@ pub type Executive = frame_executive::Executive<
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benches {
+    #[cfg(feature = "liminal")]
     frame_benchmarking::define_benchmarks!([pallet_baby_liminal, BabyLiminal]);
+    #[cfg(not(feature = "liminal"))]
+    frame_benchmarking::define_benchmarks!([]);
 }
 
 impl_runtime_apis! {
@@ -1049,7 +1085,6 @@ impl_runtime_apis! {
      }
 
     #[cfg(feature = "runtime-benchmarks")]
-    #[allow(unused_imports)]
     impl frame_benchmarking::Benchmark<Block> for Runtime {
         fn benchmark_metadata(extra: bool) -> (
             Vec<frame_benchmarking::BenchmarkList>,
@@ -1081,7 +1116,7 @@ impl_runtime_apis! {
 
             Ok(batches)
         }
-    }
+     }
 }
 
 #[cfg(test)]

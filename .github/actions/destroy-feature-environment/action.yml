@@ -1,3 +1,4 @@
+---
 name: 'Destroy Feature Environment'
 description: 'Action used for feature environment deletion'
 
@@ -19,9 +20,6 @@ outputs:
   deployment-name:
     description: 'Output with a deployment name for working with deployments'
     value: ${{ steps.get_branch.outputs.branch_name }}
-  
-
-
 runs:
   using: "composite"
   steps:
@@ -75,15 +73,19 @@ runs:
         ARGOCD_URL: argocd.dev.azero.dev
       run: |
         ## Install argocd CLI tool
-        curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/download/v2.3.3/argocd-linux-amd64
+        curl -sSL -o argocd \
+          https://github.com/argoproj/argo-cd/releases/download/v2.3.3/argocd-linux-amd64
         chmod +x argocd && mv argocd /usr/local/bin/
 
-        /usr/local/bin/argocd app get fe-root-application --hard-refresh --auth-token ${{ inputs.argo-sync-user-token }} --server ${{ env.ARGOCD_URL }}
-        /usr/local/bin/argocd app wait fe-root-application --auth-token ${{ inputs.argo-sync-user-token }} --server ${{ env.ARGOCD_URL }}
+        /usr/local/bin/argocd app get fe-root-application --hard-refresh \
+          --auth-token ${{ inputs.argo-sync-user-token }} --server ${{ env.ARGOCD_URL }}
+        /usr/local/bin/argocd app wait fe-root-application --auth-token \
+          ${{ inputs.argo-sync-user-token }} --server ${{ env.ARGOCD_URL }}
 
     - name: Clean S3 storage
       shell: bash
       env:
         BRANCH_NAME: ${{ steps.get_branch.outputs.branch_name }}
       run: |
-        aws s3 rm --recursive s3://fe-alephzero-devnet-eu-central-1-keys-bucket/fe-${{ env.BRANCH_NAME }}
+        aws s3 rm --recursive \
+          s3://fe-alephzero-devnet-eu-central-1-keys-bucket/fe-${{ env.BRANCH_NAME }}

@@ -1,0 +1,30 @@
+---
+name: GH Action YAML linter
+
+on:
+  pull_request:
+    paths:
+      - '.github/**.yml'
+      - '.github/**.yaml'
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  main:
+    name: YAML Lint
+    runs-on: ubuntu-20.04
+    steps:
+      - name: GIT | Checkout source code
+        uses: actions/checkout@v3
+        with:
+          repository: Cardinal-Cryptography/aleph-node
+          token: ${{ secrets.CI_GH_TOKEN }}
+
+      - name: LINT | Execute yaml-lint
+        uses: ibiqlik/action-yamllint@v3.1.1
+        with:
+          strict: true
+          file_or_dir: .github
+          config_file: .yamllint

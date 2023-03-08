@@ -1,3 +1,4 @@
+---
 name: Build aleph-node and aleph-runtime
 
 on:
@@ -61,7 +62,9 @@ jobs:
 
 
       - name: S3 CI MAINNET | Configure AWS credentials
-        if: env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' && env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
+        if: >
+          env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' &&
+          env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
         uses: aws-actions/configure-aws-credentials@v1
         env:
           AWS_ACCESS_KEY_ID: ""
@@ -75,11 +78,14 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: S3 CI MAINNET | Copy release binary to S3 bucket
-        if: env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' && env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
+        if: >
+          env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' &&
+          env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
         shell: bash
         env:
           BINARY_DIR: target/production
           BINARY_FILE: aleph-node
+          # yamllint disable-line rule:line-length
           S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get_branch.outputs.sha_short }}/aleph-node
           S3BUCKET_FILE: aleph-node-${{ steps.get_branch.outputs.sha_short }}.tar.gz
         run: |
@@ -87,11 +93,14 @@ jobs:
           aws s3 cp ${{ env.S3BUCKET_FILE }} ${{ env.S3BUCKET_URL }}/${{ env.S3BUCKET_FILE }}
 
       - name: S3 CI MAINNET | Copy release runtime to S3 bucket
-        if: env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' && env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
+        if: >
+          env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' &&
+          env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
         shell: bash
         env:
           BINARY_DIR: target/production/wbuild/aleph-runtime
           BINARY_FILE: aleph_runtime.compact.wasm
+          # yamllint disable-line rule:line-length
           S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get_branch.outputs.sha_short }}/aleph-runtime
           S3BUCKET_FILE: aleph-runtime-${{ steps.get_branch.outputs.sha_short }}.tar.gz
         run: |
@@ -100,7 +109,9 @@ jobs:
 
 
       - name: Build test binary
-        run: cargo build --release -p aleph-node --features "short_session enable_treasury_proposals only_legacy"
+        run: |
+          cargo build --release -p aleph-node \
+          --features "short_session enable_treasury_proposals only_legacy"
 
       - name: Upload test binary
         uses: actions/upload-artifact@v2
@@ -119,11 +130,14 @@ jobs:
           retention-days: 7
 
       - name: S3 CI MAINNET | Copy test binary to S3 bucket
-        if: env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' && env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
+        if: >
+          env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' &&
+          env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
         shell: bash
         env:
           BINARY_DIR: target/release
           BINARY_FILE: aleph-node
+          # yamllint disable-line rule:line-length
           S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get_branch.outputs.sha_short }}/aleph-test-node
           S3BUCKET_FILE: aleph-test-node-${{ steps.get_branch.outputs.sha_short }}.tar.gz
         run: |
@@ -131,11 +145,14 @@ jobs:
           aws s3 cp ${{ env.S3BUCKET_FILE }} ${{ env.S3BUCKET_URL }}/${{ env.S3BUCKET_FILE }}
 
       - name: S3 CI MAINNET | Copy test runtime to S3 bucket
-        if: env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' && env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
+        if: >
+          env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' &&
+          env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
         shell: bash
         env:
           BINARY_DIR: target/release/wbuild/aleph-runtime
           BINARY_FILE: aleph_runtime.compact.wasm
+          # yamllint disable-line rule:line-length
           S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get_branch.outputs.sha_short }}/aleph-test-runtime
           S3BUCKET_FILE: aleph-test-runtime-${{ steps.get_branch.outputs.sha_short }}.tar.gz
         run: |

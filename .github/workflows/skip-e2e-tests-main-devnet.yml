@@ -1,0 +1,30 @@
+---
+name: e2e-tests-main-devnet
+
+on:
+  pull_request:
+    paths:
+      - 'fork-off/**'
+      - 'flooder/**'
+    branches:
+      - main
+      - 'release-*'
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  check-e2e-test-suite-completion:
+    name: Check e2e test suite completion
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Return success
+        run: echo "'Check e2e test suite completion' not required"
+
+  check-determinism:
+    name: Verify runtime build determinism
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Return success
+        run: echo "'Verify runtime build determinism' not required"

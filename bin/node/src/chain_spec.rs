@@ -131,9 +131,9 @@ pub struct ChainParams {
     #[arg(long, value_parser = parse_account_id, default_value(DEFAULT_SUDO_ACCOUNT))]
     sudo_account_id: AccountId,
 
-    /// AccountIds of the optional rich account
-    #[arg(long, value_delimiter = ',', value_parser = parse_account_id, num_args=1..)]
-    rich_account_ids: Option<Vec<AccountId>>,
+    /// AccountId of the optional faucet account
+    #[arg(long, value_parser = parse_account_id)]
+    faucet_account_id: Option<AccountId>,
 
     /// Minimum number of stakers before chain enters emergency state.
     #[arg(long, default_value = "4")]
@@ -169,8 +169,8 @@ impl ChainParams {
         self.sudo_account_id.clone()
     }
 
-    pub fn rich_account_ids(&self) -> Option<Vec<AccountId>> {
-        self.rich_account_ids.clone()
+    pub fn faucet_account_id(&self) -> Option<AccountId> {
+        self.faucet_account_id.clone()
     }
 
     pub fn min_validator_count(&self) -> u32 {
@@ -226,7 +226,7 @@ fn generate_chain_spec_config(
     let chain_id = String::from(chain_params.chain_id());
     let chain_type = chain_params.chain_type();
     let sudo_account = chain_params.sudo_account_id();
-    let rich_accounts = chain_params.rich_account_ids();
+    let faucet_account = chain_params.faucet_account_id();
     let min_validator_count = chain_params.min_validator_count();
     let finality_version = chain_params.finality_version();
 
@@ -241,7 +241,7 @@ fn generate_chain_spec_config(
                 wasm_binary,
                 authorities.clone(), // Initial PoA authorities, will receive funds
                 sudo_account.clone(), // Sudo account, will also be pre funded
-                rich_accounts.clone(), // Pre-funded accounts
+                faucet_account.clone(), // Pre-funded faucet account
                 controller_accounts.clone(), // Controller accounts for staking.
                 min_validator_count,
                 finality_version,
@@ -344,15 +344,14 @@ fn generate_genesis_config(
     wasm_binary: &[u8],
     authorities: Vec<AuthorityKeys>,
     sudo_account: AccountId,
-    rich_accounts: Option<Vec<AccountId>>,
+    faucet_account: Option<AccountId>,
     controller_accounts: Vec<AccountId>,
     min_validator_count: u32,
     finality_version: FinalityVersion,
 ) -> GenesisConfig {
-    let special_accounts = {
-        let mut all = rich_accounts.unwrap_or_default();
-        all.push(sudo_account.clone());
-        all
+    let special_accounts = match faucet_account {
+        Some(faucet_id) => vec![sudo_account.clone(), faucet_id],
+        None => vec![sudo_account.clone()],
     };
 
     // NOTE: some combinations of bootstrap chain arguments can potentially

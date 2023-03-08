@@ -9,6 +9,11 @@ use cliain::{
     treasury_approve, treasury_propose, treasury_reject, update_runtime, upload_code, validate,
     vest, vest_other, vested_transfer, Command, ConnectionConfig,
 };
+#[cfg(feature = "liminal")]
+use cliain::{
+    delete_key, generate_keys, generate_keys_from_srs, generate_proof, generate_srs, overwrite_key,
+    store_key, verify, verify_proof, BabyLiminal, SnarkRelation,
+};
 use log::{error, info};
 
 #[derive(Debug, Parser, Clone)]
@@ -36,10 +41,12 @@ fn read_seed(command: &Command, seed: Option<String>) -> String {
             hash: _,
             finalizer_seed: _,
         }
-        | Command::NextSessionKeys { account_id: _ }
+        | Command::NextSessionKeys { .. }
         | Command::RotateKeys
-        | Command::SeedToSS58 { input: _ }
+        | Command::SeedToSS58 { .. }
         | Command::ContractOwnerInfo { .. } => String::new(),
+        #[cfg(feature = "liminal")]
+        Command::SnarkRelation { .. } => String::new(),
         _ => read_secret(seed, "Provide seed for the signer account:"),
     }
 }
@@ -243,6 +250,86 @@ async fn main() -> anyhow::Result<()> {
         {
             Ok(_) => {}
             Err(why) => error!("Unable to schedule an upgrade {:?}", why),
+        },
+
+        #[cfg(feature = "liminal")]
+        Command::BabyLiminal(cmd) => match cmd {
+            BabyLiminal::StoreKey {
+                identifier,
+                vk_file,
+            } => {
+                if let Err(why) =
+                    store_key(cfg.get_signed_connection().await, identifier, vk_file).await
+                {
+                    error!("Unable to store key: {why:?}")
+                }
+            }
+            BabyLiminal::DeleteKey { identifier } => {
+                if let Err(why) = delete_key(cfg.get_root_connection().await, identifier).await {
+                    error!("Unable to delete key: {why:?}")
+                }
+            }
+            BabyLiminal::OverwriteKey {
+                identifier,
+                vk_file,
+            } => {
+                if let Err(why) =
+                    overwrite_key(cfg.get_root_connection().await, identifier, vk_file).await
+                {
+                    error!("Unable to overwrite key: {why:?}")
+                }
+            }
+            BabyLiminal::Verify {
+                identifier,
+                proof_file,
+                input_file,
+                system,
+            } => {
+                if let Err(why) = verify(
+                    cfg.get_signed_connection().await,
+                    identifier,
+                    proof_file,
+                    input_file,
+                    system,
+                )
+                .await
+                {
+                    error!("Unable to verify proof: {why:?}")
+                }
+            }
+        },
+
+        #[cfg(feature = "liminal")]
+        Command::SnarkRelation(cmd) => match *cmd {
+            SnarkRelation::GenerateSrs {
+                system,
+                num_constraints,
+                num_variables,
+                degree,
+            } => generate_srs(system, num_constraints, num_variables, degree),
+            SnarkRelation::GenerateKeysFromSrs {
+                relation,
+                system,
+                srs_file,
+            } => generate_keys_from_srs(relation, system, srs_file),
+            SnarkRelation::GenerateKeys { relation, system } => generate_keys(relation, system),
+            SnarkRelation::GenerateProof {
+                relation,
+                system,
+                proving_key_file,
+            } => generate_proof(relation, system, proving_key_file),
+            SnarkRelation::Verify {
+                verifying_key_file,
+                proof_file,
+                public_input_file,
+                system,
+            } => {
+                if verify_proof(verifying_key_file, proof_file, public_input_file, system) {
+                    println!("Proof is correct")
+                } else {
+                    error!("Incorrect proof!")
+                }
+            }
         },
     }
     Ok(())

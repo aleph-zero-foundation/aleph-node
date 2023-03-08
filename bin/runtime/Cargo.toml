@@ -55,7 +55,7 @@ sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptogr
 sp-transaction-pool = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 sp-version = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 # NOTE: these two disabled features collide with std in wasm
-sp-io = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+sp-io = { default-features = false, features = ["disable_oom", "disable_panic_handler"], git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.38" }
 
 # Benchmarking stuff
 frame-benchmarking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", optional = true }
@@ -63,9 +63,10 @@ frame-benchmarking = { default-features = false, git = "https://github.com/Cardi
 primitives = { path = "../../primitives", default-features = false }
 pallet-aleph = { path = "../../pallets/aleph", default-features = false }
 pallet-elections = { path = "../../pallets/elections", default-features = false }
-pallet-baby-liminal = { path = "../../pallets/baby-liminal", default-features = false }
 
-baby-liminal-extension = { path = "../../baby-liminal-extension", default-features = false, features = ["substrate"] }
+# Liminal-related dependencies
+baby-liminal-extension = { path = "../../baby-liminal-extension", default-features = false, features = ["substrate"], optional = true }
+pallet-baby-liminal = { path = "../../pallets/baby-liminal", default-features = false, optional = true }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
@@ -89,7 +90,6 @@ std = [
     "pallet-randomness-collective-flip/std",
     "pallet-session/std",
     "pallet-staking/std",
-    "pallet-baby-liminal/std",
     "pallet-sudo/std",
     "pallet-timestamp/std",
     "pallet-transaction-payment/std",
@@ -119,7 +119,6 @@ std = [
     "pallet-contracts/std",
     "pallet-nomination-pools/std",
     "pallet-nomination-pools-runtime-api/std",
-    "baby-liminal-extension/substrate-std"
 ]
 short_session = ["primitives/short_session"]
 try-runtime = [
@@ -134,7 +133,6 @@ try-runtime = [
     "pallet-authorship/try-runtime",
     "pallet-balances/try-runtime",
     "pallet-elections/try-runtime",
-    "pallet-baby-liminal/try-runtime",
     "pallet-identity/try-runtime",
     "pallet-randomness-collective-flip/try-runtime",
     "pallet-session/try-runtime",
@@ -152,5 +150,26 @@ enable_treasury_proposals = []
 runtime-benchmarks = [
     "frame-system/runtime-benchmarks",
     "frame-benchmarking/runtime-benchmarks",
+]
+
+# Liminal-related features
+liminal = [
+    "baby-liminal-extension",
+    "pallet-baby-liminal",
+    "primitives/liminal",
+]
+liminal-std = [
+    "liminal",
+    "std",
+    "pallet-baby-liminal/std",
+]
+liminal-try-runtime = [
+    "liminal",
+    "try-runtime",
+    "pallet-baby-liminal/try-runtime",
+]
+liminal-runtime-benchmarks = [
+    "liminal",
+    "runtime-benchmarks",
     "pallet-baby-liminal/runtime-benchmarks",
 ]

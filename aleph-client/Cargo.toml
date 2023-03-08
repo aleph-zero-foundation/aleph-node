@@ -1,13 +1,13 @@
 [package]
 name = "aleph_client"
-version = "2.13.0"
+version = "2.14.0"
 edition = "2021"
 license = "Apache 2.0"
 
 [dependencies]
 async-trait = "0.1.58"
 anyhow = "1.0"
-codec = { package = 'parity-scale-codec', version = "3.4.0", features = ['derive'] }
+codec = { package = 'parity-scale-codec', version = "3.0.0", features = ['derive'] }
 hex = { version = "0.4.3", features = ["alloc"] }
 log = "0.4"
 serde_json = { version = "1.0" }
@@ -23,8 +23,13 @@ frame-support = { git = "https://github.com/Cardinal-Cryptography/substrate.git"
 sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 pallet-contracts-primitives = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 
-pallet-baby-liminal = { path = "../pallets/baby-liminal" }
+pallet-baby-liminal = { path = "../pallets/baby-liminal", optional = true }
 primitives = { path = "../primitives" }
 
 [dev-dependencies]
 tokio = "1.21"
+
+[features]
+liminal = [
+    "pallet-baby-liminal/std",
+]

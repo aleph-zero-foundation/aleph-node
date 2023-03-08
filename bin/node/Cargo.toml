@@ -96,3 +96,19 @@ runtime-benchmarks = [
 only_legacy = [
     "finality-aleph/only_legacy"
 ]
+
+# Liminal-related features
+liminal = [
+    "aleph-runtime/liminal",
+    "aleph-primitives/liminal-std",
+]
+liminal-try-runtime = [
+    "liminal",
+    "try-runtime",
+    "aleph-runtime/liminal-try-runtime",
+]
+liminal-runtime-benchmarks = [
+    "liminal",
+    "runtime-benchmarks",
+    "aleph-runtime/liminal-runtime-benchmarks"
+]

@@ -1,0 +1,20 @@
+---
+name: unit-tests
+
+on:
+  pull_request:
+    paths:
+      - 'fork-off/**'
+      - 'flooder/**'
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Skip 'unit-tests'
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Return success
+        run: echo "'unit-tests' not required"

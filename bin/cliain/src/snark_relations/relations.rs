@@ -201,7 +201,7 @@ impl ConstraintSynthesizer<CircuitField> for RelationArgs {
                 .generate_constraints(cs),
 
             RelationArgs::LinearEquation { a, x, b, y } => {
-                LinearEquationRelationWithFullInput::new(a, x, b, y).generate_constraints(cs)
+                LinearEquationRelationWithFullInput::new(a, b, y, x).generate_constraints(cs)
             }
 
             RelationArgs::Deposit {

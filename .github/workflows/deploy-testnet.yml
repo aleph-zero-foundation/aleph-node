@@ -1,3 +1,4 @@
+---
 name: Deploy to Testnet
 
 on:
@@ -11,10 +12,10 @@ jobs:
   deploy-testnet:
     name: Deploy new aleph-node image to Testnet EKS
     runs-on: ubuntu-20.04
-    environment: 
+    environment:
       name: testnet
     env:
-      AWS_REGION: us-east-1 # this region is used by all public ECR repos
+      AWS_REGION: us-east-1  # this region is used by all public ECR repos
     steps:
       - name: GIT | Checkout
         uses: actions/checkout@v2
@@ -46,10 +47,12 @@ jobs:
           DEVNET_IMAGE: public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.vars.outputs.sha_short }}
           TESTNET_IMAGE: public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.vars.outputs.branch }}
         run: |
-          export image_not_exist=$(docker manifest inspect ${{ env.DEVNET_IMAGE }} &> /dev/null ; echo $?)
+          export image_not_exist=$(docker manifest inspect ${{ env.DEVNET_IMAGE }} \
+          &> /dev/null ; echo $?)
 
           if [ $image_not_exist -eq 1 ]; then
-            echo "::error title=Wrong docker image tag::Docker image ${{ env.DEVNET_IMAGE }} doesn't exist"
+            echo "::error title=Wrong docker image tag::Docker image ${{ env.DEVNET_IMAGE }} \
+              doesn't exist"
             exit 1
           else
             docker pull ${{ env.DEVNET_IMAGE }}
@@ -67,7 +70,8 @@ jobs:
       - name: Tag and push image of Testnet to DockerHub
         env:
           TESTNET_IMAGE: public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.vars.outputs.branch }}
-          DOCKERHUB_TESTNET_IMAGE: cardinalcryptography/aleph-zero:testnet-${{ steps.vars.outputs.branch }}
+          DOCKERHUB_TESTNET_IMAGE:
+            cardinalcryptography/aleph-zero:testnet-${{ steps.vars.outputs.branch }}
           DOCKERHUB_TESTNET_LATEST_IMAGE: cardinalcryptography/aleph-zero:testnet-latest
         run: |
           echo "FROM ${{ env.TESTNET_IMAGE }}" > Dockerfile.dockerhub
@@ -80,6 +84,7 @@ jobs:
       - name: S3 CI | Download release runtime from S3 bucket
         shell: bash
         env:
+          # yamllint disable-line rule:line-length
           S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.vars.outputs.sha_short }}/aleph-runtime
           S3BUCKET_FILE: aleph-runtime-${{ steps.vars.outputs.sha_short }}.tar.gz
         run: |
@@ -115,11 +120,13 @@ jobs:
           for i in "${region_array[@]}"; do
             # Deploy new image version for archivist
             cd ${aleph_path}/aleph-apps/aleph-node-archivists/overlays/testnet/${i}
-            kustomize edit set image "aleph-node-archivist-image-placeholder=${{ env.TESTNET_IMAGE }}"
+            kustomize edit set image \
+              "aleph-node-archivist-image-placeholder=${{ env.TESTNET_IMAGE }}"
 
             # Deploy new image version for validator
             cd ${aleph_path}/aleph-apps/aleph-node-validators/overlays/testnet/${i}
-            kustomize edit set image "aleph-node-validator-image-placeholder=${{ env.TESTNET_IMAGE }}"
+            kustomize edit set image \
+              "aleph-node-validator-image-placeholder=${{ env.TESTNET_IMAGE }}"
           done
 
       - name: GIT | Commit changes to aleph-apps repository.
@@ -127,7 +134,8 @@ jobs:
         with:
           author_name: AlephZero Automation
           author_email: alephzero@10clouds.com
-          message: "Updating Testnet docker image tag for pre-release: ${{ steps.vars.outputs.branch }}"
+          message:
+            "Updating Testnet docker image tag for pre-release: ${{ steps.vars.outputs.branch }}"
           add: "*.yaml"
           cwd: "aleph-apps"
           branch: testnet

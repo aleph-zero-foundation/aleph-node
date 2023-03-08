@@ -31,6 +31,8 @@ use frame_support::{
     traits::{OneSessionHandler, StorageVersion},
 };
 pub use pallet::*;
+#[cfg(feature = "std")]
+use primitives::LEGACY_FINALITY_VERSION;
 use primitives::{SessionIndex, Version, VersionChange, DEFAULT_FINALITY_VERSION};
 use sp_std::prelude::*;
 
@@ -46,6 +48,8 @@ pub mod pallet {
     };
     use pallet_session::SessionManager;
     use pallets_support::StorageMigration;
+    #[cfg(feature = "std")]
+    use sp_std::marker::PhantomData;
 
     use super::*;
     use crate::traits::{NextSessionAuthorityProvider, SessionInfoProvider};
@@ -315,7 +319,7 @@ pub mod pallet {
     impl<T: Config> Default for GenesisConfig<T> {
         fn default() -> Self {
             Self {
-                finality_version: primitives::LEGACY_FINALITY_VERSION as u32,
+                finality_version: LEGACY_FINALITY_VERSION as u32,
                 _marker: Default::default(),
             }
         }

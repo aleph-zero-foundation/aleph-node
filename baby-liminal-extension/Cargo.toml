@@ -23,27 +23,20 @@ primitives = { path = "../primitives", default-features = false, optional = true
 aleph-runtime = { path = "../bin/runtime" }
 
 [features]
-default = ["std"]
-substrate = [
-    "obce/substrate",
-    "pallet-baby-liminal",
-    "primitives"
-]
-ink = [
-    "obce/ink",
-    "dep:ink",
-]
+default = ["std", "substrate"]
 std = [
     "scale-info/std",
     "scale/std",
     "obce/std"
 ]
-substrate-std = [
-    "std",
-    "substrate",
-    "obce/substrate-std",
-    "pallet-baby-liminal/std",
-    "primitives/std",
+substrate = [
+    "obce/substrate",
+    "pallet-baby-liminal",
+    "primitives/liminal",
+]
+ink = [
+    "obce/ink",
+    "dep:ink",
 ]
 ink-std = [
     "std",

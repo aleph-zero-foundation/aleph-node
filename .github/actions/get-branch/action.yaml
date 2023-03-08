@@ -1,3 +1,4 @@
+---
 name: Get branch details
 description: Gets branch name and commit SHA
 
@@ -25,5 +26,6 @@ runs:
         HEAD_REF: ${{ github.head_ref || github.ref }}
       run: |
         echo "##[set-output name=branch_name;]$(echo ${HEAD_REF#refs/heads/} | tr / -)"
-        echo "##[set-output name=branch_appname;]$(printf ${HEAD_REF#refs/heads/} | tr / - | tr '[:upper:]' '[:lower:]' | tr -c '[a-z0-9-.]' '-')"
+        echo "##[set-output name=branch_appname;]$(printf ${HEAD_REF#refs/heads/} \
+          | tr / - | tr '[:upper:]' '[:lower:]' | tr -c '[a-z0-9-.]' '-')"
         echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"

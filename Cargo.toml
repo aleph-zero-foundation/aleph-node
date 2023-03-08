@@ -15,11 +15,17 @@ members = [
 
 exclude = [
     "aleph-client",
+    "benches/payout-stakers",
     "bin/cliain",
+    "contracts/adder",
     "contracts/poseidon_host_bench",
+    "e2e-tests",
+    "flooder",
+    "fork-off",
+    "poseidon",
     "relations",
     "relations/src/proc_macro",
-    "poseidon",
+    "scripts/synthetic-network/synthetic-link",
 ]
 
 [profile.release]

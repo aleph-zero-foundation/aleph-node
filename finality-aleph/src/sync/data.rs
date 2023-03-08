@@ -27,6 +27,48 @@ impl<J: Justification> State<J> {
     }
 }
 
+/// Additional information about the branch connecting the top finalized block
+/// with a given one. All the variants are exhaustive and exclusive due to the
+/// properties of the `Forest` structure.
+#[derive(Clone, Debug, Encode, Decode, PartialEq, Eq)]
+pub enum BranchKnowledge<J: Justification> {
+    /// ID of the oldest known ancestor if none of them are imported.
+    /// It must be different from the, imported by definition, root.
+    LowestId(BlockIdFor<J>),
+    /// ID of the top imported ancestor if any of them is imported.
+    /// Since imported vertices are connected to the root, the oldest known
+    /// ancestor is, implicitly, the root.
+    TopImported(BlockIdFor<J>),
+}
+
+/// Request content.
+#[derive(Clone, Debug, Encode, Decode)]
+pub struct Request<J: Justification> {
+    target_id: BlockIdFor<J>,
+    branch_knowledge: BranchKnowledge<J>,
+    state: State<J>,
+}
+
+impl<J: Justification> Request<J> {
+    pub fn new(
+        target_id: BlockIdFor<J>,
+        branch_knowledge: BranchKnowledge<J>,
+        state: State<J>,
+    ) -> Self {
+        Self {
+            target_id,
+            branch_knowledge,
+            state,
+        }
+    }
+}
+
+impl<J: Justification> Request<J> {
+    pub fn state(&self) -> &State<J> {
+        &self.state
+    }
+}
+
 /// Data to be sent over the network.
 #[derive(Clone, Debug, Encode, Decode)]
 pub enum NetworkData<J: Justification> {
@@ -34,10 +76,13 @@ pub enum NetworkData<J: Justification> {
     /// send what we are missing, and sometines just use the justifications to update their own
     /// state.
     StateBroadcast(State<J>),
-    /// A series of justifications, sent to a node that is clearly behind.
-    Justifications(Vec<J::Unverified>, State<J>),
+    /// Response to a state broadcast. Contains at most two justifications that the peer will
+    /// understand.
+    StateBroadcastResponse(J::Unverified, Option<J::Unverified>),
     /// An explicit request for data, potentially a lot of it.
-    Request(BlockIdFor<J>, State<J>),
+    Request(Request<J>),
+    /// Response to the request for data. Currently consists only of justifications.
+    RequestResponse(Vec<J::Unverified>),
 }
 
 /// Version wrapper around the network data.

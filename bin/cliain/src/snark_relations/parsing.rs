@@ -4,8 +4,8 @@ use anyhow::{anyhow, Error, Result};
 use clap::ValueEnum;
 use liminal_ark_relations::{FrontendAccount, FrontendMerklePath, FrontendNote};
 
-use crate::{
-    snark_relations::systems::SomeProvingSystem, NonUniversalProvingSystem, UniversalProvingSystem,
+use crate::snark_relations::{
+    systems::SomeProvingSystem, NonUniversalProvingSystem, UniversalProvingSystem,
 };
 
 pub fn parse_frontend_note(frontend_note: &str) -> Result<FrontendNote> {

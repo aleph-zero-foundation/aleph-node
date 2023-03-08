@@ -1,3 +1,4 @@
+---
 name: 'Run e2e test'
 description: 'Run single e2e test.'
 
@@ -58,7 +59,11 @@ runs:
 
     - name: Run consensus party
       shell: bash
-      run: NODE_IMAGE=${{ inputs.node-image }} DOCKER_COMPOSE=${{ inputs.compose-file }} ./.github/scripts/run_consensus.sh -m ${{ inputs.min-validator-count }} -n ${{ inputs.node-count }}
+      run: |
+        NODE_IMAGE=${{ inputs.node-image }} \
+        DOCKER_COMPOSE=${{ inputs.compose-file }} \
+          ./.github/scripts/run_consensus.sh \
+            -m ${{ inputs.min-validator-count }} -n ${{ inputs.node-count }}
 
     - name: Sleep
       shell: bash
@@ -91,7 +96,7 @@ runs:
 
         RESERVED_SEATS="${{ inputs.reserved-seats }}"
         NON_RESERVED_SEATS="${{ inputs.non-reserved-seats }}"
-        
+
         if [[ -n "${RANDOMIZED}" ]]; then
           ARGS+=(-r "${RANDOMIZED}")
         fi
@@ -116,4 +121,6 @@ runs:
     - name: Run finalization e2e test
       if: inputs.follow-up-finalization-check == 'true'
       shell: bash
-      run: ./.github/scripts/run_e2e_test.sh -t finalization::finalization -m "${{ inputs.min-validator-count }}"
+      run: |
+        ./.github/scripts/run_e2e_test.sh \
+          -t finalization::finalization -m "${{ inputs.min-validator-count }}"
