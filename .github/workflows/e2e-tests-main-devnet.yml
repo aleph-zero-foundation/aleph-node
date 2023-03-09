@@ -3,16 +3,10 @@ name: e2e-tests-main-devnet
 
 on:
   pull_request:
-    paths-ignore:
-      - 'fork-off/**'
-      - 'flooder/**'
     branches:
       - main
       - 'release-*'
   push:
-    paths-ignore:
-      - 'fork-off/**'
-      - 'flooder/**'
     branches:
       - main
       - 'release-*'
