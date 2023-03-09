@@ -1,25 +1,22 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, time::Duration};
 
 use futures::{
     channel::{mpsc, oneshot},
     StreamExt,
 };
 use log::{info, trace, warn};
+use sc_service::SpawnTaskHandle;
 use tokio::time;
 
 use crate::{
-    network::{
-        clique::{
-            incoming::incoming,
-            manager::{AddResult, Manager},
-            outgoing::outgoing,
-            protocols::ResultForService,
-            Dialer, Listener, Network, PublicKey, SecretKey, LOG_TARGET,
-        },
-        Data, PeerId,
-    },
-    SpawnTaskHandle, STATUS_REPORT_INTERVAL,
+    incoming::incoming,
+    manager::{AddResult, Manager},
+    outgoing::outgoing,
+    protocols::ResultForService,
+    Data, Dialer, Listener, Network, PeerId, PublicKey, SecretKey, LOG_TARGET,
 };
+
+const STATUS_REPORT_INTERVAL: Duration = Duration::from_secs(20);
 
 enum ServiceCommand<PK: PublicKey, D: Data, A: Data> {
     AddConnection(PK, A),

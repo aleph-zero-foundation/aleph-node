@@ -2,97 +2,52 @@ use std::{io::Error as IoError, iter, net::ToSocketAddrs as _};
 
 use aleph_primitives::AuthorityId;
 use codec::{Decode, Encode};
+use derive_more::{AsRef, Display};
 use log::info;
+use network_clique::{Dialer, Listener, PeerId, PublicKey, SecretKey};
 use sp_core::crypto::KeyTypeId;
-use tokio::net::{
-    tcp::{OwnedReadHalf, OwnedWriteHalf},
-    TcpListener, TcpStream, ToSocketAddrs,
-};
+use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
 
 use crate::{
     crypto::{verify, AuthorityPen, Signature},
-    network::{
-        clique::{ConnectionInfo, Dialer, Listener, PublicKey, SecretKey, Splittable},
-        AddressingInformation, NetworkIdentity, PeerId,
-    },
+    network::{AddressingInformation, NetworkIdentity},
 };
 
 const LOG_TARGET: &str = "tcp-network";
 
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"a0vn");
 
-impl ConnectionInfo for TcpStream {
-    fn peer_address_info(&self) -> String {
-        match self.peer_addr() {
-            Ok(addr) => addr.to_string(),
-            Err(e) => format!("unknown address: {}", e),
-        }
+#[derive(PartialEq, Eq, Clone, Debug, Display, Hash, Decode, Encode, AsRef)]
+#[as_ref(forward)]
+pub struct AuthorityIdWrapper(AuthorityId);
+
+impl From<AuthorityId> for AuthorityIdWrapper {
+    fn from(value: AuthorityId) -> Self {
+        AuthorityIdWrapper(value)
     }
 }
 
-impl ConnectionInfo for OwnedWriteHalf {
-    fn peer_address_info(&self) -> String {
-        match self.peer_addr() {
-            Ok(addr) => addr.to_string(),
-            Err(e) => e.to_string(),
-        }
-    }
-}
+impl PeerId for AuthorityIdWrapper {}
 
-impl ConnectionInfo for OwnedReadHalf {
-    fn peer_address_info(&self) -> String {
-        match self.peer_addr() {
-            Ok(addr) => addr.to_string(),
-            Err(e) => e.to_string(),
-        }
-    }
-}
-
-impl Splittable for TcpStream {
-    type Sender = OwnedWriteHalf;
-    type Receiver = OwnedReadHalf;
-
-    fn split(self) -> (Self::Sender, Self::Receiver) {
-        let (receiver, sender) = self.into_split();
-        (sender, receiver)
-    }
-}
-
-#[async_trait::async_trait]
-impl Listener for TcpListener {
-    type Connection = TcpStream;
-    type Error = std::io::Error;
-
-    async fn accept(&mut self) -> Result<Self::Connection, Self::Error> {
-        let stream = TcpListener::accept(self).await.map(|(stream, _)| stream)?;
-        if stream.set_linger(None).is_err() {
-            info!(target: LOG_TARGET, "stream.set_linger(None) failed.");
-        };
-        Ok(stream)
-    }
-}
-
-impl PeerId for AuthorityId {}
-
-impl PublicKey for AuthorityId {
+impl PublicKey for AuthorityIdWrapper {
     type Signature = Signature;
 
     fn verify(&self, message: &[u8], signature: &Self::Signature) -> bool {
-        verify(self, message, signature)
+        verify(&self.0, message, signature)
     }
 }
 
 #[async_trait::async_trait]
 impl SecretKey for AuthorityPen {
     type Signature = Signature;
-    type PublicKey = AuthorityId;
+    type PublicKey = AuthorityIdWrapper;
 
     async fn sign(&self, message: &[u8]) -> Self::Signature {
         AuthorityPen::sign(self, message).await
     }
 
     fn public_key(&self) -> Self::PublicKey {
-        self.authority_id()
+        self.authority_id().into()
     }
 }
 
@@ -141,10 +96,10 @@ pub struct SignedTcpAddressingInformation {
 }
 
 impl AddressingInformation for SignedTcpAddressingInformation {
-    type PeerId = AuthorityId;
+    type PeerId = AuthorityIdWrapper;
 
     fn peer_id(&self) -> Self::PeerId {
-        self.addressing_information.peer_id()
+        self.addressing_information.peer_id().into()
     }
 
     fn verify(&self) -> bool {
@@ -154,7 +109,7 @@ impl AddressingInformation for SignedTcpAddressingInformation {
 }
 
 impl NetworkIdentity for SignedTcpAddressingInformation {
-    type PeerId = AuthorityId;
+    type PeerId = AuthorityIdWrapper;
     type AddressingInformation = SignedTcpAddressingInformation;
 
     fn identity(&self) -> Self::AddressingInformation {
@@ -242,7 +197,7 @@ pub async fn new_tcp_network<A: ToSocketAddrs>(
         impl Listener,
         impl NetworkIdentity<
             AddressingInformation = SignedTcpAddressingInformation,
-            PeerId = AuthorityId,
+            PeerId = AuthorityIdWrapper,
         >,
     ),
     Error,
@@ -254,17 +209,18 @@ pub async fn new_tcp_network<A: ToSocketAddrs>(
 
 #[cfg(test)]
 pub mod testing {
-    use aleph_primitives::AuthorityId;
 
-    use super::SignedTcpAddressingInformation;
+    use super::{AuthorityIdWrapper, SignedTcpAddressingInformation};
     use crate::{crypto::AuthorityPen, network::NetworkIdentity};
 
     /// Creates a realistic identity.
     pub async fn new_identity(
         external_addresses: Vec<String>,
         authority_pen: &AuthorityPen,
-    ) -> impl NetworkIdentity<AddressingInformation = SignedTcpAddressingInformation, PeerId = AuthorityId>
-    {
+    ) -> impl NetworkIdentity<
+        AddressingInformation = SignedTcpAddressingInformation,
+        PeerId = AuthorityIdWrapper,
+    > {
         SignedTcpAddressingInformation::new(external_addresses, authority_pen)
             .await
             .expect("the provided addresses are fine")

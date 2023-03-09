@@ -5,11 +5,13 @@ members = [
     "baby-liminal-extension",
     "bin/node",
     "bin/runtime",
+    "clique",
     "finality-aleph",
     "pallets/aleph",
     "pallets/baby-liminal",
     "pallets/elections",
     "pallets/support",
+    "poseidon",
     "primitives",
 ]
 
@@ -22,7 +24,6 @@ exclude = [
     "e2e-tests",
     "flooder",
     "fork-off",
-    "poseidon",
     "relations",
     "relations/src/proc_macro",
     "scripts/synthetic-network/synthetic-link",

@@ -1,6 +1,6 @@
 [package]
 name = "finality-aleph"
-version = "0.6.1"
+version = "0.7.0"
 authors = ["Cardinal Cryptography"]
 edition = "2021"
 license = "Apache 2.0"
@@ -14,6 +14,7 @@ current-aleph-bft-rmc = { package = "aleph-bft-rmc", version = "0.6" }
 legacy-aleph-bft = { package = "aleph-bft", version = "0.19" }
 legacy-aleph-bft-rmc = { package = "aleph-bft-rmc", version = "0.5" }
 
+network-clique = { package = "network-clique", path = "../clique" }
 aleph-primitives = { package = "primitives", path = "../primitives" }
 legacy-aleph-aggregator = { package = "aggregator", git = "https://github.com/Cardinal-Cryptography/aleph-node.git", tag = "aggregator-v0.2.1" }
 current-aleph-aggregator = { path = "../aggregator", package = "aggregator" }

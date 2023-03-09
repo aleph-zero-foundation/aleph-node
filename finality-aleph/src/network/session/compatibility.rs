@@ -142,13 +142,13 @@ mod test {
     use std::sync::Arc;
 
     use codec::{Decode, Encode};
+    use network_clique::mock::MockAddressingInformation;
     use sp_keystore::testing::KeyStore;
 
     use super::VersionedAuthentication;
     use crate::{
         crypto::AuthorityVerifier,
         network::{
-            clique::mock::MockAddressingInformation,
             session::{compatibility::MAX_AUTHENTICATION_SIZE, SessionHandler},
             tcp::{testing::new_identity, SignedTcpAddressingInformation},
             NetworkIdentity,

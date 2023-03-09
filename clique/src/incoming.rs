@@ -3,7 +3,7 @@ use std::fmt::{Display, Error as FmtError, Formatter};
 use futures::channel::{mpsc, oneshot};
 use log::{debug, info};
 
-use crate::network::clique::{
+use crate::{
     protocols::{protocol, ProtocolError, ProtocolNegotiationError, ResultForService},
     Data, PublicKey, SecretKey, Splittable, LOG_TARGET,
 };

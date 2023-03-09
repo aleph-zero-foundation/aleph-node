@@ -4,7 +4,7 @@ use futures::channel::mpsc;
 use log::{debug, info};
 use tokio::time::{sleep, timeout, Duration};
 
-use crate::network::clique::{
+use crate::{
     protocols::{protocol, ProtocolError, ProtocolNegotiationError, ResultForService},
     ConnectionInfo, Data, Dialer, PeerAddressInfo, PublicKey, SecretKey, LOG_TARGET,
 };

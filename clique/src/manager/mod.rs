@@ -5,7 +5,7 @@ use std::{
 
 use futures::channel::mpsc;
 
-use crate::network::{clique::PublicKey, Data, PeerId};
+use crate::{Data, PeerId, PublicKey};
 
 mod direction;
 use direction::DirectedPeers;
@@ -240,7 +240,7 @@ mod tests {
     use futures::{channel::mpsc, StreamExt};
 
     use super::{AddResult::*, Manager, SendError};
-    use crate::network::clique::mock::{key, MockPublicKey};
+    use crate::mock::{key, MockPublicKey};
 
     type Data = String;
     type Address = String;

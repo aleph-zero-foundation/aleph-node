@@ -436,17 +436,14 @@ mod tests {
     use std::{iter, time::Duration};
 
     use futures::StreamExt;
+    use network_clique::mock::{random_address, MockAddressingInformation};
 
     use super::{
         ConnectionCommand, Manager, ManagerActions, PreNonvalidatorSession, PreValidatorSession,
         SendError,
     };
     use crate::{
-        network::{
-            clique::mock::{random_address, MockAddressingInformation},
-            mock::crypto_basics,
-            session::data::DataInSession,
-        },
+        network::{mock::crypto_basics, session::data::DataInSession},
         Recipient, SessionId,
     };
 

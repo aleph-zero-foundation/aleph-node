@@ -54,8 +54,7 @@ sp-staking = { default-features = false, git = "https://github.com/Cardinal-Cryp
 sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 sp-transaction-pool = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 sp-version = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
-# NOTE: these two disabled features collide with std in wasm
-sp-io = { default-features = false, features = ["disable_oom", "disable_panic_handler"], git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.38" }
+sp-io = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 
 # Benchmarking stuff
 frame-benchmarking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", optional = true }

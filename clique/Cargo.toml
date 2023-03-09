@@ -1,0 +1,26 @@
+[package]
+name = "network-clique"
+version = "0.1.0"
+authors = ["Cardinal Cryptography"]
+edition = "2021"
+license = "Apache 2.0"
+
+[dependencies]
+async-trait = "0.1"
+bytes = "1.0"
+codec = { package = "parity-scale-codec", version = "3.1", default-features = false, features = ["std", "derive"] }
+derive_more = "0.99"
+env_logger = "0.10"
+futures = "0.3"
+futures-timer = "3.0"
+hash-db = { version = "0.15.2", default-features = false }
+ip_network = "0.4"
+log = "0.4"
+lru = "0.9"
+parking_lot = "0.12"
+rand = "0.8"
+serde = "1.0"
+tiny-bip39 = "1.0"
+tokio = { version = "1.25", features = [ "sync", "macros", "time", "rt-multi-thread", "io-util", "net" ] }
+
+sc-service = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }

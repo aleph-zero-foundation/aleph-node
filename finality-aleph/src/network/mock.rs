@@ -26,18 +26,6 @@ impl MockData {
             decodes: true,
         }
     }
-
-    pub fn new_undecodable(data: u32, filler_size: usize) -> MockData {
-        MockData {
-            data,
-            filler: vec![0; filler_size],
-            decodes: false,
-        }
-    }
-
-    pub fn data(&self) -> u32 {
-        self.data
-    }
 }
 
 impl Encode for MockData {
@@ -82,10 +70,6 @@ impl<T> Channel<T> {
     pub fn new() -> Self {
         let (tx, rx) = mpsc::unbounded();
         Channel(tx, Arc::new(tokio::sync::Mutex::new(rx)))
-    }
-
-    pub fn send(&self, msg: T) {
-        self.0.unbounded_send(msg).unwrap();
     }
 
     pub async fn next(&mut self) -> Option<T> {
