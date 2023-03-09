@@ -1,6 +1,6 @@
 [package]
 name = "aleph_client"
-version = "2.14.0"
+version = "2.15.0"
 edition = "2021"
 license = "Apache 2.0"
 
