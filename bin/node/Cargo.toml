@@ -55,6 +55,9 @@ sc-consensus-slots = { git = "https://github.com/Cardinal-Cryptography/substrate
 sp-arithmetic = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 sp-io = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 
+frame-benchmarking-cli = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", optional = true }
+frame-benchmarking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", optional = true }
+
 aleph-runtime = { path = "../runtime" }
 finality-aleph = { path = "../../finality-aleph" }
 aleph-primitives = { package = "primitives", path = "../../primitives" }
@@ -85,6 +88,27 @@ try-runtime = [
 enable_treasury_proposals = [
     "aleph-runtime/enable_treasury_proposals"
 ]
+runtime-benchmarks = [
+    "frame-benchmarking",
+    "frame-benchmarking-cli/runtime-benchmarks",
+    "aleph-runtime/runtime-benchmarks",
+]
 only_legacy = [
     "finality-aleph/only_legacy"
+]
+
+# Liminal-related features
+liminal = [
+    "aleph-runtime/liminal",
+    "aleph-primitives/liminal-std",
+]
+liminal-try-runtime = [
+    "liminal",
+    "try-runtime",
+    "aleph-runtime/liminal-try-runtime",
+]
+liminal-runtime-benchmarks = [
+    "liminal",
+    "runtime-benchmarks",
+    "aleph-runtime/liminal-runtime-benchmarks"
 ]

@@ -54,12 +54,18 @@ sp-staking = { default-features = false, git = "https://github.com/Cardinal-Cryp
 sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 sp-transaction-pool = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 sp-version = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
-# NOTE: these two disabled features collide with std in wasm
 sp-io = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+
+# Benchmarking stuff
+frame-benchmarking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", optional = true }
 
 primitives = { path = "../../primitives", default-features = false }
 pallet-aleph = { path = "../../pallets/aleph", default-features = false }
 pallet-elections = { path = "../../pallets/elections", default-features = false }
+
+# Liminal-related dependencies
+baby-liminal-extension = { path = "../../baby-liminal-extension", default-features = false, features = ["substrate"], optional = true }
+pallet-baby-liminal = { path = "../../pallets/baby-liminal", default-features = false, optional = true }
 
 [build-dependencies]
 substrate-wasm-builder = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
@@ -140,3 +146,29 @@ try-runtime = [
     "pallet-utility/try-runtime",
 ]
 enable_treasury_proposals = []
+runtime-benchmarks = [
+    "frame-system/runtime-benchmarks",
+    "frame-benchmarking/runtime-benchmarks",
+]
+
+# Liminal-related features
+liminal = [
+    "baby-liminal-extension",
+    "pallet-baby-liminal",
+    "primitives/liminal",
+]
+liminal-std = [
+    "liminal",
+    "std",
+    "pallet-baby-liminal/std",
+]
+liminal-try-runtime = [
+    "liminal",
+    "try-runtime",
+    "pallet-baby-liminal/try-runtime",
+]
+liminal-runtime-benchmarks = [
+    "liminal",
+    "runtime-benchmarks",
+    "pallet-baby-liminal/runtime-benchmarks",
+]

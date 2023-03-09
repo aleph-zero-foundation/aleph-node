@@ -1,0 +1,38 @@
+[package]
+name = "poseidon_host_bench"
+version = "0.1.0"
+authors = ["Cardinal"]
+edition = "2021"
+documentation = "https://docs.rs/?"
+homepage = "https://alephzero.org"
+license = "Apache-2.0"
+categories = ["cryptography"]
+repository = "https://github.com/Cardinal-Cryptography/aleph-node"
+description = "A simple contract for benchmarking poseidon hashing and tree reconstruction"
+
+
+[dependencies]
+ink = { version = "~4.0.0", default-features = false }
+openbrush = { git = "https://github.com/727-Ventures/openbrush-contracts/", tag = "3.0.0", default-features = false }
+
+scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
+scale-info = { version = "2.3", default-features = false, features = ["derive"], optional = true }
+baby-liminal-extension = { git = "https://github.com/Cardinal-Cryptography/aleph-node", branch = "snarkeling", default-features = false, features = ["ink-as-dependency"] }
+
+[dev-dependencies]
+ink_e2e = "4.0.0"
+
+[lib]
+name = "poseidon_host_bench"
+path = "lib.rs"
+crate-type = ["cdylib"]
+
+[features]
+default = ["std"]
+std = [
+    "ink/std",
+    "scale/std",
+    "scale-info/std",
+    "openbrush/std",
+    "baby-liminal-extension/std",
+]

@@ -4,8 +4,15 @@ name: unit-tests
 on:
   pull_request:
     paths:
+      - 'aleph-client/**'
+      - 'bin/cliain/**'
+      - 'benches/**'
+      - 'contracts/**'
+      - 'e2e-tests/**'
+      - 'local-tests/**'
       - 'fork-off/**'
       - 'flooder/**'
+      - 'relations/**'
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}

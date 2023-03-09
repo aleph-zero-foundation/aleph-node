@@ -107,4 +107,14 @@ pub enum Subcommand {
     /// Try some command against runtime state. Note: `try-runtime` feature must be enabled.
     #[cfg(not(feature = "try-runtime"))]
     TryRuntime,
+
+    /// The custom benchmark subcommand benchmarking runtime pallets.
+    #[cfg(feature = "runtime-benchmarks")]
+    #[clap(subcommand)]
+    Benchmark(frame_benchmarking_cli::BenchmarkCmd),
+
+    /// The custom benchmark subcommand benchmarking runtime pallets. Note: `runtime-benchmarks`
+    /// feature must be enabled.
+    #[cfg(not(feature = "runtime-benchmarks"))]
+    Benchmark,
 }

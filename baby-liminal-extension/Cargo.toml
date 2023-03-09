@@ -1,0 +1,52 @@
+[package]
+name = "baby-liminal-extension"
+version = "0.1.0"
+authors = ["Cardinal Cryptography"]
+edition = "2021"
+homepage = "https://alephzero.org"
+repository = "https://github.com/aleph-zero-foundation/aleph-node"
+license = "Apache 2.0"
+publish = false
+
+[dependencies]
+ink = { version = "~4.0.1", default-features = false, optional = true }
+
+scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
+scale-info = { version = "2.3", default-features = false, features = ["derive"], optional = true }
+
+obce = { git = "https://github.com/727-Ventures/obce", branch = "aleph-v0.9.38", default-features = false }
+
+pallet-baby-liminal = { path = "../pallets/baby-liminal", default-features = false, optional = true }
+primitives = { path = "../primitives", default-features = false, optional = true }
+
+[dev-dependencies]
+aleph-runtime = { path = "../bin/runtime" }
+
+[features]
+default = ["std", "substrate"]
+std = [
+    "scale-info/std",
+    "scale/std",
+    "obce/std"
+]
+substrate = [
+    "obce/substrate",
+    "pallet-baby-liminal",
+    "primitives/liminal",
+]
+ink = [
+    "obce/ink",
+    "dep:ink",
+]
+ink-std = [
+    "std",
+    "ink",
+    "obce/ink-std",
+    "ink/std",
+]
+ink-as-dependency = []
+
+[[test]]
+name = "substrate"
+path = "tests/substrate.rs"
+required-features = ["substrate-std"]

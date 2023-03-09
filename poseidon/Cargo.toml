@@ -1,0 +1,62 @@
+[package]
+name = "liminal-ark-poseidon"
+version = "0.1.0"
+edition = "2021"
+authors = ["Cardinal"]
+documentation = "https://docs.rs/liminal-ark-poseidon"
+readme = "README.md"
+homepage = "https://alephzero.org"
+license = "Apache-2.0"
+categories = ["cryptography"]
+repository = "https://github.com/Cardinal-Cryptography/aleph-node"
+description = "An instantiation of the Poseidon SNARK-friendly hash function."
+
+[dependencies]
+ark-bls12-381 = { version = "^0.3.0" }
+ark-ff = { version = "^0.3.0", default-features = false }
+ark-r1cs-std = {version = "^0.3.0" , default-features = false, optional = true }
+ark-relations = { version = "^0.3.0", default-features = false, optional = true }
+paste = { version = "1.0.11" }
+
+ark-sponge = { git = "https://github.com/penumbra-zone/sponge", branch = "r1cs", default-features = false, features = ["r1cs"], optional = true  }
+poseidon-parameters = { git = "https://github.com/penumbra-zone/poseidon377", rev = "50699746", default-features = false }
+poseidon-permutation = { git = "https://github.com/penumbra-zone/poseidon377", rev = "50699746", default-features = false }
+
+# For generation only
+poseidon-paramgen = { git = "https://github.com/penumbra-zone/poseidon377", rev = "50699746", optional = true }
+
+[lib]
+name = "liminal_ark_poseidon"
+
+[[bin]]
+name = "liminal-ark-poseidon-paramgen"
+path = "src/generate_parameters.rs"
+required-features = ["paramgen"]
+
+[features]
+default = ["std"]
+std = [
+    "ark-bls12-381/std",
+    "ark-ff/std",
+
+    "poseidon-parameters/std",
+    "poseidon-permutation/std",
+]
+circuit = [
+    "ark-r1cs-std",
+    "ark-relations",
+    "ark-sponge",
+]
+circuit-std = [
+    "circuit",
+    "std",
+
+    "ark-r1cs-std/std",
+    "ark-relations/std",
+
+    "ark-sponge/std",
+]
+paramgen = [
+    "std",
+    "poseidon-paramgen/std",
+]

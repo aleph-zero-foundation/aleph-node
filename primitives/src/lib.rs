@@ -13,6 +13,11 @@ pub use sp_runtime::{
 pub use sp_staking::{EraIndex, SessionIndex};
 use sp_std::vec::Vec;
 
+#[cfg(feature = "liminal")]
+pub mod host_functions;
+#[cfg(feature = "liminal-std")]
+pub use host_functions::poseidon::HostFunctions;
+
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"alp0");
 
 // Same as GRANDPA_ENGINE_ID because as of right now substrate sends only

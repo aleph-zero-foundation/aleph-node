@@ -1,11 +1,13 @@
-extern crate core;
-
+#[cfg(feature = "liminal")]
+mod baby_liminal;
 mod commands;
 mod contracts;
 mod finalization;
 mod keys;
 mod runtime;
 mod secret;
+#[cfg(feature = "liminal")]
+mod snark_relations;
 mod staking;
 mod transfer;
 mod treasury;
@@ -30,6 +32,14 @@ pub use treasury::{
 pub use validators::change_validators;
 pub use version_upgrade::schedule_upgrade;
 pub use vesting::{vest, vest_other, vested_transfer};
+#[cfg(feature = "liminal")]
+pub use {
+    baby_liminal::{delete_key, overwrite_key, store_key, verify},
+    commands::{BabyLiminal, SnarkRelation},
+    snark_relations::{
+        generate_keys, generate_keys_from_srs, generate_proof, generate_srs, verify as verify_proof,
+    },
+};
 
 pub struct ConnectionConfig {
     node_endpoint: String,

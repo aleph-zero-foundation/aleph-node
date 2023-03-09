@@ -8,6 +8,17 @@ use clap::{clap_derive::ValueEnum, Args, Subcommand};
 use primitives::{BlockNumber, CommitteeSeats, SessionIndex};
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
+#[cfg(feature = "liminal")]
+use {
+    crate::snark_relations::{
+        parsing::parse_some_system, NonUniversalProvingSystem, RelationArgs, SomeProvingSystem,
+        UniversalProvingSystem,
+    },
+    aleph_client::{
+        pallet_baby_liminal::systems::ProvingSystem,
+        pallets::baby_liminal::VerificationKeyIdentifier,
+    },
+};
 
 #[derive(Debug, Clone, Args)]
 pub struct ContractOptions {
@@ -138,6 +149,144 @@ impl From<ExtrinsicState> for TxStatus {
             ExtrinsicState::Finalized => TxStatus::Finalized,
         }
     }
+}
+
+#[cfg(feature = "liminal")]
+#[derive(Debug, Clone, Subcommand)]
+pub enum BabyLiminal {
+    /// Store a verification key under an identifier in the pallet's storage.
+    StoreKey {
+        /// The key identifier.
+        #[clap(long, value_parser(parsing::parse_identifier))]
+        identifier: VerificationKeyIdentifier,
+
+        /// Path to a file containing the verification key.
+        #[clap(long)]
+        vk_file: PathBuf,
+    },
+
+    /// Delete the verification key under an identifier in the pallet's storage.
+    DeleteKey {
+        /// The key identifier.
+        #[clap(long, value_parser(parsing::parse_identifier))]
+        identifier: VerificationKeyIdentifier,
+    },
+
+    /// Overwrite the verification key under an identifier in the pallet's storage.
+    OverwriteKey {
+        /// The key identifier.
+        #[clap(long, value_parser(parsing::parse_identifier))]
+        identifier: VerificationKeyIdentifier,
+
+        /// Path to a file containing the verification key.
+        #[clap(long)]
+        vk_file: PathBuf,
+    },
+
+    /// Verify a proof against public input with a stored verification key.
+    Verify {
+        /// The key identifier.
+        #[clap(long, value_parser(parsing::parse_identifier))]
+        identifier: VerificationKeyIdentifier,
+
+        /// Path to a file containing the proof.
+        #[clap(long)]
+        proof_file: PathBuf,
+
+        /// Path to a file containing the public input.
+        #[clap(long)]
+        input_file: PathBuf,
+
+        /// The proving system to be used.
+        #[clap(long, value_parser(parsing::parse_system))]
+        system: ProvingSystem,
+    },
+}
+
+#[cfg(feature = "liminal")]
+#[derive(Debug, Clone, Subcommand)]
+pub enum SnarkRelation {
+    GenerateSrs {
+        /// Proving system to use.
+        #[clap(long, short, value_enum, default_value = "marlin")]
+        system: UniversalProvingSystem,
+
+        /// Maximum supported number of constraints.
+        #[clap(long, default_value = "10000")]
+        num_constraints: usize,
+
+        /// Maximum supported number of variables.
+        #[clap(long, default_value = "10000")]
+        num_variables: usize,
+
+        /// Maximum supported polynomial degree.
+        #[clap(long, default_value = "10000")]
+        degree: usize,
+    },
+
+    /// Generate verifying and proving key from SRS and save them to separate binary files.
+    GenerateKeysFromSrs {
+        ///Relation to work with.
+        #[clap(subcommand)]
+        relation: RelationArgs,
+
+        /// Proving system to use.
+        #[clap(long, short, value_enum, default_value = "marlin")]
+        system: UniversalProvingSystem,
+
+        /// Path to a file containing SRS.
+        #[clap(long)]
+        srs_file: PathBuf,
+    },
+
+    /// Generate verifying and proving key and save them to separate binary files.
+    GenerateKeys {
+        /// Relation to work with.
+        #[clap(subcommand)]
+        relation: RelationArgs,
+
+        /// Proving system to use.
+        #[clap(long, short, value_enum, default_value = "groth16")]
+        system: NonUniversalProvingSystem,
+    },
+
+    /// Generate proof and public input and save them to separate binary files.
+    GenerateProof {
+        /// Relation to work with.
+        #[clap(subcommand)]
+        relation: RelationArgs,
+
+        /// Proving system to use.
+        ///
+        /// Accepts either `NonUniversalProvingSystem` or `UniversalProvingSystem`.
+        #[clap(long, short, value_enum, default_value = "groth16", value_parser = parse_some_system)]
+        system: SomeProvingSystem,
+
+        /// Path to a file containing proving key.
+        #[clap(long, short)]
+        proving_key_file: PathBuf,
+    },
+
+    /// Verify proof.
+    Verify {
+        /// Path to a file containing verifying key.
+        #[clap(long, short)]
+        verifying_key_file: PathBuf,
+
+        /// Path to a file containing proof.
+        #[clap(long, short)]
+        proof_file: PathBuf,
+
+        /// Path to a file containing public input.
+        #[clap(long, short)]
+        public_input_file: PathBuf,
+
+        /// Proving system to use.
+        ///
+        /// Accepts either `NonUniversalProvingSystem` or `UniversalProvingSystem`.
+        #[clap(long, short, value_enum, default_value = "groth16", value_parser = parse_some_system)]
+        system: SomeProvingSystem,
+    },
 }
 
 #[derive(Debug, Clone, Subcommand)]
@@ -361,4 +510,48 @@ pub enum Command {
         #[clap(long, value_enum, default_value_t=ExtrinsicState::Finalized)]
         expected_state: ExtrinsicState,
     },
+
+    /// Interact with `pallet_baby_liminal`.
+    #[cfg(feature = "liminal")]
+    #[clap(subcommand)]
+    BabyLiminal(BabyLiminal),
+
+    /// Interact with `relations` crate.
+    ///
+    /// Inner object is boxed, because it is significantly bigger than any other variant (clippy).
+    #[cfg(feature = "liminal")]
+    #[clap(subcommand)]
+    SnarkRelation(Box<SnarkRelation>),
+}
+
+#[cfg(feature = "liminal")]
+mod parsing {
+    use aleph_client::{
+        pallet_baby_liminal::systems::ProvingSystem,
+        pallets::baby_liminal::VerificationKeyIdentifier,
+    };
+    use anyhow::anyhow;
+
+    /// Try to convert `&str` to `VerificationKeyIdentifier`.
+    ///
+    /// We handle one, most probable error type ourselves (i.e. incorrect length) to give a better
+    /// message than the default `"could not convert slice to array"`.
+    pub fn parse_identifier(ident: &str) -> anyhow::Result<VerificationKeyIdentifier> {
+        match ident.len() {
+            4 => Ok(ident.as_bytes().try_into()?),
+            _ => Err(anyhow!(
+                "Identifier has an incorrect length (should be 4 characters)"
+            )),
+        }
+    }
+
+    /// Try to convert `&str` to `ProvingSystem`.
+    pub fn parse_system(system: &str) -> anyhow::Result<ProvingSystem> {
+        match system.to_lowercase().as_str() {
+            "groth16" => Ok(ProvingSystem::Groth16),
+            "gm17" => Ok(ProvingSystem::Gm17),
+            "marlin" => Ok(ProvingSystem::Marlin),
+            _ => Err(anyhow!("Unknown proving system")),
+        }
+    }
 }

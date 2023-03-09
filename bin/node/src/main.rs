@@ -128,6 +128,23 @@ fn main() -> sc_cli::Result<()> {
         Some(Subcommand::TryRuntime) => Err("TryRuntime wasn't enabled when building the node. \
         You can enable it with `--features try-runtime`."
             .into()),
+        #[cfg(feature = "runtime-benchmarks")]
+        Some(Subcommand::Benchmark(cmd)) => {
+            let runner = cli.create_runner(cmd)?;
+            runner.sync_run(|config| {
+                if let BenchmarkCmd::Pallet(cmd) = cmd {
+                    cmd.run::<Block, ExecutorDispatch>(config)
+                } else {
+                    Err(sc_cli::Error::Input("Wrong subcommand".to_string()))
+                }
+            })
+        }
+        #[cfg(not(feature = "runtime-benchmarks"))]
+        Some(Subcommand::Benchmark) => Err(
+            "Benchmarking wasn't enabled when building the node. You can enable it with \
+				     `--features runtime-benchmarks`."
+                .into(),
+        ),
         None => {
             let runner = cli.create_runner(&cli.run)?;
             if cli.aleph.experimental_pruning() {

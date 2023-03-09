@@ -31,9 +31,9 @@ use frame_support::{
     traits::{OneSessionHandler, StorageVersion},
 };
 pub use pallet::*;
-use primitives::{
-    SessionIndex, Version, VersionChange, DEFAULT_FINALITY_VERSION, LEGACY_FINALITY_VERSION,
-};
+#[cfg(feature = "std")]
+use primitives::LEGACY_FINALITY_VERSION;
+use primitives::{SessionIndex, Version, VersionChange, DEFAULT_FINALITY_VERSION};
 use sp_std::prelude::*;
 
 /// The current storage version.
@@ -48,6 +48,7 @@ pub mod pallet {
     };
     use pallet_session::SessionManager;
     use pallets_support::StorageMigration;
+    #[cfg(feature = "std")]
     use sp_std::marker::PhantomData;
 
     use super::*;

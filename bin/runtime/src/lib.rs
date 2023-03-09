@@ -6,6 +6,8 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+#[cfg(feature = "liminal")]
+use baby_liminal_extension::substrate::Extension;
 pub use frame_support::{
     construct_runtime, log, parameter_types,
     traits::{
@@ -323,6 +325,21 @@ impl pallet_aleph::Config for Runtime {
     type SessionInfoProvider = Session;
     type SessionManager = Elections;
     type NextSessionAuthorityProvider = Session;
+}
+
+#[cfg(feature = "liminal")]
+parameter_types! {
+    // We allow 10kB keys, proofs and public inputs. This is a 100% blind guess.
+    pub const MaximumVerificationKeyLength: u32 = 10_000;
+    pub const MaximumDataLength: u32 = 10_000;
+}
+
+#[cfg(feature = "liminal")]
+impl pallet_baby_liminal::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = pallet_baby_liminal::AlephWeight<Runtime>;
+    type MaximumVerificationKeyLength = MaximumVerificationKeyLength;
+    type MaximumDataLength = MaximumDataLength;
 }
 
 impl_opaque_keys! {
@@ -684,6 +701,9 @@ impl pallet_contracts::Config for Runtime {
     type DepositPerByte = DepositPerByte;
     type WeightPrice = pallet_transaction_payment::Pallet<Self>;
     type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
+    #[cfg(feature = "liminal")]
+    type ChainExtension = Extension;
+    #[cfg(not(feature = "liminal"))]
     type ChainExtension = ();
     type DeletionQueueDepth = DeletionQueueDepth;
     type DeletionWeightLimit = DeletionWeightLimit;
@@ -723,6 +743,7 @@ impl pallet_identity::Config for Runtime {
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
+#[cfg(not(feature = "liminal"))]
 construct_runtime!(
     pub enum Runtime where
         Block = Block,
@@ -750,6 +771,37 @@ construct_runtime!(
         Contracts: pallet_contracts,
         NominationPools: pallet_nomination_pools,
         Identity: pallet_identity,
+    }
+);
+#[cfg(feature = "liminal")]
+construct_runtime!(
+    pub enum Runtime where
+        Block = Block,
+        NodeBlock = opaque::Block,
+        UncheckedExtrinsic = UncheckedExtrinsic
+    {
+        System: frame_system,
+        RandomnessCollectiveFlip: pallet_randomness_collective_flip,
+        Scheduler: pallet_scheduler,
+        Aura: pallet_aura,
+        Timestamp: pallet_timestamp,
+        Balances: pallet_balances,
+        TransactionPayment: pallet_transaction_payment,
+        Authorship: pallet_authorship,
+        Staking: pallet_staking,
+        History: pallet_session::historical,
+        Session: pallet_session,
+        Aleph: pallet_aleph,
+        Elections: pallet_elections,
+        Treasury: pallet_treasury,
+        Vesting: pallet_vesting,
+        Utility: pallet_utility,
+        Multisig: pallet_multisig,
+        Sudo: pallet_sudo,
+        Contracts: pallet_contracts,
+        NominationPools: pallet_nomination_pools,
+        Identity: pallet_identity,
+        BabyLiminal: pallet_baby_liminal,
     }
 );
 
@@ -786,6 +838,14 @@ pub type Executive = frame_executive::Executive<
     Runtime,
     AllPalletsWithSystem,
 >;
+
+#[cfg(feature = "runtime-benchmarks")]
+mod benches {
+    #[cfg(feature = "liminal")]
+    frame_benchmarking::define_benchmarks!([pallet_baby_liminal, BabyLiminal]);
+    #[cfg(not(feature = "liminal"))]
+    frame_benchmarking::define_benchmarks!([]);
+}
 
 impl_runtime_apis! {
     impl sp_api::Core<Block> for Runtime {
@@ -1008,19 +1068,53 @@ impl_runtime_apis! {
     }
 
     #[cfg(feature = "try-runtime")]
-     impl frame_try_runtime::TryRuntime<Block> for Runtime {
-          fn on_runtime_upgrade(checks: UpgradeCheckSelect) -> (Weight, Weight) {
-               let weight = Executive::try_runtime_upgrade(checks).unwrap();
-               (weight, BlockWeights::get().max_block)
-          }
+    impl frame_try_runtime::TryRuntime<Block> for Runtime {
+        fn on_runtime_upgrade(checks: UpgradeCheckSelect) -> (Weight, Weight) {
+            let weight = Executive::try_runtime_upgrade(checks).unwrap();
+            (weight, BlockWeights::get().max_block)
+        }
 
-          fn execute_block(
-               block: Block,
-               state_root_check: bool,
-               checks: bool,
-               select: frame_try_runtime::TryStateSelect,
-          ) -> Weight {
+        fn execute_block(
+            block: Block,
+            state_root_check: bool,
+            checks: bool,
+            select: frame_try_runtime::TryStateSelect,
+        ) -> Weight {
             Executive::try_execute_block(block, state_root_check, checks, select).unwrap()
+        }
+     }
+
+    #[cfg(feature = "runtime-benchmarks")]
+    impl frame_benchmarking::Benchmark<Block> for Runtime {
+        fn benchmark_metadata(extra: bool) -> (
+            Vec<frame_benchmarking::BenchmarkList>,
+            Vec<frame_support::traits::StorageInfo>,
+        ) {
+            use frame_benchmarking::{Benchmarking, BenchmarkList, cb_list_benchmarks, list_benchmark};
+            use frame_support::traits::StorageInfoTrait;
+
+            let mut list = Vec::<BenchmarkList>::new();
+            list_benchmarks!(list, extra);
+
+            let storage_info = AllPalletsWithSystem::storage_info();
+
+            (list, storage_info)
+        }
+
+        fn dispatch_benchmark(
+            config: frame_benchmarking::BenchmarkConfig
+        ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
+            use frame_benchmarking::{
+                Benchmarking, BenchmarkBatch, TrackedStorageKey, cb_add_benchmarks, add_benchmark};
+            use frame_support::traits::WhitelistedStorageKeys;
+
+            let whitelist: Vec<TrackedStorageKey> = AllPalletsWithSystem::whitelisted_storage_keys();
+
+            let params = (&config, &whitelist);
+            let mut batches = Vec::<BenchmarkBatch>::new();
+            add_benchmarks!(params, batches);
+
+            Ok(batches)
         }
      }
 }

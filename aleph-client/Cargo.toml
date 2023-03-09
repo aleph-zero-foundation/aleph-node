@@ -1,7 +1,6 @@
 [package]
 name = "aleph_client"
-# TODO bump major version when API stablize
-version = "2.13.0"
+version = "2.14.0"
 edition = "2021"
 license = "Apache 2.0"
 
@@ -14,7 +13,7 @@ log = "0.4"
 serde_json = { version = "1.0" }
 thiserror = "1.0"
 contract-metadata = "2.0.0-beta"
-contract-transcode = { git = "https://github.com/paritytech/cargo-contract", rev = "7ca8c365fc1e157cd52901c54949b2faf1cd8899" }
+contract-transcode = "2.0.0-beta"
 ink_metadata = "4.0.0-beta"
 subxt = "0.25.0"
 futures = "0.3.25"
@@ -23,7 +22,14 @@ serde = { version = "1.0", features = ["derive"] }
 frame-support = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 pallet-contracts-primitives = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+
+pallet-baby-liminal = { path = "../pallets/baby-liminal", optional = true }
 primitives = { path = "../primitives" }
 
 [dev-dependencies]
 tokio = "1.21"
+
+[features]
+liminal = [
+    "pallet-baby-liminal/std",
+]

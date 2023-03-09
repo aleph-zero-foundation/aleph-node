@@ -5,7 +5,6 @@ authors = ["Cardinal Cryptography"]
 edition = "2021"
 license = "Apache 2.0"
 
-
 [dependencies]
 aleph-bft-rmc = "0.6"
 aleph-bft-types = "0.8"

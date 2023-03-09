@@ -1,6 +1,6 @@
 [package]
 name = "primitives"
-version = "0.5.5"
+version = "0.6.0"
 authors = ["Cardinal Cryptography"]
 edition = "2021"
 license = "Apache 2.0"
@@ -17,11 +17,16 @@ sp-runtime = { default-features = false, git = "https://github.com/Cardinal-Cryp
 sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 sp-staking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 
+# Liminal-related dependencies
+sp-runtime-interface = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false, optional = true }
+liminal-ark-poseidon = { path = "../poseidon", default-features = false, optional = true }
+
 [features]
 default = ["std"]
 std = [
     "codec/std",
     "serde/std",
+
     "sp-api/std",
     "sp-application-crypto/std",
     "sp-core/std",
@@ -30,3 +35,15 @@ std = [
     "sp-staking/std",
 ]
 short_session = []
+
+# Liminal-related features
+liminal = [
+    "sp-runtime-interface",
+    "liminal-ark-poseidon",
+]
+liminal-std = [
+    "liminal",
+    "std",
+    "sp-runtime-interface/std",
+    "liminal-ark-poseidon/std",
+]

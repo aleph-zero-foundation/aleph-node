@@ -4,8 +4,15 @@ name: unit-tests
 on:
   pull_request:
     paths-ignore:
+      - 'aleph-client/**'
+      - 'bin/cliain/**'
+      - 'benches/**'
+      - 'contracts/**'
+      - 'e2e-tests/**'
+      - 'local-tests/**'
       - 'fork-off/**'
       - 'flooder/**'
+      - 'relations/**'
   push:
     branches:
       - 'release-*'
@@ -48,10 +55,10 @@ jobs:
           RUSTC_WORKSPACE_WRAPPER: sccache
         with:
           command: clippy
-          args: --all-targets --all-features -- --no-deps -D warnings
+          args: --all-targets -- --no-deps -D warnings
 
       - name: Run Unit Test Suite
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --lib --features "try-runtime"
+          args: --lib --features "liminal-try-runtime liminal-runtime-benchmarks"
