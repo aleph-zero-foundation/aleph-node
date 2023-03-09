@@ -3,27 +3,137 @@ use std::{
     fmt::{Display, Error as FmtError, Formatter},
     io::Result as IoResult,
     pin::Pin,
+    sync::Arc,
     task::{Context, Poll},
+    time::Duration,
 };
 
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, Output};
 use futures::{
     channel::{mpsc, mpsc::UnboundedReceiver, oneshot},
     Future, StreamExt,
 };
 use log::info;
 use rand::Rng;
-use tokio::io::{duplex, AsyncRead, AsyncWrite, DuplexStream, ReadBuf};
-
-use crate::network::{
-    clique::{
-        protocols::{ProtocolError, ResultForService},
-        ConnectionInfo, Dialer, Listener, Network, PeerAddressInfo, PublicKey, SecretKey,
-        Splittable, LOG_TARGET,
-    },
-    mock::Channel,
-    AddressingInformation, Data, NetworkIdentity, PeerId,
+use tokio::{
+    io::{duplex, AsyncRead, AsyncWrite, DuplexStream, ReadBuf},
+    time::timeout,
 };
+
+use crate::{
+    protocols::{ProtocolError, ResultForService},
+    AddressingInformation, ConnectionInfo, Data, Dialer, Listener, Network, NetworkIdentity,
+    PeerAddressInfo, PeerId, PublicKey, SecretKey, Splittable, LOG_TARGET,
+};
+
+#[derive(Hash, Debug, Clone, PartialEq, Eq)]
+pub struct MockData {
+    data: u32,
+    filler: Vec<u8>,
+    decodes: bool,
+}
+
+impl MockData {
+    pub fn new(data: u32, filler_size: usize) -> MockData {
+        MockData {
+            data,
+            filler: vec![0; filler_size],
+            decodes: true,
+        }
+    }
+
+    pub fn new_undecodable(data: u32, filler_size: usize) -> MockData {
+        MockData {
+            data,
+            filler: vec![0; filler_size],
+            decodes: false,
+        }
+    }
+
+    pub fn data(&self) -> u32 {
+        self.data
+    }
+}
+
+impl Encode for MockData {
+    fn size_hint(&self) -> usize {
+        self.data.size_hint() + self.filler.size_hint() + self.decodes.size_hint()
+    }
+
+    fn encode_to<T: Output + ?Sized>(&self, dest: &mut T) {
+        // currently this is exactly the default behaviour, but we still
+        // need it here to make sure that decode works in the future
+        self.data.encode_to(dest);
+        self.filler.encode_to(dest);
+        self.decodes.encode_to(dest);
+    }
+}
+
+impl Decode for MockData {
+    fn decode<I: codec::Input>(value: &mut I) -> Result<Self, codec::Error> {
+        let data = u32::decode(value)?;
+        let filler = Vec::<u8>::decode(value)?;
+        let decodes = bool::decode(value)?;
+        if !decodes {
+            return Err("Simulated decode failure.".into());
+        }
+        Ok(Self {
+            data,
+            filler,
+            decodes,
+        })
+    }
+}
+
+#[derive(Clone)]
+pub struct Channel<T>(
+    pub mpsc::UnboundedSender<T>,
+    pub Arc<tokio::sync::Mutex<mpsc::UnboundedReceiver<T>>>,
+);
+
+const TIMEOUT_FAIL: Duration = Duration::from_secs(10);
+
+impl<T> Channel<T> {
+    pub fn new() -> Self {
+        let (tx, rx) = mpsc::unbounded();
+        Channel(tx, Arc::new(tokio::sync::Mutex::new(rx)))
+    }
+
+    pub fn send(&self, msg: T) {
+        self.0.unbounded_send(msg).unwrap();
+    }
+
+    pub async fn next(&mut self) -> Option<T> {
+        timeout(TIMEOUT_FAIL, self.1.lock().await.next())
+            .await
+            .ok()
+            .flatten()
+    }
+
+    pub async fn take(&mut self, n: usize) -> Vec<T> {
+        timeout(
+            TIMEOUT_FAIL,
+            self.1.lock().await.by_ref().take(n).collect::<Vec<_>>(),
+        )
+        .await
+        .unwrap_or_default()
+    }
+
+    pub async fn try_next(&self) -> Option<T> {
+        self.1.lock().await.try_next().unwrap_or(None)
+    }
+
+    pub async fn close(self) -> Option<T> {
+        self.0.close_channel();
+        self.try_next().await
+    }
+}
+
+impl<T> Default for Channel<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 /// A mock secret key that is able to sign messages.
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]

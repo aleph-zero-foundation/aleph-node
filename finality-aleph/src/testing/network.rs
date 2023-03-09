@@ -6,23 +6,26 @@ use std::{
 
 use codec::{Decode, Encode};
 use futures::channel::oneshot;
+use network_clique::{
+    mock::{
+        key, random_address_from, MockAddressingInformation, MockNetwork as MockCliqueNetwork,
+        MockPublicKey,
+    },
+    AddressingInformation,
+};
 use sc_service::TaskManager;
 use tokio::{runtime::Handle, task::JoinHandle, time::timeout};
 
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{
-        clique::mock::{
-            key, random_address_from, MockAddressingInformation, MockNetwork as MockCliqueNetwork,
-            MockPublicKey,
-        },
         data::Network,
         mock::{crypto_basics, MockData},
         session::{
             authentication, ConnectionManager, ConnectionManagerConfig, DataInSession,
             ManagerError, SessionHandler, SessionManager, VersionedAuthentication,
         },
-        AddressingInformation, GossipService, MockEvent, MockRawNetwork, Protocol,
+        GossipService, MockEvent, MockRawNetwork, Protocol,
     },
     MillisecsPerBlock, NodeIndex, Recipient, SessionId, SessionPeriod,
 };

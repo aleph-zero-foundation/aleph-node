@@ -6,7 +6,7 @@ use std::{
 use codec::DecodeAll;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-use crate::network::Data;
+use crate::Data;
 
 // We allow sending up to 16MiB, that should be enough forever.
 pub const MAX_DATA_SIZE: u32 = 16 * 1024 * 1024;

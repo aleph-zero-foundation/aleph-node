@@ -393,12 +393,12 @@ mod tests {
 
     use codec::Encode;
     use futures::channel::oneshot;
+    use network_clique::mock::{random_peer_id, MockPublicKey};
     use sc_service::TaskManager;
     use tokio::runtime::Handle;
 
     use super::{Error, Service};
     use crate::network::{
-        clique::mock::{random_peer_id, MockPublicKey},
         gossip::{
             mock::{MockEvent, MockRawNetwork, MockSenderError},
             Network,

@@ -4,6 +4,7 @@ members = [
     "aggregator",
     "bin/node",
     "bin/runtime",
+    "clique",
     "finality-aleph",
     "pallets/aleph",
     "pallets/elections",

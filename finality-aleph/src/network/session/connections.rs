@@ -55,11 +55,10 @@ impl<PID: PeerId> Connections<PID> {
 mod tests {
     use std::collections::HashSet;
 
+    use network_clique::mock::{random_keys, MockPublicKey};
+
     use super::Connections;
-    use crate::{
-        network::clique::mock::{random_keys, MockPublicKey},
-        SessionId,
-    };
+    use crate::SessionId;
 
     fn random_peer_ids(num: usize) -> HashSet<MockPublicKey> {
         random_keys(num).into_keys().collect()

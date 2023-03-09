@@ -5,10 +5,10 @@ use futures::{
     channel::{mpsc, oneshot},
     StreamExt,
 };
+use network_clique::mock::MockPublicKey;
 use parking_lot::Mutex;
 
 use crate::network::{
-    clique::mock::MockPublicKey,
     gossip::{Event, EventStream, NetworkSender, Protocol, RawNetwork},
     mock::Channel,
 };

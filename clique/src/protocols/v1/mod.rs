@@ -9,7 +9,7 @@ use tokio::{
     time::{timeout, Duration},
 };
 
-use crate::network::clique::{
+use crate::{
     io::{receive_data, send_data},
     protocols::{
         handshake::{v0_handshake_incoming, v0_handshake_outgoing},
@@ -165,7 +165,7 @@ mod tests {
         pin_mut, Future, FutureExt, StreamExt,
     };
 
-    use crate::network::clique::{
+    use crate::{
         mock::{key, MockPrelims, MockSplittable},
         protocols::{
             v1::{incoming, outgoing},

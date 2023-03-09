@@ -100,7 +100,7 @@ run_node() {
     --validator-port ${validator_port} \
     -laleph-party=debug \
     -laleph-network=debug \
-    -lclique-network=debug \
+    -lnetwork-clique=debug \
     -laleph-finality=debug \
     -laleph-justification=debug \
     -laleph-data-store=debug \
