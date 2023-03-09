@@ -6,6 +6,7 @@ use liminal_ark_relations::{
     FrontendAccount, FrontendLeafIndex, FrontendMerklePath, FrontendMerkleRoot, FrontendNote,
     FrontendNullifier, FrontendTokenAmount, FrontendTokenId, FrontendTrapdoor, GetPublicInput,
     LinearEquationRelationWithFullInput, LinearEquationRelationWithPublicInput,
+    MergeRelationWithFullInput, MergeRelationWithPublicInput, MergeRelationWithoutInput,
     PreimageRelationWithFullInput, PreimageRelationWithPublicInput, Result as R1CsResult,
     WithdrawRelationWithFullInput, WithdrawRelationWithPublicInput, WithdrawRelationWithoutInput,
     XorRelationWithFullInput, XorRelationWithPublicInput,
@@ -122,6 +123,68 @@ pub enum RelationArgs {
         new_token_amount: Option<FrontendTokenAmount>,
     },
 
+    Merge {
+        /// The upper bound for Merkle tree height (circuit constant).
+        #[clap(long, default_value = "16")]
+        max_path_len: u8,
+
+        /// The identifier of the token being unshielded (public input).
+        #[clap(long)]
+        token_id: Option<FrontendTokenId>,
+        /// The nullifier that was used for the first old note (public input).
+        #[clap(long)]
+        first_old_nullifier: Option<FrontendNullifier>,
+        /// The nullifier that was used for the second old note (public input).
+        #[clap(long)]
+        second_old_nullifier: Option<FrontendNullifier>,
+        /// The new note (public input).
+        #[clap(long, value_parser = parse_frontend_note)]
+        new_note: Option<FrontendNote>,
+        /// The Merkle root of the tree containing the first and second old notes (public input).
+        #[clap(long, value_parser = parse_frontend_note)]
+        merkle_root: Option<FrontendMerkleRoot>,
+
+        /// The trapdoor that was used for the first old note (private input).
+        #[clap(long)]
+        first_old_trapdoor: Option<FrontendTrapdoor>,
+        /// The trapdoor that was used for the second old note (private input).
+        #[clap(long)]
+        second_old_trapdoor: Option<FrontendTrapdoor>,
+        /// The trapdoor that was used for the new note (private input).
+        #[clap(long)]
+        new_trapdoor: Option<FrontendTrapdoor>,
+        /// The nullifier that was used for the new note (private input).
+        #[clap(long)]
+        new_nullifier: Option<FrontendNullifier>,
+        /// The Merkle path proving that the first old note is under `merkle_root` (private input).
+        #[clap(long, value_parser = parse_frontend_merkle_path)]
+        first_merkle_path: Option<FrontendMerklePath>,
+        /// The Merkle path proving that the second old note is under `merkle_root` (private input).
+        #[clap(long, value_parser = parse_frontend_merkle_path)]
+        second_merkle_path: Option<FrontendMerklePath>,
+        /// The index of the first old note in the Merkle tree (private input).
+        #[clap(long)]
+        first_leaf_index: Option<FrontendLeafIndex>,
+        /// The index of the second old note in the Merkle tree (private input).
+        #[clap(long)]
+        second_leaf_index: Option<FrontendLeafIndex>,
+        /// The first old note (private input).
+        #[clap(long, value_parser = parse_frontend_note)]
+        first_old_note: Option<FrontendNote>,
+        /// The second old note (private input).
+        #[clap(long, value_parser = parse_frontend_note)]
+        second_old_note: Option<FrontendNote>,
+        /// The original amount that was shielded in the first old note (private input).
+        #[clap(long)]
+        first_old_token_amount: Option<FrontendTokenAmount>,
+        /// The original amount that was shielded in the second old note (private input).
+        #[clap(long)]
+        second_old_token_amount: Option<FrontendTokenAmount>,
+        /// The token amount that will be shielded in the new note (private input).
+        #[clap(long)]
+        new_token_amount: Option<FrontendTokenAmount>,
+    },
+
     Withdraw {
         /// The upper bound for Merkle tree height (circuit constant).
         #[clap(long, default_value = "16")]
@@ -184,6 +247,7 @@ impl RelationArgs {
             RelationArgs::LinearEquation { .. } => String::from("linear_equation"),
             RelationArgs::Deposit { .. } => String::from("deposit"),
             RelationArgs::DepositAndMerge { .. } => String::from("deposit_and_merge"),
+            RelationArgs::Merge { .. } => String::from("merge"),
             RelationArgs::Withdraw { .. } => String::from("withdraw"),
             RelationArgs::Preimage { .. } => String::from("preimage"),
         }
@@ -260,6 +324,64 @@ impl ConstraintSynthesizer<CircuitField> for RelationArgs {
                     leaf_index.unwrap_or_else(|| panic!("You must provide leaf index")),
                     old_note.unwrap_or_else(|| panic!("You must provide old note")),
                     old_token_amount.unwrap_or_else(|| panic!("You must provide old token amount")),
+                    new_token_amount.unwrap_or_else(|| panic!("You must provide new token amount")),
+                )
+                .generate_constraints(cs)
+            }
+
+            RelationArgs::Merge {
+                max_path_len,
+                token_id,
+                first_old_nullifier,
+                second_old_nullifier,
+                new_note,
+                merkle_root,
+                first_old_trapdoor,
+                second_old_trapdoor,
+                new_trapdoor,
+                new_nullifier,
+                first_merkle_path,
+                second_merkle_path,
+                first_leaf_index,
+                second_leaf_index,
+                first_old_note,
+                second_old_note,
+                first_old_token_amount,
+                second_old_token_amount,
+                new_token_amount,
+            } => {
+                if cs.is_in_setup_mode() {
+                    return MergeRelationWithoutInput::new(max_path_len).generate_constraints(cs);
+                }
+
+                MergeRelationWithFullInput::new(
+                    max_path_len,
+                    token_id.unwrap_or_else(|| panic!("You must provide token id")),
+                    first_old_nullifier
+                        .unwrap_or_else(|| panic!("You must provide first old nullifier")),
+                    second_old_nullifier
+                        .unwrap_or_else(|| panic!("You must provide second old nullifier")),
+                    new_note.unwrap_or_else(|| panic!("You must provide new note")),
+                    merkle_root.unwrap_or_else(|| panic!("You must provide merkle root")),
+                    first_old_trapdoor
+                        .unwrap_or_else(|| panic!("You must provide first old trapdoor")),
+                    second_old_trapdoor
+                        .unwrap_or_else(|| panic!("You must provide second old trapdoor")),
+                    new_trapdoor.unwrap_or_else(|| panic!("You must provide new trapdoor")),
+                    new_nullifier.unwrap_or_else(|| panic!("You must provide new nullifier")),
+                    first_merkle_path
+                        .unwrap_or_else(|| panic!("You must provide first merkle path")),
+                    second_merkle_path
+                        .unwrap_or_else(|| panic!("You must provide second merkle path")),
+                    first_leaf_index.unwrap_or_else(|| panic!("You must provide first leaf index")),
+                    second_leaf_index
+                        .unwrap_or_else(|| panic!("You must provide second leaf index")),
+                    first_old_note.unwrap_or_else(|| panic!("You must provide first old note")),
+                    second_old_note.unwrap_or_else(|| panic!("You must provide second old note")),
+                    first_old_token_amount
+                        .unwrap_or_else(|| panic!("You must provide first old token amount")),
+                    second_old_token_amount
+                        .unwrap_or_else(|| panic!("You must provide second old token amount")),
                     new_token_amount.unwrap_or_else(|| panic!("You must provide new token amount")),
                 )
                 .generate_constraints(cs)
@@ -376,6 +498,40 @@ impl GetPublicInput<CircuitField> for RelationArgs {
                         *merkle_root,
                     ).serialize_public_input(),
                     _ => panic!("Provide at least public (token id, old token amount, old nullifier, merkle root, and new note)"),
+                }
+            }
+
+            RelationArgs::Merge{
+                max_path_len,
+                token_id,
+                first_old_nullifier,
+                second_old_nullifier,
+                new_note,
+                merkle_root,
+                ..
+            } => {
+                match (
+                    token_id,
+                    first_old_nullifier,
+                    second_old_nullifier,
+                    new_note,
+                    merkle_root,
+                ) {
+                    (
+                        Some(token_id),
+                        Some(first_old_nullifier),
+                        Some(second_old_nullifier),
+                        Some(new_note),
+                        Some(merkle_root),
+                    ) => MergeRelationWithPublicInput::new(
+                        *max_path_len,
+                        *token_id,
+                        *first_old_nullifier,
+                        *second_old_nullifier,
+                        *new_note,
+                        *merkle_root,
+                    ).serialize_public_input(),
+                    _ => panic!("Provide at least public (token id, first old nullifier, second old nullifier, new note, Merkle root)."),
                 }
             }
 
