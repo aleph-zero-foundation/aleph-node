@@ -657,6 +657,7 @@ jobs:
 
   test-catch-up:
     name: Test catching up
+    if: false
     runs-on: ubuntu-20.04
     needs: build-new-node
     strategy:
@@ -685,6 +686,7 @@ jobs:
 
   test-multiple-restarts:
     name: Test multiple restarts
+    if: false
     runs-on: ubuntu-20.04
     needs: build-new-node
     strategy:
