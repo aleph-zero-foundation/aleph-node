@@ -327,7 +327,8 @@ async fn main() -> anyhow::Result<()> {
                 if verify_proof(verifying_key_file, proof_file, public_input_file, system) {
                     println!("Proof is correct")
                 } else {
-                    error!("Incorrect proof!")
+                    error!("Incorrect proof!");
+                    std::process::exit(1);
                 }
             }
         },
