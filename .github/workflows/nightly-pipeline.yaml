@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Download test artifact
         uses: actions/download-artifact@v2
@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Download artifact with docker image for aleph-node
         uses: actions/download-artifact@v2
@@ -84,7 +84,7 @@ jobs:
       RUSTC_WRAPPER: sccache
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
@@ -117,7 +117,7 @@ jobs:
       RUSTC_WRAPPER: sccache
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
@@ -145,7 +145,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -162,7 +162,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -191,7 +191,7 @@ jobs:
     if: always()
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Send Slack message
         uses: ./.github/actions/slack-notification

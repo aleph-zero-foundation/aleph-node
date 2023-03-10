@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: checkout repo
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v3
 
       - name: Get branch name and commit SHA
         id: get_branch
@@ -93,7 +93,7 @@ jobs:
       deployment-id: ${{ steps.deployment.outputs.deployment_id }}
     steps:
       - name: checkout repo
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v3
 
       - name: Delete old FE when redeploying
         if: contains( github.event.pull_request.labels.*.name, env.LABEL_DEPLOYED)
@@ -366,7 +366,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: checkout repo
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v3
 
       - name: Get branch name and commit SHA
         id: get_branch
@@ -498,7 +498,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v3
 
       - name: Delete FE
         uses: ./.github/actions/destroy-feature-environment
@@ -559,7 +559,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v3
 
       - name: Delete FE
         uses: ./.github/actions/destroy-feature-environment

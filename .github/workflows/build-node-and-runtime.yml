@@ -26,7 +26,7 @@ jobs:
       SECRETS_AWS_DEVNET_SECRET_ACCESS_KEY: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: ${{ inputs.ref }}
 
