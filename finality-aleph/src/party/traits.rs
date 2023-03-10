@@ -1,34 +1,19 @@
-use std::fmt::{Debug, Display};
+use std::fmt::Display;
 
+use aleph_primitives::BlockNumber;
 use async_trait::async_trait;
-use sp_runtime::traits::{Block as BlockT, NumberFor};
 
 use crate::{
-    network,
     party::{backup::ABFTBackup, manager::AuthorityTask},
     AuthorityId, NodeIndex, SessionId,
 };
 
-/// Minimal abstraction of the block.
-pub trait Block {
-    type Number: Debug + PartialOrd + Copy;
-    type Hash: Debug;
-}
-
-impl<T> Block for T
-where
-    T: BlockT,
-{
-    type Number = NumberFor<T>;
-    type Hash = <T as BlockT>::Hash;
-}
-
 /// Abstraction of the chain state.
-pub trait ChainState<B: Block> {
+pub trait ChainState {
     /// Returns best block number.
-    fn best_block_number(&self) -> <B as Block>::Number;
+    fn best_block_number(&self) -> BlockNumber;
     /// Returns last finalized block number.
-    fn finalized_number(&self) -> <B as Block>::Number;
+    fn finalized_number(&self) -> BlockNumber;
 }
 
 #[async_trait]
@@ -67,7 +52,7 @@ pub trait NodeSessionManager {
     async fn node_idx(&self, authorities: &[AuthorityId]) -> Option<NodeIndex>;
 }
 
-pub trait SyncState<B: Block> {
+pub trait SyncState {
     /// Are we in the process of downloading the chain?
     ///
     /// Like [`RequestBlocks::is_major_syncing`][1].
@@ -76,21 +61,12 @@ pub trait SyncState<B: Block> {
     fn is_major_syncing(&self) -> bool;
 }
 
-impl<B: BlockT, RB> SyncState<B> for RB
-where
-    RB: network::RequestBlocks<B>,
-{
-    fn is_major_syncing(&self) -> bool {
-        self.is_major_syncing()
-    }
-}
-
 /// Abstraction of the session boundaries.
-pub trait SessionInfo<B: Block> {
+pub trait SessionInfo {
     /// Returns session id of the session that block belongs to.
-    fn session_id_from_block_num(&self, n: B::Number) -> SessionId;
+    fn session_id_from_block_num(&self, n: BlockNumber) -> SessionId;
     /// Returns block number which is the last block of the session.
-    fn last_block_of_session(&self, session_id: SessionId) -> B::Number;
+    fn last_block_of_session(&self, session_id: SessionId) -> BlockNumber;
     /// Returns block number which is the first block of the session.
-    fn first_block_of_session(&self, session_id: SessionId) -> B::Number;
+    fn first_block_of_session(&self, session_id: SessionId) -> BlockNumber;
 }

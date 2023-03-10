@@ -1,4 +1,4 @@
-use std::{default::Default, marker::PhantomData, path::PathBuf, time::Duration};
+use std::{default::Default, path::PathBuf, time::Duration};
 
 use futures_timer::Delay;
 use log::{debug, error, info, trace, warn};
@@ -7,7 +7,7 @@ use tokio::{task::spawn_blocking, time::sleep};
 use crate::{
     party::{
         manager::{Handle, SubtaskCommon as AuthoritySubtaskCommon, Task},
-        traits::{Block, ChainState, NodeSessionManager, SessionInfo, SyncState},
+        traits::{ChainState, NodeSessionManager, SessionInfo, SyncState},
     },
     session_map::ReadOnlySessionMap,
     SessionId,
@@ -21,23 +21,21 @@ pub mod traits;
 #[cfg(test)]
 mod mocks;
 
-pub(crate) struct ConsensusPartyParams<B: Block, ST, CS, NSM, SI> {
+pub(crate) struct ConsensusPartyParams<ST, CS, NSM, SI> {
     pub session_authorities: ReadOnlySessionMap,
     pub chain_state: CS,
     pub sync_state: ST,
     pub backup_saving_path: Option<PathBuf>,
     pub session_manager: NSM,
     pub session_info: SI,
-    pub _phantom: PhantomData<B>,
 }
 
-pub(crate) struct ConsensusParty<B, ST, CS, NSM, SI>
+pub(crate) struct ConsensusParty<ST, CS, NSM, SI>
 where
-    B: Block,
-    ST: SyncState<B>,
-    CS: ChainState<B>,
+    ST: SyncState,
+    CS: ChainState,
     NSM: NodeSessionManager,
-    SI: SessionInfo<B>,
+    SI: SessionInfo,
 {
     session_authorities: ReadOnlySessionMap,
     chain_state: CS,
@@ -45,20 +43,18 @@ where
     backup_saving_path: Option<PathBuf>,
     session_manager: NSM,
     session_info: SI,
-    _phantom: PhantomData<B>,
 }
 
 const SESSION_STATUS_CHECK_PERIOD: Duration = Duration::from_millis(1000);
 
-impl<B, ST, CS, NSM, SI> ConsensusParty<B, ST, CS, NSM, SI>
+impl<ST, CS, NSM, SI> ConsensusParty<ST, CS, NSM, SI>
 where
-    B: Block,
-    ST: SyncState<B>,
-    CS: ChainState<B>,
+    ST: SyncState,
+    CS: ChainState,
     NSM: NodeSessionManager,
-    SI: SessionInfo<B>,
+    SI: SessionInfo,
 {
-    pub(crate) fn new(params: ConsensusPartyParams<B, ST, CS, NSM, SI>) -> Self {
+    pub(crate) fn new(params: ConsensusPartyParams<ST, CS, NSM, SI>) -> Self {
         let ConsensusPartyParams {
             session_authorities,
             sync_state,
@@ -75,7 +71,6 @@ where
             chain_state,
             session_manager,
             session_info,
-            _phantom: PhantomData,
         }
     }
 
@@ -274,9 +269,7 @@ mod tests {
 
     use crate::{
         party::{
-            mocks::{
-                MockChainState, MockNodeSessionManager, MockSessionInfo, MockSyncState, SimpleBlock,
-            },
+            mocks::{MockChainState, MockNodeSessionManager, MockSessionInfo, MockSyncState},
             ConsensusParty, ConsensusPartyParams, SESSION_STATUS_CHECK_PERIOD,
         },
         session_map::SharedSessionMap,
@@ -284,7 +277,6 @@ mod tests {
     };
 
     type Party = ConsensusParty<
-        SimpleBlock,
         Arc<MockSyncState>,
         Arc<MockChainState>,
         Arc<MockNodeSessionManager>,
@@ -513,7 +505,6 @@ mod tests {
         session_period: SessionPeriod,
     ) -> (
         ConsensusParty<
-            SimpleBlock,
             Arc<MockSyncState>,
             Arc<MockChainState>,
             Arc<MockNodeSessionManager>,
@@ -543,7 +534,6 @@ mod tests {
             backup_saving_path: None,
             session_manager,
             session_info,
-            _phantom: Default::default(),
         };
 
         (ConsensusParty::new(params), controller)

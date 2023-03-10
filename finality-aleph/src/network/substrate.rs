@@ -14,7 +14,6 @@ use sc_network_common::{
     ExHashT,
 };
 use sp_api::NumberFor;
-use sp_consensus::SyncOracle;
 use sp_runtime::traits::Block;
 
 use crate::network::{
@@ -38,10 +37,6 @@ impl<B: Block, H: ExHashT> RequestBlocks<B> for Arc<NetworkService<B, H>> {
     /// Clear all pending justification requests.
     fn clear_justification_requests(&self) {
         NetworkService::clear_justification_requests(self)
-    }
-
-    fn is_major_syncing(&self) -> bool {
-        NetworkService::is_major_syncing(self)
     }
 }
 

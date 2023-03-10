@@ -1,5 +1,6 @@
 use std::{marker::PhantomData, sync::Arc};
 
+use aleph_primitives::BlockNumber;
 use bip39::{Language, Mnemonic, MnemonicType};
 use futures::channel::oneshot;
 use log::{debug, error};
@@ -8,7 +9,7 @@ use sc_client_api::Backend;
 use sc_network_common::ExHashT;
 use sp_consensus::SelectChain;
 use sp_keystore::CryptoStore;
-use sp_runtime::traits::Block;
+use sp_runtime::traits::{Block, Header};
 
 use crate::{
     crypto::AuthorityPen,
@@ -40,6 +41,7 @@ pub async fn new_pen(mnemonic: &str, keystore: Arc<dyn CryptoStore>) -> Authorit
 pub async fn run_validator_node<B, H, C, BB, BE, SC>(aleph_config: AlephConfig<B, H, C, SC, BB>)
 where
     B: Block,
+    B::Header: Header<Number = BlockNumber>,
     H: ExHashT,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     C::Api: aleph_primitives::AlephSessionApi<B>,
@@ -163,7 +165,6 @@ where
             connection_manager,
             keystore,
         ),
-        _phantom: PhantomData,
         session_info: SessionInfoImpl::new(session_period),
     });
 
