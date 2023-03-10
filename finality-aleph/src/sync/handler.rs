@@ -162,14 +162,7 @@ impl<I: PeerId, J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finaliz
         &mut self,
         request: Request<J>,
     ) -> Result<SyncActions<J>, Error<J, CS, V, F>> {
-        let mut number = self
-            .verifier
-            .verify(request.state().top_justification())
-            .map_err(Error::Verifier)?
-            .header()
-            .id()
-            .number()
-            + 1;
+        let mut number = request.state().top_justification().id().number() + 1;
         let mut justifications = vec![];
         while justifications.len() < MAX_JUSTIFICATION_BATCH {
             match self
@@ -236,22 +229,18 @@ impl<I: PeerId, J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finaliz
         peer: I,
     ) -> Result<SyncActions<J>, Error<J, CS, V, F>> {
         use Error::*;
-        let remote_top = self
-            .verifier
-            .verify(state.top_justification())
-            .map_err(Verifier)?;
-        let remote_top_number = remote_top.header().id().number();
+        let remote_top_number = state.top_justification().id().number();
         let local_top = self.chain_status.top_finalized().map_err(ChainStatus)?;
         let local_top_number = local_top.header().id().number();
         let remote_session = session_id_from_block_num(remote_top_number, self.period);
         let local_session = session_id_from_block_num(local_top_number, self.period);
         match local_session.0.checked_sub(remote_session.0) {
             // remote session number larger than ours, we can try to import the justification
-            None => self.handle_verified_justification(remote_top, peer),
+            None => self.handle_justification(state.top_justification(), peer),
             // same session
             Some(0) => match remote_top_number >= local_top_number {
                 // remote top justification higher than ours, we can import the justification
-                true => self.handle_verified_justification(remote_top, peer),
+                true => self.handle_justification(state.top_justification(), peer),
                 // remote top justification lower than ours, we can send a response
                 false => Ok(SyncActions::state_broadcast_response(
                     local_top.into_unverified(),

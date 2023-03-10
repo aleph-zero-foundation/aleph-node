@@ -49,7 +49,9 @@ pub trait Header: Clone + Codec + Send + Sync + 'static {
 /// The verified justification of a block, including a header.
 pub trait Justification: Clone + Send + Sync + 'static {
     type Header: Header;
-    type Unverified: Clone + Codec + Debug + Send + Sync + 'static;
+    /// The implementation has to behave as if the header here is identical to the one returned by
+    /// the `header` method after successful verification.
+    type Unverified: Header<Identifier = <Self::Header as Header>::Identifier> + Debug;
 
     /// The header of the block.
     fn header(&self) -> &Self::Header;

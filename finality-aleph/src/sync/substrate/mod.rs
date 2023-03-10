@@ -65,6 +65,18 @@ pub struct Justification<H: SubstrateHeader<Number = BlockNumber>> {
     raw_justification: AlephJustification,
 }
 
+impl<H: SubstrateHeader<Number = BlockNumber>> Header for Justification<H> {
+    type Identifier = BlockId<H>;
+
+    fn id(&self) -> Self::Identifier {
+        self.header().id()
+    }
+
+    fn parent_id(&self) -> Option<Self::Identifier> {
+        self.header().parent_id()
+    }
+}
+
 impl<H: SubstrateHeader<Number = BlockNumber>> JustificationT for Justification<H> {
     type Header = H;
     type Unverified = Self;
