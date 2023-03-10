@@ -3,7 +3,7 @@ use std::fmt::{Display, Error as FmtError, Formatter};
 use futures::channel::mpsc::UnboundedReceiver;
 
 use crate::sync::{
-    mock::{MockIdentifier, MockNotification},
+    mock::{MockHeader, MockNotification},
     ChainStatusNotifier,
 };
 
@@ -19,7 +19,7 @@ impl Display for Error {
 }
 
 #[async_trait::async_trait]
-impl ChainStatusNotifier<MockIdentifier> for UnboundedReceiver<MockNotification> {
+impl ChainStatusNotifier<MockHeader> for UnboundedReceiver<MockNotification> {
     type Error = Error;
 
     async fn next(&mut self) -> Result<MockNotification, Self::Error> {

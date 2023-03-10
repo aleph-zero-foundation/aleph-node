@@ -1,8 +1,10 @@
+use std::fmt::{Display, Error as FmtError, Formatter};
+
 use crate::{
     session::{last_block_of_session, session_id_from_block_num, SessionId, SessionPeriod},
     sync::{
         data::{NetworkData, Request, State},
-        forest::{Error as ForestError, Forest},
+        forest::{Error as ForestError, Forest, Interest},
         BlockIdFor, BlockIdentifier, ChainStatus, Finalizer, Header, Justification, PeerId,
         Verifier,
     },
@@ -23,7 +25,7 @@ pub struct Handler<I: PeerId, J: Justification, CS: ChainStatus<J>, V: Verifier<
 
 /// What actions can the handler recommend as a reaction to some data.
 #[derive(Clone, Debug)]
-pub enum SyncActions<J: Justification> {
+pub enum SyncAction<J: Justification> {
     /// A response for the peer that sent us the data.
     Response(NetworkData<J>),
     /// A task that should be performed periodically. At the moment these are only requests for blocks,
@@ -33,27 +35,27 @@ pub enum SyncActions<J: Justification> {
     Noop,
 }
 
-impl<J: Justification> SyncActions<J> {
+impl<J: Justification> SyncAction<J> {
     fn noop() -> Self {
-        SyncActions::Noop
+        SyncAction::Noop
     }
 
     fn state_broadcast_response(
         justification: J::Unverified,
         other_justification: Option<J::Unverified>,
     ) -> Self {
-        SyncActions::Response(NetworkData::StateBroadcastResponse(
+        SyncAction::Response(NetworkData::StateBroadcastResponse(
             justification,
             other_justification,
         ))
     }
 
     fn request_response(justifications: Vec<J::Unverified>) -> Self {
-        SyncActions::Response(NetworkData::RequestResponse(justifications))
+        SyncAction::Response(NetworkData::RequestResponse(justifications))
     }
 
     fn task(id: BlockIdFor<J>) -> Self {
-        SyncActions::Task(id)
+        SyncAction::Task(id)
     }
 }
 
@@ -64,8 +66,25 @@ pub enum Error<J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finalize
     ChainStatus(CS::Error),
     Finalizer(F::Error),
     Forest(ForestError),
-    NoParent,
     MissingJustification,
+}
+
+impl<J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finalizer<J>> Display
+    for Error<J, CS, V, F>
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
+        use Error::*;
+        match self {
+            Verifier(e) => write!(f, "verifier error: {}", e),
+            ChainStatus(e) => write!(f, "chain status error: {}", e),
+            Finalizer(e) => write!(f, "finalized error: {}", e),
+            Forest(e) => write!(f, "forest error: {}", e),
+            MissingJustification => write!(
+                f,
+                "justification for the last block of a past session missing"
+            ),
+        }
+    }
 }
 
 impl<J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finalizer<J>> From<ForestError>
@@ -135,17 +154,17 @@ impl<I: PeerId, J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finaliz
         &mut self,
         justification: J,
         peer: I,
-    ) -> Result<SyncActions<J>, Error<J, CS, V, F>> {
+    ) -> Result<Option<BlockIdFor<J>>, Error<J, CS, V, F>> {
         let id = justification.header().id();
-        let action = match self
+        let maybe_id = match self
             .forest
             .update_justification(justification, Some(peer))?
         {
-            true => Ok(SyncActions::task(id)),
-            false => Ok(SyncActions::noop()),
+            true => Some(id),
+            false => None,
         };
         self.try_finalize()?;
-        action
+        Ok(maybe_id)
     }
 
     /// Inform the handler that a block has been imported.
@@ -161,7 +180,7 @@ impl<I: PeerId, J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finaliz
     pub fn handle_request(
         &mut self,
         request: Request<J>,
-    ) -> Result<SyncActions<J>, Error<J, CS, V, F>> {
+    ) -> Result<SyncAction<J>, Error<J, CS, V, F>> {
         let mut number = request.state().top_justification().id().number() + 1;
         let mut justifications = vec![];
         while justifications.len() < MAX_JUSTIFICATION_BATCH {
@@ -193,7 +212,7 @@ impl<I: PeerId, J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finaliz
                 }
             }
         }
-        Ok(SyncActions::request_response(justifications))
+        Ok(SyncAction::request_response(justifications))
     }
 
     /// Handle a single justification.
@@ -201,7 +220,7 @@ impl<I: PeerId, J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finaliz
         &mut self,
         justification: J::Unverified,
         peer: I,
-    ) -> Result<SyncActions<J>, Error<J, CS, V, F>> {
+    ) -> Result<Option<BlockIdFor<J>>, Error<J, CS, V, F>> {
         let justification = self
             .verifier
             .verify(justification)
@@ -227,7 +246,7 @@ impl<I: PeerId, J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finaliz
         &mut self,
         state: State<J>,
         peer: I,
-    ) -> Result<SyncActions<J>, Error<J, CS, V, F>> {
+    ) -> Result<SyncAction<J>, Error<J, CS, V, F>> {
         use Error::*;
         let remote_top_number = state.top_justification().id().number();
         let local_top = self.chain_status.top_finalized().map_err(ChainStatus)?;
@@ -236,24 +255,30 @@ impl<I: PeerId, J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finaliz
         let local_session = session_id_from_block_num(local_top_number, self.period);
         match local_session.0.checked_sub(remote_session.0) {
             // remote session number larger than ours, we can try to import the justification
-            None => self.handle_justification(state.top_justification(), peer),
+            None => Ok(self
+                .handle_justification(state.top_justification(), peer)?
+                .map(SyncAction::Task)
+                .unwrap_or(SyncAction::Noop)),
             // same session
             Some(0) => match remote_top_number >= local_top_number {
                 // remote top justification higher than ours, we can import the justification
-                true => self.handle_justification(state.top_justification(), peer),
+                true => Ok(self
+                    .handle_justification(state.top_justification(), peer)?
+                    .map(SyncAction::Task)
+                    .unwrap_or(SyncAction::Noop)),
                 // remote top justification lower than ours, we can send a response
-                false => Ok(SyncActions::state_broadcast_response(
+                false => Ok(SyncAction::state_broadcast_response(
                     local_top.into_unverified(),
                     None,
                 )),
             },
             // remote lags one session behind
-            Some(1) => Ok(SyncActions::state_broadcast_response(
+            Some(1) => Ok(SyncAction::state_broadcast_response(
                 self.last_justification_unverified(remote_session)?,
                 Some(local_top.into_unverified()),
             )),
             // remote lags multiple sessions behind
-            Some(2..) => Ok(SyncActions::state_broadcast_response(
+            Some(2..) => Ok(SyncAction::state_broadcast_response(
                 self.last_justification_unverified(remote_session)?,
                 Some(self.last_justification_unverified(SessionId(remote_session.0 + 1))?),
             )),
@@ -269,11 +294,16 @@ impl<I: PeerId, J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finaliz
             .into_unverified();
         Ok(State::new(top_justification))
     }
+
+    /// The state of the identified block, whether we are interested in it and how much.
+    pub fn block_state(&mut self, block_id: &BlockIdFor<J>) -> Interest<I, J> {
+        self.forest.state(block_id)
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Handler, SyncActions};
+    use super::{Handler, SyncAction};
     use crate::{
         sync::{
             data::{BranchKnowledge::*, NetworkData, Request},
@@ -326,7 +356,7 @@ mod tests {
             handler
                 .handle_justification(justification.clone().into_unverified(), peer)
                 .expect("correct justification"),
-            SyncActions::Noop
+            None
         ));
         assert_eq!(
             backend.top_finalized().expect("mock backend works"),
@@ -344,8 +374,8 @@ mod tests {
             .handle_justification(justification.clone().into_unverified(), peer)
             .expect("correct justification")
         {
-            SyncActions::Task(id) => assert_eq!(id, header.id()),
-            other_action => panic!("expected a task, got {:?}", other_action),
+            Some(id) => assert_eq!(id, header.id()),
+            None => panic!("expected an id, got nothing"),
         }
         handler.block_imported(header).expect("importing in order");
         assert_eq!(
@@ -377,7 +407,7 @@ mod tests {
             .handle_state(initial_state, peer)
             .expect("correct justification")
         {
-            SyncActions::Response(NetworkData::StateBroadcastResponse(
+            SyncAction::Response(NetworkData::StateBroadcastResponse(
                 justification,
                 maybe_justification,
             )) => {
@@ -414,7 +444,7 @@ mod tests {
             .handle_state(initial_state, peer)
             .expect("correct justification")
         {
-            SyncActions::Response(NetworkData::StateBroadcastResponse(
+            SyncAction::Response(NetworkData::StateBroadcastResponse(
                 justification,
                 maybe_justification,
             )) => {
@@ -450,7 +480,7 @@ mod tests {
             .handle_state(initial_state, peer)
             .expect("correct justification")
         {
-            SyncActions::Response(NetworkData::StateBroadcastResponse(
+            SyncAction::Response(NetworkData::StateBroadcastResponse(
                 justification,
                 maybe_justification,
             )) => {
@@ -495,7 +525,7 @@ mod tests {
             number % 20 < 10 || number % 20 == 19
         });
         match handler.handle_request(request).expect("correct request") {
-            SyncActions::Response(NetworkData::RequestResponse(sent_justifications)) => {
+            SyncAction::Response(NetworkData::RequestResponse(sent_justifications)) => {
                 assert_eq!(sent_justifications.len(), 100);
                 for (sent_justification, justification) in
                     sent_justifications.iter().zip(justifications)

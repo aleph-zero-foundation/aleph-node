@@ -10,6 +10,7 @@ mod forest;
 mod handler;
 #[cfg(test)]
 mod mock;
+mod service;
 mod substrate;
 mod task_queue;
 mod ticker;
@@ -19,9 +20,9 @@ pub use substrate::SessionVerifier;
 const LOG_TARGET: &str = "aleph-block-sync";
 
 /// The identifier of a connected peer.
-pub trait PeerId: Clone + Hash + Eq {}
+pub trait PeerId: Debug + Clone + Hash + Eq {}
 
-impl<T: Clone + Hash + Eq> PeerId for T {}
+impl<T: Debug + Clone + Hash + Eq> PeerId for T {}
 
 /// The identifier of a block, the least amount of knowledge we can have about a block.
 pub trait BlockIdentifier: Clone + Hash + Debug + Eq + Codec + Send + Sync + 'static {
@@ -82,20 +83,21 @@ pub trait Finalizer<J: Justification> {
 
 /// A notification about the chain status changing.
 #[derive(Clone, Debug)]
-pub enum ChainStatusNotification<BI: BlockIdentifier> {
+pub enum ChainStatusNotification<H: Header> {
     /// A block has been imported.
-    BlockImported(BI),
+    BlockImported(H),
     /// A block has been finalized.
-    BlockFinalized(BI),
+    BlockFinalized(H),
 }
 
 /// A stream of notifications about the chain status in the database changing.
+/// We assume that this will return all the events, otherwise we will end up with a broken state.
 #[async_trait::async_trait]
-pub trait ChainStatusNotifier<BI: BlockIdentifier> {
+pub trait ChainStatusNotifier<H: Header> {
     type Error: Display;
 
     /// Returns a chain status notification when it is available.
-    async fn next(&mut self) -> Result<ChainStatusNotification<BI>, Self::Error>;
+    async fn next(&mut self) -> Result<ChainStatusNotification<H>, Self::Error>;
 }
 
 /// The status of a block in the database.
