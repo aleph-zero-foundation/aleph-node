@@ -353,7 +353,7 @@ jobs:
             ${{ secrets.ARGO_SYNC_USER_TOKEN }} --server ${{ env.ARGOCD_URL }}
 
       - name: Wait for the testnet aleph-node binary to accept some blocks
-        uses: juliangruber/sleep-action@v1.0.1
+        uses: juliangruber/sleep-action@v2.0.0
         with:
           time: 5m
 
