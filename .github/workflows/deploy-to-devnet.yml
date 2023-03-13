@@ -23,7 +23,7 @@ jobs:
       AWS_REGION: eu-central-1
     steps:
       - name: GIT | Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: GIT | Get branch info & current commit sha.
         id: vars
@@ -136,7 +136,7 @@ jobs:
     if: always()
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Send Slack message
         uses: ./.github/actions/slack-notification

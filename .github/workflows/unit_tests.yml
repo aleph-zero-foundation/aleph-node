@@ -35,7 +35,7 @@ jobs:
       RUSTC_WRAPPER: sccache
     steps:
       - name: Checkout Source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install Rust Toolchain
         uses: actions-rs/toolchain@v1

@@ -28,7 +28,7 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Checkout Source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Download test artifact
         uses: actions/download-artifact@v2
@@ -58,7 +58,7 @@ jobs:
       RUSTC_WRAPPER: sccache
     steps:
       - name: GIT | Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
@@ -90,7 +90,7 @@ jobs:
       RUSTC_WRAPPER: sccache
     steps:
       - name: Checkout Source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install Rust Toolchain
         uses: actions-rs/toolchain@v1
@@ -123,7 +123,7 @@ jobs:
       RUSTC_WRAPPER: sccache
     steps:
       - name: Checkout Source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install Rust Toolchain
         uses: actions-rs/toolchain@v1
@@ -155,7 +155,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run one node in the background
         uses: ./.github/actions/run-e2e-test
@@ -177,7 +177,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -192,7 +192,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -208,7 +208,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -223,7 +223,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -237,7 +237,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -252,7 +252,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -267,7 +267,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -283,7 +283,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -299,7 +299,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -314,7 +314,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -329,7 +329,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -344,7 +344,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -359,7 +359,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -374,7 +374,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -389,7 +389,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -404,7 +404,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -419,7 +419,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -437,7 +437,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -452,7 +452,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -467,7 +467,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -482,7 +482,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -497,7 +497,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -512,7 +512,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -530,7 +530,7 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
@@ -552,7 +552,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -605,7 +605,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: GIT | Checkout Source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       # get the release binary, build docker image
       - name: Download release artifact
@@ -665,7 +665,7 @@ jobs:
         pruning: ['', '--state-pruning 90']
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Download all artifacts
         uses: actions/download-artifact@v2
@@ -694,7 +694,7 @@ jobs:
         pruning: ['', '--state-pruning 2048']
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Download all artifacts
         uses: actions/download-artifact@v2
@@ -815,7 +815,7 @@ jobs:
     if: always()
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Send Slack message
         uses: ./.github/actions/slack-notification
