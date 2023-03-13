@@ -1,19 +1,19 @@
+use aleph_primitives::BlockNumber;
 use sp_api::BlockId;
 use sp_blockchain::Info;
 use sp_runtime::traits::Block;
 
 use crate::{
-    testing::mocks::{TBlock, THash, THeader, TNumber},
+    testing::mocks::{TBlock, THash, THeader},
     BlockchainBackend,
 };
-
 #[derive(Clone)]
-pub(crate) struct Backend {
+pub struct Backend {
     blocks: Vec<TBlock>,
     next_block_to_finalize: TBlock,
 }
 
-pub(crate) fn create_block(parent_hash: THash, number: TNumber) -> TBlock {
+pub fn create_block(parent_hash: THash, number: BlockNumber) -> TBlock {
     TBlock {
         header: THeader {
             parent_hash,
@@ -29,10 +29,10 @@ pub(crate) fn create_block(parent_hash: THash, number: TNumber) -> TBlock {
 const GENESIS_HASH: [u8; 32] = [0u8; 32];
 
 impl Backend {
-    pub(crate) fn new(finalized_height: u64) -> Self {
+    pub fn new(finalized_height: BlockNumber) -> Self {
         let mut blocks: Vec<TBlock> = vec![];
 
-        for n in 1u64..=finalized_height {
+        for n in 1..=finalized_height {
             let parent_hash = match n {
                 1 => GENESIS_HASH.into(),
                 _ => blocks.last().unwrap().header.hash(),
@@ -49,11 +49,11 @@ impl Backend {
         }
     }
 
-    pub(crate) fn next_block_to_finalize(&self) -> TBlock {
+    pub fn next_block_to_finalize(&self) -> TBlock {
         self.next_block_to_finalize.clone()
     }
 
-    pub(crate) fn get_block(&self, id: BlockId<TBlock>) -> Option<TBlock> {
+    pub fn get_block(&self, id: BlockId<TBlock>) -> Option<TBlock> {
         match id {
             BlockId::Hash(h) => {
                 if self.next_block_to_finalize.hash() == h {
@@ -102,7 +102,7 @@ impl BlockchainBackend<TBlock> for Backend {
             best_hash: self.next_block_to_finalize.hash(),
             best_number: self.next_block_to_finalize.header.number,
             finalized_hash: self.blocks.last().unwrap().hash(),
-            finalized_number: self.blocks.len() as u64,
+            finalized_number: self.blocks.len() as BlockNumber,
             genesis_hash: GENESIS_HASH.into(),
             number_leaves: Default::default(),
             finalized_state: None,

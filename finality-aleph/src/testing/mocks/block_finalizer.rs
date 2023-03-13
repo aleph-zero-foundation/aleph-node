@@ -1,30 +1,30 @@
+use aleph_primitives::BlockNumber;
 use sp_blockchain::Error;
 use sp_runtime::{traits::Block, Justification};
 
 use crate::{
     finalization::BlockFinalizer,
-    testing::mocks::{single_action_mock::SingleActionMock, TBlock, THash, TNumber},
+    testing::mocks::{single_action_mock::SingleActionMock, TBlock, THash},
 };
+type CallArgs = (THash, BlockNumber, Option<Justification>);
 
-type CallArgs = (THash, TNumber, Option<Justification>);
-
-#[derive(Clone)]
-pub(crate) struct MockedBlockFinalizer {
+#[derive(Clone, Default)]
+pub struct MockedBlockFinalizer {
     mock: SingleActionMock<CallArgs>,
 }
 
 impl MockedBlockFinalizer {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             mock: Default::default(),
         }
     }
 
-    pub(crate) async fn has_not_been_invoked(&self) -> bool {
+    pub async fn has_not_been_invoked(&self) -> bool {
         self.mock.has_not_been_invoked().await
     }
 
-    pub(crate) async fn has_been_invoked_with(&self, block: TBlock) -> bool {
+    pub async fn has_been_invoked_with(&self, block: TBlock) -> bool {
         self.mock
             .has_been_invoked_with(|(hash, number, _)| {
                 block.hash() == hash && block.header.number == number
@@ -37,7 +37,7 @@ impl BlockFinalizer<TBlock> for MockedBlockFinalizer {
     fn finalize_block(
         &self,
         hash: THash,
-        block_number: TNumber,
+        block_number: BlockNumber,
         justification: Option<Justification>,
     ) -> Result<(), Error> {
         self.mock.invoke_with((hash, block_number, justification));

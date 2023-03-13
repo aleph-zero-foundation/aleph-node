@@ -1,13 +1,15 @@
 use std::sync::{Arc, Mutex};
 
+use aleph_primitives::BlockNumber;
+
 use crate::{
     justification::{AlephJustification, SessionInfo, SessionInfoProvider, Verifier},
     last_block_of_session, session_id_from_block_num,
-    testing::mocks::{AcceptancePolicy, TBlock, THash, TNumber},
+    testing::mocks::{AcceptancePolicy, TBlock, THash},
     SessionPeriod,
 };
 
-pub(crate) struct VerifierWrapper {
+pub struct VerifierWrapper {
     acceptance_policy: Arc<Mutex<AcceptancePolicy>>,
 }
 
@@ -17,13 +19,13 @@ impl Verifier<TBlock> for VerifierWrapper {
     }
 }
 
-pub(crate) struct SessionInfoProviderImpl {
+pub struct SessionInfoProviderImpl {
     session_period: SessionPeriod,
     acceptance_policy: Arc<Mutex<AcceptancePolicy>>,
 }
 
 impl SessionInfoProviderImpl {
-    pub(crate) fn new(session_period: SessionPeriod, acceptance_policy: AcceptancePolicy) -> Self {
+    pub fn new(session_period: SessionPeriod, acceptance_policy: AcceptancePolicy) -> Self {
         Self {
             session_period,
             acceptance_policy: Arc::new(Mutex::new(acceptance_policy)),
@@ -33,7 +35,7 @@ impl SessionInfoProviderImpl {
 
 #[async_trait::async_trait]
 impl SessionInfoProvider<TBlock, VerifierWrapper> for SessionInfoProviderImpl {
-    async fn for_block_num(&self, number: TNumber) -> SessionInfo<TBlock, VerifierWrapper> {
+    async fn for_block_num(&self, number: BlockNumber) -> SessionInfo<TBlock, VerifierWrapper> {
         let current_session = session_id_from_block_num(number, self.session_period);
         SessionInfo {
             current_session,

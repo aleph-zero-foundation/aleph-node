@@ -324,9 +324,6 @@ mod tests {
     use std::{future::Future, sync::Arc, time::Duration};
 
     use futures::channel::oneshot;
-    use substrate_test_runtime_client::{
-        runtime::Block, DefaultTestClientBuilderExt, TestClientBuilder, TestClientBuilderExt,
-    };
     use tokio::time::sleep;
 
     use crate::{
@@ -334,7 +331,10 @@ mod tests {
             data_provider::{ChainTracker, ChainTrackerConfig},
             DataProvider, MAX_DATA_BRANCH_LEN,
         },
-        testing::{client_chain_builder::ClientChainBuilder, mocks::aleph_data_from_blocks},
+        testing::{
+            client_chain_builder::ClientChainBuilder,
+            mocks::{aleph_data_from_blocks, TBlock, TestClientBuilder, TestClientBuilderExt},
+        },
         SessionBoundaries, SessionId, SessionPeriod,
     };
 
@@ -347,7 +347,7 @@ mod tests {
         impl Future<Output = ()>,
         oneshot::Sender<()>,
         ClientChainBuilder,
-        DataProvider<Block>,
+        DataProvider<TBlock>,
     ) {
         let (client, select_chain) = TestClientBuilder::new().build_with_longest_chain();
         let client = Arc::new(client);
@@ -382,7 +382,7 @@ mod tests {
     async fn run_test<F, S>(scenario: S)
     where
         F: Future,
-        S: FnOnce(ClientChainBuilder, DataProvider<Block>) -> F,
+        S: FnOnce(ClientChainBuilder, DataProvider<TBlock>) -> F,
     {
         let (task_handle, exit, chain_builder, data_provider) = prepare_chain_tracker_test();
         let chain_tracker_handle = tokio::spawn(task_handle);

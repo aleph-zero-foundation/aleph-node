@@ -58,7 +58,9 @@ sp-io = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch
 [dev-dependencies]
 substrate-test-runtime-client = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 substrate-test-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+substrate-test-client = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 sc-block-builder = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+aleph-runtime = { path = "../bin/runtime" }
 
 [features]
 only_legacy = []

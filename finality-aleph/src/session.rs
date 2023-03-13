@@ -55,10 +55,10 @@ pub mod testing {
     use aleph_primitives::SessionAuthorityData;
     use sp_runtime::testing::UintAuthorityId;
 
-    pub fn authority_data(from: u64, to: u64) -> SessionAuthorityData {
+    pub fn authority_data(from: u32, to: u32) -> SessionAuthorityData {
         SessionAuthorityData::new(
             (from..to)
-                .map(|id| UintAuthorityId(id).to_public_key())
+                .map(|id| UintAuthorityId(id.into()).to_public_key())
                 .collect(),
             None,
         )

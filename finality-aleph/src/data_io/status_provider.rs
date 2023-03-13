@@ -155,10 +155,6 @@ mod tests {
     use std::sync::Arc;
 
     use sp_runtime::traits::Block as BlockT;
-    use substrate_test_runtime_client::{
-        runtime::{Block, Header},
-        DefaultTestClientBuilderExt, TestClient, TestClientBuilder, TestClientBuilderExt,
-    };
 
     use crate::{
         data_io::{
@@ -172,7 +168,11 @@ mod tests {
             ChainInfoCacheConfig, MAX_DATA_BRANCH_LEN,
         },
         testing::{
-            client_chain_builder::ClientChainBuilder, mocks::unvalidated_proposal_from_headers,
+            client_chain_builder::ClientChainBuilder,
+            mocks::{
+                unvalidated_proposal_from_headers, TBlock, THeader, TestClient, TestClientBuilder,
+                TestClientBuilderExt,
+            },
         },
         SessionBoundaries, SessionId, SessionPeriod,
     };
@@ -180,20 +180,20 @@ mod tests {
     // A large number only for the purpose of creating `AlephProposal`s
     const DUMMY_SESSION_LEN: u32 = 1_000_000;
 
-    fn proposal_from_headers(headers: Vec<Header>) -> AlephProposal<Block> {
+    fn proposal_from_headers(headers: Vec<THeader>) -> AlephProposal<TBlock> {
         let unvalidated = unvalidated_proposal_from_headers(headers);
         let session_boundaries =
             SessionBoundaries::new(SessionId(0), SessionPeriod(DUMMY_SESSION_LEN));
         unvalidated.validate_bounds(&session_boundaries).unwrap()
     }
 
-    fn proposal_from_blocks(blocks: Vec<Block>) -> AlephProposal<Block> {
+    fn proposal_from_blocks(blocks: Vec<TBlock>) -> AlephProposal<TBlock> {
         let headers = blocks.into_iter().map(|b| b.header().clone()).collect();
         proposal_from_headers(headers)
     }
 
-    type TestCachedChainInfo = CachedChainInfoProvider<Block, Arc<TestClient>>;
-    type TestAuxChainInfo = AuxFinalizationChainInfoProvider<Block, Arc<TestClient>>;
+    type TestCachedChainInfo = CachedChainInfoProvider<TBlock, Arc<TestClient>>;
+    type TestAuxChainInfo = AuxFinalizationChainInfoProvider<TBlock, Arc<TestClient>>;
 
     fn prepare_proposal_test() -> (ClientChainBuilder, TestCachedChainInfo, TestAuxChainInfo) {
         let client = Arc::new(TestClientBuilder::new().build());
@@ -219,8 +219,8 @@ mod tests {
     fn verify_proposal_status(
         cached_cip: &mut TestCachedChainInfo,
         aux_cip: &mut TestAuxChainInfo,
-        proposal: &AlephProposal<Block>,
-        correct_status: ProposalStatus<Block>,
+        proposal: &AlephProposal<TBlock>,
+        correct_status: ProposalStatus<TBlock>,
     ) {
         let status_a = get_proposal_status(aux_cip, proposal, None);
         assert_eq!(
@@ -237,7 +237,7 @@ mod tests {
     }
 
     fn verify_proposal_of_all_lens_finalizable(
-        blocks: Vec<Block>,
+        blocks: Vec<TBlock>,
         cached_cip: &mut TestCachedChainInfo,
         aux_cip: &mut TestAuxChainInfo,
     ) {

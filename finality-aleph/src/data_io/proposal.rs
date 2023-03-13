@@ -237,15 +237,18 @@ pub enum ProposalStatus<B: BlockT> {
 
 #[cfg(test)]
 mod tests {
+    use aleph_primitives::BlockNumber;
     use sp_core::hash::H256;
-    use substrate_test_runtime_client::runtime::Block;
 
     use super::{UnvalidatedAlephProposal, ValidationError::*};
-    use crate::{data_io::MAX_DATA_BRANCH_LEN, SessionBoundaries, SessionId, SessionPeriod};
+    use crate::{
+        data_io::MAX_DATA_BRANCH_LEN, testing::mocks::TBlock, SessionBoundaries, SessionId,
+        SessionPeriod,
+    };
 
     #[test]
     fn proposal_with_empty_branch_is_invalid() {
-        let session_boundaries = SessionBoundaries::<Block>::new(SessionId(1), SessionPeriod(20));
+        let session_boundaries = SessionBoundaries::<TBlock>::new(SessionId(1), SessionPeriod(20));
         let branch = vec![];
         let proposal = UnvalidatedAlephProposal::new(branch, session_boundaries.first_block());
         assert_eq!(
@@ -256,7 +259,7 @@ mod tests {
 
     #[test]
     fn too_long_proposal_is_invalid() {
-        let session_boundaries = SessionBoundaries::<Block>::new(SessionId(1), SessionPeriod(20));
+        let session_boundaries = SessionBoundaries::<TBlock>::new(SessionId(1), SessionPeriod(20));
         let session_end = session_boundaries.last_block();
         let branch = vec![H256::default(); MAX_DATA_BRANCH_LEN + 1];
         let branch_size = branch.len();
@@ -269,7 +272,7 @@ mod tests {
 
     #[test]
     fn proposal_not_within_session_is_invalid() {
-        let session_boundaries = SessionBoundaries::<Block>::new(SessionId(1), SessionPeriod(20));
+        let session_boundaries = SessionBoundaries::<TBlock>::new(SessionId(1), SessionPeriod(20));
         let session_start = session_boundaries.first_block();
         let session_end = session_boundaries.last_block();
         let branch = vec![H256::default(); 2];
@@ -299,7 +302,7 @@ mod tests {
 
     #[test]
     fn proposal_starting_at_zero_block_is_invalid() {
-        let session_boundaries = SessionBoundaries::<Block>::new(SessionId(0), SessionPeriod(20));
+        let session_boundaries = SessionBoundaries::<TBlock>::new(SessionId(0), SessionPeriod(20));
         let branch = vec![H256::default(); 2];
 
         let proposal = UnvalidatedAlephProposal::new(branch, 1);
@@ -314,14 +317,16 @@ mod tests {
 
     #[test]
     fn valid_proposal_is_validated_positively() {
-        let session_boundaries = SessionBoundaries::<Block>::new(SessionId(0), SessionPeriod(20));
+        let session_boundaries = SessionBoundaries::<TBlock>::new(SessionId(0), SessionPeriod(20));
 
         let branch = vec![H256::default(); MAX_DATA_BRANCH_LEN];
-        let proposal = UnvalidatedAlephProposal::new(branch, (MAX_DATA_BRANCH_LEN + 1) as u64);
+        let proposal =
+            UnvalidatedAlephProposal::new(branch, (MAX_DATA_BRANCH_LEN + 1) as BlockNumber);
         assert!(proposal.validate_bounds(&session_boundaries).is_ok());
 
         let branch = vec![H256::default(); 1];
-        let proposal = UnvalidatedAlephProposal::new(branch, (MAX_DATA_BRANCH_LEN + 1) as u64);
+        let proposal =
+            UnvalidatedAlephProposal::new(branch, (MAX_DATA_BRANCH_LEN + 1) as BlockNumber);
         assert!(proposal.validate_bounds(&session_boundaries).is_ok());
     }
 }

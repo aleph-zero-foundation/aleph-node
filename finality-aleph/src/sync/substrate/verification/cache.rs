@@ -171,7 +171,6 @@ mod tests {
     use std::{cell::Cell, collections::HashMap};
 
     use aleph_primitives::SessionAuthorityData;
-    use sp_runtime::SaturatedConversion;
 
     use super::{
         AuthorityProvider, BlockNumber, CacheError, FinalizationInfo, SessionVerifier,
@@ -202,14 +201,14 @@ mod tests {
         session_period: SessionPeriod,
     }
 
-    fn authority_data_for_session(session_id: u64) -> SessionAuthorityData {
+    fn authority_data_for_session(session_id: u32) -> SessionAuthorityData {
         authority_data(session_id * 4, (session_id + 1) * 4)
     }
 
     impl MockAuthorityProvider {
-        fn new(session_n: u64) -> Self {
+        fn new(session_n: u32) -> Self {
             let session_map = (0..session_n + 1)
-                .map(|s| (SessionId(s.saturated_into()), authority_data_for_session(s)))
+                .map(|s| (SessionId(s), authority_data_for_session(s)))
                 .collect();
 
             Self {
@@ -235,7 +234,7 @@ mod tests {
         }
     }
 
-    fn setup_test(max_session_n: u64, finalized_number: &'_ Cell<u32>) -> TestVerifierCache<'_> {
+    fn setup_test(max_session_n: u32, finalized_number: &'_ Cell<u32>) -> TestVerifierCache<'_> {
         let finalization_info = MockFinalizationInfo { finalized_number };
         let authority_provider = MockAuthorityProvider::new(max_session_n);
 
@@ -261,8 +260,7 @@ mod tests {
     fn check_session_verifier(verifier: &mut TestVerifierCache, session_id: u32) {
         let session_verifier =
             session_verifier(verifier, session_id).expect("Should return verifier. Got error");
-        let expected_verifier: SessionVerifier =
-            authority_data_for_session(session_id as u64).into();
+        let expected_verifier: SessionVerifier = authority_data_for_session(session_id).into();
         assert_eq!(session_verifier, expected_verifier);
     }
 

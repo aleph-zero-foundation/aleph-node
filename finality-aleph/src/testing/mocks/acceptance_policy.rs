@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::VecDeque};
 
 #[derive(Clone, Debug)]
-pub(crate) enum AcceptancePolicy {
+pub enum AcceptancePolicy {
     Unavailable,
     AlwaysAccept,
     AlwaysReject,
@@ -9,7 +9,7 @@ pub(crate) enum AcceptancePolicy {
 }
 
 impl AcceptancePolicy {
-    pub(crate) fn accepts(&self) -> bool {
+    pub fn accepts(&self) -> bool {
         use AcceptancePolicy::*;
 
         match &self {

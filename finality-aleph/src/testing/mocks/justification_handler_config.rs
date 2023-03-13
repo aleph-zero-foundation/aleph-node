@@ -9,14 +9,14 @@ use crate::{
 };
 
 #[derive(Clone)]
-pub(crate) struct JustificationRequestSchedulerImpl {
+pub struct JustificationRequestSchedulerImpl {
     acceptance_policy: Arc<Mutex<AcceptancePolicy>>,
     fin_reporter: SingleActionMock<()>,
     req_reporter: SingleActionMock<()>,
 }
 
 impl JustificationRequestSchedulerImpl {
-    pub(crate) fn new(acceptance_policy: AcceptancePolicy) -> Self {
+    pub fn new(acceptance_policy: AcceptancePolicy) -> Self {
         Self {
             acceptance_policy: Arc::new(Mutex::new(acceptance_policy)),
             fin_reporter: Default::default(),
@@ -24,15 +24,15 @@ impl JustificationRequestSchedulerImpl {
         }
     }
 
-    pub(crate) fn update_policy(&self, policy: AcceptancePolicy) {
+    pub fn update_policy(&self, policy: AcceptancePolicy) {
         *self.acceptance_policy.lock().unwrap() = policy;
     }
 
-    pub(crate) async fn has_been_finalized(&self) -> bool {
+    pub async fn has_been_finalized(&self) -> bool {
         self.fin_reporter.has_been_invoked_with(|_| true).await
     }
 
-    pub(crate) async fn has_been_requested(&self) -> bool {
+    pub async fn has_been_requested(&self) -> bool {
         self.req_reporter.has_been_invoked_with(|_| true).await
     }
 }

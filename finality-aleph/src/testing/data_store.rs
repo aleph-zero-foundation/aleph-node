@@ -1,5 +1,6 @@
 use std::{future::Future, sync::Arc, time::Duration};
 
+use aleph_primitives::BlockNumber;
 use futures::{
     channel::{
         mpsc::{self, UnboundedReceiver, UnboundedSender},
@@ -10,10 +11,6 @@ use futures::{
 use sp_api::NumberFor;
 use sp_core::hash::H256;
 use sp_runtime::traits::Block as BlockT;
-use substrate_test_runtime_client::{
-    runtime::{Block, Header},
-    DefaultTestClientBuilderExt, TestClientBuilder, TestClientBuilderExt,
-};
 use tokio::time::timeout;
 
 use crate::{
@@ -25,7 +22,10 @@ use crate::{
     session::{SessionBoundaries, SessionId, SessionPeriod},
     testing::{
         client_chain_builder::ClientChainBuilder,
-        mocks::{aleph_data_from_blocks, aleph_data_from_headers},
+        mocks::{
+            aleph_data_from_blocks, aleph_data_from_headers, TBlock, THeader, TestClientBuilder,
+            TestClientBuilderExt,
+        },
     },
     BlockHashNum, Recipient,
 };
@@ -71,10 +71,10 @@ impl<B: BlockT> RequestBlocks<B> for TestBlockRequester<B> {
     }
 }
 
-type TestData = Vec<AlephData<Block>>;
+type TestData = Vec<AlephData<TBlock>>;
 
-impl AlephNetworkMessage<Block> for TestData {
-    fn included_data(&self) -> Vec<AlephData<Block>> {
+impl AlephNetworkMessage<TBlock> for TestData {
+    fn included_data(&self) -> Vec<AlephData<TBlock>> {
         self.clone()
     }
 }
@@ -95,8 +95,8 @@ impl<D: Data> ComponentNetwork<D> for TestComponentNetwork<D, D> {
 
 struct TestHandler {
     chain_builder: ClientChainBuilder,
-    block_requests_rx: UnboundedReceiver<BlockHashNum<Block>>,
-    justification_requests_rx: UnboundedReceiver<BlockHashNum<Block>>,
+    block_requests_rx: UnboundedReceiver<BlockHashNum<TBlock>>,
+    justification_requests_rx: UnboundedReceiver<BlockHashNum<TBlock>>,
     network_tx: UnboundedSender<TestData>,
     network: Box<dyn DataNetwork<TestData>>,
 }
@@ -111,33 +111,33 @@ impl TestHandler {
         self.chain_builder.genesis_hash()
     }
 
-    fn get_header_at(&self, num: u64) -> Header {
+    fn get_header_at(&self, num: BlockNumber) -> THeader {
         self.chain_builder.get_header_at(num)
     }
 
-    async fn build_block_above(&mut self, parent: &H256) -> Block {
+    async fn build_block_above(&mut self, parent: &H256) -> TBlock {
         self.chain_builder.build_block_above(parent).await
     }
 
     /// Builds a sequence of blocks extending from `hash` of length `len`
-    async fn build_branch_above(&mut self, parent: &H256, len: usize) -> Vec<Block> {
+    async fn build_branch_above(&mut self, parent: &H256, len: usize) -> Vec<TBlock> {
         self.chain_builder.build_branch_above(parent, len).await
     }
 
     /// imports a sequence of blocks, should be in correct order
-    async fn import_branch(&mut self, blocks: Vec<Block>) {
+    async fn import_branch(&mut self, blocks: Vec<TBlock>) {
         self.chain_builder.import_branch(blocks).await;
     }
 
     /// Builds and imports a sequence of blocks extending from genesis of length `len`
-    async fn initialize_single_branch_and_import(&mut self, len: usize) -> Vec<Block> {
+    async fn initialize_single_branch_and_import(&mut self, len: usize) -> Vec<TBlock> {
         self.chain_builder
             .initialize_single_branch_and_import(len)
             .await
     }
 
     /// Builds a sequence of blocks extending from genesis of length `len`
-    async fn initialize_single_branch(&mut self, len: usize) -> Vec<Block> {
+    async fn initialize_single_branch(&mut self, len: usize) -> Vec<TBlock> {
         self.chain_builder.initialize_single_branch(len).await
     }
 
@@ -147,12 +147,12 @@ impl TestHandler {
     }
 
     /// Receive next block request from Data Store
-    async fn next_block_request(&mut self) -> BlockHashNum<Block> {
+    async fn next_block_request(&mut self) -> BlockHashNum<TBlock> {
         self.block_requests_rx.next().await.unwrap()
     }
 
     /// Receive next justification request from Data Store
-    async fn next_justification_request(&mut self) -> BlockHashNum<Block> {
+    async fn next_justification_request(&mut self) -> BlockHashNum<TBlock> {
         self.justification_requests_rx.next().await.unwrap()
     }
 
@@ -170,7 +170,7 @@ impl TestHandler {
 }
 
 fn prepare_data_store(
-    session_boundaries: Option<SessionBoundaries<Block>>,
+    session_boundaries: Option<SessionBoundaries<TBlock>>,
 ) -> (impl Future<Output = ()>, oneshot::Sender<()>, TestHandler) {
     let client = Arc::new(TestClientBuilder::new().build());
 
@@ -375,7 +375,7 @@ async fn branch_with_not_finalized_ancestor_correctly_handled() {
     .await;
 }
 
-fn send_proposals_of_each_len(blocks: Vec<Block>, test_handler: &mut TestHandler) {
+fn send_proposals_of_each_len(blocks: Vec<TBlock>, test_handler: &mut TestHandler) {
     for i in 1..=MAX_DATA_BRANCH_LEN {
         let blocks_branch = blocks[0..i].to_vec();
         let test_data: TestData = vec![aleph_data_from_blocks(blocks_branch)];
@@ -531,7 +531,7 @@ async fn message_with_genesis_block_does_not_get_through() {
             let test_data: TestData = vec![aleph_data_from_headers(
                 (0..i)
                     .into_iter()
-                    .map(|num| test_handler.get_header_at(num as u64))
+                    .map(|num| test_handler.get_header_at(num as BlockNumber))
                     .collect(),
             )];
             test_handler.send_data(test_data.clone());

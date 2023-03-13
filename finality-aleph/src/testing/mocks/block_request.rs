@@ -1,29 +1,30 @@
+use aleph_primitives::BlockNumber;
 use sp_runtime::traits::Block;
 
 use crate::{
     network::RequestBlocks,
-    testing::mocks::{single_action_mock::SingleActionMock, TBlock, THash, TNumber},
+    testing::mocks::{single_action_mock::SingleActionMock, TBlock, THash},
 };
 
-type CallArgs = (THash, TNumber);
+type CallArgs = (THash, BlockNumber);
 
-#[derive(Clone)]
-pub(crate) struct MockedBlockRequester {
+#[derive(Clone, Default)]
+pub struct MockedBlockRequester {
     mock: SingleActionMock<CallArgs>,
 }
 
 impl MockedBlockRequester {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             mock: Default::default(),
         }
     }
 
-    pub(crate) async fn has_not_been_invoked(&self) -> bool {
+    pub async fn has_not_been_invoked(&self) -> bool {
         self.mock.has_not_been_invoked().await
     }
 
-    pub(crate) async fn has_been_invoked_with(&self, block: TBlock) -> bool {
+    pub async fn has_been_invoked_with(&self, block: TBlock) -> bool {
         self.mock
             .has_been_invoked_with(|(hash, number)| {
                 block.hash() == hash && block.header.number == number
@@ -33,11 +34,11 @@ impl MockedBlockRequester {
 }
 
 impl RequestBlocks<TBlock> for MockedBlockRequester {
-    fn request_justification(&self, hash: &THash, number: TNumber) {
+    fn request_justification(&self, hash: &THash, number: BlockNumber) {
         self.mock.invoke_with((*hash, number))
     }
 
-    fn request_stale_block(&self, _hash: THash, _number: TNumber) {
+    fn request_stale_block(&self, _hash: THash, _number: BlockNumber) {
         panic!("`request_stale_block` not implemented!")
     }
 
