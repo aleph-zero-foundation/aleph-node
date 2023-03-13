@@ -124,7 +124,9 @@ impl<
     > _Read for MockedEnvironment<METHOD, CorruptedMode, STORE_KEY_RESPONDER, VERIFY_RESPONDER>
 {
     fn _read<U: scale::Decode>(&self, _: ByteCount) -> Result<U, CriticalError> {
-        self.on_read.as_ref().map(|action| action());
+        if let Some(action) = self.on_read.as_ref() {
+            action()
+        }
         Err(CriticalError::Other("Some error"))
     }
 }
@@ -283,8 +285,6 @@ pub type VerifyErrorer<const ERROR: Error<()>, const WEIGHT: Option<u64>> = Mock
 >;
 
 impl<
-        'a,
-        'b,
         T,
         RM: ReadingMode,
         const METHOD: u16,

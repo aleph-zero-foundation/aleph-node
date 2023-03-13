@@ -20,7 +20,7 @@ pallet-baby-liminal = { path = "../pallets/baby-liminal", default-features = fal
 primitives = { path = "../primitives", default-features = false, optional = true }
 
 [dev-dependencies]
-aleph-runtime = { path = "../bin/runtime" }
+aleph-runtime = { path = "../bin/runtime" , features = ["liminal"]}
 
 [features]
 default = ["std", "substrate"]
@@ -49,4 +49,3 @@ ink-as-dependency = []
 [[test]]
 name = "substrate"
 path = "tests/substrate.rs"
-required-features = ["substrate-std"]
