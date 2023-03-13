@@ -35,7 +35,7 @@ jobs:
 
       - name: Read excluded packages from Cargo.toml
         id: read_excluded
-        uses: SebRollen/toml-action@v1.0.0
+        uses: SebRollen/toml-action@v1.0.2
         with:
           file: 'Cargo.toml'
           field: 'workspace.exclude'
