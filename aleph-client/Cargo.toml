@@ -12,8 +12,7 @@ hex = { version = "0.4.3", features = ["alloc"] }
 log = "0.4"
 serde_json = { version = "1.0" }
 thiserror = "1.0"
-contract-metadata = "2.0.0-beta"
-contract-transcode = "2.0.0-beta"
+contract-transcode = "2.1.0"
 ink_metadata = "4.0.0-beta"
 subxt = "0.25.0"
 futures = "0.3.25"
