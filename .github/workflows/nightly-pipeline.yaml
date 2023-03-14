@@ -78,7 +78,7 @@ jobs:
   check-determinism:
     needs: [build-new-node]
     name: Verify runtime build determinism
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       RUST_BACKTRACE: full
       RUSTC_WRAPPER: sccache
@@ -111,7 +111,7 @@ jobs:
 
   build-test-client:
     name: Build e2e test client suite
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     env:
       RUST_BACKTRACE: full
       RUSTC_WRAPPER: sccache
