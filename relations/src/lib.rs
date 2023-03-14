@@ -26,8 +26,8 @@ pub use preimage::{
 pub use relation::GetPublicInput;
 pub use serialization::serialize;
 pub use shielder::{
-    bytes_from_note, compute_note, compute_parent_hash, note_from_bytes, types::*,
-    DepositAndMergeRelationWithFullInput, DepositAndMergeRelationWithPublicInput,
+    bytes_from_note, compute_note, compute_parent_hash, note_from_bytes, note_var::NoteVarBuilder,
+    types::*, DepositAndMergeRelationWithFullInput, DepositAndMergeRelationWithPublicInput,
     DepositAndMergeRelationWithoutInput, DepositRelationWithFullInput,
     DepositRelationWithPublicInput, DepositRelationWithoutInput, MergeRelationWithFullInput,
     MergeRelationWithPublicInput, MergeRelationWithoutInput, WithdrawRelationWithFullInput,

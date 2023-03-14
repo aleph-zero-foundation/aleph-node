@@ -1,38 +1,12 @@
 //! Module exposing some utilities regarding note generation and verification.
 
-use ark_r1cs_std::{eq::EqGadget, R1CSVar};
-use ark_relations::r1cs::SynthesisError;
 use ark_std::{vec, vec::Vec};
-use liminal_ark_poseidon::{circuit, hash};
+use liminal_ark_poseidon::hash;
 
 use super::types::{
     FrontendNote, FrontendNullifier, FrontendTokenAmount, FrontendTokenId, FrontendTrapdoor,
 };
-use crate::{environment::FpVar, shielder::convert_hash, CircuitField};
-
-/// Verify that `note` is indeed the result of hashing `(token_id, token_amount, trapdoor,
-/// nullifier)`.
-///
-/// For circuit use only.
-pub(super) fn check_note(
-    token_id: &FpVar,
-    token_amount: &FpVar,
-    trapdoor: &FpVar,
-    nullifier: &FpVar,
-    note: &FpVar,
-) -> Result<(), SynthesisError> {
-    let hash = circuit::four_to_one_hash(
-        token_id.cs(),
-        [
-            token_id.clone(),
-            token_amount.clone(),
-            trapdoor.clone(),
-            nullifier.clone(),
-        ],
-    )?;
-
-    hash.enforce_equal(note)
-}
+use crate::{shielder::convert_hash, CircuitField};
 
 /// Compute note as the result of hashing `(token_id, token_amount, trapdoor, nullifier)`.
 ///

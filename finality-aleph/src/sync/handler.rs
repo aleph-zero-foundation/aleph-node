@@ -1,7 +1,7 @@
 use std::fmt::{Display, Error as FmtError, Formatter};
 
 use crate::{
-    session::{SessionId, SessionBoundaryInfo, SessionPeriod},
+    session::{SessionBoundaryInfo, SessionId, SessionPeriod},
     sync::{
         data::{NetworkData, Request, State},
         forest::{Error as ForestError, Forest, Interest},

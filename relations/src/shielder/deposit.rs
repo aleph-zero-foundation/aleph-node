@@ -1,5 +1,3 @@
-use ark_r1cs_std::alloc::AllocVar;
-use ark_relations::ns;
 use liminal_ark_relation_macro::snark_relation;
 
 use crate::{BackendNote, FrontendNote};
@@ -10,16 +8,17 @@ use crate::{BackendNote, FrontendNote};
 /// `token_amount`, `trapdoor` and `nullifier`.
 #[snark_relation]
 mod relation {
+    use ark_r1cs_std::alloc::AllocationMode::{Input, Witness};
+
     use crate::{
-        environment::FpVar,
         shielder::{
             convert_hash,
-            note::check_note,
             types::{
                 BackendNullifier, BackendTokenAmount, BackendTokenId, BackendTrapdoor,
                 FrontendNullifier, FrontendTokenAmount, FrontendTokenId, FrontendTrapdoor,
             },
         },
+        NoteVarBuilder,
     };
 
     #[relation_object_definition]
@@ -39,14 +38,14 @@ mod relation {
 
     #[circuit_definition]
     fn generate_constraints() {
-        let note = FpVar::new_input(ns!(cs, "note"), || self.note())?;
-        let token_id = FpVar::new_input(ns!(cs, "token id"), || self.token_id())?;
-        let token_amount = FpVar::new_input(ns!(cs, "token amount"), || self.token_amount())?;
-
-        let trapdoor = FpVar::new_witness(ns!(cs, "trapdoor"), || self.trapdoor())?;
-        let nullifier = FpVar::new_witness(ns!(cs, "nullifier"), || self.nullifier())?;
-
-        check_note(&token_id, &token_amount, &trapdoor, &nullifier, &note)
+        let _note = NoteVarBuilder::new(cs)
+            .with_note(self.note(), Input)?
+            .with_token_id(self.token_id(), Input)?
+            .with_token_amount(self.token_amount(), Input)?
+            .with_trapdoor(self.trapdoor(), Witness)?
+            .with_nullifier(self.nullifier(), Witness)?
+            .build()?;
+        Ok(())
     }
 }
 

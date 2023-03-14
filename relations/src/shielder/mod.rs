@@ -1,11 +1,12 @@
 //! This module contains relations that are the core of the Shielder application: `deposit`, `deposit_and_merge` and
 //! `withdraw`. It also exposes some functions and types that might be useful for input generation.
 
-mod circuit_utils;
 mod deposit;
 mod deposit_and_merge;
 mod merge;
 mod note;
+pub mod note_var;
+mod path_shape_var;
 pub mod types;
 mod withdraw;
 
@@ -39,7 +40,7 @@ pub use withdraw::{
 
 use crate::{
     environment::{CircuitField, FpVar},
-    shielder::circuit_utils::PathShapeVar,
+    shielder::path_shape_var::PathShapeVar,
 };
 
 pub fn convert_hash(front: [u64; 4]) -> CircuitField {

@@ -18,20 +18,28 @@ use liminal_ark_relation_macro::snark_relation;
 mod relation {
     use core::ops::Add;
 
-    use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget, fields::fp::FpVar};
+    use ark_r1cs_std::{
+        alloc::{
+            AllocVar,
+            AllocationMode::{Input, Witness},
+        },
+        eq::EqGadget,
+        fields::fp::FpVar,
+    };
     use ark_relations::ns;
 
-    use crate::shielder::{
-        check_merkle_proof,
-        circuit_utils::PathShapeVar,
-        convert_hash, convert_vec,
-        note::check_note,
-        types::{
-            BackendLeafIndex, BackendMerklePath, BackendMerkleRoot, BackendNote, BackendNullifier,
-            BackendTokenAmount, BackendTokenId, BackendTrapdoor, FrontendLeafIndex,
-            FrontendMerklePath, FrontendMerkleRoot, FrontendNote, FrontendNullifier,
-            FrontendTokenAmount, FrontendTokenId, FrontendTrapdoor,
+    use crate::{
+        shielder::{
+            check_merkle_proof, convert_hash, convert_vec,
+            path_shape_var::PathShapeVar,
+            types::{
+                BackendLeafIndex, BackendMerklePath, BackendMerkleRoot, BackendNote,
+                BackendNullifier, BackendTokenAmount, BackendTokenId, BackendTrapdoor,
+                FrontendLeafIndex, FrontendMerklePath, FrontendMerkleRoot, FrontendNote,
+                FrontendNullifier, FrontendTokenAmount, FrontendTokenId, FrontendTrapdoor,
+            },
         },
+        NoteVarBuilder,
     };
 
     #[relation_object_definition]
@@ -82,76 +90,47 @@ mod relation {
 
     #[circuit_definition]
     fn generate_constraints() {
-        let token_id = FpVar::new_input(ns!(cs, "token id"), || self.token_id())?;
         //------------------------------
         // Check first old note arguments.
         //------------------------------
-        let first_old_token_amount = FpVar::new_witness(ns!(cs, "first old token amount"), || {
-            self.first_old_token_amount()
-        })?;
-        let first_old_trapdoor =
-            FpVar::new_witness(ns!(cs, "first old trapdoor"), || self.first_old_trapdoor())?;
-        let first_old_nullifier = FpVar::new_input(ns!(cs, "first old nullifier"), || {
-            self.first_old_nullifier()
-        })?;
-        let first_old_note =
-            FpVar::new_witness(ns!(cs, "first old note"), || self.first_old_note())?;
-
-        check_note(
-            &token_id,
-            &first_old_token_amount,
-            &first_old_trapdoor,
-            &first_old_nullifier,
-            &first_old_note,
-        )?;
+        let first_old_note = NoteVarBuilder::new(cs.clone())
+            .with_token_id(self.token_id(), Input)?
+            .with_token_amount(self.first_old_token_amount(), Witness)?
+            .with_trapdoor(self.first_old_trapdoor(), Witness)?
+            .with_nullifier(self.first_old_nullifier(), Input)?
+            .with_note(self.first_old_note(), Witness)?
+            .build()?;
 
         //------------------------------
         // Check second old note arguments.
         //------------------------------
-        let second_old_token_amount =
-            FpVar::new_witness(ns!(cs, "second old token amount"), || {
-                self.second_old_token_amount()
-            })?;
-        let second_old_trapdoor = FpVar::new_witness(ns!(cs, "second old trapdoor"), || {
-            self.second_old_trapdoor()
-        })?;
-        let second_old_nullifier = FpVar::new_input(ns!(cs, "second old nullifier"), || {
-            self.second_old_nullifier()
-        })?;
-        let second_old_note =
-            FpVar::new_witness(ns!(cs, "second old note"), || self.second_old_note())?;
-
-        check_note(
-            &token_id,
-            &second_old_token_amount,
-            &second_old_trapdoor,
-            &second_old_nullifier,
-            &second_old_note,
-        )?;
+        let second_old_note = NoteVarBuilder::new(cs.clone())
+            .with_token_id_var(first_old_note.token_id.clone())
+            .with_token_amount(self.second_old_token_amount(), Witness)?
+            .with_trapdoor(self.second_old_trapdoor(), Witness)?
+            .with_nullifier(self.second_old_nullifier(), Input)?
+            .with_note(self.second_old_note(), Witness)?
+            .build()?;
 
         //------------------------------
         // Check new note arguments.
         //------------------------------
-        let new_token_amount =
-            FpVar::new_witness(ns!(cs, "new token amount"), || self.new_token_amount())?;
-        let new_trapdoor = FpVar::new_witness(ns!(cs, "new trapdoor"), || self.new_trapdoor())?;
-        let new_nullifier = FpVar::new_witness(ns!(cs, "new nullifier"), || self.new_nullifier())?;
-        let new_note = FpVar::new_input(ns!(cs, "new note"), || self.new_note())?;
-
-        check_note(
-            &token_id,
-            &new_token_amount,
-            &new_trapdoor,
-            &new_nullifier,
-            &new_note,
-        )?;
+        let new_note = NoteVarBuilder::new(cs.clone())
+            .with_token_id_var(first_old_note.token_id.clone())
+            .with_token_amount(self.new_token_amount(), Witness)?
+            .with_trapdoor(self.new_trapdoor(), Witness)?
+            .with_nullifier(self.new_nullifier(), Witness)?
+            .with_note(self.new_note(), Input)?
+            .build()?;
 
         //----------------------------------
         // Check token value soundness.
         //----------------------------------
         // some range checks for overflows?
-        let token_sum = first_old_token_amount.add(second_old_token_amount);
-        token_sum.enforce_equal(&new_token_amount)?;
+        let token_sum = first_old_note
+            .token_amount
+            .add(second_old_note.token_amount);
+        token_sum.enforce_equal(&new_note.token_amount)?;
 
         //------------------------
         // Check first merkle proof.
@@ -164,7 +143,7 @@ mod relation {
         check_merkle_proof(
             merkle_root.clone(),
             first_path_shape,
-            first_old_note,
+            first_old_note.note,
             self.first_merkle_path().cloned().unwrap_or_default(),
             *self.max_path_len(),
             cs.clone(),
@@ -180,7 +159,7 @@ mod relation {
         check_merkle_proof(
             merkle_root,
             second_path_shape,
-            second_old_note,
+            second_old_note.note,
             self.second_merkle_path().cloned().unwrap_or_default(),
             *self.max_path_len(),
             cs,
