@@ -39,7 +39,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: GIT | Checkout aleph-apps repo
-        uses: actions/checkout@master
+        uses: actions/checkout@v3
         with:
           repository: Cardinal-Cryptography/aleph-apps
           token: ${{ secrets.CI_GH_TOKEN }}
@@ -118,16 +118,13 @@ jobs:
           sleep 300
 
       - name: GIT | Commit changes to aleph-apps repository.
-        uses: EndBug/add-and-commit@v5.1.0
+        uses: EndBug/add-and-commit@v9.1.1
         with:
           author_name: AlephZero Automation
           author_email: alephzero@10clouds.com
           message: "Updating Devnet docker image tag to: ${{ steps.vars.outputs.sha_short }}"
           add: "*.yaml"
           cwd: "aleph-apps"
-          branch: main
-        env:
-          GITHUB_TOKEN: ${{ secrets.CI_GH_TOKEN }}
 
   slack:
     name: Slack notification

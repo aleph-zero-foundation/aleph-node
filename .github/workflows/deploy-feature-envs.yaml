@@ -231,7 +231,7 @@ jobs:
       # yamllint enable rule:line-length
 
       - name: GIT | Checkout aleph-apps repo
-        uses: actions/checkout@master
+        uses: actions/checkout@v3
         with:
           repository: Cardinal-Cryptography/aleph-apps
           token: ${{ secrets.CI_GH_TOKEN }}
@@ -320,17 +320,15 @@ jobs:
             $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
 
       - name: GIT | Commit changes to aleph-apps repository.
-        uses: EndBug/add-and-commit@v5.1.0
+        uses: EndBug/add-and-commit@v9.1.1
         env:
           APP_NAME: ${{ env.FE_APP_PREFIX }}${{ steps.get_branch.outputs.branch_appname }}
-          GITHUB_TOKEN: ${{ secrets.CI_GH_TOKEN }}
         with:
           author_name: AlephZero Automation
           author_email: alephzero@10clouds.com
           message: "New Feature Environment Deployment with name: ${{ env.APP_NAME }}"
           add: "*.yaml"
           cwd: "aleph-apps"
-          branch: main
 
       - name: Refresh Argo and wait for the testnet image deployment to be finished
         env:
@@ -373,7 +371,7 @@ jobs:
         uses: ./.github/actions/get-branch
 
       - name: GIT | Checkout aleph-apps repo
-        uses: actions/checkout@master
+        uses: actions/checkout@v3
         with:
           repository: Cardinal-Cryptography/aleph-apps
           token: ${{ secrets.CI_GH_TOKEN }}
@@ -416,12 +414,11 @@ jobs:
             $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
 
       - name: GIT | Commit changes to aleph-apps repository.
-        uses: EndBug/add-and-commit@v5.1.0
+        uses: EndBug/add-and-commit@v9.1.1
         env:
           IMAGE_TAG:
             ${{ env.FE_IMAGETAG_PREFIX }}${{ steps.get_branch.outputs.branch_imagetag_full }}
           APP_NAME: ${{ env.FE_APP_PREFIX }}${{ steps.get_branch.outputs.branch_appname }}
-          GITHUB_TOKEN: ${{ secrets.CI_GH_TOKEN }}
         with:
           author_name: AlephZero Automation
           author_email: alephzero@10clouds.com
@@ -430,7 +427,6 @@ jobs:
             ${{ env.FE_ALEPHNODE_REGISTRY }}:${{ env.IMAGE_TAG }}"
           add: "*.yaml"
           cwd: "aleph-apps"
-          branch: main
 
       - name: Refresh Argo and wait for the PR image deployment to be finished
         env:

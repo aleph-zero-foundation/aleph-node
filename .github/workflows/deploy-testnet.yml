@@ -98,7 +98,7 @@ jobs:
             aleph-runtime-${{ steps.vars.outputs.sha_short }}.tar.gz
 
       - name: GIT | Checkout aleph-apps repo
-        uses: actions/checkout@master
+        uses: actions/checkout@v3
         with:
           ref: testnet
           repository: Cardinal-Cryptography/aleph-apps
@@ -130,7 +130,7 @@ jobs:
           done
 
       - name: GIT | Commit changes to aleph-apps repository.
-        uses: EndBug/add-and-commit@v5.1.0
+        uses: EndBug/add-and-commit@v9.1.1
         with:
           author_name: AlephZero Automation
           author_email: alephzero@10clouds.com
@@ -138,9 +138,6 @@ jobs:
             "Updating Testnet docker image tag for pre-release: ${{ steps.vars.outputs.branch }}"
           add: "*.yaml"
           cwd: "aleph-apps"
-          branch: testnet
-        env:
-          GITHUB_TOKEN: ${{ secrets.CI_GH_TOKEN }}
 
   slack:
     name: Slack notification

@@ -28,7 +28,7 @@ runs:
       uses: ./.github/actions/get-branch
 
     - name: Checkout aleph-apps repo
-      uses: actions/checkout@master
+      uses: actions/checkout@v3
       with:
         repository: Cardinal-Cryptography/aleph-apps
         token: ${{ inputs.gh-ci-token }}
@@ -55,17 +55,15 @@ runs:
         rm -rf $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
 
     - name: Commit deletion of the feature environment.
-      uses: EndBug/add-and-commit@v5.1.0
+      uses: EndBug/add-and-commit@v9.1.1
       env:
         APP_NAME: fe-${{ steps.get_branch.outputs.branch_appname }}
-        GITHUB_TOKEN: ${{ inputs.gh-ci-token }}
       with:
         author_name: AlephZero Automation
         author_email: alephzero@10clouds.com
         message: "Feature Environment: ${{ env.APP_NAME }} has been deleted"
         add: "*.yaml"
         cwd: "aleph-apps"
-        branch: main
 
     - name: Refresh Argo and wait for the deletion to be finished
       shell: bash
