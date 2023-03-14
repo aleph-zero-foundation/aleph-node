@@ -14,7 +14,7 @@ description = "An instantiation of the Poseidon SNARK-friendly hash function."
 [dependencies]
 ark-bls12-381 = { version = "^0.3.0" }
 ark-ff = { version = "^0.3.0", default-features = false }
-ark-r1cs-std = {version = "^0.4.0" , default-features = false, optional = true }
+ark-r1cs-std = {version = "^0.3.0" , default-features = false, optional = true }
 ark-relations = { version = "^0.3.0", default-features = false, optional = true }
 paste = { version = "1.0.11" }
 
