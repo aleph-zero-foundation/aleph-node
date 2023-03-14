@@ -641,8 +641,8 @@ jobs:
         id: vars
         shell: bash
         run: |
-          echo "##[set-output name=branch;]$(echo ${GITHUB_REF##*/})"
-          echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+          echo "branch=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Push aleph-node Current Image to Public ECR
         env:
@@ -729,9 +729,9 @@ jobs:
         run: |
           if [ ! $(git diff HEAD origin/main -- bin/runtime/src/lib.rs | grep ' spec_version: ') ]
           then
-            echo "::set-output name=diff::0"
+            echo "diff=0" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=diff::1"
+            echo "diff=1" >> $GITHUB_OUTPUT
           fi
 
   build-new-runtime-and-try_runtime:
