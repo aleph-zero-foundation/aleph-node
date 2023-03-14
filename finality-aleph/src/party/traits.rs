@@ -60,13 +60,3 @@ pub trait SyncState {
     /// [1]: finality_aleph::network::RequestBlocks::is_major_syncing
     fn is_major_syncing(&self) -> bool;
 }
-
-/// Abstraction of the session boundaries.
-pub trait SessionInfo {
-    /// Returns session id of the session that block belongs to.
-    fn session_id_from_block_num(&self, n: BlockNumber) -> SessionId;
-    /// Returns block number which is the last block of the session.
-    fn last_block_of_session(&self, session_id: SessionId) -> BlockNumber;
-    /// Returns block number which is the first block of the session.
-    fn first_block_of_session(&self, session_id: SessionId) -> BlockNumber;
-}

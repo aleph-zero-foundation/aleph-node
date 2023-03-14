@@ -1,7 +1,7 @@
 use std::fmt::{Display, Error as FmtError, Formatter};
 
 use crate::{
-    session::{last_block_of_session, session_id_from_block_num, SessionId, SessionPeriod},
+    session::{SessionId, SessionBoundaryInfo, SessionPeriod},
     sync::{
         data::{NetworkData, Request, State},
         forest::{Error as ForestError, Forest, Interest},
@@ -20,7 +20,7 @@ pub struct Handler<I: PeerId, J: Justification, CS: ChainStatus<J>, V: Verifier<
     verifier: V,
     finalizer: F,
     forest: Forest<I, J>,
-    period: SessionPeriod,
+    session_info: SessionBoundaryInfo,
 }
 
 /// What actions can the handler recommend as a reaction to some data.
@@ -116,7 +116,7 @@ impl<I: PeerId, J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finaliz
             verifier,
             finalizer,
             forest,
-            period,
+            session_info: SessionBoundaryInfo::new(period),
         })
     }
 
@@ -136,8 +136,9 @@ impl<I: PeerId, J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finaliz
                     .map_err(Error::Finalizer)?;
                 number += 1;
             }
-            number =
-                last_block_of_session(session_id_from_block_num(number, self.period), self.period);
+            number = self
+                .session_info
+                .last_block_of_session(self.session_info.session_id_from_block_num(number));
             match self.forest.try_finalize(&number) {
                 Some(justification) => {
                     self.finalizer
@@ -194,10 +195,9 @@ impl<I: PeerId, J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finaliz
                     number += 1;
                 }
                 None => {
-                    number = last_block_of_session(
-                        session_id_from_block_num(number, self.period),
-                        self.period,
-                    );
+                    number = self
+                        .session_info
+                        .last_block_of_session(self.session_info.session_id_from_block_num(number));
                     match self
                         .chain_status
                         .finalized_at(number)
@@ -235,7 +235,7 @@ impl<I: PeerId, J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finaliz
         use Error::*;
         Ok(self
             .chain_status
-            .finalized_at(last_block_of_session(session, self.period))
+            .finalized_at(self.session_info.last_block_of_session(session))
             .map_err(ChainStatus)?
             .ok_or(MissingJustification)?
             .into_unverified())
@@ -251,8 +251,12 @@ impl<I: PeerId, J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finaliz
         let remote_top_number = state.top_justification().id().number();
         let local_top = self.chain_status.top_finalized().map_err(ChainStatus)?;
         let local_top_number = local_top.header().id().number();
-        let remote_session = session_id_from_block_num(remote_top_number, self.period);
-        let local_session = session_id_from_block_num(local_top_number, self.period);
+        let remote_session = self
+            .session_info
+            .session_id_from_block_num(remote_top_number);
+        let local_session = self
+            .session_info
+            .session_id_from_block_num(local_top_number);
         match local_session.0.checked_sub(remote_session.0) {
             // remote session number larger than ours, we can try to import the justification
             None => Ok(self

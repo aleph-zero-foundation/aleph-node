@@ -13,10 +13,9 @@ use crate::{
     party::{
         backup::ABFTBackup,
         manager::AuthorityTask,
-        traits::{ChainState, NodeSessionManager, SessionInfo, SyncState},
+        traits::{ChainState, NodeSessionManager, SyncState},
     },
-    session::{first_block_of_session, last_block_of_session, session_id_from_block_num},
-    AuthorityId, NodeIndex, SessionId, SessionPeriod,
+    AuthorityId, NodeIndex, SessionId,
 };
 
 type AMutex<T> = Arc<Mutex<T>>;
@@ -174,31 +173,5 @@ impl NodeSessionManager for Arc<MockNodeSessionManager> {
         }
 
         None
-    }
-}
-
-pub struct MockSessionInfo {
-    pub session_period: SessionPeriod,
-}
-
-impl MockSessionInfo {
-    pub fn new(session_period: u32) -> Self {
-        Self {
-            session_period: SessionPeriod(session_period),
-        }
-    }
-}
-
-impl SessionInfo for MockSessionInfo {
-    fn session_id_from_block_num(&self, n: BlockNumber) -> SessionId {
-        session_id_from_block_num(n, self.session_period)
-    }
-
-    fn last_block_of_session(&self, session_id: SessionId) -> BlockNumber {
-        last_block_of_session(session_id, self.session_period)
-    }
-
-    fn first_block_of_session(&self, session_id: SessionId) -> BlockNumber {
-        first_block_of_session(session_id, self.session_period)
     }
 }

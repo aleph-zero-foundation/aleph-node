@@ -1,6 +1,6 @@
 use std::{collections::HashMap, marker::PhantomData, sync::Arc};
 
-use aleph_primitives::{AlephSessionApi, SessionAuthorityData};
+use aleph_primitives::{AlephSessionApi, BlockNumber, SessionAuthorityData};
 use futures::StreamExt;
 use log::{debug, error, trace};
 use sc_client_api::{Backend, FinalityNotification};
@@ -14,19 +14,17 @@ use tokio::sync::{
     RwLock,
 };
 
-use crate::{
-    first_block_of_session, session_id_from_block_num, ClientForAleph, SessionId, SessionPeriod,
-};
+use crate::{session::SessionBoundaryInfo, ClientForAleph, SessionId, SessionPeriod};
 
 const PRUNING_THRESHOLD: u32 = 10;
 type SessionMap = HashMap<SessionId, SessionAuthorityData>;
 type SessionSubscribers = HashMap<SessionId, Vec<OneShotSender<SessionAuthorityData>>>;
 
-pub trait AuthorityProvider<B> {
+pub trait AuthorityProvider<N> {
     /// returns authority data for block
-    fn authority_data(&self, block: B) -> Option<SessionAuthorityData>;
+    fn authority_data(&self, block_number: N) -> Option<SessionAuthorityData>;
     /// returns next session authority data where current session is for block
-    fn next_authority_data(&self, block: B) -> Option<SessionAuthorityData>;
+    fn next_authority_data(&self, block_number: N) -> Option<SessionAuthorityData>;
 }
 
 /// Default implementation of authority provider trait.
@@ -63,36 +61,37 @@ where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
     C::Api: aleph_primitives::AlephSessionApi<B>,
     B: Block,
+    B::Header: Header<Number = BlockNumber>,
     BE: Backend<B> + 'static,
 {
-    fn authority_data(&self, num: NumberFor<B>) -> Option<SessionAuthorityData> {
+    fn authority_data(&self, block_number: NumberFor<B>) -> Option<SessionAuthorityData> {
         match self
             .client
             .runtime_api()
-            .authority_data(&BlockId::Number(num))
+            .authority_data(&BlockId::Number(block_number))
         {
             Ok(data) => Some(data),
             Err(_) => self
                 .client
                 .runtime_api()
-                .authorities(&BlockId::Number(num))
+                .authorities(&BlockId::Number(block_number))
                 .map(|authorities| SessionAuthorityData::new(authorities, None))
                 .ok(),
         }
     }
 
-    fn next_authority_data(&self, num: NumberFor<B>) -> Option<SessionAuthorityData> {
+    fn next_authority_data(&self, block_number: NumberFor<B>) -> Option<SessionAuthorityData> {
         match self
             .client
             .runtime_api()
-            .next_session_authority_data(&BlockId::Number(num))
+            .next_session_authority_data(&BlockId::Number(block_number))
             .map(|r| r.ok())
         {
             Ok(maybe_data) => maybe_data,
             Err(_) => self
                 .client
                 .runtime_api()
-                .next_session_authorities(&BlockId::Number(num))
+                .next_session_authorities(&BlockId::Number(block_number))
                 .map(|r| {
                     r.map(|authorities| SessionAuthorityData::new(authorities, None))
                         .ok()
@@ -103,9 +102,9 @@ where
     }
 }
 
-pub trait FinalityNotificator<B, N> {
+pub trait FinalityNotificator<B> {
     fn notification_stream(&mut self) -> TracingUnboundedReceiver<B>;
-    fn last_finalized(&self) -> N;
+    fn last_finalized(&self) -> BlockNumber;
 }
 
 /// Default implementation of finality notificator trait.
@@ -114,6 +113,7 @@ where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
     C::Api: aleph_primitives::AlephSessionApi<B>,
     B: Block,
+    B::Header: Header<Number = BlockNumber>,
     BE: Backend<B> + 'static,
 {
     client: Arc<C>,
@@ -125,6 +125,7 @@ where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
     C::Api: aleph_primitives::AlephSessionApi<B>,
     B: Block,
+    B::Header: Header<Number = BlockNumber>,
     BE: Backend<B> + 'static,
 {
     pub fn new(client: Arc<C>) -> Self {
@@ -135,12 +136,12 @@ where
     }
 }
 
-impl<C, B, BE> FinalityNotificator<FinalityNotification<B>, NumberFor<B>>
-    for FinalityNotificatorImpl<C, B, BE>
+impl<C, B, BE> FinalityNotificator<FinalityNotification<B>> for FinalityNotificatorImpl<C, B, BE>
 where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
     C::Api: aleph_primitives::AlephSessionApi<B>,
     B: Block,
+    B::Header: Header<Number = BlockNumber>,
     BE: Backend<B> + 'static,
 {
     fn notification_stream(&mut self) -> TracingUnboundedReceiver<FinalityNotification<B>> {
@@ -233,28 +234,30 @@ impl ReadOnlySessionMap {
 pub struct SessionMapUpdater<AP, FN, B>
 where
     AP: AuthorityProvider<NumberFor<B>>,
-    FN: FinalityNotificator<FinalityNotification<B>, NumberFor<B>>,
+    FN: FinalityNotificator<FinalityNotification<B>>,
     B: Block,
+    B::Header: Header<Number = BlockNumber>,
 {
     session_map: SharedSessionMap,
     authority_provider: AP,
     finality_notificator: FN,
-    period: SessionPeriod,
+    session_info: SessionBoundaryInfo,
     _phantom: PhantomData<B>,
 }
 
 impl<AP, FN, B> SessionMapUpdater<AP, FN, B>
 where
     AP: AuthorityProvider<NumberFor<B>>,
-    FN: FinalityNotificator<FinalityNotification<B>, NumberFor<B>>,
+    FN: FinalityNotificator<FinalityNotification<B>>,
     B: Block,
+    B::Header: Header<Number = BlockNumber>,
 {
     pub fn new(authority_provider: AP, finality_notificator: FN, period: SessionPeriod) -> Self {
         Self {
             session_map: SharedSessionMap::new(),
             authority_provider,
             finality_notificator,
-            period,
+            session_info: SessionBoundaryInfo::new(period),
             _phantom: PhantomData,
         }
     }
@@ -266,7 +269,7 @@ where
 
     /// Puts authority data for the next session into the session map
     async fn handle_first_block_of_session(&mut self, session_id: SessionId) {
-        let first_block = first_block_of_session(session_id, self.period);
+        let first_block = self.session_info.first_block_of_session(session_id);
         debug!(target: "aleph-session-updater",
             "Handling first block #{:?} of session {:?}",
             first_block, session_id.0
@@ -292,7 +295,7 @@ where
     }
 
     fn authorities_for_session(&mut self, session_id: SessionId) -> Option<SessionAuthorityData> {
-        let first_block = first_block_of_session(session_id, self.period);
+        let first_block = self.session_info.first_block_of_session(session_id);
         self.authority_provider.authority_data(first_block)
     }
 
@@ -301,7 +304,7 @@ where
     async fn catch_up(&mut self) -> SessionId {
         let last_finalized = self.finality_notificator.last_finalized();
 
-        let current_session = session_id_from_block_num(last_finalized, self.period);
+        let current_session = self.session_info.session_id_from_block_num(last_finalized);
         let starting_session = SessionId(current_session.0.saturating_sub(PRUNING_THRESHOLD - 1));
 
         debug!(target: "aleph-session-updater",
@@ -345,7 +348,7 @@ where
             let last_finalized = header.number();
             trace!(target: "aleph-session-updater", "got FinalityNotification about #{:?}", last_finalized);
 
-            let session_id = session_id_from_block_num(*last_finalized, self.period);
+            let session_id = self.session_info.session_id_from_block_num(*last_finalized);
 
             if last_updated >= session_id {
                 continue;
@@ -380,12 +383,12 @@ mod tests {
     };
 
     struct MockProvider {
-        pub session_map: HashMap<NumberFor<TBlock>, SessionAuthorityData>,
-        pub next_session_map: HashMap<NumberFor<TBlock>, SessionAuthorityData>,
+        pub session_map: HashMap<BlockNumber, SessionAuthorityData>,
+        pub next_session_map: HashMap<BlockNumber, SessionAuthorityData>,
     }
 
     struct MockNotificator {
-        pub last_finalized: NumberFor<TBlock>,
+        pub last_finalized: BlockNumber,
         pub receiver: Mutex<Option<TracingUnboundedReceiver<FinalityNotification<TBlock>>>>,
     }
 
@@ -414,24 +417,24 @@ mod tests {
         }
     }
 
-    impl AuthorityProvider<NumberFor<TBlock>> for MockProvider {
-        fn authority_data(&self, b: NumberFor<TBlock>) -> Option<SessionAuthorityData> {
-            self.session_map.get(&b).cloned()
+    impl AuthorityProvider<BlockNumber> for MockProvider {
+        fn authority_data(&self, block_number: BlockNumber) -> Option<SessionAuthorityData> {
+            self.session_map.get(&block_number).cloned()
         }
 
-        fn next_authority_data(&self, b: NumberFor<TBlock>) -> Option<SessionAuthorityData> {
-            self.next_session_map.get(&b).cloned()
+        fn next_authority_data(&self, block_number: BlockNumber) -> Option<SessionAuthorityData> {
+            self.next_session_map.get(&block_number).cloned()
         }
     }
 
-    impl FinalityNotificator<FinalityNotification<TBlock>, NumberFor<TBlock>> for MockNotificator {
+    impl FinalityNotificator<FinalityNotification<TBlock>> for MockNotificator {
         fn notification_stream(
             &mut self,
         ) -> TracingUnboundedReceiver<FinalityNotification<TBlock>> {
             self.receiver.get_mut().unwrap().take().unwrap()
         }
 
-        fn last_finalized(&self) -> NumberFor<TBlock> {
+        fn last_finalized(&self) -> BlockNumber {
             self.last_finalized
         }
     }

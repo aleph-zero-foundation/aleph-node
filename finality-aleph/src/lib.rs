@@ -23,10 +23,7 @@ use crate::{
     abft::{CurrentNetworkData, LegacyNetworkData, CURRENT_VERSION, LEGACY_VERSION},
     aggregation::{CurrentRmcNetworkData, LegacyRmcNetworkData},
     network::data::split::Split,
-    session::{
-        first_block_of_session, last_block_of_session, session_id_from_block_num,
-        SessionBoundaries, SessionId,
-    },
+    session::{SessionBoundaries, SessionId},
     VersionedTryFromError::{ExpectedNewGotOld, ExpectedOldGotNew},
 };
 

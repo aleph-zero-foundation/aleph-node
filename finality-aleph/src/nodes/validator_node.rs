@@ -20,10 +20,10 @@ use crate::{
     },
     nodes::{setup_justification_handler, JustificationParams},
     party::{
-        impls::{ChainStateImpl, SessionInfoImpl},
-        manager::NodeSessionManagerImpl,
-        ConsensusParty, ConsensusPartyParams,
+        impls::ChainStateImpl, manager::NodeSessionManagerImpl, ConsensusParty,
+        ConsensusPartyParams,
     },
+    session::SessionBoundaryInfo,
     session_map::{AuthorityProviderImpl, FinalityNotificatorImpl, SessionMapUpdater},
     AlephConfig, BlockchainBackend,
 };
@@ -165,7 +165,7 @@ where
             connection_manager,
             keystore,
         ),
-        session_info: SessionInfoImpl::new(session_period),
+        session_info: SessionBoundaryInfo::new(session_period),
     });
 
     debug!(target: "aleph-party", "Consensus party has started.");

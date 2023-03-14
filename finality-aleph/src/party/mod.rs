@@ -7,8 +7,9 @@ use tokio::{task::spawn_blocking, time::sleep};
 use crate::{
     party::{
         manager::{Handle, SubtaskCommon as AuthoritySubtaskCommon, Task},
-        traits::{ChainState, NodeSessionManager, SessionInfo, SyncState},
+        traits::{ChainState, NodeSessionManager, SyncState},
     },
+    session::SessionBoundaryInfo,
     session_map::ReadOnlySessionMap,
     SessionId,
 };
@@ -21,40 +22,38 @@ pub mod traits;
 #[cfg(test)]
 mod mocks;
 
-pub(crate) struct ConsensusPartyParams<ST, CS, NSM, SI> {
+pub(crate) struct ConsensusPartyParams<ST, CS, NSM> {
     pub session_authorities: ReadOnlySessionMap,
     pub chain_state: CS,
     pub sync_state: ST,
     pub backup_saving_path: Option<PathBuf>,
     pub session_manager: NSM,
-    pub session_info: SI,
+    pub session_info: SessionBoundaryInfo,
 }
 
-pub(crate) struct ConsensusParty<ST, CS, NSM, SI>
+pub(crate) struct ConsensusParty<ST, CS, NSM>
 where
     ST: SyncState,
     CS: ChainState,
     NSM: NodeSessionManager,
-    SI: SessionInfo,
 {
     session_authorities: ReadOnlySessionMap,
     chain_state: CS,
     sync_state: ST,
     backup_saving_path: Option<PathBuf>,
     session_manager: NSM,
-    session_info: SI,
+    session_info: SessionBoundaryInfo,
 }
 
 const SESSION_STATUS_CHECK_PERIOD: Duration = Duration::from_millis(1000);
 
-impl<ST, CS, NSM, SI> ConsensusParty<ST, CS, NSM, SI>
+impl<ST, CS, NSM> ConsensusParty<ST, CS, NSM>
 where
     ST: SyncState,
     CS: ChainState,
     NSM: NodeSessionManager,
-    SI: SessionInfo,
 {
-    pub(crate) fn new(params: ConsensusPartyParams<ST, CS, NSM, SI>) -> Self {
+    pub(crate) fn new(params: ConsensusPartyParams<ST, CS, NSM>) -> Self {
         let ConsensusPartyParams {
             session_authorities,
             sync_state,
@@ -269,19 +268,16 @@ mod tests {
 
     use crate::{
         party::{
-            mocks::{MockChainState, MockNodeSessionManager, MockSessionInfo, MockSyncState},
+            mocks::{MockChainState, MockNodeSessionManager, MockSyncState},
             ConsensusParty, ConsensusPartyParams, SESSION_STATUS_CHECK_PERIOD,
         },
+        session::SessionBoundaryInfo,
         session_map::SharedSessionMap,
         SessionId, SessionPeriod,
     };
 
-    type Party = ConsensusParty<
-        Arc<MockSyncState>,
-        Arc<MockChainState>,
-        Arc<MockNodeSessionManager>,
-        MockSessionInfo,
-    >;
+    type Party =
+        ConsensusParty<Arc<MockSyncState>, Arc<MockChainState>, Arc<MockNodeSessionManager>>;
 
     struct PartyState {
         validator_started: Vec<SessionId>,
@@ -504,12 +500,7 @@ mod tests {
     fn create_mocked_consensus_party(
         session_period: SessionPeriod,
     ) -> (
-        ConsensusParty<
-            Arc<MockSyncState>,
-            Arc<MockChainState>,
-            Arc<MockNodeSessionManager>,
-            MockSessionInfo,
-        >,
+        ConsensusParty<Arc<MockSyncState>, Arc<MockChainState>, Arc<MockNodeSessionManager>>,
         MockController,
     ) {
         let shared_map = SharedSessionMap::new();
@@ -518,7 +509,7 @@ mod tests {
         let chain_state = Arc::new(MockChainState::new());
         let sync_state = Arc::new(MockSyncState::new());
         let session_manager = Arc::new(MockNodeSessionManager::new());
-        let session_info = MockSessionInfo::new(session_period.0);
+        let session_info = SessionBoundaryInfo::new(session_period);
 
         let controller = MockController {
             shared_session_map: shared_map,

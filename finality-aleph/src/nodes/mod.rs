@@ -3,6 +3,7 @@ mod validator_node;
 
 use std::{future::Future, sync::Arc};
 
+use aleph_primitives::BlockNumber;
 pub use nonvalidator_node::run_nonvalidator_node;
 use sc_client_api::Backend;
 use sc_network::NetworkService;
@@ -15,9 +16,9 @@ use crate::{
     justification::{
         JustificationHandler, JustificationRequestSchedulerImpl, SessionInfo, SessionInfoProvider,
     },
-    last_block_of_session, mpsc,
+    mpsc,
     mpsc::UnboundedSender,
-    session_id_from_block_num,
+    session::SessionBoundaryInfo,
     session_map::ReadOnlySessionMap,
     sync::SessionVerifier,
     BlockchainBackend, JustificationNotification, Metrics, MillisecsPerBlock, SessionPeriod,
@@ -44,23 +45,26 @@ struct JustificationParams<B: Block, H: ExHashT, C, BB> {
 
 struct SessionInfoProviderImpl {
     session_authorities: ReadOnlySessionMap,
-    session_period: SessionPeriod,
+    session_info: SessionBoundaryInfo,
 }
 
 impl SessionInfoProviderImpl {
     fn new(session_authorities: ReadOnlySessionMap, session_period: SessionPeriod) -> Self {
         Self {
             session_authorities,
-            session_period,
+            session_info: SessionBoundaryInfo::new(session_period),
         }
     }
 }
 
 #[async_trait::async_trait]
-impl<B: Block> SessionInfoProvider<B, SessionVerifier> for SessionInfoProviderImpl {
+impl<B: Block> SessionInfoProvider<B, SessionVerifier> for SessionInfoProviderImpl
+where
+    B::Header: Header<Number = BlockNumber>,
+{
     async fn for_block_num(&self, number: NumberFor<B>) -> SessionInfo<B, SessionVerifier> {
-        let current_session = session_id_from_block_num(number, self.session_period);
-        let last_block_height = last_block_of_session(current_session, self.session_period);
+        let current_session = self.session_info.session_id_from_block_num(number);
+        let last_block_height = self.session_info.last_block_of_session(current_session);
         let verifier = self
             .session_authorities
             .get(current_session)
@@ -83,6 +87,7 @@ fn setup_justification_handler<B, H, C, BB, BE>(
 )
 where
     B: Block,
+    B::Header: Header<Number = BlockNumber>,
     H: ExHashT,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     C::Api: aleph_primitives::AlephSessionApi<B>,

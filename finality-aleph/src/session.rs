@@ -1,8 +1,6 @@
+use aleph_primitives::BlockNumber;
 use codec::{Decode, Encode};
-use sp_runtime::{
-    traits::{AtLeast32BitUnsigned, Block},
-    SaturatedConversion,
-};
+use sp_runtime::traits::Block;
 
 use crate::NumberFor;
 
@@ -15,8 +13,8 @@ pub struct SessionBoundaries<B: Block> {
 impl<B: Block> SessionBoundaries<B> {
     pub fn new(session_id: SessionId, period: SessionPeriod) -> Self {
         SessionBoundaries {
-            first_block: first_block_of_session(session_id, period),
-            last_block: last_block_of_session(session_id, period),
+            first_block: first_block_of_session(session_id, period).into(),
+            last_block: last_block_of_session(session_id, period).into(),
         }
     }
 
@@ -29,25 +27,42 @@ impl<B: Block> SessionBoundaries<B> {
     }
 }
 
-pub fn first_block_of_session<N: AtLeast32BitUnsigned>(
-    session_id: SessionId,
-    period: SessionPeriod,
-) -> N {
-    (session_id.0 * period.0).into()
+fn first_block_of_session(session_id: SessionId, period: SessionPeriod) -> BlockNumber {
+    session_id.0 * period.0
 }
 
-pub fn last_block_of_session<N: AtLeast32BitUnsigned>(
-    session_id: SessionId,
-    period: SessionPeriod,
-) -> N {
-    ((session_id.0 + 1) * period.0 - 1).into()
+fn last_block_of_session(session_id: SessionId, period: SessionPeriod) -> BlockNumber {
+    (session_id.0 + 1) * period.0 - 1
 }
 
-pub fn session_id_from_block_num<N: AtLeast32BitUnsigned>(
-    num: N,
-    period: SessionPeriod,
-) -> SessionId {
-    SessionId((num / period.0.into()).saturated_into())
+fn session_id_from_block_num(num: BlockNumber, period: SessionPeriod) -> SessionId {
+    SessionId(num / period.0)
+}
+
+pub struct SessionBoundaryInfo {
+    session_period: SessionPeriod,
+}
+
+/// Struct for getting the session boundaries.
+impl SessionBoundaryInfo {
+    pub fn new(session_period: SessionPeriod) -> Self {
+        Self { session_period }
+    }
+
+    /// Returns session id of the session that block belongs to.
+    pub fn session_id_from_block_num(&self, n: BlockNumber) -> SessionId {
+        session_id_from_block_num(n, self.session_period)
+    }
+
+    /// Returns block number which is the last block of the session.
+    pub fn last_block_of_session(&self, session_id: SessionId) -> BlockNumber {
+        last_block_of_session(session_id, self.session_period)
+    }
+
+    /// Returns block number which is the first block of the session.
+    pub fn first_block_of_session(&self, session_id: SessionId) -> BlockNumber {
+        first_block_of_session(session_id, self.session_period)
+    }
 }
 
 #[cfg(test)]

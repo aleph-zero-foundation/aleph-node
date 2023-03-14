@@ -7,7 +7,7 @@ use aleph_primitives::BlockNumber;
 use sp_runtime::SaturatedConversion;
 
 use crate::{
-    session::{first_block_of_session, session_id_from_block_num, SessionId},
+    session::{SessionBoundaryInfo, SessionId},
     session_map::AuthorityProvider,
     sync::substrate::verification::{verifier::SessionVerifier, FinalizationInfo},
     SessionPeriod,
@@ -56,7 +56,7 @@ where
     FI: FinalizationInfo,
 {
     sessions: HashMap<SessionId, SessionVerifier>,
-    session_period: SessionPeriod,
+    session_info: SessionBoundaryInfo,
     finalization_info: FI,
     authority_provider: AP,
     cache_size: usize,
@@ -77,7 +77,7 @@ where
     ) -> Self {
         Self {
             sessions: HashMap::new(),
-            session_period,
+            session_info: SessionBoundaryInfo::new(session_period),
             finalization_info,
             authority_provider,
             cache_size,
@@ -91,12 +91,12 @@ where
 fn download_session_verifier<AP: AuthorityProvider<BlockNumber>>(
     authority_provider: &AP,
     session_id: SessionId,
-    session_period: SessionPeriod,
+    session_info: &SessionBoundaryInfo,
 ) -> Option<SessionVerifier> {
     let maybe_authority_data = match session_id {
         SessionId(0) => authority_provider.authority_data(0),
         SessionId(id) => {
-            let prev_first = first_block_of_session(SessionId(id - 1), session_period);
+            let prev_first = session_info.first_block_of_session(SessionId(id - 1));
             authority_provider.next_authority_data(prev_first)
         }
     };
@@ -117,7 +117,7 @@ where
 
     /// Returns session verifier for block number if available. Updates cache if necessary.
     pub fn get(&mut self, number: BlockNumber) -> Result<&SessionVerifier, CacheError> {
-        let session_id = session_id_from_block_num(number, self.session_period);
+        let session_id = self.session_info.session_id_from_block_num(number);
 
         if session_id < self.lower_bound {
             return Err(CacheError::SessionTooOld(session_id, self.lower_bound));
@@ -125,11 +125,10 @@ where
 
         // We are sure about authorities in all session that have first block from previous session finalized.
         let upper_bound = SessionId(
-            session_id_from_block_num(
-                self.finalization_info.finalized_number(),
-                self.session_period,
-            )
-            .0 + 1,
+            self.session_info
+                .session_id_from_block_num(self.finalization_info.finalized_number())
+                .0
+                + 1,
         );
         if session_id > upper_bound {
             return Err(CacheError::SessionInFuture(session_id, upper_bound));
@@ -155,7 +154,7 @@ where
                 let verifier = download_session_verifier(
                     &self.authority_provider,
                     session_id,
-                    self.session_period,
+                    &self.session_info,
                 )
                 .ok_or(CacheError::UnknownAuthorities(session_id))?;
                 vacant.insert(verifier)
@@ -177,7 +176,7 @@ mod tests {
         VerifierCache,
     };
     use crate::{
-        session::{session_id_from_block_num, testing::authority_data, SessionId},
+        session::{testing::authority_data, SessionBoundaryInfo, SessionId},
         SessionPeriod,
     };
 
@@ -198,7 +197,7 @@ mod tests {
 
     struct MockAuthorityProvider {
         session_map: HashMap<SessionId, SessionAuthorityData>,
-        session_period: SessionPeriod,
+        session_info: SessionBoundaryInfo,
     }
 
     fn authority_data_for_session(session_id: u32) -> SessionAuthorityData {
@@ -213,22 +212,22 @@ mod tests {
 
             Self {
                 session_map,
-                session_period: SessionPeriod(SESSION_PERIOD),
+                session_info: SessionBoundaryInfo::new(SessionPeriod(SESSION_PERIOD)),
             }
         }
     }
 
     impl AuthorityProvider<BlockNumber> for MockAuthorityProvider {
-        fn authority_data(&self, block: BlockNumber) -> Option<SessionAuthorityData> {
+        fn authority_data(&self, block_number: BlockNumber) -> Option<SessionAuthorityData> {
             self.session_map
-                .get(&session_id_from_block_num(block, self.session_period))
+                .get(&self.session_info.session_id_from_block_num(block_number))
                 .cloned()
         }
 
-        fn next_authority_data(&self, block: BlockNumber) -> Option<SessionAuthorityData> {
+        fn next_authority_data(&self, block_number: BlockNumber) -> Option<SessionAuthorityData> {
             self.session_map
                 .get(&SessionId(
-                    session_id_from_block_num(block, self.session_period).0 + 1,
+                    self.session_info.session_id_from_block_num(block_number).0 + 1,
                 ))
                 .cloned()
         }
