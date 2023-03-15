@@ -1,0 +1,4 @@
+**/target
+target
+docker/data
+!target/release/cliain

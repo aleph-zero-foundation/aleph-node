@@ -5,7 +5,6 @@
 //! Most of the [pallets](https://docs.substrate.io/reference/frame-pallets/) are common to any
 //! [Substrate](https://github.com/paritytech/substrate) chain, but there are some unique to `aleph-node`,
 //! e.g. [`pallets::elections::ElectionsApi`].
-//!
 
 #![feature(auto_traits)]
 #![feature(negative_impls)]

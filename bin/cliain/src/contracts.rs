@@ -5,6 +5,7 @@ use std::{
 
 use aleph_client::{
     api::contracts::events::{CodeRemoved, CodeStored, Instantiated},
+    contract_transcode,
     pallet_contracts::wasm::OwnerInfo,
     pallets::contract::{ContractsApi, ContractsUserApi},
     sp_weights::weight_v2::Weight,
@@ -13,13 +14,15 @@ use aleph_client::{
 };
 use codec::{Compact, Decode};
 use contract_metadata::ContractMetadata;
-use contract_transcode::ContractMessageTranscoder;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 
-use crate::commands::{
-    ContractCall, ContractInstantiate, ContractInstantiateWithCode, ContractOptions,
-    ContractOwnerInfo, ContractRemoveCode, ContractUploadCode,
+use crate::{
+    commands::{
+        ContractCall, ContractInstantiate, ContractInstantiateWithCode, ContractOptions,
+        ContractOwnerInfo, ContractRemoveCode, ContractUploadCode,
+    },
+    contracts::contract_transcode::ContractMessageTranscoder,
 };
 
 #[derive(Debug, Decode, Clone, Serialize, Deserialize)]

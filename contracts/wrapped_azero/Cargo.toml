@@ -1,0 +1,42 @@
+[package]
+name = "wrapped_azero"
+version = "1.0.0"
+authors = ["Cardinal Cryptography"]
+edition = "2021"
+license = "Apache 2.0"
+
+[dependencies]
+ink = { version = "=4.0.1",  default-features = false }
+openbrush = { git = "https://github.com/727-Ventures/openbrush-contracts/", tag = "3.0.0", default-features = false, features = ["psp22"] }
+
+scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
+scale-info = { version = "2.3", default-features = false, features = ["derive"], optional = true }
+
+num-traits = { version = "0.2", default-features = false }
+access_control = { path = "../access_control", default-features = false, features = ["ink-as-dependency"] }
+
+[lib]
+name = "wrapped_azero"
+path = "lib.rs"
+crate-type = [
+    # Used for normal contract Wasm blobs.
+    "cdylib",
+    # Used for ABI generation.
+    "rlib",
+]
+
+[features]
+default = ["std"]
+std = [
+    "num-traits/std",
+    "ink/std",
+    "openbrush/std",
+    "scale-info",
+    "scale-info/std",
+    "scale/std",
+    "access_control/std",
+]
+ink-as-dependency = []
+
+[profile.dev]
+codegen-units = 16

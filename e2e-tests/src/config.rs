@@ -7,7 +7,7 @@ use primitives::SessionIndex;
 use crate::accounts::{get_sudo_key, get_validators_keys, get_validators_seeds, NodeKeys};
 
 static GLOBAL_CONFIG: Lazy<Config> = Lazy::new(|| {
-    let node = get_env("NODE_URL").unwrap_or_else(|| "ws://127.0.0.1:9943".to_string());
+    let node = get_env("NODE_URL").unwrap_or_else(|| "ws://127.0.0.1:9944".to_string());
     let validator_count = get_env("VALIDATOR_COUNT").unwrap_or(5);
     let validators_seeds = env::var("VALIDATORS_SEEDS")
         .ok()
@@ -27,6 +27,17 @@ static GLOBAL_CONFIG: Lazy<Config> = Lazy::new(|| {
             upgrade_finalization_wait_sessions: get_env("UPGRADE_FINALIZATION_WAIT_SESSIONS"),
             adder: get_env("ADDER"),
             adder_metadata: get_env("ADDER_METADATA"),
+            back_to_the_future: get_env("BACK_TO_THE_FUTURE"),
+            early_bird_special: get_env("EARLY_BIRD_SPECIAL"),
+            the_pressiah_cometh: get_env("THE_PRESSIAH_COMETH"),
+            wrapped_azero: get_env("WRAPPED_AZERO"),
+            simple_dex: get_env("SIMPLE_DEX"),
+            button_game_metadata: get_env("BUTTON_GAME_METADATA"),
+            marketplace_metadata: get_env("MARKETPLACE_METADATA"),
+            reward_token_metadata: get_env("REWARD_TOKEN_METADATA"),
+            ticket_token_metadata: get_env("TICKET_TOKEN_METADATA"),
+            simple_dex_metadata: get_env("SIMPLE_DEX_METADATA"),
+            wrapped_azero_metadata: get_env("WRAPPED_AZERO_METADATA"),
             out_latency: get_env("OUT_LATENCY"),
             synthetic_network_urls: env::var("SYNTHETIC_URLS")
                 .ok()
@@ -129,6 +140,39 @@ pub struct TestCaseParams {
 
     /// Desired number of non-reserved seats for validators, may be set within the test.
     pub non_reserved_seats: Option<u32>,
+
+    /// Address of the Early Bird Special game contract, only used by button game tests.
+    pub early_bird_special: Option<String>,
+
+    /// Address of the Back to the Future game contract, only used by button game tests.
+    pub back_to_the_future: Option<String>,
+
+    /// Address of the The Pressiah Cometh game contract, only used by button game tests.
+    pub the_pressiah_cometh: Option<String>,
+
+    /// Address of the simple dex contract. Only used by button tests.
+    pub simple_dex: Option<String>,
+
+    /// Address of the wrapped azero contract. Only used by button tests.
+    pub wrapped_azero: Option<String>,
+
+    /// Path to the button game metadata file. Only used by button tests.
+    pub button_game_metadata: Option<String>,
+
+    /// Path to the ticket token metadata file. Only used by button tests.
+    pub ticket_token_metadata: Option<String>,
+
+    /// Path to the reward token metadata file. Only used by button tests.
+    pub reward_token_metadata: Option<String>,
+
+    /// Path to the marketplace metadata file. Only used by button tests.
+    pub marketplace_metadata: Option<String>,
+
+    /// Path to the simple_dex metadata file. Only used by button tests.
+    pub simple_dex_metadata: Option<String>,
+
+    /// Path to wrapped_azero metadata file. Only used by button tests.
+    pub wrapped_azero_metadata: Option<String>,
 
     /// Version for the VersionUpgrade test.
     pub upgrade_to_version: Option<u32>,

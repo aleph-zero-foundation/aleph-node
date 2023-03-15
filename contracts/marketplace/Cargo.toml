@@ -1,0 +1,43 @@
+[package]
+name = "marketplace"
+version = "0.1.0"
+authors = ["Cardinal Cryptography"]
+edition = "2021"
+license = "Apache 2.0"
+
+[dependencies]
+ink = { version = "=4.0.1",  default-features = false }
+openbrush = { git = "https://github.com/727-Ventures/openbrush-contracts/", tag = "3.0.0", default-features = false, features = ["psp22"] }
+
+scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
+scale-info = { version = "2.3", default-features = false, features = ["derive"], optional = true }
+
+access_control = { path = "../access_control", default-features = false, features = ["ink-as-dependency"] }
+game_token = { path = "../game_token", default-features = false, features = ["ink-as-dependency"] }
+ticket_token = { path = "../ticket_token", default-features = false, features = ["ink-as-dependency"] }
+
+[lib]
+name = "marketplace"
+path = "lib.rs"
+crate-type = [
+    "cdylib",
+    "rlib",
+]
+
+[features]
+default = ["std"]
+std = [
+    "ink/std",
+    "openbrush/std",
+    "scale-info",
+    "scale-info/std",
+    "scale/std",
+    "openbrush/std",
+    "access_control/std",
+    "game_token/std",
+    "ticket_token/std"
+]
+ink-as-dependency = []
+
+[profile.dev]
+codegen-units = 16

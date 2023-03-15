@@ -50,6 +50,8 @@ use std::fmt::{Debug, Formatter};
 use anyhow::{anyhow, Context, Result};
 use contract_transcode::ContractMessageTranscoder;
 pub use convertible_value::ConvertibleValue;
+use log::{error, info};
+use pallet_contracts_primitives::ContractExecResult;
 
 use crate::{
     connections::TxInfo,
@@ -124,22 +126,28 @@ impl ContractInstance {
         message: &str,
         args: &[S],
     ) -> Result<T> {
-        let payload = self.encode(message, args)?;
-        let args = ContractCallArgs {
-            origin: self.address.clone(),
-            dest: self.address.clone(),
-            value: 0,
-            gas_limit: None,
-            input_data: payload,
-            storage_deposit_limit: None,
-        };
-
-        let result = conn
-            .call_and_get(args)
+        self.contract_read_as(conn, message, args, self.address.clone())
             .await
-            .context("RPC request error - there may be more info in node logs.")?
+    }
+
+    /// Reads the value of a contract call via RPC as if it was executed by `sender`.
+    pub async fn contract_read_as<
+        S: AsRef<str> + Debug,
+        T: TryFrom<ConvertibleValue, Error = anyhow::Error>,
+        C: ConnectionApi,
+    >(
+        &self,
+        conn: &C,
+        message: &str,
+        args: &[S],
+        sender: AccountId,
+    ) -> Result<T> {
+        let result = self
+            .dry_run(conn, message, args, sender)
+            .await?
             .result
             .map_err(|e| anyhow!("Contract exec failed {:?}", e))?;
+
         let decoded = self.decode(message, result.data)?;
         ConvertibleValue(decoded).try_into()?
     }
@@ -183,19 +191,21 @@ impl ContractInstance {
         args: &[S],
         value: Balance,
     ) -> Result<TxInfo> {
+        let dry_run_result = self
+            .dry_run(conn, message, args, conn.account_id().clone())
+            .await?;
+
         let data = self.encode(message, args)?;
         conn.call(
             self.address.clone(),
             value,
             Weight {
-                ref_time: self.max_gas_override.unwrap_or(DEFAULT_MAX_GAS),
-                proof_size: self
-                    .max_proof_size_override
-                    .unwrap_or(DEFAULT_MAX_PROOF_SIZE),
+                ref_time: dry_run_result.gas_required.ref_time(),
+                proof_size: dry_run_result.gas_required.proof_size(),
             },
             None,
             data,
-            TxStatus::InBlock,
+            TxStatus::Finalized,
         )
         .await
     }
@@ -206,6 +216,51 @@ impl ContractInstance {
 
     fn decode(&self, message: &str, data: Vec<u8>) -> Result<Value> {
         self.transcoder.decode_return(message, &mut data.as_slice())
+    }
+
+    async fn dry_run<S: AsRef<str> + Debug, C: ConnectionApi>(
+        &self,
+        conn: &C,
+        message: &str,
+        args: &[S],
+        sender: AccountId,
+    ) -> Result<ContractExecResult<Balance>> {
+        let payload = self.encode(message, args)?;
+        let args = ContractCallArgs {
+            origin: sender,
+            dest: self.address.clone(),
+            value: 0,
+            gas_limit: None,
+            input_data: payload,
+            storage_deposit_limit: None,
+        };
+
+        let contract_read_result = conn
+            .call_and_get(args)
+            .await
+            .context("RPC request error - there may be more info in node logs.")?;
+
+        if !contract_read_result.debug_message.is_empty() {
+            info!(
+                target: "aleph_client::contract",
+                "Dry-run debug messages: {:?}",
+                core::str::from_utf8(&contract_read_result.debug_message)
+                    .unwrap_or("<Invalid UTF8>")
+                    .split('\n')
+                    .filter(|m| !m.is_empty())
+                    .collect::<Vec<_>>()
+            );
+        }
+
+        if let Ok(res) = &contract_read_result.result {
+            if res.did_revert() {
+                // For dry run, failed transactions don't return `Err` but `Ok(_)`
+                // and we have to inspect flags manually.
+                error!("Dry-run call reverted");
+            }
+        }
+
+        Ok(contract_read_result)
     }
 }
 

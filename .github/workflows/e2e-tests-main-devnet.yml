@@ -4,10 +4,12 @@ name: e2e-tests-main-devnet
 on:
   pull_request:
     branches:
+      - benjamin
       - main
       - 'release-*'
   push:
     branches:
+      - benjamin
       - main
       - 'release-*'
   workflow_dispatch:
@@ -532,19 +534,27 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-
-      - name: Install rust-src
-        working-directory: ./contracts
-        run: rustup component add rust-src
-
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
         with:
           deploy-adder: true
           test-case: adder
         timeout-minutes: 10
+
+  run-e2e-button-contract-tests:
+    needs: [build-test-docker, build-test-client]
+    name: Run e2e button game contract tests
+    runs-on: self-hosted
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          deploy-button: true
+          test-case: button
+        timeout-minutes: 60
 
   run-e2e-finality-version-change:
     needs: [build-test-docker, build-test-client]
@@ -561,7 +571,16 @@ jobs:
           follow-up-finalization-check: true
         timeout-minutes: 10
 
+  # TODO: new dev env needed
+  # deploy-button:
+  #   name: Deploy button contracts
+  #   needs: run-e2e-button-contract-tests
+  #   uses: ./.github/workflows/contracts-deploy.yml
+  #   secrets: inherit
+
   check-e2e-test-suite-completion:
+#      run-e2e-failing-version-upgrade,
+#      run-e2e-version-upgrade-catchup,
     needs: [
       run-e2e-finalization-test,
       run-e2e-rewards-disable-node-test,
@@ -587,8 +606,7 @@ jobs:
       run-e2e-version-upgrade,
       run-e2e-permissionless-ban,
       run-e2e-adder-contract-test,
-#      run-e2e-failing-version-upgrade,
-#      run-e2e-version-upgrade-catchup,
+      run-e2e-button-contract-tests,
       run-e2e-finality-version-change,
     ]
     name: Check e2e test suite completion
@@ -596,7 +614,6 @@ jobs:
     steps:
       - name: All e2e tests completed
         run: echo "All e2e tests completed."
-
 
   push-image:
     needs: [check-e2e-test-suite-completion]
@@ -823,4 +840,3 @@ jobs:
           notify-on: "failure"
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-

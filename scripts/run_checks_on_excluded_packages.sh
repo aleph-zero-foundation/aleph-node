@@ -10,6 +10,14 @@ packages=(
   "fork-off"
   "benches/payout-stakers"
   "bin/cliain"
+  "contracts/access_control"
+  "contracts/button"
+  "contracts/game_token"
+  "contracts/marketplace"
+  "contracts/simple_dex"
+  "contracts/ticket_token"
+  "contracts/wrapped_azero"
+  "contracts/adder, "
 )
 
 for p in ${packages[@]}

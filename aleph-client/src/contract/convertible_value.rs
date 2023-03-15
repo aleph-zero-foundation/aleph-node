@@ -66,6 +66,19 @@ try_from_flat_value!(i32, Int, "signed integer");
 try_from_flat_value!(i64, Int, "signed integer");
 try_from_flat_value!(i128, Int, "signed integer");
 
+impl TryFrom<ConvertibleValue> for () {
+    type Error = anyhow::Error;
+
+    fn try_from(value: ConvertibleValue) -> Result<Self> {
+        match value.0 {
+            Value::Tuple(tuple) if tuple.ident().is_none() && tuple.values().next().is_none() => {
+                Ok(())
+            }
+            _ => bail!("Expected {:?} to be a unit", value.0),
+        }
+    }
+}
+
 impl TryFrom<ConvertibleValue> for AccountId {
     type Error = anyhow::Error;
 

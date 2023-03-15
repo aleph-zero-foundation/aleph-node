@@ -3,3 +3,4 @@ target
 !target/release/aleph-node
 !target/production/aleph-node
 !bin/cliain/target/release/cliain
+

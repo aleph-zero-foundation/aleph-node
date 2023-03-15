@@ -1,0 +1,39 @@
+version: '3'
+services:
+
+  smartnode:
+    image: $NODE_IMAGE
+    container_name: smartnode
+    environment:
+      - ALLOW_PRIVATE_IPV4=true
+      - BASE_PATH=/data/$NODE_ID
+      - CHAIN=/data/chainspec.smartnet.json
+      - CUSTOM_ARGS=-lerror,runtime::contracts=debug
+      - DISCOVER_LOCAL=true
+      - NAME=Smartnode
+      - NODE_KEY_PATH=/data/$NODE_ID/p2p_secret
+      - PORT=30333
+      - PURGE_BEFORE_START=true
+      - RPC_PORT=9933
+      - RUST_LOG=info
+      - UNIT_CREATION_DELAY=300
+      - WS_PORT=9943
+      - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/$BOOTNODE_PEER_ID
+      - PUBLIC_ADDR=/ip4/127.0.0.1/tcp/30333
+      - VALIDATOR_PORT=30343
+      - PUBLIC_VALIDATOR_ADDRESS=127.0.0.1:30343
+    volumes:
+      - ./data/:/data/
+    expose:
+      - 30333
+      - 9933
+      - 9943
+    ports:
+      - 0.0.0.0:30333:30333
+      - 0.0.0.0:9933:9933
+      - 0.0.0.0:9943:9943
+
+networks:
+  default:
+    external:
+      name: node-network

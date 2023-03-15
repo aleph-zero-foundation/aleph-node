@@ -7,7 +7,7 @@ services:
       - CHAIN=/data/chainspec.json
       - ALLOW_PRIVATE_IPV4=true
       - DISCOVER_LOCAL=true
-      - UNIT_CREATION_DELAY=50
+      - UNIT_CREATION_DELAY=300
     volumes:
       - ./data/:/data/
 

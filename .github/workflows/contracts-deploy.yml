@@ -1,0 +1,257 @@
+---
+name: contracts-e2e-tests-and-deploy
+
+on:
+  workflow_call:
+
+# DO NOT TOUCH THIS:
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+env:
+  CACHE_KEY: fe-benjamin-button
+  CONTRACTS_ENVFILE: fe-benjamin
+  NODE_VERSION: 16
+  S3BUCKET_PATH: contracts/fe-benjamin-button
+
+jobs:
+  build_and_deploy_contracts:
+    name: Deploy contracts on feature environment
+    if: >
+      (github.event_name == 'push' && github.ref_name == 'benjamin') ||
+      (github.event_name == 'pull_request' &&
+        github.event.action == 'labeled' &&
+        github.event.label.name == '[AZERO] DEPLOY-CONTRACTS')
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2.3.4
+
+      - name: Check if environment is reachable
+        shell: bash
+        run: |
+          source contracts/env/${{ env.CONTRACTS_ENVFILE }} && \
+          HOSTPORT=${NODE/wss:\/\//} && nc -zvw5 ${HOSTPORT/:*/} ${HOSTPORT/*:/}
+
+      - name: Get branch name and commit SHA
+        id: get_branch
+        uses: ./.github/actions/get-branch
+
+      # Use of 'actions-rs/toolchain@v1' has been removed as it was causing some unknown problems
+      # Also, there is a ticket to replace it with custom solution anyway
+
+      - name: Setup rust toolchain
+        run: |
+          . "$HOME/.cargo/env"
+          rustup target add wasm32-unknown-unknown
+          rustup toolchain install nightly-2022-08-12-x86_64-unknown-linux-gnu
+          rustup component add rust-src --toolchain nightly-2022-08-12-x86_64-unknown-linux-gnu
+          rustup default nightly-2022-08-12-x86_64-unknown-linux-gnu
+
+      - name: Install jq
+        shell: bash
+        run: |
+          sudo apt-get install -y jq
+
+      - name: Install binaryen
+        shell: bash
+        # yamllint disable rule:line-length
+        run: |
+          wget https://github.com/WebAssembly/binaryen/releases/download/version_110/binaryen-version_110-x86_64-linux.tar.gz \
+            -O /tmp/binaryen-version_110-x86_64-linux.tar.gz
+          tar -zxvf /tmp/binaryen-version_110-x86_64-linux.tar.gz -C /tmp
+          sudo chmod +x /tmp/binaryen-version_110/bin/*
+          sudo cp -rf /tmp/binaryen-version_110/* /usr/
+        # yamllint enable rule:line-length
+
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore cache
+        uses: ./.github/actions/restore-cache
+        with:
+          target-key: ${{ env.CACHE_KEY }}
+          cargo-key: ${{ env.CACHE_KEY }}
+          cache-version: v3
+          cargo-targets: |
+            contracts/access_control/target/
+            contracts/button/target/
+            contracts/game_token/target/
+            contracts/marketplace/target/
+            contracts/simple_dex/target/
+            contracts/ticket_token/target/
+            contracts/wrapped_azero/target/
+
+      - name: Install cargo additional libs
+        run: |
+          . "$HOME/.cargo/env"
+          cargo install dylint-link cargo-dylint
+
+      - name: Install cargo-contract
+        uses: baptiste0928/cargo-install@v1
+        with:
+          crate: cargo-contract
+          version: "2.0.1"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        env:
+          AWS_REGION: us-east-1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Copy addresses.json file from S3 bucket
+        shell: bash
+        # yamllint disable rule:line-length
+        run: |
+          aws s3 cp s3://${{ secrets.CI_S3BUCKET_NAME }}/${{ env.S3BUCKET_PATH }}/addresses.json contracts/addresses.json
+        # yamllint enable rule:line-length
+
+      - name: Copy metadata.json files from S3 bucket
+        shell: bash
+        env:
+          DOWNLOAD_TMP_DIR: downloaded_metadata
+        run: |
+          mkdir -p $DOWNLOAD_TMP_DIR
+          aws s3 sync --exclude '*' --include '*metadata.json' \
+            s3://${{ secrets.CI_S3BUCKET_NAME }}/${{ env.S3BUCKET_PATH }}/ ./$DOWNLOAD_TMP_DIR/
+          for i in `find $DOWNLOAD_TMP_DIR -name "metadata.json" | awk -F/ '{print $2}'`; do \
+            mkdir -p contracts/$i/target/ink; \
+            cp $DOWNLOAD_TMP_DIR/$i/metadata.json contracts/$i/target/ink/metadata.json; \
+          done
+
+      - name: Run clean.sh script
+        shell: bash
+        run: |
+          . "$HOME/.cargo/env"
+          source contracts/env/${{ env.CONTRACTS_ENVFILE }} && ./contracts/scripts/clean.sh
+
+      - name: Run deploy.sh script
+        shell: bash
+        run: |
+          . "$HOME/.cargo/env"
+          source contracts/env/${{ env.CONTRACTS_ENVFILE }} && ./contracts/scripts/deploy.sh
+
+      - name: Copy metadata.json and addresses.json files onto S3 bucket
+        shell: bash
+        run: |
+          aws s3 cp contracts/addresses.json \
+            s3://${{ secrets.CI_S3BUCKET_NAME }}/${{ env.S3BUCKET_PATH }}/addresses.json
+
+          for i in `find contracts -name "metadata.json" | awk -F/ '{print $2}'`; do \
+            aws s3 cp contracts/"$i"/target/ink/metadata.json \
+              s3://${{ secrets.CI_S3BUCKET_NAME }}/${{ env.S3BUCKET_PATH }}/"$i"/metadata.json; \
+          done
+
+          echo -n "${{ steps.get_branch.outputs.sha_short }}" > commit_sha.txt
+
+          aws s3 cp commit_sha.txt \
+            s3://${{ secrets.CI_S3BUCKET_NAME }}/${{ env.S3BUCKET_PATH }}/commit_sha.txt
+
+          source contracts/env/${{ env.CONTRACTS_ENVFILE }} && echo -n "$NODE" > env_NODE.txt
+          aws s3 cp env_NODE.txt \
+            s3://${{ secrets.CI_S3BUCKET_NAME }}/${{ env.S3BUCKET_PATH }}/env_NODE.txt
+
+      - name: Rename metadata and addresses JSON files to artifact upload
+        shell: bash
+        run: |
+          cp contracts/addresses.json addresses.${{ env.CONTRACTS_ENVFILE }}.json
+          for i in `find contracts -name "metadata.json" | awk -F/ '{print $2}'`; do \
+            cp contracts/"$i"/target/ink/metadata.json \
+              metadata_"$i".${{ env.CONTRACTS_ENVFILE }}.json; \
+          done
+
+      - name: Upload artifact with contract addresses
+        uses: actions/upload-artifact@v3
+        with:
+          name: contracts-addresses
+          path: addresses.${{ env.CONTRACTS_ENVFILE }}.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Upload artifact with contract metadata
+        uses: actions/upload-artifact@v3
+        with:
+          name: contracts-metadata
+          path: metadata_*.${{ env.CONTRACTS_ENVFILE }}.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Remove deploy label if present
+        uses: actions-ecosystem/action-remove-labels@v1.3.0
+        if: >
+          github.event_name == 'pull_request' &&
+            contains( github.event.pull_request.labels.*.name, '[AZERO] DEPLOY-CONTRACTS')
+        with:
+          labels: '[AZERO] DEPLOY-CONTRACTS'
+          github_token: ${{ secrets.CI_GH_TOKEN }}
+
+      - name: Add label to mark that contracts have been deployed
+        if: github.event_name == 'pull_request'
+        uses: actions-ecosystem/action-add-labels@v1.1.0
+        with:
+          labels: 'DEPLOYED-CONTRACTS'
+          github_token: ${{ secrets.CI_GH_TOKEN }}
+
+      - name: Cleanup cache
+        uses: ./.github/actions/post-cache
+
+      - name: GIT | Checkout aleph-apps repo
+        uses: actions/checkout@master
+        with:
+          repository: Cardinal-Cryptography/aleph-apps
+          token: ${{ secrets.CI_GH_TOKEN }}
+          path: "aleph-apps"
+          ref: main
+
+      - name: KUSTOMIZE | Init kustomize
+        uses: imranismail/setup-kustomize@v1
+        with:
+          kustomize-version: '3.8.6'
+
+      - name: KUBECTL | Setup kubectl
+        uses: azure/setup-kubectl@v2.0
+        with:
+          version: 'v1.23.6'
+
+      - name: INDEXER | Destroy archive and squid apps
+        shell: bash
+        run: |
+          aws eks --region eu-central-1 update-kubeconfig --name alephzero-devnet-eu-central-1-eks
+          kubectl delete -n indexer-squid --ignore-not-found=true deploy squid-api
+          kubectl delete -n indexer-squid --ignore-not-found=true deploy squid-processor
+          kubectl delete -n indexer-archive --ignore-not-found=true deploy archive-gateway
+          kubectl delete -n indexer-archive --ignore-not-found=true deploy archive-ingest
+
+      - name: INDEXER | Create archive db and archive apps
+        shell: bash
+        run: |
+          kubectl rollout restart statefulset archive-db -n indexer-archive
+          kubectl rollout status --watch --timeout=600s -n indexer-archive statefulset/archive-db
+          cd aleph-apps/indexer/archive/overlays/devnet/eu-central-1
+          kustomize build . | kubectl apply -f -
+          sleep 3
+          kubectl rollout status --watch --timeout=600s -n indexer-archive deploy/archive-ingest
+          kubectl rollout status --watch --timeout=600s -n indexer-archive deploy/archive-gateway
+
+      - name: INDEXER | Create squid db and squid apps
+        shell: bash
+        run: |
+          kubectl rollout restart statefulset squid-db -n indexer-squid
+          kubectl rollout status --watch --timeout=600s -n indexer-squid statefulset/squid-db
+          cd aleph-apps/indexer/squid/overlays/devnet/eu-central-1
+          kustomize build . | kubectl apply -f -
+          sleep 3
+          kubectl rollout status --watch --timeout=600s -n indexer-squid deploy/squid-processor
+          kubectl rollout status --watch --timeout=600s -n indexer-squid deploy/squid-api
+
+      - name: BUTTON | Restart the-button deployment
+        shell: bash
+        run: |
+          kubectl rollout restart deployment the-button -n the-button
+          kubectl rollout status --watch --timeout=600s -n the-button deploy/the-button

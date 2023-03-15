@@ -1,3 +1,5 @@
+#![feature(pattern)]
+
 #[cfg(test)]
 mod accounts;
 #[cfg(test)]
