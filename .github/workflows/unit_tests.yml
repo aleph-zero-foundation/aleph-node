@@ -3,21 +3,6 @@ name: unit-tests
 
 on:
   pull_request:
-    # all crates that are in cargo workspace should be listed here
-    paths:
-      - 'aggregator/**'
-      - 'baby-liminal-extension/**'
-      - 'bin/node/**'
-      - 'bin/runtime/**'
-      - 'clique/**'
-      - 'finality-aleph/**'
-      - 'pallets/aleph/**'
-      - 'pallets/baby-liminal/**'
-      - 'pallets/elections/**'
-      - 'pallets/support/**'
-      - 'poseidon/**'
-      - 'primitives/**'
-      - .github/workflows/unit_tests.yml
   push:
     branches:
       - 'release-*'

@@ -5,13 +5,7 @@ on:
   push:
     branches:
       - 'main'
-    paths:
-      - 'bin/cliain/**'
-      - .github/workflows/build-and-push-cliain.yml
   pull_request:
-    paths:
-      - 'bin/cliain/**'
-      - .github/workflows/build-and-push-cliain.yml
   workflow_dispatch:
 
 jobs:

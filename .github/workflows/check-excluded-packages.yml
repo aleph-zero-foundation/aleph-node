@@ -3,17 +3,6 @@ name: Check excluded packages
 
 on:
   pull_request:
-    paths:
-      - 'flooder/**'
-      - 'e2e-tests/**'
-      - 'aleph-client/**'
-      - 'fork-off/**'
-      - 'bin/cliain/**'
-      - 'benches/**'
-      - 'contracts/**'
-      # TODO this package needs to be moved to /bin
-      - 'scripts/synthetic-network/synthetic-link/**'
-      - .github/workflows/check-excluded-packages.yml
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -23,25 +12,6 @@ jobs:
   build:
     name: Check excluded packages
     runs-on: self-hosted
-    strategy:
-      matrix:
-        package: [
-          flooder,
-          e2e-tests,
-          aleph-client,
-          fork-off,
-          benches/payout-stakers,
-          bin/cliain,
-          contracts/access_control,
-          contracts/button,
-          contracts/game_token,
-          contracts/marketplace,
-          contracts/simple_dex,
-          contracts/ticket_token,
-          contracts/wrapped_azero,
-          contracts/adder,
-          scripts/synthetic-network/synthetic-link,
-        ]
     env:
       CARGO_INCREMENTAL: 0
       RUSTC_WRAPPER: sccache
