@@ -458,10 +458,10 @@ async fn button_game_play<F: Fn(u128, u128)>(
     button.press(&sign(&conn, player)).await?;
 
     let event = assert_recv_id(&mut events, "ButtonPressed").await;
-    let_assert!(Some(&Value::UInt(early_presser_score)) = event.data.get("score"));
+    let_assert!(Some(&Value::UInt(first_presser_score)) = event.data.get("score"));
     assert!(event.data.get("by") == Some(&Value::Literal(player.account_id().to_string())));
-    assert!(reward_token.balance_of(&conn, player.account_id()).await? == early_presser_score);
-    assert!(early_presser_score > 0);
+    assert!(reward_token.balance_of(&conn, player.account_id()).await? == first_presser_score);
+    assert!(first_presser_score > 0);
     assert!(ticket_token.balance_of(&conn, player.account_id()).await? == 1);
     assert!(
         ticket_token
@@ -469,15 +469,22 @@ async fn button_game_play<F: Fn(u128, u128)>(
             .await?
             == old_button_balance + 1
     );
-    let_assert!(Some(&Value::UInt(pressed_at)) = event.data.get("when"));
-    let time_to_sleep = pressed_at - reset_at + 3;
+    let_assert!(Some(&Value::UInt(first_press_at)) = event.data.get("when"));
 
-    info!("Waiting {} seconds before pressing again", time_to_sleep);
-    sleep(Duration::from_secs(time_to_sleep as u64)).await;
+    info!("Waiting before pressing again");
+    sleep(Duration::from_secs(3)).await;
 
     button.press(&sign(&conn, player)).await?;
     let event = assert_recv_id(&mut events, "ButtonPressed").await;
-    let_assert!(Some(&Value::UInt(late_presser_score)) = event.data.get("score"));
+    let_assert!(Some(&Value::UInt(second_presser_score)) = event.data.get("score"));
+    let_assert!(Some(&Value::UInt(second_press_at)) = event.data.get("when"));
+    let (early_presser_score, late_presser_score) =
+        if (first_press_at - reset_at) < (second_press_at - first_press_at) {
+            (first_presser_score, second_presser_score)
+        } else {
+            (second_presser_score, first_presser_score)
+        };
+
     score_check(early_presser_score, late_presser_score);
     let total_score = early_presser_score + late_presser_score;
     assert!(reward_token.balance_of(&conn, player.account_id()).await? == total_score);

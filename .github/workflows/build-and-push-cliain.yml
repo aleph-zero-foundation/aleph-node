@@ -58,8 +58,8 @@ jobs:
           IMAGE_NAME: ${{ matrix.runtime == 'standard' && 'cliain' || 'cliain-liminal' }}
           TAG: >
             ${{ matrix.runtime == 'standard' &&
-                  (steps.get-ref-properties.outputs.branch == 'main' && 'latest' ||
-                  steps.get-ref-properties.outputs.branch) ||
+                  (steps.get-ref-properties.outputs.branch-name-flattened == 'main' && 'latest' ||
+                  steps.get-ref-properties.outputs.branch-name-flattened) ||
                 matrix.runtime == 'liminal' && steps.get-ref-properties.outputs.sha }}
         uses: docker/build-push-action@v3.3.0
         with:
