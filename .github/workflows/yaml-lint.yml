@@ -18,9 +18,6 @@ jobs:
     steps:
       - name: GIT | Checkout source code
         uses: actions/checkout@v3
-        with:
-          repository: Cardinal-Cryptography/aleph-node
-          token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: LINT | Execute yaml-lint
         uses: ibiqlik/action-yamllint@v3.1.1
