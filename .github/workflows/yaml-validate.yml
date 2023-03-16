@@ -1,0 +1,32 @@
+---
+name: GH Action YAML validator
+
+on:
+  pull_request:
+    paths:
+      - '.github/**.yml'
+      - '.github/**.yaml'
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  main:
+    name: YAML Validate
+    runs-on: ubuntu-20.04
+    steps:
+      - name: GIT | Checkout source code
+        uses: actions/checkout@v3
+        with:
+          repository: Cardinal-Cryptography/aleph-node
+          token: ${{ secrets.CI_GH_TOKEN }}
+
+      - name: VALIDATE | Execute github-workflows-validator
+        env:
+          DOCKER_IMAGE: public.ecr.aws/p6e8q1z1/github-workflows-validator:0.1.0
+        run: |
+          docker pull ${DOCKER_IMAGE}
+          docker run --rm --name tmp-ghv -v $(pwd)/.github:/dot-github \
+            ${DOCKER_IMAGE} \
+            validate -p /dot-github
