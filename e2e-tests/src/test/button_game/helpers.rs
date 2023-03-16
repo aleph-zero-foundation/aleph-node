@@ -336,7 +336,7 @@ pub(super) async fn wait_for_death<C: ConnectionApi>(
     conn: &C,
     button: &ButtonInstance,
 ) -> Result<()> {
-    info!("Waiting for button to die");
+    info!("Waiting for the button to die");
     let mut iters = 0u8;
     let mut is_dead = false;
 
@@ -347,7 +347,7 @@ pub(super) async fn wait_for_death<C: ConnectionApi>(
         }
 
         if !is_dead {
-            let _ = tokio::time::sleep(Duration::from_secs(3)).await;
+            tokio::time::sleep(Duration::from_secs(3)).await;
             iters += 1;
         }
 

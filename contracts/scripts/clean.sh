@@ -4,6 +4,19 @@ set -euo pipefail
 
 # --- FUNCTIONS
 
+function ink_build() {
+  contract_dir=$(basename "${PWD}")
+
+  docker exec \
+    -u "$(id -u):$(id -g)" \
+    -w "/code/contracts/$contract_dir" \
+    ink_builder "$@"
+}
+
+function cargo_contract() {
+  ink_build cargo contract "$@"
+}
+
 function terminate_contract {
   local contract_name=$1
   local contract_dir=$2
@@ -13,7 +26,7 @@ function terminate_contract {
   cd "$CONTRACTS_PATH"/"$contract_dir"
   # When 'ContractNotFound' occurs, ignore it and continue
   set +e
-  cargo contract call --url "$NODE" --contract $contract_address --message terminate --suri "$AUTHORITY_SEED" --skip-confirm 2>&1 | tee $tmp_output_file
+  cargo_contract call --url "$NODE" --contract $contract_address --message terminate --suri "$AUTHORITY_SEED" --skip-confirm 2>&1 | tee $tmp_output_file
   if [ $? -ne 0 ]; then
     grep -q "ContractNotFound" $tmp_output_file
     if [ $? -ne 0 ]; then
@@ -34,26 +47,11 @@ function get_address {
 
 function remove_contract_code {
   local code_hash=$(cat "$CONTRACTS_PATH"/addresses.json | jq --raw-output ".$1")
-
   if [ "None" == "$(docker run --network host -e RUST_LOG=info "$CLIAIN_IMAGE" --seed "$AUTHORITY_SEED" --node "$NODE" contract-owner-info --code-hash "$code_hash")" ]; then
     echo "Contract code does not exist on chain."
   else
-    echo "Contract code exists, removing"
-
-    local tmp_output_file="tmp_remove_contract_code"
-    set +e
-    docker rm -f remove_contract_code
-    timeout -k 1m 1m bash -c "docker run --network host -e RUST_LOG=info \"${CLIAIN_IMAGE}\" --seed \"$AUTHORITY_SEED\" --node \"$NODE\" contract-remove-code --code-hash $code_hash 2>&1 | tee $tmp_output_file"
-    grep -q "CodeNotFound\|Received ContractCodeRemoved" $tmp_output_file
-    if [ $? -ne 0 ]; then
-      echo "** Exiting with error code 1. Process has been killed after 1m and 'CodeNotFound' error has not been found in the output"
-      exit 1
-    else
-      echo "** Ignoring 'CodeNotFound' error or 'Received ContractCodeRemoved' message"
-    fi
-    rm -f $tmp_output_file
-    set -e
-
+    echo 'Contract code ' ${code_hash} 'exists, removing'
+    docker run --network host -e RUST_LOG=info "$CLIAIN_IMAGE" --seed "$AUTHORITY_SEED" --node "$NODE" contract-remove-code --code-hash "$code_hash"
   fi
 }
 

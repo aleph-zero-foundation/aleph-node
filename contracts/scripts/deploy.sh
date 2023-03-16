@@ -278,10 +278,8 @@ cargo_contract build --release
 
 cd "$CONTRACTS_PATH"/access_control
 
-ACCESS_CONTROL_CODE_HASH=$(cargo_contract upload --url "$NODE" --suri "$AUTHORITY_SEED")
-ACCESS_CONTROL_CODE_HASH=$(echo "$ACCESS_CONTROL_CODE_HASH" | grep hash | tail -1 | cut -c 14-)
-ACCESS_CONTROL=$(cargo_contract instantiate --url "$NODE" --constructor new --suri "$AUTHORITY_SEED" --skip-confirm --output-json)
-ACCESS_CONTROL=$(echo "$ACCESS_CONTROL" | jq -r '.contract')
+ACCESS_CONTROL_CODE_HASH=$(cargo_contract upload --url "$NODE" --suri "$AUTHORITY_SEED" --output-json | jq -s . | jq -r '.[1].code_hash')
+ACCESS_CONTROL=$(cargo_contract instantiate --url "$NODE" --constructor new --suri "$AUTHORITY_SEED" --skip-confirm --output-json | jq -r '.contract')
 ACCESS_CONTROL_PUBKEY=$(docker run --rm --entrypoint "/bin/sh" "${NODE_IMAGE}" -c "aleph-node key inspect $ACCESS_CONTROL" | grep hex | cut -c 23- | cut -c 3-)
 
 echo "access control contract address: $ACCESS_CONTROL"
@@ -357,7 +355,8 @@ whitelist_swap_pair $THE_PRESSIAH_COMETH_TOKEN $WRAPPED_AZERO
 # spit adresses to a JSON file
 cd "$CONTRACTS_PATH"
 
-jq -n --arg early_bird_special "$EARLY_BIRD_SPECIAL" \
+jq -n \
+   --arg early_bird_special "$EARLY_BIRD_SPECIAL" \
    --arg early_bird_special_marketplace "$EARLY_BIRD_SPECIAL_MARKETPLACE" \
    --arg early_bird_special_ticket "$EARLY_BIRD_SPECIAL_TICKET" \
    --arg early_bird_special_token "$EARLY_BIRD_SPECIAL_TOKEN" \

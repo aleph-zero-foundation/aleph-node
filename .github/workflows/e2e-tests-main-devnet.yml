@@ -553,6 +553,7 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           deploy-button: true
+          clean-button: true
           test-case: button
         timeout-minutes: 60
 
