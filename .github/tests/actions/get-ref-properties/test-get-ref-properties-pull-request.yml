@@ -1,0 +1,44 @@
+---
+name: Test get-ref-properties action on pull request
+
+on:
+  pull_request:
+
+jobs:
+  test-pull-request:
+    name: Test pull request commit
+    runs-on: ubuntu-20.04
+    steps:
+      - name: GIT | Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Call to get-ref-properties
+        id: get-ref-properties
+        uses: ./.github/actions/get-ref-properties
+
+      - name: GIT | Checkout source code on a branch
+        uses: actions/checkout@v3
+        with:
+          path: test-checkout
+          ref: VALID_OUTPUT_BRANCH
+
+      - name: Set outputs
+        id: valid-outputs
+        run: |
+          cd test-checkout
+          echo "branch=VALID_OUTPUT_BRANCH" >> $GITHUB_OUTPUT
+          echo "branch_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Test get-ref-properties outputs
+        run: |
+          if [[ "${{ steps.get-ref-properties.outputs.branch }}" != \
+          "${{ steps.valid-outputs.outputs.branch }}" ]]; then
+            echo "Action returned wrong 'branch'"
+            exit 1
+          fi
+          if [[ "${{ steps.get-ref-properties.outputs.sha }}" == \
+          "${{ steps.valid-outputs.outputs.branch_sha }}" ]]; then
+            echo "Action returned wrong 'sha' from the branch, not the merge commit"
+            exit 1
+          fi
+

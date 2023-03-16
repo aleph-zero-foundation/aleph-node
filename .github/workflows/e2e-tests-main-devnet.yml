@@ -555,7 +555,7 @@ jobs:
           deploy-button: true
           clean-button: true
           test-case: button
-        timeout-minutes: 60
+        timeout-minutes: 20
 
   run-e2e-finality-version-change:
     needs: [build-test-docker, build-test-client]

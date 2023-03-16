@@ -30,9 +30,9 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
-      - name: Get branch name and commit SHA
-        id: get_branch
-        uses: ./.github/actions/get-branch
+      - name: Call action get-ref-properties
+        id: get-ref-properties
+        uses: ./.github/actions/get-ref-properties
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
@@ -86,8 +86,8 @@ jobs:
           BINARY_DIR: target/production
           BINARY_FILE: aleph-node
           # yamllint disable-line rule:line-length
-          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get_branch.outputs.sha_short }}/aleph-node
-          S3BUCKET_FILE: aleph-node-${{ steps.get_branch.outputs.sha_short }}.tar.gz
+          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-node
+          S3BUCKET_FILE: aleph-node-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
         run: |
           tar -cvzf ${{ env.S3BUCKET_FILE }} -C ${{ env.BINARY_DIR }} ${{ env.BINARY_FILE }}
           aws s3 cp ${{ env.S3BUCKET_FILE }} ${{ env.S3BUCKET_URL }}/${{ env.S3BUCKET_FILE }}
@@ -101,8 +101,8 @@ jobs:
           BINARY_DIR: target/production/wbuild/aleph-runtime
           BINARY_FILE: aleph_runtime.compact.wasm
           # yamllint disable-line rule:line-length
-          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get_branch.outputs.sha_short }}/aleph-runtime
-          S3BUCKET_FILE: aleph-runtime-${{ steps.get_branch.outputs.sha_short }}.tar.gz
+          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-runtime
+          S3BUCKET_FILE: aleph-runtime-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
         run: |
           tar -cvzf ${{ env.S3BUCKET_FILE }} -C ${{ env.BINARY_DIR }} ${{ env.BINARY_FILE }}
           aws s3 cp ${{ env.S3BUCKET_FILE }} ${{ env.S3BUCKET_URL }}/${{ env.S3BUCKET_FILE }}
@@ -138,8 +138,8 @@ jobs:
           BINARY_DIR: target/release
           BINARY_FILE: aleph-node
           # yamllint disable-line rule:line-length
-          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get_branch.outputs.sha_short }}/aleph-test-node
-          S3BUCKET_FILE: aleph-test-node-${{ steps.get_branch.outputs.sha_short }}.tar.gz
+          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-test-node
+          S3BUCKET_FILE: aleph-test-node-${{ steps.get-ref-properties.outputs.sha}}.tar.gz
         run: |
           tar -cvzf ${{ env.S3BUCKET_FILE }} -C ${{ env.BINARY_DIR }} ${{ env.BINARY_FILE }}
           aws s3 cp ${{ env.S3BUCKET_FILE }} ${{ env.S3BUCKET_URL }}/${{ env.S3BUCKET_FILE }}
@@ -153,8 +153,8 @@ jobs:
           BINARY_DIR: target/release/wbuild/aleph-runtime
           BINARY_FILE: aleph_runtime.compact.wasm
           # yamllint disable-line rule:line-length
-          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get_branch.outputs.sha_short }}/aleph-test-runtime
-          S3BUCKET_FILE: aleph-test-runtime-${{ steps.get_branch.outputs.sha_short }}.tar.gz
+          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-test-runtime
+          S3BUCKET_FILE: aleph-test-runtime-${{ steps.get-ref-properties.outputs.sha}}.tar.gz
         run: |
           tar -cvzf ${{ env.S3BUCKET_FILE }} -C ${{ env.BINARY_DIR }} ${{ env.BINARY_FILE }}
           aws s3 cp ${{ env.S3BUCKET_FILE }} ${{ env.S3BUCKET_URL }}/${{ env.S3BUCKET_FILE }}

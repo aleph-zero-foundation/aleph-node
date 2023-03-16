@@ -41,23 +41,17 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.SYNCAZF }}
 
-      - name: Get branch name and commit SHA
-        id: get_branch
-        shell: bash
-        env:
-          HEAD_REF: ${{ github.ref }}
-        run: |
-          echo branch_name=$(echo ${HEAD_REF#refs/heads/}) >> $GITHUB_OUTPUT
-          echo sha_short=$(git rev-parse --short HEAD) >> $GITHUB_OUTPUT
+      - name: Call action get-ref-properties
+        id: get-ref-properties
+        uses: ./.github/actions/get-ref-properties
 
       - name: Push to Aleph-Zero-Foundation
         # yamllint disable rule:line-length
         run: |
           git push \
             'https://x-access-token:${{ secrets.SYNCAZF }}@github.com/aleph-zero-foundation/aleph-node.git' \
-            ${{ steps.get_branch.outputs.branch_name }}:${{ steps.get_branch.outputs.branch_name }}
+            ${{ steps.get-ref-properties.outputs.branch }}:${{ steps.get-ref-properties.outputs.branch}}
         # yamllint disable rule:line-length
-
 
   sync-release-tag:
     runs-on: ubuntu-20.04
@@ -66,14 +60,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Get tag name and commit SHA
-        id: get_branch
-        shell: bash
-        env:
-          HEAD_REF: ${{ github.ref }}
-        run: |
-          echo tag_name=$(echo ${HEAD_REF#refs/tags/}) >> $GITHUB_OUTPUT
-          echo sha_short=$(git rev-parse --short HEAD) >> $GITHUB_OUTPUT
+      - name: Call action get-ref-properties
+        id: get-ref-properties
+        uses: ./.github/actions/get-ref-properties
 
       - name: Checkout Aleph-Zero-Foundation repository
         uses: actions/checkout@v3
@@ -86,6 +75,6 @@ jobs:
       - name: Checkout commit SHA and add tag in Aleph-Zero-Foundation repository
         run: |
           cd aleph-zero-foundation-aleph-node/
-          git checkout "${{ steps.get_branch.outputs.sha_short }}"
-          git tag "${{ steps.get_branch.outputs.tag_name }}"
-          git push origin "${{ steps.get_branch.outputs.tag_name }}"
+          git checkout "${{ steps.get-ref-properties.outputs.sha }}"
+          git tag "${{ steps.get-ref-properties.outputs.tag }}"
+          git push origin "${{ steps.get-ref-properties.outputs.tag }}"

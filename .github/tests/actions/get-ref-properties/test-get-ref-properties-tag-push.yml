@@ -1,0 +1,52 @@
+---
+name: Test get-ref-properties action on tag push
+
+on:
+  push:
+    branches:
+      - "branch-that-does-not-exist"
+    tags:
+      - "tag-test-*"
+
+jobs:
+  test-tag-push:
+    name: Test tag push
+    runs-on: ubuntu-20.04
+    steps:
+      - name: GIT | Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Call to get-ref-properties
+        id: get-ref-properties
+        uses: ./.github/actions/get-ref-properties
+
+      - name: GIT | Checkout source code on a branch
+        uses: actions/checkout@v3
+        with:
+          path: test-checkout
+          ref: VALID_OUTPUT_TAG
+
+      - name: Set outputs
+        id: valid-outputs
+        run: |
+          cd test-checkout
+          echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "tag=VALID_OUTPUT_TAG" >> $GITHUB_OUTPUT
+
+      - name: Test get-ref-properties outputs
+        run: |
+          if [[ "${{ steps.get-ref-properties.outputs.branch }}" != "" ]]; then
+            echo "Action returned wrong 'branch'"
+            exit 1
+          fi
+          if [[ "${{ steps.get-ref-properties.outputs.sha }}" != \
+          "${{ steps.valid-outputs.outputs.sha }}" ]]; then
+            echo "Action returned wrong 'branch'"
+            exit 1
+          fi
+          if [[ "${{ steps.get-ref-properties.outputs.tag }}" != \
+          "${{ steps.valid-outputs.outputs.tag }}" ]]; then
+            echo "Action returned wrong 'tag'"
+            exit 1
+          fi
+

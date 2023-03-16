@@ -1,0 +1,50 @@
+---
+name: Get ref git properties
+description:
+  Returns basic git ref properties for the commit it runs on, such as tag, branch or commit SHA.
+  This actions is intended to be triggerd either via pull request, tag push or direct push to
+  a release branch.
+
+outputs:
+  branch:
+    description: Branch name
+    value: ${{ steps.branch.outputs.name }}
+  branch-name-flattened:
+    description: Branch name with / (slash) replaced with - (hyphen)
+    value: ${{ steps.branch.outputs.name-flattened }}
+  tag:
+    description: Tag name
+    value: ${{ steps.tag.outputs.name }}
+  sha:
+    description: Unique commit SHA
+    value: ${{ steps.commit.outputs.sha }}
+
+runs:
+  using: composite
+  steps:
+    - name: Get tag properties if tag was pushed
+      id: tag
+      if: startsWith(github.ref, 'refs/tags/')
+      shell: bash
+      env:
+        REF: ${{ github.ref }}
+      run: |
+        echo name=$(echo ${REF#refs/tags/}) >> $GITHUB_OUTPUT
+
+    - name: Get branch properties if commit was pushed to a pull request or a branch
+      id: branch
+      if: startsWith(github.ref, 'refs/pull/') || startsWith(github.ref, 'refs/heads/')
+      shell: bash
+      env:
+        # notice pull requests needs special logic
+        # see https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
+        HEAD_REF: ${{ github.head_ref || github.ref }}
+      run: |
+        echo name=$(echo ${HEAD_REF#refs/heads/}) >> $GITHUB_OUTPUT
+        echo name-flattened=$(echo ${HEAD_REF#refs/heads/} | tr / -) >> $GITHUB_OUTPUT
+
+    - name: Get commit properties
+      id: commit
+      shell: bash
+      run: |
+        echo sha=$(git rev-parse --short HEAD) >> $GITHUB_OUTPUT
