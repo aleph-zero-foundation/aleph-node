@@ -1,0 +1,42 @@
+---
+name: Release branch workflows check
+description: Checks if deployment workflows on release and main branches are identical
+
+on:
+  push:
+    branches:
+      - 'release-*'
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+
+jobs:
+  main:
+    name: Compare workflows with main
+    runs-on: ubuntu-20.04
+    steps:
+      - name: GIT | Checkout
+        uses: actions/checkout@v3
+
+      - name: GIT | Checkout main
+        uses: actions/checkout@v3
+        with:
+          ref: main
+          path: aleph-node-main
+
+      - name: Run diff
+        run: |
+          set +e
+          fail=0
+          for i in deploy-testnet.yml deploy-mainnet.yml; do
+            diff -ur .github/workflows/$i aleph-node-main/.github/workflows/$i > $i.diff
+            if [[ $(cat $i.diff | wc -l) > 0 ]]; then
+              echo ""
+              cat $i.diff
+              fail=1
+            fi
+          done
+          if [[ $fail == 1 ]]; then
+            echo "!!! Deployment workflows on this branch differ from the ones on main branch!"
+            exit 1
+          fi
