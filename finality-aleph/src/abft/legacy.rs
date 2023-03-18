@@ -3,7 +3,7 @@ use log::debug;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::traits::Block;
 
-use super::common::unit_creation_delay_fn;
+use super::common::{unit_creation_delay_fn, MAX_ROUNDS};
 use crate::{
     abft::{NetworkWrapper, SpawnHandleT},
     data_io::{AlephData, OrderedDataInterpreter},
@@ -69,6 +69,6 @@ pub fn create_aleph_config(
 ) -> Config {
     let mut config = default_config(n_members.into(), node_id.into(), session_id.0 as u64);
     config.delay_config.unit_creation_delay = unit_creation_delay_fn(unit_creation_delay);
-
+    config.max_round = MAX_ROUNDS;
     config
 }
