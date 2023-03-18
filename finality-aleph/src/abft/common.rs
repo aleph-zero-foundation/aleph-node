@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use crate::{NodeIndex, SessionId, UnitCreationDelay};
 
-const MAX_ROUNDS: u16 = 7000;
+pub const MAX_ROUNDS: u16 = 7000;
 
 fn exponential_slowdown(
     t: usize,
