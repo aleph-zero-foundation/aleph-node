@@ -90,7 +90,7 @@ jobs:
           S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.vars.outputs.sha_short }}/aleph-runtime
           S3BUCKET_FILE: aleph-runtime-${{ steps.vars.outputs.sha_short }}.tar.gz
         run: |
-          aws s3 cp ${{ env.S3BUCKET_URL }}/${{ S3BUCKET_FILE }} ${{ env.S3BUCKET_FILE }}
+          aws s3 cp ${{ env.S3BUCKET_URL }}/${{ env.S3BUCKET_FILE }} ${{ env.S3BUCKET_FILE }}
 
       - name: RELEASE ASSET | Add runtime to the release
         uses: softprops/action-gh-release@v1
