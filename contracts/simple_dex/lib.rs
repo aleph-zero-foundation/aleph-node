@@ -27,6 +27,8 @@ mod simple_dex {
 
     type Event = <SimpleDex as ContractEventBase>::Type;
 
+    pub const LIQUIDITY_PROVIDER: [u8; 4] = [0x4C, 0x51, 0x54, 0x59];
+
     #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
     #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
     pub struct SwapPair {
@@ -211,7 +213,7 @@ mod simple_dex {
             let caller = self.env().caller();
 
             // check role, only designated account can add liquidity
-            self.check_role(caller, Role::LiquidityProvider(this))?;
+            self.check_role(caller, Role::Custom(this, LIQUIDITY_PROVIDER))?;
 
             deposits
                 .into_iter()
@@ -245,7 +247,7 @@ mod simple_dex {
             let caller = self.env().caller();
 
             // check role, only designated account can remove liquidity
-            self.check_role(caller, Role::LiquidityProvider(this))?;
+            self.check_role(caller, Role::Custom(this, LIQUIDITY_PROVIDER))?;
 
             withdrawals.into_iter().try_for_each(
                 |(token_out, amount)| -> Result<(), DexError> {
@@ -296,7 +298,7 @@ mod simple_dex {
 
         /// Sets access_control to a new contract address
         ///
-        /// Potentially very destructive, can only be called by the contract's Owner.
+        /// Potentially very destructive, can only be called by the contract's Admin.
         #[ink(message)]
         pub fn set_access_control(&mut self, access_control: AccountId) -> Result<(), DexError>
         where
@@ -305,7 +307,7 @@ mod simple_dex {
             let caller = self.env().caller();
             let this = self.env().account_id();
 
-            self.check_role(caller, Role::Owner(this))?;
+            self.check_role(caller, Role::Admin(this))?;
 
             self.access_control = AccessControlRef::from_account_id(access_control);
             Ok(())
@@ -361,12 +363,12 @@ mod simple_dex {
 
         /// Terminates the contract.
         ///
-        /// Can only be called by the contract's Owner.
+        /// Can only be called by the contract's Admin.
         #[ink(message)]
         pub fn terminate(&mut self) -> Result<(), DexError> {
             let caller = self.env().caller();
             let this = self.env().account_id();
-            self.check_role(caller, Role::Owner(this))?;
+            self.check_role(caller, Role::Admin(this))?;
             self.env().terminate_contract(caller)
         }
 

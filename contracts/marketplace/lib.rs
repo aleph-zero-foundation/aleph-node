@@ -241,12 +241,12 @@ pub mod marketplace {
 
         /// Terminates the contract
         ///
-        /// Should only be called by the contract Owner
+        /// Should only be called by the contract Admin
         #[ink(message)]
         pub fn terminate(&mut self) -> Result<(), Error> {
             let caller = self.env().caller();
             let this = self.env().account_id();
-            self.ensure_role(Role::Owner(this))?;
+            self.ensure_role(Role::Admin(this))?;
             self.env().terminate_contract(caller)
         }
 

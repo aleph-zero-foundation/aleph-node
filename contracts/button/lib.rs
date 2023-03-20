@@ -241,26 +241,42 @@ pub mod button_game {
 
         /// Sets new access control contract address
         ///
-        /// Should only be called by the contract owner
+        /// Should only be called by the contract Admin
         /// Implementing contract is responsible for setting up proper AccessControl
         #[ink(message)]
         pub fn set_access_control(&mut self, new_access_control: AccountId) -> ButtonResult<()> {
             let caller = self.env().caller();
             let this = self.env().account_id();
-            let required_role = Role::Owner(this);
+            let required_role = Role::Admin(this);
             ButtonGame::check_role(&self.access_control, caller, required_role)?;
             self.access_control = AccessControlRef::from_account_id(new_access_control);
             Ok(())
         }
 
+        /// Sets button lifetime to a new value
+        ///
+        /// Can only be called by the contract admin
+        #[ink(message)]
+        pub fn set_button_lifetime(
+            &mut self,
+            new_button_lifetime: BlockNumber,
+        ) -> ButtonResult<()> {
+            let caller = self.env().caller();
+            let this = self.env().account_id();
+            let required_role = Role::Admin(this);
+            ButtonGame::check_role(&self.access_control, caller, required_role)?;
+            self.button_lifetime = new_button_lifetime;
+            Ok(())
+        }
+
         /// Terminates the contract
         ///
-        /// Should only be called by the contract Owner
+        /// Should only be called by the contract Admin
         #[ink(message)]
         pub fn terminate(&mut self) -> ButtonResult<()> {
             let caller = self.env().caller();
             let this = self.env().account_id();
-            let required_role = Role::Owner(this);
+            let required_role = Role::Admin(this);
             ButtonGame::check_role(&self.access_control, caller, required_role)?;
             self.env().terminate_contract(caller)
         }

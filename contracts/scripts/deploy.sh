@@ -79,8 +79,8 @@ function deploy_ticket_token {
 
   cd "$CONTRACTS_PATH"/access_control
 
-  # set the admin and the owner of the contract instance
-  cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$AUTHORITY" 'Owner('"$contract_address"')' --suri "$AUTHORITY_SEED" --skip-confirm
+  # set the admin of the contract instance
+  cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$AUTHORITY" 'Admin('"$contract_address"')' --suri "$AUTHORITY_SEED" --skip-confirm
 
   eval $__resultvar="'$contract_address'"
 }
@@ -105,8 +105,8 @@ function deploy_game_token {
 
   cd "$CONTRACTS_PATH"/access_control
 
-  # set the owner of the contract instance
-  cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$AUTHORITY" 'Owner('"$contract_address"')' --suri "$AUTHORITY_SEED" --skip-confirm
+  # set the admin of the contract instance
+  cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$AUTHORITY" 'Admin('"$contract_address"')' --suri "$AUTHORITY_SEED" --skip-confirm
 
   eval "$__resultvar='$contract_address'"
 }
@@ -132,12 +132,14 @@ function deploy_button_game {
 
   cd "$CONTRACTS_PATH"/access_control
 
-  cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$AUTHORITY" 'Owner('"$contract_address"')' --suri "$AUTHORITY_SEED" --skip-confirm
+  cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$AUTHORITY" 'Admin('"$contract_address"')' --suri "$AUTHORITY_SEED" --skip-confirm
   if [ "$ENV_NAME" = "dev" ]; then
-    cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$AUTHORITY" 'Minter('"$game_token"')' --suri "$AUTHORITY_SEED" --skip-confirm
+    # grant minter role on the game token to the authority address
+    cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$AUTHORITY" 'Custom('"$game_token"',[0x4D,0x49,0x4E,0x54])' --suri "$AUTHORITY_SEED" --skip-confirm
   fi
   cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$contract_address" 'Admin('"$marketplace"')' --suri "$AUTHORITY_SEED" --skip-confirm
-  cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$contract_address" 'Minter('"$game_token"')' --suri "$AUTHORITY_SEED" --skip-confirm
+  # grant minter role on the game token to the contract
+  cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$contract_address" 'Custom('"$game_token"',[0x4D,0x49,0x4E,0x54])' --suri "$AUTHORITY_SEED" --skip-confirm
 
   eval "$__resultvar='$contract_address'"
 }
@@ -171,9 +173,9 @@ function deploy_marketplace {
 
   cd "$CONTRACTS_PATH"/access_control
 
-  cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$AUTHORITY" 'Owner('"$contract_address"')' --suri "$AUTHORITY_SEED" --skip-confirm
   cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$AUTHORITY" 'Admin('"$contract_address"')' --suri "$AUTHORITY_SEED" --skip-confirm
-  cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$contract_address" 'Burner('"$game_token"')' --suri "$AUTHORITY_SEED" --skip-confirm
+  # grant burner role on game token to the contract
+  cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$contract_address" 'Custom('"$game_token"',[0x42,0x55,0x52,0x4E])' --suri "$AUTHORITY_SEED" --skip-confirm
 
   eval "$__resultvar='$contract_address'"
 }
@@ -195,9 +197,9 @@ function deploy_simple_dex {
 
   cd "$CONTRACTS_PATH"/access_control
 
-  cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$AUTHORITY" 'Owner('"$contract_address"')' --suri "$AUTHORITY_SEED" --skip-confirm
   cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$AUTHORITY" 'Admin('"$contract_address"')' --suri "$AUTHORITY_SEED" --skip-confirm
-  cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$AUTHORITY" 'LiquidityProvider('"$contract_address"')' --suri "$AUTHORITY_SEED" --skip-confirm
+  # grant Liquidity Provider role to the authority
+  cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$AUTHORITY" 'Custom('"$contract_address"',[0x4C,0x51,0x54,0x59])' --suri "$AUTHORITY_SEED" --skip-confirm
 
   eval "$__resultvar='$contract_address'"
 }
@@ -228,7 +230,7 @@ function deploy_wrapped_azero {
 
   cd "$CONTRACTS_PATH"/access_control
 
-  cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$AUTHORITY" 'Owner('"$contract_address"')' --suri "$AUTHORITY_SEED" --skip-confirm
+  cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$AUTHORITY" 'Admin('"$contract_address"')' --suri "$AUTHORITY_SEED" --skip-confirm
 
   eval "$__resultvar='$contract_address'"
 }

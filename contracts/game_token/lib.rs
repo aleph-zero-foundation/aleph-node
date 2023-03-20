@@ -32,6 +32,9 @@ pub mod game_token {
     pub const MINT_SELECTOR: [u8; 4] = [0xfc, 0x3c, 0x75, 0xd4];
     pub const BURN_SELECTOR: [u8; 4] = [0x7a, 0x9d, 0xa5, 0x10];
 
+    pub const BURNER: [u8; 4] = [0x42, 0x55, 0x52, 0x4E];
+    pub const MINTER: [u8; 4] = [0x4D, 0x49, 0x4E, 0x54];
+
     #[ink(storage)]
     #[derive(Storage)]
     pub struct GameToken {
@@ -51,7 +54,7 @@ pub mod game_token {
         fn mint(&mut self, account: AccountId, amount: Balance) -> Result<()> {
             let caller = self.env().caller();
             let this = self.env().account_id();
-            let required_role = Role::Minter(this);
+            let required_role = Role::Custom(this, MINTER);
 
             self.check_role(caller, required_role)?;
             self._mint_to(account, amount)
@@ -63,7 +66,7 @@ pub mod game_token {
         fn burn(&mut self, account: AccountId, amount: Balance) -> Result<()> {
             let caller = self.env().caller();
             let this = self.env().account_id();
-            let required_role = Role::Burner(this);
+            let required_role = Role::Custom(this, BURNER);
 
             self.check_role(caller, required_role)?;
             self._burn_from(account, amount)
@@ -171,12 +174,12 @@ pub mod game_token {
 
         /// Terminates the contract.
         ///
-        /// can only be called by the contract's Owner
+        /// can only be called by the contract's Admin
         #[ink(message, selector = 7)]
         pub fn terminate(&mut self) -> Result<()> {
             let caller = self.env().caller();
             let this = self.env().account_id();
-            let required_role = Role::Owner(this);
+            let required_role = Role::Admin(this);
 
             self.check_role(caller, required_role)?;
             self.env().terminate_contract(caller)
@@ -198,12 +201,12 @@ pub mod game_token {
 
         /// Sets new access control contract address
         ///
-        /// Can only be called by the contract's Owner
+        /// Can only be called by the contract's Admin
         #[ink(message, selector = 9)]
         pub fn set_access_control(&mut self, access_control: AccountId) -> Result<()> {
             let caller = self.env().caller();
             let this = self.env().account_id();
-            let required_role = Role::Owner(this);
+            let required_role = Role::Admin(this);
 
             self.check_role(caller, required_role)?;
             self.access_control = AccessControlRef::from_account_id(access_control);

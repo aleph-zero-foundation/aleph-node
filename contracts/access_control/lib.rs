@@ -72,7 +72,6 @@ mod access_control {
             let caller = Self::env().caller();
             let this = Self::env().account_id();
             privileges.insert((caller, Role::Admin(this)), &());
-            privileges.insert((caller, Role::Owner(this)), &());
 
             Self { privileges }
         }
@@ -133,7 +132,7 @@ mod access_control {
         pub fn terminate(&mut self) -> Result<()> {
             let caller = self.env().caller();
             let this = self.env().account_id();
-            self.check_role(caller, Role::Owner(this))?;
+            self.check_role(caller, Role::Admin(this))?;
             self.env().terminate_contract(caller)
         }
 
@@ -187,12 +186,6 @@ mod access_control {
                 "deployer is not admin"
             );
 
-            // alice should be owner
-            assert!(
-                access_control.has_role(alice, Role::Owner(contract_address)),
-                "deployer is not owner"
-            );
-
             // alice grants admin rights to bob
             assert!(
                 access_control
@@ -215,6 +208,27 @@ mod access_control {
                     .grant_role(charlie, Role::Admin(contract_address))
                     .is_err(),
                 "grant_role should fail"
+            );
+
+            ink::env::test::set_caller::<ink::env::DefaultEnvironment>(alice);
+            ink::env::test::set_callee::<ink::env::DefaultEnvironment>(contract_address);
+            // alice gives a custom role to bob
+            assert!(
+                access_control
+                    .grant_role(
+                        bob,
+                        Role::Custom(contract_address, [0x43, 0x53, 0x54, 0x4D])
+                    )
+                    .is_ok(),
+                "custom grant_role should work"
+            );
+
+            assert!(
+                access_control.has_role(
+                    bob,
+                    Role::Custom(contract_address, [0x43, 0x53, 0x54, 0x4D])
+                ),
+                "bob should have a custom role"
             );
 
             // test terminating
