@@ -11,4 +11,4 @@ updates:
     schedule:
       interval: weekly
       day: sunday
-      rebase-strategy: disabled
+    rebase-strategy: disabled
