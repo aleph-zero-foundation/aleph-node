@@ -1,0 +1,53 @@
+---
+name: Main commit
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-node-and-runtime:
+    name: Build test node and runtime
+    uses: ./.github/workflows/_build-test-node-and-runtime.yml
+    secrets: inherit
+
+  build-test-node-image-and-e2e-client-image:
+    needs: [build-test-node-and-runtime]
+    uses: ./.github/workflows/_build-test-node-and-e2e-client-image.yml
+
+  run-e2e-button-contract-tests:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run e2e button game contract tests
+    runs-on: self-hosted
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          deploy-button: true
+          clean-button: true
+          test-case: button
+        timeout-minutes: 15
+
+  send-slack-notification:
+    name: Send Slack notification about workflow status
+    runs-on: ubuntu-20.04
+    needs: [run-e2e-button-contract-tests]
+    if: always()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Send Slack message
+        uses: ./.github/actions/slack-notification
+        with:
+          notify-on: "failure"
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_TEMP_GRAFANA_NOTIFICATIONS }}

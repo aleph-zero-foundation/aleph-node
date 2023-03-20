@@ -13,6 +13,7 @@ jobs:
     name: Build binary
     runs-on: self-hosted
     strategy:
+      max-parallel: 1
       matrix:
         runtime: [standard, liminal]
       fail-fast: false

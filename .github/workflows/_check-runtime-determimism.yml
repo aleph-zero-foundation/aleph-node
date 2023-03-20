@@ -1,0 +1,40 @@
+---
+# This workflow checks runtime determinism, ie it downloads production runtime from artifacts
+# and compiles again production runtime from sources, and compares both files checksums
+name: Build test node image and e2e client image
+on:
+  workflow_call:
+
+jobs:
+  main:
+    name: Verify runtime build determinism
+    runs-on: self-hosted
+    env:
+      RUST_BACKTRACE: full
+      RUSTC_WRAPPER: sccache
+    steps:
+      - name: Checkout aleph-node source code
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+
+      - name: Install WASM target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Download production runtime from artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: aleph-release-runtime
+
+      - name: Build runtime 2nd time and compare checksum with previous build
+        env:
+          ARTIFACT: aleph_runtime.compact.wasm
+          TARGET_DIR: target/production/wbuild/aleph-runtime
+        run: |
+          mkdir -p "$TARGET_DIR"
+          mv "$ARTIFACT" "$TARGET_DIR"
+          sha256sum "$TARGET_DIR/$ARTIFACT" > checksum.sha256
+          cargo clean
+          cargo build --profile production -p aleph-runtime
+          sha256sum -c checksum.sha256

@@ -1,6 +1,6 @@
 ---
-name: Release branch workflows check
-description: Checks if deployment workflows on release and main branches are identical
+#  Checks if deployment workflows on release and main branches are identical
+name: Release branch commit
 
 on:
   push:

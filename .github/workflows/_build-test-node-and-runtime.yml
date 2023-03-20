@@ -1,0 +1,98 @@
+---
+#  This workflow builds test version of aleph-node and aleph-runtime, ie with some
+#  features enabled. Those binaries MUST NOT be used in the production.
+name: Build test node and runtime
+on:
+  workflow_call:
+
+jobs:
+  main:
+    name: Build test node and runtime
+    runs-on: self-hosted
+    env:
+      RUST_BACKTRACE: full
+      RUSTC_WRAPPER: sccache
+      SECRETS_AWS_MAINNET_ACCESS_KEY_ID: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+      SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+      SECRETS_AWS_DEVNET_ACCESS_KEY_ID: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
+      SECRETS_AWS_DEVNET_SECRET_ACCESS_KEY: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Checkout aleph-node source code
+        uses: actions/checkout@v3
+
+      - name: Call action get-ref-properties
+        id: get-ref-properties
+        uses: ./.github/actions/get-ref-properties
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+
+      - name: Install WASM target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Build test binary and runtime
+        run: |
+          cargo build --release -p aleph-node \
+          --features "short_session enable_treasury_proposals only_legacy"
+
+      - name: Upload test binary to GH Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: aleph-test-node
+          path: target/release/aleph-node
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload test runtime to GH Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: aleph-test-runtime
+          path: target/release/wbuild/aleph-runtime/aleph_runtime.compact.wasm
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Configure AWS credentials for S3 Mainnet AWS
+        if: >
+          env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' &&
+          env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
+        uses: aws-actions/configure-aws-credentials@v1
+        env:
+          AWS_ACCESS_KEY_ID: ""
+          AWS_SECRET_ACCESS_KEY: ""
+          AWS_SESSION_TOKEN: ""
+          AWS_DEFAULT_REGION: ""
+          AWS_REGION: us-east-1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Copy test binary to S3 Mainnet AWS bucket
+        if: >
+          env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' &&
+          env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
+        shell: bash
+        env:
+          BINARY_DIR: target/release
+          BINARY_FILE: aleph-node
+          # yamllint disable-line rule:line-length
+          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-test-node
+          S3BUCKET_FILE: aleph-test-node-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
+        run: |
+          tar -cvzf ${{ env.S3BUCKET_FILE }} -C ${{ env.BINARY_DIR }} ${{ env.BINARY_FILE }}
+          aws s3 cp ${{ env.S3BUCKET_FILE }} ${{ env.S3BUCKET_URL }}/${{ env.S3BUCKET_FILE }}
+
+      - name: Copy test runtime to S3 Mainnet AWS bucket
+        if: >
+          env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' &&
+          env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
+        shell: bash
+        env:
+          BINARY_DIR: target/release/wbuild/aleph-runtime
+          BINARY_FILE: aleph_runtime.compact.wasm
+          # yamllint disable-line rule:line-length
+          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-test-runtime
+          S3BUCKET_FILE: aleph-test-runtime-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
+        run: |
+          tar -cvzf ${{ env.S3BUCKET_FILE }} -C ${{ env.BINARY_DIR }} ${{ env.BINARY_FILE }}
+          aws s3 cp ${{ env.S3BUCKET_FILE }} ${{ env.S3BUCKET_URL }}/${{ env.S3BUCKET_FILE }}

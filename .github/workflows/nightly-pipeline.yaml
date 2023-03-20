@@ -12,7 +12,7 @@ concurrency:
 jobs:
   build-new-node:
     name: Build node and runtime artifacts (PR version)
-    uses: ./.github/workflows/build-node-and-runtime.yml
+    uses: ./.github/workflows/_build-production-node-and-runtime.yml
     secrets: inherit
 
   build-test-docker:

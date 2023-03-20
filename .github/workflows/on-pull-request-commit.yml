@@ -1,0 +1,521 @@
+---
+name: PR commit
+
+on:
+  pull_request:
+    branches:
+      - main
+      - 'release-*'
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  check-excluded-packages:
+    name: Check excluded packages
+    uses: ./.github/workflows/_check-excluded-packages.yml
+
+  unit-tests-and-static-checks:
+    name: Unit tests and clippy
+    uses: ./.github/workflows/_unit-tests-and-static-checks.yml
+
+  build-production-node-and-runtime:
+    name: Build production node and runtime
+    uses: ./.github/workflows/_build-production-node-and-runtime.yml
+    secrets: inherit
+
+  check-runtime-determinism:
+    needs: [build-production-node-and-runtime]
+    uses: ./.github/workflows/_check-runtime-determimism.yml
+
+  build-test-node-and-runtime:
+    name: Build test node and runtime
+    uses: ./.github/workflows/_build-test-node-and-runtime.yml
+    secrets: inherit
+
+  build-test-node-image-and-e2e-client-image:
+    needs: [build-test-node-and-runtime]
+    uses: ./.github/workflows/_build-test-node-and-e2e-client-image.yml
+
+  run-e2e-finalization-test:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run e2e finalization test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: finalization::finalization
+        timeout-minutes: 2
+
+
+  run-e2e-rewards-disable-node-test:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run e2e reward points - disable node test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: rewards::disable_node
+          follow-up-finalization-check: true
+        timeout-minutes: 15
+
+
+  run-e2e-token-transfer-test:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run e2e token transfer test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: token_transfer
+        timeout-minutes: 3
+
+
+  run-e2e-channeling-fee-test:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run e2e channeling fee test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: channeling_fee_and_tip
+        timeout-minutes: 4
+
+  run-e2e-treasury-access-test:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run e2e treasury access test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: treasury_access
+        timeout-minutes: 4
+
+
+  run-e2e-batch-transactions-test:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run e2e batch transactions test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: batch_transactions
+        timeout-minutes: 4
+
+
+  run-e2e-staking-era-payouts-test:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run e2e staking era payouts test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: staking_era_payouts
+          follow-up-finalization-check: true
+        timeout-minutes: 15
+
+
+  run-e2e-staking-new-validator-test:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run e2e staking new validator test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: staking_new_validator
+          follow-up-finalization-check: true
+        timeout-minutes: 10
+
+
+  run-e2e-change-validators-test:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run e2e change validators test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: change_validators
+          follow-up-finalization-check: true
+        timeout-minutes: 3
+
+  run-e2e-validators-rotate:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run validators rotation test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: validators_rotate
+          follow-up-finalization-check: true
+        timeout-minutes: 10
+
+  run-e2e-era-payout:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run era payout test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: era_payout::era_payout
+          follow-up-finalization-check: true
+        timeout-minutes: 10
+
+  run-e2e-era-validators:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run era validators test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: era_validators
+          follow-up-finalization-check: true
+        timeout-minutes: 10
+
+  run-e2e-rewards-force-new-era:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run force new era test to check rewards
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: rewards::force_new_era
+          follow-up-finalization-check: true
+        timeout-minutes: 10
+
+  run-e2e-rewards-stake-change:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run reward points with stake changed test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: rewards::points_stake_change
+          follow-up-finalization-check: true
+        timeout-minutes: 10
+
+  run-e2e-rewards-change-stake-force-new-era:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run reward points with stake changed and new era forced test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: rewards::change_stake_and_force_new_era
+          follow-up-finalization-check: true
+        timeout-minutes: 10
+
+  run-e2e-rewards-points-basic:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run basic reward points calculation test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: points_basic
+          follow-up-finalization-check: true
+        timeout-minutes: 10
+
+  run-e2e-authorities-are-staking:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run authorities are staking test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: authorities_are_staking
+          node-count: 6
+          reserved-seats: 3
+          non-reserved-seats: 3
+          follow-up-finalization-check: true
+        timeout-minutes: 15
+
+  run-e2e-ban-automatic:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run ban automatic test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: ban_automatic
+          follow-up-finalization-check: true
+        timeout-minutes: 15
+
+  run-e2e-ban-manual:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run ban manual test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: ban_manual
+          follow-up-finalization-check: true
+        timeout-minutes: 15
+
+  run-e2e-ban-counter-clearing:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run ban counter clearing test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: clearing_session_count
+          follow-up-finalization-check: true
+        timeout-minutes: 15
+
+  run-e2e-ban-threshold:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run ban threshold test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: ban_threshold
+          follow-up-finalization-check: true
+        timeout-minutes: 15
+
+  run-e2e-permissionless-ban:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run permissionless ban test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: permissionless_ban
+          follow-up-finalization-check: true
+        timeout-minutes: 15
+
+  run-e2e-version-upgrade:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run basic (positive) version-upgrade test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: finality_version::schedule_version_change
+        env:
+          UPGRADE_VERSION: 1
+          UPGRADE_SESSION: 3
+          UPGRADE_FINALIZATION_WAIT_SESSIONS: 2
+        timeout-minutes: 10
+
+  run-e2e-adder-contract-test:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run e2e adder contract test
+    runs-on: self-hosted
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+
+      - name: Install rust-src
+        working-directory: ./contracts
+        run: rustup component add rust-src
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          deploy-adder: true
+          test-case: adder
+        timeout-minutes: 10
+
+  run-e2e-finality-version-change:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run finality version change test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: finality_version::finality_version_change
+          follow-up-finalization-check: true
+        timeout-minutes: 10
+
+  check-e2e-test-suite-completion:
+    needs: [
+      run-e2e-finalization-test,
+      run-e2e-rewards-disable-node-test,
+      run-e2e-token-transfer-test,
+      run-e2e-channeling-fee-test,
+      run-e2e-treasury-access-test,
+      run-e2e-batch-transactions-test,
+      run-e2e-staking-era-payouts-test,
+      run-e2e-staking-new-validator-test,
+      run-e2e-change-validators-test,
+      run-e2e-validators-rotate,
+      run-e2e-era-payout,
+      run-e2e-era-validators,
+      run-e2e-rewards-force-new-era,
+      run-e2e-rewards-stake-change,
+      run-e2e-rewards-change-stake-force-new-era,
+      run-e2e-rewards-points-basic,
+      run-e2e-authorities-are-staking,
+      run-e2e-ban-automatic,
+      run-e2e-ban-manual,
+      run-e2e-ban-counter-clearing,
+      run-e2e-ban-threshold,
+      run-e2e-version-upgrade,
+      run-e2e-permissionless-ban,
+      run-e2e-finality-version-change,
+      run-e2e-adder-contract-test,
+    ]
+    name: Check e2e test suite completion
+    runs-on: ubuntu-20.04
+    steps:
+      - name: All e2e tests completed
+        run: echo "All e2e tests completed."
+
+  test-catch-up:
+    name: Test catching up
+    if: false
+    runs-on: ubuntu-20.04
+    needs: build-test-node-and-runtime
+    strategy:
+      matrix:
+        pruning: ['', '--state-pruning 90']
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: local-tests/
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: Test catch up
+        timeout-minutes: 10
+        env:
+          # Relative to local-tests/ directory
+          ALEPH_NODE_BINARY: aleph-test-node/aleph-node
+        run: ./.github/scripts/test_catch_up.sh ${{ matrix.pruning }}
+
+  test-multiple-restarts:
+    name: Test multiple restarts
+    if: false
+    runs-on: ubuntu-20.04
+    needs: build-test-node-and-runtime
+    strategy:
+      matrix:
+        pruning: ['', '--state-pruning 2048']
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: local-tests/
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: Test multiple restarts
+        timeout-minutes: 10
+        env:
+          # Relative to local-tests/ directory
+          ALEPH_NODE_BINARY: aleph-test-node/aleph-node
+        run: ./.github/scripts/test_multiple_restarts.sh ${{ matrix.pruning }}

@@ -1,0 +1,57 @@
+---
+#  This workflow builds docker from aleph-node test binary and docker from e2e client binary
+name: Build test node image and e2e client image
+on:
+  workflow_call:
+
+jobs:
+  build-test-node-image-and-e2e-client-image:
+    name: Build test node docker image and e2e client image
+    runs-on: self-hosted
+    env:
+      RUST_BACKTRACE: full
+      RUSTC_WRAPPER: sccache
+    steps:
+      - name: Checkout Source code
+        uses: actions/checkout@v3
+
+      - name: Download test artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: aleph-test-node
+          path: target/release/
+
+      - name: Build test docker image
+        id: build-image
+        run: |
+          chmod +x target/release/aleph-node
+          docker build --tag aleph-node:latest -f ./docker/Dockerfile .
+          docker save -o aleph-node.tar aleph-node:latest
+
+      - name: Upload test docker image
+        uses: actions/upload-artifact@v2
+        with:
+          name: aleph-test-docker
+          path: aleph-node.tar
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1
+
+      - name: Build binary and docker image
+        run: |
+          cd e2e-tests/
+          rm -f target/release/deps/aleph_e2e_client*
+          cp $(cargo test --no-run --release --message-format=json | jq -r .executable | \
+            grep aleph_e2e_client) target/release/aleph-e2e-client
+          docker build --tag aleph-e2e-client:latest -f Dockerfile .
+          docker save -o aleph-e2e-client.tar aleph-e2e-client:latest
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: aleph-e2e-client
+          path: e2e-tests/aleph-e2e-client.tar
+          if-no-files-found: error
+          retention-days: 7
