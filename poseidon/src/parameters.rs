@@ -1,7 +1,7 @@
 //! This file was generated using `generate_parameters.rs`, do not edit it manually!
 
 use ark_ff::{vec, PrimeField};
-use poseidon_parameters::{
+use liminal_ark_pnbr_poseidon_parameters::{
     Alpha, ArcMatrix, Matrix, MatrixOperations, MdsMatrix, OptimizedArcMatrix,
     OptimizedMdsMatrices, PoseidonParameters, RoundNumbers, SquareMatrix,
 };

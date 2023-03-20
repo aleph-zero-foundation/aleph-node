@@ -715,24 +715,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ark-sponge"
-version = "0.3.0"
-source = "git+https://github.com/penumbra-zone/sponge?branch=r1cs#113469aef48a9c5f458dbf523a509d4769affbf2"
-dependencies = [
- "ark-ec",
- "ark-ff",
- "ark-nonnative-field",
- "ark-r1cs-std",
- "ark-relations",
- "ark-serialize",
- "ark-std",
- "derivative",
- "digest 0.9.0",
- "rand_chacha 0.3.1",
- "tracing",
-]
-
-[[package]]
 name = "ark-std"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4586,6 +4568,64 @@ dependencies = [
 ]
 
 [[package]]
+name = "liminal-ark-pnbr-poseidon-parameters"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8723da56ab98f2182cbd27b9c510ca3c7f7bd616a56ca0e6b8f1b4bbc2c5f2ee"
+dependencies = [
+ "anyhow",
+ "ark-ff",
+ "num-integer",
+]
+
+[[package]]
+name = "liminal-ark-pnbr-poseidon-paramgen"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1e7de36eb888e7ba29bcc4dcd664db0df190f073e807baa230054abbbadaf6d"
+dependencies = [
+ "anyhow",
+ "ark-ff",
+ "ark-std",
+ "getrandom 0.2.8",
+ "liminal-ark-pnbr-poseidon-parameters",
+ "merlin 3.0.0",
+ "num",
+ "num-bigint",
+ "rand_core 0.6.4",
+]
+
+[[package]]
+name = "liminal-ark-pnbr-poseidon-permutation"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc0419b780a13b09a1ed2db09c6c61752f24e5f341f77a93719cd8bc963b72d3"
+dependencies = [
+ "ark-ff",
+ "ark-std",
+ "liminal-ark-pnbr-poseidon-parameters",
+]
+
+[[package]]
+name = "liminal-ark-pnbr-sponge"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6c178b0470950ac7fb73646df0f6ef60452d7b0fb0819e41dbe66674abc622f"
+dependencies = [
+ "ark-ec",
+ "ark-ff",
+ "ark-nonnative-field",
+ "ark-r1cs-std",
+ "ark-relations",
+ "ark-serialize",
+ "ark-std",
+ "derivative",
+ "digest 0.9.0",
+ "rand_chacha 0.3.1",
+ "tracing",
+]
+
+[[package]]
 name = "liminal-ark-poseidon"
 version = "0.1.0"
 dependencies = [
@@ -4593,11 +4633,11 @@ dependencies = [
  "ark-ff",
  "ark-r1cs-std",
  "ark-relations",
- "ark-sponge",
+ "liminal-ark-pnbr-poseidon-parameters",
+ "liminal-ark-pnbr-poseidon-paramgen",
+ "liminal-ark-pnbr-poseidon-permutation",
+ "liminal-ark-pnbr-sponge",
  "paste",
- "poseidon-parameters",
- "poseidon-paramgen",
- "poseidon-permutation",
 ]
 
 [[package]]
@@ -6252,42 +6292,6 @@ dependencies = [
  "cpufeatures",
  "opaque-debug 0.3.0",
  "universal-hash 0.5.0",
-]
-
-[[package]]
-name = "poseidon-parameters"
-version = "0.1.0"
-source = "git+https://github.com/penumbra-zone/poseidon377?rev=50699746#50699746c031a915d5434088a1240f4b568d9ee8"
-dependencies = [
- "anyhow",
- "ark-ff",
- "num-integer",
-]
-
-[[package]]
-name = "poseidon-paramgen"
-version = "0.1.1"
-source = "git+https://github.com/penumbra-zone/poseidon377?rev=50699746#50699746c031a915d5434088a1240f4b568d9ee8"
-dependencies = [
- "anyhow",
- "ark-ff",
- "ark-std",
- "getrandom 0.2.8",
- "merlin 3.0.0",
- "num",
- "num-bigint",
- "poseidon-parameters",
- "rand_core 0.6.4",
-]
-
-[[package]]
-name = "poseidon-permutation"
-version = "0.1.1"
-source = "git+https://github.com/penumbra-zone/poseidon377?rev=50699746#50699746c031a915d5434088a1240f4b568d9ee8"
-dependencies = [
- "ark-ff",
- "ark-std",
- "poseidon-parameters",
 ]
 
 [[package]]

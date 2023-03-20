@@ -9,7 +9,7 @@ use std::{
 
 use ark_bls12_381::{Fr, FrParameters};
 use ark_ff::{fields::FpParameters, vec};
-use poseidon_paramgen::poseidon_build;
+use liminal_ark_pnbr_poseidon_paramgen::poseidon_build;
 
 fn main() {
     let security_level = match env::var("SECURITY_LEVEL") {

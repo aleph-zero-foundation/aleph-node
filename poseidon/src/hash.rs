@@ -11,7 +11,7 @@ macro_rules! n_to_one {
             #[doc = ":1 Poseidon hash of `input`."]
             pub fn [<$n_as_word _to_one_hash>] (input: [Fr; $n]) -> Fr {
                 let parameters = [<rate_ $n>]::<Fr>();
-                let mut state = poseidon_permutation::Instance::new(&parameters);
+                let mut state = liminal_ark_pnbr_poseidon_permutation::Instance::new(&parameters);
                 state.n_to_1_fixed_hash([ark_ff::vec![domain_separator()], input.to_vec()].concat())
             }
         }

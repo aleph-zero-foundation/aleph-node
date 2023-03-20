@@ -1,12 +1,12 @@
 use ark_bls12_381::Fr;
 use ark_r1cs_std::prelude::AllocVar;
 use ark_relations::r1cs::{ConstraintSystemRef, SynthesisError};
-use ark_sponge::{
+use liminal_ark_pnbr_poseidon_parameters::{Alpha, PoseidonParameters};
+use liminal_ark_pnbr_sponge::{
     constraints::CryptographicSpongeVar,
     poseidon::{constraints::PoseidonSpongeVar, PoseidonParameters as ArkSpongePoseidonParameters},
 };
 use paste::paste;
-use poseidon_parameters::{Alpha, PoseidonParameters};
 
 use crate::{domain_separator, parameters::*};
 
