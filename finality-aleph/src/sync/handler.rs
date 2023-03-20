@@ -198,13 +198,10 @@ impl<I: PeerId, J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finaliz
     fn handle_verified_justification(
         &mut self,
         justification: J,
-        peer: I,
+        peer: Option<I>,
     ) -> Result<Option<BlockIdFor<J>>, Error<J, CS, V, F>> {
         let id = justification.header().id();
-        let maybe_id = match self
-            .forest
-            .update_justification(justification, Some(peer))?
-        {
+        let maybe_id = match self.forest.update_justification(justification, peer)? {
             true => Some(id),
             false => None,
         };
@@ -263,7 +260,7 @@ impl<I: PeerId, J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finaliz
     pub fn handle_justification(
         &mut self,
         justification: J::Unverified,
-        peer: I,
+        peer: Option<I>,
     ) -> Result<Option<BlockIdFor<J>>, Error<J, CS, V, F>> {
         let justification = self
             .verifier
@@ -304,14 +301,14 @@ impl<I: PeerId, J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finaliz
         match local_session.0.checked_sub(remote_session.0) {
             // remote session number larger than ours, we can try to import the justification
             None => Ok(self
-                .handle_justification(state.top_justification(), peer)?
+                .handle_justification(state.top_justification(), Some(peer))?
                 .map(SyncAction::Task)
                 .unwrap_or(SyncAction::Noop)),
             // same session
             Some(0) => match remote_top_number >= local_top_number {
                 // remote top justification higher than ours, we can import the justification
                 true => Ok(self
-                    .handle_justification(state.top_justification(), peer)?
+                    .handle_justification(state.top_justification(), Some(peer))?
                     .map(SyncAction::Task)
                     .unwrap_or(SyncAction::Noop)),
                 // remote top justification lower than ours, we can send a response
@@ -402,7 +399,7 @@ mod tests {
         let peer = rand::random();
         assert!(matches!(
             handler
-                .handle_justification(justification.clone().into_unverified(), peer)
+                .handle_justification(justification.clone().into_unverified(), Some(peer))
                 .expect("correct justification"),
             None
         ));
@@ -430,7 +427,7 @@ mod tests {
         // should be auto-finalized, if Forest knows about imported body
         assert!(matches!(
             handler
-                .handle_justification(justification.clone().into_unverified(), peer)
+                .handle_justification(justification.clone().into_unverified(), Some(peer))
                 .expect("correct justification"),
             None
         ));
@@ -468,7 +465,7 @@ mod tests {
         let justification = MockJustification::for_header(header.clone());
         let peer = rand::random();
         match handler
-            .handle_justification(justification.clone().into_unverified(), peer)
+            .handle_justification(justification.clone().into_unverified(), Some(peer))
             .expect("correct justification")
         {
             Some(id) => assert_eq!(id, header.id()),
@@ -497,7 +494,7 @@ mod tests {
                 .block_imported(justification.header().clone())
                 .expect("importing in order");
             handler
-                .handle_justification(justification.clone().into_unverified(), peer)
+                .handle_justification(justification.clone().into_unverified(), Some(peer))
                 .expect("correct justification");
         }
         match handler
@@ -534,7 +531,7 @@ mod tests {
                 .block_imported(justification.header().clone())
                 .expect("importing in order");
             handler
-                .handle_justification(justification.clone().into_unverified(), peer)
+                .handle_justification(justification.clone().into_unverified(), Some(peer))
                 .expect("correct justification");
         }
         match handler
@@ -570,7 +567,7 @@ mod tests {
                 .block_imported(justification.header().clone())
                 .expect("importing in order");
             handler
-                .handle_justification(justification.clone().into_unverified(), peer)
+                .handle_justification(justification.clone().into_unverified(), Some(peer))
                 .expect("correct justification");
         }
         match handler
@@ -609,7 +606,7 @@ mod tests {
             // justifications right before the last will be skipped in response
             if number % 20 < 10 || number % 20 > 14 {
                 handler
-                    .handle_justification(justification.clone().into_unverified(), peer)
+                    .handle_justification(justification.clone().into_unverified(), Some(peer))
                     .expect("correct justification");
             }
         }

@@ -1,5 +1,6 @@
 use std::{collections::HashSet, iter, time::Duration};
 
+use futures::{channel::mpsc, StreamExt};
 use log::{error, warn};
 use tokio::time::interval;
 
@@ -14,7 +15,7 @@ use crate::{
         task_queue::TaskQueue,
         ticker::Ticker,
         BlockIdFor, BlockIdentifier, ChainStatus, ChainStatusNotification, ChainStatusNotifier,
-        Finalizer, Header, Justification, Verifier, LOG_TARGET,
+        Finalizer, Header, Justification, JustificationSubmissions, Verifier, LOG_TARGET,
     },
     SessionPeriod,
 };
@@ -38,6 +39,15 @@ pub struct Service<
     tasks: TaskQueue<BlockIdFor<J>>,
     broadcast_ticker: Ticker,
     chain_events: CE,
+    justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
+}
+
+impl<J: Justification> JustificationSubmissions<J> for mpsc::UnboundedSender<J::Unverified> {
+    type Error = mpsc::TrySendError<J::Unverified>;
+
+    fn submit(&mut self, justification: J::Unverified) -> Result<(), Self::Error> {
+        self.unbounded_send(justification)
+    }
 }
 
 impl<
@@ -49,7 +59,8 @@ impl<
         F: Finalizer<J>,
     > Service<J, N, CE, CS, V, F>
 {
-    /// Create a new service using the provided network for communication.
+    /// Create a new service using the provided network for communication. Also returns an
+    /// interface for submitting additional justifications.
     pub fn new(
         network: N,
         chain_events: CE,
@@ -57,18 +68,23 @@ impl<
         verifier: V,
         finalizer: F,
         period: SessionPeriod,
-    ) -> Result<Self, HandlerError<J, CS, V, F>> {
+    ) -> Result<(Self, impl JustificationSubmissions<J>), HandlerError<J, CS, V, F>> {
         let network = VersionWrapper::new(network);
         let handler = Handler::new(chain_status, verifier, finalizer, period)?;
         let tasks = TaskQueue::new();
         let broadcast_ticker = Ticker::new(BROADCAST_PERIOD, BROADCAST_COOLDOWN);
-        Ok(Service {
-            network,
-            handler,
-            tasks,
-            broadcast_ticker,
-            chain_events,
-        })
+        let (justifications_for_sync, justifications_from_user) = mpsc::unbounded();
+        Ok((
+            Service {
+                network,
+                handler,
+                tasks,
+                broadcast_ticker,
+                chain_events,
+                justifications_from_user,
+            },
+            justifications_for_sync,
+        ))
     }
 
     fn backup_request(&mut self, block_id: BlockIdFor<J>) {
@@ -153,7 +169,7 @@ impl<
         for justification in justifications {
             let maybe_block_id = match self
                 .handler
-                .handle_justification(justification, peer.clone())
+                .handle_justification(justification, Some(peer.clone()))
             {
                 Ok(maybe_id) => maybe_id,
                 Err(e) => {
@@ -265,6 +281,17 @@ impl<
                 maybe_event = self.chain_events.next() => match maybe_event {
                     Ok(chain_event) => self.handle_chain_event(chain_event),
                     Err(e) => warn!(target: LOG_TARGET, "Error when receiving a chain event: {}.", e),
+                },
+                maybe_justification = self.justifications_from_user.next() => match maybe_justification {
+                    // The block will be imported independently due to `JustificationSubmissions` requirements.
+                    // Therefore, we do not create a task requesting the block from peers.
+                    Some(justification) => if let Err(e) = self.handler.handle_justification(justification, None) {
+                        warn!(
+                            target: LOG_TARGET,
+                            "Error while handling justification from user: {}.", e
+                        );
+                    },
+                    None => warn!(target: LOG_TARGET, "Channel with justifications from user closed."),
                 },
                 _ = stall_ticker.tick() => {
                     match self.handler.state() {
