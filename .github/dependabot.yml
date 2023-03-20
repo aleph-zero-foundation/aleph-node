@@ -10,4 +10,5 @@ updates:
     directory: /
     schedule:
       interval: weekly
-
+      day: sunday
+      rebase-strategy: disabled
