@@ -1,5 +1,6 @@
 use std::time::{Duration, Instant};
 
+use aleph_primitives::BlockNumber;
 use futures::{channel::mpsc, Stream, StreamExt};
 use futures_timer::Delay;
 use log::{debug, error};
@@ -19,6 +20,7 @@ use crate::{
 pub struct JustificationHandler<B, V, RB, S, SI, F, BB>
 where
     B: BlockT,
+    B::Header: Header<Number = BlockNumber>,
     V: Verifier<B>,
     RB: network::RequestBlocks<B> + 'static,
     S: JustificationRequestScheduler,
@@ -35,6 +37,7 @@ where
 impl<B, V, RB, S, SI, F, BB> JustificationHandler<B, V, RB, S, SI, F, BB>
 where
     B: BlockT,
+    B::Header: Header<Number = BlockNumber>,
     V: Verifier<B>,
     RB: network::RequestBlocks<B> + 'static,
     S: JustificationRequestScheduler,
@@ -83,7 +86,7 @@ where
                 current_session,
             } = self
                 .session_info_provider
-                .for_block_num(last_finalized_number + 1u32.into())
+                .for_block_num(last_finalized_number + 1)
                 .await;
             if verifier.is_none() {
                 debug!(target: "aleph-justification", "Verifier for session {:?} not yet available. Waiting {}ms and will try again ...", current_session, self.verifier_timeout.as_millis());

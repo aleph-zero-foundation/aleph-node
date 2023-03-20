@@ -1,8 +1,9 @@
+use aleph_primitives::BlockNumber;
 use futures::channel::oneshot;
 use log::debug;
 use sc_client_api::HeaderBackend;
 use sp_consensus::SelectChain;
-use sp_runtime::traits::Block;
+use sp_runtime::traits::{Block, Header};
 
 use crate::{
     abft::SpawnHandleT,
@@ -17,6 +18,7 @@ pub fn task<B, SC, C>(
 ) -> Task
 where
     B: Block,
+    B::Header: Header<Number = BlockNumber>,
     C: HeaderBackend<B> + 'static,
     SC: SelectChain<B> + 'static,
 {

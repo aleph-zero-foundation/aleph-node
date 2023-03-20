@@ -1,10 +1,10 @@
 use std::{fmt, marker::PhantomData, time::Instant};
 
-use aleph_primitives::ALEPH_ENGINE_ID;
+use aleph_primitives::{BlockNumber, ALEPH_ENGINE_ID};
 use log::{debug, error, info, warn};
 use sc_client_api::blockchain::Info;
 use sp_api::{BlockId, BlockT, NumberFor};
-use sp_runtime::traits::{Header, One, Saturating};
+use sp_runtime::traits::{Header, One};
 
 use crate::{
     finalization::BlockFinalizer,
@@ -100,6 +100,7 @@ impl<B: BlockT> fmt::Display for JustificationRequestStatus<B> {
 pub struct BlockRequester<B, RB, S, F, V, BB>
 where
     B: BlockT,
+    B::Header: Header<Number = BlockNumber>,
     RB: network::RequestBlocks<B> + 'static,
     S: JustificationRequestScheduler,
     F: BlockFinalizer<B>,
@@ -118,6 +119,7 @@ where
 impl<B, RB, S, F, V, BB> BlockRequester<B, RB, S, F, V, BB>
 where
     B: BlockT,
+    B::Header: Header<Number = BlockNumber>,
     RB: network::RequestBlocks<B> + 'static,
     S: JustificationRequestScheduler,
     F: BlockFinalizer<B>,

@@ -8,7 +8,6 @@ use futures::{
     },
     StreamExt,
 };
-use sp_api::NumberFor;
 use sp_core::hash::H256;
 use sp_runtime::traits::Block as BlockT;
 use tokio::time::timeout;
@@ -19,28 +18,28 @@ use crate::{
         data::{component::Network as ComponentNetwork, Network as DataNetwork},
         Data, RequestBlocks,
     },
-    session::{SessionBoundaries, SessionId, SessionPeriod},
+    session::{SessionBoundaries, SessionBoundaryInfo, SessionId, SessionPeriod},
     testing::{
         client_chain_builder::ClientChainBuilder,
         mocks::{
-            aleph_data_from_blocks, aleph_data_from_headers, TBlock, THeader, TestClientBuilder,
-            TestClientBuilderExt,
+            aleph_data_from_blocks, aleph_data_from_headers, TBlock, THash, THeader,
+            TestClientBuilder, TestClientBuilderExt,
         },
     },
     BlockHashNum, Recipient,
 };
 
 #[derive(Clone)]
-struct TestBlockRequester<B: BlockT> {
-    blocks: UnboundedSender<BlockHashNum<B>>,
-    justifications: UnboundedSender<BlockHashNum<B>>,
+struct TestBlockRequester {
+    blocks: UnboundedSender<BlockHashNum<TBlock>>,
+    justifications: UnboundedSender<BlockHashNum<TBlock>>,
 }
 
-impl<B: BlockT> TestBlockRequester<B> {
+impl TestBlockRequester {
     fn new() -> (
         Self,
-        UnboundedReceiver<BlockHashNum<B>>,
-        UnboundedReceiver<BlockHashNum<B>>,
+        UnboundedReceiver<BlockHashNum<TBlock>>,
+        UnboundedReceiver<BlockHashNum<TBlock>>,
     ) {
         let (blocks_tx, blocks_rx) = mpsc::unbounded();
         let (justifications_tx, justifications_rx) = mpsc::unbounded();
@@ -55,14 +54,14 @@ impl<B: BlockT> TestBlockRequester<B> {
     }
 }
 
-impl<B: BlockT> RequestBlocks<B> for TestBlockRequester<B> {
-    fn request_justification(&self, hash: &B::Hash, number: NumberFor<B>) {
+impl RequestBlocks<TBlock> for TestBlockRequester {
+    fn request_justification(&self, hash: &THash, number: BlockNumber) {
         self.justifications
             .unbounded_send((*hash, number).into())
             .unwrap();
     }
 
-    fn request_stale_block(&self, hash: B::Hash, number: NumberFor<B>) {
+    fn request_stale_block(&self, hash: THash, number: BlockNumber) {
         self.blocks.unbounded_send((hash, number).into()).unwrap();
     }
 
@@ -170,7 +169,7 @@ impl TestHandler {
 }
 
 fn prepare_data_store(
-    session_boundaries: Option<SessionBoundaries<TBlock>>,
+    session_boundaries: Option<SessionBoundaries>,
 ) -> (impl Future<Output = ()>, oneshot::Sender<()>, TestHandler) {
     let client = Arc::new(TestClientBuilder::new().build());
 
@@ -193,7 +192,7 @@ fn prepare_data_store(
     let session_boundaries = if let Some(session_boundaries) = session_boundaries {
         session_boundaries
     } else {
-        SessionBoundaries::new(SessionId(0), SessionPeriod(900))
+        SessionBoundaryInfo::new(SessionPeriod(900)).boundaries_for_session(SessionId(0))
     };
     let (mut data_store, network) = DataStore::new(
         session_boundaries,
@@ -290,7 +289,8 @@ async fn too_long_branch_message_does_not_go_through() {
 
 #[tokio::test]
 async fn branch_not_within_session_boundaries_does_not_go_through() {
-    let session_boundaries = SessionBoundaries::new(SessionId(1), SessionPeriod(20));
+    let session_boundaries =
+        SessionBoundaryInfo::new(SessionPeriod(20)).boundaries_for_session(SessionId(1));
     let session_start = session_boundaries.first_block() as usize;
     let session_end = session_boundaries.last_block() as usize;
 

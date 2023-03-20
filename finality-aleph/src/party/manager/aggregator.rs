@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use aleph_primitives::BlockNumber;
 use futures::{
     channel::{mpsc, oneshot},
     pin_mut, StreamExt,
@@ -76,12 +77,13 @@ async fn run_aggregator<B, C, CN, LN>(
     mut aggregator: Aggregator<'_, B, CN, LN>,
     io: IO<B>,
     client: Arc<C>,
-    session_boundaries: &SessionBoundaries<B>,
+    session_boundaries: &SessionBoundaries,
     metrics: Option<Metrics<<B::Header as Header>::Hash>>,
     mut exit_rx: oneshot::Receiver<()>,
 ) -> Result<(), ()>
 where
     B: Block,
+    B::Header: Header<Number = BlockNumber>,
     C: HeaderBackend<B> + Send + Sync + 'static,
     LN: Network<LegacyRmcNetworkData<B>>,
     CN: Network<CurrentRmcNetworkData<B>>,
@@ -161,13 +163,14 @@ pub fn task<B, C, CN, LN>(
     subtask_common: AuthoritySubtaskCommon,
     client: Arc<C>,
     io: IO<B>,
-    session_boundaries: SessionBoundaries<B>,
+    session_boundaries: SessionBoundaries,
     metrics: Option<Metrics<<B::Header as Header>::Hash>>,
     multikeychain: Keychain,
     version: AggregatorVersion<CN, LN>,
 ) -> Task
 where
     B: Block,
+    B::Header: Header<Number = BlockNumber>,
     C: HeaderBackend<B> + Send + Sync + 'static,
     LN: Network<LegacyRmcNetworkData<B>> + 'static,
     CN: Network<CurrentRmcNetworkData<B>> + 'static,

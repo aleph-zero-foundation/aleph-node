@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
+use aleph_primitives::BlockNumber;
 use log::error;
 use lru::LruCache;
 use sc_client_api::HeaderBackend;
-use sp_runtime::traits::{Block as BlockT, Header as HeaderT, NumberFor, One};
+use sp_runtime::traits::{Block as BlockT, Header as HeaderT, NumberFor};
 
 use crate::{data_io::ChainInfoCacheConfig, BlockHashNum};
 
@@ -20,6 +21,7 @@ pub trait ChainInfoProvider<B: BlockT> {
 impl<C, B> ChainInfoProvider<B> for Arc<C>
 where
     B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B>,
 {
     fn is_block_imported(&mut self, block: &BlockHashNum<B>) -> bool {
@@ -98,6 +100,7 @@ where
 impl<B, CIP> ChainInfoProvider<B> for CachedChainInfoProvider<B, CIP>
 where
     B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
     CIP: ChainInfoProvider<B>,
 {
     fn is_block_imported(&mut self, block: &BlockHashNum<B>) -> bool {
@@ -179,6 +182,7 @@ where
 impl<B, CIP> ChainInfoProvider<B> for AuxFinalizationChainInfoProvider<B, CIP>
 where
     B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
     CIP: ChainInfoProvider<B>,
 {
     fn is_block_imported(&mut self, block: &BlockHashNum<B>) -> bool {
@@ -197,7 +201,7 @@ where
         let mut curr_block = self.aux_finalized.clone();
         while curr_block.num > num {
             let parent_hash = self.chain_info_provider.get_parent_hash(&curr_block)?;
-            curr_block = (parent_hash, curr_block.num - NumberFor::<B>::one()).into();
+            curr_block = (parent_hash, curr_block.num - 1).into();
         }
         Ok(curr_block)
     }

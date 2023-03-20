@@ -4,9 +4,10 @@ use std::{
     ops::Index,
 };
 
+use aleph_primitives::BlockNumber;
 use codec::{Decode, Encode};
 use sp_runtime::{
-    traits::{Block as BlockT, NumberFor},
+    traits::{Block as BlockT, Header as HeaderT, NumberFor},
     SaturatedConversion,
 };
 
@@ -68,7 +69,10 @@ impl<B: BlockT> PartialEq for UnvalidatedAlephProposal<B> {
 
 impl<B: BlockT> Eq for UnvalidatedAlephProposal<B> {}
 
-impl<B: BlockT> UnvalidatedAlephProposal<B> {
+impl<B: BlockT> UnvalidatedAlephProposal<B>
+where
+    B::Header: HeaderT<Number = BlockNumber>,
+{
     pub(crate) fn new(branch: Vec<B::Hash>, block_number: NumberFor<B>) -> Self {
         UnvalidatedAlephProposal {
             branch,
@@ -78,7 +82,7 @@ impl<B: BlockT> UnvalidatedAlephProposal<B> {
 
     pub(crate) fn validate_bounds(
         &self,
-        session_boundaries: &SessionBoundaries<B>,
+        session_boundaries: &SessionBoundaries,
     ) -> Result<AlephProposal<B>, ValidationError<B>> {
         use ValidationError::*;
 
@@ -150,7 +154,10 @@ impl<B: BlockT> Index<usize> for AlephProposal<B> {
     }
 }
 
-impl<B: BlockT> AlephProposal<B> {
+impl<B: BlockT> AlephProposal<B>
+where
+    B::Header: HeaderT<Number = BlockNumber>,
+{
     /// Outputs the length the branch.
     pub fn len(&self) -> usize {
         self.branch.len()
@@ -182,25 +189,25 @@ impl<B: BlockT> AlephProposal<B> {
     }
 
     /// Outputs the number one below the lowest block in the branch.
-    pub fn number_below_branch(&self) -> NumberFor<B> {
+    pub fn number_below_branch(&self) -> BlockNumber {
         // Assumes that data is within bounds
-        self.number - <NumberFor<B>>::saturated_from(self.branch.len())
+        self.number - <BlockNumber>::saturated_from(self.branch.len())
     }
 
     /// Outputs the number of the lowest block in the branch.
-    pub fn number_bottom_block(&self) -> NumberFor<B> {
+    pub fn number_bottom_block(&self) -> BlockNumber {
         // Assumes that data is within bounds
-        self.number - <NumberFor<B>>::saturated_from(self.branch.len() - 1)
+        self.number - <BlockNumber>::saturated_from(self.branch.len() - 1)
     }
 
     /// Outputs the number of the highest block in the branch.
-    pub fn number_top_block(&self) -> NumberFor<B> {
+    pub fn number_top_block(&self) -> BlockNumber {
         self.number
     }
 
     /// Outputs the block corresponding to the number in the proposed branch in case num is
     /// between the lowest and highest block number of the branch. Otherwise returns None.
-    pub fn block_at_num(&self, num: NumberFor<B>) -> Option<BlockHashNum<B>> {
+    pub fn block_at_num(&self, num: BlockNumber) -> Option<BlockHashNum<B>> {
         if self.number_bottom_block() <= num && num <= self.number_top_block() {
             let ind: usize = (num - self.number_bottom_block()).saturated_into();
             return Some((self.branch[ind], num).into());
@@ -210,14 +217,14 @@ impl<B: BlockT> AlephProposal<B> {
 
     /// Outputs an iterator over blocks starting at num. If num is too high, the iterator is
     /// empty, if it's too low the whole branch is returned.
-    pub fn blocks_from_num(&self, num: NumberFor<B>) -> impl Iterator<Item = BlockHashNum<B>> + '_ {
+    pub fn blocks_from_num(&self, num: BlockNumber) -> impl Iterator<Item = BlockHashNum<B>> + '_ {
         let num = max(num, self.number_bottom_block());
         self.branch
             .iter()
             .skip((num - self.number_bottom_block()).saturated_into())
             .cloned()
             .zip(0u32..)
-            .map(move |(hash, index)| (hash, num + index.into()).into())
+            .map(move |(hash, index)| (hash, num + index).into())
     }
 }
 
@@ -242,15 +249,17 @@ mod tests {
 
     use super::{UnvalidatedAlephProposal, ValidationError::*};
     use crate::{
-        data_io::MAX_DATA_BRANCH_LEN, testing::mocks::TBlock, SessionBoundaries, SessionId,
+        data_io::MAX_DATA_BRANCH_LEN, testing::mocks::TBlock, SessionBoundaryInfo, SessionId,
         SessionPeriod,
     };
 
     #[test]
     fn proposal_with_empty_branch_is_invalid() {
-        let session_boundaries = SessionBoundaries::<TBlock>::new(SessionId(1), SessionPeriod(20));
+        let session_boundaries =
+            SessionBoundaryInfo::new(SessionPeriod(20)).boundaries_for_session(SessionId(1));
         let branch = vec![];
-        let proposal = UnvalidatedAlephProposal::new(branch, session_boundaries.first_block());
+        let proposal =
+            UnvalidatedAlephProposal::<TBlock>::new(branch, session_boundaries.first_block());
         assert_eq!(
             proposal.validate_bounds(&session_boundaries),
             Err(BranchEmpty)
@@ -259,11 +268,12 @@ mod tests {
 
     #[test]
     fn too_long_proposal_is_invalid() {
-        let session_boundaries = SessionBoundaries::<TBlock>::new(SessionId(1), SessionPeriod(20));
+        let session_boundaries =
+            SessionBoundaryInfo::new(SessionPeriod(20)).boundaries_for_session(SessionId(1));
         let session_end = session_boundaries.last_block();
         let branch = vec![H256::default(); MAX_DATA_BRANCH_LEN + 1];
         let branch_size = branch.len();
-        let proposal = UnvalidatedAlephProposal::new(branch, session_end);
+        let proposal = UnvalidatedAlephProposal::<TBlock>::new(branch, session_end);
         assert_eq!(
             proposal.validate_bounds(&session_boundaries),
             Err(BranchTooLong { branch_size })
@@ -272,12 +282,13 @@ mod tests {
 
     #[test]
     fn proposal_not_within_session_is_invalid() {
-        let session_boundaries = SessionBoundaries::<TBlock>::new(SessionId(1), SessionPeriod(20));
+        let session_boundaries =
+            SessionBoundaryInfo::new(SessionPeriod(20)).boundaries_for_session(SessionId(1));
         let session_start = session_boundaries.first_block();
         let session_end = session_boundaries.last_block();
         let branch = vec![H256::default(); 2];
 
-        let proposal = UnvalidatedAlephProposal::new(branch.clone(), session_start);
+        let proposal = UnvalidatedAlephProposal::<TBlock>::new(branch.clone(), session_start);
         assert_eq!(
             proposal.validate_bounds(&session_boundaries),
             Err(BlockOutsideSessionBoundaries {
@@ -288,7 +299,7 @@ mod tests {
             })
         );
 
-        let proposal = UnvalidatedAlephProposal::new(branch, session_end + 1);
+        let proposal = UnvalidatedAlephProposal::<TBlock>::new(branch, session_end + 1);
         assert_eq!(
             proposal.validate_bounds(&session_boundaries),
             Err(BlockOutsideSessionBoundaries {
@@ -302,10 +313,11 @@ mod tests {
 
     #[test]
     fn proposal_starting_at_zero_block_is_invalid() {
-        let session_boundaries = SessionBoundaries::<TBlock>::new(SessionId(0), SessionPeriod(20));
+        let session_boundaries =
+            SessionBoundaryInfo::new(SessionPeriod(20)).boundaries_for_session(SessionId(0));
         let branch = vec![H256::default(); 2];
 
-        let proposal = UnvalidatedAlephProposal::new(branch, 1);
+        let proposal = UnvalidatedAlephProposal::<TBlock>::new(branch, 1);
         assert_eq!(
             proposal.validate_bounds(&session_boundaries),
             Err(BlockNumberOutOfBounds {
@@ -317,16 +329,21 @@ mod tests {
 
     #[test]
     fn valid_proposal_is_validated_positively() {
-        let session_boundaries = SessionBoundaries::<TBlock>::new(SessionId(0), SessionPeriod(20));
+        let session_boundaries =
+            SessionBoundaryInfo::new(SessionPeriod(20)).boundaries_for_session(SessionId(0));
 
         let branch = vec![H256::default(); MAX_DATA_BRANCH_LEN];
-        let proposal =
-            UnvalidatedAlephProposal::new(branch, (MAX_DATA_BRANCH_LEN + 1) as BlockNumber);
+        let proposal = UnvalidatedAlephProposal::<TBlock>::new(
+            branch,
+            (MAX_DATA_BRANCH_LEN + 1) as BlockNumber,
+        );
         assert!(proposal.validate_bounds(&session_boundaries).is_ok());
 
         let branch = vec![H256::default(); 1];
-        let proposal =
-            UnvalidatedAlephProposal::new(branch, (MAX_DATA_BRANCH_LEN + 1) as BlockNumber);
+        let proposal = UnvalidatedAlephProposal::<TBlock>::new(
+            branch,
+            (MAX_DATA_BRANCH_LEN + 1) as BlockNumber,
+        );
         assert!(proposal.validate_bounds(&session_boundaries).is_ok());
     }
 }

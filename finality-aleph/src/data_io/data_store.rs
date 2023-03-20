@@ -6,6 +6,7 @@ use std::{
     time::{self, Duration},
 };
 
+use aleph_primitives::BlockNumber;
 use futures::{
     channel::{
         mpsc::{self, UnboundedSender},
@@ -176,6 +177,7 @@ impl Default for DataStoreConfig {
 pub struct DataStore<B, C, RB, Message, R>
 where
     B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
     RB: RequestBlocks<B> + 'static,
     Message:
@@ -192,7 +194,7 @@ where
     available_proposals_cache: LruCache<AlephProposal<B>, ProposalStatus<B>>,
     num_triggers_registered_since_last_pruning: usize,
     highest_finalized_num: NumberFor<B>,
-    session_boundaries: SessionBoundaries<B>,
+    session_boundaries: SessionBoundaries,
     client: Arc<C>,
     block_requester: RB,
     config: DataStoreConfig,
@@ -203,6 +205,7 @@ where
 impl<B, C, RB, Message, R> DataStore<B, C, RB, Message, R>
 where
     B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
     RB: RequestBlocks<B> + 'static,
     Message:
@@ -211,7 +214,7 @@ where
 {
     /// Returns a struct to be run and a network that outputs messages filtered as appropriate
     pub fn new<N: ComponentNetwork<Message, R = R>>(
-        session_boundaries: SessionBoundaries<B>,
+        session_boundaries: SessionBoundaries,
         client: Arc<C>,
         block_requester: RB,
         config: DataStoreConfig,

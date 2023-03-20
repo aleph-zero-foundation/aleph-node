@@ -1,12 +1,13 @@
 use std::{sync::Arc, time::Duration};
 
+use aleph_primitives::BlockNumber;
 use futures::channel::oneshot;
 use log::{debug, warn};
 use parking_lot::Mutex;
 use sc_client_api::HeaderBackend;
 use sp_consensus::SelectChain;
 use sp_runtime::{
-    traits::{Block as BlockT, Header as HeaderT, NumberFor, One, Zero},
+    traits::{Block as BlockT, Header as HeaderT, NumberFor, Zero},
     SaturatedConversion,
 };
 
@@ -41,13 +42,14 @@ where
 pub fn get_parent<B, C>(client: &C, block: &BlockHashNum<B>) -> Option<BlockHashNum<B>>
 where
     B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B>,
 {
     if block.num.is_zero() {
         return None;
     }
     if let Some(header) = client.header(block.hash).expect("client must respond") {
-        Some((*header.parent_hash(), block.num - <NumberFor<B>>::one()).into())
+        Some((*header.parent_hash(), block.num - 1).into())
     } else {
         warn!(target: "aleph-data-store", "Trying to fetch the parent of an unknown block {:?}.", block);
         None
@@ -61,6 +63,7 @@ pub fn get_proposal<B, C>(
 ) -> Result<AlephData<B>, ()>
 where
     B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B>,
 {
     let mut curr_block = best_block;
@@ -115,13 +118,14 @@ struct ChainInfo<B: BlockT> {
 pub struct ChainTracker<B, SC, C>
 where
     B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B> + 'static,
     SC: SelectChain<B> + 'static,
 {
     select_chain: SC,
     client: Arc<C>,
     data_to_propose: Arc<Mutex<Option<AlephData<B>>>>,
-    session_boundaries: SessionBoundaries<B>,
+    session_boundaries: SessionBoundaries,
     prev_chain_info: Option<ChainInfo<B>>,
     config: ChainTrackerConfig,
 }
@@ -129,13 +133,14 @@ where
 impl<B, SC, C> ChainTracker<B, SC, C>
 where
     B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B> + 'static,
     SC: SelectChain<B> + 'static,
 {
     pub fn new(
         select_chain: SC,
         client: Arc<C>,
-        session_boundaries: SessionBoundaries<B>,
+        session_boundaries: SessionBoundaries,
         config: ChainTrackerConfig,
         metrics: Option<Metrics<<B::Header as HeaderT>::Hash>>,
     ) -> (Self, DataProvider<B>) {
@@ -335,7 +340,7 @@ mod tests {
             client_chain_builder::ClientChainBuilder,
             mocks::{aleph_data_from_blocks, TBlock, TestClientBuilder, TestClientBuilderExt},
         },
-        SessionBoundaries, SessionId, SessionPeriod,
+        SessionBoundaryInfo, SessionId, SessionPeriod,
     };
 
     const SESSION_LEN: u32 = 100;
@@ -354,7 +359,8 @@ mod tests {
 
         let chain_builder =
             ClientChainBuilder::new(client.clone(), Arc::new(TestClientBuilder::new().build()));
-        let session_boundaries = SessionBoundaries::new(SessionId(0), SessionPeriod(SESSION_LEN));
+        let session_boundaries = SessionBoundaryInfo::new(SessionPeriod(SESSION_LEN))
+            .boundaries_for_session(SessionId(0));
 
         let config = ChainTrackerConfig {
             refresh_interval: REFRESH_INTERVAL,

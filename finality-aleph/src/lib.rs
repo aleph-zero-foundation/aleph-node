@@ -1,7 +1,8 @@
 extern crate core;
 
-use std::{fmt::Debug, path::PathBuf, sync::Arc};
+use std::{fmt::Debug, hash::Hash, path::PathBuf, sync::Arc};
 
+use aleph_primitives::BlockNumber;
 use codec::{Decode, Encode, Output};
 use derive_more::Display;
 use futures::{
@@ -23,7 +24,7 @@ use crate::{
     abft::{CurrentNetworkData, LegacyNetworkData, CURRENT_VERSION, LEGACY_VERSION},
     aggregation::{CurrentRmcNetworkData, LegacyRmcNetworkData},
     network::data::split::Split,
-    session::{SessionBoundaries, SessionId},
+    session::{SessionBoundaries, SessionBoundaryInfo, SessionId},
     VersionedTryFromError::{ExpectedNewGotOld, ExpectedOldGotNew},
 };
 
@@ -225,14 +226,14 @@ pub struct HashNum<H, N> {
     num: N,
 }
 
-impl<H, N> HashNum<H, N> {
-    fn new(hash: H, num: N) -> Self {
+impl<H> HashNum<H, BlockNumber> {
+    fn new(hash: H, num: BlockNumber) -> Self {
         HashNum { hash, num }
     }
 }
 
-impl<H, N> From<(H, N)> for HashNum<H, N> {
-    fn from(pair: (H, N)) -> Self {
+impl<H> From<(H, BlockNumber)> for HashNum<H, BlockNumber> {
+    fn from(pair: (H, BlockNumber)) -> Self {
         HashNum::new(pair.0, pair.1)
     }
 }

@@ -1,8 +1,8 @@
-pub use aleph_primitives::LEGACY_FINALITY_VERSION as VERSION;
+pub use aleph_primitives::{BlockNumber, LEGACY_FINALITY_VERSION as VERSION};
 use legacy_aleph_bft::{default_config, Config, LocalIO, Terminator};
 use log::debug;
 use sp_blockchain::HeaderBackend;
-use sp_runtime::traits::Block;
+use sp_runtime::traits::{Block, Header};
 
 use super::common::unit_creation_delay_fn;
 use crate::{
@@ -17,11 +17,7 @@ use crate::{
     Keychain, LegacyNetworkData, NodeIndex, SessionId, UnitCreationDelay,
 };
 
-pub fn run_member<
-    B: Block,
-    C: HeaderBackend<B> + Send + 'static,
-    ADN: Network<LegacyNetworkData<B>> + 'static,
->(
+pub fn run_member<B, C, ADN>(
     subtask_common: SubtaskCommon,
     multikeychain: Keychain,
     config: Config,
@@ -29,7 +25,13 @@ pub fn run_member<
     data_provider: impl legacy_aleph_bft::DataProvider<AlephData<B>> + Send + 'static,
     ordered_data_interpreter: OrderedDataInterpreter<B, C>,
     backup: ABFTBackup,
-) -> Task {
+) -> Task
+where
+    B: Block,
+    B::Header: Header<Number = BlockNumber>,
+    C: HeaderBackend<B> + Send + 'static,
+    ADN: Network<LegacyNetworkData<B>> + 'static,
+{
     let SubtaskCommon {
         spawn_handle,
         session_id,

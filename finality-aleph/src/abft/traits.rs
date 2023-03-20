@@ -2,10 +2,11 @@
 
 use std::{cmp::Ordering, fmt::Debug, hash::Hash as StdHash, marker::PhantomData, pin::Pin};
 
+use aleph_primitives::BlockNumber;
 use codec::{Codec, Decode, Encode};
 use futures::{channel::oneshot, Future, TryFutureExt};
 use sc_service::SpawnTaskHandle;
-use sp_api::BlockT;
+use sp_api::{BlockT, HeaderT};
 use sp_blockchain::HeaderBackend;
 use sp_runtime::traits::Hash as SpHash;
 
@@ -30,16 +31,22 @@ impl<B: BlockT> legacy_aleph_bft::DataProvider<AlephData<B>> for DataProvider<B>
     }
 }
 
-impl<B: BlockT, C: HeaderBackend<B> + Send + 'static>
-    current_aleph_bft::FinalizationHandler<AlephData<B>> for OrderedDataInterpreter<B, C>
+impl<B, C> current_aleph_bft::FinalizationHandler<AlephData<B>> for OrderedDataInterpreter<B, C>
+where
+    B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
+    C: HeaderBackend<B> + Send + 'static,
 {
     fn data_finalized(&mut self, data: AlephData<B>) {
         OrderedDataInterpreter::data_finalized(self, data)
     }
 }
 
-impl<B: BlockT, C: HeaderBackend<B> + Send + 'static>
-    legacy_aleph_bft::FinalizationHandler<AlephData<B>> for OrderedDataInterpreter<B, C>
+impl<B, C> legacy_aleph_bft::FinalizationHandler<AlephData<B>> for OrderedDataInterpreter<B, C>
+where
+    B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
+    C: HeaderBackend<B> + Send + 'static,
 {
     fn data_finalized(&mut self, data: AlephData<B>) {
         OrderedDataInterpreter::data_finalized(self, data)

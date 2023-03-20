@@ -1,6 +1,6 @@
 use std::{collections::HashSet, marker::PhantomData, sync::Arc};
 
-use aleph_primitives::{AlephSessionApi, KEY_TYPE};
+use aleph_primitives::{AlephSessionApi, BlockNumber, KEY_TYPE};
 use async_trait::async_trait;
 use futures::channel::oneshot;
 use log::{debug, info, trace, warn};
@@ -9,7 +9,7 @@ use sp_consensus::SelectChain;
 use sp_keystore::CryptoStore;
 use sp_runtime::{
     generic::BlockId,
-    traits::{Block as BlockT, Header, NumberFor, One, Saturating},
+    traits::{Block as BlockT, Header as HeaderT},
 };
 
 use crate::{
@@ -32,8 +32,8 @@ use crate::{
         backup::ABFTBackup, manager::aggregator::AggregatorVersion, traits::NodeSessionManager,
     },
     AuthorityId, CurrentRmcNetworkData, JustificationNotification, Keychain, LegacyRmcNetworkData,
-    Metrics, NodeIndex, SessionBoundaries, SessionId, SessionPeriod, UnitCreationDelay,
-    VersionedNetworkData,
+    Metrics, NodeIndex, SessionBoundaries, SessionBoundaryInfo, SessionId, SessionPeriod,
+    UnitCreationDelay, VersionedNetworkData,
 };
 
 mod aggregator;
@@ -67,6 +67,7 @@ type CurrentNetworkType<B> = SimpleNetwork<
 struct SubtasksParams<C, SC, B, N, BE>
 where
     B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
@@ -76,7 +77,7 @@ where
     node_id: NodeIndex,
     session_id: SessionId,
     data_network: N,
-    session_boundaries: SessionBoundaries<B>,
+    session_boundaries: SessionBoundaries,
     subtask_common: SubtaskCommon,
     data_provider: DataProvider<B>,
     ordered_data_interpreter: OrderedDataInterpreter<B, C>,
@@ -91,6 +92,7 @@ where
 pub struct NodeSessionManagerImpl<C, SC, B, RB, BE, SM>
 where
     B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
@@ -99,11 +101,11 @@ where
 {
     client: Arc<C>,
     select_chain: SC,
-    session_period: SessionPeriod,
+    session_info: SessionBoundaryInfo,
     unit_creation_delay: UnitCreationDelay,
     authority_justification_tx: mpsc::UnboundedSender<JustificationNotification<B>>,
     block_requester: RB,
-    metrics: Option<Metrics<<B::Header as Header>::Hash>>,
+    metrics: Option<Metrics<<B::Header as HeaderT>::Hash>>,
     spawn_handle: SpawnHandle,
     session_manager: SM,
     keystore: Arc<dyn CryptoStore>,
@@ -113,6 +115,7 @@ where
 impl<C, SC, B, RB, BE, SM> NodeSessionManagerImpl<C, SC, B, RB, BE, SM>
 where
     B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     C::Api: aleph_primitives::AlephSessionApi<B>,
     BE: Backend<B> + 'static,
@@ -128,7 +131,7 @@ where
         unit_creation_delay: UnitCreationDelay,
         authority_justification_tx: mpsc::UnboundedSender<JustificationNotification<B>>,
         block_requester: RB,
-        metrics: Option<Metrics<<B::Header as Header>::Hash>>,
+        metrics: Option<Metrics<<B::Header as HeaderT>::Hash>>,
         spawn_handle: SpawnHandle,
         session_manager: SM,
         keystore: Arc<dyn CryptoStore>,
@@ -136,7 +139,7 @@ where
         Self {
             client,
             select_chain,
-            session_period,
+            session_info: SessionBoundaryInfo::new(session_period),
             unit_creation_delay,
             authority_justification_tx,
             block_requester,
@@ -282,7 +285,7 @@ where
         let multikeychain =
             Keychain::new(node_id, authority_verifier.clone(), authority_pen.clone());
 
-        let session_boundaries = SessionBoundaries::new(session_id, self.session_period);
+        let session_boundaries = self.session_info.boundaries_for_session(session_id);
         let (blocks_for_aggregator, blocks_from_interpreter) = mpsc::unbounded();
 
         let (chain_tracker, data_provider) = ChainTracker::new(
@@ -317,9 +320,7 @@ where
             Err(e) => panic!("Failed to start validator session: {}", e),
         };
 
-        let last_block_of_previous_session = session_boundaries
-            .first_block()
-            .saturating_sub(<NumberFor<B>>::one());
+        let last_block_of_previous_session = session_boundaries.first_block().saturating_sub(1);
 
         let params = SubtasksParams {
             n_members: authorities.len(),
@@ -380,6 +381,7 @@ where
 impl<C, SC, B, RB, BE, SM> NodeSessionManager for NodeSessionManagerImpl<C, SC, B, RB, BE, SM>
 where
     B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     C::Api: aleph_primitives::AlephSessionApi<B>,
     BE: Backend<B> + 'static,

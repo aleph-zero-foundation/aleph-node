@@ -1,10 +1,11 @@
 use std::fmt::Debug;
 
+use aleph_primitives::BlockNumber;
 use codec::Codec;
 use futures::channel::oneshot;
 use log::debug;
 use sc_client_api::{BlockchainEvents, HeaderBackend};
-use sp_runtime::traits::Block;
+use sp_runtime::traits::{Block, Header};
 
 use crate::{
     abft::SpawnHandleT,
@@ -20,6 +21,7 @@ pub fn task<B, C, RB, R, Message>(
 ) -> Task
 where
     B: Block,
+    B::Header: Header<Number = BlockNumber>,
     C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
     RB: RequestBlocks<B> + 'static,
     Message: AlephNetworkMessage<B> + Debug + Send + Sync + Codec + 'static,

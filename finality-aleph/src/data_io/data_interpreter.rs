@@ -1,9 +1,10 @@
 use std::{default::Default, sync::Arc};
 
+use aleph_primitives::BlockNumber;
 use futures::channel::mpsc;
 use log::{debug, error, warn};
 use sc_client_api::HeaderBackend;
-use sp_runtime::traits::{Block as BlockT, NumberFor, One, Zero};
+use sp_runtime::traits::{Block as BlockT, Header as HeaderT, NumberFor, Zero};
 
 use crate::{
     data_io::{
@@ -21,20 +22,30 @@ type InterpretersChainInfoProvider<B, C> =
 /// Takes as input ordered `AlephData` from `AlephBFT` and pushes blocks that should be finalized
 /// to an output channel. The other end of the channel is held by the aggregator whose goal is to
 /// create multisignatures under the finalized blocks.
-pub struct OrderedDataInterpreter<B: BlockT, C: HeaderBackend<B>> {
+pub struct OrderedDataInterpreter<B, C>
+where
+    B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
+    C: HeaderBackend<B>,
+{
     blocks_to_finalize_tx: mpsc::UnboundedSender<BlockHashNum<B>>,
     chain_info_provider: InterpretersChainInfoProvider<B, C>,
     last_finalized_by_aleph: BlockHashNum<B>,
-    session_boundaries: SessionBoundaries<B>,
+    session_boundaries: SessionBoundaries,
 }
 
-fn get_last_block_prev_session<B: BlockT, C: HeaderBackend<B>>(
-    session_boundaries: SessionBoundaries<B>,
+fn get_last_block_prev_session<B, C>(
+    session_boundaries: SessionBoundaries,
     mut client: Arc<C>,
-) -> BlockHashNum<B> {
-    if session_boundaries.first_block() > NumberFor::<B>::zero() {
+) -> BlockHashNum<B>
+where
+    B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
+    C: HeaderBackend<B>,
+{
+    if session_boundaries.first_block() > 0 {
         // We are in session > 0, we take the last block of previous session.
-        let last_prev_session_num = session_boundaries.first_block() - NumberFor::<B>::one();
+        let last_prev_session_num = session_boundaries.first_block() - 1;
         client.get_finalized_at(last_prev_session_num).expect(
             "Last block of previous session must have been finalized before starting the current",
         )
@@ -46,11 +57,16 @@ fn get_last_block_prev_session<B: BlockT, C: HeaderBackend<B>>(
     }
 }
 
-impl<B: BlockT, C: HeaderBackend<B>> OrderedDataInterpreter<B, C> {
+impl<B, C> OrderedDataInterpreter<B, C>
+where
+    B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
+    C: HeaderBackend<B>,
+{
     pub fn new(
         blocks_to_finalize_tx: mpsc::UnboundedSender<BlockHashNum<B>>,
         client: Arc<C>,
-        session_boundaries: SessionBoundaries<B>,
+        session_boundaries: SessionBoundaries,
     ) -> Self {
         let last_finalized_by_aleph =
             get_last_block_prev_session(session_boundaries.clone(), client.clone());
