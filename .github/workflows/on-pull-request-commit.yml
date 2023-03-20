@@ -480,7 +480,7 @@ jobs:
           path: local-tests/
 
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.8'
 
@@ -509,7 +509,7 @@ jobs:
           path: local-tests/
 
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.8'
 
