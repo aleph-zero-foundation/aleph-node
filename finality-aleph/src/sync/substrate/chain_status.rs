@@ -175,4 +175,19 @@ where
             raw_justification,
         })
     }
+
+    fn children(
+        &self,
+        id: <B::Header as Header>::Identifier,
+    ) -> Result<Vec<B::Header>, Self::Error> {
+        Ok(self
+            .client
+            .children(id.hash)?
+            .into_iter()
+            .map(|hash| self.header(hash))
+            .collect::<Result<Vec<Option<B::Header>>, ClientError>>()?
+            .into_iter()
+            .flatten()
+            .collect())
+    }
 }

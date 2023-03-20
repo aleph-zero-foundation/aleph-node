@@ -292,4 +292,19 @@ impl ChainStatus<MockJustification> for Backend {
             .and_then(|b| b.justification.clone())
             .ok_or(StatusError)
     }
+
+    fn children(&self, id: MockIdentifier) -> Result<Vec<MockHeader>, Self::Error> {
+        match self.status_of(id.clone())? {
+            BlockStatus::Unknown => Err(StatusError),
+            _ => {
+                let storage = self.inner.lock();
+                for (stored_id, block) in storage.blockchain.iter() {
+                    if stored_id.number() == id.number + 1 {
+                        return Ok(Vec::from([block.header()]));
+                    }
+                }
+                Ok(Vec::new())
+            }
+        }
+    }
 }

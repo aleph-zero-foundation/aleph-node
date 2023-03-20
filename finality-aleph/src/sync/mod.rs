@@ -129,4 +129,10 @@ pub trait ChainStatus<J: Justification> {
 
     /// The justification of the top finalized block.
     fn top_finalized(&self) -> Result<J, Self::Error>;
+
+    /// Children of the specified block.
+    fn children(
+        &self,
+        id: <J::Header as Header>::Identifier,
+    ) -> Result<Vec<J::Header>, Self::Error>;
 }
