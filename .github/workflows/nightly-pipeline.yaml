@@ -37,7 +37,7 @@ jobs:
           docker save -o aleph-node.tar aleph-node:latest
 
       - name: Upload test docker image
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: aleph-test-docker
           path: aleph-node.tar
@@ -68,7 +68,7 @@ jobs:
           docker save -o aleph-node.tar aleph-node:syntheticnet
 
       - name: Upload test docker image
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: aleph-test-synthetic-docker
           path: aleph-node.tar
@@ -132,7 +132,7 @@ jobs:
           docker save -o aleph-e2e-client.tar aleph-e2e-client:latest
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: aleph-e2e-client
           path: e2e-tests/aleph-e2e-client.tar
