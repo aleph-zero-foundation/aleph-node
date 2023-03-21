@@ -4,7 +4,7 @@ set -euo pipefail
 NIX_FILE=${NIX_FILE:-"default.nix"}
 DYNAMIC_LINKER_PATH=${DYNAMIC_LINKER_PATH:-"/lib64/ld-linux-x86-64.so.2"}
 CRATES=${CRATES:-'{ "aleph-node" = []; }'}
-SINGLE_STEP=${SINGLE_STEP:-false}
+SINGLE_STEP=${SINGLE_STEP:-true}
 RUSTFLAGS=${RUSTFLAGS:-"-C target-cpu=generic"}
 CARGO_HOME=${CARGO_HOME:-"$(realpath ~/.cargo)"}
 PATH_TO_FIX=${PATH_TO_FIX:-""}

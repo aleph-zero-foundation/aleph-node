@@ -140,7 +140,10 @@ with nixpkgs; naersk.buildPackage rec {
   postConfigure = ''
       ${nixpkgs.lib.optionalString providedCargoHome
          ''
-           export CARGO_HOME=${cargoHome}
+           # TODO this may cause the two-step build process of naersk (deps only -> whole project with prebuild deps) to fail, i.e. building everything twice.
+           # Unfortunately, new cargo is trying to write inside of git repositories of some of our dependencies, so we need a copy with write access.
+           cp -r ${cargoHome} .cargo_home
+           export CARGO_HOME=.cargo_home
          ''
        }
   '';

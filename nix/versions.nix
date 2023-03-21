@@ -3,7 +3,7 @@ rec {
   rustToolchain =
     let
       # use Rust toolchain declared by the rust-toolchain file
-      rustToolchain = with nixpkgs; overrideRustTarget ( rustChannelOf { date = "2022-08-12"; channel = "nightly"; } );
+      rustToolchain = with nixpkgs; overrideRustTarget ( rustChannelOf { date = "2022-10-30"; channel = "nightly"; } );
 
       overrideRustTarget = rustChannel: rustChannel // {
         rust = rustChannel.rust.override {
