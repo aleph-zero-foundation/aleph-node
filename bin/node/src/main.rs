@@ -1,8 +1,8 @@
-#[cfg(feature = "try-runtime")]
+#[cfg(any(feature = "try-runtime", feature = "runtime-benchmarks"))]
 use aleph_node::ExecutorDispatch;
 use aleph_node::{new_authority, new_full, new_partial, Cli, Subcommand};
 use aleph_primitives::HEAP_PAGES;
-#[cfg(feature = "try-runtime")]
+#[cfg(any(feature = "try-runtime", feature = "runtime-benchmarks"))]
 use aleph_runtime::Block;
 use log::warn;
 use sc_cli::{clap::Parser, CliConfiguration, DatabasePruningMode, PruningParams, SubstrateCli};
@@ -132,7 +132,7 @@ fn main() -> sc_cli::Result<()> {
         Some(Subcommand::Benchmark(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             runner.sync_run(|config| {
-                if let BenchmarkCmd::Pallet(cmd) = cmd {
+                if let frame_benchmarking_cli::BenchmarkCmd::Pallet(cmd) = cmd {
                     cmd.run::<Block, ExecutorDispatch>(config)
                 } else {
                     Err(sc_cli::Error::Input("Wrong subcommand".to_string()))

@@ -738,9 +738,9 @@ pub mod api {
                         "Events",
                         vec![],
                         [
-                            80u8, 163u8, 77u8, 2u8, 114u8, 163u8, 90u8, 227u8, 120u8, 148u8, 222u8,
-                            239u8, 255u8, 114u8, 127u8, 214u8, 47u8, 240u8, 5u8, 196u8, 47u8,
-                            195u8, 53u8, 197u8, 200u8, 169u8, 89u8, 246u8, 155u8, 60u8, 157u8, 3u8,
+                            165u8, 151u8, 183u8, 176u8, 140u8, 83u8, 182u8, 83u8, 128u8, 123u8,
+                            114u8, 246u8, 90u8, 178u8, 31u8, 225u8, 49u8, 148u8, 122u8, 66u8, 75u8,
+                            106u8, 79u8, 63u8, 78u8, 213u8, 33u8, 141u8, 198u8, 101u8, 158u8, 78u8,
                         ],
                     )
                 }
@@ -6286,9 +6286,9 @@ pub mod api {
                         "NextAuthorities",
                         vec![],
                         [
-                            38u8, 130u8, 45u8, 205u8, 118u8, 26u8, 81u8, 123u8, 200u8, 81u8, 73u8,
-                            207u8, 22u8, 31u8, 63u8, 38u8, 121u8, 42u8, 250u8, 65u8, 75u8, 79u8,
-                            16u8, 10u8, 137u8, 46u8, 173u8, 104u8, 109u8, 134u8, 140u8, 3u8,
+                            79u8, 23u8, 2u8, 243u8, 101u8, 40u8, 221u8, 249u8, 219u8, 105u8, 200u8,
+                            253u8, 29u8, 16u8, 147u8, 189u8, 52u8, 248u8, 119u8, 84u8, 87u8, 175u8,
+                            246u8, 172u8, 28u8, 241u8, 9u8, 90u8, 55u8, 132u8, 61u8, 142u8,
                         ],
                     )
                 }
@@ -13092,7 +13092,7 @@ pub mod api {
                 PartialEq,
             )]
             pub struct StoreKey {
-                pub identifier: [::core::primitive::u8; 4usize],
+                pub identifier: [::core::primitive::u8; 8usize],
                 pub key: ::std::vec::Vec<::core::primitive::u8>,
             }
             #[derive(
@@ -13104,7 +13104,7 @@ pub mod api {
                 PartialEq,
             )]
             pub struct DeleteKey {
-                pub identifier: [::core::primitive::u8; 4usize],
+                pub identifier: [::core::primitive::u8; 8usize],
             }
             #[derive(
                 :: subxt :: ext :: codec :: Decode,
@@ -13115,7 +13115,7 @@ pub mod api {
                 PartialEq,
             )]
             pub struct OverwriteKey {
-                pub identifier: [::core::primitive::u8; 4usize],
+                pub identifier: [::core::primitive::u8; 8usize],
                 pub key: ::std::vec::Vec<::core::primitive::u8>,
             }
             #[derive(
@@ -13127,7 +13127,7 @@ pub mod api {
                 PartialEq,
             )]
             pub struct Verify {
-                pub verification_key_identifier: [::core::primitive::u8; 4usize],
+                pub verification_key_identifier: [::core::primitive::u8; 8usize],
                 pub proof: ::std::vec::Vec<::core::primitive::u8>,
                 pub public_input: ::std::vec::Vec<::core::primitive::u8>,
                 pub system: runtime_types::pallet_baby_liminal::systems::ProvingSystem,
@@ -13144,7 +13144,7 @@ pub mod api {
                 #[doc = "particular, `key` can contain just trash bytes."]
                 pub fn store_key(
                     &self,
-                    identifier: [::core::primitive::u8; 4usize],
+                    identifier: [::core::primitive::u8; 8usize],
                     key: ::std::vec::Vec<::core::primitive::u8>,
                 ) -> ::subxt::tx::StaticTxPayload<StoreKey> {
                     ::subxt::tx::StaticTxPayload::new(
@@ -13152,37 +13152,37 @@ pub mod api {
                         "store_key",
                         StoreKey { identifier, key },
                         [
-                            82u8, 244u8, 238u8, 30u8, 70u8, 12u8, 77u8, 111u8, 6u8, 219u8, 132u8,
-                            67u8, 7u8, 86u8, 96u8, 78u8, 16u8, 94u8, 113u8, 141u8, 137u8, 159u8,
-                            73u8, 199u8, 222u8, 59u8, 147u8, 146u8, 89u8, 254u8, 147u8, 71u8,
+                            243u8, 81u8, 216u8, 10u8, 107u8, 147u8, 211u8, 131u8, 111u8, 111u8,
+                            36u8, 129u8, 8u8, 8u8, 204u8, 239u8, 255u8, 126u8, 63u8, 76u8, 2u8,
+                            27u8, 247u8, 191u8, 74u8, 220u8, 90u8, 41u8, 141u8, 124u8, 84u8, 218u8,
                         ],
                     )
                 }
                 #[doc = "Deletes a key stored under `identifier` in `VerificationKeys` map."]
                 #[doc = ""]
-                #[doc = "Can only be called by a root account."]
+                #[doc = "Returns the deposit locked. Can only be called by the key owner."]
                 pub fn delete_key(
                     &self,
-                    identifier: [::core::primitive::u8; 4usize],
+                    identifier: [::core::primitive::u8; 8usize],
                 ) -> ::subxt::tx::StaticTxPayload<DeleteKey> {
                     ::subxt::tx::StaticTxPayload::new(
                         "BabyLiminal",
                         "delete_key",
                         DeleteKey { identifier },
                         [
-                            90u8, 90u8, 9u8, 204u8, 113u8, 9u8, 121u8, 115u8, 82u8, 197u8, 188u8,
-                            78u8, 181u8, 133u8, 181u8, 87u8, 24u8, 207u8, 6u8, 156u8, 114u8, 218u8,
-                            11u8, 97u8, 47u8, 252u8, 29u8, 101u8, 95u8, 208u8, 17u8, 95u8,
+                            168u8, 215u8, 20u8, 23u8, 157u8, 45u8, 189u8, 6u8, 196u8, 144u8, 96u8,
+                            229u8, 120u8, 4u8, 59u8, 18u8, 46u8, 151u8, 249u8, 177u8, 166u8, 101u8,
+                            176u8, 122u8, 24u8, 162u8, 185u8, 239u8, 208u8, 101u8, 151u8, 81u8,
                         ],
                     )
                 }
                 #[doc = "Overwrites a key stored under `identifier` in `VerificationKeys` map with a new value `key`"]
                 #[doc = ""]
                 #[doc = "Fails if `key.len()` is greater than `MaximumVerificationKeyLength`."]
-                #[doc = "Can only be called by a root account."]
+                #[doc = "Can only be called by the original owner of the key."]
                 pub fn overwrite_key(
                     &self,
-                    identifier: [::core::primitive::u8; 4usize],
+                    identifier: [::core::primitive::u8; 8usize],
                     key: ::std::vec::Vec<::core::primitive::u8>,
                 ) -> ::subxt::tx::StaticTxPayload<OverwriteKey> {
                     ::subxt::tx::StaticTxPayload::new(
@@ -13190,9 +13190,9 @@ pub mod api {
                         "overwrite_key",
                         OverwriteKey { identifier, key },
                         [
-                            187u8, 3u8, 92u8, 67u8, 8u8, 151u8, 35u8, 150u8, 161u8, 251u8, 238u8,
-                            106u8, 50u8, 233u8, 177u8, 251u8, 111u8, 221u8, 33u8, 1u8, 30u8, 215u8,
-                            69u8, 251u8, 249u8, 3u8, 139u8, 195u8, 4u8, 75u8, 86u8, 199u8,
+                            238u8, 6u8, 195u8, 248u8, 5u8, 79u8, 142u8, 65u8, 226u8, 185u8, 219u8,
+                            201u8, 175u8, 63u8, 186u8, 66u8, 33u8, 2u8, 23u8, 198u8, 132u8, 83u8,
+                            31u8, 125u8, 82u8, 106u8, 77u8, 244u8, 244u8, 155u8, 191u8, 89u8,
                         ],
                     )
                 }
@@ -13210,7 +13210,7 @@ pub mod api {
                 #[doc = "- proof is incorrect"]
                 pub fn verify(
                     &self,
-                    verification_key_identifier: [::core::primitive::u8; 4usize],
+                    verification_key_identifier: [::core::primitive::u8; 8usize],
                     proof: ::std::vec::Vec<::core::primitive::u8>,
                     public_input: ::std::vec::Vec<::core::primitive::u8>,
                     system: runtime_types::pallet_baby_liminal::systems::ProvingSystem,
@@ -13225,9 +13225,10 @@ pub mod api {
                             system,
                         },
                         [
-                            19u8, 255u8, 124u8, 213u8, 240u8, 67u8, 232u8, 85u8, 160u8, 172u8,
-                            141u8, 161u8, 111u8, 92u8, 145u8, 8u8, 96u8, 2u8, 71u8, 112u8, 78u8,
-                            123u8, 51u8, 120u8, 181u8, 103u8, 38u8, 49u8, 10u8, 6u8, 143u8, 218u8,
+                            20u8, 251u8, 11u8, 35u8, 211u8, 127u8, 85u8, 64u8, 127u8, 246u8, 227u8,
+                            200u8, 135u8, 177u8, 20u8, 50u8, 59u8, 122u8, 203u8, 228u8, 168u8,
+                            55u8, 175u8, 28u8, 153u8, 141u8, 140u8, 175u8, 33u8, 122u8, 77u8,
+                            121u8,
                         ],
                     )
                 }
@@ -13246,7 +13247,12 @@ pub mod api {
                 PartialEq,
             )]
             #[doc = "Verification key has been successfully stored."]
-            pub struct VerificationKeyStored;
+            #[doc = ""]
+            #[doc = "\\[ account_id, identifier \\]"]
+            pub struct VerificationKeyStored(
+                pub ::subxt::ext::sp_core::crypto::AccountId32,
+                pub [::core::primitive::u8; 8usize],
+            );
             impl ::subxt::events::StaticEvent for VerificationKeyStored {
                 const PALLET: &'static str = "BabyLiminal";
                 const EVENT: &'static str = "VerificationKeyStored";
@@ -13260,7 +13266,12 @@ pub mod api {
                 PartialEq,
             )]
             #[doc = "Verification key has been successfully deleted."]
-            pub struct VerificationKeyDeleted;
+            #[doc = ""]
+            #[doc = "\\[ identifier \\]"]
+            pub struct VerificationKeyDeleted(
+                pub ::subxt::ext::sp_core::crypto::AccountId32,
+                pub [::core::primitive::u8; 8usize],
+            );
             impl ::subxt::events::StaticEvent for VerificationKeyDeleted {
                 const PALLET: &'static str = "BabyLiminal";
                 const EVENT: &'static str = "VerificationKeyDeleted";
@@ -13274,7 +13285,9 @@ pub mod api {
                 PartialEq,
             )]
             #[doc = "Verification key has been successfully overwritten."]
-            pub struct VerificationKeyOverwritten;
+            #[doc = ""]
+            #[doc = "\\[ identifier \\]"]
+            pub struct VerificationKeyOverwritten(pub [::core::primitive::u8; 8usize]);
             impl ::subxt::events::StaticEvent for VerificationKeyOverwritten {
                 const PALLET: &'static str = "BabyLiminal";
                 const EVENT: &'static str = "VerificationKeyOverwritten";
@@ -13300,7 +13313,7 @@ pub mod api {
             impl StorageApi {
                 pub fn verification_keys(
                     &self,
-                    _0: impl ::std::borrow::Borrow<[::core::primitive::u8; 4usize]>,
+                    _0: impl ::std::borrow::Borrow<[::core::primitive::u8; 8usize]>,
                 ) -> ::subxt::storage::address::StaticStorageAddress<
                     ::subxt::metadata::DecodeStaticType<
                         runtime_types::sp_core::bounded::bounded_vec::BoundedVec<
@@ -13319,9 +13332,9 @@ pub mod api {
                             ::subxt::storage::address::StorageHasher::Twox64Concat,
                         )],
                         [
-                            138u8, 202u8, 229u8, 120u8, 126u8, 213u8, 192u8, 164u8, 44u8, 147u8,
-                            126u8, 95u8, 210u8, 56u8, 118u8, 171u8, 85u8, 56u8, 75u8, 195u8, 233u8,
-                            18u8, 246u8, 109u8, 114u8, 55u8, 181u8, 28u8, 42u8, 211u8, 83u8, 138u8,
+                            15u8, 146u8, 55u8, 166u8, 254u8, 231u8, 4u8, 43u8, 62u8, 48u8, 130u8,
+                            135u8, 72u8, 24u8, 91u8, 198u8, 198u8, 32u8, 187u8, 170u8, 126u8, 38u8,
+                            120u8, 42u8, 184u8, 225u8, 208u8, 107u8, 36u8, 217u8, 151u8, 161u8,
                         ],
                     )
                 }
@@ -13342,9 +13355,94 @@ pub mod api {
                         "VerificationKeys",
                         Vec::new(),
                         [
-                            138u8, 202u8, 229u8, 120u8, 126u8, 213u8, 192u8, 164u8, 44u8, 147u8,
-                            126u8, 95u8, 210u8, 56u8, 118u8, 171u8, 85u8, 56u8, 75u8, 195u8, 233u8,
-                            18u8, 246u8, 109u8, 114u8, 55u8, 181u8, 28u8, 42u8, 211u8, 83u8, 138u8,
+                            15u8, 146u8, 55u8, 166u8, 254u8, 231u8, 4u8, 43u8, 62u8, 48u8, 130u8,
+                            135u8, 72u8, 24u8, 91u8, 198u8, 198u8, 32u8, 187u8, 170u8, 126u8, 38u8,
+                            120u8, 42u8, 184u8, 225u8, 208u8, 107u8, 36u8, 217u8, 151u8, 161u8,
+                        ],
+                    )
+                }
+                pub fn verification_key_owners(
+                    &self,
+                    _0: impl ::std::borrow::Borrow<[::core::primitive::u8; 8usize]>,
+                ) -> ::subxt::storage::address::StaticStorageAddress<
+                    ::subxt::metadata::DecodeStaticType<::subxt::ext::sp_core::crypto::AccountId32>,
+                    ::subxt::storage::address::Yes,
+                    (),
+                    ::subxt::storage::address::Yes,
+                > {
+                    ::subxt::storage::address::StaticStorageAddress::new(
+                        "BabyLiminal",
+                        "VerificationKeyOwners",
+                        vec![::subxt::storage::address::StorageMapKey::new(
+                            _0.borrow(),
+                            ::subxt::storage::address::StorageHasher::Twox64Concat,
+                        )],
+                        [
+                            214u8, 22u8, 180u8, 63u8, 1u8, 101u8, 210u8, 214u8, 75u8, 246u8, 219u8,
+                            103u8, 95u8, 25u8, 56u8, 97u8, 13u8, 46u8, 114u8, 84u8, 37u8, 121u8,
+                            188u8, 164u8, 105u8, 144u8, 82u8, 151u8, 121u8, 195u8, 180u8, 132u8,
+                        ],
+                    )
+                }
+                pub fn verification_key_owners_root(
+                    &self,
+                ) -> ::subxt::storage::address::StaticStorageAddress<
+                    ::subxt::metadata::DecodeStaticType<::subxt::ext::sp_core::crypto::AccountId32>,
+                    (),
+                    (),
+                    ::subxt::storage::address::Yes,
+                > {
+                    ::subxt::storage::address::StaticStorageAddress::new(
+                        "BabyLiminal",
+                        "VerificationKeyOwners",
+                        Vec::new(),
+                        [
+                            214u8, 22u8, 180u8, 63u8, 1u8, 101u8, 210u8, 214u8, 75u8, 246u8, 219u8,
+                            103u8, 95u8, 25u8, 56u8, 97u8, 13u8, 46u8, 114u8, 84u8, 37u8, 121u8,
+                            188u8, 164u8, 105u8, 144u8, 82u8, 151u8, 121u8, 195u8, 180u8, 132u8,
+                        ],
+                    )
+                }
+                pub fn verification_key_deposits(
+                    &self,
+                    _0: impl ::std::borrow::Borrow<::subxt::ext::sp_core::crypto::AccountId32>,
+                    _1: impl ::std::borrow::Borrow<[::core::primitive::u8; 8usize]>,
+                ) -> ::subxt::storage::address::StaticStorageAddress<
+                    ::subxt::metadata::DecodeStaticType<::core::primitive::u128>,
+                    ::subxt::storage::address::Yes,
+                    (),
+                    ::subxt::storage::address::Yes,
+                > {
+                    ::subxt::storage::address::StaticStorageAddress::new(
+                        "BabyLiminal",
+                        "VerificationKeyDeposits",
+                        vec![::subxt::storage::address::StorageMapKey::new(
+                            &(_0.borrow(), _1.borrow()),
+                            ::subxt::storage::address::StorageHasher::Twox64Concat,
+                        )],
+                        [
+                            56u8, 215u8, 74u8, 120u8, 187u8, 219u8, 92u8, 199u8, 141u8, 88u8, 57u8,
+                            211u8, 182u8, 197u8, 33u8, 185u8, 109u8, 113u8, 180u8, 99u8, 135u8,
+                            35u8, 177u8, 89u8, 233u8, 49u8, 142u8, 78u8, 34u8, 115u8, 210u8, 133u8,
+                        ],
+                    )
+                }
+                pub fn verification_key_deposits_root(
+                    &self,
+                ) -> ::subxt::storage::address::StaticStorageAddress<
+                    ::subxt::metadata::DecodeStaticType<::core::primitive::u128>,
+                    (),
+                    (),
+                    ::subxt::storage::address::Yes,
+                > {
+                    ::subxt::storage::address::StaticStorageAddress::new(
+                        "BabyLiminal",
+                        "VerificationKeyDeposits",
+                        Vec::new(),
+                        [
+                            56u8, 215u8, 74u8, 120u8, 187u8, 219u8, 92u8, 199u8, 141u8, 88u8, 57u8,
+                            211u8, 182u8, 197u8, 33u8, 185u8, 109u8, 113u8, 180u8, 99u8, 135u8,
+                            35u8, 177u8, 89u8, 233u8, 49u8, 142u8, 78u8, 34u8, 115u8, 210u8, 133u8,
                         ],
                     )
                 }
@@ -13388,6 +13486,24 @@ pub mod api {
                             125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
                             178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
                             145u8,
+                        ],
+                    )
+                }
+                #[doc = " Deposit amount for storing a verification key"]
+                #[doc = ""]
+                #[doc = " Will get locked and returned upon deleting the key by the owner"]
+                pub fn verification_key_deposit_per_byte(
+                    &self,
+                ) -> ::subxt::constants::StaticConstantAddress<
+                    ::subxt::metadata::DecodeStaticType<::core::primitive::u128>,
+                > {
+                    ::subxt::constants::StaticConstantAddress::new(
+                        "BabyLiminal",
+                        "VerificationKeyDepositPerByte",
+                        [
+                            84u8, 157u8, 140u8, 4u8, 93u8, 57u8, 29u8, 133u8, 105u8, 200u8, 214u8,
+                            27u8, 144u8, 208u8, 218u8, 160u8, 130u8, 109u8, 101u8, 54u8, 210u8,
+                            136u8, 71u8, 63u8, 49u8, 237u8, 234u8, 15u8, 178u8, 98u8, 148u8, 156u8,
                         ],
                     )
                 }
@@ -14079,23 +14195,23 @@ pub mod api {
                     #[doc = "`key` can come from any proving system - there are no checks that verify it, in"]
                     #[doc = "particular, `key` can contain just trash bytes."]
                     store_key {
-                        identifier: [::core::primitive::u8; 4usize],
+                        identifier: [::core::primitive::u8; 8usize],
                         key: ::std::vec::Vec<::core::primitive::u8>,
                     },
                     #[codec(index = 1)]
                     #[doc = "Deletes a key stored under `identifier` in `VerificationKeys` map."]
                     #[doc = ""]
-                    #[doc = "Can only be called by a root account."]
+                    #[doc = "Returns the deposit locked. Can only be called by the key owner."]
                     delete_key {
-                        identifier: [::core::primitive::u8; 4usize],
+                        identifier: [::core::primitive::u8; 8usize],
                     },
                     #[codec(index = 2)]
                     #[doc = "Overwrites a key stored under `identifier` in `VerificationKeys` map with a new value `key`"]
                     #[doc = ""]
                     #[doc = "Fails if `key.len()` is greater than `MaximumVerificationKeyLength`."]
-                    #[doc = "Can only be called by a root account."]
+                    #[doc = "Can only be called by the original owner of the key."]
                     overwrite_key {
-                        identifier: [::core::primitive::u8; 4usize],
+                        identifier: [::core::primitive::u8; 8usize],
                         key: ::std::vec::Vec<::core::primitive::u8>,
                     },
                     #[codec(index = 3)]
@@ -14112,7 +14228,7 @@ pub mod api {
                     #[doc = "- verifying procedure fails (e.g. incompatible verification key and proof)"]
                     #[doc = "- proof is incorrect"]
                     verify {
-                        verification_key_identifier: [::core::primitive::u8; 4usize],
+                        verification_key_identifier: [::core::primitive::u8; 8usize],
                         proof: ::std::vec::Vec<::core::primitive::u8>,
                         public_input: ::std::vec::Vec<::core::primitive::u8>,
                         system: runtime_types::pallet_baby_liminal::systems::ProvingSystem,
@@ -14138,25 +14254,37 @@ pub mod api {
                     #[doc = "Provided verification key is longer than `MaximumVerificationKeyLength` limit."]
                     VerificationKeyTooLong,
                     #[codec(index = 3)]
+                    #[doc = "When you override a key new key stored must be of the same size in bytes"]
+                    NewKeyMustHaveSameLength,
+                    #[codec(index = 4)]
                     #[doc = "Either proof or public input is longer than `MaximumDataLength` limit."]
                     DataTooLong,
-                    #[codec(index = 4)]
+                    #[codec(index = 5)]
                     #[doc = "Couldn't deserialize proof."]
                     DeserializingProofFailed,
-                    #[codec(index = 5)]
+                    #[codec(index = 6)]
                     #[doc = "Couldn't deserialize public input."]
                     DeserializingPublicInputFailed,
-                    #[codec(index = 6)]
+                    #[codec(index = 7)]
                     #[doc = "Couldn't deserialize verification key from storage."]
                     DeserializingVerificationKeyFailed,
-                    #[codec(index = 7)]
+                    #[codec(index = 8)]
                     #[doc = "Verification procedure has failed. Proof still can be correct."]
                     VerificationFailed(
                         runtime_types::pallet_baby_liminal::systems::VerificationError,
                     ),
-                    #[codec(index = 8)]
+                    #[codec(index = 9)]
                     #[doc = "Proof has been found as incorrect."]
                     IncorrectProof,
+                    #[codec(index = 10)]
+                    #[doc = "Unsigned request"]
+                    BadOrigin,
+                    #[codec(index = 11)]
+                    #[doc = "User has insufficient funds to lock the deposit for storing verification key"]
+                    CannotAffordDeposit,
+                    #[codec(index = 12)]
+                    #[doc = "Caller is not the owner of the key"]
+                    NotOwner,
                 }
                 #[derive(
                     :: subxt :: ext :: codec :: Decode,
@@ -14170,13 +14298,25 @@ pub mod api {
                 pub enum Event {
                     #[codec(index = 0)]
                     #[doc = "Verification key has been successfully stored."]
-                    VerificationKeyStored,
+                    #[doc = ""]
+                    #[doc = "\\[ account_id, identifier \\]"]
+                    VerificationKeyStored(
+                        ::subxt::ext::sp_core::crypto::AccountId32,
+                        [::core::primitive::u8; 8usize],
+                    ),
                     #[codec(index = 1)]
                     #[doc = "Verification key has been successfully deleted."]
-                    VerificationKeyDeleted,
+                    #[doc = ""]
+                    #[doc = "\\[ identifier \\]"]
+                    VerificationKeyDeleted(
+                        ::subxt::ext::sp_core::crypto::AccountId32,
+                        [::core::primitive::u8; 8usize],
+                    ),
                     #[codec(index = 2)]
                     #[doc = "Verification key has been successfully overwritten."]
-                    VerificationKeyOverwritten,
+                    #[doc = ""]
+                    #[doc = "\\[ identifier \\]"]
+                    VerificationKeyOverwritten([::core::primitive::u8; 8usize]),
                     #[codec(index = 3)]
                     #[doc = "Proof has been successfully verified."]
                     VerificationSucceeded,
@@ -20175,9 +20315,9 @@ pub mod api {
         let runtime_metadata_hash = client.metadata().metadata_hash(&PALLETS);
         if runtime_metadata_hash
             != [
-                59u8, 70u8, 133u8, 112u8, 201u8, 154u8, 103u8, 142u8, 36u8, 177u8, 196u8, 58u8,
-                112u8, 214u8, 78u8, 95u8, 13u8, 3u8, 11u8, 93u8, 154u8, 28u8, 165u8, 131u8, 232u8,
-                79u8, 46u8, 55u8, 245u8, 136u8, 7u8, 114u8,
+                4u8, 51u8, 167u8, 197u8, 145u8, 72u8, 209u8, 89u8, 75u8, 16u8, 79u8, 38u8, 113u8,
+                50u8, 205u8, 87u8, 62u8, 78u8, 81u8, 138u8, 150u8, 247u8, 168u8, 39u8, 117u8,
+                128u8, 153u8, 53u8, 239u8, 32u8, 36u8, 13u8,
             ]
         {
             Err(::subxt::error::MetadataError::IncompatibleMetadata)

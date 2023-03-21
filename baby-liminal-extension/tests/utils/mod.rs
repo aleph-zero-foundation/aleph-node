@@ -28,7 +28,7 @@ pub const VERIFY_ID: u16 =
         409009979,
     >>::ID;
 
-const IDENTIFIER: VerificationKeyIdentifier = [1, 7, 2, 9];
+const IDENTIFIER: VerificationKeyIdentifier = [1, 7, 2, 9, 1, 7, 2, 9];
 const VK: [u8; 2] = [4, 1];
 const PROOF: [u8; 20] = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3, 2, 3, 8, 4];
 const INPUT: [u8; 11] = [0, 5, 7, 7, 2, 1, 5, 6, 6, 4, 9];

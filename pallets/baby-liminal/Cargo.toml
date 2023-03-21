@@ -38,6 +38,7 @@ liminal-ark-poseidon = { path = "../../poseidon", default-features = false, opti
 primitives = { path = "../../primitives", default-features = false }
 
 [dev-dependencies]
+pallet-balances = { default-features = false, git = 'https://github.com/Cardinal-Cryptography/substrate.git', branch = "aleph-v0.9.38" }
 sp-runtime = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 
 [features]
@@ -67,6 +68,7 @@ std = [
     "sp-io/std",
     "sp-std/std",
     "sp-runtime/std",
+    "pallet-balances/std",
 
     "primitives/std",
 ]

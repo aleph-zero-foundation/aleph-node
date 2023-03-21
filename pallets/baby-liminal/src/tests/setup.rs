@@ -1,7 +1,7 @@
 use frame_support::{
     construct_runtime,
     pallet_prelude::ConstU32,
-    sp_runtime,
+    parameter_types, sp_runtime,
     sp_runtime::{
         testing::{Header, H256},
         traits::IdentityLookup,
@@ -9,6 +9,8 @@ use frame_support::{
     traits::Everything,
 };
 use frame_system::mocking::{MockBlock, MockUncheckedExtrinsic};
+use pallet_balances::AccountData;
+use sp_core::ConstU64;
 use sp_io::TestExternalities;
 use sp_runtime::traits::BlakeTwo256;
 
@@ -22,6 +24,7 @@ construct_runtime!(
     {
         System: frame_system::{Pallet, Call, Storage, Config, Event<T>},
         BabyLiminal: pallet_baby_liminal::{Pallet, Call, Storage, Event<T>},
+        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
     }
 );
 
@@ -43,7 +46,7 @@ impl frame_system::Config for TestRuntime {
     type DbWeight = ();
     type Version = ();
     type PalletInfo = PalletInfo;
-    type AccountData = ();
+    type AccountData = AccountData<u64>;
     type OnNewAccount = ();
     type OnKilledAccount = ();
     type SystemWeightInfo = ();
@@ -52,17 +55,45 @@ impl frame_system::Config for TestRuntime {
     type MaxConsumers = ConstU32<16>;
 }
 
+parameter_types! {
+    pub const ExistentialDeposit: u64 = 1;
+}
+
+impl pallet_balances::Config for TestRuntime {
+    type MaxLocks = ();
+    type Balance = u64;
+    type RuntimeEvent = RuntimeEvent;
+    type DustRemoval = ();
+    type ExistentialDeposit = ExistentialDeposit;
+    type AccountStore = System;
+    type WeightInfo = ();
+    type MaxReserves = ();
+    type ReserveIdentifier = ();
+}
+
 impl pallet_baby_liminal::Config for TestRuntime {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
+    type Currency = Balances;
     type MaximumVerificationKeyLength = ConstU32<10_000>;
     type MaximumDataLength = ConstU32<10_000>;
+    type VerificationKeyDepositPerByte = ConstU64<10>;
 }
 
 pub fn new_test_ext() -> TestExternalities {
-    let t = frame_system::GenesisConfig::default()
+    let mut t = frame_system::GenesisConfig::default()
         .build_storage::<TestRuntime>()
         .unwrap();
+
+    pallet_balances::GenesisConfig::<TestRuntime> {
+        balances: vec![
+            (1, 1000000),
+            (2, 1000000),
+            (201078993247613318810609354531638512790, 1000000), // seed 41 for benches
+        ],
+    }
+    .assimilate_storage(&mut t)
+    .unwrap();
 
     TestExternalities::new(t)
 }

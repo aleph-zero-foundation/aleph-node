@@ -9,7 +9,10 @@ use std::{
 use baby_liminal_extension::{
     executor::Executor, substrate::ByteCount, ProvingSystem, VerificationKeyIdentifier,
 };
-use obce::substrate::{frame_support::weights::Weight, ChainExtensionEnvironment, CriticalError};
+use obce::substrate::{
+    frame_support::weights::Weight, sp_runtime::AccountId32, ChainExtensionEnvironment,
+    CriticalError,
+};
 use pallet_baby_liminal::Error;
 
 use crate::utils::{STORE_KEY_ID, VERIFY_ID};
@@ -295,6 +298,7 @@ impl<
     type ErrorGenericType = ();
 
     fn store_key(
+        _: AccountId32,
         _: VerificationKeyIdentifier,
         _: Vec<u8>,
     ) -> Result<(), Error<Self::ErrorGenericType>> {

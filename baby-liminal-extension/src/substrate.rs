@@ -3,7 +3,7 @@ use obce::substrate::{
     frame_system::Config as SysConfig,
     pallet_contracts::{chain_extension::RetVal, Config as ContractConfig},
     sp_core::crypto::UncheckedFrom,
-    sp_runtime::traits::StaticLookup,
+    sp_runtime::{traits::StaticLookup, AccountId32},
     sp_std::{mem::size_of, vec::Vec},
     ChainExtensionEnvironment, ExtensionContext,
 };
@@ -54,6 +54,7 @@ where
     <<T as SysConfig>::Lookup as StaticLookup>::Source: From<<T as SysConfig>::AccountId>,
     <T as SysConfig>::AccountId: UncheckedFrom<<T as SysConfig>::Hash> + AsRef<[u8]>,
     Env: ChainExtensionEnvironment<E, T> + Executor<T>,
+    <T as SysConfig>::RuntimeOrigin: From<Option<AccountId32>>,
 {
     #[obce(
         weight(
@@ -74,6 +75,7 @@ where
     )]
     fn store_key(
         &mut self,
+        origin: AccountId32,
         identifier: VerificationKeyIdentifier,
         key: Vec<u8>,
     ) -> Result<(), BabyLiminalError> {
@@ -85,7 +87,7 @@ where
             weight_of_store_key::<T>(key.len() as ByteCount),
         );
 
-        match Env::store_key(identifier, key) {
+        match Env::store_key(origin, identifier, key) {
             Ok(_) => Ok(()),
             // In case `DispatchResultWithPostInfo` was returned (or some simpler equivalent for
             // `bare_store_key`), we could have adjusted weight. However, for the storing key action
