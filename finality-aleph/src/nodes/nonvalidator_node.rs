@@ -7,7 +7,7 @@ use sp_runtime::traits::{Block, Header};
 
 use crate::{
     nodes::{setup_justification_handler, JustificationParams},
-    session_map::{AuthorityProviderImpl, FinalityNotificatorImpl, SessionMapUpdater},
+    session_map::{AuthorityProviderImpl, FinalityNotifierImpl, SessionMapUpdater},
     AlephConfig, BlockchainBackend,
 };
 
@@ -33,9 +33,9 @@ where
         spawn_handle,
         ..
     } = aleph_config;
-    let map_updater = SessionMapUpdater::<_, _, B>::new(
+    let map_updater = SessionMapUpdater::new(
         AuthorityProviderImpl::new(client.clone()),
-        FinalityNotificatorImpl::new(client.clone()),
+        FinalityNotifierImpl::new(client.clone()),
         session_period,
     );
     let session_authorities = map_updater.readonly_session_map();

@@ -52,7 +52,7 @@ impl Display for CacheError {
 /// Lowest session verifier this cache returns is for `top_returned_session` - `cache_size`.
 pub struct VerifierCache<AP, FI>
 where
-    AP: AuthorityProvider<BlockNumber>,
+    AP: AuthorityProvider,
     FI: FinalizationInfo,
 {
     sessions: HashMap<SessionId, SessionVerifier>,
@@ -66,7 +66,7 @@ where
 
 impl<AP, FI> VerifierCache<AP, FI>
 where
-    AP: AuthorityProvider<BlockNumber>,
+    AP: AuthorityProvider,
     FI: FinalizationInfo,
 {
     pub fn new(
@@ -88,7 +88,7 @@ where
 
 /// Download authorities for the session and return `SessionVerifier` for them. `session_id` should be the first session,
 /// or the first block from the session number `session_id - 1` should be finalized.
-fn download_session_verifier<AP: AuthorityProvider<BlockNumber>>(
+fn download_session_verifier<AP: AuthorityProvider>(
     authority_provider: &AP,
     session_id: SessionId,
     session_info: &SessionBoundaryInfo,
@@ -106,7 +106,7 @@ fn download_session_verifier<AP: AuthorityProvider<BlockNumber>>(
 
 impl<AP, FI> VerifierCache<AP, FI>
 where
-    AP: AuthorityProvider<BlockNumber>,
+    AP: AuthorityProvider,
     FI: FinalizationInfo,
 {
     /// Prune all sessions with a number smaller than `session_id`
@@ -217,7 +217,7 @@ mod tests {
         }
     }
 
-    impl AuthorityProvider<BlockNumber> for MockAuthorityProvider {
+    impl AuthorityProvider for MockAuthorityProvider {
         fn authority_data(&self, block_number: BlockNumber) -> Option<SessionAuthorityData> {
             self.session_map
                 .get(&self.session_info.session_id_from_block_num(block_number))

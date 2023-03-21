@@ -100,7 +100,7 @@ impl Display for VerificationError {
 impl<H, AP, FS> Verifier<Justification<H>> for VerifierCache<AP, FS>
 where
     H: SubstrateHeader<Number = BlockNumber>,
-    AP: AuthorityProvider<BlockNumber>,
+    AP: AuthorityProvider,
     FS: FinalizationInfo,
 {
     type Error = VerificationError;

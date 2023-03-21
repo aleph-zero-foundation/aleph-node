@@ -24,7 +24,7 @@ use crate::{
         ConsensusPartyParams,
     },
     session::SessionBoundaryInfo,
-    session_map::{AuthorityProviderImpl, FinalityNotificatorImpl, SessionMapUpdater},
+    session_map::{AuthorityProviderImpl, FinalityNotifierImpl, SessionMapUpdater},
     AlephConfig, BlockchainBackend,
 };
 
@@ -102,9 +102,9 @@ where
     let gossip_network_task = async move { gossip_network_service.run().await };
 
     let block_requester = network.clone();
-    let map_updater = SessionMapUpdater::<_, _, B>::new(
+    let map_updater = SessionMapUpdater::new(
         AuthorityProviderImpl::new(client.clone()),
-        FinalityNotificatorImpl::new(client.clone()),
+        FinalityNotifierImpl::new(client.clone()),
         session_period,
     );
     let session_authorities = map_updater.readonly_session_map();
