@@ -664,6 +664,8 @@ dependencies = [
 [[package]]
 name = "liminal-ark-poseidon"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92ff555fb3914d246c1d478b66d248d4e59daac3784f05c24a707a55d9a6bd2b"
 dependencies = [
  "ark-bls12-381",
  "ark-ff",

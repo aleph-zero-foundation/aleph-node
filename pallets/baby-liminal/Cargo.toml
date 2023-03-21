@@ -27,6 +27,8 @@ ark-groth16 = { version = "^0.3.0", default-features = false }
 ark-gm17 = { version = "^0.3.0", default-features = false }
 ark-marlin = { version = "^0.3.0", default-features = false }
 
+liminal-ark-poseidon = { version = "0.1.0", default-features = false, optional = true }
+
 frame-benchmarking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", optional = true }
 frame-support = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 frame-system = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
@@ -34,7 +36,6 @@ sp-core = { default-features = false, git = "https://github.com/Cardinal-Cryptog
 sp-io = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 
-liminal-ark-poseidon = { path = "../../poseidon", default-features = false, optional = true }
 primitives = { path = "../../primitives", default-features = false }
 
 [dev-dependencies]
@@ -73,11 +74,11 @@ std = [
     "primitives/std",
 ]
 runtime-benchmarks = [
+    "liminal-ark-poseidon",
     "frame-benchmarking/runtime-benchmarks",
     "frame-support/runtime-benchmarks",
     "frame-system/runtime-benchmarks",
     "sp-runtime/runtime-benchmarks",
-    "liminal-ark-poseidon",
 ]
 try-runtime = [
     "frame-support/try-runtime",

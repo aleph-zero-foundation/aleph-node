@@ -19,7 +19,7 @@ sp-staking = { default-features = false, git = "https://github.com/Cardinal-Cryp
 
 # Liminal-related dependencies
 sp-runtime-interface = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false, optional = true }
-liminal-ark-poseidon = { path = "../poseidon", default-features = false, optional = true }
+liminal-ark-poseidon = { version = "0.1.0", default-features = false, optional = true }
 
 [features]
 default = ["std"]
