@@ -5,7 +5,7 @@ use subxt::{blocks::ExtrinsicEvents, ext::sp_runtime::traits::Hash, Config};
 
 use crate::{
     connections::{AsConnection, TxInfo},
-    pallets::{elections::ElectionsApi, staking::StakingApi},
+    pallets::{committee_management::CommitteeManagementApi, staking::StakingApi},
     AlephConfig, BlockHash,
 };
 

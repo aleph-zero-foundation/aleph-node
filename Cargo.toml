@@ -11,6 +11,7 @@ members = [
     "pallets/baby-liminal",
     "pallets/elections",
     "pallets/support",
+    "pallets/committee-management",
     "poseidon",
     "primitives",
 ]

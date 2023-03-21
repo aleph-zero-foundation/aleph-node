@@ -7,6 +7,8 @@ pub mod author;
 pub mod baby_liminal;
 /// Pallet balances API
 pub mod balances;
+/// Pallet committee-management API
+pub mod committee_management;
 /// Pallet contracts API
 pub mod contract;
 /// Pallet elections API

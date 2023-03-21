@@ -7,7 +7,7 @@ use crate::{
     api,
     connections::{AsConnection, TxInfo},
     pallet_treasury::pallet::Call::{approve_proposal, reject_proposal},
-    pallets::{elections::ElectionsApi, staking::StakingApi},
+    pallets::{committee_management::CommitteeManagementApi, staking::StakingApi},
     AccountId, BlockHash,
     Call::Treasury,
     ConnectionApi, RootConnection, SignedConnectionApi, SudoCall, TxStatus,

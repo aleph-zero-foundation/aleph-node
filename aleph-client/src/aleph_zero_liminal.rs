@@ -1,7 +1,7 @@
 #[allow(dead_code, unused_imports, non_camel_case_types)]
 pub mod api {
     use super::api as root_mod;
-    pub static PALLETS: [&str; 22usize] = [
+    pub static PALLETS: [&str; 23usize] = [
         "System",
         "RandomnessCollectiveFlip",
         "Scheduler",
@@ -23,6 +23,7 @@ pub mod api {
         "Contracts",
         "NominationPools",
         "Identity",
+        "CommitteeManagement",
         "BabyLiminal",
     ];
     #[derive(
@@ -67,6 +68,8 @@ pub mod api {
         #[codec(index = 20)]
         Identity(identity::Event),
         #[codec(index = 21)]
+        CommitteeManagement(committee_management::Event),
+        #[codec(index = 22)]
         BabyLiminal(baby_liminal::Event),
     }
     pub mod system {
@@ -738,9 +741,9 @@ pub mod api {
                         "Events",
                         vec![],
                         [
-                            165u8, 151u8, 183u8, 176u8, 140u8, 83u8, 182u8, 83u8, 128u8, 123u8,
-                            114u8, 246u8, 90u8, 178u8, 31u8, 225u8, 49u8, 148u8, 122u8, 66u8, 75u8,
-                            106u8, 79u8, 63u8, 78u8, 213u8, 33u8, 141u8, 198u8, 101u8, 158u8, 78u8,
+                            127u8, 248u8, 52u8, 124u8, 102u8, 50u8, 115u8, 123u8, 7u8, 105u8,
+                            149u8, 74u8, 84u8, 203u8, 250u8, 215u8, 42u8, 227u8, 28u8, 71u8, 173u8,
+                            71u8, 239u8, 18u8, 177u8, 47u8, 117u8, 69u8, 54u8, 19u8, 47u8, 185u8,
                         ],
                     )
                 }
@@ -1185,9 +1188,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            203u8, 163u8, 89u8, 109u8, 45u8, 119u8, 227u8, 27u8, 65u8, 243u8, 46u8,
-                            102u8, 187u8, 169u8, 13u8, 66u8, 46u8, 254u8, 113u8, 210u8, 122u8,
-                            239u8, 147u8, 107u8, 55u8, 91u8, 1u8, 98u8, 201u8, 123u8, 203u8, 70u8,
+                            206u8, 160u8, 139u8, 169u8, 31u8, 3u8, 47u8, 87u8, 198u8, 142u8, 163u8,
+                            65u8, 201u8, 14u8, 254u8, 171u8, 227u8, 33u8, 196u8, 64u8, 191u8,
+                            104u8, 170u8, 6u8, 249u8, 127u8, 240u8, 6u8, 214u8, 137u8, 209u8, 44u8,
                         ],
                     )
                 }
@@ -1231,9 +1234,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            18u8, 192u8, 161u8, 114u8, 187u8, 15u8, 78u8, 111u8, 41u8, 148u8, 58u8,
-                            78u8, 11u8, 52u8, 58u8, 227u8, 178u8, 168u8, 168u8, 79u8, 23u8, 20u8,
-                            191u8, 105u8, 4u8, 119u8, 155u8, 163u8, 240u8, 18u8, 231u8, 88u8,
+                            255u8, 114u8, 87u8, 160u8, 209u8, 71u8, 230u8, 18u8, 97u8, 22u8, 152u8,
+                            171u8, 250u8, 147u8, 25u8, 2u8, 44u8, 155u8, 161u8, 14u8, 194u8, 134u8,
+                            254u8, 254u8, 253u8, 220u8, 192u8, 116u8, 9u8, 187u8, 130u8, 201u8,
                         ],
                     )
                 }
@@ -1278,9 +1281,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            19u8, 56u8, 251u8, 84u8, 220u8, 73u8, 53u8, 58u8, 17u8, 107u8, 232u8,
-                            203u8, 42u8, 25u8, 57u8, 47u8, 37u8, 190u8, 91u8, 111u8, 92u8, 18u8,
-                            22u8, 181u8, 55u8, 73u8, 230u8, 255u8, 87u8, 97u8, 33u8, 19u8,
+                            204u8, 21u8, 194u8, 25u8, 203u8, 116u8, 178u8, 180u8, 45u8, 110u8,
+                            63u8, 26u8, 40u8, 7u8, 77u8, 88u8, 125u8, 85u8, 199u8, 253u8, 236u8,
+                            182u8, 116u8, 191u8, 166u8, 223u8, 125u8, 119u8, 4u8, 216u8, 238u8,
+                            35u8,
                         ],
                     )
                 }
@@ -1311,10 +1315,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            11u8, 116u8, 241u8, 215u8, 147u8, 140u8, 121u8, 100u8, 225u8, 1u8,
-                            173u8, 155u8, 196u8, 123u8, 9u8, 145u8, 92u8, 180u8, 132u8, 28u8,
-                            131u8, 142u8, 146u8, 102u8, 229u8, 151u8, 118u8, 245u8, 20u8, 107u8,
-                            170u8, 119u8,
+                            117u8, 73u8, 76u8, 9u8, 176u8, 88u8, 83u8, 154u8, 239u8, 13u8, 132u8,
+                            172u8, 225u8, 134u8, 203u8, 189u8, 159u8, 14u8, 140u8, 52u8, 208u8,
+                            137u8, 192u8, 141u8, 147u8, 159u8, 173u8, 193u8, 253u8, 83u8, 65u8,
+                            47u8,
                         ],
                     )
                 }
@@ -6286,9 +6290,9 @@ pub mod api {
                         "NextAuthorities",
                         vec![],
                         [
-                            79u8, 23u8, 2u8, 243u8, 101u8, 40u8, 221u8, 249u8, 219u8, 105u8, 200u8,
-                            253u8, 29u8, 16u8, 147u8, 189u8, 52u8, 248u8, 119u8, 84u8, 87u8, 175u8,
-                            246u8, 172u8, 28u8, 241u8, 9u8, 90u8, 55u8, 132u8, 61u8, 142u8,
+                            236u8, 251u8, 82u8, 173u8, 5u8, 85u8, 226u8, 125u8, 252u8, 83u8, 147u8,
+                            128u8, 136u8, 72u8, 200u8, 166u8, 53u8, 80u8, 209u8, 74u8, 167u8, 35u8,
+                            104u8, 203u8, 105u8, 238u8, 44u8, 220u8, 67u8, 220u8, 205u8, 243u8,
                         ],
                     )
                 }
@@ -6426,44 +6430,6 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
-            pub struct SetBanConfig {
-                pub minimal_expected_performance: ::core::option::Option<::core::primitive::u8>,
-                pub underperformed_session_count_threshold:
-                    ::core::option::Option<::core::primitive::u32>,
-                pub clean_session_counter_delay: ::core::option::Option<::core::primitive::u32>,
-                pub ban_period: ::core::option::Option<::core::primitive::u32>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            pub struct BanFromCommittee {
-                pub banned: ::subxt::ext::sp_core::crypto::AccountId32,
-                pub ban_reason: ::std::vec::Vec<::core::primitive::u8>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            pub struct CancelBan {
-                pub banned: ::subxt::ext::sp_core::crypto::AccountId32,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
             pub struct SetElectionsOpenness {
                 pub openness: runtime_types::primitives::ElectionOpenness,
             }
@@ -6493,67 +6459,6 @@ pub mod api {
                             88u8, 2u8, 255u8, 219u8, 50u8, 103u8, 169u8, 150u8, 249u8, 161u8, 57u8,
                             39u8, 6u8, 241u8, 94u8, 139u8, 206u8, 236u8, 160u8, 92u8, 163u8, 170u8,
                             222u8, 99u8, 50u8, 91u8, 194u8, 192u8, 99u8, 123u8, 41u8, 136u8,
-                        ],
-                    )
-                }
-                #[doc = "Sets ban config, it has an immediate effect"]
-                pub fn set_ban_config(
-                    &self,
-                    minimal_expected_performance: ::core::option::Option<::core::primitive::u8>,
-                    underperformed_session_count_threshold: ::core::option::Option<
-                        ::core::primitive::u32,
-                    >,
-                    clean_session_counter_delay: ::core::option::Option<::core::primitive::u32>,
-                    ban_period: ::core::option::Option<::core::primitive::u32>,
-                ) -> ::subxt::tx::StaticTxPayload<SetBanConfig> {
-                    ::subxt::tx::StaticTxPayload::new(
-                        "Elections",
-                        "set_ban_config",
-                        SetBanConfig {
-                            minimal_expected_performance,
-                            underperformed_session_count_threshold,
-                            clean_session_counter_delay,
-                            ban_period,
-                        },
-                        [
-                            228u8, 199u8, 170u8, 155u8, 208u8, 190u8, 211u8, 218u8, 105u8, 213u8,
-                            240u8, 152u8, 92u8, 19u8, 164u8, 28u8, 215u8, 145u8, 47u8, 248u8,
-                            219u8, 75u8, 234u8, 78u8, 29u8, 189u8, 35u8, 106u8, 165u8, 76u8, 27u8,
-                            50u8,
-                        ],
-                    )
-                }
-                #[doc = "Schedule a non-reserved node to be banned out from the committee at the end of the era"]
-                pub fn ban_from_committee(
-                    &self,
-                    banned: ::subxt::ext::sp_core::crypto::AccountId32,
-                    ban_reason: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::StaticTxPayload<BanFromCommittee> {
-                    ::subxt::tx::StaticTxPayload::new(
-                        "Elections",
-                        "ban_from_committee",
-                        BanFromCommittee { banned, ban_reason },
-                        [
-                            60u8, 254u8, 80u8, 201u8, 64u8, 189u8, 255u8, 111u8, 14u8, 9u8, 68u8,
-                            177u8, 196u8, 107u8, 10u8, 177u8, 78u8, 134u8, 98u8, 21u8, 179u8, 9u8,
-                            111u8, 185u8, 155u8, 39u8, 148u8, 88u8, 239u8, 16u8, 24u8, 171u8,
-                        ],
-                    )
-                }
-                #[doc = "Schedule a non-reserved node to be banned out from the committee at the end of the era"]
-                pub fn cancel_ban(
-                    &self,
-                    banned: ::subxt::ext::sp_core::crypto::AccountId32,
-                ) -> ::subxt::tx::StaticTxPayload<CancelBan> {
-                    ::subxt::tx::StaticTxPayload::new(
-                        "Elections",
-                        "cancel_ban",
-                        CancelBan { banned },
-                        [
-                            103u8, 192u8, 40u8, 246u8, 206u8, 52u8, 222u8, 51u8, 39u8, 247u8,
-                            220u8, 175u8, 232u8, 31u8, 168u8, 99u8, 206u8, 45u8, 191u8, 161u8,
-                            107u8, 12u8, 112u8, 54u8, 163u8, 170u8, 221u8, 220u8, 122u8, 177u8,
-                            178u8, 246u8,
                         ],
                     )
                 }
@@ -6597,39 +6502,6 @@ pub mod api {
             impl ::subxt::events::StaticEvent for ChangeValidators {
                 const PALLET: &'static str = "Elections";
                 const EVENT: &'static str = "ChangeValidators";
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[doc = "Ban thresholds for the next era has changed"]
-            pub struct SetBanConfig(pub runtime_types::primitives::BanConfig);
-            impl ::subxt::events::StaticEvent for SetBanConfig {
-                const PALLET: &'static str = "Elections";
-                const EVENT: &'static str = "SetBanConfig";
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[doc = "Validators have been banned from the committee"]
-            pub struct BanValidators(
-                pub  ::std::vec::Vec<(
-                    ::subxt::ext::sp_core::crypto::AccountId32,
-                    runtime_types::primitives::BanInfo,
-                )>,
-            );
-            impl ::subxt::events::StaticEvent for BanValidators {
-                const PALLET: &'static str = "Elections";
-                const EVENT: &'static str = "BanValidators";
             }
         }
         pub mod storage {
@@ -6746,186 +6618,6 @@ pub mod api {
                         ],
                     )
                 }
-                #[doc = " A lookup how many blocks a validator produced."]
-                pub fn session_validator_block_count(
-                    &self,
-                    _0: impl ::std::borrow::Borrow<::subxt::ext::sp_core::crypto::AccountId32>,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
-                    ::subxt::storage::address::Yes,
-                    ::subxt::storage::address::Yes,
-                    ::subxt::storage::address::Yes,
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Elections",
-                        "SessionValidatorBlockCount",
-                        vec![::subxt::storage::address::StorageMapKey::new(
-                            _0.borrow(),
-                            ::subxt::storage::address::StorageHasher::Twox64Concat,
-                        )],
-                        [
-                            186u8, 91u8, 185u8, 144u8, 216u8, 179u8, 157u8, 132u8, 17u8, 247u8,
-                            241u8, 172u8, 32u8, 7u8, 28u8, 60u8, 188u8, 192u8, 64u8, 29u8, 153u8,
-                            100u8, 130u8, 245u8, 189u8, 251u8, 68u8, 161u8, 202u8, 29u8, 153u8,
-                            131u8,
-                        ],
-                    )
-                }
-                #[doc = " A lookup how many blocks a validator produced."]
-                pub fn session_validator_block_count_root(
-                    &self,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
-                    (),
-                    ::subxt::storage::address::Yes,
-                    ::subxt::storage::address::Yes,
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Elections",
-                        "SessionValidatorBlockCount",
-                        Vec::new(),
-                        [
-                            186u8, 91u8, 185u8, 144u8, 216u8, 179u8, 157u8, 132u8, 17u8, 247u8,
-                            241u8, 172u8, 32u8, 7u8, 28u8, 60u8, 188u8, 192u8, 64u8, 29u8, 153u8,
-                            100u8, 130u8, 245u8, 189u8, 251u8, 68u8, 161u8, 202u8, 29u8, 153u8,
-                            131u8,
-                        ],
-                    )
-                }
-                #[doc = " Total possible reward per validator for the current era."]
-                pub fn validator_era_total_reward(
-                    &self,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<
-                        runtime_types::pallet_elections::ValidatorTotalRewards<
-                            ::subxt::ext::sp_core::crypto::AccountId32,
-                        >,
-                    >,
-                    ::subxt::storage::address::Yes,
-                    (),
-                    (),
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Elections",
-                        "ValidatorEraTotalReward",
-                        vec![],
-                        [
-                            111u8, 103u8, 48u8, 14u8, 23u8, 139u8, 162u8, 122u8, 212u8, 85u8, 64u8,
-                            188u8, 36u8, 142u8, 80u8, 224u8, 89u8, 63u8, 104u8, 86u8, 51u8, 111u8,
-                            166u8, 53u8, 189u8, 181u8, 240u8, 250u8, 160u8, 128u8, 179u8, 9u8,
-                        ],
-                    )
-                }
-                #[doc = " Current era config for ban functionality, see [`BanConfig`]"]
-                pub fn ban_config(
-                    &self,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<runtime_types::primitives::BanConfig>,
-                    ::subxt::storage::address::Yes,
-                    ::subxt::storage::address::Yes,
-                    (),
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Elections",
-                        "BanConfig",
-                        vec![],
-                        [
-                            115u8, 228u8, 135u8, 32u8, 85u8, 156u8, 44u8, 195u8, 215u8, 11u8, 27u8,
-                            26u8, 231u8, 59u8, 249u8, 78u8, 172u8, 66u8, 81u8, 17u8, 99u8, 221u8,
-                            38u8, 253u8, 62u8, 54u8, 104u8, 161u8, 129u8, 92u8, 218u8, 193u8,
-                        ],
-                    )
-                }
-                #[doc = " A lookup for a number of underperformance sessions for a given validator"]
-                pub fn underperformed_validator_session_count(
-                    &self,
-                    _0: impl ::std::borrow::Borrow<::subxt::ext::sp_core::crypto::AccountId32>,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
-                    ::subxt::storage::address::Yes,
-                    ::subxt::storage::address::Yes,
-                    ::subxt::storage::address::Yes,
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Elections",
-                        "UnderperformedValidatorSessionCount",
-                        vec![::subxt::storage::address::StorageMapKey::new(
-                            _0.borrow(),
-                            ::subxt::storage::address::StorageHasher::Twox64Concat,
-                        )],
-                        [
-                            46u8, 74u8, 46u8, 159u8, 162u8, 118u8, 159u8, 155u8, 233u8, 63u8,
-                            101u8, 201u8, 56u8, 204u8, 126u8, 242u8, 131u8, 5u8, 29u8, 132u8, 43u8,
-                            205u8, 168u8, 157u8, 29u8, 183u8, 127u8, 202u8, 25u8, 245u8, 137u8,
-                            67u8,
-                        ],
-                    )
-                }
-                #[doc = " A lookup for a number of underperformance sessions for a given validator"]
-                pub fn underperformed_validator_session_count_root(
-                    &self,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
-                    (),
-                    ::subxt::storage::address::Yes,
-                    ::subxt::storage::address::Yes,
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Elections",
-                        "UnderperformedValidatorSessionCount",
-                        Vec::new(),
-                        [
-                            46u8, 74u8, 46u8, 159u8, 162u8, 118u8, 159u8, 155u8, 233u8, 63u8,
-                            101u8, 201u8, 56u8, 204u8, 126u8, 242u8, 131u8, 5u8, 29u8, 132u8, 43u8,
-                            205u8, 168u8, 157u8, 29u8, 183u8, 127u8, 202u8, 25u8, 245u8, 137u8,
-                            67u8,
-                        ],
-                    )
-                }
-                #[doc = " Validators to be removed from non reserved list in the next era"]
-                pub fn banned(
-                    &self,
-                    _0: impl ::std::borrow::Borrow<::subxt::ext::sp_core::crypto::AccountId32>,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<runtime_types::primitives::BanInfo>,
-                    ::subxt::storage::address::Yes,
-                    (),
-                    ::subxt::storage::address::Yes,
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Elections",
-                        "Banned",
-                        vec![::subxt::storage::address::StorageMapKey::new(
-                            _0.borrow(),
-                            ::subxt::storage::address::StorageHasher::Twox64Concat,
-                        )],
-                        [
-                            202u8, 38u8, 165u8, 35u8, 95u8, 207u8, 116u8, 43u8, 148u8, 73u8, 193u8,
-                            187u8, 1u8, 88u8, 209u8, 13u8, 128u8, 168u8, 121u8, 62u8, 227u8, 172u8,
-                            87u8, 106u8, 15u8, 43u8, 136u8, 240u8, 249u8, 210u8, 25u8, 215u8,
-                        ],
-                    )
-                }
-                #[doc = " Validators to be removed from non reserved list in the next era"]
-                pub fn banned_root(
-                    &self,
-                ) -> ::subxt::storage::address::StaticStorageAddress<
-                    ::subxt::metadata::DecodeStaticType<runtime_types::primitives::BanInfo>,
-                    (),
-                    (),
-                    ::subxt::storage::address::Yes,
-                > {
-                    ::subxt::storage::address::StaticStorageAddress::new(
-                        "Elections",
-                        "Banned",
-                        Vec::new(),
-                        [
-                            202u8, 38u8, 165u8, 35u8, 95u8, 207u8, 116u8, 43u8, 148u8, 73u8, 193u8,
-                            187u8, 1u8, 88u8, 209u8, 13u8, 128u8, 168u8, 121u8, 62u8, 227u8, 172u8,
-                            87u8, 106u8, 15u8, 43u8, 136u8, 240u8, 249u8, 210u8, 25u8, 215u8,
-                        ],
-                    )
-                }
                 #[doc = " Openness of the elections, whether we allow all candidates that bonded enough tokens or"]
                 #[doc = " the validators list is managed by sudo"]
                 pub fn openness(
@@ -6956,40 +6648,6 @@ pub mod api {
             use super::runtime_types;
             pub struct ConstantsApi;
             impl ConstantsApi {
-                #[doc = " Nr of blocks in the session."]
-                pub fn session_period(
-                    &self,
-                ) -> ::subxt::constants::StaticConstantAddress<
-                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
-                > {
-                    ::subxt::constants::StaticConstantAddress::new(
-                        "Elections",
-                        "SessionPeriod",
-                        [
-                            98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
-                            125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
-                            178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
-                            145u8,
-                        ],
-                    )
-                }
-                #[doc = " Maximum acceptable ban reason length."]
-                pub fn maximum_ban_reason_length(
-                    &self,
-                ) -> ::subxt::constants::StaticConstantAddress<
-                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
-                > {
-                    ::subxt::constants::StaticConstantAddress::new(
-                        "Elections",
-                        "MaximumBanReasonLength",
-                        [
-                            98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
-                            125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
-                            178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
-                            145u8,
-                        ],
-                    )
-                }
                 #[doc = " The maximum number of winners that can be elected by this `ElectionProvider`"]
                 #[doc = " implementation."]
                 #[doc = ""]
@@ -8187,10 +7845,10 @@ pub mod api {
                         "batch",
                         Batch { calls },
                         [
-                            246u8, 95u8, 179u8, 39u8, 249u8, 175u8, 209u8, 240u8, 62u8, 104u8,
-                            94u8, 176u8, 39u8, 221u8, 186u8, 130u8, 30u8, 95u8, 148u8, 150u8,
-                            164u8, 185u8, 61u8, 206u8, 82u8, 150u8, 21u8, 92u8, 250u8, 42u8, 11u8,
-                            84u8,
+                            235u8, 20u8, 194u8, 29u8, 212u8, 19u8, 192u8, 246u8, 227u8, 138u8,
+                            235u8, 86u8, 73u8, 28u8, 242u8, 195u8, 239u8, 211u8, 42u8, 115u8, 74u8,
+                            251u8, 213u8, 17u8, 194u8, 110u8, 218u8, 63u8, 217u8, 253u8, 83u8,
+                            52u8,
                         ],
                     )
                 }
@@ -8220,10 +7878,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            67u8, 121u8, 39u8, 163u8, 227u8, 98u8, 177u8, 171u8, 70u8, 107u8,
-                            117u8, 43u8, 251u8, 191u8, 178u8, 195u8, 174u8, 38u8, 113u8, 177u8,
-                            246u8, 52u8, 253u8, 234u8, 114u8, 205u8, 158u8, 193u8, 170u8, 109u8,
-                            156u8, 90u8,
+                            16u8, 57u8, 55u8, 209u8, 235u8, 147u8, 26u8, 193u8, 230u8, 113u8,
+                            217u8, 155u8, 84u8, 222u8, 57u8, 114u8, 123u8, 215u8, 198u8, 127u8,
+                            31u8, 204u8, 139u8, 37u8, 36u8, 193u8, 18u8, 5u8, 233u8, 187u8, 84u8,
+                            32u8,
                         ],
                     )
                 }
@@ -8250,10 +7908,10 @@ pub mod api {
                         "batch_all",
                         BatchAll { calls },
                         [
-                            232u8, 172u8, 238u8, 163u8, 123u8, 117u8, 137u8, 30u8, 255u8, 209u8,
-                            78u8, 112u8, 182u8, 98u8, 131u8, 111u8, 26u8, 148u8, 102u8, 177u8,
-                            13u8, 44u8, 155u8, 11u8, 177u8, 178u8, 243u8, 26u8, 194u8, 25u8, 49u8,
-                            101u8,
+                            86u8, 226u8, 111u8, 166u8, 181u8, 24u8, 83u8, 73u8, 47u8, 222u8, 34u8,
+                            176u8, 126u8, 32u8, 169u8, 50u8, 204u8, 123u8, 216u8, 237u8, 149u8,
+                            169u8, 229u8, 74u8, 242u8, 50u8, 216u8, 99u8, 100u8, 178u8, 152u8,
+                            202u8,
                         ],
                     )
                 }
@@ -8280,9 +7938,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            38u8, 191u8, 59u8, 208u8, 154u8, 238u8, 140u8, 43u8, 105u8, 58u8, 64u8,
-                            80u8, 205u8, 78u8, 158u8, 48u8, 38u8, 45u8, 167u8, 147u8, 48u8, 196u8,
-                            12u8, 19u8, 152u8, 245u8, 107u8, 148u8, 128u8, 145u8, 117u8, 33u8,
+                            134u8, 118u8, 98u8, 1u8, 57u8, 34u8, 203u8, 176u8, 201u8, 106u8, 188u8,
+                            206u8, 198u8, 50u8, 170u8, 209u8, 30u8, 209u8, 45u8, 170u8, 14u8, 58u8,
+                            110u8, 123u8, 171u8, 88u8, 113u8, 173u8, 222u8, 240u8, 252u8, 228u8,
                         ],
                     )
                 }
@@ -8309,9 +7967,9 @@ pub mod api {
                         "force_batch",
                         ForceBatch { calls },
                         [
-                            174u8, 39u8, 96u8, 207u8, 85u8, 73u8, 41u8, 31u8, 24u8, 186u8, 150u8,
-                            147u8, 172u8, 151u8, 242u8, 44u8, 226u8, 221u8, 77u8, 249u8, 3u8, 61u8,
-                            32u8, 163u8, 149u8, 128u8, 7u8, 112u8, 133u8, 208u8, 138u8, 231u8,
+                            15u8, 207u8, 40u8, 75u8, 155u8, 131u8, 135u8, 193u8, 248u8, 150u8,
+                            20u8, 150u8, 172u8, 28u8, 64u8, 62u8, 29u8, 253u8, 49u8, 85u8, 21u8,
+                            237u8, 184u8, 92u8, 197u8, 62u8, 27u8, 79u8, 1u8, 43u8, 164u8, 248u8,
                         ],
                     )
                 }
@@ -8334,9 +7992,10 @@ pub mod api {
                             weight,
                         },
                         [
-                            59u8, 14u8, 52u8, 140u8, 87u8, 162u8, 12u8, 101u8, 45u8, 45u8, 252u8,
-                            72u8, 84u8, 253u8, 68u8, 114u8, 134u8, 188u8, 107u8, 120u8, 177u8,
-                            59u8, 0u8, 156u8, 255u8, 22u8, 46u8, 76u8, 22u8, 9u8, 37u8, 246u8,
+                            164u8, 75u8, 245u8, 115u8, 139u8, 177u8, 33u8, 203u8, 98u8, 185u8,
+                            149u8, 252u8, 90u8, 252u8, 137u8, 181u8, 71u8, 112u8, 124u8, 84u8,
+                            52u8, 116u8, 10u8, 163u8, 144u8, 126u8, 184u8, 51u8, 115u8, 117u8,
+                            65u8, 210u8,
                         ],
                     )
                 }
@@ -8560,9 +8219,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            178u8, 178u8, 110u8, 87u8, 35u8, 86u8, 155u8, 171u8, 44u8, 86u8, 151u8,
-                            60u8, 10u8, 245u8, 41u8, 5u8, 156u8, 135u8, 53u8, 252u8, 175u8, 242u8,
-                            166u8, 62u8, 135u8, 164u8, 156u8, 50u8, 123u8, 130u8, 45u8, 237u8,
+                            102u8, 252u8, 115u8, 81u8, 211u8, 62u8, 22u8, 211u8, 88u8, 76u8, 134u8,
+                            250u8, 185u8, 0u8, 124u8, 147u8, 89u8, 70u8, 216u8, 67u8, 218u8, 41u8,
+                            173u8, 197u8, 1u8, 9u8, 246u8, 245u8, 252u8, 200u8, 5u8, 46u8,
                         ],
                     )
                 }
@@ -8632,9 +8291,9 @@ pub mod api {
                             max_weight,
                         },
                         [
-                            174u8, 138u8, 25u8, 3u8, 211u8, 169u8, 147u8, 52u8, 165u8, 8u8, 228u8,
-                            79u8, 34u8, 2u8, 35u8, 149u8, 151u8, 153u8, 28u8, 91u8, 25u8, 117u8,
-                            141u8, 105u8, 20u8, 215u8, 126u8, 255u8, 180u8, 83u8, 143u8, 46u8,
+                            100u8, 58u8, 239u8, 238u8, 95u8, 123u8, 103u8, 87u8, 85u8, 255u8, 68u8,
+                            144u8, 172u8, 124u8, 204u8, 68u8, 137u8, 185u8, 224u8, 98u8, 90u8,
+                            252u8, 91u8, 77u8, 39u8, 195u8, 231u8, 0u8, 152u8, 219u8, 9u8, 55u8,
                         ],
                     )
                 }
@@ -9046,9 +8705,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            96u8, 109u8, 155u8, 149u8, 31u8, 0u8, 38u8, 21u8, 17u8, 99u8, 252u8,
-                            216u8, 122u8, 10u8, 113u8, 28u8, 148u8, 88u8, 145u8, 164u8, 114u8, 2u8,
-                            241u8, 122u8, 48u8, 33u8, 202u8, 244u8, 6u8, 154u8, 154u8, 20u8,
+                            255u8, 3u8, 209u8, 98u8, 202u8, 60u8, 7u8, 97u8, 140u8, 250u8, 230u8,
+                            50u8, 220u8, 10u8, 139u8, 125u8, 79u8, 160u8, 173u8, 228u8, 43u8,
+                            162u8, 84u8, 10u8, 56u8, 191u8, 196u8, 242u8, 177u8, 249u8, 135u8,
+                            59u8,
                         ],
                     )
                 }
@@ -9075,10 +8735,9 @@ pub mod api {
                             weight,
                         },
                         [
-                            50u8, 68u8, 242u8, 243u8, 214u8, 56u8, 132u8, 15u8, 170u8, 60u8, 186u8,
-                            80u8, 15u8, 212u8, 89u8, 227u8, 106u8, 164u8, 116u8, 136u8, 156u8,
-                            180u8, 163u8, 197u8, 8u8, 249u8, 166u8, 161u8, 28u8, 197u8, 18u8,
-                            146u8,
+                            32u8, 255u8, 40u8, 31u8, 161u8, 37u8, 206u8, 47u8, 19u8, 121u8, 238u8,
+                            213u8, 149u8, 83u8, 241u8, 163u8, 37u8, 38u8, 94u8, 134u8, 248u8, 34u8,
+                            8u8, 88u8, 156u8, 76u8, 126u8, 206u8, 142u8, 8u8, 206u8, 210u8,
                         ],
                     )
                 }
@@ -9137,10 +8796,10 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            101u8, 206u8, 145u8, 216u8, 78u8, 11u8, 239u8, 246u8, 140u8, 53u8,
-                            150u8, 48u8, 92u8, 148u8, 124u8, 169u8, 18u8, 208u8, 229u8, 179u8,
-                            219u8, 58u8, 141u8, 100u8, 113u8, 167u8, 91u8, 96u8, 234u8, 43u8, 52u8,
-                            185u8,
+                            231u8, 75u8, 104u8, 59u8, 174u8, 187u8, 187u8, 166u8, 255u8, 200u8,
+                            16u8, 167u8, 247u8, 169u8, 233u8, 103u8, 182u8, 240u8, 29u8, 152u8,
+                            100u8, 133u8, 139u8, 183u8, 42u8, 212u8, 77u8, 252u8, 248u8, 180u8,
+                            57u8, 164u8,
                         ],
                     )
                 }
@@ -13077,6 +12736,387 @@ pub mod api {
             }
         }
     }
+    pub mod committee_management {
+        use super::{root_mod, runtime_types};
+        #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
+        pub mod calls {
+            use super::{root_mod, runtime_types};
+            type DispatchError = runtime_types::sp_runtime::DispatchError;
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            pub struct SetBanConfig {
+                pub minimal_expected_performance: ::core::option::Option<::core::primitive::u8>,
+                pub underperformed_session_count_threshold:
+                    ::core::option::Option<::core::primitive::u32>,
+                pub clean_session_counter_delay: ::core::option::Option<::core::primitive::u32>,
+                pub ban_period: ::core::option::Option<::core::primitive::u32>,
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            pub struct BanFromCommittee {
+                pub banned: ::subxt::ext::sp_core::crypto::AccountId32,
+                pub ban_reason: ::std::vec::Vec<::core::primitive::u8>,
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            pub struct CancelBan {
+                pub banned: ::subxt::ext::sp_core::crypto::AccountId32,
+            }
+            pub struct TransactionApi;
+            impl TransactionApi {
+                #[doc = "Sets ban config, it has an immediate effect"]
+                pub fn set_ban_config(
+                    &self,
+                    minimal_expected_performance: ::core::option::Option<::core::primitive::u8>,
+                    underperformed_session_count_threshold: ::core::option::Option<
+                        ::core::primitive::u32,
+                    >,
+                    clean_session_counter_delay: ::core::option::Option<::core::primitive::u32>,
+                    ban_period: ::core::option::Option<::core::primitive::u32>,
+                ) -> ::subxt::tx::StaticTxPayload<SetBanConfig> {
+                    ::subxt::tx::StaticTxPayload::new(
+                        "CommitteeManagement",
+                        "set_ban_config",
+                        SetBanConfig {
+                            minimal_expected_performance,
+                            underperformed_session_count_threshold,
+                            clean_session_counter_delay,
+                            ban_period,
+                        },
+                        [
+                            228u8, 199u8, 170u8, 155u8, 208u8, 190u8, 211u8, 218u8, 105u8, 213u8,
+                            240u8, 152u8, 92u8, 19u8, 164u8, 28u8, 215u8, 145u8, 47u8, 248u8,
+                            219u8, 75u8, 234u8, 78u8, 29u8, 189u8, 35u8, 106u8, 165u8, 76u8, 27u8,
+                            50u8,
+                        ],
+                    )
+                }
+                #[doc = "Schedule a non-reserved node to be banned out from the committee at the end of the era"]
+                pub fn ban_from_committee(
+                    &self,
+                    banned: ::subxt::ext::sp_core::crypto::AccountId32,
+                    ban_reason: ::std::vec::Vec<::core::primitive::u8>,
+                ) -> ::subxt::tx::StaticTxPayload<BanFromCommittee> {
+                    ::subxt::tx::StaticTxPayload::new(
+                        "CommitteeManagement",
+                        "ban_from_committee",
+                        BanFromCommittee { banned, ban_reason },
+                        [
+                            60u8, 254u8, 80u8, 201u8, 64u8, 189u8, 255u8, 111u8, 14u8, 9u8, 68u8,
+                            177u8, 196u8, 107u8, 10u8, 177u8, 78u8, 134u8, 98u8, 21u8, 179u8, 9u8,
+                            111u8, 185u8, 155u8, 39u8, 148u8, 88u8, 239u8, 16u8, 24u8, 171u8,
+                        ],
+                    )
+                }
+                #[doc = "Cancel the ban of the node"]
+                pub fn cancel_ban(
+                    &self,
+                    banned: ::subxt::ext::sp_core::crypto::AccountId32,
+                ) -> ::subxt::tx::StaticTxPayload<CancelBan> {
+                    ::subxt::tx::StaticTxPayload::new(
+                        "CommitteeManagement",
+                        "cancel_ban",
+                        CancelBan { banned },
+                        [
+                            103u8, 192u8, 40u8, 246u8, 206u8, 52u8, 222u8, 51u8, 39u8, 247u8,
+                            220u8, 175u8, 232u8, 31u8, 168u8, 99u8, 206u8, 45u8, 191u8, 161u8,
+                            107u8, 12u8, 112u8, 54u8, 163u8, 170u8, 221u8, 220u8, 122u8, 177u8,
+                            178u8, 246u8,
+                        ],
+                    )
+                }
+            }
+        }
+        #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
+        pub type Event = runtime_types::pallet_committee_management::pallet::Event;
+        pub mod events {
+            use super::runtime_types;
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            #[doc = "Ban thresholds for the next era has changed"]
+            pub struct SetBanConfig(pub runtime_types::primitives::BanConfig);
+            impl ::subxt::events::StaticEvent for SetBanConfig {
+                const PALLET: &'static str = "CommitteeManagement";
+                const EVENT: &'static str = "SetBanConfig";
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            #[doc = "Validators have been banned from the committee"]
+            pub struct BanValidators(
+                pub  ::std::vec::Vec<(
+                    ::subxt::ext::sp_core::crypto::AccountId32,
+                    runtime_types::primitives::BanInfo,
+                )>,
+            );
+            impl ::subxt::events::StaticEvent for BanValidators {
+                const PALLET: &'static str = "CommitteeManagement";
+                const EVENT: &'static str = "BanValidators";
+            }
+        }
+        pub mod storage {
+            use super::runtime_types;
+            pub struct StorageApi;
+            impl StorageApi {
+                #[doc = " A lookup how many blocks a validator produced."]
+                pub fn session_validator_block_count(
+                    &self,
+                    _0: impl ::std::borrow::Borrow<::subxt::ext::sp_core::crypto::AccountId32>,
+                ) -> ::subxt::storage::address::StaticStorageAddress<
+                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
+                    ::subxt::storage::address::Yes,
+                    ::subxt::storage::address::Yes,
+                    ::subxt::storage::address::Yes,
+                > {
+                    ::subxt::storage::address::StaticStorageAddress::new(
+                        "CommitteeManagement",
+                        "SessionValidatorBlockCount",
+                        vec![::subxt::storage::address::StorageMapKey::new(
+                            _0.borrow(),
+                            ::subxt::storage::address::StorageHasher::Twox64Concat,
+                        )],
+                        [
+                            186u8, 91u8, 185u8, 144u8, 216u8, 179u8, 157u8, 132u8, 17u8, 247u8,
+                            241u8, 172u8, 32u8, 7u8, 28u8, 60u8, 188u8, 192u8, 64u8, 29u8, 153u8,
+                            100u8, 130u8, 245u8, 189u8, 251u8, 68u8, 161u8, 202u8, 29u8, 153u8,
+                            131u8,
+                        ],
+                    )
+                }
+                #[doc = " A lookup how many blocks a validator produced."]
+                pub fn session_validator_block_count_root(
+                    &self,
+                ) -> ::subxt::storage::address::StaticStorageAddress<
+                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
+                    (),
+                    ::subxt::storage::address::Yes,
+                    ::subxt::storage::address::Yes,
+                > {
+                    ::subxt::storage::address::StaticStorageAddress::new(
+                        "CommitteeManagement",
+                        "SessionValidatorBlockCount",
+                        Vec::new(),
+                        [
+                            186u8, 91u8, 185u8, 144u8, 216u8, 179u8, 157u8, 132u8, 17u8, 247u8,
+                            241u8, 172u8, 32u8, 7u8, 28u8, 60u8, 188u8, 192u8, 64u8, 29u8, 153u8,
+                            100u8, 130u8, 245u8, 189u8, 251u8, 68u8, 161u8, 202u8, 29u8, 153u8,
+                            131u8,
+                        ],
+                    )
+                }
+                #[doc = " Total possible reward per validator for the current era."]
+                pub fn validator_era_total_reward(
+                    &self,
+                ) -> ::subxt::storage::address::StaticStorageAddress<
+                    ::subxt::metadata::DecodeStaticType<
+                        runtime_types::pallet_committee_management::ValidatorTotalRewards<
+                            ::subxt::ext::sp_core::crypto::AccountId32,
+                        >,
+                    >,
+                    ::subxt::storage::address::Yes,
+                    (),
+                    (),
+                > {
+                    ::subxt::storage::address::StaticStorageAddress::new(
+                        "CommitteeManagement",
+                        "ValidatorEraTotalReward",
+                        vec![],
+                        [
+                            111u8, 103u8, 48u8, 14u8, 23u8, 139u8, 162u8, 122u8, 212u8, 85u8, 64u8,
+                            188u8, 36u8, 142u8, 80u8, 224u8, 89u8, 63u8, 104u8, 86u8, 51u8, 111u8,
+                            166u8, 53u8, 189u8, 181u8, 240u8, 250u8, 160u8, 128u8, 179u8, 9u8,
+                        ],
+                    )
+                }
+                #[doc = " Current era config for ban functionality, see [`BanConfig`]"]
+                pub fn ban_config(
+                    &self,
+                ) -> ::subxt::storage::address::StaticStorageAddress<
+                    ::subxt::metadata::DecodeStaticType<runtime_types::primitives::BanConfig>,
+                    ::subxt::storage::address::Yes,
+                    ::subxt::storage::address::Yes,
+                    (),
+                > {
+                    ::subxt::storage::address::StaticStorageAddress::new(
+                        "CommitteeManagement",
+                        "BanConfig",
+                        vec![],
+                        [
+                            115u8, 228u8, 135u8, 32u8, 85u8, 156u8, 44u8, 195u8, 215u8, 11u8, 27u8,
+                            26u8, 231u8, 59u8, 249u8, 78u8, 172u8, 66u8, 81u8, 17u8, 99u8, 221u8,
+                            38u8, 253u8, 62u8, 54u8, 104u8, 161u8, 129u8, 92u8, 218u8, 193u8,
+                        ],
+                    )
+                }
+                #[doc = " A lookup for a number of underperformance sessions for a given validator"]
+                pub fn underperformed_validator_session_count(
+                    &self,
+                    _0: impl ::std::borrow::Borrow<::subxt::ext::sp_core::crypto::AccountId32>,
+                ) -> ::subxt::storage::address::StaticStorageAddress<
+                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
+                    ::subxt::storage::address::Yes,
+                    ::subxt::storage::address::Yes,
+                    ::subxt::storage::address::Yes,
+                > {
+                    ::subxt::storage::address::StaticStorageAddress::new(
+                        "CommitteeManagement",
+                        "UnderperformedValidatorSessionCount",
+                        vec![::subxt::storage::address::StorageMapKey::new(
+                            _0.borrow(),
+                            ::subxt::storage::address::StorageHasher::Twox64Concat,
+                        )],
+                        [
+                            46u8, 74u8, 46u8, 159u8, 162u8, 118u8, 159u8, 155u8, 233u8, 63u8,
+                            101u8, 201u8, 56u8, 204u8, 126u8, 242u8, 131u8, 5u8, 29u8, 132u8, 43u8,
+                            205u8, 168u8, 157u8, 29u8, 183u8, 127u8, 202u8, 25u8, 245u8, 137u8,
+                            67u8,
+                        ],
+                    )
+                }
+                #[doc = " A lookup for a number of underperformance sessions for a given validator"]
+                pub fn underperformed_validator_session_count_root(
+                    &self,
+                ) -> ::subxt::storage::address::StaticStorageAddress<
+                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
+                    (),
+                    ::subxt::storage::address::Yes,
+                    ::subxt::storage::address::Yes,
+                > {
+                    ::subxt::storage::address::StaticStorageAddress::new(
+                        "CommitteeManagement",
+                        "UnderperformedValidatorSessionCount",
+                        Vec::new(),
+                        [
+                            46u8, 74u8, 46u8, 159u8, 162u8, 118u8, 159u8, 155u8, 233u8, 63u8,
+                            101u8, 201u8, 56u8, 204u8, 126u8, 242u8, 131u8, 5u8, 29u8, 132u8, 43u8,
+                            205u8, 168u8, 157u8, 29u8, 183u8, 127u8, 202u8, 25u8, 245u8, 137u8,
+                            67u8,
+                        ],
+                    )
+                }
+                #[doc = " Validators to be removed from non reserved list in the next era"]
+                pub fn banned(
+                    &self,
+                    _0: impl ::std::borrow::Borrow<::subxt::ext::sp_core::crypto::AccountId32>,
+                ) -> ::subxt::storage::address::StaticStorageAddress<
+                    ::subxt::metadata::DecodeStaticType<runtime_types::primitives::BanInfo>,
+                    ::subxt::storage::address::Yes,
+                    (),
+                    ::subxt::storage::address::Yes,
+                > {
+                    ::subxt::storage::address::StaticStorageAddress::new(
+                        "CommitteeManagement",
+                        "Banned",
+                        vec![::subxt::storage::address::StorageMapKey::new(
+                            _0.borrow(),
+                            ::subxt::storage::address::StorageHasher::Twox64Concat,
+                        )],
+                        [
+                            202u8, 38u8, 165u8, 35u8, 95u8, 207u8, 116u8, 43u8, 148u8, 73u8, 193u8,
+                            187u8, 1u8, 88u8, 209u8, 13u8, 128u8, 168u8, 121u8, 62u8, 227u8, 172u8,
+                            87u8, 106u8, 15u8, 43u8, 136u8, 240u8, 249u8, 210u8, 25u8, 215u8,
+                        ],
+                    )
+                }
+                #[doc = " Validators to be removed from non reserved list in the next era"]
+                pub fn banned_root(
+                    &self,
+                ) -> ::subxt::storage::address::StaticStorageAddress<
+                    ::subxt::metadata::DecodeStaticType<runtime_types::primitives::BanInfo>,
+                    (),
+                    (),
+                    ::subxt::storage::address::Yes,
+                > {
+                    ::subxt::storage::address::StaticStorageAddress::new(
+                        "CommitteeManagement",
+                        "Banned",
+                        Vec::new(),
+                        [
+                            202u8, 38u8, 165u8, 35u8, 95u8, 207u8, 116u8, 43u8, 148u8, 73u8, 193u8,
+                            187u8, 1u8, 88u8, 209u8, 13u8, 128u8, 168u8, 121u8, 62u8, 227u8, 172u8,
+                            87u8, 106u8, 15u8, 43u8, 136u8, 240u8, 249u8, 210u8, 25u8, 215u8,
+                        ],
+                    )
+                }
+                #[doc = " SessionValidators in the current session."]
+                pub fn current_and_next_session_validators_storage(
+                    &self,
+                ) -> ::subxt::storage::address::StaticStorageAddress<
+                    ::subxt::metadata::DecodeStaticType<
+                        runtime_types::pallet_committee_management::CurrentAndNextSessionValidators<
+                            ::subxt::ext::sp_core::crypto::AccountId32,
+                        >,
+                    >,
+                    ::subxt::storage::address::Yes,
+                    ::subxt::storage::address::Yes,
+                    (),
+                > {
+                    ::subxt::storage::address::StaticStorageAddress::new(
+                        "CommitteeManagement",
+                        "CurrentAndNextSessionValidatorsStorage",
+                        vec![],
+                        [
+                            50u8, 43u8, 182u8, 121u8, 115u8, 250u8, 14u8, 238u8, 144u8, 211u8,
+                            177u8, 66u8, 98u8, 6u8, 34u8, 12u8, 25u8, 34u8, 239u8, 31u8, 187u8,
+                            147u8, 137u8, 4u8, 156u8, 78u8, 76u8, 249u8, 71u8, 155u8, 183u8, 156u8,
+                        ],
+                    )
+                }
+            }
+        }
+        pub mod constants {
+            use super::runtime_types;
+            pub struct ConstantsApi;
+            impl ConstantsApi {
+                #[doc = " Nr of blocks in the session."]
+                pub fn session_period(
+                    &self,
+                ) -> ::subxt::constants::StaticConstantAddress<
+                    ::subxt::metadata::DecodeStaticType<::core::primitive::u32>,
+                > {
+                    ::subxt::constants::StaticConstantAddress::new(
+                        "CommitteeManagement",
+                        "SessionPeriod",
+                        [
+                            98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
+                            125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
+                            178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
+                            145u8,
+                        ],
+                    )
+                }
+            }
+        }
+    }
     pub mod baby_liminal {
         use super::{root_mod, runtime_types};
         #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
@@ -13180,6 +13220,8 @@ pub mod api {
                 #[doc = ""]
                 #[doc = "Fails if `key.len()` is greater than `MaximumVerificationKeyLength`."]
                 #[doc = "Can only be called by the original owner of the key."]
+                #[doc = "It will require the caller to lock up additional funds (if the new key occupies more storage)"]
+                #[doc = "or reimburse the difference if it is shorter in its byte-length."]
                 pub fn overwrite_key(
                     &self,
                     identifier: [::core::primitive::u8; 8usize],
@@ -13583,6 +13625,8 @@ pub mod api {
                 #[codec(index = 20)]
                 Identity(runtime_types::pallet_identity::pallet::Call),
                 #[codec(index = 21)]
+                CommitteeManagement(runtime_types::pallet_committee_management::pallet::Call),
+                #[codec(index = 22)]
                 BabyLiminal(runtime_types::pallet_baby_liminal::pallet::Call),
             }
             #[derive(
@@ -13627,6 +13671,8 @@ pub mod api {
                 #[codec(index = 20)]
                 Identity(runtime_types::pallet_identity::pallet::Event),
                 #[codec(index = 21)]
+                CommitteeManagement(runtime_types::pallet_committee_management::pallet::Event),
+                #[codec(index = 22)]
                 BabyLiminal(runtime_types::pallet_baby_liminal::pallet::Event),
             }
             #[derive(
@@ -14210,6 +14256,8 @@ pub mod api {
                     #[doc = ""]
                     #[doc = "Fails if `key.len()` is greater than `MaximumVerificationKeyLength`."]
                     #[doc = "Can only be called by the original owner of the key."]
+                    #[doc = "It will require the caller to lock up additional funds (if the new key occupies more storage)"]
+                    #[doc = "or reimburse the difference if it is shorter in its byte-length."]
                     overwrite_key {
                         identifier: [::core::primitive::u8; 8usize],
                         key: ::std::vec::Vec<::core::primitive::u8>,
@@ -14254,35 +14302,32 @@ pub mod api {
                     #[doc = "Provided verification key is longer than `MaximumVerificationKeyLength` limit."]
                     VerificationKeyTooLong,
                     #[codec(index = 3)]
-                    #[doc = "When you override a key new key stored must be of the same size in bytes"]
-                    NewKeyMustHaveSameLength,
-                    #[codec(index = 4)]
                     #[doc = "Either proof or public input is longer than `MaximumDataLength` limit."]
                     DataTooLong,
-                    #[codec(index = 5)]
+                    #[codec(index = 4)]
                     #[doc = "Couldn't deserialize proof."]
                     DeserializingProofFailed,
-                    #[codec(index = 6)]
+                    #[codec(index = 5)]
                     #[doc = "Couldn't deserialize public input."]
                     DeserializingPublicInputFailed,
-                    #[codec(index = 7)]
+                    #[codec(index = 6)]
                     #[doc = "Couldn't deserialize verification key from storage."]
                     DeserializingVerificationKeyFailed,
-                    #[codec(index = 8)]
+                    #[codec(index = 7)]
                     #[doc = "Verification procedure has failed. Proof still can be correct."]
                     VerificationFailed(
                         runtime_types::pallet_baby_liminal::systems::VerificationError,
                     ),
-                    #[codec(index = 9)]
+                    #[codec(index = 8)]
                     #[doc = "Proof has been found as incorrect."]
                     IncorrectProof,
-                    #[codec(index = 10)]
+                    #[codec(index = 9)]
                     #[doc = "Unsigned request"]
                     BadOrigin,
-                    #[codec(index = 11)]
+                    #[codec(index = 10)]
                     #[doc = "User has insufficient funds to lock the deposit for storing verification key"]
                     CannotAffordDeposit,
-                    #[codec(index = 12)]
+                    #[codec(index = 11)]
                     #[doc = "Caller is not the owner of the key"]
                     NotOwner,
                 }
@@ -14667,6 +14712,109 @@ pub mod api {
                 pub id: _0,
                 pub amount: _1,
             }
+        }
+        pub mod pallet_committee_management {
+            use super::runtime_types;
+            pub mod pallet {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
+                pub enum Call {
+                    #[codec(index = 1)]
+                    #[doc = "Sets ban config, it has an immediate effect"]
+                    set_ban_config {
+                        minimal_expected_performance: ::core::option::Option<::core::primitive::u8>,
+                        underperformed_session_count_threshold:
+                            ::core::option::Option<::core::primitive::u32>,
+                        clean_session_counter_delay: ::core::option::Option<::core::primitive::u32>,
+                        ban_period: ::core::option::Option<::core::primitive::u32>,
+                    },
+                    #[codec(index = 2)]
+                    #[doc = "Schedule a non-reserved node to be banned out from the committee at the end of the era"]
+                    ban_from_committee {
+                        banned: ::subxt::ext::sp_core::crypto::AccountId32,
+                        ban_reason: ::std::vec::Vec<::core::primitive::u8>,
+                    },
+                    #[codec(index = 3)]
+                    #[doc = "Cancel the ban of the node"]
+                    cancel_ban {
+                        banned: ::subxt::ext::sp_core::crypto::AccountId32,
+                    },
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
+                pub enum Error {
+                    #[codec(index = 0)]
+                    #[doc = "Raised in any scenario [`BanConfig`] is invalid"]
+                    #[doc = "* `performance_ratio_threshold` must be a number in range [0; 100]"]
+                    #[doc = "* `underperformed_session_count_threshold` must be a positive number,"]
+                    #[doc = "* `clean_session_counter_delay` must be a positive number."]
+                    InvalidBanConfig,
+                    #[codec(index = 1)]
+                    #[doc = "Ban reason is too big, ie given vector of bytes is greater than"]
+                    #[doc = "[`Config::MaximumBanReasonLength`]"]
+                    BanReasonTooBig,
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
+                pub enum Event {
+                    #[codec(index = 0)]
+                    #[doc = "Ban thresholds for the next era has changed"]
+                    SetBanConfig(runtime_types::primitives::BanConfig),
+                    #[codec(index = 1)]
+                    #[doc = "Validators have been banned from the committee"]
+                    BanValidators(
+                        ::std::vec::Vec<(
+                            ::subxt::ext::sp_core::crypto::AccountId32,
+                            runtime_types::primitives::BanInfo,
+                        )>,
+                    ),
+                }
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            pub struct CurrentAndNextSessionValidators<_0> {
+                pub next: runtime_types::primitives::SessionValidators<_0>,
+                pub current: runtime_types::primitives::SessionValidators<_0>,
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            pub struct ValidatorTotalRewards<_0>(
+                pub ::subxt::utils::KeyedVec<_0, ::core::primitive::u32>,
+            );
         }
         pub mod pallet_contracts {
             use super::runtime_types;
@@ -15344,26 +15492,6 @@ pub mod api {
                         committee_size:
                             ::core::option::Option<runtime_types::primitives::CommitteeSeats>,
                     },
-                    #[codec(index = 1)]
-                    #[doc = "Sets ban config, it has an immediate effect"]
-                    set_ban_config {
-                        minimal_expected_performance: ::core::option::Option<::core::primitive::u8>,
-                        underperformed_session_count_threshold:
-                            ::core::option::Option<::core::primitive::u32>,
-                        clean_session_counter_delay: ::core::option::Option<::core::primitive::u32>,
-                        ban_period: ::core::option::Option<::core::primitive::u32>,
-                    },
-                    #[codec(index = 2)]
-                    #[doc = "Schedule a non-reserved node to be banned out from the committee at the end of the era"]
-                    ban_from_committee {
-                        banned: ::subxt::ext::sp_core::crypto::AccountId32,
-                        ban_reason: ::std::vec::Vec<::core::primitive::u8>,
-                    },
-                    #[codec(index = 3)]
-                    #[doc = "Schedule a non-reserved node to be banned out from the committee at the end of the era"]
-                    cancel_ban {
-                        banned: ::subxt::ext::sp_core::crypto::AccountId32,
-                    },
                     #[codec(index = 4)]
                     #[doc = "Set openness of the elections"]
                     set_elections_openness {
@@ -15388,16 +15516,6 @@ pub mod api {
                     NotEnoughNonReservedValidators,
                     #[codec(index = 3)]
                     NonUniqueListOfValidators,
-                    #[codec(index = 4)]
-                    #[doc = "Raised in any scenario [`BanConfig`] is invalid"]
-                    #[doc = "* `performance_ratio_threshold` must be a number in range [0; 100]"]
-                    #[doc = "* `underperformed_session_count_threshold` must be a positive number,"]
-                    #[doc = "* `clean_session_counter_delay` must be a positive number."]
-                    InvalidBanConfig,
-                    #[codec(index = 5)]
-                    #[doc = "Ban reason is too big, ie given vector of bytes is greater than"]
-                    #[doc = "[`Config::MaximumBanReasonLength`]"]
-                    BanReasonTooBig,
                 }
                 #[derive(
                     :: subxt :: ext :: codec :: Decode,
@@ -15416,30 +15534,8 @@ pub mod api {
                         ::std::vec::Vec<::subxt::ext::sp_core::crypto::AccountId32>,
                         runtime_types::primitives::CommitteeSeats,
                     ),
-                    #[codec(index = 1)]
-                    #[doc = "Ban thresholds for the next era has changed"]
-                    SetBanConfig(runtime_types::primitives::BanConfig),
-                    #[codec(index = 2)]
-                    #[doc = "Validators have been banned from the committee"]
-                    BanValidators(
-                        ::std::vec::Vec<(
-                            ::subxt::ext::sp_core::crypto::AccountId32,
-                            runtime_types::primitives::BanInfo,
-                        )>,
-                    ),
                 }
             }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            pub struct ValidatorTotalRewards<_0>(
-                pub ::subxt::utils::KeyedVec<_0, ::core::primitive::u32>,
-            );
         }
         pub mod pallet_identity {
             use super::runtime_types;
@@ -19119,6 +19215,18 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            pub struct SessionValidators<_0> {
+                pub committee: ::std::vec::Vec<_0>,
+                pub non_committee: ::std::vec::Vec<_0>,
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
             pub struct VersionChange {
                 pub version_incoming: ::core::primitive::u32,
                 pub session: ::core::primitive::u32,
@@ -20182,6 +20290,9 @@ pub mod api {
         pub fn identity(&self) -> identity::constants::ConstantsApi {
             identity::constants::ConstantsApi
         }
+        pub fn committee_management(&self) -> committee_management::constants::ConstantsApi {
+            committee_management::constants::ConstantsApi
+        }
         pub fn baby_liminal(&self) -> baby_liminal::constants::ConstantsApi {
             baby_liminal::constants::ConstantsApi
         }
@@ -20250,6 +20361,9 @@ pub mod api {
         pub fn identity(&self) -> identity::storage::StorageApi {
             identity::storage::StorageApi
         }
+        pub fn committee_management(&self) -> committee_management::storage::StorageApi {
+            committee_management::storage::StorageApi
+        }
         pub fn baby_liminal(&self) -> baby_liminal::storage::StorageApi {
             baby_liminal::storage::StorageApi
         }
@@ -20304,6 +20418,9 @@ pub mod api {
         pub fn identity(&self) -> identity::calls::TransactionApi {
             identity::calls::TransactionApi
         }
+        pub fn committee_management(&self) -> committee_management::calls::TransactionApi {
+            committee_management::calls::TransactionApi
+        }
         pub fn baby_liminal(&self) -> baby_liminal::calls::TransactionApi {
             baby_liminal::calls::TransactionApi
         }
@@ -20315,9 +20432,9 @@ pub mod api {
         let runtime_metadata_hash = client.metadata().metadata_hash(&PALLETS);
         if runtime_metadata_hash
             != [
-                4u8, 51u8, 167u8, 197u8, 145u8, 72u8, 209u8, 89u8, 75u8, 16u8, 79u8, 38u8, 113u8,
-                50u8, 205u8, 87u8, 62u8, 78u8, 81u8, 138u8, 150u8, 247u8, 168u8, 39u8, 117u8,
-                128u8, 153u8, 53u8, 239u8, 32u8, 36u8, 13u8,
+                147u8, 180u8, 56u8, 83u8, 176u8, 23u8, 71u8, 183u8, 96u8, 134u8, 70u8, 214u8,
+                186u8, 198u8, 191u8, 57u8, 228u8, 60u8, 194u8, 121u8, 170u8, 183u8, 191u8, 210u8,
+                198u8, 215u8, 34u8, 234u8, 159u8, 139u8, 224u8, 220u8,
             ]
         {
             Err(::subxt::error::MetadataError::IncompatibleMetadata)

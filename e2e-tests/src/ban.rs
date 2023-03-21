@@ -1,6 +1,9 @@
 use aleph_client::{
-    api::elections::events::BanValidators,
-    pallets::elections::{ElectionsApi, ElectionsSudoApi},
+    api::committee_management::events::BanValidators,
+    pallets::{
+        committee_management::CommitteeManagementApi,
+        elections::{ElectionsApi, ElectionsSudoApi},
+    },
     primitives::{BanConfig, BanInfo, CommitteeSeats, EraValidators},
     utility::BlocksApi,
     waiting::{AlephWaiting, BlockStatus, WaitingExt},
@@ -68,7 +71,7 @@ pub fn check_validators(
     era_validators
 }
 
-pub async fn check_ban_config<C: ElectionsApi>(
+pub async fn check_ban_config<C: CommitteeManagementApi>(
     connection: &C,
     expected_minimal_expected_performance: Perbill,
     expected_session_count_threshold: SessionCount,
@@ -92,7 +95,7 @@ pub async fn check_ban_config<C: ElectionsApi>(
     ban_config
 }
 
-pub async fn check_underperformed_validator_session_count<C: ElectionsApi>(
+pub async fn check_underperformed_validator_session_count<C: CommitteeManagementApi>(
     connection: &C,
     validator: &AccountId,
     expected_session_count: SessionCount,
@@ -110,7 +113,7 @@ pub async fn check_underperformed_validator_session_count<C: ElectionsApi>(
     underperformed_validator_session_count
 }
 
-pub async fn check_underperformed_validator_reason<C: ElectionsApi>(
+pub async fn check_underperformed_validator_reason<C: CommitteeManagementApi>(
     connection: &C,
     validator: &AccountId,
     expected_info: Option<&BanInfo>,
@@ -123,7 +126,7 @@ pub async fn check_underperformed_validator_reason<C: ElectionsApi>(
     validator_ban_info
 }
 
-pub async fn check_ban_info_for_validator<C: ElectionsApi>(
+pub async fn check_ban_info_for_validator<C: CommitteeManagementApi>(
     connection: &C,
     validator: &AccountId,
     expected_info: Option<&BanInfo>,
@@ -174,7 +177,9 @@ pub fn get_members_for_session(
 /// Checks whether underperformed counts for validators change predictably. Assumes: (a) that the
 /// sessions checked are in the past, (b) that all the checked validators are underperforming in
 /// those sessions (e.g. due to a prohibitively high performance threshold).
-pub async fn check_underperformed_count_for_sessions<C: ElectionsApi + BlocksApi>(
+pub async fn check_underperformed_count_for_sessions<
+    C: ElectionsApi + CommitteeManagementApi + BlocksApi,
+>(
     connection: &C,
     reserved_validators: &[AccountId],
     non_reserved_validators: &[AccountId],

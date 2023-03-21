@@ -2603,7 +2603,6 @@ dependencies = [
  "frame-system",
  "pallet-authorship",
  "pallet-balances",
- "pallet-session",
  "pallet-staking",
  "pallets-support",
  "parity-scale-codec",

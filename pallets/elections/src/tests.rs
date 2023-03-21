@@ -2,18 +2,15 @@
 
 use frame_election_provider_support::{ElectionProvider, Support};
 use frame_support::bounded_vec;
-use pallet_session::SessionManager;
-#[cfg(feature = "try-runtime")]
-use pallets_support::StorageMigration;
-use primitives::{BanConfig as BanConfigStruct, CommitteeSeats};
+use primitives::CommitteeSeats;
 
 use crate::{
     mock::{
-        with_active_era, with_current_era, with_electable_targets, with_elected_validators,
-        with_electing_voters, AccountId, Balance, Elections, SessionsPerEra, Test, TestExtBuilder,
+        with_electable_targets, with_electing_voters, AccountId, Balance, Elections, Test,
+        TestExtBuilder,
     },
-    BanConfig, CommitteeSize, CurrentEraValidators, NextEraCommitteeSize,
-    NextEraNonReservedValidators, NextEraReservedValidators,
+    CommitteeSize, CurrentEraValidators, NextEraCommitteeSize, NextEraNonReservedValidators,
+    NextEraReservedValidators,
 };
 
 fn no_support() -> Support<AccountId> {
@@ -46,7 +43,6 @@ fn storage_is_initialized_already_in_genesis() {
                 CurrentEraValidators::<Test>::get().non_reserved,
                 NON_RESERVED
             );
-            assert_eq!(BanConfig::<Test>::get(), BanConfigStruct::default());
             // We do not expect SessionValidatorBlockCount and ValidatorEraTotalReward to be
             // populated from genesis, so does the ban related storages:
             // UnderperformedValidatorSessionCount and Banned
@@ -84,80 +80,4 @@ fn validators_are_elected_only_when_staking() {
                 ]
             );
         });
-}
-
-#[test]
-fn session_authorities_must_have_been_elected() {
-    TestExtBuilder::new(vec![1, 2], vec![5, 6])
-        .with_committee_seats(CommitteeSeats {
-            reserved_seats: 2,
-            non_reserved_seats: 2,
-        })
-        .build()
-        .execute_with(|| {
-            let next_era = 41;
-
-            with_active_era(next_era - 1);
-            with_elected_validators(next_era, vec![1, 5]);
-            with_current_era(next_era);
-
-            let mut authorities = <Elections as SessionManager<AccountId>>::new_session(
-                next_era * SessionsPerEra::get(),
-            )
-            .unwrap_or_default();
-
-            authorities.sort();
-            assert_eq!(authorities, &[1, 5]);
-        });
-}
-
-#[cfg(feature = "try-runtime")]
-mod migration_tests {
-    use frame_support::migration::put_storage_value;
-
-    use super::*;
-
-    const MODULE: &[u8] = b"Elections";
-
-    #[test]
-    fn migration_v0_to_v1_works() {
-        TestExtBuilder::new(vec![], vec![])
-            .with_storage_version(0)
-            .build()
-            .execute_with(|| {
-                put_storage_value::<Vec<AccountId>>(MODULE, b"Members", &[], vec![1, 2]);
-                crate::migrations::v0_to_v1::Migration::<Test, crate::Pallet<Test>>::migrate()
-            });
-    }
-
-    #[test]
-    fn migration_v1_to_v2_works() {
-        TestExtBuilder::new(vec![], vec![])
-            .with_storage_version(1)
-            .build()
-            .execute_with(|| {
-                put_storage_value::<u32>(MODULE, b"MembersPerSession", &[], 2);
-                put_storage_value::<Vec<AccountId>>(MODULE, b"ReservedMembers", &[], vec![1]);
-                put_storage_value::<Vec<AccountId>>(MODULE, b"NonReservedMembers", &[], vec![2]);
-                put_storage_value::<(Vec<AccountId>, Vec<AccountId>)>(
-                    MODULE,
-                    b"ErasMembers",
-                    &[],
-                    (vec![1], vec![2]),
-                );
-                crate::migrations::v1_to_v2::Migration::<Test, crate::Pallet<Test>>::migrate()
-            });
-    }
-
-    #[test]
-    fn migration_v2_to_v3_works() {
-        TestExtBuilder::new(vec![1, 2], vec![3])
-            .with_storage_version(2)
-            .build()
-            .execute_with(|| {
-                put_storage_value::<u32>(MODULE, b"CommitteeSize", &[], 2);
-                put_storage_value::<u32>(MODULE, b"NextEraCommitteeSize", &[], 3);
-                crate::migrations::v2_to_v3::Migration::<Test, crate::Pallet<Test>>::migrate()
-            });
-    }
 }

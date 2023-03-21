@@ -2,13 +2,13 @@ use std::{collections::HashSet, str::FromStr, string::ToString};
 
 use aleph_primitives::{
     staking::{MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND},
-    AuthorityId as AlephId, Version as FinalityVersion, ADDRESSES_ENCODING,
+    AuthorityId as AlephId, SessionValidators, Version as FinalityVersion, ADDRESSES_ENCODING,
     LEGACY_FINALITY_VERSION, TOKEN, TOKEN_DECIMALS,
 };
 use aleph_runtime::{
-    AccountId, AlephConfig, AuraConfig, BalancesConfig, ElectionsConfig, GenesisConfig, Perbill,
-    SessionConfig, SessionKeys, StakingConfig, SudoConfig, SystemConfig, VestingConfig,
-    WASM_BINARY,
+    AccountId, AlephConfig, AuraConfig, BalancesConfig, CommitteeManagementConfig, ElectionsConfig,
+    GenesisConfig, Perbill, SessionConfig, SessionKeys, StakingConfig, SudoConfig, SystemConfig,
+    VestingConfig, WASM_BINARY,
 };
 use libp2p::PeerId;
 use pallet_staking::{Forcing, StakerStatus};
@@ -411,7 +411,6 @@ fn generate_genesis_config(
             reserved_validators: accounts_config.members.clone(),
             non_reserved_validators: vec![],
             committee_seats: Default::default(),
-            committee_ban_config: Default::default(),
         },
         session: SessionConfig {
             keys: accounts_config.keys,
@@ -435,6 +434,13 @@ fn generate_genesis_config(
         vesting: VestingConfig { vesting: vec![] },
         nomination_pools: Default::default(),
         transaction_payment: Default::default(),
+        committee_management: CommitteeManagementConfig {
+            committee_ban_config: Default::default(),
+            session_validators: SessionValidators {
+                committee: accounts_config.members,
+                non_committee: vec![],
+            },
+        },
     }
 }
 

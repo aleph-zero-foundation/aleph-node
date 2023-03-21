@@ -5,6 +5,7 @@ use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::KeyTypeId;
+use sp_runtime::Perquintill;
 pub use sp_runtime::{
     generic::Header as GenericHeader,
     traits::{BlakeTwo256, ConstU32, Header as HeaderT},
@@ -84,6 +85,8 @@ pub const DEFAULT_FINALITY_VERSION: Version = 0;
 pub const CURRENT_FINALITY_VERSION: u16 = LEGACY_FINALITY_VERSION + 1;
 /// Legacy version of abft.
 pub const LEGACY_FINALITY_VERSION: u16 = 1;
+
+pub const LENIENT_THRESHOLD: Perquintill = Perquintill::from_percent(90);
 
 /// Openness of the process of the elections
 #[derive(Decode, Encode, TypeInfo, Debug, Clone, PartialEq, Eq)]
@@ -230,6 +233,47 @@ sp_api::decl_runtime_apis! {
         fn finality_version() -> Version;
         fn next_session_finality_version() -> Version;
     }
+}
+
+pub trait BanHandler {
+    type AccountId;
+    /// returns whether the account can be banned
+    fn can_ban(who: &Self::AccountId) -> bool;
+}
+
+pub trait ValidatorProvider {
+    type AccountId;
+    /// returns validators for the current era if present.
+    fn current_era_validators() -> Option<EraValidators<Self::AccountId>>;
+    /// returns committe seats for the current era if present.
+    fn current_era_committee_size() -> Option<CommitteeSeats>;
+}
+
+#[derive(Decode, Encode, TypeInfo, Clone)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct SessionValidators<T> {
+    pub committee: Vec<T>,
+    pub non_committee: Vec<T>,
+}
+
+impl<T> Default for SessionValidators<T> {
+    fn default() -> Self {
+        Self {
+            committee: Vec::new(),
+            non_committee: Vec::new(),
+        }
+    }
+}
+
+pub trait BannedValidators {
+    type AccountId;
+    /// returns currently banned validators
+    fn banned() -> Vec<Self::AccountId>;
+}
+
+pub trait EraManager {
+    /// new era has been planned
+    fn on_new_era(era: EraIndex);
 }
 
 pub mod staking {

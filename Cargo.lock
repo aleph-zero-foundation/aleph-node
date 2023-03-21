@@ -397,6 +397,7 @@ dependencies = [
  "pallet-authorship",
  "pallet-baby-liminal",
  "pallet-balances",
+ "pallet-committee-management",
  "pallet-contracts",
  "pallet-contracts-primitives",
  "pallet-elections",
@@ -5635,6 +5636,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-committee-management"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-authorship",
+ "pallet-session",
+ "pallet-staking",
+ "pallets-support",
+ "parity-scale-codec",
+ "primitives",
+ "scale-info",
+ "sp-io",
+ "sp-runtime",
+ "sp-staking",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-contracts"
 version = "4.0.0-dev"
 source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.38#0d25bff2ff35d900a27efc93538d8b9d291f7381"
@@ -5693,7 +5713,6 @@ dependencies = [
  "frame-system",
  "pallet-authorship",
  "pallet-balances",
- "pallet-session",
  "pallet-staking",
  "pallets-support",
  "parity-scale-codec",

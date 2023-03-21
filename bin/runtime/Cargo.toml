@@ -62,6 +62,7 @@ frame-benchmarking = { default-features = false, git = "https://github.com/Cardi
 primitives = { path = "../../primitives", default-features = false }
 pallet-aleph = { path = "../../pallets/aleph", default-features = false }
 pallet-elections = { path = "../../pallets/elections", default-features = false }
+pallet-committee-management= { path = "../../pallets/committee-management", default-features = false }
 
 # Liminal-related dependencies
 baby-liminal-extension = { path = "../../baby-liminal-extension", default-features = false, features = ["substrate"], optional = true }
@@ -118,6 +119,7 @@ std = [
     "pallet-contracts/std",
     "pallet-nomination-pools/std",
     "pallet-nomination-pools-runtime-api/std",
+    "pallet-committee-management/std",
 ]
 short_session = ["primitives/short_session"]
 try-runtime = [
@@ -144,6 +146,7 @@ try-runtime = [
     "pallet-vesting/try-runtime",
     "pallet-multisig/try-runtime",
     "pallet-utility/try-runtime",
+    "pallet-committee-management/try-runtime",
 ]
 enable_treasury_proposals = []
 runtime-benchmarks = [

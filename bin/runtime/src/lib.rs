@@ -34,6 +34,7 @@ use frame_system::{EnsureRoot, EnsureSignedBy};
 #[cfg(feature = "try-runtime")]
 use frame_try_runtime::UpgradeCheckSelect;
 pub use pallet_balances::Call as BalancesCall;
+use pallet_committee_management::SessionAndEraManager;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
 pub use primitives::Balance;
@@ -225,7 +226,7 @@ parameter_types! {
 
 impl pallet_authorship::Config for Runtime {
     type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Aura>;
-    type EventHandler = (Elections,);
+    type EventHandler = (CommitteeManagement,);
 }
 
 parameter_types! {
@@ -320,7 +321,12 @@ impl pallet_aleph::Config for Runtime {
     type AuthorityId = AlephId;
     type RuntimeEvent = RuntimeEvent;
     type SessionInfoProvider = Session;
-    type SessionManager = Elections;
+    type SessionManager = SessionAndEraManager<
+        Staking,
+        Elections,
+        pallet_session::historical::NoteHistoricalRoot<Runtime, Staking>,
+        Runtime,
+    >;
     type NextSessionAuthorityProvider = Session;
 }
 
@@ -356,16 +362,21 @@ parameter_types! {
 }
 
 impl pallet_elections::Config for Runtime {
-    type EraInfoProvider = Staking;
     type RuntimeEvent = RuntimeEvent;
     type DataProvider = Staking;
-    type SessionInfoProvider = Session;
-    type SessionPeriod = SessionPeriod;
-    type SessionManager = pallet_session::historical::NoteHistoricalRoot<Runtime, Staking>;
+    type ValidatorProvider = Staking;
+    type MaxWinners = MaxWinners;
+    type BannedValidators = CommitteeManagement;
+}
+
+impl pallet_committee_management::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type BanHandler = Elections;
+    type EraInfoProvider = Staking;
+    type ValidatorProvider = Elections;
     type ValidatorRewardsHandler = Staking;
     type ValidatorExtractor = Staking;
-    type MaximumBanReasonLength = MaximumBanReasonLength;
-    type MaxWinners = MaxWinners;
+    type SessionPeriod = SessionPeriod;
 }
 
 impl pallet_randomness_collective_flip::Config for Runtime {}
@@ -771,8 +782,10 @@ construct_runtime!(
         Contracts: pallet_contracts,
         NominationPools: pallet_nomination_pools,
         Identity: pallet_identity,
+        CommitteeManagement: pallet_committee_management,
     }
 );
+
 #[cfg(feature = "liminal")]
 construct_runtime!(
     pub enum Runtime where
@@ -801,6 +814,7 @@ construct_runtime!(
         Contracts: pallet_contracts,
         NominationPools: pallet_nomination_pools,
         Identity: pallet_identity,
+        CommitteeManagement: pallet_committee_management,
         BabyLiminal: pallet_baby_liminal,
     }
 );
