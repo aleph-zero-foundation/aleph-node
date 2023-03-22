@@ -23,6 +23,7 @@ pub enum Error<B: BlockT> {
     MissingHash(B::Hash),
     MissingJustification(B::Hash),
     Client(ClientError),
+    MismatchedId,
 }
 
 impl<B: BlockT> Display for Error<B> {
@@ -46,6 +47,7 @@ impl<B: BlockT> Display for Error<B> {
             Client(e) => {
                 write!(f, "substrate client error {}", e)
             }
+            MismatchedId => write!(f, "the block number did not match the block hash"),
         }
     }
 }
@@ -77,8 +79,22 @@ where
         self.client.hash(number)
     }
 
-    fn header(&self, hash: B::Hash) -> Result<Option<B::Header>, ClientError> {
+    fn header_for_hash(&self, hash: B::Hash) -> Result<Option<B::Header>, ClientError> {
         self.client.header(hash)
+    }
+
+    fn header(
+        &self,
+        id: &<B::Header as Header>::Identifier,
+    ) -> Result<Option<B::Header>, Error<B>> {
+        let maybe_header = self.header_for_hash(id.hash)?;
+        match maybe_header
+            .as_ref()
+            .map(|header| header.number() == &id.number)
+        {
+            Some(false) => Err(Error::MismatchedId),
+            _ => Ok(maybe_header),
+        }
     }
 
     fn justification(&self, hash: B::Hash) -> Result<Option<AlephJustification>, ClientError> {
@@ -139,7 +155,7 @@ where
         &self,
         id: <B::Header as Header>::Identifier,
     ) -> Result<BlockStatus<Justification<B::Header>>, Self::Error> {
-        let header = match self.header(id.hash)? {
+        let header = match self.header(&id)? {
             Some(header) => header,
             None => return Ok(BlockStatus::Unknown),
         };
@@ -157,14 +173,15 @@ where
     fn best_block(&self) -> Result<B::Header, Self::Error> {
         let best_hash = self.best_hash();
 
-        self.header(best_hash)?.ok_or(Error::MissingHash(best_hash))
+        self.header_for_hash(best_hash)?
+            .ok_or(Error::MissingHash(best_hash))
     }
 
     fn top_finalized(&self) -> Result<Justification<B::Header>, Self::Error> {
         let finalized_hash = self.finalized_hash();
 
         let header = self
-            .header(finalized_hash)?
+            .header_for_hash(finalized_hash)?
             .ok_or(Error::MissingHash(finalized_hash))?;
         let raw_justification = self
             .justification(finalized_hash)?
@@ -180,11 +197,13 @@ where
         &self,
         id: <B::Header as Header>::Identifier,
     ) -> Result<Vec<B::Header>, Self::Error> {
+        // This checks whether we have the block at all and the provided id is consistent.
+        self.header(&id)?;
         Ok(self
             .client
             .children(id.hash)?
             .into_iter()
-            .map(|hash| self.header(hash))
+            .map(|hash| self.header_for_hash(hash))
             .collect::<Result<Vec<Option<B::Header>>, ClientError>>()?
             .into_iter()
             .flatten()

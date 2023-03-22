@@ -1,4 +1,7 @@
-use std::hash::{Hash, Hasher};
+use std::{
+    fmt::Display,
+    hash::{Hash, Hasher},
+};
 
 use aleph_primitives::BlockNumber;
 use codec::{Decode, Encode};
@@ -12,17 +15,24 @@ use crate::{
 mod chain_status;
 mod finalizer;
 mod status_notifier;
+mod translator;
 mod verification;
 
 pub use verification::SessionVerifier;
 
+/// An identifier uniquely specifying a block and its height.
 #[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
 pub struct BlockId<H: SubstrateHeader<Number = BlockNumber>> {
     hash: H::Hash,
     number: H::Number,
 }
 
-/// An identifier uniquely specifying a block and its height.
+impl<H: SubstrateHeader<Number = BlockNumber>> BlockId<H> {
+    pub fn new(hash: H::Hash, number: H::Number) -> Self {
+        BlockId { hash, number }
+    }
+}
+
 impl<SH: SubstrateHeader<Number = BlockNumber>> Hash for BlockId<SH> {
     fn hash<H>(&self, state: &mut H)
     where
@@ -88,4 +98,16 @@ impl<H: SubstrateHeader<Number = BlockNumber>> JustificationT for Justification<
     fn into_unverified(self) -> Self::Unverified {
         self
     }
+}
+
+/// Translates raw aleph justifications into ones acceptable to sync.
+pub trait JustificationTranslator<H: SubstrateHeader<Number = BlockNumber>> {
+    type Error: Display;
+
+    fn translate(
+        &self,
+        raw_justification: AlephJustification,
+        hash: H::Hash,
+        number: H::Number,
+    ) -> Result<Justification<H>, Self::Error>;
 }
