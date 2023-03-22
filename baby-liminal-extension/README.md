@@ -2,7 +2,9 @@
 
 This crate is an implementation of BabyLiminal chain extension, with both ink! and Substrate counterparts available.
 
-## ink! usage
+## ink!
+
+### Usage
 
 To use `baby-liminal-extension` with ink!, include it as a dependency and activate `ink-std` 
 feature when `std` feature of your contract is enabled:
@@ -27,6 +29,14 @@ use baby_liminal_extension::{ink::Extension, BabyLiminalExtension};
 
 Extension.store_key(...);
 ```
+
+### Testing
+
+To test chain extension with `ink` features enabled, you have to ensure that you removed any other mention of `baby-liminal-extension`
+with `substrate` feature enabled, otherwise `rustc` will emit errors related to duplicated items.
+
+For example, you can comment out `baby-liminal-extension` mentions from `runtime` crate, then try to run
+the necessary checks/tests in `baby-liminal-extension` directory.
 
 ## Substrate
 

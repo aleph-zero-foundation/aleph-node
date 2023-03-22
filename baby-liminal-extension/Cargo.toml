@@ -14,7 +14,7 @@ ink = { version = "~4.0.1", default-features = false, optional = true }
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2.3", default-features = false, features = ["derive"], optional = true }
 
-obce = { git = "https://github.com/727-Ventures/obce", branch = "aleph-v0.9.38", default-features = false }
+obce = { git = "https://github.com/727-Ventures/obce", rev = "5e3da417c2189ddd4e9ef82cd586f8ec94b8952a", default-features = false }
 
 pallet-baby-liminal = { path = "../pallets/baby-liminal", default-features = false, optional = true }
 primitives = { path = "../primitives", default-features = false, optional = true }

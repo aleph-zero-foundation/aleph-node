@@ -10,10 +10,9 @@ pub mod substrate;
 pub mod executor;
 
 #[cfg(feature = "ink")]
-use ::ink::prelude::vec::Vec;
-use obce::substrate::sp_runtime::AccountId32;
+use ::ink::{prelude::vec::Vec, primitives::AccountId as AccountId32};
 #[cfg(feature = "substrate")]
-use obce::substrate::sp_std::vec::Vec;
+use obce::substrate::{sp_runtime::AccountId32, sp_std::vec::Vec};
 use scale::{Decode, Encode};
 #[cfg(feature = "std")]
 use scale_info::TypeInfo;
