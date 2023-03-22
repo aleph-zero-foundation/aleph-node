@@ -10,6 +10,7 @@ use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use finality_aleph::{
     run_nonvalidator_node, run_validator_node, AlephBlockImport, AlephConfig,
     JustificationNotification, Metrics, MillisecsPerBlock, Protocol, ProtocolNaming, SessionPeriod,
+    TracingBlockImport,
 };
 use futures::channel::mpsc;
 use log::warn;
@@ -85,7 +86,7 @@ pub fn new_partial(
         sc_consensus::DefaultImportQueue<Block, FullClient>,
         sc_transaction_pool::FullPool<Block, FullClient>,
         (
-            AlephBlockImport<Block, FullBackend, FullClient>,
+            TracingBlockImport<Block, Arc<FullClient>>,
             mpsc::UnboundedSender<JustificationNotification<Block>>,
             mpsc::UnboundedReceiver<JustificationNotification<Block>>,
             Option<Telemetry>,
@@ -147,18 +148,16 @@ pub fn new_partial(
     });
 
     let (justification_tx, justification_rx) = mpsc::unbounded();
-    let aleph_block_import = AlephBlockImport::new(
-        client.clone() as Arc<_>,
-        justification_tx.clone(),
-        metrics.clone(),
-    );
+    let tracing_block_import = TracingBlockImport::new(client.clone(), metrics.clone());
+    let aleph_block_import =
+        AlephBlockImport::new(tracing_block_import.clone(), justification_tx.clone());
 
     let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
 
     let import_queue = sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _>(
         ImportQueueParams {
             block_import: aleph_block_import.clone(),
-            justification_import: Some(Box::new(aleph_block_import.clone())),
+            justification_import: Some(Box::new(aleph_block_import)),
             client: client.clone(),
             create_inherent_data_providers: move |_, ()| async move {
                 let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
@@ -188,7 +187,7 @@ pub fn new_partial(
         select_chain,
         transaction_pool,
         other: (
-            aleph_block_import,
+            tracing_block_import,
             justification_tx,
             justification_rx,
             telemetry,

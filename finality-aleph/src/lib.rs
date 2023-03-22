@@ -50,7 +50,7 @@ pub mod testing;
 
 pub use abft::{Keychain, NodeCount, NodeIndex, Recipient, SignatureSet, SpawnHandle};
 pub use aleph_primitives::{AuthorityId, AuthorityPair, AuthoritySignature};
-pub use import::AlephBlockImport;
+pub use import::{AlephBlockImport, TracingBlockImport};
 pub use justification::{AlephJustification, JustificationNotification};
 pub use network::{Protocol, ProtocolNaming};
 pub use nodes::{run_nonvalidator_node, run_validator_node};
