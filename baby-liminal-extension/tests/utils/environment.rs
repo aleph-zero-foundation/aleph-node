@@ -7,7 +7,8 @@ use std::{
 };
 
 use baby_liminal_extension::{
-    executor::Executor, substrate::ByteCount, ProvingSystem, VerificationKeyIdentifier,
+    executor::Executor, substrate::ByteCount, BabyLiminalExtension, ProvingSystem,
+    VerificationKeyIdentifier,
 };
 use obce::substrate::{
     frame_support::weights::Weight, sp_runtime::AccountId32, ChainExtensionEnvironment,
@@ -207,7 +208,7 @@ where
     }
 
     fn ext_id(&self) -> u16 {
-        <dyn baby_liminal_extension::BabyLiminalExtension as obce::codegen::ExtensionDescription>::ID
+        obce::id!(BabyLiminalExtension)
     }
 
     fn in_len(&self) -> ByteCount {
