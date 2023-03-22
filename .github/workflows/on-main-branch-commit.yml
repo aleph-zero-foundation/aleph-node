@@ -50,4 +50,4 @@ jobs:
         with:
           notify-on: "failure"
         env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_TEMP_GRAFANA_NOTIFICATIONS }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_TRACK_APPLICATIONS }}
