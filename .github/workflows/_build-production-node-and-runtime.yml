@@ -34,7 +34,7 @@ jobs:
         run: cargo build --profile production -p aleph-node
 
       - name: Upload release binary to GH artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: aleph-release-node
           path: target/production/aleph-node
@@ -42,7 +42,7 @@ jobs:
           retention-days: 7
 
       - name: Upload release runtime to GH artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: aleph-release-runtime
           path: target/production/wbuild/aleph-runtime/aleph_runtime.compact.wasm

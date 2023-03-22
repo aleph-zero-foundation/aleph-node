@@ -36,7 +36,7 @@ jobs:
           --features "short_session enable_treasury_proposals only_legacy"
 
       - name: Upload test binary to GH Artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: aleph-test-node
           path: target/release/aleph-node
@@ -44,7 +44,7 @@ jobs:
           retention-days: 7
 
       - name: Upload test runtime to GH Artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: aleph-test-runtime
           path: target/release/wbuild/aleph-runtime/aleph_runtime.compact.wasm
