@@ -8,12 +8,11 @@ services:
       - ALLOW_PRIVATE_IPV4=true
       - BASE_PATH=/data/$NODE_ID
       - CHAIN=/data/chainspec.smartnet.json
-      - CUSTOM_ARGS=-lerror,runtime::contracts=debug
       - DISCOVER_LOCAL=true
       - NAME=Smartnode
       - NODE_KEY_PATH=/data/$NODE_ID/p2p_secret
       - PORT=30333
-      - PURGE_BEFORE_START=true
+      - PURGE_BEFORE_START=false
       - RPC_PORT=9933
       - RUST_LOG=info
       - UNIT_CREATION_DELAY=300

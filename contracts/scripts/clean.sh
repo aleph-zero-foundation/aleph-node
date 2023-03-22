@@ -4,6 +4,17 @@ set -euo pipefail
 
 # --- FUNCTIONS
 
+function run_ink_builder() {
+  docker start ink_builder || docker run \
+    --network host \
+    -v "${PWD}:/code" \
+    -u "$(id -u):$(id -g)" \
+    --name ink_builder \
+    --platform linux/amd64 \
+    --detach \
+    --rm public.ecr.aws/p6e8q1z1/ink-dev:1.0.0 sleep 1d
+}
+
 function ink_build() {
   contract_dir=$(basename "${PWD}")
 
@@ -61,6 +72,8 @@ CONTRACTS_PATH=$(pwd)/contracts
 CLIAIN_IMAGE=public.ecr.aws/p6e8q1z1/cliain:latest
 
 # --- CLEAN BUTTON CONTRACT
+
+run_ink_builder
 
 terminate_contract early_bird_special button
 terminate_contract early_bird_special_marketplace marketplace

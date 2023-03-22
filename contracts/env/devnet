@@ -1,4 +1,4 @@
-export NODE=wss://ws-fe-benjamin.dev.azero.dev:443
+export NODE=wss://ws.dev.azero.dev:443
 
 # authority is a joint name for the account that is an INITIALIZER, OWNER and ADMIN of the game contracts for the purposes of the deployment
 export AUTHORITY=5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
@@ -8,10 +8,10 @@ export AUTHORITY_SEED=//Alice
 export LIFETIME=604800 # 1 week
 
 # mint this many ticket tokens
-export TICKET_BALANCE=100
+export TICKET_BALANCE=1000000
 
 # initial price of ticket on the marketplace
 export INITIAL_PRICE=69
 
 # semi-serious environment with no hacks
-export ENV_NAME=feature-env
+export ENV_NAME=devnet

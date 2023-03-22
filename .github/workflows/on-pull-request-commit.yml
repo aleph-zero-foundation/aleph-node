@@ -12,6 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+
   check-excluded-packages:
     name: Check excluded packages
     uses: ./.github/workflows/_check-excluded-packages.yml

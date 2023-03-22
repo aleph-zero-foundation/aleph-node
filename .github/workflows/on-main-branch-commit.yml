@@ -20,7 +20,7 @@ jobs:
     needs: [build-test-node-and-runtime]
     uses: ./.github/workflows/_build-test-node-and-e2e-client-image.yml
 
-  run-e2e-button-contract-tests:
+  run-e2e-button-contracts-tests:
     needs: [build-test-node-image-and-e2e-client-image]
     name: Run e2e button game contract tests
     runs-on: self-hosted
@@ -36,10 +36,16 @@ jobs:
           test-case: button
         timeout-minutes: 15
 
+  deploy-button:
+    name: Deploy the button contracts to devnet and trigger services update
+    needs: [run-e2e-button-contracts-tests]
+    uses: ./.github/workflows/contracts-deploy.yml
+    secrets: inherit
+
   send-slack-notification:
     name: Send Slack notification about workflow status
     runs-on: ubuntu-20.04
-    needs: [run-e2e-button-contract-tests]
+    needs: [deploy-button]
     if: always()
     steps:
       - name: Checkout repository
