@@ -23,7 +23,23 @@ jobs:
         env:
           DOCKER_IMAGE: public.ecr.aws/p6e8q1z1/github-workflows-validator:0.3.1
         run: |
+          set +e
           docker pull ${DOCKER_IMAGE}
           docker run --rm --name tmp-ghv -v $(pwd)/.github:/dot-github \
             ${DOCKER_IMAGE} \
-            validate -p /dot-github
+            validate -p /dot-github > validation_result
+          echo "------------------------------------------------"
+          cat validation_result
+          echo "------------------------------------------------"
+          cat validation_result | grep '^E' > validation_result_errors
+          if [[ $(cat validation_result_errors | wc -l) > 0 ]]; then
+            echo "!!!"
+            echo "!!! Errors have been found in GitHub YAML files!"
+            echo "!!!"
+            echo "------------------------------------------------"
+            cat validation_result_errors
+            echo "------------------------------------------------"
+            echo "!!! Please fix them!"
+            echo "!!!"
+            exit 1
+          fi
