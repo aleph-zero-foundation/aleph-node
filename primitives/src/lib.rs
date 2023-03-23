@@ -307,15 +307,15 @@ pub mod staking {
     /// `(method_name(arg1: type1, arg2: type2, ...), class_name, return_type)`
     ///
     /// where
-    ///* `method_name`is a wrapee method,
-    ///* `arg1: type1, arg2: type,...`is a list of arguments and will be passed as is, can be empty
-    ///* `class_name`is a class that has non-self `method-name`,ie symbol `class_name::method_name` exists,
-    ///* `return_type` is type returned from `method_name`
+    ///   * `method_name`is a wrapee method,
+    ///   * `arg1: type1, arg2: type,...`is a list of arguments and will be passed as is, can be empty
+    ///   * `class_name`is a class that has non-self `method-name`,ie symbol `class_name::method_name` exists,
+    ///   * `return_type` is type returned from `method_name`
     /// Example
-    /// ```rust
-    ///  wrap_methods!(
-    ///         (bond(), SubstrateStakingWeights, Weight),
-    ///         (bond_extra(), SubstrateStakingWeights, Weight)
+    /// ```ignore
+    /// wrap_methods!(
+    ///     (bond(), SubstrateStakingWeights, Weight),
+    ///     (bond_extra(), SubstrateStakingWeights, Weight)
     /// );
     /// ```
     #[macro_export]

@@ -8,7 +8,7 @@ use baby_liminal_extension::{
 };
 use obce::substrate::{
     frame_support::weights::Weight, pallet_contracts::chain_extension::RetVal,
-    CallableChainExtension, ChainExtensionEnvironment,
+    sp_runtime::AccountId32, CallableChainExtension, ChainExtensionEnvironment,
 };
 use scale::{Decode, Encode};
 
@@ -36,6 +36,7 @@ const SYSTEM: ProvingSystem = ProvingSystem::Groth16;
 /// It cannot be `MaxEncodedLen` due to `Vec<_>` and thus `Environment::read_as` cannot be used.
 #[derive(Decode, Encode)]
 struct StoreKeyArgs {
+    pub origin: AccountId32,
     pub identifier: VerificationKeyIdentifier,
     pub key: Vec<u8>,
 }
@@ -57,6 +58,7 @@ struct VerifyArgs {
 /// Returns encoded arguments to `store_key`.
 pub fn store_key_args() -> Vec<u8> {
     StoreKeyArgs {
+        origin: AccountId32::from([0; 32]),
         identifier: IDENTIFIER,
         key: VK.to_vec(),
     }

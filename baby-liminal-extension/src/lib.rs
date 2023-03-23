@@ -1,5 +1,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#[cfg(all(feature = "ink", feature = "substrate"))]
+compile_error!(
+    "Features `ink` and `substrate` are mutually exclusive and cannot be enabled together"
+);
+
 #[cfg(feature = "ink")]
 pub mod ink;
 
