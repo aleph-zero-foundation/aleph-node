@@ -1,5 +1,5 @@
 ---
-name: Main commit
+name: Runs button e2e test on push to main branch
 
 on:
   push:

@@ -1,21 +1,24 @@
 ---
-name: Main or release branch commit
+name: Builds and pushes aleph-node-liminal to ECR on push to main branch
 
 on:
   push:
     branches:
       - main
-      - 'release-*'
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
 
 jobs:
-  build-production-node-and-runtime:
-    name: Build production node and runtime
-    uses: ./.github/workflows/_build-production-node-and-runtime.yml
+  build-liminal-node:
+    name: Build liminal node
+    uses: ./.github/workflows/_build-liminal-node.yml
     secrets: inherit
 
-  push-node-image-to-ecr:
-    name: Push node docker image to the ECR
-    needs: [build-production-node-and-runtime]
+  push-liminal-node-image-to-ecr:
+    name: Push liminal node docker image to the ECR
+    needs: [build-liminal-node]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout aleph-node sources
@@ -26,16 +29,16 @@ jobs:
         uses: ./.github/actions/get-ref-properties
 
       - name: Download node production binary from artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v2
         with:
-          name: aleph-release-node
+          name: aleph-node-liminal
           path: target/release/
 
       - name: Build production docker node image
         id: build-image
         run: |
           chmod +x target/release/aleph-node
-          docker build --tag aleph-node:latest -f ./docker/Dockerfile .
+          docker build --tag aleph-node-liminal:latest -f ./docker/Dockerfile .
 
       - name: Login to Public Amazon ECR
         id: login-public-ecr
@@ -44,24 +47,24 @@ jobs:
           registry: public.ecr.aws
           username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
           password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
-
-      - name: Push aleph-node image to ECR
         env:
-          CURRENT_IMAGE: aleph-node
-          ECR_PUSH_IMAGE: public.ecr.aws/p6e8q1z1/aleph-node
+          AWS_REGION: us-east-1
+
+      - name: Push aleph-node-liminal image to ECR
+        env:
+          CURRENT_IMAGE: aleph-node-liminal
+          ECR_PUSH_IMAGE: public.ecr.aws/p6e8q1z1/aleph-node-liminal
+          COMMIT_SHA: ${{ steps.get-ref-properties.outputs.sha }}
         run: |
-          docker tag ${{ env.CURRENT_IMAGE }} \
-            ${{ env.ECR_PUSH_IMAGE }}:${{ steps.get-ref-properties.outputs.sha }}
-          docker push ${{ env.ECR_PUSH_IMAGE }}:${{ steps.get-ref-properties.outputs.sha }}
-          if [[ "${{ steps.get-ref-properties.outputs.branch }}" -eq "main" ]]; then
-            docker tag ${{ env.CURRENT_IMAGE }} ${{ env.ECR_PUSH_IMAGE }}:latest
-            docker push ${{ env.ECR_PUSH_IMAGE }}:latest
-          fi
+          docker tag ${{ env.CURRENT_IMAGE }} ${{ env.ECR_PUSH_IMAGE }}:${{ env.COMMIT_SHA }}
+          docker push ${{ env.ECR_PUSH_IMAGE }}:${{ env.COMMIT_SHA }}
+          docker tag ${{ env.CURRENT_IMAGE }} ${{ env.ECR_PUSH_IMAGE }}:latest
+          docker push ${{ env.ECR_PUSH_IMAGE }}:latest
 
   send-slack-notification:
     name: Send Slack notification about workflow status
     runs-on: ubuntu-20.04
-    needs: [push-node-image-to-ecr]
+    needs: [push-liminal-node-image-to-ecr]
     if: always()
     steps:
       - name: Checkout repository

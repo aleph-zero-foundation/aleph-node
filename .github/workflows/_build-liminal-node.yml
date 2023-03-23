@@ -1,0 +1,35 @@
+---
+#  This workflow builds aleph-node with feature liminal
+#  features enabled. Those binaries MUST NOT be used in the production.
+name: Build liminal node
+on:
+  workflow_call:
+
+jobs:
+  main:
+    name: Build liminal node
+    runs-on: self-hosted
+    env:
+      RUST_BACKTRACE: full
+      RUSTC_WRAPPER: sccache
+    steps:
+      - name: Checkout aleph-node source code
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+
+      - name: Install WASM target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Build test binary and runtime
+        run: |
+          cargo build --release -p aleph-node --features "liminal"
+
+      - name: Upload test binary to GH Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: aleph-node-liminal
+          path: target/release/aleph-node
+          if-no-files-found: error
+          retention-days: 7

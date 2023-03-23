@@ -39,6 +39,13 @@ jobs:
     needs: [build-test-node-and-runtime]
     uses: ./.github/workflows/_build-test-node-and-e2e-client-image.yml
 
+  check-build-node-liminal:
+    # technically this does not depend on build-test-node-image-and-e2e-client-image
+    # but in order to parallelize overall workflow and not consume too many self-hosted runners
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Check build of aleph-node with feature liminal
+    uses: ./.github/workflows/_check-build-liminal-node.yml
+
   run-e2e-finalization-test:
     needs: [build-test-node-image-and-e2e-client-image]
     name: Run e2e finalization test
