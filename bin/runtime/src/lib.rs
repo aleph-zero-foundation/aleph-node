@@ -1104,7 +1104,7 @@ impl_runtime_apis! {
             Vec<frame_benchmarking::BenchmarkList>,
             Vec<frame_support::traits::StorageInfo>,
         ) {
-            use frame_benchmarking::{Benchmarking, BenchmarkList, cb_list_benchmarks, list_benchmark};
+            use frame_benchmarking::{Benchmarking, BenchmarkList};
             use frame_support::traits::StorageInfoTrait;
 
             let mut list = Vec::<BenchmarkList>::new();
@@ -1118,8 +1118,7 @@ impl_runtime_apis! {
         fn dispatch_benchmark(
             config: frame_benchmarking::BenchmarkConfig
         ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
-            use frame_benchmarking::{
-                Benchmarking, BenchmarkBatch, TrackedStorageKey, cb_add_benchmarks, add_benchmark};
+            use frame_benchmarking::{Benchmarking, BenchmarkBatch, TrackedStorageKey};
             use frame_support::traits::WhitelistedStorageKeys;
 
             let whitelist: Vec<TrackedStorageKey> = AllPalletsWithSystem::whitelisted_storage_keys();

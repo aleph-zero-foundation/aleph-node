@@ -1,7 +1,11 @@
 #![allow(clippy::let_unit_value)]
 
 use frame_benchmarking::{account, benchmarks, vec, Vec};
-use frame_support::{traits::Get, BoundedVec};
+use frame_support::{
+    sp_runtime::traits::Bounded,
+    traits::{Currency, Get},
+    BoundedVec,
+};
 use frame_system::RawOrigin;
 use primitives::host_functions::poseidon;
 
@@ -15,7 +19,9 @@ const SEED: u32 = 41;
 const IDENTIFIER: VerificationKeyIdentifier = [0; 8];
 
 fn caller<T: Config>() -> RawOrigin<<T as frame_system::Config>::AccountId> {
-    RawOrigin::Signed(account("caller", 0, SEED))
+    let caller_account = account("caller", 0, SEED);
+    T::Currency::make_free_balance_be(&caller_account, BalanceOf::<T>::max_value());
+    RawOrigin::Signed(caller_account)
 }
 
 fn insert_key<T: Config>(key: Vec<u8>) {
