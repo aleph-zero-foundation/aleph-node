@@ -1,9 +1,8 @@
-// use super::CircuitField;
-
 use ark_std::vec::Vec;
 
 use crate::environment::CircuitField;
 
+#[cfg(feature = "circuit")]
 /// The circuit lifting for the byte type.
 pub type ByteVar = ark_r1cs_std::uint8::UInt8<CircuitField>;
 

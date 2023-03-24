@@ -8,7 +8,9 @@ use crate::{
         field_rewrites, field_serializations, plain_field_getters, successful_field_getters,
     },
     intermediate_representation::IR,
-    naming::{struct_name_with_full, struct_name_with_public, struct_name_without_input},
+    naming::{
+        struct_name_with_full, struct_name_with_public, struct_name_without_input, CIRCUIT_DEF,
+    },
 };
 
 /// Generates the whole code based on the intermediate representation.
@@ -200,9 +202,17 @@ fn generate_circuit_definitions(ir: &IR) -> TokenStream2 {
     let struct_name_without_input = struct_name_without_input(&ir.relation_base_name);
     let struct_name_with_full = struct_name_with_full(&ir.relation_base_name);
 
+    let fn_attrs = &ir
+        .circuit_definition
+        .attrs
+        .iter()
+        .filter(|attr| !attr.path.is_ident(CIRCUIT_DEF))
+        .collect::<Vec<_>>();
+
     let body = &ir.circuit_definition.block.stmts;
 
     quote_spanned! { ir.circuit_definition.span()=>
+        #(#fn_attrs)*
         impl ark_relations::r1cs::ConstraintSynthesizer<ark_bls12_381::Fr> for #struct_name_without_input {
             fn generate_constraints(
                 self,
@@ -219,6 +229,7 @@ fn generate_circuit_definitions(ir: &IR) -> TokenStream2 {
             }
         }
 
+        #(#fn_attrs)*
         impl ark_relations::r1cs::ConstraintSynthesizer<ark_bls12_381::Fr> for #struct_name_with_full {
             fn generate_constraints(
                 self,

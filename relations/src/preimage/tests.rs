@@ -5,8 +5,8 @@ use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystem};
 use liminal_ark_poseidon::hash;
 
 use crate::{
+    environment::CircuitField,
     preimage::{preimage_proving, PreimageRelationWithFullInput},
-    CircuitField,
 };
 
 #[test]

@@ -1,26 +1,32 @@
-use ark_poly::univariate::DensePolynomial;
-use ark_poly_commit::marlin_pc::MarlinKZG10;
-use ark_relations::r1cs::ConstraintSynthesizer;
-use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
-use ark_snark::SNARK;
-use ark_std::{
-    rand::{rngs::StdRng, SeedableRng},
-    vec::Vec,
+use ark_std::vec::Vec;
+#[cfg(feature = "circuit")]
+use {
+    ark_poly::univariate::DensePolynomial,
+    ark_poly_commit::marlin_pc::MarlinKZG10,
+    ark_relations::r1cs::ConstraintSynthesizer,
+    ark_serialize::{CanonicalDeserialize, CanonicalSerialize},
+    ark_snark::SNARK,
+    ark_std::rand::{rngs::StdRng, SeedableRng},
+    blake2::Blake2s,
 };
-use blake2::Blake2s;
 
 // For now, we can settle with these types.
 /// Common pairing engine.
 pub type PairingEngine = ark_bls12_381::Bls12_381;
 /// Common scalar field.
 pub type CircuitField = ark_bls12_381::Fr;
-/// variable in the Fr field
+#[cfg(feature = "circuit")]
+/// Variable in the Fr field
 pub type FpVar = ark_r1cs_std::fields::fp::FpVar<CircuitField>;
 
 // Systems with hardcoded parameters.
+#[cfg(feature = "circuit")]
 pub type Groth16 = ark_groth16::Groth16<PairingEngine>;
+#[cfg(feature = "circuit")]
 pub type GM17 = ark_gm17::GM17<PairingEngine>;
+#[cfg(feature = "circuit")]
 pub type MarlinPolynomialCommitment = MarlinKZG10<PairingEngine, DensePolynomial<CircuitField>>;
+#[cfg(feature = "circuit")]
 pub type Marlin = ark_marlin::Marlin<CircuitField, MarlinPolynomialCommitment, Blake2s>;
 
 /// Serialized keys.
@@ -29,12 +35,14 @@ pub struct RawKeys {
     pub vk: Vec<u8>,
 }
 
+#[cfg(feature = "circuit")]
 pub enum Error {
     UniversalSystemVerificationError,
     NonUniversalSystemVerificationError,
 }
 
 /// Common API for every proving system.
+#[cfg(feature = "circuit")]
 pub trait ProvingSystem {
     type Proof: CanonicalSerialize + CanonicalDeserialize;
     type ProvingKey: CanonicalSerialize + CanonicalDeserialize;
@@ -55,6 +63,7 @@ pub trait ProvingSystem {
 }
 
 /// Common API for every universal proving system.
+#[cfg(feature = "circuit")]
 pub trait UniversalSystem: ProvingSystem {
     type Srs: CanonicalSerialize + CanonicalDeserialize;
 
@@ -69,6 +78,7 @@ pub trait UniversalSystem: ProvingSystem {
 }
 
 /// Common API for every non universal proving system.
+#[cfg(feature = "circuit")]
 pub trait NonUniversalSystem: ProvingSystem {
     /// Generates proving and verifying key for `circuit`.
     fn generate_keys<C: ConstraintSynthesizer<CircuitField>>(
@@ -76,6 +86,7 @@ pub trait NonUniversalSystem: ProvingSystem {
     ) -> (Self::ProvingKey, Self::VerifyingKey);
 }
 
+#[cfg(feature = "circuit")]
 fn dummy_rng() -> StdRng {
     StdRng::from_seed([0u8; 32])
 }
@@ -89,6 +100,7 @@ fn dummy_rng() -> StdRng {
 /// `NonUniversalSystem` implementations for it.
 ///
 /// `system` should implement `SNARK<CircuitField>` trait.  
+#[cfg(feature = "circuit")]
 macro_rules! impl_non_universal_system_for_snark {
     ($system:ty) => {
         impl ProvingSystem for $system {
@@ -127,9 +139,12 @@ macro_rules! impl_non_universal_system_for_snark {
     };
 }
 
+#[cfg(feature = "circuit")]
 impl_non_universal_system_for_snark!(Groth16);
+#[cfg(feature = "circuit")]
 impl_non_universal_system_for_snark!(GM17);
 
+#[cfg(feature = "circuit")]
 impl ProvingSystem for Marlin {
     type Proof = ark_marlin::Proof<CircuitField, MarlinPolynomialCommitment>;
     type ProvingKey = ark_marlin::IndexProverKey<CircuitField, MarlinPolynomialCommitment>;
@@ -154,6 +169,7 @@ impl ProvingSystem for Marlin {
     }
 }
 
+#[cfg(feature = "circuit")]
 impl UniversalSystem for Marlin {
     type Srs = ark_marlin::UniversalSRS<CircuitField, MarlinPolynomialCommitment>;
 

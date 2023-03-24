@@ -24,7 +24,9 @@ use crate::{code_generation::generate_code, intermediate_representation::IR};
 ///  1. *relation object*: the collection of all constant, public and private relation data. The
 ///     struct must be defined with `#[relation_object_definition]` attribute.
 ///  2. *circuit definition*: the circuit form. The function must be defined with
-///     `#[circuit_definition]` attribute. The signature can be arbitrary.
+///     `#[circuit_definition]` attribute. The signature can be arbitrary: function body will be
+///     used in `ark_relations::r1cs::ConstraintSynthesizer` trait implementation. All function
+///     attributes (like feature-gating or linting) are preserved and added at the `impl` level.
 ///
 /// Provided with these inputs, the macro will generate following items (outside the module).
 ///  -  Three new public structs: `<R>WithoutInput`, `<R>WithPublicInput` and `<R>WithFullInput`,

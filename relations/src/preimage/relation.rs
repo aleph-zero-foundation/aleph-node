@@ -2,17 +2,19 @@ use liminal_ark_relation_macro::snark_relation;
 
 /// This relation showcases how to use Poseidon in r1cs circuits
 #[snark_relation]
-mod dummy_module {
-
-    use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget};
-    use ark_relations::ns;
-    use liminal_ark_poseidon::circuit;
+mod relation {
+    #[cfg(feature = "circuit")]
+    use {
+        crate::environment::FpVar,
+        ark_r1cs_std::{alloc::AllocVar, eq::EqGadget},
+        ark_relations::ns,
+        liminal_ark_poseidon::circuit,
+    };
 
     use crate::{
-        environment::FpVar,
+        environment::CircuitField,
         preimage::{FrontendHash, FrontendPreimage},
         shielder::convert_hash,
-        CircuitField,
     };
 
     /// Preimage relation : H(preimage)=hash
@@ -27,6 +29,7 @@ mod dummy_module {
         pub hash: CircuitField,
     }
 
+    #[cfg(feature = "circuit")]
     #[circuit_definition]
     fn generate_constraints(
         self,

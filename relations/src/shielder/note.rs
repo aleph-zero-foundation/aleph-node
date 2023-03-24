@@ -6,7 +6,7 @@ use liminal_ark_poseidon::hash;
 use super::types::{
     FrontendNote, FrontendNullifier, FrontendTokenAmount, FrontendTokenId, FrontendTrapdoor,
 };
-use crate::{shielder::convert_hash, CircuitField};
+use crate::{environment::CircuitField, shielder::convert_hash};
 
 /// Compute note as the result of hashing `(token_id, token_amount, trapdoor, nullifier)`.
 ///

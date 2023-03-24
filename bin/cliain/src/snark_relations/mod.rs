@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use liminal_ark_relations::{serialize, GetPublicInput};
 pub use systems::{NonUniversalProvingSystem, SomeProvingSystem, UniversalProvingSystem};
 
 pub use self::relations::RelationArgs;
@@ -12,6 +11,14 @@ mod io;
 pub mod parsing;
 mod relations;
 mod systems;
+
+use liminal_ark_relations::{environment::CircuitField, serialization::serialize};
+
+trait GetPublicInput {
+    fn public_input(&self) -> Vec<CircuitField> {
+        vec![]
+    }
+}
 
 pub fn generate_srs(
     system: UniversalProvingSystem,

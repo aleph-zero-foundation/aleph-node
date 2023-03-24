@@ -1,6 +1,6 @@
 [package]
 name = "liminal-ark-relation-macro"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Cardinal"]
 documentation = "https://docs.rs/liminal-ark-relation-macro"

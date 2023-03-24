@@ -5,17 +5,14 @@ mod deposit;
 mod deposit_and_merge;
 mod merge;
 mod note;
+#[cfg(feature = "circuit")]
 pub mod note_var;
-mod path_shape_var;
+#[cfg(feature = "circuit")]
+pub mod path_shape_var;
 pub mod types;
 mod withdraw;
 
-use ark_ff::{BigInteger256, PrimeField, Zero};
-use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget};
-use ark_relations::{
-    ns,
-    r1cs::{ConstraintSystemRef, SynthesisError, SynthesisError::UnconstrainedVariable},
-};
+use ark_ff::{BigInteger256, PrimeField};
 use ark_std::vec::Vec;
 pub use deposit::{
     DepositRelationWithFullInput, DepositRelationWithPublicInput, DepositRelationWithoutInput,
@@ -28,7 +25,6 @@ pub use merge::{
     MergeRelationWithFullInput, MergeRelationWithPublicInput, MergeRelationWithoutInput,
 };
 pub use note::{bytes_from_note, compute_note, compute_parent_hash, note_from_bytes};
-use types::BackendMerklePath;
 pub use types::{
     FrontendMerklePath as MerklePath, FrontendMerkleRoot as MerkleRoot, FrontendNote as Note,
     FrontendNullifier as Nullifier, FrontendTokenAmount as TokenAmount, FrontendTokenId as TokenId,
@@ -37,11 +33,20 @@ pub use types::{
 pub use withdraw::{
     WithdrawRelationWithFullInput, WithdrawRelationWithPublicInput, WithdrawRelationWithoutInput,
 };
-
-use crate::{
-    environment::{CircuitField, FpVar},
-    shielder::path_shape_var::PathShapeVar,
+#[cfg(feature = "circuit")]
+use {
+    crate::environment::FpVar,
+    ark_ff::Zero,
+    ark_r1cs_std::{alloc::AllocVar, eq::EqGadget},
+    ark_relations::{
+        ns,
+        r1cs::{ConstraintSystemRef, SynthesisError, SynthesisError::UnconstrainedVariable},
+    },
+    path_shape_var::PathShapeVar,
+    types::BackendMerklePath,
 };
+
+use crate::environment::CircuitField;
 
 pub fn convert_hash(front: [u64; 4]) -> CircuitField {
     CircuitField::new(BigInteger256::new(front))
@@ -55,7 +60,8 @@ fn convert_account(front: [u8; 32]) -> CircuitField {
     CircuitField::from_le_bytes_mod_order(&front)
 }
 
-fn check_merkle_proof(
+#[cfg(feature = "circuit")]
+pub fn check_merkle_proof(
     merkle_root: FpVar,
     path_shape: PathShapeVar,
     leaf: FpVar,

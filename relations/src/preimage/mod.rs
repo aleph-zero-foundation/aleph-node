@@ -1,23 +1,27 @@
 mod relation;
-#[cfg(test)]
+#[cfg(all(test, feature = "circuit"))]
 mod tests;
 
-use ark_bls12_381::Bls12_381;
-use ark_crypto_primitives::SNARK;
-use ark_ec::bls12::Bls12;
-use ark_ff::Fp256;
-use ark_groth16::{Groth16, Proof, VerifyingKey};
-use ark_std::vec::Vec;
-use liminal_ark_poseidon::hash;
+#[cfg(feature = "circuit")]
+use {
+    crate::environment::CircuitField,
+    ark_bls12_381::Bls12_381,
+    ark_crypto_primitives::SNARK,
+    ark_ec::bls12::Bls12,
+    ark_ff::Fp256,
+    ark_groth16::{Groth16, Proof, VerifyingKey},
+    ark_std::vec::Vec,
+    liminal_ark_poseidon::hash,
+};
 
 pub use self::relation::{
     PreimageRelationWithFullInput, PreimageRelationWithPublicInput, PreimageRelationWithoutInput,
 };
-use crate::CircuitField;
 
 pub type FrontendHash = [u64; 4];
 pub type FrontendPreimage = [u64; 4];
 
+#[cfg(feature = "circuit")]
 #[allow(clippy::type_complexity)]
 pub fn preimage_proving() -> (
     VerifyingKey<Bls12<ark_bls12_381::Parameters>>,

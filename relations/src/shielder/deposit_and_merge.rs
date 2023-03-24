@@ -12,30 +12,31 @@ use liminal_ark_relation_macro::snark_relation;
 /// for the length of the merkle path (which is ~the height of the tree, ±1).
 #[snark_relation]
 mod relation {
-    use core::ops::Add;
-
-    use ark_r1cs_std::{
-        alloc::{
-            AllocVar,
-            AllocationMode::{Input, Witness},
+    #[cfg(feature = "circuit")]
+    use {
+        crate::shielder::{
+            check_merkle_proof, note_var::NoteVarBuilder, path_shape_var::PathShapeVar,
         },
-        eq::EqGadget,
-        fields::fp::FpVar,
-    };
-    use ark_relations::ns;
-
-    use crate::{
-        shielder::{
-            check_merkle_proof, convert_hash, convert_vec,
-            path_shape_var::PathShapeVar,
-            types::{
-                BackendLeafIndex, BackendMerklePath, BackendMerkleRoot, BackendNote,
-                BackendNullifier, BackendTokenAmount, BackendTokenId, BackendTrapdoor,
-                FrontendLeafIndex, FrontendMerklePath, FrontendMerkleRoot, FrontendNote,
-                FrontendNullifier, FrontendTokenAmount, FrontendTokenId, FrontendTrapdoor,
+        ark_r1cs_std::{
+            alloc::{
+                AllocVar,
+                AllocationMode::{Input, Witness},
             },
+            eq::EqGadget,
+            fields::fp::FpVar,
         },
-        NoteVarBuilder,
+        ark_relations::ns,
+        core::ops::Add,
+    };
+
+    use crate::shielder::{
+        convert_hash, convert_vec,
+        types::{
+            BackendLeafIndex, BackendMerklePath, BackendMerkleRoot, BackendNote, BackendNullifier,
+            BackendTokenAmount, BackendTokenId, BackendTrapdoor, FrontendLeafIndex,
+            FrontendMerklePath, FrontendMerkleRoot, FrontendNote, FrontendNullifier,
+            FrontendTokenAmount, FrontendTokenId, FrontendTrapdoor,
+        },
     };
 
     #[relation_object_definition]
@@ -74,6 +75,7 @@ mod relation {
         pub new_token_amount: BackendTokenAmount,
     }
 
+    #[cfg(feature = "circuit")]
     #[circuit_definition]
     fn generate_constraints() {
         //------------------------------
@@ -125,7 +127,7 @@ mod relation {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "circuit"))]
 mod tests {
     use ark_bls12_381::Bls12_381;
     use ark_groth16::Groth16;
@@ -133,9 +135,9 @@ mod tests {
     use ark_snark::SNARK;
 
     use super::*;
-    use crate::{
-        shielder::note::{compute_note, compute_parent_hash},
-        FrontendNote,
+    use crate::shielder::{
+        note::{compute_note, compute_parent_hash},
+        types::FrontendNote,
     };
 
     const MAX_PATH_LEN: u8 = 4;

@@ -12,10 +12,10 @@ use {
     std::fmt::{Display, Formatter},
 };
 
-use crate::CircuitField;
+use crate::environment::CircuitField;
 
 #[derive(Clone, Debug)]
-pub(super) struct PathShapeVar {
+pub struct PathShapeVar {
     shape: Vec<Boolean<CircuitField>>,
 }
 

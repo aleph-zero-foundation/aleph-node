@@ -9,8 +9,10 @@ use ark_relations::{
 use paste::paste;
 
 use crate::{
-    environment::FpVar, BackendNote, BackendNullifier, BackendTokenAmount, BackendTokenId,
-    BackendTrapdoor, CircuitField,
+    environment::{CircuitField, FpVar},
+    shielder::types::{
+        BackendNote, BackendNullifier, BackendTokenAmount, BackendTokenId, BackendTrapdoor,
+    },
 };
 
 #[derive(Clone, Debug)]
