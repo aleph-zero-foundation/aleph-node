@@ -36,6 +36,10 @@ fn main() -> sc_cli::Result<()> {
     if !cli.aleph.experimental_pruning() {
         cli.run.import_params.pruning_params.state_pruning = default_state_pruning();
         cli.run.import_params.pruning_params.blocks_pruning = default_blocks_pruning();
+    // We need to override state pruning to our default (archive), as substrate has 256 by default.
+    // 256 does not work with our code.
+    } else if cli.run.import_params.pruning_params.state_pruning.is_none() {
+        cli.run.import_params.pruning_params.state_pruning = default_state_pruning();
     }
 
     match &cli.subcommand {
