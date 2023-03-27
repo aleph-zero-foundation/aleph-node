@@ -98,6 +98,11 @@ rustup target add x86_64-unknown-linux-gnu wasm32-unknown-unknown
 cargo build --release
 ```
 
+If `cargo build --release` does not succeed but throws an error mentioning `Rust WASM toolchain not installed, please install it!`, then please issue the `rustup target add wasm32-unknown-unknown` command **inside of the aleph-node** directory.
+
+After a successful build the binary can be found in `target/release/aleph-node`.
+
+
 [nix]: https://nixos.org/download.html
 [rustup]: https://rustup.rs/
 [docker]: https://docs.docker.com/engine/install/ubuntu/
