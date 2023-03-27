@@ -1,6 +1,6 @@
 ---
-#  This workflow builds docker from aleph-node test binary and docker from e2e client binary
-name: Build test node image and e2e client image
+#  This workflow builds docker from aleph-node production binary and docker from e2e client binary
+name: Build production node image and e2e client image
 on:
   workflow_call:
     inputs:
@@ -10,8 +10,8 @@ on:
         default: false
 
 jobs:
-  build-test-node-image-and-e2e-client-image:
-    name: Build test node docker image and e2e client image
+  build-production-node-image-and-e2e-client-image:
+    name: Build production node docker image and e2e client image
     runs-on: self-hosted
     env:
       RUST_BACKTRACE: full
@@ -20,23 +20,23 @@ jobs:
       - name: Checkout Source code
         uses: actions/checkout@v3
 
-      - name: Download test artifact
+      - name: Download release artifact
         uses: actions/download-artifact@v3
         with:
-          name: aleph-test-node
+          name: aleph-release-node
           path: target/release/
 
-      - name: Build test docker image
+      - name: Build release docker image
         id: build-image
         run: |
           chmod +x target/release/aleph-node
           docker build --tag aleph-node:latest -f ./docker/Dockerfile .
           docker save -o aleph-node.tar aleph-node:latest
 
-      - name: Upload test docker image
+      - name: Upload release docker image
         uses: actions/upload-artifact@v3
         with:
-          name: aleph-test-docker
+          name: aleph-release-docker
           path: aleph-node.tar
           if-no-files-found: error
           retention-days: 7
@@ -63,8 +63,8 @@ jobs:
 
   build-synthetic-network-docker:
     if: inputs.build-synthetic-network-docker != false
-    needs: [build-test-node-image-and-e2e-client-image]
-    name: Build docker image with the test node artifact and support for synthetic-network
+    needs: [build-production-node-image-and-e2e-client-image]
+    name: Build docker image with the production node artifact and support for synthetic-network
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -73,22 +73,22 @@ jobs:
       - name: Download artifact with docker image for aleph-node
         uses: actions/download-artifact@v3
         with:
-          name: aleph-test-docker
+          name: aleph-release-docker
 
       - name: Load node docker image
         shell: bash
         run: docker load -i aleph-node.tar
 
-      - name: Build test docker image
+      - name: Build release docker image
         id: build-image
         run: |
           scripts/synthetic-network/build_synthetic-network.sh
           docker save -o aleph-node.tar aleph-node:syntheticnet
 
-      - name: Upload test docker image
+      - name: Upload release docker image
         uses: actions/upload-artifact@v3
         with:
-          name: aleph-test-synthetic-docker
+          name: aleph-release-synthetic-docker
           path: aleph-node.tar
           if-no-files-found: error
           retention-days: 7

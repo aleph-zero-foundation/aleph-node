@@ -6,141 +6,25 @@ on:
     - cron: '00 23 * * *'
 
 concurrency:
-  group: "${{ github.ref }}-${{ github.workflow }}-nightly"
+  group: "${{ github.ref }}-${{ github.workflow }}"
   cancel-in-progress: true
 
 jobs:
-  build-new-node:
-    name: Build node and runtime artifacts (PR version)
+  build-production-node:
+    name: Build production node and runtime artifacts (PR version)
     uses: ./.github/workflows/_build-production-node-and-runtime.yml
     secrets: inherit
 
-  build-test-docker:
-    needs: [build-new-node]
-    name: Build docker image with the test node artifact
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v3
-
-      - name: Download test artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: aleph-test-node
-          path: target/release
-
-      - name: Build test docker image
-        id: build-image
-        run: |
-          chmod +x target/release/aleph-node
-          docker build --tag aleph-node:latest -f ./docker/Dockerfile .
-          docker save -o aleph-node.tar aleph-node:latest
-
-      - name: Upload test docker image
-        uses: actions/upload-artifact@v3
-        with:
-          name: aleph-test-docker
-          path: aleph-node.tar
-          if-no-files-found: error
-          retention-days: 7
-
-  build-synthetic-network-docker:
-    needs: [build-test-docker]
-    name: Build docker image with the test node artifact and support for synthetic-network
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v3
-
-      - name: Download artifact with docker image for aleph-node
-        uses: actions/download-artifact@v2
-        with:
-          name: aleph-test-docker
-
-      - name: Load node docker image
-        shell: bash
-        run: docker load -i aleph-node.tar
-
-      - name: Build test docker image
-        id: build-image
-        run: |
-          scripts/synthetic-network/build_synthetic-network.sh
-          docker save -o aleph-node.tar aleph-node:syntheticnet
-
-      - name: Upload test docker image
-        uses: actions/upload-artifact@v3
-        with:
-          name: aleph-test-synthetic-docker
-          path: aleph-node.tar
-          if-no-files-found: error
-          retention-days: 7
-
-  check-determinism:
-    needs: [build-new-node]
-    name: Verify runtime build determinism
-    runs-on: self-hosted
-    env:
-      RUST_BACKTRACE: full
-      RUSTC_WRAPPER: sccache
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v3
-
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-
-      - name: Install WASM target
-        run: rustup target add wasm32-unknown-unknown
-
-      - name: Download artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: aleph-release-runtime
-
-      - name: Build runtime and compare checksum with artifact
-        env:
-          ARTIFACT: aleph_runtime.compact.wasm
-          TARGET_DIR: target/production/wbuild/aleph-runtime
-        run: |
-          mkdir -p "$TARGET_DIR"
-          mv "$ARTIFACT" "$TARGET_DIR"
-          sha256sum "$TARGET_DIR/$ARTIFACT" > checksum.sha256
-          cargo clean
-          cargo build --profile production -p aleph-runtime
-          sha256sum -c checksum.sha256
-
-  build-test-client:
-    name: Build e2e test client suite
-    runs-on: self-hosted
-    env:
-      RUST_BACKTRACE: full
-      RUSTC_WRAPPER: sccache
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v3
-
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-
-      - name: Build binary and docker image
-        run: |
-          cd e2e-tests/
-          rm -f target/release/deps/aleph_e2e_client*
-          cp $(cargo test --no-run --release --message-format=json | jq -r .executable \
-          | grep aleph_e2e_client) target/release/aleph-e2e-client
-          docker build --tag aleph-e2e-client:latest -f Dockerfile .
-          docker save -o aleph-e2e-client.tar aleph-e2e-client:latest
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: aleph-e2e-client
-          path: e2e-tests/aleph-e2e-client.tar
-          if-no-files-found: error
-          retention-days: 7
+  build-production-node-and-e2e-client-image:
+    needs: [build-production-node]
+    name: Build production node and e2e client docker image
+    uses: ./.github/workflows/_build-production-node-and-e2e-client-image.yml
+    secrets: inherit
+    with:
+      build-synthetic-network-docker: true
 
   run-e2e-high-out-latency:
-    needs: [build-synthetic-network-docker, build-test-client]
+    needs: [build-production-node-and-e2e-client-image]
     name: Run high out-latency test
     runs-on: ubuntu-20.04
     steps:
@@ -151,13 +35,13 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: high_out_latency_for_all
-          image-path: aleph-test-synthetic-docker
+          image-path: aleph-release-synthetic-docker
           node-image: aleph-node:syntheticnet
           compose-file: docker/docker-compose.synthetic-network.yml
-        timeout-minutes: 30
+        timeout-minutes: 40
 
   run-e2e-no-quorum-without-high-out-latency:
-    needs: [build-synthetic-network-docker, build-test-client]
+    needs: [build-production-node-and-e2e-client-image]
     name: Run high out-latency for every quorum
     runs-on: ubuntu-20.04
     steps:
@@ -168,10 +52,10 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: high_out_latency_for_each_quorum
-          image-path: aleph-test-synthetic-docker
+          image-path: aleph-release-synthetic-docker
           node-image: aleph-node:syntheticnet
           compose-file: docker/docker-compose.synthetic-network.yml
-        timeout-minutes: 15
+        timeout-minutes: 25
 
   check-e2e-test-suite-completion:
     needs: [
@@ -187,7 +71,7 @@ jobs:
   slack:
     name: Slack notification
     runs-on: ubuntu-20.04
-    needs: [check-e2e-test-suite-completion, check-determinism]
+    needs: [check-e2e-test-suite-completion]
     if: always()
     steps:
       - name: Checkout repository
