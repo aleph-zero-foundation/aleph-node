@@ -57,6 +57,10 @@ impl AlephCli {
         self.public_validator_addresses.clone().unwrap_or_default()
     }
 
+    pub fn set_dummy_external_addresses(&mut self) {
+        self.public_validator_addresses = Some(vec!["192.0.2.43:30343".to_string()])
+    }
+
     pub fn validator_port(&self) -> u16 {
         self.validator_port
     }

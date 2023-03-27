@@ -1,10 +1,8 @@
-mod nonvalidator_node;
 mod validator_node;
 
 use std::{future::Future, sync::Arc};
 
 use aleph_primitives::BlockNumber;
-pub use nonvalidator_node::run_nonvalidator_node;
 use sc_client_api::Backend;
 use sc_network::NetworkService;
 use sc_network_common::ExHashT;

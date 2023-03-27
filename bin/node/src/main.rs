@@ -1,10 +1,10 @@
 #[cfg(any(feature = "try-runtime", feature = "runtime-benchmarks"))]
 use aleph_node::ExecutorDispatch;
-use aleph_node::{new_authority, new_full, new_partial, Cli, Subcommand};
+use aleph_node::{new_authority, new_partial, Cli, Subcommand};
 use aleph_primitives::HEAP_PAGES;
 #[cfg(any(feature = "try-runtime", feature = "runtime-benchmarks"))]
 use aleph_runtime::Block;
-use log::warn;
+use log::{info, warn};
 use sc_cli::{clap::Parser, CliConfiguration, DatabasePruningMode, PruningParams, SubstrateCli};
 use sc_network::config::Role;
 use sc_service::{Configuration, PartialComponents};
@@ -160,18 +160,25 @@ fn main() -> sc_cli::Result<()> {
                 warn!("Pruning not supported. Switching to keeping all block bodies and states.");
             }
 
-            let aleph_cli_config = cli.aleph;
+            let mut aleph_cli_config = cli.aleph;
             runner.run_node_until_exit(|mut config| async move {
-                enforce_heap_pages(&mut config);
-
-                match config.role {
-                    Role::Authority => {
-                        new_authority(config, aleph_cli_config).map_err(sc_cli::Error::Service)
+                if matches!(config.role, Role::Full) {
+                    if !aleph_cli_config.external_addresses().is_empty() {
+                        panic!(
+                            "A non-validator node cannot be run with external addresses specified."
+                        );
                     }
-                    Role::Full => {
-                        new_full(config, aleph_cli_config).map_err(sc_cli::Error::Service)
-                    }
+                    // We ensure that external addresses for non-validator nodes are set, but to a
+                    // value that is not routable. This will no longer be neccessary once we have
+                    // proper support for non-validator nodes, but this requires a major
+                    // refactor.
+                    info!(
+                        "Running as a non-validator node, setting dummy addressing configuration."
+                    );
+                    aleph_cli_config.set_dummy_external_addresses();
                 }
+                enforce_heap_pages(&mut config);
+                new_authority(config, aleph_cli_config).map_err(sc_cli::Error::Service)
             })
         }
     }

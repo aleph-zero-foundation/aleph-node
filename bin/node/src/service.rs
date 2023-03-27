@@ -8,9 +8,8 @@ use std::{
 use aleph_primitives::{AlephSessionApi, MAX_BLOCK_SIZE};
 use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use finality_aleph::{
-    run_nonvalidator_node, run_validator_node, AlephBlockImport, AlephConfig,
-    JustificationNotification, Metrics, MillisecsPerBlock, Protocol, ProtocolNaming, SessionPeriod,
-    TracingBlockImport,
+    run_validator_node, AlephBlockImport, AlephConfig, JustificationNotification, Metrics,
+    MillisecsPerBlock, Protocol, ProtocolNaming, SessionPeriod, TracingBlockImport,
 };
 use futures::channel::mpsc;
 use log::warn;
@@ -413,87 +412,6 @@ pub fn new_authority(
         "aleph",
         None,
         run_validator_node(aleph_config),
-    );
-
-    network_starter.start_network();
-    Ok(task_manager)
-}
-
-pub fn new_full(
-    config: Configuration,
-    aleph_config: AlephCli,
-) -> Result<TaskManager, ServiceError> {
-    let sc_service::PartialComponents {
-        client,
-        backend,
-        mut task_manager,
-        import_queue,
-        keystore_container,
-        select_chain,
-        transaction_pool,
-        other: (_, justification_tx, justification_rx, mut telemetry, metrics),
-    } = new_partial(&config)?;
-
-    let backup_path = backup_path(
-        &aleph_config,
-        config
-            .base_path
-            .as_ref()
-            .expect("Please specify base path")
-            .path(),
-    );
-
-    let (_rpc_handlers, network, protocol_naming, network_starter) = setup(
-        config,
-        backend.clone(),
-        &keystore_container,
-        import_queue,
-        transaction_pool,
-        &mut task_manager,
-        client.clone(),
-        &mut telemetry,
-        justification_tx,
-    )?;
-
-    let finalized = client.info().finalized_number;
-
-    let session_period = SessionPeriod(
-        client
-            .runtime_api()
-            .session_period(&BlockId::Number(finalized))
-            .unwrap(),
-    );
-
-    let millisecs_per_block = MillisecsPerBlock(
-        client
-            .runtime_api()
-            .millisecs_per_block(&BlockId::Number(finalized))
-            .unwrap(),
-    );
-
-    let blockchain_backend = BlockchainBackendImpl { backend };
-    let aleph_config = AlephConfig {
-        network,
-        client,
-        blockchain_backend,
-        select_chain,
-        session_period,
-        millisecs_per_block,
-        spawn_handle: task_manager.spawn_handle(),
-        keystore: keystore_container.keystore(),
-        justification_rx,
-        metrics,
-        unit_creation_delay: aleph_config.unit_creation_delay(),
-        backup_saving_path: backup_path,
-        external_addresses: aleph_config.external_addresses(),
-        validator_port: aleph_config.validator_port(),
-        protocol_naming,
-    };
-
-    task_manager.spawn_essential_handle().spawn_blocking(
-        "aleph",
-        None,
-        run_nonvalidator_node(aleph_config),
     );
 
     network_starter.start_network();
