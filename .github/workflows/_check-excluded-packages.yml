@@ -62,18 +62,20 @@ jobs:
           done
 
       - name: Install nono
-        # compilation of cargo no-no is broken
-        if: false
-        run: cargo install cargo-nono
+        run: cargo install aleph-zero-cargo-nono --locked
 
       - name: Assert that packages are compatible with no-std
-        if: false
+        env:
+          CHECK: aleph-zero-cargo-nono check --no-default-features
         run: |
-          packages=("baby-liminal-extension" "poseidon" "relations")
-          for p in ${packages[@]}
-          do
-            echo "Checking package $p..."
-            pushd "$p"
-            cargo nono check --no-default-features
-            popd
-          done
+          cd baby-liminal-extension/
+          ${CHECK}
+          ${CHECK} --features ink
+
+          cd ../poseidon/
+          ${CHECK}
+          ${CHECK} --features circuit
+
+          cd ../relations/
+          ${CHECK}
+          ${CHECK} --features circuit
