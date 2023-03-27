@@ -388,7 +388,7 @@ where
                             let manager_actions = self.manager.on_discovery_message(message);
                             self.handle_manager_actions(manager_actions)?
                         },
-                        Err(e) => warn!(target: "aleph-network", "Error casting versioned authentication to discovery message: {:?}", e),
+                        Err(e) => debug!(target: "aleph-network", "Could not cast versioned authentication in discovery message: {:?}", e),
                     }
                 },
                 _ = maintenance.tick() => {
