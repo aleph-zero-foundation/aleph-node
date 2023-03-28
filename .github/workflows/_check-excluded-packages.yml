@@ -16,7 +16,10 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: ./.github/actions/install-rust-toolchain
+        with:
+          targets: wasm32-unknown-unknown
+          components: clippy rustfmt
 
       - name: Read excluded packages from Cargo.toml
         id: read_excluded
@@ -39,9 +42,6 @@ jobs:
           echo "targets=$targets" >> $GITHUB_OUTPUT
 
       - name: Check excluded packages
-        env:
-          RUSTC_WRAPPER: ""
-          RUSTC_WORKSPACE_WRAPPER: sccache
         run: |
           packages="${{ steps.format_output.outputs.packages }}"
           packages="${packages//'%0A'/$'\n'}"
@@ -54,8 +54,6 @@ jobs:
             fi
             echo "Checking package $p..."
             pushd "$p"
-            rustup component add clippy rustfmt
-            rustup target add wasm32-unknown-unknown
             cargo fmt --all --check
             cargo clippy -- --no-deps -D warnings
             popd

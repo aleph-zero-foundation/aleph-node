@@ -7,7 +7,7 @@ on:
 
 jobs:
   main:
-    name: Verify runtime build determinism
+    name: Check runtime build determinism
     runs-on: self-hosted
     env:
       RUST_BACKTRACE: full
@@ -17,10 +17,9 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-
-      - name: Install WASM target
-        run: rustup target add wasm32-unknown-unknown
+        uses: ./.github/actions/install-rust-toolchain
+        with:
+          targets: wasm32-unknown-unknown
 
       - name: Download production runtime from artifacts
         uses: actions/download-artifact@v3

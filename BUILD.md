@@ -106,4 +106,4 @@ After a successful build the binary can be found in `target/release/aleph-node`.
 [nix]: https://nixos.org/download.html
 [rustup]: https://rustup.rs/
 [docker]: https://docs.docker.com/engine/install/ubuntu/
-[rust-toolchain]: ./rust-toolchain
+[rust-toolchain]: ./rust-toolchain.toml

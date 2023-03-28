@@ -19,13 +19,13 @@ inputs:
 outputs:
   deployment-name:
     description: 'Output with a deployment name for working with deployments'
-    value: ${{ steps.get_branch.outputs.branch_name }}
+    value: ${{ steps.get-ref-properties.outputs.branch-name-flattened }}
 runs:
   using: "composite"
   steps:
     - name: Get branch name and commit SHA
-      id: get_branch
-      uses: ./.github/actions/get-branch
+      id: get-ref-properties
+      uses: ./.github/actions/get-ref-properties
 
     - name: Checkout aleph-apps repo
       uses: actions/checkout@v3
@@ -47,7 +47,7 @@ runs:
     - name: Destroy feature branch
       shell: bash
       env:
-        APP_NAME: fe-${{ steps.get_branch.outputs.branch_appname }}
+        APP_NAME: fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo }}
       run: |
         ALEPH_PATH=$(pwd)
 
@@ -57,7 +57,7 @@ runs:
     - name: Commit deletion of the feature environment.
       uses: EndBug/add-and-commit@v9.1.1
       env:
-        APP_NAME: fe-${{ steps.get_branch.outputs.branch_appname }}
+        APP_NAME: fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo }}
       with:
         author_name: AlephZero Automation
         author_email: alephzero@10clouds.com
@@ -83,7 +83,7 @@ runs:
     - name: Clean S3 storage
       shell: bash
       env:
-        BRANCH_NAME: ${{ steps.get_branch.outputs.branch_name }}
+        BRANCH_NAME: ${{ steps.get-ref-properties.outputs.branch-name-flattened }}
       run: |
         aws s3 rm --recursive \
           s3://fe-alephzero-devnet-eu-central-1-keys-bucket/fe-${{ env.BRANCH_NAME }}

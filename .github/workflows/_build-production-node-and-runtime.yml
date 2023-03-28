@@ -25,10 +25,9 @@ jobs:
         uses: ./.github/actions/get-ref-properties
 
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-
-      - name: Install WASM target
-        run: rustup target add wasm32-unknown-unknown
+        uses: ./.github/actions/install-rust-toolchain
+        with:
+          targets: wasm32-unknown-unknown
 
       - name: Build production binary and runtime
         run: cargo build --profile production -p aleph-node
