@@ -53,26 +53,16 @@ jobs:
             exit 1
           fi
 
-      - name: Login to Docker Hub
-        id: login-docker-hub
-        uses: docker/login-action@v2
+      - name: Build and push Docker Hub image of Mainnet
+        uses: ./.github/actions/build-and-push-dockerhub-image
+        if: secrets.DOCKERHUB_USERNAME != "" && secrets.DOCKERHUB_PASSWORD != ""
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
-
-      - name: Tag and push image of Mainnet to DockerHub
-        env:
-          MAINNET_IMAGE: public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.vars.outputs.branch }}
-          DOCKERHUB_MAINNET_IMAGE:
-            cardinalcryptography/aleph-zero:mainnet-${{ steps.vars.outputs.branch }}
-          DOCKERHUB_MAINNET_LATEST_IMAGE: cardinalcryptography/aleph-zero:mainnet-latest
-        run: |
-          echo "FROM ${{ env.MAINNET_IMAGE }}" > Dockerfile.dockerhub
-          echo 'ENTRYPOINT ["/usr/local/bin/aleph-node"]' >> Dockerfile.dockerhub
-          docker build -t ${{ env.DOCKERHUB_MAINNET_IMAGE }} -f Dockerfile.dockerhub .
-          docker tag ${{ env.DOCKERHUB_MAINNET_IMAGE }} ${{ env.DOCKERHUB_MAINNET_LATEST_IMAGE }}
-          docker push ${{ env.DOCKERHUB_MAINNET_IMAGE }}
-          docker push ${{ env.DOCKERHUB_MAINNET_LATEST_IMAGE }}
+          source-image: public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.vars.outputs.branch }}
+          target-image: cardinalcryptography/aleph-zero:mainnet-${{ steps.vars.outputs.branch }}
+          additional-image: cardinalcryptography/aleph-zero:mainnet-latest
+          dockerhub-username: "${{ secrets.DOCKERHUB_USERNAME }}"
+          dockerhub-password: "${{ secrets.DOCKERHUB_PASSWORD }}"
+          push: 'true'
 
       - name: S3 CI | Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
