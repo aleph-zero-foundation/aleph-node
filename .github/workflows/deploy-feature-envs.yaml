@@ -119,7 +119,7 @@ jobs:
           override: true
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v2
         env:
           AWS_REGION: us-east-1
         with:
