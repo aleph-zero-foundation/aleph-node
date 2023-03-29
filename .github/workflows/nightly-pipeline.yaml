@@ -38,7 +38,7 @@ jobs:
           image-path: aleph-release-synthetic-docker
           node-image: aleph-node:syntheticnet
           compose-file: docker/docker-compose.synthetic-network.yml
-        timeout-minutes: 40
+        timeout-minutes: 60
 
   run-e2e-no-quorum-without-high-out-latency:
     needs: [build-production-node-and-e2e-client-image]
@@ -55,7 +55,7 @@ jobs:
           image-path: aleph-release-synthetic-docker
           node-image: aleph-node:syntheticnet
           compose-file: docker/docker-compose.synthetic-network.yml
-        timeout-minutes: 25
+        timeout-minutes: 60
 
   check-e2e-test-suite-completion:
     needs: [

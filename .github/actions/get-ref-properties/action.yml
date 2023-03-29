@@ -2,8 +2,8 @@
 name: Get ref git properties
 description:
   Returns basic git ref properties for the commit it runs on, such as tag, branch or commit SHA.
-  This actions is intended to be triggerd either via pull request, tag push or direct push to
-  a release branch.
+  This actions is intended to be triggerd either via pull request, tag push, direct push to
+  a tag used when creating a GitHub Release or a Pre-release
 
 outputs:
   branch:
@@ -17,7 +17,7 @@ outputs:
     value: ${{ steps.branch.outputs.name-for-argo }}
   tag:
     description: Tag name
-    value: ${{ steps.tag.outputs.name }}
+    value: ${{ steps.tag.outputs.name || steps.release.outputs.ref }}
   sha:
     description: Unique commit SHA
     value: ${{ steps.commit.outputs.sha }}
@@ -47,6 +47,13 @@ runs:
         echo name-flattened=$(echo ${HEAD_REF#refs/heads/} | tr / -) >> $GITHUB_OUTPUT
         echo name-for-argo=$(echo ${HEAD_REF#refs/heads/} \
           | tr / - | tr '[:upper:]' '[:lower:]' | tr -c '[a-z0-9-.]' '-') >> $GITHUB_OUTPUT
+
+    - name: Get branch name if release or pre-release was created
+      if: ${{ !startsWith(github.ref, 'refs/') }}
+      id: release
+      shell: bash
+      run: |
+        echo "ref=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
 
     - name: Get commit properties
       id: commit

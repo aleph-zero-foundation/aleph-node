@@ -19,12 +19,9 @@ jobs:
       - name: GIT | Checkout
         uses: actions/checkout@v3
 
-      - name: GIT | Get branch info & current commit sha.
-        id: vars
-        shell: bash
-        run: |
-          echo "branch=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
-          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      - name: Call action get-ref-properties
+        id: get-ref-properties
+        uses: ./.github/actions/get-ref-properties
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -45,7 +42,7 @@ jobs:
 
       - name: Verify aleph-node image existance
         env:
-          IMAGE: public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.vars.outputs.branch }}
+          IMAGE: public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.get-ref-properties.outputs.tag }}
         run: |
           export image_not_exist=$(docker manifest inspect ${{ env.IMAGE }} &> /dev/null ; echo $?)
           if [ $image_not_exist -eq 1 ]; then
@@ -57,8 +54,10 @@ jobs:
         uses: ./.github/actions/build-and-push-dockerhub-image
         if: secrets.DOCKERHUB_USERNAME != "" && secrets.DOCKERHUB_PASSWORD != ""
         with:
-          source-image: public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.vars.outputs.branch }}
-          target-image: cardinalcryptography/aleph-zero:mainnet-${{ steps.vars.outputs.branch }}
+          source-image:
+            public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.get-ref-properties.outputs.tag }}
+          target-image:
+            cardinalcryptography/aleph-zero:mainnet-${{ steps.get-ref-properties.outputs.tag }}
           additional-image: cardinalcryptography/aleph-zero:mainnet-latest
           dockerhub-username: "${{ secrets.DOCKERHUB_USERNAME }}"
           dockerhub-password: "${{ secrets.DOCKERHUB_PASSWORD }}"
@@ -77,8 +76,8 @@ jobs:
         shell: bash
         env:
           # yamllint disable-line rule:line-length
-          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.vars.outputs.sha_short }}/aleph-runtime
-          S3BUCKET_FILE: aleph-runtime-${{ steps.vars.outputs.sha_short }}.tar.gz
+          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-runtime
+          S3BUCKET_FILE: aleph-runtime-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
         run: |
           aws s3 cp ${{ env.S3BUCKET_URL }}/${{ env.S3BUCKET_FILE }} ${{ env.S3BUCKET_FILE }}
 
@@ -87,7 +86,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            aleph-runtime-${{ steps.vars.outputs.sha_short }}.tar.gz
+            aleph-runtime-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
 
       - name: GIT | Checkout aleph-apps repo
         uses: actions/checkout@v3
@@ -104,7 +103,8 @@ jobs:
 
       - name: Update aleph-node docker image and trigger ArgoCD deploy for Mainnet
         env:
-          MAINNET_IMAGE: public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.vars.outputs.branch }}
+          MAINNET_IMAGE:
+            public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.get-ref-properties.outputs.tag }}
           REGIONS_AWS: 'eu-central-1,eu-west-1,eu-west-2,us-east-1,us-east-2'
         run: |
           IFS="," read -a region_array <<< ${{ env.REGIONS_AWS }}
@@ -126,7 +126,8 @@ jobs:
         with:
           author_name: AlephZero Automation
           author_email: alephzero@10clouds.com
-          message: "Updating Mainnet docker image tag for release: ${{ steps.vars.outputs.branch }}"
+          # yamllint disable-line rule:line-length
+          message: "Updating Mainnet docker image tag for release: ${{ steps.get-ref-properties.outputs.tag }}"
           add: "*.yaml"
           cwd: "aleph-apps"
 
