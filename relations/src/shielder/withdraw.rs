@@ -55,7 +55,7 @@ mod relation {
         pub recipient: BackendAccount,
         #[public_input(frontend_type = "FrontendTokenId")]
         pub token_id: BackendTokenId,
-        #[public_input(frontend_type = "FrontendNullifier")]
+        #[public_input(frontend_type = "FrontendNullifier", parse_with = "convert_hash")]
         pub old_nullifier: BackendNullifier,
         #[public_input(frontend_type = "FrontendNote", parse_with = "convert_hash")]
         pub new_note: BackendNote,
@@ -65,11 +65,11 @@ mod relation {
         pub merkle_root: BackendMerkleRoot,
 
         // Private inputs.
-        #[private_input(frontend_type = "FrontendTrapdoor")]
+        #[private_input(frontend_type = "FrontendTrapdoor", parse_with = "convert_hash")]
         pub old_trapdoor: BackendTrapdoor,
-        #[private_input(frontend_type = "FrontendTrapdoor")]
+        #[private_input(frontend_type = "FrontendTrapdoor", parse_with = "convert_hash")]
         pub new_trapdoor: BackendTrapdoor,
-        #[private_input(frontend_type = "FrontendNullifier")]
+        #[private_input(frontend_type = "FrontendNullifier", parse_with = "convert_hash")]
         pub new_nullifier: BackendNullifier,
         #[private_input(frontend_type = "FrontendMerklePath", parse_with = "convert_vec")]
         pub merkle_path: BackendMerklePath,
@@ -160,12 +160,12 @@ mod tests {
     fn get_circuit_with_full_input() -> WithdrawRelationWithFullInput {
         let token_id: FrontendTokenId = 1;
 
-        let old_trapdoor: FrontendTrapdoor = 17;
-        let old_nullifier: FrontendNullifier = 19;
+        let old_trapdoor: FrontendTrapdoor = [17; 4];
+        let old_nullifier: FrontendNullifier = [19; 4];
         let whole_token_amount: FrontendTokenAmount = 10;
 
-        let new_trapdoor: FrontendTrapdoor = 27;
-        let new_nullifier: FrontendNullifier = 87;
+        let new_trapdoor: FrontendTrapdoor = [27; 4];
+        let new_nullifier: FrontendNullifier = [87; 4];
         let new_token_amount: FrontendTokenAmount = 3;
 
         let token_amount_out: FrontendTokenAmount = 7;
@@ -182,9 +182,9 @@ mod tests {
 
         let zero_note = FrontendNote::default(); // x
 
-        let sibling_note = compute_note(0, 1, 2, 3); // 4
+        let sibling_note = compute_note(0, 1, [2; 4], [3; 4]); // 4
         let parent_note = compute_parent_hash(sibling_note, old_note); // 2
-        let uncle_note = compute_note(4, 5, 6, 7); // 3
+        let uncle_note = compute_note(4, 5, [6; 4], [7; 4]); // 3
         let grandpa_root = compute_parent_hash(parent_note, uncle_note); // 1
 
         let placeholder = compute_parent_hash(grandpa_root, zero_note);

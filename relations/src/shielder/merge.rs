@@ -51,9 +51,9 @@ mod relation {
         // Public inputs
         #[public_input(frontend_type = "FrontendTokenId")]
         pub token_id: BackendTokenId,
-        #[public_input(frontend_type = "FrontendNullifier")]
+        #[public_input(frontend_type = "FrontendNullifier", parse_with = "convert_hash")]
         pub first_old_nullifier: BackendNullifier,
-        #[public_input(frontend_type = "FrontendNullifier")]
+        #[public_input(frontend_type = "FrontendNullifier", parse_with = "convert_hash")]
         pub second_old_nullifier: BackendNullifier,
         #[public_input(frontend_type = "FrontendNote", parse_with = "convert_hash")]
         pub new_note: BackendNote,
@@ -61,13 +61,13 @@ mod relation {
         pub merkle_root: BackendMerkleRoot,
 
         // Private inputs.
-        #[private_input(frontend_type = "FrontendTrapdoor")]
+        #[private_input(frontend_type = "FrontendTrapdoor", parse_with = "convert_hash")]
         pub first_old_trapdoor: BackendTrapdoor,
-        #[private_input(frontend_type = "FrontendTrapdoor")]
+        #[private_input(frontend_type = "FrontendTrapdoor", parse_with = "convert_hash")]
         pub second_old_trapdoor: BackendTrapdoor,
-        #[private_input(frontend_type = "FrontendTrapdoor")]
+        #[private_input(frontend_type = "FrontendTrapdoor", parse_with = "convert_hash")]
         pub new_trapdoor: BackendTrapdoor,
-        #[private_input(frontend_type = "FrontendNullifier")]
+        #[private_input(frontend_type = "FrontendNullifier", parse_with = "convert_hash")]
         pub new_nullifier: BackendNullifier,
         #[private_input(frontend_type = "FrontendMerklePath", parse_with = "convert_vec")]
         pub first_merkle_path: BackendMerklePath,
@@ -186,16 +186,16 @@ mod tests {
     const MAX_PATH_LEN: u8 = 4;
     const TOKEN_ID: FrontendTokenId = 1;
 
-    const FIRST_OLD_TRAPDOOR: FrontendTrapdoor = 17;
-    const FIRST_OLD_NULLIFIER: FrontendNullifier = 19;
+    const FIRST_OLD_TRAPDOOR: FrontendTrapdoor = [17; 4];
+    const FIRST_OLD_NULLIFIER: FrontendNullifier = [19; 4];
     const FIRST_OLD_TOKEN_AMOUNT: FrontendTokenAmount = 3;
 
-    const SECOND_OLD_TRAPDOOR: FrontendTrapdoor = 23;
-    const SECOND_OLD_NULLIFIER: FrontendNullifier = 29;
+    const SECOND_OLD_TRAPDOOR: FrontendTrapdoor = [23; 4];
+    const SECOND_OLD_NULLIFIER: FrontendNullifier = [29; 4];
     const SECOND_OLD_TOKEN_AMOUNT: FrontendTokenAmount = 7;
 
-    const NEW_TRAPDOOR: FrontendTrapdoor = 27;
-    const NEW_NULLIFIER: FrontendNullifier = 87;
+    const NEW_TRAPDOOR: FrontendTrapdoor = [27; 4];
+    const NEW_NULLIFIER: FrontendNullifier = [87; 4];
     const NEW_TOKEN_AMOUNT: FrontendTokenAmount = 10;
 
     const FIRST_LEAF_INDEX: u64 = 5;
@@ -227,11 +227,11 @@ mod tests {
         let zero_note = FrontendNote::default(); // x
 
         // First Merkle path setup.
-        let first_sibling_note = compute_note(0, 1, 2, 3); // 4
+        let first_sibling_note = compute_note(0, 1, [2; 4], [3; 4]); // 4
         let first_parent_note = compute_parent_hash(first_sibling_note, first_old_note); // 2
 
         // Second Merkle path setup.
-        let second_sibling_note = compute_note(0, 1, 3, 4); // 7
+        let second_sibling_note = compute_note(0, 1, [3; 4], [4; 4]); // 7
         let second_parent_note = compute_parent_hash(second_old_note, second_sibling_note); // 3
 
         // Merkle paths.
@@ -296,8 +296,12 @@ mod tests {
 
     fn get_circuit_with_invalid_new_note() -> MergeRelationWithFullInput {
         let mut circuit = get_circuit_with_full_input();
-
-        let new_note = compute_note(TOKEN_ID, NEW_TOKEN_AMOUNT, NEW_TRAPDOOR + 1, NEW_NULLIFIER);
+        let new_note = compute_note(
+            TOKEN_ID,
+            NEW_TOKEN_AMOUNT,
+            NEW_TRAPDOOR.map(|t| t + 1),
+            NEW_NULLIFIER,
+        );
         circuit.new_note = convert_hash(new_note);
 
         circuit

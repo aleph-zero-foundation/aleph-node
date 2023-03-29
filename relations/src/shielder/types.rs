@@ -7,8 +7,8 @@ use crate::environment::CircuitField;
 pub type ByteVar = ark_r1cs_std::uint8::UInt8<CircuitField>;
 
 // Types accepted by the relation constructors.
-pub type FrontendNullifier = u64;
-pub type FrontendTrapdoor = u64;
+pub type FrontendNullifier = [u64; 4];
+pub type FrontendTrapdoor = [u64; 4];
 pub type FrontendNote = [u64; 4];
 pub type FrontendTokenId = u16;
 pub type FrontendTokenAmount = u64;

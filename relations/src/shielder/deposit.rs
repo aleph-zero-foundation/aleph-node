@@ -31,9 +31,9 @@ mod relation {
         #[public_input(frontend_type = "FrontendTokenAmount")]
         pub token_amount: BackendTokenAmount,
 
-        #[private_input(frontend_type = "FrontendTrapdoor")]
+        #[private_input(frontend_type = "FrontendTrapdoor", parse_with = "convert_hash")]
         pub trapdoor: BackendTrapdoor,
-        #[private_input(frontend_type = "FrontendNullifier")]
+        #[private_input(frontend_type = "FrontendNullifier", parse_with = "convert_hash")]
         pub nullifier: BackendNullifier,
     }
 
@@ -69,8 +69,8 @@ mod tests {
     fn get_circuit_with_full_input() -> DepositRelationWithFullInput {
         let token_id: FrontendTokenId = 1;
         let token_amount: FrontendTokenAmount = 10;
-        let trapdoor: FrontendTrapdoor = 17;
-        let nullifier: FrontendNullifier = 19;
+        let trapdoor: FrontendTrapdoor = [17; 4];
+        let nullifier: FrontendNullifier = [19; 4];
         let note = compute_note(token_id, token_amount, trapdoor, nullifier);
 
         DepositRelationWithFullInput::new(note, token_id, token_amount, trapdoor, nullifier)
