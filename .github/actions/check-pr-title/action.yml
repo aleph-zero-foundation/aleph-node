@@ -1,0 +1,32 @@
+---
+name: Check Pull Request title
+description:
+  Checks if PR has number of Jira ticket at very beginning of its title in proper format
+
+inputs:
+  pr-title:
+    description: "The title of Pull Request"
+    type: string
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Check Pull Request title
+      shell: bash
+      env:
+        PR_TITLE: ${{ inputs.pr-title }}
+      run: |
+        #!/bin/bash
+        if [[ -n "$PR_TITLE" ]]; then
+          if ! echo "$PR_TITLE" | grep -Eq "^A0-[0-9]+: .*$"; then
+            echo -e "The PR title is wrong \n \
+            Please follow this pattern:\nA0-[ticket-number]: Short description\n\
+            Example: \"A0-1337: Adding h4x0r l33t code\""
+            exit 1
+          fi
+        else
+          echo "PR_TITLE is empty"
+          exit 1
+        fi
+

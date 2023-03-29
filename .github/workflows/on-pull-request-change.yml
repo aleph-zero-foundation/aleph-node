@@ -1,0 +1,27 @@
+---
+name: Check PR
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - reopened
+      - ready_for_review
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  main:
+    name: Check PR title
+    runs-on: ubuntu-20.04
+    steps:
+      - name: GIT | Checkout
+        uses: actions/checkout@v3
+
+      - name: VALIDATE | Check PR title
+        uses: ./.github/actions/check-pr-title
+        with:
+          pr-title: ${{ github.event.pull_request.title }}
