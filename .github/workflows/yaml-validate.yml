@@ -21,13 +21,23 @@ jobs:
 
       - name: VALIDATE | Execute github-actions-validator
         env:
-          DOCKER_IMAGE: public.ecr.aws/p6e8q1z1/github-actions-validator:0.3.2
+          DOCKER_IMAGE: public.ecr.aws/p6e8q1z1/github-actions-validator:0.4.1
         run: |
           set +e
+
+          cat .github/workflows/_check-vars-and-secrets.yml | \
+            grep -o "vars\.[A-Z0-9_]\+" | sed 's|vars.||g' > tmp-vars-list.txt
+          cat .github/workflows/_check-vars-and-secrets.yml | \
+            grep -o "secrets\.[A-Z0-9_]\+" | sed 's|secrets.||g' > tmp-secrets-list.txt
+
           docker pull ${DOCKER_IMAGE}
           docker run --rm --name tmp-ghv -v $(pwd)/.github:/dot-github \
+            -v $(pwd)/tmp-vars-list.txt:/tmp-vars-list.txt \
+            -v $(pwd)/tmp-secrets-list.txt:/tmp-secrets-list.txt \
             ${DOCKER_IMAGE} \
-            validate -p /dot-github > validation_result
+            validate -p /dot-github \
+              -z /tmp-vars-list.txt \
+              -s /tmp-secrets-list.txt > validation_result
           echo "------------------------------------------------"
           cat validation_result
           echo "------------------------------------------------"
@@ -35,6 +45,9 @@ jobs:
           if [[ $(cat validation_result_errors | wc -l) > 0 ]]; then
             echo "!!!"
             echo "!!! Errors have been found in GitHub YAML files!"
+            echo "!!!"
+            echo "!!! If you see any errors with invalid 'vars' or 'secrets' then"
+            echo "!!! please ensure they are added to _check-vars-and-secrets.yml workflow"
             echo "!!!"
             echo "------------------------------------------------"
             cat validation_result_errors

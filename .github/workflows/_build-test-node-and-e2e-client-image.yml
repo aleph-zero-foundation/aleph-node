@@ -5,6 +5,7 @@ on:
   workflow_call:
     inputs:
       build-synthetic-network-docker:
+        description: Set to 'true' to build synthetic network docker
         required: false
         type: boolean
         default: false

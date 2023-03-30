@@ -10,9 +10,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
   build-production-node:
+    needs: [check-vars-and-secrets]
     name: Build production node and runtime artifacts (PR version)
     uses: ./.github/workflows/_build-production-node-and-runtime.yml
+
+  store-production-node:
+    needs: [build-production-node]
+    name: Store production node and runtime artifacts (PR version)
+    uses: ./.github/workflows/_store-production-node-and-runtime.yml
     secrets: inherit
 
   build-production-node-and-e2e-client-image:

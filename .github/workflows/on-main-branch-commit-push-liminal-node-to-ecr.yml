@@ -11,10 +11,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
   build-liminal-node:
+    needs: [check-vars-and-secrets]
     name: Build liminal node
     uses: ./.github/workflows/_build-liminal-node.yml
-    secrets: inherit
 
   push-liminal-node-image-to-ecr:
     name: Push liminal node docker image to the ECR
@@ -44,7 +49,7 @@ jobs:
         id: login-public-ecr
         uses: docker/login-action@v2
         with:
-          registry: public.ecr.aws
+          registry: ${{ vars.ECR_PUBLIC_HOST }}
           username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
           password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
         env:
@@ -53,7 +58,7 @@ jobs:
       - name: Push aleph-node-liminal image to ECR
         env:
           CURRENT_IMAGE: aleph-node-liminal
-          ECR_PUSH_IMAGE: public.ecr.aws/p6e8q1z1/aleph-node-liminal
+          ECR_PUSH_IMAGE: ${{ vars.ECR_PUBLIC_REGISTRY }}aleph-node-liminal
           COMMIT_SHA: ${{ steps.get-ref-properties.outputs.sha }}
         run: |
           docker tag ${{ env.CURRENT_IMAGE }} ${{ env.ECR_PUSH_IMAGE }}:${{ env.COMMIT_SHA }}

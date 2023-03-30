@@ -16,7 +16,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
   build:
+    needs: [check-vars-and-secrets]
     name: Save cliain binary as an artifact
     runs-on: self-hosted
     env:
@@ -39,7 +45,7 @@ jobs:
         uses: arduino/setup-protoc@v1
         with:
           version: '3.6.1'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Build binary
         run: |
@@ -63,7 +69,7 @@ jobs:
         id: login-public-ecr
         uses: docker/login-action@v2
         with:
-          registry: public.ecr.aws
+          registry: ${{ vars.ECR_PUBLIC_HOST }}
           username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
           password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
         env:
@@ -73,8 +79,8 @@ jobs:
         env:
           CURRENT_IMAGE: runtime-update-hook:${{ steps.vars.outputs.sha_short }}
           ECR_PUSH_IMAGE:
-            public.ecr.aws/p6e8q1z1/runtime-update-hook:${{ steps.vars.outputs.sha_short }}
-          ECR_LATEST: public.ecr.aws/p6e8q1z1/runtime-update-hook:latest
+            ${{ vars.ECR_PUBLIC_REGISTRY }}runtime-update-hook:${{ steps.vars.outputs.sha_short }}
+          ECR_LATEST: ${{ vars.ECR_PUBLIC_REGISTRY }}runtime-update-hook:latest
         run: |
           docker tag ${{ env.CURRENT_IMAGE }} ${{ env.ECR_PUSH_IMAGE }}
           docker push ${{ env.ECR_PUSH_IMAGE }}
@@ -82,12 +88,12 @@ jobs:
           docker tag ${{ env.ECR_PUSH_IMAGE }} ${{ env.ECR_LATEST }}
           docker push ${{ env.ECR_LATEST }}
 
-      - name: GIT | Checkout aleph-apps repo
+      - name: GIT | Checkout argocd apps repo
         uses: actions/checkout@v3
         with:
-          repository: Cardinal-Cryptography/aleph-apps
+          repository: Cardinal-Cryptography/${{ secrets.REPO_ARGOCD_APPS_NAME }}
           token: ${{ secrets.CI_GH_TOKEN }}
-          path: "aleph-apps"
+          path: "${{ secrets.REPO_ARGOCD_APPS_NAME }}"
 
       - name: Init kustomize
         uses: imranismail/setup-kustomize@v1
@@ -97,18 +103,19 @@ jobs:
       - name: Update postsync hook docker image
         env:
           RELEASE_IMAGE:
-            public.ecr.aws/p6e8q1z1/runtime-update-hook:${{ steps.vars.outputs.sha_short }}
+            ${{ vars.ECR_PUBLIC_REGISTRY }}runtime-update-hook:${{ steps.vars.outputs.sha_short }}
           REGIONS_AWS: 'eu-central-1'
         run: |
             # Deploy new image version for postsync hook
-            cd aleph-apps/aleph-node-validators/overlays/devnet/eu-central-1
+            APPS_NAME=${{ secrets.REPO_ARGOCD_APPS_NAME }}
+            cd $APPS_NAME/aleph-node-validators/overlays/devnet/eu-central-1
             kustomize edit set image "send-runtime-hook-image-placeholder=${{ env.RELEASE_IMAGE }}"
 
-      - name: GIT | Commit changes to aleph-apps repository.
+      - name: GIT | Commit changes to argocd apps repository.
         uses: EndBug/add-and-commit@v9.1.1
         with:
-          author_name: AlephZero Automation
-          author_email: alephzero@10clouds.com
-          message: "Updating postsync hook image tag to: ${{ steps.vars.outputs.sha_short }}"
+          author_name: ${{ secrets.AUTOCOMMIT_AUTHOR }}
+          author_email: ${{ secrets.AUTOCOMMIT_EMAIL }}
+          message: "Update postsync hook image tag to: ${{ steps.vars.outputs.sha_short }}"
           add: "*.yaml"
-          cwd: "aleph-apps"
+          cwd: ${{ secrets.REPO_ARGOCD_APPS_NAME }}

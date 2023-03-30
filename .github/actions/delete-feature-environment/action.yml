@@ -15,6 +15,12 @@ inputs:
   argo-sync-user-token:
     description: 'ArgoCD user token to be used in the action'
     required: true
+  repo-apps-name:
+    description: 'Name of the repository containing apps definitions'
+    required: true
+  argo-host:
+    description: 'ArgoCD host'
+    required: true
 
 outputs:
   deployment-name:
@@ -27,12 +33,12 @@ runs:
       id: get-ref-properties
       uses: ./.github/actions/get-ref-properties
 
-    - name: Checkout aleph-apps repo
+    - name: Checkout argocd apps repo
       uses: actions/checkout@v3
       with:
-        repository: Cardinal-Cryptography/aleph-apps
+        repository: Cardinal-Cryptography/${{ inputs.repo-apps-name }}
         token: ${{ inputs.gh-ci-token }}
-        path: "aleph-apps"
+        path: "${{ inputs.repo-apps-name }}"
         ref: main
 
     - name: Configure AWS credentials
@@ -49,10 +55,11 @@ runs:
       env:
         APP_NAME: fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo }}
       run: |
-        ALEPH_PATH=$(pwd)
+        CWD_PATH=$(pwd)
+        APPS_NAME=${{ inputs.repo-apps-name }}
 
         ## Delete FE application for argo to delete it automatically
-        rm -rf $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+        rm -rf $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
 
     - name: Commit deletion of the feature environment.
       uses: EndBug/add-and-commit@v9.1.1
@@ -63,12 +70,12 @@ runs:
         author_email: alephzero@10clouds.com
         message: "Feature Environment: ${{ env.APP_NAME }} has been deleted"
         add: "*.yaml"
-        cwd: "aleph-apps"
+        cwd: "${{ inputs.repo-apps-name }}"
 
     - name: Refresh Argo and wait for the deletion to be finished
       shell: bash
       env:
-        ARGOCD_URL: argocd.dev.azero.dev
+        ARGOCD_URL: ${{ inputs.argo-host }}
       run: |
         ## Install argocd CLI tool
         curl -sSL -o argocd \

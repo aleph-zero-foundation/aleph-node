@@ -5,7 +5,7 @@ on:
   workflow_call:
 
 jobs:
-  check-test-and-lint:
+  main:
     name: Run check, test and lints
     runs-on: self-hosted
     env:

@@ -9,7 +9,7 @@ on:
       - .github/workflows/build-docs.yaml
 
 jobs:
-  build-aleph-client-docs:
+  main:
     name: Build docs
     runs-on: self-hosted
     steps:

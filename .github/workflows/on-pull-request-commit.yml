@@ -12,7 +12,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
   check-excluded-packages:
     name: Check excluded packages
     uses: ./.github/workflows/_check-excluded-packages.yml
@@ -24,6 +23,11 @@ jobs:
   build-production-node-and-runtime:
     name: Build production node and runtime
     uses: ./.github/workflows/_build-production-node-and-runtime.yml
+
+  store-production-node-and-runtime:
+    needs: [build-production-node-and-runtime]
+    name: Store production node and runtime artifacts
+    uses: ./.github/workflows/_store-production-node-and-runtime.yml
     secrets: inherit
 
   check-runtime-determinism:
@@ -33,6 +37,12 @@ jobs:
   build-test-node-and-runtime:
     name: Build test node and runtime
     uses: ./.github/workflows/_build-test-node-and-runtime.yml
+    secrets: inherit
+
+  store-test-node-and-runtime:
+    needs: [build-test-node-and-runtime]
+    name: Store test node and runtime
+    uses: ./.github/workflows/_store-test-node-and-runtime.yml
     secrets: inherit
 
   build-test-node-image-and-e2e-client-image:
@@ -480,7 +490,7 @@ jobs:
           path: local-tests/
 
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.8'
 
@@ -509,7 +519,7 @@ jobs:
           path: local-tests/
 
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.8'
 

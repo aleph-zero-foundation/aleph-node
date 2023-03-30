@@ -11,9 +11,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
   build-test-node-and-runtime:
+    needs: [check-vars-and-secrets]
     name: Build test node and runtime
     uses: ./.github/workflows/_build-test-node-and-runtime.yml
+
+  store-test-node-and-runtime:
+    needs: [build-test-node-and-runtime]
+    name: Store test node and runtime
+    uses: ./.github/workflows/_store-test-node-and-runtime.yml
     secrets: inherit
 
   build-test-node-image-and-e2e-client-image:

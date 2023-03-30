@@ -14,7 +14,13 @@ concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
 
 jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
   deploy-devnet:
+    needs: [check-vars-and-secrets]
     name: Deploy new aleph-node image to EKS
     environment:
       name: devnet
@@ -38,12 +44,12 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: GIT | Checkout aleph-apps repo
+      - name: GIT | Checkout argocd apps repo
         uses: actions/checkout@v3
         with:
-          repository: Cardinal-Cryptography/aleph-apps
+          repository: Cardinal-Cryptography/${{ secrets.REPO_ARGOCD_APPS_NAME }}
           token: ${{ secrets.CI_GH_TOKEN }}
-          path: "aleph-apps"
+          path: "${{ secrets.REPO_ARGOCD_APPS_NAME }}"
 
       - name: Init kustomize
         uses: imranismail/setup-kustomize@v1
@@ -91,7 +97,7 @@ jobs:
           EVE=5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw
 
           docker run -i -v $(pwd)/data:/data --env RUST_BACKTRACE=1 --entrypoint \
-            "/usr/local/bin/aleph-node" public.ecr.aws/p6e8q1z1/aleph-node:${RELEASE_TAG} \
+            "/usr/local/bin/aleph-node" ${{ vars.ECR_PUBLIC_REGISTRY }}aleph-node:${RELEASE_TAG} \
             bootstrap-chain --raw --base-path /data --chain-id a0dnet1 \
             --account-ids 5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH,5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o,5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9,5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK,5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW,5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR,5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY,5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ,5CUnSsgAyLND3bxxnfNhgWXSe9Wn676JzLpGLgyJv858qhoX,5CVKn7HAZW1Ky4r7Vkgsr7VEW88C2sHgUNDiwHY9Ct2hjU8q \
             --sudo-account-id 5F4SvwaUEQubiqkPF8YnRfcN77cLsT2DfG4vFeQmSXNjR7hD \
@@ -112,10 +118,11 @@ jobs:
           RELEASE_TAG: ${{ steps.vars.outputs.sha_short }}
         run: |
           #!/bin/bash
+          export image_placeholder=${{ vars.ECR_PUBLIC_REGISTRY }}aleph-node:${RELEASE_TAG}
 
-          cd aleph-apps/aleph-node-validators/overlays/devnet/eu-central-1
+          cd ${{ secrets.REPO_ARGOCD_APPS_NAME }}/aleph-node-validators/overlays/devnet/eu-central-1
           kustomize edit set image \
-            "aleph-node-validator-image-placeholder=public.ecr.aws/p6e8q1z1/aleph-node:${RELEASE_TAG}"
+            "aleph-node-validator-image-placeholder=${image_placeholder}"
           kustomize build . | kubectl apply -f -
           sleep 2
           kubectl rollout status --watch --timeout=3600s statefulset/aleph-node-validator -n devnet
@@ -125,14 +132,14 @@ jobs:
           #!/bin/bash
           sleep 300
 
-      - name: GIT | Commit changes to aleph-apps repository.
+      - name: GIT | Commit changes to argocd apps repository.
         uses: EndBug/add-and-commit@v9.1.1
         with:
-          author_name: AlephZero Automation
-          author_email: alephzero@10clouds.com
-          message: "Updating Devnet docker image tag to: ${{ steps.vars.outputs.sha_short }}"
+          author_name: ${{ secrets.AUTOCOMMIT_AUTHOR }}
+          author_email: ${{ secrets.AUTOCOMMIT_EMAIL }}
+          message: "Update Devnet docker image tag to: ${{ steps.vars.outputs.sha_short }}"
           add: "*.yaml"
-          cwd: "aleph-apps"
+          cwd: "${{ secrets.REPO_ARGOCD_APPS_NAME }}"
 
   slack:
     name: Slack notification

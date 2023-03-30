@@ -12,23 +12,29 @@ env:
   LABEL_DESTROYED: 'DESTROYED'
   LABEL_DEPLOYED: 'DEPLOYED'
   LABEL_DEPLOYED_CONTRACTS: 'DEPLOYED-CONTRACTS'
-  REGISTRY_HOST: public.ecr.aws
-  FE_ALEPHNODE_REGISTRY: public.ecr.aws/p6e8q1z1/feature-env-aleph-node
+  REGISTRY_HOST: ${{ vars.ECR_PUBLIC_HOST }}
+  FE_ALEPHNODE_REGISTRY: ${{ vars.ECR_PUBLIC_REGISTRY }}feature-env-aleph-node
   FE_ALEPHNODE_REGISTRY_ESCAPED: 'public.ecr.aws\/p6e8q1z1\/feature-env-aleph-node'
   FE_IMAGETAG_PREFIX: 'fe-'
   FE_APP_PREFIX: 'fe-'
-  PUBLIC_ALEPHNODE_REGISTRY: public.ecr.aws/p6e8q1z1/aleph-node
+  PUBLIC_ALEPHNODE_REGISTRY: ${{ vars.ECR_PUBLIC_REGISTRY }}aleph-node
   PUBLIC_ALEPHNODE_REGISTRY_ESCAPED: 'public.ecr.aws\/p6e8q1z1\/aleph-node'
-  FE_KEYS_S3BUCKET: fe-alephzero-devnet-eu-central-1-keys-bucket
+  FE_KEYS_S3BUCKET: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
   FE_KEYS_S3PATH_PREFIX: 'fe-'
   RPC_TESTNET_URL: https://rpc.test.azero.dev
   WSS_TESTNET_URL: wss://ws.test.azero.dev
   RPC_MAINNET_URL: https://rpc.azero.dev
-  FORKOFF_IMAGE: public.ecr.aws/p6e8q1z1/fork-off:latest
+  FORKOFF_IMAGE: ${{ vars.ECR_PUBLIC_REGISTRY }}fork-off:latest
 
 jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
   ## After that job run, artefact with aleph-node is created with name: aleph-release-node
-  build_aleph_node_binary:
+  build-aleph-node-binary:
+    needs: [check-vars-and-secrets]
     if: >
       (github.event.label.name == '[AZERO] DEPLOY-FEATURE-ENV') ||
       (github.event.label.name == '[AZERO] DEPLOY-HOT-FEATURE-ENV')
@@ -36,11 +42,20 @@ jobs:
     uses: ./.github/workflows/_build-production-node-and-runtime.yml
     secrets: inherit
 
-  push_pr_image:
+  store-aleph-node-binary:
+    needs: [build-aleph-node-binary]
     if: >
       (github.event.label.name == '[AZERO] DEPLOY-FEATURE-ENV') ||
       (github.event.label.name == '[AZERO] DEPLOY-HOT-FEATURE-ENV')
-    needs: [build_aleph_node_binary]
+    name: Store production artifacts
+    uses: ./.github/workflows/_store-production-node-and-runtime.yml
+    secrets: inherit
+
+  push-pr-image:
+    if: >
+      (github.event.label.name == '[AZERO] DEPLOY-FEATURE-ENV') ||
+      (github.event.label.name == '[AZERO] DEPLOY-HOT-FEATURE-ENV')
+    needs: [build-aleph-node-binary]
     name: Build, prepare and push aleph-node image from PR to ECR
     runs-on: ubuntu-20.04
     steps:
@@ -83,7 +98,8 @@ jobs:
           docker push ${{ env.FE_ALEPHNODE_REGISTRY }}:${{ env.IMAGE_TAG }}
 
 
-  deploy_feature_env:
+  deploy-feature-env:
+    needs: [check-vars-and-secrets]
     if: >
       (github.event.label.name == '[AZERO] DEPLOY-FEATURE-ENV') ||
       (github.event.label.name == '[AZERO] DEPLOY-HOT-FEATURE-ENV')
@@ -103,6 +119,8 @@ jobs:
           aws-access-key: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
           argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
+          repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
+          argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
 
       - name: Get branch name and commit SHA
         id: get_branch
@@ -131,7 +149,7 @@ jobs:
         id: login-public-ecr
         uses: docker/login-action@v2
         with:
-          registry: public.ecr.aws
+          registry: ${{ vars.ECR_PUBLIC_HOST }}
           username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
           password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
         env:
@@ -230,12 +248,12 @@ jobs:
             --recursive
       # yamllint enable rule:line-length
 
-      - name: GIT | Checkout aleph-apps repo
+      - name: GIT | Checkout argocd apps repo
         uses: actions/checkout@v3
         with:
-          repository: Cardinal-Cryptography/aleph-apps
+          repository: Cardinal-Cryptography/${{ secrets.REPO_ARGOCD_APPS_NAME }}
           token: ${{ secrets.CI_GH_TOKEN }}
-          path: "aleph-apps"
+          path: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
           ref: main
 
       - name: Start testnet image on feature environment
@@ -251,31 +269,32 @@ jobs:
             -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' ${{ env.RPC_TESTNET_URL }} \
             | jq -r '.result' | cut -d "-" -f 2 | head -c 7)
           TESTNET_IMAGE="${{ env.PUBLIC_ALEPHNODE_REGISTRY_ESCAPED }}:$COMMIT_ID"
-          ALEPH_PATH=$(pwd)
+          CWD_PATH=$(pwd)
+          APPS_NAME=${{ secrets.REPO_ARGOCD_APPS_NAME }}
 
           # Create application manifest from template
 
           sed "s/APP_NAME/${{ env.APP_NAME }}/g" \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/app-template/app-template.yaml > \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/app-template/app-template.yaml > \
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
 
           sed "s/CREATE_HOOK/${{ env.CREATE_HOOK  }}/g" \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && \
-            mv $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > \
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && \
+            mv $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp \
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
 
           sed "s/NAMESPACE/${{ env.NAMESPACE }}/g" \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && \
-            mv $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > \
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && \
+            mv $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp \
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
 
           sed "s/NODE_IMAGE/$TESTNET_IMAGE/g" \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && \
-            mv $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > \
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && \
+            mv $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp \
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
 
       - name: Start mainnet image on feature environment
         if: contains( github.event.pull_request.labels.*.name, env.LABEL_DEPLOY_HOT)
@@ -293,42 +312,43 @@ jobs:
           LONG_COMMIT_ID=${SYSTEM_VERSION/%$SUFFIX}
           COMMIT_ID=${LONG_COMMIT_ID: -7}
           MAINNET_IMAGE="${{ env.PUBLIC_ALEPHNODE_REGISTRY_ESCAPED }}:$COMMIT_ID"
-          ALEPH_PATH=$(pwd)
+          CWD_PATH=$(pwd)
+          APPS_NAME=${{ secrets.REPO_ARGOCD_APPS_NAME }}
 
           # Create application manifest from template
 
           sed "s/APP_NAME/${{ env.APP_NAME }}/g" \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/app-template/app-template.yaml > \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/app-template/app-template.yaml > \
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
 
           sed "s/CREATE_HOOK/${{ env.CREATE_HOOK  }}/g" \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && \
-            mv $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > \
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && \
+            mv $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp \
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
 
           sed "s/NAMESPACE/${{ env.NAMESPACE }}/g" \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && \
-            mv $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > \
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && \
+            mv $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp \
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
 
           sed "s/NODE_IMAGE/$MAINNET_IMAGE/g" \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && \
-            mv $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > \
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && \
+            mv $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp \
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
 
-      - name: GIT | Commit changes to aleph-apps repository.
+      - name: GIT | Commit changes to argocd apps repository.
         uses: EndBug/add-and-commit@v9.1.1
         env:
           APP_NAME: ${{ env.FE_APP_PREFIX }}${{ steps.get_branch.outputs.branch_appname }}
         with:
-          author_name: AlephZero Automation
-          author_email: alephzero@10clouds.com
+          author_name: ${{ secrets.AUTOCOMMIT_AUTHOR }}
+          author_email: ${{ secrets.AUTOCOMMIT_EMAIL }}
           message: "New Feature Environment Deployment with name: ${{ env.APP_NAME }}"
           add: "*.yaml"
-          cwd: "aleph-apps"
+          cwd: "${{ secrets.REPO_ARGOCD_APPS_NAME }}"
 
       - name: Refresh Argo and wait for the testnet image deployment to be finished
         env:
@@ -355,11 +375,11 @@ jobs:
         with:
           time: 5m
 
-  update_feature_env_image:
+  update-feature-env-image:
     if: >
       (github.event.label.name == '[AZERO] DEPLOY-FEATURE-ENV') ||
       (github.event.label.name == '[AZERO] DEPLOY-HOT-FEATURE-ENV')
-    needs: [push_pr_image, deploy_feature_env]
+    needs: [push-pr-image, deploy-feature-env]
     name: Update feature environment to the latest PR aleph-node image
     runs-on: ubuntu-20.04
     steps:
@@ -370,12 +390,12 @@ jobs:
         id: get_branch
         uses: ./.github/actions/get-branch
 
-      - name: GIT | Checkout aleph-apps repo
+      - name: GIT | Checkout argocd apps repo
         uses: actions/checkout@v3
         with:
-          repository: Cardinal-Cryptography/aleph-apps
+          repository: Cardinal-Cryptography/${{ secrets.REPO_ARGOCD_APPS_NAME }}
           token: ${{ secrets.CI_GH_TOKEN }}
-          path: "aleph-apps"
+          path: "${{ secrets.REPO_ARGOCD_APPS_NAME }}"
           ref: main
 
       - name: Update feature environment to the latest PR image
@@ -389,44 +409,45 @@ jobs:
         run: |
           # Set up envs
           PR_IMAGE="${{ env.FE_ALEPHNODE_REGISTRY_ESCAPED }}\:${{ env.IMAGE_TAG }}"
-          ALEPH_PATH=$(pwd)
+          CWD_PATH=$(pwd)
+          APPS_NAME=${{ secrets.REPO_ARGOCD_APPS_NAME }}
 
           sed "s/APP_NAME/${{ env.APP_NAME }}/g" \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/app-template/app-template.yaml > \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/app-template/app-template.yaml > \
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
 
           sed "s/CREATE_HOOK/${{ env.CREATE_HOOK  }}/g" \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && \
-            mv $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > \
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && \
+            mv $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp \
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
 
           sed "s/NAMESPACE/${{ env.NAMESPACE }}/g" \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && \
-            mv $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > \
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && \
+            mv $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp \
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
 
           sed "s/NODE_IMAGE/$PR_IMAGE/g" \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && \
-            mv $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp \
-            $ALEPH_PATH/aleph-apps/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml > \
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp && \
+            mv $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml.temp \
+            $CWD_PATH/$APPS_NAME/argocd/overlays/devnet/fe-apps/${{ env.APP_NAME }}.yaml
 
-      - name: GIT | Commit changes to aleph-apps repository.
+      - name: GIT | Commit changes to argocd apps repository.
         uses: EndBug/add-and-commit@v9.1.1
         env:
           IMAGE_TAG:
             ${{ env.FE_IMAGETAG_PREFIX }}${{ steps.get_branch.outputs.branch_imagetag_full }}
           APP_NAME: ${{ env.FE_APP_PREFIX }}${{ steps.get_branch.outputs.branch_appname }}
         with:
-          author_name: AlephZero Automation
-          author_email: alephzero@10clouds.com
+          author_name: ${{ secrets.AUTOCOMMIT_AUTHOR }}
+          author_email: ${{ secrets.AUTOCOMMIT_EMAIL }}
           message:
             "Image changed for the feature environment to:
             ${{ env.FE_ALEPHNODE_REGISTRY }}:${{ env.IMAGE_TAG }}"
           add: "*.yaml"
-          cwd: "aleph-apps"
+          cwd: "${{ secrets.REPO_ARGOCD_APPS_NAME }}"
 
       - name: Refresh Argo and wait for the PR image deployment to be finished
         env:
@@ -483,12 +504,13 @@ jobs:
           token: ${{ secrets.CI_GH_TOKEN }}
           status: ${{ job.status }}
           env: ${{ steps.get_branch.outputs.branch_name }}
-          deployment_id: ${{ needs.deploy_feature_env.outputs.deployment-id }}
+          deployment_id: ${{ needs.deploy-feature-env.outputs.deployment-id }}
           # yamllint disable-line rule:line-length
           env_url: https://dev.azero.dev/?rpc=wss%3A%2F%2Fws-${{ env.FE_APP_PREFIX }}${{ steps.get_branch.outputs.branch_appname }}.dev.azero.dev#/explorer
           ref: ${{ github.head_ref }}
 
-  destroy_feature_env:
+  destroy-feature-env:
+    needs: [check-vars-and-secrets]
     if: github.event.label.name == '[AZERO] DELETE-FEATURE-ENV'
     name: Destroy feature env
     runs-on: ubuntu-20.04
@@ -504,6 +526,8 @@ jobs:
           aws-access-key: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
           argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
+          repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
+          argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
 
       - name: Remove labels
         uses: actions-ecosystem/action-remove-labels@v1.3.0
@@ -546,7 +570,8 @@ jobs:
           token: ${{ secrets.CI_GH_TOKEN }}
           environment: ${{ steps.delete_fe.outputs.deployment-name }}
 
-  destroy_feature_env_on_close:
+  destroy-feature-env-on-close:
+    needs: [check-vars-and-secrets]
     if: >
       github.event.action == 'closed' &&
       !contains(github.event.pull_request.labels.*.name, 'DESTROYED') &&
@@ -565,6 +590,8 @@ jobs:
           aws-access-key: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
           argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
+          repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
+          argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
 
       - name: Remove labels
         uses: actions-ecosystem/action-remove-labels@v1.3.0

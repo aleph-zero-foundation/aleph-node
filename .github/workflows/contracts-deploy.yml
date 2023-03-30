@@ -15,13 +15,18 @@ env:
   CACHE_KEY: the-button
   CONTRACTS_ENVFILE: devnet
   NODE_VERSION: 18
-  CI_S3BUCKET_NAME: alephzero-devnet-eu-central-1-ci
+  CI_S3BUCKET_NAME: ${{ secrets.CI_DEVNET_S3BUCKET_NAME }}
   S3BUCKET_PATH: contracts/devnet-button
   CONTRACTS: (access_control button game_token marketplace simple_dex ticket_token wrapped_azero)
 
 jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
 
   detect-contracts-changes:
+    needs: [check-vars-and-secrets]
     name: Detect changes
     runs-on: ubuntu-20.04
     permissions:
@@ -146,12 +151,12 @@ jobs:
           labels: 'DEPLOYED-CONTRACTS'
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
-      - name: GIT | Checkout aleph-apps repo
+      - name: GIT | Checkout argocd apps repo
         uses: actions/checkout@master
         with:
-          repository: Cardinal-Cryptography/aleph-apps
+          repository: Cardinal-Cryptography/${{ secrets.REPO_ARGOCD_APPS_NAME }}
           token: ${{ secrets.CI_GH_TOKEN }}
-          path: "aleph-apps"
+          path: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
           ref: main
 
       - name: KUSTOMIZE | Init kustomize
@@ -178,7 +183,7 @@ jobs:
         run: |
           kubectl rollout restart statefulset archive-db -n indexer-archive
           kubectl rollout status --watch --timeout=600s -n indexer-archive statefulset/archive-db
-          cd aleph-apps/indexer/archive/overlays/devnet/eu-central-1
+          cd ${{ secrets.REPO_ARGOCD_APPS_NAME }}/indexer/archive/overlays/devnet/eu-central-1
           kustomize build . | kubectl apply -f -
           sleep 3
           kubectl rollout status --watch --timeout=600s -n indexer-archive deploy/archive-ingest
@@ -189,7 +194,7 @@ jobs:
         run: |
           kubectl rollout restart statefulset squid-db -n indexer-squid
           kubectl rollout status --watch --timeout=600s -n indexer-squid statefulset/squid-db
-          cd aleph-apps/indexer/squid/overlays/devnet/eu-central-1
+          cd ${{ secrets.REPO_ARGOCD_APPS_NAME }}/indexer/squid/overlays/devnet/eu-central-1
           kustomize build . | kubectl apply -f -
           sleep 3
           kubectl rollout status --watch --timeout=600s -n indexer-squid deploy/squid-processor

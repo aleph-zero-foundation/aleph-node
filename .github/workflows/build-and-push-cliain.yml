@@ -9,7 +9,13 @@ on:
   workflow_dispatch:
 
 jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
   build-image:
+    needs: [check-vars-and-secrets]
     name: Build binary
     runs-on: self-hosted
     strategy:
@@ -42,7 +48,7 @@ jobs:
       - name: Login to ECR
         uses: docker/login-action@v2
         with:
-          registry: public.ecr.aws
+          registry: ${{ vars.ECR_PUBLIC_HOST }}
           username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
           password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
 
@@ -55,7 +61,7 @@ jobs:
       - name: Build and push latest docker image
         id: build-image
         env:
-          REGISTRY: public.ecr.aws/p6e8q1z1/
+          REGISTRY: ${{ vars.ECR_PUBLIC_REGISTRY }}
           IMAGE_NAME: ${{ matrix.runtime == 'standard' && 'cliain' || 'cliain-liminal' }}
           TAG: >
             ${{ matrix.runtime == 'standard' &&

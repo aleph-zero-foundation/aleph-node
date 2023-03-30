@@ -22,7 +22,7 @@ runs:
           if ! echo "$PR_TITLE" | grep -Eq "^A0-[0-9]+: .*$"; then
             echo -e "The PR title is wrong \n \
             Please follow this pattern:\nA0-[ticket-number]: Short description\n\
-            Example: \"A0-1337: Adding h4x0r l33t code\""
+            Example: \"A0-1337: Add h4x0r l33t code\""
             exit 1
           fi
         else

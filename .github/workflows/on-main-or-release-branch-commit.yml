@@ -8,9 +8,20 @@ on:
       - 'release-*'
 
 jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
   build-production-node-and-runtime:
+    needs: [check-vars-and-secrets]
     name: Build production node and runtime
     uses: ./.github/workflows/_build-production-node-and-runtime.yml
+
+  store-production-node-and-runtime:
+    needs: [build-production-node-and-runtime]
+    name: Store production node and runtime artifact
+    uses: ./.github/workflows/_store-production-node-and-runtime.yml
     secrets: inherit
 
   push-node-image-to-ecr:
@@ -41,14 +52,14 @@ jobs:
         id: login-public-ecr
         uses: docker/login-action@v2
         with:
-          registry: public.ecr.aws
+          registry: ${{ vars.ECR_PUBLIC_HOST }}
           username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
           password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
 
       - name: Push aleph-node image to ECR
         env:
           CURRENT_IMAGE: aleph-node
-          ECR_PUSH_IMAGE: public.ecr.aws/p6e8q1z1/aleph-node
+          ECR_PUSH_IMAGE: ${{ vars.ECR_PUBLIC_REGISTRY }}aleph-node
         run: |
           docker tag ${{ env.CURRENT_IMAGE }} \
             ${{ env.ECR_PUSH_IMAGE }}:${{ steps.get-ref-properties.outputs.sha }}

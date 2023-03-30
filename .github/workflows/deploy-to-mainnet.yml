@@ -9,7 +9,13 @@ concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
 
 jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
   deploy-mainnet:
+    needs: [check-vars-and-secrets]
     name: Deploy new aleph-node image to Mainnet EKS
     runs-on: ubuntu-20.04
     environment: 'mainnet'
@@ -34,7 +40,7 @@ jobs:
         id: login-public-ecr
         uses: docker/login-action@v2
         with:
-          registry: public.ecr.aws
+          registry: ${{ vars.ECR_PUBLIC_HOST }}
           username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
           password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
         env:
@@ -42,7 +48,8 @@ jobs:
 
       - name: Verify aleph-node image existance
         env:
-          IMAGE: public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.get-ref-properties.outputs.tag }}
+          # yamllint disable-line rule:line-length
+          IMAGE: ${{ vars.ECR_PUBLIC_REGISTRY }}aleph-node:${{ steps.get-ref-properties.outputs.tag }}
         run: |
           export image_not_exist=$(docker manifest inspect ${{ env.IMAGE }} &> /dev/null ; echo $?)
           if [ $image_not_exist -eq 1 ]; then
@@ -55,7 +62,7 @@ jobs:
         if: secrets.DOCKERHUB_USERNAME != "" && secrets.DOCKERHUB_PASSWORD != ""
         with:
           source-image:
-            public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.get-ref-properties.outputs.tag }}
+            ${{ vars.ECR_PUBLIC_REGISTRY }}/aleph-node:${{ steps.get-ref-properties.outputs.tag }}
           target-image:
             cardinalcryptography/aleph-zero:mainnet-${{ steps.get-ref-properties.outputs.tag }}
           additional-image: cardinalcryptography/aleph-zero:mainnet-latest
@@ -88,13 +95,13 @@ jobs:
           files: |
             aleph-runtime-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
 
-      - name: GIT | Checkout aleph-apps repo
+      - name: GIT | Checkout argocd apps repo
         uses: actions/checkout@v3
         with:
           ref: mainnet
-          repository: Cardinal-Cryptography/aleph-apps
+          repository: Cardinal-Cryptography/${{ secrets.REPO_ARGOCD_APPS_NAME }}
           token: ${{ secrets.CI_GH_TOKEN }}
-          path: "aleph-apps"
+          path: "${{ secrets.REPO_ARGOCD_APPS_NAME }}"
 
       - name: Init kustomize
         uses: imranismail/setup-kustomize@v1
@@ -104,32 +111,33 @@ jobs:
       - name: Update aleph-node docker image and trigger ArgoCD deploy for Mainnet
         env:
           MAINNET_IMAGE:
-            public.ecr.aws/p6e8q1z1/aleph-node:${{ steps.get-ref-properties.outputs.tag }}
+            ${{ vars.ECR_PUBLIC_REGISTRY }}aleph-node:${{ steps.get-ref-properties.outputs.tag }}
           REGIONS_AWS: 'eu-central-1,eu-west-1,eu-west-2,us-east-1,us-east-2'
         run: |
           IFS="," read -a region_array <<< ${{ env.REGIONS_AWS }}
           export aleph_path=$(pwd)
+          export apps_name=${{ secrets.REPO_ARGOCD_APPS_NAME }}
           for i in "${region_array[@]}"; do
             # Deploy new image version for archivist
-            cd ${aleph_path}/aleph-apps/aleph-node-archivists/overlays/mainnet/${i}
+            cd ${aleph_path}/${apps_name}/aleph-node-archivists/overlays/mainnet/${i}
             kustomize edit set image \
               "aleph-node-archivist-image-placeholder=${{ env.MAINNET_IMAGE }}"
 
             # Deploy new image version for validator
-            cd ${aleph_path}/aleph-apps/aleph-node-validators/overlays/mainnet/${i}
+            cd ${aleph_path}/${apps_name}/aleph-node-validators/overlays/mainnet/${i}
             kustomize edit set image \
               "aleph-node-validator-image-placeholder=${{ env.MAINNET_IMAGE }}"
           done
 
-      - name: GIT | Commit changes to aleph-apps repository.
+      - name: GIT | Commit changes to argocd apps repository.
         uses: EndBug/add-and-commit@v9.1.1
         with:
-          author_name: AlephZero Automation
-          author_email: alephzero@10clouds.com
+          author_name: ${{ secrets.AUTOCOMMIT_AUTHOR }}
+          author_email: ${{ secrets.AUTOCOMMIT_EMAIL }}
           # yamllint disable-line rule:line-length
-          message: "Updating Mainnet docker image tag for release: ${{ steps.get-ref-properties.outputs.tag }}"
+          message: "Update Mainnet docker image tag for release: ${{ steps.get-ref-properties.outputs.tag }}"
           add: "*.yaml"
-          cwd: "aleph-apps"
+          cwd: "${{ secrets.REPO_ARGOCD_APPS_NAME }}"
 
   slack:
     name: Slack notification
