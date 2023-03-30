@@ -54,46 +54,24 @@ jobs:
         if: >
           env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' &&
           env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
-        shell: bash
-        env:
-          BINARY_DIR: target/release
-          BINARY_FILE: aleph-node
-          # yamllint disable-line rule:line-length
-          S3BUCKET_PATH: builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-test-node
-          S3BUCKET_FILE: aleph-test-node-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
-          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}
-        run: |
-          aws s3api head-object \
-            --bucket '${{ secrets.CI_MAINNET_S3BUCKET_NAME }}' \
-            --key '${{ env.S3BUCKET_PATH }}/${{ env.S3BUCKET_FILE }}' || not_exist=true
-          if [[ "${not_exist}" ]]; then
-            tar -cvzf ${{ env.S3BUCKET_FILE }} -C ${{ env.BINARY_DIR }} ${{ env.BINARY_FILE }}
-            aws s3 cp ${{ env.S3BUCKET_FILE }} \
-              ${{ env.S3BUCKET_URL }}/${{ env.S3BUCKET_PATH }}/${{ env.S3BUCKET_FILE }}
-          else
-            echo "File ${{ env.S3BUCKET_FILE }} already exists on CI S3 bucket"
-          fi
+        uses: ./.github/actions/copy-file-to-s3
+        with:
+          binary-dir: target/release
+          binary-file: aleph-node
+          s3-bucket-path:
+            builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-test-node
+          s3-bucket-file: aleph-test-node-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
+          s3-bucket-name: ${{ secrets.CI_MAINNET_S3BUCKET_NAME }}
 
       - name: Copy test runtime to S3 Mainnet AWS bucket
         if: >
           env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' &&
           env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
-        shell: bash
-        env:
-          BINARY_DIR: target/release/wbuild/aleph-runtime
-          BINARY_FILE: aleph_runtime.compact.wasm
-          # yamllint disable-line rule:line-length
-          S3BUCKET_PATH: builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-test-runtime
-          S3BUCKET_FILE: aleph-test-runtime-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
-          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}
-        run: |
-          aws s3api head-object \
-            --bucket '${{ secrets.CI_MAINNET_S3BUCKET_NAME }}' \
-            --key '${{ env.S3BUCKET_PATH }}/${{ env.S3BUCKET_FILE }}' || not_exist=true
-          if [[ "${not_exist}" ]]; then
-            tar -cvzf ${{ env.S3BUCKET_FILE }} -C ${{ env.BINARY_DIR }} ${{ env.BINARY_FILE }}
-            aws s3 cp ${{ env.S3BUCKET_FILE }} \
-              ${{ env.S3BUCKET_URL }}/${{ env.S3BUCKET_PATH }}/${{ env.S3BUCKET_FILE }}
-          else
-            echo "File ${{ env.S3BUCKET_FILE }} already exists on CI S3 bucket"
-          fi
+        uses: ./.github/actions/copy-file-to-s3
+        with:
+          binary-dir: target/release/wbuild/aleph-runtime
+          binary-file: aleph_runtime.compact.wasm
+          s3-bucket-path:
+            builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-test-runtime
+          s3-bucket-file: aleph-test-runtime-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
+          s3-bucket-name: ${{ secrets.CI_MAINNET_S3BUCKET_NAME }}

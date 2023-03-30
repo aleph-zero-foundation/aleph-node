@@ -1,0 +1,42 @@
+---
+name: Copy file to S3
+description: |
+  Uploads a file to a S3 AWS Bucket
+inputs:
+  binary-dir:
+    description: path where target binary is stored
+    required: true
+  binary-file:
+    description: name of the binary to upload to S3
+    required: true
+  s3-bucket-path:
+    description: path on S3 where compressed file will be stored
+    required: true
+  s3-bucket-file:
+    description: name of the target file on S3
+    required: true
+  s3-bucket-name:
+    description: name of the bucket where file is copied on S3
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Copy file to S3 AWS bucket
+      shell: bash
+      env:
+        BINARY_DIR: ${{ inputs.binary-dir }}
+        BINARY_FILE: ${{ inputs.binary-file }}
+        S3BUCKET_PATH: ${{ inputs.s3-bucket-path }}
+        S3BUCKET_FILE: ${{ inputs.s3-bucket-file }}
+        S3BUCKET_NAME: ${{ inputs.s3-bucket-name }}
+      run: |
+        aws s3api head-object \
+          --bucket '${{ env.S3BUCKET_NAME }}' \
+          --key '${{ env.S3BUCKET_PATH }}/${{ env.S3BUCKET_FILE }}' 2> /dev/null || not_exist=true
+        if [[ "${not_exist}" ]]; then
+          tar -cvzf ${{ env.S3BUCKET_FILE }} -C ${{ env.BINARY_DIR }} ${{ env.BINARY_FILE }}
+          aws s3 cp ${{ env.S3BUCKET_FILE }} \
+            s3://${{ env.S3BUCKET_NAME }}/${{ env.S3BUCKET_PATH }}/${{ env.S3BUCKET_FILE }}
+        else
+          echo "File ${{ env.S3BUCKET_FILE }} already exists on S3."
+        fi

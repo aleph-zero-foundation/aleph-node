@@ -45,7 +45,7 @@ jobs:
           deploy-button: true
           clean-button: true
           test-case: button
-        timeout-minutes: 15
+        timeout-minutes: 20
 
   deploy-button:
     name: Deploy the button contracts to devnet and trigger services update
