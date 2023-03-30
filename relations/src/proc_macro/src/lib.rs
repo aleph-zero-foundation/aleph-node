@@ -22,7 +22,8 @@ use crate::{code_generation::generate_code, intermediate_representation::IR};
 ///
 /// The `#[snark_relation]` attribute is intended for modules. Such module must define two items:
 ///  1. *relation object*: the collection of all constant, public and private relation data. The
-///     struct must be defined with `#[relation_object_definition]` attribute.
+///     struct must be defined with `#[relation_object_definition]` attribute. All other attributes
+///     will be preserved.
 ///  2. *circuit definition*: the circuit form. The function must be defined with
 ///     `#[circuit_definition]` attribute. The signature can be arbitrary: function body will be
 ///     used in `ark_relations::r1cs::ConstraintSynthesizer` trait implementation. All function

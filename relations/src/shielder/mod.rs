@@ -9,6 +9,8 @@ mod note;
 pub mod note_var;
 #[cfg(feature = "circuit")]
 pub mod path_shape_var;
+#[cfg(feature = "circuit")]
+pub mod token_amount_var;
 pub mod types;
 mod withdraw;
 

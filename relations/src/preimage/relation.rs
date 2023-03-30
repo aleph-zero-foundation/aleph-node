@@ -22,6 +22,7 @@ mod relation {
     /// - hash : public input
     /// - preimage : private witness
     #[relation_object_definition]
+    #[derive(Clone, Debug)]
     struct PreimageRelation {
         #[private_input(frontend_type = "FrontendPreimage", parse_with = "convert_hash")]
         pub preimage: CircuitField,

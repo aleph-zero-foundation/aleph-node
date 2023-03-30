@@ -14,6 +14,7 @@ mod relation {
     };
 
     #[relation_object_definition]
+    #[derive(Clone, Debug)]
     struct LinearEquationRelation {
         /// slope
         #[constant]

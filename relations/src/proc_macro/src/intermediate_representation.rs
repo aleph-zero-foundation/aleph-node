@@ -6,7 +6,9 @@ use syn::{
 };
 
 use crate::{
-    naming::{CONSTANT_FIELD, PRIVATE_INPUT_FIELD, PUBLIC_INPUT_FIELD},
+    naming::{
+        CIRCUIT_DEF, CONSTANT_FIELD, PRIVATE_INPUT_FIELD, PUBLIC_INPUT_FIELD, RELATION_OBJECT_DEF,
+    },
     parse_utils::{as_circuit_def, as_relation_object_def, get_field_attr},
 };
 
@@ -14,6 +16,8 @@ use crate::{
 pub(super) struct IR {
     /// Prefix for the new structs.
     pub relation_base_name: Ident,
+    /// Attributes for the relation types.
+    pub relation_object_attributes: Vec<Attribute>,
 
     /// All constants fields with modifiers.
     pub constants: Vec<RelationField>,
@@ -24,6 +28,8 @@ pub(super) struct IR {
 
     /// Circuit definition method.
     pub circuit_definition: ItemFn,
+    /// Attributes for the circuit definition.
+    pub circuit_definition_attributes: Vec<Attribute>,
 
     /// Imports to be inherited.
     pub imports: Vec<ItemUse>,
@@ -152,6 +158,18 @@ impl TryFrom<ItemMod> for IR {
         } = extract_items(item_mod)?;
 
         let relation_base_name = struct_def.ident.clone();
+        let relation_object_attributes = struct_def
+            .attrs
+            .into_iter()
+            .filter(|attr| !attr.path.is_ident(RELATION_OBJECT_DEF))
+            .collect::<Vec<_>>();
+
+        let circuit_definition_attributes = circuit_definition
+            .attrs
+            .iter()
+            .filter(|attr| !attr.path.is_ident(CIRCUIT_DEF))
+            .cloned()
+            .collect::<Vec<_>>();
 
         // Warn about items visibility.
         #[cfg(feature = "std")]
@@ -187,10 +205,12 @@ impl TryFrom<ItemMod> for IR {
 
         Ok(IR {
             relation_base_name,
+            relation_object_attributes,
             constants,
             public_inputs,
             private_inputs,
             circuit_definition,
+            circuit_definition_attributes,
             imports,
         })
     }

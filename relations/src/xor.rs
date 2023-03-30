@@ -15,6 +15,7 @@ mod relation {
     use crate::utils::byte_to_bits;
 
     #[relation_object_definition]
+    #[derive(Clone, Debug)]
     struct XorRelation {
         // ToDo: Especially for Groth16, it is better to provide public input as a field element.
         // Otherwise, we have to provide it to circuit bit by bit.

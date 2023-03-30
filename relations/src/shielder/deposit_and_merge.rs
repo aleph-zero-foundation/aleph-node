@@ -16,6 +16,7 @@ mod relation {
     use {
         crate::shielder::{
             check_merkle_proof, note_var::NoteVarBuilder, path_shape_var::PathShapeVar,
+            token_amount_var::TokenAmountVar,
         },
         ark_r1cs_std::{
             alloc::{
@@ -40,6 +41,7 @@ mod relation {
     };
 
     #[relation_object_definition]
+    #[derive(Clone, Debug)]
     struct DepositAndMergeRelation {
         #[constant]
         pub max_path_len: u8,
@@ -103,9 +105,9 @@ mod relation {
         //----------------------------------
         // Check the token values soundness.
         //----------------------------------
-        let token_amount = FpVar::new_input(ns!(cs, "token amount"), || self.token_amount())?;
-        // some range checks for overflows?
-        let token_sum = token_amount.add(old_note.token_amount);
+        let token_amount =
+            TokenAmountVar::new_input(ns!(cs, "token amount"), || self.token_amount())?;
+        let token_sum = token_amount.add(old_note.token_amount)?;
         token_sum.enforce_equal(&new_note.token_amount)?;
 
         //------------------------

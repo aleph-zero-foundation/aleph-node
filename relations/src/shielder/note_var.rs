@@ -10,15 +10,18 @@ use paste::paste;
 
 use crate::{
     environment::{CircuitField, FpVar},
-    shielder::types::{
-        BackendNote, BackendNullifier, BackendTokenAmount, BackendTokenId, BackendTrapdoor,
+    shielder::{
+        token_amount_var::TokenAmountVar,
+        types::{
+            BackendNote, BackendNullifier, BackendTokenAmount, BackendTokenId, BackendTrapdoor,
+        },
     },
 };
 
 #[derive(Clone, Debug)]
 pub struct NoteVar {
     pub token_id: FpVar,
-    pub token_amount: FpVar,
+    pub token_amount: TokenAmountVar,
     pub trapdoor: FpVar,
     pub nullifier: FpVar,
     pub note: FpVar,
@@ -33,7 +36,7 @@ pub struct NoteVarBuilder<
     const NOTE_SET: bool,
 > {
     token_id: Option<FpVar>,
-    token_amount: Option<FpVar>,
+    token_amount: Option<TokenAmountVar>,
     trapdoor: Option<FpVar>,
     nullifier: Option<FpVar>,
     note: Option<FpVar>,
@@ -56,10 +59,10 @@ impl NoteVarBuilder<false, false, false, false, false> {
 type Result<T> = core::result::Result<T, SynthesisError>;
 
 macro_rules! impl_with_plain_arg {
-    ($item: ident, $item_type: ty, $target_type: ty) => {
+    ($item: ident, $item_type: ty, $target_type: ty, $target_item_type: ty) => {
         paste! {
             pub fn [<with_ $item>] (self, $item: Result<&$item_type>, mode: AllocationMode) -> Result<$target_type> {
-                let $item = FpVar::new_variable(ns!(self.cs, stringify!($item)), || $item, mode)?;
+                let $item = $target_item_type::new_variable(ns!(self.cs, stringify!($item)), || $item, mode)?;
                 Ok(self. [<with_ $item _var>]($item))
             }
         }
@@ -67,9 +70,9 @@ macro_rules! impl_with_plain_arg {
 }
 
 macro_rules! impl_with_var_arg {
-    ($item: ident, $target_type: ty) => {
+    ($item: ident, $target_type: ty, $target_item_type: ty) => {
         paste! {
-            pub fn [<with_ $item _var>] (self, $item: FpVar) -> $target_type {
+            pub fn [<with_ $item _var>] (self, $item: $target_item_type) -> $target_type {
                 let mut note: $target_type = NoteVarBuilder {
                     token_id: self.token_id,
                     token_amount: self.token_amount,
@@ -87,9 +90,12 @@ macro_rules! impl_with_var_arg {
 
 macro_rules! impl_builder {
     ($in_type: ty, $out_type: ty, $item: ident, $item_type: ty) => {
+        impl_builder!($in_type, $out_type, $item, $item_type, FpVar);
+    };
+    ($in_type: ty, $out_type: ty, $item: ident, $item_type: ty, $target_item_type: ty) => {
         impl<const _1: bool, const _2: bool, const _3: bool, const _4: bool> $in_type {
-            impl_with_plain_arg!($item, $item_type, $out_type);
-            impl_with_var_arg!($item, $out_type);
+            impl_with_plain_arg!($item, $item_type, $out_type, $target_item_type);
+            impl_with_var_arg!($item, $out_type, $target_item_type);
         }
     };
 }
@@ -102,7 +108,7 @@ impl_builder!(
 impl_builder!(
     NoteVarBuilder<_1, false, _2, _3, _4>,
     NoteVarBuilder<_1, true, _2, _3, _4>,
-    token_amount, BackendTokenAmount
+    token_amount, BackendTokenAmount, TokenAmountVar
 );
 impl_builder!(
     NoteVarBuilder<_1, _2, false, _3, _4>,
@@ -136,7 +142,7 @@ impl NoteVarBuilder<true, true, true, true, true> {
             self.cs,
             [
                 note.token_id.clone(),
-                note.token_amount.clone(),
+                note.token_amount.clone().into(),
                 note.trapdoor.clone(),
                 note.nullifier.clone(),
             ],

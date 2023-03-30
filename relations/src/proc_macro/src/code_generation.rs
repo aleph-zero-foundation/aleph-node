@@ -8,9 +8,7 @@ use crate::{
         field_rewrites, field_serializations, plain_field_getters, successful_field_getters,
     },
     intermediate_representation::IR,
-    naming::{
-        struct_name_with_full, struct_name_with_public, struct_name_without_input, CIRCUIT_DEF,
-    },
+    naming::{struct_name_with_full, struct_name_with_public, struct_name_without_input},
 };
 
 /// Generates the whole code based on the intermediate representation.
@@ -35,6 +33,8 @@ pub(super) fn generate_code(ir: IR) -> SynResult<TokenStream2> {
 /// Generates struct, constructor and getters for the relation object with constants only.
 fn generate_relation_without_input(ir: &IR) -> SynResult<TokenStream2> {
     let struct_name = struct_name_without_input(&ir.relation_base_name);
+    let struct_attrs = &ir.relation_object_attributes;
+
     let const_frontend_decls = field_frontend_decls(&ir.constants);
     let const_backend_decls = field_backend_decls(&ir.constants);
     let const_castings = field_castings(&ir.constants)?;
@@ -46,6 +46,7 @@ fn generate_relation_without_input(ir: &IR) -> SynResult<TokenStream2> {
     .concat();
 
     Ok(quote_spanned! { ir.relation_base_name.span()=>
+        #(#struct_attrs)*
         pub struct #struct_name {
             #(#const_backend_decls),*
         }
@@ -82,6 +83,7 @@ fn generate_public_input_serialization(ir: &IR) -> SynResult<TokenStream2> {
 /// relation object with constants and public input.
 fn generate_relation_with_public(ir: &IR) -> SynResult<TokenStream2> {
     let struct_name = struct_name_with_public(&ir.relation_base_name);
+    let struct_attrs = &ir.relation_object_attributes;
     let struct_name_without_input = struct_name_without_input(&ir.relation_base_name);
     let object_ident = Ident::new("obj", Span::call_site());
 
@@ -112,6 +114,7 @@ fn generate_relation_with_public(ir: &IR) -> SynResult<TokenStream2> {
     let public_input_serialization = generate_public_input_serialization(ir)?;
 
     Ok(quote_spanned! { ir.relation_base_name.span()=>
+        #(#struct_attrs)*
         pub struct #struct_name {
             #(#backend_decls),*
         }
@@ -139,6 +142,7 @@ fn generate_relation_with_public(ir: &IR) -> SynResult<TokenStream2> {
 /// Generates struct, constructor, getters downcasting for the full relation object.
 fn generate_relation_with_full(ir: &IR) -> SynResult<TokenStream2> {
     let struct_name = struct_name_with_full(&ir.relation_base_name);
+    let struct_attrs = &ir.relation_object_attributes;
     let struct_name_with_public = struct_name_with_public(&ir.relation_base_name);
     let object_ident = Ident::new("obj", Span::call_site());
 
@@ -175,6 +179,7 @@ fn generate_relation_with_full(ir: &IR) -> SynResult<TokenStream2> {
     .concat();
 
     Ok(quote_spanned! { ir.relation_base_name.span()=>
+        #(#struct_attrs)*
         pub struct #struct_name {
             #(#backend_decls),*
         }
@@ -202,13 +207,7 @@ fn generate_circuit_definitions(ir: &IR) -> TokenStream2 {
     let struct_name_without_input = struct_name_without_input(&ir.relation_base_name);
     let struct_name_with_full = struct_name_with_full(&ir.relation_base_name);
 
-    let fn_attrs = &ir
-        .circuit_definition
-        .attrs
-        .iter()
-        .filter(|attr| !attr.path.is_ident(CIRCUIT_DEF))
-        .collect::<Vec<_>>();
-
+    let fn_attrs = &ir.circuit_definition_attributes;
     let body = &ir.circuit_definition.block.stmts;
 
     quote_spanned! { ir.circuit_definition.span()=>

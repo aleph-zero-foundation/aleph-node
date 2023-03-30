@@ -23,6 +23,7 @@ mod relation {
     };
 
     #[relation_object_definition]
+    #[derive(Clone, Debug)]
     struct DepositRelation {
         #[public_input(frontend_type = "FrontendNote", parse_with = "convert_hash")]
         pub note: BackendNote,
@@ -68,7 +69,7 @@ mod tests {
 
     fn get_circuit_with_full_input() -> DepositRelationWithFullInput {
         let token_id: FrontendTokenId = 1;
-        let token_amount: FrontendTokenAmount = 10;
+        let token_amount: FrontendTokenAmount = 100_000_000_000_000_000_000;
         let trapdoor: FrontendTrapdoor = [17; 4];
         let nullifier: FrontendNullifier = [19; 4];
         let note = compute_note(token_id, token_amount, trapdoor, nullifier);

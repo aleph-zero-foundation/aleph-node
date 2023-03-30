@@ -23,9 +23,9 @@ ${CLIAIN} snark-relation verify \
 echo "Testing 'deposit' relation"
 ${CLIAIN} snark-relation generate-keys deposit
 ${CLIAIN} snark-relation generate-proof -p deposit.groth16.pk.bytes deposit \
-  --note "14196518331971167933,9351787441197109504,1607381931683279265,5988678530488103713" \
+  --note "5021452170217037840,5937007201264158367,3788707655610774637,3098344940909620309" \
   --token-id 1 \
-  --token-amount 10 \
+  --token-amount 100000000000000000000 \
   --trapdoor "17,17,17,17" \
   --nullifier "19,19,19,19"
 ${CLIAIN} snark-relation verify \

@@ -44,6 +44,7 @@ mod relation {
     };
 
     #[relation_object_definition]
+    #[derive(Clone, Debug)]
     struct MergeRelation {
         #[constant]
         pub max_path_len: u8,
@@ -128,10 +129,9 @@ mod relation {
         //----------------------------------
         // Check token value soundness.
         //----------------------------------
-        // some range checks for overflows?
         let token_sum = first_old_note
             .token_amount
-            .add(second_old_note.token_amount);
+            .add(second_old_note.token_amount)?;
         token_sum.enforce_equal(&new_note.token_amount)?;
 
         //------------------------
