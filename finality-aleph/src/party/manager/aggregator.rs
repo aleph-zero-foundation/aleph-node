@@ -21,14 +21,14 @@ use crate::{
         manager::aggregator::AggregatorVersion::{Current, Legacy},
         AuthoritySubtaskCommon, Task,
     },
-    BlockHashNum, CurrentRmcNetworkData, Keychain, LegacyRmcNetworkData, Metrics,
-    SessionBoundaries, STATUS_REPORT_INTERVAL,
+    BlockHashNum, BlockIdentifier, CurrentRmcNetworkData, IdentifierFor, Keychain,
+    LegacyRmcNetworkData, Metrics, SessionBoundaries, STATUS_REPORT_INTERVAL,
 };
 
 /// IO channels used by the aggregator task.
-pub struct IO<B: Block> {
-    pub blocks_from_interpreter: mpsc::UnboundedReceiver<BlockHashNum<B>>,
-    pub justifications_for_chain: mpsc::UnboundedSender<JustificationNotification<B>>,
+pub struct IO<BI: BlockIdentifier> {
+    pub blocks_from_interpreter: mpsc::UnboundedReceiver<BI>,
+    pub justifications_for_chain: mpsc::UnboundedSender<JustificationNotification<BI>>,
 }
 
 async fn process_new_block_data<B, CN, LN>(
@@ -52,19 +52,19 @@ async fn process_new_block_data<B, CN, LN>(
 fn process_hash<B, C>(
     hash: B::Hash,
     multisignature: SignatureSet<Signature>,
-    justifications_for_chain: &mpsc::UnboundedSender<JustificationNotification<B>>,
+    justifications_for_chain: &mpsc::UnboundedSender<JustificationNotification<IdentifierFor<B>>>,
     client: &Arc<C>,
 ) -> Result<(), ()>
 where
     B: Block,
+    B::Header: Header<Number = BlockNumber>,
     C: HeaderBackend<B> + Send + Sync + 'static,
 {
     let number = client.number(hash).unwrap().unwrap();
     // The unwrap might actually fail if data availability is not implemented correctly.
     let notification = JustificationNotification {
         justification: AlephJustification::CommitteeMultisignature(multisignature),
-        hash,
-        number,
+        block_id: (hash, number).into(),
     };
     if let Err(e) = justifications_for_chain.unbounded_send(notification) {
         error!(target: "aleph-party", "Issue with sending justification from Aggregator to JustificationHandler {:?}.", e);
@@ -75,7 +75,7 @@ where
 
 async fn run_aggregator<B, C, CN, LN>(
     mut aggregator: Aggregator<'_, B, CN, LN>,
-    io: IO<B>,
+    io: IO<IdentifierFor<B>>,
     client: Arc<C>,
     session_boundaries: &SessionBoundaries,
     metrics: Option<Metrics<<B::Header as Header>::Hash>>,
@@ -162,7 +162,7 @@ pub enum AggregatorVersion<CN, LN> {
 pub fn task<B, C, CN, LN>(
     subtask_common: AuthoritySubtaskCommon,
     client: Arc<C>,
-    io: IO<B>,
+    io: IO<IdentifierFor<B>>,
     session_boundaries: SessionBoundaries,
     metrics: Option<Metrics<<B::Header as Header>::Hash>>,
     multikeychain: Keychain,

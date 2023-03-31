@@ -73,7 +73,7 @@ impl<B: BlockT> UnvalidatedAlephProposal<B>
 where
     B::Header: HeaderT<Number = BlockNumber>,
 {
-    pub(crate) fn new(branch: Vec<B::Hash>, block_number: NumberFor<B>) -> Self {
+    pub(crate) fn new(branch: Vec<B::Hash>, block_number: BlockNumber) -> Self {
         UnvalidatedAlephProposal {
             branch,
             number: block_number,
@@ -94,7 +94,7 @@ where
         if self.branch.is_empty() {
             return Err(BranchEmpty);
         }
-        if self.number < <NumberFor<B>>::saturated_from(self.branch.len()) {
+        if self.number < <BlockNumber>::saturated_from(self.branch.len()) {
             // Note that this also excludes branches starting at the genesis (0th) block.
             return Err(BlockNumberOutOfBounds {
                 branch_size: self.branch.len(),
@@ -102,7 +102,7 @@ where
             });
         }
 
-        let bottom_block = self.number - <NumberFor<B>>::saturated_from(self.branch.len() - 1);
+        let bottom_block = self.number - <BlockNumber>::saturated_from(self.branch.len() - 1);
         let top_block = self.number;
         let session_start = session_boundaries.first_block();
         let session_end = session_boundaries.last_block();

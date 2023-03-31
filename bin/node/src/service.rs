@@ -8,7 +8,7 @@ use std::{
 use aleph_primitives::{AlephSessionApi, MAX_BLOCK_SIZE};
 use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use finality_aleph::{
-    run_validator_node, AlephBlockImport, AlephConfig, JustificationNotification, Metrics,
+    run_validator_node, AlephBlockImport, AlephConfig, JustificationNotificationFor, Metrics,
     MillisecsPerBlock, Protocol, ProtocolNaming, SessionPeriod, TracingBlockImport,
 };
 use futures::channel::mpsc;
@@ -86,8 +86,8 @@ pub fn new_partial(
         sc_transaction_pool::FullPool<Block, FullClient>,
         (
             TracingBlockImport<Block, Arc<FullClient>>,
-            mpsc::UnboundedSender<JustificationNotification<Block>>,
-            mpsc::UnboundedReceiver<JustificationNotification<Block>>,
+            mpsc::UnboundedSender<JustificationNotificationFor<Block>>,
+            mpsc::UnboundedReceiver<JustificationNotificationFor<Block>>,
             Option<Telemetry>,
             Option<Metrics<<<Block as BlockT>::Header as HeaderT>::Hash>>,
         ),
@@ -206,7 +206,7 @@ fn setup(
     task_manager: &mut TaskManager,
     client: Arc<FullClient>,
     telemetry: &mut Option<Telemetry>,
-    import_justification_tx: mpsc::UnboundedSender<JustificationNotification<Block>>,
+    import_justification_tx: mpsc::UnboundedSender<JustificationNotificationFor<Block>>,
 ) -> Result<
     (
         RpcHandlers,
@@ -257,7 +257,7 @@ fn setup(
         let pool = transaction_pool.clone();
 
         Box::new(move |deny_unsafe, _| {
-            let deps = crate::rpc::FullDeps {
+            let deps = crate::rpc::FullDeps::<Block, _, _> {
                 client: client.clone(),
                 pool: pool.clone(),
                 deny_unsafe,

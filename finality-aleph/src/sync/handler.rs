@@ -10,9 +10,9 @@ use crate::{
     sync::{
         data::{NetworkData, Request, State},
         forest::{Error as ForestError, Forest, Interest},
-        BlockIdFor, BlockIdentifier, ChainStatus, Finalizer, Header, Justification, PeerId,
-        Verifier, LOG_TARGET,
+        BlockIdFor, ChainStatus, Finalizer, Header, Justification, PeerId, Verifier, LOG_TARGET,
     },
+    BlockIdentifier,
 };
 
 /// How many justifications we will send at most in response to an explicit query.
@@ -353,9 +353,9 @@ mod tests {
         sync::{
             data::{BranchKnowledge::*, NetworkData, Request},
             mock::{Backend, MockHeader, MockJustification, MockPeerId, MockVerifier},
-            BlockIdentifier, ChainStatus, Header, Justification,
+            ChainStatus, Header, Justification,
         },
-        SessionPeriod,
+        BlockIdentifier, SessionPeriod,
     };
 
     type MockHandler = Handler<MockPeerId, MockJustification, Backend, MockVerifier, Backend>;

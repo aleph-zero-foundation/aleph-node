@@ -1,7 +1,7 @@
 use aleph_primitives::BlockNumber;
 use log::debug;
 use sp_runtime::{
-    traits::{Block as BlockT, Header as HeaderT, NumberFor},
+    traits::{Block as BlockT, Header as HeaderT},
     SaturatedConversion,
 };
 
@@ -93,7 +93,7 @@ where
     let bottom_num = proposal.number_bottom_block();
     for i in 0..proposal.len() {
         if let Ok(finalized_block) =
-            chain_info_provider.get_finalized_at(bottom_num + <NumberFor<B>>::saturated_from(i))
+            chain_info_provider.get_finalized_at(bottom_num + <BlockNumber>::saturated_from(i))
         {
             if finalized_block.hash != proposal[i] {
                 return true;
@@ -139,7 +139,7 @@ where
 {
     let bottom_num = proposal.number_bottom_block();
     for i in 1..proposal.len() {
-        let curr_num = bottom_num + <NumberFor<B>>::saturated_from(i);
+        let curr_num = bottom_num + <BlockNumber>::saturated_from(i);
         let curr_block = proposal.block_at_num(curr_num).expect("is within bounds");
         match chain_info_provider.get_parent_hash(&curr_block) {
             Ok(parent_hash) => {

@@ -10,6 +10,7 @@ use sp_runtime::traits::Block;
 use tokio::{task::JoinHandle, time::timeout};
 use AcceptancePolicy::*;
 
+use super::mocks::TBlockIdentifier;
 use crate::{
     justification::{AlephJustification, JustificationHandler, JustificationHandlerConfig},
     testing::mocks::{
@@ -32,7 +33,7 @@ type TJustHandler = JustificationHandler<
     MockedBlockFinalizer,
     Backend,
 >;
-type Sender = UnboundedSender<JustificationNotification<TBlock>>;
+type Sender = UnboundedSender<JustificationNotification<TBlockIdentifier>>;
 type Environment = (
     TJustHandler,
     Backend,
@@ -41,13 +42,14 @@ type Environment = (
     JustificationRequestSchedulerImpl,
 );
 
-fn create_justification_notification_for(block: TBlock) -> JustificationNotification<TBlock> {
+fn create_justification_notification_for(
+    block: TBlock,
+) -> JustificationNotification<TBlockIdentifier> {
     JustificationNotification {
         justification: AlephJustification::CommitteeMultisignature(SignatureSet::with_size(
             0.into(),
         )),
-        hash: block.hash(),
-        number: block.header.number,
+        block_id: (block.hash(), block.header.number).into(),
     }
 }
 

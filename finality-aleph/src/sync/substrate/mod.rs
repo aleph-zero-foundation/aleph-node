@@ -8,8 +8,8 @@ use codec::{Decode, Encode};
 use sp_runtime::traits::{CheckedSub, Header as SubstrateHeader, One};
 
 use crate::{
-    sync::{BlockIdentifier, Header, Justification as JustificationT},
-    AlephJustification,
+    sync::{Header, Justification as JustificationT},
+    AlephJustification, BlockIdentifier,
 };
 
 mod chain_status;

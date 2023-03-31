@@ -4,28 +4,28 @@ use aleph_primitives::BlockNumber;
 use futures::{channel::mpsc, Stream, StreamExt};
 use futures_timer::Delay;
 use log::{debug, error};
-use sp_api::BlockT;
-use sp_runtime::traits::Header;
+use sp_api::{BlockT, HeaderT};
 use tokio::time::timeout;
 
 use crate::{
     finalization::BlockFinalizer,
     justification::{
-        requester::BlockRequester, JustificationHandlerConfig, JustificationNotification,
+        requester::BlockRequester, JustificationHandlerConfig, JustificationNotificationFor,
         JustificationRequestScheduler, SessionInfo, SessionInfoProvider, Verifier,
     },
-    network, BlockchainBackend, Metrics, STATUS_REPORT_INTERVAL,
+    network, BlockchainBackend, HashNum, IdentifierFor, JustificationNotification, Metrics,
+    STATUS_REPORT_INTERVAL,
 };
 
 pub struct JustificationHandler<B, V, RB, S, SI, F, BB>
 where
     B: BlockT,
-    B::Header: Header<Number = BlockNumber>,
-    V: Verifier<B>,
-    RB: network::RequestBlocks<B> + 'static,
+    B::Header: HeaderT<Number = BlockNumber>,
+    V: Verifier<IdentifierFor<B>>,
+    RB: network::RequestBlocks<IdentifierFor<B>> + 'static,
     S: JustificationRequestScheduler,
-    SI: SessionInfoProvider<B, V>,
-    F: BlockFinalizer<B>,
+    SI: SessionInfoProvider<IdentifierFor<B>, V>,
+    F: BlockFinalizer<IdentifierFor<B>>,
     BB: BlockchainBackend<B> + 'static,
 {
     session_info_provider: SI,
@@ -37,12 +37,12 @@ where
 impl<B, V, RB, S, SI, F, BB> JustificationHandler<B, V, RB, S, SI, F, BB>
 where
     B: BlockT,
-    B::Header: Header<Number = BlockNumber>,
-    V: Verifier<B>,
-    RB: network::RequestBlocks<B> + 'static,
+    B::Header: HeaderT<Number = BlockNumber>,
+    V: Verifier<IdentifierFor<B>>,
+    RB: network::RequestBlocks<IdentifierFor<B>> + 'static,
     S: JustificationRequestScheduler,
-    SI: SessionInfoProvider<B, V>,
-    F: BlockFinalizer<B>,
+    SI: SessionInfoProvider<IdentifierFor<B>, V>,
+    F: BlockFinalizer<IdentifierFor<B>>,
     BB: BlockchainBackend<B> + 'static,
 {
     pub fn new(
@@ -51,7 +51,7 @@ where
         blockchain_backend: BB,
         finalizer: F,
         justification_request_scheduler: S,
-        metrics: Option<Metrics<<B::Header as Header>::Hash>>,
+        metrics: Option<Metrics<B::Hash>>,
         justification_handler_config: JustificationHandlerConfig,
     ) -> Self {
         Self {
@@ -70,8 +70,8 @@ where
 
     pub async fn run(
         mut self,
-        authority_justification_rx: mpsc::UnboundedReceiver<JustificationNotification<B>>,
-        import_justification_rx: mpsc::UnboundedReceiver<JustificationNotification<B>>,
+        authority_justification_rx: mpsc::UnboundedReceiver<JustificationNotificationFor<B>>,
+        import_justification_rx: mpsc::UnboundedReceiver<JustificationNotificationFor<B>>,
     ) {
         let import_stream = wrap_channel_with_logging(import_justification_rx, "import");
         let authority_stream = wrap_channel_with_logging(authority_justification_rx, "aggregator");
@@ -84,6 +84,7 @@ where
                 verifier,
                 last_block_height: stop_h,
                 current_session,
+                ..
             } = self
                 .session_info_provider
                 .for_block_num(last_finalized_number + 1)
@@ -119,10 +120,13 @@ where
     }
 }
 
-fn wrap_channel_with_logging<B: BlockT>(
-    channel: mpsc::UnboundedReceiver<JustificationNotification<B>>,
+fn wrap_channel_with_logging<H>(
+    channel: mpsc::UnboundedReceiver<JustificationNotification<HashNum<H>>>,
     label: &'static str,
-) -> impl Stream<Item = JustificationNotification<B>> {
+) -> impl Stream<Item = JustificationNotification<HashNum<H>>>
+where
+    H: HeaderT<Number = BlockNumber>,
+{
     channel
         .inspect(move |_| {
             debug!(target: "aleph-justification", "Got justification ({})", label);

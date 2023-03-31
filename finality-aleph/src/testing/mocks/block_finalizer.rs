@@ -1,12 +1,13 @@
-use aleph_primitives::BlockNumber;
 use sp_blockchain::Error;
 use sp_runtime::{traits::Block, Justification};
 
+use super::TBlockIdentifier;
 use crate::{
     finalization::BlockFinalizer,
-    testing::mocks::{single_action_mock::SingleActionMock, TBlock, THash},
+    testing::mocks::{single_action_mock::SingleActionMock, TBlock},
+    IdentifierFor,
 };
-type CallArgs = (THash, BlockNumber, Option<Justification>);
+type CallArgs = (IdentifierFor<TBlock>, Justification);
 
 #[derive(Clone, Default)]
 pub struct MockedBlockFinalizer {
@@ -26,21 +27,20 @@ impl MockedBlockFinalizer {
 
     pub async fn has_been_invoked_with(&self, block: TBlock) -> bool {
         self.mock
-            .has_been_invoked_with(|(hash, number, _)| {
-                block.hash() == hash && block.header.number == number
+            .has_been_invoked_with(|(TBlockIdentifier { hash, num }, _)| {
+                block.hash() == hash && block.header.number == num
             })
             .await
     }
 }
 
-impl BlockFinalizer<TBlock> for MockedBlockFinalizer {
+impl BlockFinalizer<TBlockIdentifier> for MockedBlockFinalizer {
     fn finalize_block(
         &self,
-        hash: THash,
-        block_number: BlockNumber,
-        justification: Option<Justification>,
+        block_id: TBlockIdentifier,
+        justification: Justification,
     ) -> Result<(), Error> {
-        self.mock.invoke_with((hash, block_number, justification));
+        self.mock.invoke_with((block_id, justification));
         Ok(())
     }
 }

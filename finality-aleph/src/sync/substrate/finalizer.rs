@@ -1,11 +1,10 @@
-use aleph_primitives::{BlockNumber, ALEPH_ENGINE_ID};
+use aleph_primitives::BlockNumber;
 use sc_client_api::{Backend, Finalizer as SubstrateFinalizer, HeaderBackend, LockImportRun};
 use sp_blockchain::Error as ClientError;
 use sp_runtime::traits::{Block as BlockT, Header as SubstrateHeader};
 
 use crate::{
     finalization::{AlephFinalizer, BlockFinalizer},
-    justification::versioned_encode,
     sync::{substrate::Justification, Finalizer},
 };
 
@@ -20,12 +19,8 @@ where
 
     fn finalize(&self, justification: Justification<B::Header>) -> Result<(), Self::Error> {
         self.finalize_block(
-            justification.header.hash(),
-            *justification.header.number(),
-            Some((
-                ALEPH_ENGINE_ID,
-                versioned_encode(justification.raw_justification),
-            )),
+            (justification.header.hash(), *justification.header.number()).into(),
+            justification.raw_justification.into(),
         )
     }
 }

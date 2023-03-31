@@ -1,19 +1,19 @@
 use std::{fmt, marker::PhantomData, time::Instant};
 
-use aleph_primitives::{BlockNumber, ALEPH_ENGINE_ID};
+use aleph_primitives::BlockNumber;
 use log::{debug, error, info, warn};
 use sc_client_api::blockchain::Info;
-use sp_api::{BlockId, BlockT, NumberFor};
-use sp_runtime::traits::{Header, One};
+use sp_api::{BlockId, BlockT, HeaderT};
 
+use super::JustificationNotificationFor;
 use crate::{
     finalization::BlockFinalizer,
     justification::{
-        scheduler::SchedulerActions, versioned_encode, JustificationNotification,
-        JustificationRequestScheduler, Verifier,
+        scheduler::SchedulerActions, JustificationNotification, JustificationRequestScheduler,
+        Verifier,
     },
     metrics::Checkpoint,
-    network, BlockHashNum, BlockchainBackend, Metrics,
+    network, BlockHashNum, BlockchainBackend, HashNum, IdentifierFor, Metrics,
 };
 
 /// Threshold for how many tries are needed so that JustificationRequestStatus is logged
@@ -100,18 +100,18 @@ impl<B: BlockT> fmt::Display for JustificationRequestStatus<B> {
 pub struct BlockRequester<B, RB, S, F, V, BB>
 where
     B: BlockT,
-    B::Header: Header<Number = BlockNumber>,
-    RB: network::RequestBlocks<B> + 'static,
+    B::Header: HeaderT<Number = BlockNumber>,
+    RB: network::RequestBlocks<IdentifierFor<B>> + 'static,
     S: JustificationRequestScheduler,
-    F: BlockFinalizer<B>,
-    V: Verifier<B>,
+    F: BlockFinalizer<IdentifierFor<B>>,
+    V: Verifier<IdentifierFor<B>>,
     BB: BlockchainBackend<B> + 'static,
 {
     block_requester: RB,
     blockchain_backend: BB,
     finalizer: F,
     justification_request_scheduler: S,
-    metrics: Option<Metrics<<B::Header as Header>::Hash>>,
+    metrics: Option<Metrics<B::Hash>>,
     request_status: JustificationRequestStatus<B>,
     _phantom: PhantomData<V>,
 }
@@ -119,11 +119,11 @@ where
 impl<B, RB, S, F, V, BB> BlockRequester<B, RB, S, F, V, BB>
 where
     B: BlockT,
-    B::Header: Header<Number = BlockNumber>,
-    RB: network::RequestBlocks<B> + 'static,
+    B::Header: HeaderT<Number = BlockNumber>,
+    RB: network::RequestBlocks<IdentifierFor<B>> + 'static,
     S: JustificationRequestScheduler,
-    F: BlockFinalizer<B>,
-    V: Verifier<B>,
+    F: BlockFinalizer<IdentifierFor<B>>,
+    V: Verifier<IdentifierFor<B>>,
     BB: BlockchainBackend<B> + 'static,
 {
     pub fn new(
@@ -131,7 +131,7 @@ where
         blockchain_backend: BB,
         finalizer: F,
         justification_request_scheduler: S,
-        metrics: Option<Metrics<<B::Header as Header>::Hash>>,
+        metrics: Option<Metrics<B::Hash>>,
     ) -> Self {
         BlockRequester {
             block_requester,
@@ -146,33 +146,32 @@ where
 
     pub fn handle_justification_notification(
         &mut self,
-        notification: JustificationNotification<B>,
+        notification: JustificationNotificationFor<B>,
         verifier: V,
-        last_finalized: NumberFor<B>,
-        stop_h: NumberFor<B>,
+        last_finalized: BlockNumber,
+        stop_h: BlockNumber,
     ) {
         let JustificationNotification {
             justification,
-            number,
-            hash,
+            block_id,
         } = notification;
+
+        let HashNum { num: number, hash } = block_id;
 
         if number <= last_finalized || number > stop_h {
             debug!(target: "aleph-justification", "Not finalizing block {:?}. Last finalized {:?}, stop_h {:?}", number, last_finalized, stop_h);
             return;
         };
 
-        if !(verifier.verify(&justification, hash)) {
+        if !(verifier.verify(&justification, &block_id)) {
             warn!(target: "aleph-justification", "Error when verifying justification for block {:?} {:?}", number, hash);
             return;
         };
 
         debug!(target: "aleph-justification", "Finalizing block {:?} {:?}", number, hash);
-        let finalization_res = self.finalizer.finalize_block(
-            hash,
-            number,
-            Some((ALEPH_ENGINE_ID, versioned_encode(justification))),
-        );
+        let finalization_res = self
+            .finalizer
+            .finalize_block(block_id, justification.into());
         match finalization_res {
             Ok(()) => {
                 self.justification_request_scheduler.on_block_finalized();
@@ -194,7 +193,7 @@ where
         }
     }
 
-    pub fn request_justification(&mut self, wanted: NumberFor<B>) {
+    pub fn request_justification(&mut self, wanted: BlockNumber) {
         match self.justification_request_scheduler.schedule_action() {
             SchedulerActions::Request => {
                 let info = self.blockchain_backend.info();
@@ -209,15 +208,16 @@ where
         }
     }
 
-    pub fn finalized_number(&self) -> NumberFor<B> {
+    pub fn finalized_number(&self) -> BlockNumber {
         self.blockchain_backend.info().finalized_number
     }
 
-    fn do_request(&mut self, hash: &<B as BlockT>::Hash, num: NumberFor<B>) {
+    fn do_request(&mut self, hash: B::Hash, number: BlockNumber) {
         debug!(target: "aleph-justification",
-               "We have block {:?} with hash {:?}. Requesting justification.", num, hash);
+               "We have block {:?} with hash {:?}. Requesting justification.", number, hash);
         self.justification_request_scheduler.on_request_sent();
-        self.block_requester.request_justification(hash, num);
+        self.block_requester
+            .request_justification((hash, number).into());
     }
 
     // We request justifications for all the children of last finalized block.
@@ -236,31 +236,31 @@ where
                 .save_children(finalized_hash, children.len());
         }
 
-        for child in &children {
-            self.do_request(child, finalized_number + NumberFor::<B>::one());
+        for child in children {
+            self.do_request(child, finalized_number + 1);
         }
     }
 
     // This request is important in the case when we are far behind and want to catch up.
-    fn request_wanted(&mut self, mut top_wanted: NumberFor<B>, info: &Info<B>) {
+    fn request_wanted(&mut self, mut top_wanted: BlockNumber, info: &Info<B>) {
         let best_number = info.best_number;
         if best_number <= top_wanted {
             // most probably block best_number is not yet finalized
-            top_wanted = best_number.saturating_sub(NumberFor::<B>::one());
+            top_wanted = best_number.saturating_sub(1);
         }
         let finalized_number = info.finalized_number;
         // We know that top_wanted >= finalized_number, so
         // - if top_wanted == finalized_number, then we don't want to request it
         // - if top_wanted == finalized_number + 1, then we already requested it
-        if top_wanted <= finalized_number + NumberFor::<B>::one() {
+        if top_wanted <= finalized_number + 1 {
             return;
         }
         match self.blockchain_backend.header(BlockId::Number(top_wanted)) {
             Ok(Some(header)) => {
                 let hash = header.hash();
-                let num = *header.number();
-                self.do_request(&hash, num);
-                self.request_status.save_block((hash, num).into());
+                let number = *header.number();
+                self.do_request(hash, number);
+                self.request_status.save_block((hash, number).into());
             }
             Ok(None) => {
                 warn!(target: "aleph-justification", "Cancelling request, because we don't have block {:?}.", top_wanted);

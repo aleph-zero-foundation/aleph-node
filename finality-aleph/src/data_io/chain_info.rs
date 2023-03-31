@@ -33,7 +33,7 @@ where
         false
     }
 
-    fn get_finalized_at(&mut self, num: NumberFor<B>) -> Result<BlockHashNum<B>, ()> {
+    fn get_finalized_at(&mut self, num: BlockNumber) -> Result<BlockHashNum<B>, ()> {
         if self.info().finalized_number < num {
             return Err(());
         }
@@ -74,7 +74,7 @@ where
 {
     available_block_with_parent_cache: LruCache<BlockHashNum<B>, B::Hash>,
     available_blocks_cache: LruCache<BlockHashNum<B>, ()>,
-    finalized_cache: LruCache<NumberFor<B>, B::Hash>,
+    finalized_cache: LruCache<BlockNumber, B::Hash>,
     chain_info_provider: CIP,
 }
 
@@ -115,7 +115,7 @@ where
         false
     }
 
-    fn get_finalized_at(&mut self, num: NumberFor<B>) -> Result<BlockHashNum<B>, ()> {
+    fn get_finalized_at(&mut self, num: BlockNumber) -> Result<BlockHashNum<B>, ()> {
         if let Some(hash) = self.finalized_cache.get(&num) {
             return Ok((*hash, num).into());
         }
@@ -189,7 +189,7 @@ where
         self.chain_info_provider.is_block_imported(block)
     }
 
-    fn get_finalized_at(&mut self, num: NumberFor<B>) -> Result<BlockHashNum<B>, ()> {
+    fn get_finalized_at(&mut self, num: BlockNumber) -> Result<BlockHashNum<B>, ()> {
         let highest_finalized_inner = self.chain_info_provider.get_highest_finalized();
         if num <= highest_finalized_inner.num {
             return self.chain_info_provider.get_finalized_at(num);

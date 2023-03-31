@@ -7,10 +7,13 @@ use std::{
 use futures::channel::mpsc::{self, UnboundedSender};
 use parking_lot::Mutex;
 
-use crate::sync::{
-    mock::{MockHeader, MockIdentifier, MockJustification, MockNotification},
-    BlockIdentifier, BlockStatus, ChainStatus, ChainStatusNotifier, Finalizer, Header,
-    Justification as JustificationT,
+use crate::{
+    sync::{
+        mock::{MockHeader, MockIdentifier, MockJustification, MockNotification},
+        BlockStatus, ChainStatus, ChainStatusNotifier, Finalizer, Header,
+        Justification as JustificationT,
+    },
+    BlockIdentifier,
 };
 
 #[derive(Clone, Debug)]

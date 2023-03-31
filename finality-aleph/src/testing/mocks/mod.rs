@@ -12,10 +12,13 @@ pub use session_info::{SessionInfoProviderImpl, VerifierWrapper};
 use sp_runtime::traits::BlakeTwo256;
 use substrate_test_runtime::Extrinsic;
 
+use crate::IdentifierFor;
+
 type Hashing = BlakeTwo256;
 pub type TBlock = sp_runtime::generic::Block<THeader, Extrinsic>;
 pub type THeader = sp_runtime::generic::Header<BlockNumber, Hashing>;
 pub type THash = substrate_test_runtime::Hash;
+pub type TBlockIdentifier = IdentifierFor<TBlock>;
 
 mod acceptance_policy;
 mod backend;

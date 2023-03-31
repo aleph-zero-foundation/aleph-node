@@ -7,6 +7,7 @@ use crate::{
     testing::mocks::{TBlock, THash, THeader},
     BlockchainBackend,
 };
+
 #[derive(Clone)]
 pub struct Backend {
     blocks: Vec<TBlock>,

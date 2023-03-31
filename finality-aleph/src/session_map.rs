@@ -7,7 +7,7 @@ use sc_client_api::{Backend, FinalityNotification};
 use sc_utils::mpsc::TracingUnboundedReceiver;
 use sp_runtime::{
     generic::BlockId,
-    traits::{Block, Header, NumberFor},
+    traits::{Block, Header},
 };
 use tokio::sync::{
     oneshot::{Receiver as OneShotReceiver, Sender as OneShotSender},
@@ -64,7 +64,7 @@ where
     B::Header: Header<Number = BlockNumber>,
     BE: Backend<B> + 'static,
 {
-    fn authority_data(&self, block_number: NumberFor<B>) -> Option<SessionAuthorityData> {
+    fn authority_data(&self, block_number: BlockNumber) -> Option<SessionAuthorityData> {
         match self
             .client
             .runtime_api()
@@ -80,7 +80,7 @@ where
         }
     }
 
-    fn next_authority_data(&self, block_number: NumberFor<B>) -> Option<SessionAuthorityData> {
+    fn next_authority_data(&self, block_number: BlockNumber) -> Option<SessionAuthorityData> {
         match self
             .client
             .runtime_api()

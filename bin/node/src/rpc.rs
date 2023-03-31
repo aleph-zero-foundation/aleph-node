@@ -7,25 +7,30 @@
 
 use std::sync::Arc;
 
+use aleph_primitives::BlockNumber;
 use aleph_runtime::{opaque::Block, AccountId, Balance, Index};
-use finality_aleph::JustificationNotification;
+use finality_aleph::JustificationNotificationFor;
 use futures::channel::mpsc;
 use jsonrpsee::RpcModule;
 pub use sc_rpc_api::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;
-use sp_api::{BlockT, ProvideRuntimeApi};
+use sp_api::{BlockT, HeaderT, ProvideRuntimeApi};
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
 
 /// Full client dependencies.
-pub struct FullDeps<B: BlockT, C, P> {
+pub struct FullDeps<B, C, P>
+where
+    B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
+{
     /// The client instance to use.
     pub client: Arc<C>,
     /// Transaction pool instance.
     pub pool: Arc<P>,
     /// Whether to deny unsafe calls
     pub deny_unsafe: DenyUnsafe,
-    pub import_justification_tx: mpsc::UnboundedSender<JustificationNotification<B>>,
+    pub import_justification_tx: mpsc::UnboundedSender<JustificationNotificationFor<B>>,
 }
 
 /// Instantiate all full RPC extensions.
@@ -41,6 +46,7 @@ where
     C::Api: BlockBuilder<Block>,
     P: TransactionPool + 'static,
     B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
 {
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
     use substrate_frame_rpc_system::{System, SystemApiServer};
@@ -58,7 +64,7 @@ where
     module.merge(TransactionPayment::new(client).into_rpc())?;
 
     use crate::aleph_node_rpc::{AlephNode, AlephNodeApiServer};
-    module.merge(AlephNode::new(import_justification_tx).into_rpc())?;
+    module.merge(AlephNode::<B>::new(import_justification_tx).into_rpc())?;
 
     Ok(module)
 }

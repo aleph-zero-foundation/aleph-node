@@ -6,8 +6,9 @@ use std::{
     fmt::{Display, Error as FmtError, Formatter},
 };
 
-use crate::sync::{
-    data::BranchKnowledge, BlockIdFor, BlockIdentifier, Header, Justification, PeerId,
+use crate::{
+    sync::{data::BranchKnowledge, BlockIdFor, Header, Justification, PeerId},
+    BlockIdentifier,
 };
 
 mod vertex;

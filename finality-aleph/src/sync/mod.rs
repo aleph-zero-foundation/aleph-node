@@ -17,18 +17,14 @@ mod ticker;
 
 pub use substrate::SessionVerifier;
 
+use crate::BlockIdentifier;
+
 const LOG_TARGET: &str = "aleph-block-sync";
 
 /// The identifier of a connected peer.
 pub trait PeerId: Debug + Clone + Hash + Eq {}
 
 impl<T: Debug + Clone + Hash + Eq> PeerId for T {}
-
-/// The identifier of a block, the least amount of knowledge we can have about a block.
-pub trait BlockIdentifier: Clone + Hash + Debug + Eq + Codec + Send + Sync + 'static {
-    /// The block number, useful when reasoning about hopeless forks.
-    fn number(&self) -> u32;
-}
 
 /// Informs the sync that it should attempt to acquire the specified data.
 pub trait Requester<BI: BlockIdentifier> {

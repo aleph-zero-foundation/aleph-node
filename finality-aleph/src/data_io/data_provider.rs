@@ -70,14 +70,14 @@ where
     let mut branch: Vec<B::Hash> = Vec::new();
     while curr_block.num > finalized_block.num {
         if curr_block.num - finalized_block.num
-            <= <NumberFor<B>>::saturated_from(MAX_DATA_BRANCH_LEN)
+            <= <BlockNumber>::saturated_from(MAX_DATA_BRANCH_LEN)
         {
             branch.push(curr_block.hash);
         }
         curr_block = get_parent(client, &curr_block).expect("block of num >= 1 must have a parent")
     }
     if curr_block.hash == finalized_block.hash {
-        let num_last = finalized_block.num + <NumberFor<B>>::saturated_from(branch.len());
+        let num_last = finalized_block.num + <BlockNumber>::saturated_from(branch.len());
         // The hashes in `branch` are ordered from top to bottom -- need to reverse.
         branch.reverse();
         Ok(AlephData {

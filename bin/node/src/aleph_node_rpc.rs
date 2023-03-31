@@ -1,3 +1,4 @@
+use aleph_primitives::BlockNumber;
 use futures::channel::mpsc;
 use jsonrpsee::{
     core::{error::Error as JsonRpseeError, RpcResult},
@@ -55,28 +56,30 @@ pub trait AlephNodeApi<Hash, Number> {
     ) -> RpcResult<()>;
 }
 
-use finality_aleph::{AlephJustification, JustificationNotification};
-use sp_api::BlockT;
+use finality_aleph::{AlephJustification, JustificationNotificationFor};
+use sp_api::{BlockT, HeaderT};
 use sp_runtime::traits::NumberFor;
 
 /// Aleph Node API implementation
 pub struct AlephNode<B>
 where
     B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
     B::Hash: Serialize + for<'de> serde::Deserialize<'de>,
     NumberFor<B>: Serialize + for<'de> serde::Deserialize<'de>,
 {
-    import_justification_tx: mpsc::UnboundedSender<JustificationNotification<B>>,
+    import_justification_tx: mpsc::UnboundedSender<JustificationNotificationFor<B>>,
 }
 
 impl<B> AlephNode<B>
 where
     B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
     B::Hash: Serialize + for<'de> serde::Deserialize<'de>,
     NumberFor<B>: Serialize + for<'de> serde::Deserialize<'de>,
 {
     pub fn new(
-        import_justification_tx: mpsc::UnboundedSender<JustificationNotification<B>>,
+        import_justification_tx: mpsc::UnboundedSender<JustificationNotificationFor<B>>,
     ) -> Self {
         AlephNode {
             import_justification_tx,
@@ -87,6 +90,7 @@ where
 impl<B> AlephNodeApiServer<B::Hash, NumberFor<B>> for AlephNode<B>
 where
     B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
     B::Hash: Serialize + for<'de> serde::Deserialize<'de>,
     NumberFor<B>: Serialize + for<'de> serde::Deserialize<'de>,
 {
@@ -103,10 +107,9 @@ where
                 )
             })?);
         self.import_justification_tx
-            .unbounded_send(JustificationNotification {
+            .unbounded_send(JustificationNotificationFor::<B> {
                 justification,
-                hash,
-                number,
+                block_id: (hash, number).into(),
             })
             .map_err(|_| {
                 Error::FailedJustificationSend(

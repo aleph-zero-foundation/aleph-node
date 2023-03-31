@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fmt, iter, pin::Pin, sync::Arc};
 
+use aleph_primitives::BlockNumber;
 use async_trait::async_trait;
 use futures::stream::{Stream, StreamExt};
 use log::{error, trace};
@@ -13,25 +14,30 @@ use sc_network_common::{
     service::{NetworkEventStream as _, NetworkNotification, NetworkPeers, NotificationSender},
     ExHashT,
 };
-use sp_api::NumberFor;
-use sp_runtime::traits::Block;
+use sp_runtime::traits::{Block, Header};
 
-use crate::network::{
-    gossip::{Event, EventStream, NetworkSender, Protocol, RawNetwork},
-    RequestBlocks,
+use crate::{
+    network::{
+        gossip::{Event, EventStream, NetworkSender, Protocol, RawNetwork},
+        RequestBlocks,
+    },
+    IdentifierFor,
 };
 
-impl<B: Block, H: ExHashT> RequestBlocks<B> for Arc<NetworkService<B, H>> {
-    fn request_justification(&self, hash: &B::Hash, number: NumberFor<B>) {
-        NetworkService::request_justification(self, hash, number)
+impl<B: Block, H: ExHashT> RequestBlocks<IdentifierFor<B>> for Arc<NetworkService<B, H>>
+where
+    B::Header: Header<Number = BlockNumber>,
+{
+    fn request_justification(&self, block_id: IdentifierFor<B>) {
+        NetworkService::request_justification(self, &block_id.hash, block_id.num)
     }
 
-    fn request_stale_block(&self, hash: B::Hash, number: NumberFor<B>) {
+    fn request_stale_block(&self, block_id: IdentifierFor<B>) {
         // The below comment is adapted from substrate:
         // Notifies the sync service to try and sync the given block from the given peers. If the given vector
         // of peers is empty (as in our case) then the underlying implementation should make a best effort to fetch
         // the block from any peers it is connected to.
-        NetworkService::set_sync_fork_request(self, Vec::new(), hash, number)
+        NetworkService::set_sync_fork_request(self, Vec::new(), block_id.hash, block_id.num)
     }
 
     /// Clear all pending justification requests.

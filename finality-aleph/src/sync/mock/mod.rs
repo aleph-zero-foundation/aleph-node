@@ -3,8 +3,9 @@ use std::hash::Hash;
 use codec::{Decode, Encode};
 use sp_core::H256;
 
-use crate::sync::{
-    BlockIdentifier, BlockStatus, ChainStatusNotification, Header, Justification as JustificationT,
+use crate::{
+    sync::{BlockStatus, ChainStatusNotification, Header, Justification as JustificationT},
+    BlockIdentifier,
 };
 
 mod backend;

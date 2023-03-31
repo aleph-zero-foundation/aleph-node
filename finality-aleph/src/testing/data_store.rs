@@ -22,11 +22,11 @@ use crate::{
     testing::{
         client_chain_builder::ClientChainBuilder,
         mocks::{
-            aleph_data_from_blocks, aleph_data_from_headers, TBlock, THash, THeader,
-            TestClientBuilder, TestClientBuilderExt,
+            aleph_data_from_blocks, aleph_data_from_headers, TBlock, THeader, TestClientBuilder,
+            TestClientBuilderExt,
         },
     },
-    BlockHashNum, Recipient,
+    BlockHashNum, IdentifierFor, Recipient,
 };
 
 #[derive(Clone)]
@@ -54,15 +54,13 @@ impl TestBlockRequester {
     }
 }
 
-impl RequestBlocks<TBlock> for TestBlockRequester {
-    fn request_justification(&self, hash: &THash, number: BlockNumber) {
-        self.justifications
-            .unbounded_send((*hash, number).into())
-            .unwrap();
+impl RequestBlocks<IdentifierFor<TBlock>> for TestBlockRequester {
+    fn request_justification(&self, block_id: IdentifierFor<TBlock>) {
+        self.justifications.unbounded_send(block_id).unwrap();
     }
 
-    fn request_stale_block(&self, hash: THash, number: BlockNumber) {
-        self.blocks.unbounded_send((hash, number).into()).unwrap();
+    fn request_stale_block(&self, block_id: IdentifierFor<TBlock>) {
+        self.blocks.unbounded_send(block_id).unwrap();
     }
 
     fn clear_justification_requests(&self) {
