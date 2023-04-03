@@ -17,7 +17,6 @@ use crate::{
 pub enum Error<B: Block> {
     ChainStatus(ChainStatusError<B>),
     NoBlock,
-    AlreadyJustified,
 }
 
 impl<B: Block> Display for Error<B> {
@@ -28,7 +27,6 @@ impl<B: Block> Display for Error<B> {
                 write!(f, "error retrieving block status: {}", e)
             }
             NoBlock => write!(f, "block not present"),
-            AlreadyJustified => write!(f, "block already justified"),
         }
     }
 }
@@ -55,12 +53,10 @@ where
         use BlockStatus::*;
         let block_id = BlockId::new(hash, number);
         match self.status_of(block_id)? {
-            Justified(_) => Err(Error::AlreadyJustified),
+            Justified(Justification { header, .. }) | Present(header) => Ok(
+                Justification::aleph_justification(header, aleph_justification),
+            ),
             Unknown => Err(Error::NoBlock),
-            Present(header) => Ok(Justification::aleph_justification(
-                header,
-                aleph_justification,
-            )),
         }
     }
 }
