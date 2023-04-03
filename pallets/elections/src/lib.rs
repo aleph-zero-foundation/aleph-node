@@ -15,6 +15,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 mod impls;
+mod migration;
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
@@ -23,6 +24,7 @@ mod traits;
 
 use codec::{Decode, Encode};
 use frame_support::traits::StorageVersion;
+pub use migration::Migration as MigrateToV4;
 pub use pallet::*;
 pub use primitives::EraValidators;
 use scale_info::TypeInfo;
@@ -34,6 +36,7 @@ use sp_std::{
 pub type TotalReward = u32;
 
 const STORAGE_VERSION: StorageVersion = StorageVersion::new(4);
+const LOG_TARGET: &str = "pallet-elections";
 
 #[derive(Decode, Encode, TypeInfo)]
 pub struct ValidatorTotalRewards<T>(pub BTreeMap<T, TotalReward>);
