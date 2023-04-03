@@ -3,13 +3,6 @@ name: Build, send and deploy postsync hook image.
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'bin/cliain/**'
-      - 'docker-runtime-hook/**'
-      - .github/workflows/build-send-postsync-hook-runtime-image.yml
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -31,15 +24,12 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v3
 
-      - name: GIT | Get branch info & current commit sha.
-        id: vars
-        shell: bash
-        run: |
-          echo "branch=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
-          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      - name: Call action get-ref-properties
+        id: get-ref-properties
+        uses: ./.github/actions/get-ref-properties
 
-      - name: Install rust toolchain
-        uses: actions-rs/toolchain@v1
+      - name: Install Rust toolchain
+        uses: ./.github/actions/install-rust-toolchain
 
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
@@ -56,7 +46,7 @@ jobs:
       - name: Build runtime-update-hook
         run: |
           docker build -f docker-runtime-hook/Dockerfile . \
-          -t runtime-update-hook:${{ steps.vars.outputs.sha_short }}
+          -t runtime-update-hook:${{ steps.get-ref-properties.outputs.sha }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -77,9 +67,9 @@ jobs:
 
       - name: Push postsync hook current Image to Public ECR
         env:
-          CURRENT_IMAGE: runtime-update-hook:${{ steps.vars.outputs.sha_short }}
-          ECR_PUSH_IMAGE:
-            ${{ vars.ECR_PUBLIC_REGISTRY }}runtime-update-hook:${{ steps.vars.outputs.sha_short }}
+          CURRENT_IMAGE: runtime-update-hook:${{ steps.get-ref-properties.outputs.sha }}
+          # yamllint disable-line rule:line-length
+          ECR_PUSH_IMAGE: ${{ vars.ECR_PUBLIC_REGISTRY }}runtime-update-hook:${{ steps.get-ref-properties.outputs.sha }}
           ECR_LATEST: ${{ vars.ECR_PUBLIC_REGISTRY }}runtime-update-hook:latest
         run: |
           docker tag ${{ env.CURRENT_IMAGE }} ${{ env.ECR_PUSH_IMAGE }}
@@ -102,8 +92,8 @@ jobs:
 
       - name: Update postsync hook docker image
         env:
-          RELEASE_IMAGE:
-            ${{ vars.ECR_PUBLIC_REGISTRY }}runtime-update-hook:${{ steps.vars.outputs.sha_short }}
+          # yamllint disable-line rule:line-length
+          RELEASE_IMAGE: ${{ vars.ECR_PUBLIC_REGISTRY }}runtime-update-hook:${{ steps.get-ref-properties.outputs.sha }}
           REGIONS_AWS: 'eu-central-1'
         run: |
             # Deploy new image version for postsync hook
@@ -116,6 +106,6 @@ jobs:
         with:
           author_name: ${{ secrets.AUTOCOMMIT_AUTHOR }}
           author_email: ${{ secrets.AUTOCOMMIT_EMAIL }}
-          message: "Update postsync hook image tag to: ${{ steps.vars.outputs.sha_short }}"
+          message: "Update postsync hook image tag to: ${{ steps.get-ref-properties.outputs.sha }}"
           add: "*.yaml"
           cwd: ${{ secrets.REPO_ARGOCD_APPS_NAME }}

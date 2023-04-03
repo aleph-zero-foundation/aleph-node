@@ -15,6 +15,9 @@ outputs:
   branch-name-for-argo:
     description: Branch name that matches [a-z0-9-.]+ for ArgoCD app name
     value: ${{ steps.branch.outputs.name-for-argo }}
+  branch-name-for-argo-with-sha:
+    description: Image tag from branch name and commit SHA
+    value: ${{ steps.branch.outputs.name-for-argo }}_${{ steps.commit.outputs.sha }}
   tag:
     description: Tag name
     value: ${{ steps.tag.outputs.name || steps.release.outputs.ref }}
