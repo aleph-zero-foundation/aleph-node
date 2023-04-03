@@ -3,7 +3,7 @@
 TMP_PATH=/tmp/gh-action-tests/get-ref-properties
 REPO_OWNER=${1:-}
 REPO_NAME=${2:-}
-DEFAULT_BRANCH=${3:main}
+DEFAULT_BRANCH=${3:master}
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
 
 
@@ -26,7 +26,10 @@ cd ${TMP_PATH}
 git clone git@github.com:${REPO_OWNER}/${REPO_NAME}.git .
 git checkout ${DEFAULT_BRANCH}
 
-branch_prefix="test-$(date +'%Y%m%d%H%m%s')"
+now="$(date +'%Y%m%d%H%m%s')"
+branch_prefix="test_ABC-$now"
+branch_prefix_flattened="test_ABC-$now"
+branch_prefix_argo="test-abc-$now"
 
 for event in commit-push pull-request tag-push; do
   wf="test-get-ref-properties-${event}.yml"
@@ -41,6 +44,8 @@ for event in commit-push pull-request tag-push; do
   cp ${SCRIPT_DIR}/${wf} .github/workflows/${wf}
 
   sed -i '' "s/VALID_OUTPUT_BRANCH/${branch_prefix}-${event}/g" .github/workflows/${wf}
+  sed -i '' "s/VALID_OUTPUT_FLATTENED/${branch_prefix_flattened}-${event}/g" .github/workflows/${wf}
+  sed -i '' "s/VALID_OUTPUT_ARGO/${branch_prefix_argo}-${event}/g" .github/workflows/${wf}
   sed -i '' "s/VALID_OUTPUT_TAG/tag-${branch_prefix}/g" .github/workflows/${wf}  
 
   git add .github

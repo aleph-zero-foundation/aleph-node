@@ -6,7 +6,7 @@ on:
     branches:
       - "branch-that-does-not-exist"
     tags:
-      - "tag-test-*"
+      - "tag-test_ABC*"
 
 jobs:
   test-tag-push:

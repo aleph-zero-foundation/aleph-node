@@ -48,7 +48,7 @@ runs:
       run: |
         echo name=$(echo ${HEAD_REF#refs/heads/}) >> $GITHUB_OUTPUT
         echo name-flattened=$(echo ${HEAD_REF#refs/heads/} | tr / -) >> $GITHUB_OUTPUT
-        echo name-for-argo=$(echo ${HEAD_REF#refs/heads/} \
+        echo name-for-argo=$(printf ${HEAD_REF#refs/heads/} \
           | tr / - | tr '[:upper:]' '[:lower:]' | tr -c '[a-z0-9-.]' '-') >> $GITHUB_OUTPUT
 
     - name: Get branch name if release or pre-release was created
