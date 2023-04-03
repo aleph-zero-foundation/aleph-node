@@ -68,11 +68,36 @@ impl<H: SubstrateHeader<Number = BlockNumber>> Header for H {
     }
 }
 
+/// Proper `AlephJustification` or a variant indicating virtual justification
+/// for the genesis block, which is the only block that can be the top finalized
+/// block with no proper justification.
+#[derive(Clone, Debug, Encode, Decode)]
+pub enum InnerJustification {
+    AlephJustification(AlephJustification),
+    Genesis,
+}
+
 /// A justification, including the related header.
 #[derive(Clone, Debug, Encode, Decode)]
 pub struct Justification<H: SubstrateHeader<Number = BlockNumber>> {
     header: H,
-    raw_justification: AlephJustification,
+    inner_justification: InnerJustification,
+}
+
+impl<H: SubstrateHeader<Number = BlockNumber>> Justification<H> {
+    pub fn aleph_justification(header: H, aleph_justification: AlephJustification) -> Self {
+        Justification {
+            header,
+            inner_justification: InnerJustification::AlephJustification(aleph_justification),
+        }
+    }
+
+    pub fn genesis_justification(header: H) -> Self {
+        Justification {
+            header,
+            inner_justification: InnerJustification::Genesis,
+        }
+    }
 }
 
 impl<H: SubstrateHeader<Number = BlockNumber>> Header for Justification<H> {
