@@ -22,6 +22,12 @@ use crate::{
 
 const MAX_REWARD: u32 = 1_000_000_000;
 
+#[derive(Debug, Eq, PartialEq)]
+pub(crate) struct SessionCommittee<T> {
+    pub finality_committee: Vec<T>,
+    pub block_producers: Vec<T>,
+}
+
 impl<T: Config> BannedValidators for Pallet<T> {
     type AccountId = T::AccountId;
 
@@ -52,28 +58,60 @@ fn choose_for_session<T: Clone>(validators: &[T], count: usize, session: usize) 
     Some(chosen)
 }
 
+/// choose all items from `reserved` if present and extend it by #`non_reserved_seats` from non_reserved if present.
+fn choose_finality_committee<T: Clone>(
+    reserved: &Option<Vec<T>>,
+    non_reserved: &Option<Vec<T>>,
+    non_reserved_seats: usize,
+    session: usize,
+) -> Vec<T> {
+    let non_reserved_finality_committee = non_reserved
+        .as_ref()
+        .and_then(|nr| choose_for_session(nr, non_reserved_seats, session))
+        .unwrap_or_default();
+
+    let mut finality_committee = reserved.clone().unwrap_or_default();
+    finality_committee.extend(non_reserved_finality_committee);
+
+    finality_committee
+}
+
 fn rotate<AccountId: Clone + PartialEq>(
     current_session: SessionIndex,
     reserved_seats: usize,
     non_reserved_seats: usize,
+    non_reserved_finality_seats: usize,
     reserved: &[AccountId],
     non_reserved: &[AccountId],
-) -> Option<Vec<AccountId>> {
+) -> Option<SessionCommittee<AccountId>> {
     // The validators for the committee at the session `n` are chosen as follow:
     // 1. `reserved_seats` validators are chosen from the reserved set while `non_reserved_seats` from the non_reserved set.
     // 2. Given a set of validators the chosen ones are from the range:
     // `n * seats` to `(n + 1) * seats` where seats is equal to reserved_seats(non_reserved_seats) for reserved(non_reserved) validators.
+    // 3. Finality committee is filled first with reserved_seats and then a subsample of non_reserved_seats equal to non_reserved_finality_seats
 
     let reserved_committee = choose_for_session(reserved, reserved_seats, current_session as usize);
     let non_reserved_committee =
         choose_for_session(non_reserved, non_reserved_seats, current_session as usize);
 
-    match (reserved_committee, non_reserved_committee) {
+    let finality_committee = choose_finality_committee(
+        &reserved_committee,
+        &non_reserved_committee,
+        non_reserved_finality_seats,
+        current_session as usize,
+    );
+
+    let block_producers = match (reserved_committee, non_reserved_committee) {
         (Some(rc), Some(nrc)) => Some(rc.into_iter().chain(nrc.into_iter()).collect()),
         (Some(rc), _) => Some(rc),
         (_, Some(nrc)) => Some(nrc),
         _ => None,
-    }
+    }?;
+
+    Some(SessionCommittee {
+        block_producers,
+        finality_committee,
+    })
 }
 
 fn calculate_adjusted_session_points(
@@ -241,7 +279,9 @@ impl<T: Config> Pallet<T> {
         CurrentAndNextSessionValidatorsStorage::<T>::put(session_validators);
     }
 
-    pub fn rotate_committee(current_session: SessionIndex) -> Option<Vec<T::AccountId>>
+    pub(crate) fn rotate_committee(
+        current_session: SessionIndex,
+    ) -> Option<SessionCommittee<T::AccountId>>
     where
         T::AccountId: Clone + PartialEq,
     {
@@ -252,18 +292,20 @@ impl<T: Config> Pallet<T> {
         let CommitteeSeats {
             reserved_seats,
             non_reserved_seats,
+            non_reserved_finality_seats,
         } = T::ValidatorProvider::current_era_committee_size()?;
 
         let committee = rotate(
             current_session,
             reserved_seats as usize,
             non_reserved_seats as usize,
+            non_reserved_finality_seats as usize,
             &reserved,
             &non_reserved,
         );
 
         if let Some(c) = &committee {
-            Self::store_session_validators(c, reserved, non_reserved);
+            Self::store_session_validators(&c.block_producers, reserved, non_reserved);
         }
 
         committee
@@ -487,10 +529,12 @@ mod tests {
                     session_index,
                     reserved_seats,
                     non_reserved_seats,
+                    non_reserved_seats + non_reserved_seats,
                     &reserved,
                     &non_reserved,
                 )
                 .expect("Expected non-empty rotated committee!")
+                .block_producers
             );
         }
     }

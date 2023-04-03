@@ -28,6 +28,7 @@ use crate::{
 const COMMITTEE_SEATS: CommitteeSeats = CommitteeSeats {
     reserved_seats: 2,
     non_reserved_seats: 2,
+    non_reserved_finality_seats: 2,
 };
 type RewardPoint = u32;
 

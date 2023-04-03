@@ -38,6 +38,7 @@ pub async fn change_validators() -> anyhow::Result<()> {
             Some(CommitteeSeats {
                 reserved_seats: 2,
                 non_reserved_seats: 2,
+                non_reserved_finality_seats: 2,
             }),
             TxStatus::InBlock,
         )
@@ -52,6 +53,7 @@ pub async fn change_validators() -> anyhow::Result<()> {
             == CommitteeSeats {
             reserved_seats: 2,
             non_reserved_seats: 2,
+            non_reserved_finality_seats: 2,
         }
     }, BlockStatus::Best).await;
 
@@ -69,7 +71,8 @@ pub async fn change_validators() -> anyhow::Result<()> {
     assert_eq!(
         CommitteeSeats {
             reserved_seats: 2,
-            non_reserved_seats: 2
+            non_reserved_seats: 2,
+            non_reserved_finality_seats: 2,
         },
         committee_size_after
     );

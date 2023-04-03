@@ -376,6 +376,7 @@ impl pallet_committee_management::Config for Runtime {
     type ValidatorProvider = Elections;
     type ValidatorRewardsHandler = Staking;
     type ValidatorExtractor = Staking;
+    type FinalityCommitteeManager = Aleph;
     type SessionPeriod = SessionPeriod;
 }
 

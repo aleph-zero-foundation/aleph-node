@@ -28,6 +28,7 @@ fn storage_is_initialized_already_in_genesis() {
     const COMMITTEE_SEATS: CommitteeSeats = CommitteeSeats {
         reserved_seats: 3,
         non_reserved_seats: 2,
+        non_reserved_finality_seats: 2,
     };
 
     TestExtBuilder::new(RESERVED.to_vec(), NON_RESERVED.to_vec())

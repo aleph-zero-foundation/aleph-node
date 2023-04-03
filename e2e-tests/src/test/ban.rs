@@ -264,6 +264,7 @@ pub async fn permissionless_ban() -> anyhow::Result<()> {
     let seats = CommitteeSeats {
         reserved_seats: 2,
         non_reserved_seats: 2,
+        non_reserved_finality_seats: 2,
     };
 
     let validator_to_ban =

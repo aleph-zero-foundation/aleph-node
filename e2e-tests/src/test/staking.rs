@@ -129,6 +129,7 @@ pub async fn staking_new_validator() -> anyhow::Result<()> {
             Some(CommitteeSeats {
                 reserved_seats: 4,
                 non_reserved_seats: 0,
+                non_reserved_finality_seats: 0,
             }),
             TxStatus::InBlock,
         )
@@ -204,6 +205,7 @@ pub async fn staking_new_validator() -> anyhow::Result<()> {
             Some(CommitteeSeats {
                 reserved_seats: 5,
                 non_reserved_seats: 0,
+                non_reserved_finality_seats: 0,
             }),
             TxStatus::InBlock,
         )

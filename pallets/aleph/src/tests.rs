@@ -3,7 +3,7 @@
 use frame_support::{storage_alias, traits::OneSessionHandler};
 use primitives::VersionChange;
 
-use crate::mock::*;
+use crate::{mock::*, NextFinalityCommittee};
 
 #[storage_alias]
 type SessionForValidatorsChange = StorageValue<Aleph, u32>;
@@ -53,11 +53,12 @@ fn test_update_authorities() {
         initialize_session();
         run_session(1);
 
-        let authorities = to_authorities(&[2, 3, 4]);
+        NextFinalityCommittee::<Test>::put(vec![2, 3, 4]);
+        let authorities = [2, 3, 4].iter().zip(to_authorities(&[2, 3, 4])).collect();
 
-        Aleph::update_authorities(authorities.as_slice(), authorities.as_slice());
+        Aleph::update_authorities(authorities);
 
-        assert_eq!(Aleph::authorities(), to_authorities(&[2, 3, 4]));
+        assert_eq!(Aleph::authorities(), to_authorities(&[1, 2]));
         assert_eq!(Aleph::next_authorities(), to_authorities(&[2, 3, 4]));
     });
 }
@@ -88,19 +89,20 @@ fn test_current_authorities() {
 
         run_session(1);
 
-        let authorities = to_authorities(&[2, 3, 4]);
+        NextFinalityCommittee::<Test>::put(vec![2, 3, 4]);
+        let authorities = [2, 3, 4].iter().zip(to_authorities(&[2, 3, 4])).collect();
+        Aleph::update_authorities(authorities);
 
-        Aleph::update_authorities(&authorities, &authorities);
-
-        assert_eq!(Aleph::authorities(), to_authorities(&[2, 3, 4]));
+        assert_eq!(Aleph::authorities(), to_authorities(&[1, 2]));
         assert_eq!(Aleph::next_authorities(), to_authorities(&[2, 3, 4]));
 
         run_session(2);
 
-        let authorities = to_authorities(&[1, 2, 3]);
-        Aleph::update_authorities(&authorities, &authorities);
+        NextFinalityCommittee::<Test>::put(vec![1, 2, 3]);
+        let authorities = [1, 2, 3].iter().zip(to_authorities(&[1, 2, 3])).collect();
+        Aleph::update_authorities(authorities);
 
-        assert_eq!(Aleph::authorities(), to_authorities(&[1, 2, 3]));
+        assert_eq!(Aleph::authorities(), to_authorities(&[2, 3, 4]));
         assert_eq!(Aleph::next_authorities(), to_authorities(&[1, 2, 3]));
     })
 }
@@ -111,10 +113,11 @@ fn test_session_rotation() {
         initialize_session();
         run_session(1);
 
-        let new_validators = new_session_validators(&[3u64, 4u64]);
+        NextFinalityCommittee::<Test>::put(vec![5, 6]);
+        let new_validators = new_session_validators(&[1, 2]);
         let queued_validators = new_session_validators(&[5, 6]);
         Aleph::on_new_session(true, new_validators, queued_validators);
-        assert_eq!(Aleph::authorities(), to_authorities(&[3, 4]));
+        assert_eq!(Aleph::authorities(), to_authorities(&[1, 2]));
         assert_eq!(Aleph::next_authorities(), to_authorities(&[5, 6]));
     })
 }

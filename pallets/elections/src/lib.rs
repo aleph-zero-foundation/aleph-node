@@ -24,7 +24,7 @@ mod traits;
 
 use codec::{Decode, Encode};
 use frame_support::traits::StorageVersion;
-pub use migration::Migration as MigrateToV4;
+pub use migration::{v4::Migration as MigrateToV4, v5::Migration as CommitteeSizeMigration};
 pub use pallet::*;
 pub use primitives::EraValidators;
 use scale_info::TypeInfo;
@@ -35,7 +35,7 @@ use sp_std::{
 
 pub type TotalReward = u32;
 
-const STORAGE_VERSION: StorageVersion = StorageVersion::new(4);
+const STORAGE_VERSION: StorageVersion = StorageVersion::new(5);
 const LOG_TARGET: &str = "pallet-elections";
 
 #[derive(Decode, Encode, TypeInfo)]
@@ -215,6 +215,7 @@ pub mod pallet {
             let CommitteeSeats {
                 reserved_seats: reserved,
                 non_reserved_seats: non_reserved,
+                non_reserved_finality_seats: non_reserved_finality,
             } = committee_size;
             let reserved_len = reserved_validators.len() as u32;
             let non_reserved_len = non_reserved_validators.len() as u32;
@@ -222,6 +223,10 @@ pub mod pallet {
 
             let committee_size_all = reserved + non_reserved;
 
+            ensure!(
+                non_reserved_finality <= non_reserved,
+                Error::<T>::NonReservedFinalitySeatsLargerThanNonReservedSeats
+            );
             ensure!(
                 committee_size_all <= validators_size,
                 Error::<T>::NotEnoughValidators
@@ -266,6 +271,7 @@ pub mod pallet {
         NotEnoughReservedValidators,
         NotEnoughNonReservedValidators,
         NonUniqueListOfValidators,
+        NonReservedFinalitySeatsLargerThanNonReservedSeats,
     }
 
     impl<T: Config> ElectionProviderBase for Pallet<T> {

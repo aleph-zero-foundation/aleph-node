@@ -85,6 +85,7 @@ pub async fn era_validators() -> anyhow::Result<()> {
             Some(CommitteeSeats {
                 reserved_seats: 2,
                 non_reserved_seats: 2,
+                non_reserved_finality_seats: 2,
             }),
             TxStatus::InBlock,
         )
@@ -100,6 +101,7 @@ pub async fn era_validators() -> anyhow::Result<()> {
             Some(CommitteeSeats {
                 reserved_seats: 2,
                 non_reserved_seats: 2,
+                non_reserved_finality_seats: 2,
             }),
             TxStatus::InBlock,
         )

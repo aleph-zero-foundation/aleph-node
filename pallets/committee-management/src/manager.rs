@@ -1,12 +1,14 @@
 use frame_support::log::debug;
 use pallet_session::SessionManager;
-use primitives::EraManager;
+use primitives::{EraManager, FinalityCommitteeManager};
 use sp_staking::{EraIndex, SessionIndex};
 use sp_std::{marker::PhantomData, vec::Vec};
 
 use crate::{
+    impls::SessionCommittee,
     pallet::{Config, Pallet, SessionValidatorBlockCount},
     traits::EraInfoProvider,
+    LOG_TARGET,
 };
 
 /// We assume that block `B` ends session nr `S`, and current era index is `E`.
@@ -118,7 +120,14 @@ where
             Pallet::<C>::emit_fresh_bans_event();
         }
 
-        Pallet::<C>::rotate_committee(new_index)
+        let SessionCommittee {
+            finality_committee,
+            block_producers,
+        } = Pallet::<C>::rotate_committee(new_index)?;
+        // Notify about elected next session finality committee
+        C::FinalityCommitteeManager::on_next_session_finality_committee(finality_committee);
+
+        Some(block_producers)
     }
 
     fn end_session(end_index: SessionIndex) {
@@ -128,7 +137,11 @@ where
         // clear block count after calculating stats for underperforming validators, as they use
         // SessionValidatorBlockCount for that
         let result = SessionValidatorBlockCount::<C>::clear(u32::MAX, None);
-        debug!(target: "pallet_elections", "Result of clearing the `SessionValidatorBlockCount`, {:?}", result.deconstruct());
+        debug!(
+            target: LOG_TARGET,
+            "Result of clearing the `SessionValidatorBlockCount`, {:?}",
+            result.deconstruct()
+        );
     }
 
     fn start_session(start_index: SessionIndex) {

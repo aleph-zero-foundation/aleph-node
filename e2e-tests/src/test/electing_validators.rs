@@ -220,6 +220,7 @@ pub async fn authorities_are_staking() -> anyhow::Result<()> {
             Some(CommitteeSeats {
                 reserved_seats,
                 non_reserved_seats,
+                non_reserved_finality_seats: non_reserved_seats,
             }),
             TxStatus::Finalized,
         )

@@ -30,6 +30,7 @@ pub async fn validators_rotate() -> anyhow::Result<()> {
     let seats = CommitteeSeats {
         reserved_seats: 2,
         non_reserved_seats: 2,
+        non_reserved_finality_seats: 2,
     };
 
     root_connection

@@ -18,6 +18,7 @@ pub async fn change_validators(
                 .map(|s| CommitteeSeats {
                     reserved_seats: s.reserved_seats,
                     non_reserved_seats: s.non_reserved_seats,
+                    non_reserved_finality_seats: s.non_reserved_finality_seats,
                 }),
             TxStatus::Finalized,
         )

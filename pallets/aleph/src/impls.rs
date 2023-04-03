@@ -1,7 +1,9 @@
-use primitives::SessionIndex;
+use primitives::{FinalityCommitteeManager, SessionIndex};
 use sp_std::vec::Vec;
 
-use crate::{Config, Event, FinalityScheduledVersionChange, FinalityVersion, Pallet};
+use crate::{
+    Config, Event, FinalityScheduledVersionChange, FinalityVersion, NextFinalityCommittee, Pallet,
+};
 
 impl<T> pallet_session::SessionManager<T::AccountId> for Pallet<T>
 where
@@ -48,5 +50,11 @@ where
                 Self::deposit_event(Event::FinalityVersionChange(scheduled_version_change));
             }
         }
+    }
+}
+
+impl<T: Config> FinalityCommitteeManager<T::AccountId> for Pallet<T> {
+    fn on_next_session_finality_committee(committee: Vec<T::AccountId>) {
+        NextFinalityCommittee::<T>::put(committee);
     }
 }
