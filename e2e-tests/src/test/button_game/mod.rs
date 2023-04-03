@@ -350,8 +350,10 @@ pub async fn button_game_reset() -> Result<()> {
     ticket_token
         .transfer(&sign(&conn, &authority), &button.as_ref().into(), 1)
         .await?;
+    let button_balance = ticket_token
+        .balance_of(&conn, &button.as_ref().into())
+        .await?;
 
-    wait_for_death(&conn, &button).await?;
     button.reset(&sign(&conn, &authority)).await?;
 
     assert_recv_id(&mut events, "GameReset").await;
@@ -363,7 +365,7 @@ pub async fn button_game_reset() -> Result<()> {
         ticket_token
             .balance_of(&conn, &marketplace.as_ref().into())
             .await?
-            == marketplace_initial + 1
+            == marketplace_initial + button_balance
     );
 
     Ok(())
@@ -376,8 +378,11 @@ pub async fn early_bird_special() -> Result<()> {
     button_game_play(
         config,
         &config.test_case_params.early_bird_special,
-        |early_presser_score, late_presser_score| {
-            assert!(early_presser_score > late_presser_score);
+        |first_presser_time, first_presser_score, second_presser_time, second_presser_score| {
+            assert!(
+                first_presser_time.cmp(&second_presser_time)
+                    == first_presser_score.cmp(&second_presser_score).reverse()
+            );
         },
     )
     .await
@@ -390,8 +395,11 @@ pub async fn back_to_the_future() -> Result<()> {
     button_game_play(
         config,
         &config.test_case_params.back_to_the_future,
-        |early_presser_score, late_presser_score| {
-            assert!(early_presser_score < late_presser_score);
+        |first_presser_time, first_presser_score, second_presser_time, second_presser_score| {
+            assert!(
+                first_presser_time.cmp(&second_presser_time)
+                    == first_presser_score.cmp(&second_presser_score)
+            );
         },
     )
     .await
@@ -404,9 +412,9 @@ pub async fn the_pressiah_cometh() -> Result<()> {
     button_game_play(
         config,
         &config.test_case_params.the_pressiah_cometh,
-        |early_presser_score, late_presser_score| {
-            assert!(early_presser_score == 1);
-            assert!(late_presser_score == 2);
+        |_, first_presser_score, _, second_presser_score| {
+            assert!(first_presser_score == 1);
+            assert!(second_presser_score == 2);
         },
     )
     .await
@@ -424,7 +432,7 @@ pub async fn the_pressiah_cometh() -> Result<()> {
 ///
 /// Passes the scores received by an early presser and late presser to `score_check` so that different scoring rules
 /// can be tested generically.
-async fn button_game_play<F: Fn(u128, u128)>(
+async fn button_game_play<F: Fn(u128, u128, u128, u128)>(
     config: &Config,
     button_contract_address: &Option<String>,
     score_check: F,
@@ -478,15 +486,16 @@ async fn button_game_play<F: Fn(u128, u128)>(
     let event = assert_recv_id(&mut events, "ButtonPressed").await;
     let_assert!(Some(&Value::UInt(second_presser_score)) = event.data.get("score"));
     let_assert!(Some(&Value::UInt(second_press_at)) = event.data.get("when"));
-    let (early_presser_score, late_presser_score) =
-        if (first_press_at - reset_at) < (second_press_at - first_press_at) {
-            (first_presser_score, second_presser_score)
-        } else {
-            (second_presser_score, first_presser_score)
-        };
+    let first_presser_time = first_press_at - reset_at;
+    let second_presser_time = second_press_at - first_press_at;
 
-    score_check(early_presser_score, late_presser_score);
-    let total_score = early_presser_score + late_presser_score;
+    score_check(
+        first_presser_time,
+        first_presser_score,
+        second_presser_time,
+        second_presser_score,
+    );
+    let total_score = first_presser_score + second_presser_score;
     assert!(reward_token.balance_of(&conn, player.account_id()).await? == total_score);
 
     wait_for_death(&conn, &button).await?;

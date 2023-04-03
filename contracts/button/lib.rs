@@ -202,7 +202,7 @@ pub mod button_game {
             // or does not have enough balance
             self.transfer_ticket(caller, this, 1u128)?;
 
-            let score = self.score(now);
+            let score = self.score(now, self.deadline(), self.last_press, self.presses);
 
             // mints reward tokens to pay out the reward
             // contract needs to have a Minter role on the reward token contract
@@ -386,11 +386,17 @@ pub mod button_game {
             }
         }
 
-        fn score(&self, now: BlockNumber) -> Balance {
+        fn score(
+            &self,
+            now: BlockNumber,
+            deadline: BlockNumber,
+            last_press: BlockNumber,
+            presses: u128,
+        ) -> Balance {
             match self.scoring {
-                Scoring::EarlyBirdSpecial => self.deadline().saturating_sub(now) as Balance,
-                Scoring::BackToTheFuture => now.saturating_sub(self.last_press) as Balance,
-                Scoring::ThePressiahCometh => (self.presses + 1) as Balance,
+                Scoring::EarlyBirdSpecial => deadline.saturating_sub(now) as Balance,
+                Scoring::BackToTheFuture => now.saturating_sub(last_press) as Balance,
+                Scoring::ThePressiahCometh => (presses + 1) as Balance,
             }
         }
 
