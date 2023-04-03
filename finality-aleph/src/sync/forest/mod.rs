@@ -13,7 +13,6 @@ use crate::{
 
 mod vertex;
 
-pub use vertex::JustificationAddResult;
 use vertex::Vertex;
 
 pub struct JustificationWithParent<J: Justification> {
@@ -29,19 +28,24 @@ enum VertexHandle<'a, I: PeerId, J: Justification> {
     Candidate(OccupiedEntry<'a, BlockIdFor<J>, VertexWithChildren<I, J>>),
 }
 
-/// Our interest in a block referred to by a vertex,
+/// Our interest in a branch referred to by a vertex,
 /// including all the information required to prepare a request.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Interest<I: PeerId, J: Justification> {
-    /// We are not interested in this block.
+    /// We are not interested in this branch.
     Uninterested,
-    /// We would like to have this block.
+    /// We would like to have this branch.
     Required {
         know_most: HashSet<I>,
         branch_knowledge: BranchKnowledge<J>,
     },
-    /// We would like to have this block and its the highest on its branch.
+    /// We would like to have this branch, and we're not interrested in anything above.
     TopRequired {
+        know_most: HashSet<I>,
+        branch_knowledge: BranchKnowledge<J>,
+    },
+    /// We would like to have this branch ASAP.
+    HighestJustified {
         know_most: HashSet<I>,
         branch_knowledge: BranchKnowledge<J>,
     },
@@ -100,6 +104,7 @@ const MAX_DEPTH: u32 = 1800;
 pub struct Forest<I: PeerId, J: Justification> {
     vertices: HashMap<BlockIdFor<J>, VertexWithChildren<I, J>>,
     top_required: HashSet<BlockIdFor<J>>,
+    highest_justified: Option<BlockIdFor<J>>,
     justified_blocks: HashMap<u32, BlockIdFor<J>>,
     root_id: BlockIdFor<J>,
     root_children: HashSet<BlockIdFor<J>>,
@@ -111,6 +116,7 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
         Self {
             vertices: HashMap::new(),
             top_required: HashSet::new(),
+            highest_justified: None,
             justified_blocks: HashMap::new(),
             root_id: highest_justified,
             root_children: HashSet::new(),
@@ -285,35 +291,43 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
         }
     }
 
+    /// Updates the `highest_justified` if the given id is higher.
+    fn try_update_highest_justified(&mut self, id: BlockIdFor<J>) -> bool {
+        match &self.highest_justified {
+            Some(current_id) => match id.number() > current_id.number() {
+                true => {
+                    self.highest_justified = Some(id);
+                    true
+                }
+                false => false,
+            },
+            None => {
+                self.highest_justified = Some(id);
+                true
+            }
+        }
+    }
+
     /// Updates the provided justification.
-    /// Returns whether the vertex became a new top required.
+    /// Returns whether the vertex became the new highest justified header/block.
     pub fn update_justification(
         &mut self,
         justification: J,
         holder: Option<I>,
     ) -> Result<bool, Error> {
-        use JustificationAddResult::*;
         let (id, parent_id) = self.process_header(justification.header())?;
-        self.update_header(justification.header(), None, false)?;
-        match self.get_mut(&id) {
+        self.update_header(justification.header(), None, true)?;
+        Ok(match self.get_mut(&id) {
             VertexHandle::Candidate(mut entry) => {
                 let vertex = &mut entry.get_mut().vertex;
-                match vertex.insert_justification(parent_id.clone(), justification, holder) {
-                    Noop => Ok(false),
-                    Required => {
-                        self.top_required.insert(id.clone());
-                        self.set_required(&parent_id);
-                        Ok(true)
-                    }
-                    Finalizable => {
-                        self.top_required.remove(&id);
-                        self.justified_blocks.insert(id.number(), id.clone());
-                        Ok(false)
-                    }
+                vertex.insert_justification(parent_id, justification, holder);
+                if vertex.justified_block() {
+                    self.justified_blocks.insert(id.number(), id.clone());
                 }
+                self.try_update_highest_justified(id.clone())
             }
-            _ => Ok(false),
-        }
+            _ => false,
+        })
     }
 
     fn prune_level(&mut self, level: u32) {
@@ -332,11 +346,10 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
 
     /// Attempt to finalize one block, returns the correct justification if successful.
     pub fn try_finalize(&mut self, number: &u32) -> Option<J> {
-        // cached as ready
         if let Some(id) = self.justified_blocks.get(number) {
             if let Some(VertexWithChildren { vertex, children }) = self.vertices.remove(id) {
                 match vertex.ready() {
-                    // ready indeed
+                    // should always match, as the id is taken from self.justified_blocks
                     Ok(justification) => {
                         self.root_id = id.clone();
                         self.root_children = children;
@@ -346,6 +359,10 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
                     Err(_vertex) => panic!("Block sync justified_blocks cache corrupted, please restart the Node and contact the developers"),
                 }
             }
+        }
+        // update highest justified if the new root isn't below it
+        if matches!(&self.highest_justified, Some(id) if id.number() <= self.root_id.number()) {
+            self.highest_justified = None;
         }
         None
     }
@@ -392,11 +409,11 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
         use VertexHandle::Candidate;
         match self.get_mut(id) {
             Candidate(entry) => {
-                // request only required blocks
-                if !&entry.get().vertex.required() {
+                let know_most = entry.get().vertex.know_most().clone();
+                // request only required blocks, or the highest_justified block/header
+                if !(entry.get().vertex.required() || Some(id) == self.highest_justified.as_ref()) {
                     return None;
                 }
-                let know_most = entry.get().vertex.know_most().clone();
                 // should always return Some, as the branch of a Candidate always exists
                 self.branch_knowledge(id.clone())
                     .map(|branch_knowledge| (know_most, branch_knowledge))
@@ -409,16 +426,24 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
     /// How much interest we have for the block.
     pub fn state(&mut self, id: &BlockIdFor<J>) -> Interest<I, J> {
         match self.prepare_request_info(id) {
-            Some((know_most, branch_knowledge)) => match self.top_required.contains(id) {
-                true => Interest::TopRequired {
-                    know_most,
-                    branch_knowledge,
-                },
-                false => Interest::Required {
-                    know_most,
-                    branch_knowledge,
-                },
-            },
+            Some((know_most, branch_knowledge)) => {
+                if self.highest_justified.as_ref() == Some(id) {
+                    return Interest::HighestJustified {
+                        know_most,
+                        branch_knowledge,
+                    };
+                }
+                match self.top_required.contains(id) {
+                    true => Interest::TopRequired {
+                        know_most,
+                        branch_knowledge,
+                    },
+                    false => Interest::Required {
+                        know_most,
+                        branch_knowledge,
+                    },
+                }
+            }
             None => Interest::Uninterested,
         }
     }
@@ -543,7 +568,7 @@ mod tests {
             .expect("header was correct"));
         assert!(forest.try_finalize(&1).is_none());
         match forest.state(&child.header().id()) {
-            TopRequired { know_most, .. } => assert!(know_most.contains(&peer_id)),
+            HighestJustified { know_most, .. } => assert!(know_most.contains(&peer_id)),
             other_state => panic!("Expected top required, got {:?}.", other_state),
         }
     }
@@ -595,13 +620,78 @@ mod tests {
             .expect("header was correct"));
         assert!(forest.try_finalize(&1).is_none());
         match forest.state(&child.header().id()) {
-            TopRequired { know_most, .. } => assert!(know_most.contains(&peer_id)),
+            HighestJustified { know_most, .. } => assert!(know_most.contains(&peer_id)),
             other_state => panic!("Expected top required, got {:?}.", other_state),
         }
         forest
             .update_body(child.header())
             .expect("header was correct");
         assert_eq!(forest.try_finalize(&1).expect("the block is ready"), child);
+    }
+
+    #[test]
+    fn top_required_becomes_highest_finalized() {
+        let (initial_header, mut forest) = setup();
+        let child = MockJustification::for_header(initial_header.random_child());
+        let peer_id = rand::random();
+        assert!(
+            forest
+                .update_header(child.header(), Some(peer_id), true)
+                .expect("header was correct"),
+            "should become top required"
+        );
+        assert!(
+            forest
+                .update_justification(child.clone(), Some(peer_id))
+                .expect("header was correct"),
+            "should become highest justified"
+        );
+    }
+
+    #[test]
+    fn required_becomes_highest_finalized() {
+        let (initial_header, mut forest) = setup();
+        let child = MockJustification::for_header(initial_header.random_child());
+        let grandchild = child.header().random_child();
+        let peer_id = rand::random();
+        assert!(
+            !forest
+                .update_header(child.header(), Some(peer_id), false)
+                .expect("header was correct"),
+            "should not become top required"
+        );
+        assert!(
+            forest
+                .update_header(&grandchild, Some(peer_id), true)
+                .expect("header was correct"),
+            "should not become top required"
+        );
+        assert!(
+            forest
+                .update_justification(child.clone(), Some(peer_id))
+                .expect("header was correct"),
+            "should become highest justified"
+        );
+    }
+
+    #[test]
+    fn ancestor_does_not_become_highest_finalized() {
+        let (initial_header, mut forest) = setup();
+        let child = MockJustification::for_header(initial_header.random_child());
+        let grandchild = MockJustification::for_header(child.header().random_child());
+        let peer_id = rand::random();
+        assert!(
+            forest
+                .update_justification(grandchild, Some(peer_id))
+                .expect("header was correct"),
+            "should become highest justified"
+        );
+        assert!(
+            !forest
+                .update_justification(child, Some(peer_id))
+                .expect("header was correct"),
+            "should not become highest justified"
+        );
     }
 
     #[test]
@@ -778,7 +868,7 @@ mod tests {
                 .update_justification(justification.clone(), Some(peer_id))
                 .expect("header was correct"));
             match forest.state(&justification.header().id()) {
-                TopRequired { know_most, .. } => assert!(know_most.contains(&peer_id)),
+                HighestJustified { know_most, .. } => assert!(know_most.contains(&peer_id)),
                 other_state => panic!("Expected top required, got {:?}.", other_state),
             }
             forest
@@ -811,7 +901,7 @@ mod tests {
                     .update_justification(justification.clone(), Some(peer_id))
                     .expect("header was correct"));
                 match forest.state(&justification.header().id()) {
-                    TopRequired { know_most, .. } => assert!(know_most.contains(&peer_id)),
+                    HighestJustified { know_most, .. } => assert!(know_most.contains(&peer_id)),
                     other_state => panic!("Expected top required, got {:?}.", other_state),
                 }
             }
@@ -858,7 +948,7 @@ mod tests {
             .expect("header was correct"));
         assert!(forest.try_finalize(&1).is_none());
         match forest.state(&child.header().id()) {
-            TopRequired { know_most, .. } => assert!(know_most.contains(&peer_id)),
+            HighestJustified { know_most, .. } => assert!(know_most.contains(&peer_id)),
             other_state => panic!("Expected top required, got {:?}.", other_state),
         }
         forest
