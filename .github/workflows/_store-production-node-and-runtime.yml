@@ -56,11 +56,11 @@ jobs:
           env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' &&
           env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
         with:
-          binary-dir: target/production
-          binary-file: aleph-node
+          source-path: target/production
+          source-filename: aleph-node
           # yamllint disable-line rule:line-length
           s3-bucket-path: builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-node
-          s3-bucket-file: aleph-node-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
+          s3-bucket-filename: aleph-node-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
           s3-bucket-name: ${{ secrets.CI_MAINNET_S3BUCKET_NAME }}
 
       - name: Copy production runtime to S3 Mainnet AWS bucket
@@ -69,9 +69,9 @@ jobs:
           env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
         uses: ./.github/actions/copy-file-to-s3
         with:
-          binary-dir: target/production/wbuild/aleph-runtime
-          binary-file: aleph_runtime.compact.wasm
+          source-path: target/production/wbuild/aleph-runtime
+          source-filename: aleph_runtime.compact.wasm
           # yamllint disable-line rule:line-length
           s3-bucket-path: builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-runtime
-          s3-bucket-file: aleph-runtime-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
+          s3-bucket-filename: aleph-runtime-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
           s3-bucket-name: ${{ secrets.CI_MAINNET_S3BUCKET_NAME }}
