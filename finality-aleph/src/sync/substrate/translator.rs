@@ -14,6 +14,7 @@ use crate::{
     },
 };
 
+#[derive(Debug)]
 pub enum Error<B: Block> {
     ChainStatus(ChainStatusError<B>),
     NoBlock,

@@ -15,11 +15,6 @@ mod vertex;
 
 use vertex::Vertex;
 
-pub struct JustificationWithParent<J: Justification> {
-    pub justification: J,
-    pub parent: BlockIdFor<J>,
-}
-
 enum VertexHandle<'a, I: PeerId, J: Justification> {
     HopelessFork,
     BelowMinimal,
@@ -104,7 +99,7 @@ const MAX_DEPTH: u32 = 1800;
 pub struct Forest<I: PeerId, J: Justification> {
     vertices: HashMap<BlockIdFor<J>, VertexWithChildren<I, J>>,
     top_required: HashSet<BlockIdFor<J>>,
-    highest_justified: Option<BlockIdFor<J>>,
+    highest_justified: BlockIdFor<J>,
     justified_blocks: HashMap<u32, BlockIdFor<J>>,
     root_id: BlockIdFor<J>,
     root_children: HashSet<BlockIdFor<J>>,
@@ -113,12 +108,13 @@ pub struct Forest<I: PeerId, J: Justification> {
 
 impl<I: PeerId, J: Justification> Forest<I, J> {
     pub fn new(highest_justified: BlockIdFor<J>) -> Self {
+        let root_id = highest_justified.clone();
         Self {
             vertices: HashMap::new(),
             top_required: HashSet::new(),
-            highest_justified: None,
+            highest_justified,
             justified_blocks: HashMap::new(),
-            root_id: highest_justified,
+            root_id,
             root_children: HashSet::new(),
             compost_bin: HashSet::new(),
         }
@@ -136,16 +132,6 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
             match self.vertices.entry(id.clone()) {
                 Entry::Occupied(entry) => Candidate(entry),
                 Entry::Vacant(entry) => Unknown(entry),
-            }
-        }
-    }
-
-    fn prune(&mut self, id: &BlockIdFor<J>) {
-        self.top_required.remove(id);
-        if let Some(VertexWithChildren { children, .. }) = self.vertices.remove(id) {
-            self.compost_bin.insert(id.clone());
-            for child in children {
-                self.prune(&child);
             }
         }
     }
@@ -285,6 +271,7 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
                 if vertex.justified_block() {
                     self.justified_blocks.insert(id.number(), id.clone());
                 }
+                self.top_required.remove(&id);
                 Ok(())
             }
             _ => Err(Error::IncorrectVertexState),
@@ -293,18 +280,12 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
 
     /// Updates the `highest_justified` if the given id is higher.
     fn try_update_highest_justified(&mut self, id: BlockIdFor<J>) -> bool {
-        match &self.highest_justified {
-            Some(current_id) => match id.number() > current_id.number() {
-                true => {
-                    self.highest_justified = Some(id);
-                    true
-                }
-                false => false,
-            },
-            None => {
-                self.highest_justified = Some(id);
+        match id.number() > self.highest_justified.number() {
+            true => {
+                self.highest_justified = id;
                 true
             }
+            false => false,
         }
     }
 
@@ -315,8 +296,13 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
         justification: J,
         holder: Option<I>,
     ) -> Result<bool, Error> {
-        let (id, parent_id) = self.process_header(justification.header())?;
-        self.update_header(justification.header(), None, true)?;
+        let header = justification.header();
+        if header.id().number() == 0 {
+            // this is the genesis block
+            return Ok(false);
+        }
+        let (id, parent_id) = self.process_header(header)?;
+        self.update_header(header, None, false)?;
         Ok(match self.get_mut(&id) {
             VertexHandle::Candidate(mut entry) => {
                 let vertex = &mut entry.get_mut().vertex;
@@ -328,6 +314,16 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
             }
             _ => false,
         })
+    }
+
+    fn prune(&mut self, id: &BlockIdFor<J>) {
+        self.top_required.remove(id);
+        if let Some(VertexWithChildren { children, .. }) = self.vertices.remove(id) {
+            self.compost_bin.insert(id.clone());
+            for child in children {
+                self.prune(&child);
+            }
+        }
     }
 
     fn prune_level(&mut self, level: u32) {
@@ -359,10 +355,6 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
                     Err(_vertex) => panic!("Block sync justified_blocks cache corrupted, please restart the Node and contact the developers"),
                 }
             }
-        }
-        // update highest justified if the new root isn't below it
-        if matches!(&self.highest_justified, Some(id) if id.number() <= self.root_id.number()) {
-            self.highest_justified = None;
         }
         None
     }
@@ -400,8 +392,8 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
         }
     }
 
-    /// Prepare additional info required to create a request for the block.
-    /// Returns `None` if we're not interested in the block.
+    /// Prepare additional info required to create a request for the branch.
+    /// Returns `None` if we're not interested in the branch.
     fn prepare_request_info(
         &mut self,
         id: &BlockIdFor<J>,
@@ -411,7 +403,7 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
             Candidate(entry) => {
                 let know_most = entry.get().vertex.know_most().clone();
                 // request only required blocks, or the highest_justified block/header
-                if !(entry.get().vertex.required() || Some(id) == self.highest_justified.as_ref()) {
+                if !(entry.get().vertex.required() || id == &self.highest_justified) {
                     return None;
                 }
                 // should always return Some, as the branch of a Candidate always exists
@@ -427,7 +419,7 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
     pub fn state(&mut self, id: &BlockIdFor<J>) -> Interest<I, J> {
         match self.prepare_request_info(id) {
             Some((know_most, branch_knowledge)) => {
-                if self.highest_justified.as_ref() == Some(id) {
+                if &self.highest_justified == id {
                     return Interest::HighestJustified {
                         know_most,
                         branch_knowledge,
@@ -571,6 +563,17 @@ mod tests {
             HighestJustified { know_most, .. } => assert!(know_most.contains(&peer_id)),
             other_state => panic!("Expected top required, got {:?}.", other_state),
         }
+    }
+
+    #[test]
+    fn ignores_genesis_justification() {
+        let (_, mut forest) = setup();
+        let parentless = MockJustification::for_header(MockHeader::random_parentless(0));
+        let peer_id = rand::random();
+        assert!(matches!(
+            forest.update_justification(parentless, Some(peer_id)),
+            Ok(false)
+        ));
     }
 
     #[test]

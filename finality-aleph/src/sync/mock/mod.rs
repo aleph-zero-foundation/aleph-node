@@ -4,7 +4,7 @@ use codec::{Decode, Encode};
 use sp_core::H256;
 
 use crate::{
-    sync::{BlockStatus, ChainStatusNotification, Header, Justification as JustificationT},
+    sync::{ChainStatusNotification, Header, Justification as JustificationT},
     BlockIdentifier,
 };
 
@@ -49,10 +49,6 @@ pub struct MockHeader {
 }
 
 impl MockHeader {
-    fn new(id: MockIdentifier, parent: Option<MockIdentifier>) -> Self {
-        MockHeader { id, parent }
-    }
-
     pub fn random_parentless(number: MockNumber) -> Self {
         let id = MockIdentifier::new_random(number);
         MockHeader { id, parent: None }
@@ -110,13 +106,6 @@ impl MockJustification {
             is_correct: true,
         }
     }
-
-    pub fn for_header_incorrect(header: MockHeader) -> Self {
-        Self {
-            header,
-            is_correct: false,
-        }
-    }
 }
 
 impl Header for MockJustification {
@@ -145,4 +134,3 @@ impl JustificationT for MockJustification {
 }
 
 type MockNotification = ChainStatusNotification<MockHeader>;
-type MockBlockStatus = BlockStatus<MockJustification>;

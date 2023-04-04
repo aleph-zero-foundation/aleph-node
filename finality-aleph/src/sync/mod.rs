@@ -1,6 +1,7 @@
 use std::{
     fmt::{Debug, Display},
     hash::Hash,
+    marker::Send,
 };
 
 use codec::Codec;
@@ -11,11 +12,15 @@ mod handler;
 #[cfg(test)]
 mod mock;
 mod service;
-mod substrate;
+pub mod substrate;
 mod task_queue;
 mod ticker;
 
-pub use substrate::SessionVerifier;
+pub use service::Service;
+pub use substrate::{
+    Justification as SubstrateJustification, JustificationTranslator, SessionVerifier,
+    SubstrateChainStatus, SubstrateChainStatusNotifier, SubstrateFinalizationInfo, VerifierCache,
+};
 
 use crate::BlockIdentifier;
 
@@ -44,7 +49,7 @@ pub trait Header: Clone + Codec + Send + Sync + 'static {
 }
 
 /// The verified justification of a block, including a header.
-pub trait Justification: Clone + Send + Sync + 'static {
+pub trait Justification: Clone + Send + Sync + Debug + 'static {
     type Header: Header;
     /// The implementation has to behave as if the header here is identical to the one returned by
     /// the `header` method after successful verification.
@@ -107,7 +112,7 @@ pub enum BlockStatus<J: Justification> {
 }
 
 /// The knowledge about the chain status.
-pub trait ChainStatus<J: Justification> {
+pub trait ChainStatus<J: Justification>: Clone + Send + Sync + 'static {
     type Error: Display;
 
     /// The status of the block.

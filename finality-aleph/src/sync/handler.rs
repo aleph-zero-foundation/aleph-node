@@ -1,6 +1,6 @@
 use std::{
     collections::VecDeque,
-    fmt::{Display, Error as FmtError, Formatter},
+    fmt::{Debug, Display, Error as FmtError, Formatter},
 };
 
 use log::warn;
@@ -41,10 +41,6 @@ pub enum SyncAction<J: Justification> {
 }
 
 impl<J: Justification> SyncAction<J> {
-    fn noop() -> Self {
-        SyncAction::Noop
-    }
-
     fn state_broadcast_response(
         justification: J::Unverified,
         other_justification: Option<J::Unverified>,
@@ -57,10 +53,6 @@ impl<J: Justification> SyncAction<J> {
 
     fn request_response(justifications: Vec<J::Unverified>) -> Self {
         SyncAction::Response(NetworkData::RequestResponse(justifications))
-    }
-
-    fn task(id: BlockIdFor<J>) -> Self {
-        SyncAction::Task(id)
     }
 }
 
@@ -128,8 +120,7 @@ impl<I: PeerId, J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finaliz
         Ok(handler)
     }
 
-    /// TODO: Remove after completing the sync rewrite.
-    /// Move the code to `Self::new` to initialize the `Forest` properly.
+    // TODO(A0-1758): Move the code to `Self::new` to initialize the `Forest` properly.
     pub fn refresh_forest(&mut self) -> Result<(), Error<J, CS, V, F>> {
         let top_finalized = self
             .chain_status

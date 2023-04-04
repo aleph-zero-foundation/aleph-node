@@ -42,7 +42,7 @@ impl<B> SubstrateChainStatusNotifier<B>
 where
     B: BlockT,
 {
-    fn new(
+    pub fn new(
         finality_notifications: FinalityNotifications<B>,
         import_notifications: ImportNotifications<B>,
     ) -> Self {

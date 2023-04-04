@@ -45,7 +45,6 @@ struct BackendStorage {
     blockchain: HashMap<MockIdentifier, MockBlock>,
     finalized: Vec<MockIdentifier>,
     best_block: MockIdentifier,
-    genesis_block: MockIdentifier,
 }
 
 #[derive(Clone, Debug)]
@@ -98,8 +97,7 @@ impl Backend {
             session_period,
             blockchain: HashMap::from([(id.clone(), block)]),
             finalized: vec![id.clone()],
-            best_block: id.clone(),
-            genesis_block: id,
+            best_block: id,
         }));
 
         Self {

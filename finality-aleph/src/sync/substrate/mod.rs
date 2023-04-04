@@ -1,5 +1,5 @@
 use std::{
-    fmt::Display,
+    fmt::{Debug, Display},
     hash::{Hash, Hasher},
 };
 
@@ -18,7 +18,10 @@ mod status_notifier;
 mod translator;
 mod verification;
 
-pub use verification::SessionVerifier;
+pub use chain_status::SubstrateChainStatus;
+pub use status_notifier::SubstrateChainStatusNotifier;
+pub use translator::Error as TranslateError;
+pub use verification::{SessionVerifier, SubstrateFinalizationInfo, VerifierCache};
 
 /// An identifier uniquely specifying a block and its height.
 #[derive(Clone, Debug, PartialEq, Eq, Encode, Decode)]
@@ -126,8 +129,8 @@ impl<H: SubstrateHeader<Number = BlockNumber>> JustificationT for Justification<
 }
 
 /// Translates raw aleph justifications into ones acceptable to sync.
-pub trait JustificationTranslator<H: SubstrateHeader<Number = BlockNumber>> {
-    type Error: Display;
+pub trait JustificationTranslator<H: SubstrateHeader<Number = BlockNumber>>: Send + Sync {
+    type Error: Display + Debug;
 
     fn translate(
         &self,
