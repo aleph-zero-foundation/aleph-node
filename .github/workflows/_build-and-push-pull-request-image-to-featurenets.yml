@@ -1,0 +1,50 @@
+---
+#  This workflow builds aleph-node docker image from pull request commit
+#  and pushes it to featurenet registry.
+name: Build and push PR image to featurenets
+on:
+  workflow_call:
+
+jobs:
+  main:
+    name: Build and push image
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout aleph-node
+        uses: actions/checkout@v3
+
+      - name: Call action get-ref-properties
+        id: get-ref-properties
+        uses: ./.github/actions/get-ref-properties
+
+      - name: Download artifact with built aleph-node binary from PR
+        uses: actions/download-artifact@v3
+        with:
+          name: aleph-release-node
+          path: target/release/
+
+      - name: Build docker image with PR aleph-node binary
+        env:
+          # yamllint disable-line rule:line-length
+          IMAGE_TAG: fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo-with-sha }}
+        run: |
+          chmod +x target/release/aleph-node
+          ls -alh target/release/
+          ls -alh ./docker/
+          docker build \
+            --tag ${{ vars.ECR_PUBLIC_REGISTRY }}feature-env-aleph-node:${{ env.IMAGE_TAG }} \
+            -f ./docker/Dockerfile .
+
+      - name: Login to ECR
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.ECR_PUBLIC_HOST }}
+          username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+          password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+
+      - name: Push image to the featurenet registry
+        env:
+          # yamllint disable-line rule:line-length
+          IMAGE_TAG: fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo-with-sha }}
+        run: |
+          docker push ${{ vars.ECR_PUBLIC_REGISTRY }}feature-env-aleph-node:${{ env.IMAGE_TAG }}

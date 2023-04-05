@@ -1,0 +1,83 @@
+---
+name: Delete featurenet
+description: Deletes featurenet
+
+inputs:
+  gh-ci-token:
+    description: 'GH token to be used in the action'
+    required: true
+  repo-apps-name:
+    description: 'Name of the repository containing apps definitions'
+    required: true
+  aws-access-key-id:
+    description: 'AWS Access Key ID to be used in the action'
+    required: true
+  aws-secret-access-key:
+    description: 'AWS Secret Access Key to be used in the action'
+    required: true
+  featurenet-keys-s3bucket-name:
+    description: 'S3 bucket name with featurenet keys'
+    required: true
+  argo-host:
+    description: 'ArgoCD host'
+    required: true
+  argo-sync-user-token:
+    description: 'ArgoCD user token to be used in the action'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Get branch name and commit SHA
+      id: get-ref-properties
+      uses: ./.github/actions/get-ref-properties
+
+    - name: Checkout argocd apps repo
+      uses: actions/checkout@v3
+      with:
+        repository: Cardinal-Cryptography/${{ inputs.repo-apps-name }}
+        token: ${{ inputs.gh-ci-token }}
+        path: "${{ inputs.repo-apps-name }}"
+        ref: main
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      env:
+        AWS_REGION: us-east-1
+      with:
+        aws-access-key-id: ${{ inputs.aws-access-key-id }}
+        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Destroy feature branch
+      shell: bash
+      run: |
+        cd "${{ inputs.repo-apps-name }}"
+        ./Ops.sh delete-featurenet \
+          "fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo }}"
+
+    - name: Commit deletion of the feature environment.
+      uses: EndBug/add-and-commit@v9.1.1
+      env:
+        APP_NAME: fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo }}
+      with:
+        author_name: AlephZero Automation
+        author_email: alephzero@10clouds.com
+        message: "Delete featurenet ${{ env.APP_NAME }}"
+        add: "*.yaml"
+        cwd: "${{ inputs.repo-apps-name }}"
+
+    - name: Refresh Argo and wait for the deletion to be finished
+      shell: bash
+      run: |
+        cd "${{ inputs.repo-apps-name }}"
+        ./Ops.sh refresh-featurenets "${{ inputs.argo-host }}" \
+          "${{ inputs.argo-sync-user-token }}"
+
+    - name: Clean S3 storage
+      shell: bash
+      env:
+        APP_NAME: ${{ steps.get-ref-properties.outputs.branch-name-for-argo }}
+      run: |
+        aws s3 rm --recursive \
+          s3://${{ inputs.featurenet-keys-s3bucket-name }}/fe-${{ env.APP_NAME }}

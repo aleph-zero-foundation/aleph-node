@@ -1,0 +1,101 @@
+---
+name: Build featurenet chainspec
+description: Builds chainspec for featurenet
+
+inputs:
+  base-net:
+    description: "Base network to use, either 'testnet' or 'mainnet'"
+    required: true
+  ecr-public-registry:
+    description: "ECR public registry, with slash at the end, eg. 'public.ecr.aws/something/'"
+    required: true
+  aws-access-key-id:
+    description: 'AWS Access Key ID to be used in the action'
+    required: true
+  aws-secret-access-key:
+    description: 'AWS Secret Access Key to be used in the action'
+    required: true
+  featurenet-keys-s3bucket-name:
+    description: 'S3 bucket name with featurenet keys'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Get branch name and commit SHA
+      id: get-ref-properties
+      uses: ./.github/actions/get-ref-properties
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ inputs.aws-access-key-id }}
+        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+        aws-region: us-east-1
+
+    - name: Get aleph-node image tag from testnet
+      if: inputs.base-net == 'testnet'
+      shell: bash
+      run: |
+        COMMIT_ID=$(curl -s -H "Content-Type: application/json" \
+          -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' https://rpc.test.azero.dev \
+          | jq -r '.result' | cut -d "-" -f 2 | head -c 7)
+        echo $COMMIT_ID
+        echo "ALEPH_NODE_IMAGE=${{ inputs.ecr-public-registry }}aleph-node:$COMMIT_ID" \
+          >> $GITHUB_ENV
+
+    - name: Get aleph-node image tag from mainnet
+      if: inputs.base-net == 'mainnet'
+      shell: bash
+      run: |
+        SYSTEM_VERSION=$(curl -s -H "Content-Type: application/json" \
+          -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' https://rpc.azero.dev \
+          | jq -r '.result')
+        SUFFIX="-x86_64-linux-gnu"
+        LONG_COMMIT_ID=${SYSTEM_VERSION/%$SUFFIX}
+        COMMIT_ID=${LONG_COMMIT_ID: -7}
+        echo $COMMIT_ID
+        echo "ALEPH_NODE_IMAGE=${{ inputs.ecr-public-registry }}aleph-node:$COMMIT_ID" \
+          >> $GITHUB_ENV
+
+    - name: Generate data dir
+      shell: bash
+      run: |
+        # sync all validator's keystores from S3
+        aws s3 cp s3://${{ inputs.featurenet-keys-s3bucket-name }}/data data --recursive
+
+        # rename validator paths
+        declare -A \
+          NAMES=([aleph-node-validator-0]=5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY \
+          [aleph-node-validator-1]=5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty \
+          [aleph-node-validator-2]=5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y \
+          [aleph-node-validator-3]=5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy \
+          [aleph-node-validator-4]=5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw)
+
+        for NAME in "${!NAMES[@]}"; do
+          mv -v data/$NAME data/${NAMES[$NAME]}
+        done
+
+    - name: Generate chainspec
+      shell: bash
+      # yamllint disable rule:line-length
+      run: |
+        docker run -v $(pwd)/data:/data --env RUST_BACKTRACE=1 \
+          --entrypoint "/usr/local/bin/aleph-node" $ALEPH_NODE_IMAGE bootstrap-chain --raw \
+          --base-path /data --chain-id a0fenet \
+          --account-ids 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y,5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy,5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw \
+          --sudo-account-id 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY > chainspec.json
+      # yamllint enable rule:line-length
+
+    - name: Save data to S3 bucket
+      shell: bash
+      # yamllint disable rule:line-length
+      run: |
+        aws s3 cp \
+          chainspec.json \
+          s3://${{ inputs.featurenet-keys-s3bucket-name }}/fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo }}/chainspec.json
+        aws s3 cp \
+          s3://${{ inputs.featurenet-keys-s3bucket-name }}/data/ \
+          s3://${{ inputs.featurenet-keys-s3bucket-name }}/fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo }}/data/ \
+          --recursive
+      # yamllint enable rule:line-length
