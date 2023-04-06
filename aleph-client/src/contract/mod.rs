@@ -50,7 +50,7 @@ use std::fmt::{Debug, Formatter};
 use anyhow::{anyhow, Context, Result};
 use contract_transcode::ContractMessageTranscoder;
 pub use convertible_value::ConvertibleValue;
-use log::{error, info};
+use log::info;
 use pallet_contracts_primitives::ContractExecResult;
 
 use crate::{
@@ -252,11 +252,11 @@ impl ContractInstance {
             );
         }
 
+        // For dry run, failed transactions don't return `Err` but `Ok(_)`
+        // and we have to inspect flags manually.
         if let Ok(res) = &contract_read_result.result {
             if res.did_revert() {
-                // For dry run, failed transactions don't return `Err` but `Ok(_)`
-                // and we have to inspect flags manually.
-                error!("Dry-run call reverted");
+                return Err(anyhow!("Dry-run call reverted"));
             }
         }
 
