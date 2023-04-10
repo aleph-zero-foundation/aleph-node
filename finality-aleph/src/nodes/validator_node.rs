@@ -4,7 +4,7 @@ use aleph_primitives::BlockNumber;
 use bip39::{Language, Mnemonic, MnemonicType};
 use futures::channel::oneshot;
 use log::{debug, error};
-use network_clique::Service;
+use network_clique::{Service, SpawnHandleT};
 use sc_client_api::Backend;
 use sc_network_common::ExHashT;
 use sp_consensus::SelectChain;
@@ -90,7 +90,7 @@ where
         spawn_handle.clone(),
     );
     let (_validator_network_exit, exit) = oneshot::channel();
-    spawn_handle.spawn("aleph/validator_network", None, async move {
+    spawn_handle.spawn("aleph/validator_network", async move {
         debug!(target: "aleph-party", "Validator network has started.");
         validator_network_service.run(exit).await
     });
@@ -108,7 +108,7 @@ where
         session_period,
     );
     let session_authorities = map_updater.readonly_session_map();
-    spawn_handle.spawn("aleph/updater", None, async move {
+    spawn_handle.spawn("aleph/updater", async move {
         debug!(target: "aleph-party", "SessionMapUpdater has started.");
         map_updater.run().await
     });
@@ -138,11 +138,11 @@ where
         }
     };
 
-    spawn_handle.spawn("aleph/justification_handler", None, handler_task);
+    spawn_handle.spawn("aleph/justification_handler", handler_task);
     debug!(target: "aleph-party", "JustificationHandler has started.");
 
-    spawn_handle.spawn("aleph/connection_manager", None, connection_manager_task);
-    spawn_handle.spawn("aleph/gossip_network", None, gossip_network_task);
+    spawn_handle.spawn("aleph/connection_manager", connection_manager_task);
+    spawn_handle.spawn("aleph/gossip_network", gossip_network_task);
     debug!(target: "aleph-party", "Gossip network has started.");
 
     let party = ConsensusParty::new(ConsensusPartyParams {
@@ -161,7 +161,7 @@ where
             authority_justification_tx,
             block_requester,
             metrics,
-            spawn_handle.into(),
+            spawn_handle,
             connection_manager,
             keystore,
         ),

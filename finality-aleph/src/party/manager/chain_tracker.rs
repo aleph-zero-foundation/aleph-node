@@ -1,12 +1,12 @@
 use aleph_primitives::BlockNumber;
 use futures::channel::oneshot;
 use log::debug;
+use network_clique::SpawnHandleT;
 use sc_client_api::HeaderBackend;
 use sp_consensus::SelectChain;
 use sp_runtime::traits::{Block, Header};
 
 use crate::{
-    abft::SpawnHandleT,
     data_io::ChainTracker,
     party::{AuthoritySubtaskCommon, Task},
 };

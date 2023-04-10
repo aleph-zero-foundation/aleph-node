@@ -398,7 +398,7 @@ pub fn new_authority(
         select_chain,
         session_period,
         millisecs_per_block,
-        spawn_handle: task_manager.spawn_handle(),
+        spawn_handle: task_manager.spawn_handle().into(),
         keystore: keystore_container.keystore(),
         justification_rx,
         metrics,

@@ -19,7 +19,7 @@ mod service;
 mod testing;
 
 pub use crypto::{PublicKey, SecretKey};
-pub use service::Service;
+pub use service::{Service, SpawnHandleT};
 
 const LOG_TARGET: &str = "network-clique";
 /// A basic alias for properties we expect basic data to satisfy.

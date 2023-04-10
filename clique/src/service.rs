@@ -1,11 +1,10 @@
-use std::{fmt::Debug, time::Duration};
+use std::{fmt::Debug, pin::Pin, time::Duration};
 
 use futures::{
     channel::{mpsc, oneshot},
-    StreamExt,
+    Future, StreamExt,
 };
 use log::{info, trace, warn};
-use sc_service::SpawnTaskHandle;
 use tokio::time;
 
 use crate::{
@@ -71,8 +70,21 @@ impl<PK: PublicKey, D: Data, A: Data> Network<PK, A, D> for ServiceInterface<PK,
     }
 }
 
+/// Trait abstracting spawning tasks
+pub trait SpawnHandleT {
+    /// Run task
+    fn spawn(&self, name: &'static str, task: impl Future<Output = ()> + Send + 'static);
+
+    /// Run an essential task
+    fn spawn_essential(
+        &self,
+        name: &'static str,
+        task: impl Future<Output = ()> + Send + 'static,
+    ) -> Pin<Box<dyn Future<Output = Result<(), ()>> + Send>>;
+}
+
 /// A service that has to be run for the clique network to work.
-pub struct Service<SK: SecretKey, D: Data, A: Data, ND: Dialer<A>, NL: Listener>
+pub struct Service<SK: SecretKey, D: Data, A: Data, ND: Dialer<A>, NL: Listener, SH: SpawnHandleT>
 where
     SK::PublicKey: PeerId,
 {
@@ -81,11 +93,12 @@ where
     manager: Manager<SK::PublicKey, A, D>,
     dialer: ND,
     listener: NL,
-    spawn_handle: SpawnTaskHandle,
+    spawn_handle: SH,
     secret_key: SK,
 }
 
-impl<SK: SecretKey, D: Data, A: Data + Debug, ND: Dialer<A>, NL: Listener> Service<SK, D, A, ND, NL>
+impl<SK: SecretKey, D: Data, A: Data + Debug, ND: Dialer<A>, NL: Listener, SH: SpawnHandleT>
+    Service<SK, D, A, ND, NL, SH>
 where
     SK::PublicKey: PeerId,
 {
@@ -94,7 +107,7 @@ where
         dialer: ND,
         listener: NL,
         secret_key: SK,
-        spawn_handle: SpawnTaskHandle,
+        spawn_handle: SH,
     ) -> (Self, impl Network<SK::PublicKey, A, D>) {
         // Channel for sending commands between the service and interface
         let (commands_for_service, commands_from_interface) = mpsc::unbounded();
@@ -127,7 +140,7 @@ where
         let dialer = self.dialer.clone();
         let next_to_interface = self.next_to_interface.clone();
         self.spawn_handle
-            .spawn("aleph/clique_network_outgoing", None, async move {
+            .spawn("aleph/clique_network_outgoing", async move {
                 outgoing(
                     secret_key,
                     public_key,
@@ -152,7 +165,7 @@ where
         let secret_key = self.secret_key.clone();
         let next_to_interface = self.next_to_interface.clone();
         self.spawn_handle
-            .spawn("aleph/clique_network_incoming", None, async move {
+            .spawn("aleph/clique_network_incoming", async move {
                 incoming(
                     secret_key,
                     stream,

@@ -4,11 +4,11 @@ use aleph_primitives::BlockNumber;
 use codec::Codec;
 use futures::channel::oneshot;
 use log::debug;
+use network_clique::SpawnHandleT;
 use sc_client_api::{BlockchainEvents, HeaderBackend};
 use sp_runtime::traits::{Block, Header};
 
 use crate::{
-    abft::SpawnHandleT,
     data_io::{AlephNetworkMessage, DataStore},
     network::{data::component::Receiver, RequestBlocks},
     party::{AuthoritySubtaskCommon, Task},

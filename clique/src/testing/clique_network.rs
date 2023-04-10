@@ -3,25 +3,38 @@ use std::{
     sync::Once,
 };
 
+use aleph_bft_mock::Spawner;
+use aleph_bft_types::SpawnHandle;
 use futures::{
     channel::{mpsc, oneshot},
     StreamExt,
 };
 use log::info;
 use rand::{thread_rng, Rng};
-use sc_service::{SpawnTaskHandle, TaskManager};
-use tokio::{
-    runtime::Handle,
-    time::{error::Elapsed, interval, timeout, Duration},
-};
+use tokio::time::{error::Elapsed, interval, timeout, Duration};
 
 use crate::{
     mock::{
         random_keys, Addresses, MockData, MockDialer, MockListener, MockPublicKey, MockSecretKey,
         UnreliableConnectionMaker,
     },
+    service::SpawnHandleT,
     Network, SecretKey, Service,
 };
+
+impl SpawnHandleT for Spawner {
+    fn spawn(&self, name: &'static str, task: impl futures::Future<Output = ()> + Send + 'static) {
+        SpawnHandle::spawn(self, name, task)
+    }
+
+    fn spawn_essential(
+        &self,
+        name: &'static str,
+        task: impl futures::Future<Output = ()> + Send + 'static,
+    ) -> std::pin::Pin<Box<dyn futures::Future<Output = Result<(), ()>> + Send>> {
+        SpawnHandle::spawn_essential(self, name, task)
+    }
+}
 
 pub const LOG_TARGET: &str = "network-clique-test";
 
@@ -37,7 +50,7 @@ fn spawn_peer(
     dialer: MockDialer,
     listener: MockListener,
     report: mpsc::UnboundedSender<(MockPublicKey, usize)>,
-    spawn_handle: SpawnTaskHandle,
+    spawn_handle: Spawner,
 ) {
     let our_id = secret_key.public_key();
     let (service, mut interface) = Service::new(dialer, listener, secret_key, spawn_handle);
@@ -102,10 +115,6 @@ async fn scenario(
     corrupted_message_interval: Option<usize>,
     status_report_interval: Duration,
 ) {
-    // create spawn_handle, we need to keep the task_manager
-    let task_manager =
-        TaskManager::new(Handle::current(), None).expect("should create TaskManager");
-    let spawn_handle = task_manager.spawn_handle();
     // create peer identities
     info!(target: LOG_TARGET, "generating keys...");
     let keys = random_keys(n_peers);
@@ -135,7 +144,7 @@ async fn scenario(
             dialer,
             listener,
             tx_report.clone(),
-            spawn_handle.clone(),
+            Spawner,
         );
     }
     let mut status_ticker = interval(status_report_interval);

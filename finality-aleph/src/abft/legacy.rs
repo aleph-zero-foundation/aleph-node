@@ -1,12 +1,13 @@
 pub use aleph_primitives::{BlockNumber, LEGACY_FINALITY_VERSION as VERSION};
 use legacy_aleph_bft::{default_config, Config, LocalIO, Terminator};
 use log::debug;
+use network_clique::SpawnHandleT;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::traits::{Block, Header};
 
 use super::common::unit_creation_delay_fn;
 use crate::{
-    abft::{NetworkWrapper, SpawnHandleT},
+    abft::NetworkWrapper,
     data_io::{AlephData, OrderedDataInterpreter},
     network::data::Network,
     oneshot,

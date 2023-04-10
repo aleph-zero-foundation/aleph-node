@@ -7,8 +7,8 @@ use std::{
 
 use futures::{channel::mpsc, StreamExt};
 use log::{debug, error, info, trace, warn};
+use network_clique::SpawnHandleT;
 use rand::{seq::IteratorRandom, thread_rng};
-use sc_service::SpawnTaskHandle;
 use sc_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnboundedSender};
 use tokio::time;
 
@@ -19,7 +19,7 @@ use crate::{
         gossip::{Event, EventStream, Network, NetworkSender, Protocol, RawNetwork},
         Data,
     },
-    STATUS_REPORT_INTERVAL,
+    SpawnHandle, STATUS_REPORT_INTERVAL,
 };
 
 enum Command<D: Data, P: Clone + Debug + Eq + Hash + Send + 'static> {
@@ -43,7 +43,7 @@ pub struct Service<N: RawNetwork, D: Data> {
     authentication_peer_senders: HashMap<N::PeerId, TracingUnboundedSender<D>>,
     block_sync_connected_peers: HashSet<N::PeerId>,
     block_sync_peer_senders: HashMap<N::PeerId, TracingUnboundedSender<D>>,
-    spawn_handle: SpawnTaskHandle,
+    spawn_handle: SpawnHandle,
 }
 
 struct ServiceInterface<D: Data, P: Clone + Debug + Eq + Hash + Send + 'static> {
@@ -113,7 +113,7 @@ enum SendError {
 impl<N: RawNetwork, D: Data> Service<N, D> {
     pub fn new(
         network: N,
-        spawn_handle: SpawnTaskHandle,
+        spawn_handle: SpawnHandle,
     ) -> (
         Service<N, D>,
         impl Network<D, Error = Error, PeerId = N::PeerId>,
@@ -294,7 +294,6 @@ impl<N: RawNetwork, D: Data> Service<N, D> {
                 };
                 self.spawn_handle.spawn(
                     "aleph/network/peer_sender",
-                    None,
                     self.peer_sender(peer, rx, protocol),
                 );
             }
@@ -427,7 +426,7 @@ mod tests {
             // Prepare service
             let network = MockRawNetwork::new(event_stream_oneshot_tx);
             let (service, gossip_network, _) =
-                Service::new(network.clone(), task_manager.spawn_handle());
+                Service::new(network.clone(), task_manager.spawn_handle().into());
             let gossip_network = Box::new(gossip_network);
 
             // `TaskManager` needs to be passed, so sender threads are running in background.

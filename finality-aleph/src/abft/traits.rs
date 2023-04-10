@@ -5,6 +5,7 @@ use std::{cmp::Ordering, fmt::Debug, hash::Hash as StdHash, marker::PhantomData,
 use aleph_primitives::BlockNumber;
 use codec::{Codec, Decode, Encode};
 use futures::{channel::oneshot, Future, TryFutureExt};
+use network_clique::SpawnHandleT;
 use sc_service::SpawnTaskHandle;
 use sp_api::{BlockT, HeaderT};
 use sp_blockchain::HeaderBackend;
@@ -145,19 +146,6 @@ impl From<SpawnTaskHandle> for SpawnHandle {
     fn from(sth: SpawnTaskHandle) -> Self {
         SpawnHandle(sth)
     }
-}
-
-/// Trait abstracting spawning tasks
-pub trait SpawnHandleT {
-    /// Run task
-    fn spawn(&self, name: &'static str, task: impl Future<Output = ()> + Send + 'static);
-
-    /// Run an essential task
-    fn spawn_essential(
-        &self,
-        name: &'static str,
-        task: impl Future<Output = ()> + Send + 'static,
-    ) -> Pin<Box<dyn Future<Output = Result<(), ()>> + Send>>;
 }
 
 impl SpawnHandleT for SpawnHandle {

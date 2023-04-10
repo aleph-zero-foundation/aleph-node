@@ -4,6 +4,7 @@ use aleph_primitives::{AlephSessionApi, BlockNumber, KEY_TYPE};
 use async_trait::async_trait;
 use futures::channel::oneshot;
 use log::{debug, info, trace, warn};
+use network_clique::SpawnHandleT;
 use sc_client_api::Backend;
 use sp_consensus::SelectChain;
 use sp_keystore::CryptoStore;
@@ -15,7 +16,7 @@ use sp_runtime::{
 use crate::{
     abft::{
         current_create_aleph_config, legacy_create_aleph_config, run_current_member,
-        run_legacy_member, SpawnHandle, SpawnHandleT,
+        run_legacy_member, SpawnHandle,
     },
     crypto::{AuthorityPen, AuthorityVerifier},
     data_io::{ChainTracker, DataStore, OrderedDataInterpreter},
