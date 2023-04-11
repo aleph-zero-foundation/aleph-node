@@ -3,15 +3,6 @@
 version = 3
 
 [[package]]
-name = "access_control"
-version = "0.2.0"
-dependencies = [
- "ink",
- "parity-scale-codec",
- "scale-info",
-]
-
-[[package]]
 name = "aho-corasick"
 version = "0.7.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -134,6 +125,12 @@ name = "cc"
 version = "1.0.73"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2fff2a6927b3bb87f9595d67196a70493f627687a71d87a0d692242c33f58c11"
+
+[[package]]
+name = "cfg-if"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
 
 [[package]]
 name = "cfg-if"
@@ -359,7 +356,7 @@ version = "4.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a54dbbaffb0f97bcae062e628dcdc9da4d3c9044f5a53fb2715a328b07221631"
 dependencies = [
- "cfg-if",
+ "cfg-if 1.0.0",
 ]
 
 [[package]]
@@ -409,7 +406,7 @@ checksum = "a41c6a3f4e740e27449f805ed47f536a35fb254ebcd03d2480014589331cda3e"
 dependencies = [
  "arrayref",
  "blake2 0.10.4",
- "cfg-if",
+ "cfg-if 1.0.0",
  "derive_more",
  "ink_allocator",
  "ink_engine",
@@ -478,7 +475,7 @@ version = "4.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8080235e5ae921975c2c7772fe9959e1b3c92b4d5a1afcfe104f93fb79aa268"
 dependencies = [
- "cfg-if",
+ "cfg-if 1.0.0",
 ]
 
 [[package]]
@@ -501,7 +498,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2872a5ea4559433381b2d82b08b6acd33ce934b07a22ce951c6f00483680c950"
 dependencies = [
  "array-init",
- "cfg-if",
+ "cfg-if 1.0.0",
  "derive_more",
  "ink_env",
  "ink_metadata",
@@ -587,7 +584,7 @@ version = "0.4.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "abb12e687cfb44aa40f41fc3978ef76448f9b6038cad6aef4259d3c095a2382e"
 dependencies = [
- "cfg-if",
+ "cfg-if 1.0.0",
 ]
 
 [[package]]
@@ -859,7 +856,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "001cf62ece89779fd16105b5f515ad0e5cedcd5440d3dd806bb067978e7c3608"
 dependencies = [
  "bitvec",
- "cfg-if",
+ "cfg-if 1.0.0",
  "derive_more",
  "parity-scale-codec",
  "scale-info-derive",
@@ -952,7 +949,7 @@ version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf9db03534dff993187064c4e0c05a5708d2a9728ace9a8959b77bedf415dac5"
 dependencies = [
- "cfg-if",
+ "cfg-if 1.0.0",
  "cpufeatures",
  "digest 0.10.3",
 ]
@@ -1190,7 +1187,7 @@ checksum = "447660ad36a13288b1db4d4248e857b510e8c3a225c822ba4fb748c0aafecffd"
 name = "wrapped_azero"
 version = "1.0.0"
 dependencies = [
- "access_control",
+ "cfg-if 0.1.10",
  "ink",
  "num-traits",
  "openbrush",

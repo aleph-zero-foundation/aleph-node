@@ -15,6 +15,7 @@ access_control = { path = "../access_control", default-features = false, feature
 game_token = { path = "../game_token", default-features = false, features = ["ink-as-dependency"] }
 ticket_token = { path = "../ticket_token", default-features = false, features = ["ink-as-dependency"] }
 marketplace = { path = "../marketplace", default-features = false, features = ["ink-as-dependency"] }
+shared_traits = { path = "../shared_traits", default-features = false, features = ["ink-as-dependency"] }
 
 [lib]
 name = "button"
@@ -27,13 +28,17 @@ crate-type = [
 [features]
 default = ["std"]
 std = [
-    "ink/std",
-    "scale-info/std",
-    "scale/std",
     "access_control/std",
     "game_token/std",
-    "ticket_token/std",
+    "ink/std",
     "marketplace/std",
     "openbrush/std",
+    "scale-info/std",
+    "scale/std",
+    "shared_traits/std",
+    "ticket_token/std",
 ]
 ink-as-dependency = []
+
+[profile.dev]
+codegen-units = 16

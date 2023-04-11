@@ -6,11 +6,14 @@ use ink::{
 };
 use marketplace::marketplace::Error as MarketplaceError;
 use openbrush::contracts::psp22::PSP22Error;
+use shared_traits::HaltableError;
 
 /// GameError types
 #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
 pub enum GameError {
+    /// Wrapper for Haltable errors
+    HaltableError(HaltableError),
     /// Reset has been called before the deadline
     BeforeDeadline,
     /// Button has been pressed after the deadline
@@ -52,5 +55,17 @@ impl From<MarketplaceError> for GameError {
 impl From<LangError> for GameError {
     fn from(e: LangError) -> Self {
         GameError::ContractCall(e)
+    }
+}
+
+impl From<GameError> for HaltableError {
+    fn from(why: GameError) -> Self {
+        HaltableError::Custom(format!("{:?}", why))
+    }
+}
+
+impl From<HaltableError> for GameError {
+    fn from(inner: HaltableError) -> Self {
+        GameError::HaltableError(inner)
     }
 }

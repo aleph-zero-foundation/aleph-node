@@ -8,17 +8,14 @@ pub use crate::wrapped_azero::{
 
 #[openbrush::contract]
 pub mod wrapped_azero {
-    use access_control::{roles::Role, AccessControlRef, ACCESS_CONTROL_PUBKEY};
     use ink::{
         codegen::{EmitEvent, Env},
-        env::call::FromAccountId,
         prelude::format,
         reflect::ContractEventBase,
-        ToAccountId,
     };
     use num_traits::identities::Zero;
     use openbrush::{
-        contracts::psp22::{extensions::metadata::*, Internal},
+        contracts::psp22::{extensions::metadata::*, Internal, PSP22Error},
         traits::Storage,
     };
 
@@ -34,7 +31,6 @@ pub mod wrapped_azero {
         psp22: psp22::Data,
         #[storage_field]
         metadata: metadata::Data,
-        access_control: AccessControlRef,
     }
 
     impl Default for WrappedAzero {
@@ -129,29 +125,30 @@ pub mod wrapped_azero {
         /// Will revert if called from an account without a proper role
         #[ink(constructor)]
         pub fn new() -> Self {
-            let caller = Self::env().caller();
-            let code_hash = Self::env()
-                .own_code_hash()
-                .expect("Called new on a contract with no code hash");
+            let metadata = metadata::Data {
+                name: Some("wAzero".into()),
+                symbol: Some("wA0".into()),
+                decimals: 12, // same as AZERO
+                ..Default::default()
+            };
 
-            let access_control = AccountId::from(ACCESS_CONTROL_PUBKEY);
-            let access_control = AccessControlRef::from_account_id(access_control);
-            if access_control.has_role(caller, Role::Initializer(code_hash)) {
-                let metadata = metadata::Data {
-                    name: Some("wAzero".into()),
-                    symbol: Some("wA0".into()),
-                    decimals: 12, // same as AZERO
-                    ..Default::default()
-                };
-
-                Self {
-                    psp22: psp22::Data::default(),
-                    metadata,
-                    access_control,
-                }
-            } else {
-                panic!("Caller is not allowed to initialize this contract");
+            Self {
+                psp22: psp22::Data::default(),
+                metadata,
             }
+        }
+
+        /// Terminates the contract.
+        ///
+        /// No-op by default, can only be compiled with a flag in dev environments
+        #[ink(message)]
+        pub fn terminate(&mut self) -> Result<()> {
+            cfg_if::cfg_if! { if #[cfg( feature = "devnet" )] {
+                let caller = self.env().caller();
+                self.env().terminate_contract(caller)
+            } else {
+                panic!("this contract cannot be terminated")
+            }}
         }
 
         /// Wraps the transferred amount of native token and mints it to the callers account
@@ -188,39 +185,6 @@ pub mod wrapped_azero {
             Ok(())
         }
 
-        /// Terminates the contract.
-        ///
-        /// can only be called by the contract's Admin
-        #[ink(message)]
-        pub fn terminate(&mut self) -> Result<()> {
-            let caller = self.env().caller();
-            let this = self.env().account_id();
-            let required_role = Role::Admin(this);
-
-            self.check_role(caller, required_role)?;
-            self.env().terminate_contract(caller)
-        }
-
-        /// Returns the contract's access control contract address
-        #[ink(message)]
-        pub fn access_control(&self) -> AccountId {
-            self.access_control.to_account_id()
-        }
-
-        /// Sets new access control contract address
-        ///
-        /// Can only be called by the contract's Admin
-        #[ink(message)]
-        pub fn set_access_control(&mut self, access_control: AccountId) -> Result<()> {
-            let caller = self.env().caller();
-            let this = self.env().account_id();
-
-            self.check_role(caller, Role::Admin(this))?;
-
-            self.access_control = AccessControlRef::from_account_id(access_control);
-            Ok(())
-        }
-
         /// Returns own code hash
         #[ink(message)]
         pub fn code_hash(&self) -> Result<Hash> {
@@ -231,14 +195,6 @@ pub mod wrapped_azero {
 
         pub fn emit_event<EE: EmitEvent<Self>>(emitter: EE, event: Event) {
             emitter.emit_event(event);
-        }
-
-        fn check_role(&self, account: AccountId, role: Role) -> Result<()> {
-            if self.access_control.has_role(account, role) {
-                Ok(())
-            } else {
-                Err(PSP22Error::Custom(format!("MissingRole:{:?}", role).into()))
-            }
         }
     }
 }

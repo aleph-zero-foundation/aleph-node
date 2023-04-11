@@ -226,12 +226,6 @@ function deploy_wrapped_azero {
 
   echo "wrapped Azero contract instance address: $contract_address"
 
-  # --- GRANT PRIVILEGES ON THE CONTRACT
-
-  cd "$CONTRACTS_PATH"/access_control
-
-  cargo_contract call --url "$NODE" --contract "$ACCESS_CONTROL" --message grant_role --args "$AUTHORITY" 'Admin('"$contract_address"')' --suri "$AUTHORITY_SEED" --skip-confirm
-
   eval "$__resultvar='$contract_address'"
 }
 
@@ -244,7 +238,6 @@ function link_bytecode() {
 }
 
 # --- GLOBAL CONSTANTS
-
 NODE_IMAGE=public.ecr.aws/p6e8q1z1/aleph-node:latest
 
 CONTRACTS_PATH=$(pwd)/contracts
@@ -273,8 +266,15 @@ cargo_contract build --release
 cd "$CONTRACTS_PATH"/simple_dex
 cargo_contract build --release
 
+# If randomization requested, generate random test params.
 cd "$CONTRACTS_PATH"/wrapped_azero
-cargo_contract build --release
+if [ "${ENV_NAME}" = "devnet" ] || [ "${ENV_NAME}" = "dev" ]; then
+  echo "Compiling wrapped_azero for devnet environments. This will include an unguarded terminate flag!"
+  cargo_contract build --release --features devnet
+else
+  echo "Compiling wrapped_azero for production environments."
+  cargo_contract build --release
+fi
 
 # # --- DEPLOY ACCESS CONTROL CONTRACT
 

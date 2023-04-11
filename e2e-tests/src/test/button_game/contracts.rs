@@ -168,6 +168,10 @@ impl ButtonInstance {
         })
     }
 
+    pub async fn round<C: ConnectionApi>(&self, conn: &C) -> Result<u128> {
+        self.contract.contract_read0(conn, "round").await
+    }
+
     pub async fn deadline<C: ConnectionApi>(&self, conn: &C) -> Result<u128> {
         self.contract.contract_read0(conn, "deadline").await
     }

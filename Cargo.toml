@@ -30,6 +30,7 @@ exclude = [
     "contracts/simple_dex",
     "contracts/ticket_token",
     "contracts/wrapped_azero",
+    "contracts/shared_traits",
     "e2e-tests",
     "flooder",
     "fork-off",

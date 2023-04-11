@@ -47,15 +47,31 @@ jobs:
           packages="${packages//'%0A'/$'\n'}"
           for p in ${packages[@]}
           do
-            # skip checking the contracts for now
-            if [ $p = "contracts/adder" ] || [ $p = "contracts/poseidon_host_bench" ]
-            then
-              continue
-            fi
             echo "Checking package $p..."
             pushd "$p"
+            rustup component add clippy rustfmt
+            rustup target add wasm32-unknown-unknown
+
+            rustup component add rust-src --toolchain nightly-2022-10-30-x86_64-unknown-linux-gnu
+            cargo install cargo-dylint dylint-link
+            cargo install cargo-contract --vers ^2.0 --force --locked
+
+            if [ $p = "contracts/adder" ] ||
+               [ $p = "contracts/poseidon_host_bench" ] ||
+               [ $p = "contracts/access_control" ] ||
+               [ $p = "contracts/adder" ] ||
+               [ $p = "contracts/button" ] ||
+               [ $p = "contracts/game_token" ] ||
+               [ $p = "contracts/marketplace" ] ||
+               [ $p = "contracts/simple_dex" ] ||
+               [ $p = "contracts/ticket_token" ] ||
+               [ $p = "contracts/wrapped_azero" ]
+            then
+               cargo contract check
+            else
+               cargo clippy -- --no-deps -D warnings
+            fi
             cargo fmt --all --check
-            cargo clippy -- --no-deps -D warnings
             popd
           done
 

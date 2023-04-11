@@ -1,5 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::let_unit_value)]
+#![feature(min_specialization)]
 
 /// Simple DEX contract
 ///
@@ -13,7 +14,7 @@
 mod simple_dex {
     use access_control::{roles::Role, AccessControlRef, ACCESS_CONTROL_PUBKEY};
     use ink::{
-        codegen::EmitEvent,
+        codegen::{EmitEvent, Env},
         env::{call::FromAccountId, CallFlags, Error as InkEnvError},
         prelude::{format, string::String, vec, vec::Vec},
         reflect::ContractEventBase,
@@ -24,6 +25,7 @@ mod simple_dex {
         storage::Mapping,
         traits::Storage,
     };
+    use shared_traits::{Haltable, HaltableData, HaltableError, Internal};
 
     type Event = <SimpleDex as ContractEventBase>::Type;
 
@@ -45,6 +47,7 @@ mod simple_dex {
     #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
     #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
     pub enum DexError {
+        HaltableError(HaltableError),
         PSP22(PSP22Error),
         InsufficientAllowanceOf(AccountId),
         Arithmethic,
@@ -55,6 +58,18 @@ mod simple_dex {
         TooMuchSlippage,
         NotEnoughLiquidityOf(AccountId),
         UnsupportedSwapPair(SwapPair),
+    }
+
+    impl From<DexError> for HaltableError {
+        fn from(why: DexError) -> Self {
+            HaltableError::Custom(format!("{:?}", why))
+        }
+    }
+
+    impl From<HaltableError> for DexError {
+        fn from(why: HaltableError) -> Self {
+            DexError::HaltableError(why)
+        }
     }
 
     impl From<PSP22Error> for DexError {
@@ -90,6 +105,12 @@ mod simple_dex {
     }
 
     #[ink(event)]
+    pub struct Halted;
+
+    #[ink(event)]
+    pub struct Resumed;
+
+    #[ink(event)]
     pub struct SwapPairRemoved {
         #[ink(topic)]
         pair: SwapPair,
@@ -120,7 +141,33 @@ mod simple_dex {
         pub access_control: AccessControlRef,
         // a set of pairs that are availiable for swapping between
         pub swap_pairs: Mapping<SwapPair, ()>,
+        #[storage_field]
+        pub halted: HaltableData,
     }
+
+    impl Internal for SimpleDex {
+        fn _after_halt(&self) -> Result<(), HaltableError> {
+            Self::emit_event(self.env(), Event::Halted(Halted {}));
+            Ok(())
+        }
+
+        fn _after_resume(&self) -> Result<(), HaltableError> {
+            Self::emit_event(self.env(), Event::Resumed(Resumed {}));
+            Ok(())
+        }
+
+        fn _before_halt(&self) -> Result<(), HaltableError> {
+            self.check_role(self.env().caller(), Role::Admin(self.env().account_id()))?;
+            Ok(())
+        }
+
+        fn _before_resume(&self) -> Result<(), HaltableError> {
+            self.check_role(self.env().caller(), Role::Admin(self.env().account_id()))?;
+            Ok(())
+        }
+    }
+
+    impl Haltable for SimpleDex {}
 
     impl SimpleDex {
         #[ink(constructor)]
@@ -138,6 +185,7 @@ mod simple_dex {
                     swap_fee_percentage: 0,
                     access_control,
                     swap_pairs: Mapping::default(),
+                    halted: HaltableData { halted: false },
                 }
             } else {
                 panic!("Caller is not allowed to initialize this contract");
@@ -155,6 +203,8 @@ mod simple_dex {
             amount_token_in: Balance,
             min_amount_token_out: Balance,
         ) -> Result<(), DexError> {
+            self.check_halted()?;
+
             let this = self.env().account_id();
             let caller = self.env().caller();
 
@@ -212,8 +262,12 @@ mod simple_dex {
             let this = self.env().account_id();
             let caller = self.env().caller();
 
-            // check role, only designated account can add liquidity
-            self.check_role(caller, Role::Custom(this, LIQUIDITY_PROVIDER))?;
+            // check role, under normal circumstances only designated account can add liquidity
+            // when halted only Admin can make deposits
+            match self.is_halted() {
+                false => self.check_role(caller, Role::Custom(this, LIQUIDITY_PROVIDER))?,
+                true => self.check_role(caller, Role::Admin(this))?,
+            }
 
             deposits
                 .into_iter()
@@ -246,8 +300,12 @@ mod simple_dex {
             let this = self.env().account_id();
             let caller = self.env().caller();
 
-            // check role, only designated account can remove liquidity
-            self.check_role(caller, Role::Custom(this, LIQUIDITY_PROVIDER))?;
+            // check role, under normal circumstances only designated account can remove liquidity
+            // when halted only Admin can make withdrawals
+            match self.is_halted() {
+                false => self.check_role(caller, Role::Custom(this, LIQUIDITY_PROVIDER))?,
+                true => self.check_role(caller, Role::Admin(this))?,
+            }
 
             withdrawals.into_iter().try_for_each(
                 |(token_out, amount)| -> Result<(), DexError> {
@@ -273,9 +331,8 @@ mod simple_dex {
             }
 
             let caller = self.env().caller();
-            let this = self.env().account_id();
 
-            self.check_role(caller, Role::Admin(this))?;
+            self.check_role(caller, Role::Admin(self.env().account_id()))?;
 
             // emit event
             Self::emit_event(
@@ -304,11 +361,7 @@ mod simple_dex {
         where
             Self: AccessControlled,
         {
-            let caller = self.env().caller();
-            let this = self.env().account_id();
-
-            self.check_role(caller, Role::Admin(this))?;
-
+            self.check_role(self.env().caller(), Role::Admin(self.env().account_id()))?;
             self.access_control = AccessControlRef::from_account_id(access_control);
             Ok(())
         }
@@ -325,9 +378,7 @@ mod simple_dex {
         /// Can only be called by an Admin
         #[ink(message)]
         pub fn add_swap_pair(&mut self, from: AccountId, to: AccountId) -> Result<(), DexError> {
-            let caller = self.env().caller();
-            let this = self.env().account_id();
-            self.check_role(caller, Role::Admin(this))?;
+            self.check_role(self.env().caller(), Role::Admin(self.env().account_id()))?;
 
             let pair = SwapPair::new(from, to);
             self.swap_pairs.insert(&pair, &());
@@ -349,9 +400,7 @@ mod simple_dex {
         /// Can only be called by an Admin
         #[ink(message)]
         pub fn remove_swap_pair(&mut self, from: AccountId, to: AccountId) -> Result<(), DexError> {
-            let caller = self.env().caller();
-            let this = self.env().account_id();
-            self.check_role(caller, Role::Admin(this))?;
+            self.check_role(self.env().caller(), Role::Admin(self.env().account_id()))?;
 
             let pair = SwapPair::new(from, to);
             self.swap_pairs.remove(&pair);
@@ -367,8 +416,7 @@ mod simple_dex {
         #[ink(message)]
         pub fn terminate(&mut self) -> Result<(), DexError> {
             let caller = self.env().caller();
-            let this = self.env().account_id();
-            self.check_role(caller, Role::Admin(this))?;
+            self.check_role(caller, Role::Admin(self.env().account_id()))?;
             self.env().terminate_contract(caller)
         }
 

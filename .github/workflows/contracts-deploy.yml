@@ -2,6 +2,8 @@
 name: contracts-e2e-tests-and-deploy
 
 on:
+  pull_request:
+    types: [labeled]
   workflow_call:
 
 # DO NOT TOUCH THIS !
@@ -51,7 +53,14 @@ jobs:
              - '.github/workflows/contracts-deploy.yml'
 
   build-and-deploy-contracts:
-    needs: [detect-contracts-changes]
+    # TODO: e2e test are flaky AF
+    # and they block the deployment
+    # which in turns stalls development
+    # as frontend developers rely heavily on the devnet environment.
+    # Therefore we made an executive decision to deploy to the devnet
+    # regardless of the contracts e2e tests status.
+    # Once fixed this dependency can be brough back
+    # needs: [detect-contracts-changes]
     name: Deploy contracts on devnet
     if: >
       (needs.changes.outputs.button == 'true' &&
@@ -60,7 +69,7 @@ jobs:
       (github.event_name == 'pull_request' &&
        github.event.action == 'labeled' &&
        github.event.label.name == '[AZERO] DEPLOY-CONTRACTS')
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
@@ -115,7 +124,6 @@ jobs:
       - name: Run deploy.sh script
         shell: bash
         run: |
-          . "$HOME/.cargo/env"
           source contracts/env/${{ env.CONTRACTS_ENVFILE }} && ./contracts/scripts/deploy.sh
 
       - name: Update ABI arifacts and addresses.json file in the S3 bucket

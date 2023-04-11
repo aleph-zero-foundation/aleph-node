@@ -1,0 +1,28 @@
+[package]
+name = "shared_traits"
+version = "0.1.0"
+edition = "2021"
+authors = ["CardinalCryptography"]
+documentation = "https://docs.rs/?"
+homepage = "https://alephzero.org"
+license = "Apache-2.0"
+categories = ["cryptography"]
+repository = "https://github.com/Cardinal-Cryptography/aleph-node"
+description = "Library of shared Smart Contract traits."
+
+[dependencies]
+ink = { version = "=4.0.1",  default-features = false }
+openbrush = { git = "https://github.com/727-Ventures/openbrush-contracts/", tag = "3.0.0", default-features = false, features = ["psp22"] }
+scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
+scale-info = { version = "2.3", default-features = false, features = ["derive"], optional = true }
+
+[features]
+default = ["std"]
+std = [
+  "openbrush/std",
+  "ink/std",
+  "scale-info/std",
+  "scale/std",
+]
+
+ink-as-dependency = []

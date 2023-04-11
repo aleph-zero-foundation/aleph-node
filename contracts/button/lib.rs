@@ -1,5 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![allow(clippy::let_unit_value)]
+#![feature(min_specialization)]
 
 mod errors;
 
@@ -9,15 +10,19 @@ pub mod button_game {
     #[cfg(feature = "std")]
     use ink::storage::traits::StorageLayout;
     use ink::{
-        codegen::EmitEvent,
+        codegen::{EmitEvent, Env},
         env::{call::FromAccountId, CallFlags},
         prelude::vec,
         reflect::ContractEventBase,
         ToAccountId,
     };
     use marketplace::marketplace::MarketplaceRef;
-    use openbrush::contracts::psp22::{extensions::mintable::PSP22MintableRef, PSP22Ref};
+    use openbrush::{
+        contracts::psp22::{extensions::mintable::PSP22MintableRef, PSP22Ref},
+        traits::Storage,
+    };
     use scale::{Decode, Encode};
+    use shared_traits::{Haltable, HaltableData, HaltableError, Internal};
 
     use crate::errors::GameError;
 
@@ -56,6 +61,12 @@ pub mod button_game {
         when: BlockNumber,
     }
 
+    #[ink(event)]
+    pub struct Halted;
+
+    #[ink(event)]
+    pub struct Resumed;
+
     /// Scoring strategy indicating what kind of reward users get for pressing the button
     #[derive(Debug, Encode, Decode, Clone, Copy, PartialEq, Eq)]
     #[cfg_attr(feature = "std", derive(scale_info::TypeInfo, StorageLayout))]
@@ -70,6 +81,7 @@ pub mod button_game {
 
     /// Game contracts storage
     #[ink(storage)]
+    #[derive(Storage)]
     pub struct ButtonGame {
         /// How long does TheButton live for?
         pub button_lifetime: BlockNumber,
@@ -93,7 +105,34 @@ pub mod button_game {
         pub scoring: Scoring,
         /// current round number
         pub round: u64,
+        /// is contract in the halted state
+        #[storage_field]
+        pub halted: HaltableData,
     }
+
+    impl Internal for ButtonGame {
+        fn _after_halt(&self) -> Result<(), HaltableError> {
+            Self::emit_event(self.env(), Event::Halted(Halted {}));
+            Ok(())
+        }
+
+        fn _after_resume(&self) -> Result<(), HaltableError> {
+            Self::emit_event(self.env(), Event::Resumed(Resumed {}));
+            Ok(())
+        }
+
+        fn _before_halt(&self) -> Result<(), HaltableError> {
+            self.check_role(self.env().caller(), Role::Admin(self.env().account_id()))?;
+            Ok(())
+        }
+
+        fn _before_resume(&self) -> Result<(), HaltableError> {
+            self.check_role(self.env().caller(), Role::Admin(self.env().account_id()))?;
+            Ok(())
+        }
+    }
+
+    impl Haltable for ButtonGame {}
 
     impl ButtonGame {
         #[ink(constructor)]
@@ -112,8 +151,8 @@ pub mod button_game {
             let access_control = AccountId::from(ACCESS_CONTROL_PUBKEY);
             let access_control = AccessControlRef::from_account_id(access_control);
 
-            match ButtonGame::check_role(&access_control, caller, required_role) {
-                Ok(_) => Self::init(
+            match access_control.has_role(caller, required_role) {
+                true => Self::init(
                     access_control,
                     ticket_token,
                     reward_token,
@@ -121,7 +160,7 @@ pub mod button_game {
                     button_lifetime,
                     scoring,
                 ),
-                Err(why) => panic!("Could not initialize the contract {:?}", why),
+                false => panic!("Caller is not allowed to initialize this contract"),
             }
         }
 
@@ -189,6 +228,8 @@ pub mod button_game {
         /// If called on alive button, instantaneously mints reward tokens to the caller
         #[ink(message)]
         pub fn press(&mut self) -> ButtonResult<()> {
+            self.check_halted()?;
+
             if self.is_dead() {
                 return Err(GameError::AfterDeadline);
             }
@@ -245,10 +286,7 @@ pub mod button_game {
         /// Implementing contract is responsible for setting up proper AccessControl
         #[ink(message)]
         pub fn set_access_control(&mut self, new_access_control: AccountId) -> ButtonResult<()> {
-            let caller = self.env().caller();
-            let this = self.env().account_id();
-            let required_role = Role::Admin(this);
-            ButtonGame::check_role(&self.access_control, caller, required_role)?;
+            self.check_role(self.env().caller(), Role::Admin(self.env().account_id()))?;
             self.access_control = AccessControlRef::from_account_id(new_access_control);
             Ok(())
         }
@@ -261,10 +299,7 @@ pub mod button_game {
             &mut self,
             new_button_lifetime: BlockNumber,
         ) -> ButtonResult<()> {
-            let caller = self.env().caller();
-            let this = self.env().account_id();
-            let required_role = Role::Admin(this);
-            ButtonGame::check_role(&self.access_control, caller, required_role)?;
+            self.check_role(self.env().caller(), Role::Admin(self.env().account_id()))?;
             self.button_lifetime = new_button_lifetime;
             Ok(())
         }
@@ -275,9 +310,7 @@ pub mod button_game {
         #[ink(message)]
         pub fn terminate(&mut self) -> ButtonResult<()> {
             let caller = self.env().caller();
-            let this = self.env().account_id();
-            let required_role = Role::Admin(this);
-            ButtonGame::check_role(&self.access_control, caller, required_role)?;
+            self.check_role(caller, Role::Admin(self.env().account_id()))?;
             self.env().terminate_contract(caller)
         }
 
@@ -306,6 +339,7 @@ pub mod button_game {
                 presses: 0,
                 total_rewards: 0,
                 round: 0,
+                halted: HaltableData { halted: false },
             };
 
             Self::emit_event(
@@ -328,7 +362,7 @@ pub mod button_game {
             self.last_presser = None;
             self.last_press = now;
             self.total_rewards = 0;
-            self.round.checked_add(1).ok_or(GameError::Arithmethic)?;
+            self.round = self.round.checked_add(1).ok_or(GameError::Arithmethic)?;
 
             Self::emit_event(self.env(), Event::GameReset(GameReset { when: now }));
             Ok(())
@@ -374,12 +408,8 @@ pub mod button_game {
             Ok(())
         }
 
-        fn check_role(
-            access_control: &AccessControlRef,
-            account: AccountId,
-            role: Role,
-        ) -> ButtonResult<()> {
-            if access_control.has_role(account, role) {
+        fn check_role(&self, account: AccountId, role: Role) -> ButtonResult<()> {
+            if self.access_control.has_role(account, role) {
                 Ok(())
             } else {
                 Err(GameError::MissingRole(role))
@@ -419,7 +449,6 @@ pub mod button_game {
 
         fn mint_reward(&self, to: AccountId, amount: Balance) -> ButtonResult<()> {
             PSP22MintableRef::mint(&self.reward_token, to, amount)?;
-
             Ok(())
         }
 

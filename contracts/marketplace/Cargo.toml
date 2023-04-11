@@ -15,6 +15,7 @@ scale-info = { version = "2.3", default-features = false, features = ["derive"],
 access_control = { path = "../access_control", default-features = false, features = ["ink-as-dependency"] }
 game_token = { path = "../game_token", default-features = false, features = ["ink-as-dependency"] }
 ticket_token = { path = "../ticket_token", default-features = false, features = ["ink-as-dependency"] }
+shared_traits = { path = "../shared_traits", default-features = false, features = ["ink-as-dependency"] }
 
 [lib]
 name = "marketplace"
@@ -27,15 +28,16 @@ crate-type = [
 [features]
 default = ["std"]
 std = [
+    "access_control/std",
+    "game_token/std",
     "ink/std",
+    "openbrush/std",
     "openbrush/std",
     "scale-info",
     "scale-info/std",
     "scale/std",
-    "openbrush/std",
-    "access_control/std",
-    "game_token/std",
-    "ticket_token/std"
+    "shared_traits/std",
+    "ticket_token/std",
 ]
 ink-as-dependency = []
 

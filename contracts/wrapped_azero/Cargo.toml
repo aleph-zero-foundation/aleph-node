@@ -13,7 +13,7 @@ scale = { package = "parity-scale-codec", version = "3", default-features = fals
 scale-info = { version = "2.3", default-features = false, features = ["derive"], optional = true }
 
 num-traits = { version = "0.2", default-features = false }
-access_control = { path = "../access_control", default-features = false, features = ["ink-as-dependency"] }
+cfg-if = { version = "0.1" }
 
 [lib]
 name = "wrapped_azero"
@@ -28,15 +28,15 @@ crate-type = [
 [features]
 default = ["std"]
 std = [
-    "num-traits/std",
     "ink/std",
+    "num-traits/std",
     "openbrush/std",
     "scale-info",
     "scale-info/std",
     "scale/std",
-    "access_control/std",
 ]
 ink-as-dependency = []
+devnet = []
 
 [profile.dev]
 codegen-units = 16

@@ -8,7 +8,7 @@ export AUTHORITY_SEED=//Alice
 export LIFETIME=20
 
 # mint this many ticket tokens
-export TICKET_BALANCE=100000000
+export TICKET_BALANCE=1000000
 
 # initial price of ticket on the marketplace
 export INITIAL_PRICE=69
