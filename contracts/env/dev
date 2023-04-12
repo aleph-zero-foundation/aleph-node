@@ -11,7 +11,7 @@ export LIFETIME=20
 export TICKET_BALANCE=1000000
 
 # initial price of ticket on the marketplace
-export INITIAL_PRICE=69
+export INITIAL_PRICE=5000
 
 # use dev-only hacks, like allowing the authority to mint game tokens on demand
 export ENV_NAME=dev

@@ -313,18 +313,16 @@ pub mod marketplace {
         }
 
         fn current_price(&self) -> Balance {
-            let block = self.env().block_number();
-            let elapsed = block.saturating_sub(self.current_start_block);
-            self.average_price()
-                .saturating_mul(self.sale_multiplier)
-                .saturating_sub(self.per_block_reduction().saturating_mul(elapsed.into()))
-                .max(self.min_price)
-        }
-
-        fn per_block_reduction(&self) -> Balance {
-            self.average_price()
-                .saturating_div(self.auction_length.into())
-                .max(1u128)
+            linear_decrease(
+                self.current_start_block.into(),
+                self.average_price().saturating_mul(self.sale_multiplier),
+                self.current_start_block
+                    .saturating_add(self.auction_length)
+                    .into(),
+                self.min_price,
+                self.env().block_number().into(),
+            )
+            .max(self.min_price)
         }
 
         fn take_payment(&self, from: AccountId, amount: Balance) -> Result<(), Error> {
@@ -366,6 +364,51 @@ pub mod marketplace {
 
         fn emit_event<EE: EmitEvent<Self>>(emitter: EE, event: Event) {
             emitter.emit_event(event)
+        }
+    }
+
+    /// Returns (an approximation of) the linear function passing through `(x_start, y_start)` and `(x_end, y_end)` at
+    /// `x`. If `x` is outside the range of `x_start` and `x_end`, the value of `y` at the closest endpoint is returned.
+    fn linear_decrease(x_start: u128, y_start: u128, x_end: u128, y_end: u128, x: u128) -> u128 {
+        let steps = x.saturating_sub(x_start);
+        let x_span = x_end.saturating_sub(x_start);
+        let y_span = y_start.saturating_sub(y_end);
+
+        if x >= x_end {
+            y_end
+        } else if x <= x_start {
+            y_start
+        } else if y_span > x_span {
+            let y_per_x = y_span.saturating_div(x_span);
+            y_start.saturating_sub(steps.saturating_mul(y_per_x))
+        } else {
+            let x_per_y = x_span.saturating_div(y_span);
+            y_start.saturating_sub(steps.saturating_div(x_per_y))
+        }
+    }
+
+    #[cfg(test)]
+    mod test {
+        use assert2::assert;
+
+        use super::*;
+
+        #[test]
+        fn test_linear_decrease_with_slope_over_1() {
+            assert!(linear_decrease(1, 100, 50, 1, 2) == 98);
+            assert!(linear_decrease(1, 100, 50, 1, 3) == 96);
+        }
+
+        #[ink::test]
+        fn test_linear_decrease_with_slope_under_1() {
+            assert!(linear_decrease(1, 50, 100, 1, 2) == 50);
+            assert!(linear_decrease(1, 50, 100, 1, 3) == 49);
+        }
+
+        #[ink::test]
+        fn test_linear_decrease_with_slope_equal_1() {
+            assert!(linear_decrease(1, 50, 50, 1, 2) == 49);
+            assert!(linear_decrease(1, 50, 50, 1, 3) == 48);
         }
     }
 }
