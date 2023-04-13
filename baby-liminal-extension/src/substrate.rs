@@ -13,7 +13,7 @@ use pallet_baby_liminal::{
 use primitives::host_functions::poseidon;
 
 use crate::{
-    executor::Executor, BabyLiminalError, BabyLiminalExtension, ProvingSystem, SingleHashInput,
+    executor::Executor, BabyLiminalError, BabyLiminalExtension, SingleHashInput,
     BABY_LIMINAL_STORE_KEY_TOO_LONG_KEY,
 };
 
@@ -22,26 +22,6 @@ pub type ByteCount = u32;
 /// Provides a weight of `store_key` dispatchable.
 pub fn weight_of_store_key<T: BabyLiminalConfig>(key_length: ByteCount) -> Weight {
     <<T as BabyLiminalConfig>::WeightInfo as WeightInfo>::store_key(key_length)
-}
-
-/// Provides a weight of `verify` dispatchable depending on the `ProvingSystem`.
-///
-/// In case no system is passed, we return maximal amongst all the systems.
-pub fn weight_of_verify<T: BabyLiminalConfig>(system: Option<ProvingSystem>) -> Weight {
-    match system {
-        Some(ProvingSystem::Groth16) => {
-            <<T as BabyLiminalConfig>::WeightInfo as WeightInfo>::verify_groth16()
-        }
-        Some(ProvingSystem::Gm17) => {
-            <<T as BabyLiminalConfig>::WeightInfo as WeightInfo>::verify_gm17()
-        }
-        Some(ProvingSystem::Marlin) => {
-            <<T as BabyLiminalConfig>::WeightInfo as WeightInfo>::verify_marlin()
-        }
-        None => weight_of_verify::<T>(Some(ProvingSystem::Groth16))
-            .max(weight_of_verify::<T>(Some(ProvingSystem::Gm17)))
-            .max(weight_of_verify::<T>(Some(ProvingSystem::Marlin))),
-    }
 }
 
 #[derive(Default)]
@@ -98,30 +78,28 @@ where
         }
     }
 
-    #[obce(weight(expr = "weight_of_verify::<T>(None)", pre_charge), ret_val)]
+    #[obce(
+        weight(
+            expr = "<<T as BabyLiminalConfig>::WeightInfo as WeightInfo>::verify()",
+            pre_charge
+        ),
+        ret_val
+    )]
     fn verify(
         &mut self,
         identifier: VerificationKeyIdentifier,
         proof: Vec<u8>,
         input: Vec<u8>,
-        system: ProvingSystem,
     ) -> Result<(), BabyLiminalError> {
         let pre_charged = self.pre_charged().unwrap();
 
-        let result = Env::verify(identifier, proof, input, system);
+        let result = Env::verify(identifier, proof, input);
 
-        match &result {
-            // Positive case: we can adjust weight based on the system used.
-            Ok(_) => self
-                .env
-                .adjust_weight(pre_charged, weight_of_verify::<T>(Some(system))),
-            // Negative case: Now we inspect how we should adjust weighting. In case pallet provides
-            // us with post-dispatch weight, we will use it. Otherwise, we weight the call in the
-            // same way as in the positive case.
-            Err((_, Some(actual_weight))) => self.env.adjust_weight(pre_charged, *actual_weight),
-            Err((_, None)) => self
-                .env
-                .adjust_weight(pre_charged, weight_of_verify::<T>(Some(system))),
+        // In case the dispatchable failed and pallet provides us with post-dispatch weight, we can
+        // adjust charging. Otherwise (positive case or no post-dispatch info) we cannot refund
+        // anything.
+        if let Err((_, Some(actual_weight))) = &result {
+            self.env.adjust_weight(pre_charged, *actual_weight);
         };
 
         match result {

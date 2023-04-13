@@ -283,14 +283,12 @@ async fn main() -> anyhow::Result<()> {
                 identifier,
                 proof_file,
                 input_file,
-                system,
             } => {
                 if let Err(why) = verify(
                     cfg.get_signed_connection().await,
                     identifier,
                     proof_file,
                     input_file,
-                    system,
                 )
                 .await
                 {

@@ -7,8 +7,7 @@ use std::{
 };
 
 use baby_liminal_extension::{
-    executor::Executor, substrate::ByteCount, BabyLiminalExtension, ProvingSystem,
-    VerificationKeyIdentifier,
+    executor::Executor, substrate::ByteCount, BabyLiminalExtension, VerificationKeyIdentifier,
 };
 use obce::substrate::{
     frame_support::weights::Weight, sp_runtime::AccountId32, ChainExtensionEnvironment,
@@ -314,7 +313,6 @@ impl<
         _: VerificationKeyIdentifier,
         _: Vec<u8>,
         _: Vec<u8>,
-        _: ProvingSystem,
     ) -> Result<(), (Error<Self::ErrorGenericType>, Option<Weight>)> {
         match VERIFY_RESPONDER {
             Responder::Panicker => panic!("Function `verify` shouldn't have been executed"),

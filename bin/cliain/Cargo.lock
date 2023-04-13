@@ -70,7 +70,7 @@ dependencies = [
 
 [[package]]
 name = "aleph_client"
-version = "2.15.1"
+version = "2.16.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2740,29 +2740,16 @@ name = "pallet-baby-liminal"
 version = "0.1.0"
 dependencies = [
  "ark-bls12-381",
- "ark-crypto-primitives",
- "ark-ec",
- "ark-ff",
- "ark-gm17",
  "ark-groth16",
- "ark-marlin",
- "ark-poly",
- "ark-poly-commit",
- "ark-r1cs-std",
  "ark-relations",
  "ark-serialize",
  "ark-snark",
- "ark-std",
- "blake2 0.9.2",
- "digest 0.9.0",
  "frame-benchmarking",
  "frame-support",
  "frame-system",
  "parity-scale-codec",
  "primitives",
  "scale-info",
- "sp-core 7.0.0 (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.38)",
- "sp-io 7.0.0 (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.38)",
  "sp-std 5.0.0 (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.38)",
 ]
 

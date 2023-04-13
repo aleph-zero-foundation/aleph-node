@@ -7,7 +7,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 #[cfg(feature = "liminal")]
-use baby_liminal_extension::substrate::Extension;
+use baby_liminal_extension::substrate::Extension as BabyLiminalExtension;
 pub use frame_support::{
     construct_runtime, log, parameter_types,
     traits::{
@@ -714,7 +714,7 @@ impl pallet_contracts::Config for Runtime {
     type WeightPrice = pallet_transaction_payment::Pallet<Self>;
     type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
     #[cfg(feature = "liminal")]
-    type ChainExtension = Extension;
+    type ChainExtension = BabyLiminalExtension;
     #[cfg(not(feature = "liminal"))]
     type ChainExtension = ();
     type DeletionQueueDepth = DeletionQueueDepth;

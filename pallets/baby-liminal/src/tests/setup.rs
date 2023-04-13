@@ -60,13 +60,13 @@ parameter_types! {
 }
 
 impl pallet_balances::Config for TestRuntime {
-    type MaxLocks = ();
     type Balance = u64;
-    type RuntimeEvent = RuntimeEvent;
     type DustRemoval = ();
+    type RuntimeEvent = RuntimeEvent;
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = ();
+    type MaxLocks = ();
     type MaxReserves = ();
     type ReserveIdentifier = ();
 }

@@ -1,7 +1,6 @@
 use std::{fs, path::PathBuf};
 
 use aleph_client::{
-    pallet_baby_liminal::systems::ProvingSystem,
     pallets::baby_liminal::{BabyLiminalSudoApi, BabyLiminalUserApi, VerificationKeyIdentifier},
     RootConnection, SignedConnection, TxStatus,
 };
@@ -54,12 +53,11 @@ pub async fn verify(
     identifier: VerificationKeyIdentifier,
     proof_file: PathBuf,
     public_input_file: PathBuf,
-    system: ProvingSystem,
 ) -> Result<()> {
     let proof = read_bytes(&proof_file)?;
     let input = read_bytes(&public_input_file)?;
     connection
-        .verify(identifier, proof, input, system, TxStatus::Finalized)
+        .verify(identifier, proof, input, TxStatus::Finalized)
         .await
         .map(|_| ())
 }

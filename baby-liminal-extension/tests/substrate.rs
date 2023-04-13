@@ -6,14 +6,14 @@ mod utils;
 
 use aleph_runtime::Runtime;
 use baby_liminal_extension::{
-    substrate::{weight_of_store_key, weight_of_verify, Extension},
+    substrate::{weight_of_store_key, Extension},
     BABY_LIMINAL_STORE_KEY_IDENTIFIER_IN_USE, BABY_LIMINAL_STORE_KEY_TOO_LONG_KEY,
     BABY_LIMINAL_VERIFY_DESERIALIZING_INPUT_FAIL, BABY_LIMINAL_VERIFY_DESERIALIZING_KEY_FAIL,
     BABY_LIMINAL_VERIFY_DESERIALIZING_PROOF_FAIL, BABY_LIMINAL_VERIFY_INCORRECT_PROOF,
     BABY_LIMINAL_VERIFY_UNKNOWN_IDENTIFIER, BABY_LIMINAL_VERIFY_VERIFICATION_FAIL,
 };
 use obce::substrate::{pallet_contracts::chain_extension::RetVal, CallableChainExtension};
-use pallet_baby_liminal::{Error, VerificationError};
+use pallet_baby_liminal::{Config as BabyLiminalConfig, Error, VerificationError, WeightInfo};
 use utils::{
     charged, simulate_store_key, simulate_verify, store_key_args, verify_args, CorruptedMode,
     MockedEnvironment, Responder, RevertibleWeight, StoreKeyErrorer, StoreKeyOkayer, VerifyErrorer,
@@ -102,7 +102,7 @@ fn verify__charges_before_reading() {
     assert!(matches!(result, Err(_)));
     assert_eq!(
         charged(charging_listener),
-        weight_of_verify::<Runtime>(None).into()
+        <<Runtime as BabyLiminalConfig>::WeightInfo as WeightInfo>::verify().into()
     );
 }
 

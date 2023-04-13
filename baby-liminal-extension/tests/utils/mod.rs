@@ -3,8 +3,8 @@ use std::sync::mpsc::Receiver;
 use aleph_runtime::Runtime;
 use baby_liminal_extension::{
     executor::Executor,
-    substrate::{weight_of_store_key, weight_of_verify, Extension},
-    BabyLiminalExtension, ProvingSystem, VerificationKeyIdentifier,
+    substrate::{weight_of_store_key, Extension},
+    BabyLiminalExtension, VerificationKeyIdentifier,
 };
 use obce::substrate::{
     frame_support::weights::Weight, pallet_contracts::chain_extension::RetVal,
@@ -18,6 +18,7 @@ pub use environment::{
     CorruptedMode, MockedEnvironment, Responder, RevertibleWeight, StandardMode, StoreKeyErrorer,
     StoreKeyOkayer, VerifyErrorer, VerifyOkayer,
 };
+use pallet_baby_liminal::{Config as BabyLiminalConfig, WeightInfo};
 
 pub const STORE_KEY_ID: u16 = obce::id!(BabyLiminalExtension::store_key);
 pub const VERIFY_ID: u16 = obce::id!(BabyLiminalExtension::verify);
@@ -26,7 +27,6 @@ const IDENTIFIER: VerificationKeyIdentifier = [1, 7, 2, 9, 1, 7, 2, 9];
 const VK: [u8; 2] = [4, 1];
 const PROOF: [u8; 20] = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3, 2, 3, 8, 4];
 const INPUT: [u8; 11] = [0, 5, 7, 7, 2, 1, 5, 6, 6, 4, 9];
-const SYSTEM: ProvingSystem = ProvingSystem::Groth16;
 
 /// Struct to be decoded from a byte slice passed from the contract.
 ///
@@ -52,7 +52,6 @@ struct VerifyArgs {
     pub identifier: VerificationKeyIdentifier,
     pub proof: Vec<u8>,
     pub input: Vec<u8>,
-    pub system: ProvingSystem,
 }
 
 /// Returns encoded arguments to `store_key`.
@@ -71,7 +70,6 @@ pub fn verify_args() -> Vec<u8> {
         identifier: IDENTIFIER,
         proof: PROOF.to_vec(),
         input: INPUT.to_vec(),
-        system: SYSTEM,
     }
     .encode()
 }
@@ -109,8 +107,9 @@ pub fn simulate_verify<Env, const ACTUAL_WEIGHT: Option<u64>, const EXPECTED_RET
 
     assert!(matches!(result, Ok(RetVal::Converging(ret_val)) if ret_val == EXPECTED_RET_VAL));
 
-    let expected_charge =
-        ACTUAL_WEIGHT.unwrap_or_else(|| weight_of_verify::<Runtime>(Some(SYSTEM)).ref_time());
+    let expected_charge = ACTUAL_WEIGHT.unwrap_or_else(|| {
+        <<Runtime as BabyLiminalConfig>::WeightInfo as WeightInfo>::verify().ref_time()
+    });
     assert_eq!(
         charged(charging_listener),
         Weight::from_ref_time(expected_charge).into()

@@ -5,7 +5,7 @@ use obce::substrate::{
 };
 use pallet_baby_liminal::{Config as BabyLiminalConfig, Error, Pallet as BabyLiminal};
 
-use crate::{AccountId32, ProvingSystem, Vec, VerificationKeyIdentifier};
+use crate::{AccountId32, Vec, VerificationKeyIdentifier};
 
 /// Generalized pallet executor, that can be mocked for testing purposes.
 pub trait Executor<T>: Sized {
@@ -24,7 +24,6 @@ pub trait Executor<T>: Sized {
         verification_key_identifier: VerificationKeyIdentifier,
         proof: Vec<u8>,
         public_input: Vec<u8>,
-        system: ProvingSystem,
     ) -> Result<(), (Error<Self::ErrorGenericType>, Option<Weight>)>;
 }
 
@@ -48,13 +47,7 @@ where
         verification_key_identifier: VerificationKeyIdentifier,
         proof: Vec<u8>,
         public_input: Vec<u8>,
-        system: ProvingSystem,
     ) -> Result<(), (Error<Self::ErrorGenericType>, Option<Weight>)> {
-        BabyLiminal::<T>::bare_verify(
-            verification_key_identifier,
-            proof,
-            public_input,
-            system.into(),
-        )
+        BabyLiminal::<T>::bare_verify(verification_key_identifier, proof, public_input)
     }
 }

@@ -4,10 +4,7 @@ pub use pallet_baby_liminal::VerificationKeyIdentifier;
 use crate::{
     aleph_runtime::RuntimeCall::BabyLiminal,
     api,
-    pallet_baby_liminal::{
-        pallet::Call::{delete_key, overwrite_key},
-        systems::ProvingSystem,
-    },
+    pallet_baby_liminal::pallet::Call::{delete_key, overwrite_key},
     RootConnection, SignedConnection, SignedConnectionApi, SudoCall, TxInfo, TxStatus,
 };
 
@@ -28,7 +25,6 @@ pub trait BabyLiminalUserApi {
         identifier: VerificationKeyIdentifier,
         proof: Vec<u8>,
         public_input: Vec<u8>,
-        system: ProvingSystem,
         status: TxStatus,
     ) -> Result<TxInfo>;
 }
@@ -69,12 +65,11 @@ impl BabyLiminalUserApi for SignedConnection {
         identifier: VerificationKeyIdentifier,
         proof: Vec<u8>,
         public_input: Vec<u8>,
-        system: ProvingSystem,
         status: TxStatus,
     ) -> Result<TxInfo> {
         let tx = api::tx()
             .baby_liminal()
-            .verify(identifier, proof, public_input, system);
+            .verify(identifier, proof, public_input);
         self.send_tx(tx, status).await
     }
 }

@@ -14,10 +14,7 @@ use {
         parsing::parse_some_system, NonUniversalProvingSystem, RelationArgs, SomeProvingSystem,
         UniversalProvingSystem,
     },
-    aleph_client::{
-        pallet_baby_liminal::systems::ProvingSystem,
-        pallets::baby_liminal::VerificationKeyIdentifier,
-    },
+    aleph_client::pallets::baby_liminal::VerificationKeyIdentifier,
 };
 
 #[derive(Debug, Clone, Args)]
@@ -196,10 +193,6 @@ pub enum BabyLiminal {
         /// Path to a file containing the public input.
         #[clap(long)]
         input_file: PathBuf,
-
-        /// The proving system to be used.
-        #[clap(long, value_parser(parsing::parse_system))]
-        system: ProvingSystem,
     },
 }
 
@@ -526,10 +519,7 @@ pub enum Command {
 
 #[cfg(feature = "liminal")]
 mod parsing {
-    use aleph_client::{
-        pallet_baby_liminal::systems::ProvingSystem,
-        pallets::baby_liminal::VerificationKeyIdentifier,
-    };
+    use aleph_client::pallets::baby_liminal::VerificationKeyIdentifier;
     use anyhow::anyhow;
 
     /// Try to convert `&str` to `VerificationKeyIdentifier`.
@@ -542,16 +532,6 @@ mod parsing {
             _ => Err(anyhow!(
                 "Identifier has an incorrect length (should be 4 characters)"
             )),
-        }
-    }
-
-    /// Try to convert `&str` to `ProvingSystem`.
-    pub fn parse_system(system: &str) -> anyhow::Result<ProvingSystem> {
-        match system.to_lowercase().as_str() {
-            "groth16" => Ok(ProvingSystem::Groth16),
-            "gm17" => Ok(ProvingSystem::Gm17),
-            "marlin" => Ok(ProvingSystem::Marlin),
-            _ => Err(anyhow!("Unknown proving system")),
         }
     }
 }

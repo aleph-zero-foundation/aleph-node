@@ -15,7 +15,7 @@ use frame_support::{
 };
 use frame_system::ensure_signed;
 pub use pallet::*;
-pub use systems::{ProvingSystem, VerificationError};
+pub use systems::VerificationError;
 pub use weights::{AlephWeight, WeightInfo};
 
 /// The current storage version.
@@ -40,7 +40,7 @@ pub mod pallet {
     };
 
     use super::*;
-    use crate::systems::{Gm17, Groth16, Marlin, VerificationError, VerifyingSystem};
+    use crate::systems::{Groth16, VerificationError, VerifyingSystem};
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -256,7 +256,7 @@ pub mod pallet {
         }
 
         /// Verifies `proof` against `public_input` with a key that has been stored under
-        /// `verification_key_identifier`. All is done within `system` proving system.
+        /// `verification_key_identifier`. All is done within Groth16 proving system.
         ///
         /// Fails if:
         /// - there is no verification key under `verification_key_identifier`
@@ -267,22 +267,15 @@ pub mod pallet {
         /// system)
         /// - verifying procedure fails (e.g. incompatible verification key and proof)
         /// - proof is incorrect
-        #[pallet::weight(
-            match system {
-                ProvingSystem::Groth16 => T::WeightInfo::verify_groth16(),
-                ProvingSystem::Gm17 => T::WeightInfo::verify_gm17(),
-                ProvingSystem::Marlin => T::WeightInfo::verify_marlin(),
-            }
-        )]
+        #[pallet::weight(T::WeightInfo::verify())]
         #[pallet::call_index(3)]
         pub fn verify(
             _origin: OriginFor<T>,
             verification_key_identifier: VerificationKeyIdentifier,
             proof: Vec<u8>,
             public_input: Vec<u8>,
-            system: ProvingSystem,
         ) -> DispatchResultWithPostInfo {
-            Self::bare_verify(verification_key_identifier, proof, public_input, system)
+            Self::bare_verify(verification_key_identifier, proof, public_input)
                 .map(|_| ().into())
                 .map_err(|(error, actual_weight)| DispatchErrorWithPostInfo {
                     post_info: PostDispatchInfo {
@@ -341,19 +334,8 @@ pub mod pallet {
             verification_key_identifier: VerificationKeyIdentifier,
             proof: Vec<u8>,
             public_input: Vec<u8>,
-            system: ProvingSystem,
         ) -> Result<(), (Error<T>, Option<Weight>)> {
-            match system {
-                ProvingSystem::Groth16 => {
-                    Self::_bare_verify::<Groth16>(verification_key_identifier, proof, public_input)
-                }
-                ProvingSystem::Gm17 => {
-                    Self::_bare_verify::<Gm17>(verification_key_identifier, proof, public_input)
-                }
-                ProvingSystem::Marlin => {
-                    Self::_bare_verify::<Marlin>(verification_key_identifier, proof, public_input)
-                }
-            }
+            Self::_bare_verify::<Groth16>(verification_key_identifier, proof, public_input)
         }
 
         fn _bare_verify<S: VerifyingSystem>(
@@ -410,14 +392,8 @@ pub mod pallet {
                     )
                 })?;
 
-            let parent_hash = <frame_system::Pallet<T>>::parent_hash();
-            let valid_proof = S::verify(
-                &verification_key,
-                &public_input,
-                &proof,
-                parent_hash.as_ref(),
-            )
-            .map_err(|err| (Error::<T>::VerificationFailed(err), None))?;
+            let valid_proof = S::verify(&verification_key, &public_input, &proof)
+                .map_err(|err| (Error::<T>::VerificationFailed(err), None))?;
 
             ensure!(valid_proof, (Error::<T>::IncorrectProof, None));
 

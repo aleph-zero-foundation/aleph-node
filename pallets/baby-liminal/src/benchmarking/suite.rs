@@ -11,8 +11,7 @@ use primitives::host_functions::poseidon;
 
 use crate::{
     benchmarking::import::Artifacts, get_artifacts, BalanceOf, Call, Config, Pallet,
-    ProvingSystem::*, VerificationKeyDeposits, VerificationKeyIdentifier, VerificationKeyOwners,
-    VerificationKeys,
+    VerificationKeyDeposits, VerificationKeyIdentifier, VerificationKeyOwners, VerificationKeys,
 };
 
 const SEED: u32 = 41;
@@ -66,81 +65,27 @@ benchmarks! {
     verify_groth16_xor {
         let Artifacts { key, proof, input } = get_artifacts!(Groth16, Xor);
         let _ = insert_key::<T>(key);
-    } : verify(caller::<T>(), IDENTIFIER, proof, input, Groth16)
+    } : verify(caller::<T>(), IDENTIFIER, proof, input)
 
     verify_groth16_linear_equation {
         let Artifacts { key, proof, input } = get_artifacts!(Groth16, LinearEquation);
         let _ = insert_key::<T>(key);
-    } : verify(caller::<T>(), IDENTIFIER, proof, input, Groth16)
+    } : verify(caller::<T>(), IDENTIFIER, proof, input)
 
     verify_groth16_merkle_tree_8 {
         let Artifacts { key, proof, input } = get_artifacts!(Groth16, MerkleTree8);
         let _ = insert_key::<T>(key);
-    } : verify(caller::<T>(), IDENTIFIER, proof, input, Groth16)
+    } : verify(caller::<T>(), IDENTIFIER, proof, input)
 
     verify_groth16_merkle_tree_64 {
         let Artifacts { key, proof, input } = get_artifacts!(Groth16, MerkleTree64);
         let _ = insert_key::<T>(key);
-    } : verify(caller::<T>(), IDENTIFIER, proof, input, Groth16)
+    } : verify(caller::<T>(), IDENTIFIER, proof, input)
 
     verify_groth16_merkle_tree_1024 {
         let Artifacts { key, proof, input } = get_artifacts!(Groth16, MerkleTree1024);
         let _ = insert_key::<T>(key);
-    } : verify(caller::<T>(), IDENTIFIER, proof, input, Groth16)
-
-    // GM17 benchmarks
-
-    verify_gm17_xor {
-        let Artifacts { key, proof, input } = get_artifacts!(Gm17, Xor);
-        let _ = insert_key::<T>(key);
-    } : verify(caller::<T>(), IDENTIFIER, proof, input, Gm17)
-
-    verify_gm17_linear_equation {
-        let Artifacts { key, proof, input } = get_artifacts!(Gm17, LinearEquation);
-        let _ = insert_key::<T>(key);
-    } : verify(caller::<T>(), IDENTIFIER, proof, input, Gm17)
-
-    verify_gm17_merkle_tree_8 {
-        let Artifacts { key, proof, input } = get_artifacts!(Gm17, MerkleTree8);
-        let _ = insert_key::<T>(key);
-    } : verify(caller::<T>(), IDENTIFIER, proof, input, Gm17)
-
-    verify_gm17_merkle_tree_64 {
-        let Artifacts { key, proof, input } = get_artifacts!(Gm17, MerkleTree64);
-        let _ = insert_key::<T>(key);
-    } : verify(caller::<T>(), IDENTIFIER, proof, input, Gm17)
-
-    verify_gm17_merkle_tree_1024 {
-        let Artifacts { key, proof, input } = get_artifacts!(Gm17, MerkleTree1024);
-        let _ = insert_key::<T>(key);
-    } : verify(caller::<T>(), IDENTIFIER, proof, input, Gm17)
-
-    // Marlin benchmarks
-
-    verify_marlin_xor {
-        let Artifacts { key, proof, input } = get_artifacts!(Marlin, Xor);
-        let _ = insert_key::<T>(key);
-    } : verify(caller::<T>(), IDENTIFIER, proof, input, Marlin)
-
-    verify_marlin_linear_equation {
-        let Artifacts { key, proof, input } = get_artifacts!(Marlin, LinearEquation);
-        let _ = insert_key::<T>(key);
-    } : verify(caller::<T>(), IDENTIFIER, proof, input, Marlin)
-
-    verify_marlin_merkle_tree_8 {
-        let Artifacts { key, proof, input } = get_artifacts!(Marlin, MerkleTree8);
-        let _ = insert_key::<T>(key);
-    } : verify(caller::<T>(), IDENTIFIER, proof, input, Marlin)
-
-    verify_marlin_merkle_tree_64 {
-        let Artifacts { key, proof, input } = get_artifacts!(Marlin, MerkleTree64);
-        let _ = insert_key::<T>(key);
-    } : verify(caller::<T>(), IDENTIFIER, proof, input, Marlin)
-
-    verify_marlin_merkle_tree_1024 {
-        let Artifacts { key, proof, input } = get_artifacts!(Marlin, MerkleTree1024);
-        let _ = insert_key::<T>(key);
-    } : verify(caller::<T>(), IDENTIFIER, proof, input, Marlin)
+    } : verify(caller::<T>(), IDENTIFIER, proof, input)
 
     // Partial `verify` execution
 
@@ -153,7 +98,7 @@ benchmarks! {
         let Artifacts { key, proof: _proof, input } = get_artifacts!(Groth16, MerkleTree1024);
     } : {
         assert!(
-            Pallet::<T>::verify(caller::<T>().into(), IDENTIFIER, proof, input, Groth16).is_err()
+            Pallet::<T>::verify(caller::<T>().into(), IDENTIFIER, proof, input).is_err()
         )
     }
 
@@ -168,7 +113,7 @@ benchmarks! {
         let Artifacts { key, proof: _proof, input } = get_artifacts!(Groth16, MerkleTree1024);
     } : {
         assert!(
-            Pallet::<T>::verify(caller::<T>().into(), IDENTIFIER, proof, input, Groth16).is_err()
+            Pallet::<T>::verify(caller::<T>().into(), IDENTIFIER, proof, input).is_err()
         )
     }
 
@@ -181,7 +126,7 @@ benchmarks! {
         let Artifacts { key, proof, input } = get_artifacts!(Groth16, MerkleTree1024);
     } : {
         assert!(
-            Pallet::<T>::verify(caller::<T>().into(), IDENTIFIER, proof, input, Groth16).is_err()
+            Pallet::<T>::verify(caller::<T>().into(), IDENTIFIER, proof, input).is_err()
         )
     }
 

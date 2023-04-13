@@ -54,12 +54,6 @@ macro_rules! system {
     (Groth16) => {
         "groth16"
     };
-    (Gm17) => {
-        "gm17"
-    };
-    (Marlin) => {
-        "marlin"
-    };
 }
 
 /// Converts relation identifier to a `&static str` that is used in the filename pattern.
