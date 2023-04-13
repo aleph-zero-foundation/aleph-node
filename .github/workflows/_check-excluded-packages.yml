@@ -43,18 +43,19 @@ jobs:
 
       - name: Check excluded packages
         run: |
+          rustup component add clippy rustfmt
+          rustup target add wasm32-unknown-unknown
+
+          rustup component add rust-src --toolchain nightly-2022-10-30-x86_64-unknown-linux-gnu
+          cargo install cargo-dylint dylint-link
+          cargo install cargo-contract --vers ^2.0 --force --locked
+
           packages="${{ steps.format_output.outputs.packages }}"
           packages="${packages//'%0A'/$'\n'}"
           for p in ${packages[@]}
           do
             echo "Checking package $p..."
             pushd "$p"
-            rustup component add clippy rustfmt
-            rustup target add wasm32-unknown-unknown
-
-            rustup component add rust-src --toolchain nightly-2022-10-30-x86_64-unknown-linux-gnu
-            cargo install cargo-dylint dylint-link
-            cargo install cargo-contract --vers ^2.0 --force --locked
 
             if [ $p = "contracts/adder" ] ||
                [ $p = "contracts/poseidon_host_bench" ] ||
