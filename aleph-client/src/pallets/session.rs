@@ -1,8 +1,6 @@
-use primitives::SessionIndex;
-
 use crate::{
     api, api::runtime_types::aleph_runtime::SessionKeys, connections::TxInfo, AccountId, BlockHash,
-    ConnectionApi, SignedConnectionApi, TxStatus,
+    ConnectionApi, SessionIndex, SignedConnectionApi, TxStatus,
 };
 
 /// Pallet session read-only api.

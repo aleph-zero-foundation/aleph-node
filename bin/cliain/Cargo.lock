@@ -70,23 +70,19 @@ dependencies = [
 
 [[package]]
 name = "aleph_client"
-version = "2.16.0"
+version = "3.0.0"
 dependencies = [
  "anyhow",
  "async-trait",
  "contract-transcode",
- "frame-support",
  "futures",
  "hex",
  "ink_metadata",
  "log",
- "pallet-baby-liminal",
  "pallet-contracts-primitives",
  "parity-scale-codec",
- "primitives",
  "serde",
  "serde_json",
- "sp-runtime 7.0.0 (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.38)",
  "subxt",
  "thiserror",
 ]
@@ -2736,33 +2732,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-baby-liminal"
-version = "0.1.0"
-dependencies = [
- "ark-bls12-381",
- "ark-groth16",
- "ark-relations",
- "ark-serialize",
- "ark-snark",
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "primitives",
- "scale-info",
- "sp-std 5.0.0 (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.38)",
-]
-
-[[package]]
 name = "pallet-contracts-primitives"
 version = "7.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.38#0d25bff2ff35d900a27efc93538d8b9d291f7381"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "33fd2f159dc7cc71def8ac684fa4938b2a66ef158436d3c7ab4aa6b69390d562"
 dependencies = [
  "bitflags",
  "parity-scale-codec",
- "sp-runtime 7.0.0 (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.38)",
- "sp-std 5.0.0 (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.38)",
- "sp-weights 4.0.0 (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.38)",
+ "sp-runtime 7.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sp-std 5.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sp-weights 4.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

@@ -1,4 +1,3 @@
-use primitives::{Balance, EraIndex};
 use subxt::{
     ext::{
         sp_core::storage::StorageKey,
@@ -21,9 +20,9 @@ use crate::{
     pallet_sudo::pallet::Call::sudo_as,
     pallets::utility::UtilityApi,
     sp_arithmetic::per_things::Perbill,
-    AccountId, BlockHash,
+    AccountId, Balance, BlockHash,
     Call::{Staking, Sudo},
-    ConnectionApi, RootConnection, SignedConnectionApi, SudoCall, TxStatus,
+    ConnectionApi, EraIndex, RootConnection, SignedConnectionApi, SudoCall, TxStatus,
 };
 
 /// Any object that implemnts pallet staking read-only api.

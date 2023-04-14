@@ -1,5 +1,7 @@
 use anyhow::Result;
-pub use pallet_baby_liminal::VerificationKeyIdentifier;
+
+/// Verification key identifier alias, copied from `pallet_baby_liminal`.
+pub type VerificationKeyIdentifier = [u8; 8];
 
 use crate::{
     aleph_runtime::RuntimeCall::BabyLiminal,

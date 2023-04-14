@@ -1,6 +1,5 @@
 use futures::StreamExt;
 use log::info;
-use primitives::{EraIndex, SessionIndex};
 use subxt::events::StaticEvent;
 
 use crate::{
@@ -8,6 +7,7 @@ use crate::{
     api::session::events::NewSession,
     connections::AsConnection,
     pallets::{session::SessionApi, staking::StakingApi},
+    EraIndex, SessionIndex,
 };
 
 /// When using waiting API, what kind of block status we should wait for.

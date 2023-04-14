@@ -1,11 +1,10 @@
-use primitives::{EraIndex, SessionCount};
-
 use crate::{
     aleph_runtime::RuntimeCall::CommitteeManagement,
     api,
     pallet_committee_management::pallet::Call::{ban_from_committee, set_ban_config},
     primitives::{BanConfig, BanInfo, BanReason},
-    AccountId, AsConnection, BlockHash, ConnectionApi, RootConnection, SudoCall, TxInfo, TxStatus,
+    AccountId, AsConnection, BlockHash, ConnectionApi, EraIndex, RootConnection, SessionCount,
+    SudoCall, TxInfo, TxStatus,
 };
 
 /// Pallet CommitteeManagement read-only api.

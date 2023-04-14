@@ -1,5 +1,4 @@
 use codec::Encode;
-use primitives::{BlockNumber, SessionIndex, Version};
 use subxt::rpc_params;
 
 use crate::{
@@ -10,9 +9,9 @@ use crate::{
     },
     connections::TxInfo,
     pallet_aleph::pallet::Call::schedule_finality_version_change,
-    AccountId, AlephKeyPair, BlockHash,
+    AccountId, AlephKeyPair, BlockHash, BlockNumber,
     Call::Aleph,
-    ConnectionApi, Pair, RootConnection, SudoCall, TxStatus,
+    ConnectionApi, Pair, RootConnection, SessionIndex, SudoCall, TxStatus, Version,
 };
 
 // TODO replace docs with link to pallet aleph docs, once they are published

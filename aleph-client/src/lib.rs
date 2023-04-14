@@ -9,8 +9,6 @@
 #![feature(auto_traits)]
 #![feature(negative_impls)]
 
-extern crate core;
-
 use std::str::FromStr;
 
 use anyhow::anyhow;
@@ -45,9 +43,24 @@ pub mod utility;
 /// Waiting for some events API.
 pub mod waiting;
 
-pub use ::primitives::{Balance, BlockNumber};
 pub use aleph_zero::api;
 pub use runtime_types::*;
+
+/// An alias for token amount.
+pub type Balance = u128;
+/// An alias for block index.
+pub type BlockNumber = u32;
+/// An alias for index type with which we can count sessions.
+pub type SessionCount = u32;
+/// An alias for index type with which we can index sessions.
+pub type SessionIndex = u32;
+/// An alias for counter for the number of eras that have passed.
+pub type EraIndex = u32;
+/// An alias for finality version.
+pub type Version = u32;
+
+/// We target 1 block per 1 second.
+pub const MILLISECS_PER_BLOCK: u64 = 1000;
 
 /// An alias for a pallet aleph keys.
 pub type AlephKeyPair = ed25519::Pair;

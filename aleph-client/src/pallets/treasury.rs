@@ -1,17 +1,22 @@
-use frame_support::PalletId;
-use primitives::{Balance, MILLISECS_PER_BLOCK};
-use sp_runtime::traits::AccountIdConversion;
 use subxt::ext::sp_runtime::MultiAddress;
 
 use crate::{
     api,
     connections::{AsConnection, TxInfo},
+    frame_support::PalletId,
     pallet_treasury::pallet::Call::{approve_proposal, reject_proposal},
     pallets::{committee_management::CommitteeManagementApi, staking::StakingApi},
-    AccountId, BlockHash,
+    sp_core::TypeId,
+    sp_runtime::{traits::AccountIdConversion, Perbill},
+    AccountId, Balance, BlockHash,
     Call::Treasury,
-    ConnectionApi, RootConnection, SignedConnectionApi, SudoCall, TxStatus,
+    ConnectionApi, RootConnection, SignedConnectionApi, SudoCall, TxStatus, MILLISECS_PER_BLOCK,
 };
+
+// Copied from `frame_support`.
+impl TypeId for PalletId {
+    const TYPE_ID: [u8; 4] = *b"modl";
+}
 
 /// Pallet treasury read-only api.
 #[async_trait::async_trait]
@@ -135,6 +140,18 @@ impl<C: AsConnection + Sync> TreasureApiExt for C {
         let sessions_per_era = self.get_session_per_era().await?;
         let millisecs_per_era =
             MILLISECS_PER_BLOCK * session_period as u64 * sessions_per_era as u64;
-        Ok(primitives::staking::era_payout(millisecs_per_era).1)
+        Ok(era_payout(millisecs_per_era))
     }
+}
+
+fn era_payout(miliseconds_per_era: u64) -> Balance {
+    const MILLISECONDS_PER_YEAR: u64 = 1000 * 3600 * 24 * 36525 / 100;
+    const TOKEN: u128 = 10u128.pow(12);
+    const YEARLY_INFLATION: Balance = 30_000_000 * TOKEN;
+    const VALIDATOR_REWARD: Perbill = Perbill::from_percent(90);
+
+    let portion = Perbill::from_rational(miliseconds_per_era, MILLISECONDS_PER_YEAR);
+    let total_payout = portion * YEARLY_INFLATION;
+
+    VALIDATOR_REWARD * total_payout
 }
