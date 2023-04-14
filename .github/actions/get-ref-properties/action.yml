@@ -64,3 +64,4 @@ runs:
       shell: bash
       run: |
         echo sha=$(git rev-parse --short HEAD) >> $GITHUB_OUTPUT
+

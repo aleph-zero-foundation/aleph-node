@@ -1,0 +1,81 @@
+---
+name: Upload runtime and binary to GitHub Release
+
+on:
+  release:
+    types:
+      - released
+      - prereleased
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
+  add-runtime-and-binary-to-release:
+    needs: [check-vars-and-secrets]
+    name: Add runtime and binary to release
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Call action get-ref-properties
+        id: get-ref-properties
+        uses: ./.github/actions/get-ref-properties
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        env:
+          AWS_REGION: us-east-1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download release runtime from S3 bucket
+        shell: bash
+        env:
+          # yamllint disable-line rule:line-length
+          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-runtime
+          S3BUCKET_FILE: aleph-runtime-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
+        run: |
+          aws s3 cp ${{ env.S3BUCKET_URL }}/${{ env.S3BUCKET_FILE }} ${{ env.S3BUCKET_FILE }}
+
+      - name: Download release binary from S3 bucket
+        shell: bash
+        env:
+          # yamllint disable-line rule:line-length
+          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-node
+          S3BUCKET_FILE: aleph-node-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
+        run: |
+          aws s3 cp ${{ env.S3BUCKET_URL }}/${{ env.S3BUCKET_FILE }} \
+             aleph-node-${{ steps.get-ref-properties.outputs.sha }}-linux-amd64.tar.gz
+
+      - name: Add runtime and binary to the release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            aleph-runtime-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
+            aleph-node-${{ steps.get-ref-properties.outputs.sha }}-linux-amd64.tar.gz
+
+  slack:
+    name: Slack notification
+    runs-on: ubuntu-20.04
+    needs: [add-runtime-and-binary-to-release]
+    if: always()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Send Slack message
+        uses: ./.github/actions/slack-notification
+        with:
+          notify-on: "always"
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_DEV_ONDUTY }}

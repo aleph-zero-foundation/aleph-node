@@ -155,4 +155,4 @@ jobs:
         with:
           notify-on: "failure"
         env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_DEV_ONDUTY }}

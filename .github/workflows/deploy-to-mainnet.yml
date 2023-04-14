@@ -2,11 +2,18 @@
 name: Deploy to Mainnet
 
 on:
-  release:
-    types: [released]
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Set to 'true' to skip checking if deployed image is already on Testnet
+        required: false
+        type: boolean
+        default: false
 
+# there might be only one deployment to the Mainnet at a time
 concurrency:
-  group: ${{ github.ref }}-${{ github.workflow }}
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 
 jobs:
   check-vars-and-secrets:
@@ -14,135 +21,72 @@ jobs:
     uses: ./.github/workflows/_check-vars-and-secrets.yml
     secrets: inherit
 
-  deploy-mainnet:
+  check-if-image-deployed-to-testnet:
     needs: [check-vars-and-secrets]
-    name: Deploy new aleph-node image to Mainnet EKS
     runs-on: ubuntu-20.04
-    environment: 'mainnet'
-    env:
-      AWS_REGION: us-east-1  # this region is used by all public ECR repos
     steps:
-      - name: GIT | Checkout
+      - name: Checkout aleph-node sources
         uses: actions/checkout@v3
+
+      - name: Get Testnet node commit SHA
+        id: get-testnet-node-commit-sha
+        uses: ./.github/actions/get-node-system-version
+        with:
+          env: testnet
 
       - name: Call action get-ref-properties
         id: get-ref-properties
         uses: ./.github/actions/get-ref-properties
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Login to Public Amazon ECR
-        id: login-public-ecr
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ vars.ECR_PUBLIC_HOST }}
-          username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
-          password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
-        env:
-          AWS_REGION: us-east-1
-
-      - name: Verify aleph-node image existance
-        env:
-          # yamllint disable-line rule:line-length
-          IMAGE: ${{ vars.ECR_PUBLIC_REGISTRY }}aleph-node:${{ steps.get-ref-properties.outputs.tag }}
+      - name: Compare Testnet node SHA version with currently deployed SHA
+        if: inputs.force != true
+        shell: bash
         run: |
-          export image_not_exist=$(docker manifest inspect ${{ env.IMAGE }} &> /dev/null ; echo $?)
-          if [ $image_not_exist -eq 1 ]; then
-            echo "::error title=Wrong docker image tag::Docker image ${{ env.IMAGE }} doesn't exist"
+          testnet_sha=${{ steps.get-testnet-node-commit-sha.outputs.sha }}
+          current_sha=${{ steps.get-ref-properties.outputs.sha }}
+          if [[ "${testnet_sha}" != "${current_sha}" ]]; then
+            echo "Error: Testnet RPC system.version sha ${testnet_sha} is different from the"
+            echo "node you're trying to deploy: ${current_sha}. If you know what you're doing"
+            echo "and you want to deploy ${current_sha} to Mainnet, re-run this workflow with force"
             exit 1
           fi
 
-      - name: Build and push Docker Hub image of Mainnet
-        uses: ./.github/actions/build-and-push-dockerhub-image
-        if: secrets.DOCKERHUB_USERNAME != "" && secrets.DOCKERHUB_PASSWORD != ""
+  deploy-to-mainnet:
+    needs: [check-if-image-deployed-to-testnet]
+    name: Deploy new aleph-node image to Mainnet EKS
+    uses: ./.github/workflows/_update-node-image-infra.yml
+    with:
+      env: mainnet
+    secrets: inherit
+
+  push-dockerhub-image-mainnet:
+    needs: [deploy-to-mainnet]
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout aleph-node sources
+        uses: actions/checkout@v3
+
+      - name: Get docker image names
+        id: get-docker-image-names
+        uses: ./.github/actions/get-docker-image-names
         with:
-          source-image:
-            ${{ vars.ECR_PUBLIC_REGISTRY }}/aleph-node:${{ steps.get-ref-properties.outputs.tag }}
-          target-image:
-            cardinalcryptography/aleph-zero:mainnet-${{ steps.get-ref-properties.outputs.tag }}
-          additional-image: cardinalcryptography/aleph-zero:mainnet-latest
+          ecr-repo: ${{ vars.ECR_ALEPH_NODE_REPO }}
+          dockerhub-repo: ${{ vars.DOCKERHUB_ALEPH_NODE_REPO }}
+
+      - name: Build and push Docker Hub image for Mainnet
+        uses: ./.github/actions/build-and-push-dockerhub-image
+        with:
+          source-image: ${{ steps.get-docker-image-names.outputs.ecr-deploy-image }}
+          target-image: ${{ steps.get-docker-image-names.outputs.dockerhub-mainnet-image }}
+          additional-image:
+            ${{ steps.get-docker-image-names.outputs.dockerhub-mainnet-latest-image }}
           dockerhub-username: "${{ secrets.DOCKERHUB_USERNAME }}"
           dockerhub-password: "${{ secrets.DOCKERHUB_PASSWORD }}"
-          push: 'true'
-
-      - name: S3 CI | Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        env:
-          AWS_REGION: us-east-1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: S3 CI | Download release runtime from S3 bucket
-        shell: bash
-        env:
-          # yamllint disable-line rule:line-length
-          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-runtime
-          S3BUCKET_FILE: aleph-runtime-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
-        run: |
-          aws s3 cp ${{ env.S3BUCKET_URL }}/${{ env.S3BUCKET_FILE }} ${{ env.S3BUCKET_FILE }}
-
-      - name: RELEASE ASSET | Add runtime to the release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: |
-            aleph-runtime-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
-
-      - name: GIT | Checkout argocd apps repo
-        uses: actions/checkout@v3
-        with:
-          ref: mainnet
-          repository: Cardinal-Cryptography/${{ secrets.REPO_ARGOCD_APPS_NAME }}
-          token: ${{ secrets.CI_GH_TOKEN }}
-          path: "${{ secrets.REPO_ARGOCD_APPS_NAME }}"
-
-      - name: Init kustomize
-        uses: imranismail/setup-kustomize@v1
-        with:
-          kustomize-version: "3.8.6"
-
-      - name: Update aleph-node docker image and trigger ArgoCD deploy for Mainnet
-        env:
-          MAINNET_IMAGE:
-            ${{ vars.ECR_PUBLIC_REGISTRY }}aleph-node:${{ steps.get-ref-properties.outputs.tag }}
-          REGIONS_AWS: 'eu-central-1,eu-west-1,eu-west-2,us-east-1,us-east-2'
-        run: |
-          IFS="," read -a region_array <<< ${{ env.REGIONS_AWS }}
-          export aleph_path=$(pwd)
-          export apps_name=${{ secrets.REPO_ARGOCD_APPS_NAME }}
-          for i in "${region_array[@]}"; do
-            # Deploy new image version for archivist
-            cd ${aleph_path}/${apps_name}/aleph-node-archivists/overlays/mainnet/${i}
-            kustomize edit set image \
-              "aleph-node-archivist-image-placeholder=${{ env.MAINNET_IMAGE }}"
-
-            # Deploy new image version for validator
-            cd ${aleph_path}/${apps_name}/aleph-node-validators/overlays/mainnet/${i}
-            kustomize edit set image \
-              "aleph-node-validator-image-placeholder=${{ env.MAINNET_IMAGE }}"
-          done
-
-      - name: GIT | Commit changes to argocd apps repository.
-        uses: EndBug/add-and-commit@v9.1.1
-        with:
-          author_name: ${{ secrets.AUTOCOMMIT_AUTHOR }}
-          author_email: ${{ secrets.AUTOCOMMIT_EMAIL }}
-          # yamllint disable-line rule:line-length
-          message: "Update Mainnet docker image tag for release: ${{ steps.get-ref-properties.outputs.tag }}"
-          add: "*.yaml"
-          cwd: "${{ secrets.REPO_ARGOCD_APPS_NAME }}"
 
   slack:
     name: Slack notification
     runs-on: ubuntu-20.04
-    needs: [deploy-mainnet]
+    needs: [push-dockerhub-image-mainnet]
     if: always()
     steps:
       - name: Checkout repository
@@ -153,4 +97,4 @@ jobs:
         with:
           notify-on: "always"
         env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_DEV_ONDUTY }}

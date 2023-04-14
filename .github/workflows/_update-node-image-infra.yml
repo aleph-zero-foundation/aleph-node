@@ -1,0 +1,95 @@
+---
+name: Update aleph-node image in infra
+on:
+  workflow_call:
+    inputs:
+      env:
+        required: true
+        type: string
+        description: mainnet or testnet
+
+jobs:
+  main:
+    name: Update aleph-node image in infra
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Validate action inputs
+        shell: bash
+        run: |
+          if [[ "${{ inputs.env }}" != 'testnet' && "${{ inputs.env }}" != 'mainnet' ]]; then
+            echo "Error: inputs.env should be either mainnet or testnet!"
+            exit 1
+          fi
+
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Call action get-ref-properties
+        id: get-ref-properties
+        uses: ./.github/actions/get-ref-properties
+
+      - name: Call action Get ECR image names
+        id: get-docker-image-names
+        uses: ./.github/actions/get-docker-image-names
+        with:
+          ecr-repo: ${{ vars.ECR_ALEPH_NODE_REPO }}
+          dockerhub-repo: ${{ vars.DOCKERHUB_ALEPH_NODE_REPO }}
+
+      # this step checks indirectly as well that git HEAD has an r-* tag
+      # otherwise ECR image would not exist
+      - name: Check deploy image existence
+        uses: ./.github/actions/check-image-existence-ecr
+        with:
+          ecr-image: ${{ steps.get-docker-image-names.outputs.ecr-deploy-image }}
+
+      - name: Get repo owner
+        id: get-repo-owner
+        shell: bash
+        run: |
+          echo "repo-owner=$GITHUB_REPOSITORY_OWNER" >> $GITHUB_OUTPUT
+
+      - name: GIT | Checkout argocd apps repo
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.env }}
+          # yamllint disable-line rule:line-length
+          repository: ${{ steps.get-repo-owner.outputs.repo-owner }}/${{ secrets.REPO_ARGOCD_APPS_NAME }}
+          token: ${{ secrets.CI_GH_TOKEN }}
+          path: "${{ secrets.REPO_ARGOCD_APPS_NAME }}"
+
+      - name: Init kustomize
+        uses: imranismail/setup-kustomize@v1
+        with:
+          kustomize-version: "3.8.6"
+
+      - name: Update aleph-node docker image and trigger ArgoCD deploy for ${{ inputs.env }}
+        env:
+          DEPLOY_IMAGE: ${{ steps.get-docker-image-names.outputs.ecr-deploy-image }}
+          REGIONS_AWS: 'eu-central-1,eu-west-1,eu-west-2,us-east-1,us-east-2'
+        shell: bash
+        run: |
+          IFS="," read -a region_array <<< ${{ env.REGIONS_AWS }}
+          export aleph_path=$(pwd)
+          export apps_name=${{ secrets.REPO_ARGOCD_APPS_NAME }}
+          for i in "${region_array[@]}"; do
+            # Deploy new image version for archivist
+            cd ${aleph_path}/${apps_name}/aleph-node-archivists/overlays/${{ inputs.env }}/${i}
+            kustomize edit set image \
+              "aleph-node-archivist-image-placeholder=${{ env.DEPLOY_IMAGE }}"
+
+            # Deploy new image version for validator
+            cd ${aleph_path}/${apps_name}/aleph-node-validators/overlays/${{ inputs.env }}/${i}
+            kustomize edit set image \
+              "aleph-node-validator-image-placeholder=${{ env.DEPLOY_IMAGE }}"
+          done
+
+      - name: GIT | Commit changes to argocd apps repository.
+        uses: EndBug/add-and-commit@v9.1.1
+        env:
+          TAG: ${{ steps.get-ref-properties.outputs.tag }}
+        with:
+          author_name: ${{ secrets.AUTOCOMMIT_AUTHOR }}
+          author_email: ${{ secrets.AUTOCOMMIT_EMAIL }}
+          message: "Update ${{ inputs.env }} aleph-node tag ${{ env.TAG }}"
+          add: "*.yaml"
+          cwd: "${{ secrets.REPO_ARGOCD_APPS_NAME }}"

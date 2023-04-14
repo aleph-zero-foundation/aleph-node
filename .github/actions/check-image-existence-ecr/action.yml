@@ -1,0 +1,19 @@
+---
+name: Get ECR image names
+description:
+  This action check whether given image exists in public ECR repo
+inputs:
+  ecr-image:
+    required: true
+    description: Public ECR image URL to check
+runs:
+  using: composite
+  steps:
+    - name: Check docker image existence in ECR
+      shell: bash
+      run: |
+        image_not_exist=$(docker manifest inspect ${{ inputs.ecr-image }} &> /dev/null ; echo $?)
+        if [[ $image_not_exist -eq 1 ]]; then
+          echo "Error: docker image ${{ inputs.ecr-image }} doesn't exist"
+          exit 1
+        fi

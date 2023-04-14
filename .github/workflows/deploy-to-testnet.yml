@@ -2,11 +2,12 @@
 name: Deploy to Testnet
 
 on:
-  release:
-    types: [prereleased]
+  workflow_dispatch:
 
+# there might be only one deployment to the Testnet at a time
 concurrency:
-  group: ${{ github.ref }}-${{ github.workflow }}
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 
 jobs:
   check-vars-and-secrets:
@@ -14,134 +15,42 @@ jobs:
     uses: ./.github/workflows/_check-vars-and-secrets.yml
     secrets: inherit
 
-  deploy-testnet:
+  deploy-to-testnet:
     needs: [check-vars-and-secrets]
     name: Deploy new aleph-node image to Testnet EKS
+    uses: ./.github/workflows/_update-node-image-infra.yml
+    with:
+      env: testnet
+    secrets: inherit
+
+  push-dockerhub-image-testnet:
+    needs: [deploy-to-testnet]
     runs-on: ubuntu-20.04
-    environment:
-      name: testnet
-    env:
-      AWS_REGION: us-east-1  # this region is used by all public ECR repos
     steps:
-      - name: GIT | Checkout
+      - name: Checkout aleph-node sources
         uses: actions/checkout@v3
 
-      - name: Call action get-ref-properties
-        id: get-ref-properties
-        uses: ./.github/actions/get-ref-properties
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+      - name: Get docker image names
+        id: get-docker-image-names
+        uses: ./.github/actions/get-docker-image-names
         with:
-          aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          ecr-repo: ${{ vars.ECR_ALEPH_NODE_REPO }}
+          dockerhub-repo: ${{ vars.DOCKERHUB_ALEPH_NODE_REPO }}
 
-      - name: Login to Public Amazon ECR
-        id: login-public-ecr
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ vars.ECR_PUBLIC_HOST }}
-          username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
-          password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
-
-      - name: Tag and push image for Testnet
-        env:
-          DEVNET_IMAGE:
-            ${{ vars.ECR_PUBLIC_REGISTRY }}aleph-node:${{ steps.get-ref-properties.outputs.sha }}
-          TESTNET_IMAGE:
-            ${{ vars.ECR_PUBLIC_REGISTRY }}aleph-node:${{ steps.get-ref-properties.outputs.tag }}
-        run: |
-          export image_not_exist=$(docker manifest inspect ${{ env.DEVNET_IMAGE }} \
-          &> /dev/null ; echo $?)
-
-          if [ $image_not_exist -eq 1 ]; then
-            echo "::error title=Wrong docker image tag::Docker image ${{ env.DEVNET_IMAGE }} \
-              doesn't exist"
-            exit 1
-          else
-            docker pull ${{ env.DEVNET_IMAGE }}
-            docker tag ${{ env.DEVNET_IMAGE }} ${{ env.TESTNET_IMAGE }}
-            docker push ${{ env.TESTNET_IMAGE }}
-          fi
-
-      - name: Build and push Docker Hub image of Testnet
+      - name: Build and push Docker Hub image for Testnet
         uses: ./.github/actions/build-and-push-dockerhub-image
-        if: secrets.DOCKERHUB_USERNAME != "" && secrets.DOCKERHUB_PASSWORD != ""
         with:
-          source-image:
-            ${{ vars.ECR_PUBLIC_REGISTRY }}aleph-node:${{ steps.get-ref-properties.outputs.tag }}
-          target-image:
-            cardinalcryptography/aleph-zero:testnet-${{ steps.get-ref-properties.outputs.tag }}
-          additional-image: cardinalcryptography/aleph-zero:testnet-latest
+          source-image: ${{ steps.get-docker-image-names.outputs.ecr-deploy-image }}
+          target-image: ${{ steps.get-docker-image-names.outputs.dockerhub-testnet-image }}
+          additional-image:
+            ${{ steps.get-docker-image-names.outputs.dockerhub-testnet-latest-image }}
           dockerhub-username: "${{ secrets.DOCKERHUB_USERNAME }}"
           dockerhub-password: "${{ secrets.DOCKERHUB_PASSWORD }}"
-          push: 'true'
-
-      - name: S3 CI | Download release runtime from S3 bucket
-        shell: bash
-        env:
-          # yamllint disable-line rule:line-length
-          S3BUCKET_URL: s3://${{ secrets.CI_MAINNET_S3BUCKET_NAME }}/builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-runtime
-          S3BUCKET_FILE: aleph-runtime-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
-        run: |
-          aws s3 cp ${{ env.S3BUCKET_URL }}/${{ env.S3BUCKET_FILE }} ${{ env.S3BUCKET_FILE }}
-
-      - name: RELEASE ASSET | Add runtime to the release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: |
-            aleph-runtime-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
-
-      - name: GIT | Checkout argocd apps repo
-        uses: actions/checkout@v3
-        with:
-          ref: testnet
-          repository: Cardinal-Cryptography/${{ secrets.REPO_ARGOCD_APPS_NAME }}
-          token: ${{ secrets.CI_GH_TOKEN }}
-          path: "${{ secrets.REPO_ARGOCD_APPS_NAME }}"
-
-      - name: Init kustomize
-        uses: imranismail/setup-kustomize@v1
-        with:
-          kustomize-version: "3.8.6"
-
-      - name: Update aleph-node docker image and trigger ArgoCD deploy for Testnet
-        env:
-          TESTNET_IMAGE:
-            ${{ vars.ECR_PUBLIC_REGISTRY }}aleph-node:${{ steps.get-ref-properties.outputs.tag }}
-          REGIONS_AWS: 'eu-central-1,eu-west-1,eu-west-2,us-east-1,us-east-2'
-        run: |
-          IFS="," read -a region_array <<< ${{ env.REGIONS_AWS }}
-          export aleph_path=$(pwd)
-          export apps_name=${{ secrets.REPO_ARGOCD_APPS_NAME }}
-          for i in "${region_array[@]}"; do
-            # Deploy new image version for archivist
-            cd ${aleph_path}/${apps_name}/aleph-node-archivists/overlays/testnet/${i}
-            kustomize edit set image \
-              "aleph-node-archivist-image-placeholder=${{ env.TESTNET_IMAGE }}"
-
-            # Deploy new image version for validator
-            cd ${aleph_path}/${apps_name}/aleph-node-validators/overlays/testnet/${i}
-            kustomize edit set image \
-              "aleph-node-validator-image-placeholder=${{ env.TESTNET_IMAGE }}"
-          done
-
-      - name: GIT | Commit changes to argocd apps repository.
-        uses: EndBug/add-and-commit@v9.1.1
-        with:
-          author_name: ${{ secrets.AUTOCOMMIT_AUTHOR }}
-          author_email: ${{ secrets.AUTOCOMMIT_EMAIL }}
-          # yamllint disable-line rule:line-length
-          message: "Update Testnet docker image tag for pre-release: ${{ steps.get-ref-properties.outputs.tag }}"
-          add: "*.yaml"
-          cwd: "${{ secrets.REPO_ARGOCD_APPS_NAME }}"
 
   slack:
     name: Slack notification
     runs-on: ubuntu-20.04
-    needs: [deploy-testnet]
+    needs: [push-dockerhub-image-testnet]
     if: always()
     steps:
       - name: Checkout repository
@@ -150,6 +59,6 @@ jobs:
       - name: Send Slack message
         uses: ./.github/actions/slack-notification
         with:
-          notify-on: "failure"
+          notify-on: "always"
         env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_DEV_ONDUTY }}

@@ -1,0 +1,35 @@
+---
+name: Get aleph-node system version
+description: Queries Testnet or Mainnet RPC endpoint call system.version, and parses commit SHA
+  from the response
+inputs:
+  env:
+    required: true
+    description: mainnet or testnet
+outputs:
+  sha:
+    description: Commit SHA of RPC call system.version
+    value: ${{ steps.rpc-system-version.outputs.sha }}
+
+runs:
+  using: composite
+  steps:
+    - name: Validate action inputs
+      shell: bash
+      run: |
+        if [[ ${{ inputs.env }} != 'testnet' && ${{ inputs.env }} != 'mainnet' ]]; then
+          echo "Error: inputs.env should be either mainnet or testnet!"
+          exit 1
+        fi
+
+    - name: Query RPC system.version
+      id: rpc-system-version
+      shell: bash
+      # yamllint disable rule:line-length
+      run: |
+        COMMIT_ID=$(curl -s -H "Content-Type: application/json" \
+          -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' \
+          "${{ inputs.env == 'mainnet' && 'https://rpc.azero.dev' || 'https://rpc.test.azero.dev' }}" \
+          | jq -r '.result' | cut -d "-" -f 2 | head -c 7)
+        echo "sha=$COMMIT_ID" >> $GITHUB_OUTPUT
+      # yamllint enable rule:line-length

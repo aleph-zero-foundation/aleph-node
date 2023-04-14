@@ -33,18 +33,19 @@ runs:
         aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
         aws-region: us-east-1
 
+    - name: Get Testnet node commit SHA
+      id: get-testnet-node-commit-sha
+      uses: ./.github/actions/get-node-system-version
+      with:
+        env: ${{ inputs.base-net }}
+
     - name: Get aleph-node image tag
       shell: bash
-      # yamllint disable rule:line-length
       run: |
-        COMMIT_ID=$(curl -s -H "Content-Type: application/json" \
-          -d '{"id":1, "jsonrpc":"2.0", "method": "system_version"}' \
-          "${{ inputs.base-net == 'mainnet' && 'https://rpc.azero.dev' || 'https://rpc.test.azero.dev' }}" \
-          | jq -r '.result' | cut -d "-" -f 2 | head -c 7)
+        COMMIT_ID=${{ steps.get-testnet-node-commit-sha.outputs.sha }}
         echo $COMMIT_ID
         echo "ALEPH_NODE_IMAGE=${{ inputs.ecr-public-registry }}aleph-node:$COMMIT_ID" \
           >> $GITHUB_ENV
-      # yamllint enable rule:line-length
 
     - name: Generate data dir
       shell: bash

@@ -1,0 +1,69 @@
+---
+name: Push release candidate image of aleph-node to ECR and DockerHub
+
+on:
+  push:
+    tags:
+      - 'r-*'
+
+jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
+  push-ecr-image:
+    needs: [check-vars-and-secrets]
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Get docker image names
+        id: get-docker-image-names
+        uses: ./.github/actions/get-docker-image-names
+        with:
+          ecr-repo: ${{ vars.ECR_ALEPH_NODE_REPO }}
+          dockerhub-repo: ${{ vars.DOCKERHUB_ALEPH_NODE_REPO }}
+
+      - name: Login to Public Amazon ECR
+        id: login-public-ecr
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.ECR_PUBLIC_HOST }}
+          username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+          password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+
+      # if r-* tag was pushed on a commit that is not on main or release branch, below step would
+      # fail, as there would be no aleph-node-<sha> image on ECR for <sha> that is not on main
+      # or release branch, see on-main-or-release-branch-commit.yml
+      - name: Check release candidate docker image existence
+        uses: ./.github/actions/check-image-existence-ecr
+        with:
+          ecr-image: ${{ steps.get-docker-image-names.outputs.ecr-rc-image }}
+
+      - name: Tag and push image to ECR
+        shell: bash
+        run: |
+          rc_image=${{ steps.get-docker-image-names.outputs.ecr-rc-image }}
+          deploy_image=${{ steps.get-docker-image-names.outputs.ecr-deploy-image }}
+
+          docker pull ${rc_image}
+          docker tag ${rc_image} ${deploy_image}
+          docker push ${deploy_image}
+
+  slack:
+    name: Slack notification
+    runs-on: ubuntu-20.04
+    needs: [push-ecr-image]
+    if: always()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Send Slack message
+        uses: ./.github/actions/slack-notification
+        with:
+          notify-on: "always"
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_DEV_ONDUTY }}
