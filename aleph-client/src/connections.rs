@@ -108,6 +108,9 @@ pub trait ConnectionApi: Sync {
     /// rpc_call("state_call".to_string(), params).await;
     /// ```
     async fn rpc_call<R: Decode>(&self, func_name: String, params: RpcParams) -> anyhow::Result<R>;
+
+    /// Same as [rpc_call] but used for rpc endpoint that does not return values.
+    async fn rpc_call_no_return(&self, func_name: String, params: RpcParams) -> anyhow::Result<()>;
 }
 
 /// Data regarding submitted transaction.
@@ -259,7 +262,7 @@ impl<C: AsConnection + Sync> ConnectionApi for C {
     }
 
     async fn rpc_call<R: Decode>(&self, func_name: String, params: RpcParams) -> anyhow::Result<R> {
-        info!(target: "aleph-client", "submitting rpc call `{}`, with params {:?}", func_name, params);
+        info!(target: "aleph-client", "submitting rpc call `{}`, with params {:?}", func_name, params.clone().build());
         let bytes: Bytes = self
             .as_connection()
             .as_client()
@@ -268,6 +271,18 @@ impl<C: AsConnection + Sync> ConnectionApi for C {
             .await?;
 
         Ok(R::decode(&mut bytes.as_ref())?)
+    }
+
+    async fn rpc_call_no_return(&self, func_name: String, params: RpcParams) -> anyhow::Result<()> {
+        info!(target: "aleph-client", "submitting rpc call `{}`, with params {:?}", func_name, params.clone().build());
+        let _: () = self
+            .as_connection()
+            .as_client()
+            .rpc()
+            .request(&func_name, params)
+            .await?;
+
+        Ok(())
     }
 }
 
