@@ -9,6 +9,7 @@ dependencies = [
  "ink",
  "parity-scale-codec",
  "scale-info",
+ "shared_traits",
 ]
 
 [[package]]
@@ -286,6 +287,7 @@ dependencies = [
  "openbrush",
  "parity-scale-codec",
  "scale-info",
+ "shared_traits",
 ]
 
 [[package]]
@@ -968,6 +970,15 @@ checksum = "881bf8156c87b6301fc5ca6b27f11eeb2761224c7081e69b409d5a1951a70c86"
 dependencies = [
  "digest 0.10.3",
  "keccak",
+]
+
+[[package]]
+name = "shared_traits"
+version = "0.1.0"
+dependencies = [
+ "ink",
+ "openbrush",
+ "parity-scale-codec",
 ]
 
 [[package]]

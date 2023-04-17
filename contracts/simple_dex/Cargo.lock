@@ -9,6 +9,7 @@ dependencies = [
  "ink",
  "parity-scale-codec",
  "scale-info",
+ "shared_traits",
 ]
 
 [[package]]
@@ -322,6 +323,7 @@ dependencies = [
  "openbrush",
  "parity-scale-codec",
  "scale-info",
+ "shared_traits",
 ]
 
 [[package]]

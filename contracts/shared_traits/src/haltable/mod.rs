@@ -1,8 +1,11 @@
 #![allow(clippy::inline_fn_without_body)]
-use ink::prelude::{format, string::String};
+use ink::{
+    prelude::{format, string::String},
+    storage::{traits::ManualKey, Lazy},
+};
 use openbrush::{
     contracts::psp22::PSP22Error,
-    traits::{Storage, StorageAsMut, StorageAsRef},
+    traits::{Storage, StorageAsMut},
 };
 
 #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
@@ -59,7 +62,8 @@ impl<T: Storage<HaltableData> + Internal> Haltable for T {
     default fn halt(&mut self) -> HaltableResult<()> {
         self._before_halt()?;
         if !self.is_halted() {
-            <Self as StorageAsMut>::data(self).halted = true;
+            // <Self as StorageAsMut>::data(self).halted = true;
+            <Self as StorageAsMut>::data(self).halted.set(&true);
             self._after_halt()?;
         }
         Ok(())
@@ -68,14 +72,14 @@ impl<T: Storage<HaltableData> + Internal> Haltable for T {
     default fn resume(&mut self) -> HaltableResult<()> {
         self._before_resume()?;
         if self.is_halted() {
-            <Self as StorageAsMut>::data(self).halted = false;
+            <Self as StorageAsMut>::data(self).halted.set(&false);
             self._after_resume()?;
         }
         Ok(())
     }
 
     default fn is_halted(&self) -> bool {
-        <Self as StorageAsRef>::data(self).halted
+        self.data().halted.get_or_default()
     }
 
     default fn check_halted(&self) -> HaltableResult<()> {
@@ -86,10 +90,15 @@ impl<T: Storage<HaltableData> + Internal> Haltable for T {
     }
 }
 
-pub const STORAGE_KEY: u32 = openbrush::storage_unique_key!(HaltableData);
+// NOTE: this is the REAL storage cell
+pub const STORAGE_KEY: u32 = 0x48414C54;
 
 #[derive(Debug)]
-#[openbrush::upgradeable_storage(STORAGE_KEY)]
+// NOTE: OB macro does not work as per the documentation.
+// Whatever key you specify the data ends up as part of the default root key,
+// therefore we do not bother specifying anything else here
+// but rather wrap the underlying type as a Lazy storage cell.
+#[openbrush::upgradeable_storage(0x00000000)]
 pub struct HaltableData {
-    pub halted: bool,
+    pub halted: Lazy<bool, ManualKey<STORAGE_KEY>>,
 }

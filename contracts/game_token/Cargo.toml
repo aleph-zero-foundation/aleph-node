@@ -13,6 +13,7 @@ scale = { package = "parity-scale-codec", version = "3", default-features = fals
 scale-info = { version = "2.3", default-features = false, features = ["derive"], optional = true }
 
 access_control = { path = "../access_control", default-features = false, features = ["ink-as-dependency"] }
+shared_traits = { path = "../shared_traits", default-features = false, features = ["ink-as-dependency"] }
 
 [lib]
 name = "game_token"

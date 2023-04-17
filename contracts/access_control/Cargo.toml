@@ -12,6 +12,8 @@ ink = { version = "=4.0.1",  default-features = false }
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2.3", default-features = false, features = ["derive"], optional = true }
 
+shared_traits = { path = "../shared_traits", default-features = false, features = ["ink-as-dependency"] }
+
 [lib]
 name = "access_control"
 path = "lib.rs"
@@ -26,7 +28,7 @@ crate-type = [
 default = ["std"]
 std = [
     "ink/std",
-    "scale/std",
     "scale-info/std",
+    "scale/std",
 ]
 ink-as-dependency = []

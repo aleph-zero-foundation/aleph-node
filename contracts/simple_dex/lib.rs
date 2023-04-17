@@ -15,17 +15,20 @@ mod simple_dex {
     use access_control::{roles::Role, AccessControlRef, ACCESS_CONTROL_PUBKEY};
     use ink::{
         codegen::{EmitEvent, Env},
-        env::{call::FromAccountId, CallFlags, Error as InkEnvError},
+        env::{
+            call::{build_call, ExecutionInput, FromAccountId},
+            set_code_hash, CallFlags, DefaultEnvironment, Error as InkEnvError,
+        },
         prelude::{format, string::String, vec, vec::Vec},
         reflect::ContractEventBase,
+        storage::{traits::ManualKey, Lazy, Mapping},
         LangError, ToAccountId,
     };
     use openbrush::{
         contracts::{psp22::PSP22Ref, traits::errors::PSP22Error},
-        storage::Mapping,
         traits::Storage,
     };
-    use shared_traits::{Haltable, HaltableData, HaltableError, Internal};
+    use shared_traits::{Haltable, HaltableData, HaltableError, Internal, Selector};
 
     type Event = <SimpleDex as ContractEventBase>::Type;
 
@@ -134,13 +137,19 @@ mod simple_dex {
         swap_fee_percentage: u128,
     }
 
+    #[derive(Debug)]
+    #[ink::storage_item]
+    pub struct Data {
+        pub swap_fee_percentage: u128,
+        pub access_control: AccessControlRef,
+    }
+
     #[ink(storage)]
     #[derive(Storage)]
     pub struct SimpleDex {
-        pub swap_fee_percentage: u128,
-        pub access_control: AccessControlRef,
+        pub data: Lazy<Data, ManualKey<0x44415441>>,
         // a set of pairs that are availiable for swapping between
-        pub swap_pairs: Mapping<SwapPair, ()>,
+        pub swap_pairs: Mapping<SwapPair, (), ManualKey<0x50414952>>,
         #[storage_field]
         pub halted: HaltableData,
     }
@@ -181,11 +190,18 @@ mod simple_dex {
             let access_control = AccessControlRef::from_account_id(access_control);
 
             if access_control.has_role(caller, required_role) {
-                Self {
+                let mut data = Lazy::new();
+                data.set(&Data {
                     swap_fee_percentage: 0,
                     access_control,
+                });
+
+                Self {
+                    data,
                     swap_pairs: Mapping::default(),
-                    halted: HaltableData { halted: false },
+                    halted: HaltableData {
+                        halted: Lazy::default(),
+                    },
                 }
             } else {
                 panic!("Caller is not allowed to initialize this contract");
@@ -343,14 +359,17 @@ mod simple_dex {
                 }),
             );
 
-            self.swap_fee_percentage = swap_fee_percentage;
+            let mut data = self.data.get().unwrap();
+            data.swap_fee_percentage = swap_fee_percentage;
+            self.data.set(&data);
+
             Ok(())
         }
 
         /// Returns current value of the swap_fee_percentage parameter
         #[ink(message)]
         pub fn swap_fee_percentage(&self) -> Balance {
-            self.swap_fee_percentage
+            self.data.get().unwrap().swap_fee_percentage
         }
 
         /// Sets access_control to a new contract address
@@ -362,14 +381,18 @@ mod simple_dex {
             Self: AccessControlled,
         {
             self.check_role(self.env().caller(), Role::Admin(self.env().account_id()))?;
-            self.access_control = AccessControlRef::from_account_id(access_control);
+
+            let mut data = self.data.get().unwrap();
+            data.access_control = AccessControlRef::from_account_id(access_control);
+            self.data.set(&data);
+
             Ok(())
         }
 
         /// Returns current address of the AccessControl contract that holds the account priviledges for this DEX
         #[ink(message)]
         pub fn access_control(&self) -> AccountId {
-            self.access_control.to_account_id()
+            self.data.get().unwrap().access_control.to_account_id()
         }
 
         /// Whitelists a token pair for swapping between
@@ -391,7 +414,7 @@ mod simple_dex {
         /// Returns true if a pair of tokens is whitelisted for swapping between
         #[ink(message)]
         pub fn can_swap_pair(&self, from: AccountId, to: AccountId) -> bool {
-            self.swap_pairs.contains(&SwapPair::new(from, to))
+            self.swap_pairs.contains(SwapPair::new(from, to))
         }
 
         /// Blacklists a token pair from swapping
@@ -428,6 +451,33 @@ mod simple_dex {
                 .map_err(|why| DexError::InkEnv(format!("Can't retrieve own code hash: {:?}", why)))
         }
 
+        /// Upgrades contract code
+        #[ink(message)]
+        pub fn set_code(
+            &mut self,
+            code_hash: [u8; 32],
+            callback: Option<Selector>,
+        ) -> Result<(), DexError> {
+            self.check_role(self.env().caller(), Role::Admin(self.env().account_id()))?;
+            set_code_hash(&code_hash)?;
+
+            // Optionally call a callback function in the new contract that performs the storage data migration.
+            // By convention this function should be called `migrate`, it should take no arguments
+            // and be call-able only by `this` contract's instance address.
+            // To ensure the latter the `migrate` in the updated contract can e.g. check if it has an Admin role on self.
+            //
+            // `delegatecall` ensures that the target contract is called within the caller contracts context.
+            if let Some(selector) = callback {
+                build_call::<DefaultEnvironment>()
+                    .delegate(Hash::from(code_hash))
+                    .exec_input(ExecutionInput::new(ink::env::call::Selector::new(selector)))
+                    .returns::<Result<(), DexError>>()
+                    .invoke()?;
+            }
+
+            Ok(())
+        }
+
         /// Swap trade output given a curve with equal token weights
         ///
         /// B_0 - (100 * B_0 * B_i) / (100 * (B_i + A_i) - A_i * swap_fee)
@@ -448,7 +498,7 @@ mod simple_dex {
                 amount_token_in,
                 balance_token_in,
                 balance_token_out,
-                self.swap_fee_percentage,
+                self.data.get().unwrap().swap_fee_percentage,
             )
         }
 
@@ -523,7 +573,13 @@ mod simple_dex {
         }
 
         fn check_role(&self, account: AccountId, role: Role) -> Result<(), DexError> {
-            if self.access_control.has_role(account, role) {
+            if self
+                .data
+                .get()
+                .unwrap()
+                .access_control
+                .has_role(account, role)
+            {
                 Ok(())
             } else {
                 Err(DexError::MissingRole(account, role))

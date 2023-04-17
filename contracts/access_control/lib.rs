@@ -14,11 +14,20 @@ type Hash = <DefaultEnvironment as Environment>::Hash;
 
 #[ink::contract]
 mod access_control {
-    use ink::{codegen::EmitEvent, reflect::ContractEventBase, storage::Mapping};
+    use ink::{
+        codegen::EmitEvent,
+        env::{
+            call::{build_call, ExecutionInput},
+            set_code_hash, Error as InkEnvError,
+        },
+        prelude::{format, string::String},
+        reflect::ContractEventBase,
+        storage::{traits::ManualKey, Mapping},
+    };
     use scale::{Decode, Encode};
+    use shared_traits::Selector;
 
-    use crate::roles::Role;
-
+    use crate::{roles::Role, DefaultEnvironment};
     // address placeholder, to be set in the bytecode
     // 4465614444656144446561444465614444656144446561444465614444656144 => 5DcPEG9AQ4Y9Lo9C5WXuKJDDawens77jWxZ6zGChnm8y8FUX
     pub const ACCESS_CONTROL_PUBKEY: [u8; 32] = *b"DeaDDeaDDeaDDeaDDeaDDeaDDeaDDeaD";
@@ -27,8 +36,7 @@ mod access_control {
 
     #[ink(storage)]
     pub struct AccessControl {
-        /// Stores a de-facto hashset of user accounts and their roles
-        pub privileges: Mapping<(AccountId, Role), ()>,
+        pub privileges: Mapping<(AccountId, Role), (), ManualKey<0x50524956>>,
     }
 
     #[ink(event)]
@@ -56,10 +64,17 @@ mod access_control {
     #[derive(Debug, PartialEq, Eq, Encode, Decode)]
     #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
     pub enum AccessControlError {
+        InkEnvError(String),
         MissingRole(Role),
     }
 
-    /// Result type    
+    impl From<InkEnvError> for AccessControlError {
+        fn from(why: InkEnvError) -> Self {
+            Self::InkEnvError(format!("{:?}", why))
+        }
+    }
+
+    /// Result type
     pub type Result<T> = core::result::Result<T, AccessControlError>;
     /// Event type
     pub type Event = <AccessControl as ContractEventBase>::Type;
@@ -68,9 +83,10 @@ mod access_control {
         /// Creates a new contract.
         #[ink(constructor)]
         pub fn new() -> Self {
-            let mut privileges = Mapping::default();
             let caller = Self::env().caller();
             let this = Self::env().account_id();
+
+            let mut privileges = Mapping::default();
             privileges.insert((caller, Role::Admin(this)), &());
 
             Self { privileges }
@@ -88,12 +104,14 @@ mod access_control {
                 self.check_role(caller, Role::Admin(this))?;
                 self.privileges.insert(key, &());
 
-                let event = Event::RoleGranted(RoleGranted {
-                    by: caller,
-                    to: account,
-                    role,
-                });
-                Self::emit_event(self.env(), event);
+                Self::emit_event(
+                    self.env(),
+                    Event::RoleGranted(RoleGranted {
+                        by: caller,
+                        to: account,
+                        role,
+                    }),
+                );
             }
 
             Ok(())
@@ -109,12 +127,14 @@ mod access_control {
             self.check_role(caller, Role::Admin(this))?;
             self.privileges.remove((account, role));
 
-            let event = Event::RoleRevoked(RoleRevoked {
-                by: caller,
-                from: account,
-                role,
-            });
-            Self::emit_event(self.env(), event);
+            Self::emit_event(
+                self.env(),
+                Event::RoleRevoked(RoleRevoked {
+                    by: caller,
+                    from: account,
+                    role,
+                }),
+            );
 
             Ok(())
         }
@@ -131,8 +151,7 @@ mod access_control {
         #[ink(message, selector = 4)]
         pub fn terminate(&mut self) -> Result<()> {
             let caller = self.env().caller();
-            let this = self.env().account_id();
-            self.check_role(caller, Role::Admin(this))?;
+            self.check_role(caller, Role::Admin(self.env().account_id()))?;
             self.env().terminate_contract(caller)
         }
 
@@ -144,6 +163,29 @@ mod access_control {
             if !self.has_role(account, role) {
                 return Err(AccessControlError::MissingRole(role));
             }
+            Ok(())
+        }
+
+        /// Upgrades contract code
+        #[ink(message, selector = 6)]
+        pub fn set_code(&mut self, code_hash: [u8; 32], callback: Option<Selector>) -> Result<()> {
+            self.check_role(self.env().caller(), Role::Admin(self.env().account_id()))?;
+            set_code_hash(&code_hash)?;
+
+            // Optionally call a callback function in the new contract that performs the storage data migration.
+            // By convention this function should be called `migrate`, it should take no arguments
+            // and be call-able only by `this` contract's instance address.
+            // To ensure the latter the `migrate` in the updated contract can e.g. check if it has an Admin role on self.
+            //
+            // `delegatecall` ensures that the target contract is called within the caller contracts context.
+            if let Some(selector) = callback {
+                build_call::<DefaultEnvironment>()
+                    .delegate(Hash::from(code_hash))
+                    .exec_input(ExecutionInput::new(ink::env::call::Selector::new(selector)))
+                    .returns::<Result<()>>()
+                    .invoke()?;
+            }
+
             Ok(())
         }
 

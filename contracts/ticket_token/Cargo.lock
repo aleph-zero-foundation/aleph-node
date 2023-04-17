@@ -9,6 +9,7 @@ dependencies = [
  "ink",
  "parity-scale-codec",
  "scale-info",
+ "shared_traits",
 ]
 
 [[package]]
@@ -968,6 +969,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "shared_traits"
+version = "0.1.0"
+dependencies = [
+ "ink",
+ "openbrush",
+ "parity-scale-codec",
+]
+
+[[package]]
 name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1046,6 +1056,7 @@ dependencies = [
  "openbrush",
  "parity-scale-codec",
  "scale-info",
+ "shared_traits",
 ]
 
 [[package]]
