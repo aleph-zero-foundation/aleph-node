@@ -3,6 +3,7 @@ use primitives::{
     BanHandler, BanInfo, BanReason, BannedValidators, CommitteeSeats, EraValidators,
     SessionValidators, ValidatorProvider, LENIENT_THRESHOLD,
 };
+use rand::{rngs::SmallRng, seq::SliceRandom, SeedableRng};
 use sp_runtime::{Perbill, Perquintill};
 use sp_staking::{EraIndex, SessionIndex};
 use sp_std::{
@@ -58,6 +59,17 @@ fn choose_for_session<T: Clone>(validators: &[T], count: usize, session: usize) 
     Some(chosen)
 }
 
+fn shuffle_order_for_session<T>(
+    producers: &mut Vec<T>,
+    validators: &mut Vec<T>,
+    session: SessionIndex,
+) {
+    let mut rng = SmallRng::seed_from_u64(session as u64);
+
+    producers.shuffle(&mut rng);
+    validators.shuffle(&mut rng);
+}
+
 /// choose all items from `reserved` if present and extend it by #`non_reserved_seats` from non_reserved if present.
 fn choose_finality_committee<T: Clone>(
     reserved: &Option<Vec<T>>,
@@ -94,19 +106,26 @@ fn rotate<AccountId: Clone + PartialEq>(
     let non_reserved_committee =
         choose_for_session(non_reserved, non_reserved_seats, current_session as usize);
 
-    let finality_committee = choose_finality_committee(
+    let mut finality_committee = choose_finality_committee(
         &reserved_committee,
         &non_reserved_committee,
         non_reserved_finality_seats,
         current_session as usize,
     );
 
-    let block_producers = match (reserved_committee, non_reserved_committee) {
+    let mut block_producers = match (reserved_committee, non_reserved_committee) {
         (Some(rc), Some(nrc)) => Some(rc.into_iter().chain(nrc.into_iter()).collect()),
         (Some(rc), _) => Some(rc),
         (_, Some(nrc)) => Some(nrc),
         _ => None,
     }?;
+
+    // randomize order of the producers and committee
+    shuffle_order_for_session(
+        &mut block_producers,
+        &mut finality_committee,
+        current_session,
+    );
 
     Some(SessionCommittee {
         block_producers,
@@ -399,7 +418,7 @@ impl<T: Config> Pallet<T> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::VecDeque;
+    use std::collections::{BTreeSet, VecDeque};
 
     use crate::impls::{
         calculate_adjusted_session_points, compute_validator_scaled_total_rewards, rotate,
@@ -523,8 +542,8 @@ mod tests {
                 rotated_non_reserved_validators.push_back(first);
             }
 
-            assert_eq!(
-                expected_committee,
+            let expected_committee: BTreeSet<_> = BTreeSet::from_iter(expected_committee);
+            let committee: BTreeSet<_> = BTreeSet::from_iter(
                 rotate(
                     session_index,
                     reserved_seats,
@@ -534,8 +553,10 @@ mod tests {
                     &non_reserved,
                 )
                 .expect("Expected non-empty rotated committee!")
-                .block_producers
+                .block_producers,
             );
+
+            assert_eq!(expected_committee, committee,);
         }
     }
 }
