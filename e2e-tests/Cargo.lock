@@ -100,7 +100,7 @@ dependencies = [
 
 [[package]]
 name = "aleph_client"
-version = "3.0.0"
+version = "3.1.0"
 dependencies = [
  "anyhow",
  "async-trait",

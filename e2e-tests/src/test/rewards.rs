@@ -135,7 +135,7 @@ pub async fn disable_node() -> anyhow::Result<()> {
         SignedConnection::new(&config.node, config.node_keys().controller).await;
 
     // this should `disable` this node by setting invalid session_keys
-    set_invalid_keys_for_validator(&controller_connection).await?;
+    set_invalid_keys_for_validator(vec![controller_connection.clone()]).await?;
     // this should `re-enable` this node, i.e. by means of the `rotate keys` procedure
     reset_validator_keys(&controller_connection).await?;
 

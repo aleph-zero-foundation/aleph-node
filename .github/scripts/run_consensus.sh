@@ -5,7 +5,7 @@ set -euo pipefail
 # default node count
 NODE_COUNT=5
 # max node count that will not crash current GH machines
-MAX_NODE_COUNT=6
+MAX_NODE_COUNT=7
 # default minimum validator count
 MIN_VALIDATOR_COUNT=4
 DOCKER_COMPOSE=${DOCKER_COMPOSE:-"docker/docker-compose.yml"}

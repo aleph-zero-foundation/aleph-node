@@ -6288,9 +6288,10 @@ pub mod api {
                         "NextAuthorities",
                         vec![],
                         [
-                            86u8, 35u8, 133u8, 238u8, 200u8, 96u8, 60u8, 14u8, 102u8, 203u8, 232u8,
-                            212u8, 129u8, 122u8, 186u8, 33u8, 153u8, 180u8, 216u8, 103u8, 133u8,
-                            28u8, 253u8, 167u8, 14u8, 16u8, 194u8, 200u8, 237u8, 194u8, 68u8, 47u8,
+                            113u8, 139u8, 172u8, 48u8, 77u8, 132u8, 253u8, 187u8, 78u8, 201u8,
+                            145u8, 146u8, 151u8, 205u8, 67u8, 94u8, 245u8, 172u8, 75u8, 12u8,
+                            132u8, 63u8, 71u8, 232u8, 149u8, 204u8, 76u8, 159u8, 129u8, 78u8,
+                            114u8, 87u8,
                         ],
                     )
                 }
@@ -14910,6 +14911,8 @@ pub mod api {
                     NotEnoughNonReservedValidators,
                     #[codec(index = 3)]
                     NonUniqueListOfValidators,
+                    #[codec(index = 4)]
+                    NonReservedFinalitySeatsLargerThanNonReservedSeats,
                 }
                 #[derive(
                     :: subxt :: ext :: codec :: Decode,
@@ -19818,9 +19821,9 @@ pub mod api {
         let runtime_metadata_hash = client.metadata().metadata_hash(&PALLETS);
         if runtime_metadata_hash
             != [
-                249u8, 70u8, 229u8, 116u8, 249u8, 113u8, 231u8, 201u8, 162u8, 95u8, 131u8, 176u8,
-                93u8, 140u8, 104u8, 157u8, 229u8, 167u8, 3u8, 19u8, 182u8, 22u8, 20u8, 123u8,
-                102u8, 192u8, 250u8, 206u8, 53u8, 212u8, 8u8, 214u8,
+                0u8, 94u8, 223u8, 156u8, 0u8, 81u8, 124u8, 78u8, 54u8, 73u8, 237u8, 38u8, 62u8,
+                120u8, 53u8, 201u8, 242u8, 71u8, 152u8, 85u8, 69u8, 60u8, 225u8, 96u8, 116u8,
+                188u8, 83u8, 11u8, 83u8, 164u8, 203u8, 128u8,
             ]
         {
             Err(::subxt::error::MetadataError::IncompatibleMetadata)

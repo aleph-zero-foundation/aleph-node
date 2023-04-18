@@ -51,7 +51,7 @@ async fn disable_validator(validator_address: &str, validator_seed: u32) -> anyh
     let connection_to_disable =
         SignedConnection::new(validator_address, controller_key_to_disable).await;
 
-    set_invalid_keys_for_validator(&connection_to_disable).await
+    set_invalid_keys_for_validator(vec![connection_to_disable]).await
 }
 
 async fn signed_connection_for_disabled_controller() -> SignedConnection {

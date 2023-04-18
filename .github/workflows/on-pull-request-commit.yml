@@ -186,6 +186,21 @@ jobs:
           follow-up-finalization-check: true
         timeout-minutes: 3
 
+  run-e2e-fail-change-validators-test:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run e2e fail change validators test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: fail_changing_validators
+          follow-up-finalization-check: true
+        timeout-minutes: 3
+
   run-e2e-validators-rotate:
     needs: [build-test-node-image-and-e2e-client-image]
     name: Run validators rotation test
@@ -438,6 +453,93 @@ jobs:
           follow-up-finalization-check: true
         timeout-minutes: 10
 
+  run-e2e-committee-split-reserved-01:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run committee split test with node-0 and node-1 dead
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        env:
+          VALIDATOR_COUNT: 7
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: committee_split::split_test_reserved_01
+          node-count: 7
+        timeout-minutes: 10
+
+  run-e2e-committee-split-reserved-12:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run committee split test with node-1 and node-2 dead
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        env:
+          VALIDATOR_COUNT: 7
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: committee_split::split_test_reserved_12
+          node-count: 7
+        timeout-minutes: 10
+
+  run-e2e-committee-split-reserved-02:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run committee split test with node-0 and node-2 dead
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        env:
+          VALIDATOR_COUNT: 7
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: committee_split::split_test_reserved_02
+          node-count: 7
+        timeout-minutes: 10
+
+  run-e2e-committee-split-test-success-without-any-deads:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run committee split test without any deads
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        env:
+          VALIDATOR_COUNT: 7
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: committee_split::split_test_success_without_any_deads
+          follow-up-finalization-check: true
+          node-count: 7
+        timeout-minutes: 10
+
+  run-e2e-committee-split-test-success-with-one-dead:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run committee split test with one node dead
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        env:
+          VALIDATOR_COUNT: 7
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: committee_split::split_test_success_with_one_dead
+          follow-up-finalization-check: true
+          node-count: 7
+        timeout-minutes: 10
+
   check-e2e-test-suite-completion:
     needs: [
       run-e2e-finalization-test,
@@ -465,6 +567,12 @@ jobs:
       run-e2e-permissionless-ban,
       run-e2e-finality-version-change,
       run-e2e-adder-contract-test,
+      run-e2e-fail-change-validators-test,
+      run-e2e-committee-split-reserved-01,
+      run-e2e-committee-split-reserved-12,
+      run-e2e-committee-split-reserved-02,
+      run-e2e-committee-split-test-success-with-one-dead,
+      run-e2e-committee-split-test-success-without-any-deads
     ]
     name: Check e2e test suite completion
     runs-on: ubuntu-20.04

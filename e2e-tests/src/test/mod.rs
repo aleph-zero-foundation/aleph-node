@@ -26,6 +26,7 @@ pub use validators_rotate::validators_rotate;
 mod adder;
 mod ban;
 mod button_game;
+mod committee_split;
 mod electing_validators;
 mod era_payout;
 mod era_validators;

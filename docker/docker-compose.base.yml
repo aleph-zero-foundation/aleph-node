@@ -93,3 +93,35 @@ services:
       # key derived from "//5"
       - BASE_PATH=/data/5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR
       - NODE_KEY_PATH=/data/5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR/p2p_secret
+
+  Node6:
+    extends:
+      file: common.yml
+      service: AlephNonBootNode
+    container_name: Node6
+    environment:
+      - RPC_PORT=9939
+      - WS_PORT=9949
+      - PORT=30339
+      - VALIDATOR_PORT=30349
+      - PUBLIC_VALIDATOR_ADDRESS=127.0.0.1:30349
+      - NAME=Node5
+      # key derived from "//6"
+      - BASE_PATH=/data/5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY
+      - NODE_KEY_PATH=/data/5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY/p2p_secret
+
+  Node7:
+    extends:
+      file: common.yml
+      service: AlephNonBootNode
+    container_name: Node7
+    environment:
+      - RPC_PORT=9950
+      - WS_PORT=9950
+      - PORT=30340
+      - VALIDATOR_PORT=30350
+      - PUBLIC_VALIDATOR_ADDRESS=127.0.0.1:30350
+      - NAME=Node5
+      # key derived from "//7"
+      - BASE_PATH=/data/5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ
+      - NODE_KEY_PATH=/data/5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ/p2p_secret

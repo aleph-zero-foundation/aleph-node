@@ -36,3 +36,15 @@ services:
       file: docker-compose.base.yml
       service: Node5
     network_mode: host
+
+  Node6:
+    extends:
+      file: docker-compose.base.yml
+      service: Node6
+    network_mode: host
+
+  Node7:
+    extends:
+      file: docker-compose.base.yml
+      service: Node7
+    network_mode: host
