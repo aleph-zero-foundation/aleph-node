@@ -57,7 +57,7 @@ jobs:
           kustomize-version: "3.8.6"
 
       - name: Setup kubectl
-        uses: azure/setup-kubectl@v2.0
+        uses: azure/setup-kubectl@v3.2
         with:
           version: 'v1.23.6'
 
