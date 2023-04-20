@@ -28,6 +28,7 @@ mod ban;
 mod button_game;
 mod committee_split;
 mod electing_validators;
+mod emergency_finalizer;
 mod era_payout;
 mod era_validators;
 mod finality_version;

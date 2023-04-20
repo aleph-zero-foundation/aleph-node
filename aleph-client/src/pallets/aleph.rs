@@ -22,6 +22,8 @@ pub trait AlephApi {
     async fn finality_version(&self, at: Option<BlockHash>) -> Version;
     /// Gets the finality version for the next session.
     async fn next_session_finality_version(&self, at: Option<BlockHash>) -> Version;
+    /// Gets the emergency finalizer
+    async fn emergency_finalizer(&self, at: Option<BlockHash>) -> Option<[u8; 32]>;
 }
 
 /// Pallet aleph API that requires sudo.
@@ -80,6 +82,14 @@ impl<C: ConnectionApi> AlephApi for C {
         let params = rpc_params![api_method, "0x", hash];
 
         self.rpc_call(method.to_string(), params).await.unwrap()
+    }
+
+    async fn emergency_finalizer(&self, at: Option<BlockHash>) -> Option<[u8; 32]> {
+        let addrs = api::storage().aleph().emergency_finalizer();
+
+        self.get_storage_entry_maybe(&addrs, at)
+            .await
+            .map(|public| public.0 .0)
     }
 }
 
