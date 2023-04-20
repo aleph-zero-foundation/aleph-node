@@ -2,6 +2,11 @@
 
 set -euox pipefail
 
+# --- GLOBAL CONSTANTS
+NODE_IMAGE=public.ecr.aws/p6e8q1z1/aleph-node:latest
+
+CONTRACTS_PATH=$(pwd)/contracts
+
 # --- FUNCTIONS
 
 function run_ink_builder() {
@@ -236,11 +241,6 @@ function link_bytecode() {
 
   sed -i 's/'"$placeholder"'/'"$replacement"'/' "target/ink/$contract.contract"
 }
-
-# --- GLOBAL CONSTANTS
-NODE_IMAGE=public.ecr.aws/p6e8q1z1/aleph-node:latest
-
-CONTRACTS_PATH=$(pwd)/contracts
 
 # --- COMPILE CONTRACTS
 

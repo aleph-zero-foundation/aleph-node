@@ -212,6 +212,10 @@ pub mod marketplace {
         #[ink(message)]
         pub fn average_price(&self) -> Balance {
             let data = self.data.get().unwrap();
+            Self::_average_price(&data)
+        }
+
+        pub fn _average_price(data: &Data) -> Balance {
             data.total_proceeds.saturating_div(data.tickets_sold)
         }
 
@@ -377,7 +381,7 @@ pub mod marketplace {
             let data = self.data.get().unwrap();
             linear_decrease(
                 data.current_start_block.into(),
-                self.average_price().saturating_mul(data.sale_multiplier),
+                Self::_average_price(&data).saturating_mul(data.sale_multiplier),
                 data.current_start_block
                     .saturating_add(data.auction_length)
                     .into(),

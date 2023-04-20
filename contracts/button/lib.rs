@@ -30,6 +30,9 @@ pub mod button_game {
 
     use crate::errors::GameError;
 
+    pub const ONE_TOKEN: Balance = 1_000_000_000_000;
+    pub const ONE_HUNDRED_TOKENS: Balance = 100_000_000_000_000;
+
     /// Result type
     type ButtonResult<T> = core::result::Result<T, GameError>;
 
@@ -58,6 +61,19 @@ pub mod button_game {
         score: Balance,
     }
 
+    /// Event emitted when a reward token is minted to a players account
+    ///
+    /// Could be a regular player or the Pressiah
+    #[ink(event)]
+    #[derive(Debug)]
+    pub struct RewardMinted {
+        when: BlockNumber,
+        #[ink(topic)]
+        reward_token: AccountId,
+        to: AccountId,
+        amount: Balance,
+    }
+
     /// Event emitted when the finished game is reset and pressiah is rewarded
     #[ink(event)]
     #[derive(Debug)]
@@ -81,8 +97,6 @@ pub mod button_game {
         BackToTheFuture,
         /// The reward increases linearly with the number of participants
         ThePressiahCometh,
-        /// Placeholder for the default implementation
-        Default,
     }
 
     #[derive(Debug)]
@@ -499,7 +513,6 @@ pub mod button_game {
                 Scoring::EarlyBirdSpecial => deadline.saturating_sub(now) as Balance,
                 Scoring::BackToTheFuture => now.saturating_sub(last_press) as Balance,
                 Scoring::ThePressiahCometh => (presses + 1) as Balance,
-                Scoring::Default => panic!("Should never get here"),
             }
         }
 
@@ -527,7 +540,36 @@ pub mod button_game {
         }
 
         fn mint_reward(&self, to: AccountId, amount: Balance) -> ButtonResult<()> {
-            PSP22MintableRef::mint(&self.data.get().unwrap().reward_token, to, amount)?;
+            let data = self.data.get().unwrap();
+
+            // scale the amount to always pay out full token units
+            let scaled_amount = match data.scoring {
+                // we map the score from it's domain to [1,100] reward tokens
+                // this way the amount of minted reward tokens is independent from the button's lifetime
+                // and the rewards are always paid out using full token units
+                Scoring::EarlyBirdSpecial | Scoring::BackToTheFuture => map_domain(
+                    amount,
+                    0,
+                    data.button_lifetime as Balance,
+                    ONE_TOKEN,
+                    ONE_HUNDRED_TOKENS,
+                ),
+
+                Scoring::ThePressiahCometh => amount.saturating_mul(ONE_TOKEN),
+            };
+
+            PSP22MintableRef::mint(&data.reward_token, to, scaled_amount)?;
+
+            Self::emit_event(
+                self.env(),
+                Event::RewardMinted(RewardMinted {
+                    when: self.env().block_number(),
+                    reward_token: data.reward_token,
+                    to,
+                    amount: scaled_amount,
+                }),
+            );
+
             Ok(())
         }
 
@@ -536,6 +578,45 @@ pub mod button_game {
             EE: EmitEvent<ButtonGame>,
         {
             emitter.emit_event(event);
+        }
+    }
+
+    /// Performs mapping of a value that lives in a [from_low, from_high] domain
+    /// to the [to_low, to_high] domain.
+    ///
+    /// Function is an implementation of the following formula:
+    /// out_min + (out_max - out_min) * ((value - in_min) / (in_max - in_min))
+    /// using saturating integer operations
+    fn map_domain(
+        value: Balance,
+        in_min: Balance,
+        in_max: Balance,
+        out_min: Balance,
+        out_max: Balance,
+    ) -> Balance {
+        // Calculate the input range and output range
+        let in_range = in_max.saturating_sub(in_min);
+        let out_range = out_max.saturating_sub(out_min);
+
+        // Map the input value to the output range
+        let scaled_value = value
+            .saturating_sub(in_min)
+            .saturating_div(in_range)
+            .saturating_mul(out_range);
+
+        // Convert the scaled value to the output domain
+        out_min.saturating_add(scaled_value)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_map_domain() {
+            assert_eq!(map_domain(1, 1, 10, 100, 200), 100);
+            assert_eq!(map_domain(0, 0, u128::MAX, 0, 100), 0);
+            assert_eq!(map_domain(u128::MAX, 0, u128::MAX, 0, 100), 100);
         }
     }
 }
