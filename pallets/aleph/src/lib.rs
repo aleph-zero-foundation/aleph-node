@@ -22,7 +22,6 @@ mod mock;
 mod tests;
 
 mod impls;
-mod migrations;
 mod traits;
 
 use frame_support::{
@@ -43,12 +42,8 @@ pub(crate) const LOG_TARGET: &str = "pallet-aleph";
 #[frame_support::pallet]
 pub mod pallet {
     use frame_support::{pallet_prelude::*, sp_runtime::RuntimeAppPublic};
-    use frame_system::{
-        ensure_root,
-        pallet_prelude::{BlockNumberFor, OriginFor},
-    };
+    use frame_system::{ensure_root, pallet_prelude::OriginFor};
     use pallet_session::SessionManager;
-    use pallets_support::StorageMigration;
     use sp_std::collections::btree_set::BTreeSet;
     #[cfg(feature = "std")]
     use sp_std::marker::PhantomData;
@@ -77,32 +72,6 @@ pub mod pallet {
     #[pallet::storage_version(STORAGE_VERSION)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
-
-    #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        fn on_runtime_upgrade() -> frame_support::weights::Weight {
-            let on_chain = <Pallet<T> as GetStorageVersion>::on_chain_storage_version();
-            T::DbWeight::get().reads(1)
-                + match on_chain {
-                    _ if on_chain == STORAGE_VERSION => Weight::zero(),
-                    _ if on_chain == StorageVersion::new(1) => {
-                        migrations::v1_to_v2::Migration::<T, Self>::migrate()
-                    }
-                    _ if on_chain == StorageVersion::new(0) => {
-                        migrations::v0_to_v1::Migration::<T, Self>::migrate()
-                            + migrations::v1_to_v2::Migration::<T, Self>::migrate()
-                    }
-                    _ => {
-                        log::warn!(
-                            target: LOG_TARGET,
-                            "On chain storage version of pallet aleph is {:?} but it should not be bigger than 2",
-                            on_chain
-                        );
-                        Weight::zero()
-                    }
-                }
-        }
-    }
 
     /// Default finality version. Relevant for sessions before the first version change occurs.
     #[pallet::type_value]

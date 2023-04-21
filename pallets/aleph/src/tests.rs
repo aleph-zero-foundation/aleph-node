@@ -11,42 +11,6 @@ type SessionForValidatorsChange = StorageValue<Aleph, u32>;
 #[storage_alias]
 type Validators<T> = StorageValue<Aleph, Vec<<T as frame_system::Config>::AccountId>>;
 
-#[cfg(feature = "try-runtime")]
-mod migration_tests {
-    use frame_support::{storage::migration::put_storage_value, traits::StorageVersion};
-    use pallets_support::StorageMigration;
-
-    use crate::{migrations, mock::*, Pallet};
-
-    const MODULE: &[u8] = b"Aleph";
-
-    #[test]
-    fn migration_from_v0_to_v1_works() {
-        new_test_ext(&[(1u64, 1u64), (2u64, 2u64)]).execute_with(|| {
-            StorageVersion::new(0).put::<Pallet<Test>>();
-
-            put_storage_value(MODULE, b"SessionForValidatorsChange", &[], Some(7u32));
-            put_storage_value(MODULE, b"Validators", &[], Some(vec![0u64, 1u64]));
-
-            let _weight = migrations::v0_to_v1::Migration::<Test, Aleph>::migrate();
-        })
-    }
-
-    #[test]
-    fn migration_from_v1_to_v2_works() {
-        new_test_ext(&[(1u64, 1u64), (2u64, 2u64)]).execute_with(|| {
-            StorageVersion::new(1).put::<Pallet<Test>>();
-
-            put_storage_value(MODULE, b"SessionForValidatorsChange", &[], ());
-            put_storage_value(MODULE, b"Validators", &[], ());
-            put_storage_value(MODULE, b"MillisecsPerBlock", &[], ());
-            put_storage_value(MODULE, b"SessionPeriod", &[], ());
-
-            let _weight = migrations::v1_to_v2::Migration::<Test, Aleph>::migrate();
-        })
-    }
-}
-
 #[test]
 fn test_update_authorities() {
     new_test_ext(&[(1u64, 1u64), (2u64, 2u64)]).execute_with(|| {
