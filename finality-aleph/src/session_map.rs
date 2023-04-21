@@ -210,10 +210,6 @@ impl SharedSessionMap {
 }
 
 impl ReadOnlySessionMap {
-    pub async fn get(&self, id: SessionId) -> Option<SessionAuthorityData> {
-        self.inner.read().await.0.get(&id).cloned()
-    }
-
     /// returns an end of the oneshot channel that fires a message if either authority data is already
     /// known for the session with id = `id` or when the data is inserted for this session.
     pub async fn subscribe_to_insertion(
@@ -376,6 +372,12 @@ mod tests {
 
     const FIRST_THRESHOLD: u32 = PRUNING_THRESHOLD + 1;
     const SECOND_THRESHOLD: u32 = 2 * PRUNING_THRESHOLD + 1;
+
+    impl ReadOnlySessionMap {
+        async fn get(&self, id: SessionId) -> Option<SessionAuthorityData> {
+            self.inner.read().await.0.get(&id).cloned()
+        }
+    }
 
     struct MockProvider {
         pub session_map: HashMap<BlockNumber, SessionAuthorityData>,

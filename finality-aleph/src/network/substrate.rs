@@ -21,7 +21,8 @@ use crate::{
         gossip::{Event, EventStream, NetworkSender, Protocol, RawNetwork},
         RequestBlocks,
     },
-    IdentifierFor,
+    sync::BlockId,
+    BlockIdentifier, IdentifierFor,
 };
 
 impl<B: Block, H: ExHashT> RequestBlocks<IdentifierFor<B>> for Arc<NetworkService<B, H>>
@@ -38,6 +39,30 @@ where
         // of peers is empty (as in our case) then the underlying implementation should make a best effort to fetch
         // the block from any peers it is connected to.
         NetworkService::set_sync_fork_request(self, Vec::new(), block_id.hash, block_id.num)
+    }
+
+    /// Clear all pending justification requests.
+    fn clear_justification_requests(&self) {
+        NetworkService::clear_justification_requests(self)
+    }
+}
+
+// This is a temporary change and will likely never get deployed, but merging the A0-2228 PR before
+// this one would be a pain at this point.
+impl<B: Block, H: ExHashT> RequestBlocks<BlockId<B::Header>> for Arc<NetworkService<B, H>>
+where
+    B::Header: Header<Number = BlockNumber>,
+{
+    fn request_justification(&self, block_id: BlockId<B::Header>) {
+        NetworkService::request_justification(self, block_id.hash(), block_id.number())
+    }
+
+    fn request_stale_block(&self, block_id: BlockId<B::Header>) {
+        // The below comment is adapted from substrate:
+        // Notifies the sync service to try and sync the given block from the given peers. If the given vector
+        // of peers is empty (as in our case) then the underlying implementation should make a best effort to fetch
+        // the block from any peers it is connected to.
+        NetworkService::set_sync_fork_request(self, Vec::new(), *block_id.hash(), block_id.number())
     }
 
     /// Clear all pending justification requests.

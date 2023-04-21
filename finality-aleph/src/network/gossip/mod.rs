@@ -13,7 +13,7 @@ use crate::network::Data;
 pub mod mock;
 mod service;
 
-pub use service::Service;
+pub use service::{Error, Service};
 
 #[async_trait::async_trait]
 /// Interface for the gossip network. This represents a P2P network and a lot of the properties of

@@ -34,6 +34,11 @@ impl<H: SubstrateHeader<Number = BlockNumber>> BlockId<H> {
     pub fn new(hash: H::Hash, number: H::Number) -> Self {
         BlockId { hash, number }
     }
+
+    // This should be removed in A0-2228, all according to plan.
+    pub fn hash(&self) -> &H::Hash {
+        &self.hash
+    }
 }
 
 impl<SH: SubstrateHeader<Number = BlockNumber>> Hash for BlockId<SH> {

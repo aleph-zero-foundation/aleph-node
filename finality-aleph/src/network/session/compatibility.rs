@@ -153,7 +153,7 @@ mod test {
             tcp::{testing::new_identity, SignedTcpAddressingInformation},
             NetworkIdentity,
         },
-        nodes::testing::new_pen,
+        nodes::new_pen,
         NodeIndex, SessionId, Version,
     };
 
@@ -195,7 +195,6 @@ mod test {
     /// for node index 21 and session id 37
     /// encoded at version of Aleph Node after 8.0
     fn raw_authentication_v2() -> Vec<u8> {
-        //TODO: this will fail, check what it should be
         vec![
             2, 0, 191, 0, 50, 40, 192, 239, 72, 72, 119, 156, 76, 37, 212, 220, 76, 165, 39, 73,
             20, 89, 77, 66, 171, 174, 61, 31, 254, 137, 186, 1, 7, 141, 187, 219, 20, 97, 100, 100,

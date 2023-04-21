@@ -25,7 +25,7 @@ use crate::{
             authentication, ConnectionManager, ConnectionManagerConfig, DataInSession,
             ManagerError, SessionHandler, SessionManager, VersionedAuthentication,
         },
-        GossipService, MockEvent, MockRawNetwork, Protocol,
+        GossipError, GossipNetwork, GossipService, MockEvent, MockRawNetwork, Protocol,
     },
     MillisecsPerBlock, NodeIndex, Recipient, SessionId, SessionPeriod,
 };
@@ -73,6 +73,9 @@ struct TestData {
     gossip_service_handle: JoinHandle<()>,
     // `TaskManager` can't be dropped for `SpawnTaskHandle` to work
     _task_manager: TaskManager,
+    // If we drop the sync network, the underlying network service dies, stopping the whole
+    // network.
+    _sync_network: Box<dyn GossipNetwork<MockData, Error = GossipError, PeerId = MockPublicKey>>,
 }
 
 async fn prepare_one_session_test_data() -> TestData {
@@ -97,8 +100,8 @@ async fn prepare_one_session_test_data() -> TestData {
     let network = MockRawNetwork::new(event_stream_tx);
     let validator_network = MockCliqueNetwork::new();
 
-    let (gossip_service, gossip_network, _) =
-        GossipService::new(network.clone(), task_manager.spawn_handle().into());
+    let (gossip_service, gossip_network, sync_network) =
+        GossipService::<_, _, MockData>::new(network.clone(), task_manager.spawn_handle().into());
 
     let (connection_manager_service, session_manager) = ConnectionManager::new(
         authorities[0].address(),
@@ -107,6 +110,7 @@ async fn prepare_one_session_test_data() -> TestData {
         ConnectionManagerConfig::with_session_period(&SESSION_PERIOD, &MILLISECS_PER_BLOCK),
     );
     let session_manager = Box::new(session_manager);
+    let sync_network = Box::new(sync_network);
 
     let network_manager_task = async move {
         tokio::select! {
@@ -137,6 +141,7 @@ async fn prepare_one_session_test_data() -> TestData {
         network_manager_handle,
         gossip_service_handle,
         _task_manager: task_manager,
+        _sync_network: sync_network,
     }
 }
 

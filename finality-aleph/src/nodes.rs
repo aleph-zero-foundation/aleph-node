@@ -13,20 +13,29 @@ use sp_runtime::traits::{Block, Header};
 
 use crate::{
     crypto::AuthorityPen,
+    finalization::AlephFinalizer,
+    justification::Requester,
     network::{
         session::{ConnectionManager, ConnectionManagerConfig},
         tcp::{new_tcp_network, KEY_TYPE},
         GossipService, SubstrateNetwork,
     },
-    nodes::{setup_justification_handler, JustificationParams},
     party::{
         impls::ChainStateImpl, manager::NodeSessionManagerImpl, ConsensusParty,
         ConsensusPartyParams,
     },
     session::SessionBoundaryInfo,
     session_map::{AuthorityProviderImpl, FinalityNotifierImpl, SessionMapUpdater},
-    AlephConfig, BlockchainBackend,
+    sync::{
+        ChainStatus, Justification, JustificationTranslator, Service as SyncService,
+        SubstrateChainStatusNotifier, SubstrateFinalizationInfo, SubstrateJustification,
+        VerifierCache,
+    },
+    AlephConfig,
 };
+
+// How many sessions we remember.
+const VERIFIER_CACHE_SIZE: usize = 2;
 
 pub async fn new_pen(mnemonic: &str, keystore: Arc<dyn CryptoStore>) -> AuthorityPen {
     let validator_peer_id = keystore
@@ -38,7 +47,7 @@ pub async fn new_pen(mnemonic: &str, keystore: Arc<dyn CryptoStore>) -> Authorit
         .expect("we just generated this key so everything should work")
 }
 
-pub async fn run_validator_node<B, H, C, BB, BE, SC>(aleph_config: AlephConfig<B, H, C, SC, BB>)
+pub async fn run_validator_node<B, H, C, CS, BE, SC>(aleph_config: AlephConfig<B, H, C, SC, CS>)
 where
     B: Block,
     B::Header: Header<Number = BlockNumber>,
@@ -46,13 +55,13 @@ where
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     C::Api: aleph_primitives::AlephSessionApi<B>,
     BE: Backend<B> + 'static,
-    BB: BlockchainBackend<B> + Send + 'static,
+    CS: ChainStatus<SubstrateJustification<B::Header>> + JustificationTranslator<B::Header>,
     SC: SelectChain<B> + 'static,
 {
     let AlephConfig {
         network,
         client,
-        blockchain_backend,
+        chain_status,
         select_chain,
         spawn_handle,
         keystore,
@@ -95,13 +104,23 @@ where
         validator_network_service.run(exit).await
     });
 
-    let (gossip_network_service, authentication_network, _block_sync_network) = GossipService::new(
+    let (gossip_network_service, authentication_network, block_sync_network) = GossipService::new(
         SubstrateNetwork::new(network.clone(), protocol_naming),
         spawn_handle.clone(),
     );
     let gossip_network_task = async move { gossip_network_service.run().await };
 
     let block_requester = network.clone();
+    let auxilliary_requester = Requester::new(
+        block_requester.clone(),
+        chain_status.clone(),
+        SessionBoundaryInfo::new(session_period),
+    );
+    spawn_handle.spawn("aleph/requester", async move {
+        debug!(target: "aleph-party", "Auxiliary justification requester has started.");
+        auxilliary_requester.run().await
+    });
+
     let map_updater = SessionMapUpdater::new(
         AuthorityProviderImpl::new(client.clone()),
         FinalityNotifierImpl::new(client.clone()),
@@ -113,17 +132,36 @@ where
         map_updater.run().await
     });
 
-    let (authority_justification_tx, handler_task) =
-        setup_justification_handler(JustificationParams {
-            justification_rx,
-            network,
-            client: client.clone(),
-            blockchain_backend,
-            metrics: metrics.clone(),
-            session_period,
-            millisecs_per_block,
-            session_map: session_authorities.clone(),
-        });
+    let chain_events = SubstrateChainStatusNotifier::new(
+        client.finality_notification_stream(),
+        client.import_notification_stream(),
+    );
+
+    let genesis_header = match chain_status.finalized_at(0) {
+        Ok(Some(justification)) => justification.header().clone(),
+        _ => panic!("the genesis block should be finalized"),
+    };
+    let verifier = VerifierCache::new(
+        session_period,
+        SubstrateFinalizationInfo::new(client.clone()),
+        AuthorityProviderImpl::new(client.clone()),
+        VERIFIER_CACHE_SIZE,
+        genesis_header,
+    );
+    let finalizer = AlephFinalizer::new(client.clone(), metrics.clone());
+    let (sync_service, justifications_for_sync) = match SyncService::new(
+        block_sync_network,
+        chain_events,
+        chain_status.clone(),
+        verifier,
+        finalizer,
+        session_period,
+        justification_rx,
+    ) {
+        Ok(x) => x,
+        Err(e) => panic!("Failed to initialize Sync service: {}", e),
+    };
+    let sync_task = async move { sync_service.run().await };
 
     let (connection_manager_service, connection_manager) = ConnectionManager::new(
         network_identity,
@@ -138,8 +176,8 @@ where
         }
     };
 
-    spawn_handle.spawn("aleph/justification_handler", handler_task);
-    debug!(target: "aleph-party", "JustificationHandler has started.");
+    spawn_handle.spawn("aleph/sync", sync_task);
+    debug!(target: "aleph-party", "Sync has started.");
 
     spawn_handle.spawn("aleph/connection_manager", connection_manager_task);
     spawn_handle.spawn("aleph/gossip_network", gossip_network_task);
@@ -158,7 +196,8 @@ where
             select_chain,
             session_period,
             unit_creation_delay,
-            authority_justification_tx,
+            justifications_for_sync,
+            chain_status.clone(),
             block_requester,
             metrics,
             spawn_handle,

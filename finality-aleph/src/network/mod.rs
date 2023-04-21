@@ -10,7 +10,9 @@ pub mod tcp;
 
 #[cfg(test)]
 pub use gossip::mock::{MockEvent, MockRawNetwork};
-pub use gossip::{Network as GossipNetwork, Protocol, Service as GossipService};
+pub use gossip::{
+    Error as GossipError, Network as GossipNetwork, Protocol, Service as GossipService,
+};
 use network_clique::{AddressingInformation, NetworkIdentity, PeerId};
 pub use substrate::{ProtocolNaming, SubstrateNetwork};
 

@@ -68,5 +68,12 @@ pub mod testing {
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
 pub struct SessionId(pub u32);
 
+impl SessionId {
+    /// The id of the session following this one.
+    pub fn next(&self) -> Self {
+        SessionId(self.0 + 1)
+    }
+}
+
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
 pub struct SessionPeriod(pub u32);

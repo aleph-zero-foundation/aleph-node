@@ -1,5 +1,5 @@
 use core::result::Result;
-use std::{marker::PhantomData, sync::Arc};
+use std::{marker::PhantomData, sync::Arc, time::Instant};
 
 use aleph_primitives::BlockNumber;
 use log::{debug, warn};
@@ -10,7 +10,7 @@ use sp_runtime::{
     Justification,
 };
 
-use crate::{BlockIdentifier, HashNum, IdentifierFor};
+use crate::{metrics::Checkpoint, BlockIdentifier, HashNum, IdentifierFor, Metrics};
 
 pub trait BlockFinalizer<BI: BlockIdentifier> {
     fn finalize_block(&self, block: BI, justification: Justification) -> Result<(), Error>;
@@ -23,7 +23,8 @@ where
     C: HeaderBackend<B> + LockImportRun<B, BE> + Finalizer<B, BE>,
 {
     client: Arc<C>,
-    phantom: PhantomData<(B, BE)>,
+    metrics: Option<Metrics<B::Hash>>,
+    phantom: PhantomData<BE>,
 }
 
 impl<B, BE, C> AlephFinalizer<B, BE, C>
@@ -32,9 +33,10 @@ where
     BE: Backend<B>,
     C: HeaderBackend<B> + LockImportRun<B, BE> + Finalizer<B, BE>,
 {
-    pub(crate) fn new(client: Arc<C>) -> Self {
+    pub(crate) fn new(client: Arc<C>, metrics: Option<Metrics<B::Hash>>) -> Self {
         AlephFinalizer {
             client,
+            metrics,
             phantom: PhantomData,
         }
     }
@@ -67,8 +69,20 @@ where
             self.client
                 .apply_finality(import_op, hash, Some(justification), true)
         });
+
         let status = self.client.info();
-        debug!(target: "aleph-finality", "Attempted to finalize block with hash {:?}. Current best: #{:?}.", hash, status.finalized_number);
+        match &update_res {
+            Ok(_) => {
+                debug!(target: "aleph-finality", "Successfully finalized block with hash {:?} and number {:?}. Current best: #{:?}.", hash, number, status.finalized_number);
+                if let Some(metrics) = &self.metrics {
+                    metrics.report_block(hash, Instant::now(), Checkpoint::Finalized);
+                }
+            }
+            Err(_) => {
+                debug!(target: "aleph-finality", "Failed to finalize block with hash {:?} and number {:?}. Current best: #{:?}.", hash, number, status.finalized_number)
+            }
+        }
+
         update_res
     }
 }

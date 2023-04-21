@@ -9,7 +9,7 @@ use log::warn;
 use crate::{
     abft::SignatureSet,
     crypto::{Signature, SignatureV1},
-    justification::AlephJustification,
+    justification::{AlephJustification, LOG_TARGET},
     Version,
 };
 
@@ -66,6 +66,7 @@ fn encode_with_version(version: Version, payload: &[u8]) -> Vec<u8> {
     let size = payload.len().try_into().unwrap_or_else(|_| {
         if payload.len() > ByteCount::MAX.into() {
             warn!(
+                target: LOG_TARGET,
                 "Versioned Justification v{:?} too big during Encode. Size is {:?}. Should be {:?} at max.",
                 version,
                 payload.len(),
