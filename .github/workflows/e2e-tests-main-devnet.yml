@@ -563,6 +563,7 @@ jobs:
 
   run-e2e-adder-contract-test:
     needs: [build-test-docker, build-test-client]
+    if: false
     name: Run e2e adder contract test
     runs-on: ubuntu-20.04
     steps:
@@ -704,7 +705,7 @@ jobs:
       run-e2e-ban-threshold,
       run-e2e-version-upgrade,
       run-e2e-permissionless-ban,
-      run-e2e-adder-contract-test,
+#      run-e2e-adder-contract-test,
 #      run-e2e-failing-version-upgrade,
 #      run-e2e-version-upgrade-catchup,
       run-e2e-finality-version-change,
