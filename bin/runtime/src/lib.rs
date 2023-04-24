@@ -82,8 +82,6 @@ pub type Index = u32;
 /// A hash of some data used by the chain.
 pub type Hash = sp_core::H256;
 
-mod migrations;
-
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
 /// the specifics of the runtime. They can then be made to be agnostic over specific formats
 /// of data like extrinsics, allowing for them to continue syncing the network through upgrades
@@ -112,7 +110,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 59,
+    spec_version: 61,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 16,
@@ -780,13 +778,6 @@ pub type UncheckedExtrinsic =
     generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 /// Extrinsic type that has already been checked.
 pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, RuntimeCall, SignedExtra>;
-// Migrations
-use pallet_balances::migration::MigrateManyToTrackInactive as BalancesV1Migration;
-use pallet_multisig::migrations::v1::MigrateToV1 as MultisigV1Migration;
-use pallet_scheduler::migration::v3::MigrateToV4 as SchedulerV3V4Migration;
-use pallet_staking::migrations::v13::MigrateToV13 as StakingV13Migration;
-
-use crate::migrations::contracts_set_version::ContractsSetVersion9;
 
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
@@ -795,18 +786,6 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    (
-        // This will just kill the custom versioning enum, and set StorageVersion to 1
-        BalancesV1Migration<Runtime, ()>,
-        // Removes the `Calls` map, and unreserves all the funds locked there.
-        MultisigV1Migration<Runtime>,
-        // In our case, this is migrating 0 agendas.
-        SchedulerV3V4Migration<Runtime>,
-        // This only kills the custom versioning enum, and sets StorageVersion to 13
-        StakingV13Migration<Runtime>,
-        // We are adding the pallet to runtime. Need to set the version 9 manually.
-        ContractsSetVersion9<Runtime>,
-    ),
 >;
 
 impl_runtime_apis! {
