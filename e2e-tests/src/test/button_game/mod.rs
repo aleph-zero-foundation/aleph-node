@@ -417,8 +417,8 @@ pub async fn the_pressiah_cometh() -> Result<()> {
         config,
         &config.test_case_params.the_pressiah_cometh,
         |_, first_presser_score, _, second_presser_score| {
-            assert!(first_presser_score == 1);
-            assert!(second_presser_score == 2);
+            assert!(first_presser_score == 1_000_000_000_000);
+            assert!(second_presser_score == 2 * 1_000_000_000_000);
         },
     )
     .await
@@ -469,11 +469,11 @@ async fn button_game_play<F: Fn(u128, u128, u128, u128)>(
         .await?;
     button.press(&sign(&conn, player)).await?;
 
-    let event = assert_recv_id(&mut events, "ButtonPressed").await;
-    let_assert!(Some(&Value::UInt(first_presser_score)) = event.data.get("score"));
-    assert!(event.data.get("by") == Some(&Value::Literal(player.account_id().to_string())));
-    assert!(reward_token.balance_of(&conn, player.account_id()).await? == first_presser_score);
-    assert!(first_presser_score > 0);
+    let event = assert_recv_id(&mut events, "RewardMinted").await;
+    let_assert!(Some(&Value::UInt(first_reward_amount)) = event.data.get("amount"));
+    assert!(event.data.get("to") == Some(&Value::Literal(player.account_id().to_string())));
+    assert!(reward_token.balance_of(&conn, player.account_id()).await? == first_reward_amount);
+    assert!(first_reward_amount > 0);
     assert!(ticket_token.balance_of(&conn, player.account_id()).await? == 1);
     assert!(
         ticket_token
@@ -487,28 +487,30 @@ async fn button_game_play<F: Fn(u128, u128, u128, u128)>(
     sleep(Duration::from_secs(3)).await;
 
     button.press(&sign(&conn, player)).await?;
-    let event = assert_recv_id(&mut events, "ButtonPressed").await;
-    let_assert!(Some(&Value::UInt(second_presser_score)) = event.data.get("score"));
+    let event = assert_recv_id(&mut events, "RewardMinted").await;
+    let_assert!(Some(&Value::UInt(second_reward_amount)) = event.data.get("amount"));
     let_assert!(Some(&Value::UInt(second_press_at)) = event.data.get("when"));
     let first_presser_time = first_press_at - reset_at;
     let second_presser_time = second_press_at - first_press_at;
 
     score_check(
         first_presser_time,
-        first_presser_score,
+        first_reward_amount,
         second_presser_time,
-        second_presser_score,
+        second_reward_amount,
     );
-    let total_score = first_presser_score + second_presser_score;
-    assert!(reward_token.balance_of(&conn, player.account_id()).await? == total_score);
+
+    let player_rewards = first_reward_amount + second_reward_amount;
+    assert!(reward_token.balance_of(&conn, player.account_id()).await? == player_rewards);
 
     wait_for_death(&conn, &button).await?;
     button.reset(&sign(&conn, &authority)).await?;
-    assert_recv_id(&mut events, "Reset").await;
+    let event = assert_recv_id(&mut events, "RewardMinted").await;
+    let_assert!(Some(&Value::UInt(pressiah_reward)) = event.data.get("amount"));
 
-    let pressiah_score = total_score / 4;
     assert!(
-        reward_token.balance_of(&conn, player.account_id()).await? == total_score + pressiah_score
+        reward_token.balance_of(&conn, player.account_id()).await?
+            == player_rewards + pressiah_reward
     );
 
     Ok(())

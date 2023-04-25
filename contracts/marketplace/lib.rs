@@ -228,6 +228,18 @@ pub mod marketplace {
             self.data.get().unwrap().sale_multiplier
         }
 
+        /// Set the  value of the multiplier applied to the average price after each sale.
+        #[ink(message)]
+        pub fn set_sale_multiplier(&mut self, sale_multiplier: Balance) -> Result<(), Error> {
+            self.check_role(Self::env().caller(), self.admin())?;
+
+            let mut data = self.data.get().unwrap();
+            data.sale_multiplier = sale_multiplier;
+            self.data.set(&data);
+
+            Ok(())
+        }
+
         /// Number of tickets available for sale.
         ///
         /// The tickets will be auctioned off one by one.

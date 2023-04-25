@@ -157,18 +157,15 @@ function deploy_marketplace {
   local ticket_token=$5
   local game_token=$6
 
+  local sale_price_multiplier=2
+
   # --- CREATE AN INSTANCE OF THE CONTRACT
 
   cd "$CONTRACTS_PATH"/marketplace
 
-  local blocks_per_hour=3600
-  local initial_price="$INITIAL_PRICE"
-  local min_price=1
-  local sale_price_multiplier=2
-
   local contract_address
   contract_address=$(cargo_contract instantiate --url "$NODE" --constructor new \
-    --args "$ticket_token" "$game_token" "$initial_price" "$min_price" "$sale_price_multiplier" "$blocks_per_hour" \
+    --args "$ticket_token" "$game_token" "$INITIAL_PRICE" "$MINIMAL_PRICE" "$sale_price_multiplier" "$AUCTION_LENGTH" \
     --suri "$AUTHORITY_SEED" --salt "$salt" --skip-confirm --output-json)
   contract_address=$(echo "$contract_address" | jq -r '.contract')
 
@@ -266,7 +263,6 @@ cargo_contract build --release
 cd "$CONTRACTS_PATH"/simple_dex
 cargo_contract build --release
 
-# If randomization requested, generate random test params.
 cd "$CONTRACTS_PATH"/wrapped_azero
 if [ "${ENV_NAME}" = "devnet" ] || [ "${ENV_NAME}" = "dev" ]; then
   echo "Compiling wrapped_azero for devnet environments. This will include an unguarded terminate flag!"

@@ -5,13 +5,19 @@ export AUTHORITY=5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
 export AUTHORITY_SEED=//Alice
 
 # how long do the games live for (in blocks)
-export LIFETIME=604800 # 1 week
+export LIFETIME=432000 # 5 days
 
 # mint this many ticket tokens
-export TICKET_BALANCE=1000000
+export TICKET_BALANCE=100000
 
 # initial price of ticket on the marketplace
-export INITIAL_PRICE=69
+export INITIAL_PRICE=10000000000000 #10 tokens
+
+# the price of ticket on the marketplace does not go below this value
+export MINIMAL_PRICE=1000000000000 #1 token
+
+# how many blocks will elapse between INITAL and MINIMAL price
+export AUCTION_LENGTH=3600 # 24 hours
 
 # semi-serious environment with no hacks
 export ENV_NAME=devnet

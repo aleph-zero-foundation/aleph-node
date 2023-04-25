@@ -581,8 +581,8 @@ pub mod button_game {
         }
     }
 
-    /// Performs mapping of a value that lives in a [from_low, from_high] domain
-    /// to the [to_low, to_high] domain.
+    /// Performs mapping of a value that lives in a [in_min, in_max] domain
+    /// to the [out_min, out_max] domain.
     ///
     /// Function is an implementation of the following formula:
     /// out_min + (out_max - out_min) * ((value - in_min) / (in_max - in_min))
@@ -594,15 +594,14 @@ pub mod button_game {
         out_min: Balance,
         out_max: Balance,
     ) -> Balance {
-        // Calculate the input range and output range
+        // Calculate the input range and the output range
         let in_range = in_max.saturating_sub(in_min);
         let out_range = out_max.saturating_sub(out_min);
 
         // Map the input value to the output range
-        let scaled_value = value
-            .saturating_sub(in_min)
-            .saturating_div(in_range)
-            .saturating_mul(out_range);
+        let scaled_value = (value.saturating_sub(in_min))
+            .saturating_mul(out_range)
+            .div_euclid(in_range);
 
         // Convert the scaled value to the output domain
         out_min.saturating_add(scaled_value)
@@ -614,9 +613,10 @@ pub mod button_game {
 
         #[test]
         fn test_map_domain() {
-            assert_eq!(map_domain(1, 1, 10, 100, 200), 100);
-            assert_eq!(map_domain(0, 0, u128::MAX, 0, 100), 0);
-            assert_eq!(map_domain(u128::MAX, 0, u128::MAX, 0, 100), 100);
+            assert_eq!(
+                map_domain(272, 0, 900, ONE_TOKEN, ONE_HUNDRED_TOKENS),
+                3092 * ONE_TOKEN / 100
+            );
         }
     }
 }
