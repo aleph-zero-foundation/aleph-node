@@ -100,7 +100,7 @@ dependencies = [
 
 [[package]]
 name = "aleph_client"
-version = "3.1.0"
+version = "3.2.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -111,6 +111,7 @@ dependencies = [
  "log",
  "pallet-contracts-primitives",
  "parity-scale-codec",
+ "primitives",
  "serde",
  "serde_json",
  "subxt",

@@ -1,3 +1,4 @@
+use primitives::{staking::era_payout, MILLISECS_PER_BLOCK};
 use subxt::ext::sp_runtime::MultiAddress;
 
 use crate::{
@@ -7,10 +8,10 @@ use crate::{
     pallet_treasury::pallet::Call::{approve_proposal, reject_proposal},
     pallets::{committee_management::CommitteeManagementApi, staking::StakingApi},
     sp_core::TypeId,
-    sp_runtime::{traits::AccountIdConversion, Perbill},
+    sp_runtime::traits::AccountIdConversion,
     AccountId, Balance, BlockHash,
     Call::Treasury,
-    ConnectionApi, RootConnection, SignedConnectionApi, SudoCall, TxStatus, MILLISECS_PER_BLOCK,
+    ConnectionApi, RootConnection, SignedConnectionApi, SudoCall, TxStatus,
 };
 
 // Copied from `frame_support`.
@@ -140,18 +141,6 @@ impl<C: AsConnection + Sync> TreasureApiExt for C {
         let sessions_per_era = self.get_session_per_era().await?;
         let millisecs_per_era =
             MILLISECS_PER_BLOCK * session_period as u64 * sessions_per_era as u64;
-        Ok(era_payout(millisecs_per_era))
+        Ok(era_payout(millisecs_per_era).1)
     }
-}
-
-fn era_payout(miliseconds_per_era: u64) -> Balance {
-    const MILLISECONDS_PER_YEAR: u64 = 1000 * 3600 * 24 * 36525 / 100;
-    const TOKEN: u128 = 10u128.pow(12);
-    const YEARLY_INFLATION: Balance = 30_000_000 * TOKEN;
-    const VALIDATOR_REWARD: Perbill = Perbill::from_percent(90);
-
-    let portion = Perbill::from_rational(miliseconds_per_era, MILLISECONDS_PER_YEAR);
-    let total_payout = portion * YEARLY_INFLATION;
-
-    VALIDATOR_REWARD * total_payout
 }

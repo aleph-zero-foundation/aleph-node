@@ -1,6 +1,6 @@
 [package]
 name = "aleph_client"
-version = "3.1.0"
+version = "3.2.0"
 edition = "2021"
 authors = ["Cardinal"]
 documentation = "https://docs.rs/aleph_client"
@@ -30,6 +30,8 @@ serde = { version = "1.0", features = ["derive"] }
 # that there are subtle differences between local building and crates.io-based building. Hence we stick to just
 # versioned dependency.
 pallet-contracts-primitives = { version = "7.0.0" }
+
+primitives = { path = "../primitives" }
 
 [dev-dependencies]
 tokio = "1.21"
