@@ -20,6 +20,7 @@ exclude = [
     "aleph-client",
     "benches/payout-stakers",
     "bin/cliain",
+    "bin/finalizer",
     "contracts/access_control",
     "contracts/adder",
     "contracts/adder",

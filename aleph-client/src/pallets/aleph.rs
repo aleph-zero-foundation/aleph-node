@@ -134,7 +134,7 @@ impl<C: ConnectionApi> AlephRpc for C {
         let raw_signature: &[u8] = signature.as_ref();
         let params = rpc_params![raw_signature, hash, number];
 
-        let _: () = self.rpc_call(method.to_string(), params).await?;
+        let _: () = self.rpc_call_no_return(method.to_string(), params).await?;
 
         Ok(())
     }

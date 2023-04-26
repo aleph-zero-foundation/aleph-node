@@ -1,0 +1,15 @@
+[package]
+name = "finalizer"
+version = "0.0.1"
+edition = "2021"
+license = "GPL-3.0-or-later"
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "3.0", features = ["derive"] }
+dialoguer = "0.10.0"
+hex = "0.4.3"
+subxt = "0.25.0"
+tokio = { version = "1.21.2", features = ["full"] }
+aleph_client = { path = "../../aleph-client" }
+futures = "0.3.28"
