@@ -1,0 +1,34 @@
+---
+name: PR label
+
+on:
+  pull_request:
+    types: [labeled]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  create-featurenet:
+    if: >
+      (github.event.label.name == 'trigger:create-featurenet') ||
+      (github.event.label.name == 'trigger:create-hotfix-featurenet')
+    name: Create featurenet
+    uses: ./.github/workflows/_create-featurenet.yml
+    with:
+      # yamllint disable-line rule:line-length
+      hotfix: ${{ github.event.label.name == 'trigger:create-hotfix-featurenet' && true || false }}
+    secrets: inherit
+
+  delete-featurenet:
+    if: >
+      (github.event.label.name == 'trigger:delete-featurenet') ||
+      (
+        github.event.action == 'closed' &&
+        !contains(github.event.pull_request.labels.*.name, 'state:deleted-featurenet') &&
+        contains(github.event.pull_request.labels.*.name, 'state:created-featurenet')
+      )
+    name: Delete featurenet
+    uses: ./.github/workflows/_delete-featurenet.yml
+    secrets: inherit

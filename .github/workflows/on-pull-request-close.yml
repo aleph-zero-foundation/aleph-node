@@ -1,0 +1,20 @@
+---
+name: PR close
+
+on:
+  pull_request:
+    types: [closed]
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  main:
+    if: >
+      github.event.action == 'closed' &&
+      !contains(github.event.pull_request.labels.*.name, 'state:deleted-featurenet') &&
+      contains(github.event.pull_request.labels.*.name, 'state:created-featurenet')
+    name: Delete featurenet
+    uses: ./.github/workflows/_delete-featurenet.yml
+    secrets: inherit

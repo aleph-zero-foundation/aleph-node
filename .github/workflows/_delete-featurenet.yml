@@ -1,0 +1,69 @@
+---
+name: Delete featurenet
+
+on:
+  workflow_call:
+
+jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
+  delete-featurenet:
+    needs: [check-vars-and-secrets]
+    name: Delete featurenet
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Call action get-ref-properties
+        id: get-ref-properties
+        uses: ./.github/actions/get-ref-properties
+
+      - name: Delete featurenet app and data
+        uses: ./.github/actions/delete-featurenet
+        with:
+          gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
+          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
+          argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
+          repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
+          argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
+          featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
+
+      - name: Remove created label if present
+        uses: actions-ecosystem/action-remove-labels@v1.3.0
+        if: contains(github.event.pull_request.labels.*.name, 'state:created-featurenet')
+        with:
+          labels: 'state:created-featurenet'
+          github_token: ${{ secrets.CI_GH_TOKEN }}
+
+      - name: Deactivate deployed environment
+        uses: bobheadxi/deployments@v1
+        with:
+          step: deactivate-env
+          token: ${{ secrets.CI_GH_TOKEN }}
+          env: ${{ steps.get-ref-properties.outputs.branch-name-flattened }}
+          desc: Environment was deleted
+          debug: true
+
+      - name: Delete environment and deployments
+        uses: strumwolf/delete-deployment-environment@v2
+        with:
+          token: ${{ secrets.CI_GH_TOKEN }}
+          environment: ${{ steps.get-ref-properties.outputs.branch-name-flattened }}
+
+      - name: Remove delete deployment request label if exists
+        if: contains(github.event.pull_request.labels.*.name, 'trigger:delete-featurenet')
+        uses: actions-ecosystem/action-remove-labels@v1.3.0
+        with:
+          labels: 'trigger:delete-featurenet'
+          github_token: ${{ secrets.CI_GH_TOKEN }}
+
+      - name: Add label to mark that featurenet has been deleted
+        uses: actions-ecosystem/action-add-labels@v1.1.0
+        with:
+          labels: 'state:deleted-featurenet'
+          github_token: ${{ secrets.CI_GH_TOKEN }}

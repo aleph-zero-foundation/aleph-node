@@ -1,0 +1,84 @@
+---
+name: UpdateNet Create
+
+on:
+  workflow_dispatch:
+    inputs:
+      start:
+        description: 'aleph-node image to be started'
+        required: true
+        type: choice
+        options:
+          - testnet
+          - mainnet
+        default: testnet
+
+jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
+  create-updatenet:
+    needs: [check-vars-and-secrets]
+    name: Create updatenet
+    runs-on: ubuntu-20.04
+    outputs:
+      deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Delete old featurenet app and data
+        if: contains(github.event.pull_request.labels.*.name, 'state:created-featurenet')
+        uses: ./.github/actions/delete-featurenet
+        with:
+          gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
+          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
+          argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
+          repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
+          argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
+          featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
+          featurenet-name: fe-updnet-${{ github.run_id }}
+
+      - name: Start updatenet Deployment
+        uses: bobheadxi/deployments@v1.1.0
+        id: deployment
+        with:
+          step: start
+          token: ${{ secrets.CI_GH_TOKEN }}
+          env: updatenet-${{ github.run_id }}
+          override: true
+
+      - name: Create featurenet data, app and deploy it
+        uses: ./.github/actions/create-featurenet
+        with:
+          gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
+          argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
+          repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
+          argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
+          # yamllint disable-line rule:line-length
+          aleph-node-image: ${{ inputs.start == 'mainnet' && 'mainnet' || 'testnet' }}
+          ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}
+          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
+          featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
+          featurenet-name: fe-updnet-${{ github.run_id }}
+
+      - name: Wait for the testnet aleph-node binary to accept some blocks
+        uses: juliangruber/sleep-action@v2.0.0
+        with:
+          time: 5m
+
+      - name: Finish featurenet Deployment
+        uses: bobheadxi/deployments@v1
+        if: always()
+        with:
+          step: finish
+          token: ${{ secrets.CI_GH_TOKEN }}
+          status: ${{ job.status }}
+          env: updatenet-${{ github.run_id }}
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
+          # yamllint disable-line rule:line-length
+          env_url: https://dev.azero.dev/?rpc=wss%3A%2F%2Fws-fe-updnet-${{ github.run_id }}.dev.azero.dev#/explorer

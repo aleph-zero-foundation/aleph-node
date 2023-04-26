@@ -39,16 +39,56 @@ inputs:
     description: "Set to 'true' to create a hook"
     required: false
     default: 'false'
+  featurenet-name:
+    description: 'Enter name instead of getting it from branch'
+    required: false
+    default: ''
+  update:
+    description: "Set to 'true' if it is just featurenet update"
+    required: false
+    default: 'false'
 
 runs:
   using: "composite"
   steps:
+    - name: Validate inputs
+      shell: bash
+      run: |
+        if [[
+          "${{ inputs.featurenet-name }}" != "" && \
+          ! "${{ inputs.featurenet-name }}" =~ ^[a-z0-9][a-z0-9\-]{4,30}$
+        ]]
+        then
+          echo "!!! Invalid feature net name"
+          exit 1
+        fi
+        if [[
+          "${{ inputs.update }}" != "true" && \
+          "${{ inputs.aleph-node-image }}" != "testnet" && \
+          "${{ inputs.aleph-node-image }}" != "mainnet"
+        ]]
+        then
+          echo "!!! Node image tag must be 'testnet' or 'mainnet'"
+          echo "!!! when featurenet is about to be created"
+          exit 1
+        fi
+        if [[
+          "${{ inputs.aleph-node-image }}" != "" && \
+          ! "${{ inputs.aleph-node-image }}" =~ ^[a-f0-9]{7}$ && \
+          "${{ inputs.aleph-node-image }}" != "testnet" && \
+          "${{ inputs.aleph-node-image }}" != "mainnet"
+        ]]
+        then
+          echo "!!! Invalid feature net node image tag"
+          exit 1
+        fi
+
     - name: Get branch name and commit SHA
       id: get-ref-properties
       uses: ./.github/actions/get-ref-properties
 
     - name: Build chainspec for testnet FE and send it to S3
-      if: inputs.aleph-node-image == 'testnet'
+      if: inputs.update != 'true' && inputs.aleph-node-image == 'testnet'
       uses: ./.github/actions/build-featurenet-chainspec
       with:
         base-net: testnet
@@ -56,9 +96,10 @@ runs:
         aws-access-key-id: ${{ inputs.aws-access-key-id }}
         aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
         featurenet-keys-s3bucket-name: ${{ inputs.featurenet-keys-s3bucket-name }}
+        featurenet-name: ${{ inputs.featurenet-name }}
 
     - name: Build chainspec for Hotnet FE and send it to S3
-      if: inputs.aleph-node-image == 'mainnet'
+      if: inputs.update != 'true' && inputs.aleph-node-image == 'mainnet'
       uses: ./.github/actions/build-featurenet-chainspec
       with:
         base-net: mainnet
@@ -66,6 +107,7 @@ runs:
         aws-access-key-id: ${{ inputs.aws-access-key-id }}
         aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
         featurenet-keys-s3bucket-name: ${{ inputs.featurenet-keys-s3bucket-name }}
+        featurenet-name: ${{ inputs.featurenet-name }}
 
     - name: Checkout argocd apps repo
       uses: actions/checkout@v3
@@ -75,38 +117,70 @@ runs:
         path: "${{ inputs.repo-apps-name }}"
         ref: main
 
-    - name: Start featurenet
+    - name: Start featurenet from PR branch
+      if: inputs.aleph-node-image == ''
       shell: bash
+      env:
+        # yamllint disable-line rule:line-length
+        APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
       run: |
         cd "${{ inputs.repo-apps-name }}"
         pr_image_tag="fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo-with-sha }}"
         pr_image="${{ inputs.ecr-public-registry }}feature-env-aleph-node:${pr_image_tag}"
-        image_arg="${{ inputs.aleph-node-image }}"
-        if [[ -z "${{ inputs.aleph-node-image }}" ]]; then
-          image_arg="${pr_image}"
-        fi
         ./Ops.sh create-featurenet \
-          "fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo }}" \
-          "${image_arg}"
+          "${{ env.APP_NAME }}" \
+          "${pr_image}"
+
+    - name: Start featurenet from testnet/mainnet
+      if: inputs.aleph-node-image == 'testnet' || inputs.aleph-node-image == 'mainnet'
+      shell: bash
+      env:
+        # yamllint disable-line rule:line-length
+        APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
+      run: |
+        cd "${{ inputs.repo-apps-name }}"
+        ./Ops.sh create-featurenet \
+          "${{ env.APP_NAME }}" \
+          "${{ inputs.aleph-node-image }}"
+
+    - name: Start featurenet from image tag
+      if: >
+        inputs.aleph-node-image != '' &&
+        inputs.aleph-node-image != 'testnet' &&
+        inputs.aleph-node-image != 'mainnet'
+      shell: bash
+      env:
+        # yamllint disable-line rule:line-length
+        APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
+      run: |
+        cd "${{ inputs.repo-apps-name }}"
+        pr_image="${{ inputs.ecr-public-registry }}aleph-node:${{ inputs.aleph-node-image }}"
+        ./Ops.sh create-featurenet \
+          "${{ env.APP_NAME }}" \
+          "${pr_image}"
 
     - name: Commit featurenet change
       uses: EndBug/add-and-commit@v9.1.1
       env:
-        APP_NAME: fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo }}
+        # yamllint disable-line rule:line-length
+        APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
       with:
         author_name: AlephZero Automation
         author_email: alephzero@10clouds.com
         # yamllint disable-line rule:line-length
-        message: "${{ inputs.aleph-node-image != '' && 'Create' || 'Update' }} featurenet ${{ env.APP_NAME }} with image: ${{ inputs.aleph-node-image }}"
+        message: "Upsert featurenet ${{ env.APP_NAME }} with image: ${{ inputs.aleph-node-image != '' && inputs.aleph-node-image || steps.get-ref-properties.outputs.branch-name-for-argo-with-sha }}"
         add: "*.yaml"
         cwd: "${{ inputs.repo-apps-name }}"
 
-    - name: Refresh Argo and wait for the deletion to be finished
+    - name: Refresh Argo and wait for the creation to be finished
       if: inputs.no-refresh != 'true'
+      env:
+        # yamllint disable-line rule:line-length
+        APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
       shell: bash
       run: |
         cd "${{ inputs.repo-apps-name }}"
         ./Ops.sh refresh-featurenets "${{ inputs.argo-host }}" \
           "${{ inputs.argo-sync-user-token }}" \
-          "fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo }}" \
+          "${{ env.APP_NAME }}" \
           "${{ inputs.create-hook }}"

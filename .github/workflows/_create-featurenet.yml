@@ -1,18 +1,14 @@
 ---
-name: PR Featurenet
+name: Create featurenet
 
 on:
-  pull_request:
-    types: [labeled, closed]
-
-env:
-  RPC_TESTNET_URL: https://rpc.test.azero.dev
-  WSS_TESTNET_URL: wss://ws.test.azero.dev
-  RPC_MAINNET_URL: https://rpc.azero.dev
-  FORKOFF_IMAGE: ${{ vars.ECR_PUBLIC_REGISTRY }}fork-off:latest
-
-concurrency:
-  group: ${{ github.ref }}-${{ github.workflow }}
+  workflow_call:
+    inputs:
+      hotfix:
+        description: Set to 'true' if it is a hotfix environment
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   check-vars-and-secrets:
@@ -20,45 +16,32 @@ jobs:
     uses: ./.github/workflows/_check-vars-and-secrets.yml
     secrets: inherit
 
-  ## After that job run, artefact with aleph-node is created with name: aleph-release-node
   build-aleph-node-binary:
     needs: [check-vars-and-secrets]
-    if: >
-      (github.event.label.name == 'trigger:create-featurenet') ||
-      (github.event.label.name == 'trigger:create-hotfix-featurenet')
     name: Build production artifacts
     uses: ./.github/workflows/_build-production-node-and-runtime.yml
     secrets: inherit
 
   store-aleph-node-binary:
     needs: [build-aleph-node-binary]
-    if: >
-      (github.event.label.name == 'trigger:create-featurenet') ||
-      (github.event.label.name == 'trigger:create-hotfix-featurenet')
     name: Store production artifacts
     uses: ./.github/workflows/_store-production-node-and-runtime.yml
     secrets: inherit
 
   push-pr-image:
     needs: [build-aleph-node-binary]
-    if: >
-      (github.event.label.name == 'trigger:create-featurenet') ||
-      (github.event.label.name == 'trigger:create-hotfix-featurenet')
     name: Build and push PR docker image to featurenet registry
     uses: ./.github/workflows/_build-and-push-pull-request-image-to-featurenets.yml
     secrets: inherit
 
   create-featurenet:
     needs: [check-vars-and-secrets]
-    if: >
-      (github.event.label.name == 'trigger:create-featurenet') ||
-      (github.event.label.name == 'trigger:create-hotfix-featurenet')
     name: Create featurenet based on the PR
     runs-on: ubuntu-20.04
     outputs:
       deployment-id: ${{ steps.deployment.outputs.deployment_id }}
     steps:
-      - name: checkout repo
+      - name: Checkout repo
         uses: actions/checkout@v3
 
       - name: Delete old featurenet app and data
@@ -88,9 +71,6 @@ jobs:
           override: true
 
       - name: Create featurenet data, app and deploy it
-        if: >
-          contains(github.event.pull_request.labels.*.name, 'trigger:create-featurenet') ||
-          contains(github.event.pull_request.labels.*.name, 'trigger:create-hotfix-featurenet')
         uses: ./.github/actions/create-featurenet
         with:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
@@ -98,7 +78,7 @@ jobs:
           repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
           argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
           # yamllint disable-line rule:line-length
-          aleph-node-image: ${{ contains(github.event.pull_request.labels.*.name, 'trigger:create-hotfix-featurenet') && 'mainnet' || 'testnet' }}
+          aleph-node-image: ${{ inputs.hotfix && 'mainnet' || 'testnet' }}
           ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}
           aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
@@ -110,14 +90,11 @@ jobs:
           time: 5m
 
   update-featurenet-image:
-    if: >
-      (github.event.label.name == 'trigger:create-featurenet') ||
-      (github.event.label.name == 'trigger:create-hotfix-featurenet')
     needs: [push-pr-image, create-featurenet]
     name: Update featurenet to the latest PR aleph-node image
     runs-on: ubuntu-20.04
     steps:
-      - name: checkout repo
+      - name: Checkout repo
         uses: actions/checkout@v3
 
       - name: Call action get-ref-properties
@@ -136,32 +113,13 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
           featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
-
-      - name: Remove testnet deployment request label if exists
-        if: contains(github.event.pull_request.labels.*.name, 'trigger:create-featurenet')
-        uses: actions-ecosystem/action-remove-labels@v1.3.0
-        with:
-          labels: 'trigger:create-featurenet'
-          github_token: ${{ secrets.CI_GH_TOKEN }}
-
-      - name: Remove mainnet deployment request label if exists
-        if: contains(github.event.pull_request.labels.*.name, 'trigger:create-hotfix-featurenet')
-        uses: actions-ecosystem/action-remove-labels@v1.3.0
-        with:
-          labels: 'trigger:create-hotfix-featurenet'
-          github_token: ${{ secrets.CI_GH_TOKEN }}
+          update: 'true'
 
       - name: Remove deleted label if present
         uses: actions-ecosystem/action-remove-labels@v1.3.0
         if: contains(github.event.pull_request.labels.*.name, 'state:deleted-featurenet')
         with:
           labels: 'state:deleted-featurenet'
-          github_token: ${{ secrets.CI_GH_TOKEN }}
-
-      - name: Add label to mark that featurenet has been created
-        uses: actions-ecosystem/action-add-labels@v1.1.0
-        with:
-          labels: 'state:created-featurenet'
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Finish featurenet Deployment
@@ -177,67 +135,22 @@ jobs:
           env_url: https://dev.azero.dev/?rpc=wss%3A%2F%2Fws-fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo }}.dev.azero.dev#/explorer
           ref: ${{ github.head_ref }}
 
-  delete-featurenet:
-    needs: [check-vars-and-secrets]
-    if: >
-      (github.event.label.name == 'trigger:delete-featurenet') ||
-      (
-        github.event.action == 'closed' &&
-        !contains(github.event.pull_request.labels.*.name, 'state:deleted-featurenet') &&
-        contains(github.event.pull_request.labels.*.name, 'state:created-featurenet')
-      )
-    name: Delete featurenet
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
-
-      - name: Call action get-ref-properties
-        id: get-ref-properties
-        uses: ./.github/actions/get-ref-properties
-
-      - name: Delete featurenet app and data
-        uses: ./.github/actions/delete-featurenet
-        with:
-          gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
-          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
-          argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
-          repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
-          argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
-          featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
-
-      - name: Remove labels
+      - name: Remove testnet deployment request label if exists
+        if: contains(github.event.pull_request.labels.*.name, 'trigger:create-featurenet')
         uses: actions-ecosystem/action-remove-labels@v1.3.0
         with:
-          labels: 'trigger:delete-featurenet'
+          labels: 'trigger:create-featurenet'
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
-      - name: Remove created label if present
+      - name: Remove mainnet deployment request label if exists
+        if: contains(github.event.pull_request.labels.*.name, 'trigger:create-hotfix-featurenet')
         uses: actions-ecosystem/action-remove-labels@v1.3.0
-        if: contains(github.event.pull_request.labels.*.name, 'state:created-featurenet')
+        with:
+          labels: 'trigger:create-hotfix-featurenet'
+          github_token: ${{ secrets.CI_GH_TOKEN }}
+
+      - name: Add label to mark that featurenet has been created
+        uses: actions-ecosystem/action-add-labels@v1.1.0
         with:
           labels: 'state:created-featurenet'
           github_token: ${{ secrets.CI_GH_TOKEN }}
-
-      - name: Add label to mark that featurenet has been deleted
-        uses: actions-ecosystem/action-add-labels@v1.1.0
-        with:
-          labels: 'state:deleted-featurenet'
-          github_token: ${{ secrets.CI_GH_TOKEN }}
-
-      - name: Deactivate deployed environment
-        uses: bobheadxi/deployments@v1
-        with:
-          step: deactivate-env
-          token: ${{ secrets.CI_GH_TOKEN }}
-          env: ${{ steps.get-ref-properties.outputs.branch-name-flattened }}
-          desc: Environment was deleted
-          debug: true
-
-      - name: Delete environment and deployments
-        uses: strumwolf/delete-deployment-environment@v2
-        with:
-          token: ${{ secrets.CI_GH_TOKEN }}
-          environment: ${{ steps.get-ref-properties.outputs.branch-name-flattened }}
-

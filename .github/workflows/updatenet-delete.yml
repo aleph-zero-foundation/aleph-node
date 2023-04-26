@@ -1,0 +1,59 @@
+---
+name: UpdateNet Delete
+
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: Name of updatenet
+        required: true
+        type: string
+
+jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
+  delete-updatenet:
+    needs: [check-vars-and-secrets]
+    name: Delete updatenet
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Validate inputs
+        shell: bash
+        run: |
+          if [[ ! "${{ inputs.name }}" =~ ^[a-z0-9][a-z0-9\-]{4,30}$ ]]; then
+            echo "!!! Invalid updatenet name"
+            exit 1
+          fi
+
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Delete featurenet app and data
+        uses: ./.github/actions/delete-featurenet
+        with:
+          gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
+          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
+          argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
+          repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
+          argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
+          featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
+          featurenet-name: fe-updnet-${{ inputs.name }}
+
+      - name: Deactivate deployed environment
+        uses: bobheadxi/deployments@v1
+        with:
+          step: deactivate-env
+          token: ${{ secrets.CI_GH_TOKEN }}
+          env: updatenet-${{ inputs.name }}
+          desc: Environment was deleted
+          debug: true
+
+      - name: Delete environment and deployments
+        uses: strumwolf/delete-deployment-environment@v2
+        with:
+          token: ${{ secrets.CI_GH_TOKEN }}
+          environment: updatenet-${{ inputs.name }}
