@@ -1,5 +1,5 @@
 ---
-name: UpdateNet Create
+name: UpdateNet Update
 
 on:
   workflow_dispatch:
