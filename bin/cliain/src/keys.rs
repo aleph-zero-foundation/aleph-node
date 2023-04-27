@@ -38,9 +38,14 @@ pub async fn set_keys(connection: SignedConnection, new_keys: String) {
 }
 
 pub async fn rotate_keys(connection: Connection) {
-    let new_keys = connection.author_rotate_keys().await;
-
-    info!("Rotated keys: {:?}", new_keys);
+    match connection.author_rotate_keys().await {
+        Ok(new_keys) => info!(
+            "Keys rotated, use the following in set_keys: {}{}",
+            new_keys.aura.0 .0.encode_hex::<String>(),
+            new_keys.aleph.0 .0.encode_hex::<String>()
+        ),
+        Err(e) => error!("Failed to rotate keys: {}.", e),
+    }
 }
 
 pub async fn next_session_keys(connection: Connection, account_id: String) {
