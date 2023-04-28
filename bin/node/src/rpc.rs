@@ -7,38 +7,34 @@
 
 use std::sync::Arc;
 
-use aleph_primitives::BlockNumber;
-use aleph_runtime::{opaque::Block, AccountId, Balance, Index};
+use aleph_runtime::{
+    opaque::{Block, Header},
+    AccountId, Balance, Index,
+};
 use finality_aleph::{Justification, JustificationTranslator};
 use futures::channel::mpsc;
 use jsonrpsee::RpcModule;
 pub use sc_rpc_api::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;
-use sp_api::{BlockT, ProvideRuntimeApi};
+use sp_api::ProvideRuntimeApi;
 use sp_block_builder::BlockBuilder;
 use sp_blockchain::{Error as BlockChainError, HeaderBackend, HeaderMetadata};
-use sp_runtime::traits::Header;
 
 /// Full client dependencies.
-pub struct FullDeps<B, C, P, JT>
-where
-    B: BlockT,
-    B::Header: Header<Number = BlockNumber>,
-    JT: JustificationTranslator<B::Header> + Send + Sync + Clone + 'static,
-{
+pub struct FullDeps<C, P, JT> {
     /// The client instance to use.
     pub client: Arc<C>,
     /// Transaction pool instance.
     pub pool: Arc<P>,
     /// Whether to deny unsafe calls
     pub deny_unsafe: DenyUnsafe,
-    pub import_justification_tx: mpsc::UnboundedSender<Justification<B::Header>>,
+    pub import_justification_tx: mpsc::UnboundedSender<Justification<Header>>,
     pub justification_translator: JT,
 }
 
 /// Instantiate all full RPC extensions.
-pub fn create_full<B, C, P, JT>(
-    deps: FullDeps<B, C, P, JT>,
+pub fn create_full<C, P, JT>(
+    deps: FullDeps<C, P, JT>,
 ) -> Result<RpcModule<()>, Box<dyn std::error::Error + Send + Sync>>
 where
     C: ProvideRuntimeApi<Block>,
@@ -48,9 +44,7 @@ where
     C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
     C::Api: BlockBuilder<Block>,
     P: TransactionPool + 'static,
-    B: BlockT,
-    B::Header: Header<Number = BlockNumber>,
-    JT: JustificationTranslator<B::Header> + Send + Sync + Clone + 'static,
+    JT: JustificationTranslator<Header> + Send + Sync + Clone + 'static,
 {
     use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApiServer};
     use substrate_frame_rpc_system::{System, SystemApiServer};
@@ -69,9 +63,7 @@ where
     module.merge(TransactionPayment::new(client).into_rpc())?;
 
     use crate::aleph_node_rpc::{AlephNode, AlephNodeApiServer};
-    module.merge(
-        AlephNode::<B, JT>::new(import_justification_tx, justification_translator).into_rpc(),
-    )?;
+    module.merge(AlephNode::new(import_justification_tx, justification_translator).into_rpc())?;
 
     Ok(module)
 }
