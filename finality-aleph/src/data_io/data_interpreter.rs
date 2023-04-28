@@ -4,7 +4,7 @@ use aleph_primitives::BlockNumber;
 use futures::channel::mpsc;
 use log::{debug, error, warn};
 use sc_client_api::HeaderBackend;
-use sp_runtime::traits::{Block as BlockT, Header as HeaderT, NumberFor, Zero};
+use sp_runtime::traits::{Block as BlockT, Header as HeaderT};
 
 use crate::{
     data_io::{
@@ -52,7 +52,7 @@ where
     } else {
         // We are in session 0, we take the genesis block -- it is finalized by definition.
         client
-            .get_finalized_at(NumberFor::<B>::zero())
+            .get_finalized_at(0)
             .expect("Genesis block must be available")
     }
 }

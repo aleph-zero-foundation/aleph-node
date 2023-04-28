@@ -18,7 +18,7 @@ use futures_timer::Delay;
 use log::{debug, error, info, trace, warn};
 use lru::LruCache;
 use sc_client_api::{BlockchainEvents, HeaderBackend};
-use sp_runtime::traits::{Block as BlockT, Header as HeaderT, NumberFor, One};
+use sp_runtime::traits::{Block as BlockT, Header as HeaderT};
 
 use crate::{
     data_io::{
@@ -46,7 +46,7 @@ where
     B::Header: HeaderT<Number = BlockNumber>,
 {
     Imported(IdentifierFor<B>),
-    Finalized(NumberFor<B>),
+    Finalized(BlockNumber),
 }
 
 // Need to be implemented manually, as deriving does not work (`BlockT` is not `Hash`).
@@ -403,10 +403,7 @@ where
         if self.highest_finalized_num < proposal.number_below_branch() {
             self.register_finality_trigger(proposal, proposal.number_below_branch());
         } else if self.highest_finalized_num < proposal.number_top_block() {
-            self.register_finality_trigger(
-                proposal,
-                self.highest_finalized_num + NumberFor::<B>::one(),
-            );
+            self.register_finality_trigger(proposal, self.highest_finalized_num + 1);
         }
     }
 

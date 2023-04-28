@@ -4,7 +4,7 @@ use aleph_primitives::BlockNumber;
 use log::error;
 use lru::LruCache;
 use sc_client_api::HeaderBackend;
-use sp_runtime::traits::{Block as BlockT, Header as HeaderT, NumberFor};
+use sp_runtime::traits::{Block as BlockT, Header as HeaderT};
 
 use crate::{data_io::ChainInfoCacheConfig, IdentifierFor};
 
@@ -15,7 +15,7 @@ where
 {
     fn is_block_imported(&mut self, block: &IdentifierFor<B>) -> bool;
 
-    fn get_finalized_at(&mut self, number: NumberFor<B>) -> Result<IdentifierFor<B>, ()>;
+    fn get_finalized_at(&mut self, number: BlockNumber) -> Result<IdentifierFor<B>, ()>;
 
     fn get_parent_hash(&mut self, block: &IdentifierFor<B>) -> Result<B::Hash, ()>;
 

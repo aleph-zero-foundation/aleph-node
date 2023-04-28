@@ -7,7 +7,7 @@ use parking_lot::Mutex;
 use sc_client_api::HeaderBackend;
 use sp_consensus::SelectChain;
 use sp_runtime::{
-    traits::{Block as BlockT, Header as HeaderT, NumberFor, Zero},
+    traits::{Block as BlockT, Header as HeaderT, Zero},
     SaturatedConversion,
 };
 
@@ -18,9 +18,10 @@ use crate::{
 };
 
 // Reduce block header to the level given by num, by traversing down via parents.
-pub fn reduce_header_to_num<B, C>(client: &C, header: B::Header, num: NumberFor<B>) -> B::Header
+pub fn reduce_header_to_num<B, C>(client: &C, header: B::Header, num: BlockNumber) -> B::Header
 where
     B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B>,
 {
     assert!(

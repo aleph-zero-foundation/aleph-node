@@ -7,7 +7,7 @@ use std::{
 use aleph_primitives::BlockNumber;
 use codec::{Decode, Encode};
 use sp_runtime::{
-    traits::{Block as BlockT, Header as HeaderT, NumberFor},
+    traits::{Block as BlockT, Header as HeaderT},
     SaturatedConversion,
 };
 
@@ -30,25 +30,25 @@ use crate::{data_io::MAX_DATA_BRANCH_LEN, IdentifierFor, SessionBoundaries};
 #[derive(Clone, Debug, Encode, Decode)]
 pub struct UnvalidatedAlephProposal<B: BlockT> {
     pub branch: Vec<B::Hash>,
-    pub number: NumberFor<B>,
+    pub number: BlockNumber,
 }
 
 /// Represents possible invalid states as described in [UnvalidatedAlephProposal].
 #[derive(Debug, PartialEq, Eq)]
-pub enum ValidationError<B: BlockT> {
+pub enum ValidationError {
     BranchEmpty,
     BranchTooLong {
         branch_size: usize,
     },
     BlockNumberOutOfBounds {
         branch_size: usize,
-        block_number: NumberFor<B>,
+        block_number: BlockNumber,
     },
     BlockOutsideSessionBoundaries {
-        session_start: NumberFor<B>,
-        session_end: NumberFor<B>,
-        top_block: NumberFor<B>,
-        bottom_block: NumberFor<B>,
+        session_start: BlockNumber,
+        session_end: BlockNumber,
+        top_block: BlockNumber,
+        bottom_block: BlockNumber,
     },
 }
 
@@ -83,7 +83,7 @@ where
     pub(crate) fn validate_bounds(
         &self,
         session_boundaries: &SessionBoundaries,
-    ) -> Result<AlephProposal<B>, ValidationError<B>> {
+    ) -> Result<AlephProposal<B>, ValidationError> {
         use ValidationError::*;
 
         if self.branch.len() > MAX_DATA_BRANCH_LEN {
@@ -127,7 +127,7 @@ where
 #[derive(Clone, Debug, Encode, Decode)]
 pub struct AlephProposal<B: BlockT> {
     branch: Vec<B::Hash>,
-    number: NumberFor<B>,
+    number: BlockNumber,
 }
 
 // Need to be implemented manually, as deriving does not work (`BlockT` is not `Hash`).
