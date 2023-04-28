@@ -28,12 +28,13 @@ mod migration;
 mod traits;
 
 use codec::{Decode, Encode};
-use frame_support::traits::StorageVersion;
+use frame_support::{pallet_prelude::Get, traits::StorageVersion};
 pub use manager::SessionAndEraManager;
 pub use migration::PrefixMigration;
 pub use pallet::*;
-use primitives::{BanConfig as BanConfigStruct, BanInfo, SessionValidators};
+use primitives::{BanConfig as BanConfigStruct, BanInfo, SessionValidators, LENIENT_THRESHOLD};
 use scale_info::TypeInfo;
+use sp_runtime::Perquintill;
 use sp_std::{collections::btree_map::BTreeMap, default::Default};
 pub use traits::*;
 
@@ -55,6 +56,15 @@ impl<T> Default for CurrentAndNextSessionValidators<T> {
         }
     }
 }
+
+pub struct DefaultLenientThreshold;
+
+impl Get<Perquintill> for DefaultLenientThreshold {
+    fn get() -> Perquintill {
+        LENIENT_THRESHOLD
+    }
+}
+
 const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 pub(crate) const LOG_TARGET: &str = "pallet-committee-management";
 
@@ -68,14 +78,14 @@ pub mod pallet {
         BanHandler, BanReason, BlockCount, FinalityCommitteeManager, SessionCount,
         SessionValidators, ValidatorProvider,
     };
-    use sp_runtime::Perbill;
+    use sp_runtime::{Perbill, Perquintill};
     use sp_staking::EraIndex;
     use sp_std::vec::Vec;
 
     use crate::{
         traits::{EraInfoProvider, ValidatorRewardsHandler},
-        BanConfigStruct, BanInfo, CurrentAndNextSessionValidators, ValidatorExtractor,
-        ValidatorTotalRewards, STORAGE_VERSION,
+        BanConfigStruct, BanInfo, CurrentAndNextSessionValidators, DefaultLenientThreshold,
+        ValidatorExtractor, ValidatorTotalRewards, STORAGE_VERSION,
     };
 
     #[pallet::config]
@@ -101,6 +111,10 @@ pub mod pallet {
     #[pallet::storage_version(STORAGE_VERSION)]
     #[pallet::without_storage_info]
     pub struct Pallet<T>(_);
+
+    #[pallet::storage]
+    pub type LenientThreshold<T: Config> =
+        StorageValue<_, Perquintill, ValueQuery, DefaultLenientThreshold>;
 
     /// A lookup how many blocks a validator produced.
     #[pallet::storage]
@@ -141,6 +155,9 @@ pub mod pallet {
         /// Ban reason is too big, ie given vector of bytes is greater than
         /// [`Config::MaximumBanReasonLength`]
         BanReasonTooBig,
+
+        /// Lenient threshold not in [0-100] range
+        InvalidLenientThreshold,
     }
 
     #[pallet::event]
@@ -231,6 +248,24 @@ pub mod pallet {
         pub fn cancel_ban(origin: OriginFor<T>, banned: T::AccountId) -> DispatchResult {
             ensure_root(origin)?;
             Banned::<T>::remove(banned);
+
+            Ok(())
+        }
+
+        /// Set lenient threshold
+        #[pallet::call_index(4)]
+        #[pallet::weight((T::BlockWeights::get().max_block, DispatchClass::Operational))]
+        pub fn set_lenient_threshold(
+            origin: OriginFor<T>,
+            threshold_percent: u8,
+        ) -> DispatchResult {
+            ensure_root(origin)?;
+            ensure!(
+                threshold_percent <= 100,
+                Error::<T>::InvalidLenientThreshold
+            );
+
+            LenientThreshold::<T>::put(Perquintill::from_percent(threshold_percent as u64));
 
             Ok(())
         }

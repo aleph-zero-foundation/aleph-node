@@ -35,6 +35,7 @@ mod finality_version;
 mod finalization;
 mod helpers;
 mod high_latency;
+mod lenient_threshold;
 mod rewards;
 mod staking;
 mod transfer;

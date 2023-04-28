@@ -1,7 +1,12 @@
+use codec::{DecodeAll, Encode};
+use subxt::ext::sp_runtime::Perquintill;
+
 use crate::{
     aleph_runtime::RuntimeCall::CommitteeManagement,
     api,
-    pallet_committee_management::pallet::Call::{ban_from_committee, set_ban_config},
+    pallet_committee_management::pallet::Call::{
+        ban_from_committee, set_ban_config, set_lenient_threshold,
+    },
     primitives::{BanConfig, BanInfo, BanReason},
     AccountId, AsConnection, BlockHash, ConnectionApi, EraIndex, RootConnection, SessionCount,
     SudoCall, TxInfo, TxStatus,
@@ -49,8 +54,12 @@ pub trait CommitteeManagementApi {
         validator: AccountId,
         at: Option<BlockHash>,
     ) -> Option<BanInfo>;
+
     /// Returns `committee-management.session_period` const of the committee-management pallet.
     async fn get_session_period(&self) -> anyhow::Result<u32>;
+
+    /// Returns `committee-management.lenient_threshold` for the current era.
+    async fn get_lenient_threshold_percentage(&self, at: Option<BlockHash>) -> Option<Perquintill>;
 }
 
 /// any object that implements pallet committee-management api that requires sudo
@@ -79,6 +88,13 @@ pub trait CommitteeManagementSudoApi {
         &self,
         account: AccountId,
         ban_reason: Vec<u8>,
+        status: TxStatus,
+    ) -> anyhow::Result<TxInfo>;
+
+    /// Set lenient threshold. Effective from the next era.
+    async fn set_lenient_threshold(
+        &self,
+        threshold_percent: u8,
         status: TxStatus,
     ) -> anyhow::Result<TxInfo>;
 }
@@ -145,6 +161,14 @@ impl<C: ConnectionApi + AsConnection> CommitteeManagementApi for C {
             .at(&addrs)
             .map_err(|e| e.into())
     }
+
+    async fn get_lenient_threshold_percentage(&self, at: Option<BlockHash>) -> Option<Perquintill> {
+        let addrs = api::storage().committee_management().lenient_threshold();
+
+        self.get_storage_entry_maybe(&addrs, at)
+            .await
+            .map(|lt| Perquintill::decode_all(&mut &*lt.encode()).unwrap())
+    }
 }
 
 #[async_trait::async_trait]
@@ -177,6 +201,16 @@ impl CommitteeManagementSudoApi for RootConnection {
             banned: account,
             ban_reason,
         });
+        self.sudo_unchecked(call, status).await
+    }
+
+    async fn set_lenient_threshold(
+        &self,
+        threshold_percent: u8,
+        status: TxStatus,
+    ) -> anyhow::Result<TxInfo> {
+        let call = CommitteeManagement(set_lenient_threshold { threshold_percent });
+
         self.sudo_unchecked(call, status).await
     }
 }
