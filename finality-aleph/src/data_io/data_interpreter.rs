@@ -13,7 +13,7 @@ use crate::{
         AlephData, ChainInfoProvider,
     },
     mpsc::TrySendError,
-    BlockHashNum, SessionBoundaries,
+    IdentifierFor, SessionBoundaries,
 };
 
 type InterpretersChainInfoProvider<B, C> =
@@ -28,16 +28,16 @@ where
     B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B>,
 {
-    blocks_to_finalize_tx: mpsc::UnboundedSender<BlockHashNum<B>>,
+    blocks_to_finalize_tx: mpsc::UnboundedSender<IdentifierFor<B>>,
     chain_info_provider: InterpretersChainInfoProvider<B, C>,
-    last_finalized_by_aleph: BlockHashNum<B>,
+    last_finalized_by_aleph: IdentifierFor<B>,
     session_boundaries: SessionBoundaries,
 }
 
 fn get_last_block_prev_session<B, C>(
     session_boundaries: SessionBoundaries,
     mut client: Arc<C>,
-) -> BlockHashNum<B>
+) -> IdentifierFor<B>
 where
     B: BlockT,
     B::Header: HeaderT<Number = BlockNumber>,
@@ -64,7 +64,7 @@ where
     C: HeaderBackend<B>,
 {
     pub fn new(
-        blocks_to_finalize_tx: mpsc::UnboundedSender<BlockHashNum<B>>,
+        blocks_to_finalize_tx: mpsc::UnboundedSender<IdentifierFor<B>>,
         client: Arc<C>,
         session_boundaries: SessionBoundaries,
     ) -> Self {
@@ -83,7 +83,7 @@ where
         }
     }
 
-    pub fn set_last_finalized(&mut self, block: BlockHashNum<B>) {
+    pub fn set_last_finalized(&mut self, block: IdentifierFor<B>) {
         self.last_finalized_by_aleph = block;
     }
 
@@ -93,12 +93,15 @@ where
 
     pub fn send_block_to_finalize(
         &mut self,
-        block: BlockHashNum<B>,
-    ) -> Result<(), TrySendError<BlockHashNum<B>>> {
+        block: IdentifierFor<B>,
+    ) -> Result<(), TrySendError<IdentifierFor<B>>> {
         self.blocks_to_finalize_tx.unbounded_send(block)
     }
 
-    pub fn blocks_to_finalize_from_data(&mut self, new_data: AlephData<B>) -> Vec<BlockHashNum<B>> {
+    pub fn blocks_to_finalize_from_data(
+        &mut self,
+        new_data: AlephData<B>,
+    ) -> Vec<IdentifierFor<B>> {
         let unvalidated_proposal = new_data.head_proposal;
         let proposal = match unvalidated_proposal.validate_bounds(&self.session_boundaries) {
             Ok(proposal) => proposal,

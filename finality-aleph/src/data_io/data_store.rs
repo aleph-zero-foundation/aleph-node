@@ -34,19 +34,27 @@ use crate::{
         },
         RequestBlocks,
     },
-    BlockHashNum, IdentifierFor, SessionBoundaries,
+    IdentifierFor, SessionBoundaries,
 };
 
 type MessageId = u64;
 
 #[derive(Clone, Debug)]
-pub enum ChainEvent<B: BlockT> {
-    Imported(BlockHashNum<B>),
+pub enum ChainEvent<B>
+where
+    B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
+{
+    Imported(IdentifierFor<B>),
     Finalized(NumberFor<B>),
 }
 
 // Need to be implemented manually, as deriving does not work (`BlockT` is not `Hash`).
-impl<B: BlockT> Hash for ChainEvent<B> {
+impl<B> Hash for ChainEvent<B>
+where
+    B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
+{
     fn hash<H: Hasher>(&self, state: &mut H) {
         match self {
             ChainEvent::Imported(block) => {
@@ -63,7 +71,11 @@ impl<B: BlockT> Hash for ChainEvent<B> {
 }
 
 // Clippy does not allow deriving PartialEq when implementing Hash manually
-impl<B: BlockT> PartialEq for ChainEvent<B> {
+impl<B> PartialEq for ChainEvent<B>
+where
+    B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
+{
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (ChainEvent::Imported(block1), ChainEvent::Imported(block2)) => block1.eq(block2),
@@ -72,10 +84,19 @@ impl<B: BlockT> PartialEq for ChainEvent<B> {
         }
     }
 }
-impl<B: BlockT> Eq for ChainEvent<B> {}
+impl<B> Eq for ChainEvent<B>
+where
+    B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
+{
+}
 
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub struct PendingProposalInfo<B: BlockT> {
+pub struct PendingProposalInfo<B>
+where
+    B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
+{
     // Which messages are being held because of a missing the data item.
     messages: HashSet<MessageId>,
     // When was the first message containing this data item encountered.
@@ -83,7 +104,11 @@ pub struct PendingProposalInfo<B: BlockT> {
     status: ProposalStatus<B>,
 }
 
-impl<B: BlockT> PendingProposalInfo<B> {
+impl<B> PendingProposalInfo<B>
+where
+    B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
+{
     fn new(status: ProposalStatus<B>) -> Self {
         PendingProposalInfo {
             messages: HashSet::new(),
@@ -334,7 +359,7 @@ where
                     continue;
                 }
             };
-            let parent_num = bottom_block.num - 1;
+            let parent_num = bottom_block.number - 1;
             if let Ok(finalized_block) = self.chain_info_provider.get_finalized_at(parent_num) {
                 if parent_hash != finalized_block.hash {
                     warn!(target: "aleph-data-store", "The proposal {:?} is pending because the parent: \
@@ -355,7 +380,7 @@ where
     fn register_block_import_trigger(
         &mut self,
         proposal: &AlephProposal<B>,
-        block: &BlockHashNum<B>,
+        block: &IdentifierFor<B>,
     ) {
         self.num_triggers_registered_since_last_pruning += 1;
         self.event_triggers
@@ -385,12 +410,12 @@ where
         }
     }
 
-    fn on_block_finalized(&mut self, block: BlockHashNum<B>) {
-        if self.highest_finalized_num < block.num {
+    fn on_block_finalized(&mut self, block: IdentifierFor<B>) {
+        if self.highest_finalized_num < block.number {
             // We don't assume block.num = self.highest_finalized_num + 1 as the finality import queue does
             // not quite guarantee this.
             let old_num = self.highest_finalized_num;
-            let new_num = block.num;
+            let new_num = block.number;
             self.highest_finalized_num = new_num;
             // We activate all finality triggers in [old_num + 1, block.num].
             let mut num = old_num + 1;
@@ -407,7 +432,7 @@ where
         }
     }
 
-    fn on_block_imported(&mut self, block: BlockHashNum<B>) {
+    fn on_block_imported(&mut self, block: IdentifierFor<B>) {
         if let Some(proposals_to_bump) = self.event_triggers.remove(&ChainEvent::Imported(block)) {
             for proposal in proposals_to_bump {
                 self.bump_proposal(&proposal);

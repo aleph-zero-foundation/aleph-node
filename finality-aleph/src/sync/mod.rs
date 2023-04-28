@@ -18,7 +18,7 @@ mod ticker;
 
 pub use service::Service;
 pub use substrate::{
-    BlockId, Justification as SubstrateJustification, JustificationTranslator, SessionVerifier,
+    Justification as SubstrateJustification, JustificationTranslator, SessionVerifier,
     SubstrateChainStatus, SubstrateChainStatusNotifier, SubstrateFinalizationInfo, VerifierCache,
 };
 

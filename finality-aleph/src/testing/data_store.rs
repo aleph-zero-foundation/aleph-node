@@ -26,20 +26,20 @@ use crate::{
             TestClientBuilderExt,
         },
     },
-    BlockHashNum, IdentifierFor, Recipient,
+    IdentifierFor, Recipient,
 };
 
 #[derive(Clone)]
 struct TestBlockRequester {
-    blocks: UnboundedSender<BlockHashNum<TBlock>>,
-    justifications: UnboundedSender<BlockHashNum<TBlock>>,
+    blocks: UnboundedSender<IdentifierFor<TBlock>>,
+    justifications: UnboundedSender<IdentifierFor<TBlock>>,
 }
 
 impl TestBlockRequester {
     fn new() -> (
         Self,
-        UnboundedReceiver<BlockHashNum<TBlock>>,
-        UnboundedReceiver<BlockHashNum<TBlock>>,
+        UnboundedReceiver<IdentifierFor<TBlock>>,
+        UnboundedReceiver<IdentifierFor<TBlock>>,
     ) {
         let (blocks_tx, blocks_rx) = mpsc::unbounded();
         let (justifications_tx, justifications_rx) = mpsc::unbounded();
@@ -92,8 +92,8 @@ impl<D: Data> ComponentNetwork<D> for TestComponentNetwork<D, D> {
 
 struct TestHandler {
     chain_builder: ClientChainBuilder,
-    block_requests_rx: UnboundedReceiver<BlockHashNum<TBlock>>,
-    justification_requests_rx: UnboundedReceiver<BlockHashNum<TBlock>>,
+    block_requests_rx: UnboundedReceiver<IdentifierFor<TBlock>>,
+    justification_requests_rx: UnboundedReceiver<IdentifierFor<TBlock>>,
     network_tx: UnboundedSender<TestData>,
     network: Box<dyn DataNetwork<TestData>>,
 }
@@ -144,12 +144,12 @@ impl TestHandler {
     }
 
     /// Receive next block request from Data Store
-    async fn next_block_request(&mut self) -> BlockHashNum<TBlock> {
+    async fn next_block_request(&mut self) -> IdentifierFor<TBlock> {
         self.block_requests_rx.next().await.unwrap()
     }
 
     /// Receive next justification request from Data Store
-    async fn next_justification_request(&mut self) -> BlockHashNum<TBlock> {
+    async fn next_justification_request(&mut self) -> IdentifierFor<TBlock> {
         self.justification_requests_rx.next().await.unwrap()
     }
 

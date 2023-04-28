@@ -10,7 +10,7 @@ use sp_runtime::{
     Justification,
 };
 
-use crate::{metrics::Checkpoint, BlockIdentifier, HashNum, IdentifierFor, Metrics};
+use crate::{metrics::Checkpoint, BlockId, BlockIdentifier, IdentifierFor, Metrics};
 
 pub trait BlockFinalizer<BI: BlockIdentifier> {
     fn finalize_block(&self, block: BI, justification: Justification) -> Result<(), Error>;
@@ -54,7 +54,7 @@ where
         block: IdentifierFor<B>,
         justification: Justification,
     ) -> Result<(), Error> {
-        let HashNum { num: number, hash } = block;
+        let BlockId { number, hash } = block;
 
         let status = self.client.info();
         if status.finalized_number >= number {

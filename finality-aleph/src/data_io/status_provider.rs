@@ -22,7 +22,7 @@ where
 {
     use crate::data_io::proposal::{PendingProposalStatus::*, ProposalStatus::*};
 
-    let current_highest_finalized = chain_info_provider.get_highest_finalized().num;
+    let current_highest_finalized = chain_info_provider.get_highest_finalized().number;
 
     if current_highest_finalized >= proposal.number_top_block() {
         return Ignore;

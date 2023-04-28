@@ -11,7 +11,7 @@ use substrate_test_runtime_client::{ClientBlockImportExt, ClientExt};
 
 use crate::{
     testing::mocks::{TBlock, THeader, TestClient},
-    BlockHashNum,
+    IdentifierFor,
 };
 // A helper struct that allows to build blocks without importing/finalizing them right away.
 pub struct ClientChainBuilder {
@@ -57,8 +57,8 @@ impl ClientChainBuilder {
         self.client.finalize_block(*hash, None).unwrap();
     }
 
-    pub fn genesis_hash_num(&self) -> BlockHashNum<TBlock> {
-        BlockHashNum::<TBlock>::new(self.client.info().genesis_hash, 0)
+    pub fn genesis_hash_num(&self) -> IdentifierFor<TBlock> {
+        IdentifierFor::<TBlock>::new(self.client.info().genesis_hash, 0)
     }
 
     pub fn genesis_hash(&self) -> H256 {

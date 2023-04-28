@@ -27,7 +27,7 @@ impl MockedBlockRequester {
     pub async fn has_been_invoked_with(&self, block: TBlock) -> bool {
         self.mock
             .has_been_invoked_with(|block_id| {
-                block.hash() == block_id.hash && block.header.number == block_id.num
+                block.hash() == block_id.hash && block.header.number == block_id.number
             })
             .await
     }

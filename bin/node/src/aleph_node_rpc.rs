@@ -1,5 +1,5 @@
 use aleph_primitives::BlockNumber;
-use finality_aleph::{AlephJustification, Justification, JustificationTranslator};
+use finality_aleph::{AlephJustification, BlockId, Justification, JustificationTranslator};
 use futures::channel::mpsc;
 use jsonrpsee::{
     core::{error::Error as JsonRpseeError, RpcResult},
@@ -123,7 +123,7 @@ where
             })?);
         let justification = self
             .justification_translator
-            .translate(justification, hash, number)
+            .translate(justification, BlockId::new(hash, number))
             .map_err(|e| Error::FailedJustificationTranslation(format!("{}", e)))?;
         self.import_justification_tx
             .unbounded_send(justification)

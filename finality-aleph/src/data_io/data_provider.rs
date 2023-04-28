@@ -14,7 +14,7 @@ use sp_runtime::{
 use crate::{
     data_io::{proposal::UnvalidatedAlephProposal, AlephData, MAX_DATA_BRANCH_LEN},
     metrics::Checkpoint,
-    BlockHashNum, Metrics, SessionBoundaries,
+    IdentifierFor, Metrics, SessionBoundaries,
 };
 
 // Reduce block header to the level given by num, by traversing down via parents.
@@ -39,17 +39,17 @@ where
     curr_header
 }
 
-pub fn get_parent<B, C>(client: &C, block: &BlockHashNum<B>) -> Option<BlockHashNum<B>>
+pub fn get_parent<B, C>(client: &C, block: &IdentifierFor<B>) -> Option<IdentifierFor<B>>
 where
     B: BlockT,
     B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B>,
 {
-    if block.num.is_zero() {
+    if block.number.is_zero() {
         return None;
     }
     if let Some(header) = client.header(block.hash).expect("client must respond") {
-        Some((*header.parent_hash(), block.num - 1).into())
+        Some((*header.parent_hash(), block.number - 1).into())
     } else {
         warn!(target: "aleph-data-store", "Trying to fetch the parent of an unknown block {:?}.", block);
         None
@@ -58,8 +58,8 @@ where
 
 pub fn get_proposal<B, C>(
     client: &C,
-    best_block: BlockHashNum<B>,
-    finalized_block: BlockHashNum<B>,
+    best_block: IdentifierFor<B>,
+    finalized_block: IdentifierFor<B>,
 ) -> Result<AlephData<B>, ()>
 where
     B: BlockT,
@@ -68,8 +68,8 @@ where
 {
     let mut curr_block = best_block;
     let mut branch: Vec<B::Hash> = Vec::new();
-    while curr_block.num > finalized_block.num {
-        if curr_block.num - finalized_block.num
+    while curr_block.number > finalized_block.number {
+        if curr_block.number - finalized_block.number
             <= <BlockNumber>::saturated_from(MAX_DATA_BRANCH_LEN)
         {
             branch.push(curr_block.hash);
@@ -77,7 +77,7 @@ where
         curr_block = get_parent(client, &curr_block).expect("block of num >= 1 must have a parent")
     }
     if curr_block.hash == finalized_block.hash {
-        let num_last = finalized_block.num + <BlockNumber>::saturated_from(branch.len());
+        let num_last = finalized_block.number + <BlockNumber>::saturated_from(branch.len());
         // The hashes in `branch` are ordered from top to bottom -- need to reverse.
         branch.reverse();
         Ok(AlephData {
@@ -106,9 +106,13 @@ impl Default for ChainTrackerConfig {
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
-struct ChainInfo<B: BlockT> {
-    best_block_in_session: BlockHashNum<B>,
-    highest_finalized: BlockHashNum<B>,
+struct ChainInfo<B>
+where
+    B: BlockT,
+    B::Header: HeaderT<Number = BlockNumber>,
+{
+    best_block_in_session: IdentifierFor<B>,
+    highest_finalized: IdentifierFor<B>,
 }
 
 /// ChainTracker keeps track of the best_block in a given session and allows to generate `AlephData`.
@@ -161,17 +165,17 @@ where
         )
     }
 
-    fn update_data(&mut self, best_block_in_session: &BlockHashNum<B>) {
+    fn update_data(&mut self, best_block_in_session: &IdentifierFor<B>) {
         // We use best_block_in_session argument and the highest_finalized block from the client and compute
         // the corresponding `AlephData<B>` in `data_to_propose` for AlephBFT. To not recompute this many
         // times we remember these "inputs" in `prev_chain_info` and upon match we leave the old value
         // of `data_to_propose` unaffected.
 
         let client_info = self.client.info();
-        let finalized_block: BlockHashNum<B> =
+        let finalized_block: IdentifierFor<B> =
             (client_info.finalized_hash, client_info.finalized_number).into();
 
-        if finalized_block.num >= self.session_boundaries.last_block() {
+        if finalized_block.number >= self.session_boundaries.last_block() {
             // This session is already finished, but this instance of ChainTracker has not been terminated yet.
             // We go with the default -- empty proposal, this does not have any significance.
             *self.data_to_propose.lock() = None;
@@ -193,12 +197,12 @@ where
             highest_finalized: finalized_block.clone(),
         });
 
-        if best_block_in_session.num == finalized_block.num {
+        if best_block_in_session.number == finalized_block.number {
             // We don't have anything to propose, we go ahead with an empty proposal.
             *self.data_to_propose.lock() = None;
             return;
         }
-        if best_block_in_session.num < finalized_block.num {
+        if best_block_in_session.number < finalized_block.number {
             // Because of the client synchronization, in extremely rare cases this could happen.
             warn!(target: "aleph-data-store", "Error updating data. best_block {:?} is lower than finalized {:?}.", best_block_in_session, finalized_block);
             return;
@@ -221,8 +225,8 @@ where
     // In case the best block has number less than the first block of session, returns None.
     async fn get_best_block_in_session(
         &self,
-        prev_best_block: Option<BlockHashNum<B>>,
-    ) -> Option<BlockHashNum<B>> {
+        prev_best_block: Option<IdentifierFor<B>>,
+    ) -> Option<IdentifierFor<B>> {
         // We employ an optimization here: once the `best_block_in_session` reaches the height of `last_block`
         // (i.e., highest block in session), and the just queried `best_block` is a `descendant` of `prev_best_block`
         // then we don't need to recompute `best_block_in_session`, as `prev_best_block` is already correct.
@@ -244,7 +248,7 @@ where
                     Some((reduced_header.hash(), *reduced_header.number()).into())
                 }
                 Some(prev) => {
-                    if prev.num < last_block {
+                    if prev.number < last_block {
                         // The previous best block was below the sessioun boundary, we cannot really optimize
                         // but must compute the new best_block_in_session naively.
                         let reduced_header =
@@ -252,8 +256,11 @@ where
                         Some((reduced_header.hash(), *reduced_header.number()).into())
                     } else {
                         // Both `prev_best_block` and thus also `new_best_header` are above (or equal to) `last_block`, we optimize.
-                        let reduced_header =
-                            reduce_header_to_num(&*self.client, new_best_header.clone(), prev.num);
+                        let reduced_header = reduce_header_to_num(
+                            &*self.client,
+                            new_best_header.clone(),
+                            prev.number,
+                        );
                         if reduced_header.hash() != prev.hash {
                             // The new_best_block is not a descendant of `prev`, we need to update.
                             // In the opposite case we do nothing, as the `prev` is already correct.
@@ -270,7 +277,7 @@ where
     }
 
     pub async fn run(mut self, mut exit: oneshot::Receiver<()>) {
-        let mut best_block_in_session: Option<BlockHashNum<B>> = None;
+        let mut best_block_in_session: Option<IdentifierFor<B>> = None;
         loop {
             let delay = futures_timer::Delay::new(self.config.refresh_interval);
             tokio::select! {
