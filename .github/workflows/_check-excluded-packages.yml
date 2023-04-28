@@ -48,7 +48,7 @@ jobs:
 
           rustup component add rust-src --toolchain nightly-2022-10-30-x86_64-unknown-linux-gnu
           cargo install cargo-dylint dylint-link
-          cargo install cargo-contract --vers ^2.0 --force --locked
+          cargo install --version 2.1.0 --force --locked cargo-contract
 
           packages="${{ steps.format_output.outputs.packages }}"
           packages="${packages//'%0A'/$'\n'}"
