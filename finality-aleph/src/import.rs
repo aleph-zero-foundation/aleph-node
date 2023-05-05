@@ -28,7 +28,7 @@ where
     I: BlockImport<B> + Send + Sync,
 {
     inner: I,
-    metrics: Option<Metrics<<B::Header as Header>::Hash>>,
+    metrics: Metrics<<B::Header as Header>::Hash>,
 }
 
 impl<B, I> TracingBlockImport<B, I>
@@ -36,7 +36,7 @@ where
     B: BlockT,
     I: BlockImport<B> + Send + Sync,
 {
-    pub fn new(inner: I, metrics: Option<Metrics<<B::Header as Header>::Hash>>) -> Self {
+    pub fn new(inner: I, metrics: Metrics<<B::Header as Header>::Hash>) -> Self {
         TracingBlockImport { inner, metrics }
     }
 }
@@ -62,14 +62,14 @@ where
         cache: HashMap<[u8; 4], Vec<u8>>,
     ) -> Result<ImportResult, Self::Error> {
         let post_hash = block.post_hash();
-        if let Some(m) = &self.metrics {
-            m.report_block(post_hash, Instant::now(), Checkpoint::Importing);
-        };
+        self.metrics
+            .report_block(post_hash, Instant::now(), Checkpoint::Importing);
 
         let result = self.inner.import_block(block, cache).await;
 
-        if let (Some(m), Ok(ImportResult::Imported(_))) = (&self.metrics, &result) {
-            m.report_block(post_hash, Instant::now(), Checkpoint::Imported);
+        if let Ok(ImportResult::Imported(_)) = &result {
+            self.metrics
+                .report_block(post_hash, Instant::now(), Checkpoint::Imported);
         }
         result
     }

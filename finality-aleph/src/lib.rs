@@ -279,7 +279,7 @@ where
     pub spawn_handle: SpawnHandle,
     pub keystore: Arc<dyn CryptoStore>,
     pub justification_rx: mpsc::UnboundedReceiver<Justification<<B as Block>::Header>>,
-    pub metrics: Option<Metrics<<B::Header as Header>::Hash>>,
+    pub metrics: Metrics<<B::Header as Header>::Hash>,
     pub session_period: SessionPeriod,
     pub millisecs_per_block: MillisecsPerBlock,
     pub unit_creation_delay: UnitCreationDelay,

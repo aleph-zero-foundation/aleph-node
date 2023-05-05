@@ -147,7 +147,7 @@ where
         client: Arc<C>,
         session_boundaries: SessionBoundaries,
         config: ChainTrackerConfig,
-        metrics: Option<Metrics<<B::Header as HeaderT>::Hash>>,
+        metrics: Metrics<<B::Header as HeaderT>::Hash>,
     ) -> (Self, DataProvider<B>) {
         let data_to_propose = Arc::new(Mutex::new(None));
         (
@@ -302,7 +302,7 @@ where
 #[derive(Clone)]
 pub struct DataProvider<B: BlockT> {
     data_to_propose: Arc<Mutex<Option<AlephData<B>>>>,
-    metrics: Option<Metrics<<B::Header as HeaderT>::Hash>>,
+    metrics: Metrics<<B::Header as HeaderT>::Hash>,
 }
 
 // Honest nodes propose data in session `k` as follows:
@@ -318,13 +318,11 @@ impl<B: BlockT> DataProvider<B> {
         let data_to_propose = (*self.data_to_propose.lock()).take();
 
         if let Some(data) = &data_to_propose {
-            if let Some(m) = &self.metrics {
-                m.report_block(
-                    *data.head_proposal.branch.last().unwrap(),
-                    std::time::Instant::now(),
-                    Checkpoint::Ordering,
-                );
-            }
+            self.metrics.report_block(
+                *data.head_proposal.branch.last().unwrap(),
+                std::time::Instant::now(),
+                Checkpoint::Ordering,
+            );
             debug!(target: "aleph-data-store", "Outputting {:?} in get_data", data);
         };
 
@@ -348,7 +346,7 @@ mod tests {
             client_chain_builder::ClientChainBuilder,
             mocks::{aleph_data_from_blocks, TBlock, TestClientBuilder, TestClientBuilderExt},
         },
-        SessionBoundaryInfo, SessionId, SessionPeriod,
+        Metrics, SessionBoundaryInfo, SessionId, SessionPeriod,
     };
 
     const SESSION_LEN: u32 = 100;
@@ -374,8 +372,13 @@ mod tests {
             refresh_interval: REFRESH_INTERVAL,
         };
 
-        let (chain_tracker, data_provider) =
-            ChainTracker::new(select_chain, client, session_boundaries, config, None);
+        let (chain_tracker, data_provider) = ChainTracker::new(
+            select_chain,
+            client,
+            session_boundaries,
+            config,
+            Metrics::noop(),
+        );
 
         let (exit_chain_tracker_tx, exit_chain_tracker_rx) = oneshot::channel();
         (

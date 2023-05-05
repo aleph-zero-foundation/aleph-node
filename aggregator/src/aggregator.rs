@@ -32,12 +32,12 @@ pub struct BlockSignatureAggregator<H: Hash + Copy, PMS, M: Metrics<H>> {
     signatures: HashMap<H, PMS>,
     hash_queue: VecDeque<H>,
     started_hashes: HashSet<H>,
-    metrics: Option<M>,
+    metrics: M,
     last_change: Instant,
 }
 
 impl<H: Copy + Hash, PMS, M: Metrics<H>> BlockSignatureAggregator<H, PMS, M> {
-    pub fn new(metrics: Option<M>) -> Self {
+    pub fn new(metrics: M) -> Self {
         BlockSignatureAggregator {
             signatures: HashMap::new(),
             hash_queue: VecDeque::new(),
@@ -51,9 +51,7 @@ impl<H: Copy + Hash, PMS, M: Metrics<H>> BlockSignatureAggregator<H, PMS, M> {
         if !self.started_hashes.insert(hash) {
             return Err(AggregatorError::DuplicateHash);
         }
-        if let Some(metrics) = &mut self.metrics {
-            metrics.report_aggregation_complete(hash);
-        }
+        self.metrics.report_aggregation_complete(hash);
         if self.hash_queue.is_empty() {
             self.last_change = Instant::now();
         }
@@ -263,7 +261,7 @@ mod tests {
     }
 
     fn build_aggregator() -> BlockSignatureAggregator<MockHash, TestMultisignature, MockMetrics> {
-        BlockSignatureAggregator::new(None)
+        BlockSignatureAggregator::new(MockMetrics)
     }
 
     fn build_hash(b0: u8) -> MockHash {

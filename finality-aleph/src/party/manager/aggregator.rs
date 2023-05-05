@@ -41,7 +41,7 @@ where
 async fn process_new_block_data<B, CN, LN>(
     aggregator: &mut Aggregator<'_, B, CN, LN>,
     block: IdentifierFor<B>,
-    metrics: &Option<Metrics<<B::Header as Header>::Hash>>,
+    metrics: &Metrics<<B::Header as Header>::Hash>,
 ) where
     B: Block,
     B::Header: Header<Number = BlockNumber>,
@@ -50,9 +50,7 @@ async fn process_new_block_data<B, CN, LN>(
     <B as Block>::Hash: AsRef<[u8]>,
 {
     trace!(target: "aleph-party", "Received unit {:?} in aggregator.", block);
-    if let Some(metrics) = &metrics {
-        metrics.report_block(block.hash, std::time::Instant::now(), Checkpoint::Ordered);
-    }
+    metrics.report_block(block.hash, std::time::Instant::now(), Checkpoint::Ordered);
 
     aggregator.start_aggregation(block.hash).await;
 }
@@ -95,7 +93,7 @@ async fn run_aggregator<B, C, CN, LN, JS, JT>(
     io: IO<B::Header, JS, JT>,
     client: Arc<C>,
     session_boundaries: &SessionBoundaries,
-    metrics: Option<Metrics<<B::Header as Header>::Hash>>,
+    metrics: Metrics<<B::Header as Header>::Hash>,
     mut exit_rx: oneshot::Receiver<()>,
 ) -> Result<(), ()>
 where
@@ -184,7 +182,7 @@ pub fn task<B, C, CN, LN, JS, JT>(
     client: Arc<C>,
     io: IO<B::Header, JS, JT>,
     session_boundaries: SessionBoundaries,
-    metrics: Option<Metrics<<B::Header as Header>::Hash>>,
+    metrics: Metrics<<B::Header as Header>::Hash>,
     multikeychain: Keychain,
     version: AggregatorVersion<CN, LN>,
 ) -> Task

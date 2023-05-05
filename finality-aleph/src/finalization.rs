@@ -23,7 +23,7 @@ where
     C: HeaderBackend<B> + LockImportRun<B, BE> + Finalizer<B, BE>,
 {
     client: Arc<C>,
-    metrics: Option<Metrics<B::Hash>>,
+    metrics: Metrics<B::Hash>,
     phantom: PhantomData<BE>,
 }
 
@@ -33,7 +33,7 @@ where
     BE: Backend<B>,
     C: HeaderBackend<B> + LockImportRun<B, BE> + Finalizer<B, BE>,
 {
-    pub(crate) fn new(client: Arc<C>, metrics: Option<Metrics<B::Hash>>) -> Self {
+    pub(crate) fn new(client: Arc<C>, metrics: Metrics<B::Hash>) -> Self {
         AlephFinalizer {
             client,
             metrics,
@@ -74,9 +74,8 @@ where
         match &update_res {
             Ok(_) => {
                 debug!(target: "aleph-finality", "Successfully finalized block with hash {:?} and number {:?}. Current best: #{:?}.", hash, number, status.finalized_number);
-                if let Some(metrics) = &self.metrics {
-                    metrics.report_block(hash, Instant::now(), Checkpoint::Finalized);
-                }
+                self.metrics
+                    .report_block(hash, Instant::now(), Checkpoint::Finalized);
             }
             Err(_) => {
                 debug!(target: "aleph-finality", "Failed to finalize block with hash {:?} and number {:?}. Current best: #{:?}.", hash, number, status.finalized_number)

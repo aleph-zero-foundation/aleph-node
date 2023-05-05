@@ -163,7 +163,7 @@ dependencies = [
 
 [[package]]
 name = "aggregator"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "aleph-bft-rmc 0.6.1",
  "aleph-bft-types 0.8.1",
@@ -2414,7 +2414,7 @@ name = "finality-aleph"
 version = "0.7.0"
 dependencies = [
  "aggregator 0.2.1",
- "aggregator 0.3.0",
+ "aggregator 0.4.0",
  "aleph-bft 0.19.3",
  "aleph-bft 0.20.5",
  "aleph-bft-crypto 0.5.2",
