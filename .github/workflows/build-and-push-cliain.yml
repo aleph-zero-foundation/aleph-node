@@ -56,17 +56,6 @@ jobs:
           username: ${{ env.AWS_MAINNET_ACCESS_KEY_ID }}
           password: ${{ env.AWS_MAINNET_SECRET_ACCESS_KEY }}
 
-      - name: Set up Docker Buildx
-        if: >
-          env.ECR_PUBLIC_HOST != '' &&
-          env.ECR_PUBLIC_REGISTRY != '' &&
-          env.AWS_MAINNET_ACCESS_KEY_ID != '' &&
-          env.AWS_MAINNET_SECRET_ACCESS_KEY != ''
-        id: buildx
-        uses: docker/setup-buildx-action@v2
-        with:
-          version: v0.9.1
-
       - name: Build and push latest docker image
         if: >
           env.ECR_PUBLIC_HOST != '' &&
@@ -77,15 +66,16 @@ jobs:
         env:
           REGISTRY: ${{ env.ECR_PUBLIC_REGISTRY }}
           IMAGE_NAME: ${{ matrix.runtime == 'standard' && 'cliain' || 'cliain-liminal' }}
-          TAG: >
-            ${{ matrix.runtime == 'standard' &&
-                  (steps.get-ref-properties.outputs.branch-name-flattened == 'main' && 'latest' ||
-                  steps.get-ref-properties.outputs.branch-name-flattened) ||
-                matrix.runtime == 'liminal' && steps.get-ref-properties.outputs.sha }}
-        uses: docker/build-push-action@v3.3.0
-        with:
-          context: ./bin/cliain
-          builder: ${{ steps.buildx.outputs.name }}
-          file: ./bin/cliain/Dockerfile
-          push: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
-          tags: ${{ env.REGISTRY }}${{ env.IMAGE_NAME }}:${{ env.TAG }}
+          TAG: ${{ matrix.runtime == 'standard' &&
+               (steps.get-ref-properties.outputs.branch-name-flattened == 'main' && 'latest' ||
+               steps.get-ref-properties.outputs.branch-name-flattened) ||
+               matrix.runtime == 'liminal' && steps.get-ref-properties.outputs.sha }}
+        run: |
+          docker build -t "${{ env.REGISTRY }}${{ env.IMAGE_NAME }}:${{ env.TAG }}" \
+            -f ./bin/cliain/Dockerfile ./bin/cliain
+          if [[ \
+            "${{ github.event_name }}" == "workflow_dispatch" || \
+            "${{ github.event_name }}" == "push" \
+          ]]; then
+             docker push "${{ env.REGISTRY }}${{ env.IMAGE_NAME }}:${{ env.TAG }}"
+          fi
