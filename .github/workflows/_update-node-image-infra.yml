@@ -84,7 +84,7 @@ jobs:
           done
 
       - name: GIT | Commit changes to argocd apps repository.
-        uses: EndBug/add-and-commit@v9.1.1
+        uses: EndBug/add-and-commit@v9.1.2
         env:
           TAG: ${{ steps.get-ref-properties.outputs.tag }}
         with:
