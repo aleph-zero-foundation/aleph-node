@@ -28,8 +28,18 @@ jobs:
         run: |
           set +e
           fail=0
-          for i in deploy-testnet.yml deploy-mainnet.yml; do
-            diff -ur .github/workflows/$i aleph-node-main/.github/workflows/$i > $i.diff
+          for i in $(ls -1 .github/workflows/*.yml)
+          do
+            diff -ur $i aleph-node-main/$i > $i.diff
+            if [[ $(cat $i.diff | wc -l) > 0 ]]; then
+              echo ""
+              cat $i.diff
+              fail=1
+            fi
+          done
+          for i in $(ls -1 .github/actions/*/action.yml)
+          do
+            diff -ur $i aleph-node-main/$i > $i.diff
             if [[ $(cat $i.diff | wc -l) > 0 ]]; then
               echo ""
               cat $i.diff
@@ -37,6 +47,6 @@ jobs:
             fi
           done
           if [[ $fail == 1 ]]; then
-            echo "!!! Deployment workflows on this branch differ from the ones on main branch!"
+            echo "!!! YAML files in .github on this branch differ from the ones on main branch!"
             exit 1
           fi
