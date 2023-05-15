@@ -465,13 +465,13 @@ where
     }
 
     async fn node_idx(&self, authorities: &[AuthorityId]) -> Option<NodeIndex> {
-        let our_consensus_keys: HashSet<_> = self
-            .keystore
-            .keys(KEY_TYPE)
-            .await
-            .unwrap()
-            .into_iter()
-            .collect();
+        let our_consensus_keys: HashSet<_> = match self.keystore.keys(KEY_TYPE).await {
+            Ok(keys) => keys.into_iter().collect(),
+            Err(e) => {
+                warn!(target: "aleph-data-store", "Error accessing keystore: {}", e);
+                return None;
+            }
+        };
         trace!(target: "aleph-data-store", "Found {:?} consensus keys in our local keystore {:?}", our_consensus_keys.len(), our_consensus_keys);
         authorities
             .iter()
