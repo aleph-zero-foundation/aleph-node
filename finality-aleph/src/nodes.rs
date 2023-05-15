@@ -149,7 +149,7 @@ where
         genesis_header,
     );
     let finalizer = AlephFinalizer::new(client.clone(), metrics.clone());
-    let (sync_service, justifications_for_sync) = match SyncService::new(
+    let (sync_service, justifications_for_sync, _) = match SyncService::new(
         block_sync_network,
         chain_events,
         chain_status.clone(),
