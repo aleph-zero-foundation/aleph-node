@@ -61,6 +61,7 @@ frame-benchmarking = { git = "https://github.com/Cardinal-Cryptography/substrate
 aleph-runtime = { path = "../runtime" }
 finality-aleph = { path = "../../finality-aleph" }
 aleph-primitives = { package = "primitives", path = "../../primitives" }
+jellyfier = { path = "../../jellyfier", optional = true }
 
 # These dependencies are used for the node's RPCs
 jsonrpsee = { version = "0.16.2", features = ["server"] }
@@ -101,6 +102,7 @@ only_legacy = [
 liminal = [
     "aleph-runtime/liminal",
     "aleph-primitives/liminal-std",
+    "jellyfier",
 ]
 liminal-try-runtime = [
     "liminal",

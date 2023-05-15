@@ -11,11 +11,15 @@ impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
     type ExtendHostFunctions = (
         frame_benchmarking::benchmarking::HostFunctions,
         aleph_primitives::HostFunctions,
+        jellyfier::jellyfier::HostFunctions,
     );
     #[cfg(all(feature = "runtime-benchmarks", not(feature = "liminal")))]
     type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
     #[cfg(all(not(feature = "runtime-benchmarks"), feature = "liminal"))]
-    type ExtendHostFunctions = aleph_primitives::HostFunctions;
+    type ExtendHostFunctions = (
+        aleph_primitives::HostFunctions,
+        jellyfier::jellyfier::HostFunctions,
+    );
     #[cfg(all(not(feature = "runtime-benchmarks"), not(feature = "liminal")))]
     type ExtendHostFunctions = ();
 

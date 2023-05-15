@@ -1,0 +1,34 @@
+[package]
+name = "jellyfier"
+version = "0.0.0"
+edition = "2021"
+authors = ["Cardinal"]
+documentation = "https://docs.rs/?"
+homepage = "https://alephzero.org"
+license = "Apache-2.0"
+categories = ["cryptography"]
+repository = "https://github.com/Cardinal-Cryptography/aleph-node"
+description = "Jellyfish PLONK verifier"
+
+[dependencies]
+ark-bls12-381 = { version = "0.4.0", default-features = false }
+ark-serialize = { version = "0.4.0", default-features = false }
+codec = { package = "parity-scale-codec", version = "3.0", default-features = false, features = ["derive"] }
+
+sp-runtime-interface = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+jf-plonk = { git = "https://github.com/EspressoSystems/jellyfish", rev = "7323d81e39f7da463923143f8be97558b8855df4" }
+
+[dev-dependencies]
+jf-plonk = { git = "https://github.com/EspressoSystems/jellyfish", rev = "7323d81e39f7da463923143f8be97558b8855df4", features = ["test-srs"] }
+jf-relation = { git = "https://github.com/EspressoSystems/jellyfish", rev = "7323d81e39f7da463923143f8be97558b8855df4" }
+jf-utils = { git = "https://github.com/EspressoSystems/jellyfish", rev = "7323d81e39f7da463923143f8be97558b8855df4" }
+
+
+[features]
+default = ["std"]
+std = [
+    "ark-bls12-381/std",
+    "ark-serialize/std",
+    "codec/std",
+    "sp-runtime-interface/std",
+]
