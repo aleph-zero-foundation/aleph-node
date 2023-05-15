@@ -26,12 +26,9 @@ pub mod button_game {
         traits::Storage,
     };
     use scale::{Decode, Encode};
-    use shared_traits::{Haltable, HaltableData, HaltableError, Internal, Selector};
+    use shared_traits::{Haltable, HaltableData, HaltableError, Internal, Round, Selector};
 
     use crate::errors::GameError;
-
-    pub const ONE_TOKEN: Balance = 1_000_000_000_000;
-    pub const ONE_HUNDRED_TOKENS: Balance = 100_000_000_000_000;
 
     /// Result type
     type ButtonResult<T> = core::result::Result<T, GameError>;
@@ -39,25 +36,13 @@ pub mod button_game {
     /// Event type
     type Event = <ButtonGame as ContractEventBase>::Type;
 
-    /// Event emitted when TheButton is created
-    #[ink(event)]
-    #[derive(Debug)]
-    pub struct ButtonCreated {
-        #[ink(topic)]
-        reward_token: AccountId,
-        #[ink(topic)]
-        ticket_token: AccountId,
-        start: BlockNumber,
-        deadline: BlockNumber,
-    }
-
     /// Event emitted when TheButton is pressed
     #[ink(event)]
     #[derive(Debug)]
     pub struct ButtonPressed {
         #[ink(topic)]
         by: AccountId,
-        when: BlockNumber,
+        round: Round,
         score: Balance,
     }
 
@@ -67,19 +52,28 @@ pub mod button_game {
     #[ink(event)]
     #[derive(Debug)]
     pub struct RewardMinted {
-        when: BlockNumber,
+        round: Round,
         #[ink(topic)]
         reward_token: AccountId,
+        #[ink(topic)]
         to: AccountId,
-        amount: Balance,
+        reward: Balance,
+    }
+
+    /// Event emitted when ThePressiah is found at the start of a new round
+    /// triggered by a `reset` tx
+    #[ink(event)]
+    #[derive(Debug)]
+    pub struct PressiahFound {
+        #[ink(topic)]
+        pressiah: AccountId,
+        reward: Balance,
     }
 
     /// Event emitted when the finished game is reset and pressiah is rewarded
     #[ink(event)]
     #[derive(Debug)]
-    pub struct GameReset {
-        when: BlockNumber,
-    }
+    pub struct ButtonReset {}
 
     #[ink(event)]
     pub struct Halted;
@@ -108,7 +102,7 @@ pub mod button_game {
         pub last_presser: Option<AccountId>,
         /// block number of the last press, set to current block number at button start/reset
         pub last_press: BlockNumber,
-        /// sum of rewards paid to players in the current iteration
+        /// sum of rewards paid to players in the current round
         pub total_rewards: u128,
         /// counter for the number of presses
         pub presses: u128,
@@ -123,7 +117,11 @@ pub mod button_game {
         /// scoring strategy
         pub scoring: Scoring,
         /// current round number
-        pub round: u64,
+        pub round: Round,
+        /// minimal reward denominated in reward tokens that can be minted to a player for single press
+        pub min_reward: Balance,
+        /// maximal reward denominated in reward tokens that can be minted to a player for single press
+        pub max_reward: Balance,
     }
 
     /// Game contracts storage
@@ -168,6 +166,8 @@ pub mod button_game {
             marketplace: AccountId,
             button_lifetime: BlockNumber,
             scoring: Scoring,
+            min_reward: Balance,
+            max_reward: Balance,
         ) -> Self {
             let caller = Self::env().caller();
             let code_hash = Self::env()
@@ -185,6 +185,8 @@ pub mod button_game {
                     marketplace,
                     button_lifetime,
                     scoring,
+                    min_reward,
+                    max_reward,
                 ),
                 false => panic!("Caller is not allowed to initialize this contract"),
             }
@@ -199,7 +201,7 @@ pub mod button_game {
             data.last_press + data.button_lifetime
         }
 
-        /// Returns the curent round number
+        /// Returns the current round number
         #[ink(message)]
         pub fn round(&self) -> u64 {
             self.data.get().unwrap().round
@@ -250,6 +252,20 @@ pub mod button_game {
                 .map_err(|_| GameError::CantRetrieveOwnCodeHash)
         }
 
+        /// Returns the pool of rewards paid out in this round
+        ///
+        /// ThePressiah will receive half of that amount as his reward
+        #[ink(message)]
+        pub fn total_rewards(&self) -> Balance {
+            self.data.get().unwrap().total_rewards
+        }
+
+        /// Returns button lifetime measured in blocks
+        #[ink(message)]
+        pub fn button_lifetime(&self) -> u32 {
+            self.data.get().unwrap().button_lifetime
+        }
+
         /// Presses the button
         ///
         /// If called on alive button, instantaneously mints reward tokens to the caller
@@ -274,14 +290,32 @@ pub mod button_game {
 
             let score = self.score(now, self.deadline(), data.last_press, data.presses);
 
+            let reward = match data.scoring {
+                // we map the score from it's domain to [1,100] reward tokens
+                // this way the amount of minted reward tokens is independent from the button's lifetime
+                // and the rewards are always paid out using full token units
+                Scoring::EarlyBirdSpecial | Scoring::BackToTheFuture => map_domain(
+                    score,
+                    0,
+                    data.button_lifetime as Balance,
+                    data.min_reward,
+                    data.max_reward,
+                ),
+
+                Scoring::ThePressiahCometh => score.saturating_mul(data.min_reward),
+            };
+
             // mints reward tokens to pay out the reward
             // contract needs to have a Minter role on the reward token contract
-            self.mint_reward(caller, score)?;
+            self.mint_reward(caller, reward)?;
 
             data.presses += 1;
             data.last_presser = Some(caller);
             data.last_press = now;
-            data.total_rewards += score;
+            data.total_rewards = data
+                .total_rewards
+                .checked_add(reward)
+                .ok_or(GameError::Arithmethic)?;
 
             self.data.set(&data);
 
@@ -289,8 +323,8 @@ pub mod button_game {
                 self.env(),
                 Event::ButtonPressed(ButtonPressed {
                     by: caller,
-                    when: now,
                     score,
+                    round: data.round,
                 }),
             );
 
@@ -299,16 +333,33 @@ pub mod button_game {
 
         /// Resets the game
         ///
-        /// Erases the storage and pays award to the Pressiah
+        /// Erases the storage and pays the award to the Pressiah
         /// Can be called by any account on behalf of a player
         /// Can only be called after button's deadline
         #[ink(message)]
         pub fn reset(&mut self) -> ButtonResult<()> {
             self.ensure_dead()?;
-            self.reward_pressiah()?;
-            self.reset_state()?;
+
+            self.do_reward_pressiah()?;
             self.transfer_tickets_to_marketplace()?;
-            self.reset_marketplace()
+            self.reset_marketplace()?;
+            self.reset_state()?;
+
+            Self::emit_event(self.env(), Event::ButtonReset(ButtonReset {}));
+
+            Ok(())
+        }
+
+        /// Rewards the Pressiah
+        ///
+        /// Does not reset any other state beyond the last_presser record
+        /// Can only be called after button's deadline
+        /// Can be called by any account
+        #[ink(message)]
+        pub fn reward_pressiah(&mut self) -> ButtonResult<()> {
+            self.ensure_dead()?;
+            self.do_reward_pressiah()?;
+            Ok(())
         }
 
         /// Sets new access control contract address
@@ -338,6 +389,34 @@ pub mod button_game {
 
             let mut data = self.data.get().unwrap();
             data.button_lifetime = new_button_lifetime;
+            self.data.set(&data);
+
+            Ok(())
+        }
+
+        /// Sets button minimal reward to a new value
+        ///
+        /// Can only be called by the contract admin
+        #[ink(message)]
+        pub fn set_min_reward(&mut self, min_reward: Balance) -> ButtonResult<()> {
+            self.check_role(self.env().caller(), Role::Admin(self.env().account_id()))?;
+
+            let mut data = self.data.get().unwrap();
+            data.min_reward = min_reward;
+            self.data.set(&data);
+
+            Ok(())
+        }
+
+        /// Sets button maximal reward to a new value
+        ///
+        /// Can only be called by the contract admin
+        #[ink(message)]
+        pub fn set_max_reward(&mut self, max_reward: Balance) -> ButtonResult<()> {
+            self.check_role(self.env().caller(), Role::Admin(self.env().account_id()))?;
+
+            let mut data = self.data.get().unwrap();
+            data.max_reward = max_reward;
             self.data.set(&data);
 
             Ok(())
@@ -382,6 +461,7 @@ pub mod button_game {
 
         //===================================================================================================
 
+        #[allow(clippy::too_many_arguments)]
         fn init(
             access_control: AccessControlRef,
             ticket_token: AccountId,
@@ -389,9 +469,10 @@ pub mod button_game {
             marketplace: AccountId,
             button_lifetime: BlockNumber,
             scoring: Scoring,
+            min_reward: Balance,
+            max_reward: Balance,
         ) -> Self {
             let now = Self::env().block_number();
-            let deadline = now + button_lifetime;
 
             let mut data = Lazy::new();
             data.set(&Data {
@@ -406,26 +487,16 @@ pub mod button_game {
                 presses: 0,
                 total_rewards: 0,
                 round: 0,
+                min_reward,
+                max_reward,
             });
 
-            let contract = Self {
+            Self {
                 data,
                 halted: HaltableData {
                     halted: Lazy::default(),
                 },
-            };
-
-            Self::emit_event(
-                Self::env(),
-                Event::ButtonCreated(ButtonCreated {
-                    start: now,
-                    deadline,
-                    ticket_token,
-                    reward_token,
-                }),
-            );
-
-            contract
+            }
         }
 
         fn reset_state(&mut self) -> ButtonResult<()> {
@@ -441,14 +512,23 @@ pub mod button_game {
 
             self.data.set(&data);
 
-            Self::emit_event(self.env(), Event::GameReset(GameReset { when: now }));
             Ok(())
         }
 
-        fn reward_pressiah(&self) -> ButtonResult<()> {
-            if let Some(pressiah) = self.data.get().unwrap().last_presser {
-                let reward = self.pressiah_score();
+        fn do_reward_pressiah(&mut self) -> ButtonResult<()> {
+            let mut data = self.data.get().unwrap();
+
+            if let Some(pressiah) = data.last_presser {
+                let reward = self.pressiah_reward();
                 self.mint_reward(pressiah, reward)?;
+
+                Self::emit_event(
+                    self.env(),
+                    Event::PressiahFound(PressiahFound { pressiah, reward }),
+                );
+
+                data.last_presser = None;
+                self.data.set(&data);
             };
 
             Ok(())
@@ -516,8 +596,8 @@ pub mod button_game {
             }
         }
 
-        fn pressiah_score(&self) -> Balance {
-            (self.data.get().unwrap().total_rewards / 4) as Balance
+        fn pressiah_reward(&self) -> Balance {
+            (self.data.get().unwrap().total_rewards / 2) as Balance
         }
 
         fn transfer_ticket(
@@ -539,34 +619,18 @@ pub mod button_game {
             Ok(())
         }
 
-        fn mint_reward(&self, to: AccountId, amount: Balance) -> ButtonResult<()> {
+        fn mint_reward(&self, to: AccountId, reward: Balance) -> ButtonResult<()> {
             let data = self.data.get().unwrap();
 
-            // scale the amount to always pay out full token units
-            let scaled_amount = match data.scoring {
-                // we map the score from it's domain to [1,100] reward tokens
-                // this way the amount of minted reward tokens is independent from the button's lifetime
-                // and the rewards are always paid out using full token units
-                Scoring::EarlyBirdSpecial | Scoring::BackToTheFuture => map_domain(
-                    amount,
-                    0,
-                    data.button_lifetime as Balance,
-                    ONE_TOKEN,
-                    ONE_HUNDRED_TOKENS,
-                ),
-
-                Scoring::ThePressiahCometh => amount.saturating_mul(ONE_TOKEN),
-            };
-
-            PSP22MintableRef::mint(&data.reward_token, to, scaled_amount)?;
+            PSP22MintableRef::mint(&data.reward_token, to, reward)?;
 
             Self::emit_event(
                 self.env(),
                 Event::RewardMinted(RewardMinted {
-                    when: self.env().block_number(),
+                    round: data.round,
                     reward_token: data.reward_token,
                     to,
-                    amount: scaled_amount,
+                    reward,
                 }),
             );
 
@@ -610,6 +674,9 @@ pub mod button_game {
     #[cfg(test)]
     mod tests {
         use super::*;
+
+        pub const ONE_TOKEN: Balance = 1_000_000_000_000;
+        pub const ONE_HUNDRED_TOKENS: Balance = 100_000_000_000_000;
 
         #[test]
         fn test_map_domain() {

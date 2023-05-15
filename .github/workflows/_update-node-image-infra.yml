@@ -12,6 +12,8 @@ jobs:
   main:
     name: Update aleph-node image in infra
     runs-on: ubuntu-20.04
+    environment:
+      name: ${{ inputs.env }}
     steps:
       - name: Validate action inputs
         shell: bash

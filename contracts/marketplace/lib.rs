@@ -85,15 +85,17 @@ pub mod marketplace {
 
     #[ink(event)]
     #[derive(Clone, Eq, PartialEq, Debug)]
-    pub struct Bought {
+    pub struct TicketBought {
         #[ink(topic)]
-        pub account_id: AccountId,
+        pub ticket: AccountId,
+        #[ink(topic)]
+        pub by: AccountId,
         pub price: Balance,
     }
 
     #[ink(event)]
     #[derive(Clone, Eq, PartialEq, Debug)]
-    pub struct Reset;
+    pub struct MarketplaceReset;
 
     impl From<ink::env::Error> for Error {
         fn from(inner: ink::env::Error) -> Self {
@@ -228,7 +230,9 @@ pub mod marketplace {
             self.data.get().unwrap().sale_multiplier
         }
 
-        /// Set the  value of the multiplier applied to the average price after each sale.
+        /// Set the value of the multiplier applied to the average price after each sale.
+        ///
+        /// Requires `Role::Admin`.
         #[ink(message)]
         pub fn set_sale_multiplier(&mut self, sale_multiplier: Balance) -> Result<(), Error> {
             self.check_role(Self::env().caller(), self.admin())?;
@@ -255,6 +259,8 @@ pub mod marketplace {
         }
 
         /// Update the minimal price.
+        ///
+        /// Requires `Role::Admin`.
         #[ink(message)]
         pub fn set_min_price(&mut self, value: Balance) -> Result<(), Error> {
             self.check_role(Self::env().caller(), self.admin())?;
@@ -268,20 +274,16 @@ pub mod marketplace {
 
         /// Update the length of the auction.
         ///
-        /// Can only be called by an account with an Admin role
-        /// and only if the contract is currently halted
+        /// Requires `Role::Admin`.
         #[ink(message)]
         pub fn set_auction_length(&mut self, new_auction_length: BlockNumber) -> Result<(), Error> {
-            if self.is_halted() {
-                self.check_role(self.env().caller(), self.admin())?;
+            self.check_role(self.env().caller(), self.admin())?;
 
-                let mut data = self.data.get().unwrap();
-                data.auction_length = new_auction_length;
-                self.data.set(&data);
+            let mut data = self.data.get().unwrap();
+            data.auction_length = new_auction_length;
+            self.data.set(&data);
 
-                return Ok(());
-            }
-            Err(Error::HaltableError(HaltableError::NotInHaltedState))
+            Ok(())
         }
 
         /// Address of the reward token contract this contract will accept as payment.
@@ -316,10 +318,10 @@ pub mod marketplace {
                 }
             }
 
-            let account_id = self.env().caller();
+            let caller = self.env().caller();
 
-            self.take_payment(account_id, price)?;
-            self.give_ticket(account_id)?;
+            self.take_payment(caller, price)?;
+            self.give_ticket(caller)?;
 
             let mut data = self.data.get().unwrap();
 
@@ -329,13 +331,19 @@ pub mod marketplace {
 
             self.data.set(&data);
 
-            Self::emit_event(self.env(), Event::Bought(Bought { price, account_id }));
+            Self::emit_event(
+                self.env(),
+                Event::TicketBought(TicketBought {
+                    ticket: data.ticket_token,
+                    price,
+                    by: caller,
+                }),
+            );
 
             Ok(())
         }
 
         /// Re-start the auction from the current block.
-        ///
         /// Note that this will keep the average estimate from previous auctions.
         ///
         /// Requires `Role::Admin`.
@@ -347,14 +355,14 @@ pub mod marketplace {
             data.current_start_block = self.env().block_number();
             self.data.set(&data);
 
-            Self::emit_event(self.env(), Event::Reset(Reset {}));
+            Self::emit_event(self.env(), Event::MarketplaceReset(MarketplaceReset {}));
 
             Ok(())
         }
 
         /// Terminates the contract
         ///
-        /// Should only be called by the contract Admin
+        /// Requires `Role::Admin`.
         #[ink(message)]
         pub fn terminate(&mut self) -> Result<(), Error> {
             let caller = self.env().caller();
@@ -363,6 +371,8 @@ pub mod marketplace {
         }
 
         /// Upgrades contract code
+        ///
+        /// Requires `Role::Admin`.
         #[ink(message)]
         pub fn set_code(
             &mut self,
