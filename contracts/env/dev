@@ -6,9 +6,12 @@ export AUTHORITY_SEED=//Alice
 
 # how long do the games live for (in blocks)
 export LIFETIME=20
+# scores are mapped to these values and then rewards are minted
+export BUTTON_MIN_REWARD=1000000000000 # 1 token
+export BUTTON_MAX_REWARD=100000000000000 # 100 tokens
 
 # mint this many ticket tokens
-export TICKET_BALANCE=100000
+export TICKET_BALANCE=5000
 
 # initial price of ticket on the marketplace
 export INITIAL_PRICE=1000000000000

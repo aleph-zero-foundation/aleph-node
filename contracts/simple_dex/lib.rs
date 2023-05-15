@@ -94,7 +94,8 @@ mod simple_dex {
     }
 
     #[ink(event)]
-    pub struct Deposited {
+    pub struct Withdrawn {
+        #[ink(topic)]
         caller: AccountId,
         #[ink(topic)]
         token: AccountId,
@@ -108,16 +109,16 @@ mod simple_dex {
     }
 
     #[ink(event)]
-    pub struct Halted;
-
-    #[ink(event)]
-    pub struct Resumed;
-
-    #[ink(event)]
     pub struct SwapPairRemoved {
         #[ink(topic)]
         pair: SwapPair,
     }
+
+    #[ink(event)]
+    pub struct Halted;
+
+    #[ink(event)]
+    pub struct Resumed;
 
     #[ink(event)]
     pub struct Swapped {
@@ -128,13 +129,6 @@ mod simple_dex {
         token_out: AccountId,
         amount_in: Balance,
         amount_out: Balance,
-    }
-
-    #[ink(event)]
-    pub struct SwapFeeSet {
-        #[ink(topic)]
-        caller: AccountId,
-        swap_fee_percentage: u128,
     }
 
     #[derive(Debug)]
@@ -268,46 +262,6 @@ mod simple_dex {
             Ok(())
         }
 
-        /// Liquidity deposit
-        ///
-        /// Can only be performed by an account with a LiquidityProvider role
-        /// Caller needs to give at least the passed amount of allowance to the contract to spend the deposited tokens on his behalf
-        /// prior to executing this tx
-        #[ink(message)]
-        pub fn deposit(&mut self, deposits: Vec<(AccountId, Balance)>) -> Result<(), DexError> {
-            let this = self.env().account_id();
-            let caller = self.env().caller();
-
-            // check role, under normal circumstances only designated account can add liquidity
-            // when halted only Admin can make deposits
-            match self.is_halted() {
-                false => self.check_role(caller, Role::Custom(this, LIQUIDITY_PROVIDER))?,
-                true => self.check_role(caller, Role::Admin(this))?,
-            }
-
-            deposits
-                .into_iter()
-                .try_for_each(|(token_in, amount)| -> Result<(), DexError> {
-                    // transfer token_in from the caller to the contract
-                    // will revert if the contract does not have enough allowance from the caller
-                    // in which case the whole tx is reverted
-                    self.transfer_from_tx(token_in, caller, this, amount)?;
-
-                    Self::emit_event(
-                        self.env(),
-                        Event::Deposited(Deposited {
-                            caller,
-                            token: token_in,
-                            amount,
-                        }),
-                    );
-
-                    Ok(())
-                })?;
-
-            Ok(())
-        }
-
         #[ink(message)]
         pub fn withdrawal(
             &mut self,
@@ -327,6 +281,15 @@ mod simple_dex {
                 |(token_out, amount)| -> Result<(), DexError> {
                     // transfer token_out from the contract to the caller
                     self.transfer_tx(token_out, caller, amount)?;
+                    Self::emit_event(
+                        self.env(),
+                        Event::Withdrawn(Withdrawn {
+                            caller,
+                            token: token_out,
+                            amount,
+                        }),
+                    );
+
                     Ok(())
                 },
             )?;
@@ -349,15 +312,6 @@ mod simple_dex {
             let caller = self.env().caller();
 
             self.check_role(caller, Role::Admin(self.env().account_id()))?;
-
-            // emit event
-            Self::emit_event(
-                self.env(),
-                Event::SwapFeeSet(SwapFeeSet {
-                    caller,
-                    swap_fee_percentage,
-                }),
-            );
 
             let mut data = self.data.get().unwrap();
             data.swap_fee_percentage = swap_fee_percentage;
@@ -427,7 +381,6 @@ mod simple_dex {
 
             let pair = SwapPair::new(from, to);
             self.swap_pairs.remove(&pair);
-
             Self::emit_event(self.env(), Event::SwapPairRemoved(SwapPairRemoved { pair }));
 
             Ok(())
@@ -478,9 +431,27 @@ mod simple_dex {
             Ok(())
         }
 
-        /// Swap trade output given a curve with equal token weights
+        /// Returns the swap trade input given a desired amount and assuming a curve with equal token weights
         ///
-        /// B_0 - (100 * B_0 * B_i) / (100 * (B_i + A_i) - A_i * swap_fee)
+        /// A_in = B_i * ((B_o / (B_o - A_o)) - 1)
+        /// Mostly useful for traders
+        #[ink(message)]
+        pub fn in_given_out(
+            &self,
+            token_in: AccountId,
+            token_out: AccountId,
+            amount_token_out: Balance,
+        ) -> Result<Balance, DexError> {
+            let this = self.env().account_id();
+            let balance_token_in = self.balance_of(token_in, this);
+            let balance_token_out = self.balance_of(token_out, this);
+
+            Self::_in_given_out(amount_token_out, balance_token_in, balance_token_out)
+        }
+
+        /// Return swap trade output given a curve with equal token weights
+        ///
+        /// B_o - (100 * B_o * B_i) / (100 * (B_i + A_i) - A_i * swap_fee)
         /// where swap_fee (integer) is a percentage of the trade that goes towards the pool
         /// and is used to pay the liquidity providers
         #[ink(message)]
@@ -494,43 +465,39 @@ mod simple_dex {
             let balance_token_in = self.balance_of(token_in, this);
             let balance_token_out = self.balance_of(token_out, this);
 
-            Self::_out_given_in(
-                amount_token_in,
-                balance_token_in,
-                balance_token_out,
-                self.data.get().unwrap().swap_fee_percentage,
-            )
+            Self::_out_given_in(amount_token_in, balance_token_in, balance_token_out)
+        }
+
+        fn _in_given_out(
+            amount_token_out: Balance,
+            balance_token_in: Balance,
+            balance_token_out: Balance,
+        ) -> Result<Balance, DexError> {
+            let op1 = balance_token_in
+                .checked_mul(amount_token_out)
+                .ok_or(DexError::Arithmethic)?;
+
+            let op2 = balance_token_out
+                .checked_sub(amount_token_out)
+                .ok_or(DexError::Arithmethic)?;
+
+            op1.checked_div(op2).ok_or(DexError::Arithmethic)
         }
 
         fn _out_given_in(
             amount_token_in: Balance,
             balance_token_in: Balance,
             balance_token_out: Balance,
-            swap_fee_percentage: Balance,
         ) -> Result<Balance, DexError> {
-            let op0 = amount_token_in
-                .checked_mul(swap_fee_percentage)
+            let op1 = balance_token_out
+                .checked_mul(amount_token_in)
                 .ok_or(DexError::Arithmethic)?;
 
-            let op1 = balance_token_in
+            let op2 = balance_token_in
                 .checked_add(amount_token_in)
-                .and_then(|result| result.checked_mul(100))
                 .ok_or(DexError::Arithmethic)?;
 
-            let op2 = op1.checked_sub(op0).ok_or(DexError::Arithmethic)?;
-
-            let op3 = balance_token_in
-                .checked_mul(balance_token_out)
-                .and_then(|result| result.checked_mul(100))
-                .ok_or(DexError::Arithmethic)?;
-
-            let op4 = op3.checked_div(op2).ok_or(DexError::Arithmethic)?;
-
-            balance_token_out
-                .checked_sub(op4)
-                // If the division is not even, leave the 1 unit of dust in the exchange instead of paying it out.
-                .and_then(|result| result.checked_sub((op3 % op2 > 0).into()))
-                .ok_or(DexError::Arithmethic)
+            op1.checked_div(op2).ok_or(DexError::Arithmethic)
         }
 
         /// Transfers a given amount of a PSP22 token to a specified using the callers own balance
@@ -606,20 +573,57 @@ mod simple_dex {
 
         use super::*;
 
+        #[test]
+        fn test_in_given_out() {
+            let balance_in = 1054100000000000u128;
+            let balance_out = 991358845313840u128;
+
+            let dust = 1u128;
+            let expected_amount_in = 1000000000000u128;
+
+            let amount_out =
+                SimpleDex::_out_given_in(expected_amount_in, balance_in, balance_out).unwrap();
+
+            assert_eq!(939587570196u128, amount_out);
+
+            let amount_in = SimpleDex::_in_given_out(amount_out, balance_in, balance_out).unwrap();
+
+            assert_eq!(amount_in, expected_amount_in - dust);
+        }
+
+        proptest! {
+            #[test]
+            fn proptest_in_given_out(
+                amount_in   in 1000000000000..1054100000000000u128,
+            ) {
+                let balance_in =  1054100000000000u128;
+                let balance_out = 991358845313840u128;
+
+                let amount_out =
+                    SimpleDex::_out_given_in(amount_in, balance_in, balance_out).unwrap();
+
+                let in_given_out = SimpleDex::_in_given_out(amount_out, balance_in, balance_out).unwrap();
+                let dust = 1u128;
+
+                println! ("{} - {} = {}", amount_in, in_given_out, amount_in - in_given_out);
+                assert!(amount_in - in_given_out <= 10 * dust);
+            }
+        }
+
         proptest! {
             #[test]
             fn rounding_benefits_dex(
-                balance_token_a in 1..1000u128,
-                balance_token_b in 1..1000u128,
-                pay_token_a in 1..1000u128,
-                fee_percentage in 0..10u128
+                balance_token_a in 1000000000000..100000000000000u128,
+                balance_token_b in 1000000000000..100000000000000u128,
+                pay_token_a in 1000000000000..100000000000000u128,
+
             ) {
                 let get_token_b =
-                    SimpleDex::_out_given_in(pay_token_a, balance_token_a, balance_token_b, fee_percentage).unwrap();
+                    SimpleDex::_out_given_in(pay_token_a, balance_token_a, balance_token_b).unwrap();
                 let balance_token_a = balance_token_a + pay_token_a;
                 let balance_token_b = balance_token_b - get_token_b;
                 let get_token_a =
-                    SimpleDex::_out_given_in(get_token_b, balance_token_b, balance_token_a, fee_percentage).unwrap();
+                    SimpleDex::_out_given_in(get_token_b, balance_token_b, balance_token_a).unwrap();
 
                 assert!(get_token_a <= pay_token_a);
             }

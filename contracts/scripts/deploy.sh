@@ -129,7 +129,7 @@ function deploy_button_game {
 
   cd "$CONTRACTS_PATH"/button
 
-  local contract_address=$(cargo_contract instantiate --url "$NODE" --constructor new --args "$ticket_token" "$game_token" "$marketplace" "$LIFETIME" "$game_type" --suri "$AUTHORITY_SEED" --salt "$salt" --skip-confirm --output-json)
+  local contract_address=$(cargo_contract instantiate --url "$NODE" --constructor new --args "$ticket_token" "$game_token" "$marketplace" "$LIFETIME" "$game_type" "$BUTTON_MIN_REWARD" "$BUTTON_MAX_REWARD" --suri "$AUTHORITY_SEED" --salt "$salt" --skip-confirm --output-json)
   local contract_address=$(echo "$contract_address" | jq -r '.contract')
   echo "$game_type contract instance address: $contract_address"
 

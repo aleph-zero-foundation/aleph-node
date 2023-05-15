@@ -105,13 +105,15 @@ pub mod wrapped_azero {
     #[ink(event)]
     #[derive(Debug)]
     pub struct Wrapped {
+        #[ink(topic)]
         caller: AccountId,
         amount: Balance,
     }
 
     #[ink(event)]
     #[derive(Debug)]
-    pub struct UnWrapped {
+    pub struct Unwrapped {
+        #[ink(topic)]
         caller: AccountId,
         amount: Balance,
     }
@@ -180,7 +182,7 @@ pub mod wrapped_azero {
             self.env().transfer(caller, amount).map_err(|why| {
                 PSP22Error::Custom(format!("Native transfer failed: {:?}", why).into())
             })?;
-            Self::emit_event(self.env(), Event::UnWrapped(UnWrapped { caller, amount }));
+            Self::emit_event(self.env(), Event::Unwrapped(Unwrapped { caller, amount }));
 
             Ok(())
         }
