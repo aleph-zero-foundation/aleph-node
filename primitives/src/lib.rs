@@ -7,9 +7,9 @@ use serde::{Deserialize, Serialize};
 use sp_core::crypto::KeyTypeId;
 use sp_runtime::Perquintill;
 pub use sp_runtime::{
-    generic::Header as GenericHeader,
+    generic,
     traits::{BlakeTwo256, ConstU32, Header as HeaderT},
-    BoundedVec, ConsensusEngineId, Perbill,
+    BoundedVec, ConsensusEngineId, OpaqueExtrinsic as UncheckedExtrinsic, Perbill,
 };
 pub use sp_staking::{EraIndex, SessionIndex};
 use sp_std::vec::Vec;
@@ -38,7 +38,9 @@ pub type AuthoritySignature = app::Signature;
 pub type AuthorityId = app::Public;
 
 pub type Balance = u128;
-pub type Header = GenericHeader<BlockNumber, BlakeTwo256>;
+pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
+pub type Block = generic::Block<Header, UncheckedExtrinsic>;
+pub type BlockId = generic::BlockId<Block>;
 pub type BlockHash = <Header as HeaderT>::Hash;
 pub type BlockNumber = u32;
 pub type SessionCount = u32;

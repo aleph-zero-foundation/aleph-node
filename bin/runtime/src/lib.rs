@@ -40,9 +40,10 @@ use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustm
 pub use primitives::Balance;
 use primitives::{
     staking::MAX_NOMINATORS_REWARDED_PER_VALIDATOR, wrap_methods, ApiError as AlephApiError,
-    AuthorityId as AlephId, BlockNumber, SessionAuthorityData, Version as FinalityVersion,
-    ADDRESSES_ENCODING, DEFAULT_BAN_REASON_LENGTH, DEFAULT_MAX_WINNERS, DEFAULT_SESSIONS_PER_ERA,
-    DEFAULT_SESSION_PERIOD, MAX_BLOCK_SIZE, MILLISECS_PER_BLOCK, TOKEN,
+    AuthorityId as AlephId, Block as AlephBlock, BlockId as AlephBlockId,
+    BlockNumber as AlephBlockNumber, Header as AlephHeader, SessionAuthorityData,
+    Version as FinalityVersion, ADDRESSES_ENCODING, DEFAULT_BAN_REASON_LENGTH, DEFAULT_MAX_WINNERS,
+    DEFAULT_SESSIONS_PER_ERA, DEFAULT_SESSION_PERIOD, MAX_BLOCK_SIZE, MILLISECS_PER_BLOCK, TOKEN,
 };
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::{sr25519::AuthorityId as AuraId, SlotDuration};
@@ -92,11 +93,11 @@ pub mod opaque {
     use super::*;
 
     /// Opaque block header type.
-    pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
+    pub type Header = AlephHeader;
     /// Opaque block type.
-    pub type Block = generic::Block<Header, UncheckedExtrinsic>;
+    pub type Block = AlephBlock;
     /// Opaque block identifier type.
-    pub type BlockId = generic::BlockId<Block>;
+    pub type BlockId = AlephBlockId;
 
     impl_opaque_keys! {
         pub struct SessionKeys {
@@ -148,7 +149,7 @@ pub const CONTRACT_DEPOSIT_PER_BYTE: Balance = 4 * (TOKEN / 100_000);
 
 parameter_types! {
     pub const Version: RuntimeVersion = VERSION;
-    pub const BlockHashCount: BlockNumber = 2400;
+    pub const BlockHashCount: AlephBlockNumber = 2400;
     pub BlockWeights: frame_system::limits::BlockWeights = frame_system::limits::BlockWeights
         ::with_sensible_defaults(MAX_BLOCK_WEIGHT.set_proof_size(u64::MAX), NORMAL_DISPATCH_RATIO);
     pub BlockLength: frame_system::limits::BlockLength = frame_system::limits::BlockLength
@@ -174,13 +175,13 @@ impl frame_system::Config for Runtime {
     /// The index type for storing how many extrinsics an account has signed.
     type Index = Index;
     /// The index type for blocks.
-    type BlockNumber = BlockNumber;
+    type BlockNumber = AlephBlockNumber;
     /// The type for hashing blocks and tries.
     type Hash = Hash;
     /// The hashing algorithm used.
     type Hashing = BlakeTwo256;
     /// The header type.
-    type Header = generic::Header<BlockNumber, BlakeTwo256>;
+    type Header = AlephHeader;
     /// The ubiquitous event type.
     type RuntimeEvent = RuntimeEvent;
     /// The ubiquitous origin type.
@@ -221,7 +222,7 @@ impl pallet_aura::Config for Runtime {
 }
 
 parameter_types! {
-    pub const UncleGenerations: BlockNumber = 0;
+    pub const UncleGenerations: AlephBlockNumber = 0;
 }
 
 impl pallet_authorship::Config for Runtime {
@@ -648,7 +649,7 @@ parameter_types! {
     // Maximum number of approvals that can wait in the spending queue.
     pub const MaxApprovals: u32 = 20;
     // Every 4 hours we fund accepted proposals.
-    pub const SpendPeriod: BlockNumber = 4 * BLOCKS_PER_HOUR;
+    pub const SpendPeriod: AlephBlockNumber = 4 * BLOCKS_PER_HOUR;
     pub const TreasuryPalletId: PalletId = PalletId(*b"a0/trsry");
 }
 
@@ -823,7 +824,7 @@ construct_runtime!(
 /// The address format for describing accounts.
 pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
 /// Block header type as expected by this runtime.
-pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
+pub type Header = AlephHeader;
 /// Block type as expected by this runtime.
 pub type Block = generic::Block<Header, UncheckedExtrinsic>;
 /// A Block signed with a Justification
@@ -1018,7 +1019,7 @@ impl_runtime_apis! {
         }
     }
 
-    impl pallet_contracts::ContractsApi<Block, AccountId, Balance, BlockNumber, Hash>
+    impl pallet_contracts::ContractsApi<Block, AccountId, Balance, AlephBlockNumber, Hash>
         for Runtime
     {
         fn call(

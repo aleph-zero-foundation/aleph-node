@@ -48,6 +48,14 @@ pub trait Header: Clone + Codec + Send + Sync + 'static {
     fn parent_id(&self) -> Option<Self::Identifier>;
 }
 
+/// The block, including a header.
+pub trait Block: Clone + Codec + Debug + Send + Sync + 'static {
+    type Header: Header;
+
+    /// The header of the block.
+    fn header(&self) -> &Self::Header;
+}
+
 /// The verified justification of a block, including a header.
 pub trait Justification: Clone + Send + Sync + Debug + 'static {
     type Header: Header;

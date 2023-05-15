@@ -4,7 +4,7 @@ use codec::{Decode, Encode};
 use sp_core::H256;
 
 use crate::{
-    sync::{ChainStatusNotification, Header, Justification as JustificationT},
+    sync::{Block, ChainStatusNotification, Header, Justification},
     BlockIdentifier,
 };
 
@@ -94,6 +94,38 @@ impl Header for MockHeader {
 }
 
 #[derive(Clone, Hash, Debug, PartialEq, Eq, Encode, Decode)]
+pub struct MockBlock {
+    header: MockHeader,
+}
+
+impl MockBlock {
+    #[allow(dead_code)]
+    pub fn for_header(header: MockHeader) -> Self {
+        Self { header }
+    }
+}
+
+impl Header for MockBlock {
+    type Identifier = MockIdentifier;
+
+    fn id(&self) -> Self::Identifier {
+        self.header().id()
+    }
+
+    fn parent_id(&self) -> Option<Self::Identifier> {
+        self.header().parent_id()
+    }
+}
+
+impl Block for MockBlock {
+    type Header = MockHeader;
+
+    fn header(&self) -> &Self::Header {
+        &self.header
+    }
+}
+
+#[derive(Clone, Hash, Debug, PartialEq, Eq, Encode, Decode)]
 pub struct MockJustification {
     header: MockHeader,
     is_correct: bool,
@@ -120,7 +152,7 @@ impl Header for MockJustification {
     }
 }
 
-impl JustificationT for MockJustification {
+impl Justification for MockJustification {
     type Header = MockHeader;
     type Unverified = Self;
 
