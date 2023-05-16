@@ -5,11 +5,13 @@
 pub type Input = (u64, u64, u64, u64);
 pub type Output = (u64, u64, u64, u64);
 
+#[allow(dead_code)]
 fn field_element(input: Input) -> liminal_ark_poseidon::Fr {
     let input: [u64; 4] = [input.0, input.1, input.2, input.3];
     liminal_ark_poseidon::Fr::new(liminal_ark_poseidon::BigInteger256::new(input))
 }
 
+#[allow(dead_code)]
 fn output(field_element: liminal_ark_poseidon::Fr) -> Output {
     let a = field_element.0 .0;
     (a[0], a[1], a[2], a[3])
