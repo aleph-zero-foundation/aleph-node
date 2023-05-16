@@ -2,13 +2,11 @@
 
 members = [
     "aggregator",
-    "baby-liminal-extension",
     "bin/node",
     "bin/runtime",
     "clique",
     "finality-aleph",
     "pallets/aleph",
-    "pallets/baby-liminal",
     "pallets/elections",
     "pallets/support",
     "pallets/committee-management",
@@ -18,6 +16,7 @@ members = [
 
 exclude = [
     "aleph-client",
+    "baby-liminal-extension",
     "benches/payout-stakers",
     "bin/cliain",
     "bin/finalizer",
@@ -35,6 +34,7 @@ exclude = [
     "e2e-tests",
     "flooder",
     "fork-off",
+    "pallets/baby-liminal",
     "relations",
     "relations/src/proc_macro",
     "scripts/synthetic-network/synthetic-link",
