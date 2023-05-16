@@ -49,7 +49,7 @@ async fn prepare_test() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn disable_validators(indexes: &[u32]) -> anyhow::Result<()> {
+pub async fn disable_validators(indexes: &[u32]) -> anyhow::Result<()> {
     info!("Disabling {:?} validators", indexes);
     let mut connections = vec![];
     for &index in indexes {
