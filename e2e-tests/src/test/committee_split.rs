@@ -44,7 +44,7 @@ async fn prepare_test() -> anyhow::Result<()> {
             TxStatus::InBlock,
         )
         .await?;
-    connection.wait_for_n_eras(3, BlockStatus::Finalized).await;
+    connection.wait_for_n_eras(1, BlockStatus::Finalized).await;
 
     Ok(())
 }
@@ -52,11 +52,12 @@ async fn prepare_test() -> anyhow::Result<()> {
 pub async fn disable_validators(indexes: &[u32]) -> anyhow::Result<()> {
     info!("Disabling {:?} validators", indexes);
     let mut connections = vec![];
+    let address = validator_address(0);
+
     for &index in indexes {
         let validator_seed = get_validator_seed(index);
         let stash_controller = NodeKeys::from(validator_seed);
         let controller_key_to_disable = stash_controller.controller;
-        let address = validator_address(index);
 
         connections.push(SignedConnection::new(&address, controller_key_to_disable).await);
     }
@@ -143,6 +144,24 @@ async fn split_test_success_with_one_dead() -> anyhow::Result<()> {
     let connection = setup_test().get_first_signed_connection().await;
     disable_validators(&[0]).await?;
     connection.wait_for_n_eras(1, BlockStatus::Finalized).await;
+
+    Ok(())
+}
+
+#[tokio::test]
+/// Check if chain runs 'kinda'-smoothly while at most one of the finality committee member is dead.
+/// Here, we kill all of the non-reserved nodes. This will slow down block production but won't kill
+/// the finalization because 3 out of 4 nodes in finality committee are from reserved set.
+async fn split_test_success_with_all_non_reserved_dead() -> anyhow::Result<()> {
+    prepare_test().await?;
+
+    let connection = setup_test().get_first_signed_connection().await;
+    // kill all non-reserved
+    disable_validators(&[3, 4, 5, 6]).await?;
+    // 5 session, so all of the non-reserved nodes have enough time to be in the finality committee
+    connection
+        .wait_for_n_sessions(5, BlockStatus::Finalized)
+        .await;
 
     Ok(())
 }

@@ -1,7 +1,6 @@
 use aleph_client::{
     pallets::committee_management::{CommitteeManagementApi, CommitteeManagementSudoApi},
     sp_runtime::Perquintill,
-    waiting::{BlockStatus, WaitingExt},
     TxStatus,
 };
 

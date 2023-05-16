@@ -588,6 +588,24 @@ jobs:
           node-count: 6
         timeout-minutes: 8
 
+  run-e2e-committee-split-test-success-with-all-non-reserved-dead:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run committee split test with all non-reserved nodes dead
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        env:
+          VALIDATOR_COUNT: 7
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: committee_split::split_test_success_with_all_non_reserved_dead
+          follow-up-finalization-check: true
+          node-count: 7
+        timeout-minutes: 10
+
   check-e2e-test-suite-completion:
     needs: [
       run-e2e-finalization-test,
@@ -623,7 +641,8 @@ jobs:
       run-e2e-committee-split-test-success-without-any-deads,
       run-e2e-set-emergency-finalizer,
       run-e2e-emergency-finalizer-usage,
-      run-e2e-set-lenient-threshold
+      run-e2e-set-lenient-threshold,
+      run-e2e-committee-split-test-success-with-all-non-reserved-dead
     ]
     name: Check e2e test suite completion
     runs-on: ubuntu-20.04
