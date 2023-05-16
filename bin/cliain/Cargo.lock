@@ -3013,7 +3013,7 @@ dependencies = [
 
 [[package]]
 name = "primitives"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
