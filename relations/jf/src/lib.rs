@@ -10,6 +10,7 @@ use jf_relation::PlonkCircuit;
 use rand_core::{CryptoRng, RngCore};
 
 pub mod deposit;
+pub mod note;
 pub mod shielder_types;
 
 pub type PlonkResult<T> = Result<T, PlonkError>;
@@ -27,14 +28,6 @@ pub fn generate_srs<R: CryptoRng + RngCore>(
 
 /// Common API for all relations.
 pub trait Relation: Default {
-    /// Public input to the relation. Must be marshallable.
-    type PublicInput: Marshall;
-    /// Private input to the relation.
-    type PrivateInput;
-
-    /// Constructs new relation object from public and private inputs.
-    fn new(public_input: Self::PublicInput, private_input: Self::PrivateInput) -> Self;
-
     /// Include this relation in the circuit.
     fn generate_subcircuit(&self, circuit: &mut PlonkCircuit<CircuitField>) -> PlonkResult<()>;
 
@@ -68,8 +61,8 @@ pub trait Relation: Default {
     }
 }
 
-/// Describe how to marshall a type into a vector of circuit fields.
-pub trait Marshall {
-    /// Marshall the type into a vector of circuit fields.
-    fn marshall(&self) -> Vec<CircuitField>;
+/// Describe how get a vector of circuit fields.
+pub trait PublicInput {
+    /// Get a vector of circuit fields.
+    fn public_input(&self) -> Vec<CircuitField>;
 }
