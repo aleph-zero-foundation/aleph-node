@@ -91,6 +91,6 @@ jobs:
           ${CHECK}
           ${CHECK} --features circuit
 
-          cd ../relations/
+          cd ../relations/ark/
           ${CHECK}
           ${CHECK} --features circuit

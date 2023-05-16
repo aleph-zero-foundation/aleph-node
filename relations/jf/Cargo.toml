@@ -1,0 +1,31 @@
+[package]
+name = "liminal-jf-relations"
+version = "0.0.0"
+edition = "2021"
+authors = ["Cardinal"]
+documentation = "https://docs.rs/?"
+homepage = "https://alephzero.org"
+license = "Apache-2.0"
+categories = ["cryptography"]
+keywords = ["cryptography", "snark", "zero-knowledge", "liminal", "shielder"]
+repository = "https://github.com/Cardinal-Cryptography/aleph-node"
+description = "A collection of jellyfish-based relations for use in liminal."
+
+[dependencies]
+ark-bls12-381 = "0.4.0"
+ark-ff = "0.4.0"
+rand_core = "0.6.4"
+
+jf-plonk = { git = "https://github.com/EspressoSystems/jellyfish", rev = "f431648" }
+jf-primitives = { git = "https://github.com/EspressoSystems/jellyfish", rev = "f431648" }
+jf-relation = { git = "https://github.com/EspressoSystems/jellyfish", rev = "f431648" }
+
+[dev-dependencies]
+jf-utils = { git = "https://github.com/EspressoSystems/jellyfish", rev = "f431648" }
+
+[features]
+default = ["test-srs"]
+test-srs = [
+    "jf-plonk/test-srs"
+]
+
