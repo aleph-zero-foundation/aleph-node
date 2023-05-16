@@ -1,11 +1,11 @@
 use std::fmt::{Debug, Display};
 
-use aleph_primitives::BlockNumber;
+use aleph_primitives::{Block, BlockNumber, Header};
 use codec::{Decode, Encode};
 use sp_runtime::traits::{CheckedSub, Header as SubstrateHeader, One};
 
 use crate::{
-    sync::{Header, Justification as JustificationT},
+    sync::{Block as BlockT, Header as HeaderT, Justification as JustificationT},
     AlephJustification, BlockId,
 };
 
@@ -20,7 +20,7 @@ pub use status_notifier::SubstrateChainStatusNotifier;
 pub use translator::Error as TranslateError;
 pub use verification::{SessionVerifier, SubstrateFinalizationInfo, VerifierCache};
 
-impl<H: SubstrateHeader<Number = BlockNumber>> Header for H {
+impl<H: SubstrateHeader<Number = BlockNumber>> HeaderT for H {
     type Identifier = BlockId<H>;
 
     fn id(&self) -> Self::Identifier {
@@ -36,6 +36,15 @@ impl<H: SubstrateHeader<Number = BlockNumber>> Header for H {
             hash: *self.parent_hash(),
             number,
         })
+    }
+}
+
+impl BlockT for Block {
+    type Header = Header;
+
+    /// The header of the block.
+    fn header(&self) -> &Self::Header {
+        &self.header
     }
 }
 
@@ -71,7 +80,7 @@ impl<H: SubstrateHeader<Number = BlockNumber>> Justification<H> {
     }
 }
 
-impl<H: SubstrateHeader<Number = BlockNumber>> Header for Justification<H> {
+impl<H: SubstrateHeader<Number = BlockNumber>> HeaderT for Justification<H> {
     type Identifier = BlockId<H>;
 
     fn id(&self) -> Self::Identifier {
