@@ -61,6 +61,7 @@ ARGS=(
   --db-cache "${DB_CACHE}"
   --runtime-cache-size "${RUNTIME_CACHE_SIZE}"
   --max-runtime-instances "${MAX_RUNTIME_INSTANCES}"
+  --detailed-log-output
 )
 
 if [[ -n "${BOOT_NODES:-}" ]]; then

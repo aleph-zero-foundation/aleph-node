@@ -104,6 +104,7 @@ run_node() {
     --no-mdns \
     --public-validator-addresses 127.0.0.1:${validator_port} \
     --validator-port ${validator_port} \
+    --detailed-log-output \
     -laleph-party=debug \
     -laleph-network=debug \
     -lnetwork-clique=debug \
