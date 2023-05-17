@@ -69,11 +69,27 @@ jobs:
             docker push ${{ env.ECR_PUSH_IMAGE }}:latest
           fi
 
-  send-slack-notification:
+  send-slack-notification-release:
     name: Send Slack notification about workflow status
     runs-on: ubuntu-20.04
+    if: always() && startsWith(github.ref_name, 'release-')
     needs: [push-node-image-to-ecr]
-    if: always()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Send Slack message
+        uses: ./.github/actions/slack-notification
+        with:
+          notify-on: "always"
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_DEV_ONDUTY }}
+
+  send-slack-notification-main:
+    name: Send Slack notification about workflow status
+    runs-on: ubuntu-20.04
+    if: always() && github.ref_name == 'main'
+    needs: [push-node-image-to-ecr]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3

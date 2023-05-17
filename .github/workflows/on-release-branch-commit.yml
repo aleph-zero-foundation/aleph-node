@@ -28,7 +28,8 @@ jobs:
         run: |
           set +e
           fail=0
-          for i in $(ls -1 .github/workflows/*.yml)
+          # compare every worflow except e2e tests as those might get added on main
+          for i in $(ls -1 .github/workflows/*.yml | grep -v on-pull-request-commit.yml)
           do
             diff -ur $i aleph-node-main/$i > $i.diff
             if [[ $(cat $i.diff | wc -l) > 0 ]]; then
