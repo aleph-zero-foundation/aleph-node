@@ -47,6 +47,11 @@ inputs:
     description: "Set to 'true' if it is just featurenet update"
     required: false
     default: 'false'
+  rolling-update-partition:
+    # yamllint disable-line rule:line-length
+    description: "All aleph-node-validator-N with an ordinal N that is great than or equal to the partition will be updated. Default value: 0"
+    required: false
+    default: '0'
 
 runs:
   using: "composite"
@@ -80,6 +85,14 @@ runs:
         ]]
         then
           echo "!!! Invalid feature net node image tag"
+          exit 1
+        fi
+        if [[
+          "${{ inputs.update }}" == "true" && \
+          ! "${{ inputs.rolling-update-partition }}" =~ ^[0-9]$
+        ]]
+        then
+          echo "!!! Partition for Rolling Update is invalid"
           exit 1
         fi
 
@@ -129,7 +142,10 @@ runs:
         pr_image="${{ inputs.ecr-public-registry }}feature-env-aleph-node:${pr_image_tag}"
         ./Ops.sh create-featurenet \
           "${{ env.APP_NAME }}" \
-          "${pr_image}"
+          "${pr_image}" \
+          "false" \
+          "false" \
+          "${{ inputs.update == 'true' && inputs.rolling-update-partition || '0' }}"
 
     - name: Start featurenet from testnet/mainnet
       if: inputs.aleph-node-image == 'testnet' || inputs.aleph-node-image == 'mainnet'
@@ -157,7 +173,10 @@ runs:
         pr_image="${{ inputs.ecr-public-registry }}aleph-node:${{ inputs.aleph-node-image }}"
         ./Ops.sh create-featurenet \
           "${{ env.APP_NAME }}" \
-          "${pr_image}"
+          "${pr_image}" \
+          "false" \
+          "false" \
+          "${{ inputs.update == 'true' && inputs.rolling-update-partition || '0' }}"
 
     - name: Commit featurenet change
       uses: EndBug/add-and-commit@v9.1.1

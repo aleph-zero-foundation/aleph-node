@@ -12,6 +12,10 @@ on:
         description: Node image tag
         required: true
         type: string
+      rolling-update-partition:
+        description: Rolling Update Partition <0, N-1>
+        required: true
+        type: string
 
 jobs:
   check-vars-and-secrets:
@@ -39,6 +43,11 @@ jobs:
           ]]
           then
             echo "!!! Invalid destination node image tag"
+            exit 1
+          fi
+          if [[ ! "${{ inputs.rolling-update-partition }}" =~ ^[0-9]$ ]]
+          then
+            echo "!!! Invalid rolling update partition"
             exit 1
           fi
 
@@ -69,6 +78,7 @@ jobs:
           featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
           featurenet-name: fe-updnet-${{ inputs.name }}
           update: 'true'
+          rolling-update-partition: '${{ inputs.rolling-update-partition }}'
 
       - name: Wait for the testnet aleph-node binary to accept some blocks
         uses: juliangruber/sleep-action@v2.0.0
