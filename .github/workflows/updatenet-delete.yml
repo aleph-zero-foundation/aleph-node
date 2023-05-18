@@ -18,7 +18,7 @@ jobs:
   delete-updatenet:
     needs: [check-vars-and-secrets]
     name: Delete updatenet
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     steps:
       - name: Validate inputs
         shell: bash
@@ -37,6 +37,7 @@ jobs:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
           aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
+          ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}
           argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
           repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
           argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}

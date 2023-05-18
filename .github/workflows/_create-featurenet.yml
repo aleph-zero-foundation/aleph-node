@@ -37,7 +37,7 @@ jobs:
   create-featurenet:
     needs: [check-vars-and-secrets]
     name: Create featurenet based on the PR
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     outputs:
       deployment-id: ${{ steps.deployment.outputs.deployment_id }}
     steps:
@@ -51,6 +51,7 @@ jobs:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
           aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
+          ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}
           argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
           repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
           argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
@@ -92,7 +93,7 @@ jobs:
   update-featurenet-image:
     needs: [push-pr-image, create-featurenet]
     name: Update featurenet to the latest PR aleph-node image
-    runs-on: ubuntu-20.04
+    runs-on: self-hosted
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3

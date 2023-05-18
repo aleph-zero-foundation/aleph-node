@@ -49,60 +49,19 @@ runs:
         aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
         aws-region: us-east-1
 
-    - name: Get Testnet node commit SHA
-      id: get-testnet-node-commit-sha
-      uses: ./.github/actions/get-node-system-version
-      with:
-        env: ${{ inputs.base-net }}
-
-    - name: Get aleph-node image tag
+    - name: Generate and save data and chainspec
       shell: bash
-      run: |
-        COMMIT_ID=${{ steps.get-testnet-node-commit-sha.outputs.sha }}
-        echo $COMMIT_ID
-        echo "ALEPH_NODE_IMAGE=${{ inputs.ecr-public-registry }}aleph-node:$COMMIT_ID" \
-          >> $GITHUB_ENV
-
-    - name: Generate data dir
-      shell: bash
-      run: |
-        # sync all validator's keystores from S3
-        aws s3 cp s3://${{ inputs.featurenet-keys-s3bucket-name }}/data data --recursive
-
-        # rename validator paths
-        declare -A \
-          NAMES=([aleph-node-validator-0]=5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY \
-          [aleph-node-validator-1]=5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty \
-          [aleph-node-validator-2]=5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y \
-          [aleph-node-validator-3]=5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy \
-          [aleph-node-validator-4]=5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw)
-
-        for NAME in "${!NAMES[@]}"; do
-          mv -v data/$NAME data/${NAMES[$NAME]}
-        done
-
-    - name: Generate chainspec
-      shell: bash
-      # yamllint disable rule:line-length
-      run: |
-        docker run -v $(pwd)/data:/data --env RUST_BACKTRACE=1 \
-          --entrypoint "/usr/local/bin/aleph-node" $ALEPH_NODE_IMAGE bootstrap-chain --raw \
-          --base-path /data --chain-id a0fenet \
-          --account-ids 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y,5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy,5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw \
-          --sudo-account-id 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY > chainspec.json
-      # yamllint enable rule:line-length
-
-    - name: Save data to S3 bucket
-      shell: bash
-      # yamllint disable rule:line-length
       env:
+        # yamllint disable-line rule:line-length
         APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
       run: |
-        aws s3 cp \
-          chainspec.json \
-          s3://${{ inputs.featurenet-keys-s3bucket-name }}/${{ env.APP_NAME }}/chainspec.json
-        aws s3 cp \
-          s3://${{ inputs.featurenet-keys-s3bucket-name }}/data/ \
-          s3://${{ inputs.featurenet-keys-s3bucket-name }}/${{ env.APP_NAME }}/data/ \
-          --recursive
-      # yamllint enable rule:line-length
+        docker pull ${{ inputs.ecr-public-registry }}featurenet-helper:v0.2.0
+        docker run --rm \
+          -e SOURCE_NET=${{ inputs.base-net }} \
+          -e AWS_ACCESS_KEY_ID \
+          -e AWS_SECRET_ACCESS_KEY \
+          -e AWS_REGION \
+          -e FEATURENETS_S3_BUCKET_NAME=${{ inputs.featurenet-keys-s3bucket-name }} \
+          -e FEATURENET_NAME=${{ env.APP_NAME }} \
+          ${{ inputs.ecr-public-registry }}featurenet-helper:v0.2.0 \
+          generate-data-dir generate-chainspec save-data-to-s3
