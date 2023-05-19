@@ -68,7 +68,7 @@ jobs:
         with:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
           argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
-          repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
+          repo-apps-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
           argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
           # yamllint disable-line rule:line-length
           aleph-node-image: ${{ inputs.destination }}
@@ -84,7 +84,7 @@ jobs:
         uses: ./.github/actions/wait-for-finalized-heads
         with:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
-          repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
+          repo-apps-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
           # yamllint disable-line rule:line-length
           json-rpc-endpoint: https://ws-fe-updnet-${{ inputs.name }}.dev.azero.dev
 
