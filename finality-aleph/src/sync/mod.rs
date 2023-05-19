@@ -4,7 +4,7 @@ use std::{
     marker::Send,
 };
 
-use codec::Codec;
+use parity_scale_codec::Codec;
 
 mod data;
 mod forest;

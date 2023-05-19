@@ -3,7 +3,6 @@ use std::{
     sync::Arc,
 };
 
-use aleph_primitives::{BlockNumber, ALEPH_ENGINE_ID};
 use log::warn;
 use sc_client_api::{blockchain::HeaderBackend, Backend as _};
 use sc_service::TFullBackend;
@@ -11,6 +10,7 @@ use sp_blockchain::{Backend as _, Error as BackendError, Info};
 use sp_runtime::traits::{Block as BlockT, Header as SubstrateHeader};
 
 use crate::{
+    aleph_primitives::{BlockNumber, ALEPH_ENGINE_ID},
     justification::backwards_compatible_decode,
     sync::{
         substrate::{BlockId, Justification},

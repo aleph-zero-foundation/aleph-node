@@ -1,9 +1,9 @@
 use std::fmt::{Display, Error as FmtError, Formatter};
 
-use aleph_primitives::BlockNumber;
 use sp_runtime::traits::{Block, Header};
 
 use crate::{
+    aleph_primitives::BlockNumber,
     justification::AlephJustification,
     sync::{
         substrate::{

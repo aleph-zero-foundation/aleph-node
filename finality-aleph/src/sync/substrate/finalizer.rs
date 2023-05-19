@@ -1,9 +1,9 @@
-use aleph_primitives::BlockNumber;
 use sc_client_api::{Backend, Finalizer as SubstrateFinalizer, HeaderBackend, LockImportRun};
 use sp_blockchain::Error as ClientError;
 use sp_runtime::traits::{Block as BlockT, Header as SubstrateHeader};
 
 use crate::{
+    aleph_primitives::BlockNumber,
     finalization::{AlephFinalizer, BlockFinalizer},
     sync::{
         substrate::{InnerJustification, Justification},

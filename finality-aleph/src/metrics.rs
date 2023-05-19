@@ -8,8 +8,8 @@ use std::{
 use log::{trace, warn};
 use lru::LruCache;
 use parking_lot::Mutex;
-use prometheus_endpoint::{register, Gauge, PrometheusError, Registry, U64};
 use sc_service::Arc;
+use substrate_prometheus_endpoint::{register, Gauge, PrometheusError, Registry, U64};
 
 // How many entries (block hash + timestamp) we keep in memory per one checkpoint type.
 // Each entry takes 32B (Hash) + 16B (Instant), so a limit of 5000 gives ~234kB (per checkpoint).

@@ -4,7 +4,7 @@ use std::{
     hash::Hash,
 };
 
-use codec::Codec;
+use parity_scale_codec::Codec;
 use tokio::io::{AsyncRead, AsyncWrite};
 
 mod crypto;

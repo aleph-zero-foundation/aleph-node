@@ -1,9 +1,9 @@
 use std::fmt::Display;
 
-use aleph_primitives::BlockNumber;
 use async_trait::async_trait;
 
 use crate::{
+    aleph_primitives::BlockNumber,
     party::{backup::ABFTBackup, manager::AuthorityTask},
     AuthorityId, NodeIndex, SessionId,
 };

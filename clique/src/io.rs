@@ -3,7 +3,7 @@ use std::{
     io::Error as IoError,
 };
 
-use codec::DecodeAll;
+use parity_scale_codec::DecodeAll;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use crate::Data;

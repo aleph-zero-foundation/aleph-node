@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use aleph_primitives::BlockNumber;
 use futures::{
     channel::{mpsc, oneshot},
     pin_mut, StreamExt,
@@ -13,6 +12,7 @@ use tokio::time;
 use crate::{
     abft::SignatureSet,
     aggregation::Aggregator,
+    aleph_primitives::BlockNumber,
     crypto::Signature,
     justification::AlephJustification,
     metrics::Checkpoint,

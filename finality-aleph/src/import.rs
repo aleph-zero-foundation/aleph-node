@@ -1,6 +1,5 @@
 use std::{collections::HashMap, fmt::Debug, time::Instant};
 
-use aleph_primitives::{BlockNumber, ALEPH_ENGINE_ID};
 use futures::channel::mpsc::{TrySendError, UnboundedSender};
 use log::{debug, trace, warn};
 use sc_consensus::{
@@ -13,6 +12,7 @@ use sp_runtime::{
 };
 
 use crate::{
+    aleph_primitives::{BlockNumber, ALEPH_ENGINE_ID},
     justification::{backwards_compatible_decode, DecodeError},
     metrics::{Checkpoint, Metrics},
     sync::substrate::{Justification, JustificationTranslator},

@@ -1,10 +1,10 @@
 #[cfg(any(feature = "try-runtime", feature = "runtime-benchmarks"))]
 use aleph_node::ExecutorDispatch;
 use aleph_node::{new_authority, new_partial, Cli, Subcommand};
-use aleph_primitives::HEAP_PAGES;
 #[cfg(any(feature = "try-runtime", feature = "runtime-benchmarks"))]
 use aleph_runtime::Block;
 use log::{info, warn};
+use primitives::HEAP_PAGES;
 use sc_cli::{clap::Parser, CliConfiguration, DatabasePruningMode, PruningParams, SubstrateCli};
 use sc_network::config::Role;
 use sc_service::{Configuration, PartialComponents};

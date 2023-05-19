@@ -1,11 +1,14 @@
 [package]
 name = "pallets-support"
 version = "0.1.4"
-edition = "2021"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
 
 [dependencies]
-frame-support = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
-sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+frame-support = { workspace = true }
+sp-std = { workspace = true }
 
 [features]
 default = ["std"]

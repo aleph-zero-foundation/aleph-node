@@ -1,12 +1,14 @@
 use std::fmt::{Display, Error as FmtError, Formatter};
 
-use aleph_primitives::BlockNumber;
 use futures::StreamExt;
 use sc_client_api::client::{FinalityNotifications, ImportNotifications};
 use sp_runtime::traits::{Block as BlockT, Header as SubstrateHeader};
 use tokio::select;
 
-use crate::sync::{ChainStatusNotification, ChainStatusNotifier};
+use crate::{
+    aleph_primitives::BlockNumber,
+    sync::{ChainStatusNotification, ChainStatusNotifier},
+};
 
 /// What can go wrong when waiting for next chain status notification.
 #[derive(Debug)]

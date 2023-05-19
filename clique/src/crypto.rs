@@ -1,6 +1,6 @@
 use std::{fmt::Display, hash::Hash};
 
-use codec::Codec;
+use parity_scale_codec::Codec;
 
 /// A public key for signature verification.
 pub trait PublicKey:

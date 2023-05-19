@@ -1,12 +1,14 @@
 use std::{convert::TryInto, sync::Arc};
 
-use aleph_primitives::{AuthorityId, AuthoritySignature, KEY_TYPE};
-use codec::{Decode, Encode};
+use parity_scale_codec::{Decode, Encode};
 use sp_core::crypto::KeyTypeId;
 use sp_keystore::{CryptoStore, Error as KeystoreError};
 use sp_runtime::RuntimeAppPublic;
 
-use crate::abft::{NodeCount, NodeIndex, SignatureSet};
+use crate::{
+    abft::{NodeCount, NodeIndex, SignatureSet},
+    aleph_primitives::{AuthorityId, AuthoritySignature, KEY_TYPE},
+};
 
 #[derive(Debug)]
 pub enum Error {

@@ -4,12 +4,12 @@ use std::{
     sync::Arc,
 };
 
-use aleph_primitives::BlockNumber;
-use codec::Encode;
+use parity_scale_codec::Encode;
 use sc_client_api::HeaderBackend;
 use sp_runtime::traits::{Block as BlockT, Header as SubstrateHeader};
 
 use crate::{
+    aleph_primitives::BlockNumber,
     session_map::AuthorityProvider,
     sync::{
         substrate::{

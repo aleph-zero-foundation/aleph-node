@@ -1,16 +1,17 @@
 [package]
 name = "aggregator"
 version = "0.4.0"
-authors = ["Cardinal Cryptography"]
-edition = "2021"
 license = "Apache 2.0"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
 
 [dependencies]
-aleph-bft-rmc = "0.6"
-aleph-bft-types = "0.8"
-
-async-trait = "0.1"
-futures = "0.3"
-codec = { package = "parity-scale-codec", version = "3.0", default-features = false, features = ["derive"] }
-tokio = { version = "1.17", features = [ "sync", "macros", "time", "rt-multi-thread" ] }
-log = "0.4"
+aleph-bft-rmc = { workspace = true }
+aleph-bft-types = { workspace = true }
+async-trait = { workspace = true }
+futures = { workspace = true }
+log = { workspace = true }
+parity-scale-codec = { workspace = true, features = ["derive"] }
+tokio = { workspace = true, features = [ "sync", "macros", "time", "rt-multi-thread" ] }

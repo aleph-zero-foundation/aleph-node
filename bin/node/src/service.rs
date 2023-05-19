@@ -5,7 +5,6 @@ use std::{
     sync::Arc,
 };
 
-use aleph_primitives::{AlephSessionApi, MAX_BLOCK_SIZE};
 use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use finality_aleph::{
     run_validator_node, AlephBlockImport, AlephConfig, Justification, Metrics, MillisecsPerBlock,
@@ -32,6 +31,7 @@ use sp_runtime::{
 
 use crate::{
     aleph_cli::AlephCli,
+    aleph_primitives::{AlephSessionApi, MAX_BLOCK_SIZE},
     chain_spec::DEFAULT_BACKUP_FOLDER,
     executor::AlephExecutor,
     rpc::{create_full as create_full_rpc, FullDeps as RpcFullDeps},

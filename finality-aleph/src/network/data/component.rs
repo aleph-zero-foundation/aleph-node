@@ -179,11 +179,11 @@ impl<D: Data, R: Receiver<D>, S: Sender<D>> Network<D> for SimpleNetwork<D, R, S
 
 #[cfg(test)]
 mod tests {
-    use codec::{Decode, Encode};
     use futures::{
         channel::mpsc::{self, UnboundedReceiver, UnboundedSender},
         StreamExt,
     };
+    use parity_scale_codec::{Decode, Encode};
 
     use super::{DataNetwork, NetworkMap, Receiver, Sender};
     use crate::{

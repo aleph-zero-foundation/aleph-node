@@ -3,8 +3,8 @@ use std::{
     mem::size_of,
 };
 
-use codec::{Decode, Encode, Error as CodecError, Input as CodecInput};
 use log::warn;
+use parity_scale_codec::{Decode, Encode, Error as CodecError, Input as CodecInput};
 
 use crate::{
     network::{session::Authentication, AddressingInformation},
@@ -141,8 +141,8 @@ impl Display for Error {
 mod test {
     use std::sync::Arc;
 
-    use codec::{Decode, Encode};
     use network_clique::mock::MockAddressingInformation;
+    use parity_scale_codec::{Decode, Encode};
     use sp_keystore::testing::KeyStore;
 
     use super::VersionedAuthentication;

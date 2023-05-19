@@ -1,9 +1,9 @@
-use codec::{Decode, Encode};
 use futures::{
     channel::{mpsc, oneshot},
     StreamExt,
 };
 use log::{debug, info, trace};
+use parity_scale_codec::{Decode, Encode};
 use tokio::{
     io::{AsyncRead, AsyncWrite},
     time::{timeout, Duration},

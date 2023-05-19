@@ -1,7 +1,7 @@
 //! Types common for current & legacy abft used across finality-aleph
 
-use codec::{Decode, Encode, Error, Input, Output};
 use derive_more::{From, Into};
+use parity_scale_codec::{Decode, Encode, Error, Input, Output};
 
 /// The index of a node
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, From, Into)]

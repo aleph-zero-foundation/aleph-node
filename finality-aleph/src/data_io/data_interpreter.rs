@@ -1,12 +1,12 @@
 use std::{default::Default, sync::Arc};
 
-use aleph_primitives::BlockNumber;
 use futures::channel::mpsc;
 use log::{debug, error, warn};
 use sc_client_api::HeaderBackend;
 use sp_runtime::traits::{Block as BlockT, Header as HeaderT};
 
 use crate::{
+    aleph_primitives::BlockNumber,
     data_io::{
         chain_info::{AuxFinalizationChainInfoProvider, CachedChainInfoProvider},
         status_provider::get_proposal_status,

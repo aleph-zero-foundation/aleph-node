@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
-use aleph_primitives::BlockNumber;
 use log::error;
 use lru::LruCache;
 use sc_client_api::HeaderBackend;
 use sp_runtime::traits::{Block as BlockT, Header as HeaderT};
 
-use crate::{data_io::ChainInfoCacheConfig, IdentifierFor};
+use crate::{aleph_primitives::BlockNumber, data_io::ChainInfoCacheConfig, IdentifierFor};
 
 pub trait ChainInfoProvider<B>
 where

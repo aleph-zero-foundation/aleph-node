@@ -1,6 +1,5 @@
 use std::{future::Future, sync::Arc, time::Duration};
 
-use aleph_primitives::BlockNumber;
 use futures::{
     channel::{
         mpsc::{self, UnboundedReceiver, UnboundedSender},
@@ -13,6 +12,7 @@ use sp_runtime::traits::Block as BlockT;
 use tokio::time::timeout;
 
 use crate::{
+    aleph_primitives::BlockNumber,
     data_io::{AlephData, AlephNetworkMessage, DataStore, DataStoreConfig, MAX_DATA_BRANCH_LEN},
     network::{
         data::{component::Network as ComponentNetwork, Network as DataNetwork},

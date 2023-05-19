@@ -1,5 +1,6 @@
-use aleph_primitives::BlockNumber;
-use codec::{Decode, Encode};
+use parity_scale_codec::{Decode, Encode};
+
+use crate::aleph_primitives::BlockNumber;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct SessionBoundaries {
@@ -52,8 +53,9 @@ impl SessionBoundaryInfo {
 
 #[cfg(test)]
 pub mod testing {
-    use aleph_primitives::SessionAuthorityData;
     use sp_runtime::testing::UintAuthorityId;
+
+    use crate::aleph_primitives::SessionAuthorityData;
 
     pub fn authority_data(from: u32, to: u32) -> SessionAuthorityData {
         SessionAuthorityData::new(

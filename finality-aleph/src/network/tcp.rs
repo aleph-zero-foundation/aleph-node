@@ -1,14 +1,14 @@
 use std::{io::Error as IoError, iter, net::ToSocketAddrs as _};
 
-use aleph_primitives::AuthorityId;
-use codec::{Decode, Encode};
 use derive_more::{AsRef, Display};
 use log::info;
 use network_clique::{Dialer, Listener, PeerId, PublicKey, SecretKey};
+use parity_scale_codec::{Decode, Encode};
 use sp_core::crypto::KeyTypeId;
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
 
 use crate::{
+    aleph_primitives::AuthorityId,
     crypto::{verify, AuthorityPen, Signature},
     network::{AddressingInformation, NetworkIdentity},
 };

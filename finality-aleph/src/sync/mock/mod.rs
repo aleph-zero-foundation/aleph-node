@@ -1,6 +1,6 @@
 use std::hash::Hash;
 
-use codec::{Decode, Encode};
+use parity_scale_codec::{Decode, Encode};
 use sp_core::H256;
 
 use crate::{

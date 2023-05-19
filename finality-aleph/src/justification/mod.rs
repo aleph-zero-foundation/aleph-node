@@ -1,8 +1,11 @@
-use aleph_primitives::{AuthoritySignature, ALEPH_ENGINE_ID};
-use codec::{Decode, Encode};
+use parity_scale_codec::{Decode, Encode};
 use sp_runtime::Justification;
 
-use crate::{abft::SignatureSet, crypto::Signature};
+use crate::{
+    abft::SignatureSet,
+    aleph_primitives::{AuthoritySignature, ALEPH_ENGINE_ID},
+    crypto::Signature,
+};
 
 mod compatibility;
 // This module is only a temporary hack needed to perform the update from the old justification

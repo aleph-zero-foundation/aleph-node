@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use codec::Encode;
+use parity_scale_codec::Encode;
 
 use crate::{
     abft::NodeCount,

@@ -1,7 +1,6 @@
 use core::result::Result;
 use std::{marker::PhantomData, sync::Arc, time::Instant};
 
-use aleph_primitives::BlockNumber;
 use log::{debug, warn};
 use sc_client_api::{Backend, Finalizer, HeaderBackend, LockImportRun};
 use sp_blockchain::Error;
@@ -10,7 +9,10 @@ use sp_runtime::{
     Justification,
 };
 
-use crate::{metrics::Checkpoint, BlockId, BlockIdentifier, IdentifierFor, Metrics};
+use crate::{
+    aleph_primitives::BlockNumber, metrics::Checkpoint, BlockId, BlockIdentifier, IdentifierFor,
+    Metrics,
+};
 
 pub trait BlockFinalizer<BI: BlockIdentifier> {
     fn finalize_block(&self, block: BI, justification: Justification) -> Result<(), Error>;

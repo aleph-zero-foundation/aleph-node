@@ -1,4 +1,3 @@
-use aleph_primitives::BlockNumber;
 use futures::channel::oneshot;
 use log::debug;
 use network_clique::SpawnHandleT;
@@ -7,6 +6,7 @@ use sp_consensus::SelectChain;
 use sp_runtime::traits::{Block, Header};
 
 use crate::{
+    aleph_primitives::BlockNumber,
     data_io::ChainTracker,
     party::{AuthoritySubtaskCommon, Task},
 };

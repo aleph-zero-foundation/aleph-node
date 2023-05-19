@@ -1,4 +1,4 @@
-use codec::{Decode, Encode, Error, Input, Output};
+use parity_scale_codec::{Decode, Encode, Error, Input, Output};
 
 use crate::{network::Data, SessionId};
 

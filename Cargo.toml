@@ -9,8 +9,8 @@ members = [
     "jellyfier",
     "pallets/aleph",
     "pallets/elections",
-    "pallets/support",
     "pallets/committee-management",
+    "pallets/support",
     "poseidon",
     "primitives",
 ]
@@ -50,3 +50,154 @@ panic = "unwind"
 inherits = "release"
 lto = true
 codegen-units = 1
+
+[workspace.package]
+authors = ["Cardinal", "Aleph Zero Foundation"]
+edition = "2021"
+homepage = "https://alephzero.org"
+repository = "https://github.com/Cardinal-Cryptography/aleph-node"
+
+[workspace.dependencies]
+aleph-bft-crypto = { version = "0.5" }
+aleph-bft-mock = { version = "0.8.3" }
+aleph-bft-rmc = { version = "0.6" }
+aleph-bft-types = { version = "0.8" }
+async-trait = { version = "0.1" }
+bytes = { version = "1.0" }
+derive_more = { version = "0.99" }
+env_logger = { version = "0.10" }
+futures = { version = "0.3" }
+futures-timer = { version = "3.0" }
+hash-db = { version = "0.16", default-features = false }
+hex = { version = "0.4" }
+hex-literal = { version = "0.3" }
+ip_network = { version = "0.4" }
+jsonrpsee = { version = "0.16.2" }
+libp2p = { version = "0.49.0" }
+log = { version = "0.4" }
+lru = { version = "0.7" }
+parity-scale-codec = { version = "3.0", default-features = false }
+parking_lot = { version = "0.12" }
+paste = { version = "1.0.11" }
+rand = { version = "0.8.5", default-features = false }
+scale-info = { version = "2.0", default-features = false }
+serde = { version = "1.0" }
+serde_json = { version = "1.0" }
+smallvec = { version = "1", default-features = false}
+thiserror = { version = "1.0" }
+tiny-bip39 = { version = "1.0" }
+tokio = { version = "1.17" }
+
+frame-benchmarking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+frame-benchmarking-cli = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+frame-election-provider-support = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+frame-executive = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+frame-support = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+frame-system = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+frame-system-rpc-runtime-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+frame-try-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+
+pallet-aura = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+pallet-authorship = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+pallet-balances = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+pallet-contracts = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+pallet-contracts-primitives = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+pallet-identity = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+pallet-multisig = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+pallet-nomination-pools = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+pallet-nomination-pools-runtime-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+pallet-randomness-collective-flip = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+pallet-scheduler = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+pallet-session = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+pallet-staking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+pallet-sudo = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+pallet-timestamp = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+pallet-transaction-payment = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+pallet-transaction-payment-rpc = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+pallet-treasury = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+pallet-utility = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+pallet-vesting = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+
+sc-basic-authorship = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+sc-block-builder = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+sc-chain-spec = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+sc-cli = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+sc-client-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+sc-consensus = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+sc-consensus-aura = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+sc-consensus-slots = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+sc-executor = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+sc-keystore = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+sc-network = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+sc-network-common = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+sc-rpc = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+sc-rpc-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+sc-service = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+sc-telemetry = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+sc-transaction-pool = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+sc-transaction-pool-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+sc-utils = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+
+sp-api = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+sp-application-crypto = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+sp-arithmetic = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+sp-blockchain = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+sp-block-builder = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+sp-consensus = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+sp-consensus-aura = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+sp-inherents = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+sp-io = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+sp-keystore = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+sp-offchain = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+sp-runtime-interface = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+sp-session = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+sp-staking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+sp-state-machine = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+sp-std = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+sp-timestamp = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+sp-transaction-pool = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+sp-trie = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+sp-version = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false }
+
+substrate-build-script-utils = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+substrate-frame-rpc-system = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+substrate-prometheus-endpoint = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+substrate-test-runtime-client = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+substrate-test-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+substrate-test-client = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+substrate-wasm-builder = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+
+try-runtime-cli = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
+
+aleph-runtime = { path = "bin/runtime" }
+finality-aleph = { path = "finality-aleph" }
+jellyfier = { path = "jellyfier" }
+network-clique = { path = "clique" }
+pallet-aleph = { path = "pallets/aleph", default-features = false }
+pallet-committee-management = { path = "pallets/committee-management", default-features = false }
+pallet-elections = { path = "pallets/elections", default-features = false }
+pallets-support = { path = "pallets/support", default-features = false }
+primitives = { path = "primitives", default-features = false }
+
+# Liminal-related dependencies
+ark-bls12-381 = { version = "^0.3.0" }
+ark-ff = { version = "^0.3.0", default-features = false }
+ark-serialize = { version = "^0.3.0", default-features = false }
+ark-r1cs-std = { version = "^0.3.0" , default-features = false }
+ark-relations = { version = "^0.3.0", default-features = false }
+
+liminal-ark-pnbr-poseidon-parameters = { version = "0.1.0", default-features = false }
+liminal-ark-pnbr-poseidon-paramgen = { version = "0.1.0" }
+liminal-ark-pnbr-poseidon-permutation = { version = "0.1.0", default-features = false }
+liminal-ark-pnbr-sponge = { version = "0.3.0", default-features = false  }
+liminal-ark-poseidon = { version = "0.1.0", default-features = false }
+
+jf-plonk = { git = "https://github.com/EspressoSystems/jellyfish", rev = "7323d81e39f7da463923143f8be97558b8855df4" }
+jf-relation = { git = "https://github.com/EspressoSystems/jellyfish", rev = "7323d81e39f7da463923143f8be97558b8855df4" }
+jf-utils = { git = "https://github.com/EspressoSystems/jellyfish", rev = "7323d81e39f7da463923143f8be97558b8855df4" }
+
+baby-liminal-extension = { path = "baby-liminal-extension", default-features = false }
+pallet-baby-liminal = { path = "pallets/baby-liminal", default-features = false }

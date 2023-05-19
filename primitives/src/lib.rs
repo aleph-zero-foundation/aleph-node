@@ -1,6 +1,7 @@
 #![allow(clippy::too_many_arguments, clippy::unnecessary_mut_passed)]
 #![cfg_attr(not(feature = "std"), no_std)]
-use codec::{Decode, Encode};
+
+use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};

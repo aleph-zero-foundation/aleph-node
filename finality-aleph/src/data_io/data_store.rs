@@ -6,7 +6,6 @@ use std::{
     time::{self, Duration},
 };
 
-use aleph_primitives::BlockNumber;
 use futures::{
     channel::{
         mpsc::{self, UnboundedSender},
@@ -21,6 +20,7 @@ use sc_client_api::{BlockchainEvents, HeaderBackend};
 use sp_runtime::traits::{Block as BlockT, Header as HeaderT};
 
 use crate::{
+    aleph_primitives::BlockNumber,
     data_io::{
         chain_info::{CachedChainInfoProvider, ChainInfoProvider},
         proposal::{AlephProposal, ProposalStatus},
@@ -205,8 +205,13 @@ where
     B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
     RB: RequestBlocks<IdentifierFor<B>> + 'static,
-    Message:
-        AlephNetworkMessage<B> + std::fmt::Debug + Send + Sync + Clone + codec::Codec + 'static,
+    Message: AlephNetworkMessage<B>
+        + std::fmt::Debug
+        + Send
+        + Sync
+        + Clone
+        + parity_scale_codec::Codec
+        + 'static,
     R: Receiver<Message>,
 {
     next_free_id: MessageId,
@@ -233,8 +238,13 @@ where
     B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
     RB: RequestBlocks<IdentifierFor<B>> + 'static,
-    Message:
-        AlephNetworkMessage<B> + std::fmt::Debug + Send + Sync + Clone + codec::Codec + 'static,
+    Message: AlephNetworkMessage<B>
+        + std::fmt::Debug
+        + Send
+        + Sync
+        + Clone
+        + parity_scale_codec::Codec
+        + 'static,
     R: Receiver<Message>,
 {
     /// Returns a struct to be run and a network that outputs messages filtered as appropriate

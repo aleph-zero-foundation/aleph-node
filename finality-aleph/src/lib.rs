@@ -5,13 +5,13 @@ use std::{
     sync::Arc,
 };
 
-use aleph_primitives::{AuthorityId, BlockNumber};
-use codec::{Codec, Decode, Encode, Output};
 use derive_more::Display;
 use futures::{
     channel::{mpsc, oneshot},
     Future,
 };
+use parity_scale_codec::{Codec, Decode, Encode, Output};
+use primitives as aleph_primitives;
 use sc_client_api::{Backend, BlockchainEvents, Finalizer, LockImportRun, TransactionFor};
 use sc_consensus::BlockImport;
 use sc_network::NetworkService;
@@ -28,6 +28,7 @@ use crate::{
         SignatureSet, SpawnHandle, CURRENT_VERSION, LEGACY_VERSION,
     },
     aggregation::{CurrentRmcNetworkData, LegacyRmcNetworkData},
+    aleph_primitives::{AuthorityId, BlockNumber},
     compatibility::{Version, Versioned},
     network::data::split::Split,
     session::{SessionBoundaries, SessionBoundaryInfo, SessionId},
@@ -113,7 +114,9 @@ pub enum VersionedEitherMessage<L, R> {
 }
 
 impl<L: Versioned + Decode, R: Versioned + Decode> Decode for VersionedEitherMessage<L, R> {
-    fn decode<I: codec::Input>(input: &mut I) -> Result<Self, codec::Error> {
+    fn decode<I: parity_scale_codec::Input>(
+        input: &mut I,
+    ) -> Result<Self, parity_scale_codec::Error> {
         let version = Version::decode(input)?;
         if version == L::VERSION {
             return Ok(VersionedEitherMessage::Left(L::decode(input)?));

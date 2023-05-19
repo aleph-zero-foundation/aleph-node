@@ -1,46 +1,49 @@
 [package]
 name = "pallet-committee-management"
 version = "0.1.0"
-edition = "2021"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
 
 [dependencies]
+parity-scale-codec = { workspace = true, features = ["derive"] }
+rand = { workspace = true, features = [ "small_rng" ] }
+scale-info = { workspace = true, features = ["derive"] }
 
-codec = { package = "parity-scale-codec", version = "3.0", default-features = false, features = ["derive"] }
-scale-info = { version = "2.0", default-features = false, features = ["derive"] }
-rand = { version = "0.8.5", default-features = false, features = [ "small_rng" ] }
+frame-support = { workspace = true }
+frame-system = { workspace = true }
+pallet-authorship = { workspace = true }
+pallet-session = { workspace = true }
+pallet-staking = { workspace = true }
+sp-io = { workspace = true }
+sp-runtime = { workspace = true }
+sp-staking = { workspace = true }
+sp-std = { workspace = true }
 
-pallet-session = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
-sp-staking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
-sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
-pallet-staking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
-sp-runtime = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
-frame-support = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
-frame-system = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
-pallet-authorship = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
-sp-io = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
-
-pallets-support = { path = "../support", default-features = false }
-primitives = { path = "../../primitives", default-features = false }
+pallets-support = { workspace = true }
+primitives = { workspace = true }
 
 [features]
 default = ["std"]
 std = [
-    "codec/std",
-    "scale-info/std",
+    "parity-scale-codec/std",
     "rand/std",
-    "pallet-session/std",
-    "pallet-staking/std",
-    "sp-staking/std",
-    "sp-std/std",
-    "primitives/std",
-    "sp-runtime/std",
+    "scale-info/std",
+
     "frame-support/std",
     "frame-system/std",
     "pallet-authorship/std",
+    "pallet-session/std",
+    "pallet-staking/std",
     "sp-io/std",
+    "sp-runtime/std",
+    "sp-staking/std",
+    "sp-std/std",
+
+    "primitives/std",
 ]
 
 try-runtime = [
     "frame-support/try-runtime",
-    "pallets-support/try-runtime",
 ]

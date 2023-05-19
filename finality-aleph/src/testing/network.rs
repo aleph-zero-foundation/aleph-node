@@ -4,7 +4,6 @@ use std::{
     time::Duration,
 };
 
-use codec::{Decode, Encode};
 use futures::channel::oneshot;
 use network_clique::{
     mock::{
@@ -13,6 +12,7 @@ use network_clique::{
     },
     AddressingInformation,
 };
+use parity_scale_codec::{Decode, Encode};
 use sc_service::TaskManager;
 use tokio::{runtime::Handle, task::JoinHandle, time::timeout};
 

@@ -22,10 +22,10 @@ mod mock;
 mod tests;
 mod traits;
 
-use codec::{Decode, Encode};
 use frame_support::traits::StorageVersion;
 pub use migration::{v4::Migration as MigrateToV4, v5::Migration as CommitteeSizeMigration};
 pub use pallet::*;
+use parity_scale_codec::{Decode, Encode};
 pub use primitives::EraValidators;
 use scale_info::TypeInfo;
 use sp_std::{

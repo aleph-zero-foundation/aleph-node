@@ -5,9 +5,9 @@ use std::{
 };
 
 use aleph_bft_types::Recipient;
-use codec::Codec;
 use futures::{channel::mpsc, StreamExt};
 use log::{debug, error, info, trace, warn};
+use parity_scale_codec::Codec;
 
 use crate::{
     multicast::{Hash, Multicast, SignableHash},
@@ -231,7 +231,7 @@ mod tests {
         hash::Hash,
     };
 
-    use codec::{Decode, Encode};
+    use parity_scale_codec::{Decode, Encode};
 
     use crate::{
         aggregator::{AggregatorError, BlockSignatureAggregator},

@@ -440,9 +440,9 @@ impl<N: RawNetwork, AD: Data, BSD: Data> Service<N, AD, BSD> {
 mod tests {
     use std::{collections::HashSet, iter};
 
-    use codec::Encode;
     use futures::channel::oneshot;
     use network_clique::mock::{random_peer_id, MockPublicKey};
+    use parity_scale_codec::Encode;
     use sc_service::TaskManager;
     use tokio::runtime::Handle;
 

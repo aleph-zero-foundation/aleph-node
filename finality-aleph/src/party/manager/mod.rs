@@ -1,6 +1,5 @@
 use std::{collections::HashSet, marker::PhantomData, sync::Arc};
 
-use aleph_primitives::{AlephSessionApi, BlockNumber, KEY_TYPE};
 use async_trait::async_trait;
 use futures::channel::oneshot;
 use log::{debug, info, trace, warn};
@@ -18,6 +17,7 @@ use crate::{
         current_create_aleph_config, legacy_create_aleph_config, run_current_member,
         run_legacy_member, SpawnHandle,
     },
+    aleph_primitives::{AlephSessionApi, BlockNumber, KEY_TYPE},
     crypto::{AuthorityPen, AuthorityVerifier},
     data_io::{ChainTracker, DataStore, OrderedDataInterpreter},
     mpsc,
@@ -124,7 +124,7 @@ where
     B: BlockT,
     B::Header: HeaderT<Number = BlockNumber>,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: aleph_primitives::AlephSessionApi<B>,
+    C::Api: crate::aleph_primitives::AlephSessionApi<B>,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
     RB: RequestBlocks<IdentifierFor<B>>,
@@ -396,7 +396,7 @@ where
     B: BlockT,
     B::Header: HeaderT<Number = BlockNumber>,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: aleph_primitives::AlephSessionApi<B>,
+    C::Api: crate::aleph_primitives::AlephSessionApi<B>,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
     RB: RequestBlocks<IdentifierFor<B>>,

@@ -2,16 +2,18 @@
 
 use std::{cmp::Ordering, fmt::Debug, hash::Hash as StdHash, marker::PhantomData, pin::Pin};
 
-use aleph_primitives::BlockNumber;
-use codec::{Codec, Decode, Encode};
 use futures::{channel::oneshot, Future, TryFutureExt};
 use network_clique::SpawnHandleT;
+use parity_scale_codec::{Codec, Decode, Encode};
 use sc_service::SpawnTaskHandle;
 use sp_api::{BlockT, HeaderT};
 use sp_blockchain::HeaderBackend;
 use sp_runtime::traits::Hash as SpHash;
 
-use crate::data_io::{AlephData, DataProvider, OrderedDataInterpreter};
+use crate::{
+    aleph_primitives::BlockNumber,
+    data_io::{AlephData, DataProvider, OrderedDataInterpreter},
+};
 
 /// A convenience trait for gathering all of the desired hash characteristics.
 pub trait Hash: AsRef<[u8]> + StdHash + Eq + Clone + Codec + Debug + Send + Sync {}

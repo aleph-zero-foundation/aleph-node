@@ -9,7 +9,7 @@ use std::{
 };
 
 use aleph_bft_rmc::{MultiKeychain, ReliableMulticast, Signable, Signature};
-use codec::{Codec, Decode, Encode};
+use parity_scale_codec::{Codec, Decode, Encode};
 
 /// A convenience trait for gathering all of the desired hash characteristics.
 pub trait Hash: AsRef<[u8]> + StdHash + Eq + Clone + Codec + Debug + Display + Send + Sync {}

@@ -5,10 +5,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use aleph_primitives::BlockNumber;
 use async_trait::async_trait;
 
 use crate::{
+    aleph_primitives::BlockNumber,
     oneshot,
     party::{
         backup::ABFTBackup,

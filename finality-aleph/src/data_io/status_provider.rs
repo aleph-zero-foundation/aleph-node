@@ -1,13 +1,15 @@
-use aleph_primitives::BlockNumber;
 use log::debug;
 use sp_runtime::{
     traits::{Block as BlockT, Header as HeaderT},
     SaturatedConversion,
 };
 
-use crate::data_io::{
-    chain_info::ChainInfoProvider,
-    proposal::{AlephProposal, ProposalStatus},
+use crate::{
+    aleph_primitives::BlockNumber,
+    data_io::{
+        chain_info::ChainInfoProvider,
+        proposal::{AlephProposal, ProposalStatus},
+    },
 };
 
 pub fn get_proposal_status<B, CIP>(

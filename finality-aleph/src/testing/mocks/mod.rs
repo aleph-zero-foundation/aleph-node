@@ -1,5 +1,4 @@
 pub use acceptance_policy::AcceptancePolicy;
-use aleph_primitives::BlockNumber;
 pub use block_finalizer::MockedBlockFinalizer;
 pub use block_request::MockedBlockRequester;
 pub use client::{TestClient, TestClientBuilder, TestClientBuilderExt};
@@ -9,7 +8,7 @@ pub use proposal::{
 use sp_runtime::traits::BlakeTwo256;
 use substrate_test_runtime::Extrinsic;
 
-use crate::IdentifierFor;
+use crate::{aleph_primitives::BlockNumber, IdentifierFor};
 
 type Hashing = BlakeTwo256;
 pub type TBlock = sp_runtime::generic::Block<THeader, Extrinsic>;

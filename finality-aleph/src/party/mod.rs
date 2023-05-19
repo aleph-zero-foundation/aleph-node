@@ -262,11 +262,11 @@ mod tests {
         time::Duration,
     };
 
-    use aleph_primitives::{AuthorityId, SessionAuthorityData};
     use sp_runtime::testing::UintAuthorityId;
     use tokio::{task::JoinHandle, time::sleep};
 
     use crate::{
+        aleph_primitives::{AuthorityId, SessionAuthorityData},
         party::{
             mocks::{MockChainState, MockNodeSessionManager, MockSyncState},
             ConsensusParty, ConsensusPartyParams, SESSION_STATUS_CHECK_PERIOD,

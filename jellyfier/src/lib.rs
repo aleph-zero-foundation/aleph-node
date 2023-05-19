@@ -8,12 +8,13 @@ use jf_plonk::{
     },
     transcript::StandardTranscript,
 };
+use parity_scale_codec::{Decode, Encode};
 use sp_runtime_interface::pass_by::PassByEnum;
 
 pub type Curve = Bls12_381;
 pub type CircuitField = Fr;
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug, codec::Encode, codec::Decode, PassByEnum)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Encode, Decode, PassByEnum)]
 pub enum VerificationError {
     WrongProof,
     DeserializationError,

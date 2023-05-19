@@ -1,12 +1,12 @@
 use std::{sync::Arc, time::Duration};
 
-use aleph_primitives::KEY_TYPE;
-use codec::{Decode, Encode, Output};
 use futures::{channel::mpsc, StreamExt};
+use parity_scale_codec::{Decode, Encode, Output};
 use sp_keystore::{testing::KeyStore, CryptoStore};
 use tokio::time::timeout;
 
 use crate::{
+    aleph_primitives::KEY_TYPE,
     crypto::{AuthorityPen, AuthorityVerifier},
     AuthorityId, NodeIndex,
 };
@@ -43,7 +43,9 @@ impl Encode for MockData {
 }
 
 impl Decode for MockData {
-    fn decode<I: codec::Input>(value: &mut I) -> Result<Self, codec::Error> {
+    fn decode<I: parity_scale_codec::Input>(
+        value: &mut I,
+    ) -> Result<Self, parity_scale_codec::Error> {
         let data = u32::decode(value)?;
         let filler = Vec::<u8>::decode(value)?;
         let decodes = bool::decode(value)?;

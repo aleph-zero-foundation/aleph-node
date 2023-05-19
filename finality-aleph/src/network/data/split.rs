@@ -2,9 +2,9 @@
 // you might find that it will require you to leak all private types declared here.
 use std::{marker::PhantomData, sync::Arc};
 
-use codec::{Decode, Encode};
 use futures::channel::mpsc;
 use log::{debug, trace};
+use parity_scale_codec::{Decode, Encode};
 use tokio::sync::Mutex;
 
 use crate::{

@@ -1,9 +1,11 @@
 use std::fmt::{Display, Error as FmtError, Formatter};
 
-use aleph_primitives::SessionAuthorityData;
 use sp_runtime::RuntimeAppPublic;
 
-use crate::{crypto::AuthorityVerifier, justification::AlephJustification, AuthorityId};
+use crate::{
+    aleph_primitives::SessionAuthorityData, crypto::AuthorityVerifier,
+    justification::AlephJustification, AuthorityId,
+};
 
 /// A justification verifier within a single session.
 #[derive(Clone, PartialEq, Debug)]

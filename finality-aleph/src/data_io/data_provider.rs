@@ -1,6 +1,5 @@
 use std::{sync::Arc, time::Duration};
 
-use aleph_primitives::BlockNumber;
 use futures::channel::oneshot;
 use log::{debug, warn};
 use parking_lot::Mutex;
@@ -12,6 +11,7 @@ use sp_runtime::{
 };
 
 use crate::{
+    aleph_primitives::BlockNumber,
     data_io::{proposal::UnvalidatedAlephProposal, AlephData, MAX_DATA_BRANCH_LEN},
     metrics::Checkpoint,
     IdentifierFor, Metrics, SessionBoundaries,

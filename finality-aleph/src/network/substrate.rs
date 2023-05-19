@@ -1,6 +1,5 @@
 use std::{collections::HashMap, fmt, iter, pin::Pin, sync::Arc};
 
-use aleph_primitives::BlockNumber;
 use async_trait::async_trait;
 use futures::stream::{Stream, StreamExt};
 use log::{error, trace};
@@ -17,6 +16,7 @@ use sc_network_common::{
 use sp_runtime::traits::{Block, Header};
 
 use crate::{
+    aleph_primitives::BlockNumber,
     network::{
         gossip::{Event, EventStream, NetworkSender, Protocol, RawNetwork},
         RequestBlocks,

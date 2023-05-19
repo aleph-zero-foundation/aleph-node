@@ -10,4 +10,5 @@ mod service;
 
 pub use cli::{Cli, Subcommand};
 pub use executor::ExecutorDispatch;
+use primitives as aleph_primitives;
 pub use service::{new_authority, new_partial};

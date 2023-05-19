@@ -1,8 +1,8 @@
 //! Managing the validator connections in sessions using the gossip network.
 use std::fmt::Display;
 
-use codec::{Decode, Encode};
 use futures::channel::mpsc;
+use parity_scale_codec::{Decode, Encode};
 
 use crate::{
     crypto::{AuthorityPen, AuthorityVerifier, Signature},

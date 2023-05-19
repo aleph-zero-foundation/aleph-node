@@ -3,10 +3,10 @@ use std::{
     fmt::{Debug, Display, Error as FmtError, Formatter},
 };
 
-use aleph_primitives::BlockNumber;
 use sp_runtime::SaturatedConversion;
 
 use crate::{
+    aleph_primitives::BlockNumber,
     session::{SessionBoundaryInfo, SessionId},
     session_map::AuthorityProvider,
     sync::{
@@ -189,13 +189,12 @@ where
 mod tests {
     use std::{cell::Cell, collections::HashMap};
 
-    use aleph_primitives::SessionAuthorityData;
-
     use super::{
         AuthorityProvider, BlockNumber, CacheError, FinalizationInfo, SessionVerifier,
         VerifierCache,
     };
     use crate::{
+        aleph_primitives::SessionAuthorityData,
         session::{testing::authority_data, SessionBoundaryInfo, SessionId},
         sync::mock::MockHeader,
         SessionPeriod,

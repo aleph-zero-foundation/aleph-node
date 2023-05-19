@@ -4,14 +4,15 @@ use std::{
     ops::Index,
 };
 
-use aleph_primitives::BlockNumber;
-use codec::{Decode, Encode};
+use parity_scale_codec::{Decode, Encode};
 use sp_runtime::{
     traits::{Block as BlockT, Header as HeaderT},
     SaturatedConversion,
 };
 
-use crate::{data_io::MAX_DATA_BRANCH_LEN, IdentifierFor, SessionBoundaries};
+use crate::{
+    aleph_primitives::BlockNumber, data_io::MAX_DATA_BRANCH_LEN, IdentifierFor, SessionBoundaries,
+};
 
 /// Represents a proposal we obtain from another node. Note that since the proposal might come from
 /// a malicious node there is no guarantee that the block hashes in the proposal correspond to real blocks
@@ -249,13 +250,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use aleph_primitives::BlockNumber;
     use sp_core::hash::H256;
 
     use super::{UnvalidatedAlephProposal, ValidationError::*};
     use crate::{
-        data_io::MAX_DATA_BRANCH_LEN, testing::mocks::TBlock, SessionBoundaryInfo, SessionId,
-        SessionPeriod,
+        aleph_primitives::BlockNumber, data_io::MAX_DATA_BRANCH_LEN, testing::mocks::TBlock,
+        SessionBoundaryInfo, SessionId, SessionPeriod,
     };
 
     #[test]

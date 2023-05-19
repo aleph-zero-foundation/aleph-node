@@ -1,10 +1,10 @@
-use codec::{Decode, Encode};
 use frame_election_provider_support::Weight;
 use frame_support::{
     log,
     pallet_prelude::{StorageVersion, TypeInfo},
     traits::OnRuntimeUpgrade,
 };
+use parity_scale_codec::{Decode, Encode};
 use primitives::CommitteeSeats;
 use sp_core::Get;
 #[cfg(feature = "try-runtime")]

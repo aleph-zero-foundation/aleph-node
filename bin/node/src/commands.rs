@@ -4,7 +4,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use aleph_primitives::AuthorityId as AlephId;
 use aleph_runtime::AccountId;
 use libp2p::identity::{ed25519 as libp2p_ed25519, PublicKey};
 use sc_cli::{
@@ -20,9 +19,12 @@ use sp_application_crypto::{key_types, Ss58Codec};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_keystore::SyncCryptoStore;
 
-use crate::chain_spec::{
-    self, account_id_from_string, AuthorityKeys, ChainParams, ChainSpec, SerializablePeerId,
-    DEFAULT_BACKUP_FOLDER,
+use crate::{
+    aleph_primitives::AuthorityId as AlephId,
+    chain_spec::{
+        self, account_id_from_string, AuthorityKeys, ChainParams, ChainSpec, SerializablePeerId,
+        DEFAULT_BACKUP_FOLDER,
+    },
 };
 
 #[derive(Debug, Args)]
@@ -69,10 +71,10 @@ fn aura_key(keystore: &impl SyncCryptoStore) -> AuraId {
 
 /// returns Aleph key, if absent a new key is generated
 fn aleph_key(keystore: &impl SyncCryptoStore) -> AlephId {
-    SyncCryptoStore::ed25519_public_keys(keystore, aleph_primitives::KEY_TYPE)
+    SyncCryptoStore::ed25519_public_keys(keystore, crate::aleph_primitives::KEY_TYPE)
         .pop()
         .unwrap_or_else(|| {
-            SyncCryptoStore::ed25519_generate_new(keystore, aleph_primitives::KEY_TYPE, None)
+            SyncCryptoStore::ed25519_generate_new(keystore, crate::aleph_primitives::KEY_TYPE, None)
                 .expect("Could not create Aleph key")
         })
         .into()

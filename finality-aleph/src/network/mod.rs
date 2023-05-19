@@ -1,4 +1,4 @@
-use codec::Codec;
+use parity_scale_codec::Codec;
 
 pub mod data;
 mod gossip;

@@ -10,9 +10,9 @@ use frame_support::{
 #[cfg(feature = "try-runtime")]
 use {
     crate::{BanConfigStruct, ValidatorTotalRewards},
-    codec::{Decode, Encode},
     frame_support::{ensure, traits::STORAGE_VERSION_STORAGE_KEY_POSTFIX},
     pallets_support::ensure_storage_version,
+    parity_scale_codec::{Decode, Encode},
     scale_info::TypeInfo,
     sp_io::hashing::twox_128,
     sp_std::vec::Vec,

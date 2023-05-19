@@ -1,4 +1,3 @@
-use aleph_primitives::BlockNumber;
 use finality_aleph::{AlephJustification, BlockId, Justification, JustificationTranslator};
 use futures::channel::mpsc;
 use jsonrpsee::{
@@ -7,6 +6,8 @@ use jsonrpsee::{
     types::error::{CallError, ErrorObject},
 };
 use sp_runtime::traits::Header;
+
+use crate::aleph_primitives::BlockNumber;
 
 /// System RPC errors.
 #[derive(Debug, thiserror::Error)]
