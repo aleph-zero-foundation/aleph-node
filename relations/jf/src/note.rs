@@ -3,15 +3,18 @@ use jf_primitives::circuit::rescue::RescueNativeGadget;
 use jf_relation::{Circuit, PlonkCircuit, Variable};
 
 use crate::{
-    shielder_types::{convert_hash, Note, Nullifier, TokenAmount, TokenId, Trapdoor},
+    shielder_types::{convert_array, Note, Nullifier, TokenAmount, TokenId, Trapdoor},
     CircuitField, PlonkResult, PublicInput,
 };
 
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum NoteType {
     Deposit,
     Spend,
+    Redeposit,
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct SourcedNote {
     pub note: Note,
     pub token_id: TokenId,
@@ -21,6 +24,7 @@ pub struct SourcedNote {
     pub note_type: NoteType,
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Default, Debug)]
 pub struct SourcedNoteVar {
     pub note_var: Variable,
     pub token_id_var: Variable,
@@ -36,20 +40,24 @@ pub trait NoteGadget {
 
 impl NoteGadget for PlonkCircuit<CircuitField> {
     fn create_note_variable(&mut self, note: &SourcedNote) -> PlonkResult<SourcedNoteVar> {
-        let note_var = self.create_variable(convert_hash(note.note))?;
+        let note_var = self.create_variable(convert_array(note.note))?;
         let token_id_var = self.create_variable(note.token_id.into())?;
         let token_amount_var = self.create_variable(note.token_amount.into())?;
-        let nullifier_var = self.create_variable(convert_hash(note.nullifier))?;
-        let trapdoor_var = self.create_variable(convert_hash(note.trapdoor))?;
+        let nullifier_var = self.create_variable(convert_array(note.nullifier))?;
+        let trapdoor_var = self.create_variable(convert_array(note.trapdoor))?;
 
         match note.note_type {
-            NoteType::Spend => {
-                self.set_variable_public(nullifier_var)?;
-            }
             NoteType::Deposit => {
                 self.set_variable_public(note_var)?;
                 self.set_variable_public(token_id_var)?;
                 self.set_variable_public(token_amount_var)?;
+            }
+            NoteType::Spend => {
+                self.set_variable_public(nullifier_var)?;
+            }
+            NoteType::Redeposit => {
+                self.set_variable_public(note_var)?;
+                self.set_variable_public(token_id_var)?;
             }
         }
 
@@ -102,15 +110,18 @@ impl NoteGadget for PlonkCircuit<CircuitField> {
 impl PublicInput for SourcedNote {
     fn public_input(&self) -> Vec<CircuitField> {
         match self.note_type {
-            NoteType::Spend => {
-                vec![convert_hash(self.nullifier)]
-            }
             NoteType::Deposit => {
                 vec![
-                    convert_hash(self.note),
+                    convert_array(self.note),
                     self.token_id.into(),
                     self.token_amount.into(),
                 ]
+            }
+            NoteType::Spend => {
+                vec![convert_array(self.nullifier)]
+            }
+            NoteType::Redeposit => {
+                vec![convert_array(self.note), self.token_id.into()]
             }
         }
     }
@@ -163,5 +174,10 @@ mod tests {
     #[test]
     fn deposit_note() {
         test_note(NoteType::Deposit)
+    }
+
+    #[test]
+    fn redeposit_note() {
+        test_note(NoteType::Redeposit)
     }
 }

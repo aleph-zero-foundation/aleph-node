@@ -6,6 +6,7 @@ use crate::{
     CircuitField, PlonkResult, PublicInput, Relation,
 };
 
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct DepositRelation {
     deposit_note: SourcedNote,
 }
@@ -31,7 +32,7 @@ impl DepositRelation {
     }
 }
 
-#[derive(Default)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Default, Debug)]
 pub struct DepositPublicInput {
     pub note: Note,
     pub token_id: TokenId,
@@ -44,7 +45,7 @@ impl PublicInput for DepositRelation {
     }
 }
 
-#[derive(Default)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Default, Debug)]
 pub struct DepositPrivateInput {
     pub trapdoor: Trapdoor,
     pub nullifier: Nullifier,

@@ -15,6 +15,7 @@ description = "A collection of jellyfish-based relations for use in liminal."
 ark-bls12-381 = "0.4.0"
 ark-ff = "0.4.0"
 rand_core = "0.6.4"
+num-bigint = { version = "0.4", default-features = false }
 
 jf-plonk = { git = "https://github.com/EspressoSystems/jellyfish", rev = "f431648" }
 jf-primitives = { git = "https://github.com/EspressoSystems/jellyfish", rev = "f431648" }
