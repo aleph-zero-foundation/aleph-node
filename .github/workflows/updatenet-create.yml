@@ -67,10 +67,13 @@ jobs:
           featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
           featurenet-name: fe-updnet-${{ github.run_id }}
 
-      - name: Wait for the testnet aleph-node binary to accept some blocks
-        uses: juliangruber/sleep-action@v2.0.0
+      - name: Wait for the aleph-node binary to accept some blocks
+        uses: ./.github/actions/wait-for-finalized-heads
         with:
-          time: 5m
+          gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
+          repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
+          # yamllint disable-line rule:line-length
+          json-rpc-endpoint: https://ws-fe-updnet-${{ github.run_id }}.dev.azero.dev
 
       - name: Finish featurenet Deployment
         uses: bobheadxi/deployments@v1
