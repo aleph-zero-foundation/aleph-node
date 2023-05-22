@@ -1,10 +1,11 @@
 use std::{thread::sleep, time::Duration};
 
 use aleph_client::{
+    api::sudo::events::Sudid,
     pallets::{elections::ElectionsSudoApi, session::SessionApi},
     primitives::CommitteeSeats,
     utility::BlocksApi,
-    waiting::{BlockStatus, WaitingExt},
+    waiting::{AlephWaiting, BlockStatus, WaitingExt},
     AccountId, AsConnection, Pair, SignedConnection, TxStatus,
 };
 use log::info;
@@ -35,6 +36,8 @@ async fn prepare_test() -> anyhow::Result<()> {
         non_reserved_seats: 4,
         non_reserved_finality_seats: 1,
     };
+
+    info!("validators: {:?}", new_validators);
 
     connection
         .change_validators(

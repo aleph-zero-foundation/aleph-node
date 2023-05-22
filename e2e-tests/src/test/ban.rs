@@ -328,7 +328,7 @@ pub async fn permissionless_ban() -> anyhow::Result<()> {
 #[tokio::test]
 pub async fn ban_threshold() -> anyhow::Result<()> {
     let config = config::setup_test();
-    let (root_connection, reserved_validators, non_reserved_validators, seats) =
+    let (root_connection, reserved_validators, non_reserved_validators, _) =
         setup_test(config).await?;
 
     // Check current era validators.
@@ -368,7 +368,6 @@ pub async fn ban_threshold() -> anyhow::Result<()> {
         &root_connection,
         &reserved_validators,
         &non_reserved_validators,
-        &seats,
         check_start_session,
         check_end_session,
         DEFAULT_BAN_SESSION_COUNT_THRESHOLD,

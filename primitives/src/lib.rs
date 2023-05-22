@@ -6,11 +6,14 @@ use scale_info::TypeInfo;
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::KeyTypeId;
-use sp_runtime::Perquintill;
 pub use sp_runtime::{
     generic,
     traits::{BlakeTwo256, ConstU32, Header as HeaderT},
     BoundedVec, ConsensusEngineId, OpaqueExtrinsic as UncheckedExtrinsic, Perbill,
+};
+use sp_runtime::{
+    traits::{IdentifyAccount, Verify},
+    MultiSignature, Perquintill,
 };
 pub use sp_staking::{EraIndex, SessionIndex};
 use sp_std::vec::Vec;
@@ -41,6 +44,23 @@ pub type BlockHash = <Header as HeaderT>::Hash;
 pub type BlockNumber = u32;
 pub type SessionCount = u32;
 pub type BlockCount = u32;
+
+/// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
+pub type Signature = MultiSignature;
+
+/// Some way of identifying an account on the chain. We intentionally make it equivalent
+/// to the public key of our transaction signing scheme.
+pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
+
+/// The type for looking up accounts. We don't expect more than 4 billion of them, but you
+/// never know...
+pub type AccountIndex = u32;
+
+/// Index of a transaction in the chain.
+pub type Index = u32;
+
+/// A hash of some data used by the chain.
+pub type Hash = sp_core::H256;
 
 // Default number of heap pages that gives limit of 256MB for a runtime instance since each page is 64KB
 pub const HEAP_PAGES: u64 = 4096;
@@ -83,8 +103,15 @@ pub const DEFAULT_FINALITY_VERSION: Version = 0;
 pub const CURRENT_FINALITY_VERSION: u16 = LEGACY_FINALITY_VERSION + 1;
 /// Legacy version of abft.
 pub const LEGACY_FINALITY_VERSION: u16 = 1;
-
 pub const LENIENT_THRESHOLD: Perquintill = Perquintill::from_percent(90);
+
+/// Hold set of validators that produce blocks and set of validators that participate in finality
+/// during session.
+#[derive(Decode, Encode, TypeInfo, Debug, Clone, PartialEq, Eq)]
+pub struct SessionCommittee<T> {
+    pub finality_committee: Vec<T>,
+    pub block_producers: Vec<T>,
+}
 
 /// Openness of the process of the elections
 #[derive(Decode, Encode, TypeInfo, Debug, Clone, PartialEq, Eq)]
@@ -102,7 +129,7 @@ pub struct CommitteeSeats {
     /// Size of non reserved validators in a session
     pub non_reserved_seats: u32,
     /// Size of non reserved validators participating in the finality in a session.
-    /// A subset of the non reserved validators._
+    /// A subset of the non reserved validators.
     pub non_reserved_finality_seats: u32,
 }
 
@@ -122,7 +149,6 @@ impl Default for CommitteeSeats {
     }
 }
 
-///
 pub trait FinalityCommitteeManager<T> {
     /// `committee` is the set elected for finality committee for the next session
     fn on_next_session_finality_committee(committee: Vec<T>);
@@ -197,6 +223,15 @@ pub enum ApiError {
     DecodeKey,
 }
 
+#[derive(Encode, Decode, PartialEq, Eq, Debug)]
+pub enum SessionValidatorError {
+    SessionNotWithinRange {
+        lower_limit: SessionIndex,
+        upper_limit: SessionIndex,
+    },
+    Other(Vec<u8>),
+}
+
 /// All the data needed to verify block finalization justifications.
 #[derive(Clone, Debug, Encode, Decode, PartialEq, Eq)]
 pub struct SessionAuthorityData {
@@ -230,8 +265,7 @@ pub struct VersionChange {
 }
 
 sp_api::decl_runtime_apis! {
-    pub trait AlephSessionApi
-    {
+    pub trait AlephSessionApi {
         fn next_session_authorities() -> Result<Vec<AuthorityId>, ApiError>;
         fn authorities() -> Vec<AuthorityId>;
         fn next_session_authority_data() -> Result<SessionAuthorityData, ApiError>;
@@ -240,6 +274,9 @@ sp_api::decl_runtime_apis! {
         fn millisecs_per_block() -> u64;
         fn finality_version() -> Version;
         fn next_session_finality_version() -> Version;
+        fn session_committee(
+            session: SessionIndex,
+        ) -> Result<SessionCommittee<AccountId>, SessionValidatorError>;
     }
 }
 
@@ -271,6 +308,11 @@ impl<T> Default for SessionValidators<T> {
             non_committee: Vec::new(),
         }
     }
+}
+
+/// Information provider from `pallet_session`. Loose pallet coupling via traits.
+pub trait SessionInfoProvider {
+    fn current_session() -> SessionIndex;
 }
 
 pub trait BannedValidators {

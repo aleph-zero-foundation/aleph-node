@@ -1,7 +1,8 @@
 use frame_support::{log::info, pallet_prelude::Get};
+use parity_scale_codec::Encode;
 use primitives::{
     BanHandler, BanInfo, BanReason, BannedValidators, CommitteeSeats, EraValidators,
-    SessionValidators, ValidatorProvider,
+    SessionCommittee, SessionValidatorError, SessionValidators, ValidatorProvider,
 };
 use rand::{rngs::SmallRng, seq::SliceRandom, SeedableRng};
 use sp_runtime::{Perbill, Perquintill};
@@ -22,12 +23,6 @@ use crate::{
 };
 
 const MAX_REWARD: u32 = 1_000_000_000;
-
-#[derive(Debug, Eq, PartialEq)]
-pub(crate) struct SessionCommittee<T> {
-    pub finality_committee: Vec<T>,
-    pub block_producers: Vec<T>,
-}
 
 impl<T: Config> BannedValidators for Pallet<T> {
     type AccountId = T::AccountId;
@@ -88,7 +83,7 @@ fn choose_finality_committee<T: Clone>(
     finality_committee
 }
 
-fn rotate<AccountId: Clone + PartialEq>(
+fn select_committee_inner<AccountId: Clone + PartialEq>(
     current_session: SessionIndex,
     reserved_seats: usize,
     non_reserved_seats: usize,
@@ -188,6 +183,7 @@ impl<T: Config> Pallet<T> {
 
         ValidatorEraTotalReward::<T>::put(ValidatorTotalRewards(scaled_totals.collect()));
     }
+
     fn reward_for_session_non_committee(
         non_committee: Vec<T::AccountId>,
         nr_of_sessions: SessionIndex,
@@ -301,33 +297,49 @@ impl<T: Config> Pallet<T> {
         CurrentAndNextSessionValidatorsStorage::<T>::put(session_validators);
     }
 
+    pub(crate) fn select_committee(
+        era_validators: &EraValidators<T::AccountId>,
+        committee_seats: CommitteeSeats,
+        current_session: SessionIndex,
+    ) -> Option<SessionCommittee<T::AccountId>> {
+        let EraValidators {
+            reserved,
+            non_reserved,
+        } = era_validators;
+
+        let CommitteeSeats {
+            reserved_seats,
+            non_reserved_seats,
+            non_reserved_finality_seats,
+        } = committee_seats;
+
+        select_committee_inner(
+            current_session,
+            reserved_seats as usize,
+            non_reserved_seats as usize,
+            non_reserved_finality_seats as usize,
+            reserved,
+            non_reserved,
+        )
+    }
+
     pub(crate) fn rotate_committee(
         current_session: SessionIndex,
     ) -> Option<SessionCommittee<T::AccountId>>
     where
         T::AccountId: Clone + PartialEq,
     {
-        let EraValidators {
-            reserved,
-            non_reserved,
-        } = T::ValidatorProvider::current_era_validators();
-        let CommitteeSeats {
-            reserved_seats,
-            non_reserved_seats,
-            non_reserved_finality_seats,
-        } = T::ValidatorProvider::current_era_committee_size();
+        let era_validators = T::ValidatorProvider::current_era_validators();
+        let committee_seats = T::ValidatorProvider::current_era_committee_size();
 
-        let committee = rotate(
-            current_session,
-            reserved_seats as usize,
-            non_reserved_seats as usize,
-            non_reserved_finality_seats as usize,
-            &reserved,
-            &non_reserved,
-        );
+        let committee = Self::select_committee(&era_validators, committee_seats, current_session);
 
         if let Some(c) = &committee {
-            Self::store_session_validators(&c.block_producers, reserved, non_reserved);
+            Self::store_session_validators(
+                &c.block_producers,
+                era_validators.reserved,
+                era_validators.non_reserved,
+            );
         }
 
         committee
@@ -417,6 +429,43 @@ impl<T: Config> Pallet<T> {
             Self::deposit_event(Event::BanValidators(fresh_bans));
         }
     }
+
+    /// Calculates committee for the given session.
+    /// If the current era `E` starts in the session `a`, and ends in session `b` then from session `a-1`
+    /// to session `b-1` this function can answer question who will be in the committee in the era `E`.
+    /// In the last session of the era `E` this can be used to determine all of the sessions in the
+    /// era `E+1`.
+    pub fn session_committee_for_session(
+        session: SessionIndex,
+    ) -> Result<SessionCommittee<T::AccountId>, SessionValidatorError> {
+        let ce = match T::EraInfoProvider::current_era() {
+            Some(ce) => ce,
+            _ => return Err(SessionValidatorError::Other("No current era".encode())),
+        };
+
+        let current_starting_index = match T::EraInfoProvider::era_start_session_index(ce) {
+            Some(csi) => csi,
+            // Shouldn't happen
+            None => {
+                return Err(SessionValidatorError::Other(
+                    "No known starting session for current era".encode(),
+                ))
+            }
+        };
+        let planned_era_end = current_starting_index + T::EraInfoProvider::sessions_per_era() - 1;
+
+        if session < current_starting_index || session > planned_era_end {
+            return Err(SessionValidatorError::SessionNotWithinRange {
+                lower_limit: current_starting_index,
+                upper_limit: planned_era_end,
+            });
+        }
+
+        let era_validators = T::ValidatorProvider::current_era_validators();
+        let committee_seats = T::ValidatorProvider::current_era_committee_size();
+        Self::select_committee(&era_validators, committee_seats, session)
+            .ok_or_else(|| SessionValidatorError::Other("Internal error".encode()))
+    }
 }
 
 #[cfg(test)]
@@ -426,8 +475,8 @@ mod tests {
     use sp_runtime::Perquintill;
 
     use crate::impls::{
-        calculate_adjusted_session_points, compute_validator_scaled_total_rewards, rotate,
-        MAX_REWARD,
+        calculate_adjusted_session_points, compute_validator_scaled_total_rewards,
+        select_committee_inner, MAX_REWARD,
     };
 
     const THRESHOLD: Perquintill = Perquintill::from_percent(90);
@@ -557,7 +606,7 @@ mod tests {
 
             let expected_committee: BTreeSet<_> = BTreeSet::from_iter(expected_committee);
             let committee: BTreeSet<_> = BTreeSet::from_iter(
-                rotate(
+                select_committee_inner(
                     session_index,
                     reserved_seats,
                     non_reserved_seats,

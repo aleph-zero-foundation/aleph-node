@@ -1,13 +1,12 @@
+use std::collections::HashSet;
+
 use aleph_client::{
     api::committee_management::events::BanValidators,
-    pallets::{
-        committee_management::CommitteeManagementApi,
-        elections::{ElectionsApi, ElectionsSudoApi},
-    },
+    pallets::{committee_management::CommitteeManagementApi, elections::ElectionsSudoApi},
     primitives::{BanConfig, BanInfo, CommitteeSeats, EraValidators},
     utility::BlocksApi,
     waiting::{AlephWaiting, BlockStatus, WaitingExt},
-    AccountId, RootConnection, TxStatus,
+    AccountId, AsConnection, RootConnection, TxStatus,
 };
 use codec::Encode;
 use log::info;
@@ -15,7 +14,7 @@ use primitives::{SessionCount, SessionIndex};
 use sp_runtime::Perbill;
 
 use crate::{
-    accounts::account_ids_from_keys, config::Config, elections::get_members_subset_for_session,
+    accounts::account_ids_from_keys, config::Config, elections::compute_session_committee,
     validators::get_test_validators,
 };
 
@@ -66,8 +65,14 @@ pub fn check_validators(
     expected_non_reserved: &[AccountId],
     era_validators: EraValidators<AccountId>,
 ) -> EraValidators<AccountId> {
-    assert_eq!(era_validators.reserved, expected_reserved);
-    assert_eq!(era_validators.non_reserved, expected_non_reserved);
+    assert_eq!(
+        HashSet::<_>::from_iter(&era_validators.reserved),
+        HashSet::<_>::from_iter(expected_reserved)
+    );
+    assert_eq!(
+        HashSet::<_>::from_iter(&era_validators.non_reserved),
+        HashSet::<_>::from_iter(expected_non_reserved)
+    );
 
     era_validators
 }
@@ -159,32 +164,13 @@ pub async fn check_ban_event<C: AlephWaiting>(
     Ok(event)
 }
 
-pub fn get_members_for_session(
-    reserved_validators: &[AccountId],
-    non_reserved_validators: &[AccountId],
-    seats: &CommitteeSeats,
-    session: SessionIndex,
-) -> Vec<AccountId> {
-    let reserved_members =
-        get_members_subset_for_session(seats.reserved_seats, reserved_validators, session);
-    let non_reserved_members =
-        get_members_subset_for_session(seats.non_reserved_seats, non_reserved_validators, session);
-    reserved_members
-        .into_iter()
-        .chain(non_reserved_members.into_iter())
-        .collect()
-}
-
 /// Checks whether underperformed counts for validators change predictably. Assumes: (a) that the
 /// sessions checked are in the past, (b) that all the checked validators are underperforming in
 /// those sessions (e.g. due to a prohibitively high performance threshold).
-pub async fn check_underperformed_count_for_sessions<
-    C: ElectionsApi + CommitteeManagementApi + BlocksApi,
->(
+pub async fn check_underperformed_count_for_sessions<C: AsConnection + Sync>(
     connection: &C,
     reserved_validators: &[AccountId],
     non_reserved_validators: &[AccountId],
-    seats: &CommitteeSeats,
     start_session: SessionIndex,
     end_session: SessionIndex,
     ban_session_threshold: SessionCount,
@@ -205,8 +191,8 @@ pub async fn check_underperformed_count_for_sessions<
             .get_block_hash(previous_session_end_block)
             .await?;
 
-        let members =
-            get_members_for_session(reserved_validators, non_reserved_validators, seats, session);
+        let (r, nr) = compute_session_committee(connection, session).await?;
+        let members: Vec<_> = r.into_iter().chain(nr).collect();
 
         for &val in validators.iter() {
             info!(

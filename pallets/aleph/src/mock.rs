@@ -5,7 +5,7 @@ use frame_support::{
     traits::{OnFinalize, OnInitialize},
     weights::{RuntimeDbWeight, Weight},
 };
-use primitives::AuthorityId;
+use primitives::{AuthorityId, SessionInfoProvider};
 use sp_api_hidden_includes_construct_runtime::hidden_include::traits::GenesisBuild;
 use sp_core::H256;
 use sp_runtime::{
@@ -99,6 +99,13 @@ impl pallet_balances::Config for Test {
     type MaxLocks = ();
 }
 
+pub struct SessionInfoImpl;
+impl SessionInfoProvider for SessionInfoImpl {
+    fn current_session() -> SessionIndex {
+        pallet_session::CurrentIndex::<Test>::get()
+    }
+}
+
 impl pallet_session::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type ValidatorId = u64;
@@ -133,7 +140,7 @@ impl pallet_timestamp::Config for Test {
 impl Config for Test {
     type AuthorityId = AuthorityId;
     type RuntimeEvent = RuntimeEvent;
-    type SessionInfoProvider = Session;
+    type SessionInfoProvider = SessionInfoImpl;
     type SessionManager = ();
     type NextSessionAuthorityProvider = Session;
 }

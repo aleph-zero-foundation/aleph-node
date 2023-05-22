@@ -13,7 +13,7 @@ use aleph_client::{
     primitives::{CommitteeSeats, EraValidators},
     utility::BlocksApi,
     waiting::{AlephWaiting, BlockStatus, WaitingExt},
-    AccountId, SignedConnection, TxStatus,
+    AccountId, AsConnection, SignedConnection, TxStatus,
 };
 use anyhow::anyhow;
 use log::{debug, info};
@@ -38,16 +38,20 @@ type RewardPoint = u32;
 pub async fn set_invalid_keys_for_validator<S: WaitingExt + SessionUserApi>(
     controller_connections: Vec<S>,
 ) -> anyhow::Result<()> {
+    if controller_connections.is_empty() {
+        return Ok(());
+    }
+
     let mut rng = rand::thread_rng();
     for con in &controller_connections {
         let mut invalid_keys = [0u8; 64];
         rng.fill(&mut invalid_keys);
 
-        // wait until our node is forced to use new keys, i.e. current session + 2
-        con.set_keys(invalid_keys.to_vec().into(), TxStatus::InBlock)
+        con.set_keys(invalid_keys.to_vec().into(), TxStatus::Finalized)
             .await
             .unwrap();
     }
+    // wait until our node is forced to use new keys, i.e. current session + 2
     controller_connections[0]
         .wait_for_n_sessions(2, BlockStatus::Best)
         .await;
@@ -157,9 +161,7 @@ async fn get_node_performance<S: ElectionsApi + CommitteeManagementApi>(
     lenient_performance
 }
 
-pub async fn check_points<
-    S: ElectionsApi + CommitteeManagementApi + AlephWaiting + BlocksApi + StakingApi,
->(
+pub async fn check_points<S: AsConnection + Sync>(
     connection: &S,
     session: SessionIndex,
     era: EraIndex,
@@ -327,7 +329,7 @@ pub async fn setup_validators(
         )
         .await?;
 
-    root_connection.wait_for_n_eras(1, BlockStatus::Best).await;
+    root_connection.wait_for_n_eras(2, BlockStatus::Best).await;
     let session = root_connection.get_session(None).await;
 
     let first_block_in_session = root_connection.first_block_of_session(session).await?;

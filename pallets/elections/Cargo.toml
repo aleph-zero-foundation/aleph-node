@@ -10,6 +10,7 @@ repository.workspace = true
 [dependencies]
 parity-scale-codec = { workspace = true, features = ["derive"] }
 scale-info = { workspace = true, features = ["derive"] }
+rand = { workspace = true, features = [ "small_rng" ] }
 
 frame-election-provider-support = { workspace = true }
 frame-support = { workspace = true }
@@ -40,9 +41,9 @@ std = [
     "pallet-staking/std",
     "sp-core/std",
     "sp-runtime/std",
+    "rand/std",
     "sp-std/std",
     "sp-staking/std",
-
     "primitives/std",
 ]
 try-runtime = [

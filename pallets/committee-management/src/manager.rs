@@ -1,11 +1,10 @@
 use frame_support::log::debug;
 use pallet_session::SessionManager;
-use primitives::{EraManager, FinalityCommitteeManager};
+use primitives::{EraManager, FinalityCommitteeManager, SessionCommittee};
 use sp_staking::{EraIndex, SessionIndex};
 use sp_std::{marker::PhantomData, vec::Vec};
 
 use crate::{
-    impls::SessionCommittee,
     pallet::{Config, Pallet, SessionValidatorBlockCount},
     traits::EraInfoProvider,
     LOG_TARGET,
