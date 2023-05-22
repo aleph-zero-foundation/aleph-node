@@ -251,10 +251,10 @@ pub trait BanHandler {
 
 pub trait ValidatorProvider {
     type AccountId;
-    /// returns validators for the current era if present.
-    fn current_era_validators() -> Option<EraValidators<Self::AccountId>>;
-    /// returns committe seats for the current era if present.
-    fn current_era_committee_size() -> Option<CommitteeSeats>;
+    /// returns validators for the current era.
+    fn current_era_validators() -> EraValidators<Self::AccountId>;
+    /// returns committee seats for the current era.
+    fn current_era_committee_size() -> CommitteeSeats;
 }
 
 #[derive(Decode, Encode, TypeInfo, Clone)]

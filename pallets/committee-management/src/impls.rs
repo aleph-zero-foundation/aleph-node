@@ -232,19 +232,13 @@ impl<T: Config> Pallet<T> {
             )
         })
     }
+
     fn blocks_to_produce_per_session() -> u32 {
-        T::SessionPeriod::get().saturating_div(
-            T::ValidatorProvider::current_era_committee_size()
-                .unwrap_or_default()
-                .size(),
-        )
+        T::SessionPeriod::get()
+            .saturating_div(T::ValidatorProvider::current_era_committee_size().size())
     }
 
     pub fn adjust_rewards_for_session() {
-        if T::EraInfoProvider::active_era().unwrap_or(0) == 0 {
-            return;
-        }
-
         let CurrentAndNextSessionValidators {
             current:
                 SessionValidators {
@@ -316,12 +310,12 @@ impl<T: Config> Pallet<T> {
         let EraValidators {
             reserved,
             non_reserved,
-        } = T::ValidatorProvider::current_era_validators()?;
+        } = T::ValidatorProvider::current_era_validators();
         let CommitteeSeats {
             reserved_seats,
             non_reserved_seats,
             non_reserved_finality_seats,
-        } = T::ValidatorProvider::current_era_committee_size()?;
+        } = T::ValidatorProvider::current_era_committee_size();
 
         let committee = rotate(
             current_session,

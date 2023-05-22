@@ -47,16 +47,10 @@ impl<T: Config> primitives::BanHandler for Pallet<T> {
 
 impl<T: Config + pallet_staking::Config> primitives::ValidatorProvider for Pallet<T> {
     type AccountId = T::AccountId;
-    fn current_era_validators() -> Option<EraValidators<Self::AccountId>> {
-        if pallet_staking::ActiveEra::<T>::get().map(|ae| ae.index) == Some(0) {
-            return None;
-        }
-        Some(CurrentEraValidators::<T>::get())
+    fn current_era_validators() -> EraValidators<Self::AccountId> {
+        CurrentEraValidators::<T>::get()
     }
-    fn current_era_committee_size() -> Option<CommitteeSeats> {
-        if pallet_staking::ActiveEra::<T>::get().map(|ae| ae.index) == Some(0) {
-            return None;
-        }
-        Some(CommitteeSize::<T>::get())
+    fn current_era_committee_size() -> CommitteeSeats {
+        CommitteeSize::<T>::get()
     }
 }
