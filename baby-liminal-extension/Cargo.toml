@@ -17,7 +17,6 @@ scale-info = { version = "2.3", default-features = false, features = ["derive"],
 obce = { git = "https://github.com/727-Ventures/obce", rev = "5e3da417c2189ddd4e9ef82cd586f8ec94b8952a", default-features = false }
 
 pallet-baby-liminal = { path = "../pallets/baby-liminal", default-features = false, optional = true }
-primitives = { path = "../primitives", default-features = false, optional = true }
 
 [dev-dependencies]
 aleph-runtime = { path = "../bin/runtime" , features = ["liminal"]}
@@ -32,7 +31,6 @@ std = [
 substrate = [
     "obce/substrate",
     "pallet-baby-liminal",
-    "primitives/liminal",
 ]
 ink = [
     "obce/ink",

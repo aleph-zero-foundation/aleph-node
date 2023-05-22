@@ -158,7 +158,6 @@ runtime-benchmarks = [
 liminal = [
     "baby-liminal-extension",
     "pallet-baby-liminal",
-    "primitives/liminal",
 ]
 liminal-std = [
     "liminal",

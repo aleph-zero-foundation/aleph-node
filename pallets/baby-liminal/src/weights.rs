@@ -35,12 +35,6 @@ pub trait WeightInfo {
     fn verify_data_too_long(excess: u32) -> Weight;
     fn verify_data_deserializing_fails(data_length: u32) -> Weight;
     fn verify_key_deserializing_fails(key_length: u32) -> Weight;
-    fn poseidon_one_to_one_wasm() -> Weight;
-    fn poseidon_two_to_one_wasm() -> Weight;
-    fn poseidon_four_to_one_wasm() -> Weight;
-    fn poseidon_one_to_one_host() -> Weight;
-    fn poseidon_two_to_one_host() -> Weight;
-    fn poseidon_four_to_one_host() -> Weight;
 }
 
 impl<I: BenchmarkInfo> WeightInfo for I {
@@ -79,31 +73,6 @@ impl<I: BenchmarkInfo> WeightInfo for I {
     fn verify_key_deserializing_fails(key_length: u32) -> Weight {
         <I as BenchmarkInfo>::verify_key_deserializing_fails(key_length)
     }
-
-    fn poseidon_one_to_one_wasm() -> Weight {
-        <I as BenchmarkInfo>::poseidon_one_to_one_wasm()
-    }
-
-    fn poseidon_two_to_one_wasm() -> Weight {
-        <I as BenchmarkInfo>::poseidon_two_to_one_wasm()
-    }
-
-    fn poseidon_four_to_one_wasm() -> Weight {
-        <I as BenchmarkInfo>::poseidon_four_to_one_wasm()
-    }
-
-    fn poseidon_one_to_one_host() -> Weight {
-        <I as BenchmarkInfo>::poseidon_one_to_one_host()
-    }
-
-    fn poseidon_two_to_one_host() -> Weight {
-        <I as BenchmarkInfo>::poseidon_two_to_one_host()
-    }
-
-    fn poseidon_four_to_one_host() -> Weight {
-        <I as BenchmarkInfo>::poseidon_four_to_one_host()
-    }
-    // TODO: compile results from benchmarks
 }
 
 /// Benchmark results for pallet_baby_liminal.
@@ -120,12 +89,6 @@ trait BenchmarkInfo {
 	fn verify_data_too_long(e: u32, ) -> Weight;
 	fn verify_data_deserializing_fails(l: u32, ) -> Weight;
 	fn verify_key_deserializing_fails(l: u32, ) -> Weight;
-	fn poseidon_one_to_one_wasm() -> Weight;
-	fn poseidon_two_to_one_wasm() -> Weight;
-	fn poseidon_four_to_one_wasm() -> Weight;
-	fn poseidon_one_to_one_host() -> Weight;
-	fn poseidon_two_to_one_host() -> Weight;
-	fn poseidon_four_to_one_host() -> Weight;
 }
 
 /// Weights for pallet_baby_liminal using the Substrate node and recommended hardware.
@@ -278,44 +241,6 @@ impl<T: frame_system::Config> BenchmarkInfo for AlephWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(2_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
-	/// The range of component `x` is `[0, 4294967295]`.
-	fn poseidon_one_to_one_wasm() -> Weight {
-		// Minimum execution time: 5_718_589 nanoseconds.
-		Weight::from_ref_time(6_089_141_701_u64)
-	}
-	/// The range of component `x` is `[0, 4294967295]`.
-	/// The range of component `y` is `[0, 4294967295]`.
-	fn poseidon_two_to_one_wasm() -> Weight {
-		// Minimum execution time: 9_014_496 nanoseconds.
-		Weight::from_ref_time(9_137_855_634_u64)
-	}
-	/// The range of component `x` is `[0, 4294967295]`.
-	/// The range of component `y` is `[0, 4294967295]`.
-	/// The range of component `w` is `[0, 4294967295]`.
-	/// The range of component `z` is `[0, 4294967295]`.
-	fn poseidon_four_to_one_wasm() -> Weight {
-		// Minimum execution time: 16_951_808 nanoseconds.
-		Weight::from_ref_time(18_149_939_233_u64)
-	}
-	/// The range of component `x` is `[0, 4294967295]`.
-	fn poseidon_one_to_one_host() -> Weight {
-		// Minimum execution time: 913_823 nanoseconds.
-		Weight::from_ref_time(994_920_187_u64)
-	}
-	/// The range of component `x` is `[0, 4294967295]`.
-	/// The range of component `y` is `[0, 4294967295]`.
-	fn poseidon_two_to_one_host() -> Weight {
-		// Minimum execution time: 1_473_379 nanoseconds.
-		Weight::from_ref_time(1_605_239_651_u64)
-	}
-	/// The range of component `x` is `[0, 4294967295]`.
-	/// The range of component `y` is `[0, 4294967295]`.
-	/// The range of component `w` is `[0, 4294967295]`.
-	/// The range of component `z` is `[0, 4294967295]`.
-	fn poseidon_four_to_one_host() -> Weight {
-		// Minimum execution time: 2_753_121 nanoseconds.
-		Weight::from_ref_time(2_909_130_711_u64)
-	}
 }
 
 // For backwards compatibility and tests
@@ -466,43 +391,5 @@ impl BenchmarkInfo for () {
 			.saturating_add(Weight::from_ref_time(76_571_u64).saturating_mul(l as u64))
 			.saturating_add(RocksDbWeight::get().reads(2_u64))
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
-	}
-	/// The range of component `x` is `[0, 4294967295]`.
-	fn poseidon_one_to_one_wasm() -> Weight {
-		// Minimum execution time: 5_718_589 nanoseconds.
-		Weight::from_ref_time(6_089_141_701_u64)
-	}
-	/// The range of component `x` is `[0, 4294967295]`.
-	/// The range of component `y` is `[0, 4294967295]`.
-	fn poseidon_two_to_one_wasm() -> Weight {
-		// Minimum execution time: 9_014_496 nanoseconds.
-		Weight::from_ref_time(9_137_855_634_u64)
-	}
-	/// The range of component `x` is `[0, 4294967295]`.
-	/// The range of component `y` is `[0, 4294967295]`.
-	/// The range of component `w` is `[0, 4294967295]`.
-	/// The range of component `z` is `[0, 4294967295]`.
-	fn poseidon_four_to_one_wasm() -> Weight {
-		// Minimum execution time: 16_951_808 nanoseconds.
-		Weight::from_ref_time(18_149_939_233_u64)
-	}
-	/// The range of component `x` is `[0, 4294967295]`.
-	fn poseidon_one_to_one_host() -> Weight {
-		// Minimum execution time: 913_823 nanoseconds.
-		Weight::from_ref_time(994_920_187_u64)
-	}
-	/// The range of component `x` is `[0, 4294967295]`.
-	/// The range of component `y` is `[0, 4294967295]`.
-	fn poseidon_two_to_one_host() -> Weight {
-		// Minimum execution time: 1_473_379 nanoseconds.
-		Weight::from_ref_time(1_605_239_651_u64)
-	}
-	/// The range of component `x` is `[0, 4294967295]`.
-	/// The range of component `y` is `[0, 4294967295]`.
-	/// The range of component `w` is `[0, 4294967295]`.
-	/// The range of component `z` is `[0, 4294967295]`.
-	fn poseidon_four_to_one_host() -> Weight {
-		// Minimum execution time: 2_753_121 nanoseconds.
-		Weight::from_ref_time(2_909_130_711_u64)
 	}
 }

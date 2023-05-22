@@ -104,7 +104,6 @@ only_legacy = [
 liminal = [
     "aleph-runtime/liminal",
     "jellyfier",
-    "primitives/liminal-std",
 ]
 liminal-try-runtime = [
     "liminal",

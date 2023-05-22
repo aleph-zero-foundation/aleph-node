@@ -19,10 +19,6 @@ sp-runtime = { workspace = true }
 sp-std = { workspace = true }
 sp-staking = { workspace = true }
 
-# Liminal-related dependencies
-sp-runtime-interface = { workspace = true, optional = true }
-liminal-ark-poseidon = { workspace = true, optional = true }
-
 [features]
 default = ["std"]
 std = [
@@ -37,15 +33,3 @@ std = [
     "sp-staking/std",
 ]
 short_session = []
-
-# Liminal-related features
-liminal = [
-    "sp-runtime-interface",
-    "liminal-ark-poseidon",
-]
-liminal-std = [
-    "liminal",
-    "std",
-    "sp-runtime-interface/std",
-    "liminal-ark-poseidon/std",
-]

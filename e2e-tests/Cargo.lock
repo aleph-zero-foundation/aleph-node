@@ -2603,6 +2603,7 @@ dependencies = [
  "pallet-authorship",
  "pallet-balances",
  "pallet-staking",
+ "pallets-support",
  "parity-scale-codec",
  "primitives",
  "scale-info",
@@ -2672,6 +2673,14 @@ dependencies = [
  "sp-runtime 7.0.0 (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.38)",
  "sp-std 5.0.0 (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.38)",
  "sp-timestamp",
+]
+
+[[package]]
+name = "pallets-support"
+version = "0.1.4"
+dependencies = [
+ "frame-support",
+ "sp-std 5.0.0 (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.38)",
 ]
 
 [[package]]

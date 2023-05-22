@@ -10,11 +10,9 @@ use obce::substrate::{
 use pallet_baby_liminal::{
     Config as BabyLiminalConfig, Error, VerificationKeyIdentifier, WeightInfo,
 };
-use primitives::host_functions::poseidon;
 
 use crate::{
-    executor::Executor, BabyLiminalError, BabyLiminalExtension, SingleHashInput,
-    BABY_LIMINAL_STORE_KEY_TOO_LONG_KEY,
+    executor::Executor, BabyLiminalError, BabyLiminalExtension, BABY_LIMINAL_STORE_KEY_TOO_LONG_KEY,
 };
 
 pub type ByteCount = u32;
@@ -120,29 +118,5 @@ where
             Err((Error::IncorrectProof, _)) => Err(BabyLiminalError::IncorrectProof),
             Err((_, _)) => Err(BabyLiminalError::VerifyErrorUnknown),
         }
-    }
-
-    #[obce(weight(
-        expr = "<<T as BabyLiminalConfig>::WeightInfo as WeightInfo>::poseidon_one_to_one_host()",
-        pre_charge
-    ))]
-    fn poseidon_one_to_one(&self, input: [SingleHashInput; 1]) -> SingleHashInput {
-        poseidon::one_to_one_hash(input[0])
-    }
-
-    #[obce(weight(
-        expr = "<<T as BabyLiminalConfig>::WeightInfo as WeightInfo>::poseidon_two_to_one_host()",
-        pre_charge
-    ))]
-    fn poseidon_two_to_one(&self, input: [SingleHashInput; 2]) -> SingleHashInput {
-        poseidon::two_to_one_hash(input[0], input[1])
-    }
-
-    #[obce(weight(
-        expr = "<<T as BabyLiminalConfig>::WeightInfo as WeightInfo>::poseidon_four_to_one_host()",
-        pre_charge
-    ))]
-    fn poseidon_four_to_one(&self, input: [SingleHashInput; 4]) -> SingleHashInput {
-        poseidon::four_to_one_hash(input[0], input[1], input[2], input[3])
     }
 }

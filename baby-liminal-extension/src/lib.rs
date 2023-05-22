@@ -74,8 +74,6 @@ pub enum BabyLiminalError {
 /// Copied from `pallet_baby_liminal`.
 pub type VerificationKeyIdentifier = [u8; 8];
 
-pub type SingleHashInput = (u64, u64, u64, u64);
-
 /// BabyLiminal chain extension definition.
 #[obce::definition(id = "baby-liminal-extension@v0.1")]
 pub trait BabyLiminalExtension {
@@ -96,13 +94,4 @@ pub trait BabyLiminalExtension {
         proof: Vec<u8>,
         input: Vec<u8>,
     ) -> Result<(), BabyLiminalError>;
-
-    #[obce(id = 43)]
-    fn poseidon_one_to_one(&self, input: [SingleHashInput; 1]) -> SingleHashInput;
-
-    #[obce(id = 44)]
-    fn poseidon_two_to_one(&self, input: [SingleHashInput; 2]) -> SingleHashInput;
-
-    #[obce(id = 45)]
-    fn poseidon_four_to_one(&self, input: [SingleHashInput; 4]) -> SingleHashInput;
 }
