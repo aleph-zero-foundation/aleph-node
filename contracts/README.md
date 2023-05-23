@@ -25,7 +25,7 @@ score = deadline - now
 
 There are two built-in incentives:
 * playing for the score: If you clicked in the 10th second of TheButton's life, which is set for example to 900 blocks, you get rewarded based on the score of 900-10=890 (and the button's life now will end at block 910).
-* playing to be ThePressiah: the last player to click gets 20% of the total reward pool (1/4 of the sum of all the rewards paid for pressing the button)
+* playing to be ThePressiah: the last player to click gets 50% of the total reward pool (1/2 of the sum of all the rewards paid for pressing the button)
 
 ## BackToTheFuture
 
@@ -35,7 +35,7 @@ In this scenario the rewards are reversed - players get rewarded for extending t
 score = now - start
 ```
 
-The Pressiah gets 20% of the total reward pool.
+The Pressiah gets 50% of the total reward pool.
 
 ## ThePressiahCometh
 
@@ -47,7 +47,7 @@ Game continues in perpetuity (but in practice as long as there are accounts that
 - Players are rewarded for playing, with the ultimate goal of being the Pressiah (the last person to click the button)
 - Reward rules:
   - If you're not ThePressiah, you get _k_ tokens if you pressed the button as the _k-th_ person in a row.
-  - ThePressiah gets 20% of the total reward pool.
+  - ThePressiah gets 50% of the total reward pool.
 
 # Development
 

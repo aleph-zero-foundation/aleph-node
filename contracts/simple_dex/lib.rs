@@ -433,7 +433,6 @@ mod simple_dex {
 
         /// Returns the swap trade input given a desired amount and assuming a curve with equal token weights
         ///
-        /// A_in = B_i * ((B_o / (B_o - A_o)) - 1)
         /// Mostly useful for traders
         #[ink(message)]
         pub fn in_given_out(
@@ -445,6 +444,11 @@ mod simple_dex {
             let this = self.env().account_id();
             let balance_token_in = self.balance_of(token_in, this);
             let balance_token_out = self.balance_of(token_out, this);
+
+            if balance_token_out <= amount_token_out {
+                // throw early as otherwise caller will only see DexError::Arithmetic
+                return Err(DexError::NotEnoughLiquidityOf(token_out));
+            }
 
             Self::_in_given_out(amount_token_out, balance_token_in, balance_token_out)
         }
@@ -468,6 +472,7 @@ mod simple_dex {
             Self::_out_given_in(amount_token_in, balance_token_in, balance_token_out)
         }
 
+        /// B_i * A_o / (B_o - A_o)
         fn _in_given_out(
             amount_token_out: Balance,
             balance_token_in: Balance,
@@ -484,6 +489,7 @@ mod simple_dex {
             op1.checked_div(op2).ok_or(DexError::Arithmethic)
         }
 
+        /// B_o * A_i / (B_i + A_i)
         fn _out_given_in(
             amount_token_in: Balance,
             balance_token_in: Balance,
@@ -572,6 +578,18 @@ mod simple_dex {
         use proptest::prelude::*;
 
         use super::*;
+
+        #[test]
+        fn test_liquidity_error() {
+            let balance_in = 1000000000000000u128;
+            let balance_out = 10000000000000u128;
+            let amount_out = 10000000000000u128;
+
+            assert_eq!(
+                Err(DexError::Arithmethic),
+                SimpleDex::_in_given_out(amount_out, balance_in, balance_out)
+            );
+        }
 
         #[test]
         fn test_in_given_out() {

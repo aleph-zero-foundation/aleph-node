@@ -14,12 +14,21 @@ use std::{collections::HashMap, error::Error};
 use anyhow::{anyhow, bail, Result};
 use contract_transcode::Value;
 use futures::{channel::mpsc::UnboundedSender, StreamExt};
-use subxt::events::EventDetails;
+use subxt::{events::EventDetails, ext::sp_core::H256};
 
 use crate::{
     api::contracts::events::ContractEmitted, connections::TxInfo, contract::ContractInstance,
     utility::BlocksApi, AccountId, Connection,
 };
+
+/// Represents details about the block contianing the event.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct BlockDetails {
+    /// the block number
+    pub block_number: u32,
+    /// the block hash
+    pub block_hash: H256,
+}
 
 /// Represents a single event emitted by a contract.
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -30,6 +39,8 @@ pub struct ContractEvent {
     pub name: Option<String>,
     /// Data contained in the event.
     pub data: HashMap<String, Value>,
+    /// details about the block containing the event
+    pub block_details: Option<BlockDetails>,
 }
 
 /// Fetch and decode all events that correspond to the call identified by `tx_info` made to
@@ -58,7 +69,7 @@ pub async fn get_contract_events(
     tx_info: TxInfo,
 ) -> Result<Vec<ContractEvent>> {
     let events = conn.get_tx_events(tx_info).await?;
-    translate_events(events.iter(), &[contract])
+    translate_events(events.iter(), &[contract], None)
         .into_iter()
         .collect()
 }
@@ -121,8 +132,18 @@ pub async fn listen_contract_events(
         if sender.is_closed() {
             break;
         }
-        let events = block?.events().await?;
-        for event in translate_events(events.iter(), contracts) {
+
+        let block = block?;
+
+        let events = block.events().await?;
+        for event in translate_events(
+            events.iter(),
+            contracts,
+            Some(BlockDetails {
+                block_number: block.number(),
+                block_hash: block.hash(),
+            }),
+        ) {
             sender.unbounded_send(event)?;
         }
     }
@@ -137,6 +158,7 @@ fn translate_events<
 >(
     events: E,
     contracts: &[&ContractInstance],
+    block_details: Option<BlockDetails>,
 ) -> Vec<Result<ContractEvent>> {
     events
         .filter_map(|maybe_event| {
@@ -145,7 +167,7 @@ fn translate_events<
                 .transpose()
         })
         .map(|maybe_event| match maybe_event {
-            Ok(e) => translate_event(&e, contracts),
+            Ok(e) => translate_event(&e, contracts, block_details.clone()),
             Err(e) => Err(anyhow::Error::from(e)),
         })
         .collect()
@@ -155,6 +177,7 @@ fn translate_events<
 fn translate_event(
     event: &ContractEmitted,
     contracts: &[&ContractInstance],
+    block_details: Option<BlockDetails>,
 ) -> Result<ContractEvent> {
     let matching_contract = contracts
         .iter()
@@ -166,7 +189,7 @@ fn translate_event(
         .transcoder
         .decode_contract_event(&mut data.as_slice())?;
 
-    build_event(matching_contract.address.clone(), data)
+    build_event(matching_contract.address.clone(), data, block_details)
 }
 
 /// The contract transcoder assumes there is an extra byte (that it discards) indicating the size of the data. However,
@@ -177,7 +200,11 @@ fn zero_prefixed(data: &[u8]) -> Vec<u8> {
     result
 }
 
-fn build_event(address: AccountId, event_data: Value) -> Result<ContractEvent> {
+fn build_event(
+    address: AccountId,
+    event_data: Value,
+    block_details: Option<BlockDetails>,
+) -> Result<ContractEvent> {
     match event_data {
         Value::Map(map) => Ok(ContractEvent {
             contract: address,
@@ -186,6 +213,7 @@ fn build_event(address: AccountId, event_data: Value) -> Result<ContractEvent> {
                 .iter()
                 .map(|(key, value)| (key.to_string(), value.clone()))
                 .collect(),
+            block_details,
         }),
         _ => bail!("Contract event data is not a map"),
     }

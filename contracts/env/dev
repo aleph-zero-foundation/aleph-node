@@ -5,7 +5,7 @@ export AUTHORITY=5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
 export AUTHORITY_SEED=//Alice
 
 # how long do the games live for (in blocks)
-export LIFETIME=20
+export LIFETIME=10
 # scores are mapped to these values and then rewards are minted
 export BUTTON_MIN_REWARD=1000000000000 # 1 token
 export BUTTON_MAX_REWARD=100000000000000 # 100 tokens

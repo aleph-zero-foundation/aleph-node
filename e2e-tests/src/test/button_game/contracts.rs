@@ -13,7 +13,7 @@ use crate::config::Config;
 /// The methods on this type match contract methods.
 #[derive(Debug)]
 pub(super) struct SimpleDexInstance {
-    contract: ContractInstance,
+    pub contract: ContractInstance,
 }
 
 impl<'a> From<&'a SimpleDexInstance> for &'a ContractInstance {
@@ -72,24 +72,6 @@ impl SimpleDexInstance {
                 "remove_swap_pair",
                 &[&from.to_string(), &to.to_string()],
             )
-            .await
-    }
-
-    pub async fn deposit(
-        &self,
-        conn: &SignedConnection,
-        amounts: &[(&PSP22TokenInstance, Balance)],
-    ) -> Result<TxInfo> {
-        let deposits = amounts
-            .iter()
-            .map(|(token, amount)| {
-                let address: AccountId = (*token).try_into()?;
-                Ok(format!("({:}, {:})", address, amount))
-            })
-            .collect::<Result<Vec<String>>>()?;
-
-        self.contract
-            .contract_exec(conn, "deposit", &[format!("[{:}]", deposits.join(","))])
             .await
     }
 
@@ -186,6 +168,10 @@ impl ButtonInstance {
 
     pub async fn reward_token<C: ConnectionApi>(&self, conn: &C) -> Result<AccountId> {
         self.contract.contract_read0(conn, "reward_token").await
+    }
+
+    pub async fn last_presser<C: ConnectionApi>(&self, conn: &C) -> Result<Option<AccountId>> {
+        self.contract.contract_read0(conn, "last_presser").await
     }
 
     pub async fn marketplace<C: ConnectionApi>(&self, conn: &C) -> Result<AccountId> {
