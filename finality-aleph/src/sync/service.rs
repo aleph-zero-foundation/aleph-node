@@ -191,15 +191,26 @@ impl<
                 .handle_justification(justification, peer.clone())
             {
                 Ok(maybe_id) => maybe_id,
-                Err(e) => {
-                    warn!(
-                        target: LOG_TARGET,
-                        "Error while handling justification from {:?}: {}.",
-                        peer.map_or("user".to_string(), |id| format!("{:?}", id)),
-                        e
-                    );
-                    return;
-                }
+                Err(e) => match e {
+                    HandlerError::Verifier(e) => {
+                        debug!(
+                            target: LOG_TARGET,
+                            "Could not verify justification from {:?}: {}.",
+                            peer.map_or("user".to_string(), |id| format!("{:?}", id)),
+                            e
+                        );
+                        return;
+                    }
+                    e => {
+                        warn!(
+                            target: LOG_TARGET,
+                            "Error while handling justification from {:?}: {}.",
+                            peer.map_or("user".to_string(), |id| format!("{:?}", id)),
+                            e
+                        );
+                        return;
+                    }
+                },
             };
             if let Some(block_id) = maybe_block_id {
                 if let Some(previous_block_id) = previous_block_id {
@@ -359,9 +370,9 @@ impl<
                             }
                         },
                         Err(e) => error!(
-                                        target: LOG_TARGET,
-                                        "Error when retrieving Handler state: {}.", e
-                                    ),
+                            target: LOG_TARGET,
+                            "Error when retrieving Handler state: {}.", e
+                        ),
                     }
                 }
             }
