@@ -1,4 +1,4 @@
-use jf_plonk::{
+pub use jf_plonk::{
     errors::PlonkError,
     proof_system::{
         structs::{Proof, ProvingKey, UniversalSrs, VerifyingKey},
