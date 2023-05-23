@@ -15,7 +15,8 @@ jobs:
 
       - name: Call action get-ref-properties
         id: get-ref-properties
-        uses: ./.github/actions/get-ref-properties
+        # yamllint disable-line rule:line-length
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
 
       - name: Download artifact with built aleph-node binary from PR
         uses: actions/download-artifact@v3

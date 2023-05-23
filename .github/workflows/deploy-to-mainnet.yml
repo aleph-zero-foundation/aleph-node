@@ -36,7 +36,8 @@ jobs:
 
       - name: Call action get-ref-properties
         id: get-ref-properties
-        uses: ./.github/actions/get-ref-properties
+        # yamllint disable-line rule:line-length
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
 
       - name: Compare Testnet node SHA version with currently deployed SHA
         if: inputs.force != true

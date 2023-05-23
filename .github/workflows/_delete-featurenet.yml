@@ -20,7 +20,8 @@ jobs:
 
       - name: Call action get-ref-properties
         id: get-ref-properties
-        uses: ./.github/actions/get-ref-properties
+        # yamllint disable-line rule:line-length
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
 
       - name: Delete featurenet app and data
         uses: ./.github/actions/delete-featurenet

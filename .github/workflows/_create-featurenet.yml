@@ -31,6 +31,7 @@ jobs:
   push-pr-image:
     needs: [build-aleph-node-binary]
     name: Build and push PR docker image to featurenet registry
+    # yamllint disable-line rule:line-length
     uses: ./.github/workflows/_build-and-push-pull-request-image-to-featurenets.yml
     secrets: inherit
 
@@ -59,7 +60,8 @@ jobs:
 
       - name: Call action get-ref-properties
         id: get-ref-properties
-        uses: ./.github/actions/get-ref-properties
+        # yamllint disable-line rule:line-length
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
 
       - name: Start featurenet Deployment
         uses: bobheadxi/deployments@v1.1.0
@@ -103,7 +105,8 @@ jobs:
 
       - name: Call action get-ref-properties
         id: get-ref-properties
-        uses: ./.github/actions/get-ref-properties
+        # yamllint disable-line rule:line-length
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
 
       - name: Update featurenet app and re-deploy it
         uses: ./.github/actions/create-featurenet

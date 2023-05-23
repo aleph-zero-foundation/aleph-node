@@ -40,7 +40,8 @@ runs:
 
     - name: Get branch name and commit SHA
       id: get-ref-properties
-      uses: ./.github/actions/get-ref-properties
+      # yamllint disable-line rule:line-length
+      uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
 
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2

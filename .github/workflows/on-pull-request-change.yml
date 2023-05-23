@@ -22,6 +22,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: VALIDATE | Check PR title
-        uses: ./.github/actions/check-pr-title
+        # yamllint disable-line rule:line-length
+        uses: Cardinal-Cryptography/github-actions/check-pr-title@v1
         with:
           pr-title: ${{ github.event.pull_request.title }}

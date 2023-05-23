@@ -16,12 +16,6 @@ jobs:
     name: YAML Lint
     runs-on: ubuntu-20.04
     steps:
-      - name: GIT | Checkout source code
-        uses: actions/checkout@v3
-
-      - name: LINT | Execute yaml-lint
-        uses: ibiqlik/action-yamllint@v3.1.1
-        with:
-          strict: true
-          file_or_dir: .github
-          config_file: .yamllint
+      - name: LINT | Execute YAML linter
+        # yamllint disable-line rule:line-length
+        uses: Cardinal-Cryptography/github-actions/yaml-lint@v1

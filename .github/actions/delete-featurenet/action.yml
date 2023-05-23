@@ -49,7 +49,8 @@ runs:
 
     - name: Get branch name and commit SHA
       id: get-ref-properties
-      uses: ./.github/actions/get-ref-properties
+      # yamllint disable-line rule:line-length
+      uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
 
     - name: Checkout argocd apps repo
       uses: actions/checkout@v3

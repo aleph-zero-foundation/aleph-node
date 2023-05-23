@@ -38,7 +38,8 @@ jobs:
       # fail, as there would be no aleph-node-<sha> image on ECR for <sha> that is not on main
       # or release branch, see on-main-or-release-branch-commit.yml
       - name: Check release candidate docker image existence
-        uses: ./.github/actions/check-image-existence-ecr
+        # yamllint disable-line rule:line-length
+        uses: Cardinal-Cryptography/github-actions/check-image-existence-ecr@v1
         with:
           ecr-image: ${{ steps.get-docker-image-names.outputs.ecr-rc-image }}
 

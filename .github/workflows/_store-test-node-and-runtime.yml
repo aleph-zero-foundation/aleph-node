@@ -20,7 +20,8 @@ jobs:
 
       - name: Call action get-ref-properties
         id: get-ref-properties
-        uses: ./.github/actions/get-ref-properties
+        # yamllint disable-line rule:line-length
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
 
       - name: Download release binary from GH artifacts
         uses: actions/download-artifact@v3
@@ -54,7 +55,7 @@ jobs:
         if: >
           env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' &&
           env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
-        uses: ./.github/actions/copy-file-to-s3
+        uses: Cardinal-Cryptography/github-actions/copy-file-to-s3@v1
         with:
           source-path: target/release
           source-filename: aleph-node
@@ -67,7 +68,7 @@ jobs:
         if: >
           env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' &&
           env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
-        uses: ./.github/actions/copy-file-to-s3
+        uses: Cardinal-Cryptography/github-actions/copy-file-to-s3@v1
         with:
           source-path: target/release/wbuild/aleph-runtime
           source-filename: aleph_runtime.compact.wasm

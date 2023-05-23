@@ -28,7 +28,8 @@ jobs:
 
       - name: Call action get-ref-properties
         id: get-ref-properties
-        uses: ./.github/actions/get-ref-properties
+        # yamllint disable-line rule:line-length
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
 
       - name: Call action Get ECR image names
         id: get-docker-image-names
@@ -40,7 +41,8 @@ jobs:
       # this step checks indirectly as well that git HEAD has an r-* tag
       # otherwise ECR image would not exist
       - name: Check deploy image existence
-        uses: ./.github/actions/check-image-existence-ecr
+        # yamllint disable-line rule:line-length
+        uses: Cardinal-Cryptography/github-actions/check-image-existence-ecr@v1
         with:
           ecr-image: ${{ steps.get-docker-image-names.outputs.ecr-deploy-image }}
 
