@@ -30,7 +30,7 @@ pallet-identity = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-nomination-pools = { workspace = true }
 pallet-nomination-pools-runtime-api = { workspace = true }
-pallet-randomness-collective-flip = { workspace = true }
+pallet-insecure-randomness-collective-flip = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-session = { workspace = true }
 pallet-staking = { workspace = true }
@@ -87,7 +87,7 @@ std = [
     "pallet-balances/std",
     "pallet-elections/std",
     "pallet-identity/std",
-    "pallet-randomness-collective-flip/std",
+    "pallet-insecure-randomness-collective-flip/std",
     "pallet-session/std",
     "pallet-staking/std",
     "pallet-sudo/std",
@@ -104,7 +104,6 @@ std = [
     "sp-consensus-aura/std",
     "sp-core/std",
     "sp-inherents/std",
-    "sp-io/std",
     "sp-runtime/std",
     "sp-session/std",
     "sp-staking/std",
@@ -135,7 +134,7 @@ try-runtime = [
     "pallet-balances/try-runtime",
     "pallet-elections/try-runtime",
     "pallet-identity/try-runtime",
-    "pallet-randomness-collective-flip/try-runtime",
+    "pallet-insecure-randomness-collective-flip/try-runtime",
     "pallet-session/try-runtime",
     "pallet-staking/try-runtime",
     "pallet-sudo/try-runtime",
@@ -156,7 +155,7 @@ runtime-benchmarks = [
 
 # Liminal-related features
 liminal = [
-    "baby-liminal-extension",
+    #"baby-liminal-extension",
     "pallet-baby-liminal",
 ]
 liminal-std = [

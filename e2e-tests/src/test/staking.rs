@@ -1,6 +1,6 @@
 use aleph_client::{
     account_from_keypair,
-    api::runtime_types::sp_core::bounded::bounded_vec::BoundedVec,
+    bounded_collections::bounded_vec::BoundedVec,
     keypair_from_string,
     pallet_staking::StakingLedger,
     pallets::{

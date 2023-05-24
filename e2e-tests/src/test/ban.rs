@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use aleph_client::{
-    api::runtime_types::sp_core::bounded::bounded_vec::BoundedVec,
+    bounded_collections::bounded_vec::BoundedVec,
     pallets::{
         committee_management::{CommitteeManagementApi, CommitteeManagementSudoApi},
         elections::{ElectionsApi, ElectionsSudoApi},

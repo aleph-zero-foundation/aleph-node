@@ -6,8 +6,6 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
-#[cfg(feature = "liminal")]
-use baby_liminal_extension::substrate::Extension as BabyLiminalExtension;
 pub use frame_support::{
     construct_runtime, log, parameter_types,
     traits::{
@@ -371,7 +369,7 @@ impl pallet_committee_management::Config for Runtime {
     type SessionPeriod = SessionPeriod;
 }
 
-impl pallet_randomness_collective_flip::Config for Runtime {}
+impl pallet_insecure_randomness_collective_flip::Config for Runtime {}
 
 parameter_types! {
     pub const Offset: u32 = 0;
@@ -704,9 +702,6 @@ impl pallet_contracts::Config for Runtime {
     type DepositPerByte = DepositPerByte;
     type WeightPrice = pallet_transaction_payment::Pallet<Self>;
     type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
-    #[cfg(feature = "liminal")]
-    type ChainExtension = BabyLiminalExtension;
-    #[cfg(not(feature = "liminal"))]
     type ChainExtension = ();
     type DeletionQueueDepth = DeletionQueueDepth;
     type DeletionWeightLimit = DeletionWeightLimit;
@@ -754,7 +749,7 @@ construct_runtime!(
         UncheckedExtrinsic = UncheckedExtrinsic
     {
         System: frame_system,
-        RandomnessCollectiveFlip: pallet_randomness_collective_flip,
+        RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip,
         Scheduler: pallet_scheduler,
         Aura: pallet_aura,
         Timestamp: pallet_timestamp,
@@ -786,7 +781,7 @@ construct_runtime!(
         UncheckedExtrinsic = UncheckedExtrinsic
     {
         System: frame_system,
-        RandomnessCollectiveFlip: pallet_randomness_collective_flip,
+        RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip,
         Scheduler: pallet_scheduler,
         Aura: pallet_aura,
         Timestamp: pallet_timestamp,
@@ -1010,8 +1005,16 @@ impl_runtime_apis! {
     }
 
     impl pallet_nomination_pools_runtime_api::NominationPoolsApi<Block, AccountId, Balance> for Runtime {
-        fn pending_rewards(member_account: AccountId) -> Balance {
-            NominationPools::pending_rewards(member_account).unwrap_or_default()
+        fn pending_rewards(member: AccountId) -> Balance {
+            NominationPools::api_pending_rewards(member).unwrap_or_default()
+        }
+
+        fn points_to_balance(pool_id: pallet_nomination_pools::PoolId, points: Balance) -> Balance {
+            NominationPools::api_points_to_balance(pool_id, points)
+        }
+
+        fn balance_to_points(pool_id: pallet_nomination_pools::PoolId, new_funds: Balance) -> Balance {
+            NominationPools::api_balance_to_points(pool_id, new_funds)
         }
     }
 

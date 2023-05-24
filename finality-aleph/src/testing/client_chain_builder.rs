@@ -2,7 +2,6 @@ use std::{default::Default, sync::Arc};
 
 use sc_block_builder::BlockBuilderProvider;
 use sc_client_api::HeaderBackend;
-use sp_api::BlockId;
 use sp_consensus::BlockOrigin;
 use sp_core::hash::H256;
 use sp_runtime::{traits::Block as BlockT, Digest};
@@ -76,7 +75,7 @@ impl ClientChainBuilder {
         digest.push(sp_runtime::generic::DigestItem::Other(unique_bytes));
         let block = self
             .client_builder
-            .new_block_at(&BlockId::Hash(*parent), digest, false)
+            .new_block_at(*parent, digest, false)
             .unwrap()
             .build()
             .unwrap()
