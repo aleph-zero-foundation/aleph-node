@@ -1,27 +1,31 @@
 use frame_support::{assert_err, assert_ok, sp_runtime, traits::ReservableCurrency, BoundedVec};
 use frame_system::{pallet_prelude::OriginFor, Config};
+use once_cell::sync::Lazy;
 use sp_runtime::traits::Get;
 
 use super::setup::*;
 use crate::{
-    Error, VerificationError, VerificationKeyDeposits, VerificationKeyIdentifier,
-    VerificationKeyOwners, VerificationKeys,
+    tests::relation::{get_artifacts, get_incorrect_proof, get_invalid_input, Artifacts},
+    Error, VerificationKeyDeposits, VerificationKeyIdentifier, VerificationKeyOwners,
+    VerificationKeys,
 };
 
 type BabyLiminal = crate::Pallet<TestRuntime>;
 
 const IDENTIFIER: VerificationKeyIdentifier = [0; 8];
 
+static ARTIFACTS: Lazy<Artifacts> = Lazy::new(get_artifacts);
+
 fn vk() -> Vec<u8> {
-    include_bytes!("../resources/groth16/xor.vk.bytes").to_vec()
+    ARTIFACTS.vk.clone()
 }
 
 fn proof() -> Vec<u8> {
-    include_bytes!("../resources/groth16/xor.proof.bytes").to_vec()
+    ARTIFACTS.proof.clone()
 }
 
 fn input() -> Vec<u8> {
-    include_bytes!("../resources/groth16/xor.public_input.bytes").to_vec()
+    ARTIFACTS.input.clone()
 }
 
 fn owner() -> OriginFor<TestRuntime> {
@@ -261,14 +265,9 @@ fn verify_shouts_when_input_is_not_deserializable() {
 fn verify_shouts_when_verification_fails() {
     new_test_ext().execute_with(|| {
         put_key();
-        let other_input = include_bytes!("../resources/groth16/linear_equation.public_input.bytes");
+        let result = BabyLiminal::verify(owner(), IDENTIFIER, proof(), get_invalid_input());
 
-        let result = BabyLiminal::verify(owner(), IDENTIFIER, proof(), other_input.to_vec());
-
-        assert_err!(
-            result,
-            Error::<TestRuntime>::VerificationFailed(VerificationError::MalformedVerifyingKey)
-        );
+        assert_err!(result, Error::<TestRuntime>::VerificationFailed);
         assert!(result.unwrap_err().post_info.actual_weight.is_none());
     });
 }
@@ -277,9 +276,7 @@ fn verify_shouts_when_verification_fails() {
 fn verify_shouts_when_proof_is_incorrect() {
     new_test_ext().execute_with(|| {
         put_key();
-        let other_proof = include_bytes!("../resources/groth16/linear_equation.proof.bytes");
-
-        let result = BabyLiminal::verify(owner(), IDENTIFIER, other_proof.to_vec(), input());
+        let result = BabyLiminal::verify(owner(), IDENTIFIER, get_incorrect_proof(), input());
 
         assert_err!(result, Error::<TestRuntime>::IncorrectProof);
         assert!(result.unwrap_err().post_info.actual_weight.is_none());

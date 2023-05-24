@@ -6,7 +6,6 @@ members = [
     "bin/runtime",
     "clique",
     "finality-aleph",
-    "jellyfier",
     "pallets/aleph",
     "pallets/elections",
     "pallets/committee-management",
@@ -174,7 +173,6 @@ try-runtime-cli = { git = "https://github.com/Cardinal-Cryptography/substrate.gi
 
 aleph-runtime = { path = "bin/runtime" }
 finality-aleph = { path = "finality-aleph" }
-jellyfier = { path = "jellyfier" }
 network-clique = { path = "clique" }
 pallet-aleph = { path = "pallets/aleph", default-features = false }
 pallet-committee-management = { path = "pallets/committee-management", default-features = false }
@@ -194,10 +192,6 @@ liminal-ark-pnbr-poseidon-paramgen = { version = "0.1.0" }
 liminal-ark-pnbr-poseidon-permutation = { version = "0.1.0", default-features = false }
 liminal-ark-pnbr-sponge = { version = "0.3.0", default-features = false  }
 liminal-ark-poseidon = { version = "0.1.0", default-features = false }
-
-jf-plonk = { git = "https://github.com/EspressoSystems/jellyfish", rev = "7323d81e39f7da463923143f8be97558b8855df4" }
-jf-relation = { git = "https://github.com/EspressoSystems/jellyfish", rev = "7323d81e39f7da463923143f8be97558b8855df4" }
-jf-utils = { git = "https://github.com/EspressoSystems/jellyfish", rev = "7323d81e39f7da463923143f8be97558b8855df4" }
 
 baby-liminal-extension = { path = "baby-liminal-extension", default-features = false }
 pallet-baby-liminal = { path = "pallets/baby-liminal", default-features = false }

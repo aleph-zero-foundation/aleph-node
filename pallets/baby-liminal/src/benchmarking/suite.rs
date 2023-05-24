@@ -9,8 +9,8 @@ use frame_support::{
 use frame_system::RawOrigin;
 
 use crate::{
-    benchmarking::import::Artifacts, get_artifacts, BalanceOf, Call, Config, Pallet,
-    VerificationKeyDeposits, VerificationKeyIdentifier, VerificationKeyOwners, VerificationKeys,
+    BalanceOf, Call, Config, Pallet, VerificationKeyDeposits, VerificationKeyIdentifier,
+    VerificationKeyOwners, VerificationKeys,
 };
 
 const SEED: u32 = 41;
@@ -54,76 +54,6 @@ benchmarks! {
         let key = vec![0u8; l as usize];
         let _ = insert_key::<T>(key);
     } : _(caller::<T>(), IDENTIFIER)
-
-    // Groth16 benchmarks
-
-    verify_groth16_xor {
-        let Artifacts { key, proof, input } = get_artifacts!(Groth16, Xor);
-        let _ = insert_key::<T>(key);
-    } : verify(caller::<T>(), IDENTIFIER, proof, input)
-
-    verify_groth16_linear_equation {
-        let Artifacts { key, proof, input } = get_artifacts!(Groth16, LinearEquation);
-        let _ = insert_key::<T>(key);
-    } : verify(caller::<T>(), IDENTIFIER, proof, input)
-
-    verify_groth16_merkle_tree_8 {
-        let Artifacts { key, proof, input } = get_artifacts!(Groth16, MerkleTree8);
-        let _ = insert_key::<T>(key);
-    } : verify(caller::<T>(), IDENTIFIER, proof, input)
-
-    verify_groth16_merkle_tree_64 {
-        let Artifacts { key, proof, input } = get_artifacts!(Groth16, MerkleTree64);
-        let _ = insert_key::<T>(key);
-    } : verify(caller::<T>(), IDENTIFIER, proof, input)
-
-    verify_groth16_merkle_tree_1024 {
-        let Artifacts { key, proof, input } = get_artifacts!(Groth16, MerkleTree1024);
-        let _ = insert_key::<T>(key);
-    } : verify(caller::<T>(), IDENTIFIER, proof, input)
-
-    // Partial `verify` execution
-
-    verify_data_too_long {
-        // Excess. Unfortunately, anything like
-        // `let e in (T::MaximumDataLength::get() + 1) .. (T::MaximumDataLength::get() * 1_000)`
-        // doesn't compile.
-        let e in 1 .. T::MaximumDataLength::get() * 1_000;
-        let proof = vec![255u8; (T::MaximumDataLength::get() + e) as usize];
-        let Artifacts { key, proof: _proof, input } = get_artifacts!(Groth16, MerkleTree1024);
-    } : {
-        assert!(
-            Pallet::<T>::verify(caller::<T>().into(), IDENTIFIER, proof, input).is_err()
-        )
-    }
-
-    // It shouldn't matter whether deserializing of proof fails, but for input it succeeds, or the
-    // other way round. The only thing that is important is that we don't read storage nor run
-    // verification procedure.
-    verify_data_deserializing_fails {
-        let l in 1 .. T::MaximumDataLength::get();
-        let proof = vec![255u8; l as usize];
-        // System shouldn't have any serious impact on deserializing - the data is just some
-        // elements from the field.
-        let Artifacts { key, proof: _proof, input } = get_artifacts!(Groth16, MerkleTree1024);
-    } : {
-        assert!(
-            Pallet::<T>::verify(caller::<T>().into(), IDENTIFIER, proof, input).is_err()
-        )
-    }
-
-    verify_key_deserializing_fails {
-        let l in 1 .. T::MaximumVerificationKeyLength::get();
-        let _ = insert_key::<T>(vec![255u8; l as usize]);
-
-        // System shouldn't have any serious impact on deserializing - the data is just some
-        // elements from the field.
-        let Artifacts { key, proof, input } = get_artifacts!(Groth16, MerkleTree1024);
-    } : {
-        assert!(
-            Pallet::<T>::verify(caller::<T>().into(), IDENTIFIER, proof, input).is_err()
-        )
-    }
 
     impl_benchmark_test_suite!(Pallet, crate::tests::new_test_ext(), crate::tests::TestRuntime);
 }

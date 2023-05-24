@@ -7,16 +7,9 @@ use sc_executor::NativeElseWasmExecutor;
 pub struct ExecutorDispatch;
 
 impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
-    #[cfg(all(feature = "runtime-benchmarks", feature = "liminal"))]
-    type ExtendHostFunctions = (
-        frame_benchmarking::benchmarking::HostFunctions,
-        jellyfier::jellyfier::HostFunctions,
-    );
-    #[cfg(all(feature = "runtime-benchmarks", not(feature = "liminal")))]
-    type ExtendHostFunctions = frame_benchmarking::benchmarking::HostFunctions;
-    #[cfg(all(not(feature = "runtime-benchmarks"), feature = "liminal"))]
-    type ExtendHostFunctions = (jellyfier::jellyfier::HostFunctions,);
-    #[cfg(all(not(feature = "runtime-benchmarks"), not(feature = "liminal")))]
+    #[cfg(feature = "runtime-benchmarks")]
+    type ExtendHostFunctions = (frame_benchmarking::benchmarking::HostFunctions,);
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type ExtendHostFunctions = ();
 
     fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {

@@ -157,6 +157,8 @@ runtime-benchmarks = [
 liminal = [
     #"baby-liminal-extension",
     "pallet-baby-liminal",
+    "sp-io/disable_oom",
+    "sp-io/disable_panic_handler"
 ]
 liminal-std = [
     "liminal",

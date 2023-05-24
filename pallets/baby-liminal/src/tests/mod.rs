@@ -1,3 +1,4 @@
+mod relation;
 mod setup;
 mod suite;
 

@@ -3,11 +3,11 @@
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
-mod systems;
 #[cfg(test)]
 mod tests;
 mod weights;
 
+use ark_bls12_381::Bls12_381;
 use frame_support::{
     fail,
     pallet_prelude::StorageVersion,
@@ -15,11 +15,13 @@ use frame_support::{
 };
 use frame_system::ensure_signed;
 pub use pallet::*;
-pub use systems::VerificationError;
 pub use weights::{AlephWeight, WeightInfo};
 
 /// The current storage version.
 const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
+
+pub type Curve = Bls12_381;
+pub type CircuitField = ark_bls12_381::Fr;
 
 /// We store verification keys under short identifiers.
 pub type VerificationKeyIdentifier = [u8; 8];
@@ -28,19 +30,25 @@ pub type BalanceOf<T> =
 
 #[frame_support::pallet]
 pub mod pallet {
-
     use ark_serialize::CanonicalDeserialize;
     use frame_support::{
         dispatch::PostDispatchInfo, log, pallet_prelude::*, sp_runtime::DispatchErrorWithPostInfo,
     };
     use frame_system::pallet_prelude::OriginFor;
+    use jf_plonk::{
+        errors::PlonkError,
+        proof_system::{
+            structs::{Proof, VerifyingKey},
+            PlonkKzgSnark, UniversalSNARK,
+        },
+        transcript::StandardTranscript,
+    };
     use sp_std::{
         cmp::Ordering::{Equal, Greater, Less},
         prelude::Vec,
     };
 
     use super::*;
-    use crate::systems::{Groth16, VerificationError, VerifyingSystem};
 
     #[pallet::config]
     pub trait Config: frame_system::Config {
@@ -84,7 +92,7 @@ pub mod pallet {
         /// Couldn't deserialize verification key from storage.
         DeserializingVerificationKeyFailed,
         /// Verification procedure has failed. Proof still can be correct.
-        VerificationFailed(VerificationError),
+        VerificationFailed,
         /// Proof has been found as incorrect.
         IncorrectProof,
 
@@ -115,7 +123,9 @@ pub mod pallet {
         VerificationKeyOverwritten(VerificationKeyIdentifier),
 
         /// Proof has been successfully verified.
-        VerificationSucceeded,
+        ///
+        /// \[ identifier \]
+        VerificationSucceeded(VerificationKeyIdentifier),
     }
 
     #[pallet::pallet]
@@ -267,7 +277,7 @@ pub mod pallet {
         /// system)
         /// - verifying procedure fails (e.g. incompatible verification key and proof)
         /// - proof is incorrect
-        #[pallet::weight(T::WeightInfo::verify())]
+        #[pallet::weight(0)]
         #[pallet::call_index(3)]
         pub fn verify(
             _origin: OriginFor<T>,
@@ -335,70 +345,59 @@ pub mod pallet {
             proof: Vec<u8>,
             public_input: Vec<u8>,
         ) -> Result<(), (Error<T>, Option<Weight>)> {
-            Self::_bare_verify::<Groth16>(verification_key_identifier, proof, public_input)
-        }
-
-        fn _bare_verify<S: VerifyingSystem>(
-            verification_key_identifier: VerificationKeyIdentifier,
-            proof: Vec<u8>,
-            public_input: Vec<u8>,
-        ) -> Result<(), (Error<T>, Option<Weight>)> {
             let data_length_limit = T::MaximumDataLength::get() as usize;
             let data_length_excess = proof.len().saturating_sub(data_length_limit)
                 + public_input.len().saturating_sub(data_length_limit);
             ensure!(
                 data_length_excess == 0,
-                (
-                    Error::<T>::DataTooLong,
-                    Some(T::WeightInfo::verify_data_too_long(
-                        data_length_excess as u32
-                    ))
-                )
+                (Error::<T>::DataTooLong, Some(Weight::default()))
             );
 
-            let proof_len = proof.len() as u32;
-            let proof: S::Proof = CanonicalDeserialize::deserialize(&*proof).map_err(|e| {
-                log::error!("Deserializing proof failed: {:?}", e);
-                (
-                    Error::<T>::DeserializingProofFailed,
-                    Some(T::WeightInfo::verify_data_deserializing_fails(proof_len)),
-                )
-            })?;
+            let proof: Proof<Curve> = CanonicalDeserialize::deserialize_compressed(&*proof)
+                .map_err(|e| {
+                    log::error!("Deserializing proof failed: {e:?}");
+                    (
+                        Error::<T>::DeserializingProofFailed,
+                        Some(Weight::default()),
+                    )
+                })?;
 
-            let public_input: Vec<S::CircuitField> =
-                CanonicalDeserialize::deserialize(&*public_input).map_err(|e| {
-                    log::error!("Deserializing public input failed: {:?}", e);
+            let public_input: Vec<CircuitField> =
+                CanonicalDeserialize::deserialize_compressed(&*public_input).map_err(|e| {
+                    log::error!("Deserializing public input failed: {e:?}");
                     (
                         Error::<T>::DeserializingPublicInputFailed,
-                        Some(T::WeightInfo::verify_data_deserializing_fails(
-                            proof_len + public_input.len() as u32,
-                        )),
+                        Some(Weight::default()),
                     )
                 })?;
 
             let verification_key =
                 VerificationKeys::<T>::get(verification_key_identifier).ok_or((
                     Error::<T>::UnknownVerificationKeyIdentifier,
-                    Some(T::WeightInfo::verify_key_deserializing_fails(0)),
+                    Some(Weight::default()),
                 ))?;
-            let verification_key: S::VerifyingKey =
-                CanonicalDeserialize::deserialize(&**verification_key).map_err(|e| {
+            let verification_key: VerifyingKey<Curve> =
+                CanonicalDeserialize::deserialize_compressed(&**verification_key).map_err(|e| {
                     log::error!("Deserializing verification key failed: {:?}", e);
                     (
                         Error::<T>::DeserializingVerificationKeyFailed,
-                        Some(T::WeightInfo::verify_key_deserializing_fails(
-                            verification_key.len() as u32,
-                        )),
+                        Some(Weight::default()),
                     )
                 })?;
 
-            let valid_proof = S::verify(&verification_key, &public_input, &proof)
-                .map_err(|err| (Error::<T>::VerificationFailed(err), None))?;
-
-            ensure!(valid_proof, (Error::<T>::IncorrectProof, None));
-
-            Self::deposit_event(Event::VerificationSucceeded);
-            Ok(())
+            match PlonkKzgSnark::verify::<StandardTranscript>(
+                &verification_key,
+                &public_input,
+                &proof,
+                None,
+            ) {
+                Ok(_) => {
+                    Self::deposit_event(Event::VerificationSucceeded(verification_key_identifier));
+                    Ok(())
+                }
+                Err(PlonkError::WrongProof) => Err((Error::<T>::IncorrectProof, None)),
+                Err(_) => Err((Error::<T>::VerificationFailed, None)),
+            }
         }
     }
 }
