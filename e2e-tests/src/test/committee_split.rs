@@ -1,11 +1,10 @@
 use std::{thread::sleep, time::Duration};
 
 use aleph_client::{
-    api::sudo::events::Sudid,
     pallets::{elections::ElectionsSudoApi, session::SessionApi},
     primitives::CommitteeSeats,
     utility::BlocksApi,
-    waiting::{AlephWaiting, BlockStatus, WaitingExt},
+    waiting::{BlockStatus, WaitingExt},
     AccountId, AsConnection, Pair, SignedConnection, TxStatus,
 };
 use log::info;

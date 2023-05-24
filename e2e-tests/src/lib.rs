@@ -9,6 +9,8 @@ mod config;
 #[cfg(test)]
 mod elections;
 #[cfg(test)]
+mod fee;
+#[cfg(test)]
 mod finality_version;
 #[cfg(test)]
 mod rewards;

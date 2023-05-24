@@ -5,7 +5,7 @@ use crate::{
     connections::TxInfo,
     pallet_balances::pallet::Call::transfer,
     pallets::utility::UtilityApi,
-    AccountId, Balance, BlockHash,
+    AccountId, AsConnection, Balance, BlockHash,
     Call::Balances,
     ConnectionApi, ParamsBuilder, SignedConnectionApi, TxStatus,
 };
@@ -33,6 +33,9 @@ pub trait BalanceApi {
 
     /// Returns [`total_issuance`](https://paritytech.github.io/substrate/master/pallet_balances/pallet/type.TotalIssuance.html).
     async fn total_issuance(&self, at: Option<BlockHash>) -> Balance;
+
+    /// Returns [`existential_deposit`](https://paritytech.github.io/substrate/master/pallet_balances/index.html#terminology).
+    async fn existential_deposit(&self) -> anyhow::Result<Balance>;
 }
 
 /// Pallet balances API
@@ -83,7 +86,7 @@ pub trait BalanceUserBatchExtApi {
 }
 
 #[async_trait::async_trait]
-impl<C: ConnectionApi> BalanceApi for C {
+impl<C: ConnectionApi + AsConnection> BalanceApi for C {
     async fn locks_for_account(
         &self,
         account: AccountId,
@@ -112,6 +115,15 @@ impl<C: ConnectionApi> BalanceApi for C {
         let address = api::storage().balances().total_issuance();
 
         self.get_storage_entry(&address, at).await
+    }
+
+    async fn existential_deposit(&self) -> anyhow::Result<Balance> {
+        let address = api::constants().balances().existential_deposit();
+        self.as_connection()
+            .as_client()
+            .constants()
+            .at(&address)
+            .map_err(|e| e.into())
     }
 }
 

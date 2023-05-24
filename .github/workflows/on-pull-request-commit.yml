@@ -94,6 +94,19 @@ jobs:
           test-case: token_transfer
         timeout-minutes: 3
 
+  run-e2e-fee-calculation-test:
+    needs: [build-test-node-image-and-e2e-client-image]
+    name: Run e2e fee calculation test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: fee_calculation
+        timeout-minutes: 5
 
   run-e2e-channeling-fee-test:
     needs: [build-test-node-image-and-e2e-client-image]
@@ -611,6 +624,7 @@ jobs:
       run-e2e-finalization-test,
       run-e2e-rewards-disable-node-test,
       run-e2e-token-transfer-test,
+      run-e2e-fee-calculation-test,
       run-e2e-channeling-fee-test,
       run-e2e-treasury-access-test,
       run-e2e-batch-transactions-test,
