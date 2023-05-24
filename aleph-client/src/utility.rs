@@ -1,8 +1,10 @@
 use anyhow::anyhow;
 use log::info;
+use primitives::Balance;
 use subxt::{blocks::ExtrinsicEvents, ext::sp_runtime::traits::Hash, Config};
 
 use crate::{
+    api::transaction_payment::events::TransactionFeePaid,
     connections::{AsConnection, TxInfo},
     pallets::{committee_management::CommitteeManagementApi, staking::StakingApi},
     AlephConfig, BlockHash, BlockNumber, EraIndex, SessionIndex,
@@ -42,6 +44,9 @@ pub trait BlocksApi {
 
     /// Fetch all events that corresponds to the transaction identified by `tx_info`.
     async fn get_tx_events(&self, tx_info: TxInfo) -> anyhow::Result<ExtrinsicEvents<AlephConfig>>;
+
+    /// Returns the fee that was paid for the transaction identified by `tx_info`.
+    async fn get_tx_fee(&self, tx_info: TxInfo) -> anyhow::Result<Balance>;
 }
 
 /// Interaction logic between pallet session and pallet staking.
@@ -87,6 +92,10 @@ impl<C: AsConnection + Sync> BlocksApi for C {
             .map_err(|e| e.into())
     }
 
+    async fn get_block_number(&self, block: BlockHash) -> anyhow::Result<Option<BlockNumber>> {
+        self.get_block_number_opt(Some(block)).await
+    }
+
     async fn get_block_number_opt(
         &self,
         block: Option<BlockHash>,
@@ -98,10 +107,6 @@ impl<C: AsConnection + Sync> BlocksApi for C {
             .await
             .map(|maybe_header| maybe_header.map(|header| header.number))
             .map_err(|e| e.into())
-    }
-
-    async fn get_block_number(&self, block: BlockHash) -> anyhow::Result<Option<BlockNumber>> {
-        self.get_block_number_opt(Some(block)).await
     }
 
     async fn get_tx_events(&self, tx_info: TxInfo) -> anyhow::Result<ExtrinsicEvents<AlephConfig>> {
@@ -123,6 +128,14 @@ impl<C: AsConnection + Sync> BlocksApi for C {
             .map_err(|e| anyhow!("Couldn't fetch events for the transaction: {e:?}"))?;
 
         Ok(extrinsic_events)
+    }
+
+    async fn get_tx_fee(&self, tx_info: TxInfo) -> anyhow::Result<Balance> {
+        let events = self.get_tx_events(tx_info).await?;
+        events
+            .find_first::<TransactionFeePaid>()?
+            .ok_or_else(|| anyhow!("TransactionFeePaid event not found"))
+            .map(|tfp| tfp.actual_fee)
     }
 }
 

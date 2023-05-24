@@ -2,20 +2,18 @@ use aleph_client::{
     account_from_keypair,
     api::treasury::events::Rejected,
     pallets::{
-        balances::BalanceApi,
+        balances::{BalanceApi, BalanceUserApi},
         system::SystemApi,
         treasury::{TreasureApiExt, TreasuryApi, TreasuryUserApi},
     },
+    utility::BlocksApi,
     waiting::{AlephWaiting, BlockStatus},
     AsConnection, ConnectionApi, KeyPair, RootConnection, SignedConnection, TxStatus,
 };
 use log::info;
 use primitives::Balance;
 
-use crate::{
-    accounts::get_validators_raw_keys, config::setup_test, fee::current_fees,
-    transfer::setup_for_transfer,
-};
+use crate::{accounts::get_validators_raw_keys, config::setup_test, transfer::setup_for_transfer};
 
 /// Returns current treasury free funds and total issuance.
 ///
@@ -42,7 +40,11 @@ pub async fn channeling_fee_and_tip() -> anyhow::Result<()> {
     let (treasury_balance_before, issuance_before) = balance_info(&connection).await;
     let possible_treasury_gain_from_staking = connection.possible_treasury_payout().await?;
 
-    let (fee, _) = current_fees(&connection, to, Some(tip), transfer_amount).await;
+    let transfer = connection
+        .transfer_with_tip(to, transfer_amount, tip, TxStatus::Finalized)
+        .await?;
+    let fee = connection.get_tx_fee(transfer).await?;
+
     let (treasury_balance_after, issuance_after) = balance_info(&connection).await;
 
     check_issuance(
