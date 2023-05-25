@@ -9,6 +9,9 @@ inputs:
   repo-apps-name:
     description: 'Name of the repository containing apps definitions'
     required: true
+  repo-featurenets-name:
+    description: 'Name of the repository containing featurenets manifests'
+    required: true
   aws-access-key-id:
     description: 'AWS Access Key ID to be used in the action'
     required: true
@@ -60,6 +63,14 @@ runs:
         path: "${{ inputs.repo-apps-name }}"
         ref: main
 
+    - name: Checkout featurenets repo
+      uses: actions/checkout@v3
+      with:
+        repository: Cardinal-Cryptography/${{ inputs.repo-featurenets-name }}
+        token: ${{ inputs.gh-ci-token }}
+        path: "${{ inputs.repo-featurenets-name }}"
+        ref: main
+
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
       env:
@@ -74,6 +85,7 @@ runs:
       env:
         # yamllint disable-line rule:line-length
         APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
+        OPSSH_TARGETPATH: "${{ github.workspace }}/${{ inputs.repo-featurenets-name }}"
       run: |
         cd "${{ inputs.repo-apps-name }}"
         ./Ops.sh delete-featurenet "${{ env.APP_NAME }}"
@@ -89,7 +101,7 @@ runs:
         author_email: alephzero@10clouds.com
         message: "Delete featurenet ${{ env.APP_NAME }}"
         add: "*.yaml"
-        cwd: "${{ inputs.repo-apps-name }}"
+        cwd: "${{ inputs.repo-featurenets-name }}"
 
     - name: Refresh Argo and wait for the deletion to be finished
       shell: bash

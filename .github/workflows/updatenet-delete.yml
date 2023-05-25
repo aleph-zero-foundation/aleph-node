@@ -39,7 +39,8 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
           ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}
           argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
-          repo-apps-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
+          repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
+          repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
           argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
           featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
           featurenet-name: fe-updnet-${{ inputs.name }}

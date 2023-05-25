@@ -9,6 +9,9 @@ inputs:
   repo-apps-name:
     description: 'Name of the repository containing apps definitions'
     required: true
+  repo-featurenets-name:
+    description: 'Name of the repository containing featurenets manifests'
+    required: true
   argo-host:
     description: 'ArgoCD host'
     required: true
@@ -131,12 +134,21 @@ runs:
         path: "${{ inputs.repo-apps-name }}"
         ref: main
 
+    - name: Checkout featurenets repo
+      uses: actions/checkout@v3
+      with:
+        repository: Cardinal-Cryptography/${{ inputs.repo-featurenets-name }}
+        token: ${{ inputs.gh-ci-token }}
+        path: "${{ inputs.repo-featurenets-name }}"
+        ref: main
+
     - name: Start featurenet from PR branch
       if: inputs.aleph-node-image == ''
       shell: bash
       env:
         # yamllint disable-line rule:line-length
         APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
+        OPSSH_TARGETPATH: "${{ github.workspace }}/${{ inputs.repo-featurenets-name }}"
       run: |
         cd "${{ inputs.repo-apps-name }}"
         pr_image_tag="fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo-with-sha }}"
@@ -154,6 +166,7 @@ runs:
       env:
         # yamllint disable-line rule:line-length
         APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
+        OPSSH_TARGETPATH: "${{ github.workspace }}/${{ inputs.repo-featurenets-name }}"
       run: |
         cd "${{ inputs.repo-apps-name }}"
         ./Ops.sh create-featurenet \
@@ -169,6 +182,7 @@ runs:
       env:
         # yamllint disable-line rule:line-length
         APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
+        OPSSH_TARGETPATH: "${{ github.workspace }}/${{ inputs.repo-featurenets-name }}"
       run: |
         cd "${{ inputs.repo-apps-name }}"
         pr_image="${{ inputs.ecr-public-registry }}aleph-node:${{ inputs.aleph-node-image }}"
@@ -190,7 +204,7 @@ runs:
         # yamllint disable-line rule:line-length
         message: "Upsert featurenet ${{ env.APP_NAME }} with image: ${{ inputs.aleph-node-image != '' && inputs.aleph-node-image || steps.get-ref-properties.outputs.branch-name-for-argo-with-sha }}"
         add: "*.yaml"
-        cwd: "${{ inputs.repo-apps-name }}"
+        cwd: "${{ inputs.repo-featurenets-name }}"
 
     - name: Refresh Argo and wait for the creation to be finished
       if: inputs.no-refresh != 'true'
