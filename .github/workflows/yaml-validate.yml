@@ -2,6 +2,7 @@
 name: GH Action YAML validator
 
 on:
+  merge_group:
   pull_request:
     paths:
       - '.github/**.yml'

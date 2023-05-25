@@ -2,6 +2,7 @@
 name: PR commit
 
 on:
+  merge_group:
   pull_request:
     branches:
       - main
