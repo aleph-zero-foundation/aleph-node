@@ -10,7 +10,6 @@ members = [
     "pallets/elections",
     "pallets/committee-management",
     "pallets/support",
-    "poseidon",
     "primitives",
 ]
 
@@ -35,6 +34,7 @@ exclude = [
     "flooder",
     "fork-off",
     "pallets/baby-liminal",
+    "poseidon",
     "relations/ark",
     "relations/ark/src/proc_macro",
     "relations/jf",
@@ -186,12 +186,6 @@ ark-ff = { version = "^0.3.0", default-features = false }
 ark-serialize = { version = "^0.3.0", default-features = false }
 ark-r1cs-std = { version = "^0.3.0" , default-features = false }
 ark-relations = { version = "^0.3.0", default-features = false }
-
-liminal-ark-pnbr-poseidon-parameters = { version = "0.1.0", default-features = false }
-liminal-ark-pnbr-poseidon-paramgen = { version = "0.1.0" }
-liminal-ark-pnbr-poseidon-permutation = { version = "0.1.0", default-features = false }
-liminal-ark-pnbr-sponge = { version = "0.3.0", default-features = false  }
-liminal-ark-poseidon = { version = "0.1.0", default-features = false }
 
 baby-liminal-extension = { path = "baby-liminal-extension", default-features = false }
 pallet-baby-liminal = { path = "pallets/baby-liminal", default-features = false }
