@@ -12,20 +12,20 @@ scale-info = { version = "2.0", default-features = false, features = ["derive"] 
 ark-bls12-381 = { version = "0.4.0", default-features = false, features = ["curve"] }
 ark-serialize = { version = "0.4.0", default-features = false }
 
-frame-benchmarking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.40", optional = true }
-frame-support = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.40" }
-frame-system = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.40" }
-sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.40" }
+frame-benchmarking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.41", optional = true }
+frame-support = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.41" }
+frame-system = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.41" }
+sp-std = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.41" }
 
 # we are waiting for: https://github.com/EspressoSystems/jellyfish/issues/258 and https://github.com/EspressoSystems/jellyfish/issues/268
 jf-plonk = { git = "https://github.com/Cardinal-Cryptography/jellyfish", branch = "substrate-compatible", default-features = false }
 
 [dev-dependencies]
 once_cell = { version = "1.17.1" }
-pallet-balances = { default-features = false, git = 'https://github.com/Cardinal-Cryptography/substrate.git', branch = "aleph-v0.9.40" }
-sp-core = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.40" }
-sp-io = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.40" }
-sp-runtime = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.40" }
+pallet-balances = { default-features = false, git = 'https://github.com/Cardinal-Cryptography/substrate.git', branch = "aleph-v0.9.41" }
+sp-core = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.41" }
+sp-io = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.41" }
+sp-runtime = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.41" }
 
 jf-plonk = { git = "https://github.com/Cardinal-Cryptography/jellyfish", branch = "substrate-compatible", default-features = false, features = ["test-srs"] }
 jf-relation = { git = "https://github.com/Cardinal-Cryptography/jellyfish", branch = "substrate-compatible", default-features = false }

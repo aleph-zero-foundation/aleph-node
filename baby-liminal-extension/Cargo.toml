@@ -15,7 +15,7 @@ scale = { package = "parity-scale-codec", version = "3", default-features = fals
 scale-info = { version = "2.3", default-features = false, features = ["derive"], optional = true }
 
 obce = { git = "https://github.com/727-Ventures/obce", rev = "5e3da417c2189ddd4e9ef82cd586f8ec94b8952a", default-features = false }
-sp-io = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38", default-features = false, features = ["disable_panic_handler", "disable_oom"] }
+sp-io = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.41", default-features = false, features = ["disable_panic_handler", "disable_oom"] }
 
 pallet-baby-liminal = { path = "../pallets/baby-liminal", default-features = false, optional = true }
 
