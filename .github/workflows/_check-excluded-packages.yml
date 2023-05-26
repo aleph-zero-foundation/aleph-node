@@ -68,14 +68,17 @@ jobs:
                [ $p = "contracts/ticket_token" ] ||
                [ $p = "contracts/wrapped_azero" ]
             then
-               cargo contract check
+                cargo contract check
             elif [ $p = "baby-liminal-extension" ]
             then
-              # cargo clippy --release --no-default-features --features substrate \
-              #  --target wasm32-unknown-unknown -- --no-deps -D warnings
-              :
+                # cargo clippy --release --no-default-features --features substrate \
+                #  --target wasm32-unknown-unknown -- --no-deps -D warnings
+                :
+            elif [ $p = "pallets/baby-liminal" ]
+            then
+                cargo test --features runtime-benchmarks
             else
-               cargo clippy -- --no-deps -D warnings
+                cargo clippy -- --no-deps -D warnings
             fi
             cargo fmt --all --check
             popd
