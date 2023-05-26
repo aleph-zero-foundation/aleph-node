@@ -16,6 +16,7 @@ use sc_client_api::{BlockBackend, HeaderBackend};
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
 use sc_consensus_slots::BackoffAuthoringBlocksStrategy;
 use sc_network::NetworkService;
+use sc_network_sync::SyncingService;
 use sc_service::{
     error::Error as ServiceError, Configuration, KeystoreContainer, NetworkStarter, RpcHandlers,
     TFullClient, TaskManager,
@@ -224,6 +225,7 @@ fn setup(
     (
         RpcHandlers,
         Arc<NetworkService<Block, <Block as BlockT>::Hash>>,
+        Arc<SyncingService<Block>>,
         ProtocolNaming,
         NetworkStarter,
     ),
@@ -254,7 +256,7 @@ fn setup(
             Protocol::BlockSync,
         ));
 
-    let (network, system_rpc_tx, tx_handler_controller, network_starter) =
+    let (network, system_rpc_tx, tx_handler_controller, network_starter, sync_network) =
         sc_service::build_network(sc_service::BuildNetworkParams {
             config: &config,
             client: client.clone(),
@@ -283,6 +285,7 @@ fn setup(
 
     let rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
         network: network.clone(),
+        sync_service: sync_network.clone(),
         client,
         keystore: keystore_container.sync_keystore(),
         task_manager,
@@ -295,7 +298,13 @@ fn setup(
         telemetry: telemetry.as_mut(),
     })?;
 
-    Ok((rpc_handlers, network, protocol_naming, network_starter))
+    Ok((
+        rpc_handlers,
+        network,
+        sync_network,
+        protocol_naming,
+        network_starter,
+    ))
 }
 
 /// Builds a new service for a full client.
@@ -336,7 +345,7 @@ pub fn new_authority(
 
     let chain_status = SubstrateChainStatus::new(backend.clone())
         .map_err(|e| ServiceError::Other(format!("failed to set up chain status: {}", e)))?;
-    let (_rpc_handlers, network, protocol_naming, network_starter) = setup(
+    let (_rpc_handlers, network, sync_network, protocol_naming, network_starter) = setup(
         config,
         backend,
         chain_status.clone(),
@@ -381,8 +390,8 @@ pub fn new_authority(
             force_authoring,
             backoff_authoring_blocks,
             keystore: keystore_container.sync_keystore(),
-            sync_oracle: network.clone(),
-            justification_sync_link: network.clone(),
+            sync_oracle: sync_network.clone(),
+            justification_sync_link: sync_network.clone(),
             block_proposal_slot_portion: SlotProportion::new(2f32 / 3f32),
             max_block_proposal_slot_portion: None,
             telemetry: telemetry.as_ref().map(|x| x.handle()),
@@ -399,6 +408,7 @@ pub fn new_authority(
     }
     let aleph_config = AlephConfig {
         network,
+        sync_network,
         client,
         chain_status,
         select_chain,

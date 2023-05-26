@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Debug, time::Instant};
+use std::{fmt::Debug, time::Instant};
 
 use futures::channel::mpsc::{TrySendError, UnboundedSender};
 use log::{debug, trace, warn};
@@ -59,13 +59,12 @@ where
     async fn import_block(
         &mut self,
         block: BlockImportParams<B, Self::Transaction>,
-        cache: HashMap<[u8; 4], Vec<u8>>,
     ) -> Result<ImportResult, Self::Error> {
         let post_hash = block.post_hash();
         self.metrics
             .report_block(post_hash, Instant::now(), Checkpoint::Importing);
 
-        let result = self.inner.import_block(block, cache).await;
+        let result = self.inner.import_block(block).await;
 
         if let Ok(ImportResult::Imported(_)) = &result {
             self.metrics
@@ -171,7 +170,6 @@ where
     async fn import_block(
         &mut self,
         mut block: BlockImportParams<B, Self::Transaction>,
-        cache: HashMap<[u8; 4], Vec<u8>>,
     ) -> Result<ImportResult, Self::Error> {
         let number = *block.header.number();
         let post_hash = block.post_hash();
@@ -183,7 +181,7 @@ where
         }
 
         debug!(target: "aleph-justification", "Importing block {:?} {:?} {:?}", number, block.header.hash(), block.post_hash());
-        let result = self.inner.import_block(block, cache).await;
+        let result = self.inner.import_block(block).await;
 
         if let Ok(ImportResult::Imported(_)) = result {
             if let Some(justification) =

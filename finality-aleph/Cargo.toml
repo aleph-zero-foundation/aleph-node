@@ -44,6 +44,7 @@ sc-client-api = { workspace = true }
 sc-consensus = { workspace = true }
 sc-network = { workspace = true }
 sc-network-common = { workspace = true }
+sc-network-sync = { workspace = true }
 sc-service = { workspace = true }
 sc-telemetry = { workspace = true }
 sc-utils = { workspace = true }

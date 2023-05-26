@@ -6,14 +6,16 @@ use log::{error, trace};
 use sc_consensus::JustificationSyncLink;
 use sc_network::{
     multiaddr::Protocol as MultiaddressProtocol, Event as SubstrateEvent, Multiaddr,
-    NetworkService, NetworkSyncForkRequest, PeerId,
+    NetworkEventStream as _, NetworkNotification, NetworkPeers, NetworkService,
+    NetworkSyncForkRequest, NotificationSenderT, PeerId, ProtocolName,
 };
 use sc_network_common::{
-    protocol::ProtocolName,
-    service::{NetworkEventStream as _, NetworkNotification, NetworkPeers, NotificationSender},
+    sync::{SyncEvent, SyncEventStream},
     ExHashT,
 };
+use sc_network_sync::SyncingService;
 use sp_runtime::traits::{Block, Header};
+use tokio::select;
 
 use crate::{
     aleph_primitives::BlockNumber,
@@ -24,12 +26,12 @@ use crate::{
     IdentifierFor,
 };
 
-impl<B: Block, H: ExHashT> RequestBlocks<IdentifierFor<B>> for Arc<NetworkService<B, H>>
+impl<B: Block> RequestBlocks<IdentifierFor<B>> for Arc<SyncingService<B>>
 where
     B::Header: Header<Number = BlockNumber>,
 {
     fn request_justification(&self, block_id: IdentifierFor<B>) {
-        NetworkService::request_justification(self, &block_id.hash, block_id.number)
+        SyncingService::request_justification(self, &block_id.hash, block_id.number)
     }
 
     fn request_stale_block(&self, block_id: IdentifierFor<B>) {
@@ -37,12 +39,12 @@ where
         // Notifies the sync service to try and sync the given block from the given peers. If the given vector
         // of peers is empty (as in our case) then the underlying implementation should make a best effort to fetch
         // the block from any peers it is connected to.
-        NetworkService::set_sync_fork_request(self, Vec::new(), block_id.hash, block_id.number)
+        SyncingService::set_sync_fork_request(self, Vec::new(), block_id.hash, block_id.number)
     }
 
     /// Clear all pending justification requests.
     fn clear_justification_requests(&self) {
-        NetworkService::clear_justification_requests(self)
+        SyncingService::clear_justification_requests(self)
     }
 }
 
@@ -151,7 +153,7 @@ impl fmt::Display for SenderError {
 impl std::error::Error for SenderError {}
 
 pub struct SubstrateNetworkSender {
-    notification_sender: Box<dyn NotificationSender>,
+    notification_sender: Box<dyn NotificationSenderT>,
     peer_id: PeerId,
 }
 
@@ -174,6 +176,7 @@ impl NetworkSender for SubstrateNetworkSender {
 
 pub struct NetworkEventStream<B: Block, H: ExHashT> {
     stream: Pin<Box<dyn Stream<Item = SubstrateEvent> + Send>>,
+    sync_stream: Pin<Box<dyn Stream<Item = SyncEvent> + Send>>,
     naming: ProtocolNaming,
     network: Arc<NetworkService<B, H>>,
 }
@@ -183,68 +186,75 @@ impl<B: Block, H: ExHashT> EventStream<PeerId> for NetworkEventStream<B, H> {
     async fn next_event(&mut self) -> Option<Event<PeerId>> {
         use Event::*;
         use SubstrateEvent::*;
+        use SyncEvent::*;
         loop {
-            match self.stream.next().await {
-                Some(event) => match event {
-                    SyncConnected { remote } => {
-                        let multiaddress: Multiaddr =
-                            iter::once(MultiaddressProtocol::P2p(remote.into())).collect();
-                        trace!(target: "aleph-network", "Connected event from address {:?}", multiaddress);
-                        if let Err(e) = self.network.add_peers_to_reserved_set(
-                            self.naming.protocol_name(&Protocol::Authentication),
-                            iter::once(multiaddress.clone()).collect(),
-                        ) {
-                            error!(target: "aleph-network", "add_reserved failed for authentications: {}", e);
-                        }
-                        if let Err(e) = self.network.add_peers_to_reserved_set(
-                            self.naming.protocol_name(&Protocol::BlockSync),
-                            iter::once(multiaddress).collect(),
-                        ) {
-                            error!(target: "aleph-network", "add_reserved failed for block sync: {}", e);
-                        }
-                        continue;
-                    }
-                    SyncDisconnected { remote } => {
-                        trace!(target: "aleph-network", "Disconnected event for peer {:?}", remote);
-                        let addresses: Vec<_> = iter::once(remote).collect();
-                        self.network.remove_peers_from_reserved_set(
-                            self.naming.protocol_name(&Protocol::Authentication),
-                            addresses.clone(),
-                        );
-                        self.network.remove_peers_from_reserved_set(
-                            self.naming.protocol_name(&Protocol::BlockSync),
-                            addresses,
-                        );
-                        continue;
-                    }
-                    NotificationStreamOpened {
-                        remote, protocol, ..
-                    } => match self.naming.to_protocol(protocol.as_ref()) {
-                        Some(protocol) => return Some(StreamOpened(remote, protocol)),
-                        None => continue,
-                    },
-                    NotificationStreamClosed { remote, protocol } => {
-                        match self.naming.to_protocol(protocol.as_ref()) {
-                            Some(protocol) => return Some(StreamClosed(remote, protocol)),
+            select! {
+                Some(event) = self.stream.next() => {
+                    match event {
+                        NotificationStreamOpened {
+                            remote, protocol, ..
+                        } => match self.naming.to_protocol(protocol.as_ref()) {
+                            Some(protocol) => return Some(StreamOpened(remote, protocol)),
                             None => continue,
+                        },
+                        NotificationStreamClosed { remote, protocol } => {
+                            match self.naming.to_protocol(protocol.as_ref()) {
+                                Some(protocol) => return Some(StreamClosed(remote, protocol)),
+                                None => continue,
+                            }
+                        }
+                        NotificationsReceived { messages, remote } => {
+                            return Some(Messages(
+                                remote,
+                                messages
+                                    .into_iter()
+                                    .filter_map(|(protocol, data)| {
+                                        self.naming
+                                            .to_protocol(protocol.as_ref())
+                                            .map(|protocol| (protocol, data))
+                                    })
+                                    .collect(),
+                            ));
+                        }
+                        Dht(_) => continue,
+                    }
+                },
+                Some(event) = self.sync_stream.next() => {
+                    match event {
+                        PeerConnected(remote) => {
+                            let multiaddress: Multiaddr =
+                                iter::once(MultiaddressProtocol::P2p(remote.into())).collect();
+                            trace!(target: "aleph-network", "Connected event from address {:?}", multiaddress);
+                            if let Err(e) = self.network.add_peers_to_reserved_set(
+                                self.naming.protocol_name(&Protocol::Authentication),
+                                iter::once(multiaddress.clone()).collect(),
+                            ) {
+                                error!(target: "aleph-network", "add_reserved failed for authentications: {}", e);
+                            }
+                            if let Err(e) = self.network.add_peers_to_reserved_set(
+                                self.naming.protocol_name(&Protocol::BlockSync),
+                                iter::once(multiaddress).collect(),
+                            ) {
+                                error!(target: "aleph-network", "add_reserved failed for block sync: {}", e);
+                            }
+                            continue;
+                        }
+                        PeerDisconnected(remote) => {
+                            trace!(target: "aleph-network", "Disconnected event for peer {:?}", remote);
+                            let addresses: Vec<_> = iter::once(remote).collect();
+                            self.network.remove_peers_from_reserved_set(
+                                self.naming.protocol_name(&Protocol::Authentication),
+                                addresses.clone(),
+                            );
+                            self.network.remove_peers_from_reserved_set(
+                                self.naming.protocol_name(&Protocol::BlockSync),
+                                addresses,
+                            );
+                            continue;
                         }
                     }
-                    NotificationsReceived { messages, remote } => {
-                        return Some(Messages(
-                            remote,
-                            messages
-                                .into_iter()
-                                .filter_map(|(protocol, data)| {
-                                    self.naming
-                                        .to_protocol(protocol.as_ref())
-                                        .map(|protocol| (protocol, data))
-                                })
-                                .collect(),
-                        ));
-                    }
-                    Dht(_) => continue,
                 },
-                None => return None,
+                else => return None,
             }
         }
     }
@@ -254,13 +264,22 @@ impl<B: Block, H: ExHashT> EventStream<PeerId> for NetworkEventStream<B, H> {
 #[derive(Clone)]
 pub struct SubstrateNetwork<B: Block, H: ExHashT> {
     network: Arc<NetworkService<B, H>>,
+    sync_network: Arc<SyncingService<B>>,
     naming: ProtocolNaming,
 }
 
 impl<B: Block, H: ExHashT> SubstrateNetwork<B, H> {
     /// Create a new substrate network wrapper.
-    pub fn new(network: Arc<NetworkService<B, H>>, naming: ProtocolNaming) -> Self {
-        SubstrateNetwork { network, naming }
+    pub fn new(
+        network: Arc<NetworkService<B, H>>,
+        sync_network: Arc<SyncingService<B>>,
+        naming: ProtocolNaming,
+    ) -> Self {
+        SubstrateNetwork {
+            network,
+            sync_network,
+            naming,
+        }
     }
 }
 
@@ -273,6 +292,11 @@ impl<B: Block, H: ExHashT> RawNetwork for SubstrateNetwork<B, H> {
     fn event_stream(&self) -> Self::EventStream {
         NetworkEventStream {
             stream: Box::pin(self.network.as_ref().event_stream("aleph-network")),
+            sync_stream: Box::pin(
+                self.sync_network
+                    .as_ref()
+                    .event_stream("aleph-syncing-network"),
+            ),
             naming: self.naming.clone(),
             network: self.network.clone(),
         }

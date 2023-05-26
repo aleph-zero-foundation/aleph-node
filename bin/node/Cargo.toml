@@ -37,6 +37,7 @@ sc-consensus-slots = { workspace = true }
 sc-executor = { workspace = true }
 sc-keystore = { workspace = true }
 sc-network = { workspace = true }
+sc-network-sync = { workspace = true }
 sc-service = { workspace = true }
 sc-telemetry = { workspace = true }
 sc-transaction-pool = { workspace = true }

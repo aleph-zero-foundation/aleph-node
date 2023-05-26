@@ -12,7 +12,7 @@ use rand::{seq::IteratorRandom, thread_rng};
 use sc_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnboundedSender};
 use tokio::time;
 
-const QUEUE_SIZE_WARNING: i64 = 1_000;
+const QUEUE_SIZE_WARNING: usize = 1_000;
 
 use crate::{
     network::{
@@ -204,7 +204,7 @@ impl<N: RawNetwork, AD: Data, BSD: Data> Service<N, AD, BSD> {
                     Err(e) => {
                         // Receiver can also be dropped when thread cannot send to peer. In case receiver is dropped this entry will be removed by Event::NotificationStreamClosed
                         // No need to remove the entry here
-                        if e.is_disconnected() {
+                        if e.is_closed() {
                             trace!(target: "aleph-network", "Failed sending data to peer because peer_sender receiver is dropped: {:?}", peer);
                         }
                         Err(SendError::SendingFailed)
@@ -223,7 +223,7 @@ impl<N: RawNetwork, AD: Data, BSD: Data> Service<N, AD, BSD> {
                     Err(e) => {
                         // Receiver can also be dropped when thread cannot send to peer. In case receiver is dropped this entry will be removed by Event::NotificationStreamClosed
                         // No need to remove the entry here
-                        if e.is_disconnected() {
+                        if e.is_closed() {
                             trace!(target: "aleph-network", "Failed sending data to peer because peer_sender receiver is dropped: {:?}", peer);
                         }
                         Err(SendError::SendingFailed)

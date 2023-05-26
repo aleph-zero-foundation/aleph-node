@@ -73,9 +73,9 @@ impl<T: frame_system::Config> BenchmarkInfo for AlephWeight<T> {
 	/// The range of component `l` is `[1, 10000]`.
 	fn store_key(l: u32, ) -> Weight {
 		// Minimum execution time: 33_270 nanoseconds.
-		Weight::from_ref_time(36_539_015_u64)
+		Weight::from_parts(36_539_015_u64, 0)
 			// Standard Error: 56
-			.saturating_add(Weight::from_ref_time(669_u64).saturating_mul(l as u64))
+			.saturating_add(Weight::from_parts(669_u64, 0).saturating_mul(l as u64))
 			.saturating_add(T::DbWeight::get().reads(2_u64))
 			.saturating_add(T::DbWeight::get().writes(4_u64))
 	}
@@ -90,9 +90,9 @@ impl<T: frame_system::Config> BenchmarkInfo for AlephWeight<T> {
 	/// The range of component `l` is `[1, 10000]`.
 	fn overwrite_equal_key(l: u32, ) -> Weight {
 		// Minimum execution time: 39_501 nanoseconds.
-		Weight::from_ref_time(44_208_753_u64)
+		Weight::from_parts(44_208_753_u64, 0)
 			// Standard Error: 279
-			.saturating_add(Weight::from_ref_time(1_189_u64).saturating_mul(l as u64))
+			.saturating_add(Weight::from_parts(1_189_u64, 0).saturating_mul(l as u64))
 			.saturating_add(T::DbWeight::get().reads(4_u64))
 			.saturating_add(T::DbWeight::get().writes(3_u64))
 	}
@@ -107,9 +107,9 @@ impl<T: frame_system::Config> BenchmarkInfo for AlephWeight<T> {
 	/// The range of component `l` is `[1, 9999]`.
 	fn overwrite_key(l: u32, ) -> Weight {
 		// Minimum execution time: 37_732 nanoseconds.
-		Weight::from_ref_time(43_852_538_u64)
+		Weight::from_parts(43_852_538_u64, 0)
 			// Standard Error: 61
-			.saturating_add(Weight::from_ref_time(775_u64).saturating_mul(l as u64))
+			.saturating_add(Weight::from_parts(775_u64, 0).saturating_mul(l as u64))
 			.saturating_add(T::DbWeight::get().reads(4_u64))
 			.saturating_add(T::DbWeight::get().writes(3_u64))
 	}
@@ -124,7 +124,7 @@ impl<T: frame_system::Config> BenchmarkInfo for AlephWeight<T> {
 	/// The range of component `l` is `[1, 10000]`.
 	fn delete_key(_l: u32, ) -> Weight {
 		// Minimum execution time: 30_814 nanoseconds.
-		Weight::from_ref_time(34_440_507_u64)
+		Weight::from_parts(34_440_507_u64, 0)
 			.saturating_add(T::DbWeight::get().reads(3_u64))
 			.saturating_add(T::DbWeight::get().writes(3_u64))
 	}
@@ -143,9 +143,9 @@ impl BenchmarkInfo for () {
 	/// The range of component `l` is `[1, 10000]`.
 	fn store_key(l: u32, ) -> Weight {
 		// Minimum execution time: 33_270 nanoseconds.
-		Weight::from_ref_time(36_539_015_u64)
+		Weight::from_parts(36_539_015_u64, 0)
 			// Standard Error: 56
-			.saturating_add(Weight::from_ref_time(669_u64).saturating_mul(l as u64))
+			.saturating_add(Weight::from_parts(669_u64, 0).saturating_mul(l as u64))
 			.saturating_add(RocksDbWeight::get().reads(2_u64))
 			.saturating_add(RocksDbWeight::get().writes(4_u64))
 	}
@@ -160,9 +160,9 @@ impl BenchmarkInfo for () {
 	/// The range of component `l` is `[1, 10000]`.
 	fn overwrite_equal_key(l: u32, ) -> Weight {
 		// Minimum execution time: 39_501 nanoseconds.
-		Weight::from_ref_time(44_208_753_u64)
+		Weight::from_parts(44_208_753_u64, 0)
 			// Standard Error: 279
-			.saturating_add(Weight::from_ref_time(1_189_u64).saturating_mul(l as u64))
+			.saturating_add(Weight::from_parts(1_189_u64, 0).saturating_mul(l as u64))
 			.saturating_add(RocksDbWeight::get().reads(4_u64))
 			.saturating_add(RocksDbWeight::get().writes(3_u64))
 	}
@@ -177,9 +177,9 @@ impl BenchmarkInfo for () {
 	/// The range of component `l` is `[1, 9999]`.
 	fn overwrite_key(l: u32, ) -> Weight {
 		// Minimum execution time: 37_732 nanoseconds.
-		Weight::from_ref_time(43_852_538_u64)
+		Weight::from_parts(43_852_538_u64, 0)
 			// Standard Error: 61
-			.saturating_add(Weight::from_ref_time(775_u64).saturating_mul(l as u64))
+			.saturating_add(Weight::from_parts(775_u64, 0).saturating_mul(l as u64))
 			.saturating_add(RocksDbWeight::get().reads(4_u64))
 			.saturating_add(RocksDbWeight::get().writes(3_u64))
 	}
@@ -194,7 +194,7 @@ impl BenchmarkInfo for () {
 	/// The range of component `l` is `[1, 10000]`.
 	fn delete_key(_l: u32, ) -> Weight {
 		// Minimum execution time: 30_814 nanoseconds.
-		Weight::from_ref_time(34_440_507_u64)
+		Weight::from_parts(34_440_507_u64, 0)
 			.saturating_add(RocksDbWeight::get().reads(3_u64))
 			.saturating_add(RocksDbWeight::get().writes(3_u64))
 	}

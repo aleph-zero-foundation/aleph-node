@@ -60,6 +60,7 @@ where
 {
     let AlephConfig {
         network,
+        sync_network,
         client,
         chain_status,
         select_chain,
@@ -105,12 +106,12 @@ where
     });
 
     let (gossip_network_service, authentication_network, block_sync_network) = GossipService::new(
-        SubstrateNetwork::new(network.clone(), protocol_naming),
+        SubstrateNetwork::new(network.clone(), sync_network.clone(), protocol_naming),
         spawn_handle.clone(),
     );
     let gossip_network_task = async move { gossip_network_service.run().await };
 
-    let block_requester = network.clone();
+    let block_requester = sync_network.clone();
     let auxilliary_requester = Requester::new(
         block_requester.clone(),
         chain_status.clone(),

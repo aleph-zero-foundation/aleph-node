@@ -35,6 +35,7 @@ std = [
     "pallet-session/std",
     "sp-std/std",
     "primitives/std",
+    "pallet-balances/std"
 ]
 try-runtime = [
     "frame-support/try-runtime",
