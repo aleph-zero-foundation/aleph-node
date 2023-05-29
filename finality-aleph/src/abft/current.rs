@@ -6,7 +6,10 @@ use sp_blockchain::HeaderBackend;
 use sp_runtime::traits::{Block, Header};
 
 use crate::{
-    abft::{common::unit_creation_delay_fn, NetworkWrapper},
+    abft::{
+        common::{unit_creation_delay_fn, MAX_ROUNDS},
+        NetworkWrapper,
+    },
     crypto::Signature,
     data_io::{AlephData, OrderedDataInterpreter},
     network::data::Network,
@@ -73,6 +76,6 @@ pub fn create_aleph_config(
 ) -> Config {
     let mut config = default_config(n_members.into(), node_id.into(), session_id.0 as u64);
     config.delay_config.unit_creation_delay = unit_creation_delay_fn(unit_creation_delay);
-
+    config.max_round = MAX_ROUNDS;
     config
 }
