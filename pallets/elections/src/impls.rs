@@ -1,6 +1,6 @@
 use primitives::{CommitteeSeats, EraValidators};
 use rand::{seq::SliceRandom, SeedableRng};
-use rand_pcg::Pcg64Mcg;
+use rand_pcg::Pcg32;
 use sp_staking::EraIndex;
 use sp_std::{collections::btree_set::BTreeSet, vec::Vec};
 
@@ -14,7 +14,7 @@ where
     T: Config,
 {
     fn populate_next_era_validators_on_next_era_start(era: EraIndex) {
-        let mut rng = Pcg64Mcg::seed_from_u64(era as u64);
+        let mut rng = Pcg32::seed_from_u64(era as u64);
         let elected_committee = BTreeSet::from_iter(T::ValidatorProvider::elected_validators(era));
 
         let mut retain_shuffle_elected = |vals: Vec<T::AccountId>| -> Vec<T::AccountId> {
