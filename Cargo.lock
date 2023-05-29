@@ -5486,6 +5486,7 @@ dependencies = [
  "parity-scale-codec",
  "primitives",
  "rand 0.8.5",
+ "rand_pcg",
  "scale-info",
  "sp-io",
  "sp-runtime",

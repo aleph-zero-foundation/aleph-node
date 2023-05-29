@@ -7,7 +7,8 @@ edition = "2021"
 
 codec = { package = "parity-scale-codec", version = "3.0", default-features = false, features = ["derive"] }
 scale-info = { version = "2.0", default-features = false, features = ["derive"] }
-rand = { version = "0.8.5", default-features = false, features = [ "small_rng" ] }
+rand = { version = "0.8.5", default-features = false }
+rand_pcg = { version = "0.3.1", default-features = false }
 
 pallet-session = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
 sp-staking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.38" }
