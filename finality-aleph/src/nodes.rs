@@ -5,13 +5,11 @@ use futures::channel::oneshot;
 use log::{debug, error};
 use network_clique::{Service, SpawnHandleT};
 use sc_client_api::Backend;
-use sc_network_common::ExHashT;
 use sp_consensus::SelectChain;
 use sp_keystore::CryptoStore;
-use sp_runtime::traits::{Block, Header};
 
 use crate::{
-    aleph_primitives::BlockNumber,
+    aleph_primitives::{Block, Header},
     crypto::AuthorityPen,
     finalization::AlephFinalizer,
     justification::Requester,
@@ -47,16 +45,13 @@ pub async fn new_pen(mnemonic: &str, keystore: Arc<dyn CryptoStore>) -> Authorit
         .expect("we just generated this key so everything should work")
 }
 
-pub async fn run_validator_node<B, H, C, CS, BE, SC>(aleph_config: AlephConfig<B, H, C, SC, CS>)
+pub async fn run_validator_node<C, CS, BE, SC>(aleph_config: AlephConfig<C, SC, CS>)
 where
-    B: Block,
-    B::Header: Header<Number = BlockNumber>,
-    H: ExHashT,
-    C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: crate::aleph_primitives::AlephSessionApi<B>,
-    BE: Backend<B> + 'static,
-    CS: ChainStatus<SubstrateJustification<B::Header>> + JustificationTranslator<B::Header>,
-    SC: SelectChain<B> + 'static,
+    C: crate::ClientForAleph<Block, BE> + Send + Sync + 'static,
+    C::Api: crate::aleph_primitives::AlephSessionApi<Block>,
+    BE: Backend<Block> + 'static,
+    CS: ChainStatus<SubstrateJustification<Header>> + JustificationTranslator<Header>,
+    SC: SelectChain<Block> + 'static,
 {
     let AlephConfig {
         network,
@@ -150,18 +145,19 @@ where
         genesis_header,
     );
     let finalizer = AlephFinalizer::new(client.clone(), metrics.clone());
-    let (sync_service, justifications_for_sync, _) = match SyncService::new(
-        block_sync_network,
-        chain_events,
-        chain_status.clone(),
-        verifier,
-        finalizer,
-        session_period,
-        justification_rx,
-    ) {
-        Ok(x) => x,
-        Err(e) => panic!("Failed to initialize Sync service: {}", e),
-    };
+    let (sync_service, justifications_for_sync, _) =
+        match SyncService::<Block, _, _, _, _, _, _>::new(
+            block_sync_network,
+            chain_events,
+            chain_status.clone(),
+            verifier,
+            finalizer,
+            session_period,
+            justification_rx,
+        ) {
+            Ok(x) => x,
+            Err(e) => panic!("Failed to initialize Sync service: {}", e),
+        };
     let sync_task = async move { sync_service.run().await };
 
     let (connection_manager_service, connection_manager) = ConnectionManager::new(

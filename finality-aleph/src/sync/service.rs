@@ -14,9 +14,9 @@ use crate::{
         handler::{Error as HandlerError, Handler, SyncAction},
         task_queue::TaskQueue,
         ticker::Ticker,
-        BlockIdFor, BlockIdentifier, ChainStatus, ChainStatusNotification, ChainStatusNotifier,
-        Finalizer, Header, Justification, JustificationSubmissions, RequestBlocks, Verifier,
-        LOG_TARGET,
+        Block, BlockIdFor, BlockIdentifier, ChainStatus, ChainStatusNotification,
+        ChainStatusNotifier, Finalizer, Header, Justification, JustificationSubmissions,
+        RequestBlocks, Verifier, LOG_TARGET,
     },
     SessionPeriod,
 };
@@ -27,15 +27,16 @@ const FINALIZATION_STALL_CHECK_PERIOD: Duration = Duration::from_secs(30);
 
 /// A service synchronizing the knowledge about the chain between the nodes.
 pub struct Service<
+    B: Block,
     J: Justification,
-    N: GossipNetwork<VersionedNetworkData<J>>,
+    N: GossipNetwork<VersionedNetworkData<B, J>>,
     CE: ChainStatusNotifier<J::Header>,
     CS: ChainStatus<J>,
     V: Verifier<J>,
     F: Finalizer<J>,
 > {
-    network: VersionWrapper<J, N>,
-    handler: Handler<N::PeerId, J, CS, V, F>,
+    network: VersionWrapper<B, J, N>,
+    handler: Handler<B, N::PeerId, J, CS, V, F>,
     tasks: TaskQueue<BlockIdFor<J>>,
     broadcast_ticker: Ticker,
     chain_events: CE,
@@ -61,13 +62,14 @@ impl<BI: BlockIdentifier> RequestBlocks<BI> for mpsc::UnboundedSender<BI> {
 }
 
 impl<
+        B: Block,
         J: Justification,
-        N: GossipNetwork<VersionedNetworkData<J>>,
+        N: GossipNetwork<VersionedNetworkData<B, J>>,
         CE: ChainStatusNotifier<J::Header>,
         CS: ChainStatus<J>,
         V: Verifier<J>,
         F: Finalizer<J>,
-    > Service<J, N, CE, CS, V, F>
+    > Service<B, J, N, CE, CS, V, F>
 {
     /// Create a new service using the provided network for communication.
     /// Also returns an interface for submitting additional justifications,
@@ -164,13 +166,13 @@ impl<
         }
     }
 
-    fn send_to(&mut self, data: NetworkData<J>, peer: N::PeerId) {
+    fn send_to(&mut self, data: NetworkData<B, J>, peer: N::PeerId) {
         if let Err(e) = self.network.send_to(data, peer) {
             warn!(target: LOG_TARGET, "Error sending response: {}.", e);
         }
     }
 
-    fn perform_sync_action(&mut self, action: SyncAction<J>, peer: N::PeerId) {
+    fn perform_sync_action(&mut self, action: SyncAction<B, J>, peer: N::PeerId) {
         use SyncAction::*;
         match action {
             Response(data) => self.send_to(data, peer),
@@ -256,7 +258,7 @@ impl<
         }
     }
 
-    fn handle_network_data(&mut self, data: NetworkData<J>, peer: N::PeerId) {
+    fn handle_network_data(&mut self, data: NetworkData<B, J>, peer: N::PeerId) {
         use NetworkData::*;
         match data {
             StateBroadcast(state) => self.handle_state(state, peer),
@@ -273,7 +275,7 @@ impl<
                 self.handle_request(request, peer.clone());
                 self.handle_state(state, peer)
             }
-            RequestResponse(justifications) => {
+            RequestResponse(_, justifications) => {
                 self.handle_justifications(justifications, Some(peer))
             }
         }
