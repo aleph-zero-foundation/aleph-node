@@ -10,7 +10,8 @@ repository.workspace = true
 [dependencies]
 parity-scale-codec = { workspace = true, features = ["derive"] }
 scale-info = { workspace = true, features = ["derive"] }
-rand = { workspace = true, features = [ "small_rng" ] }
+rand = { workspace = true }
+rand_pcg = { workspace = true }
 
 frame-election-provider-support = { workspace = true }
 frame-support = { workspace = true }

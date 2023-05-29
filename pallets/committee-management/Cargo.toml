@@ -8,7 +8,8 @@ repository.workspace = true
 
 [dependencies]
 parity-scale-codec = { workspace = true, features = ["derive"] }
-rand = { workspace = true, features = [ "small_rng" ] }
+rand = { workspace = true }
+rand_pcg = { workspace = true }
 scale-info = { workspace = true, features = ["derive"] }
 
 frame-support = { workspace = true }
@@ -40,7 +41,6 @@ std = [
     "sp-runtime/std",
     "sp-staking/std",
     "sp-std/std",
-
     "primitives/std",
 ]
 
