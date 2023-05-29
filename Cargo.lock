@@ -3780,7 +3780,7 @@ checksum = "453ad9f582a441959e5f0d088b02ce04cfe8d51a8eaf077f12ac6d3e94164ca6"
 [[package]]
 name = "jf-plonk"
 version = "0.3.0"
-source = "git+https://github.com/Cardinal-Cryptography/jellyfish?branch=substrate-compatible#83c5781bb6c0a04a9ad7e8550516bd52c1e076e3"
+source = "git+https://github.com/Cardinal-Cryptography/jellyfish?branch=substrate-compatible#6d4548574d79062a5fc3f760cdaa35a50c842cdf"
 dependencies = [
  "ark-ec",
  "ark-ff",
@@ -3808,7 +3808,7 @@ dependencies = [
 [[package]]
 name = "jf-primitives"
 version = "0.3.0"
-source = "git+https://github.com/Cardinal-Cryptography/jellyfish?branch=substrate-compatible#83c5781bb6c0a04a9ad7e8550516bd52c1e076e3"
+source = "git+https://github.com/Cardinal-Cryptography/jellyfish?branch=substrate-compatible#6d4548574d79062a5fc3f760cdaa35a50c842cdf"
 dependencies = [
  "ark-bls12-377",
  "ark-bls12-381",
@@ -3848,7 +3848,7 @@ dependencies = [
 [[package]]
 name = "jf-relation"
 version = "0.3.0"
-source = "git+https://github.com/Cardinal-Cryptography/jellyfish?branch=substrate-compatible#83c5781bb6c0a04a9ad7e8550516bd52c1e076e3"
+source = "git+https://github.com/Cardinal-Cryptography/jellyfish?branch=substrate-compatible#6d4548574d79062a5fc3f760cdaa35a50c842cdf"
 dependencies = [
  "ark-bls12-377",
  "ark-bls12-381",
@@ -3872,7 +3872,7 @@ dependencies = [
 [[package]]
 name = "jf-utils"
 version = "0.3.0"
-source = "git+https://github.com/Cardinal-Cryptography/jellyfish?branch=substrate-compatible#83c5781bb6c0a04a9ad7e8550516bd52c1e076e3"
+source = "git+https://github.com/Cardinal-Cryptography/jellyfish?branch=substrate-compatible#6d4548574d79062a5fc3f760cdaa35a50c842cdf"
 dependencies = [
  "ark-ec",
  "ark-ff",
@@ -9939,7 +9939,7 @@ dependencies = [
 [[package]]
 name = "tagged-base64"
 version = "0.3.1"
-source = "git+https://github.com/Cardinal-Cryptography/tagged-base64?branch=opt-out-from-wasmbindgen#1d570f9b5f54592a6dfac817064d5bdcf5ea0068"
+source = "git+https://github.com/EspressoSystems/tagged-base64?rev=9207d39#9207d39ba7a9c11801511a7077ea4330b6173e44"
 dependencies = [
  "ark-serialize",
  "ark-std",
@@ -9953,7 +9953,7 @@ dependencies = [
 [[package]]
 name = "tagged-base64-macros"
 version = "0.3.1"
-source = "git+https://github.com/Cardinal-Cryptography/tagged-base64?branch=opt-out-from-wasmbindgen#1d570f9b5f54592a6dfac817064d5bdcf5ea0068"
+source = "git+https://github.com/EspressoSystems/tagged-base64?rev=9207d39#9207d39ba7a9c11801511a7077ea4330b6173e44"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -10496,7 +10496,7 @@ checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
  "cfg-if",
  "digest 0.10.7",
- "rand 0.8.5",
+ "rand 0.7.3",
  "static_assertions",
 ]
 
