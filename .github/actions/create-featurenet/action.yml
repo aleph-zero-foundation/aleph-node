@@ -55,6 +55,10 @@ inputs:
     description: "All aleph-node-validator-N with an ordinal N that is great than or equal to the partition will be updated. Default value: 0"
     required: false
     default: '0'
+  expiration:
+    description: "Time after which updatenet will be removed"
+    required: false
+    default: ''
 
 runs:
   using: "composite"
@@ -96,6 +100,15 @@ runs:
         ]]
         then
           echo "!!! Partition for Rolling Update is invalid"
+          exit 1
+        fi
+        if [[
+          "${{ inputs.expiration-hours }}" != "" && \
+          ! "${{ inputs.expiration-hours }}" =~ ^[0-9]{1,6}h$ && \
+          "${{ inputs.expiration-hours }}" != "never"
+        ]]
+        then
+          echo "!!! Invalid expiration"
           exit 1
         fi
 
@@ -173,6 +186,20 @@ runs:
           "${{ env.APP_NAME }}" \
           "${{ inputs.aleph-node-image }}"
 
+    - name: Set featurenet expiration (from testnet/mainet)
+      # yamllint disable-line rule:line-length
+      if: (inputs.aleph-node-image == 'testnet' || inputs.aleph-node-image == 'mainnet') && inputs.expiration != ''
+      shell: bash
+      env:
+        # yamllint disable-line rule:line-length
+        APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
+        OPSSH_TARGETPATH: "${{ github.workspace }}/${{ inputs.repo-featurenets-name }}"
+      run: |
+        cd "${{ inputs.repo-apps-name }}"
+        ./Ops.sh create-featurenet-expiration \
+          "${{ env.APP_NAME }}" \
+          "${{ inputs.expiration }}"
+
     - name: Start featurenet from image tag
       if: >
         inputs.aleph-node-image != '' &&
@@ -203,7 +230,7 @@ runs:
         author_email: alephzero@10clouds.com
         # yamllint disable-line rule:line-length
         message: "Upsert featurenet ${{ env.APP_NAME }} with image: ${{ inputs.aleph-node-image != '' && inputs.aleph-node-image || steps.get-ref-properties.outputs.branch-name-for-argo-with-sha }}"
-        add: "*.yaml"
+        add: '["*.yaml","*.expiration.txt"]'
         cwd: "${{ inputs.repo-featurenets-name }}"
 
     - name: Refresh Argo and wait for the creation to be finished

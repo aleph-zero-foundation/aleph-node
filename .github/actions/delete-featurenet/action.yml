@@ -100,7 +100,7 @@ runs:
         author_name: AlephZero Automation
         author_email: alephzero@10clouds.com
         message: "Delete featurenet ${{ env.APP_NAME }}"
-        add: "*.yaml"
+        add: '["*.yaml","*.expiration.txt"]'
         cwd: "${{ inputs.repo-featurenets-name }}"
 
     - name: Refresh Argo and wait for the deletion to be finished

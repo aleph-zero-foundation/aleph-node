@@ -12,6 +12,18 @@ on:
           - testnet
           - mainnet
         default: testnet
+      expiration:
+        description: 'Time after which updatenet will be removed'
+        required: true
+        type: choice
+        options:
+          - 48h
+          - 24h
+          - 12h
+          - 3h
+          - 96h
+          - never
+        default: 48h
 
 jobs:
   check-vars-and-secrets:
@@ -68,12 +80,13 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
           featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
           featurenet-name: fe-updnet-${{ github.run_id }}
+          expiration: "${{ inputs.expiration }}"
 
       - name: Wait for the aleph-node binary to accept some blocks
         uses: ./.github/actions/wait-for-finalized-heads
         with:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
-          repo-apps-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
+          repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
           # yamllint disable-line rule:line-length
           json-rpc-endpoint: https://ws-fe-updnet-${{ github.run_id }}.dev.azero.dev
 
