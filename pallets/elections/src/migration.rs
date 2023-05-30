@@ -20,6 +20,14 @@ pub mod v4 {
 
     impl<T: Config> OnRuntimeUpgrade for Migration<T> {
         fn on_runtime_upgrade() -> Weight {
+            if StorageVersion::get::<Pallet<T>>() != StorageVersion::new(3) {
+                log::info!(
+                    target: LOG_TARGET,
+                    "Skipping migrations from STORAGE_VERSION 3 to 4 for pallet elections"
+                );
+                return T::DbWeight::get().reads(1);
+            };
+
             log::info!(
                 target: LOG_TARGET,
                 "Running migration from STORAGE_VERSION 3 to 4 for pallet elections"
@@ -62,6 +70,14 @@ pub mod v5 {
 
     impl<T: Config> OnRuntimeUpgrade for Migration<T> {
         fn on_runtime_upgrade() -> Weight {
+            if StorageVersion::get::<Pallet<T>>() != StorageVersion::new(4) {
+                log::info!(
+                    target: LOG_TARGET,
+                    "Skipping migrations from STORAGE_VERSION 4 to 5 for pallet elections"
+                );
+                return T::DbWeight::get().reads(1);
+            };
+
             log::info!(
                 target: LOG_TARGET,
                 "Running migration from STORAGE_VERSION 4 to 5 for pallet elections"

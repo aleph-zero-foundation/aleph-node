@@ -61,7 +61,11 @@ pub struct PrefixMigration<T>(sp_std::marker::PhantomData<T>);
 impl<T: Config> OnRuntimeUpgrade for PrefixMigration<T> {
     fn on_runtime_upgrade() -> Weight {
         if StorageVersion::get::<Pallet<T>>() != StorageVersion::new(0) {
-            return Weight::zero();
+            info!(
+                target: LOG_TARGET,
+                "Skipping migrations from STORAGE_VERSION 0 to 1 for pallet committee management"
+            );
+            return T::DbWeight::get().reads(1);
         };
 
         let pallet_name = Pallet::<T>::name();
@@ -89,7 +93,7 @@ impl<T: Config> OnRuntimeUpgrade for PrefixMigration<T> {
         move_storage_from_pallet(prefix, OLD_PREFIX.as_bytes(), pallet_name.as_bytes());
         info!(target: LOG_TARGET, "Migrated Banned");
 
-        StorageVersion::new(0).put::<Pallet<T>>();
+        StorageVersion::new(1).put::<Pallet<T>>();
 
         <T as frame_system::Config>::BlockWeights::get().max_block
     }
