@@ -156,6 +156,8 @@ function deploy_marketplace {
   local salt=$4
   local ticket_token=$5
   local game_token=$6
+  local initial_price=$7
+  local minimal_price=$8
 
   local sale_price_multiplier=2
 
@@ -165,7 +167,7 @@ function deploy_marketplace {
 
   local contract_address
   contract_address=$(cargo_contract instantiate --url "$NODE" --constructor new \
-    --args "$ticket_token" "$game_token" "$INITIAL_PRICE" "$MINIMAL_PRICE" "$sale_price_multiplier" "$AUCTION_LENGTH" \
+    --args "$ticket_token" "$game_token" "$initial_price" "$minimal_price" "$sale_price_multiplier" "$AUCTION_LENGTH" \
     --suri "$AUTHORITY_SEED" --salt "$salt" --skip-confirm --output-json)
   contract_address=$(echo "$contract_address" | jq -r '.contract')
 
@@ -302,7 +304,7 @@ echo "Early Bird Special"
 salt="0x4561726C79426972645370656369616C"
 deploy_ticket_token EARLY_BIRD_SPECIAL_TICKET early_bird_special_ticket EBST $salt
 deploy_game_token EARLY_BIRD_SPECIAL_TOKEN Ubik UBI $salt
-deploy_marketplace EARLY_BIRD_SPECIAL_MARKETPLACE "$MARKETPLACE_CODE_HASH" early_bird_special "$salt" "$EARLY_BIRD_SPECIAL_TICKET" "$EARLY_BIRD_SPECIAL_TOKEN"
+deploy_marketplace EARLY_BIRD_SPECIAL_MARKETPLACE "$MARKETPLACE_CODE_HASH" early_bird_special "$salt" "$EARLY_BIRD_SPECIAL_TICKET" "$EARLY_BIRD_SPECIAL_TOKEN" "$INITIAL_PRICE_EBS" "$MINIMAL_PRICE_EBS"
 deploy_button_game EARLY_BIRD_SPECIAL EarlyBirdSpecial "$EARLY_BIRD_SPECIAL_TICKET" "$EARLY_BIRD_SPECIAL_TOKEN" "$EARLY_BIRD_SPECIAL_MARKETPLACE" "$salt"
 
 #
@@ -313,7 +315,7 @@ echo "Back To The Future"
 salt="0x4261636B546F546865467574757265"
 deploy_ticket_token BACK_TO_THE_FUTURE_TICKET back_to_the_future_ticket BTFT $salt
 deploy_game_token BACK_TO_THE_FUTURE_TOKEN Cyberiad CYB $salt
-deploy_marketplace BACK_TO_THE_FUTURE_MARKETPLACE "$MARKETPLACE_CODE_HASH" back_to_the_future "$salt" "$BACK_TO_THE_FUTURE_TICKET" "$BACK_TO_THE_FUTURE_TOKEN"
+deploy_marketplace BACK_TO_THE_FUTURE_MARKETPLACE "$MARKETPLACE_CODE_HASH" back_to_the_future "$salt" "$BACK_TO_THE_FUTURE_TICKET" "$BACK_TO_THE_FUTURE_TOKEN" "$INITIAL_PRICE_BTF" "$MINIMAL_PRICE_BTF"
 deploy_button_game BACK_TO_THE_FUTURE BackToTheFuture "$BACK_TO_THE_FUTURE_TICKET" "$BACK_TO_THE_FUTURE_TOKEN" "$BACK_TO_THE_FUTURE_MARKETPLACE" "$salt"
 
 #
@@ -324,7 +326,7 @@ echo "The Pressiah Cometh"
 salt="0x7468655F70726573736961685F636F6D657468"
 deploy_ticket_token THE_PRESSIAH_COMETH_TICKET the_pressiah_cometh_ticket TPCT $salt
 deploy_game_token THE_PRESSIAH_COMETH_TOKEN Lono LON $salt
-deploy_marketplace THE_PRESSIAH_COMETH_MARKETPLACE "$MARKETPLACE_CODE_HASH" the_pressiah_cometh "$salt" "$THE_PRESSIAH_COMETH_TICKET" "$THE_PRESSIAH_COMETH_TOKEN"
+deploy_marketplace THE_PRESSIAH_COMETH_MARKETPLACE "$MARKETPLACE_CODE_HASH" the_pressiah_cometh "$salt" "$THE_PRESSIAH_COMETH_TICKET" "$THE_PRESSIAH_COMETH_TOKEN" "$INITIAL_PRICE_TPC" "$MINIMAL_PRICE_TPC"
 deploy_button_game THE_PRESSIAH_COMETH ThePressiahCometh "$THE_PRESSIAH_COMETH_TICKET" "$THE_PRESSIAH_COMETH_TOKEN" "$THE_PRESSIAH_COMETH_MARKETPLACE" "$salt"
 
 # --- DEPLOY WRAPPED AZERO CONTRACT

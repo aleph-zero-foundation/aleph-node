@@ -11,13 +11,17 @@ export BUTTON_MIN_REWARD=1000000000000 # 1 token
 export BUTTON_MAX_REWARD=100000000000000 # 100 tokens
 
 # mint this many ticket tokens
-export TICKET_BALANCE=14000
+export TICKET_BALANCE=15000
 
 # initial price of ticket on the marketplace
-export INITIAL_PRICE=50000000000000 # 50 tokens
+export INITIAL_PRICE_EBS=50000000000000 # 50 tokens
+export INITIAL_PRICE_BTF=10000000000000 # 10 tokens
+export INITIAL_PRICE_TPC=1000000000000  # 1 token
 
 # the price of ticket on the marketplace does not go below this value
-export MINIMAL_PRICE=$BUTTON_MIN_REWARD
+export MINIMAL_PRICE_EBS=10000000000000 # 10 tokens
+export MINIMAL_PRICE_BTF=1000000000000  # 1 token
+export MINIMAL_PRICE_TPC=100000000000  # 0.1
 
 # how many blocks will elapse between INITAL and MINIMAL price
 export AUCTION_LENGTH=18000 # 5 hours
