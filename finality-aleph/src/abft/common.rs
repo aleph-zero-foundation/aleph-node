@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use crate::{NodeIndex, SessionId, UnitCreationDelay};
+use crate::UnitCreationDelay;
 
 pub const MAX_ROUNDS: u16 = 7000;
 
@@ -25,7 +25,6 @@ fn exponential_slowdown(
 }
 
 pub type DelaySchedule = Arc<dyn Fn(usize) -> Duration + Sync + Send + 'static>;
-pub type RecipientCountSchedule = Arc<dyn Fn(usize) -> usize + Sync + Send + 'static>;
 
 pub fn unit_creation_delay_fn(unit_creation_delay: UnitCreationDelay) -> DelaySchedule {
     Arc::new(move |t| match t {
@@ -34,94 +33,34 @@ pub fn unit_creation_delay_fn(unit_creation_delay: UnitCreationDelay) -> DelaySc
     })
 }
 
-pub struct DelayConfig {
-    pub tick_interval: Duration,
-    pub requests_interval: Duration,
-    pub unit_rebroadcast_interval_min: Duration,
-    pub unit_rebroadcast_interval_max: Duration,
-    pub unit_creation_delay: DelaySchedule,
-    pub coord_request_delay: DelaySchedule,
-    pub coord_request_recipients: RecipientCountSchedule,
-    pub parent_request_delay: DelaySchedule,
-    pub parent_request_recipients: RecipientCountSchedule,
-    pub newest_request_delay: DelaySchedule,
+// 7 days (as milliseconds)
+const SESSION_LEN_LOWER_BOUND_MS: u128 = 1000 * 60 * 60 * 24 * 7;
+
+pub fn sanity_check_round_delays(max_rounds: u16, round_delays: DelaySchedule) {
+    let delays_ok = sanity_check_round_delays_inner(max_rounds, round_delays);
+    assert!(
+        delays_ok,
+        "Incorrect setting of delays. Make sure the total AlephBFT session time is at least {}ms.",
+        SESSION_LEN_LOWER_BOUND_MS
+    );
 }
 
-pub struct AlephConfig {
-    delay_config: DelayConfig,
-    n_members: usize,
-    node_id: NodeIndex,
-    session_id: SessionId,
-}
-
-impl AlephConfig {
-    pub fn new(
-        delay_config: DelayConfig,
-        n_members: usize,
-        node_id: NodeIndex,
-        session_id: SessionId,
-    ) -> AlephConfig {
-        AlephConfig {
-            delay_config,
-            n_members,
-            node_id,
-            session_id,
-        }
+fn sanity_check_round_delays_inner(max_rounds: u16, round_delays: DelaySchedule) -> bool {
+    let mut total_delay = Duration::from_millis(0);
+    for t in 0..=max_rounds {
+        total_delay += round_delays(t as usize);
     }
+    total_delay.as_millis() > SESSION_LEN_LOWER_BOUND_MS
 }
 
-impl From<DelayConfig> for legacy_aleph_bft::DelayConfig {
-    fn from(cfg: DelayConfig) -> Self {
-        Self {
-            tick_interval: cfg.tick_interval,
-            requests_interval: cfg.requests_interval,
-            unit_rebroadcast_interval_max: cfg.unit_rebroadcast_interval_max,
-            unit_rebroadcast_interval_min: cfg.unit_rebroadcast_interval_min,
-            unit_creation_delay: cfg.unit_creation_delay,
-        }
-    }
+#[test]
+fn sanity_check_fails_on_bad_config() {
+    let round_delays = unit_creation_delay_fn(UnitCreationDelay(300));
+    assert!(!sanity_check_round_delays_inner(5000, round_delays));
 }
 
-impl From<DelayConfig> for current_aleph_bft::DelayConfig {
-    fn from(cfg: DelayConfig) -> Self {
-        Self {
-            tick_interval: cfg.tick_interval,
-            unit_rebroadcast_interval_max: cfg.unit_rebroadcast_interval_max,
-            unit_rebroadcast_interval_min: cfg.unit_rebroadcast_interval_min,
-            unit_creation_delay: cfg.unit_creation_delay,
-            coord_request_delay: cfg.coord_request_delay,
-            coord_request_recipients: cfg.coord_request_recipients,
-            parent_request_delay: cfg.parent_request_delay,
-            parent_request_recipients: cfg.parent_request_recipients,
-            newest_request_delay: cfg.newest_request_delay,
-        }
-    }
-}
-
-impl From<AlephConfig> for current_aleph_bft::Config {
-    fn from(cfg: AlephConfig) -> Self {
-        let mut aleph_config = current_aleph_bft::default_config(
-            cfg.n_members.into(),
-            cfg.node_id.into(),
-            cfg.session_id.0 as u64,
-        );
-        aleph_config.max_round = MAX_ROUNDS;
-        aleph_config.delay_config = cfg.delay_config.into();
-
-        aleph_config
-    }
-}
-
-impl From<AlephConfig> for legacy_aleph_bft::Config {
-    fn from(cfg: AlephConfig) -> Self {
-        let mut aleph_config = legacy_aleph_bft::default_config(
-            cfg.n_members.into(),
-            cfg.node_id.into(),
-            cfg.session_id.0 as u64,
-        );
-        aleph_config.max_round = MAX_ROUNDS;
-        aleph_config.delay_config = cfg.delay_config.into();
-
-        aleph_config
-    }
+#[test]
+fn sanity_check_passes_on_good_config() {
+    let round_delays = unit_creation_delay_fn(UnitCreationDelay(300));
+    assert!(sanity_check_round_delays_inner(7000, round_delays));
 }

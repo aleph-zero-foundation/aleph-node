@@ -4,6 +4,7 @@ use network_clique::SpawnHandleT;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::traits::{Block, Header};
 
+use super::common::sanity_check_round_delays;
 pub use crate::aleph_primitives::{BlockNumber, CURRENT_FINALITY_VERSION as VERSION};
 use crate::{
     abft::{
@@ -39,6 +40,12 @@ where
     C: HeaderBackend<B> + Send + 'static,
     ADN: Network<CurrentNetworkData<B>> + 'static,
 {
+    // Remove this check once we implement one on the AlephBFT side (A0-2583).
+    // Checks that the total time of a session is at least 7 days.
+    sanity_check_round_delays(
+        config.max_round,
+        config.delay_config.unit_creation_delay.clone(),
+    );
     let SubtaskCommon {
         spawn_handle,
         session_id,
@@ -77,5 +84,6 @@ pub fn create_aleph_config(
     let mut config = default_config(n_members.into(), node_id.into(), session_id.0 as u64);
     config.delay_config.unit_creation_delay = unit_creation_delay_fn(unit_creation_delay);
     config.max_round = MAX_ROUNDS;
+
     config
 }
