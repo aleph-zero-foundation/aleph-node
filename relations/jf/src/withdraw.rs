@@ -1,19 +1,17 @@
-use jf_primitives::{
-    circuit::merkle_tree::{Merkle3AryMembershipProofVar, RescueDigestGadget},
-    merkle_tree::{prelude::RescueSparseMerkleTree, MerkleTreeScheme, UniversalMerkleTreeScheme},
+use jf_primitives::merkle_tree::{
+    prelude::RescueSparseMerkleTree, MerkleTreeScheme, UniversalMerkleTreeScheme,
 };
 use jf_relation::{Circuit, PlonkCircuit};
 use num_bigint::BigUint;
 
-const TREE_HEIGTH: usize = 11;
-
 use crate::{
+    check_merkle_proof,
     note::{NoteGadget, NoteType, SourcedNote},
     shielder_types::{
         convert_account, convert_array, Account, LeafIndex, MerkleRoot, Note, Nullifier,
         TokenAmount, TokenId, Trapdoor,
     },
-    CircuitField, PlonkResult, PublicInput, Relation,
+    CircuitField, MerkleProof, PlonkResult, PublicInput, Relation, MERKLE_TREE_HEIGHT,
 };
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
@@ -61,7 +59,8 @@ impl Default for WithdrawPrivateInput {
     fn default() -> Self {
         let uid = BigUint::from(0u64);
         let elem = CircuitField::from(0u64);
-        let mt = RescueSparseMerkleTree::from_kv_set(TREE_HEIGTH, &[(uid.clone(), elem)]).unwrap();
+        let mt = RescueSparseMerkleTree::from_kv_set(MERKLE_TREE_HEIGHT, &[(uid.clone(), elem)])
+            .unwrap();
         let (_, merkle_proof) = mt.lookup(&uid).expect_ok().unwrap();
 
         Self {
@@ -152,34 +151,11 @@ impl Relation for WithdrawRelation {
             self.leaf_index,
             self.merkle_root,
             &self.merkle_proof,
+            true,
         )?;
 
         Ok(())
     }
-}
-
-// TODO refactor when implementing DepositAndMerge
-type MerkleTree = RescueSparseMerkleTree<BigUint, CircuitField>;
-type MerkleTreeGadget = dyn jf_primitives::circuit::merkle_tree::MerkleTreeGadget<
-    MerkleTree,
-    MembershipProofVar = Merkle3AryMembershipProofVar,
-    DigestGadget = RescueDigestGadget,
->;
-type MerkleProof = <MerkleTree as MerkleTreeScheme>::MembershipProof;
-
-fn check_merkle_proof(
-    circuit: &mut PlonkCircuit<CircuitField>,
-    leaf_index: LeafIndex,
-    merkle_root: MerkleRoot,
-    merkle_proof: &MerkleProof,
-) -> PlonkResult<()> {
-    let index_var = circuit.create_variable(leaf_index.into())?;
-    let proof_var = MerkleTreeGadget::create_membership_proof_variable(circuit, merkle_proof)?;
-    let root_var = MerkleTreeGadget::create_root_variable(circuit, convert_array(merkle_root))?;
-    circuit.set_variable_public(root_var)?;
-
-    MerkleTreeGadget::enforce_membership_proof(circuit, index_var, proof_var, root_var)
-        .map_err(Into::into)
 }
 
 #[cfg(test)]
@@ -199,8 +175,8 @@ mod tests {
     use crate::{
         generate_srs,
         shielder_types::{compute_note, convert_account, convert_array},
-        withdraw::{WithdrawPrivateInput, WithdrawPublicInput, WithdrawRelation, TREE_HEIGTH},
-        CircuitField, Curve, PublicInput, Relation,
+        withdraw::{WithdrawPrivateInput, WithdrawPublicInput, WithdrawRelation},
+        CircuitField, Curve, PublicInput, Relation, MERKLE_TREE_HEIGHT,
     };
 
     fn relation() -> WithdrawRelation {
@@ -228,7 +204,8 @@ mod tests {
         let leaf_index = 0u64;
         let uid = BigUint::from(leaf_index);
         let elem = convert_array(spend_note);
-        let mt = RescueSparseMerkleTree::from_kv_set(TREE_HEIGTH, &[(uid.clone(), elem)]).unwrap();
+        let mt = RescueSparseMerkleTree::from_kv_set(MERKLE_TREE_HEIGHT, &[(uid.clone(), elem)])
+            .unwrap();
         let (retrieved_elem, merkle_proof) = mt.lookup(&uid).expect_ok().unwrap();
         assert_eq!(retrieved_elem, elem);
         assert!(mt.verify(&uid, merkle_proof.clone()).expect("succeed"));

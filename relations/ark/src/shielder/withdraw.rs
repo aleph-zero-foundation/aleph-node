@@ -4,9 +4,9 @@ use liminal_ark_relation_macro::snark_relation;
 ///
 /// It expresses the facts that:
 ///  - `new_note` is a prefix of the result of hashing together `token_id`, `whole_token_amount`,
-///    `old_trapdoor` and `old_nullifier`,
-///  - `old_note` is a prefix of the result of hashing together `token_id`, `new_token_amount`,
 ///    `new_trapdoor` and `new_nullifier`,
+///  - `old_note` is the result of hashing together `token_id`, `new_token_amount`,
+///    `old_trapdoor` and `old_nullifier`,
 ///  - `new_token_amount + token_amount_out = whole_token_amount`
 ///  - `merkle_path` is a valid Merkle proof for `old_note` being present at `leaf_index` in some
 ///    Merkle tree with `merkle_root` hash in the root
