@@ -9,6 +9,7 @@ use crate::{
     },
     connections::TxInfo,
     pallet_aleph::pallet::Call::schedule_finality_version_change,
+    sp_core::Bytes,
     AccountId, AlephKeyPair, BlockHash, BlockNumber,
     Call::Aleph,
     ConnectionApi, Pair, RootConnection, SessionIndex, SudoCall, TxStatus, Version,
@@ -131,7 +132,7 @@ impl<C: ConnectionApi> AlephRpc for C {
     ) -> anyhow::Result<()> {
         let method = "alephNode_emergencyFinalize";
         let signature = key_pair.sign(&hash.encode());
-        let raw_signature: &[u8] = signature.as_ref();
+        let raw_signature = Bytes::from(signature.0.to_vec());
         let params = rpc_params![raw_signature, hash, number];
 
         let _: () = self.rpc_call_no_return(method.to_string(), params).await?;

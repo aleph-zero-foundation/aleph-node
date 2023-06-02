@@ -5,6 +5,7 @@ use jsonrpsee::{
     proc_macros::rpc,
     types::error::{CallError, ErrorObject},
 };
+use sp_core::Bytes;
 use sp_runtime::traits::Header;
 
 use crate::aleph_primitives::BlockNumber;
@@ -62,7 +63,7 @@ pub trait AlephNodeApi<Hash, Number> {
     #[method(name = "alephNode_emergencyFinalize")]
     fn aleph_node_emergency_finalize(
         &self,
-        justification: Vec<u8>,
+        justification: Bytes,
         hash: Hash,
         number: Number,
     ) -> RpcResult<()>;
@@ -101,12 +102,12 @@ where
 {
     fn aleph_node_emergency_finalize(
         &self,
-        justification: Vec<u8>,
+        justification: Bytes,
         hash: H::Hash,
         number: BlockNumber,
     ) -> RpcResult<()> {
         let justification: AlephJustification =
-            AlephJustification::EmergencySignature(justification.try_into().map_err(|_| {
+            AlephJustification::EmergencySignature(justification.0.try_into().map_err(|_| {
                 Error::MalformattedJustificationArg(
                     "Provided justification cannot be converted into correct type".into(),
                 )
