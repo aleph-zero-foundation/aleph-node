@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use finality_aleph::{AlephJustification, BlockId, Justification, JustificationTranslator};
 use futures::channel::mpsc;
 use jsonrpsee::{
@@ -5,23 +7,55 @@ use jsonrpsee::{
     proc_macros::rpc,
     types::error::{CallError, ErrorObject},
 };
-use sp_core::Bytes;
-use sp_runtime::traits::Header;
+use parity_scale_codec::Decode;
+use primitives::{AccountId, Signature};
+use sc_client_api::StorageProvider;
+use sp_arithmetic::traits::Zero;
+use sp_blockchain::HeaderBackend;
+use sp_consensus_aura::digests::CompatibleDigestItem;
+use sp_core::{twox_128, Bytes};
+use sp_runtime::{
+    traits::{Block as BlockT, Header as HeaderT},
+    DigestItem,
+};
 
 use crate::aleph_primitives::BlockNumber;
 
 /// System RPC errors.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    /// Justification argument is malformatted.
+    /// Justification argument is malformed.
     #[error("{0}")]
-    MalformattedJustificationArg(String),
+    MalformedJustificationArg(String),
     /// Provided block range couldn't be resolved to a list of blocks.
     #[error("Node is not fully functional: {}", .0)]
     FailedJustificationSend(String),
-    /// Justification argument is malformatted.
-    #[error("Failed to translate jsutification into an internal one: {}", .0)]
+    /// Justification argument is malformed.
+    #[error("Failed to translate justification into an internal one: {}", .0)]
     FailedJustificationTranslation(String),
+    /// Block doesn't have any Aura pre-runtime digest item.
+    #[error("Block doesn't have any Aura pre-runtime digest item.")]
+    BlockWithoutDigest,
+    /// Failed to get storage item.
+    #[error("Failed to get storage item {0}/{1} at block {2}.")]
+    StorageItemNotAvailable(&'static str, &'static str, String),
+    /// Failed to read storage.
+    #[error("Failed to read {0}/{1} at the block {2}: {3:?}.")]
+    FailedStorageRead(&'static str, &'static str, String, sp_blockchain::Error),
+    /// Failed to decode storage item.
+    #[error("Failed to decode storage item: {0}/{1} at the block {2}: {3:?}.")]
+    FailedStorageDecoding(
+        &'static str,
+        &'static str,
+        String,
+        parity_scale_codec::Error,
+    ),
+    /// Failed to decode header.
+    #[error("Failed to decode header of a block {0}: {1:?}.")]
+    FailedHeaderDecoding(String, sp_blockchain::Error),
+    /// Failed to find a block with provided hash.
+    #[error("Failed to find a block with hash {0}.")]
+    UnknownHash(String),
 }
 
 // Base code for all system errors.
@@ -32,6 +66,18 @@ const MALFORMATTED_JUSTIFICATION_ARG_ERROR: i32 = BASE_ERROR + 1;
 const FAILED_JUSTIFICATION_SEND_ERROR: i32 = BASE_ERROR + 2;
 // AlephNodeApiServer failed to translate justification into internal representation.
 const FAILED_JUSTIFICATION_TRANSLATION_ERROR: i32 = BASE_ERROR + 3;
+// Block doesn't have any Aura pre-runtime digest item.
+const BLOCK_WITHOUT_DIGEST_ERROR: i32 = BASE_ERROR + 4;
+// Failed to get storage item.
+const STORAGE_ITEM_NOT_AVAILABLE_ERROR: i32 = BASE_ERROR + 5;
+/// Failed to read storage.
+const FAILED_STORAGE_READ_ERROR: i32 = BASE_ERROR + 6;
+/// Failed to decode storage item.
+const FAILED_STORAGE_DECODING_ERROR: i32 = BASE_ERROR + 7;
+/// Failed to decode header.
+const FAILED_HEADER_DECODING_ERROR: i32 = BASE_ERROR + 8;
+/// Failed to find a block with provided hash.
+const UNKNOWN_HASH_ERROR: i32 = BASE_ERROR + 9;
 
 impl From<Error> for JsonRpseeError {
     fn from(e: Error) -> Self {
@@ -41,7 +87,7 @@ impl From<Error> for JsonRpseeError {
                 e,
                 None::<()>,
             )),
-            Error::MalformattedJustificationArg(e) => CallError::Custom(ErrorObject::owned(
+            Error::MalformedJustificationArg(e) => CallError::Custom(ErrorObject::owned(
                 MALFORMATTED_JUSTIFICATION_ARG_ERROR,
                 e,
                 None::<()>,
@@ -51,6 +97,42 @@ impl From<Error> for JsonRpseeError {
                 e,
                 None::<()>,
             )),
+            Error::BlockWithoutDigest => CallError::Custom(ErrorObject::owned(
+                BLOCK_WITHOUT_DIGEST_ERROR,
+                "Block doesn't have any Aura pre-runtime digest item.",
+                None::<()>,
+            )),
+            Error::StorageItemNotAvailable(pallet, key, hash) => {
+                CallError::Custom(ErrorObject::owned(
+                    STORAGE_ITEM_NOT_AVAILABLE_ERROR,
+                    format!("Failed to get storage item {pallet}/{key} at the block {hash}."),
+                    None::<()>,
+                ))
+            }
+            Error::FailedStorageRead(pallet, key, hash, err) => {
+                CallError::Custom(ErrorObject::owned(
+                    FAILED_STORAGE_READ_ERROR,
+                    format!("Failed to read {pallet}/{key} at the block {hash}: {err:?}."),
+                    None::<()>,
+                ))
+            }
+            Error::FailedStorageDecoding(pallet, key, hash, err) => {
+                CallError::Custom(ErrorObject::owned(
+                    FAILED_STORAGE_DECODING_ERROR,
+                    format!("Failed to decode {pallet}/{key} at the block {hash}: {err:?}.",),
+                    None::<()>,
+                ))
+            }
+            Error::FailedHeaderDecoding(hash, err) => CallError::Custom(ErrorObject::owned(
+                FAILED_HEADER_DECODING_ERROR,
+                format!("Failed to decode header of a block {hash}: {err:?}.",),
+                None::<()>,
+            )),
+            Error::UnknownHash(hash) => CallError::Custom(ErrorObject::owned(
+                UNKNOWN_HASH_ERROR,
+                format!("Failed to find a block with hash {hash}.",),
+                None::<()>,
+            )),
         }
         .into()
     }
@@ -58,57 +140,67 @@ impl From<Error> for JsonRpseeError {
 
 /// Aleph Node RPC API
 #[rpc(client, server)]
-pub trait AlephNodeApi<Hash, Number> {
+pub trait AlephNodeApi<Block: BlockT, BE> {
     /// Finalize the block with given hash and number using attached signature. Returns the empty string or an error.
     #[method(name = "alephNode_emergencyFinalize")]
     fn aleph_node_emergency_finalize(
         &self,
         justification: Bytes,
-        hash: Hash,
-        number: Number,
+        hash: Block::Hash,
+        number: <<Block as BlockT>::Header as HeaderT>::Number,
     ) -> RpcResult<()>;
+
+    /// Get the author of the block with given hash.
+    #[method(name = "chain_getBlockAuthor")]
+    fn aleph_node_block_author(&self, hash: Block::Hash) -> RpcResult<Option<AccountId>>;
 }
 
 /// Aleph Node API implementation
-pub struct AlephNode<H, JT>
+pub struct AlephNode<Header, JT, Client>
 where
-    H: Header<Number = BlockNumber>,
-    JT: JustificationTranslator<H> + Send + Sync + Clone + 'static,
+    Header: HeaderT<Number = BlockNumber>,
+    JT: JustificationTranslator<Header> + Send + Sync + Clone + 'static,
 {
-    import_justification_tx: mpsc::UnboundedSender<Justification<H>>,
+    import_justification_tx: mpsc::UnboundedSender<Justification<Header>>,
     justification_translator: JT,
+    client: Arc<Client>,
 }
 
-impl<H, JT> AlephNode<H, JT>
+impl<Header, JT, Client> AlephNode<Header, JT, Client>
 where
-    H: Header<Number = BlockNumber>,
-    JT: JustificationTranslator<H> + Send + Sync + Clone + 'static,
+    Header: HeaderT<Number = BlockNumber>,
+    JT: JustificationTranslator<Header> + Send + Sync + Clone + 'static,
 {
     pub fn new(
-        import_justification_tx: mpsc::UnboundedSender<Justification<H>>,
+        import_justification_tx: mpsc::UnboundedSender<Justification<Header>>,
         justification_translator: JT,
+        client: Arc<Client>,
     ) -> Self {
         AlephNode {
             import_justification_tx,
             justification_translator,
+            client,
         }
     }
 }
 
-impl<H, JT> AlephNodeApiServer<H::Hash, BlockNumber> for AlephNode<H, JT>
+impl<Block, JT, Client, BE> AlephNodeApiServer<Block, BE> for AlephNode<Block::Header, JT, Client>
 where
-    H: Header<Number = BlockNumber>,
-    JT: JustificationTranslator<H> + Send + Sync + Clone + 'static,
+    Block: BlockT,
+    Block::Header: HeaderT<Number = BlockNumber>,
+    JT: JustificationTranslator<Block::Header> + Send + Sync + Clone + 'static,
+    Client: HeaderBackend<Block> + StorageProvider<Block, BE> + 'static,
+    BE: sc_client_api::Backend<Block> + 'static,
 {
     fn aleph_node_emergency_finalize(
         &self,
         justification: Bytes,
-        hash: H::Hash,
-        number: BlockNumber,
+        hash: Block::Hash,
+        number: <<Block as BlockT>::Header as HeaderT>::Number,
     ) -> RpcResult<()> {
         let justification: AlephJustification =
             AlephJustification::EmergencySignature(justification.0.try_into().map_err(|_| {
-                Error::MalformattedJustificationArg(
+                Error::MalformedJustificationArg(
                     "Provided justification cannot be converted into correct type".into(),
                 )
             })?);
@@ -126,4 +218,69 @@ where
             })?;
         Ok(())
     }
+
+    fn aleph_node_block_author(&self, hash: Block::Hash) -> RpcResult<Option<AccountId>> {
+        let header = self
+            .client
+            .header(hash)
+            .map_err(|e| Error::FailedHeaderDecoding(hash.to_string(), e))?
+            .ok_or(Error::UnknownHash(hash.to_string()))?;
+        if header.number().is_zero() {
+            return Ok(None);
+        }
+
+        let slot = header
+            .digest()
+            .logs()
+            .iter()
+            .find_map(<DigestItem as CompatibleDigestItem<Signature>>::as_aura_pre_digest)
+            .ok_or(Error::BlockWithoutDigest)?;
+
+        let parent = header.parent_hash();
+        let block_producers_at_parent: Vec<AccountId> =
+            read_storage("Session", "Validators", &self.client, *parent)?;
+
+        Ok(Some(
+            block_producers_at_parent[(u64::from(slot) as usize) % block_producers_at_parent.len()]
+                .clone(),
+        ))
+    }
+}
+
+fn read_storage<
+    T: Decode,
+    Block: BlockT,
+    Backend: sc_client_api::Backend<Block>,
+    SP: StorageProvider<Block, Backend>,
+>(
+    pallet: &'static str,
+    pallet_item: &'static str,
+    storage_provider: &Arc<SP>,
+    block_hash: Block::Hash,
+) -> RpcResult<T> {
+    let storage_key = [
+        twox_128(pallet.as_bytes()),
+        twox_128(pallet_item.as_bytes()),
+    ]
+    .concat();
+
+    let item_encoded = match storage_provider
+        .storage(block_hash, &sc_client_api::StorageKey(storage_key))
+    {
+        Ok(Some(bytes)) => bytes,
+        Ok(None) => {
+            return Err(
+                Error::StorageItemNotAvailable(pallet, pallet_item, block_hash.to_string()).into(),
+            )
+        }
+        Err(e) => {
+            return Err(
+                Error::FailedStorageRead(pallet, pallet_item, block_hash.to_string(), e).into(),
+            )
+        }
+    };
+
+    T::decode(&mut item_encoded.0.as_ref()).map_err(|e| {
+        Error::FailedStorageDecoding(pallet, pallet_item, block_hash.to_string(), e).into()
+    })
 }

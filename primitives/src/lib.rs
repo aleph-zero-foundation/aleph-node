@@ -275,7 +275,7 @@ sp_api::decl_runtime_apis! {
         fn finality_version() -> Version;
         fn next_session_finality_version() -> Version;
         fn session_committee(
-            session: SessionIndex,
+            session: SessionIndex
         ) -> Result<SessionCommittee<AccountId>, SessionValidatorError>;
     }
 }
