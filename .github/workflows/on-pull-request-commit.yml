@@ -58,8 +58,11 @@ jobs:
   check-e2e-test-suite-completion:
     needs: [run-e2e-tests]
     name: Check e2e test suite completion
+    if: always()
     runs-on: ubuntu-20.04
     steps:
       - name: All e2e tests completed
         run: |
-         echo "All e2e tests completed."
+          # due to the fact GitHub treats skipped jobs as success, and when any of dependant
+          # jobs fail, this check will be skipped, we need to check status manually
+          jq --exit-status 'all(.result == "success")' <<< '${{ toJson(needs) }}'
