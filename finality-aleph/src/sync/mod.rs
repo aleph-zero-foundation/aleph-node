@@ -14,6 +14,7 @@ mod mock;
 mod service;
 pub mod substrate;
 mod task_queue;
+mod tasks;
 mod ticker;
 
 pub use service::Service;

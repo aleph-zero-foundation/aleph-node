@@ -10,7 +10,7 @@ use crate::{
     session::{SessionBoundaryInfo, SessionId, SessionPeriod},
     sync::{
         data::{NetworkData, Request, State},
-        forest::{Error as ForestError, Forest, Interest},
+        forest::{Error as ForestError, Forest},
         Block, BlockIdFor, ChainStatus, Finalizer, Header, Justification, PeerId, Verifier,
         LOG_TARGET,
     },
@@ -43,9 +43,8 @@ where
 pub enum SyncAction<B: Block, J: Justification> {
     /// A response for the peer that sent us the data.
     Response(NetworkData<B, J>),
-    /// A task that should be performed periodically. At the moment these are only requests for blocks,
-    /// so it always contains the id of the block.
-    Task(BlockIdFor<J>),
+    /// A request for the highest justified block that should be performed periodically.
+    HighestJustified(BlockIdFor<J>),
     /// Do nothing.
     Noop,
 }
@@ -313,14 +312,14 @@ where
             // remote session number larger than ours, we can try to import the justification
             None => Ok(self
                 .handle_justification(state.top_justification(), Some(peer))?
-                .map(SyncAction::Task)
+                .map(SyncAction::HighestJustified)
                 .unwrap_or(SyncAction::Noop)),
             // same session
             Some(0) => match remote_top_number >= local_top_number {
                 // remote top justification higher than ours, we can import the justification
                 true => Ok(self
                     .handle_justification(state.top_justification(), Some(peer))?
-                    .map(SyncAction::Task)
+                    .map(SyncAction::HighestJustified)
                     .unwrap_or(SyncAction::Noop)),
                 // remote top justification lower than ours, we can send a response
                 false => Ok(SyncAction::state_broadcast_response(
@@ -351,9 +350,9 @@ where
         Ok(State::new(top_justification))
     }
 
-    /// The state of the identified block, whether we are interested in it and how much.
-    pub fn block_state(&mut self, block_id: &BlockIdFor<J>) -> Interest<I, J> {
-        self.forest.state(block_id)
+    /// The forest held by this handler, read only.
+    pub fn forest(&self) -> &Forest<I, J> {
+        &self.forest
     }
 }
 

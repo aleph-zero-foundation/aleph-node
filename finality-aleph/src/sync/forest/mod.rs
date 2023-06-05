@@ -15,27 +15,32 @@ mod vertex;
 
 use vertex::Vertex;
 
-enum VertexHandle<'a, I: PeerId, J: Justification> {
+enum SpecialState {
     HopelessFork,
     BelowMinimal,
     HighestFinalized,
+}
+
+enum VertexHandleMut<'a, I: PeerId, J: Justification> {
+    Special(SpecialState),
     Unknown(VacantEntry<'a, BlockIdFor<J>, VertexWithChildren<I, J>>),
     Candidate(OccupiedEntry<'a, BlockIdFor<J>, VertexWithChildren<I, J>>),
+}
+
+enum VertexHandle<'a, I: PeerId, J: Justification> {
+    Special(SpecialState),
+    Unknown,
+    Candidate(&'a VertexWithChildren<I, J>),
 }
 
 /// Our interest in a branch referred to by a vertex,
 /// including all the information required to prepare a request.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Interest<I: PeerId, J: Justification> {
-    /// We are not interested in this branch.
+    /// We are not interested in requesting this branch.
     Uninterested,
     /// We would like to have this branch.
     Required {
-        know_most: HashSet<I>,
-        branch_knowledge: BranchKnowledge<J>,
-    },
-    /// We would like to have this branch, and we're not interrested in anything above.
-    TopRequired {
         know_most: HashSet<I>,
         branch_knowledge: BranchKnowledge<J>,
     },
@@ -98,7 +103,6 @@ const MAX_DEPTH: u32 = 1800;
 
 pub struct Forest<I: PeerId, J: Justification> {
     vertices: HashMap<BlockIdFor<J>, VertexWithChildren<I, J>>,
-    top_required: HashSet<BlockIdFor<J>>,
     highest_justified: BlockIdFor<J>,
     justified_blocks: HashMap<u32, BlockIdFor<J>>,
     root_id: BlockIdFor<J>,
@@ -111,7 +115,6 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
         let root_id = highest_justified.clone();
         Self {
             vertices: HashMap::new(),
-            top_required: HashSet::new(),
             highest_justified,
             justified_blocks: HashMap::new(),
             root_id,
@@ -120,14 +123,23 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
         }
     }
 
-    fn get_mut(&mut self, id: &BlockIdFor<J>) -> VertexHandle<I, J> {
-        use VertexHandle::*;
+    fn special_state(&self, id: &BlockIdFor<J>) -> Option<SpecialState> {
+        use SpecialState::*;
         if id == &self.root_id {
-            HighestFinalized
+            Some(HighestFinalized)
         } else if id.number() <= self.root_id.number() {
-            BelowMinimal
+            Some(BelowMinimal)
         } else if self.compost_bin.contains(id) {
-            HopelessFork
+            Some(HopelessFork)
+        } else {
+            None
+        }
+    }
+
+    fn get_mut(&mut self, id: &BlockIdFor<J>) -> VertexHandleMut<I, J> {
+        use VertexHandleMut::*;
+        if let Some(state) = self.special_state(id) {
+            Special(state)
         } else {
             match self.vertices.entry(id.clone()) {
                 Entry::Occupied(entry) => Candidate(entry),
@@ -136,11 +148,24 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
         }
     }
 
-    fn connect_parent(&mut self, id: &BlockIdFor<J>) {
+    fn get(&self, id: &BlockIdFor<J>) -> VertexHandle<I, J> {
         use VertexHandle::*;
+        if let Some(state) = self.special_state(id) {
+            Special(state)
+        } else {
+            match self.vertices.get(id) {
+                Some(vertex) => Candidate(vertex),
+                None => Unknown,
+            }
+        }
+    }
+
+    fn connect_parent(&mut self, id: &BlockIdFor<J>) {
+        use SpecialState::*;
+        use VertexHandleMut::*;
         if let Candidate(mut entry) = self.get_mut(id) {
             let vertex = entry.get_mut();
-            let required = vertex.vertex.required();
+            let required = vertex.vertex.importable();
             if let Some(parent_id) = vertex.vertex.parent().cloned() {
                 match self.get_mut(&parent_id) {
                     Unknown(entry) => {
@@ -151,7 +176,7 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
                             self.set_required(&parent_id);
                         }
                     }
-                    HighestFinalized => {
+                    Special(HighestFinalized) => {
                         self.root_children.insert(id.clone());
                     }
                     Candidate(mut entry) => {
@@ -160,15 +185,14 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
                             self.set_required(&parent_id);
                         }
                     }
-                    HopelessFork | BelowMinimal => self.prune(id),
+                    Special(HopelessFork) | Special(BelowMinimal) => self.prune(id),
                 };
             };
         };
     }
 
     fn set_required(&mut self, id: &BlockIdFor<J>) {
-        self.top_required.remove(id);
-        if let VertexHandle::Candidate(mut entry) = self.get_mut(id) {
+        if let VertexHandleMut::Candidate(mut entry) = self.get_mut(id) {
             let vertex = entry.get_mut();
             if vertex.vertex.set_required() {
                 if let Some(id) = vertex.vertex.parent().cloned() {
@@ -178,18 +202,19 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
         }
     }
 
-    fn set_top_required(&mut self, id: &BlockIdFor<J>) -> bool {
+    fn set_explicitly_required(&mut self, id: &BlockIdFor<J>) -> bool {
         match self.get_mut(id) {
-            VertexHandle::Candidate(mut entry) => match entry.get_mut().vertex.set_required() {
-                true => {
-                    if let Some(parent_id) = entry.get_mut().vertex.parent().cloned() {
-                        self.set_required(&parent_id);
+            VertexHandleMut::Candidate(mut entry) => {
+                match entry.get_mut().vertex.set_explicitly_required() {
+                    true => {
+                        if let Some(parent_id) = entry.get_mut().vertex.parent().cloned() {
+                            self.set_required(&parent_id);
+                        }
+                        true
                     }
-                    self.top_required.insert(id.clone());
-                    true
+                    false => false,
                 }
-                false => false,
-            },
+            }
             _ => false,
         }
     }
@@ -216,7 +241,7 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
         ))
     }
 
-    /// Updates the provider block identifier, returns whether it became a new top required.
+    /// Updates the provider block identifier, returns whether it became a new explicitly required.
     // TODO(A0-1757): this will be used then, now only in tests.
     #[allow(dead_code)]
     pub fn update_block_identifier(
@@ -227,12 +252,12 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
     ) -> Result<bool, Error> {
         self.insert_id(id.clone(), holder)?;
         match required {
-            true => Ok(self.set_top_required(id)),
+            true => Ok(self.set_explicitly_required(id)),
             false => Ok(false),
         }
     }
 
-    /// Updates the provided header, returns whether it became a new top required.
+    /// Updates the provided header, returns whether it became a new explicitly required.
     pub fn update_header(
         &mut self,
         header: &J::Header,
@@ -241,12 +266,12 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
     ) -> Result<bool, Error> {
         let (id, parent_id) = self.process_header(header)?;
         self.insert_id(id.clone(), holder.clone())?;
-        if let VertexHandle::Candidate(mut entry) = self.get_mut(&id) {
+        if let VertexHandleMut::Candidate(mut entry) = self.get_mut(&id) {
             entry.get_mut().vertex.insert_header(parent_id, holder);
             self.connect_parent(&id);
         }
         match required {
-            true => Ok(self.set_top_required(&id)),
+            true => Ok(self.set_explicitly_required(&id)),
             false => Ok(false),
         }
     }
@@ -254,7 +279,8 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
     /// Updates the vertex related to the provided header marking it as imported.
     /// Returns errors when it's impossible to do consistently.
     pub fn update_body(&mut self, header: &J::Header) -> Result<(), Error> {
-        use VertexHandle::*;
+        use SpecialState::*;
+        use VertexHandleMut::*;
         let (id, parent_id) = self.process_header(header)?;
         self.update_header(header, None, false)?;
         match self.get_mut(&parent_id) {
@@ -263,8 +289,10 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
                     return Err(Error::ParentNotImported);
                 }
             }
-            HighestFinalized => (),
-            Unknown(_) | HopelessFork | BelowMinimal => return Err(Error::IncorrectParentState),
+            Special(HighestFinalized) => (),
+            Unknown(_) | Special(HopelessFork) | Special(BelowMinimal) => {
+                return Err(Error::IncorrectParentState)
+            }
         }
         match self.get_mut(&id) {
             Candidate(mut entry) => {
@@ -273,7 +301,6 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
                 if vertex.justified_block() {
                     self.justified_blocks.insert(id.number(), id.clone());
                 }
-                self.top_required.remove(&id);
                 Ok(())
             }
             _ => Err(Error::IncorrectVertexState),
@@ -306,7 +333,7 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
         let (id, parent_id) = self.process_header(header)?;
         self.update_header(header, None, false)?;
         Ok(match self.get_mut(&id) {
-            VertexHandle::Candidate(mut entry) => {
+            VertexHandleMut::Candidate(mut entry) => {
                 let vertex = &mut entry.get_mut().vertex;
                 vertex.insert_justification(parent_id, justification, holder);
                 if vertex.justified_block() {
@@ -319,7 +346,6 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
     }
 
     fn prune(&mut self, id: &BlockIdFor<J>) {
-        self.top_required.remove(id);
         if let Some(VertexWithChildren { children, .. }) = self.vertices.remove(id) {
             self.compost_bin.insert(id.clone());
             for child in children {
@@ -363,18 +389,19 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
 
     /// Returns the BranchKnowledge regarding the given block id,
     /// or None if there is no branch at all.
-    fn branch_knowledge(&mut self, mut id: BlockIdFor<J>) -> Option<BranchKnowledge<J>> {
+    fn branch_knowledge(&self, mut id: BlockIdFor<J>) -> Option<BranchKnowledge<J>> {
+        use SpecialState::*;
         use VertexHandle::*;
         // traverse ancestors till we reach something imported or a parentless vertex
         loop {
-            match self.get_mut(&id) {
-                Candidate(entry) => {
+            match self.get(&id) {
+                Candidate(vertex) => {
                     // first encounter of an imported ancestor, return it
-                    if entry.get().vertex.imported() {
+                    if vertex.vertex.imported() {
                         return Some(BranchKnowledge::TopImported(id));
                     }
                     // try update current id to parent_id
-                    match entry.get().vertex.parent().cloned() {
+                    match vertex.vertex.parent().cloned() {
                         // it has a parent, continue
                         Some(parent_id) => id = parent_id,
                         // does not have parent, thus is the lowest known,
@@ -384,28 +411,25 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
                     };
                 }
                 // we've reached the root, hence this is the top imported ancestor, return it
-                HighestFinalized => {
+                Special(HighestFinalized) => {
                     return Some(BranchKnowledge::TopImported(id));
                 }
                 // either we don't know the requested id, or it will never connect to the root,
                 // return None
-                HopelessFork | BelowMinimal | Unknown(_) => return None,
+                Special(HopelessFork) | Special(BelowMinimal) | Unknown => return None,
             };
         }
     }
 
     /// Prepare additional info required to create a request for the branch.
     /// Returns `None` if we're not interested in the branch.
-    fn prepare_request_info(
-        &mut self,
-        id: &BlockIdFor<J>,
-    ) -> Option<(HashSet<I>, BranchKnowledge<J>)> {
+    fn prepare_request_info(&self, id: &BlockIdFor<J>) -> Option<(HashSet<I>, BranchKnowledge<J>)> {
         use VertexHandle::Candidate;
-        match self.get_mut(id) {
-            Candidate(entry) => {
-                let know_most = entry.get().vertex.know_most().clone();
-                // request only required blocks, or the highest_justified block/header
-                if !(entry.get().vertex.required() || id == &self.highest_justified) {
+        match self.get(id) {
+            Candidate(vertex) => {
+                let know_most = vertex.vertex.know_most().clone();
+                // request only requestable blocks, or the highest_justified block/header
+                if !(vertex.vertex.requestable() || id == &self.highest_justified) {
                     return None;
                 }
                 // should always return Some, as the branch of a Candidate always exists
@@ -417,28 +441,31 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
         }
     }
 
-    /// How much interest we have for the block.
-    pub fn state(&mut self, id: &BlockIdFor<J>) -> Interest<I, J> {
+    /// How much interest we have for requesting the block.
+    pub fn request_interest(&self, id: &BlockIdFor<J>) -> Interest<I, J> {
         match self.prepare_request_info(id) {
-            Some((know_most, branch_knowledge)) => {
-                if &self.highest_justified == id {
-                    return Interest::HighestJustified {
-                        know_most,
-                        branch_knowledge,
-                    };
-                }
-                match self.top_required.contains(id) {
-                    true => Interest::TopRequired {
-                        know_most,
-                        branch_knowledge,
-                    },
-                    false => Interest::Required {
-                        know_most,
-                        branch_knowledge,
-                    },
-                }
-            }
+            Some((know_most, branch_knowledge)) => match &self.highest_justified == id {
+                true => Interest::HighestJustified {
+                    know_most,
+                    branch_knowledge,
+                },
+                false => Interest::Required {
+                    know_most,
+                    branch_knowledge,
+                },
+            },
             None => Interest::Uninterested,
+        }
+    }
+
+    /// Whether we would like to eventually import this block.
+    // TODO(A0-1757): this will be used then, now only in tests.
+    #[allow(dead_code)]
+    pub fn importable(&self, id: &BlockIdFor<J>) -> bool {
+        use VertexHandle::Candidate;
+        match self.get(id) {
+            Candidate(vertex) => vertex.vertex.importable(),
+            _ => false,
         }
     }
 }
@@ -464,7 +491,8 @@ mod tests {
     fn initially_empty() {
         let (initial_header, mut forest) = setup();
         assert!(forest.try_finalize(&1).is_none());
-        assert_eq!(forest.state(&initial_header.id()), Uninterested);
+        assert_eq!(forest.request_interest(&initial_header.id()), Uninterested);
+        assert!(!forest.importable(&initial_header.id()));
     }
 
     #[test]
@@ -476,7 +504,8 @@ mod tests {
             .update_block_identifier(&child.id(), Some(peer_id), false)
             .expect("it's not too high"));
         assert!(forest.try_finalize(&1).is_none());
-        assert_eq!(forest.state(&child.id()), Uninterested);
+        assert_eq!(forest.request_interest(&child.id()), Uninterested);
+        assert!(!forest.importable(&child.id()));
     }
 
     #[test]
@@ -488,10 +517,11 @@ mod tests {
             .update_block_identifier(&child.id(), Some(peer_id), true)
             .expect("it's not too high"));
         assert!(forest.try_finalize(&1).is_none());
-        match forest.state(&child.id()) {
-            TopRequired { know_most, .. } => assert!(know_most.contains(&peer_id)),
+        match forest.request_interest(&child.id()) {
+            Required { know_most, .. } => assert!(know_most.contains(&peer_id)),
             other_state => panic!("Expected top required, got {:?}.", other_state),
         }
+        assert!(forest.importable(&child.id()));
         assert!(!forest
             .update_block_identifier(&child.id(), Some(peer_id), true)
             .expect("it's not too high"));
@@ -520,7 +550,8 @@ mod tests {
             .update_header(&child, Some(peer_id), false)
             .expect("header was correct"));
         assert!(forest.try_finalize(&1).is_none());
-        assert_eq!(forest.state(&child.id()), Uninterested);
+        assert_eq!(forest.request_interest(&child.id()), Uninterested);
+        assert!(!forest.importable(&child.id()));
     }
 
     #[test]
@@ -532,10 +563,11 @@ mod tests {
             .update_header(&child, Some(peer_id), true)
             .expect("header was correct"));
         assert!(forest.try_finalize(&1).is_none());
-        match forest.state(&child.id()) {
-            TopRequired { know_most, .. } => assert!(know_most.contains(&peer_id)),
+        match forest.request_interest(&child.id()) {
+            Required { know_most, .. } => assert!(know_most.contains(&peer_id)),
             other_state => panic!("Expected top required, got {:?}.", other_state),
         }
+        assert!(forest.importable(&child.id()));
         assert!(!forest
             .update_block_identifier(&child.id(), Some(peer_id), true)
             .expect("it's not too high"));
@@ -561,10 +593,11 @@ mod tests {
             .update_justification(child.clone(), Some(peer_id))
             .expect("header was correct"));
         assert!(forest.try_finalize(&1).is_none());
-        match forest.state(&child.header().id()) {
+        match forest.request_interest(&child.header().id()) {
             HighestJustified { know_most, .. } => assert!(know_most.contains(&peer_id)),
-            other_state => panic!("Expected top required, got {:?}.", other_state),
+            other_state => panic!("Expected highest justified, got {:?}.", other_state),
         }
+        assert!(forest.importable(&child.id()));
     }
 
     #[test]
@@ -595,7 +628,8 @@ mod tests {
         let child = initial_header.random_child();
         forest.update_body(&child).expect("header was correct");
         assert!(forest.try_finalize(&1).is_none());
-        assert_eq!(forest.state(&child.id()), Uninterested);
+        assert_eq!(forest.request_interest(&child.id()), Uninterested);
+        assert!(!forest.importable(&child.id()));
     }
 
     #[test]
@@ -611,8 +645,10 @@ mod tests {
             Err(Error::ParentNotImported)
         );
         assert!(forest.try_finalize(&1).is_none());
-        assert_eq!(forest.state(&child.id()), Uninterested);
-        assert_eq!(forest.state(&grandchild.id()), Uninterested);
+        assert_eq!(forest.request_interest(&child.id()), Uninterested);
+        assert!(!forest.importable(&child.id()));
+        assert_eq!(forest.request_interest(&grandchild.id()), Uninterested);
+        assert!(!forest.importable(&grandchild.id()));
     }
 
     #[test]
@@ -624,10 +660,11 @@ mod tests {
             .update_justification(child.clone(), Some(peer_id))
             .expect("header was correct"));
         assert!(forest.try_finalize(&1).is_none());
-        match forest.state(&child.header().id()) {
+        match forest.request_interest(&child.header().id()) {
             HighestJustified { know_most, .. } => assert!(know_most.contains(&peer_id)),
-            other_state => panic!("Expected top required, got {:?}.", other_state),
+            other_state => panic!("Expected highest justified, got {:?}.", other_state),
         }
+        assert!(forest.importable(&child.header().id()));
         forest
             .update_body(child.header())
             .expect("header was correct");
@@ -635,7 +672,7 @@ mod tests {
     }
 
     #[test]
-    fn top_required_becomes_highest_finalized() {
+    fn required_becomes_highest_finalized() {
         let (initial_header, mut forest) = setup();
         let child = MockJustification::for_header(initial_header.random_child());
         let peer_id = rand::random();
@@ -643,7 +680,7 @@ mod tests {
             forest
                 .update_header(child.header(), Some(peer_id), true)
                 .expect("header was correct"),
-            "should become top required"
+            "should become required"
         );
         assert!(
             forest
@@ -654,7 +691,7 @@ mod tests {
     }
 
     #[test]
-    fn required_becomes_highest_finalized() {
+    fn non_required_becomes_highest_finalized() {
         let (initial_header, mut forest) = setup();
         let child = MockJustification::for_header(initial_header.random_child());
         let grandchild = child.header().random_child();
@@ -663,13 +700,13 @@ mod tests {
             !forest
                 .update_header(child.header(), Some(peer_id), false)
                 .expect("header was correct"),
-            "should not become top required"
+            "should not become required"
         );
         assert!(
             forest
                 .update_header(&grandchild, Some(peer_id), true)
                 .expect("header was correct"),
-            "should not become top required"
+            "should become required"
         );
         assert!(
             forest
@@ -709,10 +746,11 @@ mod tests {
         assert!(forest
             .update_header(&fork_child, Some(fork_peer_id), true)
             .expect("header was correct"));
-        match forest.state(&fork_child.id()) {
-            TopRequired { know_most, .. } => assert!(know_most.contains(&fork_peer_id)),
-            other_state => panic!("Expected top required, got {:?}.", other_state),
+        match forest.request_interest(&fork_child.id()) {
+            Required { know_most, .. } => assert!(know_most.contains(&fork_peer_id)),
+            other_state => panic!("Expected required, got {:?}.", other_state),
         }
+        assert!(forest.importable(&fork_child.id()));
         assert!(forest
             .update_justification(child.clone(), Some(peer_id))
             .expect("header was correct"));
@@ -720,7 +758,8 @@ mod tests {
             .update_body(child.header())
             .expect("header was correct");
         assert_eq!(forest.try_finalize(&1).expect("the block is ready"), child);
-        assert_eq!(forest.state(&fork_child.id()), Uninterested);
+        assert_eq!(forest.request_interest(&fork_child.id()), Uninterested);
+        assert!(!forest.importable(&fork_child.id()));
         assert!(!forest
             .update_header(&fork_child, Some(fork_peer_id), true)
             .expect("header was correct"));
@@ -735,10 +774,11 @@ mod tests {
             assert!(forest
                 .update_header(header, Some(peer_id), true)
                 .expect("header was correct"));
-            match forest.state(&header.id()) {
-                TopRequired { know_most, .. } => assert!(know_most.contains(&peer_id)),
-                other_state => panic!("Expected top required, got {:?}.", other_state),
+            match forest.request_interest(&header.id()) {
+                Required { know_most, .. } => assert!(know_most.contains(&peer_id)),
+                other_state => panic!("Expected required, got {:?}.", other_state),
             }
+            assert!(forest.importable(&header.id()));
         }
         let child = MockJustification::for_header(initial_header.random_child());
         let peer_id = rand::random();
@@ -750,12 +790,13 @@ mod tests {
             .expect("header was correct");
         assert_eq!(forest.try_finalize(&1).expect("the block is ready"), child);
         for header in fork_branch {
-            assert_eq!(forest.state(&header.id()), Uninterested);
+            assert_eq!(forest.request_interest(&header.id()), Uninterested);
+            assert!(!forest.importable(&header.id()));
         }
     }
 
     #[test]
-    fn updates_interest_on_parent_connect() {
+    fn updates_importability_on_parent_connect() {
         let (initial_header, mut forest) = setup();
         let branch: Vec<_> = initial_header.random_branch().take(4).collect();
         let header = &branch[0];
@@ -763,34 +804,40 @@ mod tests {
         assert!(forest
             .update_header(header, Some(peer_id), true)
             .expect("header was correct"));
-        match forest.state(&header.id()) {
-            TopRequired { know_most, .. } => assert!(know_most.contains(&peer_id)),
-            other_state => panic!("Expected top required, got {:?}.", other_state),
+        match forest.request_interest(&header.id()) {
+            Required { know_most, .. } => assert!(know_most.contains(&peer_id)),
+            other_state => panic!("Expected required, got {:?}.", other_state),
         }
+        assert!(forest.importable(&header.id()));
         let header = &branch[1];
         let peer_id = rand::random();
         assert!(!forest
             .update_header(header, Some(peer_id), false)
             .expect("header was correct"));
-        assert_eq!(forest.state(&header.id()), Uninterested);
+        assert_eq!(forest.request_interest(&header.id()), Uninterested);
+        assert!(!forest.importable(&header.id()));
         let header = &branch[3];
         let peer_id = rand::random();
         assert!(forest
             .update_header(header, Some(peer_id), true)
             .expect("header was correct"));
-        match forest.state(&header.id()) {
-            TopRequired { know_most, .. } => assert!(know_most.contains(&peer_id)),
-            other_state => panic!("Expected top required, got {:?}.", other_state),
+        match forest.request_interest(&header.id()) {
+            Required { know_most, .. } => assert!(know_most.contains(&peer_id)),
+            other_state => panic!("Expected required, got {:?}.", other_state),
         }
+        assert!(forest.importable(&header.id()));
         let header = &branch[2];
         let peer_id = rand::random();
         assert!(!forest
             .update_header(header, Some(peer_id), false)
             .expect("header was correct"));
         for header in branch.iter().take(3) {
-            assert!(matches!(forest.state(&header.id()), Required { .. }));
+            assert!(forest.importable(&header.id()));
         }
-        assert!(matches!(forest.state(&branch[3].id()), TopRequired { .. }));
+        assert!(matches!(
+            forest.request_interest(&branch[3].id()),
+            Required { .. }
+        ));
     }
 
     #[test]
@@ -802,21 +849,23 @@ mod tests {
         assert!(!forest
             .update_header(header, Some(peer_id), false)
             .expect("header was correct"));
-        assert_eq!(forest.state(&header.id()), Uninterested);
+        assert_eq!(forest.request_interest(&header.id()), Uninterested);
+        assert!(!forest.importable(&header.id()));
         // skip branch[1]
         let header = &branch[2];
         let peer_id = rand::random();
         assert!(!forest
             .update_header(header, Some(peer_id), false)
             .expect("header was correct"));
-        assert_eq!(forest.state(&header.id()), Uninterested);
+        assert_eq!(forest.request_interest(&header.id()), Uninterested);
+        assert!(!forest.importable(&header.id()));
         let header = &branch[3];
         let peer_id = rand::random();
         assert!(forest
             .update_header(header, Some(peer_id), true)
             .expect("header was correct"));
-        match forest.state(&header.id()) {
-            TopRequired {
+        match forest.request_interest(&header.id()) {
+            Required {
                 know_most,
                 branch_knowledge,
             } => {
@@ -824,8 +873,9 @@ mod tests {
                 // we only know parent from branch[2], namely branch[1]
                 assert_eq!(branch_knowledge, LowestId(branch[1].id()));
             }
-            other_state => panic!("Expected top required, got {:?}.", other_state),
+            other_state => panic!("Expected required, got {:?}.", other_state),
         }
+        assert!(forest.importable(&header.id()));
         // fill the gap
         let header = &branch[1];
         let peer_id = rand::random();
@@ -833,28 +883,34 @@ mod tests {
             .update_header(header, Some(peer_id), false)
             .expect("header was correct"));
         for header in branch.iter().take(3) {
-            assert!(matches!(forest.state(&header.id()), Required { .. }));
+            assert!(matches!(
+                forest.request_interest(&header.id()),
+                Uninterested
+            ));
+            assert!(forest.importable(&header.id()));
         }
-        match forest.state(&branch[3].id()) {
-            TopRequired {
+        match forest.request_interest(&branch[3].id()) {
+            Required {
                 branch_knowledge, ..
             } => {
                 // now we know all ancestors
                 assert_eq!(branch_knowledge, TopImported(initial_header.id()));
             }
-            other_state => panic!("Expected top required, got {:?}.", other_state),
+            other_state => panic!("Expected required, got {:?}.", other_state),
         }
+        assert!(forest.importable(&branch[3].id()));
         forest.update_body(&branch[0]).expect("should import");
         forest.update_body(&branch[1]).expect("should import");
-        match forest.state(&branch[3].id()) {
-            TopRequired {
+        match forest.request_interest(&branch[3].id()) {
+            Required {
                 branch_knowledge, ..
             } => {
                 // we know all ancestors, three blocks were imported
                 assert_eq!(branch_knowledge, TopImported(branch[1].id()));
             }
-            other_state => panic!("Expected top required, got {:?}.", other_state),
+            other_state => panic!("Expected required, got {:?}.", other_state),
         }
+        assert!(forest.importable(&branch[3].id()));
     }
 
     const HUGE_BRANCH_LENGTH: usize = MAX_DEPTH as usize;
@@ -872,10 +928,11 @@ mod tests {
             assert!(forest
                 .update_justification(justification.clone(), Some(peer_id))
                 .expect("header was correct"));
-            match forest.state(&justification.header().id()) {
+            match forest.request_interest(&justification.header().id()) {
                 HighestJustified { know_most, .. } => assert!(know_most.contains(&peer_id)),
-                other_state => panic!("Expected top required, got {:?}.", other_state),
+                other_state => panic!("Expected highest justified, got {:?}.", other_state),
             }
+            assert!(forest.importable(&justification.header().id()));
             forest
                 .update_body(justification.header())
                 .expect("header was correct");
@@ -905,10 +962,11 @@ mod tests {
                 assert!(forest
                     .update_justification(justification.clone(), Some(peer_id))
                     .expect("header was correct"));
-                match forest.state(&justification.header().id()) {
+                match forest.request_interest(&justification.header().id()) {
                     HighestJustified { know_most, .. } => assert!(know_most.contains(&peer_id)),
-                    other_state => panic!("Expected top required, got {:?}.", other_state),
+                    other_state => panic!("Expected highest justified, got {:?}.", other_state),
                 }
+                assert!(forest.importable(&justification.header().id()));
             }
             forest
                 .update_body(justification.header())
@@ -941,10 +999,11 @@ mod tests {
                 .update_header(header, Some(peer_id), true)
                 .expect("header was correct"));
             assert!(forest.try_finalize(&1).is_none());
-            match forest.state(&header.id()) {
-                TopRequired { know_most, .. } => assert!(know_most.contains(&peer_id)),
-                other_state => panic!("Expected top required, got {:?}.", other_state),
+            match forest.request_interest(&header.id()) {
+                Required { know_most, .. } => assert!(know_most.contains(&peer_id)),
+                other_state => panic!("Expected required, got {:?}.", other_state),
             }
+            assert!(forest.importable(&header.id()));
         }
         let child = MockJustification::for_header(initial_header.random_child());
         let peer_id = rand::random();
@@ -952,16 +1011,18 @@ mod tests {
             .update_justification(child.clone(), Some(peer_id))
             .expect("header was correct"));
         assert!(forest.try_finalize(&1).is_none());
-        match forest.state(&child.header().id()) {
+        match forest.request_interest(&child.header().id()) {
             HighestJustified { know_most, .. } => assert!(know_most.contains(&peer_id)),
-            other_state => panic!("Expected top required, got {:?}.", other_state),
+            other_state => panic!("Expected highest justified, got {:?}.", other_state),
         }
+        assert!(forest.importable(&child.header().id()));
         forest
             .update_body(child.header())
             .expect("header was correct");
         assert_eq!(forest.try_finalize(&1).expect("the block is ready"), child);
         for header in &fork {
-            assert_eq!(forest.state(&header.id()), Uninterested);
+            assert_eq!(forest.request_interest(&header.id()), Uninterested);
+            assert!(!forest.importable(&header.id()));
         }
     }
 
@@ -977,19 +1038,25 @@ mod tests {
             assert!(!forest
                 .update_header(header, Some(peer_id), false)
                 .expect("header was correct"));
-            assert_eq!(forest.state(&header.id()), Uninterested);
+            assert_eq!(forest.request_interest(&header.id()), Uninterested);
+            assert!(!forest.importable(&header.id()));
         }
         let header = &branch[HUGE_BRANCH_LENGTH - 1];
         let peer_id = rand::random();
         assert!(forest
             .update_header(header, Some(peer_id), true)
             .expect("header was correct"));
-        match forest.state(&header.id()) {
-            TopRequired { know_most, .. } => assert!(know_most.contains(&peer_id)),
-            other_state => panic!("Expected top required, got {:?}.", other_state),
+        match forest.request_interest(&header.id()) {
+            Required { know_most, .. } => assert!(know_most.contains(&peer_id)),
+            other_state => panic!("Expected required, got {:?}.", other_state),
         }
+        assert!(forest.importable(&header.id()));
         for header in branch.iter().take(HUGE_BRANCH_LENGTH - 1) {
-            assert!(matches!(forest.state(&header.id()), Required { .. }));
+            assert!(matches!(
+                forest.request_interest(&header.id()),
+                Uninterested
+            ));
+            assert!(forest.importable(&header.id()));
         }
     }
 }
