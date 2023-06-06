@@ -51,12 +51,14 @@ pub trait Block: Clone + Codec + Debug + Send + Sync + 'static {
     fn header(&self) -> &Self::Header;
 }
 
+type BlockIdFor<J> = <<J as Justification>::Header as Header>::Identifier;
+
 /// The verified justification of a block, including a header.
 pub trait Justification: Clone + Send + Sync + Debug + 'static {
     type Header: Header;
     /// The implementation has to behave as if the header here is identical to the one returned by
     /// the `header` method after successful verification.
-    type Unverified: Header<Identifier = <Self::Header as Header>::Identifier> + Debug;
+    type Unverified: Header<Identifier = BlockIdFor<Self>> + Debug;
 
     /// The header of the block.
     fn header(&self) -> &Self::Header;
@@ -64,8 +66,6 @@ pub trait Justification: Clone + Send + Sync + Debug + 'static {
     /// Return an unverified version of this, for sending over the network.
     fn into_unverified(self) -> Self::Unverified;
 }
-
-type BlockIdFor<J> = <<J as Justification>::Header as Header>::Identifier;
 
 /// A verifier of justifications.
 pub trait Verifier<J: Justification> {
@@ -115,14 +115,18 @@ pub enum BlockStatus<J: Justification> {
 }
 
 /// The knowledge about the chain status.
-pub trait ChainStatus<J: Justification>: Clone + Send + Sync + 'static {
+pub trait ChainStatus<B, J>: Clone + Send + Sync + 'static
+where
+    J: Justification,
+    B: Block<Header = J::Header>,
+{
     type Error: Display;
 
     /// The status of the block.
-    fn status_of(
-        &self,
-        id: <J::Header as Header>::Identifier,
-    ) -> Result<BlockStatus<J>, Self::Error>;
+    fn status_of(&self, id: BlockIdFor<J>) -> Result<BlockStatus<J>, Self::Error>;
+
+    /// Export a copy of the block.
+    fn block(&self, id: BlockIdFor<J>) -> Result<Option<B>, Self::Error>;
 
     /// The justification at this block number, if we have it. Should return None if the
     /// request is above the top finalized.
@@ -135,10 +139,7 @@ pub trait ChainStatus<J: Justification>: Clone + Send + Sync + 'static {
     fn top_finalized(&self) -> Result<J, Self::Error>;
 
     /// Children of the specified block.
-    fn children(
-        &self,
-        id: <J::Header as Header>::Identifier,
-    ) -> Result<Vec<J::Header>, Self::Error>;
+    fn children(&self, id: BlockIdFor<J>) -> Result<Vec<J::Header>, Self::Error>;
 }
 
 /// An interface for submitting additional justifications to the justification sync.

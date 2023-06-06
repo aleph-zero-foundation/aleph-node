@@ -9,35 +9,12 @@ use parking_lot::Mutex;
 
 use crate::{
     sync::{
-        mock::{MockHeader, MockIdentifier, MockJustification, MockNotification},
-        BlockStatus, ChainStatus, ChainStatusNotifier, Finalizer, Header,
+        mock::{MockBlock, MockHeader, MockIdentifier, MockJustification, MockNotification},
+        Block, BlockStatus, ChainStatus, ChainStatusNotifier, Finalizer, Header,
         Justification as JustificationT,
     },
     BlockIdentifier,
 };
-
-#[derive(Clone, Debug)]
-struct MockBlock {
-    header: MockHeader,
-    justification: Option<MockJustification>,
-}
-
-impl MockBlock {
-    fn new(header: MockHeader) -> Self {
-        Self {
-            header,
-            justification: None,
-        }
-    }
-
-    fn header(&self) -> MockHeader {
-        self.header.clone()
-    }
-
-    fn finalize(&mut self, justification: MockJustification) {
-        self.justification = Some(justification);
-    }
-}
 
 #[derive(Clone, Debug)]
 struct BackendStorage {
@@ -67,7 +44,7 @@ fn is_predecessor(
         }
 
         header = match storage.get(&parent) {
-            Some(block) => block.header(),
+            Some(block) => block.header().clone(),
             None => return false,
         }
     }
@@ -220,7 +197,8 @@ impl Finalizer<MockJustification> for Backend {
                 .blockchain
                 .get(&storage.best_block)
                 .unwrap()
-                .header(),
+                .header()
+                .clone(),
             id.clone(),
         ) {
             storage.best_block = id.clone()
@@ -240,7 +218,7 @@ impl Display for StatusError {
     }
 }
 
-impl ChainStatus<MockJustification> for Backend {
+impl ChainStatus<MockBlock, MockJustification> for Backend {
     type Error = StatusError;
 
     fn status_of(&self, id: MockIdentifier) -> Result<BlockStatus<MockJustification>, Self::Error> {
@@ -253,8 +231,12 @@ impl ChainStatus<MockJustification> for Backend {
         if let Some(justification) = block.justification.clone() {
             Ok(BlockStatus::Justified(justification))
         } else {
-            Ok(BlockStatus::Present(block.header()))
+            Ok(BlockStatus::Present(block.header().clone()))
         }
+    }
+
+    fn block(&self, id: MockIdentifier) -> Result<Option<MockBlock>, Self::Error> {
+        Ok(self.inner.lock().blockchain.get(&id).cloned())
     }
 
     fn finalized_at(&self, number: u32) -> Result<Option<MockJustification>, Self::Error> {
@@ -276,7 +258,7 @@ impl ChainStatus<MockJustification> for Backend {
         storage
             .blockchain
             .get(&id)
-            .map(|b| b.header())
+            .map(|b| b.header().clone())
             .ok_or(StatusError)
     }
 
@@ -301,7 +283,7 @@ impl ChainStatus<MockJustification> for Backend {
                 let storage = self.inner.lock();
                 for (stored_id, block) in storage.blockchain.iter() {
                     if stored_id.number() == id.number + 1 {
-                        return Ok(Vec::from([block.header()]));
+                        return Ok(Vec::from([block.header().clone()]));
                     }
                 }
                 Ok(Vec::new())

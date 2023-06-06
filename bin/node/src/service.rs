@@ -213,7 +213,7 @@ pub fn new_partial(
 fn setup(
     mut config: Configuration,
     backend: Arc<FullBackend>,
-    chain_status: SubstrateChainStatus<Block>,
+    chain_status: SubstrateChainStatus,
     keystore_container: &KeystoreContainer,
     import_queue: sc_consensus::DefaultImportQueue<Block, FullClient>,
     transaction_pool: Arc<sc_transaction_pool::FullPool<Block, FullClient>>,

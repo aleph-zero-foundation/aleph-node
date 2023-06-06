@@ -12,7 +12,6 @@ use crate::{
     aleph_primitives::{Block, Header},
     crypto::AuthorityPen,
     finalization::AlephFinalizer,
-    justification::Requester,
     network::{
         session::{ConnectionManager, ConnectionManagerConfig},
         tcp::{new_tcp_network, KEY_TYPE},
@@ -50,7 +49,7 @@ where
     C: crate::ClientForAleph<Block, BE> + Send + Sync + 'static,
     C::Api: crate::aleph_primitives::AlephSessionApi<Block>,
     BE: Backend<Block> + 'static,
-    CS: ChainStatus<SubstrateJustification<Header>> + JustificationTranslator<Header>,
+    CS: ChainStatus<Block, SubstrateJustification<Header>> + JustificationTranslator<Header>,
     SC: SelectChain<Block> + 'static,
 {
     let AlephConfig {
@@ -107,15 +106,6 @@ where
     let gossip_network_task = async move { gossip_network_service.run().await };
 
     let block_requester = sync_network.clone();
-    let auxilliary_requester = Requester::new(
-        block_requester.clone(),
-        chain_status.clone(),
-        SessionBoundaryInfo::new(session_period),
-    );
-    spawn_handle.spawn("aleph/requester", async move {
-        debug!(target: "aleph-party", "Auxiliary justification requester has started.");
-        auxilliary_requester.run().await
-    });
 
     let map_updater = SessionMapUpdater::new(
         AuthorityProviderImpl::new(client.clone()),

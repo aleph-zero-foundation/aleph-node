@@ -1,9 +1,7 @@
 use std::fmt::{Display, Error as FmtError, Formatter};
 
-use sp_runtime::traits::{Block, Header};
-
 use crate::{
-    aleph_primitives::BlockNumber,
+    aleph_primitives::Header as AlephHeader,
     justification::AlephJustification,
     sync::{
         substrate::{
@@ -15,12 +13,12 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub enum Error<B: Block> {
-    ChainStatus(ChainStatusError<B>),
+pub enum Error {
+    ChainStatus(ChainStatusError),
     NoBlock,
 }
 
-impl<B: Block> Display for Error<B> {
+impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
         use Error::*;
         match self {
@@ -32,24 +30,20 @@ impl<B: Block> Display for Error<B> {
     }
 }
 
-impl<B: Block> From<ChainStatusError<B>> for Error<B> {
-    fn from(value: ChainStatusError<B>) -> Self {
+impl From<ChainStatusError> for Error {
+    fn from(value: ChainStatusError) -> Self {
         Error::ChainStatus(value)
     }
 }
 
-impl<B> JustificationTranslator<B::Header> for SubstrateChainStatus<B>
-where
-    B: Block,
-    B::Header: Header<Number = BlockNumber>,
-{
-    type Error = Error<B>;
+impl JustificationTranslator<AlephHeader> for SubstrateChainStatus {
+    type Error = Error;
 
     fn translate(
         &self,
         aleph_justification: AlephJustification,
-        block_id: BlockId<B::Header>,
-    ) -> Result<Justification<B::Header>, Self::Error> {
+        block_id: BlockId<AlephHeader>,
+    ) -> Result<Justification<AlephHeader>, Self::Error> {
         use BlockStatus::*;
         match self.status_of(block_id)? {
             Justified(Justification { header, .. }) | Present(header) => Ok(

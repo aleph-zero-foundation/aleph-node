@@ -96,12 +96,19 @@ impl Header for MockHeader {
 #[derive(Clone, Hash, Debug, PartialEq, Eq, Encode, Decode)]
 pub struct MockBlock {
     header: MockHeader,
+    justification: Option<MockJustification>,
 }
 
 impl MockBlock {
-    #[allow(dead_code)]
-    pub fn for_header(header: MockHeader) -> Self {
-        Self { header }
+    fn new(header: MockHeader) -> Self {
+        Self {
+            header,
+            justification: None,
+        }
+    }
+
+    fn finalize(&mut self, justification: MockJustification) {
+        self.justification = Some(justification);
     }
 }
 

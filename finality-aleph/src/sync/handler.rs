@@ -20,13 +20,19 @@ use crate::{
 /// How many justifications we will send at most in response to an explicit query.
 const MAX_JUSTIFICATION_BATCH: usize = 100;
 
+/// Types used by the Handler. For improved readability.
+pub trait HandlerTypes {
+    /// What can go wrong when handling a piece of data.
+    type Error;
+}
+
 /// Handler for data incoming from the network.
 pub struct Handler<B, I, J, CS, V, F>
 where
     B: Block,
     I: PeerId,
-    J: Justification,
-    CS: ChainStatus<J>,
+    J: Justification<Header = B::Header>,
+    CS: ChainStatus<B, J>,
     V: Verifier<J>,
     F: Finalizer<J>,
 {
@@ -67,7 +73,14 @@ impl<B: Block, J: Justification> SyncAction<B, J> {
 
 /// What can go wrong when handling a piece of data.
 #[derive(Clone, Debug)]
-pub enum Error<J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finalizer<J>> {
+pub enum Error<B, J, CS, V, F>
+where
+    J: Justification,
+    B: Block<Header = J::Header>,
+    CS: ChainStatus<B, J>,
+    V: Verifier<J>,
+    F: Finalizer<J>,
+{
     Verifier(V::Error),
     ChainStatus(CS::Error),
     Finalizer(F::Error),
@@ -75,8 +88,13 @@ pub enum Error<J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finalize
     MissingJustification,
 }
 
-impl<J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finalizer<J>> Display
-    for Error<J, CS, V, F>
+impl<B, J, CS, V, F> Display for Error<B, J, CS, V, F>
+where
+    J: Justification,
+    B: Block<Header = J::Header>,
+    CS: ChainStatus<B, J>,
+    V: Verifier<J>,
+    F: Finalizer<J>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
         use Error::*;
@@ -93,20 +111,37 @@ impl<J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finalizer<J>> Disp
     }
 }
 
-impl<J: Justification, CS: ChainStatus<J>, V: Verifier<J>, F: Finalizer<J>> From<ForestError>
-    for Error<J, CS, V, F>
+impl<B, J, CS, V, F> From<ForestError> for Error<B, J, CS, V, F>
+where
+    J: Justification,
+    B: Block<Header = J::Header>,
+    CS: ChainStatus<B, J>,
+    V: Verifier<J>,
+    F: Finalizer<J>,
 {
     fn from(e: ForestError) -> Self {
         Error::Forest(e)
     }
 }
 
+impl<B, I, J, CS, V, F> HandlerTypes for Handler<B, I, J, CS, V, F>
+where
+    B: Block,
+    I: PeerId,
+    J: Justification<Header = B::Header>,
+    CS: ChainStatus<B, J>,
+    V: Verifier<J>,
+    F: Finalizer<J>,
+{
+    type Error = Error<B, J, CS, V, F>;
+}
+
 impl<B, I, J, CS, V, F> Handler<B, I, J, CS, V, F>
 where
     B: Block,
     I: PeerId,
-    J: Justification,
-    CS: ChainStatus<J>,
+    J: Justification<Header = B::Header>,
+    CS: ChainStatus<B, J>,
     V: Verifier<J>,
     F: Finalizer<J>,
 {
@@ -116,7 +151,7 @@ where
         verifier: V,
         finalizer: F,
         period: SessionPeriod,
-    ) -> Result<Self, Error<J, CS, V, F>> {
+    ) -> Result<Self, <Self as HandlerTypes>::Error> {
         let forest = Forest::new(
             chain_status
                 .top_finalized()
@@ -137,7 +172,7 @@ where
     }
 
     // TODO(A0-1758): Move the code to `Self::new` to initialize the `Forest` properly.
-    pub fn refresh_forest(&mut self) -> Result<(), Error<J, CS, V, F>> {
+    pub fn refresh_forest(&mut self) -> Result<(), <Self as HandlerTypes>::Error> {
         let top_finalized = self
             .chain_status
             .top_finalized()
@@ -171,7 +206,7 @@ where
         Ok(())
     }
 
-    fn try_finalize(&mut self) -> Result<(), Error<J, CS, V, F>> {
+    fn try_finalize(&mut self) -> Result<(), <Self as HandlerTypes>::Error> {
         let mut number = self
             .chain_status
             .top_finalized()
@@ -208,7 +243,7 @@ where
         &mut self,
         justification: J,
         peer: Option<I>,
-    ) -> Result<Option<BlockIdFor<J>>, Error<J, CS, V, F>> {
+    ) -> Result<Option<BlockIdFor<J>>, <Self as HandlerTypes>::Error> {
         let id = justification.header().id();
         let maybe_id = match self.forest.update_justification(justification, peer)? {
             true => Some(id),
@@ -219,7 +254,10 @@ where
     }
 
     /// Inform the handler that a block has been imported.
-    pub fn block_imported(&mut self, header: J::Header) -> Result<(), Error<J, CS, V, F>> {
+    pub fn block_imported(
+        &mut self,
+        header: J::Header,
+    ) -> Result<(), <Self as HandlerTypes>::Error> {
         self.forest.update_body(&header)?;
         self.try_finalize()
     }
@@ -231,7 +269,7 @@ where
     pub fn handle_request(
         &mut self,
         request: Request<J>,
-    ) -> Result<SyncAction<B, J>, Error<J, CS, V, F>> {
+    ) -> Result<SyncAction<B, J>, <Self as HandlerTypes>::Error> {
         let mut number = request.state().top_justification().id().number() + 1;
         let mut justifications = vec![];
         while justifications.len() < MAX_JUSTIFICATION_BATCH {
@@ -271,7 +309,7 @@ where
         &mut self,
         justification: J::Unverified,
         peer: Option<I>,
-    ) -> Result<Option<BlockIdFor<J>>, Error<J, CS, V, F>> {
+    ) -> Result<Option<BlockIdFor<J>>, <Self as HandlerTypes>::Error> {
         let justification = self
             .verifier
             .verify(justification)
@@ -282,7 +320,7 @@ where
     fn last_justification_unverified(
         &self,
         session: SessionId,
-    ) -> Result<J::Unverified, Error<J, CS, V, F>> {
+    ) -> Result<J::Unverified, <Self as HandlerTypes>::Error> {
         use Error::*;
         Ok(self
             .chain_status
@@ -297,7 +335,7 @@ where
         &mut self,
         state: State<J>,
         peer: I,
-    ) -> Result<SyncAction<B, J>, Error<J, CS, V, F>> {
+    ) -> Result<SyncAction<B, J>, <Self as HandlerTypes>::Error> {
         use Error::*;
         let remote_top_number = state.top_justification().id().number();
         let local_top = self.chain_status.top_finalized().map_err(ChainStatus)?;
@@ -341,7 +379,7 @@ where
     }
 
     /// The current state of our database.
-    pub fn state(&self) -> Result<State<J>, Error<J, CS, V, F>> {
+    pub fn state(&self) -> Result<State<J>, <Self as HandlerTypes>::Error> {
         let top_justification = self
             .chain_status
             .top_finalized()

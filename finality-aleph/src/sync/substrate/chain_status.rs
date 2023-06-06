@@ -7,28 +7,31 @@ use log::warn;
 use sc_client_api::{blockchain::HeaderBackend, Backend as _};
 use sc_service::TFullBackend;
 use sp_blockchain::{Backend as _, Error as BackendError, Info};
-use sp_runtime::traits::{Block as BlockT, Header as SubstrateHeader};
+use sp_runtime::traits::{Block as SubstrateBlock, Header as SubstrateHeader};
 
 use crate::{
-    aleph_primitives::{BlockNumber, ALEPH_ENGINE_ID},
+    aleph_primitives::{
+        Block as AlephBlock, BlockNumber, Hash as AlephHash, Header as AlephHeader, ALEPH_ENGINE_ID,
+    },
     justification::backwards_compatible_decode,
     sync::{
         substrate::{BlockId, Justification},
-        BlockStatus, ChainStatus, Header, LOG_TARGET,
+        BlockIdFor, BlockStatus, ChainStatus, LOG_TARGET,
     },
 };
 
 /// What can go wrong when checking chain status
 #[derive(Debug)]
-pub enum Error<B: BlockT> {
-    MissingHash(B::Hash),
-    MissingJustification(B::Hash),
+pub enum Error {
+    MissingHash(AlephHash),
+    MissingBody(AlephHash),
+    MissingJustification(AlephHash),
     Backend(BackendError),
     MismatchedId,
     NoGenesisBlock,
 }
 
-impl<B: BlockT> Display for Error<B> {
+impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
         use Error::*;
         match self {
@@ -36,6 +39,13 @@ impl<B: BlockT> Display for Error<B> {
                 write!(
                     f,
                     "data availability problem: no block for existing hash {:?}",
+                    hash
+                )
+            }
+            MissingBody(hash) => {
+                write!(
+                    f,
+                    "data availability problem: no block body for existing hash {:?}",
                     hash
                 )
             }
@@ -55,7 +65,7 @@ impl<B: BlockT> Display for Error<B> {
     }
 }
 
-impl<B: BlockT> From<BackendError> for Error<B> {
+impl From<BackendError> for Error {
     fn from(value: BackendError) -> Self {
         Error::Backend(value)
     }
@@ -63,21 +73,13 @@ impl<B: BlockT> From<BackendError> for Error<B> {
 
 /// Substrate implementation of ChainStatus trait
 #[derive(Clone)]
-pub struct SubstrateChainStatus<B>
-where
-    B: BlockT,
-    B::Header: SubstrateHeader<Number = BlockNumber>,
-{
-    backend: Arc<TFullBackend<B>>,
-    genesis_header: B::Header,
+pub struct SubstrateChainStatus {
+    backend: Arc<TFullBackend<AlephBlock>>,
+    genesis_header: AlephHeader,
 }
 
-impl<B> SubstrateChainStatus<B>
-where
-    B: BlockT,
-    B::Header: SubstrateHeader<Number = BlockNumber>,
-{
-    pub fn new(backend: Arc<TFullBackend<B>>) -> Result<Self, Error<B>> {
+impl SubstrateChainStatus {
+    pub fn new(backend: Arc<TFullBackend<AlephBlock>>) -> Result<Self, Error> {
         let hash = backend.blockchain().hash(0)?.ok_or(Error::NoGenesisBlock)?;
         let genesis_header = backend
             .blockchain()
@@ -89,22 +91,29 @@ where
         })
     }
 
-    fn info(&self) -> Info<B> {
+    fn info(&self) -> Info<AlephBlock> {
         self.backend.blockchain().info()
     }
 
-    fn hash_for_number(&self, number: BlockNumber) -> Result<Option<B::Hash>, BackendError> {
+    fn hash_for_number(&self, number: BlockNumber) -> Result<Option<AlephHash>, BackendError> {
         self.backend.blockchain().hash(number)
     }
 
-    fn header_for_hash(&self, hash: B::Hash) -> Result<Option<B::Header>, BackendError> {
+    fn header_for_hash(&self, hash: AlephHash) -> Result<Option<AlephHeader>, BackendError> {
         self.backend.blockchain().header(hash)
+    }
+
+    fn body_for_hash(
+        &self,
+        hash: AlephHash,
+    ) -> Result<Option<Vec<<AlephBlock as SubstrateBlock>::Extrinsic>>, BackendError> {
+        self.backend.blockchain().body(hash)
     }
 
     fn header(
         &self,
-        id: &<B::Header as Header>::Identifier,
-    ) -> Result<Option<B::Header>, Error<B>> {
+        id: &BlockIdFor<Justification<AlephHeader>>,
+    ) -> Result<Option<AlephHeader>, Error> {
         let maybe_header = self.header_for_hash(id.hash)?;
         match maybe_header
             .as_ref()
@@ -117,8 +126,8 @@ where
 
     fn justification(
         &self,
-        header: B::Header,
-    ) -> Result<Option<Justification<B::Header>>, BackendError> {
+        header: AlephHeader,
+    ) -> Result<Option<Justification<AlephHeader>>, BackendError> {
         if header == self.genesis_header {
             return Ok(Some(Justification::genesis_justification(header)));
         };
@@ -150,26 +159,22 @@ where
         }
     }
 
-    fn best_hash(&self) -> B::Hash {
+    fn best_hash(&self) -> AlephHash {
         self.info().best_hash
     }
 
-    fn finalized_hash(&self) -> B::Hash {
+    fn finalized_hash(&self) -> AlephHash {
         self.info().finalized_hash
     }
 }
 
-impl<B> ChainStatus<Justification<B::Header>> for SubstrateChainStatus<B>
-where
-    B: BlockT,
-    B::Header: SubstrateHeader<Number = BlockNumber>,
-{
-    type Error = Error<B>;
+impl ChainStatus<AlephBlock, Justification<AlephHeader>> for SubstrateChainStatus {
+    type Error = Error;
 
     fn finalized_at(
         &self,
         number: BlockNumber,
-    ) -> Result<Option<Justification<B::Header>>, Self::Error> {
+    ) -> Result<Option<Justification<AlephHeader>>, Self::Error> {
         let id = match self.hash_for_number(number)? {
             Some(hash) => BlockId { hash, number },
             None => return Ok(None),
@@ -180,10 +185,25 @@ where
         }
     }
 
+    fn block(
+        &self,
+        id: BlockIdFor<Justification<AlephHeader>>,
+    ) -> Result<Option<AlephBlock>, Self::Error> {
+        let header = match self.header(&id)? {
+            Some(header) => header,
+            None => return Ok(None),
+        };
+        let body = match self.body_for_hash(id.hash)? {
+            Some(body) => body,
+            None => return Err(Error::MissingBody(id.hash)),
+        };
+        Ok(Some(AlephBlock::new(header, body)))
+    }
+
     fn status_of(
         &self,
-        id: <B::Header as Header>::Identifier,
-    ) -> Result<BlockStatus<Justification<B::Header>>, Self::Error> {
+        id: BlockIdFor<Justification<AlephHeader>>,
+    ) -> Result<BlockStatus<Justification<AlephHeader>>, Self::Error> {
         let header = match self.header(&id)? {
             Some(header) => header,
             None => return Ok(BlockStatus::Unknown),
@@ -196,14 +216,14 @@ where
         }
     }
 
-    fn best_block(&self) -> Result<B::Header, Self::Error> {
+    fn best_block(&self) -> Result<AlephHeader, Self::Error> {
         let best_hash = self.best_hash();
 
         self.header_for_hash(best_hash)?
             .ok_or(Error::MissingHash(best_hash))
     }
 
-    fn top_finalized(&self) -> Result<Justification<B::Header>, Self::Error> {
+    fn top_finalized(&self) -> Result<Justification<AlephHeader>, Self::Error> {
         let finalized_hash = self.finalized_hash();
         let header = self
             .header_for_hash(finalized_hash)?
@@ -214,8 +234,8 @@ where
 
     fn children(
         &self,
-        id: <B::Header as Header>::Identifier,
-    ) -> Result<Vec<B::Header>, Self::Error> {
+        id: BlockIdFor<Justification<AlephHeader>>,
+    ) -> Result<Vec<AlephHeader>, Self::Error> {
         // This checks whether we have the block at all and the provided id is consistent.
         self.header(&id)?;
         Ok(self
@@ -224,7 +244,7 @@ where
             .children(id.hash)?
             .into_iter()
             .map(|hash| self.header_for_hash(hash))
-            .collect::<Result<Vec<Option<B::Header>>, BackendError>>()?
+            .collect::<Result<Vec<Option<AlephHeader>>, BackendError>>()?
             .into_iter()
             .flatten()
             .collect())
