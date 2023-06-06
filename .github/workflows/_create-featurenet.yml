@@ -38,7 +38,7 @@ jobs:
   create-featurenet:
     needs: [check-vars-and-secrets]
     name: Create featurenet based on the PR
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, large]
     outputs:
       deployment-id: ${{ steps.deployment.outputs.deployment_id }}
     steps:
@@ -100,7 +100,7 @@ jobs:
   update-featurenet-image:
     needs: [push-pr-image, create-featurenet]
     name: Update featurenet to the latest PR aleph-node image
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, large]
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3

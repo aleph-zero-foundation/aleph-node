@@ -13,7 +13,7 @@ jobs:
   delete-featurenet:
     needs: [check-vars-and-secrets]
     name: Delete featurenet
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, large]
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3

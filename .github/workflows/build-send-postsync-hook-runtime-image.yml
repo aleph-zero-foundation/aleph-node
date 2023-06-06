@@ -17,7 +17,7 @@ jobs:
   build:
     needs: [check-vars-and-secrets]
     name: Save cliain binary as an artifact
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, large]
     env:
       CARGO_INCREMENTAL: 0
     steps:

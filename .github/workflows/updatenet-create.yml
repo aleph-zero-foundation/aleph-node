@@ -34,7 +34,7 @@ jobs:
   create-updatenet:
     needs: [check-vars-and-secrets]
     name: Create updatenet
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, large]
     outputs:
       deployment-id: ${{ steps.deployment.outputs.deployment_id }}
     steps:

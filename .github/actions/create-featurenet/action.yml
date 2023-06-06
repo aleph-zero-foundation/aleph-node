@@ -103,9 +103,9 @@ runs:
           exit 1
         fi
         if [[
-          "${{ inputs.expiration-hours }}" != "" && \
-          ! "${{ inputs.expiration-hours }}" =~ ^[0-9]{1,6}h$ && \
-          "${{ inputs.expiration-hours }}" != "never"
+          "${{ inputs.expiration }}" != "" && \
+          ! "${{ inputs.expiration }}" =~ ^[0-9]{1,6}h$ && \
+          "${{ inputs.expiration }}" != "never"
         ]]
         then
           echo "!!! Invalid expiration"

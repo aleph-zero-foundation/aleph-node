@@ -18,7 +18,7 @@ jobs:
   delete-updatenet:
     needs: [check-vars-and-secrets]
     name: Delete updatenet
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, large]
     steps:
       - name: Validate inputs
         shell: bash

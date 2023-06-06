@@ -8,7 +8,7 @@ on:
 jobs:
   main:
     name: Build test node and runtime
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, large]
     env:
       RUST_BACKTRACE: full
       RUSTC_WRAPPER: sccache

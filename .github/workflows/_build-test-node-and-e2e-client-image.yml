@@ -13,7 +13,7 @@ on:
 jobs:
   build-test-node-image-and-e2e-client-image:
     name: Build test node docker image and e2e client image
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, large]
     env:
       RUST_BACKTRACE: full
       RUSTC_WRAPPER: sccache
