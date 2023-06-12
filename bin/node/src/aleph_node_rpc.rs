@@ -139,11 +139,11 @@ impl From<Error> for JsonRpseeError {
 }
 
 /// Aleph Node RPC API
-#[rpc(client, server)]
+#[rpc(client, server, namespace = "alephNode")]
 pub trait AlephNodeApi<Block: BlockT, BE> {
     /// Finalize the block with given hash and number using attached signature. Returns the empty string or an error.
-    #[method(name = "alephNode_emergencyFinalize")]
-    fn aleph_node_emergency_finalize(
+    #[method(name = "emergencyFinalize")]
+    fn emergency_finalize(
         &self,
         justification: Bytes,
         hash: Block::Hash,
@@ -151,8 +151,8 @@ pub trait AlephNodeApi<Block: BlockT, BE> {
     ) -> RpcResult<()>;
 
     /// Get the author of the block with given hash.
-    #[method(name = "chain_getBlockAuthor")]
-    fn aleph_node_block_author(&self, hash: Block::Hash) -> RpcResult<Option<AccountId>>;
+    #[method(name = "getBlockAuthor")]
+    fn block_author(&self, hash: Block::Hash) -> RpcResult<Option<AccountId>>;
 }
 
 /// Aleph Node API implementation
@@ -192,7 +192,7 @@ where
     Client: HeaderBackend<Block> + StorageProvider<Block, BE> + 'static,
     BE: sc_client_api::Backend<Block> + 'static,
 {
-    fn aleph_node_emergency_finalize(
+    fn emergency_finalize(
         &self,
         justification: Bytes,
         hash: Block::Hash,
@@ -219,7 +219,7 @@ where
         Ok(())
     }
 
-    fn aleph_node_block_author(&self, hash: Block::Hash) -> RpcResult<Option<AccountId>> {
+    fn block_author(&self, hash: Block::Hash) -> RpcResult<Option<AccountId>> {
         let header = self
             .client
             .header(hash)
