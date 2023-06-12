@@ -18,6 +18,7 @@ impl SessionBoundaries {
     }
 }
 
+#[derive(Clone)]
 pub struct SessionBoundaryInfo {
     session_period: SessionPeriod,
 }

@@ -7,18 +7,51 @@ use std::{
 use log::warn;
 
 use crate::{
-    session::{SessionBoundaryInfo, SessionId, SessionPeriod},
+    session::{SessionBoundaryInfo, SessionId},
     sync::{
         data::{NetworkData, Request, State},
         forest::{Error as ForestError, Forest},
-        Block, BlockIdFor, ChainStatus, Finalizer, Header, Justification, PeerId, Verifier,
-        LOG_TARGET,
+        Block, BlockIdFor, BlockImport, ChainStatus, Finalizer, Header, Justification, PeerId,
+        Verifier, LOG_TARGET,
     },
     BlockIdentifier,
 };
 
 /// How many justifications we will send at most in response to an explicit query.
 const MAX_JUSTIFICATION_BATCH: usize = 100;
+
+/// Handles for interacting with the blockchain database.
+pub struct DatabaseIO<B, J, CS, F, BI>
+where
+    B: Block,
+    J: Justification<Header = B::Header>,
+    CS: ChainStatus<B, J>,
+    F: Finalizer<J>,
+    BI: BlockImport<B>,
+{
+    chain_status: CS,
+    finalizer: F,
+    block_importer: BI,
+    _phantom: PhantomData<(B, J)>,
+}
+
+impl<B, J, CS, F, BI> DatabaseIO<B, J, CS, F, BI>
+where
+    B: Block,
+    J: Justification<Header = B::Header>,
+    CS: ChainStatus<B, J>,
+    F: Finalizer<J>,
+    BI: BlockImport<B>,
+{
+    pub fn new(chain_status: CS, finalizer: F, block_importer: BI) -> Self {
+        Self {
+            chain_status,
+            finalizer,
+            block_importer,
+            _phantom: PhantomData,
+        }
+    }
+}
 
 /// Types used by the Handler. For improved readability.
 pub trait HandlerTypes {
@@ -27,7 +60,7 @@ pub trait HandlerTypes {
 }
 
 /// Handler for data incoming from the network.
-pub struct Handler<B, I, J, CS, V, F>
+pub struct Handler<B, I, J, CS, V, F, BI>
 where
     B: Block,
     I: PeerId,
@@ -35,12 +68,14 @@ where
     CS: ChainStatus<B, J>,
     V: Verifier<J>,
     F: Finalizer<J>,
+    BI: BlockImport<B>,
 {
     chain_status: CS,
     verifier: V,
     finalizer: F,
     forest: Forest<I, J>,
     session_info: SessionBoundaryInfo,
+    _block_importer: BI,
     phantom: PhantomData<B>,
 }
 
@@ -124,7 +159,7 @@ where
     }
 }
 
-impl<B, I, J, CS, V, F> HandlerTypes for Handler<B, I, J, CS, V, F>
+impl<B, I, J, CS, V, F, BI> HandlerTypes for Handler<B, I, J, CS, V, F, BI>
 where
     B: Block,
     I: PeerId,
@@ -132,11 +167,12 @@ where
     CS: ChainStatus<B, J>,
     V: Verifier<J>,
     F: Finalizer<J>,
+    BI: BlockImport<B>,
 {
     type Error = Error<B, J, CS, V, F>;
 }
 
-impl<B, I, J, CS, V, F> Handler<B, I, J, CS, V, F>
+impl<B, I, J, CS, V, F, BI> Handler<B, I, J, CS, V, F, BI>
 where
     B: Block,
     I: PeerId,
@@ -144,14 +180,20 @@ where
     CS: ChainStatus<B, J>,
     V: Verifier<J>,
     F: Finalizer<J>,
+    BI: BlockImport<B>,
 {
     /// New handler with the provided chain interfaces.
     pub fn new(
-        chain_status: CS,
+        database_io: DatabaseIO<B, J, CS, F, BI>,
         verifier: V,
-        finalizer: F,
-        period: SessionPeriod,
+        session_info: SessionBoundaryInfo,
     ) -> Result<Self, <Self as HandlerTypes>::Error> {
+        let DatabaseIO {
+            chain_status,
+            finalizer,
+            block_importer,
+            ..
+        } = database_io;
         let forest = Forest::new(
             chain_status
                 .top_finalized()
@@ -164,7 +206,8 @@ where
             verifier,
             finalizer,
             forest,
-            session_info: SessionBoundaryInfo::new(period),
+            session_info,
+            _block_importer: block_importer,
             phantom: PhantomData,
         };
         handler.refresh_forest()?;
@@ -396,8 +439,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{Handler, SyncAction};
+    use super::{DatabaseIO, Handler, SyncAction};
     use crate::{
+        session::SessionBoundaryInfo,
         sync::{
             data::{BranchKnowledge::*, NetworkData, Request},
             mock::{Backend, MockBlock, MockHeader, MockJustification, MockPeerId, MockVerifier},
@@ -407,18 +451,18 @@ mod tests {
     };
 
     type MockHandler =
-        Handler<MockBlock, MockPeerId, MockJustification, Backend, MockVerifier, Backend>;
+        Handler<MockBlock, MockPeerId, MockJustification, Backend, MockVerifier, Backend, Backend>;
 
     const SESSION_PERIOD: usize = 20;
 
     fn setup() -> (MockHandler, Backend, impl Send) {
         let (backend, _keep) = Backend::setup(SESSION_PERIOD);
         let verifier = MockVerifier {};
+        let database_io = DatabaseIO::new(backend.clone(), backend.clone(), backend.clone());
         let handler = Handler::new(
-            backend.clone(),
+            database_io,
             verifier,
-            backend.clone(),
-            SessionPeriod(20),
+            SessionBoundaryInfo::new(SessionPeriod(20)),
         )
         .expect("mock backend works");
         (handler, backend, _keep)
@@ -509,11 +553,11 @@ mod tests {
         let header = import_branch(&backend, 1)[0].clone();
         // header already imported, Handler should initialize Forest properly
         let verifier = MockVerifier {};
-        let mut handler: Handler<MockBlock, _, _, _, _, _> = Handler::new(
-            backend.clone(),
+        let database_io = DatabaseIO::new(backend.clone(), backend.clone(), backend.clone());
+        let mut handler = Handler::new(
+            database_io,
             verifier,
-            backend.clone(),
-            SessionPeriod(20),
+            SessionBoundaryInfo::new(SessionPeriod(20)),
         )
         .expect("mock backend works");
         let justification = MockJustification::for_header(header);

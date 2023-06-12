@@ -17,10 +17,11 @@ mod task_queue;
 mod tasks;
 mod ticker;
 
-pub use service::Service;
+pub use service::{DatabaseIO, Service};
 pub use substrate::{
     Justification as SubstrateJustification, JustificationTranslator, SessionVerifier,
-    SubstrateChainStatus, SubstrateChainStatusNotifier, SubstrateFinalizationInfo, VerifierCache,
+    SubstrateChainStatus, SubstrateChainStatusNotifier, SubstrateFinalizationInfo,
+    SubstrateSyncBlock, VerifierCache,
 };
 
 use crate::BlockIdentifier;
@@ -49,6 +50,12 @@ pub trait Block: Clone + Codec + Debug + Send + Sync + 'static {
 
     /// The header of the block.
     fn header(&self) -> &Self::Header;
+}
+
+/// The block importer.
+pub trait BlockImport<B>: Send + 'static {
+    /// Import the block.
+    fn import_block(&mut self, block: B);
 }
 
 type BlockIdFor<J> = <<J as Justification>::Header as Header>::Identifier;
@@ -146,7 +153,7 @@ where
 /// Chiefly ones created by ABFT, but others will also be handled appropriately.
 /// The block corresponding to the submitted `Justification` MUST be obtained and
 /// imported into the Substrate database by the user, as soon as possible.
-pub trait JustificationSubmissions<J: Justification> {
+pub trait JustificationSubmissions<J: Justification>: Clone + Send + 'static {
     type Error: Display;
 
     /// Submit a justification to the underlying justification sync.

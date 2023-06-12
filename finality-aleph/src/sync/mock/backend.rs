@@ -10,7 +10,7 @@ use parking_lot::Mutex;
 use crate::{
     sync::{
         mock::{MockBlock, MockHeader, MockIdentifier, MockJustification, MockNotification},
-        Block, BlockStatus, ChainStatus, ChainStatusNotifier, Finalizer, Header,
+        Block, BlockImport, BlockStatus, ChainStatus, ChainStatusNotifier, Finalizer, Header,
         Justification as JustificationT,
     },
     BlockIdentifier,
@@ -206,6 +206,12 @@ impl Finalizer<MockJustification> for Backend {
         self.notify_finalized(header);
 
         Ok(())
+    }
+}
+
+impl BlockImport<MockBlock> for Backend {
+    fn import_block(&mut self, block: MockBlock) {
+        self.import(block.header);
     }
 }
 

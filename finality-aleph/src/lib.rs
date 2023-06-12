@@ -12,6 +12,9 @@ use futures::{
 };
 use parity_scale_codec::{Codec, Decode, Encode, Output};
 use primitives as aleph_primitives;
+use primitives::{
+    AuthorityId, Block as AlephBlock, BlockNumber, Hash as AlephHash, Header as AlephHeader,
+};
 use sc_client_api::{
     Backend, BlockBackend, BlockchainEvents, Finalizer, LockImportRun, TransactionFor,
 };
@@ -30,9 +33,6 @@ use crate::{
         SignatureSet, SpawnHandle, CURRENT_VERSION, LEGACY_VERSION,
     },
     aggregation::{CurrentRmcNetworkData, LegacyRmcNetworkData},
-    aleph_primitives::{
-        AuthorityId, Block as AlephBlock, BlockNumber, Hash as AlephHash, Header as AlephHeader,
-    },
     compatibility::{Version, Versioned},
     network::data::split::Split,
     session::{SessionBoundaries, SessionBoundaryInfo, SessionId},
@@ -64,7 +64,10 @@ pub use crate::{
     network::{Protocol, ProtocolNaming},
     nodes::run_validator_node,
     session::SessionPeriod,
-    sync::{substrate::Justification, JustificationTranslator, SubstrateChainStatus},
+    sync::{
+        substrate::{BlockImporter, Justification},
+        JustificationTranslator, SubstrateChainStatus,
+    },
 };
 
 /// Constant defining how often components of finality-aleph should report their state
@@ -280,6 +283,7 @@ pub struct AlephConfig<C, SC, CS> {
     pub sync_network: Arc<SyncingService<AlephBlock>>,
     pub client: Arc<C>,
     pub chain_status: CS,
+    pub import_queue_handle: BlockImporter,
     pub select_chain: SC,
     pub spawn_handle: SpawnHandle,
     pub keystore: Arc<dyn CryptoStore>,

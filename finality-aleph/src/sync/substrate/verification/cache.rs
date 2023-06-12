@@ -13,7 +13,6 @@ use crate::{
         substrate::verification::{verifier::SessionVerifier, FinalizationInfo},
         Header,
     },
-    SessionPeriod,
 };
 
 /// Ways in which a justification can fail verification.
@@ -83,7 +82,7 @@ where
     H: Header,
 {
     pub fn new(
-        session_period: SessionPeriod,
+        session_info: SessionBoundaryInfo,
         finalization_info: FI,
         authority_provider: AP,
         cache_size: usize,
@@ -91,7 +90,7 @@ where
     ) -> Self {
         Self {
             sessions: HashMap::new(),
-            session_info: SessionBoundaryInfo::new(session_period),
+            session_info,
             finalization_info,
             authority_provider,
             cache_size,
@@ -260,7 +259,7 @@ mod tests {
         let genesis_header = MockHeader::random_parentless(0);
 
         VerifierCache::new(
-            SessionPeriod(SESSION_PERIOD),
+            SessionBoundaryInfo::new(SessionPeriod(SESSION_PERIOD)),
             finalization_info,
             authority_provider,
             CACHE_SIZE,
