@@ -379,10 +379,8 @@ where
                             have been imported and parent was finalized.", proposal);
                 }
             } else {
-                debug!(target: "aleph-data-store", "Requesting a justification for block {:?} {:?} \
-                        after it has been missing for {:?} secs.", parent_num, parent_hash, time_waiting.as_secs());
-                self.block_requester
-                    .request_justification((parent_hash, parent_num).into());
+                debug!(target: "aleph-data-store", "Justification for block {:?} {:?} \
+                        still not present after {:?} secs.", parent_num, parent_hash, time_waiting.as_secs());
             }
         }
     }

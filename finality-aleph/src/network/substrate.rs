@@ -3,7 +3,6 @@ use std::{collections::HashMap, fmt, iter, pin::Pin, sync::Arc};
 use async_trait::async_trait;
 use futures::stream::{Stream, StreamExt};
 use log::{error, trace};
-use sc_consensus::JustificationSyncLink;
 use sc_network::{
     multiaddr::Protocol as MultiaddressProtocol, Event as SubstrateEvent, Multiaddr,
     NetworkEventStream as _, NetworkNotification, NetworkPeers, NetworkService,
@@ -30,21 +29,12 @@ impl<B: Block> RequestBlocks<IdentifierFor<B>> for Arc<SyncingService<B>>
 where
     B::Header: Header<Number = BlockNumber>,
 {
-    fn request_justification(&self, block_id: IdentifierFor<B>) {
-        SyncingService::request_justification(self, &block_id.hash, block_id.number)
-    }
-
     fn request_stale_block(&self, block_id: IdentifierFor<B>) {
         // The below comment is adapted from substrate:
         // Notifies the sync service to try and sync the given block from the given peers. If the given vector
         // of peers is empty (as in our case) then the underlying implementation should make a best effort to fetch
         // the block from any peers it is connected to.
         SyncingService::set_sync_fork_request(self, Vec::new(), block_id.hash, block_id.number)
-    }
-
-    /// Clear all pending justification requests.
-    fn clear_justification_requests(&self) {
-        SyncingService::clear_justification_requests(self)
     }
 }
 

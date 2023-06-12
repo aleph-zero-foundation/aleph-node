@@ -18,17 +18,10 @@ pub use substrate::{ProtocolNaming, SubstrateNetwork};
 
 use crate::BlockIdentifier;
 
-/// Abstraction for requesting justifications for finalized blocks and stale blocks.
+/// Abstraction for requesting stale blocks.
 pub trait RequestBlocks<BI: BlockIdentifier>: Clone + Send + Sync + 'static {
-    /// Request the justification for the given block
-    fn request_justification(&self, block: BI);
-
     /// Request the given block -- this is supposed to be used only for "old forks".
     fn request_stale_block(&self, block: BI);
-
-    /// Clear all pending justification requests. We need this function in case
-    /// we requested a justification for a block, which will never get it.
-    fn clear_justification_requests(&self);
 }
 
 /// A basic alias for properties we expect basic data to satisfy.
