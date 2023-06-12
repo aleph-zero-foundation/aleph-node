@@ -373,8 +373,16 @@ where
                 info!(target: "aleph-party", "Running session with AlephBFT version {}, which is legacy.", version);
                 self.legacy_subtasks(params)
             }
+            Ok(version) if version > CURRENT_VERSION as u32 => {
+                panic!(
+                    "Too new version {}. Supported versions: {} or {}. Probably outdated node.",
+                    version, LEGACY_VERSION, CURRENT_VERSION
+                )
+            }
             Ok(version) => {
-                panic!("Unsupported version {}. Supported versions: {} or {}. Potentially outdated node.", version, LEGACY_VERSION, CURRENT_VERSION)
+                info!(target: "aleph-party", "Attempting to run session with too old version {}, likely because we are synchronizing old sessions for which we have keys. This will not work, but it doesn't matter.", version);
+                info!(target: "aleph-party", "Running session with AlephBFT version {}, which is legacy.", LEGACY_VERSION);
+                self.legacy_subtasks(params)
             }
             _ => {
                 // this might happen when there was no runtime upgrade yet. Fallback to legacy version
