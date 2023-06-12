@@ -8,8 +8,8 @@ use std::{
 use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use finality_aleph::{
     run_validator_node, AlephBlockImport, AlephConfig, BlockImporter, Justification, Metrics,
-    MillisecsPerBlock, Protocol, ProtocolNaming, SessionPeriod, SubstrateChainStatus,
-    TracingBlockImport,
+    MillisecsPerBlock, Protocol, ProtocolNaming, RateLimiterConfig, SessionPeriod,
+    SubstrateChainStatus, TracingBlockImport,
 };
 use futures::channel::mpsc;
 use log::{info, warn};
@@ -410,6 +410,14 @@ pub fn new_authority(
     if aleph_config.external_addresses().is_empty() {
         panic!("Cannot run a validator node without external addresses, stopping.");
     }
+
+    let rate_limiter_config = RateLimiterConfig {
+        alephbft_bit_rate_per_connection: aleph_config
+            .alephbft_bit_rate_per_connection()
+            .try_into()
+            .unwrap_or(usize::MAX),
+    };
+
     let aleph_config = AlephConfig {
         network,
         sync_network,
@@ -428,6 +436,7 @@ pub fn new_authority(
         external_addresses: aleph_config.external_addresses(),
         validator_port: aleph_config.validator_port(),
         protocol_naming,
+        rate_limiter_config,
     };
 
     task_manager.spawn_essential_handle().spawn_blocking(

@@ -1,7 +1,9 @@
 //! A network for maintaining direct connections between all nodes.
+
 use std::{
     fmt::{Debug, Display},
     hash::Hash,
+    pin::Pin,
 };
 
 use parity_scale_codec::Codec;
@@ -14,11 +16,13 @@ mod manager;
 pub mod mock;
 mod outgoing;
 mod protocols;
+mod rate_limiting;
 mod service;
 #[cfg(test)]
 mod testing;
 
 pub use crypto::{PublicKey, SecretKey};
+pub use rate_limiting::{RateLimitingDialer, RateLimitingListener};
 pub use service::{Service, SpawnHandleT};
 
 const LOG_TARGET: &str = "network-clique";
@@ -179,5 +183,60 @@ impl Listener for TcpListener {
             info!(target: LOG_TARGET, "stream.set_linger(None) failed.");
         };
         Ok(stream)
+    }
+}
+
+pub struct Splitted<I, O>(I, O);
+
+impl<I: AsyncRead + Unpin, O: Unpin> AsyncRead for Splitted<I, O> {
+    fn poll_read(
+        mut self: Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+        buf: &mut tokio::io::ReadBuf<'_>,
+    ) -> std::task::Poll<std::io::Result<()>> {
+        Pin::new(&mut self.0).poll_read(cx, buf)
+    }
+}
+
+impl<I: Unpin, O: AsyncWrite + Unpin> AsyncWrite for Splitted<I, O> {
+    fn poll_write(
+        mut self: Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+        buf: &[u8],
+    ) -> std::task::Poll<Result<usize, std::io::Error>> {
+        Pin::new(&mut self.1).poll_write(cx, buf)
+    }
+
+    fn poll_flush(
+        mut self: Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Result<(), std::io::Error>> {
+        Pin::new(&mut self.1).poll_flush(cx)
+    }
+
+    fn poll_shutdown(
+        mut self: Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Result<(), std::io::Error>> {
+        Pin::new(&mut self.1).poll_shutdown(cx)
+    }
+}
+
+impl<I, O: ConnectionInfo> ConnectionInfo for Splitted<I, O> {
+    fn peer_address_info(&self) -> PeerAddressInfo {
+        self.1.peer_address_info()
+    }
+}
+
+impl<
+        I: AsyncRead + ConnectionInfo + Unpin + Send,
+        O: AsyncWrite + ConnectionInfo + Unpin + Send,
+    > Splittable for Splitted<I, O>
+{
+    type Sender = O;
+    type Receiver = I;
+
+    fn split(self) -> (Self::Sender, Self::Receiver) {
+        (self.1, self.0)
     }
 }

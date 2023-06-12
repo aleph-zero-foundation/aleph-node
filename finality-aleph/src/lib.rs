@@ -278,6 +278,12 @@ impl<H: Header<Number = BlockNumber>> BlockIdentifier for BlockId<H> {
     }
 }
 
+#[derive(Clone)]
+pub struct RateLimiterConfig {
+    /// Maximum bit-rate per node in bytes per second of the alephbft validator network.
+    pub alephbft_bit_rate_per_connection: usize,
+}
+
 pub struct AlephConfig<C, SC, CS> {
     pub network: Arc<NetworkService<AlephBlock, AlephHash>>,
     pub sync_network: Arc<SyncingService<AlephBlock>>,
@@ -296,4 +302,5 @@ pub struct AlephConfig<C, SC, CS> {
     pub external_addresses: Vec<String>,
     pub validator_port: u16,
     pub protocol_naming: ProtocolNaming,
+    pub rate_limiter_config: RateLimiterConfig,
 }

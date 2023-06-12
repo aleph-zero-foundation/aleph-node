@@ -20,6 +20,7 @@ network-clique = { workspace = true }
 primitives = { workspace = true }
 legacy-aleph-aggregator = { package = "aggregator", git = "https://github.com/Cardinal-Cryptography/aleph-node.git", tag = "aggregator-v0.2.1" }
 current-aleph-aggregator = { path = "../aggregator", package = "aggregator" }
+rate-limiter = { package = "rate-limiter", path = "../rate-limiter" }
 
 async-trait = { workspace = true }
 bytes = { workspace = true }

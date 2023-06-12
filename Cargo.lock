@@ -2556,6 +2556,7 @@ dependencies = [
  "parking_lot 0.12.1",
  "primitives",
  "rand 0.8.5",
+ "rate-limiter",
  "sc-block-builder",
  "sc-client-api",
  "sc-consensus",
@@ -5268,7 +5269,7 @@ dependencies = [
 
 [[package]]
 name = "network-clique"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "aleph-bft-mock",
  "aleph-bft-types 0.8.1",
@@ -5285,6 +5286,7 @@ dependencies = [
  "parity-scale-codec",
  "parking_lot 0.12.1",
  "rand 0.8.5",
+ "rate-limiter",
  "serde",
  "tiny-bip39",
  "tokio",
@@ -6814,6 +6816,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59cad018caf63deb318e5a4586d99a24424a364f40f1e5778c29aca23f4fc73e"
 dependencies = [
  "rand_core 0.6.4",
+]
+
+[[package]]
+name = "rate-limiter"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "log",
+ "tokio",
 ]
 
 [[package]]

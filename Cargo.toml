@@ -11,6 +11,7 @@ members = [
     "pallets/committee-management",
     "pallets/support",
     "primitives",
+    "rate-limiter",
 ]
 
 exclude = [
@@ -176,6 +177,7 @@ try-runtime-cli = { git = "https://github.com/Cardinal-Cryptography/substrate.gi
 aleph-runtime = { path = "bin/runtime" }
 finality-aleph = { path = "finality-aleph" }
 network-clique = { path = "clique" }
+rate-limiter = { path = "rate-limiter" }
 pallet-aleph = { path = "pallets/aleph", default-features = false }
 pallet-committee-management = { path = "pallets/committee-management", default-features = false }
 pallet-elections = { path = "pallets/elections", default-features = false }

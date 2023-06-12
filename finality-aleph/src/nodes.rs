@@ -3,7 +3,8 @@ use std::{marker::PhantomData, sync::Arc};
 use bip39::{Language, Mnemonic, MnemonicType};
 use futures::channel::oneshot;
 use log::{debug, error};
-use network_clique::{Service, SpawnHandleT};
+use network_clique::{RateLimitingDialer, RateLimitingListener, Service, SpawnHandleT};
+use rate_limiter::SleepingRateLimiter;
 use sc_client_api::Backend;
 use sp_consensus::SelectChain;
 use sp_keystore::CryptoStore;
@@ -71,6 +72,7 @@ where
         external_addresses,
         validator_port,
         protocol_naming,
+        rate_limiter_config,
     } = aleph_config;
 
     // We generate the phrase manually to only save the key in RAM, we don't want to have these
@@ -81,6 +83,9 @@ where
         keystore.clone(),
     )
     .await;
+
+    debug!(target: "aleph-party", "Initializing rate-limiter for the validator-network with {} byte(s) per second.", rate_limiter_config.alephbft_bit_rate_per_connection);
+
     let (dialer, listener, network_identity) = new_tcp_network(
         ("0.0.0.0", validator_port),
         external_addresses,
@@ -88,6 +93,12 @@ where
     )
     .await
     .expect("we should have working networking");
+
+    let alephbft_rate_limiter =
+        SleepingRateLimiter::new(rate_limiter_config.alephbft_bit_rate_per_connection);
+    let dialer = RateLimitingDialer::new(dialer, alephbft_rate_limiter.clone());
+    let listener = RateLimitingListener::new(listener, alephbft_rate_limiter);
+
     let (validator_network_service, validator_network) = Service::new(
         dialer,
         listener,
