@@ -997,10 +997,10 @@ impl_runtime_apis! {
             Aleph::next_session_finality_version()
         }
 
-        fn session_committee(
+        fn predict_session_committee(
             session: SessionIndex,
         ) -> Result<SessionCommittee<AccountId>, SessionValidatorError> {
-            CommitteeManagement::session_committee_for_session(session)
+            CommitteeManagement::predict_session_committee_for_session(session)
         }
     }
 

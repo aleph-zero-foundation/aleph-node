@@ -181,7 +181,7 @@ impl<C: ConnectionApi + AsConnection> CommitteeManagementApi for C {
         at: Option<BlockHash>,
     ) -> anyhow::Result<Result<SessionCommittee<AccountId>, SessionValidatorError>> {
         let method = "state_call";
-        let api_method = "AlephSessionApi_session_committee";
+        let api_method = "AlephSessionApi_predict_session_committee";
         let params = rpc_params![api_method, Bytes(session.encode()), at];
 
         self.rpc_call(method.to_string(), params).await

@@ -66,7 +66,8 @@ fn shuffle_order_for_session<T>(
     validators.shuffle(&mut rng);
 }
 
-/// choose all items from `reserved` if present and extend it by #`non_reserved_seats` from non_reserved if present.
+/// Choose all items from `reserved` if present and extend it by #`non_reserved_seats` from
+/// `non_reserved` if present.
 fn choose_finality_committee<T: Clone>(
     reserved: &Option<Vec<T>>,
     non_reserved: &Option<Vec<T>>,
@@ -431,28 +432,23 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    /// Calculates committee for the given session.
-    /// If the current era `E` starts in the session `a`, and ends in session `b` then from session `a-1`
-    /// to session `b-1` this function can answer question who will be in the committee in the era `E`.
-    /// In the last session of the era `E` this can be used to determine all of the sessions in the
-    /// era `E+1`.
-    pub fn session_committee_for_session(
+    /// Predict finality committee and block producers for the given session. `session` must be
+    /// within the current era (current, in the staking context).
+    ///
+    /// If the active era `E` starts in the session `a`, and ends in session `b` then from session
+    /// `a` to session `b-1` this function can answer question who will be in the committee in the
+    /// era `E`. In the last session of the era `E` (`b`) this can be used to determine all of the
+    /// sessions in the era `E+1`.
+    pub fn predict_session_committee_for_session(
         session: SessionIndex,
     ) -> Result<SessionCommittee<T::AccountId>, SessionValidatorError> {
-        let ce = match T::EraInfoProvider::current_era() {
-            Some(ce) => ce,
-            _ => return Err(SessionValidatorError::Other("No current era".encode())),
-        };
+        let ce = T::EraInfoProvider::current_era()
+            .ok_or_else(|| SessionValidatorError::Other("No current era".encode()))?;
 
-        let current_starting_index = match T::EraInfoProvider::era_start_session_index(ce) {
-            Some(csi) => csi,
-            // Shouldn't happen
-            None => {
-                return Err(SessionValidatorError::Other(
-                    "No known starting session for current era".encode(),
-                ))
-            }
-        };
+        let current_starting_index =
+            T::EraInfoProvider::era_start_session_index(ce).ok_or_else(|| {
+                SessionValidatorError::Other("No known starting session for current era".encode())
+            })?;
         let planned_era_end = current_starting_index + T::EraInfoProvider::sessions_per_era() - 1;
 
         if session < current_starting_index || session > planned_era_end {

@@ -274,7 +274,14 @@ sp_api::decl_runtime_apis! {
         fn millisecs_per_block() -> u64;
         fn finality_version() -> Version;
         fn next_session_finality_version() -> Version;
-        fn session_committee(
+        /// Predict finality committee and block producers for the given session. `session` must be
+        /// within the current era (current, in the staking context).
+        ///
+        /// If the active era `E` starts in the session `a`, and ends in session `b` then from
+        /// session `a` to session `b-1` this function can answer question who will be in the
+        /// committee in the era `E`. In the last session of the era `E` (`b`) this can be used to
+        /// determine all of the sessions in the era `E+1`.
+        fn predict_session_committee(
             session: SessionIndex
         ) -> Result<SessionCommittee<AccountId>, SessionValidatorError>;
     }
