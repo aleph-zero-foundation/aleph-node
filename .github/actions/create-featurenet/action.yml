@@ -117,28 +117,6 @@ runs:
       # yamllint disable-line rule:line-length
       uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
 
-    - name: Build chainspec for testnet FE and send it to S3
-      if: inputs.update != 'true' && inputs.aleph-node-image == 'testnet'
-      uses: ./.github/actions/build-featurenet-chainspec
-      with:
-        base-net: testnet
-        ecr-public-registry: ${{ inputs.ecr-public-registry }}
-        aws-access-key-id: ${{ inputs.aws-access-key-id }}
-        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
-        featurenet-keys-s3bucket-name: ${{ inputs.featurenet-keys-s3bucket-name }}
-        featurenet-name: ${{ inputs.featurenet-name }}
-
-    - name: Build chainspec for Hotnet FE and send it to S3
-      if: inputs.update != 'true' && inputs.aleph-node-image == 'mainnet'
-      uses: ./.github/actions/build-featurenet-chainspec
-      with:
-        base-net: mainnet
-        ecr-public-registry: ${{ inputs.ecr-public-registry }}
-        aws-access-key-id: ${{ inputs.aws-access-key-id }}
-        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
-        featurenet-keys-s3bucket-name: ${{ inputs.featurenet-keys-s3bucket-name }}
-        featurenet-name: ${{ inputs.featurenet-name }}
-
     - name: Checkout argocd apps repo
       uses: actions/checkout@v3
       with:
@@ -184,7 +162,9 @@ runs:
         cd "${{ inputs.repo-apps-name }}"
         ./Ops.sh create-featurenet \
           "${{ env.APP_NAME }}" \
-          "${{ inputs.aleph-node-image }}"
+          "${{ inputs.aleph-node-image }}" \
+          "false" \
+          "true"
 
     - name: Set featurenet expiration (from testnet/mainet)
       # yamllint disable-line rule:line-length
