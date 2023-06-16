@@ -149,7 +149,7 @@ where
     );
     let finalizer = AlephFinalizer::new(client.clone(), metrics.clone());
     let database_io = SyncDatabaseIO::new(chain_status.clone(), finalizer, import_queue_handle);
-    let (sync_service, justifications_for_sync, _) = match SyncService::new(
+    let (sync_service, justifications_for_sync, _request_block) = match SyncService::new(
         block_sync_network,
         chain_events,
         verifier,

@@ -435,6 +435,17 @@ where
     pub fn forest(&self) -> &Forest<I, J> {
         &self.forest
     }
+
+    /// Handle an internal block request.
+    /// Returns `true` if this was the first time something indicated interest in this block.
+    pub fn handle_internal_request(
+        &mut self,
+        id: &BlockIdFor<J>,
+    ) -> Result<bool, <Self as HandlerTypes>::Error> {
+        let should_request = self.forest.update_block_identifier(id, None, true)?;
+
+        Ok(should_request)
+    }
 }
 
 #[cfg(test)]
@@ -773,5 +784,15 @@ mod tests {
                 other_action
             ),
         }
+    }
+
+    #[test]
+    fn handles_new_internal_request() {
+        let (mut handler, backend, _keep) = setup();
+        let _ = handler.state().expect("state works");
+        let headers = import_branch(&backend, 2);
+
+        assert!(handler.handle_internal_request(&headers[1].id()).unwrap());
+        assert!(!handler.handle_internal_request(&headers[1].id()).unwrap());
     }
 }

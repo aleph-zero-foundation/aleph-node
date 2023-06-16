@@ -29,8 +29,6 @@ fn delay_for_attempt(attempt: u32) -> Duration {
 
 enum RequestKind {
     HighestJustified,
-    // TODO(A0-1757): this will be used then, now only in tests.
-    #[allow(dead_code)]
     Block,
 }
 
@@ -131,6 +129,11 @@ impl<BI: BlockIdentifier> RequestTask<BI> {
     /// A new task for requesting highest justified block with the provided ID.
     pub fn new_highest_justified(id: BI) -> Self {
         RequestTask::new(id, RequestKind::HighestJustified)
+    }
+
+    /// A new task for requesting block with the provided ID.
+    pub fn new_block(id: BI) -> Self {
+        RequestTask::new(id, RequestKind::Block)
     }
 
     /// Process the task using the information from the forest.

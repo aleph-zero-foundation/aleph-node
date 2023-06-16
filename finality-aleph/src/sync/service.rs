@@ -44,7 +44,7 @@ where
     chain_events: CE,
     justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
     additional_justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
-    _block_requests_from_user: mpsc::UnboundedReceiver<BlockIdFor<J>>,
+    block_requests_from_user: mpsc::UnboundedReceiver<BlockIdFor<J>>,
     _phantom: PhantomData<B>,
 }
 
@@ -98,7 +98,7 @@ where
         let tasks = TaskQueue::new();
         let broadcast_ticker = Ticker::new(BROADCAST_PERIOD, BROADCAST_COOLDOWN);
         let (justifications_for_sync, justifications_from_user) = mpsc::unbounded();
-        let (block_requests_for_sync, _block_requests_from_user) = mpsc::unbounded();
+        let (block_requests_for_sync, block_requests_from_user) = mpsc::unbounded();
         Ok((
             Service {
                 network,
@@ -108,7 +108,7 @@ where
                 chain_events,
                 justifications_from_user,
                 additional_justifications_from_user,
-                _block_requests_from_user,
+                block_requests_from_user,
                 _phantom: PhantomData,
             },
             justifications_for_sync,
@@ -123,6 +123,15 @@ where
         );
         self.tasks
             .schedule_in(RequestTask::new_highest_justified(block_id), Duration::ZERO);
+    }
+
+    fn request_block(&mut self, block_id: BlockIdFor<J>) {
+        debug!(
+            target: LOG_TARGET,
+            "Initiating a request for block {:?}.", block_id
+        );
+        self.tasks
+            .schedule_in(RequestTask::new_block(block_id), Duration::ZERO);
     }
 
     fn broadcast(&mut self) {
@@ -313,6 +322,28 @@ where
         }
     }
 
+    fn handle_internal_request(&mut self, id: BlockIdFor<J>) {
+        trace!(
+            target: LOG_TARGET,
+            "Handling an internal request for block {:?}.",
+            id,
+        );
+        match self.handler.handle_internal_request(&id) {
+            Ok(true) => {
+                self.request_block(id);
+            }
+            Ok(_) => {
+                debug!(target: LOG_TARGET, "Already requested block {:?}.", id);
+            }
+            Err(e) => {
+                warn!(
+                    target: LOG_TARGET,
+                    "Error handling internal request for block {:?}: {}.", id, e
+                );
+            }
+        }
+    }
+
     /// Stay synchronized.
     pub async fn run(mut self) {
         // TODO(A0-1758): Remove after finishing the sync rewrite.
@@ -346,6 +377,13 @@ where
                         self.handle_justifications(Vec::from([justification]), None)
                     },
                     None => warn!(target: LOG_TARGET, "Channel with additional justifications from user closed."),
+                },
+                maybe_block_id = self.block_requests_from_user.next() => match maybe_block_id {
+                    Some(block_id) => {
+                        debug!(target: LOG_TARGET, "Received new internal block request from user: {:?}.", block_id);
+                        self.handle_internal_request(block_id)
+                    },
+                    None => warn!(target: LOG_TARGET, "Channel with internal block request from user closed."),
                 },
                 _ = stall_ticker.tick() => {
                     match self.handler.state() {
