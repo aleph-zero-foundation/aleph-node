@@ -3,7 +3,7 @@ let
   # all of these values can be modified using the override method of this derivation, e.g. `customRocksDb.override { useSnappy = true; }`
   defaultArgs = {
       # defines which version of rocksdb should be downloaded from github
-      version = "6.29.3";
+      version = "7.9.2";
       # allows to disable snappy compression
       useSnappy = false;
       # disables the verify_checksum feature of rocksdb (rocksdb provided by librocksdb-sys calls crc32 each time it reads from database)

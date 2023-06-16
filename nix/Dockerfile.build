@@ -5,7 +5,7 @@ RUN nix-env -i patchelf && \
 
 COPY nix/ /node/nix-files/nix/
 RUN chmod +x /node/nix-files/nix/nix-build.sh
-COPY default.nix shell.nix rust-toolchain /node/nix-files/
+COPY default.nix shell.nix /node/nix-files/
 
 RUN nix-shell --pure --run 'echo installed all native pre-requisities' /node/nix-files/shell.nix
 
