@@ -2,7 +2,7 @@ use std::{convert::TryInto, sync::Arc};
 
 use parity_scale_codec::{Decode, Encode};
 use sp_core::crypto::KeyTypeId;
-use sp_keystore::{CryptoStore, Error as KeystoreError};
+use sp_keystore::{Error as KeystoreError, Keystore};
 use sp_runtime::RuntimeAppPublic;
 
 use crate::{
@@ -32,7 +32,7 @@ impl From<AuthoritySignature> for Signature {
 pub struct AuthorityPen {
     key_type_id: KeyTypeId,
     authority_id: AuthorityId,
-    keystore: Arc<dyn CryptoStore>,
+    keystore: Arc<dyn Keystore>,
 }
 
 impl AuthorityPen {
@@ -40,15 +40,14 @@ impl AuthorityPen {
     /// Will attempt to sign a test message to verify that signing works.
     /// Returns errors if anything goes wrong during this attempt, otherwise we assume the
     /// AuthorityPen will work for any future attempts at signing.
-    pub async fn new_with_key_type(
+    pub fn new_with_key_type(
         authority_id: AuthorityId,
-        keystore: Arc<dyn CryptoStore>,
+        keystore: Arc<dyn Keystore>,
         key_type: KeyTypeId,
     ) -> Result<Self, Error> {
         // Check whether this signing setup works
         let _: AuthoritySignature = keystore
-            .sign_with(key_type, &authority_id.clone().into(), b"test")
-            .await
+            .ed25519_sign(key_type, &authority_id.clone().into(), b"test")
             .map_err(Error::Keystore)?
             .ok_or_else(|| Error::KeyMissing(authority_id.clone()))?
             .try_into()
@@ -64,19 +63,15 @@ impl AuthorityPen {
     /// Will attempt to sign a test message to verify that signing works.
     /// Returns errors if anything goes wrong during this attempt, otherwise we assume the
     /// AuthorityPen will work for any future attempts at signing.
-    pub async fn new(
-        authority_id: AuthorityId,
-        keystore: Arc<dyn CryptoStore>,
-    ) -> Result<Self, Error> {
-        Self::new_with_key_type(authority_id, keystore, KEY_TYPE).await
+    pub fn new(authority_id: AuthorityId, keystore: Arc<dyn Keystore>) -> Result<Self, Error> {
+        Self::new_with_key_type(authority_id, keystore, KEY_TYPE)
     }
 
     /// Cryptographically signs the message.
-    pub async fn sign(&self, msg: &[u8]) -> Signature {
+    pub fn sign(&self, msg: &[u8]) -> Signature {
         Signature(
             self.keystore
-                .sign_with(self.key_type_id, &self.authority_id.clone().into(), msg)
-                .await
+                .ed25519_sign(self.key_type_id, &self.authority_id.clone().into(), msg)
                 .expect("the keystore works")
                 .expect("we have the required key")
                 .try_into()
@@ -151,18 +146,17 @@ impl From<SignatureV1> for Signature {
 
 #[cfg(test)]
 mod tests {
-    use sp_keystore::{testing::KeyStore, CryptoStore};
+    use sp_keystore::{testing::MemoryKeystore as Keystore, Keystore as _};
 
     use super::*;
     use crate::abft::NodeIndex;
 
-    async fn generate_keys(names: &[String]) -> (Vec<AuthorityPen>, AuthorityVerifier) {
-        let key_store = Arc::new(KeyStore::new());
+    fn generate_keys(names: &[String]) -> (Vec<AuthorityPen>, AuthorityVerifier) {
+        let key_store = Arc::new(Keystore::new());
         let mut authority_ids = Vec::with_capacity(names.len());
         for name in names {
             let pk = key_store
                 .ed25519_generate_new(KEY_TYPE, Some(name))
-                .await
                 .unwrap();
             authority_ids.push(AuthorityId::from(pk));
         }
@@ -170,62 +164,58 @@ mod tests {
         for authority_id in authority_ids.clone() {
             pens.push(
                 AuthorityPen::new(authority_id, key_store.clone())
-                    .await
                     .expect("The keys should sign successfully"),
             );
         }
-        assert_eq!(
-            key_store.keys(KEY_TYPE).await.unwrap().len(),
-            3 * names.len()
-        );
+        assert_eq!(key_store.keys(KEY_TYPE).unwrap().len(), names.len());
         (pens, AuthorityVerifier::new(authority_ids))
     }
 
-    async fn prepare_test() -> (Vec<AuthorityPen>, AuthorityVerifier) {
+    fn prepare_test() -> (Vec<AuthorityPen>, AuthorityVerifier) {
         let authority_names: Vec<_> = ["//Alice", "//Bob", "//Charlie"]
             .iter()
             .map(|s| s.to_string())
             .collect();
-        generate_keys(&authority_names).await
+        generate_keys(&authority_names)
     }
 
-    #[tokio::test]
-    async fn produces_and_verifies_correct_signatures() {
-        let (pens, verifier) = prepare_test().await;
+    #[test]
+    fn produces_and_verifies_correct_signatures() {
+        let (pens, verifier) = prepare_test();
         let msg = b"test";
         for (i, pen) in pens.into_iter().enumerate() {
-            let signature = pen.sign(msg).await;
+            let signature = pen.sign(msg);
             assert!(verifier.verify(msg, &signature, NodeIndex(i)));
         }
     }
 
-    #[tokio::test]
-    async fn does_not_accept_signatures_from_wrong_sources() {
-        let (pens, verifier) = prepare_test().await;
+    #[test]
+    fn does_not_accept_signatures_from_wrong_sources() {
+        let (pens, verifier) = prepare_test();
         let msg = b"test";
         for pen in &pens[1..] {
-            let signature = pen.sign(msg).await;
+            let signature = pen.sign(msg);
             assert!(!verifier.verify(msg, &signature, NodeIndex(0)));
         }
     }
 
-    #[tokio::test]
-    async fn does_not_accept_signatures_from_unknown_sources() {
-        let (pens, verifier) = prepare_test().await;
+    #[test]
+    fn does_not_accept_signatures_from_unknown_sources() {
+        let (pens, verifier) = prepare_test();
         let msg = b"test";
         for pen in &pens {
-            let signature = pen.sign(msg).await;
+            let signature = pen.sign(msg);
             assert!(!verifier.verify(msg, &signature, NodeIndex(pens.len())));
         }
     }
 
-    #[tokio::test]
-    async fn does_not_accept_signatures_for_different_messages() {
-        let (pens, verifier) = prepare_test().await;
+    #[test]
+    fn does_not_accept_signatures_for_different_messages() {
+        let (pens, verifier) = prepare_test();
         let msg = b"test";
         let not_msg = b"not test";
         for (i, pen) in pens.into_iter().enumerate() {
-            let signature = pen.sign(msg).await;
+            let signature = pen.sign(msg);
             assert!(!verifier.verify(not_msg, &signature, NodeIndex(i)));
         }
     }

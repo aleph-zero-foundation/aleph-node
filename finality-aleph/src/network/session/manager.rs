@@ -144,7 +144,7 @@ impl<NI: NetworkIdentity, D: Data> Manager<NI, D> {
             .collect()
     }
 
-    async fn start_validator_session(
+    fn start_validator_session(
         &mut self,
         pre_session: PreValidatorSession,
         address: NI::AddressingInformation,
@@ -158,8 +158,7 @@ impl<NI: NetworkIdentity, D: Data> Manager<NI, D> {
             node_id,
             pen,
         } = pre_session;
-        let handler =
-            SessionHandler::new(Some((node_id, pen)), verifier, session_id, address).await;
+        let handler = SessionHandler::new(Some((node_id, pen)), verifier, session_id, address);
         let discovery = Discovery::new(self.discovery_cooldown);
         let (data_for_user, data_from_network) = mpsc::unbounded();
         let data_for_user = Some(data_for_user);
@@ -175,7 +174,7 @@ impl<NI: NetworkIdentity, D: Data> Manager<NI, D> {
     }
 
     /// Starts or updates a validator session.
-    pub async fn update_validator_session(
+    pub fn update_validator_session(
         &mut self,
         pre_session: PreValidatorSession,
     ) -> Result<
@@ -190,7 +189,7 @@ impl<NI: NetworkIdentity, D: Data> Manager<NI, D> {
             Some(session) => session,
             None => {
                 let (maybe_message, data_from_network) =
-                    self.start_validator_session(pre_session, address).await;
+                    self.start_validator_session(pre_session, address);
                 return Ok((
                     ManagerActions {
                         maybe_command: None,
@@ -208,8 +207,7 @@ impl<NI: NetworkIdentity, D: Data> Manager<NI, D> {
         } = pre_session;
         let peers_to_stay = session
             .handler
-            .update(Some((node_id, pen)), verifier, address)
-            .await?
+            .update(Some((node_id, pen)), verifier, address)?
             .iter()
             .map(|address| address.peer_id())
             .collect();
@@ -232,7 +230,7 @@ impl<NI: NetworkIdentity, D: Data> Manager<NI, D> {
         ))
     }
 
-    async fn start_nonvalidator_session(
+    fn start_nonvalidator_session(
         &mut self,
         pre_session: PreNonvalidatorSession,
         address: NI::AddressingInformation,
@@ -241,7 +239,7 @@ impl<NI: NetworkIdentity, D: Data> Manager<NI, D> {
             session_id,
             verifier,
         } = pre_session;
-        let handler = SessionHandler::new(None, verifier, session_id, address).await;
+        let handler = SessionHandler::new(None, verifier, session_id, address);
         let discovery = Discovery::new(self.discovery_cooldown);
         self.sessions.insert(
             session_id,
@@ -254,7 +252,7 @@ impl<NI: NetworkIdentity, D: Data> Manager<NI, D> {
     }
 
     /// Starts or updates a nonvalidator session.
-    pub async fn update_nonvalidator_session(
+    pub fn update_nonvalidator_session(
         &mut self,
         pre_session: PreNonvalidatorSession,
     ) -> Result<ManagerActions<NI::AddressingInformation>, SessionHandlerError> {
@@ -263,11 +261,10 @@ impl<NI: NetworkIdentity, D: Data> Manager<NI, D> {
             Some(session) => {
                 session
                     .handler
-                    .update(None, pre_session.verifier, address)
-                    .await?;
+                    .update(None, pre_session.verifier, address)?;
             }
             None => {
-                self.start_nonvalidator_session(pre_session, address).await;
+                self.start_nonvalidator_session(pre_session, address);
             }
         };
         Ok(ManagerActions::noop())
@@ -454,10 +451,10 @@ mod tests {
         Manager::new(random_address(), DISCOVERY_PERIOD)
     }
 
-    #[tokio::test]
-    async fn starts_nonvalidator_session() {
+    #[test]
+    fn starts_nonvalidator_session() {
         let mut manager = build();
-        let (_, verifier) = crypto_basics(NUM_NODES).await;
+        let (_, verifier) = crypto_basics(NUM_NODES);
         let session_id = SessionId(43);
         let ManagerActions {
             maybe_command,
@@ -467,7 +464,6 @@ mod tests {
                 session_id,
                 verifier,
             })
-            .await
             .unwrap();
         assert!(maybe_command.is_none());
         assert!(maybe_message.is_none());
@@ -477,10 +473,10 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn starts_validator_session() {
+    #[test]
+    fn starts_validator_session() {
         let mut manager = build();
-        let (validator_data, verifier) = crypto_basics(NUM_NODES).await;
+        let (validator_data, verifier) = crypto_basics(NUM_NODES);
         let (node_id, pen) = validator_data[0].clone();
         let session_id = SessionId(43);
         let (
@@ -496,7 +492,6 @@ mod tests {
                 node_id,
                 pen,
             })
-            .await
             .unwrap();
         assert!(maybe_command.is_none());
         assert!(maybe_message.is_some());
@@ -506,7 +501,7 @@ mod tests {
     #[tokio::test]
     async fn stops_session() {
         let mut manager = build();
-        let (validator_data, verifier) = crypto_basics(NUM_NODES).await;
+        let (validator_data, verifier) = crypto_basics(NUM_NODES);
         let (node_id, pen) = validator_data[0].clone();
         let session_id = SessionId(43);
         let (
@@ -522,7 +517,6 @@ mod tests {
                 node_id,
                 pen,
             })
-            .await
             .unwrap();
         assert!(maybe_command.is_none());
         assert!(maybe_message.is_some());
@@ -541,10 +535,10 @@ mod tests {
         assert!(data_from_network.next().await.is_none());
     }
 
-    #[tokio::test]
-    async fn handles_broadcast() {
+    #[test]
+    fn handles_broadcast() {
         let mut manager = build();
-        let (validator_data, verifier) = crypto_basics(NUM_NODES).await;
+        let (validator_data, verifier) = crypto_basics(NUM_NODES);
         let (node_id, pen) = validator_data[0].clone();
         let session_id = SessionId(43);
         manager
@@ -554,7 +548,6 @@ mod tests {
                 node_id,
                 pen,
             })
-            .await
             .unwrap();
         let mut other_manager = build();
         let (node_id, pen) = validator_data[1].clone();
@@ -565,7 +558,6 @@ mod tests {
                 node_id,
                 pen,
             })
-            .await
             .unwrap();
         let message = maybe_message.expect("there should be a discovery message");
         let (address, message) = (message.0.address(), message);
@@ -582,10 +574,10 @@ mod tests {
         assert!(maybe_message.is_some());
     }
 
-    #[tokio::test]
-    async fn sends_user_data() {
+    #[test]
+    fn sends_user_data() {
         let mut manager = build();
-        let (validator_data, verifier) = crypto_basics(NUM_NODES).await;
+        let (validator_data, verifier) = crypto_basics(NUM_NODES);
         let (node_id, pen) = validator_data[0].clone();
         let session_id = SessionId(43);
         manager
@@ -595,7 +587,6 @@ mod tests {
                 node_id,
                 pen,
             })
-            .await
             .unwrap();
         let mut other_manager = build();
         let (node_id, pen) = validator_data[1].clone();
@@ -606,7 +597,6 @@ mod tests {
                 node_id,
                 pen,
             })
-            .await
             .unwrap();
         let message = maybe_message.expect("there should be a discovery message");
         manager.on_discovery_message(message);

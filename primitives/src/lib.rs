@@ -218,12 +218,12 @@ impl<AccountId> Default for EraValidators<AccountId> {
     }
 }
 
-#[derive(Encode, Decode, PartialEq, Eq, Debug)]
+#[derive(Encode, Decode, TypeInfo, PartialEq, Eq, Debug)]
 pub enum ApiError {
     DecodeKey,
 }
 
-#[derive(Encode, Decode, PartialEq, Eq, Debug)]
+#[derive(Encode, Decode, TypeInfo, PartialEq, Eq, Debug)]
 pub enum SessionValidatorError {
     SessionNotWithinRange {
         lower_limit: SessionIndex,
@@ -233,7 +233,7 @@ pub enum SessionValidatorError {
 }
 
 /// All the data needed to verify block finalization justifications.
-#[derive(Clone, Debug, Encode, Decode, PartialEq, Eq)]
+#[derive(Clone, Debug, TypeInfo, Encode, Decode, PartialEq, Eq)]
 pub struct SessionAuthorityData {
     authorities: Vec<AuthorityId>,
     emergency_finalizer: Option<AuthorityId>,

@@ -175,12 +175,11 @@ impl PublicKey for MockPublicKey {
 
 impl PeerId for MockPublicKey {}
 
-#[async_trait::async_trait]
 impl SecretKey for MockSecretKey {
     type Signature = MockSignature;
     type PublicKey = MockPublicKey;
 
-    async fn sign(&self, message: &[u8]) -> Self::Signature {
+    fn sign(&self, message: &[u8]) -> Self::Signature {
         MockSignature {
             message: message.to_vec(),
             key_id: self.0,

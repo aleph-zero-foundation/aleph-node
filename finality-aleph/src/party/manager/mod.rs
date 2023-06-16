@@ -5,8 +5,9 @@ use futures::channel::oneshot;
 use log::{debug, info, trace, warn};
 use network_clique::SpawnHandleT;
 use sc_client_api::Backend;
+use sp_application_crypto::RuntimeAppPublic;
 use sp_consensus::SelectChain;
-use sp_keystore::CryptoStore;
+use sp_keystore::Keystore;
 use sp_runtime::traits::{Block as BlockT, Header as HeaderT};
 
 use crate::{
@@ -112,7 +113,7 @@ where
     metrics: Metrics<<B::Header as HeaderT>::Hash>,
     spawn_handle: SpawnHandle,
     session_manager: SM,
-    keystore: Arc<dyn CryptoStore>,
+    keystore: Arc<dyn Keystore>,
     _phantom: PhantomData<BE>,
 }
 
@@ -141,7 +142,7 @@ where
         metrics: Metrics<<B::Header as HeaderT>::Hash>,
         spawn_handle: SpawnHandle,
         session_manager: SM,
-        keystore: Arc<dyn CryptoStore>,
+        keystore: Arc<dyn Keystore>,
     ) -> Self {
         Self {
             client,
@@ -288,7 +289,6 @@ where
         let authority_verifier = AuthorityVerifier::new(authorities.to_vec());
         let authority_pen =
             AuthorityPen::new(authorities[node_id.0].clone(), self.keystore.clone())
-                .await
                 .expect("The keys should sign successfully");
         let multikeychain =
             Keychain::new(node_id, authority_verifier.clone(), authority_pen.clone());
@@ -440,7 +440,7 @@ where
         )
     }
 
-    async fn early_start_validator_session(
+    fn early_start_validator_session(
         &self,
         session: SessionId,
         node_id: NodeIndex,
@@ -449,7 +449,6 @@ where
         let authority_verifier = AuthorityVerifier::new(authorities.to_vec());
         let authority_pen =
             AuthorityPen::new(authorities[node_id.0].clone(), self.keystore.clone())
-                .await
                 .expect("The keys should sign successfully");
         self.session_manager.early_start_validator_session(
             session,
@@ -474,8 +473,8 @@ where
         self.session_manager.stop_session(session)
     }
 
-    async fn node_idx(&self, authorities: &[AuthorityId]) -> Option<NodeIndex> {
-        let our_consensus_keys: HashSet<_> = match self.keystore.keys(KEY_TYPE).await {
+    fn node_idx(&self, authorities: &[AuthorityId]) -> Option<NodeIndex> {
+        let our_consensus_keys: HashSet<_> = match self.keystore.keys(KEY_TYPE) {
             Ok(keys) => keys.into_iter().collect(),
             Err(e) => {
                 warn!(target: "aleph-data-store", "Error accessing keystore: {}", e);
@@ -485,7 +484,7 @@ where
         trace!(target: "aleph-data-store", "Found {:?} consensus keys in our local keystore {:?}", our_consensus_keys.len(), our_consensus_keys);
         authorities
             .iter()
-            .position(|pkey| our_consensus_keys.contains(&pkey.into()))
+            .position(|pkey| our_consensus_keys.contains(&pkey.to_raw_vec()))
             .map(|id| id.into())
     }
 }

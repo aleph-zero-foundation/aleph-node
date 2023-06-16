@@ -7,7 +7,7 @@ use network_clique::{RateLimitingDialer, RateLimitingListener, Service, SpawnHan
 use rate_limiter::SleepingRateLimiter;
 use sc_client_api::Backend;
 use sp_consensus::SelectChain;
-use sp_keystore::CryptoStore;
+use sp_keystore::Keystore;
 
 use crate::{
     aleph_primitives::{Block, Header},
@@ -35,13 +35,11 @@ use crate::{
 // How many sessions we remember.
 const VERIFIER_CACHE_SIZE: usize = 2;
 
-pub async fn new_pen(mnemonic: &str, keystore: Arc<dyn CryptoStore>) -> AuthorityPen {
+pub fn new_pen(mnemonic: &str, keystore: Arc<dyn Keystore>) -> AuthorityPen {
     let validator_peer_id = keystore
         .ed25519_generate_new(KEY_TYPE, Some(mnemonic))
-        .await
         .expect("generating a key should work");
     AuthorityPen::new_with_key_type(validator_peer_id.into(), keystore, KEY_TYPE)
-        .await
         .expect("we just generated this key so everything should work")
 }
 
@@ -81,8 +79,7 @@ where
     let network_authority_pen = new_pen(
         Mnemonic::new(MnemonicType::Words12, Language::English).phrase(),
         keystore.clone(),
-    )
-    .await;
+    );
 
     debug!(target: "aleph-party", "Initializing rate-limiter for the validator-network with {} byte(s) per second.", rate_limiter_config.alephbft_bit_rate_per_connection);
 

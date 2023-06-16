@@ -1,7 +1,9 @@
 #![cfg(test)]
 
 use frame_support::{
-    construct_runtime, parameter_types, sp_io,
+    construct_runtime,
+    pallet_prelude::ConstU32,
+    parameter_types, sp_io,
     traits::{OnFinalize, OnInitialize},
     weights::{RuntimeDbWeight, Weight},
 };
@@ -97,6 +99,10 @@ impl pallet_balances::Config for Test {
     type AccountStore = System;
     type WeightInfo = ();
     type MaxLocks = ();
+    type HoldIdentifier = ();
+    type FreezeIdentifier = ();
+    type MaxHolds = ConstU32<0>;
+    type MaxFreezes = ConstU32<0>;
 }
 
 pub struct SessionInfoImpl;

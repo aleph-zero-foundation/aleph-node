@@ -1,9 +1,9 @@
 use subxt::ext::sp_runtime::MultiAddress;
 
 use crate::{
-    aleph_zero::{self, api, api::runtime_types::pallet_balances::BalanceLock},
+    aleph_zero::{self, api},
     connections::TxInfo,
-    pallet_balances::pallet::Call::transfer,
+    pallet_balances::{pallet::Call::transfer, types::BalanceLock},
     pallets::utility::UtilityApi,
     AccountId, AsConnection, Balance, BlockHash,
     Call::Balances,

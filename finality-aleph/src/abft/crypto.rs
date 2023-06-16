@@ -35,8 +35,8 @@ impl Keychain {
         self.authority_verifier.node_count()
     }
 
-    async fn sign(&self, msg: &[u8]) -> Signature {
-        self.authority_pen.sign(msg).await
+    fn sign(&self, msg: &[u8]) -> Signature {
+        self.authority_pen.sign(msg)
     }
 
     fn verify<I: Into<NodeIndex>>(&self, msg: &[u8], sgn: &Signature, index: I) -> bool {
@@ -69,7 +69,7 @@ impl current_aleph_bft::Keychain for Keychain {
     }
 
     async fn sign(&self, msg: &[u8]) -> Signature {
-        Keychain::sign(self, msg).await
+        Keychain::sign(self, msg)
     }
 
     fn verify(&self, msg: &[u8], sgn: &Signature, index: current_aleph_bft::NodeIndex) -> bool {
@@ -86,7 +86,7 @@ impl legacy_aleph_bft::Keychain for Keychain {
     }
 
     async fn sign(&self, msg: &[u8]) -> Signature {
-        Keychain::sign(self, msg).await
+        Keychain::sign(self, msg)
     }
 
     fn verify(&self, msg: &[u8], sgn: &Signature, index: legacy_aleph_bft::NodeIndex) -> bool {

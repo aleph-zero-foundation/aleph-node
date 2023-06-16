@@ -89,6 +89,10 @@ impl pallet_balances::Config for Test {
     type AccountStore = System;
     type WeightInfo = ();
     type MaxLocks = ();
+    type HoldIdentifier = ();
+    type FreezeIdentifier = ();
+    type MaxHolds = ConstU32<0>;
+    type MaxFreezes = ConstU32<0>;
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Test

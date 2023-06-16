@@ -31,7 +31,7 @@ pub trait NodeSessionManager {
     ) -> AuthorityTask;
 
     /// Prepare validator session.
-    async fn early_start_validator_session(
+    fn early_start_validator_session(
         &self,
         session: SessionId,
         node_id: NodeIndex,
@@ -49,7 +49,7 @@ pub trait NodeSessionManager {
     fn stop_session(&self, session: SessionId) -> Result<(), Self::Error>;
 
     /// Returns idx of the node if it is in the authority set, None otherwise
-    async fn node_idx(&self, authorities: &[AuthorityId]) -> Option<NodeIndex>;
+    fn node_idx(&self, authorities: &[AuthorityId]) -> Option<NodeIndex>;
 }
 
 pub trait SyncState {

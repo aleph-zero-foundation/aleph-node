@@ -143,7 +143,7 @@ mod test {
 
     use network_clique::mock::MockAddressingInformation;
     use parity_scale_codec::{Decode, Encode};
-    use sp_keystore::testing::KeyStore;
+    use sp_keystore::testing::MemoryKeystore as Keystore;
 
     use super::VersionedAuthentication;
     use crate::{
@@ -158,7 +158,7 @@ mod test {
     };
 
     /// Session Handler used for generating versioned authentication in `raw_authentication_v1`
-    async fn handler() -> SessionHandler<SignedTcpAddressingInformation> {
+    fn handler() -> SessionHandler<SignedTcpAddressingInformation> {
         let mnemonic = "ring cool spatial rookie need wing opinion pond fork garbage more april";
         let external_addresses = vec![
             String::from("addr1"),
@@ -166,9 +166,9 @@ mod test {
             String::from("addr3"),
         ];
 
-        let keystore = Arc::new(KeyStore::new());
-        let pen = new_pen(mnemonic, keystore).await;
-        let identity = new_identity(external_addresses, &pen).await;
+        let keystore = Arc::new(Keystore::new());
+        let pen = new_pen(mnemonic, keystore);
+        let identity = new_identity(external_addresses, &pen);
 
         SessionHandler::new(
             Some((NodeIndex(21), pen)),
@@ -176,7 +176,6 @@ mod test {
             SessionId(37),
             identity.identity(),
         )
-        .await
     }
 
     fn authentication_v2(
@@ -209,18 +208,18 @@ mod test {
         ]
     }
 
-    #[tokio::test]
-    async fn correcly_encodes_v2_to_bytes() {
-        let handler = handler().await;
+    #[test]
+    fn correcly_encodes_v2_to_bytes() {
+        let handler = handler();
         let raw = raw_authentication_v2();
         let authentication_v2 = authentication_v2(handler);
 
         assert_eq!(authentication_v2.encode(), raw);
     }
 
-    #[tokio::test]
-    async fn correcly_decodes_v2_from_bytes() {
-        let handler = handler().await;
+    #[test]
+    fn correcly_decodes_v2_from_bytes() {
+        let handler = handler();
         let raw = raw_authentication_v2();
         let authentication_v2 = authentication_v2(handler);
 
@@ -229,9 +228,9 @@ mod test {
         assert_eq!(decoded, Ok(authentication_v2));
     }
 
-    #[tokio::test]
-    async fn correctly_decodes_v2_roundtrip() {
-        let handler = handler().await;
+    #[test]
+    fn correctly_decodes_v2_roundtrip() {
+        let handler = handler();
         let authentication_v2 = authentication_v2(handler);
 
         let encoded = authentication_v2.encode();
@@ -240,8 +239,8 @@ mod test {
         assert_eq!(decoded, Ok(authentication_v2))
     }
 
-    #[tokio::test]
-    async fn correctly_decodes_other() {
+    #[test]
+    fn correctly_decodes_other() {
         let other =
             VersionedAuthentication::<MockAddressingInformation>::Other(Version(42), vec![21, 37]);
         let encoded = other.encode();
@@ -262,8 +261,8 @@ mod test {
         );
     }
 
-    #[tokio::test]
-    async fn returns_error_other_too_big() {
+    #[test]
+    fn returns_error_other_too_big() {
         let mut other = 42u16.encode();
         let size = MAX_AUTHENTICATION_SIZE + 1;
         other.append(&mut size.encode());
@@ -282,8 +281,8 @@ mod test {
         assert!(decoded.is_err());
     }
 
-    #[tokio::test]
-    async fn returns_error_other_wrong_size() {
+    #[test]
+    fn returns_error_other_wrong_size() {
         let mut other = 42u16.encode();
         other.append(&mut MAX_AUTHENTICATION_SIZE.encode());
         other.append(&mut vec![21, 37]);

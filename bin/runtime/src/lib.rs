@@ -46,7 +46,7 @@ use primitives::{
 pub use primitives::{AccountId, AccountIndex, Balance, Hash, Index, Signature};
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::{sr25519::AuthorityId as AuraId, SlotDuration};
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+use sp_core::{crypto::KeyTypeId, ConstU128, OpaqueMetadata};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 use sp_runtime::{
@@ -228,6 +228,10 @@ impl pallet_balances::Config for Runtime {
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
+    type HoldIdentifier = ();
+    type FreezeIdentifier = ();
+    type MaxHolds = ConstU32<0>;
+    type MaxFreezes = ConstU32<0>;
 }
 
 type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
@@ -698,15 +702,14 @@ impl pallet_contracts::Config for Runtime {
     type RuntimeCall = RuntimeCall;
     // The safest default is to allow no calls at all. This is unsafe experimental feature with no support in ink!
     type CallFilter = Nothing;
-    type DepositPerItem = DepositPerItem;
-    type DepositPerByte = DepositPerByte;
     type WeightPrice = pallet_transaction_payment::Pallet<Self>;
     type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
     type ChainExtension = ();
-    type DeletionQueueDepth = DeletionQueueDepth;
-    type DeletionWeightLimit = DeletionWeightLimit;
     type Schedule = Schedule;
     type CallStack = [pallet_contracts::Frame<Self>; 16];
+    type DepositPerByte = DepositPerByte;
+    type DefaultDepositLimit = ConstU128<{ u128::MAX }>;
+    type DepositPerItem = DepositPerItem;
     type AddressGenerator = pallet_contracts::DefaultAddressGenerator;
     type MaxCodeLen = ConstU32<{ 128 * 1024 }>;
     type MaxStorageKeyLen = ConstU32<128>;
@@ -867,6 +870,14 @@ impl_runtime_apis! {
     impl sp_api::Metadata<Block> for Runtime {
         fn metadata() -> OpaqueMetadata {
             OpaqueMetadata::new(Runtime::metadata().into())
+        }
+
+        fn metadata_at_version(version: u32) -> Option<OpaqueMetadata> {
+            Runtime::metadata_at_version(version)
+        }
+
+        fn metadata_versions() -> sp_std::vec::Vec<u32> {
+            Runtime::metadata_versions()
         }
     }
 
@@ -1038,7 +1049,7 @@ impl_runtime_apis! {
                 storage_deposit_limit,
                 input_data,
                 CONTRACTS_DEBUG_OUTPUT,
-                pallet_contracts::Determinism::Deterministic,
+                pallet_contracts::Determinism::Enforced,
             )
         }
 

@@ -117,7 +117,7 @@ where
 
         trace!(target: "aleph-party", "Authority data for session {:?}: {:?}", session_id, authorities);
         let mut maybe_authority_task = if let Some(node_id) =
-            self.session_manager.node_idx(authorities).await
+            self.session_manager.node_idx(authorities)
         {
             match backup::rotate(self.backup_saving_path.clone(), session_id.0) {
                 Ok(backup) => {
@@ -187,14 +187,14 @@ where
                     }
                 } => {
                     let next_session_authorities = next_session_authority_data.authorities();
-                    match self.session_manager.node_idx(next_session_authorities).await {
+                    match self.session_manager.node_idx(next_session_authorities) {
                          Some(next_session_node_id) => if let Err(e) = self
                                 .session_manager
                                 .early_start_validator_session(
                                     next_session_id,
                                     next_session_node_id,
                                     next_session_authorities,
-                                ).await
+                                )
                             {
                                 warn!(target: "aleph-party", "Failed to early start validator session{:?}: {}", next_session_id, e);
                             }

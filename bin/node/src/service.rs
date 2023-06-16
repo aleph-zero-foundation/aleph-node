@@ -109,12 +109,7 @@ pub fn new_partial(
         })
         .transpose()?;
 
-    let executor = AlephExecutor::new(
-        config.wasm_method,
-        config.default_heap_pages,
-        config.max_runtime_instances,
-        config.runtime_cache_size,
-    );
+    let executor = sc_service::new_native_or_wasm_executor(config);
 
     let (client, backend, keystore_container, task_manager) =
         sc_service::new_full_parts::<Block, RuntimeApi, AlephExecutor>(
@@ -289,7 +284,7 @@ fn setup(
         network: network.clone(),
         sync_service: sync_network.clone(),
         client,
-        keystore: keystore_container.sync_keystore(),
+        keystore: keystore_container.keystore(),
         task_manager,
         transaction_pool,
         rpc_builder,
@@ -393,7 +388,7 @@ pub fn new_authority(
             },
             force_authoring,
             backoff_authoring_blocks,
-            keystore: keystore_container.sync_keystore(),
+            keystore: keystore_container.keystore(),
             sync_oracle: sync_network.clone(),
             justification_sync_link: sync_network.clone(),
             block_proposal_slot_portion: SlotProportion::new(2f32 / 3f32),

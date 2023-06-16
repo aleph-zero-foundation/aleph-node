@@ -3,7 +3,7 @@ use std::{collections::HashMap, fmt::Formatter, str::FromStr};
 use codec::{Decode, Encode};
 use frame_system::AccountInfo as SubstrateAccountInfo;
 use log::info;
-use pallet_balances::AccountData as SubstrateAccountData;
+use pallet_balances::{AccountData as SubstrateAccountData, ExtraFlags};
 use serde::{
     de::{MapAccess, Visitor},
     Deserialize, Deserializer,
@@ -22,6 +22,16 @@ pub struct AccountData(SubstrateAccountData<Balance>);
 #[derive(Clone, Debug, Encode, Decode, PartialEq, Eq, Default)]
 pub struct AccountInfo(SubstrateAccountInfo<u32, AccountData>);
 
+/// hack to deserialize ExtraFlags
+fn deserialize_flags(repr: u128) -> ExtraFlags {
+    let mut def = ExtraFlags::old_logic();
+    if def.encode() != repr.encode() {
+        def.set_new_logic();
+    }
+
+    def
+}
+
 impl<'de> Deserialize<'de> for AccountInfo {
     fn deserialize<D>(deserializer: D) -> Result<AccountInfo, D::Error>
     where
@@ -36,8 +46,8 @@ impl<'de> Deserialize<'de> for AccountInfo {
             Sufficients,
             Free,
             Reserved,
-            MiscFrozen,
-            FeeFrozen,
+            Frozen,
+            Flags,
         }
 
         struct AccountInfoVisitor;
@@ -60,8 +70,8 @@ impl<'de> Deserialize<'de> for AccountInfo {
                     mut sufficients,
                     mut free,
                     mut reserved,
-                    mut misc_frozen,
-                    mut fee_frozen,
+                    mut frozen,
+                    mut flags,
                 ) = (None, None, None, None, None, None, None, None);
                 while let Some(key) = map.next_key()? {
                     match key {
@@ -71,8 +81,8 @@ impl<'de> Deserialize<'de> for AccountInfo {
                         Field::Sufficients => sufficients = Some(map.next_value()?),
                         Field::Free => free = Some(map.next_value()?),
                         Field::Reserved => reserved = Some(map.next_value()?),
-                        Field::MiscFrozen => misc_frozen = Some(map.next_value()?),
-                        Field::FeeFrozen => fee_frozen = Some(map.next_value()?),
+                        Field::Frozen => frozen = Some(map.next_value()?),
+                        Field::Flags => flags = Some(map.next_value()?),
                     }
                 }
                 Ok(AccountInfo(SubstrateAccountInfo {
@@ -83,8 +93,8 @@ impl<'de> Deserialize<'de> for AccountInfo {
                     data: AccountData(SubstrateAccountData {
                         free: free.expect("Missing `free`"),
                         reserved: reserved.expect("Missing `reserved`"),
-                        misc_frozen: misc_frozen.expect("Missing `misc_frozen`"),
-                        fee_frozen: fee_frozen.expect("Missing `fee_frozen`"),
+                        frozen: frozen.expect("Missing `frozen`"),
+                        flags: deserialize_flags(flags.expect("Missing `flags`")),
                     }),
                 }))
             }
@@ -97,8 +107,8 @@ impl<'de> Deserialize<'de> for AccountInfo {
             "sufficients",
             "free",
             "reserved",
-            "misc_frozen",
-            "fee_frozen",
+            "frozen",
+            "flags",
         ];
         deserializer.deserialize_struct("AccountInfo", FIELDS, AccountInfoVisitor)
     }

@@ -17,7 +17,7 @@ use sc_service::{
 };
 use sp_application_crypto::{key_types, Ss58Codec};
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_keystore::SyncCryptoStore;
+use sp_keystore::Keystore;
 
 use crate::{
     aleph_primitives::AuthorityId as AlephId,
@@ -59,22 +59,22 @@ impl NodeParams {
 }
 
 /// returns Aura key, if absent a new key is generated
-fn aura_key(keystore: &impl SyncCryptoStore) -> AuraId {
-    SyncCryptoStore::sr25519_public_keys(keystore, key_types::AURA)
+fn aura_key(keystore: &impl Keystore) -> AuraId {
+    Keystore::sr25519_public_keys(keystore, key_types::AURA)
         .pop()
         .unwrap_or_else(|| {
-            SyncCryptoStore::sr25519_generate_new(keystore, key_types::AURA, None)
+            Keystore::sr25519_generate_new(keystore, key_types::AURA, None)
                 .expect("Could not create Aura key")
         })
         .into()
 }
 
 /// returns Aleph key, if absent a new key is generated
-fn aleph_key(keystore: &impl SyncCryptoStore) -> AlephId {
-    SyncCryptoStore::ed25519_public_keys(keystore, crate::aleph_primitives::KEY_TYPE)
+fn aleph_key(keystore: &impl Keystore) -> AlephId {
+    Keystore::ed25519_public_keys(keystore, crate::aleph_primitives::KEY_TYPE)
         .pop()
         .unwrap_or_else(|| {
-            SyncCryptoStore::ed25519_generate_new(keystore, crate::aleph_primitives::KEY_TYPE, None)
+            Keystore::ed25519_generate_new(keystore, crate::aleph_primitives::KEY_TYPE, None)
                 .expect("Could not create Aleph key")
         })
         .into()
@@ -106,13 +106,13 @@ fn open_keystore(
     keystore_params: &KeystoreParams,
     chain_id: &str,
     base_path: &BasePath,
-) -> impl SyncCryptoStore {
+) -> impl Keystore {
     let config_dir = base_path.config_dir(chain_id);
     match keystore_params
         .keystore_config(&config_dir)
         .expect("keystore configuration should be available")
     {
-        (_, KeystoreConfig::Path { path, password }) => {
+        KeystoreConfig::Path { path, password } => {
             LocalKeystore::open(path, password).expect("Keystore open should succeed")
         }
         _ => unreachable!("keystore_config always returns path and password; qed"),
@@ -135,7 +135,7 @@ fn bootstrap_backup(base_path_with_account_id: &Path, backup_dir: &str) {
 }
 
 fn authority_keys(
-    keystore: &impl SyncCryptoStore,
+    keystore: &impl Keystore,
     base_path: &Path,
     node_key_file: &str,
     account_id: AccountId,
