@@ -270,6 +270,11 @@ impl<B: Block, J: Justification, N: GossipNetwork<VersionedNetworkData<B, J>>>
         self.inner.broadcast(VersionedNetworkData::V2(data))
     }
 
+    /// Retrieves next message from the network.
+    ///
+    /// # Cancel safety
+    ///
+    /// This method is cancellation safe.
     async fn next(&mut self) -> Result<(NetworkData<B, J>, Self::PeerId), Self::Error> {
         loop {
             match self.inner.next().await? {

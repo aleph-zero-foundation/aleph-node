@@ -88,6 +88,7 @@ pub trait Network<PK: PublicKey, A: Data, D: Data>: Send + 'static {
     fn send(&self, data: D, recipient: PK);
 
     /// Receive a message from the network.
+    /// This method's implementation must be cancellation safe.
     async fn next(&mut self) -> Option<D>;
 }
 

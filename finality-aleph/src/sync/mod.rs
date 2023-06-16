@@ -108,6 +108,7 @@ pub trait ChainStatusNotifier<H: Header> {
     type Error: Display;
 
     /// Returns a chain status notification when it is available.
+    /// This method's implementation must be cancellation safe.
     async fn next(&mut self) -> Result<ChainStatusNotification<H>, Self::Error>;
 }
 

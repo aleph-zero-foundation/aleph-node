@@ -12,7 +12,7 @@ pub struct Ticker {
 }
 
 impl Ticker {
-    /// Retruns new Ticker struct. Behaves as if last tick happened during creation of TIcker.
+    /// Returns new Ticker struct. Behaves as if last tick happened during creation of Ticker.
     /// Requires `max_timeout` >= `min_timeout`.
     pub fn new(mut max_timeout: Duration, min_timeout: Duration) -> Self {
         if max_timeout < min_timeout {
@@ -44,11 +44,19 @@ impl Ticker {
 
     /// Sleeps until next tick should happen.
     /// When enough time elapsed, returns and records a tick.
+    ///
+    /// # Cancel safety
+    ///
+    /// This method is cancellation safe.
     pub async fn wait_and_tick(&mut self) {
-        let since_last = Instant::now().saturating_duration_since(self.last_tick);
-        sleep(self.current_timeout.saturating_sub(since_last)).await;
+        self.wait_current_timeout().await;
         self.current_timeout = self.max_timeout;
         self.last_tick = Instant::now();
+    }
+
+    async fn wait_current_timeout(&self) {
+        let since_last = Instant::now().saturating_duration_since(self.last_tick);
+        sleep(self.current_timeout.saturating_sub(since_last)).await;
     }
 }
 

@@ -79,16 +79,29 @@ impl<T> TaskQueue<T> {
     }
 
     /// Awaits for the first and most overdue task and returns it. Returns `None` if there are no tasks.
+    ///
+    /// # Cancel safety
+    ///
+    /// This method is cancellation safe.
+    /// If you use it as the event in a tokio::select! statement and some other branch completes first,
+    /// then it is guaranteed that the TaskQueue state will be unchanged.
     pub async fn pop(&mut self) -> Option<T> {
-        let scheduled_task = self.queue.peek()?;
-
-        let duration = scheduled_task
-            .scheduled_time
-            .saturating_duration_since(Instant::now());
-        if !duration.is_zero() {
-            sleep(duration).await;
-        }
+        self.sleep_until_the_next_task_is_ready().await;
         self.queue.pop().map(|t| t.task)
+    }
+
+    /// Sleeps until some task is ready to be executed,
+    /// or returns immediately if there are no tasks.
+    /// Cancellation safe, since doesn't mutate &self.
+    async fn sleep_until_the_next_task_is_ready(&self) {
+        if let Some(scheduled_task) = self.queue.peek() {
+            let duration = scheduled_task
+                .scheduled_time
+                .saturating_duration_since(Instant::now());
+            if !duration.is_zero() {
+                sleep(duration).await;
+            }
+        }
     }
 }
 
