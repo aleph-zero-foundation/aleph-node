@@ -15,16 +15,17 @@ Usage:
   IMPORTANT: this script requires aleph-node:latest docker image.
     --no-build-image
         skip docker image build
-    --no-update
-        skip git-submodule update for the synthetic-network repository
+    --update
+        update git-submodule for the synthetic-network repository
 EOF
     exit 0
 }
 
 function build_test_image() {
     local path=$1
+    local update=$2
 
-    ${path}/build_synthetic-network.sh
+    UPDATE=${update} ${path}/build_synthetic-network.sh
 }
 
 while [[ $# -gt 0 ]]; do
@@ -33,8 +34,8 @@ while [[ $# -gt 0 ]]; do
             BUILD_IMAGE=false
             shift
             ;;
-        --no-update)
-            UPDATE=false
+        --update)
+            UPDATE=true
             shift
             ;;
         --help)
@@ -48,17 +49,12 @@ while [[ $# -gt 0 ]]; do
 done
 
 BUILD_IMAGE=${BUILD_IMAGE:-true}
-UPDATE=${UPDATE:-true}
-
-if [[ "$UPDATE" = true ]]; then
-    git submodule init
-    git submodule update
-fi
+UPDATE=${UPDATE:-false}
 
 if [[ "$BUILD_IMAGE" = true ]]; then
     log "building custom docker image for synthetic-network tests"
     path=$(dirname $0)
-    build_test_image $path
+    build_test_image $path $UPDATE
 fi
 
 log "running synthetic-network"
