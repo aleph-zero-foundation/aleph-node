@@ -1,13 +1,13 @@
 use std::{
     collections::{
         hash_map::{Entry, OccupiedEntry, VacantEntry},
-        HashMap, HashSet,
+        HashMap, HashSet, VecDeque,
     },
     fmt::{Display, Error as FmtError, Formatter},
 };
 
 use crate::{
-    sync::{data::BranchKnowledge, BlockIdFor, Header, Justification, PeerId},
+    sync::{data::BranchKnowledge, Block, BlockIdFor, ChainStatus, Header, Justification, PeerId},
     BlockIdentifier,
 };
 
@@ -79,6 +79,35 @@ impl Display for Error {
     }
 }
 
+/// What can go wrong when creating the forest.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum InitializationError<B, J, CS>
+where
+    B: Block,
+    J: Justification<Header = B::Header>,
+    CS: ChainStatus<B, J>,
+{
+    Error(Error),
+    ChainStatus(CS::Error),
+}
+
+impl<B, J, CS> Display for InitializationError<B, J, CS>
+where
+    B: Block,
+    J: Justification<Header = B::Header>,
+    CS: ChainStatus<B, J>,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
+        match self {
+            InitializationError::Error(e) => match e {
+                Error::TooNew => write!(f, "there are more imported non-finalized blocks in the database that can fit into the forest – purge the block database and restart the node"),
+                e => write!(f, "{}", e),
+            },
+            InitializationError::ChainStatus(e) => write!(f, "chain status error: {}", e),
+        }
+    }
+}
+
 pub struct VertexWithChildren<I: PeerId, J: Justification> {
     vertex: Vertex<I, J>,
     children: HashSet<BlockIdFor<J>>,
@@ -101,7 +130,11 @@ impl<I: PeerId, J: Justification> VertexWithChildren<I, J> {
 // ever need worst case scenario.
 const MAX_DEPTH: u32 = 1800;
 
-pub struct Forest<I: PeerId, J: Justification> {
+pub struct Forest<I, J>
+where
+    I: PeerId,
+    J: Justification,
+{
     vertices: HashMap<BlockIdFor<J>, VertexWithChildren<I, J>>,
     highest_justified: BlockIdFor<J>,
     justified_blocks: HashMap<u32, BlockIdFor<J>>,
@@ -110,17 +143,47 @@ pub struct Forest<I: PeerId, J: Justification> {
     compost_bin: HashSet<BlockIdFor<J>>,
 }
 
-impl<I: PeerId, J: Justification> Forest<I, J> {
-    pub fn new(highest_justified: BlockIdFor<J>) -> Self {
-        let root_id = highest_justified.clone();
-        Self {
+type Edge<J> = (BlockIdFor<J>, BlockIdFor<J>);
+
+impl<I, J> Forest<I, J>
+where
+    I: PeerId,
+    J: Justification,
+{
+    pub fn new<B, CS>(chain_status: &CS) -> Result<Self, InitializationError<B, J, CS>>
+    where
+        B: Block<Header = J::Header>,
+        CS: ChainStatus<B, J>,
+    {
+        let top_finalized = chain_status
+            .top_finalized()
+            .map_err(InitializationError::ChainStatus)?
+            .header()
+            .id();
+        let mut forest = Self {
             vertices: HashMap::new(),
-            highest_justified,
+            highest_justified: top_finalized.clone(),
             justified_blocks: HashMap::new(),
-            root_id,
+            root_id: top_finalized.clone(),
             root_children: HashSet::new(),
             compost_bin: HashSet::new(),
+        };
+
+        // Populate the forest
+        let mut deque = VecDeque::from([top_finalized]);
+        while let Some(hash) = deque.pop_front() {
+            let children = chain_status
+                .children(hash)
+                .map_err(InitializationError::ChainStatus)?;
+            for header in children.iter() {
+                forest
+                    .update_body(header)
+                    .map_err(InitializationError::Error)?;
+            }
+            deque.extend(children.into_iter().map(|header| header.id()));
         }
+
+        Ok(forest)
     }
 
     fn special_state(&self, id: &BlockIdFor<J>) -> Option<SpecialState> {
@@ -231,10 +294,7 @@ impl<I: PeerId, J: Justification> Forest<I, J> {
         Ok(())
     }
 
-    fn process_header(
-        &mut self,
-        header: &J::Header,
-    ) -> Result<(BlockIdFor<J>, BlockIdFor<J>), Error> {
+    fn process_header(&mut self, header: &J::Header) -> Result<Edge<J>, Error> {
         Ok((
             header.id(),
             header.parent_id().ok_or(Error::HeaderMissingParentId)?,
@@ -473,15 +533,20 @@ mod tests {
     use super::{Error, Forest, Interest::*, MAX_DEPTH};
     use crate::sync::{
         data::BranchKnowledge::*,
-        mock::{MockHeader, MockJustification, MockPeerId},
-        Header, Justification,
+        mock::{Backend, MockHeader, MockJustification, MockPeerId},
+        ChainStatus, Header, Justification,
     };
 
     type MockForest = Forest<MockPeerId, MockJustification>;
 
     fn setup() -> (MockHeader, MockForest) {
-        let header = MockHeader::random_parentless(0);
-        let forest = Forest::new(header.id());
+        let (backend, _) = Backend::setup(20);
+        let header = backend
+            .top_finalized()
+            .expect("should return genesis")
+            .header()
+            .clone();
+        let forest = Forest::new(&backend).expect("should initialize");
         (header, forest)
     }
 
@@ -533,10 +598,10 @@ mod tests {
             .nth(MAX_DEPTH as usize)
             .expect("the branch is infinite");
         let peer_id = rand::random();
-        assert_eq!(
+        assert!(matches!(
             forest.update_block_identifier(&too_high.id(), Some(peer_id), true),
             Err(Error::TooNew)
-        );
+        ));
     }
 
     #[test]
@@ -638,10 +703,10 @@ mod tests {
         assert!(!forest
             .update_header(&child, None, false)
             .expect("header was correct"));
-        assert_eq!(
+        assert!(matches!(
             forest.update_body(&grandchild),
             Err(Error::ParentNotImported)
-        );
+        ));
         assert!(forest.try_finalize(&1).is_none());
         assert_eq!(forest.request_interest(&child.id()), Uninterested);
         assert!(!forest.importable(&child.id()));

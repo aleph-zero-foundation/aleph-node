@@ -127,7 +127,7 @@ where
 
     let chain_events = SubstrateChainStatusNotifier::new(
         client.finality_notification_stream(),
-        client.import_notification_stream(),
+        client.every_import_notification_stream(),
     );
 
     let session_info = SessionBoundaryInfo::new(session_period);
