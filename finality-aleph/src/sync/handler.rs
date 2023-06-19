@@ -13,7 +13,10 @@ use crate::{
 };
 
 /// How many justifications we will send at most in response to an explicit query.
-const MAX_JUSTIFICATION_BATCH: usize = 100;
+pub const MAX_JUSTIFICATION_BATCH: usize = 100;
+
+/// How many blocks we will send at most in response to an explicit query.
+pub const MAX_BLOCK_BATCH: usize = 25;
 
 /// Handles for interacting with the blockchain database.
 pub struct DatabaseIO<B, J, CS, F, BI>
@@ -70,7 +73,7 @@ where
     finalizer: F,
     forest: Forest<I, J>,
     session_info: SessionBoundaryInfo,
-    _block_importer: BI,
+    block_importer: BI,
     phantom: PhantomData<B>,
 }
 
@@ -198,7 +201,7 @@ where
             finalizer,
             forest,
             session_info,
-            _block_importer: block_importer,
+            block_importer,
             phantom: PhantomData,
         })
     }
@@ -248,6 +251,13 @@ where
         };
         self.try_finalize()?;
         Ok(maybe_id)
+    }
+
+    /// Handle a single block.
+    pub fn handle_block(&mut self, block: B) {
+        if self.forest.importable(&block.header().id()) {
+            self.block_importer.import_block(block);
+        }
     }
 
     /// Inform the handler that a block has been imported.

@@ -517,8 +517,6 @@ where
     }
 
     /// Whether we would like to eventually import this block.
-    // TODO(A0-1757): this will be used then, now only in tests.
-    #[allow(dead_code)]
     pub fn importable(&self, id: &BlockIdFor<J>) -> bool {
         use VertexHandle::Candidate;
         match self.get(id) {
