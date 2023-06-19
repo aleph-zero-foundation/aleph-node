@@ -7,9 +7,9 @@ use std::{
 
 use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use finality_aleph::{
-    run_validator_node, AlephBlockImport, AlephConfig, BlockImporter, Justification, Metrics,
-    MillisecsPerBlock, Protocol, ProtocolNaming, RateLimiterConfig, SessionPeriod,
-    SubstrateChainStatus, TracingBlockImport,
+    run_validator_node, AlephBlockImport, AlephConfig, BlockImporter, Justification,
+    JustificationTranslator, Metrics, MillisecsPerBlock, Protocol, ProtocolNaming,
+    RateLimiterConfig, SessionPeriod, SubstrateChainStatus, TracingBlockImport,
 };
 use futures::channel::mpsc;
 use log::{info, warn};
@@ -27,11 +27,10 @@ use sc_telemetry::{Telemetry, TelemetryWorker};
 use sp_api::ProvideRuntimeApi;
 use sp_arithmetic::traits::BaseArithmetic;
 use sp_consensus_aura::{sr25519::AuthorityPair as AuraPair, Slot};
-use sp_runtime::traits::{Block as BlockT, Header as HeaderT};
 
 use crate::{
     aleph_cli::AlephCli,
-    aleph_primitives::{AlephSessionApi, MAX_BLOCK_SIZE},
+    aleph_primitives::{AlephSessionApi, BlockHash, MAX_BLOCK_SIZE},
     chain_spec::DEFAULT_BACKUP_FOLDER,
     executor::AlephExecutor,
     rpc::{create_full as create_full_rpc, FullDeps as RpcFullDeps},
@@ -89,11 +88,11 @@ pub fn new_partial(
         sc_consensus::DefaultImportQueue<Block, FullClient>,
         sc_transaction_pool::FullPool<Block, FullClient>,
         (
-            TracingBlockImport<Block, Arc<FullClient>>,
-            mpsc::UnboundedSender<Justification<<Block as BlockT>::Header>>,
-            mpsc::UnboundedReceiver<Justification<<Block as BlockT>::Header>>,
+            TracingBlockImport<Arc<FullClient>>,
+            mpsc::UnboundedSender<Justification>,
+            mpsc::UnboundedReceiver<Justification>,
             Option<Telemetry>,
-            Metrics<<<Block as BlockT>::Header as HeaderT>::Hash>,
+            Metrics<BlockHash>,
         ),
     >,
     ServiceError,
@@ -153,8 +152,10 @@ pub fn new_partial(
 
     let (justification_tx, justification_rx) = mpsc::unbounded();
     let tracing_block_import = TracingBlockImport::new(client.clone(), metrics.clone());
-    let justification_translator = SubstrateChainStatus::new(backend.clone())
-        .map_err(|e| ServiceError::Other(format!("failed to set up chain status: {}", e)))?;
+    let justification_translator = JustificationTranslator::new(
+        SubstrateChainStatus::new(backend.clone())
+            .map_err(|e| ServiceError::Other(format!("failed to set up chain status: {}", e)))?,
+    );
     let aleph_block_import = AlephBlockImport::new(
         tracing_block_import.clone(),
         justification_tx.clone(),
@@ -217,11 +218,11 @@ fn setup(
     task_manager: &mut TaskManager,
     client: Arc<FullClient>,
     telemetry: &mut Option<Telemetry>,
-    import_justification_tx: mpsc::UnboundedSender<Justification<<Block as BlockT>::Header>>,
+    import_justification_tx: mpsc::UnboundedSender<Justification>,
 ) -> Result<
     (
         RpcHandlers,
-        Arc<NetworkService<Block, <Block as BlockT>::Hash>>,
+        Arc<NetworkService<Block, BlockHash>>,
         Arc<SyncingService<Block>>,
         ProtocolNaming,
         NetworkStarter,
@@ -273,7 +274,7 @@ fn setup(
                 pool: pool.clone(),
                 deny_unsafe,
                 import_justification_tx: import_justification_tx.clone(),
-                justification_translator: chain_status.clone(),
+                justification_translator: JustificationTranslator::new(chain_status.clone()),
             };
 
             Ok(create_full_rpc(deps)?)

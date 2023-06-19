@@ -114,10 +114,7 @@ impl SubstrateChainStatus {
         self.backend.blockchain().block_indexed_body(hash)
     }
 
-    fn header(
-        &self,
-        id: &BlockIdFor<Justification<AlephHeader>>,
-    ) -> Result<Option<AlephHeader>, Error> {
+    fn header(&self, id: &BlockIdFor<Justification>) -> Result<Option<AlephHeader>, Error> {
         let maybe_header = self.header_for_hash(id.hash)?;
         match maybe_header
             .as_ref()
@@ -128,10 +125,7 @@ impl SubstrateChainStatus {
         }
     }
 
-    fn justification(
-        &self,
-        header: AlephHeader,
-    ) -> Result<Option<Justification<AlephHeader>>, BackendError> {
+    fn justification(&self, header: AlephHeader) -> Result<Option<Justification>, BackendError> {
         if header == self.genesis_header {
             return Ok(Some(Justification::genesis_justification(header)));
         };
@@ -172,13 +166,10 @@ impl SubstrateChainStatus {
     }
 }
 
-impl ChainStatus<SubstrateSyncBlock, Justification<AlephHeader>> for SubstrateChainStatus {
+impl ChainStatus<SubstrateSyncBlock, Justification> for SubstrateChainStatus {
     type Error = Error;
 
-    fn finalized_at(
-        &self,
-        number: BlockNumber,
-    ) -> Result<Option<Justification<AlephHeader>>, Self::Error> {
+    fn finalized_at(&self, number: BlockNumber) -> Result<Option<Justification>, Self::Error> {
         let id = match self.hash_for_number(number)? {
             Some(hash) => BlockId { hash, number },
             None => return Ok(None),
@@ -191,7 +182,7 @@ impl ChainStatus<SubstrateSyncBlock, Justification<AlephHeader>> for SubstrateCh
 
     fn block(
         &self,
-        id: BlockIdFor<Justification<AlephHeader>>,
+        id: BlockIdFor<Justification>,
     ) -> Result<Option<SubstrateSyncBlock>, Self::Error> {
         let header = match self.header(&id)? {
             Some(header) => header,
@@ -210,8 +201,8 @@ impl ChainStatus<SubstrateSyncBlock, Justification<AlephHeader>> for SubstrateCh
 
     fn status_of(
         &self,
-        id: BlockIdFor<Justification<AlephHeader>>,
-    ) -> Result<BlockStatus<Justification<AlephHeader>>, Self::Error> {
+        id: BlockIdFor<Justification>,
+    ) -> Result<BlockStatus<Justification>, Self::Error> {
         let header = match self.header(&id)? {
             Some(header) => header,
             None => return Ok(BlockStatus::Unknown),
@@ -231,7 +222,7 @@ impl ChainStatus<SubstrateSyncBlock, Justification<AlephHeader>> for SubstrateCh
             .ok_or(Error::MissingHash(best_hash))
     }
 
-    fn top_finalized(&self) -> Result<Justification<AlephHeader>, Self::Error> {
+    fn top_finalized(&self) -> Result<Justification, Self::Error> {
         let finalized_hash = self.finalized_hash();
         let header = self
             .header_for_hash(finalized_hash)?
@@ -240,10 +231,7 @@ impl ChainStatus<SubstrateSyncBlock, Justification<AlephHeader>> for SubstrateCh
             .ok_or(Error::MissingJustification(finalized_hash))
     }
 
-    fn children(
-        &self,
-        id: BlockIdFor<Justification<AlephHeader>>,
-    ) -> Result<Vec<AlephHeader>, Self::Error> {
+    fn children(&self, id: BlockIdFor<Justification>) -> Result<Vec<AlephHeader>, Self::Error> {
         // This checks whether we have the block at all and the provided id is consistent.
         self.header(&id)?;
         Ok(self

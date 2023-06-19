@@ -1,15 +1,14 @@
 use std::{
     fmt::{Debug, Display, Error as FmtError, Formatter},
-    marker::PhantomData,
     sync::Arc,
 };
 
 use parity_scale_codec::Encode;
 use sc_client_api::HeaderBackend;
-use sp_runtime::traits::{Block as BlockT, Header as SubstrateHeader};
+use sp_runtime::traits::Header as SubstrateHeader;
 
 use crate::{
-    aleph_primitives::BlockNumber,
+    aleph_primitives::{Block, BlockNumber, Header},
     session_map::AuthorityProvider,
     sync::{
         substrate::{
@@ -32,38 +31,17 @@ pub trait FinalizationInfo {
 }
 
 /// Substrate specific implementation of `FinalizationInfo`
-pub struct SubstrateFinalizationInfo<B, BE>
-where
-    BE: HeaderBackend<B>,
-    B: BlockT,
-    B::Header: SubstrateHeader<Number = BlockNumber>,
-{
-    client: Arc<BE>,
-    _phantom: PhantomData<B>,
-}
+pub struct SubstrateFinalizationInfo<BE: HeaderBackend<Block>>(Arc<BE>);
 
-impl<B, BE> SubstrateFinalizationInfo<B, BE>
-where
-    BE: HeaderBackend<B>,
-    B: BlockT,
-    B::Header: SubstrateHeader<Number = BlockNumber>,
-{
+impl<BE: HeaderBackend<Block>> SubstrateFinalizationInfo<BE> {
     pub fn new(client: Arc<BE>) -> Self {
-        Self {
-            client,
-            _phantom: PhantomData,
-        }
+        Self(client)
     }
 }
 
-impl<B, BE> FinalizationInfo for SubstrateFinalizationInfo<B, BE>
-where
-    BE: HeaderBackend<B>,
-    B: BlockT,
-    B::Header: SubstrateHeader<Number = BlockNumber>,
-{
+impl<BE: HeaderBackend<Block>> FinalizationInfo for SubstrateFinalizationInfo<BE> {
     fn finalized_number(&self) -> BlockNumber {
-        self.client.info().finalized_number
+        self.0.info().finalized_number
     }
 }
 
@@ -95,15 +73,14 @@ impl Display for VerificationError {
     }
 }
 
-impl<AP, FS, H> Verifier<Justification<H>> for VerifierCache<AP, FS, H>
+impl<AP, FS> Verifier<Justification> for VerifierCache<AP, FS, Header>
 where
     AP: AuthorityProvider,
     FS: FinalizationInfo,
-    H: SubstrateHeader<Number = BlockNumber>,
 {
     type Error = VerificationError;
 
-    fn verify(&mut self, justification: Justification<H>) -> Result<Justification<H>, Self::Error> {
+    fn verify(&mut self, justification: Justification) -> Result<Justification, Self::Error> {
         let header = &justification.header;
         match &justification.inner_justification {
             InnerJustification::AlephJustification(aleph_justification) => {

@@ -12,7 +12,7 @@ use tokio::time;
 use crate::{
     abft::SignatureSet,
     aggregation::Aggregator,
-    aleph_primitives::BlockNumber,
+    aleph_primitives::{BlockHash, BlockNumber},
     crypto::Signature,
     justification::AlephJustification,
     metrics::Checkpoint,
@@ -27,15 +27,14 @@ use crate::{
 };
 
 /// IO channels used by the aggregator task.
-pub struct IO<H, JS, JT>
+pub struct IO<H, JS>
 where
     H: Header<Number = BlockNumber>,
-    JS: JustificationSubmissions<Justification<H>> + Send + Sync + Clone,
-    JT: JustificationTranslator<H> + Send + Sync + Clone,
+    JS: JustificationSubmissions<Justification> + Send + Sync + Clone,
 {
     pub blocks_from_interpreter: mpsc::UnboundedReceiver<BlockId<H>>,
     pub justifications_for_chain: JS,
-    pub justification_translator: JT,
+    pub justification_translator: JustificationTranslator,
 }
 
 async fn process_new_block_data<B, CN, LN>(
@@ -43,7 +42,7 @@ async fn process_new_block_data<B, CN, LN>(
     block: IdentifierFor<B>,
     metrics: &Metrics<<B::Header as Header>::Hash>,
 ) where
-    B: Block,
+    B: Block<Hash = BlockHash>,
     B::Header: Header<Number = BlockNumber>,
     CN: Network<CurrentRmcNetworkData<B>>,
     LN: Network<LegacyRmcNetworkData<B>>,
@@ -55,19 +54,18 @@ async fn process_new_block_data<B, CN, LN>(
     aggregator.start_aggregation(block.hash).await;
 }
 
-fn process_hash<B, C, JS, JT>(
+fn process_hash<B, C, JS>(
     hash: B::Hash,
     multisignature: SignatureSet<Signature>,
     justifications_for_chain: &mut JS,
-    justification_translator: &JT,
+    justification_translator: &JustificationTranslator,
     client: &Arc<C>,
 ) -> Result<(), ()>
 where
-    B: Block,
+    B: Block<Hash = BlockHash>,
     B::Header: Header<Number = BlockNumber>,
     C: HeaderBackend<B> + Send + Sync + 'static,
-    JS: JustificationSubmissions<Justification<B::Header>> + Send + Sync + Clone,
-    JT: JustificationTranslator<B::Header> + Send + Sync + Clone,
+    JS: JustificationSubmissions<Justification> + Send + Sync + Clone,
 {
     let number = client.number(hash).unwrap().unwrap();
     // The unwrap might actually fail if data availability is not implemented correctly.
@@ -88,19 +86,18 @@ where
     Ok(())
 }
 
-async fn run_aggregator<B, C, CN, LN, JS, JT>(
+async fn run_aggregator<B, C, CN, LN, JS>(
     mut aggregator: Aggregator<'_, B, CN, LN>,
-    io: IO<B::Header, JS, JT>,
+    io: IO<B::Header, JS>,
     client: Arc<C>,
     session_boundaries: &SessionBoundaries,
     metrics: Metrics<<B::Header as Header>::Hash>,
     mut exit_rx: oneshot::Receiver<()>,
 ) -> Result<(), ()>
 where
-    B: Block,
+    B: Block<Hash = BlockHash>,
     B::Header: Header<Number = BlockNumber>,
-    JS: JustificationSubmissions<Justification<B::Header>> + Send + Sync + Clone,
-    JT: JustificationTranslator<B::Header> + Send + Sync + Clone,
+    JS: JustificationSubmissions<Justification> + Send + Sync + Clone,
     C: HeaderBackend<B> + Send + Sync + 'static,
     LN: Network<LegacyRmcNetworkData<B>>,
     CN: Network<CurrentRmcNetworkData<B>>,
@@ -177,20 +174,19 @@ pub enum AggregatorVersion<CN, LN> {
 }
 
 /// Runs the justification signature aggregator within a single session.
-pub fn task<B, C, CN, LN, JS, JT>(
+pub fn task<B, C, CN, LN, JS>(
     subtask_common: AuthoritySubtaskCommon,
     client: Arc<C>,
-    io: IO<B::Header, JS, JT>,
+    io: IO<B::Header, JS>,
     session_boundaries: SessionBoundaries,
     metrics: Metrics<<B::Header as Header>::Hash>,
     multikeychain: Keychain,
     version: AggregatorVersion<CN, LN>,
 ) -> Task
 where
-    B: Block,
+    B: Block<Hash = BlockHash>,
     B::Header: Header<Number = BlockNumber>,
-    JS: JustificationSubmissions<Justification<B::Header>> + Send + Sync + Clone + 'static,
-    JT: JustificationTranslator<B::Header> + Send + Sync + Clone + 'static,
+    JS: JustificationSubmissions<Justification> + Send + Sync + Clone + 'static,
     C: HeaderBackend<B> + Send + Sync + 'static,
     LN: Network<LegacyRmcNetworkData<B>> + 'static,
     CN: Network<CurrentRmcNetworkData<B>> + 'static,

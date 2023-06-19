@@ -2,11 +2,10 @@ use std::fmt::{Display, Error as FmtError, Formatter};
 
 use futures::StreamExt;
 use sc_client_api::client::{FinalityNotifications, ImportNotifications};
-use sp_runtime::traits::{Block as BlockT, Header as SubstrateHeader};
 use tokio::select;
 
 use crate::{
-    aleph_primitives::BlockNumber,
+    aleph_primitives::{Block, Header},
     sync::{ChainStatusNotification, ChainStatusNotifier},
 };
 
@@ -32,21 +31,15 @@ impl Display for Error {
 }
 
 /// Substrate specific implementation of `ChainStatusNotifier`.
-pub struct SubstrateChainStatusNotifier<B>
-where
-    B: BlockT,
-{
-    finality_notifications: FinalityNotifications<B>,
-    import_notifications: ImportNotifications<B>,
+pub struct SubstrateChainStatusNotifier {
+    finality_notifications: FinalityNotifications<Block>,
+    import_notifications: ImportNotifications<Block>,
 }
 
-impl<B> SubstrateChainStatusNotifier<B>
-where
-    B: BlockT,
-{
+impl SubstrateChainStatusNotifier {
     pub fn new(
-        finality_notifications: FinalityNotifications<B>,
-        import_notifications: ImportNotifications<B>,
+        finality_notifications: FinalityNotifications<Block>,
+        import_notifications: ImportNotifications<Block>,
     ) -> Self {
         Self {
             finality_notifications,
@@ -56,14 +49,10 @@ where
 }
 
 #[async_trait::async_trait]
-impl<B> ChainStatusNotifier<B::Header> for SubstrateChainStatusNotifier<B>
-where
-    B: BlockT,
-    B::Header: SubstrateHeader<Number = BlockNumber>,
-{
+impl ChainStatusNotifier<Header> for SubstrateChainStatusNotifier {
     type Error = Error;
 
-    async fn next(&mut self) -> Result<ChainStatusNotification<B::Header>, Self::Error> {
+    async fn next(&mut self) -> Result<ChainStatusNotification<Header>, Self::Error> {
         select! {
             maybe_block = self.finality_notifications.next() => {
                 maybe_block

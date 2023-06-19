@@ -10,7 +10,7 @@ use sp_consensus::SelectChain;
 use sp_keystore::Keystore;
 
 use crate::{
-    aleph_primitives::{Block, Header},
+    aleph_primitives::Block,
     crypto::AuthorityPen,
     finalization::AlephFinalizer,
     network::{
@@ -27,7 +27,7 @@ use crate::{
     sync::{
         ChainStatus, DatabaseIO as SyncDatabaseIO, Justification, JustificationTranslator,
         Service as SyncService, SubstrateChainStatusNotifier, SubstrateFinalizationInfo,
-        SubstrateJustification, SubstrateSyncBlock, VerifierCache,
+        VerifierCache,
     },
     AlephConfig,
 };
@@ -43,13 +43,11 @@ pub fn new_pen(mnemonic: &str, keystore: Arc<dyn Keystore>) -> AuthorityPen {
         .expect("we just generated this key so everything should work")
 }
 
-pub async fn run_validator_node<C, CS, BE, SC>(aleph_config: AlephConfig<C, SC, CS>)
+pub async fn run_validator_node<C, BE, SC>(aleph_config: AlephConfig<C, SC>)
 where
     C: crate::ClientForAleph<Block, BE> + Send + Sync + 'static,
     C::Api: crate::aleph_primitives::AlephSessionApi<Block>,
     BE: Backend<Block> + 'static,
-    CS: ChainStatus<SubstrateSyncBlock, SubstrateJustification<Header>>
-        + JustificationTranslator<Header>,
     SC: SelectChain<Block> + 'static,
 {
     let AlephConfig {
@@ -193,7 +191,7 @@ where
             session_period,
             unit_creation_delay,
             justifications_for_sync,
-            chain_status.clone(),
+            JustificationTranslator::new(chain_status.clone()),
             block_requester,
             metrics,
             spawn_handle,
