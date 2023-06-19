@@ -264,6 +264,15 @@ pub struct VersionChange {
     pub session: SessionIndex,
 }
 
+/// Consensus log item for Aleph.
+#[cfg_attr(feature = "std", derive(Serialize))]
+#[derive(Decode, Encode, PartialEq, Eq, Clone, sp_runtime::RuntimeDebug)]
+pub enum ConsensusLog<N: sp_runtime::RuntimeAppPublic> {
+    /// Change of the authorities.
+    #[codec(index = 1)]
+    AlephAuthorityChange(Vec<N>),
+}
+
 sp_api::decl_runtime_apis! {
     pub trait AlephSessionApi {
         fn next_session_authorities() -> Result<Vec<AuthorityId>, ApiError>;
@@ -318,8 +327,9 @@ impl<T> Default for SessionValidators<T> {
 }
 
 /// Information provider from `pallet_session`. Loose pallet coupling via traits.
-pub trait SessionInfoProvider {
+pub trait SessionInfoProvider<T> {
     fn current_session() -> SessionIndex;
+    fn next_session_block_number(current_block: T) -> Option<T>;
 }
 
 pub trait BannedValidators {

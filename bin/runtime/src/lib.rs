@@ -23,7 +23,8 @@ pub use frame_support::{
 use frame_support::{
     sp_runtime::Perquintill,
     traits::{
-        ConstBool, ConstU32, EqualPrivilegeOnly, SortedMembers, U128CurrencyToVote, WithdrawReasons,
+        ConstBool, ConstU32, EqualPrivilegeOnly, EstimateNextSessionRotation, SortedMembers,
+        U128CurrencyToVote, WithdrawReasons,
     },
     weights::constants::WEIGHT_REF_TIME_PER_MILLIS,
     PalletId,
@@ -304,9 +305,15 @@ impl pallet_sudo::Config for Runtime {
 }
 
 pub struct SessionInfoImpl;
-impl SessionInfoProvider for SessionInfoImpl {
+impl SessionInfoProvider<AlephBlockNumber> for SessionInfoImpl {
     fn current_session() -> SessionIndex {
         pallet_session::CurrentIndex::<Runtime>::get()
+    }
+    fn next_session_block_number(current_block: AlephBlockNumber) -> Option<AlephBlockNumber> {
+        <Runtime as pallet_session::Config>::NextSessionRotation::estimate_next_session_rotation(
+            current_block,
+        )
+        .0
     }
 }
 

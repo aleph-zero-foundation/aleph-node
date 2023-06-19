@@ -4,7 +4,7 @@ use frame_support::{
     construct_runtime,
     pallet_prelude::ConstU32,
     parameter_types, sp_io,
-    traits::{OnFinalize, OnInitialize},
+    traits::{EstimateNextSessionRotation, OnFinalize, OnInitialize},
     weights::{RuntimeDbWeight, Weight},
 };
 use primitives::{AuthorityId, SessionInfoProvider};
@@ -106,9 +106,17 @@ impl pallet_balances::Config for Test {
 }
 
 pub struct SessionInfoImpl;
-impl SessionInfoProvider for SessionInfoImpl {
+impl SessionInfoProvider<<Test as frame_system::Config>::BlockNumber> for SessionInfoImpl {
     fn current_session() -> SessionIndex {
         pallet_session::CurrentIndex::<Test>::get()
+    }
+    fn next_session_block_number(
+        current_block: <Test as frame_system::Config>::BlockNumber,
+    ) -> Option<<Test as frame_system::Config>::BlockNumber> {
+        <Test as pallet_session::Config>::NextSessionRotation::estimate_next_session_rotation(
+            current_block,
+        )
+        .0
     }
 }
 
