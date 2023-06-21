@@ -27,13 +27,11 @@ use crate::{
         status_provider::get_proposal_status,
         AlephNetworkMessage,
     },
-    network::{
-        data::{
-            component::{Network as ComponentNetwork, Receiver, SimpleNetwork},
-            Network as DataNetwork,
-        },
-        RequestBlocks,
+    network::data::{
+        component::{Network as ComponentNetwork, Receiver, SimpleNetwork},
+        Network as DataNetwork,
     },
+    sync::RequestBlocks,
     IdentifierFor, SessionBoundaries,
 };
 
@@ -354,8 +352,10 @@ where
 
             let block = proposal.top_block();
             if !self.chain_info_provider.is_block_imported(&block) {
-                debug!(target: "aleph-data-store", "Requesting a stale block {:?} after it has been missing for {:?} secs.", block, time_waiting.as_secs());
-                self.block_requester.request_stale_block(block);
+                debug!(target: "aleph-data-store", "Requesting a block {:?} after it has been missing for {:?} secs.", block, time_waiting.as_secs());
+                if let Err(e) = self.block_requester.request_block(block.clone()) {
+                    warn!(target: "aleph-data-store", "Error requesting block {:?}, {}.", block, e);
+                }
                 continue;
             }
             // The top block (thus the whole branch, in the honest case) has been imported. What's holding us

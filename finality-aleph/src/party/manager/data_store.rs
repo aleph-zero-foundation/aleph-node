@@ -10,8 +10,9 @@ use sp_runtime::traits::{Block, Header};
 use crate::{
     aleph_primitives::BlockNumber,
     data_io::{AlephNetworkMessage, DataStore},
-    network::{data::component::Receiver, RequestBlocks},
+    network::data::component::Receiver,
     party::{AuthoritySubtaskCommon, Task},
+    sync::RequestBlocks,
     IdentifierFor,
 };
 

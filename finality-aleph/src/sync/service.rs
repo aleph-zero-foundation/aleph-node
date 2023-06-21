@@ -59,7 +59,7 @@ impl<J: Justification> JustificationSubmissions<J> for mpsc::UnboundedSender<J::
 impl<BI: BlockIdentifier> RequestBlocks<BI> for mpsc::UnboundedSender<BI> {
     type Error = mpsc::TrySendError<BI>;
 
-    fn request_block(&mut self, block_id: BI) -> Result<(), Self::Error> {
+    fn request_block(&self, block_id: BI) -> Result<(), Self::Error> {
         self.unbounded_send(block_id)
     }
 }

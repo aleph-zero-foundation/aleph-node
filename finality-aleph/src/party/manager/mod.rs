@@ -25,7 +25,6 @@ use crate::{
             split::split,
         },
         session::{SessionManager, SessionSender},
-        RequestBlocks,
     },
     party::{
         backup::ABFTBackup, manager::aggregator::AggregatorVersion, traits::NodeSessionManager,
@@ -48,6 +47,7 @@ pub use task::{Handle, Task};
 use crate::{
     abft::{CURRENT_VERSION, LEGACY_VERSION},
     data_io::DataProvider,
+    sync::RequestBlocks,
 };
 
 #[cfg(feature = "only_legacy")]

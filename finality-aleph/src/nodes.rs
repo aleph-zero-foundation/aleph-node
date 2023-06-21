@@ -26,8 +26,8 @@ use crate::{
     session_map::{AuthorityProviderImpl, FinalityNotifierImpl, SessionMapUpdater},
     sync::{
         ChainStatus, DatabaseIO as SyncDatabaseIO, Justification, JustificationTranslator,
-        Service as SyncService, SubstrateChainStatusNotifier, SubstrateFinalizationInfo,
-        VerifierCache,
+        OldSyncCompatibleRequestBlocks, Service as SyncService, SubstrateChainStatusNotifier,
+        SubstrateFinalizationInfo, VerifierCache,
     },
     AlephConfig,
 };
@@ -144,7 +144,7 @@ where
     );
     let finalizer = AlephFinalizer::new(client.clone(), metrics.clone());
     let database_io = SyncDatabaseIO::new(chain_status.clone(), finalizer, import_queue_handle);
-    let (sync_service, justifications_for_sync, _request_block) = match SyncService::new(
+    let (sync_service, justifications_for_sync, request_block) = match SyncService::new(
         block_sync_network,
         chain_events,
         verifier,
@@ -177,9 +177,12 @@ where
     spawn_handle.spawn("aleph/gossip_network", gossip_network_task);
     debug!(target: "aleph-party", "Gossip network has started.");
 
+    let compatible_block_request =
+        OldSyncCompatibleRequestBlocks::new(block_requester.clone(), request_block);
+
     let party = ConsensusParty::new(ConsensusPartyParams {
         session_authorities,
-        sync_state: block_requester.clone(),
+        sync_state: block_requester,
         backup_saving_path,
         chain_state: ChainStateImpl {
             client: client.clone(),
@@ -192,7 +195,7 @@ where
             unit_creation_delay,
             justifications_for_sync,
             JustificationTranslator::new(chain_status.clone()),
-            block_requester,
+            compatible_block_request,
             metrics,
             spawn_handle,
             connection_manager,

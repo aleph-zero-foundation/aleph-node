@@ -2,7 +2,7 @@ use std::{future::Future, sync::Arc, time::Duration};
 
 use futures::{
     channel::{
-        mpsc::{self, UnboundedReceiver, UnboundedSender},
+        mpsc::{self, TrySendError, UnboundedReceiver, UnboundedSender},
         oneshot,
     },
     StreamExt,
@@ -16,9 +16,10 @@ use crate::{
     data_io::{AlephData, AlephNetworkMessage, DataStore, DataStoreConfig, MAX_DATA_BRANCH_LEN},
     network::{
         data::{component::Network as ComponentNetwork, Network as DataNetwork},
-        Data, RequestBlocks,
+        Data,
     },
     session::{SessionBoundaries, SessionBoundaryInfo, SessionId, SessionPeriod},
+    sync::RequestBlocks,
     testing::{
         client_chain_builder::ClientChainBuilder,
         mocks::{
@@ -42,8 +43,9 @@ impl TestBlockRequester {
 }
 
 impl RequestBlocks<IdentifierFor<TBlock>> for TestBlockRequester {
-    fn request_stale_block(&self, block_id: IdentifierFor<TBlock>) {
-        self.blocks.unbounded_send(block_id).unwrap();
+    type Error = TrySendError<IdentifierFor<TBlock>>;
+    fn request_block(&self, block_id: IdentifierFor<TBlock>) -> Result<(), Self::Error> {
+        self.blocks.unbounded_send(block_id)
     }
 }
 

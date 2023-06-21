@@ -6,6 +6,7 @@ use std::{
 
 use parity_scale_codec::Codec;
 
+mod compatibility;
 mod data;
 mod forest;
 mod handler;
@@ -17,6 +18,7 @@ mod task_queue;
 mod tasks;
 mod ticker;
 
+pub use compatibility::OldSyncCompatibleRequestBlocks;
 pub use service::{DatabaseIO, Service};
 pub use substrate::{
     Justification as SubstrateJustification, JustificationTranslator, SessionVerifier,
@@ -163,9 +165,9 @@ pub trait JustificationSubmissions<J: Justification>: Clone + Send + 'static {
 
 /// An interface for requesting specific blocks from the block sync.
 /// Required by the data availability mechanism in ABFT.
-pub trait RequestBlocks<BI: BlockIdentifier> {
+pub trait RequestBlocks<BI: BlockIdentifier>: Clone + Send + Sync + 'static {
     type Error: Display;
 
     /// Request the given block.
-    fn request_block(&mut self, block_id: BI) -> Result<(), Self::Error>;
+    fn request_block(&self, block_id: BI) -> Result<(), Self::Error>;
 }
