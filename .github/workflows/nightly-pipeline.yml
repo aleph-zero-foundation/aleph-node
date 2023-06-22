@@ -2,6 +2,7 @@
 name: Nightly pipeline
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '00 23 * * *'
 
@@ -49,7 +50,7 @@ jobs:
           image-path: aleph-release-synthetic-docker
           node-image: aleph-node:syntheticnet
           compose-file: docker/docker-compose.synthetic-network.yml
-        timeout-minutes: 60
+        timeout-minutes: 35
 
   run-e2e-no-quorum-without-high-out-latency:
     needs: [build-production-node-and-e2e-client-image]
@@ -66,7 +67,7 @@ jobs:
           image-path: aleph-release-synthetic-docker
           node-image: aleph-node:syntheticnet
           compose-file: docker/docker-compose.synthetic-network.yml
-        timeout-minutes: 60
+        timeout-minutes: 35
 
   check-e2e-test-suite-completion:
     needs: [
@@ -74,16 +75,20 @@ jobs:
       run-e2e-no-quorum-without-high-out-latency,
     ]
     name: Check e2e test suite completion
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-20.04
     steps:
       - name: All e2e tests completed
-        run: echo "All e2e tests completed."
+        run: |
+          # due to the fact GitHub treats skipped jobs as success, and when any of dependant
+          # jobs fail, this check will be skipped, we need to check status manually
+          jq --exit-status 'all(.result == "success")' <<< '${{ toJson(needs) }}'
 
   slack:
     name: Slack notification
     runs-on: ubuntu-20.04
     needs: [check-e2e-test-suite-completion]
-    if: always()
+    if: ${{ !cancelled() }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3

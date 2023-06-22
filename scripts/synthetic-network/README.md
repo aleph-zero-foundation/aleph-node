@@ -9,7 +9,7 @@ page, i.e. :3001 is Node1, ...).
 # Content of this folder
 
 Main file in this folder is `run_consensus_synthetic-network.sh`. It builds a docker-image containing `aleph-node` and some
-arbitrary set of networking and debugging tools. It also consist of files required to spawn an instance of the
+arbitrary set of networking and debugging tools. It also consists of files required to spawn an instance of the
 synthetic-network. Its requirements are: docker, docker-compose, git, `aleph-node:latest` docker-image.
 
 `set_defaults_synthetic-network.sh` allows you to reset settings of the synthetic-network to some sane defaults. You might need
@@ -35,7 +35,23 @@ docker build -t aleph-node:latest -f docker/Dockerfile .
 
 # run e2e-tests
 cd e2e-tests
-# set an ENV variable required by the e2e-test, namely a list of URLs for synthetic-network configuration endpoints
-export SYNTHETIC_URLS="http://localhost:3000/qos,http://localhost:3001/qos,http://localhost:3002/qos,http://localhost:3003/qos,http://localhost:3004/qos"
-cargo test latency
+cargo test --release --no-run --locked
+# copy created binary to e2e-tests/target/release/, built test binary is in the last line of
+# the above command, e.g.
+# cp target/release/deps/aleph_e2e_client-44dc7cbed6112daa target/release/aleph-e2e-client
+docker build --tag aleph-e2e-client:latest -f Dockerfile .
+cd ..
+.github/scripts/run_e2e_test.sh -t high_out_latency_for_all -m 5
+```
+
+There's a `OUT_LATENCY` env which control output latency in e2e tests. If not specified, there's 200ms
+default used:
+```shell
+OUT_LATENCY=300 .github/scripts/run_e2e_test.sh -t high_out_latency_for_all -m 5
+```
+
+If you'd like to start `run_consensus_synthetic-network.sh` again, run below command first. 
+That will clear down docker storage, in particular it will clear previous latency setting.
+```shell
+docker-compose -f docker/docker-compose.synthetic-network.yml down
 ```
