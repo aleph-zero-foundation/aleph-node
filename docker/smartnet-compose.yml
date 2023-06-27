@@ -5,6 +5,7 @@ services:
     image: $NODE_IMAGE
     container_name: smartnode
     environment:
+      - CUSTOM_ARGS=--log runtime::contracts=debug
       - ALLOW_PRIVATE_IPV4=true
       - BASE_PATH=/data/$NODE_ID
       - CHAIN=/data/chainspec.smartnet.json
@@ -35,5 +36,5 @@ services:
 
 networks:
   default:
-    external:
+      external: true
       name: node-network

@@ -1,13 +1,13 @@
 [package]
 name = "game_token"
-version = "2.1.0"
+version = "2.2.0"
 authors = ["Cardinal Cryptography"]
 edition = "2021"
 license = "Apache 2.0"
 
 [dependencies]
-ink = { version = "=4.0.1",  default-features = false }
-openbrush = { git = "https://github.com/727-Ventures/openbrush-contracts/", tag = "3.0.0", default-features = false, features = ["psp22"] }
+ink = { version = "=4.2.1",  default-features = false }
+openbrush = { git = "https://github.com/727-Ventures/openbrush-contracts/", tag = "3.1.1", default-features = false, features = ["psp22"] }
 
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2.3", default-features = false, features = ["derive"], optional = true }
@@ -18,12 +18,6 @@ shared_traits = { path = "../shared_traits", default-features = false, features 
 [lib]
 name = "game_token"
 path = "lib.rs"
-crate-type = [
-    # Used for normal contract Wasm blobs.
-    "cdylib",
-    # Used for ABI generation.
-    "rlib",
-]
 
 [features]
 default = ["std"]

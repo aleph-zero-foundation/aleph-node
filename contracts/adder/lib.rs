@@ -1,4 +1,4 @@
-#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(feature = "std"), no_std, no_main)]
 
 //! This is a simple example contract for use with e2e tests of the aleph-client contract interaction.
 

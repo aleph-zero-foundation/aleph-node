@@ -11,81 +11,43 @@ jobs:
     env:
       CARGO_INCREMENTAL: 0
       RUSTC_WRAPPER: sccache
+      CARGO_CONTRACT_VERSION: 3.0.1
+      RUST_TOOLCHAIN: nightly-2022-10-30-x86_64-unknown-linux-gnu
+      RUST_CONTRACTS_TOOLCHAIN: nightly-2023-01-10-x86_64-unknown-linux-gnu
     steps:
       - name: Checkout source code
         uses: actions/checkout@v3
 
-      - name: Install rust toolchain
+      - name: Install rustup and rust toolchain
         uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v1
-        with:
-          targets: wasm32-unknown-unknown
-          components: clippy rustfmt
 
-      - name: Read excluded packages from Cargo.toml
-        id: read_excluded
-        uses: SebRollen/toml-action@v1.0.2
-        with:
-          file: 'Cargo.toml'
-          field: 'workspace.exclude'
-
-      - name: Format output
-        id: format_output
+      - name: Install prerequisites
         run: |
-          packages="$(echo ${{ steps.read_excluded.outputs.value }} \
-          | sed 's/[][,]/ /g' | sed 's/\s\+/\n/g' | sed '/^$/d')"
-          targets="$(echo "$packages" | sed -r 's/[A-Za-z0-9_/-]+/&\/target\//g')"
+          rustup toolchain install ${RUST_TOOLCHAIN}
+          rustup toolchain install ${RUST_CONTRACTS_TOOLCHAIN}
+          rustup component add rust-src --toolchain ${RUST_CONTRACTS_TOOLCHAIN}
 
-          packages="${packages//$'\n'/'%0A'}"
-          targets="${targets//$'\n'/'%0A'}"
+          mkdir -p /tmp/$RUST_CONTRACTS_TOOLCHAIN/
+          mkdir -p /tmp/$RUST_TOOLCHAIN/
 
-          echo "packages=$packages" >> $GITHUB_OUTPUT
-          echo "targets=$targets" >> $GITHUB_OUTPUT
+          export WASM_BUILD_WORKSPACE_HINT=${PWD}
+          export CARGO_TARGET_DIR=/tmp/$RUST_CONTRACTS_TOOLCHAIN/target/
+
+          cargo +${RUST_CONTRACTS_TOOLCHAIN} \
+            install cargo-dylint dylint-link
+
+          cargo +${RUST_CONTRACTS_TOOLCHAIN} \
+            install --version $CARGO_CONTRACT_VERSION \
+            --force --locked cargo-contract
+
+          export CARGO_TARGET_DIR=/tmp/$RUST_TOOLCHAIN/target/
+
+          cargo +${RUST_TOOLCHAIN} \
+            install aleph-zero-cargo-nono --locked
 
       - name: Check excluded packages
         run: |
-          rustup component add clippy rustfmt
-          rustup target add wasm32-unknown-unknown
-
-          rustup component add rust-src --toolchain nightly-2022-10-30-x86_64-unknown-linux-gnu
-          cargo install cargo-dylint dylint-link
-          cargo install --version 2.1.0 --force --locked cargo-contract
-
-          packages="${{ steps.format_output.outputs.packages }}"
-          packages="${packages//'%0A'/$'\n'}"
-          for p in ${packages[@]}
-          do
-            echo "Checking package $p..."
-            pushd "$p"
-
-            if [ $p = "contracts/adder" ] ||
-               [ $p = "contracts/poseidon_host_bench" ] ||
-               [ $p = "contracts/access_control" ] ||
-               [ $p = "contracts/adder" ] ||
-               [ $p = "contracts/button" ] ||
-               [ $p = "contracts/game_token" ] ||
-               [ $p = "contracts/marketplace" ] ||
-               [ $p = "contracts/simple_dex" ] ||
-               [ $p = "contracts/ticket_token" ] ||
-               [ $p = "contracts/wrapped_azero" ]
-            then
-                cargo contract check
-            elif [ $p = "baby-liminal-extension" ]
-            then
-                # cargo clippy --release --no-default-features --features substrate \
-                #  --target wasm32-unknown-unknown -- --no-deps -D warnings
-                :
-            elif [ $p = "pallets/baby-liminal" ]
-            then
-                cargo test --features runtime-benchmarks
-            else
-                cargo clippy -- --no-deps -D warnings
-            fi
-            cargo fmt --all --check
-            popd
-          done
-
-      - name: Install nono
-        run: cargo install aleph-zero-cargo-nono --locked
+          ./scripts/run_checks_on_excluded_packages.sh
 
       - name: Assert that packages are compatible with no-std
         env:
