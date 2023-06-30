@@ -124,6 +124,26 @@ pub enum BlockStatus<J: Justification> {
     Unknown,
 }
 
+/// FinalizationStatus of the block
+pub enum FinalizationStatus<J: Justification> {
+    /// The block is finalized by justification.
+    FinalizedWithJustification(J),
+    /// The block is finalized because one of its children is finalized.
+    FinalizedByDescendant(J::Header),
+    /// The block is not finalized
+    NotFinalized,
+}
+
+impl<J: Justification> FinalizationStatus<J> {
+    pub fn has_justification(&self) -> Option<J> {
+        use FinalizationStatus::*;
+        match self {
+            FinalizedWithJustification(just) => Some(just.clone()),
+            _ => None,
+        }
+    }
+}
+
 /// The knowledge about the chain status.
 pub trait ChainStatus<B, J>: Clone + Send + Sync + 'static
 where
@@ -138,9 +158,10 @@ where
     /// Export a copy of the block.
     fn block(&self, id: BlockIdFor<J>) -> Result<Option<B>, Self::Error>;
 
-    /// The justification at this block number, if we have it. Should return None if the
-    /// request is above the top finalized.
-    fn finalized_at(&self, number: u32) -> Result<Option<J>, Self::Error>;
+    /// The justification at this block number, if we have it otherwise just block id if
+    /// the block is finalized without justification. Should return NotFinalized variant if
+    /// the request is above the top finalized.
+    fn finalized_at(&self, number: u32) -> Result<FinalizationStatus<J>, Self::Error>;
 
     /// The header of the best block.
     fn best_block(&self) -> Result<J::Header, Self::Error>;

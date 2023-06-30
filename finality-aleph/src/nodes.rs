@@ -25,9 +25,9 @@ use crate::{
     session::SessionBoundaryInfo,
     session_map::{AuthorityProviderImpl, FinalityNotifierImpl, SessionMapUpdater},
     sync::{
-        ChainStatus, DatabaseIO as SyncDatabaseIO, Justification, JustificationTranslator,
-        OldSyncCompatibleRequestBlocks, Service as SyncService, SubstrateChainStatusNotifier,
-        SubstrateFinalizationInfo, VerifierCache,
+        ChainStatus, DatabaseIO as SyncDatabaseIO, FinalizationStatus, Justification,
+        JustificationTranslator, OldSyncCompatibleRequestBlocks, Service as SyncService,
+        SubstrateChainStatusNotifier, SubstrateFinalizationInfo, VerifierCache,
     },
     AlephConfig,
 };
@@ -132,7 +132,9 @@ where
 
     let session_info = SessionBoundaryInfo::new(session_period);
     let genesis_header = match chain_status.finalized_at(0) {
-        Ok(Some(justification)) => justification.header().clone(),
+        Ok(FinalizationStatus::FinalizedWithJustification(justification)) => {
+            justification.header().clone()
+        }
         _ => panic!("the genesis block should be finalized"),
     };
     let verifier = VerifierCache::new(
