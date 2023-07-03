@@ -55,6 +55,7 @@ pub enum Interest<I: PeerId, J: Justification> {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Error {
     HeaderMissingParentId,
+    HeaderNotRequired,
     IncorrectParentState,
     IncorrectVertexState,
     ParentNotImported,
@@ -66,6 +67,7 @@ impl Display for Error {
         use Error::*;
         match self {
             HeaderMissingParentId => write!(f, "header did not contain a parent ID"),
+            HeaderNotRequired => write!(f, "header was not required, but it should have been"),
             IncorrectParentState => write!(
                 f,
                 "parent was in a state incompatible with importing this block"
@@ -332,6 +334,19 @@ where
             true => Ok(self.set_explicitly_required(&id)),
             false => Ok(false),
         }
+    }
+
+    /// Updates the provided header only if the identifier was already required.
+    pub fn update_required_header(
+        &mut self,
+        header: &J::Header,
+        holder: Option<I>,
+    ) -> Result<(), Error> {
+        if matches!(self.request_interest(&header.id()), Interest::Uninterested) {
+            return Err(Error::HeaderNotRequired);
+        }
+        self.update_header(header, holder, true)?;
+        Ok(())
     }
 
     /// Updates the vertex related to the provided header marking it as imported.

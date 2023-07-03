@@ -1,5 +1,5 @@
 use core::marker::PhantomData;
-use std::{iter, time::Duration};
+use std::time::Duration;
 
 use futures::{channel::mpsc, StreamExt};
 use log::{debug, error, trace, warn};
@@ -10,9 +10,7 @@ use crate::{
     session::SessionBoundaryInfo,
     sync::{
         data::{NetworkData, Request, State, VersionWrapper, VersionedNetworkData},
-        handler::{
-            Error as HandlerError, Handler, SyncAction, MAX_BLOCK_BATCH, MAX_JUSTIFICATION_BATCH,
-        },
+        handler::{Error as HandlerError, HandleStateAction, Handler},
         task_queue::TaskQueue,
         tasks::{Action as TaskAction, PreRequest, RequestTask},
         ticker::Ticker,
@@ -177,16 +175,8 @@ where
         }
     }
 
-    fn perform_sync_action(&mut self, action: SyncAction<B, J>, peer: N::PeerId) {
-        use SyncAction::*;
-        match action {
-            Response(data) => self.send_to(data, peer),
-            HighestJustified(block_id) => self.request_highest_justified(block_id),
-            Noop => (),
-        }
-    }
-
     fn handle_state(&mut self, state: State<J>, peer: N::PeerId) {
+        use HandleStateAction::*;
         trace!(
             target: LOG_TARGET,
             "Handling state {:?} received from {:?}.",
@@ -194,7 +184,11 @@ where
             peer
         );
         match self.handler.handle_state(state, peer.clone()) {
-            Ok(action) => self.perform_sync_action(action, peer),
+            Ok(action) => match action {
+                Response(data) => self.send_to(data, peer),
+                HighestJustified(block_id) => self.request_highest_justified(block_id),
+                Noop => (),
+            },
             Err(e) => match e {
                 HandlerError::Verifier(e) => debug!(
                     target: LOG_TARGET,
@@ -208,73 +202,93 @@ where
         }
     }
 
-    fn handle_justifications(
+    fn handle_state_response(
         &mut self,
-        justifications: Vec<J::Unverified>,
-        maybe_peer: Option<N::PeerId>,
+        justification: J::Unverified,
+        maybe_justification: Option<J::Unverified>,
+        peer: N::PeerId,
     ) {
-        if let (Some(peer), true) = (&maybe_peer, justifications.len() > MAX_JUSTIFICATION_BATCH) {
-            warn!(
-                target: LOG_TARGET,
-                "Peer {:?} sent too many justifications: {}, we expected at most {}, aborting.",
-                peer,
-                justifications.len(),
-                MAX_JUSTIFICATION_BATCH,
-            );
-            return;
-        }
         trace!(
             target: LOG_TARGET,
-            "Handling {:?} justifications.",
-            justifications.len()
+            "Handling state response {:?} {:?} received from {:?}.",
+            justification,
+            maybe_justification,
+            peer
         );
-        for justification in justifications {
-            let maybe_block_id = match self
-                .handler
-                .handle_justification(justification, maybe_peer.clone())
-            {
-                Ok(maybe_id) => maybe_id,
-                Err(e) => match e {
-                    HandlerError::Verifier(e) => {
-                        debug!(
-                            target: LOG_TARGET,
-                            "Could not verify justification from {:?}: {}.",
-                            maybe_peer.map_or("user".to_string(), |id| format!("{:?}", id)),
-                            e
-                        );
-                        return;
-                    }
-                    e => {
-                        warn!(
-                            target: LOG_TARGET,
-                            "Failed to handle justification from {:?}: {}.",
-                            maybe_peer.map_or("user".to_string(), |id| format!("{:?}", id)),
-                            e
-                        );
-                        return;
-                    }
-                },
-            };
-            if let Some(block_id) = maybe_block_id {
-                self.request_highest_justified(block_id);
+        let (maybe_id, maybe_error) =
+            self.handler
+                .handle_state_response(justification, maybe_justification, peer.clone());
+        if let Some(e) = maybe_error {
+            match e {
+                HandlerError::Verifier(e) => debug!(
+                    target: LOG_TARGET,
+                    "Could not verify justification in sync state from {:?}: {}.", peer, e
+                ),
+                e => warn!(
+                    target: LOG_TARGET,
+                    "Failed to handle sync state response from {:?}: {}.", peer, e
+                ),
             }
+        }
+        if let Some(id) = maybe_id {
+            self.request_highest_justified(id);
         }
     }
 
-    fn handle_blocks(&mut self, blocks: Vec<B>, peer: N::PeerId) {
-        if blocks.len() > MAX_BLOCK_BATCH {
-            warn!(
-                target: LOG_TARGET,
-                "Peer {:?} sent too many blocks: {}, we expected at most {}, aborting.",
-                peer,
-                blocks.len(),
-                MAX_BLOCK_BATCH,
-            );
-            return;
+    fn handle_justification_from_user(&mut self, justification: J::Unverified) {
+        trace!(
+            target: LOG_TARGET,
+            "Handling a justification {:?} from user.",
+            justification,
+        );
+        match self.handler.handle_justification_from_user(justification) {
+            Ok(Some(id)) => self.request_highest_justified(id),
+            Ok(None) => (),
+            Err(e) => match e {
+                HandlerError::Verifier(e) => debug!(
+                    target: LOG_TARGET,
+                    "Could not verify justification from user: {}", e
+                ),
+                e => warn!(
+                    target: LOG_TARGET,
+                    "Failed to handle justification from user: {}", e
+                ),
+            },
         }
-        trace!(target: LOG_TARGET, "Handling {:?} blocks.", blocks.len());
-        for block in blocks {
-            self.handler.handle_block(block);
+    }
+
+    fn handle_request_response(
+        &mut self,
+        justifications: Vec<J::Unverified>,
+        headers: Vec<J::Header>,
+        blocks: Vec<B>,
+        peer: N::PeerId,
+    ) {
+        trace!(
+            target: LOG_TARGET,
+            "Handling request response from peer {:?}. Justification: {:?}. Headers: {:?}. Blocks: {:?}.",
+            peer,
+            justifications,
+            headers,
+            blocks,
+        );
+        let (maybe_id, maybe_error) =
+            self.handler
+                .handle_request_response(justifications, headers, blocks, peer.clone());
+        if let Some(e) = maybe_error {
+            match e {
+                HandlerError::Verifier(e) => debug!(
+                    target: LOG_TARGET,
+                    "Could not verify justification from user: {}", e
+                ),
+                e => warn!(
+                    target: LOG_TARGET,
+                    "Failed to handle sync state response from {:?}: {}.", peer, e
+                ),
+            };
+        }
+        if let Some(id) = maybe_id {
+            self.request_highest_justified(id);
         }
     }
 
@@ -286,37 +300,18 @@ where
             peer
         );
         match self.handler.handle_request(request) {
-            Ok(action) => self.perform_sync_action(action, peer),
-            Err(e) => {
-                warn!(
+            Ok(Some(data)) => self.send_to(data, peer),
+            Ok(None) => (),
+            Err(e) => match e {
+                HandlerError::Verifier(e) => debug!(
+                    target: LOG_TARGET,
+                    "Could not verify justification from user: {}", e
+                ),
+                e => warn!(
                     target: LOG_TARGET,
                     "Error handling request from {:?}: {}.", peer, e
-                );
-            }
-        }
-    }
-
-    fn handle_network_data(&mut self, data: NetworkData<B, J>, peer: N::PeerId) {
-        use NetworkData::*;
-        match data {
-            StateBroadcast(state) => self.handle_state(state, peer),
-            StateBroadcastResponse(justification, maybe_justification) => {
-                self.handle_justifications(
-                    iter::once(justification)
-                        .chain(maybe_justification)
-                        .collect(),
-                    Some(peer),
-                );
-            }
-            Request(request) => {
-                let state = request.state().clone();
-                self.handle_request(request, peer.clone());
-                self.handle_state(state, peer);
-            }
-            RequestResponse(blocks, justifications) => {
-                self.handle_justifications(justifications, Some(peer.clone()));
-                self.handle_blocks(blocks, peer);
-            }
+                ),
+            },
         }
     }
 
@@ -363,11 +358,33 @@ where
             Ok(_) => {
                 debug!(target: LOG_TARGET, "Already requested block {:?}.", id);
             }
-            Err(e) => {
-                warn!(
+            Err(e) => match e {
+                HandlerError::Verifier(e) => debug!(
+                    target: LOG_TARGET,
+                    "Could not verify justification from user: {}", e
+                ),
+                e => warn!(
                     target: LOG_TARGET,
                     "Error handling internal request for block {:?}: {}.", id, e
-                );
+                ),
+            },
+        }
+    }
+
+    fn handle_network_data(&mut self, data: NetworkData<B, J>, peer: N::PeerId) {
+        use NetworkData::*;
+        match data {
+            StateBroadcast(state) => self.handle_state(state, peer),
+            StateBroadcastResponse(justification, maybe_justification) => {
+                self.handle_state_response(justification, maybe_justification, peer)
+            }
+            Request(request) => {
+                let state = request.state().clone();
+                self.handle_request(request, peer.clone());
+                self.handle_state(state, peer);
+            }
+            RequestResponse(justifications, headers, blocks) => {
+                self.handle_request_response(justifications, headers, blocks, peer)
             }
         }
     }
@@ -389,14 +406,14 @@ where
                 maybe_justification = self.justifications_from_user.next() => match maybe_justification {
                     Some(justification) => {
                         debug!(target: LOG_TARGET, "Received new justification from user: {:?}.", justification);
-                        self.handle_justifications(vec![justification], None);
+                        self.handle_justification_from_user(justification);
                     },
                     None => warn!(target: LOG_TARGET, "Channel with justifications from user closed."),
                 },
                 maybe_justification = self.additional_justifications_from_user.next() => match maybe_justification {
                     Some(justification) => {
                         debug!(target: LOG_TARGET, "Received new additional justification from user: {:?}.", justification);
-                        self.handle_justifications(Vec::from([justification]), None)
+                        self.handle_justification_from_user(justification);
                     },
                     None => warn!(target: LOG_TARGET, "Channel with additional justifications from user closed."),
                 },

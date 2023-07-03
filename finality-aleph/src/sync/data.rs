@@ -98,7 +98,7 @@ pub enum NetworkData<B: Block, J: Justification> {
     /// An explicit request for data, potentially a lot of it.
     Request(Request<J>),
     /// Response to the request for data.
-    RequestResponse(Vec<B>, Vec<J::Unverified>),
+    RequestResponse(Vec<J::Unverified>, Vec<J::Header>, Vec<B>),
 }
 
 impl<B: Block, J: Justification> From<NetworkDataV1<J>> for NetworkData<B, J> {
@@ -110,7 +110,7 @@ impl<B: Block, J: Justification> From<NetworkDataV1<J>> for NetworkData<B, J> {
             }
             NetworkDataV1::Request(request) => NetworkData::Request(request),
             NetworkDataV1::RequestResponse(justifications) => {
-                NetworkData::RequestResponse(Vec::new(), justifications)
+                NetworkData::RequestResponse(justifications, Vec::new(), Vec::new())
             }
         }
     }
@@ -124,7 +124,7 @@ impl<B: Block, J: Justification> From<NetworkData<B, J>> for NetworkDataV1<J> {
                 NetworkDataV1::StateBroadcastResponse(justification, maybe_justification)
             }
             NetworkData::Request(request) => NetworkDataV1::Request(request),
-            NetworkData::RequestResponse(_, justifications) => {
+            NetworkData::RequestResponse(justifications, _, _) => {
                 NetworkDataV1::RequestResponse(justifications)
             }
         }

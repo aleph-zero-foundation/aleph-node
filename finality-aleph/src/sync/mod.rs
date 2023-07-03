@@ -36,7 +36,7 @@ pub trait PeerId: Debug + Clone + Hash + Eq {}
 impl<T: Debug + Clone + Hash + Eq> PeerId for T {}
 
 /// The header of a block, containing information about the parent relation.
-pub trait Header: Clone + Codec + Send + Sync + 'static {
+pub trait Header: Clone + Codec + Debug + Send + Sync + 'static {
     type Identifier: BlockIdentifier;
 
     /// The identifier of this block.
