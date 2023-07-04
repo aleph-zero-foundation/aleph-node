@@ -37,7 +37,7 @@ e2e-tests$ RUST_BACKTRACE=1 SUDO_SEED="$THE_SEED" NODE_URL=wss://ws.dev.azero.de
 ## Running on feature net
 
 Run a feature net by adding an appropriate label to a pull request, ie `trigger:create-featurenet`
-or `trigger:create-hotfix-featurenet`, then after its started run
+, then after its started run
 
 ```bash
 e2e-tests$ NODE_URL=wss://ws-fe-a0-1564.dev.azero.dev:443 cargo test finalization

@@ -64,8 +64,9 @@ jobs:
           token: ${{ secrets.CI_GH_TOKEN }}
           env: updatenet-${{ github.run_id }}
           override: true
+          debug: true
 
-      - name: Create featurenet data, app and deploy it
+      - name: Create updatenet from scratch, node binary from testnet or mainnet
         uses: ./.github/actions/create-featurenet
         with:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
@@ -73,14 +74,13 @@ jobs:
           repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
           repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
           argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
-          # yamllint disable-line rule:line-length
-          aleph-node-image: ${{ inputs.start == 'mainnet' && 'mainnet' || 'testnet' }}
           ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}
           aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
           featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
           featurenet-name: fe-updnet-${{ github.run_id }}
-          expiration: "${{ inputs.expiration }}"
+          featurenet-aleph-node-image: ${{ inputs.start == 'mainnet' && 'mainnet' || 'testnet' }}
+          expiration: ${{ inputs.expiration }}
 
       - name: Wait for the aleph-node binary to accept some blocks
         uses: ./.github/actions/wait-for-finalized-heads
@@ -101,3 +101,4 @@ jobs:
           deployment_id: ${{ steps.deployment.outputs.deployment_id }}
           # yamllint disable-line rule:line-length
           env_url: https://dev.azero.dev/?rpc=wss%3A%2F%2Fws-fe-updnet-${{ github.run_id }}.dev.azero.dev#/explorer
+          debug: true

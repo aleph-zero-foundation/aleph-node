@@ -11,14 +11,9 @@ concurrency:
 
 jobs:
   create-featurenet:
-    if: >
-      (github.event.label.name == 'trigger:create-featurenet') ||
-      (github.event.label.name == 'trigger:create-hotfix-featurenet')
+    if: github.event.label.name == 'trigger:create-featurenet'
     name: Create featurenet
-    uses: ./.github/workflows/_create-featurenet.yml
-    with:
-      # yamllint disable-line rule:line-length
-      hotfix: ${{ github.event.label.name == 'trigger:create-hotfix-featurenet' && true || false }}
+    uses: ./.github/workflows/create-featurenet.yml
     secrets: inherit
 
   delete-featurenet:

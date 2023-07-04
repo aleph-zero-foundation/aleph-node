@@ -80,29 +80,35 @@ runs:
         aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
         aws-region: ${{ env.AWS_REGION }}
 
-    - name: Destroy feature branch
+    - name: Get argocd featurenet app name
+      id: get-argocd-featurnet-app-name
       shell: bash
       env:
         # yamllint disable-line rule:line-length
         APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
+      run: |
+        name_local=${{ env.APP_NAME }}
+        echo "name=$name_local" >> $GITHUB_OUTPUT
+
+    - name: Destroy feature branch
+      shell: bash
+      env:
         OPSSH_TARGETPATH: "${{ github.workspace }}/${{ inputs.repo-featurenets-name }}"
       run: |
         cd "${{ inputs.repo-apps-name }}"
-        ./Ops.sh delete-featurenet "${{ env.APP_NAME }}"
+        ./Ops.sh delete-featurenet "${{ steps.get-argocd-featurnet-app-name.outputs.name }}"
       # yamllint enable rule:line-length
 
     - name: Commit deletion of the feature environment.
       uses: EndBug/add-and-commit@v9.1.1
-      env:
-        # yamllint disable-line rule:line-length
-        APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
       with:
         author_name: AlephZero Automation
         author_email: alephzero@10clouds.com
-        message: "Delete featurenet ${{ env.APP_NAME }}"
+        message: "Delete featurenet ${{ steps.get-argocd-featurnet-app-name.outputs.name }}"
         add: '["*.yaml","*.expiration.txt"]'
         cwd: "${{ inputs.repo-featurenets-name }}"
 
+    # we need self-hosted runner only because of this step
     - name: Refresh Argo and wait for the deletion to be finished
       shell: bash
       run: |
@@ -112,16 +118,12 @@ runs:
 
     - name: Clean S3 storage
       shell: bash
-      env:
-        # yamllint disable-line rule:line-length
-        APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
       run: |
         docker run --rm \
-          -e SOURCE_NET=testnet \
           -e AWS_ACCESS_KEY_ID \
           -e AWS_SECRET_ACCESS_KEY \
           -e AWS_REGION \
           -e FEATURENETS_S3_BUCKET_NAME=${{ inputs.featurenet-keys-s3bucket-name }} \
-          -e FEATURENET_NAME=${{ env.APP_NAME }} \
-          ${{ inputs.ecr-public-registry }}featurenet-helper:v0.2.0 \
-          delete-data-from-s3
+          -e FEATURENET_NAME=${{ steps.get-argocd-featurnet-app-name.outputs.name }} \
+          ${{ inputs.ecr-public-registry }}featurenet-helper:v0.3.0 \
+          delete-featurenet-data-from-s3

@@ -12,8 +12,8 @@ jobs:
     env:
       RUST_BACKTRACE: full
       RUSTC_WRAPPER: sccache
-      SECRETS_AWS_MAINNET_ACCESS_KEY_ID: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
-      SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+      SECRETS_DEVNET_ACCESS_KEY_ID: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
+      SECRETS_DEVNET_SECRET_ACCESS_KEY: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
     steps:
       - name: Checkout aleph-node source code
         uses: actions/checkout@v3
@@ -35,10 +35,10 @@ jobs:
           name: aleph-test-runtime
           path: target/release/wbuild/aleph-runtime
 
-      - name: Configure AWS credentials for S3 Mainnet AWS
+      - name: Configure AWS credentials for S3 Devnet AWS
         if: >
-          env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' &&
-          env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
+          env.SECRETS_DEVNET_ACCESS_KEY_ID != '' &&
+          env.SECRETS_DEVNET_SECRET_ACCESS_KEY != ''
         uses: aws-actions/configure-aws-credentials@v2
         env:
           AWS_ACCESS_KEY_ID: ""
@@ -47,14 +47,14 @@ jobs:
           AWS_DEFAULT_REGION: ""
           AWS_REGION: us-east-1
         with:
-          aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Copy test binary to S3 Mainnet AWS bucket
+      - name: Copy test binary to S3 Devnet AWS bucket
         if: >
-          env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' &&
-          env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
+          env.SECRETS_DEVNET_ACCESS_KEY_ID != '' &&
+          env.SECRETS_DEVNET_SECRET_ACCESS_KEY != ''
         uses: Cardinal-Cryptography/github-actions/copy-file-to-s3@v1
         with:
           source-path: target/release
@@ -62,12 +62,12 @@ jobs:
           s3-bucket-path:
             builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-test-node
           s3-bucket-filename: aleph-test-node-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
-          s3-bucket-name: ${{ secrets.CI_MAINNET_S3BUCKET_NAME }}
+          s3-bucket-name: ${{ secrets.CI_DEVNET_S3BUCKET_NAME }}
 
-      - name: Copy test runtime to S3 Mainnet AWS bucket
+      - name: Copy test runtime to S3 Devnet AWS bucket
         if: >
-          env.SECRETS_AWS_MAINNET_ACCESS_KEY_ID != '' &&
-          env.SECRETS_AWS_MAINNET_SECRET_ACCESS_KEY != ''
+          env.SECRETS_DEVNET_ACCESS_KEY_ID != '' &&
+          env.SECRETS_DEVNET_SECRET_ACCESS_KEY != ''
         uses: Cardinal-Cryptography/github-actions/copy-file-to-s3@v1
         with:
           source-path: target/release/wbuild/aleph-runtime
@@ -75,4 +75,4 @@ jobs:
           s3-bucket-path:
             builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-test-runtime
           s3-bucket-filename: aleph-test-runtime-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
-          s3-bucket-name: ${{ secrets.CI_MAINNET_S3BUCKET_NAME }}
+          s3-bucket-name: ${{ secrets.CI_DEVNET_S3BUCKET_NAME }}

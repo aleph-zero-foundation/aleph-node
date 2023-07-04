@@ -1,7 +1,10 @@
 ---
 name: Create featurenet
-description: Creates featurenet
-
+description: |
+  This action several flows
+  * spawns new feature net bootstraped from PR, node binary is test one (short session)
+  * spawns new update net from a node image that is on ECR, prpduction one (normal session)
+  * upgrades feature net binary to a given version
 inputs:
   gh-ci-token:
     description: 'GH token to be used in the action'
@@ -30,35 +33,29 @@ inputs:
   featurenet-keys-s3bucket-name:
     description: 'S3 bucket name with featurenet keys'
     required: true
-  no-refresh:
-    description: "Set to 'true' if ArgoCD should not be called to refresh"
-    required: false
-    default: 'false'
-  aleph-node-image:
-    description: 'aleph-node image to be started'
-    required: false
-    default: ''
-  create-hook:
-    description: "Set to 'true' to create a hook"
-    required: false
-    default: 'false'
   featurenet-name:
     description: 'Enter name instead of getting it from branch'
     required: false
     default: ''
-  update:
-    description: "Set to 'true' if it is just featurenet update"
-    required: false
-    default: 'false'
-  rolling-update-partition:
-    # yamllint disable-line rule:line-length
-    description: "All aleph-node-validator-N with an ordinal N that is great than or equal to the partition will be updated. Default value: 0"
-    required: false
-    default: '0'
-  expiration:
-    description: "Time after which updatenet will be removed"
+  featurenet-aleph-node-image:
+    description: |
+      Set feature net image either to:
+       * 'testnet' or 'mainnet' - to Testnet or Mainnet image respectively,
+       * a 7 byte SHA - to exisiting ECR aleph-node image tag
+       * empty value - to image built from PR
     required: false
     default: ''
+  expiration:
+    description: 'Time after which updatenet will be removed'
+    required: false
+    default: ''
+  rolling-update-partition:
+    description: |
+      Number from 0 to N-1, where N is size of am existing feature net.
+      All aleph-node-validator-N with an ordinal N that is great than or equal to the partition
+      will be updated. If not specified, all nodes will be updated.
+    required: false
+    default: "0"
 
 runs:
   using: "composite"
@@ -75,31 +72,21 @@ runs:
           exit 1
         fi
         if [[
-          "${{ inputs.update }}" != "true" && \
-          "${{ inputs.aleph-node-image }}" != "testnet" && \
-          "${{ inputs.aleph-node-image }}" != "mainnet"
-        ]]
-        then
-          echo "!!! Node image tag must be 'testnet' or 'mainnet'"
-          echo "!!! when featurenet is about to be created"
-          exit 1
-        fi
-        if [[
-          "${{ inputs.aleph-node-image }}" != "" && \
-          ! "${{ inputs.aleph-node-image }}" =~ ^[a-f0-9]{7}$ && \
-          "${{ inputs.aleph-node-image }}" != "testnet" && \
-          "${{ inputs.aleph-node-image }}" != "mainnet"
+          "${{ inputs.featurenet-aleph-node-image }}" != "" && \
+          ! "${{ inputs.featurenet-aleph-node-image }}" =~ ^[a-f0-9]{7}$ && \
+          "${{ inputs.featurenet-aleph-node-image }}" != "testnet" && \
+          "${{ inputs.featurenet-aleph-node-image }}" != "mainnet"
         ]]
         then
           echo "!!! Invalid feature net node image tag"
           exit 1
         fi
         if [[
-          "${{ inputs.update }}" == "true" && \
+          "${{ inputs.rolling-update-partition }}" != "" && \
           ! "${{ inputs.rolling-update-partition }}" =~ ^[0-9]$
         ]]
         then
-          echo "!!! Partition for Rolling Update is invalid"
+          echo "!!! Expected rolling update partition to be a cardinal value from 0 to 9"
           exit 1
         fi
         if [[
@@ -108,13 +95,12 @@ runs:
           "${{ inputs.expiration }}" != "never"
         ]]
         then
-          echo "!!! Invalid expiration"
+          echo "!!! Expected expiration to have values from set {3h, 12h, 24h, 48h, 96h, never}"
           exit 1
         fi
 
     - name: Get branch name and commit SHA
       id: get-ref-properties
-      # yamllint disable-line rule:line-length
       uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
 
     - name: Checkout argocd apps repo
@@ -133,95 +119,77 @@ runs:
         path: "${{ inputs.repo-featurenets-name }}"
         ref: main
 
+    - name: Get argocd featurenet app name
+      id: get-argocd-featurnet-app-name
+      shell: bash
+      env:
+        # yamllint disable-line rule:line-length
+        APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
+      run: |
+        name_local=${{ env.APP_NAME }}
+        echo "name=$name_local" >> $GITHUB_OUTPUT
+
+    - name: Get node commit SHA
+      if: ${{ inputs.featurenet-aleph-node-image == 'testnet' ||
+        inputs.featurenet-aleph-node-image == 'mainnet' }}
+      id: get-node-commit-sha
+      uses: ./.github/actions/get-node-system-version
+      with:
+        env: ${{ inputs.featurenet-aleph-node-image }}
+
     - name: Start featurenet from PR branch
-      if: inputs.aleph-node-image == ''
       shell: bash
       env:
-        # yamllint disable-line rule:line-length
-        APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
         OPSSH_TARGETPATH: "${{ github.workspace }}/${{ inputs.repo-featurenets-name }}"
+      # yamllint disable rule:line-length
       run: |
         cd "${{ inputs.repo-apps-name }}"
-        pr_image_tag="fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo-with-sha }}"
-        pr_image="${{ inputs.ecr-public-registry }}feature-env-aleph-node:${pr_image_tag}"
+        if [[ "${{ inputs.featurenet-aleph-node-image }}" == "" ]]; then
+          pr_image_tag="fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo-with-sha }}"
+          fnet_aleph_node_image="${{ inputs.ecr-public-registry }}feature-env-aleph-node:${pr_image_tag}"
+          fnet_bootstrap_chain_node_image="${{ steps.get-ref-properties.outputs.sha }}"
+        elif [[ "${{ inputs.featurenet-aleph-node-image }}" == "testnet" || \
+            "${{ inputs.featurenet-aleph-node-image }}" == "mainnet" ]]; then
+          ecr_image_tag=$(echo "${{ steps.get-node-commit-sha.outputs.sha }}")
+          fnet_aleph_node_image="${{ inputs.ecr-public-registry }}aleph-node:${ecr_image_tag}"
+          fnet_bootstrap_chain_node_image="${{ inputs.featurenet-aleph-node-image }}"
+        else
+          fnet_aleph_node_image="${{ inputs.ecr-public-registry }}aleph-node:${{ inputs.featurenet-aleph-node-image }}"
+          fnet_bootstrap_chain_node_image="none"
+        fi
         ./Ops.sh create-featurenet \
-          "${{ env.APP_NAME }}" \
-          "${pr_image}" \
-          "false" \
-          "false" \
-          "${{ inputs.update == 'true' && inputs.rolling-update-partition || '0' }}"
+          "${{ steps.get-argocd-featurnet-app-name.outputs.name }}" \
+          "${fnet_aleph_node_image}" \
+          "${fnet_bootstrap_chain_node_image}" \
+          "${{ inputs.rolling-update-partition }}" \
+          false
+      # yamllint enable rule:line-length
 
-    - name: Start featurenet from testnet/mainnet
-      if: inputs.aleph-node-image == 'testnet' || inputs.aleph-node-image == 'mainnet'
+    - name: Set featurenet expiration
+      if: inputs.expiration != ''
       shell: bash
       env:
-        # yamllint disable-line rule:line-length
-        APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
-        OPSSH_TARGETPATH: "${{ github.workspace }}/${{ inputs.repo-featurenets-name }}"
-      run: |
-        cd "${{ inputs.repo-apps-name }}"
-        ./Ops.sh create-featurenet \
-          "${{ env.APP_NAME }}" \
-          "${{ inputs.aleph-node-image }}" \
-          "false" \
-          "true"
-
-    - name: Set featurenet expiration (from testnet/mainet)
-      # yamllint disable-line rule:line-length
-      if: (inputs.aleph-node-image == 'testnet' || inputs.aleph-node-image == 'mainnet') && inputs.expiration != ''
-      shell: bash
-      env:
-        # yamllint disable-line rule:line-length
-        APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
         OPSSH_TARGETPATH: "${{ github.workspace }}/${{ inputs.repo-featurenets-name }}"
       run: |
         cd "${{ inputs.repo-apps-name }}"
         ./Ops.sh create-featurenet-expiration \
-          "${{ env.APP_NAME }}" \
+          "${{ steps.get-argocd-featurnet-app-name.outputs.name }}" \
           "${{ inputs.expiration }}"
-
-    - name: Start featurenet from image tag
-      if: >
-        inputs.aleph-node-image != '' &&
-        inputs.aleph-node-image != 'testnet' &&
-        inputs.aleph-node-image != 'mainnet'
-      shell: bash
-      env:
-        # yamllint disable-line rule:line-length
-        APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
-        OPSSH_TARGETPATH: "${{ github.workspace }}/${{ inputs.repo-featurenets-name }}"
-      run: |
-        cd "${{ inputs.repo-apps-name }}"
-        pr_image="${{ inputs.ecr-public-registry }}aleph-node:${{ inputs.aleph-node-image }}"
-        ./Ops.sh create-featurenet \
-          "${{ env.APP_NAME }}" \
-          "${pr_image}" \
-          "false" \
-          "false" \
-          "${{ inputs.update == 'true' && inputs.rolling-update-partition || '0' }}"
 
     - name: Commit featurenet change
       uses: EndBug/add-and-commit@v9.1.1
-      env:
-        # yamllint disable-line rule:line-length
-        APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
       with:
         author_name: AlephZero Automation
         author_email: alephzero@10clouds.com
         # yamllint disable-line rule:line-length
-        message: "Upsert featurenet ${{ env.APP_NAME }} with image: ${{ inputs.aleph-node-image != '' && inputs.aleph-node-image || steps.get-ref-properties.outputs.branch-name-for-argo-with-sha }}"
+        message: "Upsert featurenet ${{ steps.get-argocd-featurnet-app-name.outputs.name }} with image: ${{ inputs.featurenet-aleph-node-image != '' && inputs.featurenet-aleph-node-image || steps.get-ref-properties.outputs.branch-name-for-argo-with-sha }}"
         add: '["*.yaml","*.expiration.txt"]'
         cwd: "${{ inputs.repo-featurenets-name }}"
 
     - name: Refresh Argo and wait for the creation to be finished
-      if: inputs.no-refresh != 'true'
-      env:
-        # yamllint disable-line rule:line-length
-        APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
       shell: bash
       run: |
         cd "${{ inputs.repo-apps-name }}"
         ./Ops.sh refresh-featurenets "${{ inputs.argo-host }}" \
           "${{ inputs.argo-sync-user-token }}" \
-          "${{ env.APP_NAME }}" \
-          "${{ inputs.create-hook }}"
+          "${{ steps.get-argocd-featurnet-app-name.outputs.name }}" \

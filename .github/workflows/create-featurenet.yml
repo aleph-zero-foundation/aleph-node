@@ -3,12 +3,19 @@ name: Create featurenet
 
 on:
   workflow_call:
+  workflow_dispatch:
     inputs:
-      hotfix:
-        description: Set to 'true' if it is a hotfix environment
+      expiration:
+        description: 'Time after which featurenet will be removed'
         required: false
-        type: boolean
-        default: false
+        type: choice
+        options:
+          - 48h
+          - 24h
+          - 12h
+          - 3h
+          - 96h
+          - never
 
 jobs:
   check-vars-and-secrets:
@@ -16,27 +23,26 @@ jobs:
     uses: ./.github/workflows/_check-vars-and-secrets.yml
     secrets: inherit
 
-  build-aleph-node-binary:
+  build-test-node-and-runtime:
+    name: Build test node and runtime
     needs: [check-vars-and-secrets]
-    name: Build production artifacts
-    uses: ./.github/workflows/_build-production-node-and-runtime.yml
+    uses: ./.github/workflows/_build-test-node-and-runtime.yml
     secrets: inherit
 
-  store-aleph-node-binary:
-    needs: [build-aleph-node-binary]
-    name: Store production artifacts
-    uses: ./.github/workflows/_store-production-node-and-runtime.yml
+  store-test-node-and-runtime:
+    needs: [build-test-node-and-runtime]
+    name: Store test node and runtime
+    uses: ./.github/workflows/_store-test-node-and-runtime.yml
     secrets: inherit
 
-  push-pr-image:
-    needs: [build-aleph-node-binary]
-    name: Build and push PR docker image to featurenet registry
-    # yamllint disable-line rule:line-length
+  push-featurnet-node-image-to-ecr:
+    needs: [store-test-node-and-runtime]
+    name: Build and push PR tesdocker image to ECR
     uses: ./.github/workflows/_build-and-push-pull-request-image-to-featurenets.yml
     secrets: inherit
 
   create-featurenet:
-    needs: [check-vars-and-secrets]
+    needs: [push-featurnet-node-image-to-ecr]
     name: Create featurenet based on the PR
     runs-on: [self-hosted, Linux, X64, large]
     outputs:
@@ -61,7 +67,6 @@ jobs:
 
       - name: Call action get-ref-properties
         id: get-ref-properties
-        # yamllint disable-line rule:line-length
         uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
 
       - name: Start featurenet Deployment
@@ -74,7 +79,7 @@ jobs:
           ref: ${{ github.head_ref }}
           override: true
 
-      - name: Create featurenet data, app and deploy it
+      - name: Create featurenet from scratch
         uses: ./.github/actions/create-featurenet
         with:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
@@ -82,11 +87,11 @@ jobs:
           repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
           repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
           argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
-          # yamllint disable-line rule:line-length
           ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}
           aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
           featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
+          expiration: ${{ inputs.expiration == '' && '48h' || inputs.expiration }}
 
       - name: Wait for the aleph-node binary to accept some blocks
         uses: ./.github/actions/wait-for-finalized-heads
@@ -95,34 +100,6 @@ jobs:
           repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
           # yamllint disable-line rule:line-length
           json-rpc-endpoint: https://ws-fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo }}.dev.azero.dev
-
-  update-featurenet-image:
-    needs: [push-pr-image, create-featurenet]
-    name: Update featurenet to the latest PR aleph-node image
-    runs-on: [self-hosted, Linux, X64, large]
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
-
-      - name: Call action get-ref-properties
-        id: get-ref-properties
-        # yamllint disable-line rule:line-length
-        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
-
-      - name: Update featurenet app and re-deploy it
-        uses: ./.github/actions/create-featurenet
-        with:
-          gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
-          argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
-          repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
-          repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
-          argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
-          create-hook: 'true'
-          ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}
-          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
-          featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
-          update: 'true'
 
       - name: Remove deleted label if present
         uses: actions-ecosystem/action-remove-labels@v1.3.0
@@ -139,23 +116,16 @@ jobs:
           token: ${{ secrets.CI_GH_TOKEN }}
           status: ${{ job.status }}
           env: ${{ steps.get-ref-properties.outputs.branch-name-flattened }}
-          deployment_id: ${{ needs.create-featurenet.outputs.deployment-id }}
+          deployment_id: ${{ steps.deployment.outputs.deployment_id }}
           # yamllint disable-line rule:line-length
           env_url: https://dev.azero.dev/?rpc=wss%3A%2F%2Fws-fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo }}.dev.azero.dev#/explorer
           ref: ${{ github.head_ref }}
 
-      - name: Remove testnet deployment request label if exists
+      - name: Remove deployment request label if exists
         if: contains(github.event.pull_request.labels.*.name, 'trigger:create-featurenet')
         uses: actions-ecosystem/action-remove-labels@v1.3.0
         with:
           labels: 'trigger:create-featurenet'
-          github_token: ${{ secrets.CI_GH_TOKEN }}
-
-      - name: Remove mainnet deployment request label if exists
-        if: contains(github.event.pull_request.labels.*.name, 'trigger:create-hotfix-featurenet')
-        uses: actions-ecosystem/action-remove-labels@v1.3.0
-        with:
-          labels: 'trigger:create-hotfix-featurenet'
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Add label to mark that featurenet has been created

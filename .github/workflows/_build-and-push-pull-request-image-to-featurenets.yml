@@ -1,6 +1,7 @@
 ---
 #  This workflow builds aleph-node docker image from pull request commit
-#  and pushes it to featurenet registry.
+#  and pushes it to featurenet registry. Test binary is used, and it is wrapped in registry
+#  separated from production builds
 name: Build and push PR image to featurenets
 on:
   workflow_call:
@@ -15,18 +16,16 @@ jobs:
 
       - name: Call action get-ref-properties
         id: get-ref-properties
-        # yamllint disable-line rule:line-length
         uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
 
-      - name: Download artifact with built aleph-node binary from PR
+      - name: Download test aleph-node artifact
         uses: actions/download-artifact@v3
         with:
-          name: aleph-release-node
+          name: aleph-test-node
           path: target/release/
 
       - name: Build docker image with PR aleph-node binary
         env:
-          # yamllint disable-line rule:line-length
           IMAGE_TAG: fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo-with-sha }}
         run: |
           chmod +x target/release/aleph-node

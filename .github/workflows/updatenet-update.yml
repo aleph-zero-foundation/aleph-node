@@ -9,13 +9,16 @@ on:
         required: true
         type: string
       destination:
-        description: Node image tag
+        description: Node image tag, ie 7-byte SHA of some existing ECR aleph-node image tag
         required: true
         type: string
       rolling-update-partition:
-        description: Rolling Update Partition <0, N-1>
-        required: true
-        type: string
+        description: |
+          Number from 0 to N-1, where N is size of am existing feature net.
+          All aleph-node-validator-N with an ordinal N that is great than or equal to the partition
+          will be updated. If not specified, all nodes will be updated.
+        required: false
+        default: "0"
 
 jobs:
   check-vars-and-secrets:
@@ -40,14 +43,15 @@ jobs:
           if [[
             "${{ inputs.destination }}" != "" && \
             ! "${{ inputs.destination }}" =~ ^[a-f0-9]{7}$
-          ]]
-          then
-            echo "!!! Invalid destination node image tag"
+          ]]; then
+            echo "!!! Expected a 7-byte SHA in destination parameter"
             exit 1
           fi
-          if [[ ! "${{ inputs.rolling-update-partition }}" =~ ^[0-9]$ ]]
-          then
-            echo "!!! Invalid rolling update partition"
+          if [[
+            "${{ inputs.rolling-update-partition }}" != "" && \
+            ! "${{ inputs.rolling-update-partition }}" =~ ^[0-9]$ \
+          ]]; then
+            echo "!!! Expected rolling update partition to be a cardinal value from 0 to 9"
             exit 1
           fi
 
@@ -71,22 +75,19 @@ jobs:
           repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
           repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
           argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
-          # yamllint disable-line rule:line-length
-          aleph-node-image: ${{ inputs.destination }}
           ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}
           aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
           featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
           featurenet-name: fe-updnet-${{ inputs.name }}
-          update: 'true'
-          rolling-update-partition: '${{ inputs.rolling-update-partition }}'
+          featurenet-aleph-node-image: ${{ inputs.destination }}
+          rolling-update-partition: ${{ inputs.rolling-update-partition }}
 
       - name: Wait for the aleph-node binary to accept some blocks
         uses: ./.github/actions/wait-for-finalized-heads
         with:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
           repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
-          # yamllint disable-line rule:line-length
           json-rpc-endpoint: https://ws-fe-updnet-${{ inputs.name }}.dev.azero.dev
 
       - name: Finish featurenet Deployment
