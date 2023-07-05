@@ -11,60 +11,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check-vars-and-secrets:
+  main:
     name: Check vars and secrets
-    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    uses: ./.github/workflows/_run-button-e2e-tests.yml
+    with:
+      deploy: true
     secrets: inherit
-
-  build-test-node-and-runtime:
-    needs: [check-vars-and-secrets]
-    name: Build test node and runtime
-    uses: ./.github/workflows/_build-test-node-and-runtime.yml
-
-  store-test-node-and-runtime:
-    needs: [build-test-node-and-runtime]
-    name: Store test node and runtime
-    uses: ./.github/workflows/_store-test-node-and-runtime.yml
-    secrets: inherit
-
-  build-test-node-image-and-e2e-client-image:
-    needs: [build-test-node-and-runtime]
-    uses: ./.github/workflows/_build-test-node-and-e2e-client-image.yml
-
-  run-e2e-button-contracts-tests:
-    needs: [build-test-node-image-and-e2e-client-image]
-    name: Run e2e button game contract tests
-    runs-on: [self-hosted, Linux, X64, large]
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v3
-
-      - name: Run e2e test
-        uses: ./.github/actions/run-e2e-test
-        with:
-          deploy-button: true
-          clean-button: true
-          test-case: button
-        timeout-minutes: 20
-
-  deploy-button:
-    name: Deploy the button contracts to devnet and trigger services update
-    needs: [run-e2e-button-contracts-tests]
-    uses: ./.github/workflows/contracts-deploy.yml
-    secrets: inherit
-
-  send-slack-notification:
-    name: Send Slack notification about workflow status
-    runs-on: ubuntu-20.04
-    needs: [deploy-button]
-    if: always()
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Send Slack message
-        uses: ./.github/actions/slack-notification
-        with:
-          notify-on: "failure"
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_TRACK_APPLICATIONS }}

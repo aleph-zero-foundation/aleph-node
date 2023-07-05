@@ -12,6 +12,8 @@ CONTRACTS_PATH=$(pwd)/contracts
 # --- FUNCTIONS
 
 function run_ink_builder() {
+  mkdir -p ~/.cargo/{git,registry}
+
   docker start ink_builder || docker run \
     --network host \
     -v "${PWD}:/code" \

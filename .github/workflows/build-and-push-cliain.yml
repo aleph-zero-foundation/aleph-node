@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-image:
+  main:
     name: Build binary
     runs-on: [self-hosted, Linux, X64, large]
     strategy:
