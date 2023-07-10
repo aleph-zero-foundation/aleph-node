@@ -5,6 +5,7 @@ use log::{debug, error, trace, warn};
 use tokio::time::{interval_at, Instant};
 
 use crate::{
+    metrics::Key,
     network::GossipNetwork,
     sync::{
         data::{
@@ -17,7 +18,7 @@ use crate::{
         BlockIdFor, BlockIdentifier, ChainStatus, ChainStatusNotification, ChainStatusNotifier,
         Finalizer, Header, Justification, JustificationSubmissions, Verifier, LOG_TARGET,
     },
-    SessionPeriod,
+    Metrics, SessionPeriod,
 };
 
 const BROADCAST_COOLDOWN: Duration = Duration::from_millis(200);
@@ -32,6 +33,7 @@ pub struct Service<
     CS: ChainStatus<J>,
     V: Verifier<J>,
     F: Finalizer<J>,
+    H: Key,
 > {
     network: VersionWrapper<J, N>,
     handler: Handler<N::PeerId, J, CS, V, F>,
@@ -40,6 +42,7 @@ pub struct Service<
     chain_events: CE,
     justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
     additional_justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
+    metrics: Metrics<H>,
 }
 
 impl<J: Justification> JustificationSubmissions<J> for mpsc::UnboundedSender<J::Unverified> {
@@ -57,10 +60,12 @@ impl<
         CS: ChainStatus<J>,
         V: Verifier<J>,
         F: Finalizer<J>,
-    > Service<J, N, CE, CS, V, F>
+        H: Key,
+    > Service<J, N, CE, CS, V, F, H>
 {
     /// Create a new service using the provided network for communication. Also returns an
     /// interface for submitting additional justifications.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         network: N,
         chain_events: CE,
@@ -69,6 +74,7 @@ impl<
         finalizer: F,
         period: SessionPeriod,
         additional_justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
+        metrics: Metrics<H>,
     ) -> Result<(Self, impl JustificationSubmissions<J> + Clone), HandlerError<J, CS, V, F>> {
         let network = VersionWrapper::new(network);
         let handler = Handler::new(chain_status, verifier, finalizer, period)?;
@@ -84,6 +90,7 @@ impl<
                 chain_events,
                 justifications_from_user,
                 additional_justifications_from_user,
+                metrics,
             },
             justifications_for_sync,
         ))
@@ -113,6 +120,7 @@ impl<
             }
         };
         trace!(target: LOG_TARGET, "Broadcasting state: {:?}", state);
+        self.metrics.report_sync_broadcast();
         let data = NetworkData::StateBroadcast(state);
         if let Err(e) = self.network.broadcast(data) {
             warn!(target: LOG_TARGET, "Error sending broadcast: {}.", e);
@@ -137,6 +145,7 @@ impl<
         };
         let request = Request::new(block_id, branch_knowledge, state);
         trace!(target: LOG_TARGET, "Sending a request: {:?}", request);
+        self.metrics.report_sync_send_request_for();
         let data = NetworkData::Request(request);
         if let Err(e) = self.network.send_to_random(data, peers) {
             warn!(target: LOG_TARGET, "Error sending request: {}.", e);
@@ -144,6 +153,13 @@ impl<
     }
 
     fn send_to(&mut self, data: NetworkData<J>, peer: N::PeerId) {
+        trace!(
+            target: LOG_TARGET,
+            "Sending data {:?} to peer {:?}",
+            data,
+            peer
+        );
+        self.metrics.report_sync_send_to();
         if let Err(e) = self.network.send_to(data, peer) {
             warn!(target: LOG_TARGET, "Error sending response: {}.", e);
         }
@@ -165,6 +181,7 @@ impl<
             state,
             peer
         );
+        self.metrics.report_sync_handle_state();
         match self.handler.handle_state(state, peer.clone()) {
             Ok(action) => self.perform_sync_action(action, peer),
             Err(e) => warn!(
@@ -184,6 +201,7 @@ impl<
             "Handling {:?} justifications.",
             justifications.len()
         );
+        self.metrics.report_sync_handle_justifications();
         let mut previous_block_id = None;
         for justification in justifications {
             let maybe_block_id = match self
@@ -235,6 +253,7 @@ impl<
             request,
             peer
         );
+        self.metrics.report_sync_handle_request();
         match self.handler.handle_request(request) {
             Ok(action) => self.perform_sync_action(action, peer),
             Err(e) => {
@@ -271,6 +290,7 @@ impl<
 
     fn handle_task(&mut self, block_id: BlockIdFor<J>) {
         trace!(target: LOG_TARGET, "Handling a task for {:?}.", block_id);
+        self.metrics.report_sync_handle_task();
         use Interest::*;
         match self.handler.block_state(&block_id) {
             HighestJustified {
@@ -300,6 +320,7 @@ impl<
         match event {
             BlockImported(header) => {
                 trace!(target: LOG_TARGET, "Handling a new imported block.");
+                self.metrics.report_sync_handle_block_imported();
                 if let Err(e) = self.handler.block_imported(header) {
                     error!(
                         target: LOG_TARGET,
@@ -309,6 +330,7 @@ impl<
             }
             BlockFinalized(_) => {
                 trace!(target: LOG_TARGET, "Handling a new finalized block.");
+                self.metrics.report_sync_handle_block_finalized();
                 if self.broadcast_ticker.try_tick() {
                     self.broadcast();
                 }

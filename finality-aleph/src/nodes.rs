@@ -158,6 +158,7 @@ pub async fn run_validator_node<B, H, C, BE, SC>(
         finalizer,
         session_period,
         justification_rx,
+        metrics.clone(),
     ) {
         Ok(x) => x,
         Err(e) => panic!("Failed to initialize Sync service: {}", e),

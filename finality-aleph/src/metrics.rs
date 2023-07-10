@@ -8,7 +8,7 @@ use std::{
 use log::{trace, warn};
 use lru::LruCache;
 use parking_lot::Mutex;
-use prometheus_endpoint::{register, Gauge, PrometheusError, Registry, U64};
+use prometheus_endpoint::{register, Counter, Gauge, PrometheusError, Registry, U64};
 use sc_service::Arc;
 
 // How many entries (block hash + timestamp) we keep in memory per one checkpoint type.
@@ -26,6 +26,15 @@ struct Inner<H: Key> {
     prev: HashMap<Checkpoint, Checkpoint>,
     gauges: HashMap<Checkpoint, Gauge<U64>>,
     starts: HashMap<Checkpoint, LruCache<H, Instant>>,
+    sync_broadcast_counter: Counter<U64>,
+    sync_send_request_for_counter: Counter<U64>,
+    sync_send_to_counter: Counter<U64>,
+    sync_handle_state_counter: Counter<U64>,
+    sync_handle_justifications_counter: Counter<U64>,
+    sync_handle_request_counter: Counter<U64>,
+    sync_handle_task_counter: Counter<U64>,
+    sync_handle_block_imported_counter: Counter<U64>,
+    sync_handle_block_finalized_counter: Counter<U64>,
 }
 
 impl<H: Key> Inner<H> {
@@ -124,6 +133,24 @@ impl<H: Key> Metrics<H> {
                 .iter()
                 .map(|k| (*k, LruCache::new(MAX_BLOCKS_PER_CHECKPOINT)))
                 .collect(),
+            sync_broadcast_counter: Counter::new("aleph_sync_broadcast", "no help")?,
+            sync_send_request_for_counter: Counter::new("aleph_sync_send_request_for", "no help")?,
+            sync_send_to_counter: Counter::new("aleph_sync_send_to", "no help")?,
+            sync_handle_state_counter: Counter::new("aleph_sync_handle_state", "no help")?,
+            sync_handle_justifications_counter: Counter::new(
+                "aleph_sync_handle_justifications",
+                "no help",
+            )?,
+            sync_handle_request_counter: Counter::new("aleph_sync_handle_request", "no help")?,
+            sync_handle_task_counter: Counter::new("aleph_sync_handle_task", "no help")?,
+            sync_handle_block_imported_counter: Counter::new(
+                "aleph_sync_handle_block_imported",
+                "no help",
+            )?,
+            sync_handle_block_finalized_counter: Counter::new(
+                "aleph_sync_handle_block_finalized",
+                "no help",
+            )?,
         })));
 
         Ok(Metrics { inner })
@@ -139,6 +166,60 @@ impl<H: Key> Metrics<H> {
             inner
                 .lock()
                 .report_block(hash, checkpoint_time, checkpoint_type);
+        }
+    }
+
+    pub fn report_sync_broadcast(&self) {
+        if let Some(inner) = &self.inner {
+            inner.lock().sync_broadcast_counter.inc();
+        }
+    }
+
+    pub fn report_sync_send_request_for(&self) {
+        if let Some(inner) = &self.inner {
+            inner.lock().sync_send_request_for_counter.inc();
+        }
+    }
+
+    pub fn report_sync_send_to(&self) {
+        if let Some(inner) = &self.inner {
+            inner.lock().sync_send_to_counter.inc();
+        }
+    }
+
+    pub fn report_sync_handle_state(&self) {
+        if let Some(inner) = &self.inner {
+            inner.lock().sync_handle_state_counter.inc();
+        }
+    }
+
+    pub fn report_sync_handle_justifications(&self) {
+        if let Some(inner) = &self.inner {
+            inner.lock().sync_handle_justifications_counter.inc();
+        }
+    }
+
+    pub fn report_sync_handle_request(&self) {
+        if let Some(inner) = &self.inner {
+            inner.lock().sync_handle_request_counter.inc();
+        }
+    }
+
+    pub fn report_sync_handle_task(&self) {
+        if let Some(inner) = &self.inner {
+            inner.lock().sync_handle_task_counter.inc();
+        }
+    }
+
+    pub fn report_sync_handle_block_imported(&self) {
+        if let Some(inner) = &self.inner {
+            inner.lock().sync_handle_block_imported_counter.inc();
+        }
+    }
+
+    pub fn report_sync_handle_block_finalized(&self) {
+        if let Some(inner) = &self.inner {
+            inner.lock().sync_handle_block_finalized_counter.inc();
         }
     }
 }
