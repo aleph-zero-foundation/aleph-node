@@ -21,8 +21,8 @@ use crate::{
     Metrics, SessionPeriod,
 };
 
-const BROADCAST_COOLDOWN: Duration = Duration::from_millis(200);
-const BROADCAST_PERIOD: Duration = Duration::from_secs(1);
+const BROADCAST_COOLDOWN: Duration = Duration::from_millis(600);
+const BROADCAST_PERIOD: Duration = Duration::from_secs(5);
 const FINALIZATION_STALL_CHECK_PERIOD: Duration = Duration::from_secs(30);
 
 /// A service synchronizing the knowledge about the chain between the nodes.
