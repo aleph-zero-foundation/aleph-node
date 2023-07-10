@@ -8,8 +8,13 @@ use std::{
 use log::{trace, warn};
 use lru::LruCache;
 use parking_lot::Mutex;
-use prometheus_endpoint::{register, Counter, Gauge, PrometheusError, Registry, U64};
+use prometheus_endpoint::{
+    exponential_buckets, prometheus::HistogramTimer, register, Counter, Gauge, Histogram,
+    HistogramOpts, Opts, PrometheusError, Registry, U64,
+};
 use sc_service::Arc;
+
+use crate::network::Protocol;
 
 // How many entries (block hash + timestamp) we keep in memory per one checkpoint type.
 // Each entry takes 32B (Hash) + 16B (Instant), so a limit of 5000 gives ~234kB (per checkpoint).
@@ -17,8 +22,8 @@ use sc_service::Arc;
 // (e.g. when the gap between checkpoints for a block grows over `MAX_BLOCKS_PER_CHECKPOINT`).
 const MAX_BLOCKS_PER_CHECKPOINT: usize = 5000;
 
-pub trait Key: Hash + Eq + Debug + Copy {}
-impl<T: Hash + Eq + Debug + Copy> Key for T {}
+pub trait Key: Hash + Eq + Debug + Copy + Send + 'static {}
+impl<T: Hash + Eq + Debug + Copy + Send + 'static> Key for T {}
 
 const LOG_TARGET: &str = "aleph-metrics";
 
@@ -35,6 +40,8 @@ struct Inner<H: Key> {
     sync_handle_task_counter: Counter<U64>,
     sync_handle_block_imported_counter: Counter<U64>,
     sync_handle_block_finalized_counter: Counter<U64>,
+
+    network_send_times: HashMap<Protocol, Histogram>,
 }
 
 impl<H: Key> Inner<H> {
@@ -80,6 +87,10 @@ impl<H: Key> Inner<H> {
             }
         }
     }
+
+    fn start_sending_in(&self, protocol: Protocol) -> HistogramTimer {
+        self.network_send_times[&protocol].start_timer()
+    }
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -90,6 +101,15 @@ pub(crate) enum Checkpoint {
     Ordered,
     Aggregating,
     Finalized,
+}
+
+fn protocol_name(protocol: Protocol) -> String {
+    use Protocol::*;
+    match protocol {
+        Authentication => "authentication",
+        BlockSync => "block_sync",
+    }
+    .to_string()
 }
 
 #[derive(Clone)]
@@ -126,6 +146,29 @@ impl<H: Key> Metrics<H> {
             );
         }
 
+        use Protocol::*;
+        let mut network_send_times = HashMap::new();
+        for key in [Authentication, BlockSync] {
+            network_send_times.insert(
+                key,
+                register(
+                    Histogram::with_opts(HistogramOpts {
+                        common_opts: Opts {
+                            namespace: "gossip_network".to_string(),
+                            subsystem: protocol_name(key),
+                            name: "send_duration".to_string(),
+                            help: "How long did it take for substrate to send a message."
+                                .to_string(),
+                            const_labels: Default::default(),
+                            variable_labels: Default::default(),
+                        },
+                        buckets: exponential_buckets(0.001, 1.26, 30)?,
+                    })?,
+                    registry,
+                )?,
+            );
+        }
+
         let inner = Some(Arc::new(Mutex::new(Inner {
             prev,
             gauges,
@@ -133,24 +176,43 @@ impl<H: Key> Metrics<H> {
                 .iter()
                 .map(|k| (*k, LruCache::new(MAX_BLOCKS_PER_CHECKPOINT)))
                 .collect(),
-            sync_broadcast_counter: Counter::new("aleph_sync_broadcast", "no help")?,
-            sync_send_request_for_counter: Counter::new("aleph_sync_send_request_for", "no help")?,
-            sync_send_to_counter: Counter::new("aleph_sync_send_to", "no help")?,
-            sync_handle_state_counter: Counter::new("aleph_sync_handle_state", "no help")?,
-            sync_handle_justifications_counter: Counter::new(
-                "aleph_sync_handle_justifications",
-                "no help",
+            sync_broadcast_counter: register(
+                Counter::new("aleph_sync_broadcast", "no help")?,
+                registry,
             )?,
-            sync_handle_request_counter: Counter::new("aleph_sync_handle_request", "no help")?,
-            sync_handle_task_counter: Counter::new("aleph_sync_handle_task", "no help")?,
-            sync_handle_block_imported_counter: Counter::new(
-                "aleph_sync_handle_block_imported",
-                "no help",
+            sync_send_request_for_counter: register(
+                Counter::new("aleph_sync_send_request_for", "no help")?,
+                registry,
             )?,
-            sync_handle_block_finalized_counter: Counter::new(
-                "aleph_sync_handle_block_finalized",
-                "no help",
+            sync_send_to_counter: register(
+                Counter::new("aleph_sync_send_to", "no help")?,
+                registry,
             )?,
+            sync_handle_state_counter: register(
+                Counter::new("aleph_sync_handle_state", "no help")?,
+                registry,
+            )?,
+            sync_handle_justifications_counter: register(
+                Counter::new("aleph_sync_handle_justifications", "no help")?,
+                registry,
+            )?,
+            sync_handle_request_counter: register(
+                Counter::new("aleph_sync_handle_request", "no help")?,
+                registry,
+            )?,
+            sync_handle_task_counter: register(
+                Counter::new("aleph_sync_handle_task", "no help")?,
+                registry,
+            )?,
+            sync_handle_block_imported_counter: register(
+                Counter::new("aleph_sync_handle_block_imported", "no help")?,
+                registry,
+            )?,
+            sync_handle_block_finalized_counter: register(
+                Counter::new("aleph_sync_handle_block_finalized", "no help")?,
+                registry,
+            )?,
+            network_send_times,
         })));
 
         Ok(Metrics { inner })
@@ -221,6 +283,12 @@ impl<H: Key> Metrics<H> {
         if let Some(inner) = &self.inner {
             inner.lock().sync_handle_block_finalized_counter.inc();
         }
+    }
+
+    pub fn start_sending_in(&self, protocol: Protocol) -> Option<HistogramTimer> {
+        self.inner
+            .as_ref()
+            .map(|inner| inner.lock().start_sending_in(protocol))
     }
 }
 

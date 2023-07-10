@@ -1,6 +1,6 @@
 //! Module to glue legacy and current version of the aggregator;
 
-use std::{fmt::Debug, hash::Hash, marker::PhantomData, time::Instant};
+use std::{marker::PhantomData, time::Instant};
 
 use current_aleph_aggregator::NetworkError as CurrentNetworkError;
 use legacy_aleph_aggregator::NetworkError as LegacyNetworkError;
@@ -9,7 +9,7 @@ use sp_runtime::traits::Block;
 use crate::{
     abft::SignatureSet,
     crypto::Signature,
-    metrics::Checkpoint,
+    metrics::{Checkpoint, Key},
     mpsc,
     network::{
         data::{Network, SendError},
@@ -175,13 +175,13 @@ impl<D: Data, N: Network<D>> NetworkWrapper<D, N> {
     }
 }
 
-impl<H: Debug + Hash + Eq + Debug + Copy> legacy_aleph_aggregator::Metrics<H> for Metrics<H> {
+impl<H: Key> legacy_aleph_aggregator::Metrics<H> for Metrics<H> {
     fn report_aggregation_complete(&mut self, h: H) {
         self.report_block(h, Instant::now(), Checkpoint::Aggregating);
     }
 }
 
-impl<H: Debug + Hash + Eq + Debug + Copy> current_aleph_aggregator::Metrics<H> for Metrics<H> {
+impl<H: Key> current_aleph_aggregator::Metrics<H> for Metrics<H> {
     fn report_aggregation_complete(&mut self, h: H) {
         self.report_block(h, Instant::now(), Checkpoint::Aggregating);
     }
