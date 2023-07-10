@@ -9,10 +9,9 @@ use futures::{channel::mpsc, StreamExt};
 use log::{debug, error, info, trace, warn};
 use network_clique::SpawnHandleT;
 use rand::{seq::IteratorRandom, thread_rng};
-use sc_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnboundedSender};
 use tokio::time;
 
-const QUEUE_SIZE_WARNING: usize = 1_000;
+const MAX_QUEUE_SIZE: usize = 1_000;
 
 use crate::{
     network::{
@@ -41,9 +40,9 @@ pub struct Service<N: RawNetwork, AD: Data, BSD: Data> {
     messages_for_authentication_user: mpsc::UnboundedSender<(AD, N::PeerId)>,
     messages_for_block_sync_user: mpsc::UnboundedSender<(BSD, N::PeerId)>,
     authentication_connected_peers: HashSet<N::PeerId>,
-    authentication_peer_senders: HashMap<N::PeerId, TracingUnboundedSender<AD>>,
+    authentication_peer_senders: HashMap<N::PeerId, mpsc::Sender<AD>>,
     block_sync_connected_peers: HashSet<N::PeerId>,
-    block_sync_peer_senders: HashMap<N::PeerId, TracingUnboundedSender<BSD>>,
+    block_sync_peer_senders: HashMap<N::PeerId, mpsc::Sender<BSD>>,
     spawn_handle: SpawnHandle,
 }
 
@@ -149,24 +148,18 @@ impl<N: RawNetwork, AD: Data, BSD: Data> Service<N, AD, BSD> {
         )
     }
 
-    fn get_authentication_sender(
-        &mut self,
-        peer: &N::PeerId,
-    ) -> Option<&mut TracingUnboundedSender<AD>> {
+    fn get_authentication_sender(&mut self, peer: &N::PeerId) -> Option<&mut mpsc::Sender<AD>> {
         self.authentication_peer_senders.get_mut(peer)
     }
 
-    fn get_block_sync_sender(
-        &mut self,
-        peer: &N::PeerId,
-    ) -> Option<&mut TracingUnboundedSender<BSD>> {
+    fn get_block_sync_sender(&mut self, peer: &N::PeerId) -> Option<&mut mpsc::Sender<BSD>> {
         self.block_sync_peer_senders.get_mut(peer)
     }
 
     fn peer_sender<D: Data>(
         &self,
         peer_id: N::PeerId,
-        mut receiver: TracingUnboundedReceiver<D>,
+        mut receiver: mpsc::Receiver<D>,
         protocol: Protocol,
     ) -> impl Future<Output = ()> + Send + 'static {
         let network = self.network.clone();
@@ -200,11 +193,18 @@ impl<N: RawNetwork, AD: Data, BSD: Data> Service<N, AD, BSD> {
     fn send_to_authentication_peer(&mut self, data: AD, peer: N::PeerId) -> Result<(), SendError> {
         match self.get_authentication_sender(&peer) {
             Some(sender) => {
-                match sender.unbounded_send(data) {
+                match sender.try_send(data) {
                     Err(e) => {
+                        if e.is_full() {
+                            warn!(
+                                target: "aleph-network",
+                                "Failed sending data through authentication notification channel to peer because peer_sender receiver is full: {:?}",
+                                peer
+                            );
+                        }
                         // Receiver can also be dropped when thread cannot send to peer. In case receiver is dropped this entry will be removed by Event::NotificationStreamClosed
                         // No need to remove the entry here
-                        if e.is_closed() {
+                        if e.is_disconnected() {
                             trace!(target: "aleph-network", "Failed sending data to peer because peer_sender receiver is dropped: {:?}", peer);
                         }
                         Err(SendError::SendingFailed)
@@ -219,11 +219,18 @@ impl<N: RawNetwork, AD: Data, BSD: Data> Service<N, AD, BSD> {
     fn send_to_block_sync_peer(&mut self, data: BSD, peer: N::PeerId) -> Result<(), SendError> {
         match self.get_block_sync_sender(&peer) {
             Some(sender) => {
-                match sender.unbounded_send(data) {
+                match sender.try_send(data) {
                     Err(e) => {
                         // Receiver can also be dropped when thread cannot send to peer. In case receiver is dropped this entry will be removed by Event::NotificationStreamClosed
                         // No need to remove the entry here
-                        if e.is_closed() {
+                        if e.is_full() {
+                            warn!(
+                                target: "aleph-network",
+                                "Failed sending data in block sync notification channel to peer because peer_sender receiver is full: {:?}",
+                                peer
+                            );
+                        }
+                        if e.is_disconnected() {
                             trace!(target: "aleph-network", "Failed sending data to peer because peer_sender receiver is dropped: {:?}", peer);
                         }
                         Err(SendError::SendingFailed)
@@ -313,10 +320,7 @@ impl<N: RawNetwork, AD: Data, BSD: Data> Service<N, AD, BSD> {
                 trace!(target: "aleph-network", "StreamOpened event for peer {:?} and the protocol {:?}.", peer, protocol);
                 match protocol {
                     Protocol::Authentication => {
-                        let (tx, rx) = tracing_unbounded(
-                            "mpsc_notification_stream_authentication",
-                            QUEUE_SIZE_WARNING,
-                        );
+                        let (tx, rx) = mpsc::channel(MAX_QUEUE_SIZE);
                         self.authentication_connected_peers.insert(peer.clone());
                         self.authentication_peer_senders.insert(peer.clone(), tx);
                         self.spawn_handle.spawn(
@@ -325,10 +329,7 @@ impl<N: RawNetwork, AD: Data, BSD: Data> Service<N, AD, BSD> {
                         );
                     }
                     Protocol::BlockSync => {
-                        let (tx, rx) = tracing_unbounded(
-                            "mpsc_notification_stream_block_sync",
-                            QUEUE_SIZE_WARNING,
-                        );
+                        let (tx, rx) = mpsc::channel(MAX_QUEUE_SIZE);
                         self.block_sync_connected_peers.insert(peer.clone());
                         self.block_sync_peer_senders.insert(peer.clone(), tx);
                         self.spawn_handle.spawn(
