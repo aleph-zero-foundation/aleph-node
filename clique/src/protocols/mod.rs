@@ -46,6 +46,8 @@ pub enum ProtocolError<PK: PublicKey> {
     NoUserConnection,
     /// Authorization error.
     NotAuthorized,
+    /// Send operation took too long
+    SendTimeout,
 }
 
 impl<PK: PublicKey> Display for ProtocolError<PK> {
@@ -59,6 +61,7 @@ impl<PK: PublicKey> Display for ProtocolError<PK> {
             NoParentConnection => write!(f, "cannot send result to service"),
             NoUserConnection => write!(f, "cannot send data to user"),
             NotAuthorized => write!(f, "peer not authorized"),
+            SendTimeout => write!(f, "send timed out"),
         }
     }
 }

@@ -54,7 +54,12 @@ async fn sending<PK: PublicKey, D: Data, S: AsyncWrite + Unpin + Send>(
             },
             _ => Heartbeat,
         };
-        sender = send_data(sender, to_send).await?;
+        sender = timeout(
+            MAX_MISSED_HEARTBEATS * HEARTBEAT_TIMEOUT,
+            send_data(sender, to_send),
+        )
+        .await
+        .map_err(|_| ProtocolError::SendTimeout)??;
     }
 }
 
