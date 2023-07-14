@@ -61,7 +61,7 @@ pub enum Error {
     IncorrectParentState,
     IncorrectVertexState,
     ParentNotImported,
-    Special(SpecialState),
+    TooNew,
 }
 
 impl Display for Error {
@@ -78,19 +78,7 @@ impl Display for Error {
             ParentNotImported => {
                 write!(f, "parent was not imported when attempting to import block")
             }
-            Special(state) => write!(f, "block is in special state: {}", state),
-        }
-    }
-}
-
-impl Display for SpecialState {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
-        use SpecialState::*;
-        match self {
-            HopelessFork => write!(f, "on hopeless fork"),
-            BelowMinimal => write!(f, "below minimal"),
-            HighestFinalized => write!(f, "highest finalized"),
-            TooNew => write!(f, "too new"),
+            TooNew => write!(f, "block is too new"),
         }
     }
 }
@@ -116,7 +104,7 @@ where
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
         match self {
             InitializationError::Error(e) => match e {
-                Error::Special(SpecialState::TooNew) => write!(f, "there are more imported non-finalized blocks in the database that can fit into the forest – purge the block database and restart the node"),
+                Error::TooNew => write!(f, "there are more imported non-finalized blocks in the database that can fit into the forest – purge the block database and restart the node"),
                 e => write!(f, "{}", e),
             },
             InitializationError::ChainStatus(e) => write!(f, "chain status error: {}", e),
@@ -303,15 +291,18 @@ where
     }
 
     fn insert_id(&mut self, id: BlockIdFor<J>, holder: Option<I>) -> Result<(), Error> {
-        if let Some(state) = self.special_state(&id) {
-            return Err(Error::Special(state));
+        match self.special_state(&id) {
+            Some(SpecialState::TooNew) => Err(Error::TooNew),
+            Some(_) => Ok(()),
+            _ => {
+                self.vertices
+                    .entry(id)
+                    .or_insert_with(VertexWithChildren::new)
+                    .vertex
+                    .add_block_holder(holder);
+                Ok(())
+            }
         }
-        self.vertices
-            .entry(id)
-            .or_insert_with(VertexWithChildren::new)
-            .vertex
-            .add_block_holder(holder);
-        Ok(())
     }
 
     fn process_header(&mut self, header: &J::Header) -> Result<Edge<J>, Error> {
@@ -563,7 +554,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{Error, Forest, Interest::*, SpecialState, MAX_DEPTH};
+    use super::{Error, Forest, Interest::*, MAX_DEPTH};
     use crate::sync::{
         data::BranchKnowledge::*,
         mock::{Backend, MockHeader, MockJustification, MockPeerId},
@@ -633,7 +624,7 @@ mod tests {
         let peer_id = rand::random();
         assert!(matches!(
             forest.update_block_identifier(&too_high.id(), Some(peer_id), true),
-            Err(Error::Special(SpecialState::TooNew))
+            Err(Error::TooNew)
         ));
     }
 
@@ -858,7 +849,7 @@ mod tests {
         assert!(!forest.importable(&fork_child.id()));
         assert_eq!(
             forest.update_header(&fork_child, Some(fork_peer_id), true),
-            Err(Error::Special(SpecialState::BelowMinimal))
+            Ok(false)
         );
     }
 
