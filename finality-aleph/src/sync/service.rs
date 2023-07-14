@@ -20,8 +20,8 @@ use crate::{
     },
 };
 
-const BROADCAST_COOLDOWN: Duration = Duration::from_millis(200);
-const BROADCAST_PERIOD: Duration = Duration::from_secs(1);
+const BROADCAST_COOLDOWN: Duration = Duration::from_millis(600);
+const BROADCAST_PERIOD: Duration = Duration::from_secs(5);
 
 /// A service synchronizing the knowledge about the chain between the nodes.
 pub struct Service<B, J, N, CE, CS, V, F, BI>
