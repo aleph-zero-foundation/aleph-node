@@ -4,9 +4,11 @@ import os.path as op
 import re
 import requests
 import subprocess
+import time
 
+from substrateinterface import SubstrateInterface, Keypair
 
-from .utils import flags_from_dict
+from .utils import flags_from_dict, check_file, check_finalized
 
 
 class Node:
@@ -15,7 +17,8 @@ class Node:
     `chainspec` should be a path to a file with chainspec,
     `path` should point to a folder where the node's base path is."""
 
-    def __init__(self, binary, chainspec, path, logdir=None):
+    def __init__(self, idx, binary, chainspec, path, logdir=None):
+        self.idx = idx
         self.chainspec = chainspec
         self.binary = binary
         self.path = path
@@ -36,17 +39,20 @@ class Node:
 
     def start(self, name, backup=True):
         """Start the node. `name` is used to name the logfile and for the --name flag."""
+        if self.running:
+            print('Node already running')
+            return
+        name = f'{name}{self.idx}'
         cmd = [self.binary, '--name', name] + self._stdargs() + self._nodeargs(backup) + flags_from_dict(self.flags)
-
         self.logfile = op.join(self.logdir, name + '.log')
         with open(self.logfile, 'w', encoding='utf-8') as logfile:
             self.process = subprocess.Popen(cmd, stderr=logfile, stdout=subprocess.DEVNULL)
         self.running = True
 
     def stop(self):
-        """Stop the node by sending SIGKILL."""
+        """Stop the node by sending SIGTERM."""
         if self.running:
-            self.process.kill()
+            self.process.terminate()
             self.running = False
 
     def purge(self):
@@ -150,3 +156,33 @@ class Node:
             else:
                 return None
         return f'localhost:{port}'
+
+    def change_binary(self, new_binary, name, purge=False):
+        """Stop the node and change its binary to `new_binary`.
+        Optionally `purge` node's database.
+        Restart the node with new `name`.
+        Returns the highest finalized block seen by node before shutdown."""
+        new_binary = check_file(new_binary)
+        self.stop()
+        time.sleep(5)
+        highest_finalized = check_finalized([self])[0]
+        if purge:
+            self.purge()
+        self.binary = new_binary
+        self.start(name)
+        return highest_finalized
+
+    def update_runtime(self, runtime_path, sudo_phrase):
+        """Compose and submit `set_code` extrinsic containing runtime from supplied `runtime_path`.
+        `sudo_phrase` should be the seed phrase for chain's sudo account.
+        Returns an instance of ExtrinsicReceipt."""
+        with open(check_file(runtime_path), 'rb') as file:
+            runtime = file.read()
+        port = self.ws_port()
+        subint = SubstrateInterface(url=f'ws://localhost:{port}', ss58_format=42)
+        set_code_call = subint.compose_call(call_module='System', call_function='set_code', call_params={'code': runtime})
+        zero_weight = {"proof_size":0, "ref_time":0}
+        sudo_call = subint.compose_call(call_module='Sudo', call_function='sudo_unchecked_weight', call_params={'call': set_code_call, 'weight':zero_weight})
+        extrinsic = subint.create_signed_extrinsic(call=sudo_call, keypair=Keypair.create_from_uri(sudo_phrase))
+        receipt = subint.submit_extrinsic(extrinsic, wait_for_inclusion=True)
+        return receipt

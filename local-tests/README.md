@@ -6,6 +6,8 @@ The contents are:
 
 2. `run_nodes.py` - an example script showing how to use the `chainrunner` package. It mimics the behavior of `run_nodes.sh`
 
-3`test_catch_up.py` - a script simulating nodes disconnecting from the chain for couple sessions and then reconnecting.
+3. `test_catch_up.py` - a script simulating nodes disconnecting from the chain for couple sessions and then reconnecting.
 
-4`test_multiple_restarts.py` - a script simulating repeated crash and recovery of a single validator within one session.
+4. `test_multiple_restarts.py` - a script simulating repeated crash and recovery of a single validator within one session.
+
+5. `rolling_update.ipynb` - interactive testing tool for various scenarios of rolling update of the whole chain. Needs to be run via Jupyter (https://jupyter.org/). Please customize constants in the top cell before executing.

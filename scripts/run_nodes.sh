@@ -72,7 +72,7 @@ done
 
 bootnodes=""
 for i in 0 1; do
-    bootnodes+=${addresses[i]}
+    bootnodes+="${addresses[i]} "
 done
 
 run_node() {

@@ -11,7 +11,7 @@ def generate_keys(binary, phrases):
     Returns an ordered dictionary with phrases as keys and corresponding public keys as values.
     The order follows the order in `phrases`.
     """
-    check_file(binary)
+    binary = check_file(binary)
     regexp = re.compile(r'SS58 Address:\s*(\w+)$', re.MULTILINE)
     res = OrderedDict()
     for p in phrases:
@@ -23,6 +23,7 @@ def generate_keys(binary, phrases):
 
 def check_file(path):
     """Ensure the provided path points to an existing file."""
+    path = op.expandvars(path)
     if not op.isfile(path):
         raise FileNotFoundError(f'file not found: {path}')
     return path
@@ -39,7 +40,11 @@ def flags_from_dict(d):
     for k, v in d.items():
         res.append(flag(k))
         if v is not True:
-            res.append(str(v))
+            val = str(v)
+            if ' ' in val:
+                res += val.split(' ')
+            else:
+                res.append(val)
     return res
 
 
@@ -47,10 +52,9 @@ def check_finalized(nodes):
     """Check nodes stats, print them and return finalized block number per node"""
     results = [node.highest_block() for node in nodes]
     highest, finalized = zip(*results)
-    print('Blocks seen by nodes:')
+    print('Blocks seen:')
     print('  Highest:   ', *highest)
     print('  Finalized: ', *finalized)
-
     return finalized
 
 
@@ -60,6 +64,7 @@ def check_version(nodes, verbose=False):
     If multiple runtime versions are reported, print error and return the maximum.
     If `verbose` is True, print the whole RPC response."""
     versions = set()
+    print('Node versions:')
     for i, node in enumerate(nodes):
         sysver = node.rpc('system_version').result
         resp = node.rpc('state_getRuntimeVersion')

@@ -1,10 +1,10 @@
 import os
-import os.path as op
 import subprocess
 import time
+from os.path import join, abspath
 
 from .node import Node
-from .utils import flags_from_dict, check_file
+from .utils import flags_from_dict, check_file, check_finalized, check_version
 
 
 # Seq is a wrapper type around int for supplying numerical parameters
@@ -20,7 +20,7 @@ class Chain:
 
     def __init__(self, workdir):
         os.makedirs(workdir, exist_ok=True)
-        self.path = op.abspath(workdir)
+        self.path = abspath(workdir)
         self.nodes = []
         self.validator_nodes = []
         self.nonvalidator_nodes = []
@@ -36,28 +36,26 @@ class Chain:
         with public keys. Flags `--account-ids`, `--base-path` and `--raw` are added automatically.
         All other flags are taken from kwargs"""
         nonvalidators = nonvalidators or []
-        cmd = [check_file(binary),
-               'bootstrap-chain',
+        binary = check_file(binary)
+        cmd = [binary, 'bootstrap-chain',
                '--base-path', self.path,
                '--account-ids', ','.join(validators)]
         if raw:
             cmd.append('--raw')
         cmd += flags_from_dict(kwargs)
 
-        chainspec = op.join(self.path, 'chainspec.json')
+        chainspec = join(self.path, 'chainspec.json')
         with open(chainspec, 'w', encoding='utf-8') as f:
             subprocess.run(cmd, stdout=f, check=True)
 
         for nv in nonvalidators:
-            cmd = [check_file(binary),
-                   'bootstrap-node',
-                   '--base-path', op.join(self.path, nv),
+            cmd = [binary, 'bootstrap-node',
+                   '--base-path', join(self.path, nv),
                    '--account-id', nv]
             subprocess.run(cmd, stdout=subprocess.DEVNULL, check=True)
 
-        new_node = lambda x: Node(binary, chainspec, op.join(self.path, x), self.path)
-        self.validator_nodes = [new_node(a) for a in validators]
-        self.nonvalidator_nodes = [new_node(a) for a in nonvalidators]
+        self.validator_nodes = [Node(i, binary, chainspec, join(self.path, v), self.path) for (i,v) in enumerate(validators)]
+        self.nonvalidator_nodes = [Node(i+len(validators), binary, chainspec, join(self.path, nv), self.path) for (i,nv) in enumerate(nonvalidators)]
 
         self.nodes = self.validator_nodes + self.nonvalidator_nodes
 
@@ -112,7 +110,7 @@ class Chain:
         """Replace nodes' binary with `binary`. Optional `nodes` argument can be used to specify
         which nodes are affected and should be a list of integer indices (0..N-1).
         Affects all nodes if omitted."""
-        check_file(binary)
+        binary = check_file(binary)
         idx = nodes or range(len(self.nodes))
         for i in idx:
             self.nodes[i].binary = binary
@@ -141,7 +139,7 @@ class Chain:
         a list of integer indices (0..N-1). Affects all nodes if omitted."""
         idx = nodes or range(len(self.nodes))
         for i in idx:
-            self.nodes[i].start(name + str(i), backup)
+            self.nodes[i].start(name, backup)
 
     def stop(self, nodes=None):
         """Stop the chain. Optional `nodes` argument can be used to specify which nodes are affected
@@ -149,6 +147,11 @@ class Chain:
         idx = nodes or range(len(self.nodes))
         for i in idx:
             self.nodes[i].stop()
+
+    def status(self):
+        """Prints to stdout basic status check of the chain: blocks seen by nodes and binaries versions."""
+        check_finalized(self)
+        check_version(self)
 
     def purge(self, nodes=None):
         """Delete the database of the chosen nodes. Optional `nodes` argument can be used to specify
@@ -158,25 +161,21 @@ class Chain:
         for i in idx:
             self.nodes[i].purge()
 
-    def fork(self, forkoff_path, ws_endpoint):
+    def fork(self, forkoff_path, ws_endpoint, snapshot_file=None):
         """Replace the chainspec of this chain with the state forked from the given `ws_endpoint`.
         This method should be run after bootstrapping the chain, but before starting it.
         'forkoff_path' should be a path to fork-off binary."""
-        forked = op.join(self.path, 'forked.json')
+        forked = join(self.path, 'forked.json')
+        chainspec = join(self.path, 'chainspec.json')
+        snapshot = snapshot_file if snapshot_file else join(self.path, 'snapshot.json')
         cmd = [check_file(forkoff_path), '--ws-rpc-endpoint', ws_endpoint,
-                '--initial-spec-path', op.join(self.path, 'chainspec.json'),
-                '--snapshot-path', op.join(self.path, 'snapshot.json'),
+                '--initial-spec-path', chainspec,
+                '--snapshot-path', snapshot,
                 '--combined-spec-path', forked]
+        if snapshot_file:
+            cmd.append('--use-snapshot-file')
         subprocess.run(cmd, check=True)
         self.set_chainspec(forked)
-
-    def update_runtime(self, cliain_path, sudo_phrase, runtime):
-        """Send set_code extrinsic with runtime update.
-        Requires a path to `cliain` binary, a path to new WASM runtime and the sudo phrase."""
-        port = self.nodes[0].ws_port()
-        cmd = [check_file(cliain_path), '--node', f'localhost:{port}', '--seed', sudo_phrase,
-                'update-runtime', '--runtime', check_file(runtime)]
-        subprocess.run(cmd, check=True)
 
     def wait_for_finalization(self, old_finalized, nodes=None, timeout=600, finalized_delta=3, catchup=True, catchup_delta=10):
         """Wait for finalization to catch up with the newest blocks. Requires providing the number
