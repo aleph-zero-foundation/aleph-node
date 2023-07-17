@@ -67,6 +67,12 @@ impl<J: Justification> Request<J> {
     pub fn state(&self) -> &State<J> {
         &self.state
     }
+    pub fn target_id(&self) -> &BlockIdFor<J> {
+        &self.target_id
+    }
+    pub fn branch_knowledge(&self) -> &BranchKnowledge<J> {
+        &self.branch_knowledge
+    }
 }
 
 /// Data to be sent over the network.
