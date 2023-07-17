@@ -22,8 +22,7 @@ pub use compatibility::OldSyncCompatibleRequestBlocks;
 pub use service::{DatabaseIO, Service};
 pub use substrate::{
     Justification as SubstrateJustification, JustificationTranslator, SessionVerifier,
-    SubstrateChainStatus, SubstrateChainStatusNotifier, SubstrateFinalizationInfo,
-    SubstrateSyncBlock, VerifierCache,
+    SubstrateChainStatus, SubstrateChainStatusNotifier, SubstrateFinalizationInfo, VerifierCache,
 };
 
 use crate::BlockIdentifier;

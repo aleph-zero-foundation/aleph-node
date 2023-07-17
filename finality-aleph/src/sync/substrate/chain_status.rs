@@ -11,11 +11,11 @@ use sp_runtime::traits::{Block as SubstrateBlock, Header as SubstrateHeader};
 
 use crate::{
     aleph_primitives::{
-        Block as AlephBlock, BlockNumber, Hash as AlephHash, Header as AlephHeader, ALEPH_ENGINE_ID,
+        Block, BlockNumber, Hash as AlephHash, Header as AlephHeader, ALEPH_ENGINE_ID,
     },
     justification::backwards_compatible_decode,
     sync::{
-        substrate::{BlockId, Justification, SubstrateSyncBlock},
+        substrate::{BlockId, Justification},
         BlockIdFor, BlockStatus, ChainStatus, FinalizationStatus, Header, LOG_TARGET,
     },
 };
@@ -74,12 +74,12 @@ impl From<BackendError> for Error {
 /// Substrate implementation of ChainStatus trait
 #[derive(Clone)]
 pub struct SubstrateChainStatus {
-    backend: Arc<TFullBackend<AlephBlock>>,
+    backend: Arc<TFullBackend<Block>>,
     genesis_header: AlephHeader,
 }
 
 impl SubstrateChainStatus {
-    pub fn new(backend: Arc<TFullBackend<AlephBlock>>) -> Result<Self, Error> {
+    pub fn new(backend: Arc<TFullBackend<Block>>) -> Result<Self, Error> {
         let hash = backend.blockchain().hash(0)?.ok_or(Error::NoGenesisBlock)?;
         let genesis_header = backend
             .blockchain()
@@ -91,7 +91,7 @@ impl SubstrateChainStatus {
         })
     }
 
-    fn info(&self) -> Info<AlephBlock> {
+    fn info(&self) -> Info<Block> {
         self.backend.blockchain().info()
     }
 
@@ -106,12 +106,8 @@ impl SubstrateChainStatus {
     fn body_for_hash(
         &self,
         hash: AlephHash,
-    ) -> Result<Option<Vec<<AlephBlock as SubstrateBlock>::Extrinsic>>, BackendError> {
+    ) -> Result<Option<Vec<<Block as SubstrateBlock>::Extrinsic>>, BackendError> {
         self.backend.blockchain().body(hash)
-    }
-
-    fn indexed_body_for_hash(&self, hash: AlephHash) -> Result<Option<Vec<Vec<u8>>>, BackendError> {
-        self.backend.blockchain().block_indexed_body(hash)
     }
 
     fn header(&self, id: &BlockIdFor<Justification>) -> Result<Option<AlephHeader>, Error> {
@@ -166,7 +162,7 @@ impl SubstrateChainStatus {
     }
 }
 
-impl ChainStatus<SubstrateSyncBlock, Justification> for SubstrateChainStatus {
+impl ChainStatus<Block, Justification> for SubstrateChainStatus {
     type Error = Error;
 
     fn finalized_at(
@@ -192,10 +188,7 @@ impl ChainStatus<SubstrateSyncBlock, Justification> for SubstrateChainStatus {
         }
     }
 
-    fn block(
-        &self,
-        id: BlockIdFor<Justification>,
-    ) -> Result<Option<SubstrateSyncBlock>, Self::Error> {
+    fn block(&self, id: BlockIdFor<Justification>) -> Result<Option<Block>, Self::Error> {
         let header = match self.header(&id)? {
             Some(header) => header,
             None => return Ok(None),
@@ -204,11 +197,7 @@ impl ChainStatus<SubstrateSyncBlock, Justification> for SubstrateChainStatus {
             Some(body) => body,
             None => return Err(Error::MissingBody(id.hash)),
         };
-        let indexed_body = self.indexed_body_for_hash(id.hash)?;
-        Ok(Some(SubstrateSyncBlock {
-            inner: AlephBlock::new(header, body),
-            indexed_body,
-        }))
+        Ok(Some(Block::new(header, body)))
     }
 
     fn status_of(

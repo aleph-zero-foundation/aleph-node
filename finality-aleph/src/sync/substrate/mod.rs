@@ -1,6 +1,3 @@
-use std::fmt::Debug;
-
-use parity_scale_codec::{Decode, Encode};
 use sc_consensus::import_queue::{ImportQueueService, IncomingBlock};
 use sp_consensus::BlockOrigin;
 use sp_runtime::traits::{CheckedSub, Header as _, One};
@@ -24,24 +21,17 @@ pub use justification::{
 pub use status_notifier::SubstrateChainStatusNotifier;
 pub use verification::{SessionVerifier, SubstrateFinalizationInfo, VerifierCache};
 
-/// Contains the actual Substrate Block and all additional data required for Substrate sync.
-#[derive(Clone, Debug, Encode, Decode)]
-pub struct SubstrateSyncBlock {
-    inner: Block,
-    indexed_body: Option<Vec<Vec<u8>>>,
-}
-
 /// Wrapper around the trait object that we get from Substrate.
 pub struct BlockImporter(pub Box<dyn ImportQueueService<Block>>);
 
-impl BlockImport<SubstrateSyncBlock> for BlockImporter {
-    fn import_block(&mut self, block: SubstrateSyncBlock) {
+impl BlockImport<Block> for BlockImporter {
+    fn import_block(&mut self, block: Block) {
         let origin = BlockOrigin::NetworkBroadcast;
         let incoming_block = IncomingBlock::<Block> {
-            hash: block.inner.header.hash(),
-            header: Some(block.inner.header),
-            body: Some(block.inner.extrinsics),
-            indexed_body: block.indexed_body,
+            hash: block.header.hash(),
+            header: Some(block.header),
+            body: Some(block.extrinsics),
+            indexed_body: None,
             justifications: None,
             origin: None,
             allow_missing_state: false,
@@ -72,11 +62,11 @@ impl HeaderT for Header {
     }
 }
 
-impl BlockT for SubstrateSyncBlock {
+impl BlockT for Block {
     type Header = Header;
 
     /// The header of the block.
     fn header(&self) -> &Self::Header {
-        &self.inner.header
+        &self.header
     }
 }
