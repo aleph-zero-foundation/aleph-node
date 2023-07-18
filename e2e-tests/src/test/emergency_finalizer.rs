@@ -128,13 +128,7 @@ async fn chain_dead_scenario() -> anyhow::Result<()> {
     while current_era == connection.get_active_era(Some(last_finalized)).await {
         let last_best_block = connection.get_best_block().await?.unwrap();
         let last_best_block = connection.get_block_hash(last_best_block).await?.unwrap();
-        finalize_from_to(
-            &connection,
-            last_finalized,
-            last_best_block,
-            finalizer.clone(),
-        )
-        .await?;
+        finalize_from_to(&connection, last_finalized, last_best_block, finalizer).await?;
         sleep(Duration::from_secs(40));
 
         last_finalized = connection.get_finalized_block_hash().await?;

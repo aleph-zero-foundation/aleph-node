@@ -33,7 +33,7 @@ fn as_hex<T: ToString + ?Sized>(t: &T) -> String {
     if s.starts_with("0x") {
         s
     } else {
-        format!("0x{}", s)
+        format!("0x{s}")
     }
 }
 

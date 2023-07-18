@@ -323,7 +323,7 @@ where
             .await
         {
             Ok(data_network) => data_network,
-            Err(e) => panic!("Failed to start validator session: {}", e),
+            Err(e) => panic!("Failed to start validator session: {e}"),
         };
 
         let last_block_of_previous_session = session_boundaries.first_block().saturating_sub(1);
@@ -372,8 +372,7 @@ where
             }
             Ok(version) if version > CURRENT_VERSION as u32 => {
                 panic!(
-                    "Too new version {}. Supported versions: {} or {}. Probably outdated node.",
-                    version, LEGACY_VERSION, CURRENT_VERSION
+                    "Too new version {version}. Supported versions: {LEGACY_VERSION} or {CURRENT_VERSION}. Probably outdated node."
                 )
             }
             Ok(version) => {

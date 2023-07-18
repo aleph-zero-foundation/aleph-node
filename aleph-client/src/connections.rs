@@ -369,7 +369,7 @@ impl Connection {
             let client = SubxtClient::from_url(&address).await;
             match (retries, client) {
                 (_, Ok(client)) => return Connection { client },
-                (0, Err(e)) => panic!("{:?}", e),
+                (0, Err(e)) => panic!("{e:?}"),
                 _ => {
                     sleep(Duration::from_secs(Self::RETRY_WAIT_SECS));
                     retries -= 1;

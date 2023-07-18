@@ -342,7 +342,7 @@ pub(super) async fn wait_for_death<C: ConnectionApi>(
 
     while iters <= 10 {
         match timeout(Duration::from_secs(2), button.is_dead(conn)).await? {
-            Err(e) => println!("Error while querying button.is_dead: {:?}", e),
+            Err(e) => println!("Error while querying button.is_dead: {e:?}"),
             Ok(status) => is_dead = status,
         }
 
@@ -372,7 +372,7 @@ pub async fn assert_recv_id(
     assert_recv(
         events,
         |event| event.name == Some(id.to_string()),
-        &format!("Expected {:?} contract event", id),
+        &format!("Expected {id:?} contract event"),
     )
     .await
 }
@@ -395,7 +395,7 @@ pub async fn refute_recv_id(events: &mut BufferedReceiver<Result<ContractEvent>>
     if let Ok(event) =
         recv_timeout_with_log(events, |event| event.name == Some(id.to_string())).await
     {
-        panic!("Received unexpected event {:?}", event);
+        panic!("Received unexpected event {event:?}");
     }
 }
 

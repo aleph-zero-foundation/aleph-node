@@ -194,7 +194,7 @@ where
         let justification = self
             .justification_translator
             .translate(justification, BlockId::new(hash, number))
-            .map_err(|e| Error::FailedJustificationTranslation(format!("{}", e)))?;
+            .map_err(|e| Error::FailedJustificationTranslation(format!("{e}")))?;
         self.import_justification_tx
             .unbounded_send(justification)
             .map_err(|_| {

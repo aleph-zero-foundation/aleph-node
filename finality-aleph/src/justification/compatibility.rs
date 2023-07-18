@@ -296,7 +296,7 @@ mod test {
             Ok(AlephJustification::EmergencySignature(_)) => {
                 panic!("decoded V1 as emergency signature")
             }
-            Err(e) => panic!("decoding V1 failed: {}", e),
+            Err(e) => panic!("decoding V1 failed: {e}"),
         }
     }
 

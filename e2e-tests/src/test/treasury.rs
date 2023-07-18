@@ -77,9 +77,7 @@ fn check_issuance(
     assert_eq!(
         diff % treasury_staking_payout,
         0,
-        "Unexpectedly {} was minted, and it's not related to staking treasury reward which is {}",
-        diff,
-        treasury_staking_payout
+        "Unexpectedly {diff} was minted, and it's not related to staking treasury reward which is {treasury_staking_payout}"
     );
 }
 

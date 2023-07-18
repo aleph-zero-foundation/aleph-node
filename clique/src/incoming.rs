@@ -17,8 +17,8 @@ impl<PK: PublicKey> Display for IncomingError<PK> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
         use IncomingError::*;
         match self {
-            ProtocolNegotiationError(e) => write!(f, "protocol negotiation error: {}", e),
-            ProtocolError(e) => write!(f, "protocol error: {}", e),
+            ProtocolNegotiationError(e) => write!(f, "protocol negotiation error: {e}"),
+            ProtocolError(e) => write!(f, "protocol error: {e}"),
         }
     }
 }

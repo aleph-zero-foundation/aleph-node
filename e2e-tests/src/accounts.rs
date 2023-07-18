@@ -5,7 +5,7 @@ use aleph_client::{
 use crate::config::Config;
 
 pub fn get_validator_seed(seed: u32) -> String {
-    format!("//{}", seed)
+    format!("//{seed}")
 }
 
 // this should be extracted to common code
@@ -59,7 +59,7 @@ impl From<String> for NodeKeys {
 }
 
 fn get_validators_controller_seed(seed: &str) -> String {
-    format!("{}//Controller", seed)
+    format!("{seed}//Controller")
 }
 
 pub fn account_ids_from_keys(keys: &[KeyPair]) -> Vec<AccountId> {

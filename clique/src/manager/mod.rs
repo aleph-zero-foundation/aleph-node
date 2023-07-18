@@ -101,7 +101,7 @@ impl<PK: PublicKey + PeerId> Display for ManagerStatus<PK> {
         match wanted_incoming {
             0 => write!(f, "not expecting any incoming connections; ")?,
             _ => {
-                write!(f, "expecting {:?} incoming connections; ", wanted_incoming)?;
+                write!(f, "expecting {wanted_incoming:?} incoming connections; ")?;
                 match self.incoming_peers.is_empty() {
                     // We warn about the lack of incoming connections, because this is relatively
                     // likely to be a common misconfiguration; much less the case for outgoing.
@@ -127,7 +127,7 @@ impl<PK: PublicKey + PeerId> Display for ManagerStatus<PK> {
         match wanted_outgoing {
             0 => write!(f, "not attempting any outgoing connections; ")?,
             _ => {
-                write!(f, "attempting {:?} outgoing connections; ", wanted_outgoing)?;
+                write!(f, "attempting {wanted_outgoing:?} outgoing connections; ")?;
                 if !self.outgoing_peers.is_empty() {
                     write!(
                         f,

@@ -27,8 +27,7 @@ fn payout_within_two_block_delta(expected_payout: Balance, payout: Balance) {
     let within_delta = start <= payout && payout <= end;
     assert!(
         within_delta,
-        "payout should fall within range: [{}, {}] but was {}",
-        start, end, payout
+        "payout should fall within range: [{start}, {end}] but was {payout}"
     );
 }
 

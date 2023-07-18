@@ -14,7 +14,7 @@ pub enum Error {
 
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 

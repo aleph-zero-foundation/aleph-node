@@ -77,18 +77,15 @@ pub async fn validators_rotate() -> anyhow::Result<()> {
 
         assert!(
             reserved_included,
-            "Reserved nodes should always be present, session #{}",
-            session
+            "Reserved nodes should always be present, session #{session}"
         );
         assert!(
             non_reserved_include,
-            "Missing non reserved node, session #{}",
-            session
+            "Missing non reserved node, session #{session}"
         );
         assert!(
             only_expected_validators,
-            "Only expected validators should be present, session #{}",
-            session
+            "Only expected validators should be present, session #{session}"
         );
     }
 

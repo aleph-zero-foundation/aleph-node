@@ -219,15 +219,13 @@ pub async fn check_underperformed_count_for_sessions<C: AsConnection + Sync>(
                 // by ban_session_threshold - 1).
                 if underperformed_diff != 1 && underperformed_diff != (ban_session_threshold - 1) {
                     panic!(
-                        "Underperformed session count for committee validator {} for session {} changed from {} to {}.",
-                        val, session, previous_session_underperformed_count, session_underperformed_count
+                        "Underperformed session count for committee validator {val} for session {session} changed from {previous_session_underperformed_count} to {session_underperformed_count}."
                     );
                 }
             } else if underperformed_diff != 0 {
                 // Counter for validators on the bench should stay the same.
                 panic!(
-                    "Underperformed session count for non-committee validator {} for session {} changed from {} to {}.",
-                    val, session, previous_session_underperformed_count, session_underperformed_count
+                    "Underperformed session count for non-committee validator {val} for session {session} changed from {previous_session_underperformed_count} to {session_underperformed_count}."
                 );
             }
         }

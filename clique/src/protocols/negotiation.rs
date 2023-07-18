@@ -41,16 +41,14 @@ impl Display for ProtocolNegotiationError {
         use ProtocolNegotiationError::*;
         match self {
             ConnectionClosed => write!(f, "connection closed"),
-            InvalidRange(range) => write!(f, "invalid range: {}", range),
+            InvalidRange(range) => write!(f, "invalid range: {range}"),
             ProtocolMismatch(our_range, their_range) => write!(
                 f,
-                "failed negotiation with range {}, their {}",
-                our_range, their_range
+                "failed negotiation with range {our_range}, their {their_range}"
             ),
             BadChoice(version) => write!(
                 f,
-                "negotiated protocol version {}, which we don't know, this is a severe bug",
-                version
+                "negotiated protocol version {version}, which we don't know, this is a severe bug"
             ),
             TimedOut => write!(f, "timed out"),
         }
@@ -146,7 +144,7 @@ mod tests {
     fn correct_negotiation<S>(result: Result<(S, Protocol), ProtocolNegotiationError>) {
         match result {
             Ok((_stream, protocol)) => assert_eq!(Protocol::V1, protocol),
-            Err(e) => panic!("Unexpected error: {:?}", e),
+            Err(e) => panic!("Unexpected error: {e:?}"),
         }
     }
 
@@ -156,7 +154,7 @@ mod tests {
     ) {
         match result {
             Ok((_stream, protocol)) => {
-                panic!("Unexpectedly managed to negotiate protocol {:?}", protocol)
+                panic!("Unexpectedly managed to negotiate protocol {protocol:?}")
             }
             Err(e) => assert_eq!(expected_error, e),
         }

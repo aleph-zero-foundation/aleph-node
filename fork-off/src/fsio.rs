@@ -18,7 +18,7 @@ pub fn write_to_file(write_to_path: String, data: &[u8]) {
         Err(error) => match error.kind() {
             ErrorKind::NotFound => match File::create(&write_to_path) {
                 Ok(file) => file,
-                Err(why) => panic!("Cannot create file: {:?}", why),
+                Err(why) => panic!("Cannot create file: {why:?}"),
             },
             _ => panic!("Unexpected error when creating file: {}", &write_to_path),
         },
@@ -33,7 +33,7 @@ pub fn read_json_from_file(path: String) -> Value {
 }
 
 pub fn file_content(path: String) -> String {
-    fs::read_to_string(&path).unwrap_or_else(|_| panic!("Could not read file: `{}`", path))
+    fs::read_to_string(&path).unwrap_or_else(|_| panic!("Could not read file: `{path}`"))
 }
 
 pub fn save_snapshot_to_file(snapshot: Storage, path: String) {

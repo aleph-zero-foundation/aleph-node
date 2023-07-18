@@ -72,7 +72,7 @@ fn backup_path(aleph_config: &AlephCli, base_path: &Path) -> Option<PathBuf> {
         Some(path)
     } else {
         let path = base_path.join(DEFAULT_BACKUP_FOLDER);
-        eprintln!("No backup path provided, using default path: {:?} for AlephBFT backups. Please do not remove this folder", path);
+        eprintln!("No backup path provided, using default path: {path:?} for AlephBFT backups. Please do not remove this folder");
         Some(path)
     }
 }
@@ -154,7 +154,7 @@ pub fn new_partial(
     let tracing_block_import = TracingBlockImport::new(client.clone(), metrics.clone());
     let justification_translator = JustificationTranslator::new(
         SubstrateChainStatus::new(backend.clone())
-            .map_err(|e| ServiceError::Other(format!("failed to set up chain status: {}", e)))?,
+            .map_err(|e| ServiceError::Other(format!("failed to set up chain status: {e}")))?,
     );
     let aleph_block_import = AlephBlockImport::new(
         tracing_block_import.clone(),
@@ -235,8 +235,8 @@ fn setup(
         .flatten()
         .expect("we should have a hash");
     let chain_prefix = match config.chain_spec.fork_id() {
-        Some(fork_id) => format!("/{}/{}", genesis_hash, fork_id),
-        None => format!("/{}", genesis_hash),
+        Some(fork_id) => format!("/{genesis_hash}/{fork_id}"),
+        None => format!("/{genesis_hash}"),
     };
     let protocol_naming = ProtocolNaming::new(chain_prefix);
     config
@@ -344,7 +344,7 @@ pub fn new_authority(
     let import_queue_handle = BlockImporter(import_queue.service());
 
     let chain_status = SubstrateChainStatus::new(backend.clone())
-        .map_err(|e| ServiceError::Other(format!("failed to set up chain status: {}", e)))?;
+        .map_err(|e| ServiceError::Other(format!("failed to set up chain status: {e}")))?;
     let (_rpc_handlers, network, sync_network, protocol_naming, network_starter) = setup(
         config,
         backend,

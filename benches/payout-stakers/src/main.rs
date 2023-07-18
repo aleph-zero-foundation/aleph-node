@@ -75,7 +75,7 @@ async fn main() -> anyhow::Result<()> {
     let validators = match validators_seed_file {
         Some(validators_seed_file) => {
             let validators_seeds = std::fs::read_to_string(&validators_seed_file)
-                .unwrap_or_else(|_| panic!("Failed to read file {}", validators_seed_file));
+                .unwrap_or_else(|_| panic!("Failed to read file {validators_seed_file}"));
             validators_seeds
                 .split('\n')
                 .filter(|seed| !seed.is_empty())
@@ -127,7 +127,7 @@ fn get_sudoer_keypair(root_seed_file: Option<String>) -> KeyPair {
     match root_seed_file {
         Some(root_seed_file) => {
             let root_seed = std::fs::read_to_string(&root_seed_file)
-                .unwrap_or_else(|_| panic!("Failed to read file {}", root_seed_file));
+                .unwrap_or_else(|_| panic!("Failed to read file {root_seed_file}"));
             keypair_from_string(root_seed.trim())
         }
         None => keypair_from_string(&AccountKeyring::Alice.to_seed()),
@@ -137,7 +137,7 @@ fn get_sudoer_keypair(root_seed_file: Option<String>) -> KeyPair {
 /// For a given set of validators, generates key pairs for the corresponding controllers.
 fn generate_controllers_for_validators(validator_count: u32) -> Vec<KeyPair> {
     (0..validator_count)
-        .map(|seed| keypair_from_string(&format!("//{}//Controller", seed)))
+        .map(|seed| keypair_from_string(&format!("//{seed}//Controller")))
         .collect::<Vec<_>>()
 }
 
@@ -177,7 +177,7 @@ async fn setup_test_validators_and_nominator_stashes(
 
 pub fn derive_user_account_from_numeric_seed(seed: u32) -> KeyPair {
     trace!("Generating account from numeric seed {}", seed);
-    keypair_from_string(&format!("//{}", seed))
+    keypair_from_string(&format!("//{seed}"))
 }
 
 /// For a given number of eras, in each era check whether stash balances of a validator are locked.
@@ -312,8 +312,8 @@ async fn generate_nominator_accounts_with_minimal_bond<S: SignedConnectionApi>(
     let mut stash_accounts = vec![];
     (0..NOMINATOR_COUNT).for_each(|nominator_number| {
         let idx = validators_count + nominator_number + NOMINATOR_COUNT * validator_number;
-        let controller = keypair_from_string(&format!("//{}//Controller", idx));
-        let stash = keypair_from_string(&format!("//{}//Stash", idx));
+        let controller = keypair_from_string(&format!("//{idx}//Controller"));
+        let stash = keypair_from_string(&format!("//{idx}//Stash"));
         controller_accounts.push(controller.account_id().clone());
         stash_accounts.push(stash.account_id().clone());
     });

@@ -54,9 +54,9 @@ impl<PK: PublicKey> Display for ProtocolError<PK> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
         use ProtocolError::*;
         match self {
-            HandshakeError(e) => write!(f, "handshake error: {}", e),
-            SendError(e) => write!(f, "send error: {}", e),
-            ReceiveError(e) => write!(f, "receive error: {}", e),
+            HandshakeError(e) => write!(f, "handshake error: {e}"),
+            SendError(e) => write!(f, "send error: {e}"),
+            ReceiveError(e) => write!(f, "receive error: {e}"),
             CardiacArrest => write!(f, "heartbeat stopped"),
             NoParentConnection => write!(f, "cannot send result to service"),
             NoUserConnection => write!(f, "cannot send data to user"),

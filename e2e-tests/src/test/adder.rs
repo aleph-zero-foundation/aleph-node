@@ -165,7 +165,7 @@ impl AdderInstance {
 
         let address = AccountId::from_str(address)
             .ok()
-            .with_context(|| format!("Failed to parse address: {}", address))?;
+            .with_context(|| format!("Failed to parse address: {address}"))?;
         let contract = ContractInstance::new(address, metadata_path)?;
         Ok(Self { contract })
     }
@@ -190,7 +190,7 @@ impl AdderInstance {
             |name| {
                 let mut bytes = name.bytes().take(20).collect::<Vec<_>>();
                 bytes.extend(std::iter::repeat(0).take(20 - bytes.len()));
-                format!("Some({:?})", bytes)
+                format!("Some({bytes:?})")
             },
         );
 

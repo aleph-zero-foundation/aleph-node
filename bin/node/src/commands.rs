@@ -124,10 +124,7 @@ fn bootstrap_backup(base_path_with_account_id: &Path, backup_dir: &str) {
 
     if backup_path.exists() {
         if !backup_path.is_dir() {
-            panic!(
-                "Could not create backup directory at {:?}. Path is already a file.",
-                backup_path
-            );
+            panic!("Could not create backup directory at {backup_path:?}. Path is already a file.");
         }
     } else {
         fs::create_dir_all(backup_path).expect("Could not create backup directory.");
@@ -249,7 +246,7 @@ impl BootstrapNodeCmd {
         let authority_keys = authority_keys(&keystore, base_path.path(), node_key_file, account_id);
         let keys_json = serde_json::to_string_pretty(&authority_keys)
             .expect("serialization of authority keys should have succeeded");
-        println!("{}", keys_json);
+        println!("{keys_json}");
         Ok(())
     }
 

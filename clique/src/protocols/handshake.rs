@@ -30,13 +30,12 @@ impl<PK: PublicKey> Display for HandshakeError<PK> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
         use HandshakeError::*;
         match self {
-            SendError(e) => write!(f, "send error: {}", e),
-            ReceiveError(e) => write!(f, "receive error: {}", e),
+            SendError(e) => write!(f, "send error: {e}"),
+            ReceiveError(e) => write!(f, "receive error: {e}"),
             SignatureError => write!(f, "signature error"),
             ChallengeError(expected, got) => write!(
                 f,
-                "challenge error, expected peer {}, received from {}",
-                expected, got
+                "challenge error, expected peer {expected}, received from {got}"
             ),
             TimedOut => write!(f, "timed out"),
         }
@@ -197,20 +196,14 @@ mod tests {
     fn assert_send_error<T: std::fmt::Debug>(result: Result<T, HandshakeError<MockPublicKey>>) {
         match result {
             Err(HandshakeError::SendError(_)) => (),
-            x => panic!(
-                "should end with HandshakeError::SendError, but we got {:?}",
-                x
-            ),
+            x => panic!("should end with HandshakeError::SendError, but we got {x:?}"),
         };
     }
 
     fn assert_receive_error<T: std::fmt::Debug>(result: Result<T, HandshakeError<MockPublicKey>>) {
         match result {
             Err(HandshakeError::ReceiveError(_)) => (),
-            x => panic!(
-                "should end with HandshakeError::ReceiveError, but we got {:?}",
-                x
-            ),
+            x => panic!("should end with HandshakeError::ReceiveError, but we got {x:?}"),
         };
     }
 
@@ -219,10 +212,7 @@ mod tests {
     ) {
         match result {
             Err(HandshakeError::SignatureError) => (),
-            x => panic!(
-                "should end with HandshakeError::SignatureError, but we got {:?}",
-                x
-            ),
+            x => panic!("should end with HandshakeError::SignatureError, but we got {x:?}"),
         };
     }
 
@@ -231,10 +221,7 @@ mod tests {
     ) {
         match result {
             Err(HandshakeError::ChallengeError(_, _)) => (),
-            x => panic!(
-                "should end with HandshakeError::ChallengeError, but we got {:?}",
-                x
-            ),
+            x => panic!("should end with HandshakeError::ChallengeError, but we got {x:?}"),
         };
     }
 

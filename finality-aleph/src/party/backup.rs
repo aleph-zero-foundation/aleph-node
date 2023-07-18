@@ -23,12 +23,11 @@ impl fmt::Display for BackupLoadError {
             BackupLoadError::BackupIncomplete(backups) => {
                 write!(
                     f,
-                    "Backup is not complete. Got backup for runs numbered: {:?}",
-                    backups
+                    "Backup is not complete. Got backup for runs numbered: {backups:?}"
                 )
             }
             BackupLoadError::IOError(err) => {
-                write!(f, "Backup could not be loaded because of IO error: {}", err)
+                write!(f, "Backup could not be loaded because of IO error: {err}")
             }
         }
     }
@@ -65,7 +64,7 @@ fn get_session_backup_idxs(session_path: &Path) -> Result<Vec<usize>, BackupLoad
 fn load_backup(session_path: &Path, session_idxs: &[usize]) -> Result<Loader, BackupLoadError> {
     let mut buffer = Vec::new();
     for index in session_idxs.iter() {
-        let load_path = session_path.join(format!("{}{}", index, BACKUP_FILE_EXTENSION));
+        let load_path = session_path.join(format!("{index}{BACKUP_FILE_EXTENSION}"));
         File::open(load_path)?.read_to_end(&mut buffer)?;
     }
     Ok(Box::new(Cursor::new(buffer)))
@@ -100,7 +99,7 @@ pub fn rotate(
 ) -> Result<ABFTBackup, BackupLoadError> {
     debug!(target: "aleph-party", "Loading AlephBFT backup for session {:?}", session_id);
     let session_path = if let Some(path) = backup_path {
-        path.join(format!("{}", session_id))
+        path.join(format!("{session_id}"))
     } else {
         debug!(target: "aleph-party", "Passing empty backup for session {:?} as no backup argument was provided", session_id);
         return Ok((Box::new(io::sink()), Box::new(io::empty())));

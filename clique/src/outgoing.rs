@@ -20,17 +20,12 @@ impl<PK: PublicKey, A: Data, ND: Dialer<A>> Display for OutgoingError<PK, A, ND>
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
         use OutgoingError::*;
         match self {
-            Dial(e) => write!(f, "dial error: {}", e),
+            Dial(e) => write!(f, "dial error: {e}"),
             ProtocolNegotiation(addr, e) => write!(
                 f,
-                "communication with {} failed, protocol negotiation error: {}",
-                addr, e
+                "communication with {addr} failed, protocol negotiation error: {e}"
             ),
-            Protocol(addr, e) => write!(
-                f,
-                "communication with {} failed, protocol error: {}",
-                addr, e
-            ),
+            Protocol(addr, e) => write!(f, "communication with {addr} failed, protocol error: {e}"),
             TimedOut => write!(f, "dial timeout",),
         }
     }

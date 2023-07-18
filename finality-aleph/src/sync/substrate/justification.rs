@@ -86,7 +86,7 @@ impl Display for TranslateError {
         use TranslateError::*;
         match self {
             ChainStatus(e) => {
-                write!(f, "error retrieving block status: {}", e)
+                write!(f, "error retrieving block status: {e}")
             }
             NoBlock => write!(f, "block not present"),
         }

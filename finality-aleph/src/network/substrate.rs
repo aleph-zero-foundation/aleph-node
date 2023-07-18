@@ -62,7 +62,7 @@ impl ProtocolNaming {
     /// Create a new protocol naming scheme with the given chain prefix.
     pub fn new(chain_prefix: String) -> Self {
         let authentication_name: ProtocolName =
-            format!("{}{}", chain_prefix, AUTHENTICATION_PROTOCOL_NAME).into();
+            format!("{chain_prefix}{AUTHENTICATION_PROTOCOL_NAME}").into();
         let mut protocols_by_name = HashMap::new();
         protocols_by_name.insert(authentication_name.clone(), Protocol::Authentication);
         let authentication_fallback_names: Vec<ProtocolName> =
@@ -71,7 +71,7 @@ impl ProtocolNaming {
             protocols_by_name.insert(protocol_name.clone(), Protocol::Authentication);
         }
         let block_sync_name: ProtocolName =
-            format!("{}{}", chain_prefix, BLOCK_SYNC_PROTOCOL_NAME).into();
+            format!("{chain_prefix}{BLOCK_SYNC_PROTOCOL_NAME}").into();
         protocols_by_name.insert(block_sync_name.clone(), Protocol::BlockSync);
         ProtocolNaming {
             authentication_name,
@@ -118,22 +118,19 @@ impl fmt::Display for SenderError {
             SenderError::CannotCreateSender(peer_id, protocol) => {
                 write!(
                     f,
-                    "Can not create sender to peer {:?} with protocol {:?}",
-                    peer_id, protocol
+                    "Can not create sender to peer {peer_id:?} with protocol {protocol:?}"
                 )
             }
             SenderError::LostConnectionToPeer(peer_id) => {
                 write!(
                     f,
-                    "Lost connection to peer {:?} while preparing sender",
-                    peer_id
+                    "Lost connection to peer {peer_id:?} while preparing sender"
                 )
             }
             SenderError::LostConnectionToPeerReady(peer_id) => {
                 write!(
                     f,
-                    "Lost connection to peer {:?} after sender was ready",
-                    peer_id
+                    "Lost connection to peer {peer_id:?} after sender was ready"
                 )
             }
         }

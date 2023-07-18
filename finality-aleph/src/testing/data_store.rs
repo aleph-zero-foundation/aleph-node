@@ -130,7 +130,7 @@ impl TestHandler {
 
     async fn assert_no_message_out(&mut self, err_message: &'static str) {
         let res = timeout(TIMEOUT_FAIL, self.network.next()).await;
-        assert!(res.is_err(), "{} (message out: {:?})", err_message, res);
+        assert!(res.is_err(), "{err_message} (message out: {res:?})");
     }
 
     async fn assert_message_out(&mut self, err_message: &'static str) -> TestData {
@@ -470,7 +470,6 @@ async fn message_with_genesis_block_does_not_get_through() {
         for i in 1..MAX_DATA_BRANCH_LEN {
             let test_data: TestData = vec![aleph_data_from_headers(
                 (0..i)
-                    .into_iter()
                     .map(|num| test_handler.get_header_at(num as BlockNumber))
                     .collect(),
             )];

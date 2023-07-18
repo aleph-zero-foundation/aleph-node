@@ -29,7 +29,7 @@ fn get_validator_stashes_key_pairs(config: &Config) -> (Vec<KeyPair>, Vec<KeyPai
     let validators_seeds = get_validators_seeds(config);
     let validator_stashes: Vec<_> = validators_seeds
         .iter()
-        .map(|v| format!("{}//stash", v))
+        .map(|v| format!("{v}//stash"))
         .collect();
     let validator_accounts_key_pairs = accounts_seeds_to_keys(&validators_seeds);
     let stashes_accounts_key_pairs = accounts_seeds_to_keys(&validator_stashes);

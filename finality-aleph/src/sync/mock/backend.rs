@@ -100,19 +100,19 @@ impl Backend {
 
         let parent_id = match header.parent_id() {
             Some(id) => id,
-            None => panic!("importing block without a parent: {:?}", header),
+            None => panic!("importing block without a parent: {header:?}"),
         };
 
         if storage.blockchain.contains_key(&header.id()) {
-            panic!("importing an already imported block: {:?}", header)
+            panic!("importing an already imported block: {header:?}")
         }
 
         if !storage.blockchain.contains_key(&parent_id) {
-            panic!("importing block without an imported parent: {:?}", header)
+            panic!("importing block without an imported parent: {header:?}")
         }
 
         if header.id().number() != parent_id.number() + 1 {
-            panic!("importing block without a correct parent: {:?}", header)
+            panic!("importing block without a correct parent: {header:?}")
         }
 
         if header.id().number() > storage.best_block.number()
@@ -138,7 +138,7 @@ pub struct FinalizerError;
 
 impl Display for FinalizerError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
@@ -147,10 +147,7 @@ impl Finalizer<MockJustification> for Backend {
 
     fn finalize(&self, justification: MockJustification) -> Result<(), Self::Error> {
         if !justification.is_correct {
-            panic!(
-                "finalizing block with an incorrect justification: {:?}",
-                justification
-            );
+            panic!("finalizing block with an incorrect justification: {justification:?}");
         }
 
         let mut storage = self.inner.lock();
@@ -158,18 +155,18 @@ impl Finalizer<MockJustification> for Backend {
         let header = justification.header();
         let parent_id = match justification.header().parent_id() {
             Some(id) => id,
-            None => panic!("finalizing block without specified parent: {:?}", header),
+            None => panic!("finalizing block without specified parent: {header:?}"),
         };
 
         if storage.blockchain.get(&parent_id).is_none() {
-            panic!("finalizing block without imported parent: {:?}", header)
+            panic!("finalizing block without imported parent: {header:?}")
         }
 
         let header = justification.header().clone();
         let finalizing_id = header.id();
         let block = match storage.blockchain.get_mut(&finalizing_id) {
             Some(block) => block,
-            None => panic!("finalizing a not imported block: {:?}", header),
+            None => panic!("finalizing a not imported block: {header:?}"),
         };
 
         block.finalize(justification);
@@ -263,7 +260,7 @@ pub struct StatusError;
 
 impl Display for StatusError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 

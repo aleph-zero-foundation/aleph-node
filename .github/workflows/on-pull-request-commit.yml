@@ -13,9 +13,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-vars:
+    name: Check vars
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    with:
+      check-secrets: false
+
   check-excluded-packages:
     name: Check excluded packages
     uses: ./.github/workflows/_check-excluded-packages.yml
+
+  code-formatting:
+    needs: [check-vars]
+    name: Check code formatting
+    uses: ./.github/workflows/_check-code-formatting.yml
 
   unit-tests-and-static-checks:
     name: Unit tests and clippy

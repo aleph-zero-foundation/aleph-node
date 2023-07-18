@@ -232,14 +232,12 @@ mod tests {
         let status_a = get_proposal_status(aux_cip, proposal, None);
         assert_eq!(
             status_a, correct_status,
-            "Aux chain info gives wrong status for proposal {:?}",
-            proposal
+            "Aux chain info gives wrong status for proposal {proposal:?}"
         );
         let status_c = get_proposal_status(cached_cip, proposal, None);
         assert_eq!(
             status_c, correct_status,
-            "Cached chain info gives wrong status for proposal {:?}",
-            proposal
+            "Cached chain info gives wrong status for proposal {proposal:?}"
         );
     }
 

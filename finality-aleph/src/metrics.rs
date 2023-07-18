@@ -113,7 +113,7 @@ impl<H: Key> Metrics<H> {
         for key in keys.iter() {
             gauges.insert(
                 *key,
-                register(Gauge::new(format!("aleph_{:?}", key), "no help")?, registry)?,
+                register(Gauge::new(format!("aleph_{key:?}"), "no help")?, registry)?,
             );
         }
 

@@ -38,26 +38,23 @@ impl Display for Error {
             MissingHash(hash) => {
                 write!(
                     f,
-                    "data availability problem: no block for existing hash {:?}",
-                    hash
+                    "data availability problem: no block for existing hash {hash:?}"
                 )
             }
             MissingBody(hash) => {
                 write!(
                     f,
-                    "data availability problem: no block body for existing hash {:?}",
-                    hash
+                    "data availability problem: no block body for existing hash {hash:?}"
                 )
             }
             MissingJustification(hash) => {
                 write!(
                     f,
-                    "data availability problem: no justification for finalized block with hash {:?}",
-                    hash
+                    "data availability problem: no justification for finalized block with hash {hash:?}"
                 )
             }
             Backend(e) => {
-                write!(f, "substrate backend error {}", e)
+                write!(f, "substrate backend error {e}")
             }
             MismatchedId => write!(f, "the block number did not match the block hash"),
             NoGenesisBlock => write!(f, "genesis block not present in DB"),

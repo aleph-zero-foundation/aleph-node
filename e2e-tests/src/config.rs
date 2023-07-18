@@ -53,7 +53,7 @@ where
 {
     env::var(name).ok().map(|v| {
         v.parse()
-            .unwrap_or_else(|_| panic!("Failed to parse env var {}", name))
+            .unwrap_or_else(|_| panic!("Failed to parse env var {name}"))
     })
 }
 
@@ -99,7 +99,7 @@ impl Config {
 
     pub fn validator_names(&self) -> Vec<String> {
         (0..self.validator_count)
-            .map(|id| format!("Node{}", id))
+            .map(|id| format!("Node{id}"))
             .collect()
     }
 
@@ -109,7 +109,7 @@ impl Config {
             None => self
                 .validator_names()
                 .into_iter()
-                .map(|node_name| format!("http://{}:80/qos", node_name))
+                .map(|node_name| format!("http://{node_name}:80/qos"))
                 .collect(),
         }
     }

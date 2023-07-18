@@ -167,7 +167,7 @@ impl TestData {
             .await
         {
             Ok(network) => network,
-            Err(e) => panic!("Failed to start validator session: {}", e),
+            Err(e) => panic!("Failed to start validator session: {e}"),
         }
     }
 
@@ -178,7 +178,7 @@ impl TestData {
             NodeIndex(node_id),
             self.authorities[node_id].pen(),
         ) {
-            panic!("Failed to start validator session: {}", e);
+            panic!("Failed to start validator session: {e}");
         }
     }
 

@@ -390,8 +390,7 @@ impl<NI: NetworkIdentity, D: Data> Manager<NI, D> {
                 .collect::<Vec<_>>()
                 .join(", ");
             status.push_str(&format!(
-                "authenticated authorities: {}; ",
-                authenticated_status
+                "authenticated authorities: {authenticated_status}; "
             ));
         }
 
@@ -416,10 +415,10 @@ impl<NI: NetworkIdentity, D: Data> Manager<NI, D> {
         if !missing.is_empty() {
             let missing_status = missing
                 .iter()
-                .map(|(session_id, missing)| format!("{:?}: {:?}", session_id, missing))
+                .map(|(session_id, missing)| format!("{session_id:?}: {missing:?}"))
                 .collect::<Vec<_>>()
                 .join(", ");
-            status.push_str(&format!("missing authorities: {}; ", missing_status));
+            status.push_str(&format!("missing authorities: {missing_status}; "));
         }
 
         if !authenticated.is_empty() || !missing.is_empty() {

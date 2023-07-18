@@ -208,19 +208,19 @@ async fn main() -> anyhow::Result<()> {
         }
         Command::ContractUploadCode(command) => {
             match upload_code(cfg.get_signed_connection().await, command).await {
-                Ok(result) => println!("{:?}", result),
+                Ok(result) => println!("{result:?}"),
                 Err(why) => error!("Contract upload failed {:?}", why),
             }
         }
         Command::ContractCall(command) => {
             match call(cfg.get_signed_connection().await, command).await {
-                Ok(result) => println!("{:?}", result),
+                Ok(result) => println!("{result:?}"),
                 Err(why) => error!("Contract call failed {:?}", why),
             }
         }
         Command::ContractInstantiate(command) => {
             match instantiate(cfg.get_signed_connection().await, command).await {
-                Ok(result) => println!("{:?}", result),
+                Ok(result) => println!("{result:?}"),
                 Err(why) => error!("Contract instantiate failed {:?}", why),
             }
         }
@@ -232,7 +232,7 @@ async fn main() -> anyhow::Result<()> {
         }
         Command::ContractRemoveCode(command) => {
             match remove_code(cfg.get_signed_connection().await, command).await {
-                Ok(result) => println!("{:?}", result),
+                Ok(result) => println!("{result:?}"),
                 Err(why) => error!("Contract remove code failed {:?}", why),
             }
         }

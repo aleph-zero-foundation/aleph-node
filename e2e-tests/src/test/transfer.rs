@@ -25,10 +25,7 @@ pub async fn token_transfer() -> anyhow::Result<()> {
     assert_eq!(
         balance_before + transfer_value,
         balance_after,
-        "before = {}, after = {}, tx = {}",
-        balance_before,
-        balance_after,
-        transfer_value
+        "before = {balance_before}, after = {balance_after}, tx = {transfer_value}"
     );
 
     Ok(())

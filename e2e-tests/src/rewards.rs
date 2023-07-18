@@ -111,8 +111,7 @@ fn check_rewards(
         let reward = *reward;
         let retrieved_reward = *retrieved_reward_points.get(account).unwrap_or_else(|| {
             panic!(
-                "missing account={} in retrieved collection of reward points {:?}",
-                account, validator_reward_points
+                "missing account={account} in retrieved collection of reward points {validator_reward_points:?}"
             )
         });
 

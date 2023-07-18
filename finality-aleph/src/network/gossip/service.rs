@@ -268,7 +268,6 @@ impl<N: RawNetwork, AD: Data, BSD: Data> Service<N, AD, BSD> {
     ) -> Option<&'a N::PeerId> {
         peer_ids
             .intersection(self.protocol_peers(protocol))
-            .into_iter()
             .choose(&mut thread_rng())
             .or_else(|| {
                 self.protocol_peers(protocol)

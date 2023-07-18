@@ -36,8 +36,7 @@ async fn assert_validators_are_elected_stakers<C: StakingRawApi>(
 
     assert_eq!(
         expected_validators_as_keys, stakers_tree,
-        "Expected another set of staking validators.\n\tExpected: {:?}\n\tActual: {:?}",
-        expected_validators_as_keys, stakers_tree
+        "Expected another set of staking validators.\n\tExpected: {expected_validators_as_keys:?}\n\tActual: {stakers_tree:?}"
     );
 
     Ok(())
@@ -82,8 +81,7 @@ async fn assert_validators_are_used_as_authorities<C: SessionApi + WaitingExt>(
 
     assert_eq!(
         *expected_authorities, authorities,
-        "Expected another set of authorities.\n\tExpected: {:?}\n\tActual: {:?}",
-        expected_authorities, authorities
+        "Expected another set of authorities.\n\tExpected: {expected_authorities:?}\n\tActual: {authorities:?}"
     );
 }
 
@@ -91,9 +89,7 @@ async fn assert_enough_validators<C: ConnectionApi>(connection: &C, min_validato
     let current_validator_count = connection.get_validators(None).await.len() as u32;
     assert!(
         current_validator_count >= min_validator_count,
-        "{} validators present. Staking enforces a minimum of {} validators.",
-        current_validator_count,
-        min_validator_count
+        "{current_validator_count} validators present. Staking enforces a minimum of {min_validator_count} validators."
     );
 }
 
@@ -118,9 +114,7 @@ fn assert_enough_validators_left_after_chilling(
     let validators_after_chill_count = reserved_after_chill_count + non_reserved_after_chill_count;
     assert!(
         validators_after_chill_count >= min_validator_count,
-        "{} validators will be left after chilling. Staking enforces a minimum of {} validators.",
-        validators_after_chill_count,
-        min_validator_count
+        "{validators_after_chill_count} validators will be left after chilling. Staking enforces a minimum of {min_validator_count} validators."
     );
 }
 
@@ -196,13 +190,11 @@ pub async fn authorities_are_staking() -> anyhow::Result<()> {
 
     assert_eq!(
         reserved_seats, reserved_count,
-        "Desired {} reserved seats, got {}!",
-        reserved_seats, reserved_count
+        "Desired {reserved_seats} reserved seats, got {reserved_count}!"
     );
     assert_eq!(
         non_reserved_seats, non_reserved_count,
-        "Desired {} non-reserved seats, got {}!",
-        non_reserved_seats, non_reserved_count
+        "Desired {non_reserved_seats} non-reserved seats, got {non_reserved_count}!"
     );
 
     assert_enough_validators_left_after_chilling(

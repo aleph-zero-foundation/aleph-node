@@ -1,5 +1,5 @@
 ---
-name: Builds unit test binary and run unit tests, runs static rust code analysis and code formatting
+name: Builds unit test binary and run unit tests, runs static rust code analysis
 
 on:
   workflow_call:
@@ -17,15 +17,6 @@ jobs:
 
       - name: Install Rust Toolchain
         uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v1
-        with:
-          targets: wasm32-unknown-unknown
-          components: clippy rustfmt
-
-      - name: Run Format Checks
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all
 
       - name: Run Linter
         uses: actions-rs/cargo@v1

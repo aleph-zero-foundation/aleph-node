@@ -17,9 +17,9 @@ fn pretty_print_h256(h: &H256) -> String {
     let prefix =
         h.0.iter()
             .take(4)
-            .map(|byte| format!("{:02x}", byte))
+            .map(|byte| format!("{byte:02x}"))
             .collect::<String>();
-    format!("0x{}..", prefix)
+    format!("0x{prefix}..")
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -166,7 +166,7 @@ pub async fn status(connections: Connections) -> Result<()> {
     let statuses = get_all_chain_statuses(&connections).await?;
     println!("{:<30}  {}", "primary", statuses.primary);
     for (name, status) in statuses.secondaries.iter() {
-        println!("{:<30}  {}", name, status);
+        println!("{name:<30}  {status}");
     }
     Ok(())
 }
@@ -245,7 +245,7 @@ async fn try_finalize_single_block(
     key: &AlephKeyPair,
     num: BlockNumber,
 ) -> Result<()> {
-    println!("Trying to finalize block number {}", num);
+    println!("Trying to finalize block number {num}");
     loop {
         match pre_single_finalization_check(connections, num).await {
             Ok(HashNum { num, hash }) => {
@@ -258,14 +258,11 @@ async fn try_finalize_single_block(
                     .primary
                     .emergency_finalize(num, hash, *key)
                     .await?;
-                println!("Finalization call for {} sent.", num,);
+                println!("Finalization call for {num} sent.",);
                 break;
             }
             Err(e) => {
-                println!(
-                    "Not all preconditions for finalizing {} satisfied: {:?}.",
-                    num, e
-                );
+                println!("Not all preconditions for finalizing {num} satisfied: {e:?}.");
                 println!("We wait 1000ms and will try again. You can cancel by ctrl-c.\n");
                 tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
                 continue;

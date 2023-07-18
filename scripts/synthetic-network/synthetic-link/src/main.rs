@@ -21,7 +21,7 @@ async fn main() {
         .into_iter()
         .next()
         .unwrap_or_else(|| panic!("no configuration on stdin"))
-        .unwrap_or_else(|e| panic!("unable to parse SyntheticNetwork config: {}", e));
+        .unwrap_or_else(|e| panic!("unable to parse SyntheticNetwork config: {e}"));
     info!("parsed SyntheticNetwork configuration");
 
     info!("commiting configuration");
@@ -29,6 +29,6 @@ async fn main() {
     synth_net_client
         .commit_config(&synth_net_config)
         .await
-        .unwrap_or_else(|e| panic!("failed to commit SyntheticNetwork configuration: {}", e));
+        .unwrap_or_else(|e| panic!("failed to commit SyntheticNetwork configuration: {e}"));
     info!("successfully committed new configuration");
 }

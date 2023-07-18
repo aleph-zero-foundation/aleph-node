@@ -66,7 +66,7 @@ impl<'de> Deserialize<'de> for SerializablePeerId {
     {
         let s = String::deserialize(deserializer)?;
         let inner = PeerId::from_str(&s)
-            .map_err(|_| D::Error::custom(format!("Could not deserialize as PeerId: {}", s)))?;
+            .map_err(|_| D::Error::custom(format!("Could not deserialize as PeerId: {s}")))?;
         Ok(SerializablePeerId { inner })
     }
 }
@@ -90,7 +90,7 @@ fn parse_chaintype(s: &str) -> Result<ChainType, CliError> {
         CHAINTYPE_DEV => ChainType::Development,
         CHAINTYPE_LOCAL => ChainType::Local,
         CHAINTYPE_LIVE => ChainType::Live,
-        s => panic!("Wrong chain type {} Possible values: dev local live", s),
+        s => panic!("Wrong chain type {s} Possible values: dev local live"),
     })
 }
 
@@ -215,11 +215,8 @@ pub fn config(
     authorities: Vec<AuthorityKeys>,
 ) -> Result<ChainSpec, String> {
     let controller_accounts: Vec<AccountId> = to_account_ids(&authorities)
-        .into_iter()
         .enumerate()
-        .map(|(index, _account)| {
-            account_id_from_string(format!("//{}//Controller", index).as_str())
-        })
+        .map(|(index, _account)| account_id_from_string(format!("//{index}//Controller").as_str()))
         .collect();
     generate_chain_spec_config(chain_params, authorities, controller_accounts)
 }

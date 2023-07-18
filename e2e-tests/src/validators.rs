@@ -65,9 +65,9 @@ impl Accounts {
 
 /// Generate `Accounts` struct.
 pub fn setup_accounts(desired_validator_count: u32) -> Accounts {
-    let seeds = (0..desired_validator_count).map(|idx| format!("//Validator//{}", idx));
+    let seeds = (0..desired_validator_count).map(|idx| format!("//Validator//{idx}"));
 
-    let stash_seeds = seeds.clone().map(|seed| format!("{}//Stash", seed));
+    let stash_seeds = seeds.clone().map(|seed| format!("{seed}//Stash"));
     let stash_keys: Vec<_> = stash_seeds
         .clone()
         .map(|s| keypair_from_string(&s))
@@ -78,7 +78,7 @@ pub fn setup_accounts(desired_validator_count: u32) -> Accounts {
         .map(|k| account_from_keypair(k.signer()))
         .collect();
 
-    let controller_seeds = seeds.map(|seed| format!("{}//Controller", seed));
+    let controller_seeds = seeds.map(|seed| format!("{seed}//Controller"));
     let controller_keys: Vec<_> = controller_seeds
         .clone()
         .map(|s| keypair_from_string(&s))

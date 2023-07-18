@@ -204,7 +204,7 @@ impl<GE: Display> Display for Error<GE> {
             CommandsChannel => write!(f, "commands channel unexpectedly closed"),
             MessageChannel => write!(f, "message channel unexpectedly closed"),
             ValidatorNetwork => write!(f, "validator network unexpectedly done"),
-            GossipNetwork(e) => write!(f, "gossip network unexpectedly done: {}", e),
+            GossipNetwork(e) => write!(f, "gossip network unexpectedly done: {e}"),
         }
     }
 }

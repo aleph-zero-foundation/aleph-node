@@ -67,8 +67,8 @@ impl Display for VerificationError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
         use VerificationError::*;
         match self {
-            Verification(e) => write!(f, "{}", e),
-            Cache(e) => write!(f, "{}", e),
+            Verification(e) => write!(f, "{e}"),
+            Cache(e) => write!(f, "{e}"),
         }
     }
 }

@@ -155,7 +155,7 @@ where
         justification_rx,
     ) {
         Ok(x) => x,
-        Err(e) => panic!("Failed to initialize Sync service: {}", e),
+        Err(e) => panic!("Failed to initialize Sync service: {e}"),
     };
     let sync_task = async move { sync_service.run().await };
 
@@ -168,7 +168,7 @@ where
 
     let connection_manager_task = async move {
         if let Err(e) = connection_manager_service.run().await {
-            panic!("Failed to run connection manager: {}", e);
+            panic!("Failed to run connection manager: {e}");
         }
     };
 

@@ -34,9 +34,9 @@ impl<J: Justification, T: Display> Display for RequestHandlerError<J, T> {
                 f,
                 "invalid request, top_justification is not an ancestor of target"
             ),
-            RequestHandlerError::MissingParent(id) => write!(f, "missing parent of block {:?}", id),
-            RequestHandlerError::MissingBlock(id) => write!(f, "missing block {:?}", id),
-            RequestHandlerError::ChainStatusError(e) => write!(f, "{}", e),
+            RequestHandlerError::MissingParent(id) => write!(f, "missing parent of block {id:?}"),
+            RequestHandlerError::MissingBlock(id) => write!(f, "missing block {id:?}"),
+            RequestHandlerError::ChainStatusError(e) => write!(f, "{e}"),
             RequestHandlerError::LastBlockOfSessionNotJustified => {
                 write!(f, "last block of finalized session not justified")
             }

@@ -382,7 +382,7 @@ mod tests {
         tokio::select! {
             e = &mut incoming_handle => match e {
                 Err(ProtocolError::NoParentConnection) => (),
-                Err(e) => panic!("unexpected error: {}", e),
+                Err(e) => panic!("unexpected error: {e}"),
                 Ok(_) => panic!("successfully finished when parent dead"),
             },
             _ = &mut outgoing_handle => panic!("outgoing process unexpectedly finished"),
@@ -422,7 +422,7 @@ mod tests {
         tokio::select! {
             e = &mut incoming_handle => match e {
                 Err(ProtocolError::NoUserConnection) => (),
-                Err(e) => panic!("unexpected error: {}", e),
+                Err(e) => panic!("unexpected error: {e}"),
                 Ok(_) => panic!("successfully finished when user dead"),
             },
             _ = &mut outgoing_handle => panic!("outgoing process unexpectedly finished"),
@@ -445,7 +445,7 @@ mod tests {
         std::mem::drop(outgoing_handle);
         match incoming_handle.await {
             Err(ProtocolError::HandshakeError(_)) => (),
-            Err(e) => panic!("unexpected error: {}", e),
+            Err(e) => panic!("unexpected error: {e}"),
             Ok(_) => panic!("successfully finished when connection dead"),
         };
     }
@@ -473,7 +473,7 @@ mod tests {
         // outgoing_handle got consumed by tokio::select!, the sender is dead
         match incoming_handle.await {
             Err(ProtocolError::ReceiveError(_)) => (),
-            Err(e) => panic!("unexpected error: {}", e),
+            Err(e) => panic!("unexpected error: {e}"),
             Ok(_) => panic!("successfully finished when connection dead"),
         };
     }
@@ -494,7 +494,7 @@ mod tests {
         std::mem::drop(incoming_handle);
         match outgoing_handle.await {
             Err(ProtocolError::HandshakeError(_)) => (),
-            Err(e) => panic!("unexpected error: {}", e),
+            Err(e) => panic!("unexpected error: {e}"),
             Ok(_) => panic!("successfully finished when connection dead"),
         };
     }

@@ -107,10 +107,7 @@ where
             .await
             .await
         {
-            Err(e) => panic!(
-                "Error while receiving the notification about current session {:?}",
-                e
-            ),
+            Err(e) => panic!("Error while receiving the notification about current session {e:?}"),
             Ok(authority_data) => authority_data,
         };
         let authorities = authority_data.authorities();
@@ -337,8 +334,7 @@ mod tests {
                     .lock()
                     .unwrap(),
                 HashSet::from_iter(validator_started),
-                "`validator_session_started` mismatch at block #{}",
-                block
+                "`validator_session_started` mismatch at block #{block}"
             );
 
             assert_eq!(
@@ -349,8 +345,7 @@ mod tests {
                     .lock()
                     .unwrap(),
                 HashSet::from_iter(early_started),
-                "`session_early_started` mismatch at block #{}",
-                block
+                "`session_early_started` mismatch at block #{block}"
             );
 
             assert_eq!(
@@ -361,8 +356,7 @@ mod tests {
                     .lock()
                     .unwrap(),
                 HashSet::from_iter(stopped),
-                "`session_stopped` mismatch at block #{}",
-                block
+                "`session_stopped` mismatch at block #{block}"
             );
 
             assert_eq!(
@@ -373,8 +367,7 @@ mod tests {
                     .lock()
                     .unwrap(),
                 HashSet::from_iter(non_validator_started),
-                "`nonvalidator_session_started` mismatch at block #{}",
-                block
+                "`nonvalidator_session_started` mismatch at block #{block}"
             );
         }
 

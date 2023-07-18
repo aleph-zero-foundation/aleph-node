@@ -10,7 +10,7 @@ use crate::{
 pub async fn high_out_latency_for_all() -> anyhow::Result<()> {
     let config = setup_test();
     let out_latency = config.test_case_params.out_latency.unwrap_or(OUT_LATENCY);
-    test_latency_template_test(&config, config.validator_count as usize, out_latency).await?;
+    test_latency_template_test(config, config.validator_count as usize, out_latency).await?;
 
     Ok(())
 }
@@ -23,7 +23,7 @@ pub async fn high_out_latency_for_each_quorum() -> anyhow::Result<()> {
     let config = setup_test();
     let out_latency = config.test_case_params.out_latency.unwrap_or(OUT_LATENCY);
     test_latency_template_test(
-        &config,
+        config,
         ((config.validator_count - 1) / 3 + 1) as usize,
         out_latency,
     )

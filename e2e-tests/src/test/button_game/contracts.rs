@@ -306,7 +306,7 @@ impl MarketplaceInstance {
     }
 
     pub async fn buy(&self, conn: &SignedConnection, max_price: Option<Balance>) -> Result<TxInfo> {
-        let max_price = max_price.map_or_else(|| "None".to_string(), |x| format!("Some({})", x));
+        let max_price = max_price.map_or_else(|| "None".to_string(), |x| format!("Some({x})"));
 
         self.contract
             .contract_exec(conn, "buy", &[max_price.as_str()])
