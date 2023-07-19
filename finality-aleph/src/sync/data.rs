@@ -27,6 +27,48 @@ impl<J: Justification> State<J> {
     }
 }
 
+/// Represents one of the possible response_items we are sending over the network.
+#[derive(Clone, Debug, Encode, Decode)]
+pub enum ResponseItem<B, J>
+where
+    B: Block,
+    J: Justification<Header = B::Header>,
+{
+    Justification(J::Unverified),
+    Header(J::Header),
+    Block(B),
+}
+
+/// Things we send over the network as a response to the request.
+pub type ResponseItems<B, J> = Vec<ResponseItem<B, J>>;
+
+impl<B, J> ResponseItem<B, J>
+where
+    B: Block,
+    J: Justification<Header = B::Header>,
+{
+    pub fn response_items_from_justifications(
+        justifications: Vec<J::Unverified>,
+    ) -> ResponseItems<B, J> {
+        justifications
+            .into_iter()
+            .map(Self::Justification)
+            .collect()
+    }
+
+    pub fn justifications_from_response_items(
+        response_items: ResponseItems<B, J>,
+    ) -> Vec<J::Unverified> {
+        response_items
+            .into_iter()
+            .filter_map(|item| match item {
+                Self::Justification(j) => Some(j),
+                _ => None,
+            })
+            .collect()
+    }
+}
+
 /// Additional information about the branch connecting the top finalized block
 /// with a given one. All the variants are exhaustive and exclusive due to the
 /// properties of the `Forest` structure.
@@ -93,7 +135,11 @@ pub enum NetworkDataV1<J: Justification> {
 
 /// Data to be sent over the network.
 #[derive(Clone, Debug, Encode, Decode)]
-pub enum NetworkData<B: Block, J: Justification> {
+pub enum NetworkData<B: Block, J: Justification>
+where
+    B: Block,
+    J: Justification<Header = B::Header>,
+{
     /// A periodic state broadcast, so that neighbouring nodes can request what they are missing,
     /// send what we are missing, and sometimes just use the justifications to update their own
     /// state.
@@ -104,10 +150,14 @@ pub enum NetworkData<B: Block, J: Justification> {
     /// An explicit request for data, potentially a lot of it.
     Request(Request<J>),
     /// Response to the request for data.
-    RequestResponse(Vec<J::Unverified>, Vec<J::Header>, Vec<B>),
+    RequestResponse(ResponseItems<B, J>),
 }
 
-impl<B: Block, J: Justification> From<NetworkDataV1<J>> for NetworkData<B, J> {
+impl<B: Block, J: Justification> From<NetworkDataV1<J>> for NetworkData<B, J>
+where
+    B: Block,
+    J: Justification<Header = B::Header>,
+{
     fn from(data: NetworkDataV1<J>) -> Self {
         match data {
             NetworkDataV1::StateBroadcast(state) => NetworkData::StateBroadcast(state),
@@ -115,14 +165,18 @@ impl<B: Block, J: Justification> From<NetworkDataV1<J>> for NetworkData<B, J> {
                 NetworkData::StateBroadcastResponse(justification, maybe_justification)
             }
             NetworkDataV1::Request(request) => NetworkData::Request(request),
-            NetworkDataV1::RequestResponse(justifications) => {
-                NetworkData::RequestResponse(justifications, Vec::new(), Vec::new())
-            }
+            NetworkDataV1::RequestResponse(justifications) => NetworkData::RequestResponse(
+                ResponseItem::response_items_from_justifications(justifications),
+            ),
         }
     }
 }
 
-impl<B: Block, J: Justification> From<NetworkData<B, J>> for NetworkDataV1<J> {
+impl<B: Block, J: Justification> From<NetworkData<B, J>> for NetworkDataV1<J>
+where
+    B: Block,
+    J: Justification<Header = B::Header>,
+{
     fn from(data: NetworkData<B, J>) -> Self {
         match data {
             NetworkData::StateBroadcast(state) => NetworkDataV1::StateBroadcast(state),
@@ -130,16 +184,20 @@ impl<B: Block, J: Justification> From<NetworkData<B, J>> for NetworkDataV1<J> {
                 NetworkDataV1::StateBroadcastResponse(justification, maybe_justification)
             }
             NetworkData::Request(request) => NetworkDataV1::Request(request),
-            NetworkData::RequestResponse(justifications, _, _) => {
-                NetworkDataV1::RequestResponse(justifications)
-            }
+            NetworkData::RequestResponse(response_items) => NetworkDataV1::RequestResponse(
+                ResponseItem::justifications_from_response_items(response_items),
+            ),
         }
     }
 }
 
 /// Version wrapper around the network data.
 #[derive(Clone, Debug)]
-pub enum VersionedNetworkData<B: Block, J: Justification> {
+pub enum VersionedNetworkData<B: Block, J: Justification>
+where
+    B: Block,
+    J: Justification<Header = B::Header>,
+{
     // Most likely from the future.
     Other(Version, Vec<u8>),
     V1(NetworkDataV1<J>),
@@ -175,7 +233,11 @@ fn encode_with_version(version: Version, payload: &[u8]) -> Vec<u8> {
     result
 }
 
-impl<B: Block, J: Justification> Encode for VersionedNetworkData<B, J> {
+impl<B, J> Encode for VersionedNetworkData<B, J>
+where
+    B: Block,
+    J: Justification<Header = B::Header>,
+{
     fn size_hint(&self) -> usize {
         use VersionedNetworkData::*;
         let version_size = size_of::<Version>();
@@ -199,7 +261,11 @@ impl<B: Block, J: Justification> Encode for VersionedNetworkData<B, J> {
     }
 }
 
-impl<B: Block, J: Justification> Decode for VersionedNetworkData<B, J> {
+impl<B, J> Decode for VersionedNetworkData<B, J>
+where
+    B: Block,
+    J: Justification<Header = B::Header>,
+{
     fn decode<I: CodecInput>(input: &mut I) -> Result<Self, CodecError> {
         use VersionedNetworkData::*;
         let version = Version::decode(input)?;
@@ -220,14 +286,21 @@ impl<B: Block, J: Justification> Decode for VersionedNetworkData<B, J> {
 }
 
 /// Wrap around a network to avoid thinking about versioning.
-pub struct VersionWrapper<B: Block, J: Justification, N: GossipNetwork<VersionedNetworkData<B, J>>>
+pub struct VersionWrapper<B, J, N>
+where
+    N: GossipNetwork<VersionedNetworkData<B, J>>,
+    B: Block,
+    J: Justification<Header = B::Header>,
 {
     inner: N,
     _phantom: PhantomData<(B, J)>,
 }
 
-impl<B: Block, J: Justification, N: GossipNetwork<VersionedNetworkData<B, J>>>
-    VersionWrapper<B, J, N>
+impl<B, J, N> VersionWrapper<B, J, N>
+where
+    N: GossipNetwork<VersionedNetworkData<B, J>>,
+    B: Block,
+    J: Justification<Header = B::Header>,
 {
     /// Wrap the inner network.
     pub fn new(inner: N) -> Self {
@@ -239,8 +312,11 @@ impl<B: Block, J: Justification, N: GossipNetwork<VersionedNetworkData<B, J>>>
 }
 
 #[async_trait::async_trait]
-impl<B: Block, J: Justification, N: GossipNetwork<VersionedNetworkData<B, J>>>
-    GossipNetwork<NetworkData<B, J>> for VersionWrapper<B, J, N>
+impl<B, J, N> GossipNetwork<NetworkData<B, J>> for VersionWrapper<B, J, N>
+where
+    N: GossipNetwork<VersionedNetworkData<B, J>>,
+    B: Block,
+    J: Justification<Header = B::Header>,
 {
     type Error = N::Error;
     type PeerId = N::PeerId;

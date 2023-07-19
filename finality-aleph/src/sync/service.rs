@@ -9,7 +9,7 @@ use crate::{
     network::GossipNetwork,
     session::SessionBoundaryInfo,
     sync::{
-        data::{NetworkData, Request, State, VersionWrapper, VersionedNetworkData},
+        data::{NetworkData, Request, ResponseItems, State, VersionWrapper, VersionedNetworkData},
         handler::{Action, Error as HandlerError, HandleStateAction, Handler},
         task_queue::TaskQueue,
         tasks::{Action as TaskAction, PreRequest, RequestTask},
@@ -257,24 +257,16 @@ where
         }
     }
 
-    fn handle_request_response(
-        &mut self,
-        justifications: Vec<J::Unverified>,
-        headers: Vec<J::Header>,
-        blocks: Vec<B>,
-        peer: N::PeerId,
-    ) {
+    fn handle_request_response(&mut self, response_items: ResponseItems<B, J>, peer: N::PeerId) {
         trace!(
             target: LOG_TARGET,
-            "Handling request response from peer {:?}. Justification: {:?}. Headers: {:?}. Blocks: {:?}.",
+            "Handling request response from peer {:?}. Items: {:?}.",
             peer,
-            justifications,
-            headers,
-            blocks,
+            response_items,
         );
-        let (maybe_id, maybe_error) =
-            self.handler
-                .handle_request_response(justifications, headers, blocks, peer.clone());
+        let (maybe_id, maybe_error) = self
+            .handler
+            .handle_request_response(response_items, peer.clone());
         if let Some(e) = maybe_error {
             match e {
                 HandlerError::Verifier(e) => debug!(
@@ -300,8 +292,8 @@ where
             peer
         );
         match self.handler.handle_request(request) {
-            Ok(Action::Response(js, bs, hs)) => {
-                self.send_to(NetworkData::RequestResponse(js, hs, bs), peer);
+            Ok(Action::Response(response_items)) => {
+                self.send_to(NetworkData::RequestResponse(response_items), peer);
             }
             Ok(Action::RequestBlock(id)) => self.request_block(id),
             Err(e) => match e {
@@ -386,9 +378,7 @@ where
                 self.handle_request(request, peer.clone());
                 self.handle_state(state, peer);
             }
-            RequestResponse(justifications, headers, blocks) => {
-                self.handle_request_response(justifications, headers, blocks, peer)
-            }
+            RequestResponse(response_items) => self.handle_request_response(response_items, peer),
         }
     }
 
