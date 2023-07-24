@@ -824,18 +824,12 @@ mod tests {
         let (mut handler, backend, _keep) = setup();
         let initial_state = handler.state().expect("state works");
 
-        let (justifications, blocks) = setup_request_tests(&mut handler, &backend, 100, 20);
+        let (_, blocks) = setup_request_tests(&mut handler, &backend, 100, 20);
 
         let requested_id = blocks[30].clone().id();
-        let lowest_id = justifications
-            .last()
-            .expect("at least 20 finalized blocks")
-            .clone()
-            .header()
-            .id();
+        let lowest_id = blocks[25].clone().id();
 
-        // request block #31, with the last known header equal to last finalized block of the previous session
-        // so block #19
+        // request block #31, with the last known header equal to block #26
         let request = Request::new(requested_id, LowestId(lowest_id), initial_state);
 
         let expected_response_items = vec![
@@ -877,6 +871,13 @@ mod tests {
             B(17),
             B(18),
             B(19),
+            H(26),
+            H(25),
+            H(24),
+            H(23),
+            H(22),
+            H(21),
+            H(20),
             B(20),
             B(21),
             B(22),

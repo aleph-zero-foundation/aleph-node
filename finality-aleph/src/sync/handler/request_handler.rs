@@ -341,9 +341,8 @@ where
                 return Err(RequestHandlerError::RootMismatch);
             }
             BranchKnowledge::LowestId(id) if *id == result.current_id() => {
-                let done = result.update(self.chain_status)?;
                 result.start_sending_headers();
-                done
+                result.update(self.chain_status)?
             }
             BranchKnowledge::TopImported(id) if *id == result.current_id() => {
                 result.stop_sending_blocks();
