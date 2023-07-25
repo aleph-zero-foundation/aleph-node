@@ -32,7 +32,7 @@ jobs:
       - name: Upload release binary to GH artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: aleph-release-node
+          name: aleph-production-node
           path: target/production/aleph-node
           if-no-files-found: error
           retention-days: 7
@@ -40,7 +40,7 @@ jobs:
       - name: Upload release runtime to GH artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: aleph-release-runtime
+          name: aleph-production-runtime
           path: target/production/wbuild/aleph-runtime/aleph_runtime.compact.wasm
           if-no-files-found: error
           retention-days: 7

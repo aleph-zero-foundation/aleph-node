@@ -24,7 +24,7 @@ jobs:
       - name: Download production runtime from artifacts
         uses: actions/download-artifact@v3
         with:
-          name: aleph-release-runtime
+          name: aleph-production-runtime
 
       - name: Build runtime 2nd time and compare checksum with previous build
         env:

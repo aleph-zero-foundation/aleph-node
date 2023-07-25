@@ -36,12 +36,6 @@ jobs:
     name: Build production node and runtime
     uses: ./.github/workflows/_build-production-node-and-runtime.yml
 
-  store-production-node-and-runtime:
-    needs: [build-production-node-and-runtime]
-    name: Store production node and runtime artifacts
-    uses: ./.github/workflows/_store-production-node-and-runtime.yml
-    secrets: inherit
-
   check-runtime-determinism:
     needs: [build-production-node-and-runtime]
     uses: ./.github/workflows/_check-runtime-determimism.yml
@@ -49,12 +43,6 @@ jobs:
   build-test-node-and-runtime:
     name: Build test node and runtime
     uses: ./.github/workflows/_build-test-node-and-runtime.yml
-
-  store-test-node-and-runtime:
-    needs: [build-test-node-and-runtime]
-    name: Store test node and runtime
-    uses: ./.github/workflows/_store-test-node-and-runtime.yml
-    secrets: inherit
 
   build-test-node-image-and-e2e-client-image:
     needs: [build-test-node-and-runtime]

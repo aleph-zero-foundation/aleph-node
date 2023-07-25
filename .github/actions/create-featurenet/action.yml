@@ -24,12 +24,6 @@ inputs:
   ecr-public-registry:
     description: "ECR public registry, with slash at the end, eg. 'public.ecr.aws/something/'"
     required: true
-  aws-access-key-id:
-    description: 'AWS Access Key ID to be used in the action'
-    required: true
-  aws-secret-access-key:
-    description: 'AWS Secret Access Key to be used in the action'
-    required: true
   featurenet-keys-s3bucket-name:
     description: 'S3 bucket name with featurenet keys'
     required: true

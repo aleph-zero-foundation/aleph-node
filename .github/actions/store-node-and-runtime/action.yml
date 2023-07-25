@@ -1,0 +1,93 @@
+---
+name: Store node and runtime
+description: This workflow stores test or release version of aleph-node and aleph-runtime in S3, in
+             a given bucket
+inputs:
+  profile:
+    required: true
+    description: test or production
+  aws-access-key-id:
+    required: true
+    description: 'AWS Access Key ID to be used when storing artifacts'
+  aws-secret-access-key:
+    required: true
+    description: 'AWS Secret Access Key to be used when storing artifacts'
+  aws-bucket:
+    required: true
+    description: 'AWS bucket to be used when storing artifacts'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Validate workflow inputs
+      shell: bash
+      run: |
+        if [[ ${{ inputs.profile }} != 'test' && ${{ inputs.profile }} != 'production' ]]; then
+          echo "Error: inputs.profile should be either test or production!"
+          exit 1
+        fi
+
+    - name: Get local envs
+      id: get-local-envs
+      shell: bash
+      env:
+        CARGO_PROFILE_DIRECTORY: ${{ inputs.profile == 'test' && 'release' || 'production' }}
+      run: |
+        cargo_profile_local=${{ env.CARGO_PROFILE_DIRECTORY }}
+        echo "cargo_profile=$cargo_profile_local" >> $GITHUB_OUTPUT
+
+    - name: Checkout aleph-node source code
+      uses: actions/checkout@v3
+
+    - name: Call action get-ref-properties
+      id: get-ref-properties
+      uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
+
+    - name: Download binary from GH artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: aleph-${{ inputs.profile }}-node
+        path: target/${{ steps.get-local-envs.outputs.cargo_profile }}
+
+    - name: Download runtime from GH artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: aleph-${{ inputs.profile }}-runtime
+        path: target/${{ steps.get-local-envs.outputs.cargo_profile }}/wbuild/aleph-runtime
+
+    - name: Configure AWS credentials for S3 AWS
+      uses: aws-actions/configure-aws-credentials@v2
+      env:
+        AWS_ACCESS_KEY_ID: ""
+        AWS_SECRET_ACCESS_KEY: ""
+        AWS_SESSION_TOKEN: ""
+        AWS_DEFAULT_REGION: ""
+        AWS_REGION: us-east-1
+      with:
+        aws-access-key-id: ${{ inputs.aws-access-key-id }}
+        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Copy binary to S3 AWS bucket
+      uses: Cardinal-Cryptography/github-actions/copy-file-to-s3@v1
+      with:
+        source-path: target/${{ steps.get-local-envs.outputs.cargo_profile }}
+        source-filename: aleph-node
+        s3-bucket-path:
+          # yamllint disable-line rule:line-length
+          builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-${{ inputs.profile }}-node
+        s3-bucket-filename:
+          aleph-${{ inputs.profile }}-node-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
+        s3-bucket-name: ${{ inputs.aws-bucket }}
+
+    - name: Copy runtime to S3 AWS bucket
+      uses: Cardinal-Cryptography/github-actions/copy-file-to-s3@v1
+      with:
+        source-path: target/${{ steps.get-local-envs.outputs.cargo_profile }}/wbuild/aleph-runtime
+        source-filename: aleph_runtime.compact.wasm
+        s3-bucket-path:
+          # yamllint disable-line rule:line-length
+          builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-${{ inputs.profile }}-runtime
+        s3-bucket-filename:
+          aleph-${{ inputs.profile }}-runtime-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
+        s3-bucket-name: ${{ inputs.aws-bucket }}

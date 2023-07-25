@@ -30,10 +30,20 @@ jobs:
     secrets: inherit
 
   store-test-node-and-runtime:
+    name: Store test node and runtime in Devnet bucket
+    runs-on: ubuntu-20.04
     needs: [build-test-node-and-runtime]
-    name: Store test node and runtime
-    uses: ./.github/workflows/_store-test-node-and-runtime.yml
-    secrets: inherit
+    steps:
+      - name: Checkout aleph-node source code
+        uses: actions/checkout@v3
+
+      - name: Store test node and runtime
+        uses: ./.github/actions/store-node-and-runtime
+        with:
+          profile: test
+          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
+          aws-bucket: ${{ secrets.CI_DEVNET_S3BUCKET_NAME }}
 
   push-featurnet-node-image-to-ecr:
     needs: [store-test-node-and-runtime]
@@ -88,8 +98,6 @@ jobs:
           repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
           argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
           ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}
-          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
           featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
           expiration: ${{ inputs.expiration == '' && '48h' || inputs.expiration }}
 

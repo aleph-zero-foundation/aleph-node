@@ -18,11 +18,37 @@ jobs:
     name: Build production node and runtime
     uses: ./.github/workflows/_build-production-node-and-runtime.yml
 
-  store-production-node-and-runtime:
+  store-production-node-and-runtime-in-mainnet-s3:
+    name: Store production node and runtime in Mainnet bucket
+    runs-on: ubuntu-20.04
     needs: [build-production-node-and-runtime]
-    name: Store production node and runtime artifact
-    uses: ./.github/workflows/_store-production-node-and-runtime.yml
-    secrets: inherit
+    steps:
+      - name: Checkout aleph-node source code
+        uses: actions/checkout@v3
+
+      - name: Store production node and runtime
+        uses: ./.github/actions/store-node-and-runtime
+        with:
+          profile: production
+          aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+          aws-bucket: ${{ secrets.CI_MAINNET_S3BUCKET_NAME }}
+
+  store-production-node-and-runtime-in-devnet-s3:
+    name: Store production node and runtime in Devnet bucket
+    runs-on: ubuntu-20.04
+    needs: [build-production-node-and-runtime]
+    steps:
+      - name: Checkout aleph-node source code
+        uses: actions/checkout@v3
+
+      - name: Store production node and runtime
+        uses: ./.github/actions/store-node-and-runtime
+        with:
+          profile: production
+          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
+          aws-bucket: ${{ secrets.CI_DEVNET_S3BUCKET_NAME }}
 
   push-node-image-to-ecr:
     name: Push node docker image to the ECR
@@ -40,7 +66,7 @@ jobs:
       - name: Download node production binary from artifacts
         uses: actions/download-artifact@v3
         with:
-          name: aleph-release-node
+          name: aleph-production-node
           path: target/release/
 
       - name: Build production docker node image

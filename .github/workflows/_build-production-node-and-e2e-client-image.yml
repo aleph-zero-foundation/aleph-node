@@ -24,7 +24,7 @@ jobs:
       - name: Download release artifact
         uses: actions/download-artifact@v3
         with:
-          name: aleph-release-node
+          name: aleph-production-node
           path: target/release/
 
       - name: Build release docker image
