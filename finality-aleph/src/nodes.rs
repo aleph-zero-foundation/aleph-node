@@ -33,7 +33,7 @@ use crate::{
 };
 
 // How many sessions we remember.
-const VERIFIER_CACHE_SIZE: usize = 2;
+pub const VERIFIER_CACHE_SIZE: usize = 2;
 
 pub fn new_pen(mnemonic: &str, keystore: Arc<dyn Keystore>) -> AuthorityPen {
     let validator_peer_id = keystore

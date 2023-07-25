@@ -6,7 +6,10 @@ use std::{
     fmt::{Display, Error as FmtError, Formatter},
 };
 
+use static_assertions::const_assert;
+
 use crate::{
+    aleph_primitives::DEFAULT_SESSION_PERIOD,
     sync::{data::BranchKnowledge, Block, BlockIdFor, ChainStatus, Header, Justification, PeerId},
     BlockIdentifier,
 };
@@ -132,7 +135,10 @@ impl<I: PeerId, J: Justification> VertexWithChildren<I, J> {
 
 // How deep can the forest be, vaguely based on two sessions ahead, which is the most we expect to
 // ever need worst case scenario.
+//
+// At least one session must fit into the Forest.
 const MAX_DEPTH: u32 = 1800;
+const_assert!(DEFAULT_SESSION_PERIOD <= MAX_DEPTH);
 
 pub struct Forest<I, J>
 where

@@ -9,7 +9,8 @@ use rand::{thread_rng, Rng};
 use crate::{
     sync::{
         data::{BranchKnowledge, Request, State},
-        forest::{Forest, Interest},
+        forest::Interest,
+        handler::InterestProvider,
         BlockIdFor, Header, Justification, PeerId,
     },
     BlockIdentifier,
@@ -136,15 +137,15 @@ impl<BI: BlockIdentifier> RequestTask<BI> {
         RequestTask::new(id, RequestKind::Block)
     }
 
-    /// Process the task using the information from the forest.
-    pub fn process<I, J>(self, forest: &Forest<I, J>) -> Action<I, J>
+    /// Process the task.
+    pub fn process<I, J>(self, interest_provider: InterestProvider<I, J>) -> Action<I, J>
     where
         I: PeerId,
         J: Justification,
         J::Header: Header<Identifier = BI>,
     {
         let RequestTask { id, kind, tries } = self;
-        match kind.should_request(forest.request_interest(&id)) {
+        match kind.should_request(interest_provider.get(&id)) {
             Some((branch_knowledge, know_most)) => {
                 // Every second time we request from a random peer rather than the one we expect to
                 // have it.
