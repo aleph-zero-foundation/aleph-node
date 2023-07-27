@@ -10,6 +10,7 @@ mod compatibility;
 mod data;
 mod forest;
 mod handler;
+mod message_limiter;
 #[cfg(test)]
 mod mock;
 mod service;

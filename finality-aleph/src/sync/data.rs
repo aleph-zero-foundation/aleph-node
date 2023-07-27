@@ -2,6 +2,7 @@ use std::{collections::HashSet, marker::PhantomData, mem::size_of};
 
 use log::warn;
 use parity_scale_codec::{Decode, Encode, Error as CodecError, Input as CodecInput};
+use static_assertions::const_assert;
 
 use crate::{
     aleph_primitives::MAX_BLOCK_SIZE,
@@ -207,9 +208,10 @@ where
 // We need 32 bits, since blocks can be quite sizeable.
 type ByteCount = u32;
 
-// We want to be able to safely send at least 10 blocks at once, so this gives uss a bit of wiggle
-// room.
-const MAX_SYNC_MESSAGE_SIZE: u32 = MAX_BLOCK_SIZE * 11;
+// We agreed to 15mb + some wiggle room for sync message.
+// Maximum block size is 5mb so we have spare for at least 3 blocks.
+pub const MAX_SYNC_MESSAGE_SIZE: u32 = 15 * 1024 * 1024 + 1024;
+const_assert!(MAX_SYNC_MESSAGE_SIZE > 3 * MAX_BLOCK_SIZE);
 
 fn encode_with_version(version: Version, payload: &[u8]) -> Vec<u8> {
     let size = payload.len().try_into().unwrap_or(ByteCount::MAX);
