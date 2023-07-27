@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - 'main'
+      - 'release-*'
   pull_request:
     paths:
       - bin/cliain/**
@@ -45,7 +46,6 @@ jobs:
 
       - name: Call action get-ref-properties
         id: get-ref-properties
-        # yamllint disable-line rule:line-length
         uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
 
       - name: Login to ECR
@@ -83,3 +83,29 @@ jobs:
           ]]; then
              docker push "${{ env.REGISTRY }}${{ env.IMAGE_NAME }}:${{ env.TAG }}"
           fi
+
+      - name: Configure AWS credentials for S3 AWS
+        uses: aws-actions/configure-aws-credentials@v2
+        env:
+          AWS_ACCESS_KEY_ID: ""
+          AWS_SECRET_ACCESS_KEY: ""
+          AWS_SESSION_TOKEN: ""
+          AWS_DEFAULT_REGION: ""
+          AWS_REGION: us-east-1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Copy binary to S3 AWS bucket (non-liminal)
+        if: ${{ matrix.runtime != 'liminal' }}
+        uses: Cardinal-Cryptography/github-actions/copy-file-to-s3@v1
+        with:
+          source-path: bin/cliain/target/release
+          source-filename: cliain
+          s3-bucket-path:
+            # yamllint disable-line rule:line-length
+            builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/cliain
+          s3-bucket-filename:
+            cliain-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
+          s3-bucket-name: ${{ secrets.CI_DEVNET_S3BUCKET_NAME }}
