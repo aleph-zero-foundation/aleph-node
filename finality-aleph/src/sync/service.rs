@@ -6,6 +6,7 @@ use log::{debug, error, trace, warn};
 
 pub use crate::sync::handler::DatabaseIO;
 use crate::{
+    metrics::Key,
     network::GossipNetwork,
     session::SessionBoundaryInfo,
     sync::{
@@ -19,13 +20,14 @@ use crate::{
         ChainStatusNotifier, Finalizer, Justification, JustificationSubmissions, RequestBlocks,
         Verifier, LOG_TARGET,
     },
+    Metrics,
 };
 
 const BROADCAST_COOLDOWN: Duration = Duration::from_millis(600);
 const BROADCAST_PERIOD: Duration = Duration::from_secs(5);
 
 /// A service synchronizing the knowledge about the chain between the nodes.
-pub struct Service<B, J, N, CE, CS, V, F, BI>
+pub struct Service<B, J, N, CE, CS, V, F, BI, H>
 where
     B: Block,
     J: Justification<Header = B::Header>,
@@ -35,6 +37,7 @@ where
     V: Verifier<J>,
     F: Finalizer<J>,
     BI: BlockImport<B>,
+    H: Key,
 {
     network: VersionWrapper<B, J, N>,
     handler: Handler<B, N::PeerId, J, CS, V, F, BI>,
@@ -45,6 +48,7 @@ where
     additional_justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
     block_requests_from_user: mpsc::UnboundedReceiver<BlockIdFor<J>>,
     _phantom: PhantomData<B>,
+    metrics: Metrics<H>,
 }
 
 impl<J: Justification> JustificationSubmissions<J> for mpsc::UnboundedSender<J::Unverified> {
@@ -63,7 +67,7 @@ impl<BI: BlockIdentifier> RequestBlocks<BI> for mpsc::UnboundedSender<BI> {
     }
 }
 
-impl<B, J, N, CE, CS, V, F, BI> Service<B, J, N, CE, CS, V, F, BI>
+impl<B, J, N, CE, CS, V, F, BI, H> Service<B, J, N, CE, CS, V, F, BI, H>
 where
     B: Block,
     J: Justification<Header = B::Header>,
@@ -73,6 +77,7 @@ where
     V: Verifier<J>,
     F: Finalizer<J>,
     BI: BlockImport<B>,
+    H: Key,
 {
     /// Create a new service using the provided network for communication.
     /// Also returns an interface for submitting additional justifications,
@@ -84,6 +89,7 @@ where
         database_io: DatabaseIO<B, J, CS, F, BI>,
         session_info: SessionBoundaryInfo,
         additional_justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
+        metrics: Metrics<H>,
     ) -> Result<
         (
             Self,
@@ -108,6 +114,7 @@ where
                 justifications_from_user,
                 additional_justifications_from_user,
                 block_requests_from_user,
+                metrics,
                 _phantom: PhantomData,
             },
             justifications_for_sync,
@@ -145,9 +152,11 @@ where
             }
         };
         trace!(target: LOG_TARGET, "Broadcasting state: {:?}", state);
+
         let data = NetworkData::StateBroadcast(state);
-        if let Err(e) = self.network.broadcast(data) {
-            warn!(target: LOG_TARGET, "Error sending broadcast: {}.", e);
+        match self.network.broadcast(data) {
+            Ok(()) => self.metrics.report_sync_broadcast(),
+            Err(e) => warn!(target: LOG_TARGET, "Error sending broadcast: {}.", e),
         }
     }
 
@@ -165,14 +174,23 @@ where
         let (request, peers) = pre_request.with_state(state);
         trace!(target: LOG_TARGET, "Sending a request: {:?}", request);
         let data = NetworkData::Request(request);
-        if let Err(e) = self.network.send_to_random(data, peers) {
-            warn!(target: LOG_TARGET, "Error sending request: {}.", e);
+
+        match self.network.send_to_random(data, peers) {
+            Ok(()) => self.metrics.report_sync_send_request(),
+            Err(e) => warn!(target: LOG_TARGET, "Error sending request: {}.", e),
         }
     }
 
     fn send_to(&mut self, data: NetworkData<B, J>, peer: N::PeerId) {
-        if let Err(e) = self.network.send_to(data, peer) {
-            warn!(target: LOG_TARGET, "Error sending response: {}.", e);
+        trace!(
+            target: LOG_TARGET,
+            "Sending data {:?} to peer {:?}",
+            data,
+            peer
+        );
+        match self.network.send_to(data, peer) {
+            Ok(()) => self.metrics.report_sync_send_to(),
+            Err(e) => warn!(target: LOG_TARGET, "Error sending response: {}.", e),
         }
     }
 
@@ -185,11 +203,14 @@ where
             peer
         );
         match self.handler.handle_state(state, peer.clone()) {
-            Ok(action) => match action {
-                Response(data) => self.send_to(data, peer),
-                HighestJustified(block_id) => self.request_highest_justified(block_id),
-                Noop => (),
-            },
+            Ok(action) => {
+                self.metrics.report_sync_handle_state();
+                match action {
+                    Response(data) => self.send_to(data, peer),
+                    HighestJustified(block_id) => self.request_highest_justified(block_id),
+                    Noop => (),
+                }
+            }
             Err(e) => match e {
                 HandlerError::Verifier(e) => debug!(
                     target: LOG_TARGET,
@@ -216,6 +237,7 @@ where
             maybe_justification,
             peer
         );
+        self.metrics.report_sync_handle_state_response();
         let (maybe_id, maybe_error) =
             self.handler
                 .handle_state_response(justification, maybe_justification, peer.clone());
@@ -243,8 +265,12 @@ where
             justification,
         );
         match self.handler.handle_justification_from_user(justification) {
-            Ok(Some(id)) => self.request_highest_justified(id),
-            Ok(None) => (),
+            Ok(maybe_id) => {
+                self.metrics.report_sync_handle_justification_from_user();
+                if let Some(id) = maybe_id {
+                    self.request_highest_justified(id)
+                }
+            }
             Err(e) => match e {
                 HandlerError::Verifier(e) => debug!(
                     target: LOG_TARGET,
@@ -265,6 +291,7 @@ where
             peer,
             response_items,
         );
+        self.metrics.report_sync_handle_request_response();
         let (maybe_id, maybe_error) = self
             .handler
             .handle_request_response(response_items, peer.clone());
@@ -292,12 +319,16 @@ where
             request,
             peer
         );
+        self.metrics.report_sync_handle_request();
+
         match self.handler.handle_request(request) {
             Ok(Action::Response(response_items)) => {
                 let mut limiter = MsgLimiter::new(&response_items);
                 loop {
                     match limiter.next_largest_msg() {
-                        Ok(None) => break,
+                        Ok(None) => {
+                            break self.metrics.report_sync_handle_request();
+                        }
                         Ok(Some(chunk)) => {
                             self.send_to(NetworkData::RequestResponse(chunk.to_vec()), peer.clone())
                         }
@@ -311,7 +342,10 @@ where
                     }
                 }
             }
-            Ok(Action::RequestBlock(id)) => self.request_block(id),
+            Ok(Action::RequestBlock(id)) => {
+                self.metrics.report_sync_handle_request();
+                self.request_block(id)
+            }
             Err(e) => match e {
                 HandlerError::Verifier(e) => debug!(
                     target: LOG_TARGET,
@@ -334,6 +368,7 @@ where
             self.send_request(pre_request);
             self.tasks.schedule_in(task, delay);
         }
+        self.metrics.report_sync_handle_task();
     }
 
     fn handle_chain_event(&mut self, event: ChainStatusNotification<J::Header>) {
@@ -341,15 +376,17 @@ where
         match event {
             BlockImported(header) => {
                 trace!(target: LOG_TARGET, "Handling a new imported block.");
-                if let Err(e) = self.handler.block_imported(header) {
-                    error!(
+                match self.handler.block_imported(header) {
+                    Ok(()) => self.metrics.report_sync_handle_block_imported(),
+                    Err(e) => error!(
                         target: LOG_TARGET,
                         "Error marking block as imported: {}.", e
-                    );
+                    ),
                 }
             }
             BlockFinalized(_) => {
                 trace!(target: LOG_TARGET, "Handling a new finalized block.");
+                self.metrics.report_sync_handle_block_finalized();
                 if self.broadcast_ticker.try_tick() {
                     self.broadcast();
                 }
@@ -365,9 +402,11 @@ where
         );
         match self.handler.handle_internal_request(&id) {
             Ok(true) => {
+                self.metrics.report_sync_handle_internal_request();
                 self.request_block(id);
             }
             Ok(_) => {
+                self.metrics.report_sync_handle_internal_request();
                 debug!(target: LOG_TARGET, "Already requested block {:?}.", id);
             }
             Err(e) => match e {

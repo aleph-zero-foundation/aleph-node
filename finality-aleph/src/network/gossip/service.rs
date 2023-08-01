@@ -14,11 +14,12 @@ use tokio::time;
 const MAX_QUEUE_SIZE: usize = 1_000;
 
 use crate::{
+    metrics::Key,
     network::{
         gossip::{Event, EventStream, Network, NetworkSender, Protocol, RawNetwork},
         Data,
     },
-    SpawnHandle, STATUS_REPORT_INTERVAL,
+    Metrics, SpawnHandle, STATUS_REPORT_INTERVAL,
 };
 
 enum Command<D: Data, P: Clone + Debug + Eq + Hash + Send + 'static> {
@@ -33,7 +34,7 @@ enum Command<D: Data, P: Clone + Debug + Eq + Hash + Send + 'static> {
 ///   1. Messages are forwarded to the user.
 ///   2. Various forms of (dis)connecting, keeping track of all currently connected nodes.
 /// 3. Outgoing messages, sending them out, using 1.2. to broadcast.
-pub struct Service<N: RawNetwork, AD: Data, BSD: Data> {
+pub struct Service<N: RawNetwork, AD: Data, BSD: Data, H: Key> {
     network: N,
     messages_from_authentication_user: mpsc::UnboundedReceiver<Command<AD, N::PeerId>>,
     messages_from_block_sync_user: mpsc::UnboundedReceiver<Command<BSD, N::PeerId>>,
@@ -44,6 +45,7 @@ pub struct Service<N: RawNetwork, AD: Data, BSD: Data> {
     block_sync_connected_peers: HashSet<N::PeerId>,
     block_sync_peer_senders: HashMap<N::PeerId, mpsc::Sender<BSD>>,
     spawn_handle: SpawnHandle,
+    metrics: Metrics<H>,
 }
 
 struct ServiceInterface<D: Data, P: Clone + Debug + Eq + Hash + Send + 'static> {
@@ -109,12 +111,13 @@ enum SendError {
     SendingFailed,
 }
 
-impl<N: RawNetwork, AD: Data, BSD: Data> Service<N, AD, BSD> {
+impl<N: RawNetwork, AD: Data, BSD: Data, H: Key> Service<N, AD, BSD, H> {
     pub fn new(
         network: N,
         spawn_handle: SpawnHandle,
+        metrics: Metrics<H>,
     ) -> (
-        Service<N, AD, BSD>,
+        Self,
         impl Network<AD, Error = Error, PeerId = N::PeerId>,
         impl Network<BSD, Error = Error, PeerId = N::PeerId>,
     ) {
@@ -132,6 +135,7 @@ impl<N: RawNetwork, AD: Data, BSD: Data> Service<N, AD, BSD> {
                 messages_for_authentication_user,
                 messages_for_block_sync_user,
                 spawn_handle,
+                metrics,
                 authentication_connected_peers: HashSet::new(),
                 authentication_peer_senders: HashMap::new(),
                 block_sync_connected_peers: HashSet::new(),
@@ -163,6 +167,7 @@ impl<N: RawNetwork, AD: Data, BSD: Data> Service<N, AD, BSD> {
         protocol: Protocol,
     ) -> impl Future<Output = ()> + Send + 'static {
         let network = self.network.clone();
+        let metrics = self.metrics.clone();
         async move {
             let mut sender = None;
             loop {
@@ -178,9 +183,13 @@ impl<N: RawNetwork, AD: Data, BSD: Data> Service<N, AD, BSD> {
                             }
                         }
                     };
+                    let maybe_timer = metrics.start_sending_in(protocol);
                     if let Err(e) = s.send(data.encode()).await {
                         debug!(target: "aleph-network", "Failed sending data to peer. Dropping sender and message: {}", e);
                         sender = None;
+                    }
+                    if let Some(timer) = maybe_timer {
+                        timer.observe_duration();
                     }
                 } else {
                     debug!(target: "aleph-network", "Sender was dropped for peer {:?}. Peer sender exiting.", peer_id);
@@ -447,13 +456,17 @@ mod tests {
     use tokio::runtime::Handle;
 
     use super::{Error, SendError, Service};
-    use crate::network::{
-        gossip::{
-            mock::{MockEvent, MockRawNetwork, MockSenderError},
-            Network,
+    use crate::{
+        metrics::Metrics,
+        network::{
+            gossip::{
+                mock::{MockEvent, MockRawNetwork, MockSenderError},
+                Network,
+            },
+            mock::MockData,
+            Protocol,
         },
-        mock::MockData,
-        Protocol,
+        testing::mocks::THash,
     };
 
     const PROTOCOL: Protocol = Protocol::Authentication;
@@ -461,7 +474,7 @@ mod tests {
     pub struct TestData {
         pub network: MockRawNetwork,
         gossip_network: Box<dyn Network<MockData, Error = Error, PeerId = MockPublicKey>>,
-        pub service: Service<MockRawNetwork, MockData, MockData>,
+        pub service: Service<MockRawNetwork, MockData, MockData, THash>,
         // `TaskManager` can't be dropped for `SpawnTaskHandle` to work
         _task_manager: TaskManager,
         // If we drop the sync network, the underlying network service dies, stopping the whole
@@ -478,8 +491,11 @@ mod tests {
 
             // Prepare service
             let network = MockRawNetwork::new(event_stream_oneshot_tx);
-            let (service, gossip_network, other_network) =
-                Service::new(network.clone(), task_manager.spawn_handle().into());
+            let (service, gossip_network, other_network) = Service::new(
+                network.clone(),
+                task_manager.spawn_handle().into(),
+                Metrics::<THash>::noop(),
+            );
             let gossip_network = Box::new(gossip_network);
             let other_network = Box::new(other_network);
 
