@@ -9,7 +9,7 @@ use parking_lot::Mutex;
 
 use crate::{
     nodes::VERIFIER_CACHE_SIZE,
-    session::{SessionBoundaryInfo, SessionId, SessionPeriod},
+    session::{SessionBoundaryInfo, SessionId},
     sync::{
         mock::{MockBlock, MockHeader, MockIdentifier, MockJustification, MockNotification},
         Block, BlockImport, BlockStatus, ChainStatus, ChainStatusNotifier, FinalizationStatus,
@@ -53,14 +53,13 @@ fn is_predecessor(
 }
 
 impl Backend {
-    pub fn setup(session_period: usize) -> (Self, impl ChainStatusNotifier<MockHeader>) {
+    pub fn setup(
+        session_boundary_info: SessionBoundaryInfo,
+    ) -> (Self, impl ChainStatusNotifier<MockHeader>) {
         let (notification_sender, notification_receiver) = mpsc::unbounded();
 
         (
-            Backend::new(
-                notification_sender,
-                SessionBoundaryInfo::new(SessionPeriod(session_period as u32)),
-            ),
+            Backend::new(notification_sender, session_boundary_info),
             notification_receiver,
         )
     }

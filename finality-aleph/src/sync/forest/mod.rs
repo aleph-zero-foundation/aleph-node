@@ -60,7 +60,7 @@ pub enum Interest<I: PeerId, J: Justification> {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Error {
     HeaderMissingParentId,
-    HeaderNotRequired,
+    HeaderIsAuxiliary,
     IncorrectParentState,
     IncorrectVertexState,
     ParentNotImported,
@@ -72,7 +72,7 @@ impl Display for Error {
         use Error::*;
         match self {
             HeaderMissingParentId => write!(f, "header did not contain a parent ID"),
-            HeaderNotRequired => write!(f, "header was not required, but it should have been"),
+            HeaderIsAuxiliary => write!(f, "header should not be auxiliary"),
             IncorrectParentState => write!(
                 f,
                 "parent was in a state incompatible with importing this block"
@@ -351,14 +351,15 @@ where
         }
     }
 
-    /// Updates the provided header only if the identifier was already required.
-    pub fn update_required_header(
+    /// Updates the provided header only if the identifier was not auxiliary.
+    pub fn update_non_auxiliary_header(
         &mut self,
         header: &J::Header,
         holder: Option<I>,
     ) -> Result<(), Error> {
-        if matches!(self.request_interest(&header.id()), Interest::Uninterested) {
-            return Err(Error::HeaderNotRequired);
+        if !matches!(self.get(&header.id()), VertexHandle::Candidate(vertex) if !vertex.vertex.auxiliary())
+        {
+            return Err(Error::HeaderIsAuxiliary);
         }
         self.update_header(header, holder, true)?;
         Ok(())
@@ -561,16 +562,22 @@ where
 #[cfg(test)]
 mod tests {
     use super::{Error, Forest, Interest::*, MAX_DEPTH};
-    use crate::sync::{
-        data::BranchKnowledge::*,
-        mock::{Backend, MockHeader, MockJustification, MockPeerId},
-        ChainStatus, Header, Justification,
+    use crate::{
+        session::SessionBoundaryInfo,
+        sync::{
+            data::BranchKnowledge::*,
+            mock::{Backend, MockHeader, MockJustification, MockPeerId},
+            ChainStatus, Header, Justification,
+        },
+        SessionPeriod,
     };
 
     type MockForest = Forest<MockPeerId, MockJustification>;
 
+    const SESSION_BOUNDARY_INFO: SessionBoundaryInfo = SessionBoundaryInfo::new(SessionPeriod(20));
+
     fn setup() -> (MockHeader, MockForest) {
-        let (backend, _) = Backend::setup(20);
+        let (backend, _) = Backend::setup(SESSION_BOUNDARY_INFO);
         let header = backend
             .top_finalized()
             .expect("should return genesis")

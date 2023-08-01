@@ -25,7 +25,7 @@ pub struct SessionBoundaryInfo {
 
 /// Struct for getting the session boundaries.
 impl SessionBoundaryInfo {
-    pub fn new(session_period: SessionPeriod) -> Self {
+    pub const fn new(session_period: SessionPeriod) -> Self {
         Self { session_period }
     }
 

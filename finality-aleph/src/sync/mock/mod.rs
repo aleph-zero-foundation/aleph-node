@@ -32,6 +32,18 @@ impl MockIdentifier {
     pub fn new_random(number: MockNumber) -> Self {
         MockIdentifier::new(number, MockHash::random())
     }
+
+    pub fn random_child(&self) -> MockHeader {
+        let id = MockIdentifier::new_random(self.number + 1);
+        let parent = Some(self.clone());
+        MockHeader { id, parent }
+    }
+
+    pub fn random_branch(&self) -> impl Iterator<Item = MockHeader> {
+        RandomBranch {
+            parent: self.clone(),
+        }
+    }
 }
 
 impl BlockIdentifier for MockIdentifier {
@@ -53,20 +65,16 @@ impl MockHeader {
     }
 
     pub fn random_child(&self) -> Self {
-        let id = MockIdentifier::new_random(self.id.number() + 1);
-        let parent = Some(self.id.clone());
-        MockHeader { id, parent }
+        self.id.random_child()
     }
 
     pub fn random_branch(&self) -> impl Iterator<Item = Self> {
-        RandomBranch {
-            parent: self.clone(),
-        }
+        self.id.random_branch()
     }
 }
 
 struct RandomBranch {
-    parent: MockHeader,
+    parent: MockIdentifier,
 }
 
 impl Iterator for RandomBranch {
@@ -74,7 +82,7 @@ impl Iterator for RandomBranch {
 
     fn next(&mut self) -> Option<Self::Item> {
         let result = self.parent.random_child();
-        self.parent = result.clone();
+        self.parent = result.id();
         Some(result)
     }
 }
