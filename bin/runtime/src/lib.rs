@@ -34,7 +34,7 @@ use frame_system::{EnsureRoot, EnsureSignedBy};
 #[cfg(feature = "try-runtime")]
 use frame_try_runtime::UpgradeCheckSelect;
 pub use pallet_balances::Call as BalancesCall;
-use pallet_committee_management::{PrefixMigration, SessionAndEraManager};
+use pallet_committee_management::SessionAndEraManager;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
 pub use primitives::Balance;
@@ -409,7 +409,6 @@ parameter_types! {
     pub const MaxPointsToBalance: u8 = 10;
 }
 
-use pallet_elections::{CommitteeSizeMigration, MigrateToV4};
 use sp_runtime::traits::Convert;
 
 pub struct BalanceToU256;
@@ -848,12 +847,6 @@ pub type UncheckedExtrinsic =
 /// Extrinsic type that has already been checked.
 pub type CheckedExtrinsic = generic::CheckedExtrinsic<AccountId, RuntimeCall, SignedExtra>;
 
-pub type Migrations = (
-    PrefixMigration<Runtime>,
-    MigrateToV4<Runtime>,
-    CommitteeSizeMigration<Runtime>,
-);
-
 /// Executive: handles dispatch to the various modules.
 pub type Executive = frame_executive::Executive<
     Runtime,
@@ -861,7 +854,6 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
-    Migrations,
 >;
 
 #[cfg(feature = "runtime-benchmarks")]
