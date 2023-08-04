@@ -520,7 +520,7 @@ where
 mod tests {
     use std::collections::HashSet;
 
-    use super::{DatabaseIO, HandleStateAction, Handler};
+    use super::{DatabaseIO, HandleStateAction, HandleStateAction::*, Handler};
     use crate::{
         session::SessionBoundaryInfo,
         sync::{
@@ -528,7 +528,7 @@ mod tests {
             forest::Interest,
             handler::Action,
             mock::{Backend, MockBlock, MockHeader, MockIdentifier, MockJustification, MockPeerId},
-            BlockImport, ChainStatus,
+            Block, BlockImport, ChainStatus,
             ChainStatusNotification::*,
             ChainStatusNotifier, Header, Justification,
         },
@@ -646,7 +646,7 @@ mod tests {
         (bottom, top)
     }
 
-    fn finalizing_response(
+    fn branch_response(
         branch: Vec<MockHeader>,
         include_headers: bool,
         include_blocks: bool,
@@ -675,6 +675,39 @@ mod tests {
         response
     }
 
+    async fn grow_trunk(
+        handler: &mut TestHandler,
+        backend: &mut Backend,
+        notifier: &mut impl ChainStatusNotifier<MockHeader>,
+        bottom: &MockIdentifier,
+        length: usize,
+    ) -> MockIdentifier {
+        let branch: Vec<_> = bottom.random_branch().take(length).collect();
+        let top = branch.last().expect("should not be empty").id();
+        for header in branch.iter() {
+            let block = MockBlock::new(header.clone(), true);
+            let justification = MockJustification::for_header(header.clone());
+            handler
+                .handle_justification_from_user(justification)
+                .expect("should work");
+            backend.import_block(block);
+            match notifier.next().await {
+                Ok(BlockImported(header)) => {
+                    handler.block_imported(header).expect("should work");
+                }
+                _ => panic!("should notify about imported block"),
+            }
+            match notifier.next().await {
+                Ok(BlockFinalized(finalized_header)) => assert_eq!(
+                    header, &finalized_header,
+                    "should finalize the current header"
+                ),
+                _ => panic!("shoould notify about finalized block"),
+            }
+        }
+        top
+    }
+
     #[test]
     fn creates_dangling_branch() {
         let (mut handler, _backend, _notifier, _genesis) = setup();
@@ -684,17 +717,20 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn prunes_dangling_branch() {
+    async fn uninterested_in_dangling_branch() {
         let (mut handler, _backend, mut notifier, genesis) = setup();
+
         // grow the branch that will be finalized
         let branch = grow_light_branch(&mut handler, &genesis, 15, 4);
         let top_main = branch.last().expect("branch not empty").id();
+
         // grow the dangling branch that will be pruned
         let peer_id = 3;
         let (bottom, top) = create_dangling_branch(&mut handler, 10, 20, peer_id);
         assert_dangling_branch_required(&handler, &top, &bottom, HashSet::from_iter(vec![peer_id]));
+
         // begin finalizing the main branch
-        let response = finalizing_response(branch, false, true, true);
+        let response = branch_response(branch, false, true, true);
         let (maybe_id, maybe_error) = handler.handle_request_response(response, 7);
         assert_eq!(
             maybe_id,
@@ -702,21 +738,261 @@ mod tests {
             "should create new highest justified"
         );
         assert!(maybe_error.is_none(), "should work");
+
         // check that still not finalized
         assert!(
             handler.interest_provider().get(&top) != Interest::Uninterested,
-            "branch should not be pruned"
+            "should still be interested"
         );
+
         // finalize
         while let Ok(BlockImported(header)) = notifier.next().await {
             handler.block_imported(header).expect("should work");
         }
+
         // check if dangling branch was pruned
         assert_eq!(
             handler.interest_provider().get(&top),
             Interest::Uninterested,
-            "branch should be pruned"
+            "should be uninterested"
         );
+    }
+
+    #[tokio::test]
+    async fn uninterested_in_dangling_branch_when_connected_below_finalized() {
+        let (mut handler, _backend, mut notifier, genesis) = setup();
+
+        // grow the branch that will be finalized
+        let branch = grow_light_branch(&mut handler, &genesis, 15, 4);
+        let top_main = branch.last().expect("branch not empty").id();
+
+        // grow the dangling branch that will be pruned
+        let fork_peer = 6;
+        let fork_bottom = MockIdentifier::new_random(15);
+        let fork_child = fork_bottom.random_child();
+        let fork = grow_light_branch(&mut handler, &fork_child.id(), 10, fork_peer);
+        let fork_top = fork.last().expect("fork not empty").id();
+
+        // finalize the main branch
+        let response = branch_response(branch.clone(), false, true, true);
+        let (maybe_id, maybe_error) = handler.handle_request_response(response, 7);
+        assert_eq!(
+            maybe_id,
+            Some(top_main),
+            "should create new highest justified"
+        );
+        assert!(maybe_error.is_none(), "should work");
+        let mut idx = 0;
+        while let Ok(BlockImported(header)) = notifier.next().await {
+            assert_eq!(
+                header, branch[idx],
+                "should be importing the main branch in order"
+            );
+            handler.block_imported(header).expect("should work");
+            idx += 1;
+        }
+
+        // check that the fork is still interesting
+        assert_eq!(
+            handler.interest_provider().get(&fork_top),
+            Interest::Required {
+                know_most: HashSet::from_iter(vec![fork_peer]),
+                branch_knowledge: LowestId(fork_child.id()),
+            },
+            "should be required"
+        );
+
+        // import fork_child that connects the fork to fork_bottom,
+        // which is at the same height as an already finalized block
+        let response = branch_response(vec![fork_child], true, false, false);
+        let (maybe_id, maybe_error) = handler.handle_request_response(response, 12);
+        assert!(
+            maybe_id.is_none(),
+            "should not create new highest justified"
+        );
+        assert!(maybe_error.is_none(), "should work");
+
+        // check that the fork is pruned
+        assert_eq!(
+            handler.interest_provider().get(&fork_top),
+            Interest::Uninterested,
+            "should be uninterested"
+        );
+    }
+
+    #[tokio::test]
+    async fn uninterested_in_dangling_branch_when_connected_to_composted_header() {
+        let (mut handler, _backend, mut notifier, genesis) = setup();
+
+        // grow the branch that will be finalized
+        let branch = grow_light_branch(&mut handler, &genesis, 15, 4);
+        let top_main = branch.last().expect("branch not empty").id();
+
+        // grow the branch that will be pruned in the first place
+        let fork_bottom = branch[10].id();
+        let fork = grow_light_branch(&mut handler, &fork_bottom, 15, 5);
+
+        // grow the dangling branch that will be pruned
+        let fork_peer = 6;
+        let further_fork_bottom = fork.last().expect("branch not empty").id();
+        let further_fork_child = further_fork_bottom.random_child();
+        let further_fork = grow_light_branch(&mut handler, &further_fork_child.id(), 10, fork_peer);
+        let fork_top = further_fork.last().expect("fork not empty").id();
+
+        // finalize the main branch
+        let response = branch_response(branch.clone(), false, true, true);
+        let (maybe_id, maybe_error) = handler.handle_request_response(response, 7);
+        assert_eq!(
+            maybe_id,
+            Some(top_main),
+            "should create new highest justified"
+        );
+        assert!(maybe_error.is_none(), "should work");
+        let mut idx = 0;
+        while let Ok(BlockImported(header)) = notifier.next().await {
+            assert_eq!(
+                header, branch[idx],
+                "should be importing the main branch in order"
+            );
+            handler.block_imported(header).expect("should work");
+            idx += 1;
+        }
+
+        // check if the bottom part of the fork was pruned
+        assert_eq!(
+            handler.interest_provider().get(&further_fork_bottom),
+            Interest::Uninterested,
+            "should be uninterested"
+        );
+
+        // check that the fork is still interesting
+        assert_eq!(
+            handler.interest_provider().get(&fork_top),
+            Interest::Required {
+                know_most: HashSet::from_iter(vec![fork_peer]),
+                branch_knowledge: LowestId(further_fork_child.id()),
+            },
+            "should be required"
+        );
+
+        // check that further_fork_child is higher than top finalized
+        assert!(
+            further_fork_child.id().number()
+                > handler
+                    .state()
+                    .expect("should work")
+                    .top_justification()
+                    .header()
+                    .id()
+                    .number()
+        );
+
+        // import further_fork_child that connects the fork to further_fork_bottom,
+        // which is composted
+        let response = branch_response(vec![further_fork_child], true, false, false);
+        let (maybe_id, maybe_error) = handler.handle_request_response(response, 12);
+        assert!(
+            maybe_id.is_none(),
+            "should not create new highest justified"
+        );
+        assert!(maybe_error.is_none(), "should work");
+
+        // check that the fork is pruned
+        assert_eq!(
+            handler.interest_provider().get(&fork_top),
+            Interest::Uninterested,
+            "should be uninterested"
+        );
+    }
+
+    #[tokio::test]
+    async fn syncs_to_a_long_trunk() {
+        let (mut handler, mut backend, mut notifier, _genesis) = setup();
+        let (mut syncing_handler, _syncing_backend, mut syncing_notifier, genesis) = setup();
+        let _top_main = grow_trunk(&mut handler, &mut backend, &mut notifier, &genesis, 2345).await;
+        let peer_id = 0;
+        let syncing_peer_id = 1;
+        loop {
+            // syncing peer broadcasts the state
+            let state = syncing_handler.state().expect("should work");
+
+            // peer responds
+            let response = match handler
+                .handle_state(state, syncing_peer_id)
+                .expect("should create response")
+            {
+                Response(data) => data,
+                HighestJustified(_) => panic!("should not request anything from the syncing peer"),
+                Noop => break,
+            };
+            let (justification, maybe_justification) = match response {
+                NetworkData::StateBroadcastResponse(justification, maybe_justification) => {
+                    (justification, maybe_justification)
+                }
+                _ => panic!("should create state broadcast response"),
+            };
+
+            // syncing peer processes the response and sends a request
+            let mut target_id = justification.header().id();
+            if let Some(justification) = &maybe_justification {
+                target_id = justification.header().id();
+            }
+            let (maybe_id, maybe_error) =
+                syncing_handler.handle_state_response(justification, maybe_justification, peer_id);
+            assert!(maybe_error.is_none(), "should work");
+            match maybe_id {
+                Some(id) => assert_eq!(id, target_id, "should start requesting target_id"),
+                None => panic!("should request"),
+            };
+            let branch_knowledge = match syncing_handler.interest_provider().get(&target_id) {
+                Interest::HighestJustified {
+                    know_most,
+                    branch_knowledge,
+                } => {
+                    assert!(know_most.contains(&peer_id), "should come from the peer");
+                    branch_knowledge
+                }
+                _ => panic!("should be highly interested"),
+            };
+            let state = syncing_handler.state().expect("should work");
+            let request = Request::new(target_id.clone(), branch_knowledge, state);
+
+            // peer responds
+            let response_items = match handler.handle_request(request).expect("should work") {
+                Action::Response(items) => items,
+                _ => panic!("should prepare response"),
+            };
+
+            // syncing peer processes the response
+            let (maybe_id, maybe_error) =
+                syncing_handler.handle_request_response(response_items.clone(), peer_id);
+            assert!(maybe_error.is_none(), "should work");
+            assert!(maybe_id.is_none(), "should already know about target_id");
+
+            // syncing peer finalizes received blocks
+            let response_headers: Vec<_> = response_items
+                .into_iter()
+                .filter_map(|item| {
+                    if let ResponseItem::Block(block) = item {
+                        Some(block.header().clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            let mut idx = 0;
+            while let Ok(notification) = syncing_notifier.next().await {
+                match notification {
+                    BlockImported(header) => {
+                        assert_eq!(header, response_headers[idx], "should import in order");
+                        syncing_handler.block_imported(header).expect("should work");
+                        idx += 1;
+                    }
+                    BlockFinalized(header) if header.id() == target_id => break,
+                    _ => (),
+                }
+            }
+        }
     }
 
     #[test]

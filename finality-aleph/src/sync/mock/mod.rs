@@ -59,6 +59,16 @@ pub struct MockHeader {
 }
 
 impl MockHeader {
+    pub fn genesis() -> Self {
+        MockHeader {
+            id: MockIdentifier {
+                number: 0,
+                hash: MockHash::zero(),
+            },
+            parent: None,
+        }
+    }
+
     pub fn random_parentless(number: MockNumber) -> Self {
         let id = MockIdentifier::new_random(number);
         MockHeader { id, parent: None }

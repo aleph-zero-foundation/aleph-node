@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::{HashMap, HashSet, VecDeque},
     fmt::{Display, Error as FmtError, Formatter},
     sync::Arc,
 };
@@ -23,6 +23,7 @@ struct BackendStorage {
     session_boundary_info: SessionBoundaryInfo,
     blockchain: HashMap<MockIdentifier, MockBlock>,
     finalized: Vec<MockIdentifier>,
+    prune_candidates: HashSet<MockIdentifier>,
 }
 
 #[derive(Clone, Debug)]
@@ -39,6 +40,9 @@ fn is_predecessor(
     let mut header = blockchain.get(id).expect("should exist").header();
     while let Some(parent) = header.parent_id() {
         if header.id().number() != parent.number() + 1 {
+            break;
+        }
+        if parent.number() < maybe_predecessor.number() {
             break;
         }
         if &parent == maybe_predecessor {
@@ -68,7 +72,8 @@ impl Backend {
         notification_sender: UnboundedSender<MockNotification>,
         session_boundary_info: SessionBoundaryInfo,
     ) -> Self {
-        let header = MockHeader::random_parentless(0);
+        // genesis has fixed hash to allow creating multiple compatible Backends
+        let header = MockHeader::genesis();
         let id = header.id();
 
         let block = MockBlock {
@@ -81,6 +86,7 @@ impl Backend {
             session_boundary_info,
             blockchain: HashMap::from([(id.clone(), block)]),
             finalized: vec![id],
+            prune_candidates: HashSet::new(),
         }));
 
         Self {
@@ -109,16 +115,17 @@ impl Backend {
             .id();
         let mut storage = self.inner.lock();
         let to_prune: Vec<_> = storage
-            .blockchain
-            .keys()
+            .prune_candidates
+            .iter()
             .filter(|id| {
-                !&storage.finalized.contains(id)
+                storage.finalized.get(id.number() as usize) != Some(id)
                     && !is_predecessor(&storage.blockchain, id, top_finalized_id)
             })
             .cloned()
             .collect();
         for id in to_prune {
             storage.blockchain.remove(&id);
+            storage.prune_candidates.remove(&id);
         }
     }
 }
@@ -226,9 +233,13 @@ impl Finalizer<MockJustification> for Backend {
             panic!("finalizing a block that is not a child of top finalized.");
         }
 
+        for id in &blocks_to_finalize {
+            storage.prune_candidates.remove(id);
+        }
         storage.finalized.extend(blocks_to_finalize);
         std::mem::drop(storage);
         self.prune();
+
         self.notify_finalized(header);
 
         Ok(())
@@ -262,6 +273,7 @@ impl BlockImport<MockBlock> for Backend {
             return;
         }
 
+        storage.prune_candidates.insert(block.id());
         storage.blockchain.insert(block.id(), block.clone());
 
         self.notify_imported(block.header);
