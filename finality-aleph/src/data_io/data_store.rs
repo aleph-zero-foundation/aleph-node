@@ -2,6 +2,7 @@ use std::{
     collections::{hash_map::Entry::Occupied, BTreeMap, HashMap, HashSet},
     default::Default,
     hash::{Hash, Hasher},
+    num::NonZeroUsize,
     sync::Arc,
     time::{self, Duration},
 };
@@ -136,7 +137,7 @@ pub struct DataStoreConfig {
     pub max_triggers_pending: usize,
     pub max_proposals_pending: usize,
     pub max_messages_pending: usize,
-    pub available_proposals_cache_capacity: usize,
+    pub available_proposals_cache_capacity: NonZeroUsize,
     pub periodic_maintenance_interval: Duration,
     // Specifies how much time must pass from receiving a given proposal for the first time, till we
     // perform a request for either a block or a justification required to let this proposal through.
@@ -149,7 +150,7 @@ impl Default for DataStoreConfig {
             max_triggers_pending: 80_000,
             max_proposals_pending: 80_000,
             max_messages_pending: 40_000,
-            available_proposals_cache_capacity: 8000,
+            available_proposals_cache_capacity: NonZeroUsize::new(8000).unwrap(),
             periodic_maintenance_interval: Duration::from_secs(25),
             request_block_after: Duration::from_secs(20),
         }

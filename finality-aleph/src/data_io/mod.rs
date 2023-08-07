@@ -1,6 +1,7 @@
 use std::{
     fmt::Debug,
     hash::{Hash, Hasher},
+    num::NonZeroUsize,
 };
 
 use parity_scale_codec::{Decode, Encode};
@@ -52,13 +53,13 @@ pub trait AlephNetworkMessage<B: BlockT>: Clone + Debug {
 
 #[derive(Clone, Debug)]
 pub struct ChainInfoCacheConfig {
-    pub block_cache_capacity: usize,
+    pub block_cache_capacity: NonZeroUsize,
 }
 
 impl Default for ChainInfoCacheConfig {
     fn default() -> ChainInfoCacheConfig {
         ChainInfoCacheConfig {
-            block_cache_capacity: 2000,
+            block_cache_capacity: NonZeroUsize::new(2000).unwrap(),
         }
     }
 }

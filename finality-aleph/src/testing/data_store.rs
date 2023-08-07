@@ -1,4 +1,4 @@
-use std::{future::Future, sync::Arc, time::Duration};
+use std::{future::Future, num::NonZeroUsize, sync::Arc, time::Duration};
 
 use futures::{
     channel::{
@@ -157,7 +157,7 @@ fn prepare_data_store(
         max_triggers_pending: 80_000,
         max_proposals_pending: 80_000,
         max_messages_pending: 40_000,
-        available_proposals_cache_capacity: 8000,
+        available_proposals_cache_capacity: NonZeroUsize::new(8000).unwrap(),
         periodic_maintenance_interval: Duration::from_millis(20),
         request_block_after: Duration::from_millis(30),
     };

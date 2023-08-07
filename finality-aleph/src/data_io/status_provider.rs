@@ -159,7 +159,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
+    use std::{num::NonZeroUsize, sync::Arc};
 
     use sp_runtime::traits::Block as BlockT;
 
@@ -206,7 +206,7 @@ mod tests {
         let client = Arc::new(TestClientBuilder::new().build());
 
         let config = ChainInfoCacheConfig {
-            block_cache_capacity: 2,
+            block_cache_capacity: NonZeroUsize::new(2).unwrap(),
         };
         let cached_chain_info_provider = CachedChainInfoProvider::new(client.clone(), config);
 

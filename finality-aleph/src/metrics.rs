@@ -2,6 +2,7 @@ use std::{
     collections::HashMap,
     fmt::Debug,
     hash::Hash,
+    num::NonZeroUsize,
     time::{Duration, Instant},
 };
 
@@ -176,7 +177,12 @@ impl<H: Key> Metrics<H> {
             gauges,
             starts: keys
                 .iter()
-                .map(|k| (*k, LruCache::new(MAX_BLOCKS_PER_CHECKPOINT)))
+                .map(|k| {
+                    (
+                        *k,
+                        LruCache::new(NonZeroUsize::new(MAX_BLOCKS_PER_CHECKPOINT).unwrap()),
+                    )
+                })
                 .collect(),
             sync_broadcast_counter: register(
                 Counter::new("aleph_sync_broadcast", "no help")?,
