@@ -62,9 +62,9 @@ jobs:
           path: "${{ secrets.REPO_ARGOCD_APPS_NAME }}"
 
       - name: Init kustomize
-        uses: imranismail/setup-kustomize@v1
+        uses: imranismail/setup-kustomize@v2
         with:
-          kustomize-version: "3.8.6"
+          kustomize-version: "4.4.1"
 
       - name: Update aleph-node docker image and trigger ArgoCD deploy for ${{ inputs.env }}
         env:
