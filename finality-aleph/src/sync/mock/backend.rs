@@ -181,7 +181,7 @@ impl Finalizer<MockJustification> for Backend {
                 storage.session_boundary_info.last_block_of_session(
                     storage
                         .session_boundary_info
-                        .session_id_from_block_num(id.number),
+                        .session_id_from_block_num(id.number + 1),
                 ),
             ],
             None => [
