@@ -35,15 +35,17 @@ Within it we can call `cargo build`.
 This way, our docker instance maintains all build artifacts inside of project's root directory, which allows to speed up
 ongoing build invocations, i.e. next time one invokes `cargo build` it should take significantly less time.
 ```
+# create the builder image
+sudo docker build -t aleph-build -f nix/Dockerfile.build .
 # spawn nix-shell inside of our docker image
-docker run -ti --volume=$(pwd):/node/build --entrypoint="nix-shell" aleph-build --pure
+sudo docker run -ti --volume=$(pwd):/node/build --entrypoint="nix-shell" aleph-build --pure
 # if your `target` directory contains some artifacts that were not created using this procedure, we first remove them
 # otherwise you might receive errors claiming that you are using wrong version of glibc
 cargo clean
 # build `aleph-node` and store it at the root of the aleph-node's source directory
 cargo build --release --package aleph-node
 # set the proper loader (nix related)
-patchelf --set-interpreter /lib64/ld-linux-x86-64.so.2 target/release/aleph-node
+patchelf --set-interpreter /lib64/ld-linux-x86-64.so.2 --set-rpath /lib/x86_64-linux-gnu/ target/release/aleph-node
 ```
 
 If you have `nix` installed locally, you can simply call `nix-shell --pure`. It should spawn a shell containing all build

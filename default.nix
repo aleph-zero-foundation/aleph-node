@@ -12,7 +12,10 @@
 , runTests ? false
 # forces naersk (helper tool for building rust projects under nix) to build in a single derivation, instead default way that uses deps and project derivations
 # it is used for building aleph-runtime (we don't want its dependencies to be build separately for a non-WASM architecture)
-, singleStep ? false
+# FIXME two-step build fails. naersk attempts creating a type of a mock project that mainly consists of no-op main/lib.rs and a list cargo dependencies copied from
+# the processed project. Unfortunately, it somehow fails to process our workspace configuration and crashes while building some of our crates (even we don't use
+# them later in the main build procedure).
+, singleStep ? true
 # passed to rustc by cargo - it allows us to set the list of supported cpu features
 # we can use for example `-C target-cpu=native` which should produce a binary that is significantly faster than the one produced using `generic`
 # `generic` is the default `target-cpu` provided by cargo
@@ -140,7 +143,12 @@ with nixpkgs; naersk.buildPackage rec {
   postConfigure = ''
       ${nixpkgs.lib.optionalString providedCargoHome
          ''
-           export CARGO_HOME=${cargoHome}
+           # Somehow cargo attempts to write inside of the CARGO_HOME folder,
+           # which previously was stored inside of the /nix folder and so it was
+           # read-only. This copies it into the build folder to avoid this
+           # issue.
+           cp -r ${cargoHome} .cargo_home
+           export CARGO_HOME=.cargo_home
          ''
        }
   '';
