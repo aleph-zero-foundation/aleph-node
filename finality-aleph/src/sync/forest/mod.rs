@@ -60,7 +60,6 @@ pub enum Interest<I: PeerId, J: Justification> {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Error {
     HeaderMissingParentId,
-    HeaderIsAuxiliary,
     IncorrectParentState,
     IncorrectVertexState,
     ParentNotImported,
@@ -72,7 +71,6 @@ impl Display for Error {
         use Error::*;
         match self {
             HeaderMissingParentId => write!(f, "header did not contain a parent ID"),
-            HeaderIsAuxiliary => write!(f, "header should not be auxiliary"),
             IncorrectParentState => write!(
                 f,
                 "parent was in a state incompatible with importing this block"
@@ -351,20 +349,6 @@ where
         }
     }
 
-    /// Updates the provided header only if the identifier was not auxiliary.
-    pub fn update_non_auxiliary_header(
-        &mut self,
-        header: &J::Header,
-        holder: Option<I>,
-    ) -> Result<(), Error> {
-        if !matches!(self.get(&header.id()), VertexHandle::Candidate(vertex) if !vertex.vertex.auxiliary())
-        {
-            return Err(Error::HeaderIsAuxiliary);
-        }
-        self.update_header(header, holder, true)?;
-        Ok(())
-    }
-
     /// Updates the vertex related to the provided header marking it as imported.
     /// Returns errors when it's impossible to do consistently.
     pub fn update_body(&mut self, header: &J::Header) -> Result<(), Error> {
@@ -554,6 +538,18 @@ where
         use VertexHandle::Candidate;
         match self.get(id) {
             Candidate(vertex) => vertex.vertex.importable(),
+            _ => false,
+        }
+    }
+
+    /// Whether this block should be skipped during importing.
+    /// It either needs to be already imported, or too old to be checked.
+    pub fn skippable(&self, id: &BlockIdFor<J>) -> bool {
+        use SpecialState::{BelowMinimal, HighestFinalized};
+        use VertexHandle::{Candidate, Special};
+        match self.get(id) {
+            Special(BelowMinimal | HighestFinalized) => true,
+            Candidate(vertex) => vertex.vertex.imported(),
             _ => false,
         }
     }

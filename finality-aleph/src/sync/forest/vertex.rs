@@ -50,22 +50,6 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
         }
     }
 
-    /// Whether the vertex is auxiliary.
-    pub fn auxiliary(&self) -> bool {
-        use Importance::*;
-        use InnerVertex::*;
-        matches!(
-            self.inner,
-            Empty {
-                required: Auxiliary,
-                ..
-            } | Header {
-                importance: HeaderImportance::Unimported(Auxiliary),
-                ..
-            }
-        )
-    }
-
     /// Whether we want the referenced block in our database.
     pub fn importable(&self) -> bool {
         use Importance::*;
