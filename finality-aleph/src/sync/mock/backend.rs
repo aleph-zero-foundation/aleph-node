@@ -36,6 +36,8 @@ fn is_predecessor(
     blockchain: &HashMap<MockIdentifier, MockBlock>,
     id: &MockIdentifier,
     maybe_predecessor: &MockIdentifier,
+    definitely_not: &HashSet<MockIdentifier>,
+    definitely: &HashSet<MockIdentifier>,
 ) -> bool {
     let mut header = blockchain.get(id).expect("should exist").header();
     while let Some(parent) = header.parent_id() {
@@ -47,6 +49,12 @@ fn is_predecessor(
         }
         if &parent == maybe_predecessor {
             return true;
+        }
+        if definitely.contains(&parent) {
+            return true;
+        }
+        if definitely_not.contains(&parent) {
+            return false;
         }
         header = match blockchain.get(&parent) {
             Some(block) => block.header(),
@@ -114,15 +122,23 @@ impl Backend {
             .header()
             .id();
         let mut storage = self.inner.lock();
-        let to_prune: Vec<_> = storage
-            .prune_candidates
-            .iter()
-            .filter(|id| {
-                storage.finalized.get(id.number() as usize) != Some(id)
-                    && !is_predecessor(&storage.blockchain, id, top_finalized_id)
-            })
-            .cloned()
-            .collect();
+        let mut to_prune = HashSet::new();
+        let mut definitely_correct = HashSet::new();
+        for id in &storage.prune_candidates {
+            if storage.finalized.get(id.number() as usize) == Some(id)
+                || is_predecessor(
+                    &storage.blockchain,
+                    id,
+                    top_finalized_id,
+                    &to_prune,
+                    &definitely_correct,
+                )
+            {
+                definitely_correct.insert(id.clone());
+            } else {
+                to_prune.insert(id.clone());
+            }
+        }
         for id in to_prune {
             storage.blockchain.remove(&id);
             storage.prune_candidates.remove(&id);
