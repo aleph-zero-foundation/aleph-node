@@ -10,6 +10,7 @@ use tokio::time;
 use crate::{
     incoming::incoming,
     manager::{AddResult, Manager},
+    metrics::NetworkCliqueMetrics,
     outgoing::outgoing,
     protocols::ResultForService,
     Data, Dialer, Listener, Network, PeerId, PublicKey, SecretKey, LOG_TARGET,
@@ -84,8 +85,15 @@ pub trait SpawnHandleT {
 }
 
 /// A service that has to be run for the clique network to work.
-pub struct Service<SK: SecretKey, D: Data, A: Data, ND: Dialer<A>, NL: Listener, SH: SpawnHandleT>
-where
+pub struct Service<
+    SK: SecretKey,
+    D: Data,
+    A: Data,
+    ND: Dialer<A>,
+    NL: Listener,
+    SH: SpawnHandleT,
+    M: NetworkCliqueMetrics,
+> where
     SK::PublicKey: PeerId,
 {
     commands_from_interface: mpsc::UnboundedReceiver<ServiceCommand<SK::PublicKey, D, A>>,
@@ -95,10 +103,18 @@ where
     listener: NL,
     spawn_handle: SH,
     secret_key: SK,
+    metrics: M,
 }
 
-impl<SK: SecretKey, D: Data, A: Data + Debug, ND: Dialer<A>, NL: Listener, SH: SpawnHandleT>
-    Service<SK, D, A, ND, NL, SH>
+impl<
+        SK: SecretKey,
+        D: Data,
+        A: Data + Debug,
+        ND: Dialer<A>,
+        NL: Listener,
+        SH: SpawnHandleT,
+        M: NetworkCliqueMetrics,
+    > Service<SK, D, A, ND, NL, SH, M>
 where
     SK::PublicKey: PeerId,
 {
@@ -108,6 +124,7 @@ where
         listener: NL,
         secret_key: SK,
         spawn_handle: SH,
+        metrics: M,
     ) -> (Self, impl Network<SK::PublicKey, A, D>) {
         // Channel for sending commands between the service and interface
         let (commands_for_service, commands_from_interface) = mpsc::unbounded();
@@ -122,6 +139,7 @@ where
                 listener,
                 spawn_handle,
                 secret_key,
+                metrics,
             },
             ServiceInterface {
                 commands_for_service,
@@ -246,7 +264,9 @@ where
                 },
                 // periodically reporting what we are trying to do
                 _ = status_ticker.tick() => {
-                    info!(target: LOG_TARGET, "Clique Network status: {}", self.manager.status_report());
+                    let status_report = self.manager.status_report();
+                    status_report.update_metrics(&self.metrics);
+                    info!(target: LOG_TARGET, "Clique Network status: {}", status_report);
                 }
                 // received exit signal, stop the network
                 // all workers will be killed automatically after the manager gets dropped

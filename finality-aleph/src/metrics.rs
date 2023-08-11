@@ -8,6 +8,7 @@ use std::{
 
 use log::{trace, warn};
 use lru::LruCache;
+use network_clique::metrics::NetworkCliqueMetrics;
 use parking_lot::Mutex;
 use sc_service::Arc;
 use substrate_prometheus_endpoint::{
@@ -54,6 +55,33 @@ struct Inner<H: Key> {
     sync_handle_internal_request_calls_counter: Counter<U64>,
     sync_handle_internal_request_errors_counter: Counter<U64>,
     network_send_times: HashMap<Protocol, Histogram>,
+    validator_network_metrics: ValidatorNetworkMetrics,
+}
+
+#[derive(Clone)]
+struct ValidatorNetworkMetrics {
+    incoming_connections: Gauge<U64>,
+    missing_incoming_connections: Gauge<U64>,
+    outgoing_connections: Gauge<U64>,
+    missing_outgoing_connections: Gauge<U64>,
+}
+
+impl NetworkCliqueMetrics for ValidatorNetworkMetrics {
+    fn set_incoming_connections(&self, present: u64) {
+        self.incoming_connections.set(present);
+    }
+
+    fn set_missing_incoming_connections(&self, missing: u64) {
+        self.missing_incoming_connections.set(missing);
+    }
+
+    fn set_outgoing_connections(&self, present: u64) {
+        self.outgoing_connections.set(present);
+    }
+
+    fn set_missing_outgoing_connections(&self, missing: u64) {
+        self.missing_outgoing_connections.set(missing);
+    }
 }
 
 impl<H: Key> Inner<H> {
@@ -103,6 +131,37 @@ impl<H: Key> Inner<H> {
                 )?,
             );
         }
+
+        let validator_network_metrics = ValidatorNetworkMetrics {
+            incoming_connections: register(
+                Gauge::new(
+                    "clique_network_incoming_connections",
+                    "present incoming connections",
+                )?,
+                registry,
+            )?,
+            missing_incoming_connections: register(
+                Gauge::new(
+                    "clique_network_missing_incoming_connections",
+                    "difference between expected and present incoming connections",
+                )?,
+                registry,
+            )?,
+            outgoing_connections: register(
+                Gauge::new(
+                    "clique_network_outgoing_connections",
+                    "present outgoing connections",
+                )?,
+                registry,
+            )?,
+            missing_outgoing_connections: register(
+                Gauge::new(
+                    "clique_network_missing_outgoing_connections",
+                    "difference between expected and present outgoing connections",
+                )?,
+                registry,
+            )?,
+        };
 
         Ok(Self {
             prev,
@@ -201,6 +260,7 @@ impl<H: Key> Inner<H> {
                 registry,
             )?,
             network_send_times,
+            validator_network_metrics,
         })
     }
 
@@ -354,6 +414,12 @@ impl<H: Key> Metrics<H> {
             }
             _ => {} // events that have not defined error events
         }
+    }
+
+    pub fn validator_network_metrics(&self) -> impl NetworkCliqueMetrics {
+        self.inner
+            .as_ref()
+            .map(|inner| inner.lock().validator_network_metrics.clone())
     }
 
     pub fn report_block(&self, hash: H, checkpoint_time: Instant, checkpoint_type: Checkpoint) {

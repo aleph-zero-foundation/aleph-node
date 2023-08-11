@@ -13,6 +13,7 @@ mod crypto;
 mod incoming;
 mod io;
 mod manager;
+pub mod metrics;
 pub mod mock;
 mod outgoing;
 mod protocols;

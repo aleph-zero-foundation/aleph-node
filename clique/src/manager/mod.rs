@@ -10,6 +10,8 @@ use crate::{Data, PeerId, PublicKey};
 mod direction;
 use direction::DirectedPeers;
 
+use crate::metrics::NetworkCliqueMetrics;
+
 /// Error during sending data through the Manager
 #[derive(Debug, PartialEq, Eq)]
 pub enum SendError {
@@ -40,7 +42,7 @@ pub enum AddResult {
     Replaced,
 }
 
-struct ManagerStatus<PK: PublicKey + PeerId> {
+pub struct ManagerStatus<PK: PublicKey + PeerId> {
     outgoing_peers: HashSet<PK>,
     missing_outgoing: HashSet<PK>,
     incoming_peers: HashSet<PK>,
@@ -72,6 +74,13 @@ impl<PK: PublicKey + PeerId> ManagerStatus<PK> {
             outgoing_peers,
             missing_outgoing,
         }
+    }
+
+    pub fn update_metrics<M: NetworkCliqueMetrics>(&self, metrics: &M) {
+        metrics.set_incoming_connections(self.incoming_peers.len() as u64);
+        metrics.set_missing_incoming_connections(self.missing_incoming.len() as u64);
+        metrics.set_outgoing_connections(self.outgoing_peers.len() as u64);
+        metrics.set_missing_outgoing_connections(self.missing_outgoing.len() as u64);
     }
 
     fn wanted_incoming(&self) -> usize {
@@ -226,7 +235,7 @@ impl<PK: PublicKey + PeerId, A: Data, D: Data> Manager<PK, A, D> {
     }
 
     /// A status of the manager, to be displayed somewhere.
-    pub fn status_report(&self) -> impl Display {
+    pub fn status_report(&self) -> ManagerStatus<PK> {
         ManagerStatus::new(self)
     }
 
