@@ -3,6 +3,7 @@ use primitives::{SessionCommittee, SessionValidatorError};
 use subxt::{
     ext::{sp_core::Bytes, sp_runtime::Perquintill},
     rpc_params,
+    utils::Static,
 };
 
 use crate::{
@@ -127,7 +128,7 @@ impl<C: ConnectionApi + AsConnection> CommitteeManagementApi for C {
     ) -> Option<u32> {
         let addrs = api::storage()
             .committee_management()
-            .session_validator_block_count(&validator);
+            .session_validator_block_count(Static::from(validator));
 
         self.get_storage_entry_maybe(&addrs, at).await
     }
@@ -139,7 +140,7 @@ impl<C: ConnectionApi + AsConnection> CommitteeManagementApi for C {
     ) -> Option<SessionCount> {
         let addrs = api::storage()
             .committee_management()
-            .underperformed_validator_session_count(&validator);
+            .underperformed_validator_session_count(Static::from(validator));
 
         self.get_storage_entry_maybe(&addrs, at).await
     }
@@ -149,7 +150,9 @@ impl<C: ConnectionApi + AsConnection> CommitteeManagementApi for C {
         validator: AccountId,
         at: Option<BlockHash>,
     ) -> Option<BanReason> {
-        let addrs = api::storage().committee_management().banned(validator);
+        let addrs = api::storage()
+            .committee_management()
+            .banned(Static::from(validator));
 
         self.get_storage_entry_maybe(&addrs, at)
             .await
@@ -161,7 +164,9 @@ impl<C: ConnectionApi + AsConnection> CommitteeManagementApi for C {
         validator: AccountId,
         at: Option<BlockHash>,
     ) -> Option<BanInfo> {
-        let addrs = api::storage().committee_management().banned(validator);
+        let addrs = api::storage()
+            .committee_management()
+            .banned(Static::from(validator));
 
         self.get_storage_entry_maybe(&addrs, at).await
     }
@@ -223,7 +228,7 @@ impl CommitteeManagementSudoApi for RootConnection {
         status: TxStatus,
     ) -> anyhow::Result<TxInfo> {
         let call = CommitteeManagement(ban_from_committee {
-            banned: account,
+            banned: account.into(),
             ban_reason,
         });
         self.sudo_unchecked(call, status).await

@@ -19,6 +19,7 @@ use primitives::{
     staking::{MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND},
     Balance, BlockNumber, TOKEN,
 };
+use subxt::utils::Static;
 
 use crate::{
     accounts::{account_ids_from_keys, accounts_seeds_to_keys, get_validators_seeds},
@@ -187,7 +188,7 @@ pub async fn staking_new_validator() -> anyhow::Result<()> {
     assert_eq!(
         ledger,
         StakingLedger {
-            stash: stash_account.clone(),
+            stash: Static(stash_account.clone()),
             total: MIN_VALIDATOR_BOND,
             active: MIN_VALIDATOR_BOND,
             unlocking: BoundedVec(vec![]),

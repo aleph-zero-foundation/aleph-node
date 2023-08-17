@@ -1,5 +1,5 @@
 use primitives::{staking::era_payout, MILLISECS_PER_BLOCK};
-use subxt::ext::sp_runtime::MultiAddress;
+use subxt::utils::{MultiAddress, Static};
 
 use crate::{
     api,
@@ -101,7 +101,7 @@ impl<S: SignedConnectionApi> TreasuryUserApi for S {
     ) -> anyhow::Result<TxInfo> {
         let tx = api::tx()
             .treasury()
-            .propose_spend(amount, MultiAddress::Id(beneficiary));
+            .propose_spend(amount, MultiAddress::Id(Static::from(beneficiary)));
 
         self.send_tx(tx, status).await
     }

@@ -50,8 +50,8 @@ pub async fn change_validators() -> anyhow::Result<()> {
     connection.wait_for_event(|e: &ChangeValidators| {
         info!("[+] NewValidatorsEvent: reserved: {:#?}, non_reserved: {:#?}, committee_size: {:#?}", e.0, e.1, e.2);
 
-        e.0 == new_validators[0..2]
-            && e.1 == new_validators[2..]
+        e.0.iter().cloned().map(|x| x.0).collect::<Vec<_>>() == new_validators[0..2]
+            && e.1.iter().cloned().map(|x| x.0).collect::<Vec<_>>() == new_validators[2..]
             && e.2
             == CommitteeSeats {
             reserved_seats: 2,

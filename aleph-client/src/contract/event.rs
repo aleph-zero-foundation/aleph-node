@@ -181,7 +181,7 @@ fn translate_event(
 ) -> Result<ContractEvent> {
     let matching_contract = contracts
         .iter()
-        .find(|contract| contract.address() == &event.contract)
+        .find(|contract| contract.address() == &event.contract.0)
         .ok_or_else(|| anyhow!("The event wasn't emitted by any of the provided contracts"))?;
 
     let data = zero_prefixed(&event.data);

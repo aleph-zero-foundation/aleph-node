@@ -1,6 +1,6 @@
 use codec::{Compact, Encode};
 use pallet_contracts_primitives::ContractExecResult;
-use subxt::{ext::sp_core::Bytes, rpc_params};
+use subxt::{ext::sp_core::Bytes, rpc_params, utils::Static};
 
 use crate::{
     api,
@@ -181,10 +181,13 @@ impl<S: SignedConnectionApi> ContractsUserApi for S {
         data: Vec<u8>,
         status: TxStatus,
     ) -> anyhow::Result<TxInfo> {
-        let tx =
-            api::tx()
-                .contracts()
-                .call(destination.into(), balance, gas_limit, storage_limit, data);
+        let tx = api::tx().contracts().call(
+            Static::from(destination).into(),
+            balance,
+            gas_limit,
+            storage_limit,
+            data,
+        );
         self.send_tx(tx, status).await
     }
 

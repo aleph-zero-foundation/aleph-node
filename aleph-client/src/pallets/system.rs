@@ -1,3 +1,5 @@
+use subxt::utils::Static;
+
 use crate::{
     api, connections::TxInfo, frame_system::pallet::Call::set_code, AccountId, Balance, BlockHash,
     Call::System, ConnectionApi, RootConnection, SudoCall, TxStatus,
@@ -33,7 +35,7 @@ impl SystemSudoApi for RootConnection {
 #[async_trait::async_trait]
 impl<C: ConnectionApi> SystemApi for C {
     async fn get_free_balance(&self, account: AccountId, at: Option<BlockHash>) -> Balance {
-        let addrs = api::storage().system().account(&account);
+        let addrs = api::storage().system().account(Static(account));
 
         match self.get_storage_entry_maybe(&addrs, at).await {
             None => 0,

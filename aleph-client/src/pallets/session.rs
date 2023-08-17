@@ -1,3 +1,5 @@
+use subxt::utils::Static;
+
 use crate::{
     api, api::runtime_types::aleph_runtime::SessionKeys, connections::TxInfo, AccountId, BlockHash,
     ConnectionApi, SessionIndex, SignedConnectionApi, TxStatus,
@@ -34,7 +36,7 @@ impl<C: ConnectionApi> SessionApi for C {
         account: AccountId,
         at: Option<BlockHash>,
     ) -> Option<SessionKeys> {
-        let addrs = api::storage().session().next_keys(account);
+        let addrs = api::storage().session().next_keys(Static::from(account));
 
         self.get_storage_entry_maybe(&addrs, at).await
     }
@@ -50,7 +52,11 @@ impl<C: ConnectionApi> SessionApi for C {
     async fn get_validators(&self, at: Option<BlockHash>) -> Vec<AccountId> {
         let addrs = api::storage().session().validators();
 
-        self.get_storage_entry(&addrs, at).await
+        self.get_storage_entry(&addrs, at)
+            .await
+            .into_iter()
+            .map(|x| x.0)
+            .collect()
     }
 }
 

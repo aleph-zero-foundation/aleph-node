@@ -1,6 +1,6 @@
 [package]
 name = "aleph_client"
-version = "3.4.2"
+version = "3.5.0"
 edition = "2021"
 authors = ["Cardinal"]
 documentation = "https://docs.rs/aleph_client"
@@ -20,7 +20,7 @@ thiserror = "1.0"
 serde_json = { version = "1.0.94" }
 contract-transcode = "2.1.0"
 ink_metadata = { version = "=4.0.1" }
-subxt = "0.25.0"
+subxt = { version = "0.28.0", features = ["substrate-compat"] }
 futures = "0.3.25"
 serde = { version = "1.0", features = ["derive"] }
 

@@ -201,7 +201,7 @@ pub async fn instantiate_with_code(
     let contract_instantiated_event = event_handler_1.await?;
 
     Ok(InstantiateWithCodeReturnValue {
-        contract: contract_instantiated_event.contract,
+        contract: contract_instantiated_event.contract.0,
         code_hash: code_stored_event.code_hash,
     })
 }

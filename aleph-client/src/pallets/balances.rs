@@ -1,4 +1,4 @@
-use subxt::ext::sp_runtime::MultiAddress;
+use subxt::utils::{MultiAddress, Static};
 
 use crate::{
     aleph_zero::{self, api},
@@ -92,7 +92,7 @@ impl<C: ConnectionApi + AsConnection> BalanceApi for C {
         account: AccountId,
         at: Option<BlockHash>,
     ) -> Vec<BalanceLock<Balance>> {
-        let address = aleph_zero::api::storage().balances().locks(&account);
+        let address = aleph_zero::api::storage().balances().locks(Static(account));
 
         self.get_storage_entry(&address, at).await.0
     }
@@ -137,7 +137,7 @@ impl<S: SignedConnectionApi> BalanceUserApi for S {
     ) -> anyhow::Result<TxInfo> {
         let tx = api::tx()
             .balances()
-            .transfer(MultiAddress::Id(dest), amount);
+            .transfer(MultiAddress::Id(dest.into()), amount);
         self.send_tx(tx, status).await
     }
 
@@ -150,7 +150,7 @@ impl<S: SignedConnectionApi> BalanceUserApi for S {
     ) -> anyhow::Result<TxInfo> {
         let tx = api::tx()
             .balances()
-            .transfer(MultiAddress::Id(dest), amount);
+            .transfer(MultiAddress::Id(dest.into()), amount);
 
         self.send_tx_with_params(tx, ParamsBuilder::new().tip(tip), status)
             .await
@@ -169,7 +169,7 @@ impl<S: SignedConnectionApi> BalanceUserBatchExtApi for S {
             .iter()
             .map(|dest| {
                 Balances(transfer {
-                    dest: MultiAddress::Id(dest.clone()),
+                    dest: MultiAddress::Id(dest.clone().into()),
                     value: amount,
                 })
             })

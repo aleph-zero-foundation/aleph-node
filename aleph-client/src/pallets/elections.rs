@@ -1,3 +1,5 @@
+use subxt::utils::Static;
+
 use crate::{
     api,
     api::runtime_types::primitives::{CommitteeSeats, EraValidators},
@@ -76,14 +78,29 @@ impl<C: ConnectionApi + AsConnection> ElectionsApi for C {
 
     async fn get_current_era_validators(&self, at: Option<BlockHash>) -> EraValidators<AccountId> {
         let addrs = api::storage().elections().current_era_validators();
-
-        self.get_storage_entry(&addrs, at).await
+        let era_validators_with_static_account_ids = self.get_storage_entry(&addrs, at).await;
+        return EraValidators {
+            reserved: era_validators_with_static_account_ids
+                .reserved
+                .into_iter()
+                .map(|x| x.0)
+                .collect(),
+            non_reserved: era_validators_with_static_account_ids
+                .non_reserved
+                .into_iter()
+                .map(|x| x.0)
+                .collect(),
+        };
     }
 
     async fn get_next_era_reserved_validators(&self, at: Option<BlockHash>) -> Vec<AccountId> {
         let addrs = api::storage().elections().next_era_reserved_validators();
 
-        self.get_storage_entry(&addrs, at).await
+        self.get_storage_entry(&addrs, at)
+            .await
+            .into_iter()
+            .map(|x| x.0)
+            .collect()
     }
 
     async fn get_next_era_non_reserved_validators(&self, at: Option<BlockHash>) -> Vec<AccountId> {
@@ -91,7 +108,11 @@ impl<C: ConnectionApi + AsConnection> ElectionsApi for C {
             .elections()
             .next_era_non_reserved_validators();
 
-        self.get_storage_entry(&addrs, at).await
+        self.get_storage_entry(&addrs, at)
+            .await
+            .into_iter()
+            .map(|x| x.0)
+            .collect()
     }
 }
 
@@ -105,8 +126,10 @@ impl ElectionsSudoApi for RootConnection {
         status: TxStatus,
     ) -> anyhow::Result<TxInfo> {
         let call = Elections(change_validators {
-            reserved_validators: new_reserved_validators,
-            non_reserved_validators: new_non_reserved_validators,
+            reserved_validators: new_reserved_validators
+                .map(|inner| inner.into_iter().map(Static).collect()),
+            non_reserved_validators: new_non_reserved_validators
+                .map(|inner| inner.into_iter().map(Static).collect()),
             committee_size,
         });
 

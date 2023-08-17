@@ -1,6 +1,6 @@
 [package]
 name = "cliain"
-version = "0.12.0"
+version = "0.12.1"
 edition = "2021"
 license = "GPL-3.0-or-later"
 
@@ -18,7 +18,7 @@ liminal-ark-relations = { version = "0.4.0", optional = true }
 log = "0.4"
 serde = { version = "1.0.137", features = ["derive"] }
 serde_json = "1.0.81"
-subxt = "0.25.0"
+subxt = "0.28.0"
 tokio = { version = "1.21.2", features = ["full"] }
 
 pallet-staking = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v0.9.42" }

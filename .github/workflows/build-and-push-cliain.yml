@@ -26,6 +26,7 @@ jobs:
       ECR_PUBLIC_REGISTRY: ${{ vars.ECR_PUBLIC_REGISTRY }}
       AWS_MAINNET_ACCESS_KEY_ID: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
       AWS_MAINNET_SECRET_ACCESS_KEY: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+      CI_DEVNET_S3BUCKET_NAME: ${{ secrets.CI_DEVNET_S3BUCKET_NAME }}
     steps:
       - name: GIT | Checkout source code
         uses: actions/checkout@v3
@@ -85,6 +86,10 @@ jobs:
           fi
 
       - name: Configure AWS credentials for S3 AWS
+        if: >
+          env.AWS_MAINNET_ACCESS_KEY_ID != '' &&
+          env.AWS_MAINNET_SECRET_ACCESS_KEY != '' &&
+          env.CI_DEVNET_S3BUCKET_NAME != ''
         uses: aws-actions/configure-aws-credentials@v2
         env:
           AWS_ACCESS_KEY_ID: ""
@@ -98,7 +103,11 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Copy binary to S3 AWS bucket (non-liminal)
-        if: ${{ matrix.runtime != 'liminal' }}
+        if: >
+          matrix.runtime != 'liminal' &&
+          env.AWS_MAINNET_ACCESS_KEY_ID != '' &&
+          env.AWS_MAINNET_SECRET_ACCESS_KEY != '' &&
+          env.CI_DEVNET_S3BUCKET_NAME != ''
         uses: Cardinal-Cryptography/github-actions/copy-file-to-s3@v1
         with:
           source-path: bin/cliain/target/release

@@ -1,4 +1,4 @@
-use subxt::ext::sp_runtime::MultiAddress;
+use subxt::utils::{MultiAddress, Static};
 
 use crate::{
     api, connections::TxInfo, pallet_vesting::vesting_info::VestingInfo, AccountId, Balance,
@@ -51,7 +51,7 @@ impl<C: ConnectionApi> VestingApi for C {
         who: AccountId,
         at: Option<BlockHash>,
     ) -> Vec<VestingInfo<Balance, BlockNumber>> {
-        let addrs = api::storage().vesting().vesting(who);
+        let addrs = api::storage().vesting().vesting(Static(who));
 
         self.get_storage_entry(&addrs, at).await.0
     }
@@ -66,7 +66,9 @@ impl<S: SignedConnectionApi> VestingUserApi for S {
     }
 
     async fn vest_other(&self, status: TxStatus, other: AccountId) -> anyhow::Result<TxInfo> {
-        let tx = api::tx().vesting().vest_other(MultiAddress::Id(other));
+        let tx = api::tx()
+            .vesting()
+            .vest_other(MultiAddress::Id(other.into()));
 
         self.send_tx(tx, status).await
     }
@@ -79,7 +81,7 @@ impl<S: SignedConnectionApi> VestingUserApi for S {
     ) -> anyhow::Result<TxInfo> {
         let tx = api::tx()
             .vesting()
-            .vested_transfer(MultiAddress::Id(receiver), schedule);
+            .vested_transfer(MultiAddress::Id(receiver.into()), schedule);
 
         self.send_tx(tx, status).await
     }
