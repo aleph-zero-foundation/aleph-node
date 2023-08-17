@@ -13,20 +13,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check-vars:
-    name: Check vars
-    uses: ./.github/workflows/_check-vars-and-secrets.yml
-    secrets: inherit
-    with:
-      check-secrets: false
-      check-vars: false
-
   check-excluded-packages:
     name: Check excluded packages
     uses: ./.github/workflows/_check-excluded-packages.yml
 
   code-formatting:
-    needs: [check-vars]
     name: Check code formatting
     uses: ./.github/workflows/_check-code-formatting.yml
 

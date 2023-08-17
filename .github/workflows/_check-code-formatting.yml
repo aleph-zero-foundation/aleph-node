@@ -18,9 +18,9 @@ jobs:
       - name: Install Nightly Rust Toolchain
         uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v1
         with:
-          channel: ${{ vars.RUST_TOOLCHAIN_NIGHTLY }}
+          channel: nightly-2023-01-10
           targets: wasm32-unknown-unknown
           components: rustfmt
 
       - name: Run Format Checks
-        run: cargo +${{ vars.RUST_TOOLCHAIN_NIGHTLY }} fmt --all
+        run: cargo +nightly-2023-01-10 fmt --all
