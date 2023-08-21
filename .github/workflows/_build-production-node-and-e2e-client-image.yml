@@ -9,14 +9,22 @@ on:
         required: false
         type: boolean
         default: false
+      build-production-node:
+        description: Set to 'true' to build production node
+        required: false
+        type: boolean
+        default: false
+      build-e2e-client:
+        description: Set to 'true' to build e2e-client
+        required: false
+        type: boolean
+        default: false
 
 jobs:
-  build-production-node-image-and-e2e-client-image:
-    name: Build production node docker image and e2e client image
-    runs-on: [self-hosted, Linux, X64, large]
-    env:
-      RUST_BACKTRACE: full
-      RUSTC_WRAPPER: sccache
+  build-production-node-image:
+    if: inputs.build-production-node != false
+    name: Build production node docker image
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout Source code
         uses: actions/checkout@v3
@@ -42,6 +50,17 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  build-e2e-client-image:
+    if: inputs.build-e2e-client != false
+    name: Build e2e client image
+    runs-on: [self-hosted, Linux, X64, large]
+    env:
+      RUST_BACKTRACE: full
+      RUSTC_WRAPPER: sccache
+    steps:
+      - name: Checkout Source code
+        uses: actions/checkout@v3
+
       - name: Install Rust toolchain
         uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v1
 
@@ -64,8 +83,8 @@ jobs:
 
   build-synthetic-network-docker:
     if: inputs.build-synthetic-network-docker != false
-    needs: [build-production-node-image-and-e2e-client-image]
-    name: Build docker image with the production node artifact and support for synthetic-network
+    needs: [build-production-node-image]
+    name: Build synthetic-network image
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code

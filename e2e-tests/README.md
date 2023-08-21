@@ -40,7 +40,12 @@ Run a feature net by adding an appropriate label to a pull request, ie `trigger:
 , then after its started run
 
 ```bash
-e2e-tests$ NODE_URL=wss://ws-fe-a0-1564.dev.azero.dev:443 cargo test finalization
+e2e-tests$ RUST_LOG=info NODE_URL=wss://ws-fe-a0-29025887979136.dev.azero.dev:443 cargo test --release finalization::finalization -- --nocapture 
 ```
 
 where you can find your feature env address in https://github.com/Cardinal-Cryptography/aleph-node/deployments
+
+In you have docker image of `e2e-client`, you can run above test with command
+```bash
+docker run --network host -e NODE_URL="wss://ws-fe-a0-29025887979136.dev.azero.dev:443" -e TEST_CASES="finalization::finalization" -e RUST_LOG=info  aleph-e2e-client:latest
+```

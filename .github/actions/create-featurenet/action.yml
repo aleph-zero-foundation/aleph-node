@@ -118,7 +118,7 @@ runs:
       shell: bash
       env:
         # yamllint disable-line rule:line-length
-        APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
+        APP_NAME: ${{ inputs.featurenet-name != '' && inputs.featurenet-name || format('{0}{1}-{2}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo, github.run_id) }}
       run: |
         name_local=${{ env.APP_NAME }}
         echo "name=$name_local" >> $GITHUB_OUTPUT

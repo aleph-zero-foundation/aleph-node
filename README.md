@@ -33,6 +33,7 @@ The code in this repository is licensed as follows:
 - all crates under `bin` directory are licensed under the terms of the GNU GPL version 3
 - all rest of the crates are licensed under the terms of Apache License 2.0.
 
+
 [aleph-homepage]: https://alephzero.org
 [aleph-logo]: https://assets.alephzero.org/branding/logo/digital/A0-horizontal-light-background.jpg
 [aleph-bft-link]: https://github.com/Cardinal-Cryptography/AlephBFT

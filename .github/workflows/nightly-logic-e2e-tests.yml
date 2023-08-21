@@ -1,0 +1,133 @@
+---
+name: E2E logic tests (Nightly pipeline)
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '00 23 * * *'
+
+concurrency:
+  group: "${{ github.ref }}-${{ github.workflow }}"
+  cancel-in-progress: true
+
+jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
+  build-e2e-client-image:
+    needs: [check-vars-and-secrets]
+    name: Build production node and e2e client docker image
+    uses: ./.github/workflows/_build-production-node-and-e2e-client-image.yml
+    with:
+      build-e2e-client: true
+
+  build-test-node-and-runtime:
+    name: Build test node and runtime
+    needs: [check-vars-and-secrets]
+    uses: ./.github/workflows/_build-test-node-and-runtime.yml
+    secrets: inherit
+
+  store-test-node-and-runtime:
+    name: Store test node and runtime in Devnet bucket
+    runs-on: ubuntu-20.04
+    needs: [build-test-node-and-runtime]
+    steps:
+      - name: Checkout aleph-node source code
+        uses: actions/checkout@v3
+
+      - name: Store test node and runtime
+        uses: ./.github/actions/store-node-and-runtime
+        with:
+          profile: test
+          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
+          aws-bucket: ${{ secrets.CI_DEVNET_S3BUCKET_NAME }}
+
+  push-featurnet-node-image-to-ecr:
+    needs: [build-test-node-and-runtime]
+    name: Build and push PR test docker image to ECR
+    uses: ./.github/workflows/_build-and-push-pull-request-image-to-featurenets.yml
+    secrets: inherit
+
+  runs-e2e-test-on-fe:
+    needs: [push-featurnet-node-image-to-ecr, build-e2e-client-image, store-test-node-and-runtime]
+    name: Run e2e test on FE
+    runs-on: [self-hosted, Linux, X64, large]
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Call action get-ref-properties
+        id: get-ref-properties
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
+
+      - name: Create featurenet from scratch
+        uses: ./.github/actions/create-featurenet
+        with:
+          gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
+          argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
+          repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
+          repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
+          argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
+          ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}
+          featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
+          expiration: '3h'
+
+      - name: Wait for the aleph-node binary to accept some blocks
+        uses: ./.github/actions/wait-for-finalized-heads
+        with:
+          gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
+          repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
+          # yamllint disable-line rule:line-length
+          json-rpc-endpoint: https://ws-fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo }}-${{ github.run_id }}.dev.azero.dev
+
+      - name: Download artifact with the test suite image
+        uses: actions/download-artifact@v2
+        with:
+          name: aleph-e2e-client
+
+      - name: Load test suite docker image
+        shell: bash
+        run: docker load -i aleph-e2e-client.tar
+
+      - name: Run finalization e2e test
+        shell: bash
+        # yamllint disable rule:line-length
+        run: |
+          docker run --network host \
+            -e NODE_URL="wss://ws-fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo }}-${{ github.run_id }}.dev.azero.dev:443" \
+            -e TEST_CASES="finalization::finalization" \
+            -e RUST_LOG=info \
+            aleph-e2e-client:latest
+        # yamllint enable rule:line-length
+
+      - name: Delete old featurenet app and data
+        uses: ./.github/actions/delete-featurenet
+        with:
+          gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
+          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
+          ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}
+          argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
+          repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
+          repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
+          argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
+          featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
+
+
+  slack-notification:
+    name: Slack notification
+    runs-on: ubuntu-20.04
+    needs: [runs-e2e-test-on-fe]
+    if: ${{ !cancelled() }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Send Slack message
+        uses: ./.github/actions/slack-notification
+        with:
+          notify-on: "always"
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_NIGHTLY_PIPELINE }}

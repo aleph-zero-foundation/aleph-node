@@ -1,10 +1,10 @@
 ---
-name: Nightly pipeline
+name: E2E synthetic network tests (Nightly pipeline)
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '00 23 * * *'
+    - cron: '00 22 * * *'
 
 concurrency:
   group: "${{ github.ref }}-${{ github.workflow }}"
@@ -43,6 +43,7 @@ jobs:
     uses: ./.github/workflows/_build-production-node-and-e2e-client-image.yml
     secrets: inherit
     with:
+      build-production-node: true
       build-synthetic-network-docker: true
 
   run-e2e-high-out-latency:

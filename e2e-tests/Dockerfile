@@ -1,8 +1,8 @@
-FROM ubuntu:focal-20210827
+FROM ubuntu:focal
 
 WORKDIR client
 
-RUN apt-get update && apt-get install -y libssl-dev
+RUN apt-get update && apt-get install -y libssl-dev ca-certificates
 
 COPY target/release/aleph-e2e-client /usr/local/bin
 RUN chmod +x /usr/local/bin/aleph-e2e-client
