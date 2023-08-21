@@ -31,11 +31,25 @@ class Chain:
     def __iter__(self):
         return iter(self.nodes)
 
+    def new(self, binary, validators, nonvalidators=None):
+        """Initialize the chain but does not do any bootstraping. `validators` and `nonvalidators` should be lists
+        of strings with public keys."""
+        nonvalidators = nonvalidators or []
+        binary = check_file(binary)
+        chainspec = join(self.path, 'chainspec.json')
+
+        self.validator_nodes = [Node(i, binary, chainspec, join(self.path, v), self.path) for (i,v) in enumerate(validators)]
+        self.nonvalidator_nodes = [Node(i+len(validators), binary, chainspec, join(self.path, nv), self.path) for (i,nv) in enumerate(nonvalidators)]
+
+        self.nodes = self.validator_nodes + self.nonvalidator_nodes
+
     def bootstrap(self, binary, validators, nonvalidators=None, raw=True, **kwargs):
         """Bootstrap the chain. `validators` and `nonvalidators` should be lists of strings
         with public keys. Flags `--account-ids`, `--base-path` and `--raw` are added automatically.
         All other flags are taken from kwargs"""
+        self.new(binary, validators, nonvalidators)
         nonvalidators = nonvalidators or []
+
         binary = check_file(binary)
         cmd = [binary, 'bootstrap-chain',
                '--base-path', self.path,
@@ -53,11 +67,6 @@ class Chain:
                    '--base-path', join(self.path, nv),
                    '--account-id', nv]
             subprocess.run(cmd, stdout=subprocess.DEVNULL, check=True)
-
-        self.validator_nodes = [Node(i, binary, chainspec, join(self.path, v), self.path) for (i,v) in enumerate(validators)]
-        self.nonvalidator_nodes = [Node(i+len(validators), binary, chainspec, join(self.path, nv), self.path) for (i,nv) in enumerate(nonvalidators)]
-
-        self.nodes = self.validator_nodes + self.nonvalidator_nodes
 
     @staticmethod
     def _set_flags(nodes, *args, **kwargs):

@@ -11,3 +11,5 @@ The contents are:
 4. `test_multiple_restarts.py` - a script simulating repeated crash and recovery of a single validator within one session.
 
 5. `rolling_update.ipynb` - interactive testing tool for various scenarios of rolling update of the whole chain. Needs to be run via Jupyter (https://jupyter.org/). Please customize constants in the top cell before executing.
+
+6. `test_major_sync.py` -- a script that runs chain for 2 hours and tries to catch-up with one late joining node to the chain.

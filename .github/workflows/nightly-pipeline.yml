@@ -62,6 +62,27 @@ jobs:
           compose-file: docker/docker-compose.synthetic-network.yml
         timeout-minutes: 35
 
+  run-major-sync-test:
+    needs: [build-production-node-and-runtime]
+    name: Run major sync test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Download release artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: aleph-production-node
+          path: target/release/
+
+      - name: Run test
+        timeout-minutes: 130
+        env:
+          ALEPH_NODE_BINARY: ../target/release/aleph-node
+        run: ./.github/scripts/test_major_sync.sh
+
+
   run-e2e-no-quorum-without-high-out-latency:
     needs: [build-production-node-and-e2e-client-image]
     name: Run high out-latency for every quorum
@@ -79,16 +100,17 @@ jobs:
           compose-file: docker/docker-compose.synthetic-network.yml
         timeout-minutes: 35
 
-  check-e2e-test-suite-completion:
+  check-nightly-pipeline-completion:
     needs: [
       run-e2e-high-out-latency,
       run-e2e-no-quorum-without-high-out-latency,
+      run-major-sync-test,
     ]
-    name: Check e2e test suite completion
+    name: Check nightly test suite completion
     if: ${{ !cancelled() }}
     runs-on: ubuntu-20.04
     steps:
-      - name: All e2e tests completed
+      - name: All nightly tests completed
         run: |
           # due to the fact GitHub treats skipped jobs as success, and when any of dependant
           # jobs fail, this check will be skipped, we need to check status manually
@@ -97,7 +119,7 @@ jobs:
   slack:
     name: Slack notification
     runs-on: ubuntu-20.04
-    needs: [check-e2e-test-suite-completion]
+    needs: [check-nightly-pipeline-completion]
     if: ${{ !cancelled() }}
     steps:
       - name: Checkout repository
