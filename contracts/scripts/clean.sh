@@ -5,11 +5,11 @@ set -euo pipefail
 # --- FUNCTIONS
 
 function run_ink_builder() {
-  docker start ink_builder || docker run \
+  docker start ink_builder_cleaner || docker run \
     --network host \
     -v "${PWD}:/code" \
     -u "$(id -u):$(id -g)" \
-    --name ink_builder \
+    --name ink_builder_cleaner \
     --platform linux/amd64 \
     --detach \
     --rm public.ecr.aws/p6e8q1z1/ink-dev:1.0.0 sleep 1d
@@ -21,7 +21,7 @@ function ink_build() {
   docker exec \
     -u "$(id -u):$(id -g)" \
     -w "/code/contracts/$contract_dir" \
-    ink_builder "$@"
+    ink_builder_cleaner "$@"
 }
 
 function cargo_contract() {
@@ -62,7 +62,7 @@ function remove_contract_code {
     echo "Contract code does not exist on chain."
   else
     echo 'Contract code ' ${code_hash} 'exists, removing'
-    docker run --network host -e RUST_LOG=info "$CLIAIN_IMAGE" --seed "$AUTHORITY_SEED" --node "$NODE" contract-remove-code --code-hash "$code_hash"
+    cargo_contract remove --url "$NODE" --code-hash $code_hash --suri "$AUTHORITY_SEED" --skip-confirm 2>&1
   fi
 }
 
