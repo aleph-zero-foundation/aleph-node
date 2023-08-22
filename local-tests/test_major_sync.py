@@ -42,8 +42,8 @@ chain.start('aleph', nodes=[0, 1, 2, 3])
 sleep(60)
 chain.start('aleph', nodes=[4])
 
-printt('Waiting around 5 mins')
-sleep(5 * 60)
+printt('Waiting around 10 mins')
+sleep(10 * 60)
 
 finalized = check_finalized(chain)
 

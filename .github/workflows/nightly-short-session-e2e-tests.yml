@@ -1,5 +1,5 @@
 ---
-name: E2E logic tests (Nightly pipeline)
+name: Nightly pipeline short session e2e tests
 on:
   workflow_dispatch:
   schedule:
