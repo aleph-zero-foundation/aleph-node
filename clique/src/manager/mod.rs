@@ -5,12 +5,10 @@ use std::{
 
 use futures::channel::mpsc;
 
-use crate::{Data, PeerId, PublicKey};
+use crate::{metrics::Metrics, Data, PeerId, PublicKey};
 
 mod direction;
 use direction::DirectedPeers;
-
-use crate::metrics::NetworkCliqueMetrics;
 
 /// Error during sending data through the Manager
 #[derive(Debug, PartialEq, Eq)]
@@ -74,13 +72,6 @@ impl<PK: PublicKey + PeerId> ManagerStatus<PK> {
             outgoing_peers,
             missing_outgoing,
         }
-    }
-
-    pub fn update_metrics<M: NetworkCliqueMetrics>(&self, metrics: &M) {
-        metrics.set_incoming_connections(self.incoming_peers.len() as u64);
-        metrics.set_missing_incoming_connections(self.missing_incoming.len() as u64);
-        metrics.set_outgoing_connections(self.outgoing_peers.len() as u64);
-        metrics.set_missing_outgoing_connections(self.missing_outgoing.len() as u64);
     }
 
     fn wanted_incoming(&self) -> usize {
@@ -172,9 +163,9 @@ pub struct Manager<PK: PublicKey + PeerId, A: Data, D: Data> {
 
 impl<PK: PublicKey + PeerId, A: Data, D: Data> Manager<PK, A, D> {
     /// Create a new Manager with empty list of peers.
-    pub fn new(own_id: PK) -> Self {
+    pub fn new(own_id: PK, metrics: Metrics) -> Self {
         Manager {
-            wanted: DirectedPeers::new(own_id),
+            wanted: DirectedPeers::new(own_id, metrics),
             have: HashMap::new(),
         }
     }
@@ -249,7 +240,10 @@ mod tests {
     use futures::{channel::mpsc, StreamExt};
 
     use super::{AddResult::*, Manager, SendError};
-    use crate::mock::{key, MockPublicKey};
+    use crate::{
+        metrics::Metrics,
+        mock::{key, MockPublicKey},
+    };
 
     type Data = String;
     type Address = String;
@@ -257,7 +251,7 @@ mod tests {
     #[test]
     fn add_remove() {
         let (own_id, _) = key();
-        let mut manager = Manager::<MockPublicKey, Address, Data>::new(own_id);
+        let mut manager = Manager::<MockPublicKey, Address, Data>::new(own_id, Metrics::noop());
         let (peer_id, _) = key();
         let (peer_id_b, _) = key();
         let address = String::from("43.43.43.43:43000");
@@ -286,10 +280,10 @@ mod tests {
     async fn send_receive() {
         let (mut connecting_id, _) = key();
         let mut connecting_manager =
-            Manager::<MockPublicKey, Address, Data>::new(connecting_id.clone());
+            Manager::<MockPublicKey, Address, Data>::new(connecting_id.clone(), Metrics::noop());
         let (mut listening_id, _) = key();
         let mut listening_manager =
-            Manager::<MockPublicKey, Address, Data>::new(listening_id.clone());
+            Manager::<MockPublicKey, Address, Data>::new(listening_id.clone(), Metrics::noop());
         let data = String::from("DATA");
         let address = String::from("43.43.43.43:43000");
         let (tx, _rx) = mpsc::unbounded();

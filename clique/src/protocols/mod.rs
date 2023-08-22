@@ -4,6 +4,7 @@ use futures::channel::{mpsc, oneshot};
 
 use crate::{
     io::{ReceiveError, SendError},
+    metrics::Metrics,
     Data, PublicKey, SecretKey, Splittable,
 };
 
@@ -102,6 +103,7 @@ impl Protocol {
             SK::PublicKey,
             oneshot::Sender<bool>,
         )>,
+        metrics: Metrics,
     ) -> Result<(), ProtocolError<SK::PublicKey>> {
         use Protocol::*;
         match self {
@@ -112,6 +114,7 @@ impl Protocol {
                     authorization_requests_sender,
                     result_for_parent,
                     data_for_user,
+                    metrics,
                 )
                 .await
             }
@@ -126,6 +129,7 @@ impl Protocol {
         public_key: SK::PublicKey,
         result_for_service: mpsc::UnboundedSender<ResultForService<SK::PublicKey, D>>,
         data_for_user: mpsc::UnboundedSender<D>,
+        metrics: Metrics,
     ) -> Result<(), ProtocolError<SK::PublicKey>> {
         use Protocol::*;
         match self {
@@ -136,6 +140,7 @@ impl Protocol {
                     public_key,
                     result_for_service,
                     data_for_user,
+                    metrics,
                 )
                 .await
             }

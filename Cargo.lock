@@ -5328,6 +5328,7 @@ dependencies = [
  "rand 0.8.5",
  "rate-limiter",
  "serde",
+ "substrate-prometheus-endpoint",
  "tiny-bip39",
  "tokio",
 ]

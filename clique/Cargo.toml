@@ -23,6 +23,7 @@ log = { workspace = true }
 lru = { workspace = true }
 rand = { workspace = true }
 serde = { workspace = true }
+substrate-prometheus-endpoint = { workspace = true }
 tiny-bip39 = { workspace = true }
 tokio = { workspace = true, features = [
     "sync",

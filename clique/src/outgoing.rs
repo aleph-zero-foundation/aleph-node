@@ -5,6 +5,7 @@ use log::{debug, info};
 use tokio::time::{sleep, timeout, Duration};
 
 use crate::{
+    metrics::Metrics,
     protocols::{protocol, ProtocolError, ProtocolNegotiationError, ResultForService},
     ConnectionInfo, Data, Dialer, PeerAddressInfo, PublicKey, SecretKey, LOG_TARGET,
 };
@@ -41,6 +42,7 @@ async fn manage_outgoing<SK: SecretKey, D: Data, A: Data, ND: Dialer<A>>(
     address: A,
     result_for_parent: mpsc::UnboundedSender<ResultForService<SK::PublicKey, D>>,
     data_for_user: mpsc::UnboundedSender<D>,
+    metrics: Metrics,
 ) -> Result<(), OutgoingError<SK::PublicKey, A, ND>> {
     debug!(target: LOG_TARGET, "Trying to connect to {}.", public_key);
     let stream = timeout(DIAL_TIMEOUT, dialer.connect(address))
@@ -63,6 +65,7 @@ async fn manage_outgoing<SK: SecretKey, D: Data, A: Data, ND: Dialer<A>>(
             public_key,
             result_for_parent,
             data_for_user,
+            metrics,
         )
         .await
         .map_err(|e| OutgoingError::Protocol(peer_address_info.clone(), e))
@@ -80,6 +83,7 @@ pub async fn outgoing<SK: SecretKey, D: Data, A: Data + Debug, ND: Dialer<A>>(
     address: A,
     result_for_parent: mpsc::UnboundedSender<ResultForService<SK::PublicKey, D>>,
     data_for_user: mpsc::UnboundedSender<D>,
+    metrics: Metrics,
 ) {
     if let Err(e) = manage_outgoing(
         secret_key,
@@ -88,6 +92,7 @@ pub async fn outgoing<SK: SecretKey, D: Data, A: Data + Debug, ND: Dialer<A>>(
         address.clone(),
         result_for_parent.clone(),
         data_for_user,
+        metrics,
     )
     .await
     {
@@ -100,8 +105,6 @@ pub async fn outgoing<SK: SecretKey, D: Data, A: Data + Debug, ND: Dialer<A>>(
             RETRY_DELAY.as_secs()
         );
         sleep(RETRY_DELAY).await;
-        // we send the "new" connection type, because we always assume it's new until proven
-        // otherwise, and here we did not even get the chance to attempt negotiating a protocol
         if result_for_parent
             .unbounded_send((public_key, None))
             .is_err()

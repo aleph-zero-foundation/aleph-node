@@ -5,12 +5,13 @@ use futures::{
     Future, StreamExt,
 };
 use log::{info, trace, warn};
+use substrate_prometheus_endpoint::Registry;
 use tokio::time;
 
 use crate::{
     incoming::incoming,
     manager::{AddResult, Manager},
-    metrics::NetworkCliqueMetrics,
+    metrics::Metrics,
     outgoing::outgoing,
     protocols::ResultForService,
     Data, Dialer, Listener, Network, PeerId, PublicKey, SecretKey, LOG_TARGET,
@@ -85,15 +86,8 @@ pub trait SpawnHandleT {
 }
 
 /// A service that has to be run for the clique network to work.
-pub struct Service<
-    SK: SecretKey,
-    D: Data,
-    A: Data,
-    ND: Dialer<A>,
-    NL: Listener,
-    SH: SpawnHandleT,
-    M: NetworkCliqueMetrics,
-> where
+pub struct Service<SK: SecretKey, D: Data, A: Data, ND: Dialer<A>, NL: Listener, SH: SpawnHandleT>
+where
     SK::PublicKey: PeerId,
 {
     commands_from_interface: mpsc::UnboundedReceiver<ServiceCommand<SK::PublicKey, D, A>>,
@@ -103,18 +97,11 @@ pub struct Service<
     listener: NL,
     spawn_handle: SH,
     secret_key: SK,
-    metrics: M,
+    metrics: Metrics,
 }
 
-impl<
-        SK: SecretKey,
-        D: Data,
-        A: Data + Debug,
-        ND: Dialer<A>,
-        NL: Listener,
-        SH: SpawnHandleT,
-        M: NetworkCliqueMetrics,
-    > Service<SK, D, A, ND, NL, SH, M>
+impl<SK: SecretKey, D: Data, A: Data + Debug, ND: Dialer<A>, NL: Listener, SH: SpawnHandleT>
+    Service<SK, D, A, ND, NL, SH>
 where
     SK::PublicKey: PeerId,
 {
@@ -124,17 +111,24 @@ where
         listener: NL,
         secret_key: SK,
         spawn_handle: SH,
-        metrics: M,
+        metrics_registry: Option<Registry>,
     ) -> (Self, impl Network<SK::PublicKey, A, D>) {
         // Channel for sending commands between the service and interface
         let (commands_for_service, commands_from_interface) = mpsc::unbounded();
         // Channel for receiving data from the network
         let (next_to_interface, next_from_service) = mpsc::unbounded();
+        let metrics = match Metrics::new(metrics_registry) {
+            Ok(metrics) => metrics,
+            Err(e) => {
+                warn!(target: LOG_TARGET, "Failed to create metrics: {}", e);
+                Metrics::noop()
+            }
+        };
         (
             Self {
                 commands_from_interface,
                 next_to_interface,
-                manager: Manager::new(secret_key.public_key()),
+                manager: Manager::new(secret_key.public_key(), metrics.clone()),
                 dialer,
                 listener,
                 spawn_handle,
@@ -157,6 +151,7 @@ where
         let secret_key = self.secret_key.clone();
         let dialer = self.dialer.clone();
         let next_to_interface = self.next_to_interface.clone();
+        let metrics = self.metrics.clone();
         self.spawn_handle
             .spawn("aleph/clique_network_outgoing", async move {
                 outgoing(
@@ -166,6 +161,7 @@ where
                     address,
                     result_for_parent,
                     next_to_interface,
+                    metrics,
                 )
                 .await;
             });
@@ -182,6 +178,7 @@ where
     ) {
         let secret_key = self.secret_key.clone();
         let next_to_interface = self.next_to_interface.clone();
+        let metrics = self.metrics.clone();
         self.spawn_handle
             .spawn("aleph/clique_network_incoming", async move {
                 incoming(
@@ -190,6 +187,7 @@ where
                     result_for_parent,
                     next_to_interface,
                     authorization_requests_sender,
+                    metrics,
                 )
                 .await;
             });
@@ -264,9 +262,7 @@ where
                 },
                 // periodically reporting what we are trying to do
                 _ = status_ticker.tick() => {
-                    let status_report = self.manager.status_report();
-                    status_report.update_metrics(&self.metrics);
-                    info!(target: LOG_TARGET, "Clique Network status: {}", status_report);
+                    info!(target: LOG_TARGET, "Clique Network status: {}", self.manager.status_report());
                 }
                 // received exit signal, stop the network
                 // all workers will be killed automatically after the manager gets dropped

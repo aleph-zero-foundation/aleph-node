@@ -23,6 +23,7 @@ use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{HeaderBackend, HeaderMetadata};
 use sp_keystore::Keystore;
 use sp_runtime::traits::{BlakeTwo256, Block, Header};
+use substrate_prometheus_endpoint::Registry;
 use tokio::time::Duration;
 
 use crate::{
@@ -293,6 +294,7 @@ pub struct AlephConfig<C, SC> {
     pub keystore: Arc<dyn Keystore>,
     pub justification_rx: mpsc::UnboundedReceiver<Justification>,
     pub metrics: Metrics<AlephHash>,
+    pub registry: Option<Registry>,
     pub session_period: SessionPeriod,
     pub millisecs_per_block: MillisecsPerBlock,
     pub unit_creation_delay: UnitCreationDelay,

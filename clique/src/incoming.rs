@@ -4,6 +4,7 @@ use futures::channel::{mpsc, oneshot};
 use log::{debug, info};
 
 use crate::{
+    metrics::Metrics,
     protocols::{protocol, ProtocolError, ProtocolNegotiationError, ResultForService},
     Data, PublicKey, SecretKey, Splittable, LOG_TARGET,
 };
@@ -41,6 +42,7 @@ async fn manage_incoming<SK: SecretKey, D: Data, S: Splittable>(
     result_for_parent: mpsc::UnboundedSender<ResultForService<SK::PublicKey, D>>,
     data_for_user: mpsc::UnboundedSender<D>,
     authorization_requests_sender: mpsc::UnboundedSender<(SK::PublicKey, oneshot::Sender<bool>)>,
+    metrics: Metrics,
 ) -> Result<(), IncomingError<SK::PublicKey>> {
     debug!(
         target: LOG_TARGET,
@@ -55,6 +57,7 @@ async fn manage_incoming<SK: SecretKey, D: Data, S: Splittable>(
             result_for_parent,
             data_for_user,
             authorization_requests_sender,
+            metrics,
         )
         .await?)
 }
@@ -70,6 +73,7 @@ pub async fn incoming<SK: SecretKey, D: Data, S: Splittable>(
     result_for_parent: mpsc::UnboundedSender<ResultForService<SK::PublicKey, D>>,
     data_for_user: mpsc::UnboundedSender<D>,
     authorization_requests_sender: mpsc::UnboundedSender<(SK::PublicKey, oneshot::Sender<bool>)>,
+    metrics: Metrics,
 ) {
     let addr = stream.peer_address_info();
     if let Err(e) = manage_incoming(
@@ -78,6 +82,7 @@ pub async fn incoming<SK: SecretKey, D: Data, S: Splittable>(
         result_for_parent,
         data_for_user,
         authorization_requests_sender,
+        metrics,
     )
     .await
     {

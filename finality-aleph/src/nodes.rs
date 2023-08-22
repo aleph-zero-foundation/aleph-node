@@ -60,6 +60,7 @@ where
         spawn_handle,
         keystore,
         metrics,
+        registry,
         unit_creation_delay,
         session_period,
         millisecs_per_block,
@@ -99,7 +100,7 @@ where
         listener,
         network_authority_pen,
         spawn_handle.clone(),
-        metrics.validator_network_metrics(),
+        registry.clone(),
     );
     let (_validator_network_exit, exit) = oneshot::channel();
     spawn_handle.spawn("aleph/validator_network", async move {

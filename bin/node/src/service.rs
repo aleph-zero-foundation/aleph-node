@@ -427,6 +427,7 @@ pub fn new_authority(
         keystore: keystore_container.keystore(),
         justification_rx,
         metrics,
+        registry: prometheus_registry,
         unit_creation_delay: aleph_config.unit_creation_delay(),
         backup_saving_path: backup_path,
         external_addresses: aleph_config.external_addresses(),

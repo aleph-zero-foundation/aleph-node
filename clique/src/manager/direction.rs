@@ -3,7 +3,10 @@ use std::{
     ops::BitXor,
 };
 
-use crate::{Data, PublicKey};
+use crate::{
+    metrics::{Event, Metrics},
+    Data, PublicKey,
+};
 
 /// Data about peers we know and whether we should connect to them or they to us. For the former
 /// case also keeps the peers' addresses.
@@ -11,6 +14,7 @@ pub struct DirectedPeers<PK: PublicKey, A: Data> {
     own_id: PK,
     outgoing: HashMap<PK, A>,
     incoming: HashSet<PK>,
+    metrics: Metrics,
 }
 
 /// Whether we should call the remote or the other way around. We xor the peer ids and based on the
@@ -29,11 +33,12 @@ fn should_we_call(own_id: &[u8], remote_id: &[u8]) -> bool {
 
 impl<PK: PublicKey, A: Data> DirectedPeers<PK, A> {
     /// Create a new set of peers directed using our own peer id.
-    pub fn new(own_id: PK) -> Self {
+    pub fn new(own_id: PK, metrics: Metrics) -> Self {
         DirectedPeers {
             own_id,
             outgoing: HashMap::new(),
             incoming: HashSet::new(),
+            metrics,
         }
     }
 
@@ -43,12 +48,21 @@ impl<PK: PublicKey, A: Data> DirectedPeers<PK, A> {
     /// exactly when the peer is one with which we should attempt connections AND it was added for
     /// the first time.
     pub fn add_peer(&mut self, peer_id: PK, address: A) -> bool {
+        use Event::*;
         match should_we_call(self.own_id.as_ref(), peer_id.as_ref()) {
-            true => self.outgoing.insert(peer_id, address).is_none(),
+            true => match self.outgoing.insert(peer_id, address).is_none() {
+                true => {
+                    self.metrics.report_event(NewOutgoing);
+                    true
+                }
+                false => false,
+            },
             false => {
                 // We discard the address here, as we will never want to call this peer anyway,
                 // so we don't need it.
-                self.incoming.insert(peer_id);
+                if self.incoming.insert(peer_id) {
+                    self.metrics.report_event(NewIncoming);
+                }
                 false
             }
         }
@@ -77,21 +91,29 @@ impl<PK: PublicKey, A: Data> DirectedPeers<PK, A> {
     /// Remove a peer from the list of peers that we want to stay connected with, whether the
     /// connection was supposed to be incoming or outgoing.
     pub fn remove_peer(&mut self, peer_id: &PK) {
-        self.incoming.remove(peer_id);
-        self.outgoing.remove(peer_id);
+        use Event::*;
+        if self.incoming.remove(peer_id) {
+            self.metrics.report_event(DelIncoming);
+        }
+        if self.outgoing.remove(peer_id).is_some() {
+            self.metrics.report_event(DelOutgoing);
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::DirectedPeers;
-    use crate::mock::{key, MockPublicKey};
+    use crate::{
+        metrics::Metrics,
+        mock::{key, MockPublicKey},
+    };
 
     type Address = String;
 
     fn container_with_id() -> (DirectedPeers<MockPublicKey, Address>, MockPublicKey) {
         let (id, _) = key();
-        let container = DirectedPeers::new(id.clone());
+        let container = DirectedPeers::new(id.clone(), Metrics::noop());
         (container, id)
     }
 
