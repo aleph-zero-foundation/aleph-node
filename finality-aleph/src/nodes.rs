@@ -156,7 +156,7 @@ where
         database_io,
         session_info.clone(),
         justification_rx,
-        metrics.clone(),
+        registry.clone(),
     ) {
         Ok(x) => x,
         Err(e) => panic!("Failed to initialize Sync service: {e}"),

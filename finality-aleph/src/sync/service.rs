@@ -3,16 +3,17 @@ use std::time::Duration;
 
 use futures::{channel::mpsc, StreamExt};
 use log::{debug, error, trace, warn};
+use substrate_prometheus_endpoint::Registry;
 
 pub use crate::sync::handler::DatabaseIO;
 use crate::{
-    metrics::{Key, SyncEvent},
     network::GossipNetwork,
     session::SessionBoundaryInfo,
     sync::{
         data::{NetworkData, Request, ResponseItems, State, VersionWrapper, VersionedNetworkData},
         handler::{Action, Error as HandlerError, HandleStateAction, Handler},
         message_limiter::MsgLimiter,
+        metrics::{Event, Metrics},
         task_queue::TaskQueue,
         tasks::{Action as TaskAction, PreRequest, RequestTask},
         ticker::Ticker,
@@ -20,14 +21,13 @@ use crate::{
         ChainStatusNotifier, Finalizer, Justification, JustificationSubmissions, RequestBlocks,
         Verifier, LOG_TARGET,
     },
-    Metrics,
 };
 
 const BROADCAST_COOLDOWN: Duration = Duration::from_millis(600);
 const BROADCAST_PERIOD: Duration = Duration::from_secs(5);
 
 /// A service synchronizing the knowledge about the chain between the nodes.
-pub struct Service<B, J, N, CE, CS, V, F, BI, H>
+pub struct Service<B, J, N, CE, CS, V, F, BI>
 where
     B: Block,
     J: Justification<Header = B::Header>,
@@ -37,7 +37,6 @@ where
     V: Verifier<J>,
     F: Finalizer<J>,
     BI: BlockImport<B>,
-    H: Key,
 {
     network: VersionWrapper<B, J, N>,
     handler: Handler<B, N::PeerId, J, CS, V, F, BI>,
@@ -48,7 +47,7 @@ where
     additional_justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
     block_requests_from_user: mpsc::UnboundedReceiver<BlockIdFor<J>>,
     _phantom: PhantomData<B>,
-    metrics: Metrics<H>,
+    metrics: Metrics,
 }
 
 impl<J: Justification> JustificationSubmissions<J> for mpsc::UnboundedSender<J::Unverified> {
@@ -67,7 +66,7 @@ impl<BI: BlockIdentifier> RequestBlocks<BI> for mpsc::UnboundedSender<BI> {
     }
 }
 
-impl<B, J, N, CE, CS, V, F, BI, H> Service<B, J, N, CE, CS, V, F, BI, H>
+impl<B, J, N, CE, CS, V, F, BI> Service<B, J, N, CE, CS, V, F, BI>
 where
     B: Block,
     J: Justification<Header = B::Header>,
@@ -77,7 +76,6 @@ where
     V: Verifier<J>,
     F: Finalizer<J>,
     BI: BlockImport<B>,
-    H: Key,
 {
     /// Create a new service using the provided network for communication.
     /// Also returns an interface for submitting additional justifications,
@@ -89,7 +87,7 @@ where
         database_io: DatabaseIO<B, J, CS, F, BI>,
         session_info: SessionBoundaryInfo,
         additional_justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
-        metrics: Metrics<H>,
+        metrics_registry: Option<Registry>,
     ) -> Result<
         (
             Self,
@@ -104,6 +102,13 @@ where
         let broadcast_ticker = Ticker::new(BROADCAST_PERIOD, BROADCAST_COOLDOWN);
         let (justifications_for_sync, justifications_from_user) = mpsc::unbounded();
         let (block_requests_for_sync, block_requests_from_user) = mpsc::unbounded();
+        let metrics = match Metrics::new(metrics_registry) {
+            Ok(metrics) => metrics,
+            Err(e) => {
+                warn!(target: LOG_TARGET, "Failed to create metrics: {}.", e);
+                Metrics::noop()
+            }
+        };
         Ok((
             Service {
                 network,
@@ -141,11 +146,11 @@ where
     }
 
     fn broadcast(&mut self) {
-        self.metrics.report_event(SyncEvent::Broadcast);
+        self.metrics.report_event(Event::Broadcast);
         let state = match self.handler.state() {
             Ok(state) => state,
             Err(e) => {
-                self.metrics.report_event_error(SyncEvent::Broadcast);
+                self.metrics.report_event_error(Event::Broadcast);
                 warn!(
                     target: LOG_TARGET,
                     "Failed to construct own knowledge state: {}.", e
@@ -157,17 +162,17 @@ where
 
         let data = NetworkData::StateBroadcast(state);
         if let Err(e) = self.network.broadcast(data) {
-            self.metrics.report_event_error(SyncEvent::Broadcast);
+            self.metrics.report_event_error(Event::Broadcast);
             warn!(target: LOG_TARGET, "Error sending broadcast: {}.", e)
         }
     }
 
     fn send_request(&mut self, pre_request: PreRequest<N::PeerId, J>) {
-        self.metrics.report_event(SyncEvent::SendRequest);
+        self.metrics.report_event(Event::SendRequest);
         let state = match self.handler.state() {
             Ok(state) => state,
             Err(e) => {
-                self.metrics.report_event_error(SyncEvent::SendRequest);
+                self.metrics.report_event_error(Event::SendRequest);
                 warn!(
                     target: LOG_TARGET,
                     "Failed to construct own knowledge state: {}.", e
@@ -180,13 +185,13 @@ where
         let data = NetworkData::Request(request);
 
         if let Err(e) = self.network.send_to_random(data, peers) {
-            self.metrics.report_event_error(SyncEvent::SendRequest);
+            self.metrics.report_event_error(Event::SendRequest);
             warn!(target: LOG_TARGET, "Error sending request: {}.", e);
         }
     }
 
     fn send_to(&mut self, data: NetworkData<B, J>, peer: N::PeerId) {
-        self.metrics.report_event(SyncEvent::SendTo);
+        self.metrics.report_event(Event::SendTo);
         trace!(
             target: LOG_TARGET,
             "Sending data {:?} to peer {:?}",
@@ -194,13 +199,13 @@ where
             peer
         );
         if let Err(e) = self.network.send_to(data, peer) {
-            self.metrics.report_event_error(SyncEvent::SendTo);
+            self.metrics.report_event_error(Event::SendTo);
             warn!(target: LOG_TARGET, "Error sending response: {}.", e);
         }
     }
 
     fn handle_state(&mut self, state: State<J>, peer: N::PeerId) {
-        self.metrics.report_event(SyncEvent::HandleState);
+        self.metrics.report_event(Event::HandleState);
         use HandleStateAction::*;
         trace!(
             target: LOG_TARGET,
@@ -215,7 +220,7 @@ where
                 Noop => (),
             },
             Err(e) => {
-                self.metrics.report_event_error(SyncEvent::HandleState);
+                self.metrics.report_event_error(Event::HandleState);
                 match e {
                     HandlerError::Verifier(e) => debug!(
                         target: LOG_TARGET,
@@ -243,7 +248,7 @@ where
             maybe_justification,
             peer
         );
-        self.metrics.report_event(SyncEvent::HandleStateResponse);
+        self.metrics.report_event(Event::HandleStateResponse);
         let (maybe_id, maybe_error) =
             self.handler
                 .handle_state_response(justification, maybe_justification, peer.clone());
@@ -270,13 +275,13 @@ where
             justification,
         );
         self.metrics
-            .report_event(SyncEvent::HandleJustificationFromUserCalls);
+            .report_event(Event::HandleJustificationFromUser);
         match self.handler.handle_justification_from_user(justification) {
             Ok(Some(id)) => self.request_highest_justified(id),
             Ok(_) => {}
             Err(e) => {
                 self.metrics
-                    .report_event_error(SyncEvent::HandleJustificationFromUserCalls);
+                    .report_event_error(Event::HandleJustificationFromUser);
                 match e {
                     HandlerError::Verifier(e) => debug!(
                         target: LOG_TARGET,
@@ -298,7 +303,7 @@ where
             peer,
             response_items,
         );
-        self.metrics.report_event(SyncEvent::HandleRequestResponse);
+        self.metrics.report_event(Event::HandleRequestResponse);
         let (maybe_id, maybe_error) = self
             .handler
             .handle_request_response(response_items, peer.clone());
@@ -325,7 +330,7 @@ where
             request,
             peer
         );
-        self.metrics.report_event(SyncEvent::HandleRequest);
+        self.metrics.report_event(Event::HandleRequest);
 
         match self.handler.handle_request(request) {
             Ok(Action::Response(response_items)) => {
@@ -343,14 +348,14 @@ where
                                 target: LOG_TARGET,
                                 "Error while sending request response: {}.", e
                             );
-                            break self.metrics.report_event_error(SyncEvent::HandleRequest);
+                            break self.metrics.report_event_error(Event::HandleRequest);
                         }
                     }
                 }
             }
             Ok(Action::RequestBlock(id)) => self.request_block(id),
             Err(e) => {
-                self.metrics.report_event_error(SyncEvent::HandleRequest);
+                self.metrics.report_event_error(Event::HandleRequest);
                 match e {
                     HandlerError::Verifier(e) => debug!(
                         target: LOG_TARGET,
@@ -374,7 +379,7 @@ where
             self.send_request(pre_request);
             self.tasks.schedule_in(task, delay);
         }
-        self.metrics.report_event(SyncEvent::HandleTask);
+        self.metrics.report_event(Event::HandleTask);
     }
 
     fn handle_chain_event(&mut self, event: ChainStatusNotification<J::Header>) {
@@ -382,10 +387,9 @@ where
         match event {
             BlockImported(header) => {
                 trace!(target: LOG_TARGET, "Handling a new imported block.");
-                self.metrics.report_event(SyncEvent::HandleBlockImported);
+                self.metrics.report_event(Event::HandleBlockImported);
                 if let Err(e) = self.handler.block_imported(header) {
-                    self.metrics
-                        .report_event_error(SyncEvent::HandleBlockImported);
+                    self.metrics.report_event_error(Event::HandleBlockImported);
                     error!(
                         target: LOG_TARGET,
                         "Error marking block as imported: {}.", e
@@ -394,7 +398,7 @@ where
             }
             BlockFinalized(_) => {
                 trace!(target: LOG_TARGET, "Handling a new finalized block.");
-                self.metrics.report_event(SyncEvent::HandleBlockFinalized);
+                self.metrics.report_event(Event::HandleBlockFinalized);
                 if self.broadcast_ticker.try_tick() {
                     self.broadcast();
                 }
@@ -408,14 +412,14 @@ where
             "Handling an internal request for block {:?}.",
             id,
         );
-        self.metrics.report_event(SyncEvent::HandleInternalRequest);
+        self.metrics.report_event(Event::HandleInternalRequest);
         match self.handler.handle_internal_request(&id) {
             Ok(true) => self.request_block(id),
 
             Ok(_) => debug!(target: LOG_TARGET, "Already requested block {:?}.", id),
 
             Err(e) => {
-                self.metrics.report_event(SyncEvent::HandleInternalRequest);
+                self.metrics.report_event(Event::HandleInternalRequest);
                 match e {
                     HandlerError::Verifier(e) => debug!(
                         target: LOG_TARGET,

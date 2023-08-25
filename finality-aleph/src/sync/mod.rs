@@ -11,6 +11,7 @@ mod data;
 mod forest;
 mod handler;
 mod message_limiter;
+mod metrics;
 #[cfg(test)]
 mod mock;
 mod service;

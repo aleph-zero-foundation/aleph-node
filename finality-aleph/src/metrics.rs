@@ -11,8 +11,8 @@ use lru::LruCache;
 use parking_lot::Mutex;
 use sc_service::Arc;
 use substrate_prometheus_endpoint::{
-    exponential_buckets, prometheus::HistogramTimer, register, Counter, Gauge, Histogram,
-    HistogramOpts, Opts, PrometheusError, Registry, U64,
+    exponential_buckets, prometheus::HistogramTimer, register, Gauge, Histogram, HistogramOpts,
+    Opts, PrometheusError, Registry, U64,
 };
 
 use crate::Protocol;
@@ -32,27 +32,6 @@ struct Inner<H: Key> {
     prev: HashMap<Checkpoint, Checkpoint>,
     gauges: HashMap<Checkpoint, Gauge<U64>>,
     starts: HashMap<Checkpoint, LruCache<H, Instant>>,
-    sync_broadcast_calls_counter: Counter<U64>,
-    sync_broadcast_errors_counter: Counter<U64>,
-    sync_send_request_calls_counter: Counter<U64>,
-    sync_send_request_errors_counter: Counter<U64>,
-    sync_send_to_calls_counter: Counter<U64>,
-    sync_send_to_errors_counter: Counter<U64>,
-    sync_handle_state_calls_counter: Counter<U64>,
-    sync_handle_state_errors_counter: Counter<U64>,
-    sync_handle_request_response_calls_counter: Counter<U64>,
-    sync_handle_request_calls_counter: Counter<U64>,
-    sync_handle_request_errors_counter: Counter<U64>,
-    sync_handle_task_calls_counter: Counter<U64>,
-    sync_handle_task_errors_counter: Counter<U64>,
-    sync_handle_block_imported_calls_counter: Counter<U64>,
-    sync_handle_block_imported_errors_counter: Counter<U64>,
-    sync_handle_block_finalized_calls_counter: Counter<U64>,
-    sync_handle_state_response_calls_counter: Counter<U64>,
-    sync_handle_justification_from_user_calls_counter: Counter<U64>,
-    sync_handle_justification_from_user_errors_counter: Counter<U64>,
-    sync_handle_internal_request_calls_counter: Counter<U64>,
-    sync_handle_internal_request_errors_counter: Counter<U64>,
     network_send_times: HashMap<Protocol, Histogram>,
 }
 
@@ -116,90 +95,6 @@ impl<H: Key> Inner<H> {
                     )
                 })
                 .collect(),
-            sync_broadcast_calls_counter: register(
-                Counter::new("aleph_sync_broadcast_calls", "no help")?,
-                registry,
-            )?,
-            sync_broadcast_errors_counter: register(
-                Counter::new("aleph_sync_broadcast_error", "no help")?,
-                registry,
-            )?,
-            sync_send_request_calls_counter: register(
-                Counter::new("aleph_sync_send_request_calls", "no help")?,
-                registry,
-            )?,
-            sync_send_request_errors_counter: register(
-                Counter::new("aleph_sync_send_request_error", "no help")?,
-                registry,
-            )?,
-            sync_send_to_calls_counter: register(
-                Counter::new("aleph_sync_send_to_calls", "no help")?,
-                registry,
-            )?,
-            sync_send_to_errors_counter: register(
-                Counter::new("aleph_sync_send_to_errors", "no help")?,
-                registry,
-            )?,
-            sync_handle_state_calls_counter: register(
-                Counter::new("aleph_sync_handle_state_calls", "no help")?,
-                registry,
-            )?,
-            sync_handle_state_errors_counter: register(
-                Counter::new("aleph_sync_handle_state_error", "no help")?,
-                registry,
-            )?,
-            sync_handle_request_response_calls_counter: register(
-                Counter::new("aleph_sync_handle_request_response_calls", "no help")?,
-                registry,
-            )?,
-            sync_handle_request_calls_counter: register(
-                Counter::new("aleph_sync_handle_request_calls", "no help")?,
-                registry,
-            )?,
-            sync_handle_request_errors_counter: register(
-                Counter::new("aleph_sync_handle_request_error", "no help")?,
-                registry,
-            )?,
-            sync_handle_task_calls_counter: register(
-                Counter::new("aleph_sync_handle_task_calls", "no help")?,
-                registry,
-            )?,
-            sync_handle_task_errors_counter: register(
-                Counter::new("aleph_sync_handle_task_error", "no help")?,
-                registry,
-            )?,
-            sync_handle_block_imported_calls_counter: register(
-                Counter::new("aleph_sync_handle_block_imported_calls", "no help")?,
-                registry,
-            )?,
-            sync_handle_block_imported_errors_counter: register(
-                Counter::new("aleph_sync_handle_block_imported_error", "no help")?,
-                registry,
-            )?,
-            sync_handle_block_finalized_calls_counter: register(
-                Counter::new("aleph_sync_handle_block_finalized_calls", "no help")?,
-                registry,
-            )?,
-            sync_handle_justification_from_user_calls_counter: register(
-                Counter::new("aleph_sync_handle_justification_from_user_calls", "no help")?,
-                registry,
-            )?,
-            sync_handle_justification_from_user_errors_counter: register(
-                Counter::new("aleph_sync_handle_justification_from_user_error", "no help")?,
-                registry,
-            )?,
-            sync_handle_state_response_calls_counter: register(
-                Counter::new("aleph_sync_handle_state_response_calls", "no help")?,
-                registry,
-            )?,
-            sync_handle_internal_request_calls_counter: register(
-                Counter::new("aleph_sync_handle_internal_request_calls", "no help")?,
-                registry,
-            )?,
-            sync_handle_internal_request_errors_counter: register(
-                Counter::new("aleph_sync_handle_internal_request_error", "no help")?,
-                registry,
-            )?,
             network_send_times,
         })
     }
@@ -271,21 +166,6 @@ pub enum Checkpoint {
     Finalized,
 }
 
-pub enum SyncEvent {
-    Broadcast,
-    SendRequest,
-    SendTo,
-    HandleState,
-    HandleRequestResponse,
-    HandleRequest,
-    HandleTask,
-    HandleBlockImported,
-    HandleBlockFinalized,
-    HandleStateResponse,
-    HandleJustificationFromUserCalls,
-    HandleInternalRequest,
-}
-
 #[derive(Clone)]
 pub struct Metrics<H: Key> {
     inner: Option<Arc<Mutex<Inner<H>>>>,
@@ -300,60 +180,6 @@ impl<H: Key> Metrics<H> {
         let inner = Some(Arc::new(Mutex::new(Inner::new(registry)?)));
 
         Ok(Self { inner })
-    }
-
-    pub fn report_event(&self, event: SyncEvent) {
-        let inner = match &self.inner {
-            Some(inner) => inner.lock(),
-            None => return,
-        };
-
-        match event {
-            SyncEvent::Broadcast => inner.sync_broadcast_calls_counter.inc(),
-            SyncEvent::SendRequest => inner.sync_send_request_calls_counter.inc(),
-            SyncEvent::SendTo => inner.sync_send_to_calls_counter.inc(),
-            SyncEvent::HandleState => inner.sync_handle_state_calls_counter.inc(),
-            SyncEvent::HandleRequestResponse => {
-                inner.sync_handle_request_response_calls_counter.inc()
-            }
-            SyncEvent::HandleRequest => inner.sync_handle_request_calls_counter.inc(),
-            SyncEvent::HandleTask => inner.sync_handle_task_calls_counter.inc(),
-            SyncEvent::HandleBlockImported => inner.sync_handle_block_imported_calls_counter.inc(),
-            SyncEvent::HandleBlockFinalized => {
-                inner.sync_handle_block_finalized_calls_counter.inc()
-            }
-            SyncEvent::HandleStateResponse => inner.sync_handle_state_response_calls_counter.inc(),
-            SyncEvent::HandleJustificationFromUserCalls => inner
-                .sync_handle_justification_from_user_calls_counter
-                .inc(),
-            SyncEvent::HandleInternalRequest => {
-                inner.sync_handle_internal_request_calls_counter.inc()
-            }
-        }
-    }
-
-    pub fn report_event_error(&self, event: SyncEvent) {
-        let inner = match &self.inner {
-            Some(inner) => inner.lock(),
-            None => return,
-        };
-
-        match event {
-            SyncEvent::Broadcast => inner.sync_broadcast_errors_counter.inc(),
-            SyncEvent::SendRequest => inner.sync_send_request_errors_counter.inc(),
-            SyncEvent::SendTo => inner.sync_send_to_errors_counter.inc(),
-            SyncEvent::HandleState => inner.sync_handle_state_errors_counter.inc(),
-            SyncEvent::HandleRequest => inner.sync_handle_request_errors_counter.inc(),
-            SyncEvent::HandleTask => inner.sync_handle_task_errors_counter.inc(),
-            SyncEvent::HandleBlockImported => inner.sync_handle_block_imported_errors_counter.inc(),
-            SyncEvent::HandleJustificationFromUserCalls => inner
-                .sync_handle_justification_from_user_errors_counter
-                .inc(),
-            SyncEvent::HandleInternalRequest => {
-                inner.sync_handle_internal_request_errors_counter.inc()
-            }
-            _ => {} // events that have not defined error events
-        }
     }
 
     pub fn report_block(&self, hash: H, checkpoint_time: Instant, checkpoint_type: Checkpoint) {
