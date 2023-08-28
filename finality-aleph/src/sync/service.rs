@@ -147,6 +147,7 @@ where
 
     fn broadcast(&mut self) {
         self.metrics.report_event(Event::Broadcast);
+        self.broadcast_ticker.reset();
         let state = match self.handler.state() {
             Ok(state) => state,
             Err(e) => {
