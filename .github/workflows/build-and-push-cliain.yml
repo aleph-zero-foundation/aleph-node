@@ -90,7 +90,7 @@ jobs:
           env.AWS_MAINNET_ACCESS_KEY_ID != '' &&
           env.AWS_MAINNET_SECRET_ACCESS_KEY != '' &&
           env.CI_DEVNET_S3BUCKET_NAME != ''
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v3
         env:
           AWS_ACCESS_KEY_ID: ""
           AWS_SECRET_ACCESS_KEY: ""
