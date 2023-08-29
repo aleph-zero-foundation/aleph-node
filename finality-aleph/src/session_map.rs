@@ -11,7 +11,7 @@ use tokio::sync::{
 };
 
 use crate::{
-    aleph_primitives::{AlephSessionApi, BlockNumber, SessionAuthorityData},
+    aleph_primitives::{AlephSessionApi, BlockHash, BlockNumber, SessionAuthorityData},
     session::SessionBoundaryInfo,
     ClientForAleph, SessionId, SessionPeriod,
 };
@@ -35,7 +35,7 @@ pub struct AuthorityProviderImpl<C, B, BE>
 where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
     C::Api: crate::aleph_primitives::AlephSessionApi<B>,
-    B: Block,
+    B: Block<Hash = BlockHash>,
     BE: Backend<B> + 'static,
 {
     client: Arc<C>,
@@ -46,7 +46,7 @@ impl<C, B, BE> AuthorityProviderImpl<C, B, BE>
 where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
     C::Api: crate::aleph_primitives::AlephSessionApi<B>,
-    B: Block,
+    B: Block<Hash = BlockHash>,
     B::Header: Header<Number = BlockNumber>,
     BE: Backend<B> + 'static,
 {
@@ -57,7 +57,7 @@ where
         }
     }
 
-    fn block_hash(&self, block: BlockNumber) -> Option<B::Hash> {
+    fn block_hash(&self, block: BlockNumber) -> Option<BlockHash> {
         match self.client.block_hash(block) {
             Ok(r) => r,
             Err(e) => {
@@ -75,7 +75,7 @@ impl<C, B, BE> AuthorityProvider for AuthorityProviderImpl<C, B, BE>
 where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
     C::Api: crate::aleph_primitives::AlephSessionApi<B>,
-    B: Block,
+    B: Block<Hash = BlockHash>,
     B::Header: Header<Number = BlockNumber>,
     BE: Backend<B> + 'static,
 {

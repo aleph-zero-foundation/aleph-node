@@ -17,19 +17,20 @@ use sp_runtime::traits::{Block, Header};
 use tokio::select;
 
 use crate::{
-    aleph_primitives::BlockNumber,
+    aleph_primitives::{BlockHash, BlockNumber},
     network::{
         gossip::{Event, EventStream, NetworkSender, Protocol, RawNetwork},
         RequestBlocks,
     },
-    IdentifierFor,
+    BlockId,
 };
 
-impl<B: Block> RequestBlocks<IdentifierFor<B>> for Arc<SyncingService<B>>
+impl<B> RequestBlocks<BlockId> for Arc<SyncingService<B>>
 where
+    B: Block<Hash = BlockHash>,
     B::Header: Header<Number = BlockNumber>,
 {
-    fn request_stale_block(&self, block_id: IdentifierFor<B>) {
+    fn request_stale_block(&self, block_id: BlockId) {
         // The below comment is adapted from substrate:
         // Notifies the sync service to try and sync the given block from the given peers. If the given vector
         // of peers is empty (as in our case) then the underlying implementation should make a best effort to fetch

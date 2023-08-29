@@ -5,9 +5,9 @@ use super::TBlockIdentifier;
 use crate::{
     finalization::BlockFinalizer,
     testing::mocks::{single_action_mock::SingleActionMock, TBlock},
-    IdentifierFor,
+    BlockId,
 };
-type CallArgs = (IdentifierFor<TBlock>, Justification);
+type CallArgs = (BlockId, Justification);
 
 #[derive(Clone, Default)]
 pub struct MockedBlockFinalizer {

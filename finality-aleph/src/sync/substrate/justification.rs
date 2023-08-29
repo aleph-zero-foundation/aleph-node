@@ -51,7 +51,7 @@ impl Justification {
 }
 
 impl HeaderT for Justification {
-    type Identifier = BlockId<Header>;
+    type Identifier = BlockId;
 
     fn id(&self) -> Self::Identifier {
         self.header().id()
@@ -113,7 +113,7 @@ impl JustificationTranslator {
     pub fn translate(
         &self,
         aleph_justification: AlephJustification,
-        block_id: BlockId<Header>,
+        block_id: BlockId,
     ) -> Result<Justification, TranslateError> {
         use BlockStatus::*;
         match self.chain_status.status_of(block_id)? {

@@ -1,7 +1,6 @@
 use std::marker::PhantomData;
 
 use log::warn;
-use sp_runtime::traits::Block;
 
 use crate::{
     abft::SignatureSet,
@@ -11,24 +10,24 @@ use crate::{
     Hasher, Recipient,
 };
 
-pub type LegacyNetworkData<B> =
-    legacy_aleph_bft::NetworkData<Hasher, AlephData<B>, Signature, SignatureSet<Signature>>;
+pub type LegacyNetworkData =
+    legacy_aleph_bft::NetworkData<Hasher, AlephData, Signature, SignatureSet<Signature>>;
 
-pub type CurrentNetworkData<B> =
-    current_aleph_bft::NetworkData<Hasher, AlephData<B>, Signature, SignatureSet<Signature>>;
+pub type CurrentNetworkData =
+    current_aleph_bft::NetworkData<Hasher, AlephData, Signature, SignatureSet<Signature>>;
 
-impl<B: Block> AlephNetworkMessage<B>
-    for legacy_aleph_bft::NetworkData<Hasher, AlephData<B>, Signature, SignatureSet<Signature>>
+impl AlephNetworkMessage
+    for legacy_aleph_bft::NetworkData<Hasher, AlephData, Signature, SignatureSet<Signature>>
 {
-    fn included_data(&self) -> Vec<AlephData<B>> {
+    fn included_data(&self) -> Vec<AlephData> {
         self.included_data()
     }
 }
 
-impl<B: Block> AlephNetworkMessage<B>
-    for current_aleph_bft::NetworkData<Hasher, AlephData<B>, Signature, SignatureSet<Signature>>
+impl AlephNetworkMessage
+    for current_aleph_bft::NetworkData<Hasher, AlephData, Signature, SignatureSet<Signature>>
 {
-    fn included_data(&self) -> Vec<AlephData<B>> {
+    fn included_data(&self) -> Vec<AlephData> {
         self.included_data()
     }
 }

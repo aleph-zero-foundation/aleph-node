@@ -27,32 +27,32 @@ use crate::{
             TestClientBuilderExt,
         },
     },
-    IdentifierFor, Recipient,
+    BlockId, Recipient,
 };
 
 #[derive(Clone)]
 struct TestBlockRequester {
-    blocks: UnboundedSender<IdentifierFor<TBlock>>,
+    blocks: UnboundedSender<BlockId>,
 }
 
 impl TestBlockRequester {
-    fn new() -> (Self, UnboundedReceiver<IdentifierFor<TBlock>>) {
+    fn new() -> (Self, UnboundedReceiver<BlockId>) {
         let (blocks_tx, blocks_rx) = mpsc::unbounded();
         (TestBlockRequester { blocks: blocks_tx }, blocks_rx)
     }
 }
 
-impl RequestBlocks<IdentifierFor<TBlock>> for TestBlockRequester {
-    type Error = TrySendError<IdentifierFor<TBlock>>;
-    fn request_block(&self, block_id: IdentifierFor<TBlock>) -> Result<(), Self::Error> {
+impl RequestBlocks<BlockId> for TestBlockRequester {
+    type Error = TrySendError<BlockId>;
+    fn request_block(&self, block_id: BlockId) -> Result<(), Self::Error> {
         self.blocks.unbounded_send(block_id)
     }
 }
 
-type TestData = Vec<AlephData<TBlock>>;
+type TestData = Vec<AlephData>;
 
-impl AlephNetworkMessage<TBlock> for TestData {
-    fn included_data(&self) -> Vec<AlephData<TBlock>> {
+impl AlephNetworkMessage for TestData {
+    fn included_data(&self) -> Vec<AlephData> {
         self.clone()
     }
 }
@@ -73,7 +73,7 @@ impl<D: Data> ComponentNetwork<D> for TestComponentNetwork<D, D> {
 
 struct TestHandler {
     chain_builder: ClientChainBuilder,
-    block_requests_rx: UnboundedReceiver<IdentifierFor<TBlock>>,
+    block_requests_rx: UnboundedReceiver<BlockId>,
     network_tx: UnboundedSender<TestData>,
     network: Box<dyn DataNetwork<TestData>>,
 }
@@ -124,7 +124,7 @@ impl TestHandler {
     }
 
     /// Receive next block request from Data Store
-    async fn next_block_request(&mut self) -> IdentifierFor<TBlock> {
+    async fn next_block_request(&mut self) -> BlockId {
         self.block_requests_rx.next().await.unwrap()
     }
 

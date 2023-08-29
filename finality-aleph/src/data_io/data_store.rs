@@ -1,7 +1,7 @@
 use std::{
     collections::{hash_map::Entry::Occupied, BTreeMap, HashMap, HashSet},
     default::Default,
-    hash::{Hash, Hasher},
+    hash::Hash,
     num::NonZeroUsize,
     sync::Arc,
     time::{self, Duration},
@@ -21,9 +21,9 @@ use sc_client_api::{BlockchainEvents, HeaderBackend};
 use sp_runtime::traits::{Block as BlockT, Header as HeaderT};
 
 use crate::{
-    aleph_primitives::BlockNumber,
+    aleph_primitives::{BlockHash, BlockNumber},
     data_io::{
-        chain_info::{CachedChainInfoProvider, ChainInfoProvider},
+        chain_info::{CachedChainInfoProvider, ChainInfoProvider, SubstrateChainInfoProvider},
         proposal::{AlephProposal, ProposalStatus},
         status_provider::get_proposal_status,
         AlephNetworkMessage,
@@ -33,82 +33,28 @@ use crate::{
         Network as DataNetwork,
     },
     sync::RequestBlocks,
-    IdentifierFor, SessionBoundaries,
+    BlockId, SessionBoundaries,
 };
 
 type MessageId = u64;
 
-#[derive(Clone, Debug)]
-pub enum ChainEvent<B>
-where
-    B: BlockT,
-    B::Header: HeaderT<Number = BlockNumber>,
-{
-    Imported(IdentifierFor<B>),
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub enum ChainEvent {
+    Imported(BlockId),
     Finalized(BlockNumber),
 }
 
-// Need to be implemented manually, as deriving does not work (`BlockT` is not `Hash`).
-impl<B> Hash for ChainEvent<B>
-where
-    B: BlockT,
-    B::Header: HeaderT<Number = BlockNumber>,
-{
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        match self {
-            ChainEvent::Imported(block) => {
-                (0u8).hash(state);
-                block.hash(state);
-            }
-
-            ChainEvent::Finalized(num) => {
-                (1u8).hash(state);
-                num.hash(state);
-            }
-        }
-    }
-}
-
-// Clippy does not allow deriving PartialEq when implementing Hash manually
-impl<B> PartialEq for ChainEvent<B>
-where
-    B: BlockT,
-    B::Header: HeaderT<Number = BlockNumber>,
-{
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (ChainEvent::Imported(block1), ChainEvent::Imported(block2)) => block1.eq(block2),
-            (ChainEvent::Finalized(num1), ChainEvent::Finalized(num2)) => num1.eq(num2),
-            _ => false,
-        }
-    }
-}
-impl<B> Eq for ChainEvent<B>
-where
-    B: BlockT,
-    B::Header: HeaderT<Number = BlockNumber>,
-{
-}
-
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub struct PendingProposalInfo<B>
-where
-    B: BlockT,
-    B::Header: HeaderT<Number = BlockNumber>,
-{
+pub struct PendingProposalInfo {
     // Which messages are being held because of a missing the data item.
     messages: HashSet<MessageId>,
     // When was the first message containing this data item encountered.
     first_occurrence: time::SystemTime,
-    status: ProposalStatus<B>,
+    status: ProposalStatus,
 }
 
-impl<B> PendingProposalInfo<B>
-where
-    B: BlockT,
-    B::Header: HeaderT<Number = BlockNumber>,
-{
-    fn new(status: ProposalStatus<B>) -> Self {
+impl PendingProposalInfo {
+    fn new(status: ProposalStatus) -> Self {
         PendingProposalInfo {
             messages: HashSet::new(),
             first_occurrence: time::SystemTime::now(),
@@ -118,13 +64,13 @@ where
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub struct PendingMessageInfo<B: BlockT, M: AlephNetworkMessage<B>> {
+pub struct PendingMessageInfo<M: AlephNetworkMessage> {
     message: M,
     // Data items that we still wait for
-    pending_proposals: HashSet<AlephProposal<B>>,
+    pending_proposals: HashSet<AlephProposal>,
 }
 
-impl<B: BlockT, M: AlephNetworkMessage<B>> PendingMessageInfo<B, M> {
+impl<M: AlephNetworkMessage> PendingMessageInfo<M> {
     fn new(message: M) -> Self {
         PendingMessageInfo {
             message,
@@ -159,9 +105,9 @@ impl Default for DataStoreConfig {
 
 // DataStore is the data availability proxy for the AlephBFT protocol, meaning that whenever we receive
 // a message `m` we must check whether the data `m.included_data()` is available to pass it to AlephBFT.
-// Data is represented by the `AlephData<B>` type -- we refer to the docs of this type to learn what
-// it represents and how honest nodes form `AlephData<B>` instances.
-// An `AlephData<B>` is considered available if it is either `Empty` or it is `HeadProposal(p)` where
+// Data is represented by the `AlephData` type -- we refer to the docs of this type to learn what
+// it represents and how honest nodes form `AlephData` instances.
+// An `AlephData` is considered available if it is either `Empty` or it is `HeadProposal(p)` where
 // `p` is a proposal satisfying one of the conditions below:
 // 1) the top block of `p`s branch is available AND the branch is correct (hashes correspond to existing blocks
 //    with correct number and the ancestry is correct) AND the parent of the bottom block in the branch is finalized.
@@ -200,11 +146,11 @@ impl Default for DataStoreConfig {
 /// It needs to be started by calling the run method.
 pub struct DataStore<B, C, RB, Message, R>
 where
-    B: BlockT,
+    B: BlockT<Hash = BlockHash>,
     B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
-    RB: RequestBlocks<IdentifierFor<B>> + 'static,
-    Message: AlephNetworkMessage<B>
+    RB: RequestBlocks<BlockId> + 'static,
+    Message: AlephNetworkMessage
         + std::fmt::Debug
         + Send
         + Sync
@@ -214,13 +160,13 @@ where
     R: Receiver<Message>,
 {
     next_free_id: MessageId,
-    pending_proposals: HashMap<AlephProposal<B>, PendingProposalInfo<B>>,
-    event_triggers: HashMap<ChainEvent<B>, HashSet<AlephProposal<B>>>,
+    pending_proposals: HashMap<AlephProposal, PendingProposalInfo>,
+    event_triggers: HashMap<ChainEvent, HashSet<AlephProposal>>,
     // We use BtreeMap instead of HashMap to be able to fetch the Message with lowest MessageId
     // when pruning messages.
-    pending_messages: BTreeMap<MessageId, PendingMessageInfo<B, Message>>,
-    chain_info_provider: CachedChainInfoProvider<B, Arc<C>>,
-    available_proposals_cache: LruCache<AlephProposal<B>, ProposalStatus<B>>,
+    pending_messages: BTreeMap<MessageId, PendingMessageInfo<Message>>,
+    chain_info_provider: CachedChainInfoProvider<SubstrateChainInfoProvider<B, C>>,
+    available_proposals_cache: LruCache<AlephProposal, ProposalStatus>,
     num_triggers_registered_since_last_pruning: usize,
     highest_finalized_num: BlockNumber,
     session_boundaries: SessionBoundaries,
@@ -233,11 +179,11 @@ where
 
 impl<B, C, RB, Message, R> DataStore<B, C, RB, Message, R>
 where
-    B: BlockT,
+    B: BlockT<Hash = BlockHash>,
     B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
-    RB: RequestBlocks<IdentifierFor<B>> + 'static,
-    Message: AlephNetworkMessage<B>
+    RB: RequestBlocks<BlockId> + 'static,
+    Message: AlephNetworkMessage
         + std::fmt::Debug
         + Send
         + Sync
@@ -257,7 +203,10 @@ where
         let (messages_for_aleph, messages_from_data_store) = mpsc::unbounded();
         let (messages_to_network, messages_from_network) = component_network.into();
         let status = client.info();
-        let chain_info_provider = CachedChainInfoProvider::new(client.clone(), Default::default());
+        let chain_info_provider = CachedChainInfoProvider::new(
+            SubstrateChainInfoProvider::new(client.clone()),
+            Default::default(),
+        );
 
         let highest_finalized_num = status.finalized_number;
         (
@@ -386,11 +335,7 @@ where
         }
     }
 
-    fn register_block_import_trigger(
-        &mut self,
-        proposal: &AlephProposal<B>,
-        block: &IdentifierFor<B>,
-    ) {
+    fn register_block_import_trigger(&mut self, proposal: &AlephProposal, block: &BlockId) {
         self.num_triggers_registered_since_last_pruning += 1;
         self.event_triggers
             .entry(ChainEvent::Imported(block.clone()))
@@ -398,7 +343,7 @@ where
             .insert(proposal.clone());
     }
 
-    fn register_finality_trigger(&mut self, proposal: &AlephProposal<B>, number: BlockNumber) {
+    fn register_finality_trigger(&mut self, proposal: &AlephProposal, number: BlockNumber) {
         self.num_triggers_registered_since_last_pruning += 1;
         if number > self.highest_finalized_num {
             self.event_triggers
@@ -408,7 +353,7 @@ where
         }
     }
 
-    fn register_next_finality_trigger(&mut self, proposal: &AlephProposal<B>) {
+    fn register_next_finality_trigger(&mut self, proposal: &AlephProposal) {
         if self.highest_finalized_num < proposal.number_below_branch() {
             self.register_finality_trigger(proposal, proposal.number_below_branch());
         } else if self.highest_finalized_num < proposal.number_top_block() {
@@ -416,7 +361,7 @@ where
         }
     }
 
-    fn on_block_finalized(&mut self, block: IdentifierFor<B>) {
+    fn on_block_finalized(&mut self, block: BlockId) {
         if self.highest_finalized_num < block.number {
             // We don't assume block.num = self.highest_finalized_num + 1 as the finality import queue does
             // not quite guarantee this.
@@ -438,7 +383,7 @@ where
         }
     }
 
-    fn on_block_imported(&mut self, block: IdentifierFor<B>) {
+    fn on_block_imported(&mut self, block: BlockId) {
         if let Some(proposals_to_bump) = self.event_triggers.remove(&ChainEvent::Imported(block)) {
             for proposal in proposals_to_bump {
                 self.bump_proposal(&proposal);
@@ -446,7 +391,7 @@ where
         }
     }
 
-    fn on_proposal_available(&mut self, proposal: &AlephProposal<B>) {
+    fn on_proposal_available(&mut self, proposal: &AlephProposal) {
         if let Some(proposal_info) = self.pending_proposals.remove(proposal) {
             for id in proposal_info.messages {
                 self.remove_proposal_from_pending_message(proposal, id);
@@ -456,7 +401,7 @@ where
 
     // Makes an availability check for `data` and updates its status. Outputs whether the bump resulted in
     // this proposal becoming available.
-    fn bump_proposal(&mut self, proposal: &AlephProposal<B>) -> bool {
+    fn bump_proposal(&mut self, proposal: &AlephProposal) -> bool {
         // Some minor inefficiencies in HashMap access below because of borrow checker.
         let old_status = match self.pending_proposals.get(proposal) {
             None => {
@@ -466,8 +411,7 @@ where
             }
             Some(info) => info.status.clone(),
         };
-        let new_status: ProposalStatus<B> =
-            self.check_proposal_availability(proposal, Some(&old_status));
+        let new_status = self.check_proposal_availability(proposal, Some(&old_status));
         self.pending_proposals.get_mut(proposal).unwrap().status = new_status.clone();
 
         use crate::data_io::proposal::{PendingProposalStatus::*, ProposalStatus::*};
@@ -498,9 +442,9 @@ where
     // Outputs the current status of the proposal based on the `old_status` (for optimization).
     fn check_proposal_availability(
         &mut self,
-        proposal: &AlephProposal<B>,
-        old_status: Option<&ProposalStatus<B>>,
-    ) -> ProposalStatus<B> {
+        proposal: &AlephProposal,
+        old_status: Option<&ProposalStatus>,
+    ) -> ProposalStatus {
         if let Some(status) = self.available_proposals_cache.get(proposal) {
             return status.clone();
         }
@@ -526,8 +470,8 @@ where
     // If the proposal is available, message_info is not modified.
     fn add_message_proposal_dependency(
         &mut self,
-        proposal: &AlephProposal<B>,
-        message_info: &mut PendingMessageInfo<B, Message>,
+        proposal: &AlephProposal,
+        message_info: &mut PendingMessageInfo<Message>,
         id: MessageId,
     ) {
         if !self.pending_proposals.contains_key(proposal) {
@@ -583,7 +527,7 @@ where
 
     // This is called upon a proposal being available -- we remove it from the set of
     // proposals a message waits for.
-    fn remove_proposal_from_pending_message(&mut self, proposal: &AlephProposal<B>, id: MessageId) {
+    fn remove_proposal_from_pending_message(&mut self, proposal: &AlephProposal, id: MessageId) {
         let mut message_info = match self.pending_messages.remove(&id) {
             Some(message_info) => message_info,
             None => {
@@ -600,11 +544,7 @@ where
         }
     }
 
-    fn remove_message_id_from_pending_proposal(
-        &mut self,
-        proposal: &AlephProposal<B>,
-        id: MessageId,
-    ) {
+    fn remove_message_id_from_pending_proposal(&mut self, proposal: &AlephProposal, id: MessageId) {
         if let Occupied(mut proposal_entry) = self.pending_proposals.entry(proposal.clone()) {
             let proposal_info = proposal_entry.get_mut();
             proposal_info.messages.remove(&id);

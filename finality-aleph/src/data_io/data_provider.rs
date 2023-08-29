@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{marker::PhantomData, sync::Arc, time::Duration};
 
 use futures::channel::oneshot;
 use log::{debug, warn};
@@ -11,10 +11,10 @@ use sp_runtime::{
 };
 
 use crate::{
-    aleph_primitives::BlockNumber,
+    aleph_primitives::{BlockHash, BlockNumber},
     data_io::{proposal::UnvalidatedAlephProposal, AlephData, MAX_DATA_BRANCH_LEN},
     metrics::Checkpoint,
-    IdentifierFor, Metrics, SessionBoundaries,
+    BlockId, BlockMetrics, SessionBoundaries,
 };
 
 // Reduce block header to the level given by num, by traversing down via parents.
@@ -38,9 +38,9 @@ where
     curr_header
 }
 
-pub fn get_parent<B, C>(client: &C, block: &IdentifierFor<B>) -> Option<IdentifierFor<B>>
+pub fn get_parent<B, C>(client: &C, block: &BlockId) -> Option<BlockId>
 where
-    B: BlockT,
+    B: BlockT<Hash = BlockHash>,
     B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B>,
 {
@@ -57,16 +57,16 @@ where
 
 pub fn get_proposal<B, C>(
     client: &C,
-    best_block: IdentifierFor<B>,
-    finalized_block: IdentifierFor<B>,
-) -> Result<AlephData<B>, ()>
+    best_block: BlockId,
+    finalized_block: BlockId,
+) -> Result<AlephData, ()>
 where
-    B: BlockT,
+    B: BlockT<Hash = BlockHash>,
     B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B>,
 {
     let mut curr_block = best_block;
-    let mut branch: Vec<B::Hash> = Vec::new();
+    let mut branch = Vec::new();
     while curr_block.number > finalized_block.number {
         if curr_block.number - finalized_block.number
             <= <BlockNumber>::saturated_from(MAX_DATA_BRANCH_LEN)
@@ -105,13 +105,9 @@ impl Default for ChainTrackerConfig {
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
-struct ChainInfo<B>
-where
-    B: BlockT,
-    B::Header: HeaderT<Number = BlockNumber>,
-{
-    best_block_in_session: IdentifierFor<B>,
-    highest_finalized: IdentifierFor<B>,
+struct ChainInfo {
+    best_block_in_session: BlockId,
+    highest_finalized: BlockId,
 }
 
 /// ChainTracker keeps track of the best_block in a given session and allows to generate `AlephData`.
@@ -120,22 +116,23 @@ where
 /// `get_data` is called.
 pub struct ChainTracker<B, SC, C>
 where
-    B: BlockT,
+    B: BlockT<Hash = BlockHash>,
     B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B> + 'static,
     SC: SelectChain<B> + 'static,
 {
     select_chain: SC,
     client: Arc<C>,
-    data_to_propose: Arc<Mutex<Option<AlephData<B>>>>,
+    data_to_propose: Arc<Mutex<Option<AlephData>>>,
     session_boundaries: SessionBoundaries,
-    prev_chain_info: Option<ChainInfo<B>>,
+    prev_chain_info: Option<ChainInfo>,
     config: ChainTrackerConfig,
+    _phantom: PhantomData<B>,
 }
 
 impl<B, SC, C> ChainTracker<B, SC, C>
 where
-    B: BlockT,
+    B: BlockT<Hash = BlockHash>,
     B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B> + 'static,
     SC: SelectChain<B> + 'static,
@@ -145,8 +142,8 @@ where
         client: Arc<C>,
         session_boundaries: SessionBoundaries,
         config: ChainTrackerConfig,
-        metrics: Metrics<<B::Header as HeaderT>::Hash>,
-    ) -> (Self, DataProvider<B>) {
+        metrics: BlockMetrics,
+    ) -> (Self, DataProvider) {
         let data_to_propose = Arc::new(Mutex::new(None));
         (
             ChainTracker {
@@ -156,6 +153,7 @@ where
                 session_boundaries,
                 prev_chain_info: None,
                 config,
+                _phantom: PhantomData,
             },
             DataProvider {
                 data_to_propose,
@@ -164,14 +162,14 @@ where
         )
     }
 
-    fn update_data(&mut self, best_block_in_session: &IdentifierFor<B>) {
+    fn update_data(&mut self, best_block_in_session: &BlockId) {
         // We use best_block_in_session argument and the highest_finalized block from the client and compute
         // the corresponding `AlephData<B>` in `data_to_propose` for AlephBFT. To not recompute this many
         // times we remember these "inputs" in `prev_chain_info` and upon match we leave the old value
         // of `data_to_propose` unaffected.
 
         let client_info = self.client.info();
-        let finalized_block: IdentifierFor<B> =
+        let finalized_block: BlockId =
             (client_info.finalized_hash, client_info.finalized_number).into();
 
         if finalized_block.number >= self.session_boundaries.last_block() {
@@ -222,10 +220,7 @@ where
 
     // Returns the highest ancestor of best_block that fits in session_boundaries (typically the best block itself).
     // In case the best block has number less than the first block of session, returns None.
-    async fn get_best_block_in_session(
-        &self,
-        prev_best_block: Option<IdentifierFor<B>>,
-    ) -> Option<IdentifierFor<B>> {
+    async fn get_best_block_in_session(&self, prev_best_block: Option<BlockId>) -> Option<BlockId> {
         // We employ an optimization here: once the `best_block_in_session` reaches the height of `last_block`
         // (i.e., highest block in session), and the just queried `best_block` is a `descendant` of `prev_best_block`
         // then we don't need to recompute `best_block_in_session`, as `prev_best_block` is already correct.
@@ -276,7 +271,7 @@ where
     }
 
     pub async fn run(mut self, mut exit: oneshot::Receiver<()>) {
-        let mut best_block_in_session: Option<IdentifierFor<B>> = None;
+        let mut best_block_in_session: Option<BlockId> = None;
         loop {
             let delay = futures_timer::Delay::new(self.config.refresh_interval);
             tokio::select! {
@@ -298,9 +293,9 @@ where
 
 /// Provides data to AlephBFT for ordering.
 #[derive(Clone)]
-pub struct DataProvider<B: BlockT> {
-    data_to_propose: Arc<Mutex<Option<AlephData<B>>>>,
-    metrics: Metrics<<B::Header as HeaderT>::Hash>,
+pub struct DataProvider {
+    data_to_propose: Arc<Mutex<Option<AlephData>>>,
+    metrics: BlockMetrics,
 }
 
 // Honest nodes propose data in session `k` as follows:
@@ -311,8 +306,8 @@ pub struct DataProvider<B: BlockT> {
 //    then the node proposes `Empty`, otherwise the node proposes a branch extending from one block above
 //    last finalized till `best_block` with the restriction that the branch must be truncated to length
 //    at most MAX_DATA_BRANCH_LEN.
-impl<B: BlockT> DataProvider<B> {
-    pub async fn get_data(&mut self) -> Option<AlephData<B>> {
+impl DataProvider {
+    pub async fn get_data(&mut self) -> Option<AlephData> {
         let data_to_propose = (*self.data_to_propose.lock()).take();
 
         if let Some(data) = &data_to_propose {
@@ -342,9 +337,9 @@ mod tests {
         },
         testing::{
             client_chain_builder::ClientChainBuilder,
-            mocks::{aleph_data_from_blocks, TBlock, TestClientBuilder, TestClientBuilderExt},
+            mocks::{aleph_data_from_blocks, TestClientBuilder, TestClientBuilderExt},
         },
-        Metrics, SessionBoundaryInfo, SessionId, SessionPeriod,
+        BlockMetrics, SessionBoundaryInfo, SessionId, SessionPeriod,
     };
 
     const SESSION_LEN: u32 = 100;
@@ -356,7 +351,7 @@ mod tests {
         impl Future<Output = ()>,
         oneshot::Sender<()>,
         ClientChainBuilder,
-        DataProvider<TBlock>,
+        DataProvider,
     ) {
         let (client, select_chain) = TestClientBuilder::new().build_with_longest_chain();
         let client = Arc::new(client);
@@ -375,7 +370,7 @@ mod tests {
             client,
             session_boundaries,
             config,
-            Metrics::noop(),
+            BlockMetrics::noop(),
         );
 
         let (exit_chain_tracker_tx, exit_chain_tracker_rx) = oneshot::channel();
@@ -397,7 +392,7 @@ mod tests {
     async fn run_test<F, S>(scenario: S)
     where
         F: Future,
-        S: FnOnce(ClientChainBuilder, DataProvider<TBlock>) -> F,
+        S: FnOnce(ClientChainBuilder, DataProvider) -> F,
     {
         let (task_handle, exit, chain_builder, data_provider) = prepare_chain_tracker_test();
         let chain_tracker_handle = tokio::spawn(task_handle);

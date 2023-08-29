@@ -17,7 +17,7 @@ use crate::{
     },
     aleph_primitives::{AlephSessionApi, BlockHash, BlockNumber, KEY_TYPE},
     crypto::{AuthorityPen, AuthorityVerifier},
-    data_io::{ChainTracker, DataStore, OrderedDataInterpreter},
+    data_io::{ChainTracker, DataStore, OrderedDataInterpreter, SubstrateChainInfoProvider},
     mpsc,
     network::{
         data::{
@@ -30,7 +30,7 @@ use crate::{
         backup::ABFTBackup, manager::aggregator::AggregatorVersion, traits::NodeSessionManager,
     },
     sync::{substrate::Justification, JustificationSubmissions, JustificationTranslator},
-    AuthorityId, CurrentRmcNetworkData, IdentifierFor, Keychain, LegacyRmcNetworkData, Metrics,
+    AuthorityId, BlockId, BlockMetrics, CurrentRmcNetworkData, Keychain, LegacyRmcNetworkData,
     NodeIndex, SessionBoundaries, SessionBoundaryInfo, SessionId, SessionPeriod, UnitCreationDelay,
     VersionedNetworkData,
 };
@@ -53,15 +53,15 @@ use crate::{
 #[cfg(feature = "only_legacy")]
 const ONLY_LEGACY_ENV: &str = "ONLY_LEGACY_PROTOCOL";
 
-type LegacyNetworkType<B> = SimpleNetwork<
-    LegacyRmcNetworkData<B>,
-    mpsc::UnboundedReceiver<LegacyRmcNetworkData<B>>,
-    SessionSender<LegacyRmcNetworkData<B>>,
+type LegacyNetworkType = SimpleNetwork<
+    LegacyRmcNetworkData,
+    mpsc::UnboundedReceiver<LegacyRmcNetworkData>,
+    SessionSender<LegacyRmcNetworkData>,
 >;
-type CurrentNetworkType<B> = SimpleNetwork<
-    CurrentRmcNetworkData<B>,
-    mpsc::UnboundedReceiver<CurrentRmcNetworkData<B>>,
-    SessionSender<CurrentRmcNetworkData<B>>,
+type CurrentNetworkType = SimpleNetwork<
+    CurrentRmcNetworkData,
+    mpsc::UnboundedReceiver<CurrentRmcNetworkData>,
+    SessionSender<CurrentRmcNetworkData>,
 >;
 
 struct SubtasksParams<C, SC, B, N, BE, JS>
@@ -71,7 +71,7 @@ where
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
-    N: Network<VersionedNetworkData<B>> + 'static,
+    N: Network<VersionedNetworkData> + 'static,
     JS: JustificationSubmissions<Justification> + Send + Sync + Clone,
 {
     n_members: usize,
@@ -80,9 +80,9 @@ where
     data_network: N,
     session_boundaries: SessionBoundaries,
     subtask_common: SubtaskCommon,
-    data_provider: DataProvider<B>,
-    ordered_data_interpreter: OrderedDataInterpreter<B, C>,
-    aggregator_io: aggregator::IO<B::Header, JS>,
+    data_provider: DataProvider,
+    ordered_data_interpreter: OrderedDataInterpreter<SubstrateChainInfoProvider<B, C>>,
+    aggregator_io: aggregator::IO<JS>,
     multikeychain: Keychain,
     exit_rx: oneshot::Receiver<()>,
     backup: ABFTBackup,
@@ -97,8 +97,8 @@ where
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
-    RB: RequestBlocks<IdentifierFor<B>>,
-    SM: SessionManager<VersionedNetworkData<B>> + 'static,
+    RB: RequestBlocks<BlockId>,
+    SM: SessionManager<VersionedNetworkData> + 'static,
     JS: JustificationSubmissions<Justification> + Send + Sync + Clone,
 {
     client: Arc<C>,
@@ -108,11 +108,11 @@ where
     justifications_for_sync: JS,
     justification_translator: JustificationTranslator,
     block_requester: RB,
-    metrics: Metrics<<B::Header as HeaderT>::Hash>,
+    metrics: BlockMetrics,
     spawn_handle: SpawnHandle,
     session_manager: SM,
     keystore: Arc<dyn Keystore>,
-    _phantom: PhantomData<BE>,
+    _phantom: PhantomData<(B, BE)>,
 }
 
 impl<C, SC, B, RB, BE, SM, JS> NodeSessionManagerImpl<C, SC, B, RB, BE, SM, JS>
@@ -123,8 +123,8 @@ where
     C::Api: crate::aleph_primitives::AlephSessionApi<B>,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
-    RB: RequestBlocks<IdentifierFor<B>>,
-    SM: SessionManager<VersionedNetworkData<B>>,
+    RB: RequestBlocks<BlockId>,
+    SM: SessionManager<VersionedNetworkData>,
     JS: JustificationSubmissions<Justification> + Send + Sync + Clone + 'static,
 {
     #[allow(clippy::too_many_arguments)]
@@ -136,7 +136,7 @@ where
         justifications_for_sync: JS,
         justification_translator: JustificationTranslator,
         block_requester: RB,
-        metrics: Metrics<<B::Header as HeaderT>::Hash>,
+        metrics: BlockMetrics,
         spawn_handle: SpawnHandle,
         session_manager: SM,
         keystore: Arc<dyn Keystore>,
@@ -157,7 +157,7 @@ where
         }
     }
 
-    fn legacy_subtasks<N: Network<VersionedNetworkData<B>> + 'static>(
+    fn legacy_subtasks<N: Network<VersionedNetworkData> + 'static>(
         &self,
         params: SubtasksParams<C, SC, B, N, BE, JS>,
     ) -> Subtasks {
@@ -208,14 +208,14 @@ where
                 session_boundaries,
                 self.metrics.clone(),
                 multikeychain,
-                AggregatorVersion::<CurrentNetworkType<B>, _>::Legacy(rmc_network),
+                AggregatorVersion::<CurrentNetworkType, _>::Legacy(rmc_network),
             ),
             chain_tracker::task(subtask_common.clone(), chain_tracker),
             data_store::task(subtask_common, data_store),
         )
     }
 
-    fn current_subtasks<N: Network<VersionedNetworkData<B>> + 'static>(
+    fn current_subtasks<N: Network<VersionedNetworkData> + 'static>(
         &self,
         params: SubtasksParams<C, SC, B, N, BE, JS>,
     ) -> Subtasks {
@@ -266,7 +266,7 @@ where
                 session_boundaries,
                 self.metrics.clone(),
                 multikeychain,
-                AggregatorVersion::<_, LegacyNetworkType<B>>::Current(rmc_network),
+                AggregatorVersion::<_, LegacyNetworkType>::Current(rmc_network),
             ),
             chain_tracker::task(subtask_common.clone(), chain_tracker),
             data_store::task(subtask_common, data_store),
@@ -301,9 +301,9 @@ where
             self.metrics.clone(),
         );
 
-        let ordered_data_interpreter = OrderedDataInterpreter::<B, C>::new(
+        let ordered_data_interpreter = OrderedDataInterpreter::new(
             blocks_for_aggregator,
-            self.client.clone(),
+            SubstrateChainInfoProvider::new(self.client.clone()),
             session_boundaries.clone(),
         );
 
@@ -405,8 +405,8 @@ where
     C::Api: crate::aleph_primitives::AlephSessionApi<B>,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
-    RB: RequestBlocks<IdentifierFor<B>>,
-    SM: SessionManager<VersionedNetworkData<B>>,
+    RB: RequestBlocks<BlockId>,
+    SM: SessionManager<VersionedNetworkData>,
     JS: JustificationSubmissions<Justification> + Send + Sync + Clone + 'static,
 {
     type Error = SM::Error;

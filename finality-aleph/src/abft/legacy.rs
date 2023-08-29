@@ -5,10 +5,10 @@ use sp_blockchain::HeaderBackend;
 use sp_runtime::traits::{Block, Header};
 
 use super::common::{sanity_check_round_delays, unit_creation_delay_fn, MAX_ROUNDS};
-pub use crate::aleph_primitives::{BlockNumber, LEGACY_FINALITY_VERSION as VERSION};
+pub use crate::aleph_primitives::{BlockHash, BlockNumber, LEGACY_FINALITY_VERSION as VERSION};
 use crate::{
     abft::NetworkWrapper,
-    data_io::{AlephData, OrderedDataInterpreter},
+    data_io::{AlephData, OrderedDataInterpreter, SubstrateChainInfoProvider},
     network::data::Network,
     oneshot,
     party::{
@@ -22,16 +22,16 @@ pub fn run_member<B, C, ADN>(
     subtask_common: SubtaskCommon,
     multikeychain: Keychain,
     config: Config,
-    network: NetworkWrapper<LegacyNetworkData<B>, ADN>,
-    data_provider: impl legacy_aleph_bft::DataProvider<AlephData<B>> + Send + 'static,
-    ordered_data_interpreter: OrderedDataInterpreter<B, C>,
+    network: NetworkWrapper<LegacyNetworkData, ADN>,
+    data_provider: impl legacy_aleph_bft::DataProvider<AlephData> + Send + 'static,
+    ordered_data_interpreter: OrderedDataInterpreter<SubstrateChainInfoProvider<B, C>>,
     backup: ABFTBackup,
 ) -> Task
 where
-    B: Block,
+    B: Block<Hash = BlockHash>,
     B::Header: Header<Number = BlockNumber>,
     C: HeaderBackend<B> + Send + 'static,
-    ADN: Network<LegacyNetworkData<B>> + 'static,
+    ADN: Network<LegacyNetworkData> + 'static,
 {
     // Remove this check once we implement one on the AlephBFT side (A0-2583).
     // Checks that the total time of a session is at least 7 days.

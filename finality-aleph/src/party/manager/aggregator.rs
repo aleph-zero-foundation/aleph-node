@@ -22,31 +22,27 @@ use crate::{
         AuthoritySubtaskCommon, Task,
     },
     sync::{substrate::Justification, JustificationSubmissions, JustificationTranslator},
-    BlockId, CurrentRmcNetworkData, IdentifierFor, Keychain, LegacyRmcNetworkData, Metrics,
+    BlockId, BlockMetrics, CurrentRmcNetworkData, Keychain, LegacyRmcNetworkData,
     SessionBoundaries, STATUS_REPORT_INTERVAL,
 };
 
 /// IO channels used by the aggregator task.
-pub struct IO<H, JS>
+pub struct IO<JS>
 where
-    H: Header<Number = BlockNumber>,
     JS: JustificationSubmissions<Justification> + Send + Sync + Clone,
 {
-    pub blocks_from_interpreter: mpsc::UnboundedReceiver<BlockId<H>>,
+    pub blocks_from_interpreter: mpsc::UnboundedReceiver<BlockId>,
     pub justifications_for_chain: JS,
     pub justification_translator: JustificationTranslator,
 }
 
-async fn process_new_block_data<B, CN, LN>(
-    aggregator: &mut Aggregator<'_, B, CN, LN>,
-    block: IdentifierFor<B>,
-    metrics: &Metrics<<B::Header as Header>::Hash>,
+async fn process_new_block_data<CN, LN>(
+    aggregator: &mut Aggregator<'_, CN, LN>,
+    block: BlockId,
+    metrics: &BlockMetrics,
 ) where
-    B: Block<Hash = BlockHash>,
-    B::Header: Header<Number = BlockNumber>,
-    CN: Network<CurrentRmcNetworkData<B>>,
-    LN: Network<LegacyRmcNetworkData<B>>,
-    <B as Block>::Hash: AsRef<[u8]>,
+    CN: Network<CurrentRmcNetworkData>,
+    LN: Network<LegacyRmcNetworkData>,
 {
     trace!(target: "aleph-party", "Received unit {:?} in aggregator.", block);
     metrics.report_block(block.hash, std::time::Instant::now(), Checkpoint::Ordered);
@@ -55,7 +51,7 @@ async fn process_new_block_data<B, CN, LN>(
 }
 
 fn process_hash<B, C, JS>(
-    hash: B::Hash,
+    hash: BlockHash,
     multisignature: SignatureSet<Signature>,
     justifications_for_chain: &mut JS,
     justification_translator: &JustificationTranslator,
@@ -87,11 +83,11 @@ where
 }
 
 async fn run_aggregator<B, C, CN, LN, JS>(
-    mut aggregator: Aggregator<'_, B, CN, LN>,
-    io: IO<B::Header, JS>,
+    mut aggregator: Aggregator<'_, CN, LN>,
+    io: IO<JS>,
     client: Arc<C>,
     session_boundaries: &SessionBoundaries,
-    metrics: Metrics<<B::Header as Header>::Hash>,
+    metrics: BlockMetrics,
     mut exit_rx: oneshot::Receiver<()>,
 ) -> Result<(), ()>
 where
@@ -99,9 +95,8 @@ where
     B::Header: Header<Number = BlockNumber>,
     JS: JustificationSubmissions<Justification> + Send + Sync + Clone,
     C: HeaderBackend<B> + Send + Sync + 'static,
-    LN: Network<LegacyRmcNetworkData<B>>,
-    CN: Network<CurrentRmcNetworkData<B>>,
-    <B as Block>::Hash: AsRef<[u8]>,
+    LN: Network<LegacyRmcNetworkData>,
+    CN: Network<CurrentRmcNetworkData>,
 {
     let IO {
         blocks_from_interpreter,
@@ -130,7 +125,7 @@ where
             maybe_block = blocks_from_interpreter.next() => {
                 if let Some(block) = maybe_block {
                     hash_of_last_block = Some(block.hash);
-                    process_new_block_data::<B, CN, LN>(
+                    process_new_block_data::<CN, LN>(
                         &mut aggregator,
                         block,
                         &metrics
@@ -177,9 +172,9 @@ pub enum AggregatorVersion<CN, LN> {
 pub fn task<B, C, CN, LN, JS>(
     subtask_common: AuthoritySubtaskCommon,
     client: Arc<C>,
-    io: IO<B::Header, JS>,
+    io: IO<JS>,
     session_boundaries: SessionBoundaries,
-    metrics: Metrics<<B::Header as Header>::Hash>,
+    metrics: BlockMetrics,
     multikeychain: Keychain,
     version: AggregatorVersion<CN, LN>,
 ) -> Task
@@ -188,8 +183,8 @@ where
     B::Header: Header<Number = BlockNumber>,
     JS: JustificationSubmissions<Justification> + Send + Sync + Clone + 'static,
     C: HeaderBackend<B> + Send + Sync + 'static,
-    LN: Network<LegacyRmcNetworkData<B>> + 'static,
-    CN: Network<CurrentRmcNetworkData<B>> + 'static,
+    LN: Network<LegacyRmcNetworkData> + 'static,
+    CN: Network<CurrentRmcNetworkData> + 'static,
 {
     let AuthoritySubtaskCommon {
         spawn_handle,

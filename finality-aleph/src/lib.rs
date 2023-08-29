@@ -12,7 +12,7 @@ use futures::{
 };
 use parity_scale_codec::{Codec, Decode, Encode, Output};
 use primitives as aleph_primitives;
-use primitives::{AuthorityId, Block as AlephBlock, BlockNumber, Hash as AlephHash};
+use primitives::{AuthorityId, Block as AlephBlock, BlockHash, BlockNumber, Hash as AlephHash};
 use sc_client_api::{
     Backend, BlockBackend, BlockchainEvents, Finalizer, LockImportRun, TransactionFor,
 };
@@ -22,7 +22,7 @@ use sc_network_sync::SyncingService;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{HeaderBackend, HeaderMetadata};
 use sp_keystore::Keystore;
-use sp_runtime::traits::{BlakeTwo256, Block, Header};
+use sp_runtime::traits::{BlakeTwo256, Block};
 use substrate_prometheus_endpoint::Registry;
 use tokio::time::Duration;
 
@@ -59,7 +59,7 @@ pub mod testing;
 pub use crate::{
     import::{AlephBlockImport, TracingBlockImport},
     justification::AlephJustification,
-    metrics::Metrics,
+    metrics::BlockMetrics,
     network::{Protocol, ProtocolNaming},
     nodes::run_validator_node,
     session::SessionPeriod,
@@ -97,14 +97,14 @@ pub struct MillisecsPerBlock(pub u64);
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
 pub struct UnitCreationDelay(pub u64);
 
-type LegacySplitData<B> = Split<LegacyNetworkData<B>, LegacyRmcNetworkData<B>>;
-type CurrentSplitData<B> = Split<CurrentNetworkData<B>, CurrentRmcNetworkData<B>>;
+type LegacySplitData = Split<LegacyNetworkData, LegacyRmcNetworkData>;
+type CurrentSplitData = Split<CurrentNetworkData, CurrentRmcNetworkData>;
 
-impl<B: Block> Versioned for LegacyNetworkData<B> {
+impl Versioned for LegacyNetworkData {
     const VERSION: Version = Version(LEGACY_VERSION);
 }
 
-impl<B: Block> Versioned for CurrentNetworkData<B> {
+impl Versioned for CurrentNetworkData {
     const VERSION: Version = Version(CURRENT_VERSION);
 }
 
@@ -156,7 +156,7 @@ impl<L: Versioned + Encode, R: Versioned + Encode> Encode for VersionedEitherMes
     }
 }
 
-type VersionedNetworkData<B> = VersionedEitherMessage<LegacySplitData<B>, CurrentSplitData<B>>;
+type VersionedNetworkData = VersionedEitherMessage<LegacySplitData, CurrentSplitData>;
 
 #[derive(Debug, Display, Clone)]
 pub enum VersionedTryFromError {
@@ -164,20 +164,20 @@ pub enum VersionedTryFromError {
     ExpectedOldGotNew,
 }
 
-impl<B: Block> TryFrom<VersionedNetworkData<B>> for LegacySplitData<B> {
+impl TryFrom<VersionedNetworkData> for LegacySplitData {
     type Error = VersionedTryFromError;
 
-    fn try_from(value: VersionedNetworkData<B>) -> Result<Self, Self::Error> {
+    fn try_from(value: VersionedNetworkData) -> Result<Self, Self::Error> {
         Ok(match value {
             VersionedEitherMessage::Left(data) => data,
             VersionedEitherMessage::Right(_) => return Err(ExpectedOldGotNew),
         })
     }
 }
-impl<B: Block> TryFrom<VersionedNetworkData<B>> for CurrentSplitData<B> {
+impl TryFrom<VersionedNetworkData> for CurrentSplitData {
     type Error = VersionedTryFromError;
 
-    fn try_from(value: VersionedNetworkData<B>) -> Result<Self, Self::Error> {
+    fn try_from(value: VersionedNetworkData) -> Result<Self, Self::Error> {
         Ok(match value {
             VersionedEitherMessage::Left(_) => return Err(ExpectedNewGotOld),
             VersionedEitherMessage::Right(data) => data,
@@ -185,14 +185,14 @@ impl<B: Block> TryFrom<VersionedNetworkData<B>> for CurrentSplitData<B> {
     }
 }
 
-impl<B: Block> From<LegacySplitData<B>> for VersionedNetworkData<B> {
-    fn from(data: LegacySplitData<B>) -> Self {
+impl From<LegacySplitData> for VersionedNetworkData {
+    fn from(data: LegacySplitData) -> Self {
         VersionedEitherMessage::Left(data)
     }
 }
 
-impl<B: Block> From<CurrentSplitData<B>> for VersionedNetworkData<B> {
-    fn from(data: CurrentSplitData<B>) -> Self {
+impl From<CurrentSplitData> for VersionedNetworkData {
+    fn from(data: CurrentSplitData) -> Self {
         VersionedEitherMessage::Right(data)
     }
 }
@@ -235,43 +235,31 @@ pub trait BlockIdentifier: Clone + Hash + Debug + Eq + Codec + Send + Sync + 'st
 
 type Hasher = abft::HashWrapper<BlakeTwo256>;
 
-#[derive(PartialEq, Eq, Clone, Debug, Encode, Decode)]
-pub struct BlockId<H: Header<Number = BlockNumber>> {
-    hash: H::Hash,
-    number: H::Number,
+#[derive(PartialEq, Eq, Clone, Debug, Encode, Decode, Hash)]
+pub struct BlockId {
+    hash: BlockHash,
+    number: BlockNumber,
 }
 
-impl<H: Header<Number = BlockNumber>> BlockId<H> {
-    pub fn new(hash: H::Hash, number: BlockNumber) -> Self {
+impl BlockId {
+    pub fn new(hash: BlockHash, number: BlockNumber) -> Self {
         BlockId { hash, number }
     }
 }
 
-impl<H: Header<Number = BlockNumber>> From<(H::Hash, BlockNumber)> for BlockId<H> {
-    fn from(pair: (H::Hash, BlockNumber)) -> Self {
+impl From<(BlockHash, BlockNumber)> for BlockId {
+    fn from(pair: (BlockHash, BlockNumber)) -> Self {
         BlockId::new(pair.0, pair.1)
     }
 }
 
-impl<SH: Header<Number = BlockNumber>> Hash for BlockId<SH> {
-    fn hash<H>(&self, state: &mut H)
-    where
-        H: std::hash::Hasher,
-    {
-        self.hash.hash(state);
-        self.number.hash(state);
-    }
-}
-
-impl<H: Header<Number = BlockNumber>> Display for BlockId<H> {
+impl Display for BlockId {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
         write!(f, "#{} ({})", self.number, self.hash,)
     }
 }
 
-type IdentifierFor<B> = BlockId<<B as Block>::Header>;
-
-impl<H: Header<Number = BlockNumber>> BlockIdentifier for BlockId<H> {
+impl BlockIdentifier for BlockId {
     fn number(&self) -> BlockNumber {
         self.number
     }
@@ -293,7 +281,7 @@ pub struct AlephConfig<C, SC> {
     pub spawn_handle: SpawnHandle,
     pub keystore: Arc<dyn Keystore>,
     pub justification_rx: mpsc::UnboundedReceiver<Justification>,
-    pub metrics: Metrics<AlephHash>,
+    pub metrics: BlockMetrics,
     pub registry: Option<Registry>,
     pub session_period: SessionPeriod,
     pub millisecs_per_block: MillisecsPerBlock,

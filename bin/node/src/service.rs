@@ -7,9 +7,9 @@ use std::{
 
 use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use finality_aleph::{
-    run_validator_node, AlephBlockImport, AlephConfig, BlockImporter, Justification,
-    JustificationTranslator, Metrics, MillisecsPerBlock, Protocol, ProtocolNaming,
-    RateLimiterConfig, SessionPeriod, SubstrateChainStatus, TracingBlockImport,
+    run_validator_node, AlephBlockImport, AlephConfig, BlockImporter, BlockMetrics, Justification,
+    JustificationTranslator, MillisecsPerBlock, Protocol, ProtocolNaming, RateLimiterConfig,
+    SessionPeriod, SubstrateChainStatus, TracingBlockImport,
 };
 use futures::channel::mpsc;
 use log::{info, warn};
@@ -92,7 +92,7 @@ pub fn new_partial(
             mpsc::UnboundedSender<Justification>,
             mpsc::UnboundedReceiver<Justification>,
             Option<Telemetry>,
-            Metrics<BlockHash>,
+            BlockMetrics,
         ),
     >,
     ServiceError,
@@ -137,16 +137,16 @@ pub fn new_partial(
     );
 
     let metrics = match config.prometheus_registry() {
-        Some(register) => match Metrics::new(register) {
+        Some(register) => match BlockMetrics::new(register) {
             Ok(metrics) => metrics,
             Err(e) => {
                 warn!("Failed to register Prometheus metrics: {:?}.", e);
-                Metrics::noop()
+                BlockMetrics::noop()
             }
         },
         None => {
             info!("Running with the metrics is not available.");
-            Metrics::noop()
+            BlockMetrics::noop()
         }
     };
 

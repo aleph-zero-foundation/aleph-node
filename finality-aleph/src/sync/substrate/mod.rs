@@ -44,7 +44,7 @@ impl BlockImport<Block> for BlockImporter {
 }
 
 impl HeaderT for Header {
-    type Identifier = BlockId<Header>;
+    type Identifier = BlockId;
 
     fn id(&self) -> Self::Identifier {
         BlockId {

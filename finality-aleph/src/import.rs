@@ -9,9 +9,9 @@ use sp_consensus::Error as ConsensusError;
 use sp_runtime::{traits::Header as HeaderT, Justification as SubstrateJustification};
 
 use crate::{
-    aleph_primitives::{Block, BlockHash, BlockNumber, Header, ALEPH_ENGINE_ID},
+    aleph_primitives::{Block, BlockHash, BlockNumber, ALEPH_ENGINE_ID},
     justification::{backwards_compatible_decode, DecodeError},
-    metrics::{Checkpoint, Metrics},
+    metrics::{BlockMetrics, Checkpoint},
     sync::substrate::{Justification, JustificationTranslator, TranslateError},
     BlockId,
 };
@@ -24,14 +24,14 @@ where
     I: BlockImport<Block> + Send + Sync,
 {
     inner: I,
-    metrics: Metrics<BlockHash>,
+    metrics: BlockMetrics,
 }
 
 impl<I> TracingBlockImport<I>
 where
     I: BlockImport<Block> + Send + Sync,
 {
-    pub fn new(inner: I, metrics: Metrics<BlockHash>) -> Self {
+    pub fn new(inner: I, metrics: BlockMetrics) -> Self {
         TracingBlockImport { inner, metrics }
     }
 }
@@ -112,7 +112,7 @@ where
 
     fn send_justification(
         &mut self,
-        block_id: BlockId<Header>,
+        block_id: BlockId,
         justification: SubstrateJustification,
     ) -> Result<(), SendJustificationError<TranslateError>> {
         debug!(target: "aleph-justification", "Importing justification for block {}.", block_id);

@@ -1,8 +1,5 @@
 use log::debug;
-use sp_runtime::{
-    traits::{Block as BlockT, Header as HeaderT},
-    SaturatedConversion,
-};
+use sp_runtime::SaturatedConversion;
 
 use crate::{
     aleph_primitives::BlockNumber,
@@ -12,15 +9,13 @@ use crate::{
     },
 };
 
-pub fn get_proposal_status<B, CIP>(
+pub fn get_proposal_status<CIP>(
     chain_info_provider: &mut CIP,
-    proposal: &AlephProposal<B>,
-    old_status: Option<&ProposalStatus<B>>,
-) -> ProposalStatus<B>
+    proposal: &AlephProposal,
+    old_status: Option<&ProposalStatus>,
+) -> ProposalStatus
 where
-    B: BlockT,
-    B::Header: HeaderT<Number = BlockNumber>,
-    CIP: ChainInfoProvider<B>,
+    CIP: ChainInfoProvider,
 {
     use crate::data_io::proposal::{PendingProposalStatus::*, ProposalStatus::*};
 
@@ -86,11 +81,9 @@ where
     }
 }
 
-fn is_hopeless_fork<B, CIP>(chain_info_provider: &mut CIP, proposal: &AlephProposal<B>) -> bool
+fn is_hopeless_fork<CIP>(chain_info_provider: &mut CIP, proposal: &AlephProposal) -> bool
 where
-    B: BlockT,
-    B::Header: HeaderT<Number = BlockNumber>,
-    CIP: ChainInfoProvider<B>,
+    CIP: ChainInfoProvider,
 {
     let bottom_num = proposal.number_bottom_block();
     for i in 0..proposal.len() {
@@ -108,11 +101,9 @@ where
     false
 }
 
-fn is_ancestor_finalized<B, CIP>(chain_info_provider: &mut CIP, proposal: &AlephProposal<B>) -> bool
+fn is_ancestor_finalized<CIP>(chain_info_provider: &mut CIP, proposal: &AlephProposal) -> bool
 where
-    B: BlockT,
-    B::Header: HeaderT<Number = BlockNumber>,
-    CIP: ChainInfoProvider<B>,
+    CIP: ChainInfoProvider,
 {
     let bottom = proposal.bottom_block();
     let parent_hash = if let Ok(hash) = chain_info_provider.get_parent_hash(&bottom) {
@@ -130,14 +121,9 @@ where
 }
 
 // Checks that the subsequent blocks in the branch are in the parent-child relation, as required.
-fn is_branch_ancestry_correct<B, CIP>(
-    chain_info_provider: &mut CIP,
-    proposal: &AlephProposal<B>,
-) -> bool
+fn is_branch_ancestry_correct<CIP>(chain_info_provider: &mut CIP, proposal: &AlephProposal) -> bool
 where
-    B: BlockT,
-    B::Header: HeaderT<Number = BlockNumber>,
-    CIP: ChainInfoProvider<B>,
+    CIP: ChainInfoProvider,
 {
     let bottom_num = proposal.number_bottom_block();
     for i in 1..proposal.len() {
@@ -165,7 +151,10 @@ mod tests {
 
     use crate::{
         data_io::{
-            chain_info::{AuxFinalizationChainInfoProvider, CachedChainInfoProvider},
+            chain_info::{
+                AuxFinalizationChainInfoProvider, CachedChainInfoProvider,
+                SubstrateChainInfoProvider,
+            },
             proposal::{
                 AlephProposal,
                 PendingProposalStatus::*,
@@ -187,20 +176,22 @@ mod tests {
     // A large number only for the purpose of creating `AlephProposal`s
     const DUMMY_SESSION_LEN: u32 = 1_000_000;
 
-    fn proposal_from_headers(headers: Vec<THeader>) -> AlephProposal<TBlock> {
+    fn proposal_from_headers(headers: Vec<THeader>) -> AlephProposal {
         let unvalidated = unvalidated_proposal_from_headers(headers);
         let session_boundaries = SessionBoundaryInfo::new(SessionPeriod(DUMMY_SESSION_LEN))
             .boundaries_for_session(SessionId(0));
         unvalidated.validate_bounds(&session_boundaries).unwrap()
     }
 
-    fn proposal_from_blocks(blocks: Vec<TBlock>) -> AlephProposal<TBlock> {
+    fn proposal_from_blocks(blocks: Vec<TBlock>) -> AlephProposal {
         let headers = blocks.into_iter().map(|b| b.header().clone()).collect();
         proposal_from_headers(headers)
     }
 
-    type TestCachedChainInfo = CachedChainInfoProvider<TBlock, Arc<TestClient>>;
-    type TestAuxChainInfo = AuxFinalizationChainInfoProvider<TBlock, Arc<TestClient>>;
+    type TestCachedChainInfo =
+        CachedChainInfoProvider<SubstrateChainInfoProvider<TBlock, TestClient>>;
+    type TestAuxChainInfo =
+        AuxFinalizationChainInfoProvider<SubstrateChainInfoProvider<TBlock, TestClient>>;
 
     fn prepare_proposal_test() -> (ClientChainBuilder, TestCachedChainInfo, TestAuxChainInfo) {
         let client = Arc::new(TestClientBuilder::new().build());
@@ -208,13 +199,16 @@ mod tests {
         let config = ChainInfoCacheConfig {
             block_cache_capacity: NonZeroUsize::new(2).unwrap(),
         };
-        let cached_chain_info_provider = CachedChainInfoProvider::new(client.clone(), config);
+        let cached_chain_info_provider =
+            CachedChainInfoProvider::new(SubstrateChainInfoProvider::new(client.clone()), config);
 
         let chain_builder =
             ClientChainBuilder::new(client.clone(), Arc::new(TestClientBuilder::new().build()));
 
-        let aux_chain_info_provider =
-            AuxFinalizationChainInfoProvider::new(client, chain_builder.genesis_hash_num());
+        let aux_chain_info_provider = AuxFinalizationChainInfoProvider::new(
+            SubstrateChainInfoProvider::new(client),
+            chain_builder.genesis_hash_num(),
+        );
 
         (
             chain_builder,
@@ -226,8 +220,8 @@ mod tests {
     fn verify_proposal_status(
         cached_cip: &mut TestCachedChainInfo,
         aux_cip: &mut TestAuxChainInfo,
-        proposal: &AlephProposal<TBlock>,
-        correct_status: ProposalStatus<TBlock>,
+        proposal: &AlephProposal,
+        correct_status: ProposalStatus,
     ) {
         let status_a = get_proposal_status(aux_cip, proposal, None);
         assert_eq!(
