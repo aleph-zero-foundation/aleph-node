@@ -72,7 +72,7 @@ hash-db = { version = "0.16", default-features = false }
 hex = { version = "0.4" }
 hex-literal = { version = "0.3" }
 ip_network = { version = "0.4" }
-jsonrpsee = { version = "0.16.2" }
+jsonrpsee = { version = "0.16.3" }
 libp2p = { version = "0.50.1" }
 log = { version = "0.4" }
 lru = { version = "0.8" }
