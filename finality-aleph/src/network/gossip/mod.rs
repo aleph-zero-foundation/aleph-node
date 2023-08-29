@@ -9,6 +9,7 @@ use bytes::Bytes;
 
 use crate::network::Data;
 
+mod metrics;
 #[cfg(test)]
 pub mod mock;
 mod service;

@@ -111,7 +111,7 @@ where
     let (gossip_network_service, authentication_network, block_sync_network) = GossipService::new(
         SubstrateNetwork::new(network.clone(), sync_network.clone(), protocol_naming),
         spawn_handle.clone(),
-        metrics.clone(),
+        registry.clone(),
     );
     let gossip_network_task = async move { gossip_network_service.run().await };
 

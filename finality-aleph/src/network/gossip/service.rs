@@ -9,18 +9,22 @@ use futures::{channel::mpsc, StreamExt};
 use log::{debug, error, info, trace, warn};
 use network_clique::SpawnHandleT;
 use rand::{seq::IteratorRandom, thread_rng};
+use substrate_prometheus_endpoint::Registry;
 use tokio::time;
 
 const MAX_QUEUE_SIZE: usize = 1_000;
 
 use crate::{
-    metrics::Key,
     network::{
-        gossip::{Event, EventStream, Network, NetworkSender, Protocol, RawNetwork},
+        gossip::{
+            metrics::Metrics, Event, EventStream, Network, NetworkSender, Protocol, RawNetwork,
+        },
         Data,
     },
-    Metrics, SpawnHandle, STATUS_REPORT_INTERVAL,
+    SpawnHandle, STATUS_REPORT_INTERVAL,
 };
+
+const LOG_TARGET: &str = "aleph-network";
 
 enum Command<D: Data, P: Clone + Debug + Eq + Hash + Send + 'static> {
     Send(D, P),
@@ -34,7 +38,7 @@ enum Command<D: Data, P: Clone + Debug + Eq + Hash + Send + 'static> {
 ///   1. Messages are forwarded to the user.
 ///   2. Various forms of (dis)connecting, keeping track of all currently connected nodes.
 /// 3. Outgoing messages, sending them out, using 1.2. to broadcast.
-pub struct Service<N: RawNetwork, AD: Data, BSD: Data, H: Key> {
+pub struct Service<N: RawNetwork, AD: Data, BSD: Data> {
     network: N,
     messages_from_authentication_user: mpsc::UnboundedReceiver<Command<AD, N::PeerId>>,
     messages_from_block_sync_user: mpsc::UnboundedReceiver<Command<BSD, N::PeerId>>,
@@ -45,7 +49,7 @@ pub struct Service<N: RawNetwork, AD: Data, BSD: Data, H: Key> {
     block_sync_connected_peers: HashSet<N::PeerId>,
     block_sync_peer_senders: HashMap<N::PeerId, mpsc::Sender<BSD>>,
     spawn_handle: SpawnHandle,
-    metrics: Metrics<H>,
+    metrics: Metrics,
 }
 
 struct ServiceInterface<D: Data, P: Clone + Debug + Eq + Hash + Send + 'static> {
@@ -111,11 +115,11 @@ enum SendError {
     SendingFailed,
 }
 
-impl<N: RawNetwork, AD: Data, BSD: Data, H: Key> Service<N, AD, BSD, H> {
+impl<N: RawNetwork, AD: Data, BSD: Data> Service<N, AD, BSD> {
     pub fn new(
         network: N,
         spawn_handle: SpawnHandle,
-        metrics: Metrics<H>,
+        metrics_registry: Option<Registry>,
     ) -> (
         Self,
         impl Network<AD, Error = Error, PeerId = N::PeerId>,
@@ -127,6 +131,13 @@ impl<N: RawNetwork, AD: Data, BSD: Data, H: Key> Service<N, AD, BSD, H> {
         let (messages_for_authentication_service, messages_from_authentication_user) =
             mpsc::unbounded();
         let (messages_for_block_sync_service, messages_from_block_sync_user) = mpsc::unbounded();
+        let metrics = match Metrics::new(metrics_registry) {
+            Ok(metrics) => metrics,
+            Err(e) => {
+                warn!(target: LOG_TARGET, "Failed to create metrics: {}.", e);
+                Metrics::noop()
+            }
+        };
         (
             Service {
                 network,
@@ -178,21 +189,30 @@ impl<N: RawNetwork, AD: Data, BSD: Data, H: Key> Service<N, AD, BSD, H> {
                         match network.sender(peer_id.clone(), protocol) {
                             Ok(s) => sender.insert(s),
                             Err(e) => {
-                                debug!(target: "aleph-network", "Failed creating sender. Dropping message: {}", e);
+                                debug!(
+                                    target: LOG_TARGET,
+                                    "Failed creating sender. Dropping message: {}", e
+                                );
                                 continue;
                             }
                         }
                     };
                     let maybe_timer = metrics.start_sending_in(protocol);
                     if let Err(e) = s.send(data.encode()).await {
-                        debug!(target: "aleph-network", "Failed sending data to peer. Dropping sender and message: {}", e);
+                        debug!(
+                            target: LOG_TARGET,
+                            "Failed sending data to peer. Dropping sender and message: {}", e
+                        );
                         sender = None;
                     }
                     if let Some(timer) = maybe_timer {
                         timer.observe_duration();
                     }
                 } else {
-                    debug!(target: "aleph-network", "Sender was dropped for peer {:?}. Peer sender exiting.", peer_id);
+                    debug!(
+                        target: LOG_TARGET,
+                        "Sender was dropped for peer {:?}. Peer sender exiting.", peer_id
+                    );
                     return;
                 }
             }
@@ -206,7 +226,7 @@ impl<N: RawNetwork, AD: Data, BSD: Data, H: Key> Service<N, AD, BSD, H> {
                     Err(e) => {
                         if e.is_full() {
                             warn!(
-                                target: "aleph-network",
+                                target: LOG_TARGET,
                                 "Failed sending data through authentication notification channel to peer because peer_sender receiver is full: {:?}",
                                 peer
                             );
@@ -214,7 +234,7 @@ impl<N: RawNetwork, AD: Data, BSD: Data, H: Key> Service<N, AD, BSD, H> {
                         // Receiver can also be dropped when thread cannot send to peer. In case receiver is dropped this entry will be removed by Event::NotificationStreamClosed
                         // No need to remove the entry here
                         if e.is_disconnected() {
-                            trace!(target: "aleph-network", "Failed sending data to peer because peer_sender receiver is dropped: {:?}", peer);
+                            trace!(target: LOG_TARGET, "Failed sending data to peer because peer_sender receiver is dropped: {:?}", peer);
                         }
                         Err(SendError::SendingFailed)
                     }
@@ -234,13 +254,13 @@ impl<N: RawNetwork, AD: Data, BSD: Data, H: Key> Service<N, AD, BSD, H> {
                         // No need to remove the entry here
                         if e.is_full() {
                             warn!(
-                                target: "aleph-network",
+                                target: LOG_TARGET,
                                 "Failed sending data in block sync notification channel to peer because peer_sender receiver is full: {:?}",
                                 peer
                             );
                         }
                         if e.is_disconnected() {
-                            trace!(target: "aleph-network", "Failed sending data to peer because peer_sender receiver is dropped: {:?}", peer);
+                            trace!(target: LOG_TARGET, "Failed sending data to peer because peer_sender receiver is dropped: {:?}", peer);
                         }
                         Err(SendError::SendingFailed)
                     }
@@ -253,13 +273,23 @@ impl<N: RawNetwork, AD: Data, BSD: Data, H: Key> Service<N, AD, BSD, H> {
 
     fn send_authentication_data(&mut self, data: AD, peer_id: N::PeerId) {
         if let Err(e) = self.send_to_authentication_peer(data, peer_id.clone()) {
-            trace!(target: "aleph-network", "Failed to send to peer{:?}, {:?}", peer_id, e);
+            trace!(
+                target: LOG_TARGET,
+                "Failed to send to peer{:?}, {:?}",
+                peer_id,
+                e
+            );
         }
     }
 
     fn send_block_sync_data(&mut self, data: BSD, peer_id: N::PeerId) {
         if let Err(e) = self.send_to_block_sync_peer(data, peer_id.clone()) {
-            trace!(target: "aleph-network", "Failed to send to peer{:?}, {:?}", peer_id, e);
+            trace!(
+                target: LOG_TARGET,
+                "Failed to send to peer{:?}, {:?}",
+                peer_id,
+                e
+            );
         }
     }
 
@@ -289,7 +319,10 @@ impl<N: RawNetwork, AD: Data, BSD: Data, H: Key> Service<N, AD, BSD, H> {
         let peer_id = match self.random_peer(&peer_ids, Protocol::Authentication) {
             Some(peer_id) => peer_id.clone(),
             None => {
-                trace!(target: "aleph-network", "Failed to send authentication message to random peer, no peers are available.");
+                trace!(
+                    target: LOG_TARGET,
+                    "Failed to send authentication message to random peer, no peers are available."
+                );
                 return;
             }
         };
@@ -300,7 +333,10 @@ impl<N: RawNetwork, AD: Data, BSD: Data, H: Key> Service<N, AD, BSD, H> {
         let peer_id = match self.random_peer(&peer_ids, Protocol::BlockSync) {
             Some(peer_id) => peer_id.clone(),
             None => {
-                trace!(target: "aleph-network", "Failed to send block sync message to random peer, no peers are available.");
+                trace!(
+                    target: LOG_TARGET,
+                    "Failed to send block sync message to random peer, no peers are available."
+                );
                 return;
             }
         };
@@ -325,7 +361,12 @@ impl<N: RawNetwork, AD: Data, BSD: Data, H: Key> Service<N, AD, BSD, H> {
         use Event::*;
         match event {
             StreamOpened(peer, protocol) => {
-                trace!(target: "aleph-network", "StreamOpened event for peer {:?} and the protocol {:?}.", peer, protocol);
+                trace!(
+                    target: LOG_TARGET,
+                    "StreamOpened event for peer {:?} and the protocol {:?}.",
+                    peer,
+                    protocol
+                );
                 match protocol {
                     Protocol::Authentication => {
                         let (tx, rx) = mpsc::channel(MAX_QUEUE_SIZE);
@@ -348,7 +389,12 @@ impl<N: RawNetwork, AD: Data, BSD: Data, H: Key> Service<N, AD, BSD, H> {
                 };
             }
             StreamClosed(peer, protocol) => {
-                trace!(target: "aleph-network", "StreamClosed event for peer {:?} and protocol {:?}", peer, protocol);
+                trace!(
+                    target: LOG_TARGET,
+                    "StreamClosed event for peer {:?} and protocol {:?}",
+                    peer,
+                    protocol
+                );
                 match protocol {
                     Protocol::Authentication => {
                         self.authentication_connected_peers.remove(&peer);
@@ -369,7 +415,10 @@ impl<N: RawNetwork, AD: Data, BSD: Data, H: Key> Service<N, AD, BSD, H> {
                                 .unbounded_send((data, peer_id.clone()))
                                 .map_err(|_| ())?,
                             Err(e) => {
-                                warn!(target: "aleph-network", "Error decoding authentication protocol message: {}", e)
+                                warn!(
+                                    target: LOG_TARGET,
+                                    "Error decoding authentication protocol message: {}", e
+                                )
                             }
                         },
                         Protocol::BlockSync => match BSD::decode(&mut &data[..]) {
@@ -378,7 +427,10 @@ impl<N: RawNetwork, AD: Data, BSD: Data, H: Key> Service<N, AD, BSD, H> {
                                 .unbounded_send((data, peer_id.clone()))
                                 .map_err(|_| ())?,
                             Err(e) => {
-                                warn!(target: "aleph-network", "Error decoding block sync protocol message: {}", e)
+                                warn!(
+                                    target: LOG_TARGET,
+                                    "Error decoding block sync protocol message: {}", e
+                                )
                             }
                         },
                     };
@@ -400,7 +452,7 @@ impl<N: RawNetwork, AD: Data, BSD: Data, H: Key> Service<N, AD, BSD, H> {
             self.block_sync_connected_peers.len()
         ));
 
-        info!(target: "aleph-network", "{}", status);
+        info!(target: LOG_TARGET, "{}", status);
     }
 
     pub async fn run(mut self) {
@@ -411,11 +463,11 @@ impl<N: RawNetwork, AD: Data, BSD: Data, H: Key> Service<N, AD, BSD, H> {
             tokio::select! {
                 maybe_event = events_from_network.next_event() => match maybe_event {
                     Some(event) => if self.handle_network_event(event).is_err() {
-                        error!(target: "aleph-network", "Cannot forward messages to user.");
+                        error!(target: LOG_TARGET, "Cannot forward messages to user.");
                         return;
                     },
                     None => {
-                        error!(target: "aleph-network", "Network event stream ended.");
+                        error!(target: LOG_TARGET, "Network event stream ended.");
                         return;
                     }
                 },
@@ -424,7 +476,7 @@ impl<N: RawNetwork, AD: Data, BSD: Data, H: Key> Service<N, AD, BSD, H> {
                     Some(Command::SendToRandom(message, peer_ids)) => self.send_to_random_authentication(message, peer_ids),
                     Some(Command::Send(message, peer_id)) => self.send_authentication_data(message, peer_id),
                     None => {
-                        error!(target: "aleph-network", "Authentication user message stream ended.");
+                        error!(target: LOG_TARGET, "Authentication user message stream ended.");
                         return;
                     }
                 },
@@ -433,7 +485,7 @@ impl<N: RawNetwork, AD: Data, BSD: Data, H: Key> Service<N, AD, BSD, H> {
                     Some(Command::SendToRandom(message, peer_ids)) => self.send_to_random_block_sync(message, peer_ids),
                     Some(Command::Send(message, peer_id)) => self.send_block_sync_data(message, peer_id),
                     None => {
-                        error!(target: "aleph-network", "Block sync user message stream ended.");
+                        error!(target: LOG_TARGET, "Block sync user message stream ended.");
                         return;
                     }
                 },
@@ -456,17 +508,13 @@ mod tests {
     use tokio::runtime::Handle;
 
     use super::{Error, SendError, Service};
-    use crate::{
-        metrics::Metrics,
-        network::{
-            gossip::{
-                mock::{MockEvent, MockRawNetwork, MockSenderError},
-                Network,
-            },
-            mock::MockData,
-            Protocol,
+    use crate::network::{
+        gossip::{
+            mock::{MockEvent, MockRawNetwork, MockSenderError},
+            Network,
         },
-        testing::mocks::THash,
+        mock::MockData,
+        Protocol,
     };
 
     const PROTOCOL: Protocol = Protocol::Authentication;
@@ -474,7 +522,7 @@ mod tests {
     pub struct TestData {
         pub network: MockRawNetwork,
         gossip_network: Box<dyn Network<MockData, Error = Error, PeerId = MockPublicKey>>,
-        pub service: Service<MockRawNetwork, MockData, MockData, THash>,
+        pub service: Service<MockRawNetwork, MockData, MockData>,
         // `TaskManager` can't be dropped for `SpawnTaskHandle` to work
         _task_manager: TaskManager,
         // If we drop the sync network, the underlying network service dies, stopping the whole
@@ -491,11 +539,8 @@ mod tests {
 
             // Prepare service
             let network = MockRawNetwork::new(event_stream_oneshot_tx);
-            let (service, gossip_network, other_network) = Service::new(
-                network.clone(),
-                task_manager.spawn_handle().into(),
-                Metrics::<THash>::noop(),
-            );
+            let (service, gossip_network, other_network) =
+                Service::new(network.clone(), task_manager.spawn_handle().into(), None);
             let gossip_network = Box::new(gossip_network);
             let other_network = Box::new(other_network);
 

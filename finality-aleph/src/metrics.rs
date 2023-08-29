@@ -10,12 +10,7 @@ use log::{trace, warn};
 use lru::LruCache;
 use parking_lot::Mutex;
 use sc_service::Arc;
-use substrate_prometheus_endpoint::{
-    exponential_buckets, prometheus::HistogramTimer, register, Gauge, Histogram, HistogramOpts,
-    Opts, PrometheusError, Registry, U64,
-};
-
-use crate::Protocol;
+use substrate_prometheus_endpoint::{register, Gauge, PrometheusError, Registry, U64};
 
 // How many entries (block hash + timestamp) we keep in memory per one checkpoint type.
 // Each entry takes 32B (Hash) + 16B (Instant), so a limit of 5000 gives ~234kB (per checkpoint).
@@ -32,7 +27,6 @@ struct Inner<H: Key> {
     prev: HashMap<Checkpoint, Checkpoint>,
     gauges: HashMap<Checkpoint, Gauge<U64>>,
     starts: HashMap<Checkpoint, LruCache<H, Instant>>,
-    network_send_times: HashMap<Protocol, Histogram>,
 }
 
 impl<H: Key> Inner<H> {
@@ -60,29 +54,6 @@ impl<H: Key> Inner<H> {
             );
         }
 
-        use Protocol::*;
-        let mut network_send_times = HashMap::new();
-        for key in [Authentication, BlockSync] {
-            network_send_times.insert(
-                key,
-                register(
-                    Histogram::with_opts(HistogramOpts {
-                        common_opts: Opts {
-                            namespace: "gossip_network".to_string(),
-                            subsystem: protocol_name(key),
-                            name: "send_duration".to_string(),
-                            help: "How long did it take for substrate to send a message."
-                                .to_string(),
-                            const_labels: Default::default(),
-                            variable_labels: Default::default(),
-                        },
-                        buckets: exponential_buckets(0.001, 1.26, 30)?,
-                    })?,
-                    registry,
-                )?,
-            );
-        }
-
         Ok(Self {
             prev,
             gauges,
@@ -95,7 +66,6 @@ impl<H: Key> Inner<H> {
                     )
                 })
                 .collect(),
-            network_send_times,
         })
     }
 
@@ -141,19 +111,6 @@ impl<H: Key> Inner<H> {
             }
         }
     }
-
-    fn start_sending_in(&self, protocol: Protocol) -> HistogramTimer {
-        self.network_send_times[&protocol].start_timer()
-    }
-}
-
-fn protocol_name(protocol: Protocol) -> String {
-    use Protocol::*;
-    match protocol {
-        Authentication => "authentication",
-        BlockSync => "block_sync",
-    }
-    .to_string()
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -188,12 +145,6 @@ impl<H: Key> Metrics<H> {
                 .lock()
                 .report_block(hash, checkpoint_time, checkpoint_type);
         }
-    }
-
-    pub fn start_sending_in(&self, protocol: Protocol) -> Option<HistogramTimer> {
-        self.inner
-            .as_ref()
-            .map(|inner| inner.lock().start_sending_in(protocol))
     }
 }
 

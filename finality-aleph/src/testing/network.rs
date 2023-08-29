@@ -27,8 +27,7 @@ use crate::{
         },
         GossipError, GossipNetwork, GossipService, MockEvent, MockRawNetwork, Protocol,
     },
-    testing::mocks::THash,
-    Metrics, MillisecsPerBlock, NodeIndex, Recipient, SessionId, SessionPeriod,
+    MillisecsPerBlock, NodeIndex, Recipient, SessionId, SessionPeriod,
 };
 
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(10);
@@ -101,12 +100,11 @@ async fn prepare_one_session_test_data() -> TestData {
     let network = MockRawNetwork::new(event_stream_tx);
     let validator_network = MockCliqueNetwork::new();
 
-    let (gossip_service, gossip_network, sync_network) =
-        GossipService::<_, _, MockData, THash>::new(
-            network.clone(),
-            task_manager.spawn_handle().into(),
-            Metrics::noop(),
-        );
+    let (gossip_service, gossip_network, sync_network) = GossipService::<_, _, MockData>::new(
+        network.clone(),
+        task_manager.spawn_handle().into(),
+        None,
+    );
 
     let (connection_manager_service, session_manager) = ConnectionManager::new(
         authorities[0].address(),
