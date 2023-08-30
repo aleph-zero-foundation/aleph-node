@@ -226,9 +226,13 @@ pub(super) async fn setup_button_test(
 ) -> Result<ButtonTestContext> {
     let (conn, authority, player) = basic_test_context(config).await?;
 
+    info!("Setting up button contract instance");
     let button = Arc::new(ButtonInstance::new(config, button_contract_address)?);
+    info!("Setting up ticket token contract instance");
     let ticket_token = Arc::new(ticket_token(&conn, &button, config).await?);
+    info!("Setting up reward token contract instance");
     let reward_token = Arc::new(reward_token(&conn, &button, config).await?);
+    info!("Setting up marketplace contract instance");
     let marketplace = Arc::new(marketplace(&conn, &button, config).await?);
 
     let c1 = button.clone();
@@ -247,6 +251,7 @@ pub(super) async fn setup_button_test(
             c4.as_ref().into(),
         ];
 
+        info!("Listening for events from {:?}", contract_metadata);
         listen_contract_events(&listen_conn, &contract_metadata, events_tx)
             .await
             .unwrap();
@@ -268,10 +273,12 @@ pub(super) async fn setup_button_test(
 
 /// Prepares a `(conn, authority, account)` triple with some money in `account` for fees.
 async fn basic_test_context(config: &Config) -> Result<(Connection, KeyPair, KeyPair)> {
+    info!("Connecting to node at {}", config.node);
     let conn = Connection::new(&config.node).await;
     let authority = aleph_client::keypair_from_string(&config.sudo_seed);
     let account = random_account();
 
+    info!("Transferring 100 ALEPH to a random test account");
     transfer(&conn, &authority, &account, alephs(100)).await?;
 
     Ok((conn, authority, account))

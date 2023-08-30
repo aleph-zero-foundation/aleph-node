@@ -128,6 +128,7 @@ runs:
 
         if [[ "${DEPLOY_BUTTON}" = "true" ]]; then
           source contracts/env/dev
+          export LIFETIME=20
           contracts/scripts/deploy.sh
           source contracts/scripts/test_env
         fi

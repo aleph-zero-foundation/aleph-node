@@ -458,6 +458,8 @@ async fn button_game_play<F: Fn(u128, u128, u128, u128)>(
         player,
         ..
     } = setup_button_test(config, button_contract_address).await?;
+    info!("Setup done");
+
     let player = &player;
 
     ticket_token

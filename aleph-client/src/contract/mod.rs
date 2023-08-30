@@ -256,7 +256,10 @@ impl ContractInstance {
         // and we have to inspect flags manually.
         if let Ok(res) = &contract_read_result.result {
             if res.did_revert() {
-                return Err(anyhow!("Dry-run call reverted"));
+                return Err(anyhow!(
+                    "Dry-run call reverted, decoded result: {:?}",
+                    self.decode(message, res.data.clone())
+                ));
             }
         }
 

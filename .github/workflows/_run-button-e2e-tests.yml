@@ -55,6 +55,7 @@ jobs:
           deploy-button: true
           clean-button: true
           test-case: button
+          node-count: 1
         timeout-minutes: 20
 
   deploy-button:
