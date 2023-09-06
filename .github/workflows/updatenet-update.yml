@@ -19,6 +19,10 @@ on:
           will be updated. If not specified, all nodes will be updated.
         required: false
         default: "0"
+      replicas:
+        description: 'Number of replicas to start, from 0 to 50'
+        required: true
+        default: '5'
 
 jobs:
   check-vars-and-secrets:
@@ -29,7 +33,7 @@ jobs:
   update-updatenet:
     needs: [check-vars-and-secrets]
     name: Update updatenet
-    runs-on: [self-hosted, Linux, X64, large]
+    runs-on: [self-hosted, Linux, X64, small]
     outputs:
       deployment-id: ${{ steps.deployment.outputs.deployment_id }}
     steps:
@@ -72,7 +76,6 @@ jobs:
         with:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
           argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
-          repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
           repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
           argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
           ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}
@@ -80,12 +83,13 @@ jobs:
           featurenet-name: fe-updnet-${{ inputs.name }}
           featurenet-aleph-node-image: ${{ inputs.destination }}
           rolling-update-partition: ${{ inputs.rolling-update-partition }}
+          replicas: ${{ inputs.replicas }}
 
       - name: Wait for the aleph-node binary to accept some blocks
         uses: ./.github/actions/wait-for-finalized-heads
         with:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
-          repo-apps-name: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
+          repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
           json-rpc-endpoint: https://ws-fe-updnet-${{ inputs.name }}.dev.azero.dev
 
       - name: Finish featurenet Deployment

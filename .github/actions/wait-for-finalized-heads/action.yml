@@ -6,31 +6,31 @@ inputs:
   gh-ci-token:
     description: 'GH token to be used in the action'
     required: true
-  repo-apps-name:
-    description: 'Name of the repository containing apps definitions'
+  repo-featurenets-name:
+    description: 'Name of the repository containing featurenets definitions'
     required: true
   json-rpc-endpoint:
     description: 'JSON RPC endpoint, eg. https://dev.azero.dev'
     required: true
-  repo-apps-checkout:
-    description: "Checkout apps repository"
+  repo-featurenets-checkout:
+    description: "Checkout featurenets repository"
     required: false
     default: 'false'
 
 runs:
   using: "composite"
   steps:
-    - name: Checkout argocd apps repo
-      if: inputs.repo-apps-checkout == 'true'
+    - name: Checkout argocd featurenets repo
+      if: inputs.repo-featurenets-checkout == 'true'
       uses: actions/checkout@v3
       with:
-        repository: Cardinal-Cryptography/${{ inputs.repo-apps-name }}
+        repository: Cardinal-Cryptography/${{ inputs.repo-featurenets-name }}
         token: ${{ inputs.gh-ci-token }}
-        path: "${{ inputs.repo-apps-name }}"
+        path: "${{ inputs.repo-featurenets-name }}"
         ref: main
 
     - name: Wait for the unique consecutive finalized heads
       shell: bash
       run: |
-        cd "${{ inputs.repo-apps-name }}"
+        cd "${{ inputs.repo-featurenets-name }}"
         ./Ops.sh wait-for-finalized-heads "${{ inputs.json-rpc-endpoint }}"
