@@ -23,6 +23,8 @@ pub mod session;
 pub mod staking;
 /// Pallet system API
 pub mod system;
+/// Pallet timestamp API
+pub mod timestamp;
 /// Pallet treasury API
 pub mod treasury;
 /// Pallet utility API

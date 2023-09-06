@@ -21,8 +21,8 @@ const UPGRADE_TO_VERSION: u32 = 1;
 const UPGRADE_SESSION: SessionIndex = 3;
 const UPGRADE_FINALIZATION_WAIT_SESSIONS: u32 = 3;
 
-const SESSION_WITH_FINALITY_VERSION_CHANGE: SessionIndex = 4;
-const SCHEDULING_OFFSET_SESSIONS: f64 = -2.5;
+const SESSIONS_AHEAD_FOR_FINALITY_VERSION_CHANGE: u32 = 3;
+const SCHEDULING_OFFSET_SESSIONS: f64 = -1.5;
 const CHECK_START_BLOCK: BlockNumber = 0;
 
 /// Simple test that schedules a version upgrade, awaits it, and checks if the node is still finalizing after the planned upgrade session.
@@ -116,21 +116,25 @@ pub async fn schedule_doomed_version_change_and_verify_finalization_stopped() ->
     Ok(())
 }
 
-/// Sets up the test. Waits for block 2.5 sessions ahead of `SESSION_WITH_FINALITY_VERSION_CHANGE`.
-/// Schedules a finality version change. Waits for all blocks of session
-/// `SESSION_WITH_FINALITY_VERSION_CHANGE` to be finalized. Checks the finality version and the
-/// finality version for the next session for all the blocks from block `CHECK_START_BLOCK`
-/// until the end of session `SESSION_WITH_FINALITY_VERSION_CHANGE`.
+/// Sets up the test. Fetches current session and waits for the middle block of the next session.
+/// Schedules a finality version change for the session following the next session.
+/// Waits for all blocks of session `session_with_finality_version_change` to be finalized.
+/// Checks the finality version and the finality version for the next session for all the blocks
+/// from block `CHECK_START_BLOCK` until the end of session `session_with_finality_version_change`.
 #[tokio::test]
 pub async fn finality_version_change() -> anyhow::Result<()> {
     let config = setup_test();
     let root_connection = config.create_root_connection().await;
     let session_period = root_connection.get_session_period().await?;
 
+    let current_session = root_connection.get_session(None).await;
+    let session_with_finality_version_change =
+        current_session + SESSIONS_AHEAD_FOR_FINALITY_VERSION_CHANGE;
+
     let start_point_in_sessions =
-        SESSION_WITH_FINALITY_VERSION_CHANGE as f64 + SCHEDULING_OFFSET_SESSIONS;
+        session_with_finality_version_change as f64 + SCHEDULING_OFFSET_SESSIONS;
     let scheduling_block = (start_point_in_sessions * session_period as f64) as u32;
-    let end_block = (SESSION_WITH_FINALITY_VERSION_CHANGE + 1) * session_period - 1;
+    let end_block = (session_with_finality_version_change + 1) * session_period - 1;
 
     let first_incoming_finality_version = LEGACY_FINALITY_VERSION as Version + 1;
 
@@ -138,10 +142,13 @@ pub async fn finality_version_change() -> anyhow::Result<()> {
         "Finality version check | start block: {} | end block: {}",
         CHECK_START_BLOCK, end_block,
     );
+
+    info!("Current session: {}", current_session);
+
     info!(
         "Version change to be scheduled on block {} for block {}",
         scheduling_block,
-        SESSION_WITH_FINALITY_VERSION_CHANGE * session_period
+        session_with_finality_version_change * session_period
     );
     root_connection
         .wait_for_block(|n| n >= scheduling_block, BlockStatus::Finalized)
@@ -150,16 +157,15 @@ pub async fn finality_version_change() -> anyhow::Result<()> {
     root_connection
         .schedule_finality_version_change(
             first_incoming_finality_version,
-            SESSION_WITH_FINALITY_VERSION_CHANGE,
+            session_with_finality_version_change,
             TxStatus::Finalized,
         )
         .await?;
-
     root_connection
         .wait_for_block(|n| n >= end_block, BlockStatus::Finalized)
         .await;
 
-    let finality_change_block = SESSION_WITH_FINALITY_VERSION_CHANGE * session_period;
+    let finality_change_block = session_with_finality_version_change * session_period;
     let last_block_with_default_next_session_finality_version =
         finality_change_block - session_period - 1;
 
