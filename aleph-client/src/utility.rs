@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use log::info;
+use log::debug;
 use primitives::Balance;
 use subxt::{blocks::ExtrinsicEvents, config::Hasher, Config};
 
@@ -70,7 +70,7 @@ impl<C: AsConnection + Sync> BlocksApi for C {
     }
 
     async fn get_block_hash(&self, block: BlockNumber) -> anyhow::Result<Option<BlockHash>> {
-        info!(target: "aleph-client", "querying block hash for number #{}", block);
+        debug!(target: "aleph-client", "querying block hash for number #{}", block);
         self.as_connection()
             .as_client()
             .rpc()
