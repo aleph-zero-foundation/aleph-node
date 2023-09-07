@@ -92,7 +92,7 @@ runs:
         fi
         if [[
           "${{ inputs.replicas }}" != "" && \
-          ! "${{ inputs.replicas }}" =~ ^[0-9]$ || "${{ inputs.replicas }}" -gt 50
+          ! "${{ inputs.replicas }}" =~ ^[0-9]{1,2}$ || "${{ inputs.replicas }}" -gt 50
         ]]
         then
           echo "!!! Expected replicas to be a cardinal value from 0 to 50"
