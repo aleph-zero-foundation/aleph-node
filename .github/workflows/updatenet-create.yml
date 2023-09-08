@@ -86,7 +86,7 @@ jobs:
         with:
           step: start
           token: ${{ secrets.CI_GH_TOKEN }}
-          env: updatenet-${{ github.run_id }}
+          env: updatenet-${{ steps.get-updatenet-name.outputs.updatenet_name }}
           override: true
           debug: true
 
@@ -119,7 +119,7 @@ jobs:
           step: finish
           token: ${{ secrets.CI_GH_TOKEN }}
           status: ${{ job.status }}
-          env: updatenet-${{ github.run_id }}
+          env: updatenet-${{ steps.get-updatenet-name.outputs.updatenet_name }}
           deployment_id: ${{ steps.deployment.outputs.deployment_id }}
           # yamllint disable-line rule:line-length
           env_url: https://dev.azero.dev/?rpc=wss%3A%2F%2Fws-fe-updnet-${{ steps.get-updatenet-name.outputs.updatenet_name }}.dev.azero.dev#/explorer
