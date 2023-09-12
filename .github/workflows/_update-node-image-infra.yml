@@ -24,7 +24,7 @@ jobs:
           fi
 
       - name: Checkout source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Call action get-ref-properties
         id: get-ref-properties
@@ -53,7 +53,7 @@ jobs:
           echo "repo-owner=$GITHUB_REPOSITORY_OWNER" >> $GITHUB_OUTPUT
 
       - name: GIT | Checkout argocd apps repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ inputs.env }}
           # yamllint disable-line rule:line-length

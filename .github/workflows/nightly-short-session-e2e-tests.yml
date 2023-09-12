@@ -34,7 +34,7 @@ jobs:
     needs: [build-test-node-and-runtime]
     steps:
       - name: Checkout aleph-node source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Store test node and runtime
         uses: ./.github/actions/store-node-and-runtime
@@ -56,7 +56,7 @@ jobs:
     runs-on: [self-hosted, Linux, X64, large]
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Call action get-ref-properties
         id: get-ref-properties
@@ -123,7 +123,7 @@ jobs:
     if: ${{ !cancelled() }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Send Slack message
         uses: ./.github/actions/slack-notification

@@ -14,7 +14,7 @@ jobs:
       RUSTC_WRAPPER: sccache
     steps:
       - name: Checkout aleph-node source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Call action get-ref-properties
         id: get-ref-properties

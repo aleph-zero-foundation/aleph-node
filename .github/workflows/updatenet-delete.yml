@@ -29,7 +29,7 @@ jobs:
           fi
 
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Delete featurenet app and data
         uses: ./.github/actions/delete-featurenet

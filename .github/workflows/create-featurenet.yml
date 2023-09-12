@@ -41,7 +41,7 @@ jobs:
     needs: [build-test-node-and-runtime]
     steps:
       - name: Checkout aleph-node source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Store test node and runtime
         uses: ./.github/actions/store-node-and-runtime
@@ -65,7 +65,7 @@ jobs:
       deployment-id: ${{ steps.deployment.outputs.deployment_id }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Delete old featurenet app and data
         if: contains(github.event.pull_request.labels.*.name, 'state:created-featurenet')

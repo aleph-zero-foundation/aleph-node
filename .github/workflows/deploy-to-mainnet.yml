@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout aleph-node sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Get Testnet node commit SHA
         id: get-testnet-node-commit-sha
@@ -65,7 +65,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout aleph-node sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Get docker image names
         id: get-docker-image-names
@@ -91,7 +91,7 @@ jobs:
     if: always()
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Send Slack message
         uses: ./.github/actions/slack-notification

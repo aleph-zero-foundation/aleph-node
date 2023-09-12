@@ -60,7 +60,7 @@ jobs:
           fi
 
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Start featurenet Deployment
         uses: bobheadxi/deployments@v1.1.0

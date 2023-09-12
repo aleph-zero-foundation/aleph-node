@@ -51,7 +51,7 @@ jobs:
       button: ${{ steps.filter.outputs.button }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - uses: dorny/paths-filter@v2
         id: filter
         with:
@@ -86,7 +86,7 @@ jobs:
     runs-on: [self-hosted, Linux, X64, large]
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Check if environment is reachable
         shell: bash

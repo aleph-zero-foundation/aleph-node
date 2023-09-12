@@ -27,7 +27,7 @@ jobs:
     needs: [build-production-node-and-runtime]
     steps:
       - name: Checkout aleph-node source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Store production node and runtime
         uses: ./.github/actions/store-node-and-runtime
@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -70,7 +70,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download release artifact
         uses: actions/download-artifact@v3
@@ -91,7 +91,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -125,7 +125,7 @@ jobs:
     if: ${{ !cancelled() }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Send Slack message
         uses: ./.github/actions/slack-notification

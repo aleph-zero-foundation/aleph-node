@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout Source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download release artifact
         uses: actions/download-artifact@v3
@@ -59,7 +59,7 @@ jobs:
       RUSTC_WRAPPER: sccache
     steps:
       - name: Checkout Source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Rust toolchain
         uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v1
@@ -88,7 +88,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download artifact with docker image for aleph-node
         uses: actions/download-artifact@v3

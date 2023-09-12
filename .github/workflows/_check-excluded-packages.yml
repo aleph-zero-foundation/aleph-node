@@ -14,7 +14,7 @@ jobs:
       CARGO_CONTRACT_VERSION: 3.0.1
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install rustup and rust toolchain
         uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v1

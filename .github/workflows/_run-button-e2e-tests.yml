@@ -27,7 +27,7 @@ jobs:
     needs: [build-test-node-and-runtime]
     steps:
       - name: Checkout aleph-node source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Store test node and runtime
         uses: ./.github/actions/store-node-and-runtime
@@ -47,7 +47,7 @@ jobs:
     runs-on: [self-hosted, Linux, X64, large]
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run e2e test
         uses: ./.github/actions/run-e2e-test
@@ -121,7 +121,7 @@ jobs:
     if: always()
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Send Slack message
         uses: ./.github/actions/slack-notification

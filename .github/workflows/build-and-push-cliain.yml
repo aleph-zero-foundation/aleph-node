@@ -29,7 +29,7 @@ jobs:
       CI_DEVNET_S3BUCKET_NAME: ${{ secrets.CI_DEVNET_S3BUCKET_NAME }}
     steps:
       - name: GIT | Checkout source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Rust toolchain
         uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v1
