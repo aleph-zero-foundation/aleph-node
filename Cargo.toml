@@ -63,7 +63,7 @@ aleph-bft-mock = { version = "0.8.3" }
 aleph-bft-rmc = { version = "0.6" }
 aleph-bft-types = { version = "0.8" }
 async-trait = { version = "0.1" }
-bytes = { version = "1.0" }
+bytes = { version = "1.5" }
 derive_more = { version = "0.99" }
 env_logger = { version = "0.10" }
 futures = { version = "0.3" }
