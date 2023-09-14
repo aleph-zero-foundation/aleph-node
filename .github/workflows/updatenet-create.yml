@@ -28,6 +28,11 @@ on:
         description: 'Number of replicas to start, from 0 to 50'
         required: true
         default: '5'
+      internal:
+        description: 'Internal network, accessible from VPN only'
+        required: false
+        type: boolean
+        default: false
       name:
         description: 'Name of the updatenet, used instead of run ID'
         required: false
@@ -62,8 +67,8 @@ jobs:
             echo "!!! Invalid name"
             exit 1
           fi
-          name_local=${{ inputs.name != '' && inputs.name || github.run_id }}
-          echo "updatenet_name=$name_local" >> $GITHUB_OUTPUT
+          final_updatenet_name_local=updnet-${{ inputs.name != '' && inputs.name || github.run_id }}
+          echo "final-updatenet-name=$final_updatenet_name_local" >> $GITHUB_OUTPUT
         # yamllint enable rule:line-length
 
       - name: Delete old featurenet app and data
@@ -78,7 +83,9 @@ jobs:
           repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
           argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
           featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
-          featurenet-name: fe-updnet-${{ steps.get-updatenet-name.outputs.updatenet_name }}
+          featurenet-name: ${{ steps.get-updatenet-name.outputs.final-updatenet-name }}
+          git-commit-author: ${{ secrets.AUTOCOMMIT_AUTHOR }}
+          git-commit-email: ${{ secrets.AUTOCOMMIT_EMAIL }}
 
       - name: Start updatenet Deployment
         uses: bobheadxi/deployments@v1.1.0
@@ -86,12 +93,13 @@ jobs:
         with:
           step: start
           token: ${{ secrets.CI_GH_TOKEN }}
-          env: updatenet-${{ steps.get-updatenet-name.outputs.updatenet_name }}
+          env: ${{ steps.get-updatenet-name.outputs.final-updatenet-name }}
           override: true
           debug: true
 
       - name: Create updatenet from scratch, node binary from testnet or mainnet
         uses: ./.github/actions/create-featurenet
+        id: create-updatenet
         with:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
           argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
@@ -99,10 +107,13 @@ jobs:
           argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
           ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}
           featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
-          featurenet-name: fe-updnet-${{ steps.get-updatenet-name.outputs.updatenet_name }}
+          featurenet-name: ${{ steps.get-updatenet-name.outputs.final-updatenet-name }}
           featurenet-aleph-node-image: ${{ inputs.start == 'mainnet' && 'mainnet' || 'testnet' }}
           expiration: ${{ inputs.expiration }}
           replicas: ${{ inputs.replicas }}
+          internal: ${{ inputs.internal && 'true' || 'false' }}
+          git-commit-author: ${{ secrets.AUTOCOMMIT_AUTHOR }}
+          git-commit-email: ${{ secrets.AUTOCOMMIT_EMAIL }}
 
       - name: Wait for the aleph-node binary to accept some blocks
         uses: ./.github/actions/wait-for-finalized-heads
@@ -110,7 +121,7 @@ jobs:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
           repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
           # yamllint disable-line rule:line-length
-          json-rpc-endpoint: https://ws-fe-updnet-${{ steps.get-updatenet-name.outputs.updatenet_name }}.dev.azero.dev
+          json-rpc-endpoint: https://${{ steps.create-updatenet.outputs.ws-hostname }}
 
       - name: Finish featurenet Deployment
         uses: bobheadxi/deployments@v1
@@ -119,8 +130,8 @@ jobs:
           step: finish
           token: ${{ secrets.CI_GH_TOKEN }}
           status: ${{ job.status }}
-          env: updatenet-${{ steps.get-updatenet-name.outputs.updatenet_name }}
+          env: ${{ steps.get-updatenet-name.outputs.final-updatenet-name }}
           deployment_id: ${{ steps.deployment.outputs.deployment_id }}
           # yamllint disable-line rule:line-length
-          env_url: https://dev.azero.dev/?rpc=wss%3A%2F%2Fws-fe-updnet-${{ steps.get-updatenet-name.outputs.updatenet_name }}.dev.azero.dev#/explorer
+          env_url: https://dev.azero.dev/?rpc=wss%3A%2F%2F${{ steps.create-updatenet.outputs.ws-hostname }}#/explorer
           debug: true

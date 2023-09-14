@@ -4,30 +4,64 @@ name: Delete featurenet
 on:
   workflow_call:
     inputs:
-      append-run-id-to-name:
-        description: When set to 'true' then run ID will be appended to featurenet name
-        required: false
-        type: boolean
-        default: false
+      featurenet-name:
+        description: 'Name of featurenet'
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      featurenet-name:
+        description: 'Name of featurenet'
+        type: string
+        required: true
 
 jobs:
+  validate-inputs:
+    name: Validate inputs
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Validate inputs
+        shell: bash
+        # yamllint disable rule:line-length
+        run: |
+          if [[
+          ! "${{ inputs.featurenet-name }}" =~ ^[a-z0-9][a-z0-9\-]{4,48}$
+          ]]
+          then
+            echo "!!! Invalid featurenet name"
+            exit 1
+          fi
+        # yamllint enable rule:line-length
+
+  get-final-names:
+    needs: [validate-inputs]
+    name: Get final names
+    runs-on: ubuntu-20.04
+    outputs:
+      final-featurenet-name: ${{ steps.get-final-names.outputs.final-featurenet-name }}
+    steps:
+      - name: Get final names
+        id: get-final-names
+        shell: bash
+        # yamllint disable rule:line-length
+        run: |
+          final_featurenet_name_local=${{ inputs.featurenet-name }}
+          echo "final-featurenet-name=$final_featurenet_name_local" >> $GITHUB_OUTPUT
+        # yamllint enable rule:line-length
+
   check-vars-and-secrets:
+    needs: [get-final-names]
     name: Check vars and secrets
     uses: ./.github/workflows/_check-vars-and-secrets.yml
     secrets: inherit
 
   delete-featurenet:
-    needs: [check-vars-and-secrets]
+    needs: [check-vars-and-secrets, get-final-names]
     name: Delete featurenet
     runs-on: [self-hosted, Linux, X64, small]
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
-      - name: Call action get-ref-properties
-        id: get-ref-properties
-        # yamllint disable-line rule:line-length
-        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
 
       - name: Delete featurenet app and data
         uses: ./.github/actions/delete-featurenet
@@ -40,7 +74,9 @@ jobs:
           repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
           argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
           featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
-          append-run-id-to-name: "${{ inputs.append-run-id-to-name }}"
+          featurenet-name: ${{ needs.get-final-names.outputs.final-featurenet-name }}
+          git-commit-author: ${{ secrets.AUTOCOMMIT_AUTHOR }}
+          git-commit-email: ${{ secrets.AUTOCOMMIT_EMAIL }}
 
       - name: Remove created label if present
         uses: actions-ecosystem/action-remove-labels@v1.3.0
@@ -54,7 +90,7 @@ jobs:
         with:
           step: deactivate-env
           token: ${{ secrets.CI_GH_TOKEN }}
-          env: ${{ steps.get-ref-properties.outputs.branch-name-flattened }}
+          env: ${{ needs.get-final-names.outputs.final-featurenet-name }}
           desc: Environment was deleted
           debug: true
 
@@ -62,7 +98,7 @@ jobs:
         uses: strumwolf/delete-deployment-environment@v2
         with:
           token: ${{ secrets.CI_GH_TOKEN }}
-          environment: ${{ steps.get-ref-properties.outputs.branch-name-flattened }}
+          environment: ${{ needs.get-final-names.outputs.final-featurenet-name }}
 
       - name: Remove delete deployment request label if exists
         if: contains(github.event.pull_request.labels.*.name, 'trigger:delete-featurenet')
@@ -72,6 +108,7 @@ jobs:
           github_token: ${{ secrets.CI_GH_TOKEN }}
 
       - name: Add label to mark that featurenet has been deleted
+        if: github.event_name == 'pull_request'
         uses: actions-ecosystem/action-add-labels@v1.1.0
         with:
           labels: 'state:deleted-featurenet'

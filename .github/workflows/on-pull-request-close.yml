@@ -10,11 +10,37 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  main:
+  get-featurenet-name:
+    name: Get FE name
+    runs-on: ubuntu-20.04
+    outputs:
+      name: ${{ steps.get-argocd-featurenet-app-name.outputs.name }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Get branch name and commit SHA
+        id: get-ref-properties
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
+
+      - name: Get argocd featurenet app name
+        id: get-argocd-featurenet-app-name
+        shell: bash
+        env:
+          # yamllint disable-line rule:line-length
+          FE_NAME: ${{ format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
+        run: |
+          name_local=${{ env.FE_NAME }}
+          echo "name=$name_local" >> $GITHUB_OUTPUT
+
+  delete-featurenet:
     if: >
       github.event.action == 'closed' &&
       !contains(github.event.pull_request.labels.*.name, 'state:deleted-featurenet') &&
       contains(github.event.pull_request.labels.*.name, 'state:created-featurenet')
     name: Delete featurenet
-    uses: ./.github/workflows/_delete-featurenet.yml
+    needs: [get-featurenet-name]
+    uses: ./.github/workflows/delete-featurenet.yml
+    with:
+      featurenet-name: ${{ needs.get-featurenet-name.outputs.name }}
     secrets: inherit
