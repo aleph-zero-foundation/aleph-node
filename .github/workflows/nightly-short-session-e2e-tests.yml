@@ -122,7 +122,7 @@ jobs:
         # yamllint enable rule:line-length
 
       - name: Create featurenet from scratch
-        uses: ./.github/actions/create-featurenet
+        uses: Cardinal-Cryptography/github-actions/create-featurenet@v1
         id: create-featurenet
         with:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
@@ -137,7 +137,7 @@ jobs:
           git-commit-email: ${{ secrets.AUTOCOMMIT_EMAIL }}
 
       - name: Wait for the aleph-node binary to accept some blocks
-        uses: ./.github/actions/wait-for-finalized-heads
+        uses: Cardinal-Cryptography/github-actions/wait-for-finalized-heads@v1
         with:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
           repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
@@ -165,8 +165,8 @@ jobs:
         timeout-minutes: 15
         # yamllint enable rule:line-length
 
-      - name: Delete featurenet app and data
-        uses: ./.github/actions/delete-featurenet
+      - name: Delete old featurenet app and data
+        uses: Cardinal-Cryptography/github-actions/delete-featurenet@v1
         with:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
           aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}

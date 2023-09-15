@@ -94,7 +94,7 @@ jobs:
           override: true
 
       - name: Update featurenet data, app and deploy it
-        uses: ./.github/actions/create-featurenet
+        uses: Cardinal-Cryptography/github-actions/create-featurenet@v1
         id: create-updatenet
         with:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
@@ -113,7 +113,7 @@ jobs:
           hard-refresh: 'true'
 
       - name: Wait for the aleph-node binary to accept some blocks
-        uses: ./.github/actions/wait-for-finalized-heads
+        uses: Cardinal-Cryptography/github-actions/wait-for-finalized-heads@v1
         with:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
           repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
