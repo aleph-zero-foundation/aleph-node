@@ -42,6 +42,7 @@ pub mod api {
         Eq,
         PartialEq,
     )]
+    # [codec (crate = :: subxt :: ext :: codec)]
     #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
     #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
     pub enum Event {
@@ -231,6 +232,338 @@ pub mod api {
             .into())
         }
     }
+    #[derive(
+        :: subxt :: ext :: codec :: Decode,
+        :: subxt :: ext :: codec :: Encode,
+        :: subxt :: ext :: scale_decode :: DecodeAsType,
+        :: subxt :: ext :: scale_encode :: EncodeAsType,
+        Clone,
+        Debug,
+        Eq,
+        PartialEq,
+    )]
+    # [codec (crate = :: subxt :: ext :: codec)]
+    #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+    #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+    pub enum Call {
+        #[codec(index = 0)]
+        System(system::Call),
+        #[codec(index = 2)]
+        Scheduler(scheduler::Call),
+        #[codec(index = 4)]
+        Timestamp(timestamp::Call),
+        #[codec(index = 5)]
+        Balances(balances::Call),
+        #[codec(index = 8)]
+        Staking(staking::Call),
+        #[codec(index = 10)]
+        Session(session::Call),
+        #[codec(index = 11)]
+        Aleph(aleph::Call),
+        #[codec(index = 12)]
+        Elections(elections::Call),
+        #[codec(index = 13)]
+        Treasury(treasury::Call),
+        #[codec(index = 14)]
+        Vesting(vesting::Call),
+        #[codec(index = 15)]
+        Utility(utility::Call),
+        #[codec(index = 16)]
+        Multisig(multisig::Call),
+        #[codec(index = 17)]
+        Sudo(sudo::Call),
+        #[codec(index = 18)]
+        Contracts(contracts::Call),
+        #[codec(index = 19)]
+        NominationPools(nomination_pools::Call),
+        #[codec(index = 20)]
+        Identity(identity::Call),
+        #[codec(index = 21)]
+        CommitteeManagement(committee_management::Call),
+        #[codec(index = 22)]
+        BabyLiminal(baby_liminal::Call),
+    }
+    impl ::subxt::blocks::RootExtrinsic for Call {
+        fn root_extrinsic(
+            pallet_bytes: &[u8],
+            pallet_name: &str,
+            pallet_ty: u32,
+            metadata: &::subxt::Metadata,
+        ) -> Result<Self, ::subxt::Error> {
+            use ::subxt::metadata::DecodeWithMetadata;
+            if pallet_name == "System" {
+                return Ok(Call::System(system::Call::decode_with_metadata(
+                    &mut &*pallet_bytes,
+                    pallet_ty,
+                    metadata,
+                )?));
+            }
+            if pallet_name == "Scheduler" {
+                return Ok(Call::Scheduler(scheduler::Call::decode_with_metadata(
+                    &mut &*pallet_bytes,
+                    pallet_ty,
+                    metadata,
+                )?));
+            }
+            if pallet_name == "Timestamp" {
+                return Ok(Call::Timestamp(timestamp::Call::decode_with_metadata(
+                    &mut &*pallet_bytes,
+                    pallet_ty,
+                    metadata,
+                )?));
+            }
+            if pallet_name == "Balances" {
+                return Ok(Call::Balances(balances::Call::decode_with_metadata(
+                    &mut &*pallet_bytes,
+                    pallet_ty,
+                    metadata,
+                )?));
+            }
+            if pallet_name == "Staking" {
+                return Ok(Call::Staking(staking::Call::decode_with_metadata(
+                    &mut &*pallet_bytes,
+                    pallet_ty,
+                    metadata,
+                )?));
+            }
+            if pallet_name == "Session" {
+                return Ok(Call::Session(session::Call::decode_with_metadata(
+                    &mut &*pallet_bytes,
+                    pallet_ty,
+                    metadata,
+                )?));
+            }
+            if pallet_name == "Aleph" {
+                return Ok(Call::Aleph(aleph::Call::decode_with_metadata(
+                    &mut &*pallet_bytes,
+                    pallet_ty,
+                    metadata,
+                )?));
+            }
+            if pallet_name == "Elections" {
+                return Ok(Call::Elections(elections::Call::decode_with_metadata(
+                    &mut &*pallet_bytes,
+                    pallet_ty,
+                    metadata,
+                )?));
+            }
+            if pallet_name == "Treasury" {
+                return Ok(Call::Treasury(treasury::Call::decode_with_metadata(
+                    &mut &*pallet_bytes,
+                    pallet_ty,
+                    metadata,
+                )?));
+            }
+            if pallet_name == "Vesting" {
+                return Ok(Call::Vesting(vesting::Call::decode_with_metadata(
+                    &mut &*pallet_bytes,
+                    pallet_ty,
+                    metadata,
+                )?));
+            }
+            if pallet_name == "Utility" {
+                return Ok(Call::Utility(utility::Call::decode_with_metadata(
+                    &mut &*pallet_bytes,
+                    pallet_ty,
+                    metadata,
+                )?));
+            }
+            if pallet_name == "Multisig" {
+                return Ok(Call::Multisig(multisig::Call::decode_with_metadata(
+                    &mut &*pallet_bytes,
+                    pallet_ty,
+                    metadata,
+                )?));
+            }
+            if pallet_name == "Sudo" {
+                return Ok(Call::Sudo(sudo::Call::decode_with_metadata(
+                    &mut &*pallet_bytes,
+                    pallet_ty,
+                    metadata,
+                )?));
+            }
+            if pallet_name == "Contracts" {
+                return Ok(Call::Contracts(contracts::Call::decode_with_metadata(
+                    &mut &*pallet_bytes,
+                    pallet_ty,
+                    metadata,
+                )?));
+            }
+            if pallet_name == "NominationPools" {
+                return Ok(Call::NominationPools(
+                    nomination_pools::Call::decode_with_metadata(
+                        &mut &*pallet_bytes,
+                        pallet_ty,
+                        metadata,
+                    )?,
+                ));
+            }
+            if pallet_name == "Identity" {
+                return Ok(Call::Identity(identity::Call::decode_with_metadata(
+                    &mut &*pallet_bytes,
+                    pallet_ty,
+                    metadata,
+                )?));
+            }
+            if pallet_name == "CommitteeManagement" {
+                return Ok(Call::CommitteeManagement(
+                    committee_management::Call::decode_with_metadata(
+                        &mut &*pallet_bytes,
+                        pallet_ty,
+                        metadata,
+                    )?,
+                ));
+            }
+            if pallet_name == "BabyLiminal" {
+                return Ok(Call::BabyLiminal(baby_liminal::Call::decode_with_metadata(
+                    &mut &*pallet_bytes,
+                    pallet_ty,
+                    metadata,
+                )?));
+            }
+            Err(::subxt::ext::scale_decode::Error::custom(format!(
+                "Pallet name '{}' not found in root Call enum",
+                pallet_name
+            ))
+            .into())
+        }
+    }
+    #[derive(
+        :: subxt :: ext :: codec :: Decode,
+        :: subxt :: ext :: codec :: Encode,
+        :: subxt :: ext :: scale_decode :: DecodeAsType,
+        :: subxt :: ext :: scale_encode :: EncodeAsType,
+        Clone,
+        Debug,
+        Eq,
+        PartialEq,
+    )]
+    # [codec (crate = :: subxt :: ext :: codec)]
+    #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+    #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+    pub enum Error {
+        #[codec(index = 0)]
+        System(system::Error),
+        #[codec(index = 2)]
+        Scheduler(scheduler::Error),
+        #[codec(index = 5)]
+        Balances(balances::Error),
+        #[codec(index = 8)]
+        Staking(staking::Error),
+        #[codec(index = 10)]
+        Session(session::Error),
+        #[codec(index = 12)]
+        Elections(elections::Error),
+        #[codec(index = 13)]
+        Treasury(treasury::Error),
+        #[codec(index = 14)]
+        Vesting(vesting::Error),
+        #[codec(index = 15)]
+        Utility(utility::Error),
+        #[codec(index = 16)]
+        Multisig(multisig::Error),
+        #[codec(index = 17)]
+        Sudo(sudo::Error),
+        #[codec(index = 18)]
+        Contracts(contracts::Error),
+        #[codec(index = 19)]
+        NominationPools(nomination_pools::Error),
+        #[codec(index = 20)]
+        Identity(identity::Error),
+        #[codec(index = 21)]
+        CommitteeManagement(committee_management::Error),
+        #[codec(index = 22)]
+        BabyLiminal(baby_liminal::Error),
+    }
+    impl ::subxt::error::RootError for Error {
+        fn root_error(
+            pallet_bytes: &[u8],
+            pallet_name: &str,
+            metadata: &::subxt::Metadata,
+        ) -> Result<Self, ::subxt::Error> {
+            use ::subxt::metadata::DecodeWithMetadata;
+            let cursor = &mut &pallet_bytes[..];
+            if pallet_name == "System" {
+                let variant_error = system::Error::decode_with_metadata(cursor, 99u32, metadata)?;
+                return Ok(Error::System(variant_error));
+            }
+            if pallet_name == "Scheduler" {
+                let variant_error =
+                    scheduler::Error::decode_with_metadata(cursor, 200u32, metadata)?;
+                return Ok(Error::Scheduler(variant_error));
+            }
+            if pallet_name == "Balances" {
+                let variant_error =
+                    balances::Error::decode_with_metadata(cursor, 214u32, metadata)?;
+                return Ok(Error::Balances(variant_error));
+            }
+            if pallet_name == "Staking" {
+                let variant_error = staking::Error::decode_with_metadata(cursor, 243u32, metadata)?;
+                return Ok(Error::Staking(variant_error));
+            }
+            if pallet_name == "Session" {
+                let variant_error = session::Error::decode_with_metadata(cursor, 249u32, metadata)?;
+                return Ok(Error::Session(variant_error));
+            }
+            if pallet_name == "Elections" {
+                let variant_error =
+                    elections::Error::decode_with_metadata(cursor, 252u32, metadata)?;
+                return Ok(Error::Elections(variant_error));
+            }
+            if pallet_name == "Treasury" {
+                let variant_error =
+                    treasury::Error::decode_with_metadata(cursor, 258u32, metadata)?;
+                return Ok(Error::Treasury(variant_error));
+            }
+            if pallet_name == "Vesting" {
+                let variant_error = vesting::Error::decode_with_metadata(cursor, 262u32, metadata)?;
+                return Ok(Error::Vesting(variant_error));
+            }
+            if pallet_name == "Utility" {
+                let variant_error = utility::Error::decode_with_metadata(cursor, 263u32, metadata)?;
+                return Ok(Error::Utility(variant_error));
+            }
+            if pallet_name == "Multisig" {
+                let variant_error =
+                    multisig::Error::decode_with_metadata(cursor, 267u32, metadata)?;
+                return Ok(Error::Multisig(variant_error));
+            }
+            if pallet_name == "Sudo" {
+                let variant_error = sudo::Error::decode_with_metadata(cursor, 268u32, metadata)?;
+                return Ok(Error::Sudo(variant_error));
+            }
+            if pallet_name == "Contracts" {
+                let variant_error =
+                    contracts::Error::decode_with_metadata(cursor, 280u32, metadata)?;
+                return Ok(Error::Contracts(variant_error));
+            }
+            if pallet_name == "NominationPools" {
+                let variant_error =
+                    nomination_pools::Error::decode_with_metadata(cursor, 299u32, metadata)?;
+                return Ok(Error::NominationPools(variant_error));
+            }
+            if pallet_name == "Identity" {
+                let variant_error =
+                    identity::Error::decode_with_metadata(cursor, 311u32, metadata)?;
+                return Ok(Error::Identity(variant_error));
+            }
+            if pallet_name == "CommitteeManagement" {
+                let variant_error =
+                    committee_management::Error::decode_with_metadata(cursor, 316u32, metadata)?;
+                return Ok(Error::CommitteeManagement(variant_error));
+            }
+            if pallet_name == "BabyLiminal" {
+                let variant_error =
+                    baby_liminal::Error::decode_with_metadata(cursor, 319u32, metadata)?;
+                return Ok(Error::BabyLiminal(variant_error));
+            }
+            Err(::subxt::ext::scale_decode::Error::custom(format!(
+                "Pallet name '{}' not found in root Error enum",
+                pallet_name
+            ))
+            .into())
+        }
+    }
     pub fn constants() -> ConstantsApi {
         ConstantsApi
     }
@@ -239,6 +572,16 @@ pub mod api {
     }
     pub fn tx() -> TransactionApi {
         TransactionApi
+    }
+    pub fn apis() -> runtime_apis::RuntimeApi {
+        runtime_apis::RuntimeApi
+    }
+    pub mod runtime_apis {
+        use ::subxt::ext::codec::Encode;
+
+        use super::{root_mod, runtime_types};
+        pub struct RuntimeApi;
+        impl RuntimeApi {}
     }
     pub struct ConstantsApi;
     impl ConstantsApi {
@@ -423,169 +766,218 @@ pub mod api {
     pub fn validate_codegen<T: ::subxt::Config, C: ::subxt::client::OfflineClientT<T>>(
         client: &C,
     ) -> Result<(), ::subxt::error::MetadataError> {
-        let runtime_metadata_hash = client.metadata().metadata_hash(&PALLETS);
+        let runtime_metadata_hash = client
+            .metadata()
+            .hasher()
+            .only_these_pallets(&PALLETS)
+            .hash();
         if runtime_metadata_hash
             != [
-                71u8, 179u8, 6u8, 228u8, 188u8, 139u8, 181u8, 184u8, 101u8, 35u8, 161u8, 59u8,
-                157u8, 122u8, 119u8, 147u8, 65u8, 227u8, 126u8, 107u8, 73u8, 226u8, 209u8, 233u8,
-                54u8, 10u8, 83u8, 113u8, 87u8, 129u8, 53u8, 180u8,
+                117u8, 213u8, 246u8, 225u8, 242u8, 103u8, 242u8, 105u8, 255u8, 115u8, 241u8, 74u8,
+                177u8, 21u8, 157u8, 22u8, 225u8, 224u8, 25u8, 243u8, 85u8, 189u8, 152u8, 148u8,
+                96u8, 87u8, 165u8, 16u8, 201u8, 13u8, 72u8, 173u8,
             ]
         {
-            Err(::subxt::error::MetadataError::IncompatibleMetadata)
+            Err(::subxt::error::MetadataError::IncompatibleCodegen)
         } else {
             Ok(())
         }
     }
     pub mod system {
         use super::{root_mod, runtime_types};
+        #[doc = "Error for the System pallet"]
+        pub type Error = runtime_types::frame_system::pallet::Error;
         #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
+        pub type Call = runtime_types::frame_system::pallet::Call;
         pub mod calls {
             use super::{root_mod, runtime_types};
             type DispatchError = runtime_types::sp_runtime::DispatchError;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Remark {
-                pub remark: ::std::vec::Vec<::core::primitive::u8>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: CompactAs,
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetHeapPages {
-                pub pages: ::core::primitive::u64,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetCode {
-                pub code: ::std::vec::Vec<::core::primitive::u8>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetCodeWithoutChecks {
-                pub code: ::std::vec::Vec<::core::primitive::u8>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetStorage {
-                pub items: ::std::vec::Vec<(
-                    ::std::vec::Vec<::core::primitive::u8>,
-                    ::std::vec::Vec<::core::primitive::u8>,
-                )>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct KillStorage {
-                pub keys: ::std::vec::Vec<::std::vec::Vec<::core::primitive::u8>>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct KillPrefix {
-                pub prefix: ::std::vec::Vec<::core::primitive::u8>,
-                pub subkeys: ::core::primitive::u32,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct RemarkWithEvent {
-                pub remark: ::std::vec::Vec<::core::primitive::u8>,
+            pub mod types {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Remark {
+                    pub remark: ::std::vec::Vec<::core::primitive::u8>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Remark {
+                    const PALLET: &'static str = "System";
+                    const CALL: &'static str = "remark";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: CompactAs,
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetHeapPages {
+                    pub pages: ::core::primitive::u64,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetHeapPages {
+                    const PALLET: &'static str = "System";
+                    const CALL: &'static str = "set_heap_pages";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetCode {
+                    pub code: ::std::vec::Vec<::core::primitive::u8>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetCode {
+                    const PALLET: &'static str = "System";
+                    const CALL: &'static str = "set_code";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetCodeWithoutChecks {
+                    pub code: ::std::vec::Vec<::core::primitive::u8>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetCodeWithoutChecks {
+                    const PALLET: &'static str = "System";
+                    const CALL: &'static str = "set_code_without_checks";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetStorage {
+                    pub items: ::std::vec::Vec<(
+                        ::std::vec::Vec<::core::primitive::u8>,
+                        ::std::vec::Vec<::core::primitive::u8>,
+                    )>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetStorage {
+                    const PALLET: &'static str = "System";
+                    const CALL: &'static str = "set_storage";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct KillStorage {
+                    pub keys: ::std::vec::Vec<::std::vec::Vec<::core::primitive::u8>>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for KillStorage {
+                    const PALLET: &'static str = "System";
+                    const CALL: &'static str = "kill_storage";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct KillPrefix {
+                    pub prefix: ::std::vec::Vec<::core::primitive::u8>,
+                    pub subkeys: ::core::primitive::u32,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for KillPrefix {
+                    const PALLET: &'static str = "System";
+                    const CALL: &'static str = "kill_prefix";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct RemarkWithEvent {
+                    pub remark: ::std::vec::Vec<::core::primitive::u8>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for RemarkWithEvent {
+                    const PALLET: &'static str = "System";
+                    const CALL: &'static str = "remark_with_event";
+                }
             }
             pub struct TransactionApi;
             impl TransactionApi {
                 #[doc = "Make some on-chain remark."]
                 #[doc = ""]
-                #[doc = "## Complexity"]
                 #[doc = "- `O(1)`"]
                 pub fn remark(
                     &self,
                     remark: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::Payload<Remark> {
+                ) -> ::subxt::tx::Payload<types::Remark> {
                     ::subxt::tx::Payload::new_static(
                         "System",
                         "remark",
-                        Remark { remark },
+                        types::Remark { remark },
                         [
-                            101u8, 80u8, 195u8, 226u8, 224u8, 247u8, 60u8, 128u8, 3u8, 101u8, 51u8,
-                            147u8, 96u8, 126u8, 76u8, 230u8, 194u8, 227u8, 191u8, 73u8, 160u8,
-                            146u8, 87u8, 147u8, 243u8, 28u8, 228u8, 116u8, 224u8, 181u8, 129u8,
-                            160u8,
+                            43u8, 126u8, 180u8, 174u8, 141u8, 48u8, 52u8, 125u8, 166u8, 212u8,
+                            216u8, 98u8, 100u8, 24u8, 132u8, 71u8, 101u8, 64u8, 246u8, 169u8, 33u8,
+                            250u8, 147u8, 208u8, 2u8, 40u8, 129u8, 209u8, 232u8, 207u8, 207u8,
+                            13u8,
                         ],
                     )
                 }
@@ -593,53 +985,49 @@ pub mod api {
                 pub fn set_heap_pages(
                     &self,
                     pages: ::core::primitive::u64,
-                ) -> ::subxt::tx::Payload<SetHeapPages> {
+                ) -> ::subxt::tx::Payload<types::SetHeapPages> {
                     ::subxt::tx::Payload::new_static(
                         "System",
                         "set_heap_pages",
-                        SetHeapPages { pages },
+                        types::SetHeapPages { pages },
                         [
-                            43u8, 103u8, 128u8, 49u8, 156u8, 136u8, 11u8, 204u8, 80u8, 6u8, 244u8,
-                            86u8, 171u8, 44u8, 140u8, 225u8, 142u8, 198u8, 43u8, 87u8, 26u8, 45u8,
-                            125u8, 222u8, 165u8, 254u8, 172u8, 158u8, 39u8, 178u8, 86u8, 87u8,
+                            188u8, 191u8, 99u8, 216u8, 219u8, 109u8, 141u8, 50u8, 78u8, 235u8,
+                            215u8, 242u8, 195u8, 24u8, 111u8, 76u8, 229u8, 64u8, 99u8, 225u8,
+                            134u8, 121u8, 81u8, 209u8, 127u8, 223u8, 98u8, 215u8, 150u8, 70u8,
+                            57u8, 147u8,
                         ],
                     )
                 }
                 #[doc = "Set the new runtime code."]
-                #[doc = ""]
-                #[doc = "## Complexity"]
-                #[doc = "- `O(C + S)` where `C` length of `code` and `S` complexity of `can_set_code`"]
                 pub fn set_code(
                     &self,
                     code: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::Payload<SetCode> {
+                ) -> ::subxt::tx::Payload<types::SetCode> {
                     ::subxt::tx::Payload::new_static(
                         "System",
                         "set_code",
-                        SetCode { code },
+                        types::SetCode { code },
                         [
-                            27u8, 104u8, 244u8, 205u8, 188u8, 254u8, 121u8, 13u8, 106u8, 120u8,
-                            244u8, 108u8, 97u8, 84u8, 100u8, 68u8, 26u8, 69u8, 93u8, 128u8, 107u8,
-                            4u8, 3u8, 142u8, 13u8, 134u8, 196u8, 62u8, 113u8, 181u8, 14u8, 40u8,
+                            233u8, 248u8, 88u8, 245u8, 28u8, 65u8, 25u8, 169u8, 35u8, 237u8, 19u8,
+                            203u8, 136u8, 160u8, 18u8, 3u8, 20u8, 197u8, 81u8, 169u8, 244u8, 188u8,
+                            27u8, 147u8, 147u8, 236u8, 65u8, 25u8, 3u8, 143u8, 182u8, 22u8,
                         ],
                     )
                 }
                 #[doc = "Set the new runtime code without doing any checks of the given `code`."]
-                #[doc = ""]
-                #[doc = "## Complexity"]
-                #[doc = "- `O(C)` where `C` length of `code`"]
                 pub fn set_code_without_checks(
                     &self,
                     code: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::Payload<SetCodeWithoutChecks> {
+                ) -> ::subxt::tx::Payload<types::SetCodeWithoutChecks> {
                     ::subxt::tx::Payload::new_static(
                         "System",
                         "set_code_without_checks",
-                        SetCodeWithoutChecks { code },
+                        types::SetCodeWithoutChecks { code },
                         [
-                            102u8, 160u8, 125u8, 235u8, 30u8, 23u8, 45u8, 239u8, 112u8, 148u8,
-                            159u8, 158u8, 42u8, 93u8, 206u8, 94u8, 80u8, 250u8, 66u8, 195u8, 60u8,
-                            40u8, 142u8, 169u8, 183u8, 80u8, 80u8, 96u8, 3u8, 231u8, 99u8, 216u8,
+                            82u8, 212u8, 157u8, 44u8, 70u8, 0u8, 143u8, 15u8, 109u8, 109u8, 107u8,
+                            157u8, 141u8, 42u8, 169u8, 11u8, 15u8, 186u8, 252u8, 138u8, 10u8,
+                            147u8, 15u8, 178u8, 247u8, 229u8, 213u8, 98u8, 207u8, 231u8, 119u8,
+                            115u8,
                         ],
                     )
                 }
@@ -650,15 +1038,15 @@ pub mod api {
                         ::std::vec::Vec<::core::primitive::u8>,
                         ::std::vec::Vec<::core::primitive::u8>,
                     )>,
-                ) -> ::subxt::tx::Payload<SetStorage> {
+                ) -> ::subxt::tx::Payload<types::SetStorage> {
                     ::subxt::tx::Payload::new_static(
                         "System",
                         "set_storage",
-                        SetStorage { items },
+                        types::SetStorage { items },
                         [
-                            74u8, 43u8, 106u8, 255u8, 50u8, 151u8, 192u8, 155u8, 14u8, 90u8, 19u8,
-                            45u8, 165u8, 16u8, 235u8, 242u8, 21u8, 131u8, 33u8, 172u8, 119u8, 78u8,
-                            140u8, 10u8, 107u8, 202u8, 122u8, 235u8, 181u8, 191u8, 22u8, 116u8,
+                            184u8, 169u8, 248u8, 68u8, 40u8, 193u8, 190u8, 151u8, 96u8, 159u8,
+                            19u8, 237u8, 241u8, 156u8, 5u8, 158u8, 191u8, 237u8, 9u8, 13u8, 86u8,
+                            213u8, 77u8, 58u8, 48u8, 139u8, 1u8, 85u8, 220u8, 233u8, 139u8, 164u8,
                         ],
                     )
                 }
@@ -666,16 +1054,16 @@ pub mod api {
                 pub fn kill_storage(
                     &self,
                     keys: ::std::vec::Vec<::std::vec::Vec<::core::primitive::u8>>,
-                ) -> ::subxt::tx::Payload<KillStorage> {
+                ) -> ::subxt::tx::Payload<types::KillStorage> {
                     ::subxt::tx::Payload::new_static(
                         "System",
                         "kill_storage",
-                        KillStorage { keys },
+                        types::KillStorage { keys },
                         [
-                            174u8, 174u8, 13u8, 174u8, 75u8, 138u8, 128u8, 235u8, 222u8, 216u8,
-                            85u8, 18u8, 198u8, 1u8, 138u8, 70u8, 19u8, 108u8, 209u8, 41u8, 228u8,
-                            67u8, 130u8, 230u8, 160u8, 207u8, 11u8, 180u8, 139u8, 242u8, 41u8,
-                            15u8,
+                            73u8, 63u8, 196u8, 36u8, 144u8, 114u8, 34u8, 213u8, 108u8, 93u8, 209u8,
+                            234u8, 153u8, 185u8, 33u8, 91u8, 187u8, 195u8, 223u8, 130u8, 58u8,
+                            156u8, 63u8, 47u8, 228u8, 249u8, 216u8, 139u8, 143u8, 177u8, 41u8,
+                            35u8,
                         ],
                     )
                 }
@@ -687,16 +1075,16 @@ pub mod api {
                     &self,
                     prefix: ::std::vec::Vec<::core::primitive::u8>,
                     subkeys: ::core::primitive::u32,
-                ) -> ::subxt::tx::Payload<KillPrefix> {
+                ) -> ::subxt::tx::Payload<types::KillPrefix> {
                     ::subxt::tx::Payload::new_static(
                         "System",
                         "kill_prefix",
-                        KillPrefix { prefix, subkeys },
+                        types::KillPrefix { prefix, subkeys },
                         [
-                            203u8, 116u8, 217u8, 42u8, 154u8, 215u8, 77u8, 217u8, 13u8, 22u8,
-                            193u8, 2u8, 128u8, 115u8, 179u8, 115u8, 187u8, 218u8, 129u8, 34u8,
-                            80u8, 4u8, 173u8, 120u8, 92u8, 35u8, 237u8, 112u8, 201u8, 207u8, 200u8,
-                            48u8,
+                            184u8, 57u8, 139u8, 24u8, 208u8, 87u8, 108u8, 215u8, 198u8, 189u8,
+                            175u8, 242u8, 167u8, 215u8, 97u8, 63u8, 110u8, 166u8, 238u8, 98u8,
+                            67u8, 236u8, 111u8, 110u8, 234u8, 81u8, 102u8, 5u8, 182u8, 5u8, 214u8,
+                            85u8,
                         ],
                     )
                 }
@@ -704,16 +1092,15 @@ pub mod api {
                 pub fn remark_with_event(
                     &self,
                     remark: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::Payload<RemarkWithEvent> {
+                ) -> ::subxt::tx::Payload<types::RemarkWithEvent> {
                     ::subxt::tx::Payload::new_static(
                         "System",
                         "remark_with_event",
-                        RemarkWithEvent { remark },
+                        types::RemarkWithEvent { remark },
                         [
-                            123u8, 225u8, 180u8, 179u8, 144u8, 74u8, 27u8, 85u8, 101u8, 75u8,
-                            134u8, 44u8, 181u8, 25u8, 183u8, 158u8, 14u8, 213u8, 56u8, 225u8,
-                            136u8, 88u8, 26u8, 114u8, 178u8, 43u8, 176u8, 43u8, 240u8, 84u8, 116u8,
-                            46u8,
+                            120u8, 120u8, 153u8, 92u8, 184u8, 85u8, 34u8, 2u8, 174u8, 206u8, 105u8,
+                            228u8, 233u8, 130u8, 80u8, 246u8, 228u8, 59u8, 234u8, 240u8, 4u8, 49u8,
+                            147u8, 170u8, 115u8, 91u8, 149u8, 200u8, 228u8, 181u8, 8u8, 154u8,
                         ],
                     )
                 }
@@ -733,6 +1120,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "An extrinsic completed successfully."]
@@ -753,6 +1141,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "An extrinsic failed."]
@@ -774,6 +1163,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "`:code` was updated."]
@@ -792,6 +1182,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A new account was created."]
@@ -812,6 +1203,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "An account was reaped."]
@@ -832,6 +1224,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "On on-chain remark happened."]
@@ -871,10 +1264,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            248u8, 178u8, 160u8, 222u8, 45u8, 231u8, 115u8, 164u8, 98u8, 184u8,
-                            174u8, 206u8, 149u8, 190u8, 175u8, 34u8, 202u8, 230u8, 69u8, 218u8,
-                            83u8, 43u8, 170u8, 41u8, 106u8, 77u8, 233u8, 97u8, 114u8, 14u8, 155u8,
-                            131u8,
+                            234u8, 12u8, 167u8, 96u8, 2u8, 244u8, 235u8, 62u8, 153u8, 200u8, 96u8,
+                            74u8, 135u8, 8u8, 35u8, 188u8, 146u8, 249u8, 246u8, 40u8, 224u8, 22u8,
+                            15u8, 99u8, 150u8, 222u8, 82u8, 85u8, 123u8, 123u8, 19u8, 110u8,
                         ],
                     )
                 }
@@ -896,10 +1288,9 @@ pub mod api {
                         "Account",
                         Vec::new(),
                         [
-                            248u8, 178u8, 160u8, 222u8, 45u8, 231u8, 115u8, 164u8, 98u8, 184u8,
-                            174u8, 206u8, 149u8, 190u8, 175u8, 34u8, 202u8, 230u8, 69u8, 218u8,
-                            83u8, 43u8, 170u8, 41u8, 106u8, 77u8, 233u8, 97u8, 114u8, 14u8, 155u8,
-                            131u8,
+                            234u8, 12u8, 167u8, 96u8, 2u8, 244u8, 235u8, 62u8, 153u8, 200u8, 96u8,
+                            74u8, 135u8, 8u8, 35u8, 188u8, 146u8, 249u8, 246u8, 40u8, 224u8, 22u8,
+                            15u8, 99u8, 150u8, 222u8, 82u8, 85u8, 123u8, 123u8, 19u8, 110u8,
                         ],
                     )
                 }
@@ -918,9 +1309,10 @@ pub mod api {
                         "ExtrinsicCount",
                         vec![],
                         [
-                            223u8, 60u8, 201u8, 120u8, 36u8, 44u8, 180u8, 210u8, 242u8, 53u8,
-                            222u8, 154u8, 123u8, 176u8, 249u8, 8u8, 225u8, 28u8, 232u8, 4u8, 136u8,
-                            41u8, 151u8, 82u8, 189u8, 149u8, 49u8, 166u8, 139u8, 9u8, 163u8, 231u8,
+                            102u8, 76u8, 236u8, 42u8, 40u8, 231u8, 33u8, 222u8, 123u8, 147u8,
+                            153u8, 148u8, 234u8, 203u8, 181u8, 119u8, 6u8, 187u8, 177u8, 199u8,
+                            120u8, 47u8, 137u8, 254u8, 96u8, 100u8, 165u8, 182u8, 249u8, 230u8,
+                            159u8, 79u8,
                         ],
                     )
                 }
@@ -941,10 +1333,10 @@ pub mod api {
                         "BlockWeight",
                         vec![],
                         [
-                            120u8, 67u8, 71u8, 163u8, 36u8, 202u8, 52u8, 106u8, 143u8, 155u8,
-                            144u8, 87u8, 142u8, 241u8, 232u8, 183u8, 56u8, 235u8, 27u8, 237u8,
-                            20u8, 202u8, 33u8, 85u8, 189u8, 0u8, 28u8, 52u8, 198u8, 40u8, 219u8,
-                            54u8,
+                            52u8, 191u8, 212u8, 137u8, 26u8, 39u8, 239u8, 35u8, 182u8, 32u8, 39u8,
+                            103u8, 56u8, 184u8, 60u8, 159u8, 167u8, 232u8, 193u8, 116u8, 105u8,
+                            56u8, 98u8, 127u8, 124u8, 188u8, 214u8, 154u8, 160u8, 41u8, 20u8,
+                            162u8,
                         ],
                     )
                 }
@@ -963,10 +1355,10 @@ pub mod api {
                         "AllExtrinsicsLen",
                         vec![],
                         [
-                            202u8, 145u8, 209u8, 225u8, 40u8, 220u8, 174u8, 74u8, 93u8, 164u8,
-                            254u8, 248u8, 254u8, 192u8, 32u8, 117u8, 96u8, 149u8, 53u8, 145u8,
-                            219u8, 64u8, 234u8, 18u8, 217u8, 200u8, 203u8, 141u8, 145u8, 28u8,
-                            134u8, 60u8,
+                            117u8, 86u8, 61u8, 243u8, 41u8, 51u8, 102u8, 214u8, 137u8, 100u8,
+                            243u8, 185u8, 122u8, 174u8, 187u8, 117u8, 86u8, 189u8, 63u8, 135u8,
+                            101u8, 218u8, 203u8, 201u8, 237u8, 254u8, 128u8, 183u8, 169u8, 221u8,
+                            242u8, 65u8,
                         ],
                     )
                 }
@@ -988,9 +1380,10 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            50u8, 112u8, 176u8, 239u8, 175u8, 18u8, 205u8, 20u8, 241u8, 195u8,
-                            21u8, 228u8, 186u8, 57u8, 200u8, 25u8, 38u8, 44u8, 106u8, 20u8, 168u8,
-                            80u8, 76u8, 235u8, 12u8, 51u8, 137u8, 149u8, 200u8, 4u8, 220u8, 237u8,
+                            217u8, 32u8, 215u8, 253u8, 24u8, 182u8, 207u8, 178u8, 157u8, 24u8,
+                            103u8, 100u8, 195u8, 165u8, 69u8, 152u8, 112u8, 181u8, 56u8, 192u8,
+                            164u8, 16u8, 20u8, 222u8, 28u8, 214u8, 144u8, 142u8, 146u8, 69u8,
+                            202u8, 118u8,
                         ],
                     )
                 }
@@ -1009,9 +1402,10 @@ pub mod api {
                         "BlockHash",
                         Vec::new(),
                         [
-                            50u8, 112u8, 176u8, 239u8, 175u8, 18u8, 205u8, 20u8, 241u8, 195u8,
-                            21u8, 228u8, 186u8, 57u8, 200u8, 25u8, 38u8, 44u8, 106u8, 20u8, 168u8,
-                            80u8, 76u8, 235u8, 12u8, 51u8, 137u8, 149u8, 200u8, 4u8, 220u8, 237u8,
+                            217u8, 32u8, 215u8, 253u8, 24u8, 182u8, 207u8, 178u8, 157u8, 24u8,
+                            103u8, 100u8, 195u8, 165u8, 69u8, 152u8, 112u8, 181u8, 56u8, 192u8,
+                            164u8, 16u8, 20u8, 222u8, 28u8, 214u8, 144u8, 142u8, 146u8, 69u8,
+                            202u8, 118u8,
                         ],
                     )
                 }
@@ -1033,9 +1427,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            210u8, 224u8, 211u8, 186u8, 118u8, 210u8, 185u8, 194u8, 238u8, 211u8,
-                            254u8, 73u8, 67u8, 184u8, 31u8, 229u8, 168u8, 125u8, 98u8, 23u8, 241u8,
-                            59u8, 49u8, 86u8, 126u8, 9u8, 114u8, 163u8, 160u8, 62u8, 50u8, 67u8,
+                            160u8, 180u8, 122u8, 18u8, 196u8, 26u8, 2u8, 37u8, 115u8, 232u8, 133u8,
+                            220u8, 106u8, 245u8, 4u8, 129u8, 42u8, 84u8, 241u8, 45u8, 199u8, 179u8,
+                            128u8, 61u8, 170u8, 137u8, 231u8, 156u8, 247u8, 57u8, 47u8, 38u8,
                         ],
                     )
                 }
@@ -1054,9 +1448,9 @@ pub mod api {
                         "ExtrinsicData",
                         Vec::new(),
                         [
-                            210u8, 224u8, 211u8, 186u8, 118u8, 210u8, 185u8, 194u8, 238u8, 211u8,
-                            254u8, 73u8, 67u8, 184u8, 31u8, 229u8, 168u8, 125u8, 98u8, 23u8, 241u8,
-                            59u8, 49u8, 86u8, 126u8, 9u8, 114u8, 163u8, 160u8, 62u8, 50u8, 67u8,
+                            160u8, 180u8, 122u8, 18u8, 196u8, 26u8, 2u8, 37u8, 115u8, 232u8, 133u8,
+                            220u8, 106u8, 245u8, 4u8, 129u8, 42u8, 84u8, 241u8, 45u8, 199u8, 179u8,
+                            128u8, 61u8, 170u8, 137u8, 231u8, 156u8, 247u8, 57u8, 47u8, 38u8,
                         ],
                     )
                 }
@@ -1075,10 +1469,9 @@ pub mod api {
                         "Number",
                         vec![],
                         [
-                            228u8, 96u8, 102u8, 190u8, 252u8, 130u8, 239u8, 172u8, 126u8, 235u8,
-                            246u8, 139u8, 208u8, 15u8, 88u8, 245u8, 141u8, 232u8, 43u8, 204u8,
-                            36u8, 87u8, 211u8, 141u8, 187u8, 68u8, 236u8, 70u8, 193u8, 235u8,
-                            164u8, 191u8,
+                            30u8, 194u8, 177u8, 90u8, 194u8, 232u8, 46u8, 180u8, 85u8, 129u8, 14u8,
+                            9u8, 8u8, 8u8, 23u8, 95u8, 230u8, 5u8, 13u8, 105u8, 125u8, 2u8, 22u8,
+                            200u8, 78u8, 93u8, 115u8, 28u8, 150u8, 113u8, 48u8, 53u8,
                         ],
                     )
                 }
@@ -1097,10 +1490,9 @@ pub mod api {
                         "ParentHash",
                         vec![],
                         [
-                            232u8, 206u8, 177u8, 119u8, 38u8, 57u8, 233u8, 50u8, 225u8, 49u8,
-                            169u8, 176u8, 210u8, 51u8, 231u8, 176u8, 234u8, 186u8, 188u8, 112u8,
-                            15u8, 152u8, 195u8, 232u8, 201u8, 97u8, 208u8, 249u8, 9u8, 163u8, 69u8,
-                            36u8,
+                            26u8, 130u8, 11u8, 216u8, 155u8, 71u8, 128u8, 170u8, 30u8, 153u8, 21u8,
+                            192u8, 62u8, 93u8, 137u8, 80u8, 120u8, 81u8, 202u8, 94u8, 248u8, 125u8,
+                            71u8, 82u8, 141u8, 229u8, 32u8, 56u8, 73u8, 50u8, 101u8, 78u8,
                         ],
                     )
                 }
@@ -1119,9 +1511,10 @@ pub mod api {
                         "Digest",
                         vec![],
                         [
-                            83u8, 141u8, 200u8, 132u8, 182u8, 55u8, 197u8, 122u8, 13u8, 159u8,
-                            31u8, 42u8, 60u8, 191u8, 89u8, 221u8, 242u8, 47u8, 199u8, 213u8, 48u8,
-                            216u8, 131u8, 168u8, 245u8, 82u8, 56u8, 190u8, 62u8, 69u8, 96u8, 37u8,
+                            70u8, 156u8, 127u8, 89u8, 115u8, 250u8, 103u8, 62u8, 185u8, 153u8,
+                            26u8, 72u8, 39u8, 226u8, 181u8, 97u8, 137u8, 225u8, 45u8, 158u8, 212u8,
+                            254u8, 142u8, 136u8, 90u8, 22u8, 243u8, 125u8, 226u8, 49u8, 235u8,
+                            215u8,
                         ],
                     )
                 }
@@ -1151,9 +1544,10 @@ pub mod api {
                         "Events",
                         vec![],
                         [
-                            217u8, 30u8, 110u8, 160u8, 207u8, 148u8, 10u8, 247u8, 56u8, 219u8,
-                            86u8, 35u8, 2u8, 3u8, 143u8, 27u8, 202u8, 251u8, 129u8, 49u8, 210u8,
-                            139u8, 197u8, 55u8, 34u8, 163u8, 237u8, 14u8, 94u8, 79u8, 89u8, 238u8,
+                            237u8, 75u8, 122u8, 136u8, 114u8, 234u8, 9u8, 191u8, 162u8, 14u8, 79u8,
+                            134u8, 201u8, 156u8, 67u8, 97u8, 190u8, 161u8, 169u8, 64u8, 179u8,
+                            92u8, 142u8, 202u8, 195u8, 57u8, 218u8, 122u8, 177u8, 253u8, 59u8,
+                            39u8,
                         ],
                     )
                 }
@@ -1172,10 +1566,10 @@ pub mod api {
                         "EventCount",
                         vec![],
                         [
-                            236u8, 93u8, 90u8, 177u8, 250u8, 211u8, 138u8, 187u8, 26u8, 208u8,
-                            203u8, 113u8, 221u8, 233u8, 227u8, 9u8, 249u8, 25u8, 202u8, 185u8,
-                            161u8, 144u8, 167u8, 104u8, 127u8, 187u8, 38u8, 18u8, 52u8, 61u8, 66u8,
-                            112u8,
+                            175u8, 24u8, 252u8, 184u8, 210u8, 167u8, 146u8, 143u8, 164u8, 80u8,
+                            151u8, 205u8, 189u8, 189u8, 55u8, 220u8, 47u8, 101u8, 181u8, 33u8,
+                            254u8, 131u8, 13u8, 143u8, 3u8, 244u8, 245u8, 45u8, 2u8, 210u8, 79u8,
+                            133u8,
                         ],
                     )
                 }
@@ -1206,10 +1600,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            205u8, 90u8, 142u8, 190u8, 176u8, 37u8, 94u8, 82u8, 98u8, 1u8, 129u8,
-                            63u8, 246u8, 101u8, 130u8, 58u8, 216u8, 16u8, 139u8, 196u8, 154u8,
-                            111u8, 110u8, 178u8, 24u8, 44u8, 183u8, 176u8, 232u8, 82u8, 223u8,
-                            38u8,
+                            154u8, 29u8, 31u8, 148u8, 254u8, 7u8, 124u8, 251u8, 241u8, 77u8, 24u8,
+                            37u8, 28u8, 75u8, 205u8, 17u8, 159u8, 79u8, 239u8, 62u8, 67u8, 60u8,
+                            252u8, 112u8, 215u8, 145u8, 103u8, 170u8, 110u8, 186u8, 221u8, 76u8,
                         ],
                     )
                 }
@@ -1237,10 +1630,9 @@ pub mod api {
                         "EventTopics",
                         Vec::new(),
                         [
-                            205u8, 90u8, 142u8, 190u8, 176u8, 37u8, 94u8, 82u8, 98u8, 1u8, 129u8,
-                            63u8, 246u8, 101u8, 130u8, 58u8, 216u8, 16u8, 139u8, 196u8, 154u8,
-                            111u8, 110u8, 178u8, 24u8, 44u8, 183u8, 176u8, 232u8, 82u8, 223u8,
-                            38u8,
+                            154u8, 29u8, 31u8, 148u8, 254u8, 7u8, 124u8, 251u8, 241u8, 77u8, 24u8,
+                            37u8, 28u8, 75u8, 205u8, 17u8, 159u8, 79u8, 239u8, 62u8, 67u8, 60u8,
+                            252u8, 112u8, 215u8, 145u8, 103u8, 170u8, 110u8, 186u8, 221u8, 76u8,
                         ],
                     )
                 }
@@ -1259,9 +1651,9 @@ pub mod api {
                         "LastRuntimeUpgrade",
                         vec![],
                         [
-                            52u8, 37u8, 117u8, 111u8, 57u8, 130u8, 196u8, 14u8, 99u8, 77u8, 91u8,
-                            126u8, 178u8, 249u8, 78u8, 34u8, 9u8, 194u8, 92u8, 105u8, 113u8, 81u8,
-                            185u8, 127u8, 245u8, 184u8, 60u8, 29u8, 234u8, 182u8, 96u8, 196u8,
+                            137u8, 29u8, 175u8, 75u8, 197u8, 208u8, 91u8, 207u8, 156u8, 87u8,
+                            148u8, 68u8, 91u8, 140u8, 22u8, 233u8, 1u8, 229u8, 56u8, 34u8, 40u8,
+                            194u8, 253u8, 30u8, 163u8, 39u8, 54u8, 209u8, 13u8, 27u8, 139u8, 184u8,
                         ],
                     )
                 }
@@ -1280,9 +1672,9 @@ pub mod api {
                         "UpgradedToU32RefCount",
                         vec![],
                         [
-                            171u8, 88u8, 244u8, 92u8, 122u8, 67u8, 27u8, 18u8, 59u8, 175u8, 175u8,
-                            178u8, 20u8, 150u8, 213u8, 59u8, 222u8, 141u8, 32u8, 107u8, 3u8, 114u8,
-                            83u8, 250u8, 180u8, 233u8, 152u8, 54u8, 187u8, 99u8, 131u8, 204u8,
+                            229u8, 73u8, 9u8, 132u8, 186u8, 116u8, 151u8, 171u8, 145u8, 29u8, 34u8,
+                            130u8, 52u8, 146u8, 124u8, 175u8, 79u8, 189u8, 147u8, 230u8, 234u8,
+                            107u8, 124u8, 31u8, 2u8, 22u8, 86u8, 190u8, 4u8, 147u8, 50u8, 245u8,
                         ],
                     )
                 }
@@ -1302,10 +1694,10 @@ pub mod api {
                         "UpgradedToTripleRefCount",
                         vec![],
                         [
-                            90u8, 33u8, 56u8, 86u8, 90u8, 101u8, 89u8, 133u8, 203u8, 56u8, 201u8,
-                            210u8, 244u8, 232u8, 150u8, 18u8, 51u8, 105u8, 14u8, 230u8, 103u8,
-                            155u8, 246u8, 99u8, 53u8, 207u8, 225u8, 128u8, 186u8, 76u8, 40u8,
-                            185u8,
+                            97u8, 66u8, 124u8, 243u8, 27u8, 167u8, 147u8, 81u8, 254u8, 201u8,
+                            101u8, 24u8, 40u8, 231u8, 14u8, 179u8, 154u8, 163u8, 71u8, 81u8, 185u8,
+                            167u8, 82u8, 254u8, 189u8, 3u8, 101u8, 207u8, 206u8, 194u8, 155u8,
+                            151u8,
                         ],
                     )
                 }
@@ -1324,10 +1716,9 @@ pub mod api {
                         "ExecutionPhase",
                         vec![],
                         [
-                            230u8, 183u8, 221u8, 135u8, 226u8, 223u8, 55u8, 104u8, 138u8, 224u8,
-                            103u8, 156u8, 222u8, 99u8, 203u8, 199u8, 164u8, 168u8, 193u8, 133u8,
-                            201u8, 155u8, 63u8, 95u8, 17u8, 206u8, 165u8, 123u8, 161u8, 33u8,
-                            172u8, 93u8,
+                            191u8, 129u8, 100u8, 134u8, 126u8, 116u8, 154u8, 203u8, 220u8, 200u8,
+                            0u8, 26u8, 161u8, 250u8, 133u8, 205u8, 146u8, 24u8, 5u8, 156u8, 158u8,
+                            35u8, 36u8, 253u8, 52u8, 235u8, 86u8, 167u8, 35u8, 100u8, 119u8, 27u8,
                         ],
                     )
                 }
@@ -1346,10 +1737,9 @@ pub mod api {
                         "System",
                         "BlockWeights",
                         [
-                            118u8, 253u8, 239u8, 217u8, 145u8, 115u8, 85u8, 86u8, 172u8, 248u8,
-                            139u8, 32u8, 158u8, 126u8, 172u8, 188u8, 197u8, 105u8, 145u8, 235u8,
-                            171u8, 50u8, 31u8, 225u8, 167u8, 187u8, 241u8, 87u8, 6u8, 17u8, 234u8,
-                            185u8,
+                            238u8, 20u8, 221u8, 11u8, 146u8, 236u8, 47u8, 103u8, 8u8, 239u8, 13u8,
+                            176u8, 202u8, 10u8, 151u8, 68u8, 110u8, 162u8, 99u8, 40u8, 211u8,
+                            136u8, 71u8, 82u8, 50u8, 80u8, 244u8, 211u8, 231u8, 198u8, 36u8, 152u8,
                         ],
                     )
                 }
@@ -1362,10 +1752,10 @@ pub mod api {
                         "System",
                         "BlockLength",
                         [
-                            116u8, 184u8, 225u8, 228u8, 207u8, 203u8, 4u8, 220u8, 234u8, 198u8,
-                            150u8, 108u8, 205u8, 87u8, 194u8, 131u8, 229u8, 51u8, 140u8, 4u8, 47u8,
-                            12u8, 200u8, 144u8, 153u8, 62u8, 51u8, 39u8, 138u8, 205u8, 203u8,
-                            236u8,
+                            117u8, 144u8, 154u8, 125u8, 106u8, 34u8, 224u8, 228u8, 80u8, 76u8,
+                            126u8, 0u8, 177u8, 223u8, 116u8, 244u8, 167u8, 23u8, 253u8, 44u8,
+                            128u8, 116u8, 155u8, 245u8, 163u8, 20u8, 21u8, 222u8, 174u8, 237u8,
+                            162u8, 240u8,
                         ],
                     )
                 }
@@ -1393,10 +1783,9 @@ pub mod api {
                         "System",
                         "DbWeight",
                         [
-                            124u8, 162u8, 190u8, 149u8, 49u8, 177u8, 162u8, 231u8, 62u8, 167u8,
-                            199u8, 181u8, 43u8, 232u8, 185u8, 116u8, 195u8, 51u8, 233u8, 223u8,
-                            20u8, 129u8, 246u8, 13u8, 65u8, 180u8, 64u8, 9u8, 157u8, 59u8, 245u8,
-                            118u8,
+                            206u8, 53u8, 134u8, 247u8, 42u8, 38u8, 197u8, 59u8, 191u8, 83u8, 160u8,
+                            9u8, 207u8, 133u8, 108u8, 152u8, 150u8, 103u8, 109u8, 228u8, 218u8,
+                            24u8, 27u8, 210u8, 106u8, 252u8, 74u8, 93u8, 27u8, 63u8, 109u8, 252u8,
                         ],
                     )
                 }
@@ -1409,9 +1798,10 @@ pub mod api {
                         "System",
                         "Version",
                         [
-                            93u8, 98u8, 57u8, 243u8, 229u8, 8u8, 234u8, 231u8, 72u8, 230u8, 139u8,
-                            47u8, 63u8, 181u8, 17u8, 2u8, 220u8, 231u8, 104u8, 237u8, 185u8, 143u8,
-                            165u8, 253u8, 188u8, 76u8, 147u8, 12u8, 170u8, 26u8, 74u8, 200u8,
+                            134u8, 0u8, 23u8, 0u8, 199u8, 213u8, 89u8, 240u8, 194u8, 186u8, 239u8,
+                            157u8, 168u8, 211u8, 223u8, 156u8, 138u8, 140u8, 194u8, 23u8, 167u8,
+                            158u8, 195u8, 233u8, 25u8, 165u8, 27u8, 237u8, 198u8, 206u8, 233u8,
+                            28u8,
                         ],
                     )
                 }
@@ -1459,10 +1849,10 @@ pub mod api {
                         "RandomMaterial",
                         vec![],
                         [
-                            152u8, 126u8, 73u8, 88u8, 54u8, 147u8, 6u8, 19u8, 214u8, 40u8, 159u8,
-                            30u8, 236u8, 61u8, 240u8, 65u8, 178u8, 94u8, 146u8, 152u8, 135u8,
-                            252u8, 160u8, 86u8, 123u8, 114u8, 251u8, 140u8, 98u8, 143u8, 217u8,
-                            242u8,
+                            195u8, 232u8, 244u8, 162u8, 110u8, 137u8, 66u8, 57u8, 51u8, 221u8,
+                            143u8, 38u8, 51u8, 183u8, 105u8, 245u8, 175u8, 13u8, 33u8, 192u8, 53u8,
+                            16u8, 161u8, 76u8, 219u8, 177u8, 144u8, 192u8, 96u8, 166u8, 117u8,
+                            247u8,
                         ],
                     )
                 }
@@ -1471,118 +1861,154 @@ pub mod api {
     }
     pub mod scheduler {
         use super::{root_mod, runtime_types};
+        #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
+        pub type Error = runtime_types::pallet_scheduler::pallet::Error;
         #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
+        pub type Call = runtime_types::pallet_scheduler::pallet::Call;
         pub mod calls {
             use super::{root_mod, runtime_types};
             type DispatchError = runtime_types::sp_runtime::DispatchError;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Schedule {
-                pub when: ::core::primitive::u32,
-                pub maybe_periodic:
-                    ::core::option::Option<(::core::primitive::u32, ::core::primitive::u32)>,
-                pub priority: ::core::primitive::u8,
-                pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Cancel {
-                pub when: ::core::primitive::u32,
-                pub index: ::core::primitive::u32,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ScheduleNamed {
-                pub id: [::core::primitive::u8; 32usize],
-                pub when: ::core::primitive::u32,
-                pub maybe_periodic:
-                    ::core::option::Option<(::core::primitive::u32, ::core::primitive::u32)>,
-                pub priority: ::core::primitive::u8,
-                pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct CancelNamed {
-                pub id: [::core::primitive::u8; 32usize],
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ScheduleAfter {
-                pub after: ::core::primitive::u32,
-                pub maybe_periodic:
-                    ::core::option::Option<(::core::primitive::u32, ::core::primitive::u32)>,
-                pub priority: ::core::primitive::u8,
-                pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ScheduleNamedAfter {
-                pub id: [::core::primitive::u8; 32usize],
-                pub after: ::core::primitive::u32,
-                pub maybe_periodic:
-                    ::core::option::Option<(::core::primitive::u32, ::core::primitive::u32)>,
-                pub priority: ::core::primitive::u8,
-                pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
+            pub mod types {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Schedule {
+                    pub when: ::core::primitive::u32,
+                    pub maybe_periodic:
+                        ::core::option::Option<(::core::primitive::u32, ::core::primitive::u32)>,
+                    pub priority: ::core::primitive::u8,
+                    pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Schedule {
+                    const PALLET: &'static str = "Scheduler";
+                    const CALL: &'static str = "schedule";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Cancel {
+                    pub when: ::core::primitive::u32,
+                    pub index: ::core::primitive::u32,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Cancel {
+                    const PALLET: &'static str = "Scheduler";
+                    const CALL: &'static str = "cancel";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ScheduleNamed {
+                    pub id: [::core::primitive::u8; 32usize],
+                    pub when: ::core::primitive::u32,
+                    pub maybe_periodic:
+                        ::core::option::Option<(::core::primitive::u32, ::core::primitive::u32)>,
+                    pub priority: ::core::primitive::u8,
+                    pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for ScheduleNamed {
+                    const PALLET: &'static str = "Scheduler";
+                    const CALL: &'static str = "schedule_named";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct CancelNamed {
+                    pub id: [::core::primitive::u8; 32usize],
+                }
+                impl ::subxt::blocks::StaticExtrinsic for CancelNamed {
+                    const PALLET: &'static str = "Scheduler";
+                    const CALL: &'static str = "cancel_named";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ScheduleAfter {
+                    pub after: ::core::primitive::u32,
+                    pub maybe_periodic:
+                        ::core::option::Option<(::core::primitive::u32, ::core::primitive::u32)>,
+                    pub priority: ::core::primitive::u8,
+                    pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for ScheduleAfter {
+                    const PALLET: &'static str = "Scheduler";
+                    const CALL: &'static str = "schedule_after";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ScheduleNamedAfter {
+                    pub id: [::core::primitive::u8; 32usize],
+                    pub after: ::core::primitive::u32,
+                    pub maybe_periodic:
+                        ::core::option::Option<(::core::primitive::u32, ::core::primitive::u32)>,
+                    pub priority: ::core::primitive::u8,
+                    pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for ScheduleNamedAfter {
+                    const PALLET: &'static str = "Scheduler";
+                    const CALL: &'static str = "schedule_named_after";
+                }
             }
             pub struct TransactionApi;
             impl TransactionApi {
@@ -1596,20 +2022,21 @@ pub mod api {
                     )>,
                     priority: ::core::primitive::u8,
                     call: runtime_types::aleph_runtime::RuntimeCall,
-                ) -> ::subxt::tx::Payload<Schedule> {
+                ) -> ::subxt::tx::Payload<types::Schedule> {
                     ::subxt::tx::Payload::new_static(
                         "Scheduler",
                         "schedule",
-                        Schedule {
+                        types::Schedule {
                             when,
                             maybe_periodic,
                             priority,
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            99u8, 249u8, 238u8, 52u8, 41u8, 16u8, 200u8, 231u8, 239u8, 188u8, 41u8,
-                            150u8, 194u8, 173u8, 44u8, 193u8, 122u8, 84u8, 241u8, 201u8, 90u8,
-                            196u8, 246u8, 29u8, 242u8, 44u8, 181u8, 115u8, 169u8, 8u8, 27u8, 97u8,
+                            70u8, 165u8, 229u8, 81u8, 211u8, 105u8, 24u8, 61u8, 175u8, 159u8,
+                            160u8, 111u8, 74u8, 149u8, 60u8, 162u8, 136u8, 211u8, 42u8, 195u8,
+                            86u8, 228u8, 108u8, 83u8, 134u8, 148u8, 73u8, 85u8, 139u8, 114u8, 70u8,
+                            46u8,
                         ],
                     )
                 }
@@ -1618,15 +2045,16 @@ pub mod api {
                     &self,
                     when: ::core::primitive::u32,
                     index: ::core::primitive::u32,
-                ) -> ::subxt::tx::Payload<Cancel> {
+                ) -> ::subxt::tx::Payload<types::Cancel> {
                     ::subxt::tx::Payload::new_static(
                         "Scheduler",
                         "cancel",
-                        Cancel { when, index },
+                        types::Cancel { when, index },
                         [
-                            81u8, 251u8, 234u8, 17u8, 214u8, 75u8, 19u8, 59u8, 19u8, 30u8, 89u8,
-                            74u8, 6u8, 216u8, 238u8, 165u8, 7u8, 19u8, 153u8, 253u8, 161u8, 103u8,
-                            178u8, 227u8, 152u8, 180u8, 80u8, 156u8, 82u8, 126u8, 132u8, 120u8,
+                            32u8, 107u8, 14u8, 102u8, 56u8, 200u8, 68u8, 186u8, 192u8, 100u8,
+                            152u8, 124u8, 171u8, 154u8, 230u8, 115u8, 62u8, 140u8, 88u8, 178u8,
+                            119u8, 210u8, 222u8, 31u8, 134u8, 225u8, 133u8, 241u8, 42u8, 110u8,
+                            147u8, 47u8,
                         ],
                     )
                 }
@@ -1641,11 +2069,11 @@ pub mod api {
                     )>,
                     priority: ::core::primitive::u8,
                     call: runtime_types::aleph_runtime::RuntimeCall,
-                ) -> ::subxt::tx::Payload<ScheduleNamed> {
+                ) -> ::subxt::tx::Payload<types::ScheduleNamed> {
                     ::subxt::tx::Payload::new_static(
                         "Scheduler",
                         "schedule_named",
-                        ScheduleNamed {
+                        types::ScheduleNamed {
                             id,
                             when,
                             maybe_periodic,
@@ -1653,10 +2081,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            168u8, 169u8, 187u8, 189u8, 244u8, 221u8, 147u8, 78u8, 244u8, 103u8,
-                            241u8, 219u8, 46u8, 212u8, 81u8, 236u8, 103u8, 232u8, 11u8, 215u8,
-                            72u8, 32u8, 210u8, 88u8, 241u8, 56u8, 105u8, 186u8, 54u8, 123u8, 10u8,
-                            122u8,
+                            5u8, 4u8, 29u8, 97u8, 147u8, 123u8, 94u8, 221u8, 127u8, 71u8, 248u8,
+                            217u8, 237u8, 252u8, 200u8, 155u8, 60u8, 227u8, 101u8, 242u8, 67u8,
+                            6u8, 161u8, 3u8, 35u8, 235u8, 108u8, 192u8, 102u8, 249u8, 51u8, 213u8,
                         ],
                     )
                 }
@@ -1664,15 +2091,15 @@ pub mod api {
                 pub fn cancel_named(
                     &self,
                     id: [::core::primitive::u8; 32usize],
-                ) -> ::subxt::tx::Payload<CancelNamed> {
+                ) -> ::subxt::tx::Payload<types::CancelNamed> {
                     ::subxt::tx::Payload::new_static(
                         "Scheduler",
                         "cancel_named",
-                        CancelNamed { id },
+                        types::CancelNamed { id },
                         [
-                            51u8, 3u8, 140u8, 50u8, 214u8, 211u8, 50u8, 4u8, 19u8, 43u8, 230u8,
-                            114u8, 18u8, 108u8, 138u8, 67u8, 99u8, 24u8, 255u8, 11u8, 246u8, 37u8,
-                            192u8, 207u8, 90u8, 157u8, 171u8, 93u8, 233u8, 189u8, 64u8, 180u8,
+                            205u8, 35u8, 28u8, 57u8, 224u8, 7u8, 49u8, 233u8, 236u8, 163u8, 93u8,
+                            236u8, 103u8, 69u8, 65u8, 51u8, 121u8, 84u8, 9u8, 196u8, 147u8, 122u8,
+                            227u8, 200u8, 181u8, 233u8, 62u8, 240u8, 174u8, 83u8, 129u8, 193u8,
                         ],
                     )
                 }
@@ -1686,21 +2113,21 @@ pub mod api {
                     )>,
                     priority: ::core::primitive::u8,
                     call: runtime_types::aleph_runtime::RuntimeCall,
-                ) -> ::subxt::tx::Payload<ScheduleAfter> {
+                ) -> ::subxt::tx::Payload<types::ScheduleAfter> {
                     ::subxt::tx::Payload::new_static(
                         "Scheduler",
                         "schedule_after",
-                        ScheduleAfter {
+                        types::ScheduleAfter {
                             after,
                             maybe_periodic,
                             priority,
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            105u8, 98u8, 135u8, 244u8, 228u8, 1u8, 89u8, 175u8, 114u8, 16u8, 12u8,
-                            113u8, 171u8, 21u8, 7u8, 232u8, 140u8, 103u8, 239u8, 200u8, 63u8,
-                            104u8, 20u8, 46u8, 233u8, 34u8, 144u8, 234u8, 177u8, 184u8, 175u8,
-                            29u8,
+                            193u8, 176u8, 253u8, 168u8, 215u8, 168u8, 137u8, 168u8, 212u8, 83u8,
+                            10u8, 187u8, 75u8, 64u8, 216u8, 200u8, 152u8, 124u8, 152u8, 121u8,
+                            101u8, 151u8, 168u8, 20u8, 62u8, 163u8, 50u8, 6u8, 102u8, 182u8, 92u8,
+                            163u8,
                         ],
                     )
                 }
@@ -1715,11 +2142,11 @@ pub mod api {
                     )>,
                     priority: ::core::primitive::u8,
                     call: runtime_types::aleph_runtime::RuntimeCall,
-                ) -> ::subxt::tx::Payload<ScheduleNamedAfter> {
+                ) -> ::subxt::tx::Payload<types::ScheduleNamedAfter> {
                     ::subxt::tx::Payload::new_static(
                         "Scheduler",
                         "schedule_named_after",
-                        ScheduleNamedAfter {
+                        types::ScheduleNamedAfter {
                             id,
                             after,
                             maybe_periodic,
@@ -1727,10 +2154,9 @@ pub mod api {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            183u8, 29u8, 15u8, 200u8, 27u8, 218u8, 76u8, 10u8, 236u8, 8u8, 142u8,
-                            244u8, 127u8, 226u8, 109u8, 116u8, 41u8, 211u8, 120u8, 35u8, 165u8,
-                            129u8, 125u8, 32u8, 167u8, 178u8, 126u8, 182u8, 205u8, 101u8, 20u8,
-                            219u8,
+                            58u8, 114u8, 222u8, 67u8, 201u8, 117u8, 46u8, 137u8, 45u8, 244u8,
+                            164u8, 45u8, 19u8, 123u8, 136u8, 183u8, 81u8, 77u8, 9u8, 30u8, 124u8,
+                            27u8, 85u8, 129u8, 6u8, 58u8, 149u8, 31u8, 149u8, 198u8, 6u8, 236u8,
                         ],
                     )
                 }
@@ -1750,6 +2176,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Scheduled some task."]
@@ -1771,6 +2198,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Canceled some task."]
@@ -1792,6 +2220,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Dispatched some task."]
@@ -1814,6 +2243,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "The call for the provided hash was not found so the task has been aborted."]
@@ -1835,6 +2265,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "The given task was unable to be renewed since the agenda is full at that block."]
@@ -1856,6 +2287,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "The given task can never be executed since it is overweight."]
@@ -1886,10 +2318,9 @@ pub mod api {
                         "IncompleteSince",
                         vec![],
                         [
-                            149u8, 66u8, 239u8, 67u8, 235u8, 219u8, 101u8, 182u8, 145u8, 56u8,
-                            252u8, 150u8, 253u8, 221u8, 125u8, 57u8, 38u8, 152u8, 153u8, 31u8,
-                            92u8, 238u8, 66u8, 246u8, 104u8, 163u8, 94u8, 73u8, 222u8, 168u8,
-                            193u8, 227u8,
+                            250u8, 83u8, 64u8, 167u8, 205u8, 59u8, 225u8, 97u8, 205u8, 12u8, 76u8,
+                            130u8, 197u8, 4u8, 111u8, 208u8, 92u8, 217u8, 145u8, 119u8, 38u8,
+                            135u8, 1u8, 242u8, 228u8, 143u8, 56u8, 25u8, 115u8, 233u8, 227u8, 66u8,
                         ],
                     )
                 }
@@ -1923,9 +2354,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            48u8, 65u8, 163u8, 111u8, 82u8, 33u8, 246u8, 16u8, 83u8, 40u8, 138u8,
-                            172u8, 239u8, 30u8, 247u8, 235u8, 100u8, 240u8, 93u8, 50u8, 102u8,
-                            203u8, 118u8, 32u8, 174u8, 21u8, 223u8, 91u8, 10u8, 31u8, 75u8, 97u8,
+                            247u8, 237u8, 2u8, 15u8, 209u8, 32u8, 207u8, 183u8, 239u8, 16u8, 66u8,
+                            82u8, 105u8, 29u8, 255u8, 238u8, 222u8, 91u8, 121u8, 212u8, 156u8,
+                            237u8, 132u8, 4u8, 67u8, 215u8, 104u8, 74u8, 66u8, 127u8, 6u8, 191u8,
                         ],
                     )
                 }
@@ -1956,9 +2387,9 @@ pub mod api {
                         "Agenda",
                         Vec::new(),
                         [
-                            48u8, 65u8, 163u8, 111u8, 82u8, 33u8, 246u8, 16u8, 83u8, 40u8, 138u8,
-                            172u8, 239u8, 30u8, 247u8, 235u8, 100u8, 240u8, 93u8, 50u8, 102u8,
-                            203u8, 118u8, 32u8, 174u8, 21u8, 223u8, 91u8, 10u8, 31u8, 75u8, 97u8,
+                            247u8, 237u8, 2u8, 15u8, 209u8, 32u8, 207u8, 183u8, 239u8, 16u8, 66u8,
+                            82u8, 105u8, 29u8, 255u8, 238u8, 222u8, 91u8, 121u8, 212u8, 156u8,
+                            237u8, 132u8, 4u8, 67u8, 215u8, 104u8, 74u8, 66u8, 127u8, 6u8, 191u8,
                         ],
                     )
                 }
@@ -1983,10 +2414,10 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            82u8, 20u8, 178u8, 101u8, 108u8, 198u8, 71u8, 99u8, 16u8, 175u8, 15u8,
-                            187u8, 229u8, 243u8, 140u8, 200u8, 99u8, 77u8, 248u8, 178u8, 45u8,
-                            121u8, 193u8, 67u8, 165u8, 43u8, 234u8, 211u8, 158u8, 250u8, 103u8,
-                            243u8,
+                            157u8, 102u8, 210u8, 65u8, 190u8, 48u8, 168u8, 20u8, 197u8, 184u8,
+                            74u8, 119u8, 176u8, 22u8, 244u8, 186u8, 231u8, 239u8, 97u8, 175u8,
+                            34u8, 133u8, 165u8, 73u8, 223u8, 113u8, 78u8, 150u8, 83u8, 127u8,
+                            126u8, 204u8,
                         ],
                     )
                 }
@@ -2008,10 +2439,10 @@ pub mod api {
                         "Lookup",
                         Vec::new(),
                         [
-                            82u8, 20u8, 178u8, 101u8, 108u8, 198u8, 71u8, 99u8, 16u8, 175u8, 15u8,
-                            187u8, 229u8, 243u8, 140u8, 200u8, 99u8, 77u8, 248u8, 178u8, 45u8,
-                            121u8, 193u8, 67u8, 165u8, 43u8, 234u8, 211u8, 158u8, 250u8, 103u8,
-                            243u8,
+                            157u8, 102u8, 210u8, 65u8, 190u8, 48u8, 168u8, 20u8, 197u8, 184u8,
+                            74u8, 119u8, 176u8, 22u8, 244u8, 186u8, 231u8, 239u8, 97u8, 175u8,
+                            34u8, 133u8, 165u8, 73u8, 223u8, 113u8, 78u8, 150u8, 83u8, 127u8,
+                            126u8, 204u8,
                         ],
                     )
                 }
@@ -2030,10 +2461,9 @@ pub mod api {
                         "Scheduler",
                         "MaximumWeight",
                         [
-                            206u8, 61u8, 253u8, 247u8, 163u8, 40u8, 161u8, 52u8, 134u8, 140u8,
-                            206u8, 83u8, 44u8, 166u8, 226u8, 115u8, 181u8, 14u8, 227u8, 130u8,
-                            210u8, 32u8, 85u8, 29u8, 230u8, 97u8, 130u8, 165u8, 147u8, 134u8,
-                            106u8, 76u8,
+                            222u8, 183u8, 203u8, 169u8, 31u8, 134u8, 28u8, 12u8, 47u8, 140u8, 71u8,
+                            74u8, 61u8, 55u8, 71u8, 236u8, 215u8, 83u8, 28u8, 70u8, 45u8, 128u8,
+                            184u8, 57u8, 101u8, 83u8, 42u8, 165u8, 34u8, 155u8, 64u8, 145u8,
                         ],
                     )
                 }
@@ -2082,10 +2512,9 @@ pub mod api {
                         "Authorities",
                         vec![],
                         [
-                            199u8, 89u8, 94u8, 48u8, 249u8, 35u8, 105u8, 90u8, 15u8, 86u8, 218u8,
-                            85u8, 22u8, 236u8, 228u8, 36u8, 137u8, 64u8, 236u8, 171u8, 242u8,
-                            217u8, 91u8, 240u8, 205u8, 205u8, 226u8, 16u8, 147u8, 235u8, 181u8,
-                            41u8,
+                            232u8, 129u8, 167u8, 104u8, 47u8, 188u8, 238u8, 164u8, 6u8, 29u8,
+                            129u8, 45u8, 64u8, 182u8, 194u8, 47u8, 0u8, 73u8, 63u8, 102u8, 204u8,
+                            94u8, 111u8, 96u8, 137u8, 7u8, 141u8, 110u8, 180u8, 80u8, 228u8, 16u8,
                         ],
                     )
                 }
@@ -2106,10 +2535,10 @@ pub mod api {
                         "CurrentSlot",
                         vec![],
                         [
-                            139u8, 237u8, 185u8, 137u8, 251u8, 179u8, 69u8, 167u8, 133u8, 168u8,
-                            204u8, 64u8, 178u8, 123u8, 92u8, 250u8, 119u8, 190u8, 208u8, 178u8,
-                            208u8, 176u8, 124u8, 187u8, 74u8, 165u8, 33u8, 78u8, 161u8, 206u8, 8u8,
-                            108u8,
+                            112u8, 199u8, 115u8, 248u8, 217u8, 242u8, 45u8, 231u8, 178u8, 53u8,
+                            236u8, 167u8, 219u8, 238u8, 81u8, 243u8, 39u8, 140u8, 68u8, 19u8,
+                            201u8, 169u8, 211u8, 133u8, 135u8, 213u8, 150u8, 105u8, 60u8, 252u8,
+                            43u8, 57u8,
                         ],
                     )
                 }
@@ -2119,24 +2548,33 @@ pub mod api {
     pub mod timestamp {
         use super::{root_mod, runtime_types};
         #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
+        pub type Call = runtime_types::pallet_timestamp::pallet::Call;
         pub mod calls {
             use super::{root_mod, runtime_types};
             type DispatchError = runtime_types::sp_runtime::DispatchError;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Set {
-                #[codec(compact)]
-                pub now: ::core::primitive::u64,
+            pub mod types {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Set {
+                    #[codec(compact)]
+                    pub now: ::core::primitive::u64,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Set {
+                    const PALLET: &'static str = "Timestamp";
+                    const CALL: &'static str = "set";
+                }
             }
             pub struct TransactionApi;
             impl TransactionApi {
@@ -2155,15 +2593,15 @@ pub mod api {
                 #[doc = "- 1 storage read and 1 storage mutation (codec `O(1)`). (because of `DidUpdate::take` in"]
                 #[doc = "  `on_finalize`)"]
                 #[doc = "- 1 event handler `on_timestamp_set`. Must be `O(1)`."]
-                pub fn set(&self, now: ::core::primitive::u64) -> ::subxt::tx::Payload<Set> {
+                pub fn set(&self, now: ::core::primitive::u64) -> ::subxt::tx::Payload<types::Set> {
                     ::subxt::tx::Payload::new_static(
                         "Timestamp",
                         "set",
-                        Set { now },
+                        types::Set { now },
                         [
-                            6u8, 97u8, 172u8, 236u8, 118u8, 238u8, 228u8, 114u8, 15u8, 115u8,
-                            102u8, 85u8, 66u8, 151u8, 16u8, 33u8, 187u8, 17u8, 166u8, 88u8, 127u8,
-                            214u8, 182u8, 51u8, 168u8, 88u8, 43u8, 101u8, 185u8, 8u8, 1u8, 28u8,
+                            37u8, 95u8, 49u8, 218u8, 24u8, 22u8, 0u8, 95u8, 72u8, 35u8, 155u8,
+                            199u8, 213u8, 54u8, 207u8, 22u8, 185u8, 193u8, 221u8, 70u8, 18u8,
+                            200u8, 4u8, 231u8, 195u8, 173u8, 6u8, 122u8, 11u8, 203u8, 231u8, 227u8,
                         ],
                     )
                 }
@@ -2188,9 +2626,9 @@ pub mod api {
                         "Now",
                         vec![],
                         [
-                            148u8, 53u8, 50u8, 54u8, 13u8, 161u8, 57u8, 150u8, 16u8, 83u8, 144u8,
-                            221u8, 59u8, 75u8, 158u8, 130u8, 39u8, 123u8, 106u8, 134u8, 202u8,
-                            185u8, 83u8, 85u8, 60u8, 41u8, 120u8, 96u8, 210u8, 34u8, 2u8, 250u8,
+                            44u8, 50u8, 80u8, 30u8, 195u8, 146u8, 123u8, 238u8, 8u8, 163u8, 187u8,
+                            92u8, 61u8, 39u8, 51u8, 29u8, 173u8, 169u8, 217u8, 158u8, 85u8, 187u8,
+                            141u8, 26u8, 12u8, 115u8, 51u8, 11u8, 200u8, 244u8, 138u8, 152u8,
                         ],
                     )
                 }
@@ -2209,9 +2647,10 @@ pub mod api {
                         "DidUpdate",
                         vec![],
                         [
-                            70u8, 13u8, 92u8, 186u8, 80u8, 151u8, 167u8, 90u8, 158u8, 232u8, 175u8,
-                            13u8, 103u8, 135u8, 2u8, 78u8, 16u8, 6u8, 39u8, 158u8, 167u8, 85u8,
-                            27u8, 47u8, 122u8, 73u8, 127u8, 26u8, 35u8, 168u8, 72u8, 204u8,
+                            229u8, 175u8, 246u8, 102u8, 237u8, 158u8, 212u8, 229u8, 238u8, 214u8,
+                            205u8, 160u8, 164u8, 252u8, 195u8, 75u8, 139u8, 110u8, 22u8, 34u8,
+                            248u8, 204u8, 107u8, 46u8, 20u8, 200u8, 238u8, 167u8, 71u8, 41u8,
+                            214u8, 140u8,
                         ],
                     )
                 }
@@ -2244,190 +2683,241 @@ pub mod api {
     }
     pub mod balances {
         use super::{root_mod, runtime_types};
+        #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
+        pub type Error = runtime_types::pallet_balances::pallet::Error;
         #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
+        pub type Call = runtime_types::pallet_balances::pallet::Call;
         pub mod calls {
             use super::{root_mod, runtime_types};
             type DispatchError = runtime_types::sp_runtime::DispatchError;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct TransferAllowDeath {
-                pub dest: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                #[codec(compact)]
-                pub value: ::core::primitive::u128,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetBalanceDeprecated {
-                pub who: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                #[codec(compact)]
-                pub new_free: ::core::primitive::u128,
-                #[codec(compact)]
-                pub old_reserved: ::core::primitive::u128,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ForceTransfer {
-                pub source: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                pub dest: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                #[codec(compact)]
-                pub value: ::core::primitive::u128,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct TransferKeepAlive {
-                pub dest: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                #[codec(compact)]
-                pub value: ::core::primitive::u128,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct TransferAll {
-                pub dest: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                pub keep_alive: ::core::primitive::bool,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ForceUnreserve {
-                pub who: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                pub amount: ::core::primitive::u128,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct UpgradeAccounts {
-                pub who: ::std::vec::Vec<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Transfer {
-                pub dest: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                #[codec(compact)]
-                pub value: ::core::primitive::u128,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ForceSetBalance {
-                pub who: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                #[codec(compact)]
-                pub new_free: ::core::primitive::u128,
+            pub mod types {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct TransferAllowDeath {
+                    pub dest: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    #[codec(compact)]
+                    pub value: ::core::primitive::u128,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for TransferAllowDeath {
+                    const PALLET: &'static str = "Balances";
+                    const CALL: &'static str = "transfer_allow_death";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetBalanceDeprecated {
+                    pub who: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    #[codec(compact)]
+                    pub new_free: ::core::primitive::u128,
+                    #[codec(compact)]
+                    pub old_reserved: ::core::primitive::u128,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetBalanceDeprecated {
+                    const PALLET: &'static str = "Balances";
+                    const CALL: &'static str = "set_balance_deprecated";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ForceTransfer {
+                    pub source: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    pub dest: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    #[codec(compact)]
+                    pub value: ::core::primitive::u128,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for ForceTransfer {
+                    const PALLET: &'static str = "Balances";
+                    const CALL: &'static str = "force_transfer";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct TransferKeepAlive {
+                    pub dest: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    #[codec(compact)]
+                    pub value: ::core::primitive::u128,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for TransferKeepAlive {
+                    const PALLET: &'static str = "Balances";
+                    const CALL: &'static str = "transfer_keep_alive";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct TransferAll {
+                    pub dest: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    pub keep_alive: ::core::primitive::bool,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for TransferAll {
+                    const PALLET: &'static str = "Balances";
+                    const CALL: &'static str = "transfer_all";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ForceUnreserve {
+                    pub who: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    pub amount: ::core::primitive::u128,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for ForceUnreserve {
+                    const PALLET: &'static str = "Balances";
+                    const CALL: &'static str = "force_unreserve";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct UpgradeAccounts {
+                    pub who: ::std::vec::Vec<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                    >,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for UpgradeAccounts {
+                    const PALLET: &'static str = "Balances";
+                    const CALL: &'static str = "upgrade_accounts";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Transfer {
+                    pub dest: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    #[codec(compact)]
+                    pub value: ::core::primitive::u128,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Transfer {
+                    const PALLET: &'static str = "Balances";
+                    const CALL: &'static str = "transfer";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ForceSetBalance {
+                    pub who: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    #[codec(compact)]
+                    pub new_free: ::core::primitive::u128,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for ForceSetBalance {
+                    const PALLET: &'static str = "Balances";
+                    const CALL: &'static str = "force_set_balance";
+                }
             }
             pub struct TransactionApi;
             impl TransactionApi {
@@ -2445,15 +2935,15 @@ pub mod api {
                         (),
                     >,
                     value: ::core::primitive::u128,
-                ) -> ::subxt::tx::Payload<TransferAllowDeath> {
+                ) -> ::subxt::tx::Payload<types::TransferAllowDeath> {
                     ::subxt::tx::Payload::new_static(
                         "Balances",
                         "transfer_allow_death",
-                        TransferAllowDeath { dest, value },
+                        types::TransferAllowDeath { dest, value },
                         [
-                            234u8, 130u8, 149u8, 36u8, 235u8, 112u8, 159u8, 189u8, 104u8, 148u8,
-                            108u8, 230u8, 25u8, 198u8, 71u8, 158u8, 112u8, 3u8, 162u8, 25u8, 145u8,
-                            252u8, 44u8, 63u8, 47u8, 34u8, 47u8, 158u8, 61u8, 14u8, 120u8, 255u8,
+                            113u8, 146u8, 7u8, 108u8, 132u8, 222u8, 204u8, 107u8, 142u8, 47u8,
+                            46u8, 72u8, 140u8, 22u8, 128u8, 135u8, 132u8, 10u8, 116u8, 41u8, 253u8,
+                            65u8, 140u8, 1u8, 50u8, 153u8, 47u8, 243u8, 210u8, 62u8, 23u8, 181u8,
                         ],
                     )
                 }
@@ -2471,20 +2961,19 @@ pub mod api {
                     >,
                     new_free: ::core::primitive::u128,
                     old_reserved: ::core::primitive::u128,
-                ) -> ::subxt::tx::Payload<SetBalanceDeprecated> {
+                ) -> ::subxt::tx::Payload<types::SetBalanceDeprecated> {
                     ::subxt::tx::Payload::new_static(
                         "Balances",
                         "set_balance_deprecated",
-                        SetBalanceDeprecated {
+                        types::SetBalanceDeprecated {
                             who,
                             new_free,
                             old_reserved,
                         },
                         [
-                            240u8, 107u8, 184u8, 206u8, 78u8, 106u8, 115u8, 152u8, 130u8, 56u8,
-                            156u8, 176u8, 105u8, 27u8, 176u8, 187u8, 49u8, 171u8, 229u8, 79u8,
-                            254u8, 248u8, 8u8, 162u8, 134u8, 12u8, 89u8, 100u8, 137u8, 102u8,
-                            132u8, 158u8,
+                            43u8, 86u8, 149u8, 26u8, 133u8, 41u8, 43u8, 16u8, 98u8, 65u8, 244u8,
+                            123u8, 233u8, 146u8, 76u8, 116u8, 48u8, 164u8, 23u8, 211u8, 42u8,
+                            111u8, 245u8, 16u8, 54u8, 92u8, 163u8, 66u8, 193u8, 58u8, 58u8, 185u8,
                         ],
                     )
                 }
@@ -2501,20 +2990,20 @@ pub mod api {
                         (),
                     >,
                     value: ::core::primitive::u128,
-                ) -> ::subxt::tx::Payload<ForceTransfer> {
+                ) -> ::subxt::tx::Payload<types::ForceTransfer> {
                     ::subxt::tx::Payload::new_static(
                         "Balances",
                         "force_transfer",
-                        ForceTransfer {
+                        types::ForceTransfer {
                             source,
                             dest,
                             value,
                         },
                         [
-                            79u8, 174u8, 212u8, 108u8, 184u8, 33u8, 170u8, 29u8, 232u8, 254u8,
-                            195u8, 218u8, 221u8, 134u8, 57u8, 99u8, 6u8, 70u8, 181u8, 227u8, 56u8,
-                            239u8, 243u8, 158u8, 157u8, 245u8, 36u8, 162u8, 11u8, 237u8, 147u8,
-                            15u8,
+                            105u8, 201u8, 253u8, 250u8, 151u8, 193u8, 29u8, 188u8, 132u8, 138u8,
+                            84u8, 243u8, 170u8, 22u8, 169u8, 161u8, 202u8, 233u8, 79u8, 122u8,
+                            77u8, 198u8, 84u8, 149u8, 151u8, 238u8, 174u8, 179u8, 201u8, 150u8,
+                            184u8, 20u8,
                         ],
                     )
                 }
@@ -2531,16 +3020,16 @@ pub mod api {
                         (),
                     >,
                     value: ::core::primitive::u128,
-                ) -> ::subxt::tx::Payload<TransferKeepAlive> {
+                ) -> ::subxt::tx::Payload<types::TransferKeepAlive> {
                     ::subxt::tx::Payload::new_static(
                         "Balances",
                         "transfer_keep_alive",
-                        TransferKeepAlive { dest, value },
+                        types::TransferKeepAlive { dest, value },
                         [
-                            112u8, 179u8, 75u8, 168u8, 193u8, 221u8, 9u8, 82u8, 190u8, 113u8,
-                            253u8, 13u8, 130u8, 134u8, 170u8, 216u8, 136u8, 111u8, 242u8, 220u8,
-                            202u8, 112u8, 47u8, 79u8, 73u8, 244u8, 226u8, 59u8, 240u8, 188u8,
-                            210u8, 208u8,
+                            31u8, 197u8, 106u8, 219u8, 164u8, 234u8, 37u8, 214u8, 112u8, 211u8,
+                            149u8, 238u8, 162u8, 234u8, 226u8, 11u8, 182u8, 178u8, 182u8, 19u8,
+                            43u8, 172u8, 122u8, 175u8, 16u8, 253u8, 193u8, 116u8, 199u8, 158u8,
+                            255u8, 188u8,
                         ],
                     )
                 }
@@ -2566,16 +3055,15 @@ pub mod api {
                         (),
                     >,
                     keep_alive: ::core::primitive::bool,
-                ) -> ::subxt::tx::Payload<TransferAll> {
+                ) -> ::subxt::tx::Payload<types::TransferAll> {
                     ::subxt::tx::Payload::new_static(
                         "Balances",
                         "transfer_all",
-                        TransferAll { dest, keep_alive },
+                        types::TransferAll { dest, keep_alive },
                         [
-                            46u8, 129u8, 29u8, 177u8, 221u8, 107u8, 245u8, 69u8, 238u8, 126u8,
-                            145u8, 26u8, 219u8, 208u8, 14u8, 80u8, 149u8, 1u8, 214u8, 63u8, 67u8,
-                            201u8, 144u8, 45u8, 129u8, 145u8, 174u8, 71u8, 238u8, 113u8, 208u8,
-                            34u8,
+                            167u8, 120u8, 58u8, 200u8, 65u8, 248u8, 240u8, 141u8, 208u8, 240u8,
+                            89u8, 13u8, 62u8, 169u8, 228u8, 29u8, 219u8, 56u8, 137u8, 224u8, 16u8,
+                            111u8, 13u8, 65u8, 65u8, 84u8, 123u8, 173u8, 12u8, 82u8, 101u8, 226u8,
                         ],
                     )
                 }
@@ -2589,16 +3077,15 @@ pub mod api {
                         (),
                     >,
                     amount: ::core::primitive::u128,
-                ) -> ::subxt::tx::Payload<ForceUnreserve> {
+                ) -> ::subxt::tx::Payload<types::ForceUnreserve> {
                     ::subxt::tx::Payload::new_static(
                         "Balances",
                         "force_unreserve",
-                        ForceUnreserve { who, amount },
+                        types::ForceUnreserve { who, amount },
                         [
-                            160u8, 146u8, 137u8, 76u8, 157u8, 187u8, 66u8, 148u8, 207u8, 76u8,
-                            32u8, 254u8, 82u8, 215u8, 35u8, 161u8, 213u8, 52u8, 32u8, 98u8, 102u8,
-                            106u8, 234u8, 123u8, 6u8, 175u8, 184u8, 188u8, 174u8, 106u8, 176u8,
-                            78u8,
+                            244u8, 207u8, 86u8, 147u8, 199u8, 152u8, 130u8, 38u8, 248u8, 32u8,
+                            97u8, 0u8, 243u8, 58u8, 74u8, 238u8, 68u8, 144u8, 213u8, 168u8, 21u8,
+                            151u8, 62u8, 78u8, 8u8, 159u8, 89u8, 1u8, 255u8, 23u8, 83u8, 18u8,
                         ],
                     )
                 }
@@ -2615,15 +3102,15 @@ pub mod api {
                     who: ::std::vec::Vec<
                         ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                     >,
-                ) -> ::subxt::tx::Payload<UpgradeAccounts> {
+                ) -> ::subxt::tx::Payload<types::UpgradeAccounts> {
                     ::subxt::tx::Payload::new_static(
                         "Balances",
                         "upgrade_accounts",
-                        UpgradeAccounts { who },
+                        types::UpgradeAccounts { who },
                         [
-                            164u8, 61u8, 119u8, 24u8, 165u8, 46u8, 197u8, 59u8, 39u8, 198u8, 228u8,
-                            96u8, 228u8, 45u8, 85u8, 51u8, 37u8, 5u8, 75u8, 40u8, 241u8, 163u8,
-                            86u8, 228u8, 151u8, 217u8, 47u8, 105u8, 203u8, 103u8, 207u8, 4u8,
+                            66u8, 200u8, 179u8, 104u8, 65u8, 2u8, 101u8, 56u8, 130u8, 161u8, 224u8,
+                            233u8, 255u8, 124u8, 70u8, 122u8, 8u8, 49u8, 103u8, 178u8, 68u8, 47u8,
+                            214u8, 166u8, 217u8, 116u8, 178u8, 50u8, 212u8, 164u8, 98u8, 226u8,
                         ],
                     )
                 }
@@ -2637,16 +3124,15 @@ pub mod api {
                         (),
                     >,
                     value: ::core::primitive::u128,
-                ) -> ::subxt::tx::Payload<Transfer> {
+                ) -> ::subxt::tx::Payload<types::Transfer> {
                     ::subxt::tx::Payload::new_static(
                         "Balances",
                         "transfer",
-                        Transfer { dest, value },
+                        types::Transfer { dest, value },
                         [
-                            111u8, 222u8, 32u8, 56u8, 171u8, 77u8, 252u8, 29u8, 194u8, 155u8,
-                            200u8, 192u8, 198u8, 81u8, 23u8, 115u8, 236u8, 91u8, 218u8, 114u8,
-                            107u8, 141u8, 138u8, 100u8, 237u8, 21u8, 58u8, 172u8, 3u8, 20u8, 216u8,
-                            38u8,
+                            155u8, 139u8, 211u8, 134u8, 163u8, 226u8, 249u8, 125u8, 15u8, 236u8,
+                            254u8, 100u8, 49u8, 104u8, 68u8, 71u8, 121u8, 120u8, 66u8, 159u8, 49u8,
+                            1u8, 125u8, 223u8, 43u8, 174u8, 19u8, 186u8, 110u8, 190u8, 87u8, 6u8,
                         ],
                     )
                 }
@@ -2660,15 +3146,15 @@ pub mod api {
                         (),
                     >,
                     new_free: ::core::primitive::u128,
-                ) -> ::subxt::tx::Payload<ForceSetBalance> {
+                ) -> ::subxt::tx::Payload<types::ForceSetBalance> {
                     ::subxt::tx::Payload::new_static(
                         "Balances",
                         "force_set_balance",
-                        ForceSetBalance { who, new_free },
+                        types::ForceSetBalance { who, new_free },
                         [
-                            237u8, 4u8, 41u8, 58u8, 62u8, 179u8, 160u8, 4u8, 50u8, 71u8, 178u8,
-                            36u8, 130u8, 130u8, 92u8, 229u8, 16u8, 245u8, 169u8, 109u8, 165u8,
-                            72u8, 94u8, 70u8, 196u8, 136u8, 37u8, 94u8, 140u8, 215u8, 125u8, 125u8,
+                            22u8, 6u8, 147u8, 252u8, 116u8, 39u8, 228u8, 198u8, 229u8, 92u8, 141u8,
+                            236u8, 192u8, 108u8, 45u8, 242u8, 100u8, 148u8, 47u8, 5u8, 249u8, 49u8,
+                            81u8, 156u8, 81u8, 79u8, 216u8, 6u8, 15u8, 192u8, 97u8, 65u8,
                         ],
                     )
                 }
@@ -2688,6 +3174,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "An account was created with some free balance."]
@@ -2709,6 +3196,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "An account was removed whose balance was non-zero but below ExistentialDeposit,"]
@@ -2731,6 +3219,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Transfer succeeded."]
@@ -2753,6 +3242,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A balance was set by root."]
@@ -2774,6 +3264,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Some balance was reserved (moved from free to reserved)."]
@@ -2795,6 +3286,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Some balance was unreserved (moved from reserved to free)."]
@@ -2816,6 +3308,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Some balance was moved from the reserve of the first account to the second account."]
@@ -2841,6 +3334,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Some amount was deposited (e.g. for transaction fees)."]
@@ -2862,6 +3356,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Some amount was withdrawn from the account (e.g. for transaction fees)."]
@@ -2883,6 +3378,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Some amount was removed from the account (e.g. for misbehavior)."]
@@ -2904,6 +3400,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Some amount was minted into an account."]
@@ -2925,6 +3422,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Some amount was burned from an account."]
@@ -2946,6 +3444,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Some amount was suspended from an account (it can be restored later)."]
@@ -2967,6 +3466,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Some amount was restored into an account."]
@@ -2988,6 +3488,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "An account was upgraded."]
@@ -3009,6 +3510,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Total issuance was increased by `amount`, creating a credit to be balanced."]
@@ -3030,6 +3532,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Total issuance was decreased by `amount`, creating a debt to be balanced."]
@@ -3050,6 +3553,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Some balance was locked."]
@@ -3071,6 +3575,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Some balance was unlocked."]
@@ -3092,6 +3597,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Some balance was frozen."]
@@ -3113,6 +3619,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Some balance was thawed."]
@@ -3144,9 +3651,10 @@ pub mod api {
                         "TotalIssuance",
                         vec![],
                         [
-                            1u8, 206u8, 252u8, 237u8, 6u8, 30u8, 20u8, 232u8, 164u8, 115u8, 51u8,
-                            156u8, 156u8, 206u8, 241u8, 187u8, 44u8, 84u8, 25u8, 164u8, 235u8,
-                            20u8, 86u8, 242u8, 124u8, 23u8, 28u8, 140u8, 26u8, 73u8, 231u8, 51u8,
+                            116u8, 70u8, 119u8, 194u8, 69u8, 37u8, 116u8, 206u8, 171u8, 70u8,
+                            171u8, 210u8, 226u8, 111u8, 184u8, 204u8, 206u8, 11u8, 68u8, 72u8,
+                            255u8, 19u8, 194u8, 11u8, 27u8, 194u8, 81u8, 204u8, 59u8, 224u8, 202u8,
+                            185u8,
                         ],
                     )
                 }
@@ -3165,10 +3673,9 @@ pub mod api {
                         "InactiveIssuance",
                         vec![],
                         [
-                            74u8, 203u8, 111u8, 142u8, 225u8, 104u8, 173u8, 51u8, 226u8, 12u8,
-                            85u8, 135u8, 41u8, 206u8, 177u8, 238u8, 94u8, 246u8, 184u8, 250u8,
-                            140u8, 213u8, 91u8, 118u8, 163u8, 111u8, 211u8, 46u8, 204u8, 160u8,
-                            154u8, 21u8,
+                            212u8, 185u8, 19u8, 50u8, 250u8, 72u8, 173u8, 50u8, 4u8, 104u8, 161u8,
+                            249u8, 77u8, 247u8, 204u8, 248u8, 11u8, 18u8, 57u8, 4u8, 82u8, 110u8,
+                            30u8, 216u8, 16u8, 37u8, 87u8, 67u8, 189u8, 235u8, 214u8, 155u8,
                         ],
                     )
                 }
@@ -3215,10 +3722,10 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            109u8, 250u8, 18u8, 96u8, 139u8, 232u8, 4u8, 139u8, 133u8, 239u8, 30u8,
-                            237u8, 73u8, 209u8, 143u8, 160u8, 94u8, 248u8, 124u8, 43u8, 224u8,
-                            165u8, 11u8, 6u8, 176u8, 144u8, 189u8, 161u8, 174u8, 210u8, 56u8,
-                            225u8,
+                            47u8, 253u8, 83u8, 165u8, 18u8, 176u8, 62u8, 239u8, 78u8, 85u8, 231u8,
+                            235u8, 157u8, 145u8, 251u8, 35u8, 225u8, 171u8, 82u8, 167u8, 68u8,
+                            206u8, 28u8, 169u8, 8u8, 93u8, 169u8, 101u8, 180u8, 206u8, 231u8,
+                            143u8,
                         ],
                     )
                 }
@@ -3260,10 +3767,10 @@ pub mod api {
                         "Account",
                         Vec::new(),
                         [
-                            109u8, 250u8, 18u8, 96u8, 139u8, 232u8, 4u8, 139u8, 133u8, 239u8, 30u8,
-                            237u8, 73u8, 209u8, 143u8, 160u8, 94u8, 248u8, 124u8, 43u8, 224u8,
-                            165u8, 11u8, 6u8, 176u8, 144u8, 189u8, 161u8, 174u8, 210u8, 56u8,
-                            225u8,
+                            47u8, 253u8, 83u8, 165u8, 18u8, 176u8, 62u8, 239u8, 78u8, 85u8, 231u8,
+                            235u8, 157u8, 145u8, 251u8, 35u8, 225u8, 171u8, 82u8, 167u8, 68u8,
+                            206u8, 28u8, 169u8, 8u8, 93u8, 169u8, 101u8, 180u8, 206u8, 231u8,
+                            143u8,
                         ],
                     )
                 }
@@ -3290,9 +3797,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            216u8, 253u8, 87u8, 73u8, 24u8, 218u8, 35u8, 0u8, 244u8, 134u8, 195u8,
-                            58u8, 255u8, 64u8, 153u8, 212u8, 210u8, 232u8, 4u8, 122u8, 90u8, 212u8,
-                            136u8, 14u8, 127u8, 232u8, 8u8, 192u8, 40u8, 233u8, 18u8, 250u8,
+                            44u8, 44u8, 48u8, 20u8, 121u8, 168u8, 200u8, 87u8, 205u8, 172u8, 111u8,
+                            208u8, 62u8, 243u8, 225u8, 223u8, 181u8, 36u8, 197u8, 9u8, 52u8, 182u8,
+                            113u8, 55u8, 126u8, 164u8, 82u8, 209u8, 151u8, 126u8, 186u8, 85u8,
                         ],
                     )
                 }
@@ -3314,9 +3821,9 @@ pub mod api {
                         "Locks",
                         Vec::new(),
                         [
-                            216u8, 253u8, 87u8, 73u8, 24u8, 218u8, 35u8, 0u8, 244u8, 134u8, 195u8,
-                            58u8, 255u8, 64u8, 153u8, 212u8, 210u8, 232u8, 4u8, 122u8, 90u8, 212u8,
-                            136u8, 14u8, 127u8, 232u8, 8u8, 192u8, 40u8, 233u8, 18u8, 250u8,
+                            44u8, 44u8, 48u8, 20u8, 121u8, 168u8, 200u8, 87u8, 205u8, 172u8, 111u8,
+                            208u8, 62u8, 243u8, 225u8, 223u8, 181u8, 36u8, 197u8, 9u8, 52u8, 182u8,
+                            113u8, 55u8, 126u8, 164u8, 82u8, 209u8, 151u8, 126u8, 186u8, 85u8,
                         ],
                     )
                 }
@@ -3345,9 +3852,10 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            17u8, 32u8, 191u8, 46u8, 76u8, 220u8, 101u8, 100u8, 42u8, 250u8, 128u8,
-                            167u8, 117u8, 44u8, 85u8, 96u8, 105u8, 216u8, 16u8, 147u8, 74u8, 55u8,
-                            183u8, 94u8, 160u8, 177u8, 26u8, 187u8, 71u8, 197u8, 187u8, 163u8,
+                            192u8, 99u8, 91u8, 129u8, 195u8, 73u8, 153u8, 126u8, 82u8, 52u8, 56u8,
+                            85u8, 105u8, 178u8, 113u8, 101u8, 229u8, 37u8, 242u8, 174u8, 166u8,
+                            244u8, 68u8, 173u8, 14u8, 225u8, 172u8, 70u8, 181u8, 211u8, 165u8,
+                            134u8,
                         ],
                     )
                 }
@@ -3371,9 +3879,10 @@ pub mod api {
                         "Reserves",
                         Vec::new(),
                         [
-                            17u8, 32u8, 191u8, 46u8, 76u8, 220u8, 101u8, 100u8, 42u8, 250u8, 128u8,
-                            167u8, 117u8, 44u8, 85u8, 96u8, 105u8, 216u8, 16u8, 147u8, 74u8, 55u8,
-                            183u8, 94u8, 160u8, 177u8, 26u8, 187u8, 71u8, 197u8, 187u8, 163u8,
+                            192u8, 99u8, 91u8, 129u8, 195u8, 73u8, 153u8, 126u8, 82u8, 52u8, 56u8,
+                            85u8, 105u8, 178u8, 113u8, 101u8, 229u8, 37u8, 242u8, 174u8, 166u8,
+                            244u8, 68u8, 173u8, 14u8, 225u8, 172u8, 70u8, 181u8, 211u8, 165u8,
+                            134u8,
                         ],
                     )
                 }
@@ -3402,9 +3911,10 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            247u8, 81u8, 4u8, 220u8, 77u8, 205u8, 28u8, 131u8, 215u8, 74u8, 197u8,
-                            137u8, 113u8, 214u8, 249u8, 91u8, 81u8, 216u8, 8u8, 5u8, 233u8, 39u8,
-                            104u8, 250u8, 3u8, 228u8, 148u8, 78u8, 4u8, 34u8, 45u8, 143u8,
+                            53u8, 126u8, 215u8, 237u8, 42u8, 223u8, 188u8, 150u8, 230u8, 107u8,
+                            95u8, 24u8, 26u8, 235u8, 158u8, 149u8, 193u8, 191u8, 10u8, 194u8,
+                            231u8, 59u8, 35u8, 167u8, 186u8, 89u8, 43u8, 126u8, 215u8, 117u8, 1u8,
+                            202u8,
                         ],
                     )
                 }
@@ -3428,9 +3938,10 @@ pub mod api {
                         "Holds",
                         Vec::new(),
                         [
-                            247u8, 81u8, 4u8, 220u8, 77u8, 205u8, 28u8, 131u8, 215u8, 74u8, 197u8,
-                            137u8, 113u8, 214u8, 249u8, 91u8, 81u8, 216u8, 8u8, 5u8, 233u8, 39u8,
-                            104u8, 250u8, 3u8, 228u8, 148u8, 78u8, 4u8, 34u8, 45u8, 143u8,
+                            53u8, 126u8, 215u8, 237u8, 42u8, 223u8, 188u8, 150u8, 230u8, 107u8,
+                            95u8, 24u8, 26u8, 235u8, 158u8, 149u8, 193u8, 191u8, 10u8, 194u8,
+                            231u8, 59u8, 35u8, 167u8, 186u8, 89u8, 43u8, 126u8, 215u8, 117u8, 1u8,
+                            202u8,
                         ],
                     )
                 }
@@ -3459,9 +3970,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            211u8, 24u8, 237u8, 217u8, 47u8, 230u8, 147u8, 39u8, 112u8, 209u8,
-                            193u8, 47u8, 242u8, 13u8, 241u8, 0u8, 100u8, 45u8, 116u8, 130u8, 246u8,
-                            196u8, 50u8, 134u8, 135u8, 112u8, 206u8, 1u8, 12u8, 53u8, 106u8, 131u8,
+                            69u8, 49u8, 165u8, 76u8, 135u8, 142u8, 179u8, 118u8, 50u8, 109u8, 53u8,
+                            112u8, 110u8, 94u8, 30u8, 93u8, 173u8, 38u8, 27u8, 142u8, 19u8, 5u8,
+                            163u8, 4u8, 68u8, 218u8, 179u8, 224u8, 118u8, 218u8, 115u8, 64u8,
                         ],
                     )
                 }
@@ -3485,9 +3996,9 @@ pub mod api {
                         "Freezes",
                         Vec::new(),
                         [
-                            211u8, 24u8, 237u8, 217u8, 47u8, 230u8, 147u8, 39u8, 112u8, 209u8,
-                            193u8, 47u8, 242u8, 13u8, 241u8, 0u8, 100u8, 45u8, 116u8, 130u8, 246u8,
-                            196u8, 50u8, 134u8, 135u8, 112u8, 206u8, 1u8, 12u8, 53u8, 106u8, 131u8,
+                            69u8, 49u8, 165u8, 76u8, 135u8, 142u8, 179u8, 118u8, 50u8, 109u8, 53u8,
+                            112u8, 110u8, 94u8, 30u8, 93u8, 173u8, 38u8, 27u8, 142u8, 19u8, 5u8,
+                            163u8, 4u8, 68u8, 218u8, 179u8, 224u8, 118u8, 218u8, 115u8, 64u8,
                         ],
                     )
                 }
@@ -3590,6 +4101,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A transaction fee `actual_fee`, of which `tip` was added to the minimum inclusion fee,"]
@@ -3622,10 +4134,10 @@ pub mod api {
                         "NextFeeMultiplier",
                         vec![],
                         [
-                            210u8, 0u8, 206u8, 165u8, 183u8, 10u8, 206u8, 52u8, 14u8, 90u8, 218u8,
-                            197u8, 189u8, 125u8, 113u8, 216u8, 52u8, 161u8, 45u8, 24u8, 245u8,
-                            237u8, 121u8, 41u8, 106u8, 29u8, 45u8, 129u8, 250u8, 203u8, 206u8,
-                            180u8,
+                            247u8, 39u8, 81u8, 170u8, 225u8, 226u8, 82u8, 147u8, 34u8, 113u8,
+                            147u8, 213u8, 59u8, 80u8, 139u8, 35u8, 36u8, 196u8, 152u8, 19u8, 9u8,
+                            159u8, 176u8, 79u8, 249u8, 201u8, 170u8, 1u8, 129u8, 79u8, 146u8,
+                            197u8,
                         ],
                     )
                 }
@@ -3643,9 +4155,10 @@ pub mod api {
                         "StorageVersion",
                         vec![],
                         [
-                            219u8, 243u8, 82u8, 176u8, 65u8, 5u8, 132u8, 114u8, 8u8, 82u8, 176u8,
-                            200u8, 97u8, 150u8, 177u8, 164u8, 166u8, 11u8, 34u8, 12u8, 12u8, 198u8,
-                            58u8, 191u8, 186u8, 221u8, 221u8, 119u8, 181u8, 253u8, 154u8, 228u8,
+                            105u8, 243u8, 158u8, 241u8, 159u8, 231u8, 253u8, 6u8, 4u8, 32u8, 85u8,
+                            178u8, 126u8, 31u8, 203u8, 134u8, 154u8, 38u8, 122u8, 155u8, 150u8,
+                            251u8, 174u8, 15u8, 74u8, 134u8, 216u8, 244u8, 168u8, 175u8, 158u8,
+                            144u8,
                         ],
                     )
                 }
@@ -3714,10 +4227,10 @@ pub mod api {
                         "Author",
                         vec![],
                         [
-                            149u8, 42u8, 33u8, 147u8, 190u8, 207u8, 174u8, 227u8, 190u8, 110u8,
-                            25u8, 131u8, 5u8, 167u8, 237u8, 188u8, 188u8, 33u8, 177u8, 126u8,
-                            181u8, 49u8, 126u8, 118u8, 46u8, 128u8, 154u8, 95u8, 15u8, 91u8, 103u8,
-                            113u8,
+                            247u8, 192u8, 118u8, 227u8, 47u8, 20u8, 203u8, 199u8, 216u8, 87u8,
+                            220u8, 50u8, 166u8, 61u8, 168u8, 213u8, 253u8, 62u8, 202u8, 199u8,
+                            61u8, 192u8, 237u8, 53u8, 22u8, 148u8, 164u8, 245u8, 99u8, 24u8, 146u8,
+                            18u8,
                         ],
                     )
                 }
@@ -3726,443 +4239,575 @@ pub mod api {
     }
     pub mod staking {
         use super::{root_mod, runtime_types};
+        #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
+        pub type Error = runtime_types::pallet_staking::pallet::pallet::Error;
         #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
+        pub type Call = runtime_types::pallet_staking::pallet::pallet::Call;
         pub mod calls {
             use super::{root_mod, runtime_types};
             type DispatchError = runtime_types::sp_runtime::DispatchError;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Bond {
-                pub controller: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                #[codec(compact)]
-                pub value: ::core::primitive::u128,
-                pub payee: runtime_types::pallet_staking::RewardDestination<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct BondExtra {
-                #[codec(compact)]
-                pub max_additional: ::core::primitive::u128,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Unbond {
-                #[codec(compact)]
-                pub value: ::core::primitive::u128,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: CompactAs,
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct WithdrawUnbonded {
-                pub num_slashing_spans: ::core::primitive::u32,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Validate {
-                pub prefs: runtime_types::pallet_staking::ValidatorPrefs,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Nominate {
-                pub targets: ::std::vec::Vec<
-                    ::subxt::utils::MultiAddress<
+            pub mod types {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Bond {
+                    #[codec(compact)]
+                    pub value: ::core::primitive::u128,
+                    pub payee: runtime_types::pallet_staking::RewardDestination<
                         ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                        (),
                     >,
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Chill;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetPayee {
-                pub payee: runtime_types::pallet_staking::RewardDestination<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetController {
-                pub controller: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetValidatorCount {
-                #[codec(compact)]
-                pub new: ::core::primitive::u32,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct IncreaseValidatorCount {
-                #[codec(compact)]
-                pub additional: ::core::primitive::u32,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ScaleValidatorCount {
-                pub factor: runtime_types::sp_arithmetic::per_things::Percent,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ForceNoEras;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ForceNewEra;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetInvulnerables {
-                pub invulnerables: ::std::vec::Vec<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ForceUnstake {
-                pub stash: ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                pub num_slashing_spans: ::core::primitive::u32,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ForceNewEraAlways;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct CancelDeferredSlash {
-                pub era: ::core::primitive::u32,
-                pub slash_indices: ::std::vec::Vec<::core::primitive::u32>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct PayoutStakers {
-                pub validator_stash:
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                pub era: ::core::primitive::u32,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Rebond {
-                #[codec(compact)]
-                pub value: ::core::primitive::u128,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ReapStash {
-                pub stash: ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                pub num_slashing_spans: ::core::primitive::u32,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Kick {
-                pub who: ::std::vec::Vec<
-                    ::subxt::utils::MultiAddress<
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Bond {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "bond";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct BondExtra {
+                    #[codec(compact)]
+                    pub max_additional: ::core::primitive::u128,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for BondExtra {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "bond_extra";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Unbond {
+                    #[codec(compact)]
+                    pub value: ::core::primitive::u128,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Unbond {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "unbond";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: CompactAs,
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct WithdrawUnbonded {
+                    pub num_slashing_spans: ::core::primitive::u32,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for WithdrawUnbonded {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "withdraw_unbonded";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Validate {
+                    pub prefs: runtime_types::pallet_staking::ValidatorPrefs,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Validate {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "validate";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Nominate {
+                    pub targets: ::std::vec::Vec<
+                        ::subxt::utils::MultiAddress<
+                            ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                            (),
+                        >,
+                    >,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Nominate {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "nominate";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Chill;
+                impl ::subxt::blocks::StaticExtrinsic for Chill {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "chill";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetPayee {
+                    pub payee: runtime_types::pallet_staking::RewardDestination<
                         ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                        (),
                     >,
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetStakingConfigs {
-                pub min_nominator_bond: runtime_types::pallet_staking::pallet::pallet::ConfigOp<
-                    ::core::primitive::u128,
-                >,
-                pub min_validator_bond: runtime_types::pallet_staking::pallet::pallet::ConfigOp<
-                    ::core::primitive::u128,
-                >,
-                pub max_nominator_count:
-                    runtime_types::pallet_staking::pallet::pallet::ConfigOp<::core::primitive::u32>,
-                pub max_validator_count:
-                    runtime_types::pallet_staking::pallet::pallet::ConfigOp<::core::primitive::u32>,
-                pub chill_threshold: runtime_types::pallet_staking::pallet::pallet::ConfigOp<
-                    runtime_types::sp_arithmetic::per_things::Percent,
-                >,
-                pub min_commission: runtime_types::pallet_staking::pallet::pallet::ConfigOp<
-                    runtime_types::sp_arithmetic::per_things::Perbill,
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ChillOther {
-                pub controller: ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ForceApplyMinCommission {
-                pub validator_stash:
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetMinCommission {
-                pub new: runtime_types::sp_arithmetic::per_things::Perbill,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetPayee {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "set_payee";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetController;
+                impl ::subxt::blocks::StaticExtrinsic for SetController {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "set_controller";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetValidatorCount {
+                    #[codec(compact)]
+                    pub new: ::core::primitive::u32,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetValidatorCount {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "set_validator_count";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct IncreaseValidatorCount {
+                    #[codec(compact)]
+                    pub additional: ::core::primitive::u32,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for IncreaseValidatorCount {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "increase_validator_count";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ScaleValidatorCount {
+                    pub factor: runtime_types::sp_arithmetic::per_things::Percent,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for ScaleValidatorCount {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "scale_validator_count";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ForceNoEras;
+                impl ::subxt::blocks::StaticExtrinsic for ForceNoEras {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "force_no_eras";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ForceNewEra;
+                impl ::subxt::blocks::StaticExtrinsic for ForceNewEra {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "force_new_era";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetInvulnerables {
+                    pub invulnerables: ::std::vec::Vec<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                    >,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetInvulnerables {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "set_invulnerables";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ForceUnstake {
+                    pub stash: ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                    pub num_slashing_spans: ::core::primitive::u32,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for ForceUnstake {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "force_unstake";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ForceNewEraAlways;
+                impl ::subxt::blocks::StaticExtrinsic for ForceNewEraAlways {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "force_new_era_always";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct CancelDeferredSlash {
+                    pub era: ::core::primitive::u32,
+                    pub slash_indices: ::std::vec::Vec<::core::primitive::u32>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for CancelDeferredSlash {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "cancel_deferred_slash";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct PayoutStakers {
+                    pub validator_stash:
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                    pub era: ::core::primitive::u32,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for PayoutStakers {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "payout_stakers";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Rebond {
+                    #[codec(compact)]
+                    pub value: ::core::primitive::u128,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Rebond {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "rebond";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ReapStash {
+                    pub stash: ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                    pub num_slashing_spans: ::core::primitive::u32,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for ReapStash {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "reap_stash";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Kick {
+                    pub who: ::std::vec::Vec<
+                        ::subxt::utils::MultiAddress<
+                            ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                            (),
+                        >,
+                    >,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Kick {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "kick";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetStakingConfigs {
+                    pub min_nominator_bond: runtime_types::pallet_staking::pallet::pallet::ConfigOp<
+                        ::core::primitive::u128,
+                    >,
+                    pub min_validator_bond: runtime_types::pallet_staking::pallet::pallet::ConfigOp<
+                        ::core::primitive::u128,
+                    >,
+                    pub max_nominator_count:
+                        runtime_types::pallet_staking::pallet::pallet::ConfigOp<
+                            ::core::primitive::u32,
+                        >,
+                    pub max_validator_count:
+                        runtime_types::pallet_staking::pallet::pallet::ConfigOp<
+                            ::core::primitive::u32,
+                        >,
+                    pub chill_threshold: runtime_types::pallet_staking::pallet::pallet::ConfigOp<
+                        runtime_types::sp_arithmetic::per_things::Percent,
+                    >,
+                    pub min_commission: runtime_types::pallet_staking::pallet::pallet::ConfigOp<
+                        runtime_types::sp_arithmetic::per_things::Perbill,
+                    >,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetStakingConfigs {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "set_staking_configs";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ChillOther {
+                    pub controller:
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for ChillOther {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "chill_other";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ForceApplyMinCommission {
+                    pub validator_stash:
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for ForceApplyMinCommission {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "force_apply_min_commission";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetMinCommission {
+                    pub new: runtime_types::sp_arithmetic::per_things::Perbill,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetMinCommission {
+                    const PALLET: &'static str = "Staking";
+                    const CALL: &'static str = "set_min_commission";
+                }
             }
             pub struct TransactionApi;
             impl TransactionApi {
@@ -4183,28 +4828,19 @@ pub mod api {
                 #[doc = "unless the `origin` falls below _existential deposit_ and gets removed as dust."]
                 pub fn bond(
                     &self,
-                    controller: ::subxt::utils::MultiAddress<
-                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                        (),
-                    >,
                     value: ::core::primitive::u128,
                     payee: runtime_types::pallet_staking::RewardDestination<
                         ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                     >,
-                ) -> ::subxt::tx::Payload<Bond> {
+                ) -> ::subxt::tx::Payload<types::Bond> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "bond",
-                        Bond {
-                            controller,
-                            value,
-                            payee,
-                        },
+                        types::Bond { value, payee },
                         [
-                            215u8, 211u8, 69u8, 215u8, 33u8, 158u8, 62u8, 3u8, 31u8, 216u8, 213u8,
-                            188u8, 151u8, 43u8, 165u8, 154u8, 117u8, 163u8, 190u8, 227u8, 116u8,
-                            70u8, 155u8, 178u8, 64u8, 174u8, 203u8, 179u8, 214u8, 187u8, 176u8,
-                            10u8,
+                            45u8, 207u8, 34u8, 221u8, 252u8, 224u8, 162u8, 185u8, 67u8, 224u8,
+                            88u8, 91u8, 232u8, 114u8, 183u8, 44u8, 39u8, 5u8, 12u8, 163u8, 57u8,
+                            31u8, 251u8, 58u8, 37u8, 232u8, 206u8, 75u8, 164u8, 26u8, 170u8, 101u8,
                         ],
                     )
                 }
@@ -4225,15 +4861,15 @@ pub mod api {
                 pub fn bond_extra(
                     &self,
                     max_additional: ::core::primitive::u128,
-                ) -> ::subxt::tx::Payload<BondExtra> {
+                ) -> ::subxt::tx::Payload<types::BondExtra> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "bond_extra",
-                        BondExtra { max_additional },
+                        types::BondExtra { max_additional },
                         [
-                            60u8, 45u8, 82u8, 223u8, 113u8, 95u8, 0u8, 71u8, 59u8, 108u8, 228u8,
-                            9u8, 95u8, 210u8, 113u8, 106u8, 252u8, 15u8, 19u8, 128u8, 11u8, 187u8,
-                            4u8, 151u8, 103u8, 143u8, 24u8, 33u8, 149u8, 82u8, 35u8, 192u8,
+                            9u8, 143u8, 179u8, 99u8, 91u8, 254u8, 114u8, 189u8, 202u8, 245u8, 48u8,
+                            130u8, 103u8, 17u8, 183u8, 177u8, 172u8, 156u8, 227u8, 145u8, 191u8,
+                            134u8, 81u8, 3u8, 170u8, 85u8, 40u8, 56u8, 216u8, 95u8, 232u8, 52u8,
                         ],
                     )
                 }
@@ -4259,16 +4895,15 @@ pub mod api {
                 pub fn unbond(
                     &self,
                     value: ::core::primitive::u128,
-                ) -> ::subxt::tx::Payload<Unbond> {
+                ) -> ::subxt::tx::Payload<types::Unbond> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "unbond",
-                        Unbond { value },
+                        types::Unbond { value },
                         [
-                            85u8, 62u8, 34u8, 127u8, 60u8, 241u8, 134u8, 60u8, 125u8, 91u8, 31u8,
-                            193u8, 50u8, 230u8, 237u8, 42u8, 114u8, 230u8, 240u8, 146u8, 14u8,
-                            109u8, 185u8, 151u8, 148u8, 44u8, 147u8, 182u8, 192u8, 253u8, 51u8,
-                            87u8,
+                            70u8, 201u8, 146u8, 56u8, 51u8, 237u8, 90u8, 193u8, 69u8, 42u8, 168u8,
+                            96u8, 215u8, 128u8, 253u8, 22u8, 239u8, 14u8, 214u8, 103u8, 170u8,
+                            140u8, 2u8, 182u8, 3u8, 190u8, 184u8, 191u8, 231u8, 137u8, 50u8, 16u8,
                         ],
                     )
                 }
@@ -4289,16 +4924,16 @@ pub mod api {
                 pub fn withdraw_unbonded(
                     &self,
                     num_slashing_spans: ::core::primitive::u32,
-                ) -> ::subxt::tx::Payload<WithdrawUnbonded> {
+                ) -> ::subxt::tx::Payload<types::WithdrawUnbonded> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "withdraw_unbonded",
-                        WithdrawUnbonded { num_slashing_spans },
+                        types::WithdrawUnbonded { num_slashing_spans },
                         [
-                            95u8, 223u8, 122u8, 217u8, 76u8, 208u8, 86u8, 129u8, 31u8, 104u8, 70u8,
-                            154u8, 23u8, 250u8, 165u8, 192u8, 149u8, 249u8, 158u8, 159u8, 194u8,
-                            224u8, 118u8, 134u8, 204u8, 157u8, 72u8, 136u8, 19u8, 193u8, 183u8,
-                            84u8,
+                            229u8, 128u8, 177u8, 224u8, 197u8, 118u8, 239u8, 142u8, 179u8, 164u8,
+                            10u8, 205u8, 124u8, 254u8, 209u8, 157u8, 172u8, 87u8, 58u8, 120u8,
+                            74u8, 12u8, 150u8, 117u8, 234u8, 32u8, 191u8, 182u8, 92u8, 97u8, 77u8,
+                            59u8,
                         ],
                     )
                 }
@@ -4310,16 +4945,15 @@ pub mod api {
                 pub fn validate(
                     &self,
                     prefs: runtime_types::pallet_staking::ValidatorPrefs,
-                ) -> ::subxt::tx::Payload<Validate> {
+                ) -> ::subxt::tx::Payload<types::Validate> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "validate",
-                        Validate { prefs },
+                        types::Validate { prefs },
                         [
-                            191u8, 116u8, 139u8, 35u8, 250u8, 211u8, 86u8, 240u8, 35u8, 9u8, 19u8,
-                            44u8, 148u8, 35u8, 91u8, 106u8, 200u8, 172u8, 108u8, 145u8, 194u8,
-                            146u8, 61u8, 145u8, 233u8, 168u8, 2u8, 26u8, 145u8, 101u8, 114u8,
-                            157u8,
+                            63u8, 83u8, 12u8, 16u8, 56u8, 84u8, 41u8, 141u8, 202u8, 0u8, 37u8,
+                            30u8, 115u8, 2u8, 145u8, 101u8, 168u8, 89u8, 94u8, 98u8, 8u8, 45u8,
+                            140u8, 237u8, 101u8, 136u8, 179u8, 162u8, 205u8, 41u8, 88u8, 248u8,
                         ],
                     )
                 }
@@ -4341,16 +4975,16 @@ pub mod api {
                             (),
                         >,
                     >,
-                ) -> ::subxt::tx::Payload<Nominate> {
+                ) -> ::subxt::tx::Payload<types::Nominate> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "nominate",
-                        Nominate { targets },
+                        types::Nominate { targets },
                         [
-                            112u8, 162u8, 70u8, 26u8, 74u8, 7u8, 188u8, 193u8, 210u8, 247u8, 27u8,
-                            189u8, 133u8, 137u8, 33u8, 155u8, 255u8, 171u8, 122u8, 68u8, 175u8,
-                            247u8, 139u8, 253u8, 97u8, 187u8, 254u8, 201u8, 66u8, 166u8, 226u8,
-                            90u8,
+                            149u8, 155u8, 120u8, 232u8, 57u8, 168u8, 218u8, 230u8, 97u8, 234u8,
+                            38u8, 247u8, 103u8, 88u8, 243u8, 182u8, 97u8, 77u8, 192u8, 4u8, 147u8,
+                            11u8, 52u8, 45u8, 108u8, 73u8, 183u8, 106u8, 198u8, 157u8, 246u8,
+                            145u8,
                         ],
                     )
                 }
@@ -4364,16 +4998,15 @@ pub mod api {
                 #[doc = "- Independent of the arguments. Insignificant complexity."]
                 #[doc = "- Contains one read."]
                 #[doc = "- Writes are limited to the `origin` account key."]
-                pub fn chill(&self) -> ::subxt::tx::Payload<Chill> {
+                pub fn chill(&self) -> ::subxt::tx::Payload<types::Chill> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "chill",
-                        Chill {},
+                        types::Chill {},
                         [
-                            94u8, 20u8, 196u8, 31u8, 220u8, 125u8, 115u8, 167u8, 140u8, 3u8, 20u8,
-                            132u8, 81u8, 120u8, 215u8, 166u8, 230u8, 56u8, 16u8, 222u8, 31u8,
-                            153u8, 120u8, 62u8, 153u8, 67u8, 220u8, 239u8, 11u8, 234u8, 127u8,
-                            122u8,
+                            157u8, 75u8, 243u8, 69u8, 110u8, 192u8, 22u8, 27u8, 107u8, 68u8, 236u8,
+                            58u8, 179u8, 34u8, 118u8, 98u8, 131u8, 62u8, 242u8, 84u8, 149u8, 24u8,
+                            83u8, 223u8, 78u8, 12u8, 192u8, 22u8, 111u8, 11u8, 171u8, 149u8,
                         ],
                     )
                 }
@@ -4394,19 +5027,23 @@ pub mod api {
                     payee: runtime_types::pallet_staking::RewardDestination<
                         ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                     >,
-                ) -> ::subxt::tx::Payload<SetPayee> {
+                ) -> ::subxt::tx::Payload<types::SetPayee> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "set_payee",
-                        SetPayee { payee },
+                        types::SetPayee { payee },
                         [
-                            96u8, 8u8, 254u8, 164u8, 87u8, 46u8, 120u8, 11u8, 197u8, 63u8, 20u8,
-                            178u8, 167u8, 236u8, 149u8, 245u8, 14u8, 171u8, 108u8, 195u8, 250u8,
-                            133u8, 0u8, 75u8, 192u8, 159u8, 84u8, 220u8, 242u8, 133u8, 60u8, 62u8,
+                            86u8, 172u8, 187u8, 98u8, 106u8, 240u8, 184u8, 60u8, 163u8, 244u8, 7u8,
+                            64u8, 147u8, 168u8, 192u8, 177u8, 211u8, 138u8, 73u8, 188u8, 159u8,
+                            154u8, 175u8, 219u8, 231u8, 235u8, 93u8, 195u8, 204u8, 100u8, 196u8,
+                            241u8,
                         ],
                     )
                 }
-                #[doc = "(Re-)set the controller of a stash."]
+                #[doc = "(Re-)sets the controller of a stash to the stash itself. This function previously"]
+                #[doc = "accepted a `controller` argument to set the controller to an account other than the"]
+                #[doc = "stash itself. This functionality has now been removed, now only setting the controller"]
+                #[doc = "to the stash, if it is not already."]
                 #[doc = ""]
                 #[doc = "Effects will be felt instantly (as soon as this function is completed successfully)."]
                 #[doc = ""]
@@ -4417,21 +5054,16 @@ pub mod api {
                 #[doc = "- Independent of the arguments. Insignificant complexity."]
                 #[doc = "- Contains a limited number of reads."]
                 #[doc = "- Writes are limited to the `origin` account key."]
-                pub fn set_controller(
-                    &self,
-                    controller: ::subxt::utils::MultiAddress<
-                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                        (),
-                    >,
-                ) -> ::subxt::tx::Payload<SetController> {
+                pub fn set_controller(&self) -> ::subxt::tx::Payload<types::SetController> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "set_controller",
-                        SetController { controller },
+                        types::SetController {},
                         [
-                            165u8, 250u8, 213u8, 32u8, 179u8, 163u8, 15u8, 35u8, 14u8, 152u8, 56u8,
-                            171u8, 43u8, 101u8, 7u8, 167u8, 178u8, 60u8, 89u8, 186u8, 59u8, 28u8,
-                            82u8, 159u8, 13u8, 96u8, 168u8, 123u8, 194u8, 212u8, 205u8, 184u8,
+                            172u8, 27u8, 195u8, 188u8, 145u8, 203u8, 190u8, 174u8, 145u8, 43u8,
+                            253u8, 87u8, 11u8, 229u8, 112u8, 18u8, 57u8, 101u8, 84u8, 235u8, 109u8,
+                            228u8, 58u8, 129u8, 179u8, 174u8, 245u8, 169u8, 89u8, 240u8, 39u8,
+                            67u8,
                         ],
                     )
                 }
@@ -4444,15 +5076,16 @@ pub mod api {
                 pub fn set_validator_count(
                     &self,
                     new: ::core::primitive::u32,
-                ) -> ::subxt::tx::Payload<SetValidatorCount> {
+                ) -> ::subxt::tx::Payload<types::SetValidatorCount> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "set_validator_count",
-                        SetValidatorCount { new },
+                        types::SetValidatorCount { new },
                         [
-                            55u8, 232u8, 95u8, 66u8, 228u8, 217u8, 11u8, 27u8, 3u8, 202u8, 199u8,
-                            242u8, 70u8, 160u8, 250u8, 187u8, 194u8, 91u8, 15u8, 36u8, 215u8, 36u8,
-                            160u8, 108u8, 251u8, 60u8, 240u8, 202u8, 249u8, 235u8, 28u8, 94u8,
+                            172u8, 225u8, 157u8, 48u8, 242u8, 217u8, 126u8, 206u8, 26u8, 156u8,
+                            203u8, 100u8, 116u8, 189u8, 98u8, 89u8, 151u8, 101u8, 77u8, 236u8,
+                            101u8, 8u8, 148u8, 236u8, 180u8, 175u8, 232u8, 146u8, 141u8, 141u8,
+                            78u8, 165u8,
                         ],
                     )
                 }
@@ -4466,15 +5099,16 @@ pub mod api {
                 pub fn increase_validator_count(
                     &self,
                     additional: ::core::primitive::u32,
-                ) -> ::subxt::tx::Payload<IncreaseValidatorCount> {
+                ) -> ::subxt::tx::Payload<types::IncreaseValidatorCount> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "increase_validator_count",
-                        IncreaseValidatorCount { additional },
+                        types::IncreaseValidatorCount { additional },
                         [
-                            239u8, 184u8, 155u8, 213u8, 25u8, 22u8, 193u8, 13u8, 102u8, 192u8,
-                            82u8, 153u8, 249u8, 192u8, 60u8, 158u8, 8u8, 78u8, 175u8, 219u8, 46u8,
-                            51u8, 222u8, 193u8, 193u8, 201u8, 78u8, 90u8, 58u8, 86u8, 196u8, 17u8,
+                            108u8, 67u8, 131u8, 248u8, 139u8, 227u8, 224u8, 221u8, 248u8, 94u8,
+                            141u8, 104u8, 131u8, 250u8, 127u8, 164u8, 137u8, 211u8, 5u8, 27u8,
+                            185u8, 251u8, 120u8, 243u8, 165u8, 50u8, 197u8, 161u8, 125u8, 195u8,
+                            16u8, 29u8,
                         ],
                     )
                 }
@@ -4488,16 +5122,16 @@ pub mod api {
                 pub fn scale_validator_count(
                     &self,
                     factor: runtime_types::sp_arithmetic::per_things::Percent,
-                ) -> ::subxt::tx::Payload<ScaleValidatorCount> {
+                ) -> ::subxt::tx::Payload<types::ScaleValidatorCount> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "scale_validator_count",
-                        ScaleValidatorCount { factor },
+                        types::ScaleValidatorCount { factor },
                         [
-                            198u8, 68u8, 227u8, 94u8, 110u8, 157u8, 209u8, 217u8, 112u8, 37u8,
-                            78u8, 142u8, 12u8, 193u8, 219u8, 167u8, 149u8, 112u8, 49u8, 139u8,
-                            74u8, 81u8, 172u8, 72u8, 253u8, 224u8, 56u8, 194u8, 185u8, 90u8, 87u8,
-                            125u8,
+                            93u8, 200u8, 119u8, 240u8, 148u8, 144u8, 175u8, 135u8, 102u8, 130u8,
+                            183u8, 216u8, 28u8, 215u8, 155u8, 233u8, 152u8, 65u8, 49u8, 125u8,
+                            196u8, 79u8, 31u8, 195u8, 233u8, 79u8, 150u8, 138u8, 103u8, 161u8,
+                            78u8, 154u8,
                         ],
                     )
                 }
@@ -4514,15 +5148,16 @@ pub mod api {
                 #[doc = "## Complexity"]
                 #[doc = "- No arguments."]
                 #[doc = "- Weight: O(1)"]
-                pub fn force_no_eras(&self) -> ::subxt::tx::Payload<ForceNoEras> {
+                pub fn force_no_eras(&self) -> ::subxt::tx::Payload<types::ForceNoEras> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "force_no_eras",
-                        ForceNoEras {},
+                        types::ForceNoEras {},
                         [
-                            16u8, 81u8, 207u8, 168u8, 23u8, 236u8, 11u8, 75u8, 141u8, 107u8, 92u8,
-                            2u8, 53u8, 111u8, 252u8, 116u8, 91u8, 120u8, 75u8, 24u8, 125u8, 53u8,
-                            9u8, 28u8, 242u8, 87u8, 245u8, 55u8, 40u8, 103u8, 151u8, 178u8,
+                            77u8, 5u8, 105u8, 167u8, 251u8, 78u8, 52u8, 80u8, 177u8, 226u8, 28u8,
+                            130u8, 106u8, 62u8, 40u8, 210u8, 110u8, 62u8, 21u8, 113u8, 234u8,
+                            227u8, 171u8, 205u8, 240u8, 46u8, 32u8, 84u8, 184u8, 208u8, 61u8,
+                            207u8,
                         ],
                     )
                 }
@@ -4540,15 +5175,15 @@ pub mod api {
                 #[doc = "## Complexity"]
                 #[doc = "- No arguments."]
                 #[doc = "- Weight: O(1)"]
-                pub fn force_new_era(&self) -> ::subxt::tx::Payload<ForceNewEra> {
+                pub fn force_new_era(&self) -> ::subxt::tx::Payload<types::ForceNewEra> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "force_new_era",
-                        ForceNewEra {},
+                        types::ForceNewEra {},
                         [
-                            230u8, 242u8, 169u8, 196u8, 78u8, 145u8, 24u8, 191u8, 113u8, 68u8, 5u8,
-                            138u8, 48u8, 51u8, 109u8, 126u8, 73u8, 136u8, 162u8, 158u8, 174u8,
-                            201u8, 213u8, 230u8, 215u8, 44u8, 200u8, 32u8, 75u8, 27u8, 23u8, 254u8,
+                            119u8, 45u8, 11u8, 87u8, 236u8, 189u8, 41u8, 142u8, 130u8, 10u8, 132u8,
+                            140u8, 210u8, 134u8, 66u8, 152u8, 149u8, 55u8, 60u8, 31u8, 190u8, 41u8,
+                            177u8, 103u8, 245u8, 193u8, 95u8, 255u8, 29u8, 79u8, 112u8, 188u8,
                         ],
                     )
                 }
@@ -4560,15 +5195,15 @@ pub mod api {
                     invulnerables: ::std::vec::Vec<
                         ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                     >,
-                ) -> ::subxt::tx::Payload<SetInvulnerables> {
+                ) -> ::subxt::tx::Payload<types::SetInvulnerables> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "set_invulnerables",
-                        SetInvulnerables { invulnerables },
+                        types::SetInvulnerables { invulnerables },
                         [
-                            2u8, 148u8, 221u8, 111u8, 153u8, 48u8, 222u8, 36u8, 228u8, 84u8, 18u8,
-                            35u8, 168u8, 239u8, 53u8, 245u8, 27u8, 76u8, 18u8, 203u8, 206u8, 9u8,
-                            8u8, 81u8, 35u8, 224u8, 22u8, 133u8, 58u8, 99u8, 103u8, 39u8,
+                            31u8, 115u8, 221u8, 229u8, 187u8, 61u8, 33u8, 22u8, 126u8, 142u8,
+                            248u8, 190u8, 213u8, 35u8, 49u8, 208u8, 193u8, 0u8, 58u8, 18u8, 136u8,
+                            220u8, 32u8, 8u8, 121u8, 36u8, 184u8, 57u8, 6u8, 125u8, 199u8, 245u8,
                         ],
                     )
                 }
@@ -4579,19 +5214,18 @@ pub mod api {
                     &self,
                     stash: ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                     num_slashing_spans: ::core::primitive::u32,
-                ) -> ::subxt::tx::Payload<ForceUnstake> {
+                ) -> ::subxt::tx::Payload<types::ForceUnstake> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "force_unstake",
-                        ForceUnstake {
+                        types::ForceUnstake {
                             stash,
                             num_slashing_spans,
                         },
                         [
-                            94u8, 247u8, 238u8, 47u8, 250u8, 6u8, 96u8, 175u8, 173u8, 123u8, 161u8,
-                            187u8, 162u8, 214u8, 176u8, 233u8, 33u8, 33u8, 167u8, 239u8, 40u8,
-                            223u8, 19u8, 131u8, 230u8, 39u8, 175u8, 200u8, 36u8, 182u8, 76u8,
-                            207u8,
+                            205u8, 115u8, 222u8, 58u8, 168u8, 3u8, 59u8, 58u8, 220u8, 98u8, 204u8,
+                            90u8, 36u8, 250u8, 178u8, 45u8, 213u8, 158u8, 92u8, 107u8, 3u8, 94u8,
+                            118u8, 194u8, 187u8, 196u8, 101u8, 250u8, 36u8, 119u8, 21u8, 19u8,
                         ],
                     )
                 }
@@ -4604,16 +5238,17 @@ pub mod api {
                 #[doc = "The election process starts multiple blocks before the end of the era."]
                 #[doc = "If this is called just before a new era is triggered, the election process may not"]
                 #[doc = "have enough blocks to get a result."]
-                pub fn force_new_era_always(&self) -> ::subxt::tx::Payload<ForceNewEraAlways> {
+                pub fn force_new_era_always(
+                    &self,
+                ) -> ::subxt::tx::Payload<types::ForceNewEraAlways> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "force_new_era_always",
-                        ForceNewEraAlways {},
+                        types::ForceNewEraAlways {},
                         [
-                            179u8, 118u8, 189u8, 54u8, 248u8, 141u8, 207u8, 142u8, 80u8, 37u8,
-                            241u8, 185u8, 138u8, 254u8, 117u8, 147u8, 225u8, 118u8, 34u8, 177u8,
-                            197u8, 158u8, 8u8, 82u8, 202u8, 108u8, 208u8, 26u8, 64u8, 33u8, 74u8,
-                            43u8,
+                            102u8, 153u8, 116u8, 85u8, 80u8, 52u8, 89u8, 215u8, 173u8, 159u8, 96u8,
+                            99u8, 180u8, 5u8, 62u8, 142u8, 181u8, 101u8, 160u8, 57u8, 177u8, 182u8,
+                            6u8, 252u8, 107u8, 252u8, 225u8, 104u8, 147u8, 123u8, 244u8, 134u8,
                         ],
                     )
                 }
@@ -4626,16 +5261,16 @@ pub mod api {
                     &self,
                     era: ::core::primitive::u32,
                     slash_indices: ::std::vec::Vec<::core::primitive::u32>,
-                ) -> ::subxt::tx::Payload<CancelDeferredSlash> {
+                ) -> ::subxt::tx::Payload<types::CancelDeferredSlash> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "cancel_deferred_slash",
-                        CancelDeferredSlash { era, slash_indices },
+                        types::CancelDeferredSlash { era, slash_indices },
                         [
-                            120u8, 57u8, 162u8, 105u8, 91u8, 250u8, 129u8, 240u8, 110u8, 234u8,
-                            170u8, 98u8, 164u8, 65u8, 106u8, 101u8, 19u8, 88u8, 146u8, 210u8,
-                            171u8, 44u8, 37u8, 50u8, 65u8, 178u8, 37u8, 223u8, 239u8, 197u8, 116u8,
-                            168u8,
+                            65u8, 90u8, 54u8, 7u8, 89u8, 238u8, 254u8, 76u8, 219u8, 26u8, 137u8,
+                            181u8, 154u8, 49u8, 35u8, 99u8, 181u8, 193u8, 209u8, 181u8, 212u8,
+                            153u8, 49u8, 83u8, 77u8, 170u8, 175u8, 142u8, 63u8, 187u8, 183u8,
+                            199u8,
                         ],
                     )
                 }
@@ -4656,18 +5291,18 @@ pub mod api {
                         ::subxt::ext::sp_core::crypto::AccountId32,
                     >,
                     era: ::core::primitive::u32,
-                ) -> ::subxt::tx::Payload<PayoutStakers> {
+                ) -> ::subxt::tx::Payload<types::PayoutStakers> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "payout_stakers",
-                        PayoutStakers {
+                        types::PayoutStakers {
                             validator_stash,
                             era,
                         },
                         [
-                            184u8, 194u8, 33u8, 118u8, 7u8, 203u8, 89u8, 119u8, 214u8, 76u8, 178u8,
-                            20u8, 82u8, 111u8, 57u8, 132u8, 212u8, 43u8, 232u8, 91u8, 252u8, 49u8,
-                            42u8, 115u8, 1u8, 181u8, 154u8, 207u8, 144u8, 206u8, 205u8, 33u8,
+                            69u8, 67u8, 140u8, 197u8, 89u8, 20u8, 59u8, 55u8, 142u8, 197u8, 62u8,
+                            107u8, 239u8, 50u8, 237u8, 52u8, 4u8, 65u8, 119u8, 73u8, 138u8, 57u8,
+                            46u8, 78u8, 252u8, 157u8, 187u8, 14u8, 232u8, 244u8, 217u8, 171u8,
                         ],
                     )
                 }
@@ -4681,16 +5316,15 @@ pub mod api {
                 pub fn rebond(
                     &self,
                     value: ::core::primitive::u128,
-                ) -> ::subxt::tx::Payload<Rebond> {
+                ) -> ::subxt::tx::Payload<types::Rebond> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "rebond",
-                        Rebond { value },
+                        types::Rebond { value },
                         [
-                            25u8, 22u8, 191u8, 172u8, 133u8, 101u8, 139u8, 102u8, 134u8, 16u8,
-                            136u8, 56u8, 137u8, 162u8, 4u8, 253u8, 196u8, 30u8, 234u8, 49u8, 102u8,
-                            68u8, 145u8, 96u8, 148u8, 219u8, 162u8, 17u8, 177u8, 184u8, 34u8,
-                            113u8,
+                            204u8, 209u8, 27u8, 219u8, 45u8, 129u8, 15u8, 39u8, 105u8, 165u8,
+                            255u8, 55u8, 0u8, 59u8, 115u8, 79u8, 139u8, 82u8, 163u8, 197u8, 44u8,
+                            89u8, 41u8, 234u8, 116u8, 214u8, 248u8, 123u8, 250u8, 49u8, 15u8, 77u8,
                         ],
                     )
                 }
@@ -4710,19 +5344,18 @@ pub mod api {
                     &self,
                     stash: ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                     num_slashing_spans: ::core::primitive::u32,
-                ) -> ::subxt::tx::Payload<ReapStash> {
+                ) -> ::subxt::tx::Payload<types::ReapStash> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "reap_stash",
-                        ReapStash {
+                        types::ReapStash {
                             stash,
                             num_slashing_spans,
                         },
                         [
-                            34u8, 168u8, 120u8, 161u8, 95u8, 199u8, 106u8, 233u8, 61u8, 240u8,
-                            166u8, 31u8, 183u8, 165u8, 158u8, 179u8, 32u8, 130u8, 27u8, 164u8,
-                            112u8, 44u8, 14u8, 125u8, 227u8, 87u8, 70u8, 203u8, 194u8, 24u8, 212u8,
-                            177u8,
+                            231u8, 240u8, 152u8, 33u8, 10u8, 60u8, 18u8, 233u8, 0u8, 229u8, 90u8,
+                            45u8, 118u8, 29u8, 98u8, 109u8, 89u8, 7u8, 228u8, 254u8, 119u8, 125u8,
+                            172u8, 209u8, 217u8, 107u8, 50u8, 226u8, 31u8, 5u8, 153u8, 93u8,
                         ],
                     )
                 }
@@ -4745,15 +5378,15 @@ pub mod api {
                             (),
                         >,
                     >,
-                ) -> ::subxt::tx::Payload<Kick> {
+                ) -> ::subxt::tx::Payload<types::Kick> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "kick",
-                        Kick { who },
+                        types::Kick { who },
                         [
-                            32u8, 26u8, 202u8, 6u8, 186u8, 180u8, 58u8, 121u8, 185u8, 208u8, 123u8,
-                            10u8, 53u8, 179u8, 167u8, 203u8, 96u8, 229u8, 7u8, 144u8, 231u8, 172u8,
-                            145u8, 141u8, 162u8, 180u8, 212u8, 42u8, 34u8, 5u8, 199u8, 82u8,
+                            78u8, 76u8, 77u8, 41u8, 59u8, 131u8, 44u8, 252u8, 69u8, 34u8, 206u8,
+                            104u8, 178u8, 193u8, 79u8, 110u8, 103u8, 132u8, 183u8, 100u8, 228u8,
+                            248u8, 102u8, 228u8, 76u8, 69u8, 11u8, 35u8, 108u8, 188u8, 96u8, 72u8,
                         ],
                     )
                 }
@@ -4794,11 +5427,11 @@ pub mod api {
                     min_commission: runtime_types::pallet_staking::pallet::pallet::ConfigOp<
                         runtime_types::sp_arithmetic::per_things::Perbill,
                     >,
-                ) -> ::subxt::tx::Payload<SetStakingConfigs> {
+                ) -> ::subxt::tx::Payload<types::SetStakingConfigs> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "set_staking_configs",
-                        SetStakingConfigs {
+                        types::SetStakingConfigs {
                             min_nominator_bond,
                             min_validator_bond,
                             max_nominator_count,
@@ -4807,9 +5440,10 @@ pub mod api {
                             min_commission,
                         },
                         [
-                            176u8, 168u8, 155u8, 176u8, 27u8, 79u8, 223u8, 92u8, 88u8, 93u8, 223u8,
-                            69u8, 179u8, 250u8, 138u8, 138u8, 87u8, 220u8, 36u8, 3u8, 126u8, 213u8,
-                            16u8, 68u8, 3u8, 16u8, 218u8, 151u8, 98u8, 169u8, 217u8, 75u8,
+                            198u8, 212u8, 176u8, 138u8, 79u8, 177u8, 241u8, 104u8, 72u8, 170u8,
+                            35u8, 178u8, 205u8, 167u8, 218u8, 118u8, 42u8, 226u8, 180u8, 17u8,
+                            112u8, 175u8, 55u8, 248u8, 64u8, 127u8, 51u8, 65u8, 132u8, 210u8, 88u8,
+                            213u8,
                         ],
                     )
                 }
@@ -4842,15 +5476,15 @@ pub mod api {
                 pub fn chill_other(
                     &self,
                     controller: ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                ) -> ::subxt::tx::Payload<ChillOther> {
+                ) -> ::subxt::tx::Payload<types::ChillOther> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "chill_other",
-                        ChillOther { controller },
+                        types::ChillOther { controller },
                         [
-                            140u8, 98u8, 4u8, 203u8, 91u8, 131u8, 123u8, 119u8, 169u8, 47u8, 188u8,
-                            23u8, 205u8, 170u8, 82u8, 220u8, 166u8, 170u8, 135u8, 176u8, 68u8,
-                            228u8, 14u8, 67u8, 42u8, 52u8, 140u8, 231u8, 62u8, 167u8, 80u8, 173u8,
+                            143u8, 82u8, 167u8, 43u8, 102u8, 136u8, 78u8, 139u8, 110u8, 159u8,
+                            235u8, 226u8, 237u8, 140u8, 142u8, 47u8, 77u8, 57u8, 209u8, 208u8, 9u8,
+                            193u8, 3u8, 77u8, 147u8, 41u8, 182u8, 122u8, 178u8, 185u8, 32u8, 182u8,
                         ],
                     )
                 }
@@ -4862,16 +5496,15 @@ pub mod api {
                     validator_stash: ::subxt::utils::Static<
                         ::subxt::ext::sp_core::crypto::AccountId32,
                     >,
-                ) -> ::subxt::tx::Payload<ForceApplyMinCommission> {
+                ) -> ::subxt::tx::Payload<types::ForceApplyMinCommission> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "force_apply_min_commission",
-                        ForceApplyMinCommission { validator_stash },
+                        types::ForceApplyMinCommission { validator_stash },
                         [
-                            136u8, 163u8, 85u8, 134u8, 240u8, 247u8, 183u8, 227u8, 226u8, 202u8,
-                            102u8, 186u8, 138u8, 119u8, 78u8, 123u8, 229u8, 135u8, 129u8, 241u8,
-                            119u8, 106u8, 41u8, 182u8, 121u8, 181u8, 242u8, 175u8, 74u8, 207u8,
-                            64u8, 106u8,
+                            158u8, 27u8, 152u8, 23u8, 97u8, 53u8, 54u8, 49u8, 179u8, 236u8, 69u8,
+                            65u8, 253u8, 136u8, 232u8, 44u8, 207u8, 66u8, 5u8, 186u8, 49u8, 91u8,
+                            173u8, 5u8, 84u8, 45u8, 154u8, 91u8, 239u8, 97u8, 62u8, 42u8,
                         ],
                     )
                 }
@@ -4882,16 +5515,16 @@ pub mod api {
                 pub fn set_min_commission(
                     &self,
                     new: runtime_types::sp_arithmetic::per_things::Perbill,
-                ) -> ::subxt::tx::Payload<SetMinCommission> {
+                ) -> ::subxt::tx::Payload<types::SetMinCommission> {
                     ::subxt::tx::Payload::new_static(
                         "Staking",
                         "set_min_commission",
-                        SetMinCommission { new },
+                        types::SetMinCommission { new },
                         [
-                            62u8, 139u8, 175u8, 245u8, 212u8, 113u8, 117u8, 130u8, 191u8, 173u8,
-                            78u8, 97u8, 19u8, 104u8, 185u8, 207u8, 201u8, 14u8, 200u8, 208u8,
-                            184u8, 195u8, 242u8, 175u8, 158u8, 156u8, 51u8, 58u8, 118u8, 154u8,
-                            68u8, 221u8,
+                            96u8, 168u8, 55u8, 79u8, 79u8, 49u8, 8u8, 127u8, 98u8, 158u8, 106u8,
+                            187u8, 177u8, 201u8, 68u8, 181u8, 219u8, 172u8, 63u8, 120u8, 172u8,
+                            173u8, 251u8, 167u8, 84u8, 165u8, 238u8, 115u8, 110u8, 97u8, 144u8,
+                            50u8,
                         ],
                     )
                 }
@@ -4911,6 +5544,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "The era payout has been set; the first balance is the validator-payout; the second is"]
@@ -4934,6 +5568,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "The nominator has been rewarded by this amount."]
@@ -4955,6 +5590,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A staker (validator or nominator) has been slashed by the given amount."]
@@ -4976,6 +5612,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A slash for the given validator, for the given percentage of their stake, at the given"]
@@ -5000,6 +5637,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "An old slashing report from a prior era was discarded because it could"]
@@ -5021,6 +5659,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A new set of stakers was elected."]
@@ -5039,6 +5678,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "An account has bonded this amount. \\[stash, amount\\]"]
@@ -5063,6 +5703,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "An account has unbonded this amount."]
@@ -5084,6 +5725,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "An account has called `withdraw_unbonded` and removed unbonding chunks worth `Balance`"]
@@ -5106,6 +5748,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A nominator has been kicked from a validator."]
@@ -5127,6 +5770,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "The election failed. No new era is planned."]
@@ -5145,6 +5789,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "An account has stopped participating as either a validator or nominator."]
@@ -5165,6 +5810,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "The stakers' rewards are getting paid."]
@@ -5187,6 +5833,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A validator has set their preferences."]
@@ -5208,6 +5855,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A new force era mode was set."]
@@ -5238,9 +5886,10 @@ pub mod api {
                         "ValidatorCount",
                         vec![],
                         [
-                            245u8, 75u8, 214u8, 110u8, 66u8, 164u8, 86u8, 206u8, 69u8, 89u8, 12u8,
-                            111u8, 117u8, 16u8, 228u8, 184u8, 207u8, 6u8, 0u8, 126u8, 221u8, 67u8,
-                            125u8, 218u8, 188u8, 245u8, 156u8, 188u8, 34u8, 85u8, 208u8, 197u8,
+                            105u8, 251u8, 193u8, 198u8, 232u8, 118u8, 73u8, 115u8, 205u8, 78u8,
+                            49u8, 253u8, 140u8, 193u8, 161u8, 205u8, 13u8, 147u8, 125u8, 102u8,
+                            142u8, 244u8, 210u8, 227u8, 225u8, 46u8, 144u8, 122u8, 254u8, 48u8,
+                            44u8, 169u8,
                         ],
                     )
                 }
@@ -5259,9 +5908,9 @@ pub mod api {
                         "MinimumValidatorCount",
                         vec![],
                         [
-                            82u8, 95u8, 128u8, 55u8, 136u8, 134u8, 71u8, 117u8, 135u8, 76u8, 44u8,
-                            46u8, 174u8, 34u8, 170u8, 228u8, 175u8, 1u8, 234u8, 162u8, 91u8, 252u8,
-                            127u8, 68u8, 243u8, 241u8, 13u8, 107u8, 214u8, 70u8, 87u8, 249u8,
+                            103u8, 178u8, 29u8, 91u8, 90u8, 31u8, 49u8, 9u8, 11u8, 58u8, 178u8,
+                            30u8, 219u8, 55u8, 58u8, 181u8, 80u8, 155u8, 9u8, 11u8, 38u8, 46u8,
+                            125u8, 179u8, 220u8, 20u8, 212u8, 181u8, 136u8, 103u8, 58u8, 48u8,
                         ],
                     )
                 }
@@ -5284,9 +5933,10 @@ pub mod api {
                         "Invulnerables",
                         vec![],
                         [
-                            77u8, 78u8, 63u8, 199u8, 150u8, 167u8, 135u8, 130u8, 192u8, 51u8,
-                            202u8, 119u8, 68u8, 49u8, 241u8, 68u8, 82u8, 90u8, 226u8, 201u8, 96u8,
-                            170u8, 21u8, 173u8, 236u8, 116u8, 148u8, 8u8, 174u8, 92u8, 7u8, 11u8,
+                            199u8, 35u8, 0u8, 229u8, 160u8, 128u8, 139u8, 245u8, 27u8, 133u8, 47u8,
+                            240u8, 86u8, 195u8, 90u8, 169u8, 158u8, 231u8, 128u8, 58u8, 24u8,
+                            173u8, 138u8, 122u8, 226u8, 104u8, 239u8, 114u8, 91u8, 165u8, 207u8,
+                            150u8,
                         ],
                     )
                 }
@@ -5312,9 +5962,10 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            35u8, 197u8, 156u8, 60u8, 22u8, 59u8, 103u8, 83u8, 77u8, 15u8, 118u8,
-                            193u8, 155u8, 97u8, 229u8, 36u8, 119u8, 128u8, 224u8, 162u8, 21u8,
-                            46u8, 199u8, 221u8, 15u8, 74u8, 59u8, 70u8, 77u8, 218u8, 73u8, 165u8,
+                            146u8, 230u8, 48u8, 190u8, 166u8, 127u8, 237u8, 216u8, 71u8, 33u8,
+                            108u8, 121u8, 204u8, 211u8, 133u8, 123u8, 52u8, 164u8, 201u8, 209u8,
+                            236u8, 35u8, 190u8, 77u8, 126u8, 150u8, 79u8, 244u8, 15u8, 247u8,
+                            161u8, 107u8,
                         ],
                     )
                 }
@@ -5335,9 +5986,10 @@ pub mod api {
                         "Bonded",
                         Vec::new(),
                         [
-                            35u8, 197u8, 156u8, 60u8, 22u8, 59u8, 103u8, 83u8, 77u8, 15u8, 118u8,
-                            193u8, 155u8, 97u8, 229u8, 36u8, 119u8, 128u8, 224u8, 162u8, 21u8,
-                            46u8, 199u8, 221u8, 15u8, 74u8, 59u8, 70u8, 77u8, 218u8, 73u8, 165u8,
+                            146u8, 230u8, 48u8, 190u8, 166u8, 127u8, 237u8, 216u8, 71u8, 33u8,
+                            108u8, 121u8, 204u8, 211u8, 133u8, 123u8, 52u8, 164u8, 201u8, 209u8,
+                            236u8, 35u8, 190u8, 77u8, 126u8, 150u8, 79u8, 244u8, 15u8, 247u8,
+                            161u8, 107u8,
                         ],
                     )
                 }
@@ -5356,9 +6008,10 @@ pub mod api {
                         "MinNominatorBond",
                         vec![],
                         [
-                            187u8, 66u8, 149u8, 226u8, 72u8, 219u8, 57u8, 246u8, 102u8, 47u8, 71u8,
-                            12u8, 219u8, 204u8, 127u8, 223u8, 58u8, 134u8, 81u8, 165u8, 200u8,
-                            142u8, 196u8, 158u8, 26u8, 38u8, 165u8, 19u8, 91u8, 251u8, 119u8, 84u8,
+                            102u8, 115u8, 254u8, 15u8, 191u8, 228u8, 85u8, 249u8, 112u8, 190u8,
+                            129u8, 243u8, 236u8, 39u8, 195u8, 232u8, 10u8, 230u8, 11u8, 144u8,
+                            115u8, 1u8, 45u8, 70u8, 181u8, 161u8, 17u8, 92u8, 19u8, 70u8, 100u8,
+                            94u8,
                         ],
                     )
                 }
@@ -5377,9 +6030,10 @@ pub mod api {
                         "MinValidatorBond",
                         vec![],
                         [
-                            48u8, 105u8, 85u8, 178u8, 142u8, 208u8, 208u8, 19u8, 236u8, 130u8,
-                            129u8, 169u8, 35u8, 245u8, 66u8, 182u8, 92u8, 20u8, 22u8, 109u8, 155u8,
-                            174u8, 87u8, 118u8, 242u8, 216u8, 193u8, 154u8, 4u8, 5u8, 66u8, 56u8,
+                            146u8, 249u8, 26u8, 52u8, 224u8, 81u8, 85u8, 153u8, 118u8, 169u8,
+                            140u8, 37u8, 208u8, 242u8, 8u8, 29u8, 156u8, 73u8, 154u8, 162u8, 186u8,
+                            159u8, 119u8, 100u8, 109u8, 227u8, 6u8, 139u8, 155u8, 203u8, 167u8,
+                            244u8,
                         ],
                     )
                 }
@@ -5398,9 +6052,9 @@ pub mod api {
                         "MinimumActiveStake",
                         vec![],
                         [
-                            172u8, 190u8, 228u8, 47u8, 47u8, 192u8, 182u8, 59u8, 9u8, 18u8, 103u8,
-                            46u8, 175u8, 54u8, 17u8, 79u8, 89u8, 107u8, 255u8, 200u8, 182u8, 107u8,
-                            89u8, 157u8, 55u8, 16u8, 77u8, 46u8, 154u8, 169u8, 103u8, 151u8,
+                            166u8, 211u8, 59u8, 23u8, 2u8, 160u8, 244u8, 52u8, 153u8, 12u8, 103u8,
+                            113u8, 51u8, 232u8, 145u8, 188u8, 54u8, 67u8, 227u8, 221u8, 186u8, 6u8,
+                            28u8, 63u8, 146u8, 212u8, 233u8, 173u8, 134u8, 41u8, 169u8, 153u8,
                         ],
                     )
                 }
@@ -5421,9 +6075,9 @@ pub mod api {
                         "MinCommission",
                         vec![],
                         [
-                            61u8, 101u8, 69u8, 27u8, 220u8, 179u8, 5u8, 71u8, 66u8, 227u8, 84u8,
-                            98u8, 18u8, 141u8, 183u8, 49u8, 98u8, 46u8, 123u8, 114u8, 198u8, 85u8,
-                            15u8, 175u8, 243u8, 239u8, 133u8, 129u8, 146u8, 174u8, 254u8, 158u8,
+                            220u8, 197u8, 232u8, 212u8, 205u8, 242u8, 121u8, 165u8, 255u8, 199u8,
+                            122u8, 20u8, 145u8, 245u8, 175u8, 26u8, 45u8, 70u8, 207u8, 26u8, 112u8,
+                            234u8, 181u8, 167u8, 140u8, 75u8, 15u8, 1u8, 221u8, 168u8, 17u8, 211u8,
                         ],
                     )
                 }
@@ -5447,10 +6101,10 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            31u8, 205u8, 3u8, 165u8, 22u8, 22u8, 62u8, 92u8, 33u8, 189u8, 124u8,
-                            120u8, 177u8, 70u8, 27u8, 242u8, 188u8, 184u8, 204u8, 188u8, 242u8,
-                            140u8, 128u8, 230u8, 85u8, 99u8, 181u8, 173u8, 67u8, 252u8, 37u8,
-                            236u8,
+                            77u8, 39u8, 230u8, 122u8, 108u8, 191u8, 251u8, 28u8, 233u8, 225u8,
+                            195u8, 224u8, 234u8, 90u8, 173u8, 170u8, 143u8, 246u8, 246u8, 21u8,
+                            38u8, 187u8, 112u8, 111u8, 206u8, 181u8, 183u8, 186u8, 96u8, 8u8,
+                            225u8, 224u8,
                         ],
                     )
                 }
@@ -5469,10 +6123,10 @@ pub mod api {
                         "Ledger",
                         Vec::new(),
                         [
-                            31u8, 205u8, 3u8, 165u8, 22u8, 22u8, 62u8, 92u8, 33u8, 189u8, 124u8,
-                            120u8, 177u8, 70u8, 27u8, 242u8, 188u8, 184u8, 204u8, 188u8, 242u8,
-                            140u8, 128u8, 230u8, 85u8, 99u8, 181u8, 173u8, 67u8, 252u8, 37u8,
-                            236u8,
+                            77u8, 39u8, 230u8, 122u8, 108u8, 191u8, 251u8, 28u8, 233u8, 225u8,
+                            195u8, 224u8, 234u8, 90u8, 173u8, 170u8, 143u8, 246u8, 246u8, 21u8,
+                            38u8, 187u8, 112u8, 111u8, 206u8, 181u8, 183u8, 186u8, 96u8, 8u8,
+                            225u8, 224u8,
                         ],
                     )
                 }
@@ -5500,10 +6154,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            195u8, 125u8, 82u8, 213u8, 216u8, 64u8, 76u8, 63u8, 187u8, 163u8, 20u8,
-                            230u8, 153u8, 13u8, 189u8, 232u8, 119u8, 118u8, 107u8, 17u8, 102u8,
-                            245u8, 36u8, 42u8, 232u8, 137u8, 177u8, 165u8, 169u8, 246u8, 199u8,
-                            57u8,
+                            198u8, 238u8, 10u8, 104u8, 204u8, 7u8, 193u8, 254u8, 169u8, 18u8,
+                            187u8, 212u8, 90u8, 243u8, 73u8, 29u8, 216u8, 144u8, 93u8, 140u8, 11u8,
+                            124u8, 4u8, 191u8, 107u8, 61u8, 15u8, 152u8, 70u8, 82u8, 60u8, 75u8,
                         ],
                     )
                 }
@@ -5526,10 +6179,9 @@ pub mod api {
                         "Payee",
                         Vec::new(),
                         [
-                            195u8, 125u8, 82u8, 213u8, 216u8, 64u8, 76u8, 63u8, 187u8, 163u8, 20u8,
-                            230u8, 153u8, 13u8, 189u8, 232u8, 119u8, 118u8, 107u8, 17u8, 102u8,
-                            245u8, 36u8, 42u8, 232u8, 137u8, 177u8, 165u8, 169u8, 246u8, 199u8,
-                            57u8,
+                            198u8, 238u8, 10u8, 104u8, 204u8, 7u8, 193u8, 254u8, 169u8, 18u8,
+                            187u8, 212u8, 90u8, 243u8, 73u8, 29u8, 216u8, 144u8, 93u8, 140u8, 11u8,
+                            124u8, 4u8, 191u8, 107u8, 61u8, 15u8, 152u8, 70u8, 82u8, 60u8, 75u8,
                         ],
                     )
                 }
@@ -5555,10 +6207,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            80u8, 77u8, 66u8, 18u8, 197u8, 250u8, 41u8, 185u8, 43u8, 24u8, 149u8,
-                            164u8, 208u8, 60u8, 144u8, 29u8, 251u8, 195u8, 236u8, 196u8, 108u8,
-                            58u8, 80u8, 115u8, 246u8, 66u8, 226u8, 241u8, 201u8, 172u8, 229u8,
-                            152u8,
+                            149u8, 207u8, 68u8, 38u8, 24u8, 220u8, 207u8, 84u8, 236u8, 33u8, 210u8,
+                            124u8, 200u8, 99u8, 98u8, 29u8, 235u8, 46u8, 124u8, 4u8, 203u8, 6u8,
+                            209u8, 21u8, 124u8, 236u8, 112u8, 118u8, 180u8, 85u8, 78u8, 13u8,
                         ],
                     )
                 }
@@ -5579,10 +6230,9 @@ pub mod api {
                         "Validators",
                         Vec::new(),
                         [
-                            80u8, 77u8, 66u8, 18u8, 197u8, 250u8, 41u8, 185u8, 43u8, 24u8, 149u8,
-                            164u8, 208u8, 60u8, 144u8, 29u8, 251u8, 195u8, 236u8, 196u8, 108u8,
-                            58u8, 80u8, 115u8, 246u8, 66u8, 226u8, 241u8, 201u8, 172u8, 229u8,
-                            152u8,
+                            149u8, 207u8, 68u8, 38u8, 24u8, 220u8, 207u8, 84u8, 236u8, 33u8, 210u8,
+                            124u8, 200u8, 99u8, 98u8, 29u8, 235u8, 46u8, 124u8, 4u8, 203u8, 6u8,
+                            209u8, 21u8, 124u8, 236u8, 112u8, 118u8, 180u8, 85u8, 78u8, 13u8,
                         ],
                     )
                 }
@@ -5601,9 +6251,10 @@ pub mod api {
                         "CounterForValidators",
                         vec![],
                         [
-                            139u8, 25u8, 223u8, 6u8, 160u8, 239u8, 212u8, 85u8, 36u8, 185u8, 69u8,
-                            63u8, 21u8, 156u8, 144u8, 241u8, 112u8, 85u8, 49u8, 78u8, 88u8, 11u8,
-                            8u8, 48u8, 118u8, 34u8, 62u8, 159u8, 239u8, 122u8, 90u8, 45u8,
+                            169u8, 146u8, 194u8, 114u8, 57u8, 232u8, 137u8, 93u8, 214u8, 98u8,
+                            176u8, 151u8, 237u8, 165u8, 176u8, 252u8, 73u8, 124u8, 22u8, 166u8,
+                            225u8, 217u8, 65u8, 56u8, 174u8, 12u8, 32u8, 2u8, 7u8, 173u8, 125u8,
+                            235u8,
                         ],
                     )
                 }
@@ -5624,9 +6275,10 @@ pub mod api {
                         "MaxValidatorsCount",
                         vec![],
                         [
-                            250u8, 62u8, 16u8, 68u8, 192u8, 216u8, 236u8, 211u8, 217u8, 9u8, 213u8,
-                            49u8, 41u8, 37u8, 58u8, 62u8, 131u8, 112u8, 64u8, 26u8, 133u8, 7u8,
-                            130u8, 1u8, 71u8, 158u8, 14u8, 55u8, 169u8, 239u8, 223u8, 245u8,
+                            139u8, 116u8, 236u8, 217u8, 110u8, 47u8, 140u8, 197u8, 184u8, 246u8,
+                            180u8, 188u8, 233u8, 99u8, 102u8, 21u8, 114u8, 23u8, 143u8, 163u8,
+                            224u8, 250u8, 248u8, 185u8, 235u8, 94u8, 110u8, 83u8, 170u8, 123u8,
+                            113u8, 168u8,
                         ],
                     )
                 }
@@ -5667,10 +6319,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            1u8, 154u8, 55u8, 170u8, 215u8, 64u8, 56u8, 83u8, 254u8, 19u8, 152u8,
-                            85u8, 164u8, 171u8, 206u8, 129u8, 184u8, 45u8, 221u8, 181u8, 229u8,
-                            133u8, 200u8, 231u8, 16u8, 146u8, 247u8, 21u8, 77u8, 122u8, 165u8,
-                            134u8,
+                            114u8, 45u8, 86u8, 23u8, 12u8, 98u8, 114u8, 3u8, 170u8, 11u8, 100u8,
+                            17u8, 122u8, 158u8, 192u8, 21u8, 160u8, 87u8, 85u8, 142u8, 241u8,
+                            232u8, 25u8, 6u8, 36u8, 85u8, 155u8, 79u8, 124u8, 173u8, 0u8, 252u8,
                         ],
                     )
                 }
@@ -5706,10 +6357,9 @@ pub mod api {
                         "Nominators",
                         Vec::new(),
                         [
-                            1u8, 154u8, 55u8, 170u8, 215u8, 64u8, 56u8, 83u8, 254u8, 19u8, 152u8,
-                            85u8, 164u8, 171u8, 206u8, 129u8, 184u8, 45u8, 221u8, 181u8, 229u8,
-                            133u8, 200u8, 231u8, 16u8, 146u8, 247u8, 21u8, 77u8, 122u8, 165u8,
-                            134u8,
+                            114u8, 45u8, 86u8, 23u8, 12u8, 98u8, 114u8, 3u8, 170u8, 11u8, 100u8,
+                            17u8, 122u8, 158u8, 192u8, 21u8, 160u8, 87u8, 85u8, 142u8, 241u8,
+                            232u8, 25u8, 6u8, 36u8, 85u8, 155u8, 79u8, 124u8, 173u8, 0u8, 252u8,
                         ],
                     )
                 }
@@ -5728,9 +6378,9 @@ pub mod api {
                         "CounterForNominators",
                         vec![],
                         [
-                            31u8, 94u8, 130u8, 138u8, 75u8, 8u8, 38u8, 162u8, 181u8, 5u8, 125u8,
-                            116u8, 9u8, 51u8, 22u8, 234u8, 40u8, 117u8, 215u8, 46u8, 82u8, 117u8,
-                            225u8, 1u8, 9u8, 208u8, 83u8, 63u8, 39u8, 187u8, 207u8, 191u8,
+                            150u8, 236u8, 184u8, 12u8, 224u8, 26u8, 13u8, 204u8, 208u8, 178u8,
+                            68u8, 148u8, 232u8, 85u8, 74u8, 248u8, 167u8, 61u8, 88u8, 126u8, 40u8,
+                            20u8, 73u8, 47u8, 94u8, 57u8, 144u8, 77u8, 156u8, 179u8, 55u8, 49u8,
                         ],
                     )
                 }
@@ -5751,10 +6401,9 @@ pub mod api {
                         "MaxNominatorsCount",
                         vec![],
                         [
-                            180u8, 190u8, 180u8, 66u8, 235u8, 173u8, 76u8, 160u8, 197u8, 92u8,
-                            96u8, 165u8, 220u8, 188u8, 32u8, 119u8, 3u8, 73u8, 86u8, 49u8, 104u8,
-                            17u8, 186u8, 98u8, 221u8, 175u8, 109u8, 254u8, 207u8, 245u8, 125u8,
-                            179u8,
+                            11u8, 234u8, 179u8, 254u8, 95u8, 119u8, 35u8, 255u8, 141u8, 95u8,
+                            148u8, 209u8, 43u8, 202u8, 19u8, 57u8, 185u8, 50u8, 152u8, 192u8, 95u8,
+                            13u8, 158u8, 245u8, 113u8, 199u8, 255u8, 187u8, 37u8, 44u8, 8u8, 119u8,
                         ],
                     )
                 }
@@ -5776,9 +6425,10 @@ pub mod api {
                         "CurrentEra",
                         vec![],
                         [
-                            105u8, 150u8, 49u8, 122u8, 4u8, 78u8, 8u8, 121u8, 34u8, 136u8, 157u8,
-                            227u8, 59u8, 139u8, 7u8, 253u8, 7u8, 10u8, 117u8, 71u8, 240u8, 74u8,
-                            86u8, 36u8, 198u8, 37u8, 153u8, 93u8, 196u8, 22u8, 192u8, 243u8,
+                            247u8, 239u8, 171u8, 18u8, 137u8, 240u8, 213u8, 3u8, 173u8, 173u8,
+                            236u8, 141u8, 202u8, 191u8, 228u8, 120u8, 196u8, 188u8, 13u8, 66u8,
+                            253u8, 117u8, 90u8, 8u8, 158u8, 11u8, 236u8, 141u8, 178u8, 44u8, 119u8,
+                            25u8,
                         ],
                     )
                 }
@@ -5800,9 +6450,10 @@ pub mod api {
                         "ActiveEra",
                         vec![],
                         [
-                            15u8, 112u8, 251u8, 183u8, 108u8, 61u8, 28u8, 71u8, 44u8, 150u8, 162u8,
-                            4u8, 143u8, 121u8, 11u8, 37u8, 83u8, 29u8, 193u8, 21u8, 210u8, 116u8,
-                            190u8, 236u8, 213u8, 235u8, 49u8, 97u8, 189u8, 142u8, 251u8, 124u8,
+                            24u8, 229u8, 66u8, 56u8, 111u8, 234u8, 139u8, 93u8, 245u8, 137u8,
+                            110u8, 110u8, 121u8, 15u8, 216u8, 207u8, 97u8, 120u8, 125u8, 45u8,
+                            61u8, 2u8, 50u8, 100u8, 3u8, 106u8, 12u8, 233u8, 123u8, 156u8, 145u8,
+                            38u8,
                         ],
                     )
                 }
@@ -5827,10 +6478,10 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            92u8, 157u8, 168u8, 144u8, 132u8, 3u8, 212u8, 80u8, 230u8, 229u8,
-                            251u8, 218u8, 97u8, 55u8, 79u8, 100u8, 163u8, 91u8, 32u8, 246u8, 122u8,
-                            78u8, 149u8, 214u8, 103u8, 249u8, 119u8, 20u8, 101u8, 116u8, 110u8,
-                            185u8,
+                            72u8, 185u8, 246u8, 202u8, 79u8, 127u8, 173u8, 74u8, 216u8, 238u8,
+                            58u8, 82u8, 235u8, 222u8, 76u8, 144u8, 97u8, 84u8, 17u8, 164u8, 132u8,
+                            167u8, 24u8, 195u8, 175u8, 132u8, 156u8, 87u8, 234u8, 147u8, 103u8,
+                            58u8,
                         ],
                     )
                 }
@@ -5852,10 +6503,10 @@ pub mod api {
                         "ErasStartSessionIndex",
                         Vec::new(),
                         [
-                            92u8, 157u8, 168u8, 144u8, 132u8, 3u8, 212u8, 80u8, 230u8, 229u8,
-                            251u8, 218u8, 97u8, 55u8, 79u8, 100u8, 163u8, 91u8, 32u8, 246u8, 122u8,
-                            78u8, 149u8, 214u8, 103u8, 249u8, 119u8, 20u8, 101u8, 116u8, 110u8,
-                            185u8,
+                            72u8, 185u8, 246u8, 202u8, 79u8, 127u8, 173u8, 74u8, 216u8, 238u8,
+                            58u8, 82u8, 235u8, 222u8, 76u8, 144u8, 97u8, 84u8, 17u8, 164u8, 132u8,
+                            167u8, 24u8, 195u8, 175u8, 132u8, 156u8, 87u8, 234u8, 147u8, 103u8,
+                            58u8,
                         ],
                     )
                 }
@@ -5889,9 +6540,9 @@ pub mod api {
                             ::subxt::storage::address::make_static_storage_map_key(_1.borrow()),
                         ],
                         [
-                            192u8, 50u8, 152u8, 151u8, 92u8, 180u8, 206u8, 15u8, 139u8, 210u8,
-                            128u8, 65u8, 92u8, 253u8, 43u8, 35u8, 139u8, 171u8, 73u8, 185u8, 32u8,
-                            78u8, 20u8, 197u8, 154u8, 90u8, 233u8, 231u8, 23u8, 22u8, 187u8, 156u8,
+                            103u8, 38u8, 198u8, 91u8, 133u8, 9u8, 10u8, 201u8, 103u8, 169u8, 159u8,
+                            172u8, 59u8, 238u8, 21u8, 30u8, 140u8, 183u8, 160u8, 61u8, 36u8, 162u8,
+                            244u8, 61u8, 78u8, 33u8, 134u8, 176u8, 112u8, 153u8, 192u8, 252u8,
                         ],
                     )
                 }
@@ -5918,9 +6569,9 @@ pub mod api {
                         "ErasStakers",
                         Vec::new(),
                         [
-                            192u8, 50u8, 152u8, 151u8, 92u8, 180u8, 206u8, 15u8, 139u8, 210u8,
-                            128u8, 65u8, 92u8, 253u8, 43u8, 35u8, 139u8, 171u8, 73u8, 185u8, 32u8,
-                            78u8, 20u8, 197u8, 154u8, 90u8, 233u8, 231u8, 23u8, 22u8, 187u8, 156u8,
+                            103u8, 38u8, 198u8, 91u8, 133u8, 9u8, 10u8, 201u8, 103u8, 169u8, 159u8,
+                            172u8, 59u8, 238u8, 21u8, 30u8, 140u8, 183u8, 160u8, 61u8, 36u8, 162u8,
+                            244u8, 61u8, 78u8, 33u8, 134u8, 176u8, 112u8, 153u8, 192u8, 252u8,
                         ],
                     )
                 }
@@ -5959,10 +6610,10 @@ pub mod api {
                             ::subxt::storage::address::make_static_storage_map_key(_1.borrow()),
                         ],
                         [
-                            43u8, 159u8, 113u8, 223u8, 122u8, 169u8, 98u8, 153u8, 26u8, 55u8, 71u8,
-                            119u8, 174u8, 48u8, 158u8, 45u8, 214u8, 26u8, 136u8, 215u8, 46u8,
-                            161u8, 185u8, 17u8, 174u8, 204u8, 206u8, 246u8, 49u8, 87u8, 134u8,
-                            169u8,
+                            119u8, 253u8, 51u8, 32u8, 173u8, 173u8, 49u8, 121u8, 141u8, 128u8,
+                            219u8, 112u8, 173u8, 42u8, 145u8, 37u8, 8u8, 12u8, 27u8, 37u8, 232u8,
+                            187u8, 130u8, 227u8, 113u8, 111u8, 185u8, 197u8, 157u8, 136u8, 205u8,
+                            32u8,
                         ],
                     )
                 }
@@ -5994,10 +6645,10 @@ pub mod api {
                         "ErasStakersClipped",
                         Vec::new(),
                         [
-                            43u8, 159u8, 113u8, 223u8, 122u8, 169u8, 98u8, 153u8, 26u8, 55u8, 71u8,
-                            119u8, 174u8, 48u8, 158u8, 45u8, 214u8, 26u8, 136u8, 215u8, 46u8,
-                            161u8, 185u8, 17u8, 174u8, 204u8, 206u8, 246u8, 49u8, 87u8, 134u8,
-                            169u8,
+                            119u8, 253u8, 51u8, 32u8, 173u8, 173u8, 49u8, 121u8, 141u8, 128u8,
+                            219u8, 112u8, 173u8, 42u8, 145u8, 37u8, 8u8, 12u8, 27u8, 37u8, 232u8,
+                            187u8, 130u8, 227u8, 113u8, 111u8, 185u8, 197u8, 157u8, 136u8, 205u8,
+                            32u8,
                         ],
                     )
                 }
@@ -6027,10 +6678,10 @@ pub mod api {
                             ::subxt::storage::address::make_static_storage_map_key(_1.borrow()),
                         ],
                         [
-                            6u8, 196u8, 209u8, 138u8, 252u8, 18u8, 203u8, 86u8, 129u8, 62u8, 4u8,
-                            56u8, 234u8, 114u8, 141u8, 136u8, 127u8, 224u8, 142u8, 89u8, 150u8,
-                            33u8, 31u8, 50u8, 140u8, 108u8, 124u8, 77u8, 188u8, 102u8, 230u8,
-                            174u8,
+                            201u8, 204u8, 230u8, 197u8, 37u8, 83u8, 124u8, 26u8, 10u8, 75u8, 164u8,
+                            102u8, 83u8, 24u8, 158u8, 127u8, 27u8, 173u8, 125u8, 63u8, 251u8,
+                            128u8, 239u8, 182u8, 115u8, 109u8, 13u8, 97u8, 211u8, 104u8, 189u8,
+                            127u8,
                         ],
                     )
                 }
@@ -6053,10 +6704,10 @@ pub mod api {
                         "ErasValidatorPrefs",
                         Vec::new(),
                         [
-                            6u8, 196u8, 209u8, 138u8, 252u8, 18u8, 203u8, 86u8, 129u8, 62u8, 4u8,
-                            56u8, 234u8, 114u8, 141u8, 136u8, 127u8, 224u8, 142u8, 89u8, 150u8,
-                            33u8, 31u8, 50u8, 140u8, 108u8, 124u8, 77u8, 188u8, 102u8, 230u8,
-                            174u8,
+                            201u8, 204u8, 230u8, 197u8, 37u8, 83u8, 124u8, 26u8, 10u8, 75u8, 164u8,
+                            102u8, 83u8, 24u8, 158u8, 127u8, 27u8, 173u8, 125u8, 63u8, 251u8,
+                            128u8, 239u8, 182u8, 115u8, 109u8, 13u8, 97u8, 211u8, 104u8, 189u8,
+                            127u8,
                         ],
                     )
                 }
@@ -6080,9 +6731,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            87u8, 80u8, 156u8, 123u8, 107u8, 77u8, 203u8, 37u8, 231u8, 84u8, 124u8,
-                            155u8, 227u8, 212u8, 212u8, 179u8, 84u8, 161u8, 223u8, 255u8, 254u8,
-                            107u8, 52u8, 89u8, 98u8, 169u8, 136u8, 241u8, 104u8, 3u8, 244u8, 161u8,
+                            185u8, 85u8, 179u8, 163u8, 178u8, 168u8, 141u8, 200u8, 59u8, 77u8, 2u8,
+                            197u8, 36u8, 188u8, 133u8, 117u8, 2u8, 25u8, 105u8, 132u8, 44u8, 75u8,
+                            15u8, 82u8, 57u8, 89u8, 242u8, 234u8, 70u8, 244u8, 198u8, 126u8,
                         ],
                     )
                 }
@@ -6103,9 +6754,9 @@ pub mod api {
                         "ErasValidatorReward",
                         Vec::new(),
                         [
-                            87u8, 80u8, 156u8, 123u8, 107u8, 77u8, 203u8, 37u8, 231u8, 84u8, 124u8,
-                            155u8, 227u8, 212u8, 212u8, 179u8, 84u8, 161u8, 223u8, 255u8, 254u8,
-                            107u8, 52u8, 89u8, 98u8, 169u8, 136u8, 241u8, 104u8, 3u8, 244u8, 161u8,
+                            185u8, 85u8, 179u8, 163u8, 178u8, 168u8, 141u8, 200u8, 59u8, 77u8, 2u8,
+                            197u8, 36u8, 188u8, 133u8, 117u8, 2u8, 25u8, 105u8, 132u8, 44u8, 75u8,
+                            15u8, 82u8, 57u8, 89u8, 242u8, 234u8, 70u8, 244u8, 198u8, 126u8,
                         ],
                     )
                 }
@@ -6130,9 +6781,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            194u8, 29u8, 20u8, 83u8, 200u8, 47u8, 158u8, 102u8, 88u8, 65u8, 24u8,
-                            255u8, 120u8, 178u8, 23u8, 232u8, 15u8, 64u8, 206u8, 0u8, 170u8, 40u8,
-                            18u8, 149u8, 45u8, 90u8, 179u8, 127u8, 52u8, 59u8, 37u8, 192u8,
+                            237u8, 135u8, 146u8, 156u8, 172u8, 48u8, 147u8, 207u8, 15u8, 86u8,
+                            55u8, 38u8, 29u8, 253u8, 198u8, 192u8, 99u8, 213u8, 80u8, 72u8, 212u8,
+                            60u8, 60u8, 180u8, 33u8, 17u8, 77u8, 0u8, 165u8, 225u8, 60u8, 213u8,
                         ],
                     )
                 }
@@ -6154,9 +6805,9 @@ pub mod api {
                         "ErasRewardPoints",
                         Vec::new(),
                         [
-                            194u8, 29u8, 20u8, 83u8, 200u8, 47u8, 158u8, 102u8, 88u8, 65u8, 24u8,
-                            255u8, 120u8, 178u8, 23u8, 232u8, 15u8, 64u8, 206u8, 0u8, 170u8, 40u8,
-                            18u8, 149u8, 45u8, 90u8, 179u8, 127u8, 52u8, 59u8, 37u8, 192u8,
+                            237u8, 135u8, 146u8, 156u8, 172u8, 48u8, 147u8, 207u8, 15u8, 86u8,
+                            55u8, 38u8, 29u8, 253u8, 198u8, 192u8, 99u8, 213u8, 80u8, 72u8, 212u8,
+                            60u8, 60u8, 180u8, 33u8, 17u8, 77u8, 0u8, 165u8, 225u8, 60u8, 213u8,
                         ],
                     )
                 }
@@ -6179,9 +6830,10 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            224u8, 240u8, 168u8, 69u8, 148u8, 140u8, 249u8, 240u8, 4u8, 46u8, 77u8,
-                            11u8, 224u8, 65u8, 26u8, 239u8, 1u8, 110u8, 53u8, 11u8, 247u8, 235u8,
-                            142u8, 234u8, 22u8, 43u8, 24u8, 36u8, 37u8, 43u8, 170u8, 40u8,
+                            8u8, 78u8, 101u8, 62u8, 124u8, 126u8, 66u8, 26u8, 47u8, 126u8, 239u8,
+                            204u8, 222u8, 104u8, 19u8, 108u8, 238u8, 160u8, 112u8, 242u8, 56u8,
+                            2u8, 250u8, 164u8, 250u8, 213u8, 201u8, 84u8, 193u8, 117u8, 108u8,
+                            146u8,
                         ],
                     )
                 }
@@ -6201,9 +6853,10 @@ pub mod api {
                         "ErasTotalStake",
                         Vec::new(),
                         [
-                            224u8, 240u8, 168u8, 69u8, 148u8, 140u8, 249u8, 240u8, 4u8, 46u8, 77u8,
-                            11u8, 224u8, 65u8, 26u8, 239u8, 1u8, 110u8, 53u8, 11u8, 247u8, 235u8,
-                            142u8, 234u8, 22u8, 43u8, 24u8, 36u8, 37u8, 43u8, 170u8, 40u8,
+                            8u8, 78u8, 101u8, 62u8, 124u8, 126u8, 66u8, 26u8, 47u8, 126u8, 239u8,
+                            204u8, 222u8, 104u8, 19u8, 108u8, 238u8, 160u8, 112u8, 242u8, 56u8,
+                            2u8, 250u8, 164u8, 250u8, 213u8, 201u8, 84u8, 193u8, 117u8, 108u8,
+                            146u8,
                         ],
                     )
                 }
@@ -6222,9 +6875,10 @@ pub mod api {
                         "ForceEra",
                         vec![],
                         [
-                            221u8, 41u8, 71u8, 21u8, 28u8, 193u8, 65u8, 97u8, 103u8, 37u8, 145u8,
-                            146u8, 183u8, 194u8, 57u8, 131u8, 214u8, 136u8, 68u8, 156u8, 140u8,
-                            194u8, 69u8, 151u8, 115u8, 177u8, 92u8, 147u8, 29u8, 40u8, 41u8, 31u8,
+                            177u8, 148u8, 73u8, 108u8, 136u8, 126u8, 89u8, 18u8, 124u8, 66u8, 30u8,
+                            102u8, 133u8, 164u8, 78u8, 214u8, 184u8, 163u8, 75u8, 164u8, 117u8,
+                            233u8, 209u8, 158u8, 99u8, 208u8, 21u8, 194u8, 152u8, 82u8, 16u8,
+                            222u8,
                         ],
                     )
                 }
@@ -6245,10 +6899,10 @@ pub mod api {
                         "SlashRewardFraction",
                         vec![],
                         [
-                            167u8, 79u8, 143u8, 202u8, 199u8, 100u8, 129u8, 162u8, 23u8, 165u8,
-                            106u8, 170u8, 244u8, 86u8, 144u8, 242u8, 65u8, 207u8, 115u8, 224u8,
-                            231u8, 155u8, 55u8, 139u8, 101u8, 129u8, 242u8, 196u8, 130u8, 50u8,
-                            3u8, 117u8,
+                            53u8, 88u8, 253u8, 237u8, 84u8, 228u8, 187u8, 130u8, 108u8, 195u8,
+                            135u8, 25u8, 75u8, 52u8, 238u8, 62u8, 133u8, 38u8, 139u8, 129u8, 216u8,
+                            193u8, 197u8, 216u8, 245u8, 171u8, 128u8, 207u8, 125u8, 246u8, 248u8,
+                            7u8,
                         ],
                     )
                 }
@@ -6268,9 +6922,10 @@ pub mod api {
                         "CanceledSlashPayout",
                         vec![],
                         [
-                            126u8, 218u8, 66u8, 92u8, 82u8, 124u8, 145u8, 161u8, 40u8, 176u8, 14u8,
-                            211u8, 178u8, 216u8, 8u8, 156u8, 83u8, 14u8, 91u8, 15u8, 200u8, 170u8,
-                            3u8, 127u8, 141u8, 139u8, 151u8, 98u8, 74u8, 96u8, 238u8, 29u8,
+                            221u8, 88u8, 134u8, 81u8, 22u8, 229u8, 100u8, 27u8, 86u8, 244u8, 229u8,
+                            107u8, 251u8, 119u8, 58u8, 153u8, 19u8, 20u8, 254u8, 169u8, 248u8,
+                            220u8, 98u8, 118u8, 48u8, 213u8, 22u8, 79u8, 242u8, 250u8, 147u8,
+                            173u8,
                         ],
                     )
                 }
@@ -6297,9 +6952,10 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            130u8, 4u8, 163u8, 163u8, 28u8, 85u8, 34u8, 156u8, 47u8, 125u8, 57u8,
-                            0u8, 133u8, 176u8, 130u8, 2u8, 175u8, 180u8, 167u8, 203u8, 230u8, 82u8,
-                            198u8, 183u8, 55u8, 82u8, 221u8, 248u8, 100u8, 173u8, 206u8, 151u8,
+                            121u8, 1u8, 135u8, 243u8, 99u8, 254u8, 238u8, 207u8, 145u8, 172u8,
+                            186u8, 131u8, 181u8, 109u8, 199u8, 93u8, 129u8, 65u8, 106u8, 118u8,
+                            197u8, 83u8, 65u8, 45u8, 149u8, 1u8, 85u8, 99u8, 239u8, 148u8, 40u8,
+                            177u8,
                         ],
                     )
                 }
@@ -6323,9 +6979,10 @@ pub mod api {
                         "UnappliedSlashes",
                         Vec::new(),
                         [
-                            130u8, 4u8, 163u8, 163u8, 28u8, 85u8, 34u8, 156u8, 47u8, 125u8, 57u8,
-                            0u8, 133u8, 176u8, 130u8, 2u8, 175u8, 180u8, 167u8, 203u8, 230u8, 82u8,
-                            198u8, 183u8, 55u8, 82u8, 221u8, 248u8, 100u8, 173u8, 206u8, 151u8,
+                            121u8, 1u8, 135u8, 243u8, 99u8, 254u8, 238u8, 207u8, 145u8, 172u8,
+                            186u8, 131u8, 181u8, 109u8, 199u8, 93u8, 129u8, 65u8, 106u8, 118u8,
+                            197u8, 83u8, 65u8, 45u8, 149u8, 1u8, 85u8, 99u8, 239u8, 148u8, 40u8,
+                            177u8,
                         ],
                     )
                 }
@@ -6347,10 +7004,10 @@ pub mod api {
                         "BondedEras",
                         vec![],
                         [
-                            243u8, 162u8, 236u8, 198u8, 122u8, 182u8, 37u8, 55u8, 171u8, 156u8,
-                            235u8, 223u8, 226u8, 129u8, 89u8, 206u8, 2u8, 155u8, 222u8, 154u8,
-                            116u8, 124u8, 4u8, 119u8, 155u8, 94u8, 248u8, 30u8, 171u8, 51u8, 78u8,
-                            106u8,
+                            187u8, 216u8, 245u8, 253u8, 194u8, 182u8, 60u8, 244u8, 203u8, 84u8,
+                            228u8, 163u8, 149u8, 205u8, 57u8, 176u8, 203u8, 156u8, 20u8, 29u8,
+                            52u8, 234u8, 200u8, 63u8, 88u8, 49u8, 89u8, 117u8, 252u8, 75u8, 172u8,
+                            53u8,
                         ],
                     )
                 }
@@ -6380,10 +7037,9 @@ pub mod api {
                             ::subxt::storage::address::make_static_storage_map_key(_1.borrow()),
                         ],
                         [
-                            237u8, 80u8, 3u8, 237u8, 9u8, 40u8, 212u8, 15u8, 251u8, 196u8, 85u8,
-                            29u8, 27u8, 151u8, 98u8, 122u8, 189u8, 147u8, 205u8, 40u8, 202u8,
-                            194u8, 158u8, 96u8, 138u8, 16u8, 116u8, 71u8, 140u8, 163u8, 121u8,
-                            197u8,
+                            224u8, 141u8, 93u8, 44u8, 47u8, 157u8, 205u8, 12u8, 68u8, 41u8, 221u8,
+                            210u8, 141u8, 225u8, 253u8, 22u8, 175u8, 11u8, 92u8, 76u8, 180u8, 4u8,
+                            106u8, 135u8, 166u8, 47u8, 201u8, 43u8, 165u8, 42u8, 232u8, 219u8,
                         ],
                     )
                 }
@@ -6406,10 +7062,9 @@ pub mod api {
                         "ValidatorSlashInEra",
                         Vec::new(),
                         [
-                            237u8, 80u8, 3u8, 237u8, 9u8, 40u8, 212u8, 15u8, 251u8, 196u8, 85u8,
-                            29u8, 27u8, 151u8, 98u8, 122u8, 189u8, 147u8, 205u8, 40u8, 202u8,
-                            194u8, 158u8, 96u8, 138u8, 16u8, 116u8, 71u8, 140u8, 163u8, 121u8,
-                            197u8,
+                            224u8, 141u8, 93u8, 44u8, 47u8, 157u8, 205u8, 12u8, 68u8, 41u8, 221u8,
+                            210u8, 141u8, 225u8, 253u8, 22u8, 175u8, 11u8, 92u8, 76u8, 180u8, 4u8,
+                            106u8, 135u8, 166u8, 47u8, 201u8, 43u8, 165u8, 42u8, 232u8, 219u8,
                         ],
                     )
                 }
@@ -6435,9 +7090,9 @@ pub mod api {
                             ::subxt::storage::address::make_static_storage_map_key(_1.borrow()),
                         ],
                         [
-                            249u8, 85u8, 170u8, 41u8, 179u8, 194u8, 180u8, 12u8, 53u8, 101u8, 80u8,
-                            96u8, 166u8, 71u8, 239u8, 23u8, 153u8, 19u8, 152u8, 38u8, 138u8, 136u8,
-                            221u8, 200u8, 18u8, 165u8, 26u8, 228u8, 195u8, 199u8, 62u8, 4u8,
+                            8u8, 89u8, 171u8, 183u8, 64u8, 29u8, 44u8, 185u8, 11u8, 204u8, 67u8,
+                            60u8, 208u8, 132u8, 9u8, 214u8, 13u8, 148u8, 205u8, 26u8, 5u8, 7u8,
+                            250u8, 191u8, 83u8, 118u8, 95u8, 17u8, 40u8, 126u8, 16u8, 135u8,
                         ],
                     )
                 }
@@ -6456,9 +7111,9 @@ pub mod api {
                         "NominatorSlashInEra",
                         Vec::new(),
                         [
-                            249u8, 85u8, 170u8, 41u8, 179u8, 194u8, 180u8, 12u8, 53u8, 101u8, 80u8,
-                            96u8, 166u8, 71u8, 239u8, 23u8, 153u8, 19u8, 152u8, 38u8, 138u8, 136u8,
-                            221u8, 200u8, 18u8, 165u8, 26u8, 228u8, 195u8, 199u8, 62u8, 4u8,
+                            8u8, 89u8, 171u8, 183u8, 64u8, 29u8, 44u8, 185u8, 11u8, 204u8, 67u8,
+                            60u8, 208u8, 132u8, 9u8, 214u8, 13u8, 148u8, 205u8, 26u8, 5u8, 7u8,
+                            250u8, 191u8, 83u8, 118u8, 95u8, 17u8, 40u8, 126u8, 16u8, 135u8,
                         ],
                     )
                 }
@@ -6482,9 +7137,10 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            106u8, 115u8, 118u8, 52u8, 89u8, 77u8, 246u8, 5u8, 255u8, 204u8, 44u8,
-                            5u8, 66u8, 36u8, 227u8, 252u8, 86u8, 159u8, 186u8, 152u8, 196u8, 21u8,
-                            74u8, 201u8, 133u8, 93u8, 142u8, 191u8, 20u8, 27u8, 218u8, 157u8,
+                            160u8, 190u8, 57u8, 128u8, 105u8, 73u8, 194u8, 75u8, 12u8, 120u8,
+                            141u8, 190u8, 235u8, 250u8, 221u8, 200u8, 141u8, 162u8, 31u8, 85u8,
+                            239u8, 108u8, 200u8, 148u8, 155u8, 48u8, 44u8, 89u8, 5u8, 177u8, 236u8,
+                            182u8,
                         ],
                     )
                 }
@@ -6503,9 +7159,10 @@ pub mod api {
                         "SlashingSpans",
                         Vec::new(),
                         [
-                            106u8, 115u8, 118u8, 52u8, 89u8, 77u8, 246u8, 5u8, 255u8, 204u8, 44u8,
-                            5u8, 66u8, 36u8, 227u8, 252u8, 86u8, 159u8, 186u8, 152u8, 196u8, 21u8,
-                            74u8, 201u8, 133u8, 93u8, 142u8, 191u8, 20u8, 27u8, 218u8, 157u8,
+                            160u8, 190u8, 57u8, 128u8, 105u8, 73u8, 194u8, 75u8, 12u8, 120u8,
+                            141u8, 190u8, 235u8, 250u8, 221u8, 200u8, 141u8, 162u8, 31u8, 85u8,
+                            239u8, 108u8, 200u8, 148u8, 155u8, 48u8, 44u8, 89u8, 5u8, 177u8, 236u8,
+                            182u8,
                         ],
                     )
                 }
@@ -6532,10 +7189,9 @@ pub mod api {
                             ::subxt::storage::address::make_static_storage_map_key(_1.borrow()),
                         ],
                         [
-                            160u8, 63u8, 115u8, 190u8, 233u8, 148u8, 75u8, 3u8, 11u8, 59u8, 184u8,
-                            220u8, 205u8, 64u8, 28u8, 190u8, 116u8, 210u8, 225u8, 230u8, 224u8,
-                            163u8, 103u8, 157u8, 100u8, 29u8, 86u8, 167u8, 84u8, 217u8, 109u8,
-                            200u8,
+                            6u8, 241u8, 205u8, 89u8, 62u8, 181u8, 211u8, 216u8, 190u8, 41u8, 81u8,
+                            136u8, 136u8, 139u8, 57u8, 243u8, 174u8, 150u8, 132u8, 211u8, 79u8,
+                            138u8, 108u8, 218u8, 19u8, 225u8, 60u8, 26u8, 135u8, 6u8, 21u8, 116u8,
                         ],
                     )
                 }
@@ -6555,10 +7211,9 @@ pub mod api {
                         "SpanSlash",
                         Vec::new(),
                         [
-                            160u8, 63u8, 115u8, 190u8, 233u8, 148u8, 75u8, 3u8, 11u8, 59u8, 184u8,
-                            220u8, 205u8, 64u8, 28u8, 190u8, 116u8, 210u8, 225u8, 230u8, 224u8,
-                            163u8, 103u8, 157u8, 100u8, 29u8, 86u8, 167u8, 84u8, 217u8, 109u8,
-                            200u8,
+                            6u8, 241u8, 205u8, 89u8, 62u8, 181u8, 211u8, 216u8, 190u8, 41u8, 81u8,
+                            136u8, 136u8, 139u8, 57u8, 243u8, 174u8, 150u8, 132u8, 211u8, 79u8,
+                            138u8, 108u8, 218u8, 19u8, 225u8, 60u8, 26u8, 135u8, 6u8, 21u8, 116u8,
                         ],
                     )
                 }
@@ -6579,9 +7234,9 @@ pub mod api {
                         "CurrentPlannedSession",
                         vec![],
                         [
-                            38u8, 22u8, 56u8, 250u8, 17u8, 154u8, 99u8, 37u8, 155u8, 253u8, 100u8,
-                            117u8, 5u8, 239u8, 31u8, 190u8, 53u8, 241u8, 11u8, 185u8, 163u8, 227u8,
-                            10u8, 77u8, 210u8, 64u8, 156u8, 218u8, 105u8, 16u8, 1u8, 57u8,
+                            12u8, 47u8, 20u8, 104u8, 155u8, 181u8, 35u8, 91u8, 172u8, 97u8, 206u8,
+                            135u8, 185u8, 142u8, 46u8, 72u8, 32u8, 118u8, 225u8, 191u8, 28u8,
+                            130u8, 7u8, 38u8, 181u8, 233u8, 201u8, 8u8, 160u8, 161u8, 86u8, 204u8,
                         ],
                     )
                 }
@@ -6608,9 +7263,10 @@ pub mod api {
                         "OffendingValidators",
                         vec![],
                         [
-                            94u8, 254u8, 0u8, 50u8, 76u8, 232u8, 51u8, 153u8, 118u8, 14u8, 70u8,
-                            101u8, 112u8, 215u8, 173u8, 82u8, 182u8, 104u8, 167u8, 103u8, 187u8,
-                            168u8, 86u8, 16u8, 51u8, 235u8, 51u8, 119u8, 38u8, 154u8, 42u8, 113u8,
+                            201u8, 31u8, 141u8, 182u8, 160u8, 180u8, 37u8, 226u8, 50u8, 65u8,
+                            103u8, 11u8, 38u8, 120u8, 200u8, 219u8, 219u8, 98u8, 185u8, 137u8,
+                            154u8, 20u8, 130u8, 163u8, 126u8, 185u8, 33u8, 194u8, 76u8, 172u8,
+                            70u8, 220u8,
                         ],
                     )
                 }
@@ -6631,9 +7287,9 @@ pub mod api {
                         "ChillThreshold",
                         vec![],
                         [
-                            174u8, 165u8, 249u8, 105u8, 24u8, 151u8, 115u8, 166u8, 199u8, 251u8,
-                            28u8, 5u8, 50u8, 95u8, 144u8, 110u8, 220u8, 76u8, 14u8, 23u8, 179u8,
-                            41u8, 11u8, 248u8, 28u8, 154u8, 159u8, 255u8, 156u8, 109u8, 98u8, 92u8,
+                            133u8, 222u8, 1u8, 208u8, 212u8, 216u8, 247u8, 66u8, 178u8, 96u8, 35u8,
+                            112u8, 33u8, 245u8, 11u8, 249u8, 255u8, 212u8, 204u8, 161u8, 44u8,
+                            38u8, 126u8, 151u8, 140u8, 42u8, 253u8, 101u8, 1u8, 23u8, 239u8, 39u8,
                         ],
                     )
                 }
@@ -6807,9 +7463,10 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            94u8, 72u8, 245u8, 151u8, 214u8, 10u8, 12u8, 113u8, 13u8, 141u8, 176u8,
-                            178u8, 115u8, 238u8, 224u8, 181u8, 18u8, 5u8, 71u8, 65u8, 189u8, 148u8,
-                            161u8, 106u8, 24u8, 211u8, 72u8, 66u8, 221u8, 244u8, 117u8, 184u8,
+                            219u8, 105u8, 245u8, 54u8, 143u8, 81u8, 56u8, 104u8, 60u8, 207u8,
+                            165u8, 92u8, 123u8, 2u8, 64u8, 117u8, 154u8, 135u8, 252u8, 234u8,
+                            129u8, 159u8, 77u8, 38u8, 238u8, 220u8, 9u8, 88u8, 70u8, 200u8, 132u8,
+                            152u8,
                         ],
                     )
                 }
@@ -6828,9 +7485,10 @@ pub mod api {
                         "HistoricalSessions",
                         Vec::new(),
                         [
-                            94u8, 72u8, 245u8, 151u8, 214u8, 10u8, 12u8, 113u8, 13u8, 141u8, 176u8,
-                            178u8, 115u8, 238u8, 224u8, 181u8, 18u8, 5u8, 71u8, 65u8, 189u8, 148u8,
-                            161u8, 106u8, 24u8, 211u8, 72u8, 66u8, 221u8, 244u8, 117u8, 184u8,
+                            219u8, 105u8, 245u8, 54u8, 143u8, 81u8, 56u8, 104u8, 60u8, 207u8,
+                            165u8, 92u8, 123u8, 2u8, 64u8, 117u8, 154u8, 135u8, 252u8, 234u8,
+                            129u8, 159u8, 77u8, 38u8, 238u8, 220u8, 9u8, 88u8, 70u8, 200u8, 132u8,
+                            152u8,
                         ],
                     )
                 }
@@ -6849,9 +7507,10 @@ pub mod api {
                         "StoredRange",
                         vec![],
                         [
-                            89u8, 239u8, 197u8, 93u8, 135u8, 62u8, 142u8, 237u8, 64u8, 200u8,
-                            164u8, 4u8, 130u8, 233u8, 16u8, 238u8, 166u8, 206u8, 71u8, 42u8, 171u8,
-                            84u8, 8u8, 245u8, 183u8, 216u8, 212u8, 16u8, 190u8, 3u8, 167u8, 189u8,
+                            165u8, 141u8, 148u8, 255u8, 90u8, 168u8, 77u8, 150u8, 198u8, 127u8,
+                            227u8, 146u8, 107u8, 141u8, 43u8, 50u8, 190u8, 186u8, 45u8, 232u8,
+                            46u8, 95u8, 64u8, 155u8, 57u8, 82u8, 45u8, 255u8, 91u8, 109u8, 244u8,
+                            216u8,
                         ],
                     )
                 }
@@ -6860,39 +7519,55 @@ pub mod api {
     }
     pub mod session {
         use super::{root_mod, runtime_types};
+        #[doc = "Error for the session pallet."]
+        pub type Error = runtime_types::pallet_session::pallet::Error;
         #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
+        pub type Call = runtime_types::pallet_session::pallet::Call;
         pub mod calls {
             use super::{root_mod, runtime_types};
             type DispatchError = runtime_types::sp_runtime::DispatchError;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetKeys {
-                pub keys: runtime_types::aleph_runtime::SessionKeys,
-                pub proof: ::std::vec::Vec<::core::primitive::u8>,
+            pub mod types {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetKeys {
+                    pub keys: runtime_types::aleph_runtime::SessionKeys,
+                    pub proof: ::std::vec::Vec<::core::primitive::u8>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetKeys {
+                    const PALLET: &'static str = "Session";
+                    const CALL: &'static str = "set_keys";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct PurgeKeys;
+                impl ::subxt::blocks::StaticExtrinsic for PurgeKeys {
+                    const PALLET: &'static str = "Session";
+                    const CALL: &'static str = "purge_keys";
+                }
             }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct PurgeKeys;
             pub struct TransactionApi;
             impl TransactionApi {
                 #[doc = "Sets the session key(s) of the function caller to `keys`."]
@@ -6908,16 +7583,15 @@ pub mod api {
                     &self,
                     keys: runtime_types::aleph_runtime::SessionKeys,
                     proof: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::Payload<SetKeys> {
+                ) -> ::subxt::tx::Payload<types::SetKeys> {
                     ::subxt::tx::Payload::new_static(
                         "Session",
                         "set_keys",
-                        SetKeys { keys, proof },
+                        types::SetKeys { keys, proof },
                         [
-                            104u8, 12u8, 102u8, 88u8, 135u8, 226u8, 42u8, 162u8, 217u8, 56u8,
-                            227u8, 24u8, 190u8, 82u8, 1u8, 41u8, 49u8, 50u8, 146u8, 96u8, 21u8,
-                            56u8, 131u8, 32u8, 244u8, 189u8, 95u8, 22u8, 219u8, 106u8, 236u8,
-                            206u8,
+                            140u8, 95u8, 88u8, 227u8, 236u8, 242u8, 62u8, 186u8, 111u8, 21u8,
+                            141u8, 32u8, 138u8, 35u8, 241u8, 197u8, 159u8, 65u8, 143u8, 94u8, 17u8,
+                            204u8, 169u8, 224u8, 4u8, 169u8, 25u8, 181u8, 49u8, 117u8, 43u8, 90u8,
                         ],
                     )
                 }
@@ -6933,15 +7607,16 @@ pub mod api {
                 #[doc = "## Complexity"]
                 #[doc = "- `O(1)` in number of key types. Actual cost depends on the number of length of"]
                 #[doc = "  `T::Keys::key_ids()` which is fixed."]
-                pub fn purge_keys(&self) -> ::subxt::tx::Payload<PurgeKeys> {
+                pub fn purge_keys(&self) -> ::subxt::tx::Payload<types::PurgeKeys> {
                     ::subxt::tx::Payload::new_static(
                         "Session",
                         "purge_keys",
-                        PurgeKeys {},
+                        types::PurgeKeys {},
                         [
-                            200u8, 255u8, 4u8, 213u8, 188u8, 92u8, 99u8, 116u8, 163u8, 152u8, 29u8,
-                            35u8, 133u8, 119u8, 246u8, 44u8, 91u8, 31u8, 145u8, 23u8, 213u8, 64u8,
-                            71u8, 242u8, 207u8, 239u8, 231u8, 37u8, 61u8, 63u8, 190u8, 35u8,
+                            215u8, 204u8, 146u8, 236u8, 32u8, 78u8, 198u8, 79u8, 85u8, 214u8, 15u8,
+                            151u8, 158u8, 31u8, 146u8, 119u8, 119u8, 204u8, 151u8, 169u8, 226u8,
+                            67u8, 217u8, 39u8, 241u8, 245u8, 203u8, 240u8, 203u8, 172u8, 16u8,
+                            209u8,
                         ],
                     )
                 }
@@ -6962,6 +7637,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "New session has happened. Note that the argument is the session index, not the"]
@@ -6995,10 +7671,10 @@ pub mod api {
                         "Validators",
                         vec![],
                         [
-                            144u8, 235u8, 200u8, 43u8, 151u8, 57u8, 147u8, 172u8, 201u8, 202u8,
-                            242u8, 96u8, 57u8, 76u8, 124u8, 77u8, 42u8, 113u8, 218u8, 220u8, 230u8,
-                            32u8, 151u8, 152u8, 172u8, 106u8, 60u8, 227u8, 122u8, 118u8, 137u8,
-                            68u8,
+                            50u8, 86u8, 154u8, 222u8, 249u8, 209u8, 156u8, 22u8, 155u8, 25u8,
+                            133u8, 194u8, 210u8, 50u8, 38u8, 28u8, 139u8, 201u8, 90u8, 139u8,
+                            115u8, 12u8, 12u8, 141u8, 4u8, 178u8, 201u8, 241u8, 223u8, 234u8, 6u8,
+                            86u8,
                         ],
                     )
                 }
@@ -7017,10 +7693,10 @@ pub mod api {
                         "CurrentIndex",
                         vec![],
                         [
-                            148u8, 179u8, 159u8, 15u8, 197u8, 95u8, 214u8, 30u8, 209u8, 251u8,
-                            183u8, 231u8, 91u8, 25u8, 181u8, 191u8, 143u8, 252u8, 227u8, 80u8,
-                            159u8, 66u8, 194u8, 67u8, 113u8, 74u8, 111u8, 91u8, 218u8, 187u8,
-                            130u8, 40u8,
+                            167u8, 151u8, 125u8, 150u8, 159u8, 21u8, 78u8, 217u8, 237u8, 183u8,
+                            135u8, 65u8, 187u8, 114u8, 188u8, 206u8, 16u8, 32u8, 69u8, 208u8,
+                            134u8, 159u8, 232u8, 224u8, 243u8, 27u8, 31u8, 166u8, 145u8, 44u8,
+                            221u8, 230u8,
                         ],
                     )
                 }
@@ -7040,9 +7716,10 @@ pub mod api {
                         "QueuedChanged",
                         vec![],
                         [
-                            105u8, 140u8, 235u8, 218u8, 96u8, 100u8, 252u8, 10u8, 58u8, 221u8,
-                            244u8, 251u8, 67u8, 91u8, 80u8, 202u8, 152u8, 42u8, 50u8, 113u8, 200u8,
-                            247u8, 59u8, 213u8, 77u8, 195u8, 1u8, 150u8, 220u8, 18u8, 245u8, 46u8,
+                            184u8, 137u8, 224u8, 137u8, 31u8, 236u8, 95u8, 164u8, 102u8, 225u8,
+                            198u8, 227u8, 140u8, 37u8, 113u8, 57u8, 59u8, 4u8, 202u8, 102u8, 117u8,
+                            36u8, 226u8, 64u8, 113u8, 141u8, 199u8, 111u8, 99u8, 144u8, 198u8,
+                            153u8,
                         ],
                     )
                 }
@@ -7065,10 +7742,9 @@ pub mod api {
                         "QueuedKeys",
                         vec![],
                         [
-                            225u8, 184u8, 241u8, 120u8, 191u8, 179u8, 152u8, 85u8, 19u8, 139u8,
-                            177u8, 231u8, 102u8, 210u8, 125u8, 68u8, 196u8, 242u8, 40u8, 39u8,
-                            70u8, 16u8, 6u8, 167u8, 81u8, 190u8, 61u8, 91u8, 246u8, 206u8, 249u8,
-                            78u8,
+                            109u8, 182u8, 105u8, 249u8, 18u8, 61u8, 37u8, 122u8, 223u8, 3u8, 109u8,
+                            154u8, 40u8, 193u8, 53u8, 44u8, 253u8, 61u8, 135u8, 185u8, 140u8,
+                            152u8, 11u8, 103u8, 212u8, 99u8, 65u8, 118u8, 196u8, 86u8, 68u8, 80u8,
                         ],
                     )
                 }
@@ -7091,10 +7767,9 @@ pub mod api {
                         "DisabledValidators",
                         vec![],
                         [
-                            135u8, 22u8, 22u8, 97u8, 82u8, 217u8, 144u8, 141u8, 121u8, 240u8,
-                            189u8, 16u8, 176u8, 88u8, 177u8, 31u8, 20u8, 242u8, 73u8, 104u8, 11u8,
-                            110u8, 214u8, 34u8, 52u8, 217u8, 106u8, 33u8, 174u8, 174u8, 198u8,
-                            84u8,
+                            213u8, 19u8, 168u8, 234u8, 187u8, 200u8, 180u8, 97u8, 234u8, 189u8,
+                            36u8, 233u8, 158u8, 184u8, 45u8, 35u8, 129u8, 213u8, 133u8, 8u8, 104u8,
+                            183u8, 46u8, 68u8, 154u8, 240u8, 132u8, 22u8, 247u8, 11u8, 54u8, 221u8,
                         ],
                     )
                 }
@@ -7118,9 +7793,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            18u8, 209u8, 31u8, 20u8, 131u8, 9u8, 97u8, 157u8, 63u8, 9u8, 233u8,
-                            216u8, 40u8, 240u8, 66u8, 111u8, 60u8, 87u8, 83u8, 178u8, 17u8, 105u8,
-                            214u8, 169u8, 171u8, 220u8, 7u8, 121u8, 35u8, 229u8, 253u8, 40u8,
+                            213u8, 195u8, 136u8, 175u8, 37u8, 8u8, 144u8, 249u8, 96u8, 97u8, 58u8,
+                            209u8, 46u8, 15u8, 2u8, 239u8, 173u8, 2u8, 77u8, 82u8, 239u8, 126u8,
+                            157u8, 210u8, 107u8, 231u8, 166u8, 3u8, 226u8, 173u8, 112u8, 122u8,
                         ],
                     )
                 }
@@ -7139,9 +7814,9 @@ pub mod api {
                         "NextKeys",
                         Vec::new(),
                         [
-                            18u8, 209u8, 31u8, 20u8, 131u8, 9u8, 97u8, 157u8, 63u8, 9u8, 233u8,
-                            216u8, 40u8, 240u8, 66u8, 111u8, 60u8, 87u8, 83u8, 178u8, 17u8, 105u8,
-                            214u8, 169u8, 171u8, 220u8, 7u8, 121u8, 35u8, 229u8, 253u8, 40u8,
+                            213u8, 195u8, 136u8, 175u8, 37u8, 8u8, 144u8, 249u8, 96u8, 97u8, 58u8,
+                            209u8, 46u8, 15u8, 2u8, 239u8, 173u8, 2u8, 77u8, 82u8, 239u8, 126u8,
+                            157u8, 210u8, 107u8, 231u8, 166u8, 3u8, 226u8, 173u8, 112u8, 122u8,
                         ],
                     )
                 }
@@ -7165,9 +7840,9 @@ pub mod api {
                             ::subxt::storage::address::make_static_storage_map_key(_1.borrow()),
                         ],
                         [
-                            4u8, 91u8, 25u8, 84u8, 250u8, 201u8, 174u8, 129u8, 201u8, 58u8, 197u8,
-                            199u8, 137u8, 240u8, 118u8, 33u8, 99u8, 2u8, 195u8, 57u8, 53u8, 172u8,
-                            0u8, 148u8, 203u8, 144u8, 149u8, 64u8, 135u8, 254u8, 242u8, 215u8,
+                            177u8, 90u8, 148u8, 24u8, 251u8, 26u8, 65u8, 235u8, 46u8, 25u8, 109u8,
+                            212u8, 208u8, 218u8, 58u8, 196u8, 29u8, 73u8, 145u8, 41u8, 30u8, 251u8,
+                            185u8, 26u8, 205u8, 50u8, 32u8, 200u8, 206u8, 178u8, 255u8, 146u8,
                         ],
                     )
                 }
@@ -7186,9 +7861,9 @@ pub mod api {
                         "KeyOwner",
                         Vec::new(),
                         [
-                            4u8, 91u8, 25u8, 84u8, 250u8, 201u8, 174u8, 129u8, 201u8, 58u8, 197u8,
-                            199u8, 137u8, 240u8, 118u8, 33u8, 99u8, 2u8, 195u8, 57u8, 53u8, 172u8,
-                            0u8, 148u8, 203u8, 144u8, 149u8, 64u8, 135u8, 254u8, 242u8, 215u8,
+                            177u8, 90u8, 148u8, 24u8, 251u8, 26u8, 65u8, 235u8, 46u8, 25u8, 109u8,
+                            212u8, 208u8, 218u8, 58u8, 196u8, 29u8, 73u8, 145u8, 41u8, 30u8, 251u8,
+                            185u8, 26u8, 205u8, 50u8, 32u8, 200u8, 206u8, 178u8, 255u8, 146u8,
                         ],
                     )
                 }
@@ -7198,39 +7873,53 @@ pub mod api {
     pub mod aleph {
         use super::{root_mod, runtime_types};
         #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
+        pub type Call = runtime_types::pallet_aleph::pallet::Call;
         pub mod calls {
             use super::{root_mod, runtime_types};
             type DispatchError = runtime_types::sp_runtime::DispatchError;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetEmergencyFinalizer {
-                pub emergency_finalizer: runtime_types::primitives::app::Public,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ScheduleFinalityVersionChange {
-                pub version_incoming: ::core::primitive::u32,
-                pub session: ::core::primitive::u32,
+            pub mod types {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetEmergencyFinalizer {
+                    pub emergency_finalizer: runtime_types::primitives::app::Public,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetEmergencyFinalizer {
+                    const PALLET: &'static str = "Aleph";
+                    const CALL: &'static str = "set_emergency_finalizer";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ScheduleFinalityVersionChange {
+                    pub version_incoming: ::core::primitive::u32,
+                    pub session: ::core::primitive::u32,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for ScheduleFinalityVersionChange {
+                    const PALLET: &'static str = "Aleph";
+                    const CALL: &'static str = "schedule_finality_version_change";
+                }
             }
             pub struct TransactionApi;
             impl TransactionApi {
@@ -7239,17 +7928,17 @@ pub mod api {
                 pub fn set_emergency_finalizer(
                     &self,
                     emergency_finalizer: runtime_types::primitives::app::Public,
-                ) -> ::subxt::tx::Payload<SetEmergencyFinalizer> {
+                ) -> ::subxt::tx::Payload<types::SetEmergencyFinalizer> {
                     ::subxt::tx::Payload::new_static(
                         "Aleph",
                         "set_emergency_finalizer",
-                        SetEmergencyFinalizer {
+                        types::SetEmergencyFinalizer {
                             emergency_finalizer,
                         },
                         [
-                            13u8, 25u8, 102u8, 60u8, 64u8, 83u8, 158u8, 113u8, 177u8, 194u8, 79u8,
-                            66u8, 171u8, 98u8, 169u8, 52u8, 69u8, 194u8, 54u8, 131u8, 190u8, 83u8,
-                            21u8, 64u8, 119u8, 90u8, 53u8, 125u8, 52u8, 155u8, 222u8, 76u8,
+                            38u8, 226u8, 0u8, 105u8, 84u8, 48u8, 81u8, 59u8, 52u8, 230u8, 94u8,
+                            146u8, 76u8, 2u8, 248u8, 242u8, 1u8, 202u8, 229u8, 166u8, 203u8, 169u8,
+                            223u8, 233u8, 37u8, 236u8, 196u8, 87u8, 49u8, 159u8, 102u8, 210u8,
                         ],
                     )
                 }
@@ -7263,19 +7952,18 @@ pub mod api {
                     &self,
                     version_incoming: ::core::primitive::u32,
                     session: ::core::primitive::u32,
-                ) -> ::subxt::tx::Payload<ScheduleFinalityVersionChange> {
+                ) -> ::subxt::tx::Payload<types::ScheduleFinalityVersionChange> {
                     ::subxt::tx::Payload::new_static(
                         "Aleph",
                         "schedule_finality_version_change",
-                        ScheduleFinalityVersionChange {
+                        types::ScheduleFinalityVersionChange {
                             version_incoming,
                             session,
                         },
                         [
-                            27u8, 162u8, 238u8, 141u8, 132u8, 87u8, 69u8, 115u8, 243u8, 197u8,
-                            38u8, 37u8, 243u8, 86u8, 45u8, 137u8, 73u8, 181u8, 108u8, 200u8, 168u8,
-                            141u8, 130u8, 244u8, 85u8, 128u8, 145u8, 34u8, 233u8, 87u8, 38u8,
-                            198u8,
+                            178u8, 20u8, 157u8, 90u8, 47u8, 174u8, 25u8, 167u8, 52u8, 5u8, 132u8,
+                            100u8, 58u8, 83u8, 188u8, 140u8, 112u8, 68u8, 246u8, 233u8, 174u8,
+                            249u8, 206u8, 127u8, 35u8, 50u8, 1u8, 82u8, 251u8, 137u8, 218u8, 82u8,
                         ],
                     )
                 }
@@ -7295,6 +7983,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct ChangeEmergencyFinalizer(pub runtime_types::primitives::app::Public);
@@ -7312,6 +8001,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct ScheduleFinalityVersionChange(pub runtime_types::primitives::VersionChange);
@@ -7329,6 +8019,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct FinalityVersionChange(pub runtime_types::primitives::VersionChange);
@@ -7355,9 +8046,9 @@ pub mod api {
                         "Authorities",
                         vec![],
                         [
-                            5u8, 88u8, 222u8, 150u8, 141u8, 89u8, 69u8, 47u8, 152u8, 80u8, 80u8,
-                            1u8, 20u8, 132u8, 5u8, 152u8, 175u8, 14u8, 99u8, 198u8, 102u8, 229u8,
-                            159u8, 198u8, 138u8, 149u8, 68u8, 195u8, 243u8, 50u8, 249u8, 170u8,
+                            211u8, 50u8, 250u8, 84u8, 105u8, 18u8, 116u8, 69u8, 232u8, 212u8,
+                            100u8, 42u8, 4u8, 221u8, 45u8, 97u8, 199u8, 31u8, 128u8, 231u8, 51u8,
+                            125u8, 36u8, 174u8, 49u8, 72u8, 38u8, 94u8, 186u8, 116u8, 55u8, 28u8,
                         ],
                     )
                 }
@@ -7375,10 +8066,9 @@ pub mod api {
                         "NextAuthorities",
                         vec![],
                         [
-                            163u8, 215u8, 20u8, 173u8, 9u8, 250u8, 28u8, 164u8, 208u8, 154u8,
-                            213u8, 242u8, 175u8, 159u8, 46u8, 10u8, 131u8, 62u8, 246u8, 12u8,
-                            223u8, 212u8, 37u8, 170u8, 170u8, 198u8, 86u8, 237u8, 62u8, 0u8, 191u8,
-                            42u8,
+                            71u8, 163u8, 83u8, 184u8, 180u8, 45u8, 238u8, 19u8, 233u8, 35u8, 18u8,
+                            124u8, 119u8, 148u8, 42u8, 36u8, 153u8, 77u8, 135u8, 14u8, 14u8, 253u8,
+                            19u8, 51u8, 128u8, 247u8, 62u8, 169u8, 190u8, 248u8, 109u8, 210u8,
                         ],
                     )
                 }
@@ -7399,9 +8089,10 @@ pub mod api {
                         "NextFinalityCommittee",
                         vec![],
                         [
-                            90u8, 122u8, 5u8, 50u8, 131u8, 126u8, 50u8, 185u8, 47u8, 179u8, 86u8,
-                            202u8, 168u8, 84u8, 132u8, 94u8, 160u8, 89u8, 11u8, 194u8, 12u8, 125u8,
-                            17u8, 38u8, 79u8, 64u8, 69u8, 42u8, 207u8, 212u8, 67u8, 28u8,
+                            237u8, 47u8, 142u8, 142u8, 66u8, 221u8, 0u8, 191u8, 217u8, 111u8,
+                            231u8, 163u8, 128u8, 115u8, 108u8, 117u8, 80u8, 169u8, 86u8, 41u8,
+                            250u8, 18u8, 72u8, 170u8, 233u8, 132u8, 207u8, 141u8, 4u8, 48u8, 96u8,
+                            117u8,
                         ],
                     )
                 }
@@ -7419,9 +8110,10 @@ pub mod api {
                         "EmergencyFinalizer",
                         vec![],
                         [
-                            254u8, 68u8, 214u8, 192u8, 214u8, 1u8, 48u8, 167u8, 1u8, 55u8, 148u8,
-                            124u8, 72u8, 123u8, 148u8, 50u8, 131u8, 17u8, 48u8, 14u8, 48u8, 92u8,
-                            3u8, 56u8, 60u8, 224u8, 97u8, 60u8, 208u8, 53u8, 164u8, 88u8,
+                            62u8, 174u8, 45u8, 149u8, 229u8, 101u8, 106u8, 170u8, 199u8, 116u8,
+                            185u8, 119u8, 140u8, 161u8, 115u8, 216u8, 63u8, 82u8, 192u8, 27u8,
+                            220u8, 128u8, 191u8, 206u8, 38u8, 70u8, 173u8, 156u8, 15u8, 79u8,
+                            188u8, 222u8,
                         ],
                     )
                 }
@@ -7439,9 +8131,9 @@ pub mod api {
                         "QueuedEmergencyFinalizer",
                         vec![],
                         [
-                            156u8, 104u8, 166u8, 24u8, 170u8, 246u8, 39u8, 246u8, 130u8, 169u8,
-                            222u8, 196u8, 137u8, 216u8, 190u8, 64u8, 28u8, 50u8, 6u8, 194u8, 164u8,
-                            91u8, 85u8, 78u8, 212u8, 61u8, 126u8, 242u8, 207u8, 76u8, 227u8, 115u8,
+                            12u8, 70u8, 225u8, 38u8, 16u8, 115u8, 83u8, 18u8, 94u8, 77u8, 213u8,
+                            71u8, 118u8, 253u8, 200u8, 145u8, 66u8, 6u8, 8u8, 220u8, 2u8, 97u8,
+                            179u8, 230u8, 160u8, 189u8, 29u8, 220u8, 52u8, 38u8, 194u8, 156u8,
                         ],
                     )
                 }
@@ -7459,9 +8151,9 @@ pub mod api {
                         "NextEmergencyFinalizer",
                         vec![],
                         [
-                            84u8, 79u8, 27u8, 15u8, 74u8, 189u8, 24u8, 17u8, 157u8, 91u8, 245u8,
-                            30u8, 129u8, 11u8, 226u8, 87u8, 50u8, 182u8, 60u8, 73u8, 214u8, 46u8,
-                            132u8, 0u8, 53u8, 14u8, 228u8, 115u8, 240u8, 64u8, 158u8, 165u8,
+                            61u8, 67u8, 249u8, 159u8, 210u8, 235u8, 0u8, 148u8, 184u8, 242u8,
+                            255u8, 51u8, 86u8, 214u8, 124u8, 130u8, 155u8, 107u8, 69u8, 83u8, 42u8,
+                            186u8, 88u8, 176u8, 16u8, 162u8, 239u8, 44u8, 241u8, 59u8, 29u8, 35u8,
                         ],
                     )
                 }
@@ -7480,10 +8172,10 @@ pub mod api {
                         "FinalityVersion",
                         vec![],
                         [
-                            134u8, 19u8, 94u8, 247u8, 125u8, 18u8, 148u8, 160u8, 167u8, 235u8,
-                            174u8, 4u8, 107u8, 69u8, 55u8, 187u8, 249u8, 13u8, 129u8, 99u8, 116u8,
-                            158u8, 38u8, 29u8, 239u8, 112u8, 150u8, 92u8, 151u8, 197u8, 223u8,
-                            30u8,
+                            67u8, 185u8, 148u8, 8u8, 133u8, 80u8, 24u8, 59u8, 228u8, 72u8, 147u8,
+                            225u8, 186u8, 142u8, 142u8, 215u8, 229u8, 213u8, 92u8, 140u8, 87u8,
+                            120u8, 142u8, 36u8, 100u8, 245u8, 110u8, 24u8, 247u8, 168u8, 14u8,
+                            134u8,
                         ],
                     )
                 }
@@ -7502,10 +8194,9 @@ pub mod api {
                         "FinalityScheduledVersionChange",
                         vec![],
                         [
-                            195u8, 203u8, 203u8, 240u8, 214u8, 227u8, 177u8, 99u8, 82u8, 86u8,
-                            201u8, 237u8, 47u8, 32u8, 111u8, 219u8, 184u8, 107u8, 211u8, 83u8,
-                            25u8, 59u8, 170u8, 29u8, 24u8, 149u8, 85u8, 63u8, 37u8, 203u8, 129u8,
-                            97u8,
+                            55u8, 122u8, 150u8, 153u8, 14u8, 254u8, 3u8, 10u8, 253u8, 212u8, 73u8,
+                            34u8, 51u8, 73u8, 106u8, 23u8, 10u8, 58u8, 52u8, 195u8, 138u8, 32u8,
+                            154u8, 153u8, 190u8, 227u8, 95u8, 171u8, 41u8, 147u8, 29u8, 38u8,
                         ],
                     )
                 }
@@ -7514,50 +8205,66 @@ pub mod api {
     }
     pub mod elections {
         use super::{root_mod, runtime_types};
+        #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
+        pub type Error = runtime_types::pallet_elections::pallet::Error;
         #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
+        pub type Call = runtime_types::pallet_elections::pallet::Call;
         pub mod calls {
             use super::{root_mod, runtime_types};
             type DispatchError = runtime_types::sp_runtime::DispatchError;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ChangeValidators {
-                pub reserved_validators: ::core::option::Option<
-                    ::std::vec::Vec<
-                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+            pub mod types {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ChangeValidators {
+                    pub reserved_validators: ::core::option::Option<
+                        ::std::vec::Vec<
+                            ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        >,
                     >,
-                >,
-                pub non_reserved_validators: ::core::option::Option<
-                    ::std::vec::Vec<
-                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                    pub non_reserved_validators: ::core::option::Option<
+                        ::std::vec::Vec<
+                            ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        >,
                     >,
-                >,
-                pub committee_size:
-                    ::core::option::Option<runtime_types::primitives::CommitteeSeats>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetElectionsOpenness {
-                pub openness: runtime_types::primitives::ElectionOpenness,
+                    pub committee_size:
+                        ::core::option::Option<runtime_types::primitives::CommitteeSeats>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for ChangeValidators {
+                    const PALLET: &'static str = "Elections";
+                    const CALL: &'static str = "change_validators";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetElectionsOpenness {
+                    pub openness: runtime_types::primitives::ElectionOpenness,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetElectionsOpenness {
+                    const PALLET: &'static str = "Elections";
+                    const CALL: &'static str = "set_elections_openness";
+                }
             }
             pub struct TransactionApi;
             impl TransactionApi {
@@ -7576,19 +8283,19 @@ pub mod api {
                     committee_size: ::core::option::Option<
                         runtime_types::primitives::CommitteeSeats,
                     >,
-                ) -> ::subxt::tx::Payload<ChangeValidators> {
+                ) -> ::subxt::tx::Payload<types::ChangeValidators> {
                     ::subxt::tx::Payload::new_static(
                         "Elections",
                         "change_validators",
-                        ChangeValidators {
+                        types::ChangeValidators {
                             reserved_validators,
                             non_reserved_validators,
                             committee_size,
                         },
                         [
-                            14u8, 207u8, 16u8, 93u8, 219u8, 37u8, 97u8, 206u8, 42u8, 143u8, 172u8,
-                            77u8, 239u8, 249u8, 187u8, 163u8, 239u8, 59u8, 147u8, 164u8, 79u8,
-                            48u8, 177u8, 74u8, 52u8, 11u8, 41u8, 224u8, 91u8, 28u8, 214u8, 248u8,
+                            202u8, 150u8, 199u8, 82u8, 49u8, 121u8, 116u8, 9u8, 61u8, 131u8, 91u8,
+                            149u8, 12u8, 138u8, 121u8, 110u8, 80u8, 3u8, 246u8, 115u8, 184u8, 5u8,
+                            46u8, 30u8, 203u8, 110u8, 102u8, 160u8, 100u8, 78u8, 19u8, 86u8,
                         ],
                     )
                 }
@@ -7596,16 +8303,15 @@ pub mod api {
                 pub fn set_elections_openness(
                     &self,
                     openness: runtime_types::primitives::ElectionOpenness,
-                ) -> ::subxt::tx::Payload<SetElectionsOpenness> {
+                ) -> ::subxt::tx::Payload<types::SetElectionsOpenness> {
                     ::subxt::tx::Payload::new_static(
                         "Elections",
                         "set_elections_openness",
-                        SetElectionsOpenness { openness },
+                        types::SetElectionsOpenness { openness },
                         [
-                            207u8, 20u8, 183u8, 25u8, 206u8, 225u8, 242u8, 167u8, 164u8, 54u8,
-                            111u8, 134u8, 139u8, 4u8, 7u8, 89u8, 119u8, 165u8, 53u8, 3u8, 96u8,
-                            107u8, 188u8, 196u8, 113u8, 35u8, 128u8, 240u8, 222u8, 23u8, 221u8,
-                            105u8,
+                            140u8, 184u8, 8u8, 129u8, 216u8, 128u8, 54u8, 148u8, 64u8, 63u8, 170u8,
+                            255u8, 98u8, 136u8, 137u8, 29u8, 60u8, 149u8, 87u8, 21u8, 210u8, 64u8,
+                            105u8, 51u8, 117u8, 214u8, 220u8, 32u8, 251u8, 76u8, 228u8, 69u8,
                         ],
                     )
                 }
@@ -7625,6 +8331,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Committee for the next era has changed"]
@@ -7661,9 +8368,9 @@ pub mod api {
                         "CommitteeSize",
                         vec![],
                         [
-                            249u8, 100u8, 66u8, 119u8, 46u8, 120u8, 146u8, 52u8, 123u8, 14u8, 8u8,
-                            9u8, 60u8, 43u8, 1u8, 107u8, 25u8, 240u8, 239u8, 189u8, 206u8, 186u8,
-                            9u8, 107u8, 212u8, 202u8, 14u8, 29u8, 210u8, 226u8, 122u8, 84u8,
+                            132u8, 171u8, 138u8, 166u8, 135u8, 1u8, 180u8, 62u8, 192u8, 116u8,
+                            249u8, 80u8, 22u8, 210u8, 44u8, 215u8, 37u8, 219u8, 89u8, 53u8, 34u8,
+                            44u8, 251u8, 170u8, 0u8, 77u8, 77u8, 118u8, 54u8, 39u8, 104u8, 57u8,
                         ],
                     )
                 }
@@ -7682,10 +8389,10 @@ pub mod api {
                         "NextEraCommitteeSize",
                         vec![],
                         [
-                            114u8, 100u8, 218u8, 150u8, 191u8, 243u8, 5u8, 148u8, 100u8, 241u8,
-                            111u8, 53u8, 29u8, 250u8, 196u8, 168u8, 63u8, 70u8, 103u8, 238u8,
-                            244u8, 240u8, 111u8, 7u8, 166u8, 25u8, 192u8, 120u8, 91u8, 92u8, 37u8,
-                            235u8,
+                            140u8, 188u8, 102u8, 148u8, 41u8, 178u8, 93u8, 244u8, 226u8, 29u8,
+                            212u8, 68u8, 159u8, 252u8, 122u8, 249u8, 126u8, 42u8, 152u8, 222u8,
+                            89u8, 245u8, 106u8, 166u8, 211u8, 47u8, 68u8, 105u8, 90u8, 114u8,
+                            227u8, 200u8,
                         ],
                     )
                 }
@@ -7706,9 +8413,10 @@ pub mod api {
                         "NextEraReservedValidators",
                         vec![],
                         [
-                            6u8, 123u8, 0u8, 238u8, 248u8, 8u8, 50u8, 48u8, 77u8, 152u8, 162u8,
-                            53u8, 221u8, 121u8, 176u8, 84u8, 158u8, 169u8, 185u8, 96u8, 85u8,
-                            252u8, 56u8, 116u8, 7u8, 46u8, 147u8, 75u8, 194u8, 177u8, 0u8, 252u8,
+                            115u8, 55u8, 250u8, 191u8, 167u8, 234u8, 57u8, 242u8, 74u8, 212u8,
+                            178u8, 123u8, 176u8, 67u8, 133u8, 50u8, 134u8, 63u8, 35u8, 133u8, 94u8,
+                            144u8, 82u8, 97u8, 104u8, 108u8, 231u8, 19u8, 246u8, 109u8, 141u8,
+                            100u8,
                         ],
                     )
                 }
@@ -7729,10 +8437,10 @@ pub mod api {
                         "CurrentEraValidators",
                         vec![],
                         [
-                            120u8, 47u8, 38u8, 117u8, 185u8, 231u8, 146u8, 226u8, 139u8, 21u8,
-                            230u8, 120u8, 147u8, 157u8, 64u8, 50u8, 153u8, 160u8, 186u8, 53u8,
-                            215u8, 8u8, 39u8, 146u8, 195u8, 151u8, 191u8, 0u8, 105u8, 241u8, 152u8,
-                            97u8,
+                            253u8, 88u8, 217u8, 113u8, 112u8, 59u8, 167u8, 78u8, 172u8, 146u8,
+                            193u8, 185u8, 104u8, 224u8, 60u8, 225u8, 223u8, 117u8, 175u8, 55u8,
+                            206u8, 75u8, 96u8, 122u8, 33u8, 115u8, 165u8, 31u8, 16u8, 16u8, 141u8,
+                            70u8,
                         ],
                     )
                 }
@@ -7753,9 +8461,10 @@ pub mod api {
                         "NextEraNonReservedValidators",
                         vec![],
                         [
-                            118u8, 139u8, 183u8, 59u8, 75u8, 3u8, 245u8, 47u8, 30u8, 15u8, 23u8,
-                            237u8, 0u8, 153u8, 31u8, 251u8, 122u8, 172u8, 215u8, 255u8, 199u8,
-                            145u8, 242u8, 3u8, 132u8, 27u8, 20u8, 138u8, 252u8, 235u8, 215u8, 86u8,
+                            103u8, 0u8, 145u8, 194u8, 72u8, 111u8, 18u8, 87u8, 138u8, 131u8, 228u8,
+                            141u8, 114u8, 191u8, 202u8, 228u8, 56u8, 133u8, 137u8, 139u8, 72u8,
+                            169u8, 224u8, 255u8, 123u8, 185u8, 241u8, 165u8, 228u8, 0u8, 78u8,
+                            30u8,
                         ],
                     )
                 }
@@ -7775,10 +8484,9 @@ pub mod api {
                         "Openness",
                         vec![],
                         [
-                            128u8, 231u8, 144u8, 215u8, 195u8, 90u8, 89u8, 180u8, 151u8, 233u8,
-                            229u8, 205u8, 40u8, 26u8, 23u8, 134u8, 171u8, 172u8, 140u8, 248u8,
-                            172u8, 111u8, 92u8, 51u8, 189u8, 94u8, 91u8, 151u8, 129u8, 248u8, 78u8,
-                            12u8,
+                            96u8, 98u8, 199u8, 56u8, 84u8, 108u8, 185u8, 88u8, 174u8, 149u8, 51u8,
+                            54u8, 88u8, 39u8, 231u8, 156u8, 245u8, 134u8, 238u8, 124u8, 179u8,
+                            246u8, 237u8, 203u8, 113u8, 84u8, 67u8, 77u8, 55u8, 77u8, 38u8, 17u8,
                         ],
                     )
                 }
@@ -7809,97 +8517,128 @@ pub mod api {
     }
     pub mod treasury {
         use super::{root_mod, runtime_types};
+        #[doc = "Error for the treasury pallet."]
+        pub type Error = runtime_types::pallet_treasury::pallet::Error;
         #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
+        pub type Call = runtime_types::pallet_treasury::pallet::Call;
         pub mod calls {
             use super::{root_mod, runtime_types};
             type DispatchError = runtime_types::sp_runtime::DispatchError;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ProposeSpend {
-                #[codec(compact)]
-                pub value: ::core::primitive::u128,
-                pub beneficiary: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct RejectProposal {
-                #[codec(compact)]
-                pub proposal_id: ::core::primitive::u32,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ApproveProposal {
-                #[codec(compact)]
-                pub proposal_id: ::core::primitive::u32,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Spend {
-                #[codec(compact)]
-                pub amount: ::core::primitive::u128,
-                pub beneficiary: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct RemoveApproval {
-                #[codec(compact)]
-                pub proposal_id: ::core::primitive::u32,
+            pub mod types {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ProposeSpend {
+                    #[codec(compact)]
+                    pub value: ::core::primitive::u128,
+                    pub beneficiary: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for ProposeSpend {
+                    const PALLET: &'static str = "Treasury";
+                    const CALL: &'static str = "propose_spend";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct RejectProposal {
+                    #[codec(compact)]
+                    pub proposal_id: ::core::primitive::u32,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for RejectProposal {
+                    const PALLET: &'static str = "Treasury";
+                    const CALL: &'static str = "reject_proposal";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ApproveProposal {
+                    #[codec(compact)]
+                    pub proposal_id: ::core::primitive::u32,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for ApproveProposal {
+                    const PALLET: &'static str = "Treasury";
+                    const CALL: &'static str = "approve_proposal";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Spend {
+                    #[codec(compact)]
+                    pub amount: ::core::primitive::u128,
+                    pub beneficiary: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Spend {
+                    const PALLET: &'static str = "Treasury";
+                    const CALL: &'static str = "spend";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct RemoveApproval {
+                    #[codec(compact)]
+                    pub proposal_id: ::core::primitive::u32,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for RemoveApproval {
+                    const PALLET: &'static str = "Treasury";
+                    const CALL: &'static str = "remove_approval";
+                }
             }
             pub struct TransactionApi;
             impl TransactionApi {
@@ -7916,15 +8655,16 @@ pub mod api {
                         ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                         (),
                     >,
-                ) -> ::subxt::tx::Payload<ProposeSpend> {
+                ) -> ::subxt::tx::Payload<types::ProposeSpend> {
                     ::subxt::tx::Payload::new_static(
                         "Treasury",
                         "propose_spend",
-                        ProposeSpend { value, beneficiary },
+                        types::ProposeSpend { value, beneficiary },
                         [
-                            109u8, 46u8, 8u8, 159u8, 127u8, 79u8, 27u8, 100u8, 92u8, 244u8, 78u8,
-                            46u8, 105u8, 246u8, 169u8, 210u8, 149u8, 7u8, 108u8, 153u8, 203u8,
-                            223u8, 8u8, 117u8, 126u8, 250u8, 255u8, 52u8, 245u8, 69u8, 45u8, 136u8,
+                            36u8, 227u8, 126u8, 190u8, 233u8, 70u8, 167u8, 246u8, 56u8, 238u8,
+                            67u8, 181u8, 166u8, 108u8, 129u8, 28u8, 55u8, 177u8, 94u8, 166u8,
+                            125u8, 198u8, 225u8, 38u8, 91u8, 248u8, 19u8, 177u8, 135u8, 62u8,
+                            236u8, 114u8,
                         ],
                     )
                 }
@@ -7937,16 +8677,15 @@ pub mod api {
                 pub fn reject_proposal(
                     &self,
                     proposal_id: ::core::primitive::u32,
-                ) -> ::subxt::tx::Payload<RejectProposal> {
+                ) -> ::subxt::tx::Payload<types::RejectProposal> {
                     ::subxt::tx::Payload::new_static(
                         "Treasury",
                         "reject_proposal",
-                        RejectProposal { proposal_id },
+                        types::RejectProposal { proposal_id },
                         [
-                            106u8, 223u8, 97u8, 22u8, 111u8, 208u8, 128u8, 26u8, 198u8, 140u8,
-                            118u8, 126u8, 187u8, 51u8, 193u8, 50u8, 193u8, 68u8, 143u8, 144u8,
-                            34u8, 132u8, 44u8, 244u8, 105u8, 186u8, 223u8, 234u8, 17u8, 145u8,
-                            209u8, 145u8,
+                            18u8, 166u8, 80u8, 141u8, 222u8, 230u8, 4u8, 36u8, 7u8, 76u8, 12u8,
+                            40u8, 145u8, 114u8, 12u8, 43u8, 223u8, 78u8, 189u8, 222u8, 120u8, 80u8,
+                            225u8, 215u8, 119u8, 68u8, 200u8, 15u8, 25u8, 172u8, 192u8, 173u8,
                         ],
                     )
                 }
@@ -7960,15 +8699,15 @@ pub mod api {
                 pub fn approve_proposal(
                     &self,
                     proposal_id: ::core::primitive::u32,
-                ) -> ::subxt::tx::Payload<ApproveProposal> {
+                ) -> ::subxt::tx::Payload<types::ApproveProposal> {
                     ::subxt::tx::Payload::new_static(
                         "Treasury",
                         "approve_proposal",
-                        ApproveProposal { proposal_id },
+                        types::ApproveProposal { proposal_id },
                         [
-                            164u8, 229u8, 172u8, 98u8, 129u8, 62u8, 84u8, 128u8, 47u8, 108u8, 33u8,
-                            120u8, 89u8, 79u8, 57u8, 121u8, 4u8, 197u8, 170u8, 153u8, 156u8, 17u8,
-                            59u8, 164u8, 123u8, 227u8, 175u8, 195u8, 220u8, 160u8, 60u8, 186u8,
+                            154u8, 176u8, 152u8, 97u8, 167u8, 177u8, 78u8, 9u8, 235u8, 229u8,
+                            199u8, 193u8, 214u8, 3u8, 16u8, 30u8, 4u8, 104u8, 27u8, 184u8, 100u8,
+                            65u8, 179u8, 13u8, 91u8, 62u8, 115u8, 5u8, 219u8, 211u8, 251u8, 153u8,
                         ],
                     )
                 }
@@ -7987,18 +8726,19 @@ pub mod api {
                         ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                         (),
                     >,
-                ) -> ::subxt::tx::Payload<Spend> {
+                ) -> ::subxt::tx::Payload<types::Spend> {
                     ::subxt::tx::Payload::new_static(
                         "Treasury",
                         "spend",
-                        Spend {
+                        types::Spend {
                             amount,
                             beneficiary,
                         },
                         [
-                            177u8, 178u8, 242u8, 136u8, 135u8, 237u8, 114u8, 71u8, 233u8, 239u8,
-                            7u8, 84u8, 14u8, 228u8, 58u8, 31u8, 158u8, 185u8, 25u8, 91u8, 70u8,
-                            33u8, 19u8, 92u8, 100u8, 162u8, 5u8, 48u8, 20u8, 120u8, 9u8, 109u8,
+                            57u8, 32u8, 140u8, 106u8, 181u8, 124u8, 122u8, 61u8, 130u8, 130u8,
+                            165u8, 131u8, 46u8, 249u8, 119u8, 102u8, 225u8, 174u8, 101u8, 161u8,
+                            76u8, 173u8, 253u8, 23u8, 173u8, 229u8, 135u8, 183u8, 168u8, 159u8,
+                            112u8, 88u8,
                         ],
                     )
                 }
@@ -8018,15 +8758,16 @@ pub mod api {
                 pub fn remove_approval(
                     &self,
                     proposal_id: ::core::primitive::u32,
-                ) -> ::subxt::tx::Payload<RemoveApproval> {
+                ) -> ::subxt::tx::Payload<types::RemoveApproval> {
                     ::subxt::tx::Payload::new_static(
                         "Treasury",
                         "remove_approval",
-                        RemoveApproval { proposal_id },
+                        types::RemoveApproval { proposal_id },
                         [
-                            133u8, 126u8, 181u8, 47u8, 196u8, 243u8, 7u8, 46u8, 25u8, 251u8, 154u8,
-                            125u8, 217u8, 77u8, 54u8, 245u8, 240u8, 180u8, 97u8, 34u8, 186u8, 53u8,
-                            225u8, 144u8, 155u8, 107u8, 172u8, 54u8, 250u8, 184u8, 178u8, 86u8,
+                            180u8, 20u8, 39u8, 227u8, 29u8, 228u8, 234u8, 36u8, 155u8, 114u8,
+                            197u8, 135u8, 185u8, 31u8, 56u8, 247u8, 224u8, 168u8, 254u8, 233u8,
+                            250u8, 134u8, 186u8, 155u8, 108u8, 84u8, 94u8, 226u8, 207u8, 130u8,
+                            196u8, 100u8,
                         ],
                     )
                 }
@@ -8047,6 +8788,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "New proposal."]
@@ -8068,6 +8810,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "We have ended a spend period and will now allocate funds."]
@@ -8088,6 +8831,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Some funds have been allocated."]
@@ -8110,6 +8854,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A proposal was rejected; funds were slashed."]
@@ -8132,6 +8877,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Some of our funds have been burnt."]
@@ -8153,6 +8899,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Spending has finished; this is the amount that rolls over until next spend."]
@@ -8174,6 +8921,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Some funds have been deposited."]
@@ -8194,6 +8942,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A new spend proposal has been approved."]
@@ -8216,6 +8965,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "The inactive funds of the pallet have been updated."]
@@ -8247,10 +8997,9 @@ pub mod api {
                         "ProposalCount",
                         vec![],
                         [
-                            132u8, 145u8, 78u8, 218u8, 51u8, 189u8, 55u8, 172u8, 143u8, 33u8,
-                            140u8, 99u8, 124u8, 208u8, 57u8, 232u8, 154u8, 110u8, 32u8, 142u8,
-                            24u8, 149u8, 109u8, 105u8, 30u8, 83u8, 39u8, 177u8, 127u8, 160u8, 34u8,
-                            70u8,
+                            91u8, 238u8, 246u8, 106u8, 95u8, 66u8, 83u8, 134u8, 1u8, 225u8, 164u8,
+                            216u8, 113u8, 101u8, 203u8, 200u8, 113u8, 97u8, 246u8, 228u8, 140u8,
+                            29u8, 29u8, 48u8, 176u8, 137u8, 93u8, 230u8, 56u8, 75u8, 51u8, 149u8,
                         ],
                     )
                 }
@@ -8275,9 +9024,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            62u8, 223u8, 55u8, 209u8, 151u8, 134u8, 122u8, 65u8, 207u8, 38u8,
-                            113u8, 213u8, 237u8, 48u8, 129u8, 32u8, 91u8, 228u8, 108u8, 91u8, 37u8,
-                            49u8, 94u8, 4u8, 75u8, 122u8, 25u8, 34u8, 198u8, 224u8, 246u8, 160u8,
+                            182u8, 12u8, 98u8, 64u8, 117u8, 17u8, 90u8, 245u8, 80u8, 99u8, 161u8,
+                            17u8, 59u8, 80u8, 64u8, 139u8, 89u8, 179u8, 254u8, 239u8, 143u8, 114u8,
+                            77u8, 79u8, 75u8, 126u8, 52u8, 227u8, 1u8, 138u8, 35u8, 62u8,
                         ],
                     )
                 }
@@ -8299,9 +9048,9 @@ pub mod api {
                         "Proposals",
                         Vec::new(),
                         [
-                            62u8, 223u8, 55u8, 209u8, 151u8, 134u8, 122u8, 65u8, 207u8, 38u8,
-                            113u8, 213u8, 237u8, 48u8, 129u8, 32u8, 91u8, 228u8, 108u8, 91u8, 37u8,
-                            49u8, 94u8, 4u8, 75u8, 122u8, 25u8, 34u8, 198u8, 224u8, 246u8, 160u8,
+                            182u8, 12u8, 98u8, 64u8, 117u8, 17u8, 90u8, 245u8, 80u8, 99u8, 161u8,
+                            17u8, 59u8, 80u8, 64u8, 139u8, 89u8, 179u8, 254u8, 239u8, 143u8, 114u8,
+                            77u8, 79u8, 75u8, 126u8, 52u8, 227u8, 1u8, 138u8, 35u8, 62u8,
                         ],
                     )
                 }
@@ -8320,9 +9069,10 @@ pub mod api {
                         "Deactivated",
                         vec![],
                         [
-                            159u8, 57u8, 5u8, 85u8, 136u8, 128u8, 70u8, 43u8, 67u8, 76u8, 123u8,
-                            206u8, 48u8, 253u8, 51u8, 40u8, 14u8, 35u8, 162u8, 173u8, 127u8, 79u8,
-                            38u8, 235u8, 9u8, 141u8, 201u8, 37u8, 211u8, 176u8, 119u8, 106u8,
+                            120u8, 221u8, 159u8, 56u8, 161u8, 44u8, 54u8, 233u8, 47u8, 114u8,
+                            170u8, 150u8, 52u8, 24u8, 137u8, 212u8, 122u8, 247u8, 40u8, 17u8,
+                            208u8, 130u8, 42u8, 154u8, 33u8, 222u8, 59u8, 116u8, 0u8, 15u8, 79u8,
+                            123u8,
                         ],
                     )
                 }
@@ -8343,10 +9093,9 @@ pub mod api {
                         "Approvals",
                         vec![],
                         [
-                            202u8, 106u8, 189u8, 40u8, 127u8, 172u8, 108u8, 50u8, 193u8, 4u8,
-                            248u8, 226u8, 176u8, 101u8, 212u8, 222u8, 64u8, 206u8, 244u8, 175u8,
-                            111u8, 106u8, 86u8, 96u8, 19u8, 109u8, 218u8, 152u8, 30u8, 59u8, 96u8,
-                            1u8,
+                            78u8, 147u8, 186u8, 235u8, 17u8, 40u8, 247u8, 235u8, 67u8, 222u8, 3u8,
+                            14u8, 248u8, 17u8, 67u8, 180u8, 93u8, 161u8, 64u8, 35u8, 119u8, 194u8,
+                            187u8, 226u8, 135u8, 162u8, 147u8, 174u8, 139u8, 72u8, 99u8, 212u8,
                         ],
                     )
                 }
@@ -8366,9 +9115,9 @@ pub mod api {
                         "Treasury",
                         "ProposalBond",
                         [
-                            225u8, 236u8, 95u8, 157u8, 90u8, 94u8, 106u8, 192u8, 254u8, 19u8, 87u8,
-                            80u8, 16u8, 62u8, 42u8, 204u8, 136u8, 106u8, 225u8, 53u8, 212u8, 52u8,
-                            177u8, 79u8, 4u8, 116u8, 201u8, 104u8, 222u8, 75u8, 86u8, 227u8,
+                            65u8, 93u8, 120u8, 165u8, 204u8, 81u8, 159u8, 163u8, 93u8, 135u8,
+                            114u8, 121u8, 147u8, 35u8, 215u8, 213u8, 4u8, 223u8, 83u8, 37u8, 225u8,
+                            200u8, 189u8, 156u8, 140u8, 36u8, 58u8, 46u8, 42u8, 232u8, 155u8, 0u8,
                         ],
                     )
                 }
@@ -8395,10 +9144,10 @@ pub mod api {
                         "Treasury",
                         "ProposalBondMaximum",
                         [
-                            84u8, 154u8, 218u8, 83u8, 84u8, 189u8, 32u8, 20u8, 120u8, 194u8, 88u8,
-                            205u8, 109u8, 216u8, 114u8, 193u8, 120u8, 198u8, 154u8, 237u8, 134u8,
-                            204u8, 102u8, 247u8, 52u8, 103u8, 231u8, 43u8, 243u8, 122u8, 60u8,
-                            216u8,
+                            198u8, 51u8, 89u8, 159u8, 124u8, 251u8, 51u8, 80u8, 167u8, 193u8, 44u8,
+                            199u8, 80u8, 36u8, 41u8, 130u8, 137u8, 229u8, 178u8, 208u8, 37u8,
+                            215u8, 169u8, 183u8, 180u8, 191u8, 140u8, 240u8, 250u8, 61u8, 42u8,
+                            147u8,
                         ],
                     )
                 }
@@ -8424,9 +9173,9 @@ pub mod api {
                         "Treasury",
                         "Burn",
                         [
-                            225u8, 236u8, 95u8, 157u8, 90u8, 94u8, 106u8, 192u8, 254u8, 19u8, 87u8,
-                            80u8, 16u8, 62u8, 42u8, 204u8, 136u8, 106u8, 225u8, 53u8, 212u8, 52u8,
-                            177u8, 79u8, 4u8, 116u8, 201u8, 104u8, 222u8, 75u8, 86u8, 227u8,
+                            65u8, 93u8, 120u8, 165u8, 204u8, 81u8, 159u8, 163u8, 93u8, 135u8,
+                            114u8, 121u8, 147u8, 35u8, 215u8, 213u8, 4u8, 223u8, 83u8, 37u8, 225u8,
+                            200u8, 189u8, 156u8, 140u8, 36u8, 58u8, 46u8, 42u8, 232u8, 155u8, 0u8,
                         ],
                     )
                 }
@@ -8439,9 +9188,9 @@ pub mod api {
                         "Treasury",
                         "PalletId",
                         [
-                            139u8, 109u8, 228u8, 151u8, 252u8, 32u8, 130u8, 69u8, 112u8, 154u8,
-                            174u8, 45u8, 83u8, 245u8, 51u8, 132u8, 173u8, 5u8, 186u8, 24u8, 243u8,
-                            9u8, 12u8, 214u8, 80u8, 74u8, 69u8, 189u8, 30u8, 94u8, 22u8, 39u8,
+                            56u8, 243u8, 53u8, 83u8, 154u8, 179u8, 170u8, 80u8, 133u8, 173u8, 61u8,
+                            161u8, 47u8, 225u8, 146u8, 21u8, 50u8, 229u8, 248u8, 27u8, 104u8, 58u8,
+                            129u8, 197u8, 102u8, 160u8, 168u8, 205u8, 154u8, 42u8, 217u8, 53u8,
                         ],
                     )
                 }
@@ -8465,104 +9214,135 @@ pub mod api {
     }
     pub mod vesting {
         use super::{root_mod, runtime_types};
+        #[doc = "Error for the vesting pallet."]
+        pub type Error = runtime_types::pallet_vesting::pallet::Error;
         #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
+        pub type Call = runtime_types::pallet_vesting::pallet::Call;
         pub mod calls {
             use super::{root_mod, runtime_types};
             type DispatchError = runtime_types::sp_runtime::DispatchError;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Vest;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct VestOther {
-                pub target: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct VestedTransfer {
-                pub target: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                pub schedule: runtime_types::pallet_vesting::vesting_info::VestingInfo<
-                    ::core::primitive::u128,
-                    ::core::primitive::u32,
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ForceVestedTransfer {
-                pub source: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                pub target: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                pub schedule: runtime_types::pallet_vesting::vesting_info::VestingInfo<
-                    ::core::primitive::u128,
-                    ::core::primitive::u32,
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct MergeSchedules {
-                pub schedule1_index: ::core::primitive::u32,
-                pub schedule2_index: ::core::primitive::u32,
+            pub mod types {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Vest;
+                impl ::subxt::blocks::StaticExtrinsic for Vest {
+                    const PALLET: &'static str = "Vesting";
+                    const CALL: &'static str = "vest";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct VestOther {
+                    pub target: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for VestOther {
+                    const PALLET: &'static str = "Vesting";
+                    const CALL: &'static str = "vest_other";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct VestedTransfer {
+                    pub target: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    pub schedule: runtime_types::pallet_vesting::vesting_info::VestingInfo<
+                        ::core::primitive::u128,
+                        ::core::primitive::u32,
+                    >,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for VestedTransfer {
+                    const PALLET: &'static str = "Vesting";
+                    const CALL: &'static str = "vested_transfer";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ForceVestedTransfer {
+                    pub source: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    pub target: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    pub schedule: runtime_types::pallet_vesting::vesting_info::VestingInfo<
+                        ::core::primitive::u128,
+                        ::core::primitive::u32,
+                    >,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for ForceVestedTransfer {
+                    const PALLET: &'static str = "Vesting";
+                    const CALL: &'static str = "force_vested_transfer";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct MergeSchedules {
+                    pub schedule1_index: ::core::primitive::u32,
+                    pub schedule2_index: ::core::primitive::u32,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for MergeSchedules {
+                    const PALLET: &'static str = "Vesting";
+                    const CALL: &'static str = "merge_schedules";
+                }
             }
             pub struct TransactionApi;
             impl TransactionApi {
@@ -8575,15 +9355,16 @@ pub mod api {
                 #[doc = ""]
                 #[doc = "## Complexity"]
                 #[doc = "- `O(1)`."]
-                pub fn vest(&self) -> ::subxt::tx::Payload<Vest> {
+                pub fn vest(&self) -> ::subxt::tx::Payload<types::Vest> {
                     ::subxt::tx::Payload::new_static(
                         "Vesting",
                         "vest",
-                        Vest {},
+                        types::Vest {},
                         [
-                            123u8, 54u8, 10u8, 208u8, 154u8, 24u8, 39u8, 166u8, 64u8, 27u8, 74u8,
-                            29u8, 243u8, 97u8, 155u8, 5u8, 130u8, 155u8, 65u8, 181u8, 196u8, 125u8,
-                            45u8, 133u8, 25u8, 33u8, 3u8, 34u8, 21u8, 167u8, 172u8, 54u8,
+                            149u8, 89u8, 178u8, 148u8, 127u8, 127u8, 155u8, 60u8, 114u8, 126u8,
+                            204u8, 123u8, 166u8, 70u8, 104u8, 208u8, 186u8, 69u8, 139u8, 181u8,
+                            151u8, 154u8, 235u8, 161u8, 191u8, 35u8, 111u8, 60u8, 21u8, 165u8,
+                            44u8, 122u8,
                         ],
                     )
                 }
@@ -8604,16 +9385,16 @@ pub mod api {
                         ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                         (),
                     >,
-                ) -> ::subxt::tx::Payload<VestOther> {
+                ) -> ::subxt::tx::Payload<types::VestOther> {
                     ::subxt::tx::Payload::new_static(
                         "Vesting",
                         "vest_other",
-                        VestOther { target },
+                        types::VestOther { target },
                         [
-                            164u8, 19u8, 93u8, 81u8, 235u8, 101u8, 18u8, 52u8, 187u8, 81u8, 243u8,
-                            216u8, 116u8, 84u8, 188u8, 135u8, 1u8, 241u8, 128u8, 90u8, 117u8,
-                            164u8, 111u8, 0u8, 251u8, 148u8, 250u8, 248u8, 102u8, 79u8, 165u8,
-                            175u8,
+                            110u8, 68u8, 150u8, 149u8, 107u8, 90u8, 168u8, 177u8, 73u8, 114u8,
+                            18u8, 18u8, 5u8, 75u8, 23u8, 149u8, 236u8, 123u8, 221u8, 240u8, 139u8,
+                            238u8, 208u8, 0u8, 218u8, 209u8, 53u8, 193u8, 180u8, 245u8, 48u8,
+                            229u8,
                         ],
                     )
                 }
@@ -8640,16 +9421,16 @@ pub mod api {
                         ::core::primitive::u128,
                         ::core::primitive::u32,
                     >,
-                ) -> ::subxt::tx::Payload<VestedTransfer> {
+                ) -> ::subxt::tx::Payload<types::VestedTransfer> {
                     ::subxt::tx::Payload::new_static(
                         "Vesting",
                         "vested_transfer",
-                        VestedTransfer { target, schedule },
+                        types::VestedTransfer { target, schedule },
                         [
-                            135u8, 172u8, 56u8, 97u8, 45u8, 141u8, 93u8, 173u8, 111u8, 252u8, 75u8,
-                            246u8, 92u8, 181u8, 138u8, 87u8, 145u8, 174u8, 71u8, 108u8, 126u8,
-                            118u8, 49u8, 122u8, 249u8, 132u8, 19u8, 2u8, 132u8, 160u8, 247u8,
-                            195u8,
+                            6u8, 238u8, 73u8, 156u8, 65u8, 39u8, 135u8, 115u8, 26u8, 55u8, 41u8,
+                            171u8, 227u8, 86u8, 94u8, 157u8, 199u8, 151u8, 133u8, 253u8, 173u8,
+                            59u8, 140u8, 239u8, 130u8, 248u8, 250u8, 253u8, 240u8, 30u8, 73u8,
+                            217u8,
                         ],
                     )
                 }
@@ -8681,19 +9462,19 @@ pub mod api {
                         ::core::primitive::u128,
                         ::core::primitive::u32,
                     >,
-                ) -> ::subxt::tx::Payload<ForceVestedTransfer> {
+                ) -> ::subxt::tx::Payload<types::ForceVestedTransfer> {
                     ::subxt::tx::Payload::new_static(
                         "Vesting",
                         "force_vested_transfer",
-                        ForceVestedTransfer {
+                        types::ForceVestedTransfer {
                             source,
                             target,
                             schedule,
                         },
                         [
-                            110u8, 142u8, 63u8, 148u8, 90u8, 229u8, 237u8, 183u8, 240u8, 237u8,
-                            242u8, 32u8, 88u8, 48u8, 220u8, 101u8, 210u8, 212u8, 27u8, 7u8, 186u8,
-                            98u8, 28u8, 197u8, 148u8, 140u8, 77u8, 59u8, 202u8, 166u8, 63u8, 97u8,
+                            69u8, 51u8, 162u8, 29u8, 192u8, 237u8, 135u8, 167u8, 176u8, 48u8, 33u8,
+                            216u8, 195u8, 213u8, 176u8, 49u8, 202u8, 238u8, 197u8, 210u8, 8u8,
+                            35u8, 77u8, 69u8, 30u8, 15u8, 145u8, 19u8, 28u8, 193u8, 197u8, 16u8,
                         ],
                     )
                 }
@@ -8722,18 +9503,18 @@ pub mod api {
                     &self,
                     schedule1_index: ::core::primitive::u32,
                     schedule2_index: ::core::primitive::u32,
-                ) -> ::subxt::tx::Payload<MergeSchedules> {
+                ) -> ::subxt::tx::Payload<types::MergeSchedules> {
                     ::subxt::tx::Payload::new_static(
                         "Vesting",
                         "merge_schedules",
-                        MergeSchedules {
+                        types::MergeSchedules {
                             schedule1_index,
                             schedule2_index,
                         },
                         [
-                            95u8, 255u8, 147u8, 12u8, 49u8, 25u8, 70u8, 112u8, 55u8, 154u8, 183u8,
-                            97u8, 56u8, 244u8, 148u8, 61u8, 107u8, 163u8, 220u8, 31u8, 153u8, 25u8,
-                            193u8, 251u8, 131u8, 26u8, 166u8, 157u8, 75u8, 4u8, 110u8, 125u8,
+                            135u8, 49u8, 137u8, 222u8, 134u8, 94u8, 197u8, 182u8, 171u8, 57u8,
+                            161u8, 6u8, 185u8, 130u8, 45u8, 30u8, 79u8, 77u8, 157u8, 118u8, 35u8,
+                            249u8, 39u8, 10u8, 103u8, 160u8, 198u8, 75u8, 26u8, 50u8, 64u8, 26u8,
                         ],
                     )
                 }
@@ -8753,6 +9534,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "The amount vested has been updated. This could indicate a change in funds available."]
@@ -8775,6 +9557,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "An \\[account\\] has become fully vested."]
@@ -8815,9 +9598,10 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            23u8, 209u8, 233u8, 126u8, 89u8, 156u8, 193u8, 204u8, 100u8, 90u8,
-                            14u8, 120u8, 36u8, 167u8, 148u8, 239u8, 179u8, 74u8, 207u8, 83u8, 54u8,
-                            77u8, 27u8, 135u8, 74u8, 31u8, 33u8, 11u8, 168u8, 239u8, 212u8, 36u8,
+                            10u8, 98u8, 73u8, 242u8, 215u8, 4u8, 45u8, 227u8, 73u8, 203u8, 33u8,
+                            105u8, 228u8, 247u8, 125u8, 99u8, 98u8, 38u8, 176u8, 123u8, 233u8,
+                            219u8, 174u8, 118u8, 49u8, 172u8, 58u8, 162u8, 186u8, 110u8, 147u8,
+                            122u8,
                         ],
                     )
                 }
@@ -8841,9 +9625,10 @@ pub mod api {
                         "Vesting",
                         Vec::new(),
                         [
-                            23u8, 209u8, 233u8, 126u8, 89u8, 156u8, 193u8, 204u8, 100u8, 90u8,
-                            14u8, 120u8, 36u8, 167u8, 148u8, 239u8, 179u8, 74u8, 207u8, 83u8, 54u8,
-                            77u8, 27u8, 135u8, 74u8, 31u8, 33u8, 11u8, 168u8, 239u8, 212u8, 36u8,
+                            10u8, 98u8, 73u8, 242u8, 215u8, 4u8, 45u8, 227u8, 73u8, 203u8, 33u8,
+                            105u8, 228u8, 247u8, 125u8, 99u8, 98u8, 38u8, 176u8, 123u8, 233u8,
+                            219u8, 174u8, 118u8, 49u8, 172u8, 58u8, 162u8, 186u8, 110u8, 147u8,
+                            122u8,
                         ],
                     )
                 }
@@ -8864,9 +9649,9 @@ pub mod api {
                         "StorageVersion",
                         vec![],
                         [
-                            50u8, 143u8, 26u8, 88u8, 129u8, 31u8, 61u8, 118u8, 19u8, 202u8, 119u8,
-                            160u8, 34u8, 219u8, 60u8, 57u8, 189u8, 66u8, 93u8, 239u8, 121u8, 114u8,
-                            241u8, 116u8, 0u8, 122u8, 232u8, 94u8, 189u8, 23u8, 45u8, 191u8,
+                            230u8, 137u8, 180u8, 133u8, 142u8, 124u8, 231u8, 234u8, 223u8, 10u8,
+                            154u8, 98u8, 158u8, 253u8, 228u8, 80u8, 5u8, 9u8, 91u8, 210u8, 252u8,
+                            9u8, 13u8, 195u8, 193u8, 164u8, 129u8, 113u8, 128u8, 218u8, 8u8, 40u8,
                         ],
                     )
                 }
@@ -8909,102 +9694,138 @@ pub mod api {
     }
     pub mod utility {
         use super::{root_mod, runtime_types};
+        #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
+        pub type Error = runtime_types::pallet_utility::pallet::Error;
         #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
+        pub type Call = runtime_types::pallet_utility::pallet::Call;
         pub mod calls {
             use super::{root_mod, runtime_types};
             type DispatchError = runtime_types::sp_runtime::DispatchError;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Batch {
-                pub calls: ::std::vec::Vec<runtime_types::aleph_runtime::RuntimeCall>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct AsDerivative {
-                pub index: ::core::primitive::u16,
-                pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct BatchAll {
-                pub calls: ::std::vec::Vec<runtime_types::aleph_runtime::RuntimeCall>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct DispatchAs {
-                pub as_origin: ::std::boxed::Box<runtime_types::aleph_runtime::OriginCaller>,
-                pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ForceBatch {
-                pub calls: ::std::vec::Vec<runtime_types::aleph_runtime::RuntimeCall>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct WithWeight {
-                pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
-                pub weight: runtime_types::sp_weights::weight_v2::Weight,
+            pub mod types {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Batch {
+                    pub calls: ::std::vec::Vec<runtime_types::aleph_runtime::RuntimeCall>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Batch {
+                    const PALLET: &'static str = "Utility";
+                    const CALL: &'static str = "batch";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct AsDerivative {
+                    pub index: ::core::primitive::u16,
+                    pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for AsDerivative {
+                    const PALLET: &'static str = "Utility";
+                    const CALL: &'static str = "as_derivative";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct BatchAll {
+                    pub calls: ::std::vec::Vec<runtime_types::aleph_runtime::RuntimeCall>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for BatchAll {
+                    const PALLET: &'static str = "Utility";
+                    const CALL: &'static str = "batch_all";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct DispatchAs {
+                    pub as_origin: ::std::boxed::Box<runtime_types::aleph_runtime::OriginCaller>,
+                    pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for DispatchAs {
+                    const PALLET: &'static str = "Utility";
+                    const CALL: &'static str = "dispatch_as";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ForceBatch {
+                    pub calls: ::std::vec::Vec<runtime_types::aleph_runtime::RuntimeCall>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for ForceBatch {
+                    const PALLET: &'static str = "Utility";
+                    const CALL: &'static str = "force_batch";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct WithWeight {
+                    pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
+                    pub weight: runtime_types::sp_weights::weight_v2::Weight,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for WithWeight {
+                    const PALLET: &'static str = "Utility";
+                    const CALL: &'static str = "with_weight";
+                }
             }
             pub struct TransactionApi;
             impl TransactionApi {
@@ -9029,15 +9850,15 @@ pub mod api {
                 pub fn batch(
                     &self,
                     calls: ::std::vec::Vec<runtime_types::aleph_runtime::RuntimeCall>,
-                ) -> ::subxt::tx::Payload<Batch> {
+                ) -> ::subxt::tx::Payload<types::Batch> {
                     ::subxt::tx::Payload::new_static(
                         "Utility",
                         "batch",
-                        Batch { calls },
+                        types::Batch { calls },
                         [
-                            132u8, 173u8, 203u8, 65u8, 238u8, 64u8, 40u8, 20u8, 202u8, 79u8, 11u8,
-                            227u8, 44u8, 248u8, 107u8, 46u8, 183u8, 19u8, 58u8, 189u8, 152u8,
-                            101u8, 83u8, 7u8, 202u8, 114u8, 87u8, 87u8, 164u8, 22u8, 247u8, 169u8,
+                            176u8, 124u8, 95u8, 175u8, 10u8, 199u8, 97u8, 217u8, 238u8, 75u8, 11u8,
+                            87u8, 227u8, 245u8, 162u8, 172u8, 6u8, 239u8, 213u8, 211u8, 6u8, 239u8,
+                            101u8, 213u8, 237u8, 129u8, 217u8, 241u8, 234u8, 201u8, 6u8, 119u8,
                         ],
                     )
                 }
@@ -9058,18 +9879,18 @@ pub mod api {
                     &self,
                     index: ::core::primitive::u16,
                     call: runtime_types::aleph_runtime::RuntimeCall,
-                ) -> ::subxt::tx::Payload<AsDerivative> {
+                ) -> ::subxt::tx::Payload<types::AsDerivative> {
                     ::subxt::tx::Payload::new_static(
                         "Utility",
                         "as_derivative",
-                        AsDerivative {
+                        types::AsDerivative {
                             index,
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            131u8, 94u8, 20u8, 114u8, 196u8, 27u8, 246u8, 132u8, 57u8, 253u8, 23u8,
-                            115u8, 40u8, 200u8, 84u8, 61u8, 73u8, 103u8, 224u8, 213u8, 214u8, 55u8,
-                            41u8, 175u8, 147u8, 102u8, 217u8, 198u8, 41u8, 246u8, 93u8, 204u8,
+                            243u8, 135u8, 49u8, 27u8, 185u8, 100u8, 92u8, 24u8, 103u8, 16u8, 82u8,
+                            3u8, 239u8, 61u8, 193u8, 2u8, 125u8, 85u8, 254u8, 29u8, 32u8, 111u8,
+                            147u8, 9u8, 94u8, 8u8, 44u8, 78u8, 174u8, 172u8, 164u8, 188u8,
                         ],
                     )
                 }
@@ -9089,16 +9910,15 @@ pub mod api {
                 pub fn batch_all(
                     &self,
                     calls: ::std::vec::Vec<runtime_types::aleph_runtime::RuntimeCall>,
-                ) -> ::subxt::tx::Payload<BatchAll> {
+                ) -> ::subxt::tx::Payload<types::BatchAll> {
                     ::subxt::tx::Payload::new_static(
                         "Utility",
                         "batch_all",
-                        BatchAll { calls },
+                        types::BatchAll { calls },
                         [
-                            51u8, 201u8, 155u8, 169u8, 167u8, 240u8, 20u8, 143u8, 219u8, 161u8,
-                            171u8, 250u8, 21u8, 198u8, 28u8, 8u8, 137u8, 146u8, 172u8, 189u8,
-                            135u8, 202u8, 79u8, 177u8, 186u8, 158u8, 137u8, 119u8, 196u8, 30u8,
-                            183u8, 114u8,
+                            86u8, 174u8, 163u8, 82u8, 26u8, 57u8, 196u8, 182u8, 86u8, 65u8, 135u8,
+                            13u8, 81u8, 175u8, 73u8, 177u8, 24u8, 127u8, 150u8, 70u8, 169u8, 145u8,
+                            184u8, 74u8, 147u8, 193u8, 86u8, 66u8, 209u8, 59u8, 152u8, 84u8,
                         ],
                     )
                 }
@@ -9112,19 +9932,19 @@ pub mod api {
                     &self,
                     as_origin: runtime_types::aleph_runtime::OriginCaller,
                     call: runtime_types::aleph_runtime::RuntimeCall,
-                ) -> ::subxt::tx::Payload<DispatchAs> {
+                ) -> ::subxt::tx::Payload<types::DispatchAs> {
                     ::subxt::tx::Payload::new_static(
                         "Utility",
                         "dispatch_as",
-                        DispatchAs {
+                        types::DispatchAs {
                             as_origin: ::std::boxed::Box::new(as_origin),
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            124u8, 10u8, 34u8, 240u8, 135u8, 6u8, 183u8, 161u8, 224u8, 124u8,
-                            191u8, 50u8, 172u8, 52u8, 124u8, 55u8, 222u8, 106u8, 207u8, 77u8,
-                            198u8, 116u8, 232u8, 19u8, 87u8, 121u8, 97u8, 171u8, 85u8, 159u8,
-                            206u8, 239u8,
+                            87u8, 101u8, 123u8, 208u8, 188u8, 51u8, 249u8, 2u8, 52u8, 53u8, 247u8,
+                            105u8, 19u8, 187u8, 203u8, 152u8, 64u8, 18u8, 215u8, 186u8, 114u8,
+                            127u8, 49u8, 154u8, 26u8, 19u8, 106u8, 73u8, 218u8, 187u8, 173u8,
+                            116u8,
                         ],
                     )
                 }
@@ -9144,16 +9964,16 @@ pub mod api {
                 pub fn force_batch(
                     &self,
                     calls: ::std::vec::Vec<runtime_types::aleph_runtime::RuntimeCall>,
-                ) -> ::subxt::tx::Payload<ForceBatch> {
+                ) -> ::subxt::tx::Payload<types::ForceBatch> {
                     ::subxt::tx::Payload::new_static(
                         "Utility",
                         "force_batch",
-                        ForceBatch { calls },
+                        types::ForceBatch { calls },
                         [
-                            233u8, 58u8, 193u8, 211u8, 10u8, 92u8, 89u8, 129u8, 211u8, 193u8,
-                            112u8, 190u8, 124u8, 15u8, 94u8, 83u8, 200u8, 207u8, 109u8, 254u8,
-                            114u8, 79u8, 142u8, 123u8, 55u8, 242u8, 72u8, 126u8, 197u8, 190u8,
-                            191u8, 135u8,
+                            196u8, 174u8, 127u8, 250u8, 116u8, 157u8, 84u8, 67u8, 169u8, 240u8,
+                            179u8, 132u8, 207u8, 31u8, 72u8, 206u8, 144u8, 55u8, 94u8, 85u8, 86u8,
+                            214u8, 179u8, 237u8, 175u8, 66u8, 3u8, 132u8, 112u8, 64u8, 202u8,
+                            134u8,
                         ],
                     )
                 }
@@ -9167,18 +9987,19 @@ pub mod api {
                     &self,
                     call: runtime_types::aleph_runtime::RuntimeCall,
                     weight: runtime_types::sp_weights::weight_v2::Weight,
-                ) -> ::subxt::tx::Payload<WithWeight> {
+                ) -> ::subxt::tx::Payload<types::WithWeight> {
                     ::subxt::tx::Payload::new_static(
                         "Utility",
                         "with_weight",
-                        WithWeight {
+                        types::WithWeight {
                             call: ::std::boxed::Box::new(call),
                             weight,
                         },
                         [
-                            240u8, 23u8, 95u8, 189u8, 252u8, 91u8, 103u8, 50u8, 162u8, 64u8, 20u8,
-                            23u8, 225u8, 35u8, 97u8, 49u8, 252u8, 112u8, 150u8, 223u8, 213u8, 15u8,
-                            53u8, 190u8, 167u8, 91u8, 153u8, 222u8, 175u8, 168u8, 163u8, 125u8,
+                            243u8, 75u8, 100u8, 46u8, 115u8, 227u8, 5u8, 54u8, 254u8, 140u8, 133u8,
+                            98u8, 123u8, 255u8, 157u8, 152u8, 115u8, 95u8, 227u8, 210u8, 174u8,
+                            160u8, 162u8, 244u8, 235u8, 245u8, 55u8, 135u8, 211u8, 242u8, 47u8,
+                            221u8,
                         ],
                     )
                 }
@@ -9198,6 +10019,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Batch of dispatches did not complete fully. Index of first failing dispatch given, as"]
@@ -9220,6 +10042,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Batch of dispatches completed fully with no error."]
@@ -9238,6 +10061,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Batch of dispatches completed but has errors."]
@@ -9256,6 +10080,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A single item within a Batch of dispatches has completed with no error."]
@@ -9274,6 +10099,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A single item within a Batch of dispatches has completed with error."]
@@ -9294,6 +10120,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A call was dispatched."]
@@ -9329,93 +10156,120 @@ pub mod api {
     }
     pub mod multisig {
         use super::{root_mod, runtime_types};
+        #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
+        pub type Error = runtime_types::pallet_multisig::pallet::Error;
         #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
+        pub type Call = runtime_types::pallet_multisig::pallet::Call;
         pub mod calls {
             use super::{root_mod, runtime_types};
             type DispatchError = runtime_types::sp_runtime::DispatchError;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct AsMultiThreshold1 {
-                pub other_signatories: ::std::vec::Vec<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                >,
-                pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct AsMulti {
-                pub threshold: ::core::primitive::u16,
-                pub other_signatories: ::std::vec::Vec<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                >,
-                pub maybe_timepoint: ::core::option::Option<
-                    runtime_types::pallet_multisig::Timepoint<::core::primitive::u32>,
-                >,
-                pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
-                pub max_weight: runtime_types::sp_weights::weight_v2::Weight,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ApproveAsMulti {
-                pub threshold: ::core::primitive::u16,
-                pub other_signatories: ::std::vec::Vec<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                >,
-                pub maybe_timepoint: ::core::option::Option<
-                    runtime_types::pallet_multisig::Timepoint<::core::primitive::u32>,
-                >,
-                pub call_hash: [::core::primitive::u8; 32usize],
-                pub max_weight: runtime_types::sp_weights::weight_v2::Weight,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct CancelAsMulti {
-                pub threshold: ::core::primitive::u16,
-                pub other_signatories: ::std::vec::Vec<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                >,
-                pub timepoint: runtime_types::pallet_multisig::Timepoint<::core::primitive::u32>,
-                pub call_hash: [::core::primitive::u8; 32usize],
+            pub mod types {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct AsMultiThreshold1 {
+                    pub other_signatories: ::std::vec::Vec<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                    >,
+                    pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for AsMultiThreshold1 {
+                    const PALLET: &'static str = "Multisig";
+                    const CALL: &'static str = "as_multi_threshold_1";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct AsMulti {
+                    pub threshold: ::core::primitive::u16,
+                    pub other_signatories: ::std::vec::Vec<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                    >,
+                    pub maybe_timepoint: ::core::option::Option<
+                        runtime_types::pallet_multisig::Timepoint<::core::primitive::u32>,
+                    >,
+                    pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
+                    pub max_weight: runtime_types::sp_weights::weight_v2::Weight,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for AsMulti {
+                    const PALLET: &'static str = "Multisig";
+                    const CALL: &'static str = "as_multi";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ApproveAsMulti {
+                    pub threshold: ::core::primitive::u16,
+                    pub other_signatories: ::std::vec::Vec<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                    >,
+                    pub maybe_timepoint: ::core::option::Option<
+                        runtime_types::pallet_multisig::Timepoint<::core::primitive::u32>,
+                    >,
+                    pub call_hash: [::core::primitive::u8; 32usize],
+                    pub max_weight: runtime_types::sp_weights::weight_v2::Weight,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for ApproveAsMulti {
+                    const PALLET: &'static str = "Multisig";
+                    const CALL: &'static str = "approve_as_multi";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct CancelAsMulti {
+                    pub threshold: ::core::primitive::u16,
+                    pub other_signatories: ::std::vec::Vec<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                    >,
+                    pub timepoint:
+                        runtime_types::pallet_multisig::Timepoint<::core::primitive::u32>,
+                    pub call_hash: [::core::primitive::u8; 32usize],
+                }
+                impl ::subxt::blocks::StaticExtrinsic for CancelAsMulti {
+                    const PALLET: &'static str = "Multisig";
+                    const CALL: &'static str = "cancel_as_multi";
+                }
             }
             pub struct TransactionApi;
             impl TransactionApi {
@@ -9437,18 +10291,19 @@ pub mod api {
                         ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                     >,
                     call: runtime_types::aleph_runtime::RuntimeCall,
-                ) -> ::subxt::tx::Payload<AsMultiThreshold1> {
+                ) -> ::subxt::tx::Payload<types::AsMultiThreshold1> {
                     ::subxt::tx::Payload::new_static(
                         "Multisig",
                         "as_multi_threshold_1",
-                        AsMultiThreshold1 {
+                        types::AsMultiThreshold1 {
                             other_signatories,
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            72u8, 170u8, 114u8, 40u8, 215u8, 231u8, 187u8, 200u8, 4u8, 103u8, 98u8,
-                            241u8, 191u8, 245u8, 232u8, 62u8, 17u8, 44u8, 75u8, 123u8, 111u8,
-                            221u8, 14u8, 247u8, 59u8, 117u8, 10u8, 48u8, 59u8, 164u8, 12u8, 227u8,
+                            58u8, 242u8, 99u8, 172u8, 132u8, 134u8, 176u8, 126u8, 226u8, 63u8,
+                            41u8, 169u8, 66u8, 222u8, 66u8, 123u8, 254u8, 148u8, 20u8, 41u8, 246u8,
+                            247u8, 217u8, 222u8, 249u8, 89u8, 224u8, 107u8, 202u8, 108u8, 175u8,
+                            91u8,
                         ],
                     )
                 }
@@ -9502,11 +10357,11 @@ pub mod api {
                     >,
                     call: runtime_types::aleph_runtime::RuntimeCall,
                     max_weight: runtime_types::sp_weights::weight_v2::Weight,
-                ) -> ::subxt::tx::Payload<AsMulti> {
+                ) -> ::subxt::tx::Payload<types::AsMulti> {
                     ::subxt::tx::Payload::new_static(
                         "Multisig",
                         "as_multi",
-                        AsMulti {
+                        types::AsMulti {
                             threshold,
                             other_signatories,
                             maybe_timepoint,
@@ -9514,10 +10369,10 @@ pub mod api {
                             max_weight,
                         },
                         [
-                            230u8, 242u8, 132u8, 84u8, 170u8, 217u8, 226u8, 155u8, 240u8, 18u8,
-                            119u8, 224u8, 57u8, 66u8, 192u8, 140u8, 6u8, 254u8, 115u8, 236u8, 42u8,
-                            89u8, 250u8, 196u8, 151u8, 121u8, 252u8, 230u8, 26u8, 38u8, 227u8,
-                            112u8,
+                            243u8, 105u8, 229u8, 8u8, 118u8, 153u8, 211u8, 61u8, 222u8, 68u8,
+                            209u8, 101u8, 150u8, 159u8, 78u8, 198u8, 231u8, 181u8, 251u8, 243u8,
+                            2u8, 198u8, 176u8, 37u8, 220u8, 174u8, 164u8, 164u8, 126u8, 127u8,
+                            234u8, 11u8,
                         ],
                     )
                 }
@@ -9562,11 +10417,11 @@ pub mod api {
                     >,
                     call_hash: [::core::primitive::u8; 32usize],
                     max_weight: runtime_types::sp_weights::weight_v2::Weight,
-                ) -> ::subxt::tx::Payload<ApproveAsMulti> {
+                ) -> ::subxt::tx::Payload<types::ApproveAsMulti> {
                     ::subxt::tx::Payload::new_static(
                         "Multisig",
                         "approve_as_multi",
-                        ApproveAsMulti {
+                        types::ApproveAsMulti {
                             threshold,
                             other_signatories,
                             maybe_timepoint,
@@ -9574,10 +10429,9 @@ pub mod api {
                             max_weight,
                         },
                         [
-                            133u8, 113u8, 121u8, 66u8, 218u8, 219u8, 48u8, 64u8, 211u8, 114u8,
-                            163u8, 193u8, 164u8, 21u8, 140u8, 218u8, 253u8, 237u8, 240u8, 126u8,
-                            200u8, 213u8, 184u8, 50u8, 187u8, 182u8, 30u8, 52u8, 142u8, 72u8,
-                            210u8, 101u8,
+                            240u8, 17u8, 138u8, 10u8, 165u8, 3u8, 88u8, 240u8, 11u8, 208u8, 9u8,
+                            123u8, 95u8, 53u8, 142u8, 8u8, 30u8, 5u8, 130u8, 205u8, 102u8, 95u8,
+                            71u8, 92u8, 184u8, 92u8, 218u8, 224u8, 146u8, 87u8, 93u8, 224u8,
                         ],
                     )
                 }
@@ -9610,20 +10464,21 @@ pub mod api {
                     >,
                     timepoint: runtime_types::pallet_multisig::Timepoint<::core::primitive::u32>,
                     call_hash: [::core::primitive::u8; 32usize],
-                ) -> ::subxt::tx::Payload<CancelAsMulti> {
+                ) -> ::subxt::tx::Payload<types::CancelAsMulti> {
                     ::subxt::tx::Payload::new_static(
                         "Multisig",
                         "cancel_as_multi",
-                        CancelAsMulti {
+                        types::CancelAsMulti {
                             threshold,
                             other_signatories,
                             timepoint,
                             call_hash,
                         },
                         [
-                            30u8, 25u8, 186u8, 142u8, 168u8, 81u8, 235u8, 164u8, 82u8, 209u8, 66u8,
-                            129u8, 209u8, 78u8, 172u8, 9u8, 163u8, 222u8, 125u8, 57u8, 2u8, 43u8,
-                            169u8, 174u8, 159u8, 167u8, 25u8, 226u8, 254u8, 110u8, 80u8, 216u8,
+                            14u8, 123u8, 126u8, 239u8, 174u8, 101u8, 28u8, 221u8, 117u8, 75u8,
+                            82u8, 249u8, 151u8, 59u8, 224u8, 239u8, 54u8, 196u8, 244u8, 46u8, 31u8,
+                            218u8, 224u8, 58u8, 146u8, 165u8, 135u8, 101u8, 189u8, 93u8, 149u8,
+                            130u8,
                         ],
                     )
                 }
@@ -9643,6 +10498,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A new multisig operation has begun."]
@@ -9665,6 +10521,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A multisig operation has been approved by someone."]
@@ -9688,6 +10545,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A multisig operation has been executed."]
@@ -9712,6 +10570,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A multisig operation has been cancelled."]
@@ -9756,9 +10615,9 @@ pub mod api {
                             ::subxt::storage::address::make_static_storage_map_key(_1.borrow()),
                         ],
                         [
-                            69u8, 153u8, 186u8, 204u8, 117u8, 95u8, 119u8, 182u8, 220u8, 87u8, 8u8,
-                            15u8, 123u8, 83u8, 5u8, 188u8, 115u8, 121u8, 163u8, 96u8, 218u8, 3u8,
-                            106u8, 44u8, 44u8, 187u8, 46u8, 238u8, 80u8, 203u8, 175u8, 155u8,
+                            22u8, 46u8, 92u8, 90u8, 193u8, 51u8, 12u8, 187u8, 247u8, 141u8, 101u8,
+                            133u8, 220u8, 5u8, 124u8, 197u8, 149u8, 81u8, 51u8, 194u8, 194u8, 72u8,
+                            63u8, 249u8, 227u8, 208u8, 58u8, 253u8, 33u8, 107u8, 10u8, 44u8,
                         ],
                     )
                 }
@@ -9781,9 +10640,9 @@ pub mod api {
                         "Multisigs",
                         Vec::new(),
                         [
-                            69u8, 153u8, 186u8, 204u8, 117u8, 95u8, 119u8, 182u8, 220u8, 87u8, 8u8,
-                            15u8, 123u8, 83u8, 5u8, 188u8, 115u8, 121u8, 163u8, 96u8, 218u8, 3u8,
-                            106u8, 44u8, 44u8, 187u8, 46u8, 238u8, 80u8, 203u8, 175u8, 155u8,
+                            22u8, 46u8, 92u8, 90u8, 193u8, 51u8, 12u8, 187u8, 247u8, 141u8, 101u8,
+                            133u8, 220u8, 5u8, 124u8, 197u8, 149u8, 81u8, 51u8, 194u8, 194u8, 72u8,
+                            63u8, 249u8, 227u8, 208u8, 58u8, 253u8, 33u8, 107u8, 10u8, 44u8,
                         ],
                     )
                 }
@@ -9846,77 +10705,103 @@ pub mod api {
     }
     pub mod sudo {
         use super::{root_mod, runtime_types};
+        #[doc = "Error for the Sudo pallet"]
+        pub type Error = runtime_types::pallet_sudo::pallet::Error;
         #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
+        pub type Call = runtime_types::pallet_sudo::pallet::Call;
         pub mod calls {
             use super::{root_mod, runtime_types};
             type DispatchError = runtime_types::sp_runtime::DispatchError;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Sudo {
-                pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SudoUncheckedWeight {
-                pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
-                pub weight: runtime_types::sp_weights::weight_v2::Weight,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetKey {
-                pub new: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SudoAs {
-                pub who: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
+            pub mod types {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Sudo {
+                    pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Sudo {
+                    const PALLET: &'static str = "Sudo";
+                    const CALL: &'static str = "sudo";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SudoUncheckedWeight {
+                    pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
+                    pub weight: runtime_types::sp_weights::weight_v2::Weight,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SudoUncheckedWeight {
+                    const PALLET: &'static str = "Sudo";
+                    const CALL: &'static str = "sudo_unchecked_weight";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetKey {
+                    pub new: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetKey {
+                    const PALLET: &'static str = "Sudo";
+                    const CALL: &'static str = "set_key";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SudoAs {
+                    pub who: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    pub call: ::std::boxed::Box<runtime_types::aleph_runtime::RuntimeCall>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SudoAs {
+                    const PALLET: &'static str = "Sudo";
+                    const CALL: &'static str = "sudo_as";
+                }
             }
             pub struct TransactionApi;
             impl TransactionApi {
@@ -9929,17 +10814,18 @@ pub mod api {
                 pub fn sudo(
                     &self,
                     call: runtime_types::aleph_runtime::RuntimeCall,
-                ) -> ::subxt::tx::Payload<Sudo> {
+                ) -> ::subxt::tx::Payload<types::Sudo> {
                     ::subxt::tx::Payload::new_static(
                         "Sudo",
                         "sudo",
-                        Sudo {
+                        types::Sudo {
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            0u8, 226u8, 45u8, 221u8, 202u8, 254u8, 127u8, 179u8, 107u8, 24u8, 88u8,
-                            59u8, 79u8, 78u8, 190u8, 171u8, 251u8, 42u8, 209u8, 149u8, 50u8, 74u8,
-                            49u8, 176u8, 187u8, 140u8, 42u8, 187u8, 207u8, 102u8, 175u8, 56u8,
+                            199u8, 127u8, 98u8, 32u8, 161u8, 93u8, 64u8, 100u8, 205u8, 189u8,
+                            179u8, 157u8, 73u8, 216u8, 168u8, 102u8, 111u8, 65u8, 133u8, 180u8,
+                            76u8, 236u8, 0u8, 36u8, 109u8, 46u8, 74u8, 16u8, 55u8, 115u8, 35u8,
+                            21u8,
                         ],
                     )
                 }
@@ -9955,19 +10841,18 @@ pub mod api {
                     &self,
                     call: runtime_types::aleph_runtime::RuntimeCall,
                     weight: runtime_types::sp_weights::weight_v2::Weight,
-                ) -> ::subxt::tx::Payload<SudoUncheckedWeight> {
+                ) -> ::subxt::tx::Payload<types::SudoUncheckedWeight> {
                     ::subxt::tx::Payload::new_static(
                         "Sudo",
                         "sudo_unchecked_weight",
-                        SudoUncheckedWeight {
+                        types::SudoUncheckedWeight {
                             call: ::std::boxed::Box::new(call),
                             weight,
                         },
                         [
-                            183u8, 246u8, 240u8, 189u8, 162u8, 251u8, 71u8, 197u8, 160u8, 83u8,
-                            235u8, 34u8, 83u8, 146u8, 79u8, 87u8, 201u8, 152u8, 188u8, 190u8,
-                            138u8, 101u8, 249u8, 48u8, 238u8, 191u8, 76u8, 62u8, 229u8, 223u8,
-                            125u8, 159u8,
+                            15u8, 150u8, 220u8, 156u8, 148u8, 125u8, 167u8, 59u8, 21u8, 4u8, 98u8,
+                            50u8, 110u8, 82u8, 12u8, 193u8, 253u8, 99u8, 247u8, 63u8, 45u8, 26u8,
+                            2u8, 214u8, 242u8, 49u8, 212u8, 145u8, 176u8, 252u8, 167u8, 15u8,
                         ],
                     )
                 }
@@ -9984,15 +10869,15 @@ pub mod api {
                         ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                         (),
                     >,
-                ) -> ::subxt::tx::Payload<SetKey> {
+                ) -> ::subxt::tx::Payload<types::SetKey> {
                     ::subxt::tx::Payload::new_static(
                         "Sudo",
                         "set_key",
-                        SetKey { new },
+                        types::SetKey { new },
                         [
-                            23u8, 224u8, 218u8, 169u8, 8u8, 28u8, 111u8, 199u8, 26u8, 88u8, 225u8,
-                            105u8, 17u8, 19u8, 87u8, 156u8, 97u8, 67u8, 89u8, 173u8, 70u8, 0u8,
-                            5u8, 246u8, 198u8, 135u8, 182u8, 180u8, 44u8, 9u8, 212u8, 95u8,
+                            196u8, 87u8, 177u8, 124u8, 216u8, 66u8, 124u8, 56u8, 67u8, 36u8, 3u8,
+                            124u8, 2u8, 5u8, 175u8, 110u8, 34u8, 76u8, 108u8, 144u8, 19u8, 65u8,
+                            84u8, 173u8, 73u8, 179u8, 64u8, 70u8, 190u8, 141u8, 173u8, 195u8,
                         ],
                     )
                 }
@@ -10010,19 +10895,19 @@ pub mod api {
                         (),
                     >,
                     call: runtime_types::aleph_runtime::RuntimeCall,
-                ) -> ::subxt::tx::Payload<SudoAs> {
+                ) -> ::subxt::tx::Payload<types::SudoAs> {
                     ::subxt::tx::Payload::new_static(
                         "Sudo",
                         "sudo_as",
-                        SudoAs {
+                        types::SudoAs {
                             who,
                             call: ::std::boxed::Box::new(call),
                         },
                         [
-                            130u8, 24u8, 116u8, 240u8, 35u8, 135u8, 245u8, 146u8, 220u8, 247u8,
-                            190u8, 14u8, 75u8, 150u8, 163u8, 87u8, 58u8, 125u8, 208u8, 217u8,
-                            138u8, 44u8, 70u8, 218u8, 111u8, 24u8, 151u8, 9u8, 196u8, 41u8, 68u8,
-                            87u8,
+                            212u8, 16u8, 32u8, 179u8, 132u8, 114u8, 238u8, 173u8, 96u8, 13u8,
+                            109u8, 242u8, 206u8, 96u8, 233u8, 22u8, 187u8, 13u8, 94u8, 94u8, 234u8,
+                            179u8, 60u8, 109u8, 250u8, 23u8, 234u8, 215u8, 43u8, 112u8, 111u8,
+                            80u8,
                         ],
                     )
                 }
@@ -10042,6 +10927,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A sudo just took place. \\[result\\]"]
@@ -10063,6 +10949,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "The \\[sudoer\\] just switched identity; the old key is supplied if one existed."]
@@ -10085,6 +10972,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A sudo just took place. \\[result\\]"]
@@ -10116,9 +11004,9 @@ pub mod api {
                         "Key",
                         vec![],
                         [
-                            244u8, 73u8, 188u8, 136u8, 218u8, 163u8, 68u8, 179u8, 122u8, 173u8,
-                            34u8, 108u8, 137u8, 28u8, 182u8, 16u8, 196u8, 92u8, 138u8, 34u8, 102u8,
-                            80u8, 199u8, 88u8, 107u8, 207u8, 36u8, 22u8, 168u8, 167u8, 20u8, 142u8,
+                            72u8, 14u8, 225u8, 162u8, 205u8, 247u8, 227u8, 105u8, 116u8, 57u8, 4u8,
+                            31u8, 84u8, 137u8, 227u8, 228u8, 133u8, 245u8, 206u8, 227u8, 117u8,
+                            36u8, 252u8, 151u8, 107u8, 15u8, 180u8, 4u8, 4u8, 152u8, 195u8, 144u8,
                         ],
                     )
                 }
@@ -10127,200 +11015,258 @@ pub mod api {
     }
     pub mod contracts {
         use super::{root_mod, runtime_types};
+        #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
+        pub type Error = runtime_types::pallet_contracts::pallet::Error;
         #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
+        pub type Call = runtime_types::pallet_contracts::pallet::Call;
         pub mod calls {
             use super::{root_mod, runtime_types};
             type DispatchError = runtime_types::sp_runtime::DispatchError;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct CallOldWeight {
-                pub dest: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                #[codec(compact)]
-                pub value: ::core::primitive::u128,
-                #[codec(compact)]
-                pub gas_limit: ::core::primitive::u64,
-                pub storage_deposit_limit:
-                    ::core::option::Option<::subxt::ext::codec::Compact<::core::primitive::u128>>,
-                pub data: ::std::vec::Vec<::core::primitive::u8>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct InstantiateWithCodeOldWeight {
-                #[codec(compact)]
-                pub value: ::core::primitive::u128,
-                #[codec(compact)]
-                pub gas_limit: ::core::primitive::u64,
-                pub storage_deposit_limit:
-                    ::core::option::Option<::subxt::ext::codec::Compact<::core::primitive::u128>>,
-                pub code: ::std::vec::Vec<::core::primitive::u8>,
-                pub data: ::std::vec::Vec<::core::primitive::u8>,
-                pub salt: ::std::vec::Vec<::core::primitive::u8>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct InstantiateOldWeight {
-                #[codec(compact)]
-                pub value: ::core::primitive::u128,
-                #[codec(compact)]
-                pub gas_limit: ::core::primitive::u64,
-                pub storage_deposit_limit:
-                    ::core::option::Option<::subxt::ext::codec::Compact<::core::primitive::u128>>,
-                pub code_hash: ::subxt::utils::H256,
-                pub data: ::std::vec::Vec<::core::primitive::u8>,
-                pub salt: ::std::vec::Vec<::core::primitive::u8>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct UploadCode {
-                pub code: ::std::vec::Vec<::core::primitive::u8>,
-                pub storage_deposit_limit:
-                    ::core::option::Option<::subxt::ext::codec::Compact<::core::primitive::u128>>,
-                pub determinism: runtime_types::pallet_contracts::wasm::Determinism,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct RemoveCode {
-                pub code_hash: ::subxt::utils::H256,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetCode {
-                pub dest: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                pub code_hash: ::subxt::utils::H256,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Call {
-                pub dest: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                #[codec(compact)]
-                pub value: ::core::primitive::u128,
-                pub gas_limit: runtime_types::sp_weights::weight_v2::Weight,
-                pub storage_deposit_limit:
-                    ::core::option::Option<::subxt::ext::codec::Compact<::core::primitive::u128>>,
-                pub data: ::std::vec::Vec<::core::primitive::u8>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct InstantiateWithCode {
-                #[codec(compact)]
-                pub value: ::core::primitive::u128,
-                pub gas_limit: runtime_types::sp_weights::weight_v2::Weight,
-                pub storage_deposit_limit:
-                    ::core::option::Option<::subxt::ext::codec::Compact<::core::primitive::u128>>,
-                pub code: ::std::vec::Vec<::core::primitive::u8>,
-                pub data: ::std::vec::Vec<::core::primitive::u8>,
-                pub salt: ::std::vec::Vec<::core::primitive::u8>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Instantiate {
-                #[codec(compact)]
-                pub value: ::core::primitive::u128,
-                pub gas_limit: runtime_types::sp_weights::weight_v2::Weight,
-                pub storage_deposit_limit:
-                    ::core::option::Option<::subxt::ext::codec::Compact<::core::primitive::u128>>,
-                pub code_hash: ::subxt::utils::H256,
-                pub data: ::std::vec::Vec<::core::primitive::u8>,
-                pub salt: ::std::vec::Vec<::core::primitive::u8>,
+            pub mod types {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct CallOldWeight {
+                    pub dest: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    #[codec(compact)]
+                    pub value: ::core::primitive::u128,
+                    #[codec(compact)]
+                    pub gas_limit: ::core::primitive::u64,
+                    pub storage_deposit_limit: ::core::option::Option<
+                        ::subxt::ext::codec::Compact<::core::primitive::u128>,
+                    >,
+                    pub data: ::std::vec::Vec<::core::primitive::u8>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for CallOldWeight {
+                    const PALLET: &'static str = "Contracts";
+                    const CALL: &'static str = "call_old_weight";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct InstantiateWithCodeOldWeight {
+                    #[codec(compact)]
+                    pub value: ::core::primitive::u128,
+                    #[codec(compact)]
+                    pub gas_limit: ::core::primitive::u64,
+                    pub storage_deposit_limit: ::core::option::Option<
+                        ::subxt::ext::codec::Compact<::core::primitive::u128>,
+                    >,
+                    pub code: ::std::vec::Vec<::core::primitive::u8>,
+                    pub data: ::std::vec::Vec<::core::primitive::u8>,
+                    pub salt: ::std::vec::Vec<::core::primitive::u8>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for InstantiateWithCodeOldWeight {
+                    const PALLET: &'static str = "Contracts";
+                    const CALL: &'static str = "instantiate_with_code_old_weight";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct InstantiateOldWeight {
+                    #[codec(compact)]
+                    pub value: ::core::primitive::u128,
+                    #[codec(compact)]
+                    pub gas_limit: ::core::primitive::u64,
+                    pub storage_deposit_limit: ::core::option::Option<
+                        ::subxt::ext::codec::Compact<::core::primitive::u128>,
+                    >,
+                    pub code_hash: ::subxt::utils::H256,
+                    pub data: ::std::vec::Vec<::core::primitive::u8>,
+                    pub salt: ::std::vec::Vec<::core::primitive::u8>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for InstantiateOldWeight {
+                    const PALLET: &'static str = "Contracts";
+                    const CALL: &'static str = "instantiate_old_weight";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct UploadCode {
+                    pub code: ::std::vec::Vec<::core::primitive::u8>,
+                    pub storage_deposit_limit: ::core::option::Option<
+                        ::subxt::ext::codec::Compact<::core::primitive::u128>,
+                    >,
+                    pub determinism: runtime_types::pallet_contracts::wasm::Determinism,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for UploadCode {
+                    const PALLET: &'static str = "Contracts";
+                    const CALL: &'static str = "upload_code";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct RemoveCode {
+                    pub code_hash: ::subxt::utils::H256,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for RemoveCode {
+                    const PALLET: &'static str = "Contracts";
+                    const CALL: &'static str = "remove_code";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetCode {
+                    pub dest: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    pub code_hash: ::subxt::utils::H256,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetCode {
+                    const PALLET: &'static str = "Contracts";
+                    const CALL: &'static str = "set_code";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Call {
+                    pub dest: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    #[codec(compact)]
+                    pub value: ::core::primitive::u128,
+                    pub gas_limit: runtime_types::sp_weights::weight_v2::Weight,
+                    pub storage_deposit_limit: ::core::option::Option<
+                        ::subxt::ext::codec::Compact<::core::primitive::u128>,
+                    >,
+                    pub data: ::std::vec::Vec<::core::primitive::u8>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Call {
+                    const PALLET: &'static str = "Contracts";
+                    const CALL: &'static str = "call";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct InstantiateWithCode {
+                    #[codec(compact)]
+                    pub value: ::core::primitive::u128,
+                    pub gas_limit: runtime_types::sp_weights::weight_v2::Weight,
+                    pub storage_deposit_limit: ::core::option::Option<
+                        ::subxt::ext::codec::Compact<::core::primitive::u128>,
+                    >,
+                    pub code: ::std::vec::Vec<::core::primitive::u8>,
+                    pub data: ::std::vec::Vec<::core::primitive::u8>,
+                    pub salt: ::std::vec::Vec<::core::primitive::u8>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for InstantiateWithCode {
+                    const PALLET: &'static str = "Contracts";
+                    const CALL: &'static str = "instantiate_with_code";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Instantiate {
+                    #[codec(compact)]
+                    pub value: ::core::primitive::u128,
+                    pub gas_limit: runtime_types::sp_weights::weight_v2::Weight,
+                    pub storage_deposit_limit: ::core::option::Option<
+                        ::subxt::ext::codec::Compact<::core::primitive::u128>,
+                    >,
+                    pub code_hash: ::subxt::utils::H256,
+                    pub data: ::std::vec::Vec<::core::primitive::u8>,
+                    pub salt: ::std::vec::Vec<::core::primitive::u8>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Instantiate {
+                    const PALLET: &'static str = "Contracts";
+                    const CALL: &'static str = "instantiate";
+                }
             }
             pub struct TransactionApi;
             impl TransactionApi {
@@ -10337,11 +11283,11 @@ pub mod api {
                         ::subxt::ext::codec::Compact<::core::primitive::u128>,
                     >,
                     data: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::Payload<CallOldWeight> {
+                ) -> ::subxt::tx::Payload<types::CallOldWeight> {
                     ::subxt::tx::Payload::new_static(
                         "Contracts",
                         "call_old_weight",
-                        CallOldWeight {
+                        types::CallOldWeight {
                             dest,
                             value,
                             gas_limit,
@@ -10349,10 +11295,10 @@ pub mod api {
                             data,
                         },
                         [
-                            216u8, 79u8, 195u8, 4u8, 67u8, 156u8, 101u8, 53u8, 5u8, 241u8, 33u8,
-                            138u8, 241u8, 5u8, 166u8, 204u8, 125u8, 67u8, 82u8, 136u8, 123u8,
-                            255u8, 199u8, 222u8, 33u8, 117u8, 50u8, 206u8, 39u8, 108u8, 213u8,
-                            73u8,
+                            162u8, 248u8, 137u8, 129u8, 107u8, 81u8, 255u8, 215u8, 143u8, 105u8,
+                            202u8, 248u8, 251u8, 113u8, 168u8, 214u8, 16u8, 161u8, 248u8, 75u8,
+                            169u8, 45u8, 84u8, 252u8, 121u8, 221u8, 84u8, 221u8, 218u8, 253u8,
+                            146u8, 94u8,
                         ],
                     )
                 }
@@ -10367,11 +11313,11 @@ pub mod api {
                     code: ::std::vec::Vec<::core::primitive::u8>,
                     data: ::std::vec::Vec<::core::primitive::u8>,
                     salt: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::Payload<InstantiateWithCodeOldWeight> {
+                ) -> ::subxt::tx::Payload<types::InstantiateWithCodeOldWeight> {
                     ::subxt::tx::Payload::new_static(
                         "Contracts",
                         "instantiate_with_code_old_weight",
-                        InstantiateWithCodeOldWeight {
+                        types::InstantiateWithCodeOldWeight {
                             value,
                             gas_limit,
                             storage_deposit_limit,
@@ -10380,9 +11326,9 @@ pub mod api {
                             salt,
                         },
                         [
-                            116u8, 147u8, 79u8, 193u8, 32u8, 4u8, 185u8, 150u8, 148u8, 96u8, 72u8,
-                            43u8, 99u8, 7u8, 93u8, 42u8, 244u8, 172u8, 224u8, 158u8, 149u8, 138u8,
-                            153u8, 136u8, 174u8, 53u8, 56u8, 102u8, 204u8, 65u8, 172u8, 108u8,
+                            136u8, 86u8, 215u8, 54u8, 92u8, 118u8, 161u8, 244u8, 32u8, 166u8,
+                            167u8, 69u8, 231u8, 11u8, 252u8, 63u8, 91u8, 210u8, 252u8, 161u8, 60u8,
+                            77u8, 54u8, 69u8, 115u8, 132u8, 146u8, 215u8, 93u8, 239u8, 36u8, 15u8,
                         ],
                     )
                 }
@@ -10397,11 +11343,11 @@ pub mod api {
                     code_hash: ::subxt::utils::H256,
                     data: ::std::vec::Vec<::core::primitive::u8>,
                     salt: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::Payload<InstantiateOldWeight> {
+                ) -> ::subxt::tx::Payload<types::InstantiateOldWeight> {
                     ::subxt::tx::Payload::new_static(
                         "Contracts",
                         "instantiate_old_weight",
-                        InstantiateOldWeight {
+                        types::InstantiateOldWeight {
                             value,
                             gas_limit,
                             storage_deposit_limit,
@@ -10410,9 +11356,9 @@ pub mod api {
                             salt,
                         },
                         [
-                            219u8, 22u8, 29u8, 28u8, 231u8, 167u8, 18u8, 228u8, 106u8, 198u8, 46u8,
-                            27u8, 60u8, 143u8, 222u8, 135u8, 60u8, 26u8, 139u8, 231u8, 166u8,
-                            247u8, 85u8, 26u8, 162u8, 3u8, 27u8, 153u8, 21u8, 191u8, 18u8, 34u8,
+                            10u8, 91u8, 153u8, 191u8, 165u8, 31u8, 75u8, 96u8, 149u8, 28u8, 196u8,
+                            95u8, 11u8, 88u8, 227u8, 158u8, 254u8, 202u8, 189u8, 181u8, 224u8,
+                            148u8, 204u8, 121u8, 141u8, 133u8, 19u8, 56u8, 54u8, 61u8, 3u8, 108u8,
                         ],
                     )
                 }
@@ -10443,19 +11389,19 @@ pub mod api {
                         ::subxt::ext::codec::Compact<::core::primitive::u128>,
                     >,
                     determinism: runtime_types::pallet_contracts::wasm::Determinism,
-                ) -> ::subxt::tx::Payload<UploadCode> {
+                ) -> ::subxt::tx::Payload<types::UploadCode> {
                     ::subxt::tx::Payload::new_static(
                         "Contracts",
                         "upload_code",
-                        UploadCode {
+                        types::UploadCode {
                             code,
                             storage_deposit_limit,
                             determinism,
                         },
                         [
-                            99u8, 49u8, 105u8, 97u8, 163u8, 10u8, 116u8, 95u8, 106u8, 37u8, 182u8,
-                            238u8, 253u8, 31u8, 164u8, 179u8, 102u8, 84u8, 158u8, 46u8, 188u8,
-                            226u8, 8u8, 185u8, 38u8, 180u8, 196u8, 10u8, 115u8, 225u8, 138u8, 49u8,
+                            159u8, 17u8, 234u8, 83u8, 162u8, 68u8, 117u8, 80u8, 64u8, 251u8, 31u8,
+                            38u8, 214u8, 227u8, 235u8, 74u8, 97u8, 72u8, 83u8, 197u8, 7u8, 57u8,
+                            212u8, 217u8, 219u8, 139u8, 182u8, 248u8, 92u8, 91u8, 56u8, 2u8,
                         ],
                     )
                 }
@@ -10466,15 +11412,15 @@ pub mod api {
                 pub fn remove_code(
                     &self,
                     code_hash: ::subxt::utils::H256,
-                ) -> ::subxt::tx::Payload<RemoveCode> {
+                ) -> ::subxt::tx::Payload<types::RemoveCode> {
                     ::subxt::tx::Payload::new_static(
                         "Contracts",
                         "remove_code",
-                        RemoveCode { code_hash },
+                        types::RemoveCode { code_hash },
                         [
-                            43u8, 192u8, 198u8, 182u8, 108u8, 76u8, 21u8, 42u8, 169u8, 41u8, 195u8,
-                            73u8, 31u8, 179u8, 162u8, 56u8, 91u8, 5u8, 64u8, 7u8, 252u8, 194u8,
-                            255u8, 170u8, 67u8, 137u8, 143u8, 192u8, 2u8, 149u8, 38u8, 180u8,
+                            99u8, 184u8, 12u8, 208u8, 123u8, 158u8, 140u8, 21u8, 190u8, 152u8,
+                            95u8, 79u8, 217u8, 131u8, 161u8, 160u8, 21u8, 56u8, 167u8, 27u8, 90u8,
+                            255u8, 75u8, 0u8, 133u8, 111u8, 119u8, 217u8, 157u8, 67u8, 238u8, 69u8,
                         ],
                     )
                 }
@@ -10495,16 +11441,15 @@ pub mod api {
                         (),
                     >,
                     code_hash: ::subxt::utils::H256,
-                ) -> ::subxt::tx::Payload<SetCode> {
+                ) -> ::subxt::tx::Payload<types::SetCode> {
                     ::subxt::tx::Payload::new_static(
                         "Contracts",
                         "set_code",
-                        SetCode { dest, code_hash },
+                        types::SetCode { dest, code_hash },
                         [
-                            106u8, 141u8, 239u8, 113u8, 99u8, 74u8, 14u8, 171u8, 80u8, 115u8,
-                            214u8, 203u8, 232u8, 142u8, 48u8, 207u8, 214u8, 59u8, 204u8, 157u8,
-                            101u8, 142u8, 12u8, 69u8, 230u8, 188u8, 60u8, 197u8, 238u8, 146u8,
-                            17u8, 190u8,
+                            224u8, 107u8, 50u8, 5u8, 53u8, 18u8, 63u8, 203u8, 203u8, 200u8, 136u8,
+                            31u8, 242u8, 6u8, 250u8, 31u8, 194u8, 53u8, 185u8, 82u8, 72u8, 26u8,
+                            72u8, 47u8, 98u8, 138u8, 43u8, 131u8, 87u8, 214u8, 151u8, 88u8,
                         ],
                     )
                 }
@@ -10536,11 +11481,11 @@ pub mod api {
                         ::subxt::ext::codec::Compact<::core::primitive::u128>,
                     >,
                     data: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::Payload<Call> {
+                ) -> ::subxt::tx::Payload<types::Call> {
                     ::subxt::tx::Payload::new_static(
                         "Contracts",
                         "call",
-                        Call {
+                        types::Call {
                             dest,
                             value,
                             gas_limit,
@@ -10548,10 +11493,9 @@ pub mod api {
                             data,
                         },
                         [
-                            226u8, 219u8, 120u8, 119u8, 106u8, 251u8, 205u8, 112u8, 148u8, 215u8,
-                            196u8, 50u8, 116u8, 75u8, 40u8, 41u8, 224u8, 35u8, 186u8, 29u8, 49u8,
-                            112u8, 51u8, 117u8, 142u8, 69u8, 214u8, 208u8, 241u8, 71u8, 149u8,
-                            163u8,
+                            254u8, 50u8, 72u8, 79u8, 175u8, 249u8, 26u8, 84u8, 103u8, 167u8, 127u8,
+                            48u8, 133u8, 11u8, 102u8, 69u8, 101u8, 192u8, 39u8, 59u8, 97u8, 173u8,
+                            166u8, 21u8, 63u8, 202u8, 127u8, 201u8, 159u8, 148u8, 49u8, 133u8,
                         ],
                     )
                 }
@@ -10591,11 +11535,11 @@ pub mod api {
                     code: ::std::vec::Vec<::core::primitive::u8>,
                     data: ::std::vec::Vec<::core::primitive::u8>,
                     salt: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::Payload<InstantiateWithCode> {
+                ) -> ::subxt::tx::Payload<types::InstantiateWithCode> {
                     ::subxt::tx::Payload::new_static(
                         "Contracts",
                         "instantiate_with_code",
-                        InstantiateWithCode {
+                        types::InstantiateWithCode {
                             value,
                             gas_limit,
                             storage_deposit_limit,
@@ -10604,9 +11548,9 @@ pub mod api {
                             salt,
                         },
                         [
-                            94u8, 238u8, 175u8, 86u8, 230u8, 186u8, 94u8, 60u8, 201u8, 35u8, 117u8,
-                            236u8, 221u8, 10u8, 180u8, 191u8, 140u8, 79u8, 203u8, 134u8, 240u8,
-                            21u8, 31u8, 63u8, 9u8, 17u8, 134u8, 30u8, 244u8, 95u8, 171u8, 164u8,
+                            56u8, 224u8, 6u8, 35u8, 3u8, 79u8, 211u8, 229u8, 187u8, 87u8, 43u8,
+                            213u8, 168u8, 55u8, 39u8, 41u8, 142u8, 132u8, 16u8, 161u8, 52u8, 22u8,
+                            88u8, 114u8, 208u8, 80u8, 99u8, 221u8, 131u8, 156u8, 61u8, 163u8,
                         ],
                     )
                 }
@@ -10625,11 +11569,11 @@ pub mod api {
                     code_hash: ::subxt::utils::H256,
                     data: ::std::vec::Vec<::core::primitive::u8>,
                     salt: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::Payload<Instantiate> {
+                ) -> ::subxt::tx::Payload<types::Instantiate> {
                     ::subxt::tx::Payload::new_static(
                         "Contracts",
                         "instantiate",
-                        Instantiate {
+                        types::Instantiate {
                             value,
                             gas_limit,
                             storage_deposit_limit,
@@ -10638,9 +11582,10 @@ pub mod api {
                             salt,
                         },
                         [
-                            251u8, 49u8, 158u8, 1u8, 138u8, 29u8, 106u8, 187u8, 68u8, 135u8, 44u8,
-                            196u8, 230u8, 237u8, 88u8, 244u8, 170u8, 168u8, 11u8, 91u8, 185u8,
-                            11u8, 45u8, 86u8, 113u8, 79u8, 92u8, 248u8, 113u8, 47u8, 141u8, 10u8,
+                            185u8, 177u8, 11u8, 254u8, 229u8, 161u8, 133u8, 235u8, 255u8, 228u8,
+                            121u8, 19u8, 79u8, 20u8, 50u8, 101u8, 203u8, 69u8, 92u8, 48u8, 93u8,
+                            152u8, 61u8, 60u8, 168u8, 68u8, 177u8, 187u8, 156u8, 102u8, 210u8,
+                            160u8,
                         ],
                     )
                 }
@@ -10660,6 +11605,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Contract deployed by address at the specified address."]
@@ -10681,6 +11627,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Contract has been removed."]
@@ -10707,6 +11654,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Code with the specified hash has been stored."]
@@ -10727,6 +11675,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A custom event emitted by the contract."]
@@ -10748,6 +11697,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A code with the specified hash was removed."]
@@ -10768,6 +11718,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A contract's code was updated."]
@@ -10790,6 +11741,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A contract was called either by a plain account or another contract."]
@@ -10800,7 +11752,8 @@ pub mod api {
             #[doc = "calls. This is because on failure all storage changes including events are"]
             #[doc = "rolled back."]
             pub struct Called {
-                pub caller: ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                pub caller:
+                    runtime_types::pallet_contracts::Origin<runtime_types::aleph_runtime::Runtime>,
                 pub contract: ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
             }
             impl ::subxt::events::StaticEvent for Called {
@@ -10817,6 +11770,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A contract delegate called a code hash."]
@@ -10859,10 +11813,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            244u8, 169u8, 220u8, 235u8, 62u8, 153u8, 226u8, 187u8, 220u8, 141u8,
-                            149u8, 75u8, 224u8, 117u8, 181u8, 147u8, 140u8, 84u8, 9u8, 109u8,
-                            230u8, 25u8, 186u8, 26u8, 171u8, 147u8, 19u8, 78u8, 62u8, 170u8, 27u8,
-                            105u8,
+                            57u8, 79u8, 159u8, 232u8, 131u8, 156u8, 213u8, 30u8, 6u8, 255u8, 44u8,
+                            49u8, 149u8, 175u8, 120u8, 125u8, 44u8, 238u8, 23u8, 117u8, 1u8, 125u8,
+                            199u8, 29u8, 72u8, 97u8, 94u8, 163u8, 202u8, 120u8, 207u8, 123u8,
                         ],
                     )
                 }
@@ -10883,10 +11836,9 @@ pub mod api {
                         "PristineCode",
                         Vec::new(),
                         [
-                            244u8, 169u8, 220u8, 235u8, 62u8, 153u8, 226u8, 187u8, 220u8, 141u8,
-                            149u8, 75u8, 224u8, 117u8, 181u8, 147u8, 140u8, 84u8, 9u8, 109u8,
-                            230u8, 25u8, 186u8, 26u8, 171u8, 147u8, 19u8, 78u8, 62u8, 170u8, 27u8,
-                            105u8,
+                            57u8, 79u8, 159u8, 232u8, 131u8, 156u8, 213u8, 30u8, 6u8, 255u8, 44u8,
+                            49u8, 149u8, 175u8, 120u8, 125u8, 44u8, 238u8, 23u8, 117u8, 1u8, 125u8,
+                            199u8, 29u8, 72u8, 97u8, 94u8, 163u8, 202u8, 120u8, 207u8, 123u8,
                         ],
                     )
                 }
@@ -10908,10 +11860,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            135u8, 67u8, 120u8, 68u8, 191u8, 176u8, 13u8, 35u8, 114u8, 76u8, 58u8,
-                            75u8, 37u8, 152u8, 131u8, 103u8, 106u8, 12u8, 212u8, 194u8, 138u8,
-                            143u8, 127u8, 150u8, 246u8, 190u8, 20u8, 110u8, 32u8, 59u8, 47u8,
-                            137u8,
+                            84u8, 245u8, 130u8, 92u8, 142u8, 214u8, 246u8, 22u8, 10u8, 27u8, 171u8,
+                            126u8, 20u8, 40u8, 23u8, 91u8, 90u8, 203u8, 148u8, 105u8, 111u8, 12u8,
+                            57u8, 102u8, 183u8, 182u8, 186u8, 147u8, 127u8, 230u8, 110u8, 180u8,
                         ],
                     )
                 }
@@ -10930,10 +11881,9 @@ pub mod api {
                         "CodeStorage",
                         Vec::new(),
                         [
-                            135u8, 67u8, 120u8, 68u8, 191u8, 176u8, 13u8, 35u8, 114u8, 76u8, 58u8,
-                            75u8, 37u8, 152u8, 131u8, 103u8, 106u8, 12u8, 212u8, 194u8, 138u8,
-                            143u8, 127u8, 150u8, 246u8, 190u8, 20u8, 110u8, 32u8, 59u8, 47u8,
-                            137u8,
+                            84u8, 245u8, 130u8, 92u8, 142u8, 214u8, 246u8, 22u8, 10u8, 27u8, 171u8,
+                            126u8, 20u8, 40u8, 23u8, 91u8, 90u8, 203u8, 148u8, 105u8, 111u8, 12u8,
+                            57u8, 102u8, 183u8, 182u8, 186u8, 147u8, 127u8, 230u8, 110u8, 180u8,
                         ],
                     )
                 }
@@ -10955,10 +11905,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            147u8, 6u8, 225u8, 62u8, 211u8, 236u8, 61u8, 116u8, 152u8, 219u8,
-                            220u8, 17u8, 82u8, 221u8, 156u8, 88u8, 63u8, 204u8, 16u8, 11u8, 184u8,
-                            236u8, 181u8, 189u8, 170u8, 160u8, 60u8, 64u8, 71u8, 250u8, 202u8,
-                            186u8,
+                            2u8, 159u8, 98u8, 144u8, 186u8, 85u8, 85u8, 97u8, 63u8, 233u8, 251u8,
+                            171u8, 202u8, 194u8, 246u8, 211u8, 136u8, 234u8, 138u8, 208u8, 25u8,
+                            14u8, 63u8, 211u8, 229u8, 54u8, 33u8, 57u8, 69u8, 87u8, 57u8, 39u8,
                         ],
                     )
                 }
@@ -10977,10 +11926,9 @@ pub mod api {
                         "OwnerInfoOf",
                         Vec::new(),
                         [
-                            147u8, 6u8, 225u8, 62u8, 211u8, 236u8, 61u8, 116u8, 152u8, 219u8,
-                            220u8, 17u8, 82u8, 221u8, 156u8, 88u8, 63u8, 204u8, 16u8, 11u8, 184u8,
-                            236u8, 181u8, 189u8, 170u8, 160u8, 60u8, 64u8, 71u8, 250u8, 202u8,
-                            186u8,
+                            2u8, 159u8, 98u8, 144u8, 186u8, 85u8, 85u8, 97u8, 63u8, 233u8, 251u8,
+                            171u8, 202u8, 194u8, 246u8, 211u8, 136u8, 234u8, 138u8, 208u8, 25u8,
+                            14u8, 63u8, 211u8, 229u8, 54u8, 33u8, 57u8, 69u8, 87u8, 57u8, 39u8,
                         ],
                     )
                 }
@@ -11020,10 +11968,9 @@ pub mod api {
                         "Nonce",
                         vec![],
                         [
-                            122u8, 169u8, 95u8, 131u8, 85u8, 32u8, 154u8, 114u8, 143u8, 56u8, 12u8,
-                            182u8, 64u8, 150u8, 241u8, 249u8, 254u8, 251u8, 160u8, 235u8, 192u8,
-                            41u8, 101u8, 232u8, 186u8, 108u8, 187u8, 149u8, 210u8, 91u8, 179u8,
-                            98u8,
+                            47u8, 101u8, 89u8, 252u8, 98u8, 25u8, 178u8, 154u8, 17u8, 57u8, 185u8,
+                            10u8, 133u8, 94u8, 73u8, 160u8, 137u8, 150u8, 97u8, 119u8, 8u8, 146u8,
+                            149u8, 146u8, 212u8, 60u8, 141u8, 24u8, 124u8, 28u8, 57u8, 19u8,
                         ],
                     )
                 }
@@ -11049,9 +11996,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            232u8, 91u8, 50u8, 59u8, 181u8, 61u8, 225u8, 209u8, 85u8, 192u8, 4u8,
-                            248u8, 59u8, 67u8, 153u8, 199u8, 206u8, 151u8, 245u8, 85u8, 167u8,
-                            111u8, 178u8, 94u8, 40u8, 132u8, 247u8, 97u8, 231u8, 209u8, 15u8, 23u8,
+                            127u8, 10u8, 55u8, 188u8, 167u8, 57u8, 228u8, 152u8, 70u8, 86u8, 231u8,
+                            205u8, 114u8, 129u8, 17u8, 156u8, 245u8, 213u8, 186u8, 159u8, 146u8,
+                            81u8, 7u8, 62u8, 167u8, 134u8, 131u8, 33u8, 42u8, 149u8, 47u8, 231u8,
                         ],
                     )
                 }
@@ -11072,9 +12019,9 @@ pub mod api {
                         "ContractInfoOf",
                         Vec::new(),
                         [
-                            232u8, 91u8, 50u8, 59u8, 181u8, 61u8, 225u8, 209u8, 85u8, 192u8, 4u8,
-                            248u8, 59u8, 67u8, 153u8, 199u8, 206u8, 151u8, 245u8, 85u8, 167u8,
-                            111u8, 178u8, 94u8, 40u8, 132u8, 247u8, 97u8, 231u8, 209u8, 15u8, 23u8,
+                            127u8, 10u8, 55u8, 188u8, 167u8, 57u8, 228u8, 152u8, 70u8, 86u8, 231u8,
+                            205u8, 114u8, 129u8, 17u8, 156u8, 245u8, 213u8, 186u8, 159u8, 146u8,
+                            81u8, 7u8, 62u8, 167u8, 134u8, 131u8, 33u8, 42u8, 149u8, 47u8, 231u8,
                         ],
                     )
                 }
@@ -11101,9 +12048,10 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            249u8, 233u8, 96u8, 16u8, 170u8, 151u8, 40u8, 157u8, 85u8, 237u8,
-                            175u8, 46u8, 130u8, 16u8, 1u8, 150u8, 26u8, 224u8, 18u8, 131u8, 17u8,
-                            92u8, 32u8, 12u8, 51u8, 165u8, 38u8, 40u8, 132u8, 251u8, 245u8, 45u8,
+                            233u8, 193u8, 191u8, 44u8, 151u8, 46u8, 124u8, 188u8, 132u8, 227u8,
+                            107u8, 210u8, 37u8, 110u8, 172u8, 95u8, 12u8, 114u8, 63u8, 83u8, 60u8,
+                            163u8, 58u8, 174u8, 160u8, 47u8, 198u8, 156u8, 216u8, 182u8, 65u8,
+                            229u8,
                         ],
                     )
                 }
@@ -11127,9 +12075,10 @@ pub mod api {
                         "DeletionQueue",
                         Vec::new(),
                         [
-                            249u8, 233u8, 96u8, 16u8, 170u8, 151u8, 40u8, 157u8, 85u8, 237u8,
-                            175u8, 46u8, 130u8, 16u8, 1u8, 150u8, 26u8, 224u8, 18u8, 131u8, 17u8,
-                            92u8, 32u8, 12u8, 51u8, 165u8, 38u8, 40u8, 132u8, 251u8, 245u8, 45u8,
+                            233u8, 193u8, 191u8, 44u8, 151u8, 46u8, 124u8, 188u8, 132u8, 227u8,
+                            107u8, 210u8, 37u8, 110u8, 172u8, 95u8, 12u8, 114u8, 63u8, 83u8, 60u8,
+                            163u8, 58u8, 174u8, 160u8, 47u8, 198u8, 156u8, 216u8, 182u8, 65u8,
+                            229u8,
                         ],
                     )
                 }
@@ -11149,9 +12098,9 @@ pub mod api {
                         "DeletionQueueCounter",
                         vec![],
                         [
-                            192u8, 104u8, 94u8, 112u8, 18u8, 223u8, 26u8, 205u8, 53u8, 36u8, 249u8,
-                            211u8, 112u8, 190u8, 215u8, 35u8, 2u8, 203u8, 240u8, 183u8, 140u8,
-                            213u8, 213u8, 35u8, 15u8, 95u8, 85u8, 110u8, 175u8, 52u8, 168u8, 101u8,
+                            110u8, 62u8, 69u8, 98u8, 41u8, 1u8, 189u8, 178u8, 149u8, 34u8, 42u8,
+                            136u8, 127u8, 110u8, 206u8, 2u8, 74u8, 96u8, 188u8, 210u8, 78u8, 37u8,
+                            70u8, 251u8, 37u8, 233u8, 26u8, 71u8, 224u8, 116u8, 101u8, 128u8,
                         ],
                     )
                 }
@@ -11170,9 +12119,9 @@ pub mod api {
                         "Contracts",
                         "Schedule",
                         [
-                            225u8, 12u8, 141u8, 237u8, 52u8, 169u8, 92u8, 90u8, 165u8, 10u8, 141u8,
-                            108u8, 205u8, 11u8, 42u8, 33u8, 220u8, 184u8, 46u8, 27u8, 84u8, 151u8,
-                            182u8, 55u8, 138u8, 214u8, 102u8, 197u8, 18u8, 134u8, 161u8, 25u8,
+                            107u8, 144u8, 182u8, 103u8, 54u8, 0u8, 126u8, 8u8, 37u8, 111u8, 72u8,
+                            53u8, 107u8, 197u8, 156u8, 180u8, 5u8, 9u8, 202u8, 77u8, 128u8, 206u8,
+                            124u8, 184u8, 172u8, 92u8, 27u8, 184u8, 213u8, 121u8, 72u8, 243u8,
                         ],
                     )
                 }
@@ -11302,403 +12251,514 @@ pub mod api {
     }
     pub mod nomination_pools {
         use super::{root_mod, runtime_types};
+        #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
+        pub type Error = runtime_types::pallet_nomination_pools::pallet::Error;
         #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
+        pub type Call = runtime_types::pallet_nomination_pools::pallet::Call;
         pub mod calls {
             use super::{root_mod, runtime_types};
             type DispatchError = runtime_types::sp_runtime::DispatchError;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Join {
-                #[codec(compact)]
-                pub amount: ::core::primitive::u128,
-                pub pool_id: ::core::primitive::u32,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct BondExtra {
-                pub extra:
-                    runtime_types::pallet_nomination_pools::BondExtra<::core::primitive::u128>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ClaimPayout;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Unbond {
-                pub member_account: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                #[codec(compact)]
-                pub unbonding_points: ::core::primitive::u128,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct PoolWithdrawUnbonded {
-                pub pool_id: ::core::primitive::u32,
-                pub num_slashing_spans: ::core::primitive::u32,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct WithdrawUnbonded {
-                pub member_account: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                pub num_slashing_spans: ::core::primitive::u32,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Create {
-                #[codec(compact)]
-                pub amount: ::core::primitive::u128,
-                pub root: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                pub nominator: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                pub bouncer: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct CreateWithPoolId {
-                #[codec(compact)]
-                pub amount: ::core::primitive::u128,
-                pub root: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                pub nominator: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                pub bouncer: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                pub pool_id: ::core::primitive::u32,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Nominate {
-                pub pool_id: ::core::primitive::u32,
-                pub validators: ::std::vec::Vec<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetState {
-                pub pool_id: ::core::primitive::u32,
-                pub state: runtime_types::pallet_nomination_pools::PoolState,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetMetadata {
-                pub pool_id: ::core::primitive::u32,
-                pub metadata: ::std::vec::Vec<::core::primitive::u8>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetConfigs {
-                pub min_join_bond:
-                    runtime_types::pallet_nomination_pools::ConfigOp<::core::primitive::u128>,
-                pub min_create_bond:
-                    runtime_types::pallet_nomination_pools::ConfigOp<::core::primitive::u128>,
-                pub max_pools:
-                    runtime_types::pallet_nomination_pools::ConfigOp<::core::primitive::u32>,
-                pub max_members:
-                    runtime_types::pallet_nomination_pools::ConfigOp<::core::primitive::u32>,
-                pub max_members_per_pool:
-                    runtime_types::pallet_nomination_pools::ConfigOp<::core::primitive::u32>,
-                pub global_max_commission: runtime_types::pallet_nomination_pools::ConfigOp<
-                    runtime_types::sp_arithmetic::per_things::Perbill,
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct UpdateRoles {
-                pub pool_id: ::core::primitive::u32,
-                pub new_root: runtime_types::pallet_nomination_pools::ConfigOp<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                >,
-                pub new_nominator: runtime_types::pallet_nomination_pools::ConfigOp<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                >,
-                pub new_bouncer: runtime_types::pallet_nomination_pools::ConfigOp<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: CompactAs,
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Chill {
-                pub pool_id: ::core::primitive::u32,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct BondExtraOther {
-                pub member: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                pub extra:
-                    runtime_types::pallet_nomination_pools::BondExtra<::core::primitive::u128>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetClaimPermission {
-                pub permission: runtime_types::pallet_nomination_pools::ClaimPermission,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ClaimPayoutOther {
-                pub other: ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetCommission {
-                pub pool_id: ::core::primitive::u32,
-                pub new_commission: ::core::option::Option<(
-                    runtime_types::sp_arithmetic::per_things::Perbill,
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                )>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetCommissionMax {
-                pub pool_id: ::core::primitive::u32,
-                pub max_commission: runtime_types::sp_arithmetic::per_things::Perbill,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetCommissionChangeRate {
-                pub pool_id: ::core::primitive::u32,
-                pub change_rate: runtime_types::pallet_nomination_pools::CommissionChangeRate<
-                    ::core::primitive::u32,
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: CompactAs,
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ClaimCommission {
-                pub pool_id: ::core::primitive::u32,
+            pub mod types {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Join {
+                    #[codec(compact)]
+                    pub amount: ::core::primitive::u128,
+                    pub pool_id: ::core::primitive::u32,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Join {
+                    const PALLET: &'static str = "NominationPools";
+                    const CALL: &'static str = "join";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct BondExtra {
+                    pub extra:
+                        runtime_types::pallet_nomination_pools::BondExtra<::core::primitive::u128>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for BondExtra {
+                    const PALLET: &'static str = "NominationPools";
+                    const CALL: &'static str = "bond_extra";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ClaimPayout;
+                impl ::subxt::blocks::StaticExtrinsic for ClaimPayout {
+                    const PALLET: &'static str = "NominationPools";
+                    const CALL: &'static str = "claim_payout";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Unbond {
+                    pub member_account: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    #[codec(compact)]
+                    pub unbonding_points: ::core::primitive::u128,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Unbond {
+                    const PALLET: &'static str = "NominationPools";
+                    const CALL: &'static str = "unbond";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct PoolWithdrawUnbonded {
+                    pub pool_id: ::core::primitive::u32,
+                    pub num_slashing_spans: ::core::primitive::u32,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for PoolWithdrawUnbonded {
+                    const PALLET: &'static str = "NominationPools";
+                    const CALL: &'static str = "pool_withdraw_unbonded";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct WithdrawUnbonded {
+                    pub member_account: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    pub num_slashing_spans: ::core::primitive::u32,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for WithdrawUnbonded {
+                    const PALLET: &'static str = "NominationPools";
+                    const CALL: &'static str = "withdraw_unbonded";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Create {
+                    #[codec(compact)]
+                    pub amount: ::core::primitive::u128,
+                    pub root: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    pub nominator: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    pub bouncer: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Create {
+                    const PALLET: &'static str = "NominationPools";
+                    const CALL: &'static str = "create";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct CreateWithPoolId {
+                    #[codec(compact)]
+                    pub amount: ::core::primitive::u128,
+                    pub root: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    pub nominator: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    pub bouncer: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    pub pool_id: ::core::primitive::u32,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for CreateWithPoolId {
+                    const PALLET: &'static str = "NominationPools";
+                    const CALL: &'static str = "create_with_pool_id";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Nominate {
+                    pub pool_id: ::core::primitive::u32,
+                    pub validators: ::std::vec::Vec<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                    >,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Nominate {
+                    const PALLET: &'static str = "NominationPools";
+                    const CALL: &'static str = "nominate";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetState {
+                    pub pool_id: ::core::primitive::u32,
+                    pub state: runtime_types::pallet_nomination_pools::PoolState,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetState {
+                    const PALLET: &'static str = "NominationPools";
+                    const CALL: &'static str = "set_state";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetMetadata {
+                    pub pool_id: ::core::primitive::u32,
+                    pub metadata: ::std::vec::Vec<::core::primitive::u8>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetMetadata {
+                    const PALLET: &'static str = "NominationPools";
+                    const CALL: &'static str = "set_metadata";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetConfigs {
+                    pub min_join_bond:
+                        runtime_types::pallet_nomination_pools::ConfigOp<::core::primitive::u128>,
+                    pub min_create_bond:
+                        runtime_types::pallet_nomination_pools::ConfigOp<::core::primitive::u128>,
+                    pub max_pools:
+                        runtime_types::pallet_nomination_pools::ConfigOp<::core::primitive::u32>,
+                    pub max_members:
+                        runtime_types::pallet_nomination_pools::ConfigOp<::core::primitive::u32>,
+                    pub max_members_per_pool:
+                        runtime_types::pallet_nomination_pools::ConfigOp<::core::primitive::u32>,
+                    pub global_max_commission: runtime_types::pallet_nomination_pools::ConfigOp<
+                        runtime_types::sp_arithmetic::per_things::Perbill,
+                    >,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetConfigs {
+                    const PALLET: &'static str = "NominationPools";
+                    const CALL: &'static str = "set_configs";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct UpdateRoles {
+                    pub pool_id: ::core::primitive::u32,
+                    pub new_root: runtime_types::pallet_nomination_pools::ConfigOp<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                    >,
+                    pub new_nominator: runtime_types::pallet_nomination_pools::ConfigOp<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                    >,
+                    pub new_bouncer: runtime_types::pallet_nomination_pools::ConfigOp<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                    >,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for UpdateRoles {
+                    const PALLET: &'static str = "NominationPools";
+                    const CALL: &'static str = "update_roles";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: CompactAs,
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Chill {
+                    pub pool_id: ::core::primitive::u32,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Chill {
+                    const PALLET: &'static str = "NominationPools";
+                    const CALL: &'static str = "chill";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct BondExtraOther {
+                    pub member: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    pub extra:
+                        runtime_types::pallet_nomination_pools::BondExtra<::core::primitive::u128>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for BondExtraOther {
+                    const PALLET: &'static str = "NominationPools";
+                    const CALL: &'static str = "bond_extra_other";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetClaimPermission {
+                    pub permission: runtime_types::pallet_nomination_pools::ClaimPermission,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetClaimPermission {
+                    const PALLET: &'static str = "NominationPools";
+                    const CALL: &'static str = "set_claim_permission";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ClaimPayoutOther {
+                    pub other: ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for ClaimPayoutOther {
+                    const PALLET: &'static str = "NominationPools";
+                    const CALL: &'static str = "claim_payout_other";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetCommission {
+                    pub pool_id: ::core::primitive::u32,
+                    pub new_commission: ::core::option::Option<(
+                        runtime_types::sp_arithmetic::per_things::Perbill,
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                    )>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetCommission {
+                    const PALLET: &'static str = "NominationPools";
+                    const CALL: &'static str = "set_commission";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetCommissionMax {
+                    pub pool_id: ::core::primitive::u32,
+                    pub max_commission: runtime_types::sp_arithmetic::per_things::Perbill,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetCommissionMax {
+                    const PALLET: &'static str = "NominationPools";
+                    const CALL: &'static str = "set_commission_max";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetCommissionChangeRate {
+                    pub pool_id: ::core::primitive::u32,
+                    pub change_rate: runtime_types::pallet_nomination_pools::CommissionChangeRate<
+                        ::core::primitive::u32,
+                    >,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetCommissionChangeRate {
+                    const PALLET: &'static str = "NominationPools";
+                    const CALL: &'static str = "set_commission_change_rate";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: CompactAs,
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ClaimCommission {
+                    pub pool_id: ::core::primitive::u32,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for ClaimCommission {
+                    const PALLET: &'static str = "NominationPools";
+                    const CALL: &'static str = "claim_commission";
+                }
             }
             pub struct TransactionApi;
             impl TransactionApi {
@@ -11716,16 +12776,15 @@ pub mod api {
                     &self,
                     amount: ::core::primitive::u128,
                     pool_id: ::core::primitive::u32,
-                ) -> ::subxt::tx::Payload<Join> {
+                ) -> ::subxt::tx::Payload<types::Join> {
                     ::subxt::tx::Payload::new_static(
                         "NominationPools",
                         "join",
-                        Join { amount, pool_id },
+                        types::Join { amount, pool_id },
                         [
-                            205u8, 66u8, 42u8, 72u8, 146u8, 148u8, 119u8, 162u8, 101u8, 183u8,
-                            46u8, 176u8, 221u8, 204u8, 197u8, 20u8, 75u8, 226u8, 29u8, 118u8,
-                            208u8, 60u8, 192u8, 247u8, 222u8, 100u8, 69u8, 80u8, 172u8, 13u8, 69u8,
-                            250u8,
+                            9u8, 24u8, 209u8, 117u8, 242u8, 76u8, 192u8, 40u8, 196u8, 136u8, 158u8,
+                            182u8, 117u8, 140u8, 164u8, 64u8, 184u8, 160u8, 146u8, 143u8, 173u8,
+                            180u8, 6u8, 242u8, 203u8, 130u8, 41u8, 176u8, 158u8, 96u8, 94u8, 175u8,
                         ],
                     )
                 }
@@ -11741,16 +12800,16 @@ pub mod api {
                     extra: runtime_types::pallet_nomination_pools::BondExtra<
                         ::core::primitive::u128,
                     >,
-                ) -> ::subxt::tx::Payload<BondExtra> {
+                ) -> ::subxt::tx::Payload<types::BondExtra> {
                     ::subxt::tx::Payload::new_static(
                         "NominationPools",
                         "bond_extra",
-                        BondExtra { extra },
+                        types::BondExtra { extra },
                         [
-                            50u8, 72u8, 181u8, 216u8, 249u8, 27u8, 250u8, 177u8, 253u8, 22u8,
-                            240u8, 100u8, 184u8, 202u8, 197u8, 34u8, 21u8, 188u8, 248u8, 191u8,
-                            11u8, 10u8, 236u8, 161u8, 168u8, 37u8, 38u8, 238u8, 61u8, 183u8, 86u8,
-                            55u8,
+                            149u8, 176u8, 102u8, 52u8, 76u8, 227u8, 61u8, 60u8, 109u8, 187u8, 40u8,
+                            176u8, 163u8, 37u8, 10u8, 228u8, 164u8, 77u8, 155u8, 155u8, 14u8,
+                            106u8, 5u8, 177u8, 176u8, 224u8, 163u8, 28u8, 66u8, 237u8, 186u8,
+                            188u8,
                         ],
                     )
                 }
@@ -11762,15 +12821,15 @@ pub mod api {
                 #[doc = "members in the pools stake. Rewards do not \"expire\"."]
                 #[doc = ""]
                 #[doc = "See `claim_payout_other` to caim rewards on bahalf of some `other` pool member."]
-                pub fn claim_payout(&self) -> ::subxt::tx::Payload<ClaimPayout> {
+                pub fn claim_payout(&self) -> ::subxt::tx::Payload<types::ClaimPayout> {
                     ::subxt::tx::Payload::new_static(
                         "NominationPools",
                         "claim_payout",
-                        ClaimPayout {},
+                        types::ClaimPayout {},
                         [
-                            128u8, 58u8, 138u8, 55u8, 64u8, 16u8, 129u8, 25u8, 211u8, 229u8, 193u8,
-                            115u8, 47u8, 45u8, 155u8, 221u8, 218u8, 1u8, 222u8, 5u8, 236u8, 32u8,
-                            88u8, 0u8, 198u8, 72u8, 196u8, 181u8, 104u8, 16u8, 212u8, 29u8,
+                            28u8, 87u8, 180u8, 5u8, 69u8, 49u8, 121u8, 28u8, 34u8, 63u8, 78u8,
+                            228u8, 223u8, 12u8, 171u8, 41u8, 181u8, 137u8, 145u8, 141u8, 198u8,
+                            220u8, 5u8, 101u8, 173u8, 69u8, 222u8, 59u8, 111u8, 92u8, 182u8, 8u8,
                         ],
                     )
                 }
@@ -11812,18 +12871,18 @@ pub mod api {
                         (),
                     >,
                     unbonding_points: ::core::primitive::u128,
-                ) -> ::subxt::tx::Payload<Unbond> {
+                ) -> ::subxt::tx::Payload<types::Unbond> {
                     ::subxt::tx::Payload::new_static(
                         "NominationPools",
                         "unbond",
-                        Unbond {
+                        types::Unbond {
                             member_account,
                             unbonding_points,
                         },
                         [
-                            78u8, 15u8, 37u8, 18u8, 129u8, 63u8, 31u8, 3u8, 68u8, 10u8, 12u8, 12u8,
-                            166u8, 179u8, 38u8, 232u8, 97u8, 1u8, 83u8, 53u8, 26u8, 59u8, 42u8,
-                            219u8, 176u8, 246u8, 169u8, 28u8, 35u8, 67u8, 139u8, 81u8,
+                            178u8, 232u8, 24u8, 199u8, 57u8, 76u8, 252u8, 68u8, 39u8, 118u8, 16u8,
+                            74u8, 55u8, 191u8, 142u8, 188u8, 80u8, 67u8, 168u8, 40u8, 9u8, 99u8,
+                            214u8, 43u8, 44u8, 57u8, 177u8, 66u8, 238u8, 104u8, 52u8, 220u8,
                         ],
                     )
                 }
@@ -11837,19 +12896,18 @@ pub mod api {
                     &self,
                     pool_id: ::core::primitive::u32,
                     num_slashing_spans: ::core::primitive::u32,
-                ) -> ::subxt::tx::Payload<PoolWithdrawUnbonded> {
+                ) -> ::subxt::tx::Payload<types::PoolWithdrawUnbonded> {
                     ::subxt::tx::Payload::new_static(
                         "NominationPools",
                         "pool_withdraw_unbonded",
-                        PoolWithdrawUnbonded {
+                        types::PoolWithdrawUnbonded {
                             pool_id,
                             num_slashing_spans,
                         },
                         [
-                            152u8, 245u8, 131u8, 247u8, 106u8, 214u8, 154u8, 8u8, 7u8, 210u8,
-                            149u8, 218u8, 118u8, 46u8, 242u8, 182u8, 191u8, 119u8, 28u8, 199u8,
-                            36u8, 49u8, 219u8, 123u8, 58u8, 203u8, 211u8, 226u8, 217u8, 36u8, 56u8,
-                            0u8,
+                            234u8, 49u8, 43u8, 199u8, 55u8, 2u8, 252u8, 39u8, 147u8, 136u8, 34u8,
+                            239u8, 116u8, 155u8, 129u8, 72u8, 83u8, 161u8, 90u8, 207u8, 1u8, 193u8,
+                            254u8, 47u8, 40u8, 185u8, 67u8, 55u8, 238u8, 122u8, 140u8, 230u8,
                         ],
                     )
                 }
@@ -11879,19 +12937,18 @@ pub mod api {
                         (),
                     >,
                     num_slashing_spans: ::core::primitive::u32,
-                ) -> ::subxt::tx::Payload<WithdrawUnbonded> {
+                ) -> ::subxt::tx::Payload<types::WithdrawUnbonded> {
                     ::subxt::tx::Payload::new_static(
                         "NominationPools",
                         "withdraw_unbonded",
-                        WithdrawUnbonded {
+                        types::WithdrawUnbonded {
                             member_account,
                             num_slashing_spans,
                         },
                         [
-                            61u8, 216u8, 214u8, 166u8, 59u8, 42u8, 186u8, 141u8, 47u8, 50u8, 135u8,
-                            236u8, 166u8, 88u8, 90u8, 244u8, 57u8, 106u8, 193u8, 211u8, 215u8,
-                            131u8, 203u8, 33u8, 195u8, 120u8, 213u8, 94u8, 213u8, 66u8, 79u8,
-                            140u8,
+                            153u8, 110u8, 206u8, 15u8, 152u8, 12u8, 113u8, 210u8, 94u8, 95u8, 14u8,
+                            244u8, 38u8, 29u8, 140u8, 121u8, 40u8, 6u8, 125u8, 228u8, 46u8, 110u8,
+                            240u8, 149u8, 188u8, 176u8, 232u8, 187u8, 231u8, 152u8, 192u8, 180u8,
                         ],
                     )
                 }
@@ -11927,21 +12984,20 @@ pub mod api {
                         ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                         (),
                     >,
-                ) -> ::subxt::tx::Payload<Create> {
+                ) -> ::subxt::tx::Payload<types::Create> {
                     ::subxt::tx::Payload::new_static(
                         "NominationPools",
                         "create",
-                        Create {
+                        types::Create {
                             amount,
                             root,
                             nominator,
                             bouncer,
                         },
                         [
-                            182u8, 114u8, 123u8, 215u8, 240u8, 217u8, 208u8, 165u8, 237u8, 1u8,
-                            215u8, 183u8, 218u8, 125u8, 71u8, 229u8, 68u8, 142u8, 60u8, 76u8,
-                            101u8, 242u8, 218u8, 61u8, 165u8, 203u8, 233u8, 241u8, 130u8, 13u8,
-                            76u8, 214u8,
+                            158u8, 136u8, 58u8, 88u8, 26u8, 188u8, 179u8, 22u8, 217u8, 3u8, 184u8,
+                            93u8, 76u8, 124u8, 24u8, 169u8, 133u8, 18u8, 229u8, 230u8, 210u8,
+                            194u8, 10u8, 88u8, 33u8, 72u8, 113u8, 65u8, 200u8, 98u8, 55u8, 220u8,
                         ],
                     )
                 }
@@ -11967,11 +13023,11 @@ pub mod api {
                         (),
                     >,
                     pool_id: ::core::primitive::u32,
-                ) -> ::subxt::tx::Payload<CreateWithPoolId> {
+                ) -> ::subxt::tx::Payload<types::CreateWithPoolId> {
                     ::subxt::tx::Payload::new_static(
                         "NominationPools",
                         "create_with_pool_id",
-                        CreateWithPoolId {
+                        types::CreateWithPoolId {
                             amount,
                             root,
                             nominator,
@@ -11979,9 +13035,10 @@ pub mod api {
                             pool_id,
                         },
                         [
-                            76u8, 77u8, 158u8, 172u8, 4u8, 68u8, 53u8, 249u8, 156u8, 91u8, 19u8,
-                            151u8, 58u8, 199u8, 179u8, 0u8, 186u8, 152u8, 157u8, 28u8, 65u8, 227u8,
-                            133u8, 101u8, 102u8, 205u8, 68u8, 245u8, 104u8, 151u8, 146u8, 76u8,
+                            3u8, 118u8, 189u8, 234u8, 136u8, 26u8, 170u8, 124u8, 187u8, 6u8, 53u8,
+                            190u8, 66u8, 225u8, 221u8, 136u8, 162u8, 189u8, 212u8, 12u8, 174u8,
+                            240u8, 86u8, 50u8, 110u8, 135u8, 106u8, 70u8, 243u8, 147u8, 125u8,
+                            99u8,
                         ],
                     )
                 }
@@ -11998,18 +13055,18 @@ pub mod api {
                     validators: ::std::vec::Vec<
                         ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                     >,
-                ) -> ::subxt::tx::Payload<Nominate> {
+                ) -> ::subxt::tx::Payload<types::Nominate> {
                     ::subxt::tx::Payload::new_static(
                         "NominationPools",
                         "nominate",
-                        Nominate {
+                        types::Nominate {
                             pool_id,
                             validators,
                         },
                         [
-                            10u8, 235u8, 64u8, 157u8, 36u8, 249u8, 186u8, 27u8, 79u8, 172u8, 25u8,
-                            3u8, 203u8, 19u8, 192u8, 182u8, 36u8, 103u8, 13u8, 20u8, 89u8, 140u8,
-                            159u8, 4u8, 132u8, 242u8, 192u8, 146u8, 55u8, 251u8, 216u8, 255u8,
+                            118u8, 80u8, 137u8, 47u8, 102u8, 9u8, 20u8, 136u8, 76u8, 164u8, 161u8,
+                            114u8, 33u8, 159u8, 204u8, 49u8, 233u8, 199u8, 246u8, 67u8, 144u8,
+                            169u8, 211u8, 67u8, 12u8, 68u8, 198u8, 149u8, 87u8, 62u8, 226u8, 72u8,
                         ],
                     )
                 }
@@ -12027,16 +13084,15 @@ pub mod api {
                     &self,
                     pool_id: ::core::primitive::u32,
                     state: runtime_types::pallet_nomination_pools::PoolState,
-                ) -> ::subxt::tx::Payload<SetState> {
+                ) -> ::subxt::tx::Payload<types::SetState> {
                     ::subxt::tx::Payload::new_static(
                         "NominationPools",
                         "set_state",
-                        SetState { pool_id, state },
+                        types::SetState { pool_id, state },
                         [
-                            104u8, 40u8, 213u8, 88u8, 159u8, 115u8, 35u8, 249u8, 78u8, 180u8, 99u8,
-                            1u8, 225u8, 218u8, 192u8, 151u8, 25u8, 194u8, 192u8, 187u8, 39u8,
-                            170u8, 212u8, 125u8, 75u8, 250u8, 248u8, 175u8, 159u8, 161u8, 151u8,
-                            162u8,
+                            39u8, 221u8, 24u8, 65u8, 144u8, 230u8, 228u8, 24u8, 191u8, 53u8, 171u8,
+                            148u8, 131u8, 45u8, 10u8, 22u8, 222u8, 240u8, 13u8, 87u8, 123u8, 182u8,
+                            102u8, 26u8, 124u8, 205u8, 23u8, 31u8, 25u8, 43u8, 12u8, 140u8,
                         ],
                     )
                 }
@@ -12048,15 +13104,15 @@ pub mod api {
                     &self,
                     pool_id: ::core::primitive::u32,
                     metadata: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::Payload<SetMetadata> {
+                ) -> ::subxt::tx::Payload<types::SetMetadata> {
                     ::subxt::tx::Payload::new_static(
                         "NominationPools",
                         "set_metadata",
-                        SetMetadata { pool_id, metadata },
+                        types::SetMetadata { pool_id, metadata },
                         [
-                            156u8, 81u8, 170u8, 161u8, 34u8, 100u8, 183u8, 174u8, 5u8, 81u8, 31u8,
-                            76u8, 12u8, 42u8, 77u8, 1u8, 6u8, 26u8, 168u8, 7u8, 8u8, 115u8, 158u8,
-                            151u8, 30u8, 211u8, 52u8, 177u8, 234u8, 87u8, 125u8, 127u8,
+                            221u8, 189u8, 15u8, 232u8, 0u8, 49u8, 187u8, 67u8, 124u8, 26u8, 114u8,
+                            191u8, 81u8, 14u8, 253u8, 75u8, 88u8, 182u8, 136u8, 18u8, 238u8, 119u8,
+                            215u8, 248u8, 133u8, 160u8, 154u8, 193u8, 177u8, 140u8, 1u8, 16u8,
                         ],
                     )
                 }
@@ -12091,11 +13147,11 @@ pub mod api {
                     global_max_commission: runtime_types::pallet_nomination_pools::ConfigOp<
                         runtime_types::sp_arithmetic::per_things::Perbill,
                     >,
-                ) -> ::subxt::tx::Payload<SetConfigs> {
+                ) -> ::subxt::tx::Payload<types::SetConfigs> {
                     ::subxt::tx::Payload::new_static(
                         "NominationPools",
                         "set_configs",
-                        SetConfigs {
+                        types::SetConfigs {
                             min_join_bond,
                             min_create_bond,
                             max_pools,
@@ -12104,10 +13160,9 @@ pub mod api {
                             global_max_commission,
                         },
                         [
-                            20u8, 66u8, 112u8, 172u8, 143u8, 78u8, 60u8, 159u8, 240u8, 102u8,
-                            245u8, 10u8, 207u8, 27u8, 99u8, 138u8, 217u8, 239u8, 101u8, 190u8,
-                            222u8, 253u8, 53u8, 77u8, 230u8, 225u8, 101u8, 109u8, 50u8, 144u8,
-                            31u8, 121u8,
+                            60u8, 29u8, 13u8, 45u8, 37u8, 171u8, 129u8, 133u8, 127u8, 42u8, 104u8,
+                            45u8, 29u8, 58u8, 209u8, 48u8, 119u8, 255u8, 86u8, 13u8, 243u8, 124u8,
+                            57u8, 250u8, 156u8, 189u8, 59u8, 88u8, 64u8, 109u8, 219u8, 68u8,
                         ],
                     )
                 }
@@ -12130,21 +13185,20 @@ pub mod api {
                     new_bouncer: runtime_types::pallet_nomination_pools::ConfigOp<
                         ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                     >,
-                ) -> ::subxt::tx::Payload<UpdateRoles> {
+                ) -> ::subxt::tx::Payload<types::UpdateRoles> {
                     ::subxt::tx::Payload::new_static(
                         "NominationPools",
                         "update_roles",
-                        UpdateRoles {
+                        types::UpdateRoles {
                             pool_id,
                             new_root,
                             new_nominator,
                             new_bouncer,
                         },
                         [
-                            15u8, 154u8, 204u8, 28u8, 204u8, 120u8, 174u8, 203u8, 186u8, 33u8,
-                            123u8, 201u8, 143u8, 120u8, 193u8, 49u8, 164u8, 178u8, 55u8, 234u8,
-                            126u8, 247u8, 123u8, 73u8, 147u8, 107u8, 43u8, 72u8, 217u8, 4u8, 199u8,
-                            253u8,
+                            58u8, 51u8, 136u8, 162u8, 218u8, 195u8, 121u8, 6u8, 243u8, 69u8, 19u8,
+                            130u8, 152u8, 180u8, 226u8, 28u8, 0u8, 218u8, 237u8, 56u8, 52u8, 139u8,
+                            198u8, 155u8, 112u8, 165u8, 142u8, 44u8, 111u8, 197u8, 123u8, 246u8,
                         ],
                     )
                 }
@@ -12158,15 +13212,15 @@ pub mod api {
                 pub fn chill(
                     &self,
                     pool_id: ::core::primitive::u32,
-                ) -> ::subxt::tx::Payload<Chill> {
+                ) -> ::subxt::tx::Payload<types::Chill> {
                     ::subxt::tx::Payload::new_static(
                         "NominationPools",
                         "chill",
-                        Chill { pool_id },
+                        types::Chill { pool_id },
                         [
-                            41u8, 114u8, 128u8, 121u8, 244u8, 15u8, 15u8, 52u8, 129u8, 88u8, 239u8,
-                            167u8, 216u8, 38u8, 123u8, 240u8, 172u8, 229u8, 132u8, 64u8, 175u8,
-                            87u8, 217u8, 27u8, 11u8, 124u8, 1u8, 140u8, 40u8, 191u8, 187u8, 36u8,
+                            65u8, 206u8, 54u8, 53u8, 37u8, 97u8, 161u8, 104u8, 62u8, 9u8, 93u8,
+                            236u8, 61u8, 185u8, 204u8, 245u8, 234u8, 218u8, 213u8, 40u8, 154u8,
+                            29u8, 244u8, 19u8, 207u8, 172u8, 142u8, 221u8, 38u8, 70u8, 39u8, 10u8,
                         ],
                     )
                 }
@@ -12188,15 +13242,16 @@ pub mod api {
                     extra: runtime_types::pallet_nomination_pools::BondExtra<
                         ::core::primitive::u128,
                     >,
-                ) -> ::subxt::tx::Payload<BondExtraOther> {
+                ) -> ::subxt::tx::Payload<types::BondExtraOther> {
                     ::subxt::tx::Payload::new_static(
                         "NominationPools",
                         "bond_extra_other",
-                        BondExtraOther { member, extra },
+                        types::BondExtraOther { member, extra },
                         [
-                            13u8, 60u8, 161u8, 6u8, 191u8, 248u8, 61u8, 226u8, 192u8, 37u8, 44u8,
-                            146u8, 250u8, 213u8, 235u8, 147u8, 0u8, 14u8, 147u8, 11u8, 14u8, 126u8,
-                            70u8, 240u8, 83u8, 26u8, 95u8, 49u8, 52u8, 15u8, 185u8, 162u8,
+                            210u8, 156u8, 196u8, 34u8, 245u8, 145u8, 2u8, 255u8, 36u8, 220u8,
+                            101u8, 235u8, 200u8, 43u8, 237u8, 70u8, 15u8, 231u8, 177u8, 37u8,
+                            215u8, 157u8, 165u8, 16u8, 183u8, 67u8, 182u8, 52u8, 26u8, 244u8,
+                            210u8, 135u8,
                         ],
                     )
                 }
@@ -12215,15 +13270,15 @@ pub mod api {
                 pub fn set_claim_permission(
                     &self,
                     permission: runtime_types::pallet_nomination_pools::ClaimPermission,
-                ) -> ::subxt::tx::Payload<SetClaimPermission> {
+                ) -> ::subxt::tx::Payload<types::SetClaimPermission> {
                     ::subxt::tx::Payload::new_static(
                         "NominationPools",
                         "set_claim_permission",
-                        SetClaimPermission { permission },
+                        types::SetClaimPermission { permission },
                         [
-                            23u8, 253u8, 135u8, 53u8, 83u8, 71u8, 182u8, 223u8, 123u8, 57u8, 93u8,
-                            154u8, 110u8, 91u8, 63u8, 241u8, 144u8, 218u8, 129u8, 238u8, 169u8,
-                            9u8, 215u8, 76u8, 65u8, 168u8, 103u8, 44u8, 40u8, 39u8, 34u8, 16u8,
+                            36u8, 137u8, 193u8, 200u8, 57u8, 46u8, 87u8, 236u8, 180u8, 170u8, 90u8,
+                            99u8, 137u8, 123u8, 99u8, 197u8, 113u8, 119u8, 72u8, 153u8, 207u8,
+                            189u8, 69u8, 89u8, 225u8, 115u8, 45u8, 32u8, 216u8, 43u8, 92u8, 135u8,
                         ],
                     )
                 }
@@ -12234,15 +13289,16 @@ pub mod api {
                 pub fn claim_payout_other(
                     &self,
                     other: ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                ) -> ::subxt::tx::Payload<ClaimPayoutOther> {
+                ) -> ::subxt::tx::Payload<types::ClaimPayoutOther> {
                     ::subxt::tx::Payload::new_static(
                         "NominationPools",
                         "claim_payout_other",
-                        ClaimPayoutOther { other },
+                        types::ClaimPayoutOther { other },
                         [
-                            52u8, 165u8, 191u8, 125u8, 180u8, 54u8, 27u8, 235u8, 195u8, 22u8, 55u8,
-                            183u8, 209u8, 63u8, 116u8, 88u8, 154u8, 74u8, 100u8, 103u8, 88u8, 76u8,
-                            35u8, 14u8, 39u8, 156u8, 219u8, 253u8, 123u8, 104u8, 168u8, 76u8,
+                            202u8, 130u8, 122u8, 10u8, 159u8, 181u8, 124u8, 215u8, 23u8, 85u8,
+                            234u8, 178u8, 169u8, 41u8, 204u8, 226u8, 195u8, 69u8, 168u8, 88u8,
+                            58u8, 15u8, 3u8, 227u8, 180u8, 183u8, 62u8, 224u8, 39u8, 218u8, 75u8,
+                            166u8,
                         ],
                     )
                 }
@@ -12258,18 +13314,19 @@ pub mod api {
                         runtime_types::sp_arithmetic::per_things::Perbill,
                         ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                     )>,
-                ) -> ::subxt::tx::Payload<SetCommission> {
+                ) -> ::subxt::tx::Payload<types::SetCommission> {
                     ::subxt::tx::Payload::new_static(
                         "NominationPools",
                         "set_commission",
-                        SetCommission {
+                        types::SetCommission {
                             pool_id,
                             new_commission,
                         },
                         [
-                            118u8, 240u8, 166u8, 40u8, 247u8, 44u8, 23u8, 92u8, 4u8, 78u8, 156u8,
-                            21u8, 178u8, 97u8, 197u8, 148u8, 61u8, 234u8, 15u8, 94u8, 248u8, 188u8,
-                            211u8, 13u8, 134u8, 10u8, 75u8, 59u8, 218u8, 13u8, 104u8, 115u8,
+                            144u8, 94u8, 73u8, 69u8, 224u8, 158u8, 244u8, 77u8, 169u8, 219u8,
+                            101u8, 41u8, 37u8, 211u8, 198u8, 32u8, 92u8, 108u8, 7u8, 27u8, 153u8,
+                            37u8, 82u8, 174u8, 196u8, 176u8, 196u8, 181u8, 45u8, 81u8, 134u8,
+                            162u8,
                         ],
                     )
                 }
@@ -12282,18 +13339,18 @@ pub mod api {
                     &self,
                     pool_id: ::core::primitive::u32,
                     max_commission: runtime_types::sp_arithmetic::per_things::Perbill,
-                ) -> ::subxt::tx::Payload<SetCommissionMax> {
+                ) -> ::subxt::tx::Payload<types::SetCommissionMax> {
                     ::subxt::tx::Payload::new_static(
                         "NominationPools",
                         "set_commission_max",
-                        SetCommissionMax {
+                        types::SetCommissionMax {
                             pool_id,
                             max_commission,
                         },
                         [
-                            115u8, 90u8, 156u8, 35u8, 7u8, 125u8, 184u8, 123u8, 149u8, 232u8, 59u8,
-                            21u8, 42u8, 120u8, 14u8, 152u8, 184u8, 167u8, 18u8, 22u8, 148u8, 83u8,
-                            16u8, 81u8, 93u8, 182u8, 154u8, 182u8, 46u8, 40u8, 179u8, 187u8,
+                            180u8, 80u8, 204u8, 129u8, 141u8, 86u8, 45u8, 76u8, 224u8, 123u8,
+                            212u8, 38u8, 224u8, 79u8, 41u8, 143u8, 237u8, 174u8, 126u8, 1u8, 215u8,
+                            105u8, 50u8, 46u8, 151u8, 11u8, 118u8, 198u8, 183u8, 95u8, 47u8, 71u8,
                         ],
                     )
                 }
@@ -12307,19 +13364,19 @@ pub mod api {
                     change_rate: runtime_types::pallet_nomination_pools::CommissionChangeRate<
                         ::core::primitive::u32,
                     >,
-                ) -> ::subxt::tx::Payload<SetCommissionChangeRate> {
+                ) -> ::subxt::tx::Payload<types::SetCommissionChangeRate> {
                     ::subxt::tx::Payload::new_static(
                         "NominationPools",
                         "set_commission_change_rate",
-                        SetCommissionChangeRate {
+                        types::SetCommissionChangeRate {
                             pool_id,
                             change_rate,
                         },
                         [
-                            118u8, 194u8, 114u8, 197u8, 214u8, 246u8, 23u8, 237u8, 10u8, 90u8,
-                            230u8, 123u8, 172u8, 174u8, 98u8, 198u8, 160u8, 71u8, 113u8, 76u8,
-                            201u8, 201u8, 153u8, 92u8, 222u8, 252u8, 7u8, 184u8, 236u8, 235u8,
-                            126u8, 201u8,
+                            138u8, 30u8, 155u8, 127u8, 181u8, 99u8, 89u8, 138u8, 130u8, 53u8,
+                            224u8, 96u8, 190u8, 14u8, 76u8, 244u8, 142u8, 50u8, 39u8, 245u8, 144u8,
+                            87u8, 64u8, 206u8, 246u8, 225u8, 111u8, 197u8, 245u8, 182u8, 121u8,
+                            56u8,
                         ],
                     )
                 }
@@ -12331,16 +13388,15 @@ pub mod api {
                 pub fn claim_commission(
                     &self,
                     pool_id: ::core::primitive::u32,
-                ) -> ::subxt::tx::Payload<ClaimCommission> {
+                ) -> ::subxt::tx::Payload<types::ClaimCommission> {
                     ::subxt::tx::Payload::new_static(
                         "NominationPools",
                         "claim_commission",
-                        ClaimCommission { pool_id },
+                        types::ClaimCommission { pool_id },
                         [
-                            139u8, 126u8, 219u8, 117u8, 140u8, 51u8, 163u8, 32u8, 83u8, 60u8,
-                            250u8, 44u8, 186u8, 194u8, 225u8, 84u8, 61u8, 181u8, 212u8, 160u8,
-                            156u8, 93u8, 16u8, 255u8, 165u8, 178u8, 25u8, 64u8, 187u8, 29u8, 169u8,
-                            174u8,
+                            51u8, 64u8, 163u8, 230u8, 2u8, 119u8, 68u8, 5u8, 154u8, 4u8, 84u8,
+                            149u8, 9u8, 195u8, 173u8, 37u8, 98u8, 48u8, 188u8, 65u8, 81u8, 11u8,
+                            64u8, 254u8, 126u8, 62u8, 29u8, 204u8, 92u8, 230u8, 240u8, 91u8,
                         ],
                     )
                 }
@@ -12360,6 +13416,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A pool has been created."]
@@ -12381,6 +13438,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A member has became bonded in a pool."]
@@ -12404,6 +13462,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A payout has been made to a member."]
@@ -12426,6 +13485,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A member has unbonded from their pool."]
@@ -12460,6 +13520,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A member has withdrawn from their pool."]
@@ -12489,6 +13550,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A pool has been destroyed."]
@@ -12509,6 +13571,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "The state of a pool has changed"]
@@ -12530,6 +13593,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A member has been removed from a pool."]
@@ -12553,6 +13617,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "The roles of a pool have been updated to the given new roles. Note that the depositor"]
@@ -12582,6 +13647,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "The active balance of pool `pool_id` has been slashed to `balance`."]
@@ -12603,6 +13669,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "The unbond pool at `era` of pool `pool_id` has been slashed to `balance`."]
@@ -12625,6 +13692,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A pool's commission setting has been changed."]
@@ -12649,6 +13717,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A pool's maximum commission setting has been changed."]
@@ -12670,6 +13739,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A pool's commission `change_rate` has been changed."]
@@ -12693,6 +13763,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Pool commission has been claimed."]
@@ -12724,10 +13795,9 @@ pub mod api {
                         "MinJoinBond",
                         vec![],
                         [
-                            125u8, 239u8, 45u8, 225u8, 74u8, 129u8, 247u8, 184u8, 205u8, 58u8,
-                            45u8, 186u8, 126u8, 170u8, 112u8, 120u8, 23u8, 190u8, 247u8, 97u8,
-                            131u8, 126u8, 215u8, 44u8, 147u8, 122u8, 132u8, 212u8, 217u8, 84u8,
-                            240u8, 91u8,
+                            64u8, 180u8, 71u8, 185u8, 81u8, 46u8, 155u8, 26u8, 251u8, 84u8, 108u8,
+                            80u8, 128u8, 44u8, 163u8, 118u8, 107u8, 79u8, 250u8, 211u8, 194u8,
+                            71u8, 87u8, 16u8, 247u8, 9u8, 76u8, 95u8, 103u8, 227u8, 180u8, 231u8,
                         ],
                     )
                 }
@@ -12752,10 +13822,10 @@ pub mod api {
                         "MinCreateBond",
                         vec![],
                         [
-                            31u8, 208u8, 240u8, 158u8, 23u8, 218u8, 212u8, 138u8, 92u8, 210u8,
-                            207u8, 170u8, 32u8, 60u8, 5u8, 21u8, 84u8, 162u8, 1u8, 111u8, 181u8,
-                            243u8, 24u8, 148u8, 193u8, 253u8, 248u8, 190u8, 16u8, 222u8, 219u8,
-                            67u8,
+                            210u8, 67u8, 92u8, 230u8, 231u8, 105u8, 54u8, 249u8, 154u8, 192u8,
+                            29u8, 217u8, 233u8, 79u8, 170u8, 126u8, 133u8, 98u8, 253u8, 153u8,
+                            248u8, 189u8, 63u8, 107u8, 170u8, 224u8, 12u8, 42u8, 198u8, 185u8,
+                            85u8, 46u8,
                         ],
                     )
                 }
@@ -12775,9 +13845,10 @@ pub mod api {
                         "MaxPools",
                         vec![],
                         [
-                            216u8, 111u8, 68u8, 103u8, 33u8, 50u8, 109u8, 3u8, 176u8, 195u8, 23u8,
-                            73u8, 112u8, 138u8, 9u8, 194u8, 233u8, 73u8, 68u8, 215u8, 162u8, 255u8,
-                            217u8, 173u8, 141u8, 27u8, 72u8, 199u8, 7u8, 240u8, 25u8, 34u8,
+                            230u8, 184u8, 242u8, 91u8, 118u8, 111u8, 90u8, 204u8, 136u8, 61u8,
+                            228u8, 50u8, 212u8, 40u8, 83u8, 49u8, 121u8, 161u8, 245u8, 80u8, 46u8,
+                            184u8, 105u8, 134u8, 249u8, 225u8, 39u8, 3u8, 123u8, 137u8, 156u8,
+                            240u8,
                         ],
                     )
                 }
@@ -12797,9 +13868,10 @@ pub mod api {
                         "MaxPoolMembers",
                         vec![],
                         [
-                            82u8, 217u8, 26u8, 234u8, 223u8, 241u8, 66u8, 182u8, 43u8, 233u8, 59u8,
-                            242u8, 202u8, 254u8, 69u8, 50u8, 254u8, 196u8, 166u8, 89u8, 120u8,
-                            87u8, 76u8, 148u8, 31u8, 197u8, 49u8, 88u8, 206u8, 41u8, 242u8, 62u8,
+                            210u8, 222u8, 181u8, 146u8, 137u8, 200u8, 71u8, 196u8, 74u8, 38u8,
+                            36u8, 122u8, 187u8, 164u8, 218u8, 116u8, 216u8, 143u8, 182u8, 15u8,
+                            23u8, 124u8, 57u8, 121u8, 81u8, 151u8, 8u8, 247u8, 80u8, 136u8, 115u8,
+                            2u8,
                         ],
                     )
                 }
@@ -12819,9 +13891,9 @@ pub mod api {
                         "MaxPoolMembersPerPool",
                         vec![],
                         [
-                            93u8, 241u8, 16u8, 169u8, 138u8, 199u8, 128u8, 149u8, 65u8, 30u8, 55u8,
-                            11u8, 41u8, 252u8, 83u8, 250u8, 9u8, 33u8, 152u8, 239u8, 195u8, 147u8,
-                            16u8, 248u8, 180u8, 153u8, 88u8, 231u8, 248u8, 169u8, 186u8, 48u8,
+                            250u8, 255u8, 136u8, 223u8, 61u8, 119u8, 117u8, 240u8, 68u8, 114u8,
+                            55u8, 1u8, 176u8, 120u8, 143u8, 48u8, 232u8, 125u8, 218u8, 105u8, 28u8,
+                            230u8, 253u8, 36u8, 9u8, 44u8, 129u8, 225u8, 147u8, 33u8, 181u8, 68u8,
                         ],
                     )
                 }
@@ -12842,10 +13914,10 @@ pub mod api {
                         "GlobalMaxCommission",
                         vec![],
                         [
-                            142u8, 252u8, 92u8, 128u8, 162u8, 4u8, 216u8, 39u8, 118u8, 201u8,
-                            138u8, 171u8, 76u8, 90u8, 133u8, 176u8, 161u8, 138u8, 214u8, 183u8,
-                            193u8, 115u8, 245u8, 151u8, 216u8, 84u8, 99u8, 175u8, 144u8, 196u8,
-                            103u8, 190u8,
+                            2u8, 112u8, 8u8, 116u8, 114u8, 97u8, 250u8, 106u8, 170u8, 215u8, 218u8,
+                            217u8, 80u8, 235u8, 149u8, 81u8, 85u8, 185u8, 201u8, 127u8, 107u8,
+                            251u8, 191u8, 231u8, 142u8, 74u8, 8u8, 70u8, 151u8, 238u8, 117u8,
+                            173u8,
                         ],
                     )
                 }
@@ -12871,10 +13943,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            252u8, 236u8, 201u8, 127u8, 219u8, 1u8, 19u8, 144u8, 5u8, 108u8, 70u8,
-                            30u8, 177u8, 232u8, 253u8, 237u8, 211u8, 91u8, 63u8, 62u8, 155u8,
-                            151u8, 153u8, 165u8, 206u8, 53u8, 111u8, 31u8, 60u8, 120u8, 100u8,
-                            249u8,
+                            116u8, 41u8, 89u8, 74u8, 35u8, 243u8, 213u8, 178u8, 41u8, 249u8, 62u8,
+                            119u8, 72u8, 34u8, 197u8, 168u8, 147u8, 178u8, 159u8, 10u8, 181u8,
+                            255u8, 40u8, 211u8, 206u8, 32u8, 130u8, 25u8, 201u8, 54u8, 212u8, 25u8,
                         ],
                     )
                 }
@@ -12895,10 +13966,9 @@ pub mod api {
                         "PoolMembers",
                         Vec::new(),
                         [
-                            252u8, 236u8, 201u8, 127u8, 219u8, 1u8, 19u8, 144u8, 5u8, 108u8, 70u8,
-                            30u8, 177u8, 232u8, 253u8, 237u8, 211u8, 91u8, 63u8, 62u8, 155u8,
-                            151u8, 153u8, 165u8, 206u8, 53u8, 111u8, 31u8, 60u8, 120u8, 100u8,
-                            249u8,
+                            116u8, 41u8, 89u8, 74u8, 35u8, 243u8, 213u8, 178u8, 41u8, 249u8, 62u8,
+                            119u8, 72u8, 34u8, 197u8, 168u8, 147u8, 178u8, 159u8, 10u8, 181u8,
+                            255u8, 40u8, 211u8, 206u8, 32u8, 130u8, 25u8, 201u8, 54u8, 212u8, 25u8,
                         ],
                     )
                 }
@@ -12917,10 +13987,10 @@ pub mod api {
                         "CounterForPoolMembers",
                         vec![],
                         [
-                            114u8, 126u8, 27u8, 138u8, 119u8, 44u8, 45u8, 129u8, 84u8, 107u8,
-                            171u8, 206u8, 117u8, 141u8, 20u8, 75u8, 229u8, 237u8, 31u8, 229u8,
-                            124u8, 190u8, 27u8, 124u8, 63u8, 59u8, 167u8, 42u8, 62u8, 212u8, 160u8,
-                            2u8,
+                            165u8, 158u8, 130u8, 19u8, 106u8, 227u8, 134u8, 73u8, 36u8, 237u8,
+                            103u8, 146u8, 198u8, 68u8, 219u8, 186u8, 134u8, 224u8, 89u8, 251u8,
+                            200u8, 46u8, 87u8, 232u8, 53u8, 152u8, 13u8, 10u8, 105u8, 49u8, 150u8,
+                            212u8,
                         ],
                     )
                 }
@@ -12942,10 +14012,10 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            3u8, 183u8, 140u8, 154u8, 74u8, 225u8, 69u8, 243u8, 150u8, 132u8,
-                            163u8, 26u8, 101u8, 45u8, 231u8, 178u8, 85u8, 144u8, 9u8, 112u8, 212u8,
-                            167u8, 131u8, 188u8, 203u8, 50u8, 177u8, 218u8, 154u8, 182u8, 80u8,
-                            232u8,
+                            171u8, 143u8, 96u8, 95u8, 196u8, 228u8, 116u8, 22u8, 63u8, 105u8,
+                            193u8, 77u8, 171u8, 99u8, 144u8, 70u8, 166u8, 55u8, 14u8, 191u8, 156u8,
+                            17u8, 237u8, 193u8, 228u8, 243u8, 164u8, 187u8, 127u8, 245u8, 117u8,
+                            238u8,
                         ],
                     )
                 }
@@ -12964,10 +14034,10 @@ pub mod api {
                         "BondedPools",
                         Vec::new(),
                         [
-                            3u8, 183u8, 140u8, 154u8, 74u8, 225u8, 69u8, 243u8, 150u8, 132u8,
-                            163u8, 26u8, 101u8, 45u8, 231u8, 178u8, 85u8, 144u8, 9u8, 112u8, 212u8,
-                            167u8, 131u8, 188u8, 203u8, 50u8, 177u8, 218u8, 154u8, 182u8, 80u8,
-                            232u8,
+                            171u8, 143u8, 96u8, 95u8, 196u8, 228u8, 116u8, 22u8, 63u8, 105u8,
+                            193u8, 77u8, 171u8, 99u8, 144u8, 70u8, 166u8, 55u8, 14u8, 191u8, 156u8,
+                            17u8, 237u8, 193u8, 228u8, 243u8, 164u8, 187u8, 127u8, 245u8, 117u8,
+                            238u8,
                         ],
                     )
                 }
@@ -12986,10 +14056,9 @@ pub mod api {
                         "CounterForBondedPools",
                         vec![],
                         [
-                            134u8, 94u8, 199u8, 73u8, 174u8, 253u8, 66u8, 242u8, 233u8, 244u8,
-                            140u8, 170u8, 242u8, 40u8, 41u8, 185u8, 183u8, 151u8, 58u8, 111u8,
-                            221u8, 225u8, 81u8, 71u8, 169u8, 219u8, 223u8, 135u8, 8u8, 171u8,
-                            180u8, 236u8,
+                            198u8, 6u8, 213u8, 92u8, 4u8, 114u8, 164u8, 244u8, 51u8, 55u8, 157u8,
+                            20u8, 224u8, 183u8, 40u8, 236u8, 115u8, 86u8, 171u8, 207u8, 31u8,
+                            111u8, 0u8, 210u8, 48u8, 198u8, 243u8, 153u8, 5u8, 216u8, 107u8, 113u8,
                         ],
                     )
                 }
@@ -13012,10 +14081,10 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            235u8, 6u8, 2u8, 103u8, 137u8, 31u8, 109u8, 165u8, 129u8, 48u8, 154u8,
-                            219u8, 110u8, 198u8, 241u8, 31u8, 174u8, 10u8, 92u8, 233u8, 161u8,
-                            76u8, 53u8, 136u8, 172u8, 214u8, 192u8, 12u8, 239u8, 165u8, 195u8,
-                            96u8,
+                            150u8, 53u8, 204u8, 26u8, 187u8, 118u8, 80u8, 133u8, 94u8, 127u8,
+                            155u8, 78u8, 71u8, 72u8, 0u8, 220u8, 174u8, 174u8, 109u8, 238u8, 13u8,
+                            120u8, 193u8, 102u8, 219u8, 22u8, 89u8, 117u8, 169u8, 212u8, 64u8,
+                            204u8,
                         ],
                     )
                 }
@@ -13035,10 +14104,10 @@ pub mod api {
                         "RewardPools",
                         Vec::new(),
                         [
-                            235u8, 6u8, 2u8, 103u8, 137u8, 31u8, 109u8, 165u8, 129u8, 48u8, 154u8,
-                            219u8, 110u8, 198u8, 241u8, 31u8, 174u8, 10u8, 92u8, 233u8, 161u8,
-                            76u8, 53u8, 136u8, 172u8, 214u8, 192u8, 12u8, 239u8, 165u8, 195u8,
-                            96u8,
+                            150u8, 53u8, 204u8, 26u8, 187u8, 118u8, 80u8, 133u8, 94u8, 127u8,
+                            155u8, 78u8, 71u8, 72u8, 0u8, 220u8, 174u8, 174u8, 109u8, 238u8, 13u8,
+                            120u8, 193u8, 102u8, 219u8, 22u8, 89u8, 117u8, 169u8, 212u8, 64u8,
+                            204u8,
                         ],
                     )
                 }
@@ -13057,10 +14126,10 @@ pub mod api {
                         "CounterForRewardPools",
                         vec![],
                         [
-                            209u8, 139u8, 212u8, 116u8, 210u8, 178u8, 213u8, 38u8, 75u8, 23u8,
-                            188u8, 57u8, 253u8, 213u8, 95u8, 118u8, 182u8, 250u8, 45u8, 205u8,
-                            17u8, 175u8, 17u8, 201u8, 234u8, 14u8, 98u8, 49u8, 143u8, 135u8, 201u8,
-                            81u8,
+                            218u8, 186u8, 28u8, 97u8, 205u8, 249u8, 187u8, 10u8, 127u8, 190u8,
+                            213u8, 152u8, 103u8, 20u8, 157u8, 183u8, 86u8, 104u8, 186u8, 236u8,
+                            84u8, 159u8, 117u8, 78u8, 5u8, 242u8, 193u8, 59u8, 112u8, 200u8, 34u8,
+                            166u8,
                         ],
                     )
                 }
@@ -13083,10 +14152,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            231u8, 13u8, 111u8, 248u8, 1u8, 208u8, 179u8, 134u8, 224u8, 196u8,
-                            94u8, 201u8, 229u8, 29u8, 155u8, 211u8, 163u8, 150u8, 157u8, 34u8,
-                            68u8, 238u8, 55u8, 4u8, 222u8, 96u8, 186u8, 29u8, 205u8, 237u8, 80u8,
-                            42u8,
+                            248u8, 37u8, 232u8, 231u8, 14u8, 140u8, 12u8, 27u8, 61u8, 222u8, 185u8,
+                            128u8, 158u8, 30u8, 57u8, 121u8, 35u8, 11u8, 42u8, 242u8, 56u8, 1u8,
+                            61u8, 0u8, 67u8, 140u8, 55u8, 62u8, 165u8, 134u8, 136u8, 4u8,
                         ],
                     )
                 }
@@ -13106,10 +14174,9 @@ pub mod api {
                         "SubPoolsStorage",
                         Vec::new(),
                         [
-                            231u8, 13u8, 111u8, 248u8, 1u8, 208u8, 179u8, 134u8, 224u8, 196u8,
-                            94u8, 201u8, 229u8, 29u8, 155u8, 211u8, 163u8, 150u8, 157u8, 34u8,
-                            68u8, 238u8, 55u8, 4u8, 222u8, 96u8, 186u8, 29u8, 205u8, 237u8, 80u8,
-                            42u8,
+                            248u8, 37u8, 232u8, 231u8, 14u8, 140u8, 12u8, 27u8, 61u8, 222u8, 185u8,
+                            128u8, 158u8, 30u8, 57u8, 121u8, 35u8, 11u8, 42u8, 242u8, 56u8, 1u8,
+                            61u8, 0u8, 67u8, 140u8, 55u8, 62u8, 165u8, 134u8, 136u8, 4u8,
                         ],
                     )
                 }
@@ -13128,9 +14195,10 @@ pub mod api {
                         "CounterForSubPoolsStorage",
                         vec![],
                         [
-                            212u8, 145u8, 212u8, 226u8, 234u8, 31u8, 26u8, 240u8, 107u8, 91u8,
-                            171u8, 120u8, 41u8, 195u8, 16u8, 86u8, 55u8, 127u8, 103u8, 93u8, 128u8,
-                            48u8, 69u8, 104u8, 168u8, 236u8, 81u8, 54u8, 2u8, 184u8, 215u8, 51u8,
+                            137u8, 162u8, 32u8, 44u8, 163u8, 30u8, 54u8, 158u8, 169u8, 118u8,
+                            196u8, 101u8, 78u8, 28u8, 184u8, 78u8, 185u8, 225u8, 226u8, 207u8,
+                            14u8, 119u8, 0u8, 116u8, 140u8, 141u8, 116u8, 106u8, 71u8, 161u8,
+                            200u8, 228u8,
                         ],
                     )
                 }
@@ -13154,10 +14222,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            108u8, 250u8, 163u8, 54u8, 192u8, 143u8, 239u8, 62u8, 97u8, 163u8,
-                            161u8, 215u8, 171u8, 225u8, 49u8, 18u8, 37u8, 200u8, 143u8, 254u8,
-                            136u8, 26u8, 54u8, 187u8, 39u8, 3u8, 216u8, 24u8, 188u8, 25u8, 243u8,
-                            251u8,
+                            10u8, 171u8, 251u8, 5u8, 72u8, 74u8, 86u8, 144u8, 59u8, 67u8, 92u8,
+                            111u8, 217u8, 111u8, 175u8, 107u8, 119u8, 206u8, 199u8, 78u8, 182u8,
+                            84u8, 12u8, 102u8, 10u8, 124u8, 103u8, 9u8, 86u8, 199u8, 233u8, 54u8,
                         ],
                     )
                 }
@@ -13178,10 +14245,9 @@ pub mod api {
                         "Metadata",
                         Vec::new(),
                         [
-                            108u8, 250u8, 163u8, 54u8, 192u8, 143u8, 239u8, 62u8, 97u8, 163u8,
-                            161u8, 215u8, 171u8, 225u8, 49u8, 18u8, 37u8, 200u8, 143u8, 254u8,
-                            136u8, 26u8, 54u8, 187u8, 39u8, 3u8, 216u8, 24u8, 188u8, 25u8, 243u8,
-                            251u8,
+                            10u8, 171u8, 251u8, 5u8, 72u8, 74u8, 86u8, 144u8, 59u8, 67u8, 92u8,
+                            111u8, 217u8, 111u8, 175u8, 107u8, 119u8, 206u8, 199u8, 78u8, 182u8,
+                            84u8, 12u8, 102u8, 10u8, 124u8, 103u8, 9u8, 86u8, 199u8, 233u8, 54u8,
                         ],
                     )
                 }
@@ -13200,10 +14266,10 @@ pub mod api {
                         "CounterForMetadata",
                         vec![],
                         [
-                            190u8, 232u8, 77u8, 134u8, 245u8, 89u8, 160u8, 187u8, 163u8, 68u8,
-                            188u8, 204u8, 31u8, 145u8, 219u8, 165u8, 213u8, 1u8, 167u8, 90u8,
-                            175u8, 218u8, 147u8, 144u8, 158u8, 226u8, 23u8, 233u8, 55u8, 168u8,
-                            161u8, 237u8,
+                            49u8, 76u8, 175u8, 236u8, 99u8, 120u8, 156u8, 116u8, 153u8, 173u8,
+                            10u8, 102u8, 194u8, 139u8, 25u8, 149u8, 109u8, 195u8, 150u8, 21u8,
+                            43u8, 24u8, 196u8, 180u8, 231u8, 101u8, 69u8, 98u8, 82u8, 159u8, 183u8,
+                            174u8,
                         ],
                     )
                 }
@@ -13222,9 +14288,10 @@ pub mod api {
                         "LastPoolId",
                         vec![],
                         [
-                            50u8, 254u8, 218u8, 41u8, 213u8, 184u8, 170u8, 166u8, 31u8, 29u8,
-                            196u8, 57u8, 215u8, 20u8, 40u8, 40u8, 19u8, 22u8, 9u8, 184u8, 11u8,
-                            21u8, 21u8, 125u8, 97u8, 38u8, 219u8, 209u8, 2u8, 238u8, 247u8, 51u8,
+                            178u8, 198u8, 245u8, 157u8, 176u8, 45u8, 214u8, 86u8, 73u8, 154u8,
+                            217u8, 39u8, 191u8, 53u8, 233u8, 145u8, 57u8, 100u8, 31u8, 13u8, 202u8,
+                            122u8, 115u8, 16u8, 205u8, 69u8, 157u8, 250u8, 216u8, 180u8, 113u8,
+                            30u8,
                         ],
                     )
                 }
@@ -13251,9 +14318,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            178u8, 161u8, 51u8, 220u8, 128u8, 1u8, 135u8, 83u8, 236u8, 159u8, 36u8,
-                            237u8, 120u8, 128u8, 6u8, 191u8, 41u8, 159u8, 94u8, 178u8, 174u8,
-                            235u8, 221u8, 173u8, 44u8, 81u8, 211u8, 255u8, 231u8, 81u8, 16u8, 87u8,
+                            76u8, 76u8, 150u8, 33u8, 64u8, 81u8, 90u8, 75u8, 212u8, 221u8, 59u8,
+                            83u8, 178u8, 45u8, 86u8, 206u8, 196u8, 221u8, 117u8, 94u8, 229u8,
+                            160u8, 52u8, 54u8, 11u8, 64u8, 0u8, 103u8, 85u8, 86u8, 5u8, 71u8,
                         ],
                     )
                 }
@@ -13275,9 +14342,9 @@ pub mod api {
                         "ReversePoolIdLookup",
                         Vec::new(),
                         [
-                            178u8, 161u8, 51u8, 220u8, 128u8, 1u8, 135u8, 83u8, 236u8, 159u8, 36u8,
-                            237u8, 120u8, 128u8, 6u8, 191u8, 41u8, 159u8, 94u8, 178u8, 174u8,
-                            235u8, 221u8, 173u8, 44u8, 81u8, 211u8, 255u8, 231u8, 81u8, 16u8, 87u8,
+                            76u8, 76u8, 150u8, 33u8, 64u8, 81u8, 90u8, 75u8, 212u8, 221u8, 59u8,
+                            83u8, 178u8, 45u8, 86u8, 206u8, 196u8, 221u8, 117u8, 94u8, 229u8,
+                            160u8, 52u8, 54u8, 11u8, 64u8, 0u8, 103u8, 85u8, 86u8, 5u8, 71u8,
                         ],
                     )
                 }
@@ -13296,10 +14363,10 @@ pub mod api {
                         "CounterForReversePoolIdLookup",
                         vec![],
                         [
-                            148u8, 83u8, 81u8, 33u8, 188u8, 72u8, 148u8, 208u8, 245u8, 178u8, 52u8,
-                            245u8, 229u8, 140u8, 100u8, 152u8, 8u8, 217u8, 161u8, 80u8, 226u8,
-                            42u8, 15u8, 252u8, 90u8, 197u8, 120u8, 114u8, 144u8, 90u8, 199u8,
-                            123u8,
+                            135u8, 72u8, 203u8, 197u8, 101u8, 135u8, 114u8, 202u8, 122u8, 231u8,
+                            128u8, 17u8, 81u8, 70u8, 22u8, 146u8, 100u8, 138u8, 16u8, 74u8, 31u8,
+                            250u8, 110u8, 184u8, 250u8, 75u8, 249u8, 71u8, 171u8, 77u8, 95u8,
+                            251u8,
                         ],
                     )
                 }
@@ -13323,10 +14390,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            23u8, 124u8, 83u8, 109u8, 174u8, 228u8, 170u8, 25u8, 124u8, 91u8,
-                            224u8, 66u8, 55u8, 127u8, 190u8, 226u8, 163u8, 16u8, 81u8, 231u8,
-                            241u8, 214u8, 209u8, 137u8, 101u8, 206u8, 104u8, 138u8, 49u8, 56u8,
-                            152u8, 228u8,
+                            98u8, 241u8, 185u8, 102u8, 61u8, 53u8, 215u8, 105u8, 2u8, 148u8, 197u8,
+                            17u8, 107u8, 253u8, 74u8, 159u8, 14u8, 30u8, 213u8, 38u8, 35u8, 163u8,
+                            249u8, 19u8, 140u8, 201u8, 182u8, 106u8, 0u8, 21u8, 102u8, 15u8,
                         ],
                     )
                 }
@@ -13345,10 +14411,9 @@ pub mod api {
                         "ClaimPermissions",
                         Vec::new(),
                         [
-                            23u8, 124u8, 83u8, 109u8, 174u8, 228u8, 170u8, 25u8, 124u8, 91u8,
-                            224u8, 66u8, 55u8, 127u8, 190u8, 226u8, 163u8, 16u8, 81u8, 231u8,
-                            241u8, 214u8, 209u8, 137u8, 101u8, 206u8, 104u8, 138u8, 49u8, 56u8,
-                            152u8, 228u8,
+                            98u8, 241u8, 185u8, 102u8, 61u8, 53u8, 215u8, 105u8, 2u8, 148u8, 197u8,
+                            17u8, 107u8, 253u8, 74u8, 159u8, 14u8, 30u8, 213u8, 38u8, 35u8, 163u8,
+                            249u8, 19u8, 140u8, 201u8, 182u8, 106u8, 0u8, 21u8, 102u8, 15u8,
                         ],
                     )
                 }
@@ -13367,9 +14432,9 @@ pub mod api {
                         "NominationPools",
                         "PalletId",
                         [
-                            139u8, 109u8, 228u8, 151u8, 252u8, 32u8, 130u8, 69u8, 112u8, 154u8,
-                            174u8, 45u8, 83u8, 245u8, 51u8, 132u8, 173u8, 5u8, 186u8, 24u8, 243u8,
-                            9u8, 12u8, 214u8, 80u8, 74u8, 69u8, 189u8, 30u8, 94u8, 22u8, 39u8,
+                            56u8, 243u8, 53u8, 83u8, 154u8, 179u8, 170u8, 80u8, 133u8, 173u8, 61u8,
+                            161u8, 47u8, 225u8, 146u8, 21u8, 50u8, 229u8, 248u8, 27u8, 104u8, 58u8,
+                            129u8, 197u8, 102u8, 160u8, 168u8, 205u8, 154u8, 42u8, 217u8, 53u8,
                         ],
                     )
                 }
@@ -13404,275 +14469,357 @@ pub mod api {
     }
     pub mod identity {
         use super::{root_mod, runtime_types};
+        #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
+        pub type Error = runtime_types::pallet_identity::pallet::Error;
         #[doc = "Identity pallet declaration."]
+        pub type Call = runtime_types::pallet_identity::pallet::Call;
         pub mod calls {
             use super::{root_mod, runtime_types};
             type DispatchError = runtime_types::sp_runtime::DispatchError;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct AddRegistrar {
-                pub account: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
+            pub mod types {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct AddRegistrar {
+                    pub account: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for AddRegistrar {
+                    const PALLET: &'static str = "Identity";
+                    const CALL: &'static str = "add_registrar";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetIdentity {
+                    pub info:
+                        ::std::boxed::Box<runtime_types::pallet_identity::types::IdentityInfo>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetIdentity {
+                    const PALLET: &'static str = "Identity";
+                    const CALL: &'static str = "set_identity";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetSubs {
+                    pub subs: ::std::vec::Vec<(
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        runtime_types::pallet_identity::types::Data,
+                    )>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetSubs {
+                    const PALLET: &'static str = "Identity";
+                    const CALL: &'static str = "set_subs";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ClearIdentity;
+                impl ::subxt::blocks::StaticExtrinsic for ClearIdentity {
+                    const PALLET: &'static str = "Identity";
+                    const CALL: &'static str = "clear_identity";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct RequestJudgement {
+                    #[codec(compact)]
+                    pub reg_index: ::core::primitive::u32,
+                    #[codec(compact)]
+                    pub max_fee: ::core::primitive::u128,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for RequestJudgement {
+                    const PALLET: &'static str = "Identity";
+                    const CALL: &'static str = "request_judgement";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: CompactAs,
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct CancelRequest {
+                    pub reg_index: ::core::primitive::u32,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for CancelRequest {
+                    const PALLET: &'static str = "Identity";
+                    const CALL: &'static str = "cancel_request";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetFee {
+                    #[codec(compact)]
+                    pub index: ::core::primitive::u32,
+                    #[codec(compact)]
+                    pub fee: ::core::primitive::u128,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetFee {
+                    const PALLET: &'static str = "Identity";
+                    const CALL: &'static str = "set_fee";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetAccountId {
+                    #[codec(compact)]
+                    pub index: ::core::primitive::u32,
+                    pub new: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetAccountId {
+                    const PALLET: &'static str = "Identity";
+                    const CALL: &'static str = "set_account_id";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetFields {
+                    #[codec(compact)]
+                    pub index: ::core::primitive::u32,
+                    pub fields: runtime_types::pallet_identity::types::BitFlags<
+                        runtime_types::pallet_identity::types::IdentityField,
+                    >,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetFields {
+                    const PALLET: &'static str = "Identity";
+                    const CALL: &'static str = "set_fields";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ProvideJudgement {
+                    #[codec(compact)]
+                    pub reg_index: ::core::primitive::u32,
+                    pub target: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    pub judgement:
+                        runtime_types::pallet_identity::types::Judgement<::core::primitive::u128>,
+                    pub identity: ::subxt::utils::H256,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for ProvideJudgement {
+                    const PALLET: &'static str = "Identity";
+                    const CALL: &'static str = "provide_judgement";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct KillIdentity {
+                    pub target: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for KillIdentity {
+                    const PALLET: &'static str = "Identity";
+                    const CALL: &'static str = "kill_identity";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct AddSub {
+                    pub sub: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    pub data: runtime_types::pallet_identity::types::Data,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for AddSub {
+                    const PALLET: &'static str = "Identity";
+                    const CALL: &'static str = "add_sub";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct RenameSub {
+                    pub sub: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                    pub data: runtime_types::pallet_identity::types::Data,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for RenameSub {
+                    const PALLET: &'static str = "Identity";
+                    const CALL: &'static str = "rename_sub";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct RemoveSub {
+                    pub sub: ::subxt::utils::MultiAddress<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        (),
+                    >,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for RemoveSub {
+                    const PALLET: &'static str = "Identity";
+                    const CALL: &'static str = "remove_sub";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct QuitSub;
+                impl ::subxt::blocks::StaticExtrinsic for QuitSub {
+                    const PALLET: &'static str = "Identity";
+                    const CALL: &'static str = "quit_sub";
+                }
             }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetIdentity {
-                pub info: ::std::boxed::Box<runtime_types::pallet_identity::types::IdentityInfo>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetSubs {
-                pub subs: ::std::vec::Vec<(
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    runtime_types::pallet_identity::types::Data,
-                )>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ClearIdentity;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct RequestJudgement {
-                #[codec(compact)]
-                pub reg_index: ::core::primitive::u32,
-                #[codec(compact)]
-                pub max_fee: ::core::primitive::u128,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: CompactAs,
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct CancelRequest {
-                pub reg_index: ::core::primitive::u32,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetFee {
-                #[codec(compact)]
-                pub index: ::core::primitive::u32,
-                #[codec(compact)]
-                pub fee: ::core::primitive::u128,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetAccountId {
-                #[codec(compact)]
-                pub index: ::core::primitive::u32,
-                pub new: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetFields {
-                #[codec(compact)]
-                pub index: ::core::primitive::u32,
-                pub fields: runtime_types::pallet_identity::types::BitFlags<
-                    runtime_types::pallet_identity::types::IdentityField,
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct ProvideJudgement {
-                #[codec(compact)]
-                pub reg_index: ::core::primitive::u32,
-                pub target: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                pub judgement:
-                    runtime_types::pallet_identity::types::Judgement<::core::primitive::u128>,
-                pub identity: ::subxt::utils::H256,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct KillIdentity {
-                pub target: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct AddSub {
-                pub sub: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                pub data: runtime_types::pallet_identity::types::Data,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct RenameSub {
-                pub sub: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-                pub data: runtime_types::pallet_identity::types::Data,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct RemoveSub {
-                pub sub: ::subxt::utils::MultiAddress<
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                >,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct QuitSub;
             pub struct TransactionApi;
             impl TransactionApi {
                 #[doc = "Add a registrar to the system."]
@@ -13691,16 +14838,16 @@ pub mod api {
                         ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                         (),
                     >,
-                ) -> ::subxt::tx::Payload<AddRegistrar> {
+                ) -> ::subxt::tx::Payload<types::AddRegistrar> {
                     ::subxt::tx::Payload::new_static(
                         "Identity",
                         "add_registrar",
-                        AddRegistrar { account },
+                        types::AddRegistrar { account },
                         [
-                            157u8, 232u8, 252u8, 190u8, 203u8, 233u8, 127u8, 63u8, 111u8, 16u8,
-                            118u8, 200u8, 31u8, 234u8, 144u8, 111u8, 161u8, 224u8, 217u8, 86u8,
-                            179u8, 254u8, 162u8, 212u8, 248u8, 8u8, 125u8, 89u8, 23u8, 195u8, 4u8,
-                            231u8,
+                            151u8, 254u8, 116u8, 168u8, 124u8, 236u8, 0u8, 15u8, 49u8, 117u8,
+                            191u8, 181u8, 254u8, 152u8, 163u8, 69u8, 139u8, 157u8, 38u8, 231u8,
+                            87u8, 4u8, 227u8, 0u8, 79u8, 188u8, 41u8, 31u8, 120u8, 28u8, 214u8,
+                            31u8,
                         ],
                     )
                 }
@@ -13722,17 +14869,17 @@ pub mod api {
                 pub fn set_identity(
                     &self,
                     info: runtime_types::pallet_identity::types::IdentityInfo,
-                ) -> ::subxt::tx::Payload<SetIdentity> {
+                ) -> ::subxt::tx::Payload<types::SetIdentity> {
                     ::subxt::tx::Payload::new_static(
                         "Identity",
                         "set_identity",
-                        SetIdentity {
+                        types::SetIdentity {
                             info: ::std::boxed::Box::new(info),
                         },
                         [
-                            130u8, 89u8, 118u8, 6u8, 134u8, 166u8, 35u8, 192u8, 73u8, 6u8, 171u8,
-                            20u8, 225u8, 255u8, 152u8, 142u8, 111u8, 8u8, 206u8, 200u8, 64u8, 52u8,
-                            110u8, 123u8, 42u8, 101u8, 191u8, 242u8, 133u8, 139u8, 154u8, 205u8,
+                            205u8, 7u8, 54u8, 226u8, 123u8, 160u8, 173u8, 25u8, 179u8, 93u8, 172u8,
+                            37u8, 222u8, 143u8, 209u8, 1u8, 230u8, 32u8, 84u8, 80u8, 110u8, 195u8,
+                            87u8, 185u8, 27u8, 31u8, 185u8, 161u8, 154u8, 166u8, 177u8, 190u8,
                         ],
                     )
                 }
@@ -13756,16 +14903,16 @@ pub mod api {
                         ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                         runtime_types::pallet_identity::types::Data,
                     )>,
-                ) -> ::subxt::tx::Payload<SetSubs> {
+                ) -> ::subxt::tx::Payload<types::SetSubs> {
                     ::subxt::tx::Payload::new_static(
                         "Identity",
                         "set_subs",
-                        SetSubs { subs },
+                        types::SetSubs { subs },
                         [
-                            177u8, 219u8, 84u8, 183u8, 5u8, 32u8, 192u8, 82u8, 174u8, 68u8, 198u8,
-                            224u8, 56u8, 85u8, 134u8, 171u8, 30u8, 132u8, 140u8, 236u8, 117u8,
-                            24u8, 150u8, 218u8, 146u8, 194u8, 144u8, 92u8, 103u8, 206u8, 46u8,
-                            90u8,
+                            76u8, 193u8, 92u8, 120u8, 9u8, 99u8, 102u8, 220u8, 177u8, 29u8, 65u8,
+                            14u8, 250u8, 101u8, 118u8, 59u8, 251u8, 153u8, 136u8, 141u8, 89u8,
+                            250u8, 74u8, 254u8, 111u8, 220u8, 132u8, 228u8, 248u8, 132u8, 177u8,
+                            128u8,
                         ],
                     )
                 }
@@ -13783,15 +14930,16 @@ pub mod api {
                 #[doc = "  - where `R` registrar-count (governance-bounded)."]
                 #[doc = "  - where `S` subs-count (hard- and deposit-bounded)."]
                 #[doc = "  - where `X` additional-field-count (deposit-bounded and code-bounded)."]
-                pub fn clear_identity(&self) -> ::subxt::tx::Payload<ClearIdentity> {
+                pub fn clear_identity(&self) -> ::subxt::tx::Payload<types::ClearIdentity> {
                     ::subxt::tx::Payload::new_static(
                         "Identity",
                         "clear_identity",
-                        ClearIdentity {},
+                        types::ClearIdentity {},
                         [
-                            75u8, 44u8, 74u8, 122u8, 149u8, 202u8, 114u8, 230u8, 0u8, 255u8, 140u8,
-                            122u8, 14u8, 196u8, 205u8, 249u8, 220u8, 94u8, 216u8, 34u8, 63u8, 14u8,
-                            8u8, 205u8, 74u8, 23u8, 181u8, 129u8, 252u8, 110u8, 231u8, 114u8,
+                            43u8, 115u8, 205u8, 44u8, 24u8, 130u8, 220u8, 69u8, 247u8, 176u8,
+                            200u8, 175u8, 67u8, 183u8, 36u8, 200u8, 162u8, 132u8, 242u8, 25u8,
+                            21u8, 106u8, 197u8, 219u8, 141u8, 51u8, 204u8, 13u8, 191u8, 201u8,
+                            31u8, 31u8,
                         ],
                     )
                 }
@@ -13820,15 +14968,15 @@ pub mod api {
                     &self,
                     reg_index: ::core::primitive::u32,
                     max_fee: ::core::primitive::u128,
-                ) -> ::subxt::tx::Payload<RequestJudgement> {
+                ) -> ::subxt::tx::Payload<types::RequestJudgement> {
                     ::subxt::tx::Payload::new_static(
                         "Identity",
                         "request_judgement",
-                        RequestJudgement { reg_index, max_fee },
+                        types::RequestJudgement { reg_index, max_fee },
                         [
-                            186u8, 149u8, 61u8, 54u8, 159u8, 194u8, 77u8, 161u8, 220u8, 157u8, 3u8,
-                            216u8, 23u8, 105u8, 119u8, 76u8, 144u8, 198u8, 157u8, 45u8, 235u8,
-                            139u8, 87u8, 82u8, 81u8, 12u8, 25u8, 134u8, 225u8, 92u8, 182u8, 101u8,
+                            83u8, 85u8, 55u8, 184u8, 14u8, 54u8, 49u8, 212u8, 26u8, 148u8, 33u8,
+                            147u8, 182u8, 54u8, 180u8, 12u8, 61u8, 179u8, 216u8, 157u8, 103u8,
+                            52u8, 120u8, 252u8, 83u8, 203u8, 144u8, 65u8, 15u8, 3u8, 21u8, 33u8,
                         ],
                     )
                 }
@@ -13850,15 +14998,16 @@ pub mod api {
                 pub fn cancel_request(
                     &self,
                     reg_index: ::core::primitive::u32,
-                ) -> ::subxt::tx::Payload<CancelRequest> {
+                ) -> ::subxt::tx::Payload<types::CancelRequest> {
                     ::subxt::tx::Payload::new_static(
                         "Identity",
                         "cancel_request",
-                        CancelRequest { reg_index },
+                        types::CancelRequest { reg_index },
                         [
-                            83u8, 180u8, 239u8, 126u8, 32u8, 51u8, 17u8, 20u8, 180u8, 3u8, 59u8,
-                            96u8, 24u8, 32u8, 136u8, 92u8, 58u8, 254u8, 68u8, 70u8, 50u8, 11u8,
-                            51u8, 91u8, 180u8, 79u8, 81u8, 84u8, 216u8, 138u8, 6u8, 215u8,
+                            81u8, 14u8, 133u8, 219u8, 43u8, 84u8, 163u8, 208u8, 21u8, 185u8, 75u8,
+                            117u8, 126u8, 33u8, 210u8, 106u8, 122u8, 210u8, 35u8, 207u8, 104u8,
+                            206u8, 41u8, 117u8, 247u8, 108u8, 56u8, 23u8, 123u8, 169u8, 169u8,
+                            61u8,
                         ],
                     )
                 }
@@ -13877,15 +15026,16 @@ pub mod api {
                     &self,
                     index: ::core::primitive::u32,
                     fee: ::core::primitive::u128,
-                ) -> ::subxt::tx::Payload<SetFee> {
+                ) -> ::subxt::tx::Payload<types::SetFee> {
                     ::subxt::tx::Payload::new_static(
                         "Identity",
                         "set_fee",
-                        SetFee { index, fee },
+                        types::SetFee { index, fee },
                         [
-                            21u8, 157u8, 123u8, 182u8, 160u8, 190u8, 117u8, 37u8, 136u8, 133u8,
-                            104u8, 234u8, 31u8, 145u8, 115u8, 154u8, 125u8, 40u8, 2u8, 87u8, 118u8,
-                            56u8, 247u8, 73u8, 89u8, 0u8, 251u8, 3u8, 58u8, 105u8, 239u8, 211u8,
+                            131u8, 20u8, 17u8, 127u8, 180u8, 65u8, 225u8, 144u8, 193u8, 60u8,
+                            131u8, 241u8, 30u8, 149u8, 8u8, 76u8, 29u8, 52u8, 102u8, 108u8, 127u8,
+                            130u8, 70u8, 18u8, 94u8, 145u8, 179u8, 109u8, 252u8, 219u8, 58u8,
+                            163u8,
                         ],
                     )
                 }
@@ -13907,15 +15057,15 @@ pub mod api {
                         ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                         (),
                     >,
-                ) -> ::subxt::tx::Payload<SetAccountId> {
+                ) -> ::subxt::tx::Payload<types::SetAccountId> {
                     ::subxt::tx::Payload::new_static(
                         "Identity",
                         "set_account_id",
-                        SetAccountId { index, new },
+                        types::SetAccountId { index, new },
                         [
-                            13u8, 91u8, 36u8, 7u8, 88u8, 64u8, 151u8, 104u8, 94u8, 174u8, 195u8,
-                            99u8, 97u8, 181u8, 236u8, 251u8, 26u8, 236u8, 234u8, 40u8, 183u8, 38u8,
-                            220u8, 216u8, 48u8, 115u8, 7u8, 230u8, 216u8, 28u8, 123u8, 11u8,
+                            7u8, 72u8, 255u8, 4u8, 182u8, 226u8, 22u8, 255u8, 181u8, 64u8, 165u8,
+                            247u8, 102u8, 190u8, 42u8, 236u8, 196u8, 201u8, 26u8, 6u8, 91u8, 113u8,
+                            223u8, 237u8, 250u8, 182u8, 40u8, 184u8, 45u8, 255u8, 64u8, 137u8,
                         ],
                     )
                 }
@@ -13936,15 +15086,15 @@ pub mod api {
                     fields: runtime_types::pallet_identity::types::BitFlags<
                         runtime_types::pallet_identity::types::IdentityField,
                     >,
-                ) -> ::subxt::tx::Payload<SetFields> {
+                ) -> ::subxt::tx::Payload<types::SetFields> {
                     ::subxt::tx::Payload::new_static(
                         "Identity",
                         "set_fields",
-                        SetFields { index, fields },
+                        types::SetFields { index, fields },
                         [
-                            50u8, 196u8, 179u8, 71u8, 66u8, 65u8, 235u8, 7u8, 51u8, 14u8, 81u8,
-                            173u8, 201u8, 58u8, 6u8, 151u8, 174u8, 245u8, 102u8, 184u8, 28u8, 84u8,
-                            125u8, 93u8, 126u8, 134u8, 92u8, 203u8, 200u8, 129u8, 240u8, 252u8,
+                            25u8, 129u8, 119u8, 232u8, 18u8, 32u8, 77u8, 23u8, 185u8, 56u8, 32u8,
+                            199u8, 74u8, 174u8, 104u8, 203u8, 171u8, 253u8, 19u8, 225u8, 101u8,
+                            239u8, 14u8, 242u8, 157u8, 51u8, 203u8, 74u8, 1u8, 65u8, 165u8, 205u8,
                         ],
                     )
                 }
@@ -13976,20 +15126,20 @@ pub mod api {
                         ::core::primitive::u128,
                     >,
                     identity: ::subxt::utils::H256,
-                ) -> ::subxt::tx::Payload<ProvideJudgement> {
+                ) -> ::subxt::tx::Payload<types::ProvideJudgement> {
                     ::subxt::tx::Payload::new_static(
                         "Identity",
                         "provide_judgement",
-                        ProvideJudgement {
+                        types::ProvideJudgement {
                             reg_index,
                             target,
                             judgement,
                             identity,
                         },
                         [
-                            147u8, 66u8, 29u8, 90u8, 149u8, 65u8, 161u8, 115u8, 12u8, 254u8, 188u8,
-                            248u8, 165u8, 115u8, 191u8, 2u8, 167u8, 223u8, 199u8, 169u8, 203u8,
-                            64u8, 101u8, 217u8, 73u8, 185u8, 93u8, 109u8, 22u8, 184u8, 146u8, 73u8,
+                            84u8, 65u8, 119u8, 246u8, 52u8, 71u8, 44u8, 213u8, 173u8, 21u8, 198u8,
+                            91u8, 234u8, 186u8, 176u8, 168u8, 158u8, 232u8, 10u8, 230u8, 15u8,
+                            34u8, 27u8, 241u8, 200u8, 58u8, 17u8, 112u8, 211u8, 88u8, 162u8, 228u8,
                         ],
                     )
                 }
@@ -14017,16 +15167,15 @@ pub mod api {
                         ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                         (),
                     >,
-                ) -> ::subxt::tx::Payload<KillIdentity> {
+                ) -> ::subxt::tx::Payload<types::KillIdentity> {
                     ::subxt::tx::Payload::new_static(
                         "Identity",
                         "kill_identity",
-                        KillIdentity { target },
+                        types::KillIdentity { target },
                         [
-                            76u8, 13u8, 158u8, 219u8, 221u8, 0u8, 151u8, 241u8, 137u8, 136u8,
-                            179u8, 194u8, 188u8, 230u8, 56u8, 16u8, 254u8, 28u8, 127u8, 216u8,
-                            205u8, 117u8, 224u8, 121u8, 240u8, 231u8, 126u8, 181u8, 230u8, 68u8,
-                            13u8, 174u8,
+                            154u8, 203u8, 22u8, 126u8, 241u8, 51u8, 109u8, 221u8, 79u8, 203u8,
+                            12u8, 113u8, 234u8, 162u8, 125u8, 39u8, 69u8, 105u8, 194u8, 7u8, 254u8,
+                            196u8, 66u8, 104u8, 15u8, 41u8, 164u8, 11u8, 55u8, 98u8, 160u8, 175u8,
                         ],
                     )
                 }
@@ -14044,16 +15193,16 @@ pub mod api {
                         (),
                     >,
                     data: runtime_types::pallet_identity::types::Data,
-                ) -> ::subxt::tx::Payload<AddSub> {
+                ) -> ::subxt::tx::Payload<types::AddSub> {
                     ::subxt::tx::Payload::new_static(
                         "Identity",
                         "add_sub",
-                        AddSub { sub, data },
+                        types::AddSub { sub, data },
                         [
-                            122u8, 218u8, 25u8, 93u8, 33u8, 176u8, 191u8, 254u8, 223u8, 147u8,
-                            100u8, 135u8, 86u8, 71u8, 47u8, 163u8, 105u8, 222u8, 162u8, 173u8,
-                            207u8, 182u8, 130u8, 128u8, 214u8, 242u8, 101u8, 250u8, 242u8, 24u8,
-                            17u8, 84u8,
+                            157u8, 159u8, 194u8, 77u8, 105u8, 29u8, 238u8, 209u8, 145u8, 64u8,
+                            24u8, 130u8, 102u8, 41u8, 124u8, 74u8, 190u8, 29u8, 142u8, 123u8,
+                            131u8, 126u8, 58u8, 129u8, 46u8, 54u8, 160u8, 17u8, 178u8, 72u8, 15u8,
+                            145u8,
                         ],
                     )
                 }
@@ -14068,16 +15217,15 @@ pub mod api {
                         (),
                     >,
                     data: runtime_types::pallet_identity::types::Data,
-                ) -> ::subxt::tx::Payload<RenameSub> {
+                ) -> ::subxt::tx::Payload<types::RenameSub> {
                     ::subxt::tx::Payload::new_static(
                         "Identity",
                         "rename_sub",
-                        RenameSub { sub, data },
+                        types::RenameSub { sub, data },
                         [
-                            166u8, 167u8, 49u8, 114u8, 199u8, 168u8, 187u8, 221u8, 100u8, 85u8,
-                            147u8, 211u8, 157u8, 31u8, 109u8, 135u8, 194u8, 135u8, 15u8, 89u8,
-                            59u8, 57u8, 252u8, 163u8, 9u8, 138u8, 216u8, 189u8, 177u8, 42u8, 96u8,
-                            34u8,
+                            100u8, 82u8, 99u8, 104u8, 4u8, 129u8, 166u8, 128u8, 187u8, 80u8, 73u8,
+                            57u8, 167u8, 74u8, 155u8, 125u8, 171u8, 229u8, 201u8, 246u8, 145u8,
+                            190u8, 222u8, 1u8, 129u8, 139u8, 205u8, 96u8, 186u8, 221u8, 15u8, 35u8,
                         ],
                     )
                 }
@@ -14094,16 +15242,16 @@ pub mod api {
                         ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                         (),
                     >,
-                ) -> ::subxt::tx::Payload<RemoveSub> {
+                ) -> ::subxt::tx::Payload<types::RemoveSub> {
                     ::subxt::tx::Payload::new_static(
                         "Identity",
                         "remove_sub",
-                        RemoveSub { sub },
+                        types::RemoveSub { sub },
                         [
-                            106u8, 223u8, 210u8, 67u8, 54u8, 11u8, 144u8, 222u8, 42u8, 46u8, 157u8,
-                            33u8, 13u8, 245u8, 166u8, 195u8, 227u8, 81u8, 224u8, 149u8, 154u8,
-                            158u8, 187u8, 203u8, 215u8, 91u8, 43u8, 105u8, 69u8, 213u8, 141u8,
-                            124u8,
+                            209u8, 217u8, 16u8, 99u8, 152u8, 250u8, 236u8, 172u8, 139u8, 229u8,
+                            246u8, 165u8, 188u8, 59u8, 66u8, 31u8, 105u8, 237u8, 51u8, 218u8,
+                            177u8, 108u8, 101u8, 115u8, 190u8, 105u8, 208u8, 241u8, 133u8, 224u8,
+                            2u8, 38u8,
                         ],
                     )
                 }
@@ -14117,15 +15265,16 @@ pub mod api {
                 #[doc = ""]
                 #[doc = "NOTE: This should not normally be used, but is provided in the case that the non-"]
                 #[doc = "controller of an account is maliciously registered as a sub-account."]
-                pub fn quit_sub(&self) -> ::subxt::tx::Payload<QuitSub> {
+                pub fn quit_sub(&self) -> ::subxt::tx::Payload<types::QuitSub> {
                     ::subxt::tx::Payload::new_static(
                         "Identity",
                         "quit_sub",
-                        QuitSub {},
+                        types::QuitSub {},
                         [
-                            62u8, 57u8, 73u8, 72u8, 119u8, 216u8, 250u8, 155u8, 57u8, 169u8, 157u8,
-                            44u8, 87u8, 51u8, 63u8, 231u8, 77u8, 7u8, 0u8, 119u8, 244u8, 42u8,
-                            179u8, 51u8, 254u8, 240u8, 55u8, 25u8, 142u8, 38u8, 87u8, 44u8,
+                            147u8, 131u8, 175u8, 171u8, 187u8, 201u8, 240u8, 26u8, 146u8, 224u8,
+                            74u8, 166u8, 242u8, 193u8, 204u8, 247u8, 168u8, 93u8, 18u8, 32u8, 27u8,
+                            208u8, 149u8, 146u8, 179u8, 172u8, 75u8, 112u8, 84u8, 141u8, 233u8,
+                            223u8,
                         ],
                     )
                 }
@@ -14145,6 +15294,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A name was set or reset (which will remove all judgements)."]
@@ -14165,6 +15315,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A name was cleared, and the given balance returned."]
@@ -14186,6 +15337,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A name was removed and the given balance slashed."]
@@ -14207,6 +15359,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A judgement was asked from a registrar."]
@@ -14228,6 +15381,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A judgement request was retracted."]
@@ -14249,6 +15403,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A judgement was given by a registrar."]
@@ -14271,6 +15426,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A registrar was added."]
@@ -14291,6 +15447,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A sub-identity was added to an identity and the deposit paid."]
@@ -14313,6 +15470,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A sub-identity was removed from an identity and the deposit freed."]
@@ -14335,6 +15493,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "A sub-identity was cleared, and the given deposit repatriated from the"]
@@ -14375,10 +15534,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            193u8, 195u8, 180u8, 188u8, 129u8, 250u8, 180u8, 219u8, 22u8, 95u8,
-                            175u8, 170u8, 143u8, 188u8, 80u8, 124u8, 234u8, 228u8, 245u8, 39u8,
-                            72u8, 153u8, 107u8, 199u8, 23u8, 75u8, 47u8, 247u8, 104u8, 208u8,
-                            171u8, 82u8,
+                            239u8, 55u8, 5u8, 97u8, 227u8, 243u8, 118u8, 13u8, 98u8, 30u8, 141u8,
+                            84u8, 170u8, 90u8, 166u8, 116u8, 17u8, 122u8, 190u8, 76u8, 34u8, 51u8,
+                            239u8, 41u8, 14u8, 135u8, 11u8, 164u8, 106u8, 228u8, 48u8, 26u8,
                         ],
                     )
                 }
@@ -14399,10 +15557,9 @@ pub mod api {
                         "IdentityOf",
                         Vec::new(),
                         [
-                            193u8, 195u8, 180u8, 188u8, 129u8, 250u8, 180u8, 219u8, 22u8, 95u8,
-                            175u8, 170u8, 143u8, 188u8, 80u8, 124u8, 234u8, 228u8, 245u8, 39u8,
-                            72u8, 153u8, 107u8, 199u8, 23u8, 75u8, 47u8, 247u8, 104u8, 208u8,
-                            171u8, 82u8,
+                            239u8, 55u8, 5u8, 97u8, 227u8, 243u8, 118u8, 13u8, 98u8, 30u8, 141u8,
+                            84u8, 170u8, 90u8, 166u8, 116u8, 17u8, 122u8, 190u8, 76u8, 34u8, 51u8,
+                            239u8, 41u8, 14u8, 135u8, 11u8, 164u8, 106u8, 228u8, 48u8, 26u8,
                         ],
                     )
                 }
@@ -14430,10 +15587,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            170u8, 249u8, 112u8, 249u8, 75u8, 176u8, 21u8, 29u8, 152u8, 149u8,
-                            69u8, 113u8, 20u8, 92u8, 113u8, 130u8, 135u8, 62u8, 18u8, 204u8, 166u8,
-                            193u8, 133u8, 167u8, 248u8, 117u8, 80u8, 137u8, 158u8, 111u8, 100u8,
-                            137u8,
+                            51u8, 225u8, 21u8, 92u8, 85u8, 14u8, 14u8, 211u8, 61u8, 99u8, 176u8,
+                            236u8, 212u8, 156u8, 103u8, 175u8, 208u8, 105u8, 94u8, 226u8, 136u8,
+                            69u8, 162u8, 170u8, 11u8, 116u8, 72u8, 242u8, 119u8, 14u8, 14u8, 142u8,
                         ],
                     )
                 }
@@ -14456,10 +15612,9 @@ pub mod api {
                         "SuperOf",
                         Vec::new(),
                         [
-                            170u8, 249u8, 112u8, 249u8, 75u8, 176u8, 21u8, 29u8, 152u8, 149u8,
-                            69u8, 113u8, 20u8, 92u8, 113u8, 130u8, 135u8, 62u8, 18u8, 204u8, 166u8,
-                            193u8, 133u8, 167u8, 248u8, 117u8, 80u8, 137u8, 158u8, 111u8, 100u8,
-                            137u8,
+                            51u8, 225u8, 21u8, 92u8, 85u8, 14u8, 14u8, 211u8, 61u8, 99u8, 176u8,
+                            236u8, 212u8, 156u8, 103u8, 175u8, 208u8, 105u8, 94u8, 226u8, 136u8,
+                            69u8, 162u8, 170u8, 11u8, 116u8, 72u8, 242u8, 119u8, 14u8, 14u8, 142u8,
                         ],
                     )
                 }
@@ -14492,9 +15647,10 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            128u8, 15u8, 175u8, 155u8, 216u8, 225u8, 200u8, 169u8, 215u8, 206u8,
-                            110u8, 22u8, 204u8, 89u8, 212u8, 210u8, 159u8, 169u8, 53u8, 7u8, 44u8,
-                            164u8, 91u8, 151u8, 7u8, 227u8, 38u8, 230u8, 175u8, 84u8, 6u8, 4u8,
+                            93u8, 124u8, 154u8, 157u8, 159u8, 103u8, 233u8, 225u8, 59u8, 20u8,
+                            201u8, 239u8, 128u8, 209u8, 207u8, 38u8, 123u8, 48u8, 119u8, 102u8,
+                            88u8, 42u8, 245u8, 187u8, 244u8, 206u8, 124u8, 216u8, 185u8, 155u8,
+                            207u8, 0u8,
                         ],
                     )
                 }
@@ -14522,9 +15678,10 @@ pub mod api {
                         "SubsOf",
                         Vec::new(),
                         [
-                            128u8, 15u8, 175u8, 155u8, 216u8, 225u8, 200u8, 169u8, 215u8, 206u8,
-                            110u8, 22u8, 204u8, 89u8, 212u8, 210u8, 159u8, 169u8, 53u8, 7u8, 44u8,
-                            164u8, 91u8, 151u8, 7u8, 227u8, 38u8, 230u8, 175u8, 84u8, 6u8, 4u8,
+                            93u8, 124u8, 154u8, 157u8, 159u8, 103u8, 233u8, 225u8, 59u8, 20u8,
+                            201u8, 239u8, 128u8, 209u8, 207u8, 38u8, 123u8, 48u8, 119u8, 102u8,
+                            88u8, 42u8, 245u8, 187u8, 244u8, 206u8, 124u8, 216u8, 185u8, 155u8,
+                            207u8, 0u8,
                         ],
                     )
                 }
@@ -14553,9 +15710,10 @@ pub mod api {
                         "Registrars",
                         vec![],
                         [
-                            157u8, 87u8, 39u8, 240u8, 154u8, 54u8, 241u8, 229u8, 76u8, 9u8, 62u8,
-                            252u8, 40u8, 143u8, 186u8, 182u8, 233u8, 187u8, 251u8, 61u8, 236u8,
-                            229u8, 19u8, 55u8, 42u8, 36u8, 82u8, 173u8, 215u8, 155u8, 229u8, 111u8,
+                            207u8, 253u8, 229u8, 237u8, 228u8, 85u8, 173u8, 74u8, 164u8, 67u8,
+                            144u8, 144u8, 5u8, 242u8, 84u8, 187u8, 110u8, 181u8, 2u8, 162u8, 239u8,
+                            212u8, 72u8, 233u8, 160u8, 196u8, 121u8, 218u8, 100u8, 0u8, 219u8,
+                            181u8,
                         ],
                     )
                 }
@@ -14661,75 +15819,101 @@ pub mod api {
     }
     pub mod committee_management {
         use super::{root_mod, runtime_types};
+        #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
+        pub type Error = runtime_types::pallet_committee_management::pallet::Error;
         #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
+        pub type Call = runtime_types::pallet_committee_management::pallet::Call;
         pub mod calls {
             use super::{root_mod, runtime_types};
             type DispatchError = runtime_types::sp_runtime::DispatchError;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetBanConfig {
-                pub minimal_expected_performance: ::core::option::Option<::core::primitive::u8>,
-                pub underperformed_session_count_threshold:
-                    ::core::option::Option<::core::primitive::u32>,
-                pub clean_session_counter_delay: ::core::option::Option<::core::primitive::u32>,
-                pub ban_period: ::core::option::Option<::core::primitive::u32>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct BanFromCommittee {
-                pub banned: ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                pub ban_reason: ::std::vec::Vec<::core::primitive::u8>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct CancelBan {
-                pub banned: ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: CompactAs,
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct SetLenientThreshold {
-                pub threshold_percent: ::core::primitive::u8,
+            pub mod types {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetBanConfig {
+                    pub minimal_expected_performance: ::core::option::Option<::core::primitive::u8>,
+                    pub underperformed_session_count_threshold:
+                        ::core::option::Option<::core::primitive::u32>,
+                    pub clean_session_counter_delay: ::core::option::Option<::core::primitive::u32>,
+                    pub ban_period: ::core::option::Option<::core::primitive::u32>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetBanConfig {
+                    const PALLET: &'static str = "CommitteeManagement";
+                    const CALL: &'static str = "set_ban_config";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct BanFromCommittee {
+                    pub banned: ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                    pub ban_reason: ::std::vec::Vec<::core::primitive::u8>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for BanFromCommittee {
+                    const PALLET: &'static str = "CommitteeManagement";
+                    const CALL: &'static str = "ban_from_committee";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct CancelBan {
+                    pub banned: ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for CancelBan {
+                    const PALLET: &'static str = "CommitteeManagement";
+                    const CALL: &'static str = "cancel_ban";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: CompactAs,
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SetLenientThreshold {
+                    pub threshold_percent: ::core::primitive::u8,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for SetLenientThreshold {
+                    const PALLET: &'static str = "CommitteeManagement";
+                    const CALL: &'static str = "set_lenient_threshold";
+                }
             }
             pub struct TransactionApi;
             impl TransactionApi {
@@ -14742,21 +15926,20 @@ pub mod api {
                     >,
                     clean_session_counter_delay: ::core::option::Option<::core::primitive::u32>,
                     ban_period: ::core::option::Option<::core::primitive::u32>,
-                ) -> ::subxt::tx::Payload<SetBanConfig> {
+                ) -> ::subxt::tx::Payload<types::SetBanConfig> {
                     ::subxt::tx::Payload::new_static(
                         "CommitteeManagement",
                         "set_ban_config",
-                        SetBanConfig {
+                        types::SetBanConfig {
                             minimal_expected_performance,
                             underperformed_session_count_threshold,
                             clean_session_counter_delay,
                             ban_period,
                         },
                         [
-                            228u8, 199u8, 170u8, 155u8, 208u8, 190u8, 211u8, 218u8, 105u8, 213u8,
-                            240u8, 152u8, 92u8, 19u8, 164u8, 28u8, 215u8, 145u8, 47u8, 248u8,
-                            219u8, 75u8, 234u8, 78u8, 29u8, 189u8, 35u8, 106u8, 165u8, 76u8, 27u8,
-                            50u8,
+                            231u8, 98u8, 103u8, 95u8, 166u8, 3u8, 91u8, 214u8, 162u8, 189u8, 17u8,
+                            159u8, 243u8, 220u8, 9u8, 160u8, 238u8, 186u8, 1u8, 109u8, 17u8, 12u8,
+                            167u8, 247u8, 215u8, 120u8, 174u8, 242u8, 118u8, 2u8, 154u8, 210u8,
                         ],
                     )
                 }
@@ -14765,15 +15948,15 @@ pub mod api {
                     &self,
                     banned: ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                     ban_reason: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::Payload<BanFromCommittee> {
+                ) -> ::subxt::tx::Payload<types::BanFromCommittee> {
                     ::subxt::tx::Payload::new_static(
                         "CommitteeManagement",
                         "ban_from_committee",
-                        BanFromCommittee { banned, ban_reason },
+                        types::BanFromCommittee { banned, ban_reason },
                         [
-                            60u8, 254u8, 80u8, 201u8, 64u8, 189u8, 255u8, 111u8, 14u8, 9u8, 68u8,
-                            177u8, 196u8, 107u8, 10u8, 177u8, 78u8, 134u8, 98u8, 21u8, 179u8, 9u8,
-                            111u8, 185u8, 155u8, 39u8, 148u8, 88u8, 239u8, 16u8, 24u8, 171u8,
+                            46u8, 71u8, 168u8, 19u8, 158u8, 0u8, 205u8, 187u8, 32u8, 200u8, 173u8,
+                            53u8, 167u8, 105u8, 131u8, 253u8, 103u8, 19u8, 9u8, 132u8, 167u8,
+                            202u8, 173u8, 66u8, 233u8, 233u8, 88u8, 78u8, 18u8, 0u8, 201u8, 209u8,
                         ],
                     )
                 }
@@ -14781,16 +15964,16 @@ pub mod api {
                 pub fn cancel_ban(
                     &self,
                     banned: ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                ) -> ::subxt::tx::Payload<CancelBan> {
+                ) -> ::subxt::tx::Payload<types::CancelBan> {
                     ::subxt::tx::Payload::new_static(
                         "CommitteeManagement",
                         "cancel_ban",
-                        CancelBan { banned },
+                        types::CancelBan { banned },
                         [
-                            103u8, 192u8, 40u8, 246u8, 206u8, 52u8, 222u8, 51u8, 39u8, 247u8,
-                            220u8, 175u8, 232u8, 31u8, 168u8, 99u8, 206u8, 45u8, 191u8, 161u8,
-                            107u8, 12u8, 112u8, 54u8, 163u8, 170u8, 221u8, 220u8, 122u8, 177u8,
-                            178u8, 246u8,
+                            159u8, 99u8, 186u8, 196u8, 216u8, 205u8, 35u8, 254u8, 134u8, 0u8,
+                            226u8, 136u8, 124u8, 119u8, 117u8, 59u8, 145u8, 46u8, 49u8, 125u8, 6u8,
+                            192u8, 200u8, 234u8, 237u8, 161u8, 228u8, 178u8, 199u8, 33u8, 7u8,
+                            158u8,
                         ],
                     )
                 }
@@ -14798,15 +15981,16 @@ pub mod api {
                 pub fn set_lenient_threshold(
                     &self,
                     threshold_percent: ::core::primitive::u8,
-                ) -> ::subxt::tx::Payload<SetLenientThreshold> {
+                ) -> ::subxt::tx::Payload<types::SetLenientThreshold> {
                     ::subxt::tx::Payload::new_static(
                         "CommitteeManagement",
                         "set_lenient_threshold",
-                        SetLenientThreshold { threshold_percent },
+                        types::SetLenientThreshold { threshold_percent },
                         [
-                            188u8, 138u8, 127u8, 40u8, 215u8, 6u8, 10u8, 172u8, 123u8, 102u8, 30u8,
-                            48u8, 5u8, 8u8, 145u8, 107u8, 86u8, 178u8, 228u8, 200u8, 133u8, 117u8,
-                            85u8, 233u8, 117u8, 242u8, 191u8, 226u8, 192u8, 135u8, 141u8, 234u8,
+                            194u8, 254u8, 201u8, 130u8, 194u8, 193u8, 167u8, 214u8, 237u8, 154u8,
+                            58u8, 89u8, 88u8, 11u8, 12u8, 140u8, 36u8, 208u8, 86u8, 37u8, 121u8,
+                            98u8, 143u8, 175u8, 110u8, 45u8, 101u8, 232u8, 116u8, 88u8, 49u8,
+                            204u8,
                         ],
                     )
                 }
@@ -14826,6 +16010,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Ban thresholds for the next era has changed"]
@@ -14844,6 +16029,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Validators have been banned from the committee"]
@@ -14876,10 +16062,9 @@ pub mod api {
                         "LenientThreshold",
                         vec![],
                         [
-                            210u8, 203u8, 81u8, 229u8, 150u8, 247u8, 113u8, 129u8, 136u8, 57u8,
-                            199u8, 98u8, 73u8, 227u8, 92u8, 181u8, 184u8, 99u8, 165u8, 110u8,
-                            147u8, 191u8, 178u8, 105u8, 124u8, 206u8, 8u8, 208u8, 19u8, 40u8, 99u8,
-                            130u8,
+                            130u8, 97u8, 201u8, 132u8, 111u8, 199u8, 102u8, 222u8, 218u8, 1u8,
+                            197u8, 68u8, 175u8, 165u8, 17u8, 16u8, 81u8, 116u8, 31u8, 59u8, 141u8,
+                            32u8, 115u8, 164u8, 139u8, 4u8, 215u8, 23u8, 115u8, 188u8, 62u8, 126u8,
                         ],
                     )
                 }
@@ -14903,10 +16088,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            186u8, 91u8, 185u8, 144u8, 216u8, 179u8, 157u8, 132u8, 17u8, 247u8,
-                            241u8, 172u8, 32u8, 7u8, 28u8, 60u8, 188u8, 192u8, 64u8, 29u8, 153u8,
-                            100u8, 130u8, 245u8, 189u8, 251u8, 68u8, 161u8, 202u8, 29u8, 153u8,
-                            131u8,
+                            139u8, 106u8, 86u8, 54u8, 210u8, 32u8, 217u8, 78u8, 131u8, 94u8, 155u8,
+                            125u8, 2u8, 13u8, 207u8, 228u8, 245u8, 106u8, 149u8, 251u8, 120u8,
+                            205u8, 160u8, 25u8, 5u8, 61u8, 219u8, 195u8, 21u8, 28u8, 43u8, 77u8,
                         ],
                     )
                 }
@@ -14925,10 +16109,9 @@ pub mod api {
                         "SessionValidatorBlockCount",
                         Vec::new(),
                         [
-                            186u8, 91u8, 185u8, 144u8, 216u8, 179u8, 157u8, 132u8, 17u8, 247u8,
-                            241u8, 172u8, 32u8, 7u8, 28u8, 60u8, 188u8, 192u8, 64u8, 29u8, 153u8,
-                            100u8, 130u8, 245u8, 189u8, 251u8, 68u8, 161u8, 202u8, 29u8, 153u8,
-                            131u8,
+                            139u8, 106u8, 86u8, 54u8, 210u8, 32u8, 217u8, 78u8, 131u8, 94u8, 155u8,
+                            125u8, 2u8, 13u8, 207u8, 228u8, 245u8, 106u8, 149u8, 251u8, 120u8,
+                            205u8, 160u8, 25u8, 5u8, 61u8, 219u8, 195u8, 21u8, 28u8, 43u8, 77u8,
                         ],
                     )
                 }
@@ -14949,9 +16132,10 @@ pub mod api {
                         "ValidatorEraTotalReward",
                         vec![],
                         [
-                            111u8, 103u8, 48u8, 14u8, 23u8, 139u8, 162u8, 122u8, 212u8, 85u8, 64u8,
-                            188u8, 36u8, 142u8, 80u8, 224u8, 89u8, 63u8, 104u8, 86u8, 51u8, 111u8,
-                            166u8, 53u8, 189u8, 181u8, 240u8, 250u8, 160u8, 128u8, 179u8, 9u8,
+                            82u8, 26u8, 143u8, 115u8, 218u8, 44u8, 145u8, 124u8, 110u8, 213u8,
+                            225u8, 111u8, 223u8, 111u8, 126u8, 4u8, 26u8, 190u8, 232u8, 38u8,
+                            140u8, 23u8, 30u8, 161u8, 161u8, 49u8, 83u8, 126u8, 26u8, 127u8, 0u8,
+                            84u8,
                         ],
                     )
                 }
@@ -14970,9 +16154,10 @@ pub mod api {
                         "BanConfig",
                         vec![],
                         [
-                            115u8, 228u8, 135u8, 32u8, 85u8, 156u8, 44u8, 195u8, 215u8, 11u8, 27u8,
-                            26u8, 231u8, 59u8, 249u8, 78u8, 172u8, 66u8, 81u8, 17u8, 99u8, 221u8,
-                            38u8, 253u8, 62u8, 54u8, 104u8, 161u8, 129u8, 92u8, 218u8, 193u8,
+                            119u8, 112u8, 80u8, 197u8, 29u8, 151u8, 178u8, 74u8, 84u8, 166u8,
+                            118u8, 65u8, 0u8, 245u8, 138u8, 212u8, 233u8, 228u8, 224u8, 113u8,
+                            18u8, 83u8, 118u8, 33u8, 24u8, 236u8, 43u8, 29u8, 130u8, 239u8, 34u8,
+                            147u8,
                         ],
                     )
                 }
@@ -14996,10 +16181,10 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            46u8, 74u8, 46u8, 159u8, 162u8, 118u8, 159u8, 155u8, 233u8, 63u8,
-                            101u8, 201u8, 56u8, 204u8, 126u8, 242u8, 131u8, 5u8, 29u8, 132u8, 43u8,
-                            205u8, 168u8, 157u8, 29u8, 183u8, 127u8, 202u8, 25u8, 245u8, 137u8,
-                            67u8,
+                            111u8, 171u8, 158u8, 131u8, 111u8, 171u8, 5u8, 57u8, 170u8, 109u8,
+                            253u8, 232u8, 83u8, 206u8, 129u8, 148u8, 86u8, 39u8, 134u8, 175u8,
+                            232u8, 94u8, 88u8, 106u8, 59u8, 63u8, 196u8, 107u8, 225u8, 41u8, 176u8,
+                            180u8,
                         ],
                     )
                 }
@@ -15018,10 +16203,10 @@ pub mod api {
                         "UnderperformedValidatorSessionCount",
                         Vec::new(),
                         [
-                            46u8, 74u8, 46u8, 159u8, 162u8, 118u8, 159u8, 155u8, 233u8, 63u8,
-                            101u8, 201u8, 56u8, 204u8, 126u8, 242u8, 131u8, 5u8, 29u8, 132u8, 43u8,
-                            205u8, 168u8, 157u8, 29u8, 183u8, 127u8, 202u8, 25u8, 245u8, 137u8,
-                            67u8,
+                            111u8, 171u8, 158u8, 131u8, 111u8, 171u8, 5u8, 57u8, 170u8, 109u8,
+                            253u8, 232u8, 83u8, 206u8, 129u8, 148u8, 86u8, 39u8, 134u8, 175u8,
+                            232u8, 94u8, 88u8, 106u8, 59u8, 63u8, 196u8, 107u8, 225u8, 41u8, 176u8,
+                            180u8,
                         ],
                     )
                 }
@@ -15045,9 +16230,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            202u8, 38u8, 165u8, 35u8, 95u8, 207u8, 116u8, 43u8, 148u8, 73u8, 193u8,
-                            187u8, 1u8, 88u8, 209u8, 13u8, 128u8, 168u8, 121u8, 62u8, 227u8, 172u8,
-                            87u8, 106u8, 15u8, 43u8, 136u8, 240u8, 249u8, 210u8, 25u8, 215u8,
+                            72u8, 30u8, 250u8, 61u8, 107u8, 193u8, 170u8, 197u8, 120u8, 242u8,
+                            225u8, 65u8, 155u8, 184u8, 10u8, 212u8, 73u8, 26u8, 172u8, 234u8, 59u8,
+                            112u8, 139u8, 218u8, 151u8, 175u8, 46u8, 54u8, 131u8, 9u8, 192u8, 27u8,
                         ],
                     )
                 }
@@ -15066,9 +16251,9 @@ pub mod api {
                         "Banned",
                         Vec::new(),
                         [
-                            202u8, 38u8, 165u8, 35u8, 95u8, 207u8, 116u8, 43u8, 148u8, 73u8, 193u8,
-                            187u8, 1u8, 88u8, 209u8, 13u8, 128u8, 168u8, 121u8, 62u8, 227u8, 172u8,
-                            87u8, 106u8, 15u8, 43u8, 136u8, 240u8, 249u8, 210u8, 25u8, 215u8,
+                            72u8, 30u8, 250u8, 61u8, 107u8, 193u8, 170u8, 197u8, 120u8, 242u8,
+                            225u8, 65u8, 155u8, 184u8, 10u8, 212u8, 73u8, 26u8, 172u8, 234u8, 59u8,
+                            112u8, 139u8, 218u8, 151u8, 175u8, 46u8, 54u8, 131u8, 9u8, 192u8, 27u8,
                         ],
                     )
                 }
@@ -15089,9 +16274,10 @@ pub mod api {
                         "CurrentAndNextSessionValidatorsStorage",
                         vec![],
                         [
-                            50u8, 43u8, 182u8, 121u8, 115u8, 250u8, 14u8, 238u8, 144u8, 211u8,
-                            177u8, 66u8, 98u8, 6u8, 34u8, 12u8, 25u8, 34u8, 239u8, 31u8, 187u8,
-                            147u8, 137u8, 4u8, 156u8, 78u8, 76u8, 249u8, 71u8, 155u8, 183u8, 156u8,
+                            40u8, 213u8, 128u8, 179u8, 26u8, 234u8, 49u8, 104u8, 78u8, 162u8, 34u8,
+                            211u8, 40u8, 29u8, 168u8, 174u8, 61u8, 211u8, 195u8, 72u8, 148u8,
+                            140u8, 15u8, 216u8, 255u8, 159u8, 13u8, 238u8, 145u8, 35u8, 109u8,
+                            101u8,
                         ],
                     )
                 }
@@ -15121,73 +16307,99 @@ pub mod api {
     }
     pub mod baby_liminal {
         use super::{root_mod, runtime_types};
+        #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
+        pub type Error = runtime_types::pallet_baby_liminal::pallet::Error;
         #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
+        pub type Call = runtime_types::pallet_baby_liminal::pallet::Call;
         pub mod calls {
             use super::{root_mod, runtime_types};
             type DispatchError = runtime_types::sp_runtime::DispatchError;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct StoreKey {
-                pub identifier: [::core::primitive::u8; 8usize],
-                pub key: ::std::vec::Vec<::core::primitive::u8>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct DeleteKey {
-                pub identifier: [::core::primitive::u8; 8usize],
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct OverwriteKey {
-                pub identifier: [::core::primitive::u8; 8usize],
-                pub key: ::std::vec::Vec<::core::primitive::u8>,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct Verify {
-                pub verification_key_identifier: [::core::primitive::u8; 8usize],
-                pub proof: ::std::vec::Vec<::core::primitive::u8>,
-                pub public_input: ::std::vec::Vec<::core::primitive::u8>,
+            pub mod types {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct StoreKey {
+                    pub identifier: [::core::primitive::u8; 8usize],
+                    pub key: ::std::vec::Vec<::core::primitive::u8>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for StoreKey {
+                    const PALLET: &'static str = "BabyLiminal";
+                    const CALL: &'static str = "store_key";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct DeleteKey {
+                    pub identifier: [::core::primitive::u8; 8usize],
+                }
+                impl ::subxt::blocks::StaticExtrinsic for DeleteKey {
+                    const PALLET: &'static str = "BabyLiminal";
+                    const CALL: &'static str = "delete_key";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct OverwriteKey {
+                    pub identifier: [::core::primitive::u8; 8usize],
+                    pub key: ::std::vec::Vec<::core::primitive::u8>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for OverwriteKey {
+                    const PALLET: &'static str = "BabyLiminal";
+                    const CALL: &'static str = "overwrite_key";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Verify {
+                    pub verification_key_identifier: [::core::primitive::u8; 8usize],
+                    pub proof: ::std::vec::Vec<::core::primitive::u8>,
+                    pub public_input: ::std::vec::Vec<::core::primitive::u8>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Verify {
+                    const PALLET: &'static str = "BabyLiminal";
+                    const CALL: &'static str = "verify";
+                }
             }
             pub struct TransactionApi;
             impl TransactionApi {
@@ -15203,15 +16415,16 @@ pub mod api {
                     &self,
                     identifier: [::core::primitive::u8; 8usize],
                     key: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::Payload<StoreKey> {
+                ) -> ::subxt::tx::Payload<types::StoreKey> {
                     ::subxt::tx::Payload::new_static(
                         "BabyLiminal",
                         "store_key",
-                        StoreKey { identifier, key },
+                        types::StoreKey { identifier, key },
                         [
-                            243u8, 81u8, 216u8, 10u8, 107u8, 147u8, 211u8, 131u8, 111u8, 111u8,
-                            36u8, 129u8, 8u8, 8u8, 204u8, 239u8, 255u8, 126u8, 63u8, 76u8, 2u8,
-                            27u8, 247u8, 191u8, 74u8, 220u8, 90u8, 41u8, 141u8, 124u8, 84u8, 218u8,
+                            222u8, 245u8, 201u8, 38u8, 224u8, 41u8, 94u8, 243u8, 213u8, 90u8,
+                            116u8, 228u8, 15u8, 111u8, 121u8, 71u8, 84u8, 207u8, 158u8, 205u8,
+                            162u8, 33u8, 212u8, 72u8, 25u8, 63u8, 72u8, 198u8, 207u8, 176u8, 121u8,
+                            17u8,
                         ],
                     )
                 }
@@ -15221,15 +16434,16 @@ pub mod api {
                 pub fn delete_key(
                     &self,
                     identifier: [::core::primitive::u8; 8usize],
-                ) -> ::subxt::tx::Payload<DeleteKey> {
+                ) -> ::subxt::tx::Payload<types::DeleteKey> {
                     ::subxt::tx::Payload::new_static(
                         "BabyLiminal",
                         "delete_key",
-                        DeleteKey { identifier },
+                        types::DeleteKey { identifier },
                         [
-                            168u8, 215u8, 20u8, 23u8, 157u8, 45u8, 189u8, 6u8, 196u8, 144u8, 96u8,
-                            229u8, 120u8, 4u8, 59u8, 18u8, 46u8, 151u8, 249u8, 177u8, 166u8, 101u8,
-                            176u8, 122u8, 24u8, 162u8, 185u8, 239u8, 208u8, 101u8, 151u8, 81u8,
+                            227u8, 37u8, 33u8, 159u8, 222u8, 112u8, 176u8, 21u8, 72u8, 204u8,
+                            202u8, 203u8, 183u8, 217u8, 118u8, 233u8, 135u8, 46u8, 169u8, 32u8,
+                            176u8, 143u8, 13u8, 208u8, 138u8, 149u8, 122u8, 139u8, 72u8, 188u8,
+                            141u8, 165u8,
                         ],
                     )
                 }
@@ -15243,15 +16457,15 @@ pub mod api {
                     &self,
                     identifier: [::core::primitive::u8; 8usize],
                     key: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::Payload<OverwriteKey> {
+                ) -> ::subxt::tx::Payload<types::OverwriteKey> {
                     ::subxt::tx::Payload::new_static(
                         "BabyLiminal",
                         "overwrite_key",
-                        OverwriteKey { identifier, key },
+                        types::OverwriteKey { identifier, key },
                         [
-                            238u8, 6u8, 195u8, 248u8, 5u8, 79u8, 142u8, 65u8, 226u8, 185u8, 219u8,
-                            201u8, 175u8, 63u8, 186u8, 66u8, 33u8, 2u8, 23u8, 198u8, 132u8, 83u8,
-                            31u8, 125u8, 82u8, 106u8, 77u8, 244u8, 244u8, 155u8, 191u8, 89u8,
+                            187u8, 219u8, 196u8, 238u8, 78u8, 19u8, 81u8, 80u8, 206u8, 36u8, 239u8,
+                            50u8, 167u8, 219u8, 116u8, 213u8, 149u8, 122u8, 5u8, 87u8, 110u8, 86u8,
+                            165u8, 90u8, 230u8, 224u8, 23u8, 167u8, 53u8, 127u8, 7u8, 108u8,
                         ],
                     )
                 }
@@ -15272,20 +16486,19 @@ pub mod api {
                     verification_key_identifier: [::core::primitive::u8; 8usize],
                     proof: ::std::vec::Vec<::core::primitive::u8>,
                     public_input: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::Payload<Verify> {
+                ) -> ::subxt::tx::Payload<types::Verify> {
                     ::subxt::tx::Payload::new_static(
                         "BabyLiminal",
                         "verify",
-                        Verify {
+                        types::Verify {
                             verification_key_identifier,
                             proof,
                             public_input,
                         },
                         [
-                            68u8, 111u8, 180u8, 196u8, 114u8, 116u8, 175u8, 116u8, 35u8, 43u8,
-                            147u8, 207u8, 225u8, 160u8, 223u8, 166u8, 170u8, 109u8, 152u8, 46u8,
-                            107u8, 242u8, 170u8, 55u8, 249u8, 135u8, 20u8, 18u8, 200u8, 176u8,
-                            72u8, 252u8,
+                            71u8, 43u8, 239u8, 122u8, 202u8, 205u8, 156u8, 53u8, 44u8, 121u8, 99u8,
+                            223u8, 150u8, 17u8, 141u8, 4u8, 113u8, 136u8, 236u8, 208u8, 132u8, 8u8,
+                            104u8, 118u8, 215u8, 3u8, 38u8, 105u8, 204u8, 166u8, 201u8, 25u8,
                         ],
                     )
                 }
@@ -15305,6 +16518,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Verification key has been successfully stored."]
@@ -15328,6 +16542,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Verification key has been successfully deleted."]
@@ -15351,6 +16566,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Verification key has been successfully overwritten."]
@@ -15371,6 +16587,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Proof has been successfully verified."]
@@ -15405,9 +16622,9 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            15u8, 146u8, 55u8, 166u8, 254u8, 231u8, 4u8, 43u8, 62u8, 48u8, 130u8,
-                            135u8, 72u8, 24u8, 91u8, 198u8, 198u8, 32u8, 187u8, 170u8, 126u8, 38u8,
-                            120u8, 42u8, 184u8, 225u8, 208u8, 107u8, 36u8, 217u8, 151u8, 161u8,
+                            39u8, 190u8, 80u8, 84u8, 244u8, 102u8, 104u8, 100u8, 159u8, 183u8,
+                            242u8, 12u8, 126u8, 8u8, 216u8, 14u8, 145u8, 218u8, 28u8, 110u8, 0u8,
+                            145u8, 10u8, 120u8, 45u8, 95u8, 78u8, 74u8, 194u8, 221u8, 185u8, 135u8,
                         ],
                     )
                 }
@@ -15427,9 +16644,9 @@ pub mod api {
                         "VerificationKeys",
                         Vec::new(),
                         [
-                            15u8, 146u8, 55u8, 166u8, 254u8, 231u8, 4u8, 43u8, 62u8, 48u8, 130u8,
-                            135u8, 72u8, 24u8, 91u8, 198u8, 198u8, 32u8, 187u8, 170u8, 126u8, 38u8,
-                            120u8, 42u8, 184u8, 225u8, 208u8, 107u8, 36u8, 217u8, 151u8, 161u8,
+                            39u8, 190u8, 80u8, 84u8, 244u8, 102u8, 104u8, 100u8, 159u8, 183u8,
+                            242u8, 12u8, 126u8, 8u8, 216u8, 14u8, 145u8, 218u8, 28u8, 110u8, 0u8,
+                            145u8, 10u8, 120u8, 45u8, 95u8, 78u8, 74u8, 194u8, 221u8, 185u8, 135u8,
                         ],
                     )
                 }
@@ -15450,9 +16667,10 @@ pub mod api {
                             _0.borrow(),
                         )],
                         [
-                            214u8, 22u8, 180u8, 63u8, 1u8, 101u8, 210u8, 214u8, 75u8, 246u8, 219u8,
-                            103u8, 95u8, 25u8, 56u8, 97u8, 13u8, 46u8, 114u8, 84u8, 37u8, 121u8,
-                            188u8, 164u8, 105u8, 144u8, 82u8, 151u8, 121u8, 195u8, 180u8, 132u8,
+                            53u8, 76u8, 103u8, 212u8, 254u8, 252u8, 43u8, 235u8, 69u8, 168u8, 25u8,
+                            147u8, 31u8, 143u8, 11u8, 188u8, 213u8, 48u8, 180u8, 236u8, 42u8,
+                            133u8, 89u8, 237u8, 197u8, 253u8, 117u8, 233u8, 227u8, 59u8, 58u8,
+                            155u8,
                         ],
                     )
                 }
@@ -15470,9 +16688,10 @@ pub mod api {
                         "VerificationKeyOwners",
                         Vec::new(),
                         [
-                            214u8, 22u8, 180u8, 63u8, 1u8, 101u8, 210u8, 214u8, 75u8, 246u8, 219u8,
-                            103u8, 95u8, 25u8, 56u8, 97u8, 13u8, 46u8, 114u8, 84u8, 37u8, 121u8,
-                            188u8, 164u8, 105u8, 144u8, 82u8, 151u8, 121u8, 195u8, 180u8, 132u8,
+                            53u8, 76u8, 103u8, 212u8, 254u8, 252u8, 43u8, 235u8, 69u8, 168u8, 25u8,
+                            147u8, 31u8, 143u8, 11u8, 188u8, 213u8, 48u8, 180u8, 236u8, 42u8,
+                            133u8, 89u8, 237u8, 197u8, 253u8, 117u8, 233u8, 227u8, 59u8, 58u8,
+                            155u8,
                         ],
                     )
                 }
@@ -15497,9 +16716,9 @@ pub mod api {
                             ::subxt::storage::address::make_static_storage_map_key(_1.borrow()),
                         ],
                         [
-                            56u8, 215u8, 74u8, 120u8, 187u8, 219u8, 92u8, 199u8, 141u8, 88u8, 57u8,
-                            211u8, 182u8, 197u8, 33u8, 185u8, 109u8, 113u8, 180u8, 99u8, 135u8,
-                            35u8, 177u8, 89u8, 233u8, 49u8, 142u8, 78u8, 34u8, 115u8, 210u8, 133u8,
+                            1u8, 170u8, 231u8, 172u8, 202u8, 53u8, 106u8, 247u8, 0u8, 221u8, 250u8,
+                            154u8, 44u8, 92u8, 18u8, 46u8, 54u8, 147u8, 189u8, 238u8, 67u8, 184u8,
+                            163u8, 50u8, 103u8, 226u8, 102u8, 109u8, 213u8, 135u8, 63u8, 251u8,
                         ],
                     )
                 }
@@ -15517,9 +16736,9 @@ pub mod api {
                         "VerificationKeyDeposits",
                         Vec::new(),
                         [
-                            56u8, 215u8, 74u8, 120u8, 187u8, 219u8, 92u8, 199u8, 141u8, 88u8, 57u8,
-                            211u8, 182u8, 197u8, 33u8, 185u8, 109u8, 113u8, 180u8, 99u8, 135u8,
-                            35u8, 177u8, 89u8, 233u8, 49u8, 142u8, 78u8, 34u8, 115u8, 210u8, 133u8,
+                            1u8, 170u8, 231u8, 172u8, 202u8, 53u8, 106u8, 247u8, 0u8, 221u8, 250u8,
+                            154u8, 44u8, 92u8, 18u8, 46u8, 54u8, 147u8, 189u8, 238u8, 67u8, 184u8,
+                            163u8, 50u8, 103u8, 226u8, 102u8, 109u8, 213u8, 135u8, 63u8, 251u8,
                         ],
                     )
                 }
@@ -15595,6 +16814,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub enum OriginCaller {
@@ -15617,6 +16837,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct Runtime;
@@ -15630,6 +16851,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub enum RuntimeCall {
@@ -15680,6 +16902,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub enum RuntimeEvent {
@@ -15730,6 +16953,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct SessionKeys {
@@ -15751,6 +16975,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct BoundedBTreeMap<_0, _1>(pub ::subxt::utils::KeyedVec<_0, _1>);
@@ -15767,6 +16992,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct BoundedVec<_0>(pub ::std::vec::Vec<_0>);
@@ -15783,6 +17009,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct WeakBoundedVec<_0>(pub ::std::vec::Vec<_0>);
@@ -15802,6 +17029,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub enum DispatchClass {
@@ -15822,6 +17050,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct DispatchInfo {
@@ -15839,6 +17068,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub enum Pays {
@@ -15857,6 +17087,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct PerDispatchClass<_0> {
@@ -15874,6 +17105,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub enum RawOrigin<_0> {
@@ -15899,6 +17131,7 @@ pub mod api {
                         Eq,
                         PartialEq,
                     )]
+                    # [codec (crate = :: subxt :: ext :: codec)]
                     #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                     #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                     pub enum Bounded<_0> {
@@ -15934,6 +17167,7 @@ pub mod api {
                             Eq,
                             PartialEq,
                         )]
+                        # [codec (crate = :: subxt :: ext :: codec)]
                         #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                         #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                         pub enum BalanceStatus {
@@ -15955,6 +17189,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct PalletId(pub [::core::primitive::u8; 8usize]);
@@ -15975,6 +17210,7 @@ pub mod api {
                         Eq,
                         PartialEq,
                     )]
+                    # [codec (crate = :: subxt :: ext :: codec)]
                     #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                     #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                     pub struct CheckGenesis;
@@ -15991,6 +17227,7 @@ pub mod api {
                         Eq,
                         PartialEq,
                     )]
+                    # [codec (crate = :: subxt :: ext :: codec)]
                     #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                     #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                     pub struct CheckMortality(pub runtime_types::sp_runtime::generic::era::Era);
@@ -16007,6 +17244,7 @@ pub mod api {
                         Eq,
                         PartialEq,
                     )]
+                    # [codec (crate = :: subxt :: ext :: codec)]
                     #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                     #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                     pub struct CheckNonZeroSender;
@@ -16023,6 +17261,7 @@ pub mod api {
                         Eq,
                         PartialEq,
                     )]
+                    # [codec (crate = :: subxt :: ext :: codec)]
                     #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                     #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                     pub struct CheckNonce(#[codec(compact)] pub ::core::primitive::u32);
@@ -16039,6 +17278,7 @@ pub mod api {
                         Eq,
                         PartialEq,
                     )]
+                    # [codec (crate = :: subxt :: ext :: codec)]
                     #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                     #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                     pub struct CheckSpecVersion;
@@ -16055,6 +17295,7 @@ pub mod api {
                         Eq,
                         PartialEq,
                     )]
+                    # [codec (crate = :: subxt :: ext :: codec)]
                     #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                     #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                     pub struct CheckTxVersion;
@@ -16071,6 +17312,7 @@ pub mod api {
                         Eq,
                         PartialEq,
                     )]
+                    # [codec (crate = :: subxt :: ext :: codec)]
                     #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                     #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                     pub struct CheckWeight;
@@ -16088,6 +17330,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct BlockLength {
@@ -16105,6 +17348,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct BlockWeights {
@@ -16124,6 +17368,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct WeightsPerClass {
@@ -16148,6 +17393,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
@@ -16155,7 +17401,6 @@ pub mod api {
                     #[codec(index = 0)]
                     #[doc = "Make some on-chain remark."]
                     #[doc = ""]
-                    #[doc = "## Complexity"]
                     #[doc = "- `O(1)`"]
                     remark {
                         remark: ::std::vec::Vec<::core::primitive::u8>,
@@ -16165,17 +17410,11 @@ pub mod api {
                     set_heap_pages { pages: ::core::primitive::u64 },
                     #[codec(index = 2)]
                     #[doc = "Set the new runtime code."]
-                    #[doc = ""]
-                    #[doc = "## Complexity"]
-                    #[doc = "- `O(C + S)` where `C` length of `code` and `S` complexity of `can_set_code`"]
                     set_code {
                         code: ::std::vec::Vec<::core::primitive::u8>,
                     },
                     #[codec(index = 3)]
                     #[doc = "Set the new runtime code without doing any checks of the given `code`."]
-                    #[doc = ""]
-                    #[doc = "## Complexity"]
-                    #[doc = "- `O(C)` where `C` length of `code`"]
                     set_code_without_checks {
                         code: ::std::vec::Vec<::core::primitive::u8>,
                     },
@@ -16217,6 +17456,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Error for the System pallet"]
@@ -16254,6 +17494,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Event for the System pallet."]
@@ -16300,6 +17541,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct AccountInfo<_0, _1> {
@@ -16319,6 +17561,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct EventRecord<_0, _1> {
@@ -16336,6 +17579,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct LastRuntimeUpgradeInfo {
@@ -16353,6 +17597,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub enum Phase {
@@ -16378,6 +17623,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
@@ -16410,6 +17656,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
@@ -16437,6 +17684,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
@@ -16501,6 +17749,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
@@ -16552,6 +17801,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
@@ -16599,6 +17849,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
@@ -16749,6 +18000,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
@@ -16794,6 +18046,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
@@ -16937,6 +18190,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct AccountData<_0> {
@@ -16955,6 +18209,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct BalanceLock<_0> {
@@ -16973,6 +18228,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct ExtraFlags(pub ::core::primitive::u128);
@@ -16986,6 +18242,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct IdAmount<_0, _1> {
@@ -17002,6 +18259,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub enum Reasons {
@@ -17022,6 +18280,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct ReserveData<_0, _1> {
@@ -17044,6 +18303,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
@@ -17084,6 +18344,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
@@ -17112,6 +18373,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
@@ -17139,6 +18401,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct CurrentAndNextSessionValidators<_0> {
@@ -17155,6 +18418,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct ValidatorTotalRewards<_0>(
@@ -17175,6 +18439,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
@@ -17371,6 +18636,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
@@ -17488,6 +18754,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
@@ -17543,7 +18810,9 @@ pub mod api {
                     #[doc = "calls. This is because on failure all storage changes including events are"]
                     #[doc = "rolled back."]
                     Called {
-                        caller: ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                        caller: runtime_types::pallet_contracts::Origin<
+                            runtime_types::aleph_runtime::Runtime,
+                        >,
                         contract:
                             ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
                     },
@@ -17574,6 +18843,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct HostFnWeights {
@@ -17582,6 +18852,7 @@ pub mod api {
                     pub code_hash: runtime_types::sp_weights::weight_v2::Weight,
                     pub own_code_hash: runtime_types::sp_weights::weight_v2::Weight,
                     pub caller_is_origin: runtime_types::sp_weights::weight_v2::Weight,
+                    pub caller_is_root: runtime_types::sp_weights::weight_v2::Weight,
                     pub address: runtime_types::sp_weights::weight_v2::Weight,
                     pub gas_left: runtime_types::sp_weights::weight_v2::Weight,
                     pub balance: runtime_types::sp_weights::weight_v2::Weight,
@@ -17650,6 +18921,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct InstructionWeights {
@@ -17717,6 +18989,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct Limits {
@@ -17741,6 +19014,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct Schedule {
@@ -17762,6 +19036,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct ContractInfo {
@@ -17786,6 +19061,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct DeletionQueueManager {
@@ -17802,6 +19078,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct DepositAccount(
@@ -17820,6 +19097,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub enum Determinism {
@@ -17838,6 +19116,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct OwnerInfo {
@@ -17857,6 +19136,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct PrefabWasmModule {
@@ -17871,6 +19151,26 @@ pub mod api {
                     >,
                     pub determinism: runtime_types::pallet_contracts::wasm::Determinism,
                 }
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                :: subxt :: ext :: scale_decode :: DecodeAsType,
+                :: subxt :: ext :: scale_encode :: EncodeAsType,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            # [codec (crate = :: subxt :: ext :: codec)]
+            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+            pub enum Origin<_0> {
+                #[codec(index = 0)]
+                Root,
+                #[codec(index = 1)]
+                Signed(::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>),
+                __Ignore(::core::marker::PhantomData<_0>),
             }
         }
         pub mod pallet_elections {
@@ -17887,6 +19187,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
@@ -17922,6 +19223,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
@@ -17947,6 +19249,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
@@ -17979,6 +19282,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Identity pallet declaration."]
@@ -18278,6 +19582,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
@@ -18347,6 +19652,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
@@ -18428,6 +19734,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct BitFlags<_0>(
@@ -18444,6 +19751,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub enum Data {
@@ -18534,6 +19842,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub enum IdentityField {
@@ -18564,6 +19873,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct IdentityInfo {
@@ -18590,6 +19900,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub enum Judgement<_0> {
@@ -18618,6 +19929,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct RegistrarInfo<_0, _1> {
@@ -18637,6 +19949,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct Registration<_0> {
@@ -18663,6 +19976,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
@@ -18821,6 +20135,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
@@ -18878,6 +20193,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
@@ -18938,6 +20254,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct Multisig<_0, _1, _2> {
@@ -18956,6 +20273,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct Timepoint<_0> {
@@ -18977,6 +20295,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
@@ -19350,6 +20669,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub enum DefensiveError {
@@ -19374,6 +20694,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
@@ -19487,6 +20808,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Events of this pallet."]
@@ -19630,6 +20952,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub enum BondExtra<_0> {
@@ -19648,6 +20971,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct BondedPoolInner {
@@ -19669,6 +20993,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub enum ClaimPermission {
@@ -19691,6 +21016,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct Commission {
@@ -19716,6 +21042,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct CommissionChangeRate<_0> {
@@ -19732,6 +21059,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub enum ConfigOp<_0> {
@@ -19752,6 +21080,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct PoolMember {
@@ -19775,6 +21104,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct PoolRoles<_0> {
@@ -19793,6 +21123,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub enum PoolState {
@@ -19813,6 +21144,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct RewardPool {
@@ -19833,6 +21165,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct SubPools {
@@ -19853,6 +21186,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct UnbondPool {
@@ -19874,6 +21208,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
@@ -19946,6 +21281,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
@@ -19976,6 +21312,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Events type."]
@@ -20030,6 +21367,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct Scheduled<_0, _1, _2, _3, _4> {
@@ -20056,6 +21394,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
@@ -20099,6 +21438,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Error for the session pallet."]
@@ -20129,6 +21469,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
@@ -20158,6 +21499,7 @@ pub mod api {
                         Eq,
                         PartialEq,
                     )]
+                    # [codec (crate = :: subxt :: ext :: codec)]
                     #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                     #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                     #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
@@ -20179,10 +21521,6 @@ pub mod api {
                         #[doc = "NOTE: Two of the storage writes (`Self::bonded`, `Self::payee`) are _never_ cleaned"]
                         #[doc = "unless the `origin` falls below _existential deposit_ and gets removed as dust."]
                         bond {
-                            controller: ::subxt::utils::MultiAddress<
-                                ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                                (),
-                            >,
                             #[codec(compact)]
                             value: ::core::primitive::u128,
                             payee: runtime_types::pallet_staking::RewardDestination<
@@ -20311,7 +21649,10 @@ pub mod api {
                             >,
                         },
                         #[codec(index = 8)]
-                        #[doc = "(Re-)set the controller of a stash."]
+                        #[doc = "(Re-)sets the controller of a stash to the stash itself. This function previously"]
+                        #[doc = "accepted a `controller` argument to set the controller to an account other than the"]
+                        #[doc = "stash itself. This functionality has now been removed, now only setting the controller"]
+                        #[doc = "to the stash, if it is not already."]
                         #[doc = ""]
                         #[doc = "Effects will be felt instantly (as soon as this function is completed successfully)."]
                         #[doc = ""]
@@ -20322,12 +21663,7 @@ pub mod api {
                         #[doc = "- Independent of the arguments. Insignificant complexity."]
                         #[doc = "- Contains a limited number of reads."]
                         #[doc = "- Writes are limited to the `origin` account key."]
-                        set_controller {
-                            controller: ::subxt::utils::MultiAddress<
-                                ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                                (),
-                            >,
-                        },
+                        set_controller,
                         #[codec(index = 9)]
                         #[doc = "Sets the ideal number of validators."]
                         #[doc = ""]
@@ -20602,6 +21938,7 @@ pub mod api {
                         Eq,
                         PartialEq,
                     )]
+                    # [codec (crate = :: subxt :: ext :: codec)]
                     #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                     #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                     pub enum ConfigOp<_0> {
@@ -20622,6 +21959,7 @@ pub mod api {
                         Eq,
                         PartialEq,
                     )]
+                    # [codec (crate = :: subxt :: ext :: codec)]
                     #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                     #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                     #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
@@ -20716,6 +22054,7 @@ pub mod api {
                         Eq,
                         PartialEq,
                     )]
+                    # [codec (crate = :: subxt :: ext :: codec)]
                     #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                     #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                     #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
@@ -20836,6 +22175,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct SlashingSpans {
@@ -20854,6 +22194,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct SpanRecord<_0> {
@@ -20871,6 +22212,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct ActiveEraInfo {
@@ -20887,6 +22229,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct EraRewardPoints<_0> {
@@ -20903,6 +22246,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct Exposure<_0, _1> {
@@ -20923,6 +22267,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub enum Forcing {
@@ -20945,6 +22290,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct IndividualExposure<_0, _1> {
@@ -20962,6 +22308,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct Nominations {
@@ -20981,6 +22328,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub enum RewardDestination<_0> {
@@ -21005,6 +22353,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct StakingLedger {
@@ -21030,6 +22379,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct UnappliedSlash<_0, _1> {
@@ -21049,6 +22399,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct UnlockChunk<_0> {
@@ -21067,6 +22418,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct ValidatorPrefs {
@@ -21089,6 +22441,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
@@ -21156,6 +22509,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Error for the Sudo pallet"]
@@ -21174,6 +22528,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
@@ -21214,6 +22569,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
@@ -21255,6 +22611,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
@@ -21279,6 +22636,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct ChargeTransactionPayment(#[codec(compact)] pub ::core::primitive::u128);
@@ -21292,6 +22650,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub enum Releases {
@@ -21315,6 +22674,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
@@ -21403,6 +22763,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Error for the treasury pallet."]
@@ -21434,6 +22795,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
@@ -21500,6 +22862,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct Proposal<_0, _1> {
@@ -21523,6 +22886,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
@@ -21634,6 +22998,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tCustom [dispatch errors](https://docs.substrate.io/main-docs/build/events-errors/)\n\t\t\tof this pallet.\n\t\t\t"]
@@ -21652,6 +23017,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
@@ -21700,6 +23066,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Contains one variant per dispatchable that can be called by an extrinsic."]
@@ -21823,6 +23190,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "Error for the vesting pallet."]
@@ -21854,6 +23222,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 #[doc = "\n\t\t\tThe [event](https://docs.substrate.io/main-docs/build/events-errors/) emitted\n\t\t\tby this pallet.\n\t\t\t"]
@@ -21884,6 +23253,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct VestingInfo<_0, _1> {
@@ -21902,6 +23272,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub enum Releases {
@@ -21925,6 +23296,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct Public(pub runtime_types::sp_core::ed25519::Public);
@@ -21939,6 +23311,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct BanConfig {
@@ -21957,6 +23330,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct BanInfo {
@@ -21973,6 +23347,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub enum BanReason {
@@ -21995,6 +23370,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct CommitteeSeats {
@@ -22012,6 +23388,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub enum ElectionOpenness {
@@ -22030,6 +23407,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct EraValidators<_0> {
@@ -22046,6 +23424,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct SessionValidators<_0> {
@@ -22062,6 +23441,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct VersionChange {
@@ -22084,6 +23464,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct FixedU128(pub ::core::primitive::u128);
@@ -22101,6 +23482,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct Perbill(pub ::core::primitive::u32);
@@ -22115,6 +23497,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct Percent(pub ::core::primitive::u8);
@@ -22129,6 +23512,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct Permill(pub ::core::primitive::u32);
@@ -22143,6 +23527,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct Perquintill(pub ::core::primitive::u64);
@@ -22157,6 +23542,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub enum ArithmeticError {
@@ -22184,6 +23570,7 @@ pub mod api {
                         Eq,
                         PartialEq,
                     )]
+                    # [codec (crate = :: subxt :: ext :: codec)]
                     #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                     #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                     pub struct Public(pub runtime_types::sp_core::sr25519::Public);
@@ -22203,6 +23590,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct Slot(pub ::core::primitive::u64);
@@ -22221,6 +23609,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct KeyTypeId(pub [::core::primitive::u8; 4usize]);
@@ -22237,6 +23626,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct Signature(pub [::core::primitive::u8; 65usize]);
@@ -22253,6 +23643,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct Public(pub [::core::primitive::u8; 32usize]);
@@ -22266,6 +23657,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct Signature(pub [::core::primitive::u8; 64usize]);
@@ -22282,6 +23674,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct Public(pub [::core::primitive::u8; 32usize]);
@@ -22295,6 +23688,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct Signature(pub [::core::primitive::u8; 64usize]);
@@ -22309,6 +23703,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub enum Void {}
@@ -22329,6 +23724,7 @@ pub mod api {
                         Eq,
                         PartialEq,
                     )]
+                    # [codec (crate = :: subxt :: ext :: codec)]
                     #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                     #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                     pub struct Digest {
@@ -22345,6 +23741,7 @@ pub mod api {
                         Eq,
                         PartialEq,
                     )]
+                    # [codec (crate = :: subxt :: ext :: codec)]
                     #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                     #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                     pub enum DigestItem {
@@ -22381,6 +23778,7 @@ pub mod api {
                         Eq,
                         PartialEq,
                     )]
+                    # [codec (crate = :: subxt :: ext :: codec)]
                     #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                     #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                     pub enum Era {
@@ -22910,6 +24308,7 @@ pub mod api {
                         Eq,
                         PartialEq,
                     )]
+                    # [codec (crate = :: subxt :: ext :: codec)]
                     #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                     #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                     pub struct UncheckedExtrinsic<_0, _1, _2, _3>(
@@ -22928,6 +24327,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub enum DispatchError {
@@ -22957,6 +24357,8 @@ pub mod api {
                 Corruption,
                 #[codec(index = 12)]
                 Unavailable,
+                #[codec(index = 13)]
+                RootNotAllowed,
             }
             #[derive(
                 :: subxt :: ext :: codec :: Decode,
@@ -22968,6 +24370,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct ModuleError {
@@ -22984,6 +24387,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub enum MultiSignature {
@@ -23004,6 +24408,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub enum TokenError {
@@ -23025,6 +24430,8 @@ pub mod api {
                 CannotCreateHold,
                 #[codec(index = 8)]
                 NotExpendable,
+                #[codec(index = 9)]
+                Blocked,
             }
             #[derive(
                 :: subxt :: ext :: codec :: Decode,
@@ -23036,6 +24443,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub enum TransactionalError {
@@ -23057,6 +24465,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct RuntimeVersion {
@@ -23085,6 +24494,7 @@ pub mod api {
                     Eq,
                     PartialEq,
                 )]
+                # [codec (crate = :: subxt :: ext :: codec)]
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct Weight {
@@ -23104,6 +24514,7 @@ pub mod api {
                 Eq,
                 PartialEq,
             )]
+            # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct RuntimeDbWeight {

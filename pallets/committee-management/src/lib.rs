@@ -24,12 +24,10 @@ extern crate core;
 
 mod impls;
 mod manager;
-mod migration;
 mod traits;
 
 use frame_support::{pallet_prelude::Get, traits::StorageVersion};
 pub use manager::SessionAndEraManager;
-pub use migration::PrefixMigration;
 pub use pallet::*;
 use parity_scale_codec::{Decode, Encode};
 use primitives::{BanConfig as BanConfigStruct, BanInfo, SessionValidators, LENIENT_THRESHOLD};

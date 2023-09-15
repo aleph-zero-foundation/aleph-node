@@ -159,8 +159,7 @@ fn decode_pre_compatibility_justification(
     // We still have to be able to decode the pre-compatibility justifications, since they
     // may be lingering in the DB. Perhaps one day in the future we will be able to remove
     // this code, but I wouldn't count on it.
-    let justification_cloned = justification_raw.clone();
-    match AlephJustificationV2::decode_all(&mut justification_cloned.as_slice()) {
+    match AlephJustificationV2::decode_all(&mut justification_raw.as_slice()) {
         Ok(justification) => Ok(justification.into()),
         Err(_) => match AlephJustificationV1::decode_all(&mut justification_raw.as_slice()) {
             Ok(justification) => Ok(justification.into()),

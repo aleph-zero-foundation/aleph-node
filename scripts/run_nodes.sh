@@ -92,8 +92,7 @@ run_node() {
     --chain $BASE_PATH/chainspec.json \
     --base-path $BASE_PATH/$account_id \
     --name $auth \
-    --rpc-port $((9933 + i)) \
-    --ws-port $((9944 + i)) \
+    --rpc-port $((9943 + i)) \
     --port $((30334 + i)) \
     --bootnodes $bootnodes \
     --node-key-file $BASE_PATH/$account_id/p2p_secret \

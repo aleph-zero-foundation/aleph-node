@@ -4,10 +4,15 @@ use subxt::{ext::sp_core::Bytes, rpc_params, utils::Static};
 
 use crate::{
     api,
+    api::runtime_types,
     pallet_contracts::wasm::{Determinism, OwnerInfo},
     sp_weights::weight_v2::Weight,
     AccountId, Balance, BlockHash, CodeHash, ConnectionApi, SignedConnectionApi, TxInfo, TxStatus,
 };
+
+/// The Event that was emitted during execution of calls.
+pub type EventRecord =
+    runtime_types::frame_system::EventRecord<runtime_types::aleph_runtime::RuntimeEvent, BlockHash>;
 
 /// Arguments to [`ContractRpc::call_and_get`].
 #[derive(Encode)]
@@ -96,7 +101,7 @@ pub trait ContractRpc {
     async fn call_and_get(
         &self,
         args: ContractCallArgs,
-    ) -> anyhow::Result<ContractExecResult<Balance>>;
+    ) -> anyhow::Result<ContractExecResult<Balance, EventRecord>>;
 }
 
 #[async_trait::async_trait]
@@ -203,7 +208,7 @@ impl<C: ConnectionApi> ContractRpc for C {
     async fn call_and_get(
         &self,
         args: ContractCallArgs,
-    ) -> anyhow::Result<ContractExecResult<Balance>> {
+    ) -> anyhow::Result<ContractExecResult<Balance, EventRecord>> {
         let params = rpc_params!["ContractsApi_call", Bytes(args.encode())];
         self.rpc_call("state_call".to_string(), params).await
     }

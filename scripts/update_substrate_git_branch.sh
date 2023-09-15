@@ -19,7 +19,7 @@ if [[ -z "${BRANCH}" ]]; then
 fi
 
 # Find all `Cargo.toml` files outside any `target` directory.
-paths=$(find . -mindepth 2 -type f -name "Cargo.toml" -not -path "*/target/*") || echo "Problems with finding Cargo.toml files"
+paths=$(find .  -type f -name "Cargo.toml" -not -path "*/target/*") || echo "Problems with finding Cargo.toml files"
 
 for path in ${paths[@]}; do
     echo "Upgrading ${path}"

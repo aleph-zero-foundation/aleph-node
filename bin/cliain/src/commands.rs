@@ -5,9 +5,8 @@ use std::{
 
 use aleph_client::{AccountId, Balance, TxStatus};
 use clap::{clap_derive::ValueEnum, Args, Subcommand};
-use primitives::{BlockNumber, CommitteeSeats, SessionIndex};
+use primitives::{BlockHash, BlockNumber, CommitteeSeats, SessionIndex};
 use serde::{Deserialize, Serialize};
-use sp_core::H256;
 #[cfg(feature = "liminal")]
 use {
     crate::snark_relations::{
@@ -63,7 +62,7 @@ pub struct ContractInstantiateWithCode {
 pub struct ContractInstantiate {
     /// Code hash of the deployed contract
     #[clap(long, parse(try_from_str))]
-    pub code_hash: H256,
+    pub code_hash: BlockHash,
     /// Path to the .wasm artifact
     #[clap(long, parse(from_os_str))]
     pub metadata_path: PathBuf,
@@ -101,14 +100,14 @@ pub struct ContractCall {
 pub struct ContractOwnerInfo {
     /// Code hash of the contract code
     #[clap(long, parse(try_from_str))]
-    pub code_hash: H256,
+    pub code_hash: BlockHash,
 }
 
 #[derive(Debug, Clone, Args)]
 pub struct ContractRemoveCode {
     /// Code hash of the contract code
     #[clap(long, parse(try_from_str))]
-    pub code_hash: H256,
+    pub code_hash: BlockHash,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -286,10 +285,6 @@ pub enum SnarkRelation {
 pub enum Command {
     /// Staking call to bond stash with controller
     Bond {
-        /// SS58 id of the controller account
-        #[clap(long)]
-        controller_account: String,
-
         /// a Stake to bond (in tokens)
         #[clap(long)]
         initial_stake_tokens: u32,

@@ -15,7 +15,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 mod impls;
-mod migration;
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
@@ -23,7 +22,6 @@ mod tests;
 mod traits;
 
 use frame_support::traits::StorageVersion;
-pub use migration::{v4::Migration as MigrateToV4, v5::Migration as CommitteeSizeMigration};
 pub use pallet::*;
 use parity_scale_codec::{Decode, Encode};
 pub use primitives::EraValidators;
@@ -36,7 +34,6 @@ use sp_std::{
 pub type TotalReward = u32;
 
 const STORAGE_VERSION: StorageVersion = StorageVersion::new(5);
-const LOG_TARGET: &str = "pallet-elections";
 
 #[derive(Decode, Encode, TypeInfo)]
 pub struct ValidatorTotalRewards<T>(pub BTreeMap<T, TotalReward>);
@@ -177,7 +174,7 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
         #[cfg(feature = "try-runtime")]
-        fn try_state(_n: T::BlockNumber) -> Result<(), &'static str> {
+        fn try_state(_n: T::BlockNumber) -> Result<(), DispatchError> {
             let current_validators = CurrentEraValidators::<T>::get();
             Self::ensure_validators_are_ok(
                 current_validators.reserved,

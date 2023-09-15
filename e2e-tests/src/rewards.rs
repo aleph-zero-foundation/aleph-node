@@ -4,7 +4,7 @@ use aleph_client::{
     account_from_keypair,
     pallets::{
         author::AuthorRpc,
-        balances::{BalanceUserApi, BalanceUserBatchExtApi},
+        balances::BalanceUserApi,
         committee_management::CommitteeManagementApi,
         elections::{ElectionsApi, ElectionsSudoApi},
         session::{SessionApi, SessionUserApi},
@@ -358,18 +358,6 @@ pub async fn validators_bond_extra_stakes(config: &Config, additional_stakes: &[
         .into_iter()
         .map(|seed| seed.into())
         .collect();
-
-    let controller_accounts: Vec<AccountId> = accounts_keys
-        .iter()
-        .map(|account_keys| account_from_keypair(account_keys.controller.signer()))
-        .collect();
-
-    // funds to cover fees
-    root_connection
-        .batch_transfer(&controller_accounts, TOKEN, TxStatus::Finalized)
-        .await
-        .unwrap();
-
     for (account_keys, additional_stake) in accounts_keys.into_iter().zip(additional_stakes.iter())
     {
         let validator_id = account_from_keypair(account_keys.validator.signer());

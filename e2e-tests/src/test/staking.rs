@@ -1,5 +1,4 @@
 use aleph_client::{
-    account_from_keypair,
     bounded_collections::bounded_vec::BoundedVec,
     keypair_from_string,
     pallet_staking::StakingLedger,
@@ -110,9 +109,6 @@ pub async fn staking_era_payouts() -> anyhow::Result<()> {
 #[tokio::test]
 pub async fn staking_new_validator() -> anyhow::Result<()> {
     let config = setup_test();
-    let controller_seed = "//Controller";
-    let controller = keypair_from_string(controller_seed);
-    let controller_account = AccountId::from(controller.signer().public());
     let stash_seed = "//Stash";
     let stash = keypair_from_string(stash_seed);
     let stash_account = AccountId::from(stash.signer().public());
@@ -144,23 +140,14 @@ pub async fn staking_new_validator() -> anyhow::Result<()> {
     root_connection
         .transfer(
             stash_account.clone(),
-            MIN_VALIDATOR_BOND + TOKEN,
+            MIN_VALIDATOR_BOND + 2 * TOKEN,
             TxStatus::InBlock,
         )
         .await?;
-    // to cover txs fees
-    root_connection
-        .transfer(controller_account.clone(), TOKEN, TxStatus::InBlock)
-        .await?;
-
     let stash_connection = SignedConnection::new(node, KeyPair::new(stash.signer().clone())).await;
 
     stash_connection
-        .bond(
-            MIN_VALIDATOR_BOND,
-            controller_account.clone(),
-            TxStatus::InBlock,
-        )
+        .bond(MIN_VALIDATOR_BOND, TxStatus::InBlock)
         .await?;
 
     let bonded_controller_account = root_connection
@@ -168,22 +155,18 @@ pub async fn staking_new_validator() -> anyhow::Result<()> {
         .await
         .expect("should be bonded to smth");
     assert_eq!(
-        bonded_controller_account, controller_account,
-        "Expected that stash account {} is bonded to the controller account {}, got {} instead!",
-        &stash_account, &controller_account, &bonded_controller_account
+        bonded_controller_account, stash_account,
+        "Expected that stash account {} is bonded to the stash account {}, got {} instead!",
+        &stash_account, &stash_account, &bonded_controller_account
     );
 
     let validator_keys = root_connection.author_rotate_keys().await?;
-    let controller_connection =
-        SignedConnection::new(node, KeyPair::new(controller.signer().clone())).await;
-    controller_connection
+    stash_connection
         .set_keys(validator_keys, TxStatus::InBlock)
         .await?;
-    controller_connection
-        .validate(10, TxStatus::InBlock)
-        .await?;
-    let ledger = controller_connection
-        .get_ledger(controller_account, None)
+    stash_connection.validate(10, TxStatus::InBlock).await?;
+    let ledger = stash_connection
+        .get_ledger(stash_account.clone(), None)
         .await;
     assert_eq!(
         ledger,
@@ -235,12 +218,8 @@ pub async fn staking_new_validator() -> anyhow::Result<()> {
 
 pub async fn multi_bond(node: &str, bonders: &[KeyPair], stake: Balance) {
     for bonder in bonders {
-        let controller_account = account_from_keypair(bonder.signer());
         let connection = SignedConnection::new(node, KeyPair::new(bonder.signer().clone())).await;
-        connection
-            .bond(stake, controller_account, TxStatus::InBlock)
-            .await
-            .unwrap();
+        connection.bond(stake, TxStatus::InBlock).await.unwrap();
     }
 }
 

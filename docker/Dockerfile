@@ -5,7 +5,7 @@ RUN apt update && \
         apt clean && \
         rm -rf /var/lib/apt/lists/*
 
-EXPOSE 30333 30343 9933 9944
+EXPOSE 30333 30343 9944
 
 WORKDIR node
 

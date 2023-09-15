@@ -50,7 +50,7 @@ impl Default for DepositAndMergePrivateInput {
         let value = CircuitField::from(0u64);
 
         let merkle_tree =
-            RescueSparseMerkleTree::from_kv_set(MERKLE_TREE_HEIGHT, &[(index.clone(), value)])
+            RescueSparseMerkleTree::from_kv_set(MERKLE_TREE_HEIGHT, [(index.clone(), value)])
                 .unwrap();
 
         let (_, merkle_proof) = merkle_tree.lookup(&index).expect_ok().unwrap();

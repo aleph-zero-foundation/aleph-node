@@ -1,21 +1,13 @@
 use aleph_client::{
     pallets::staking::{StakingSudoApi, StakingUserApi},
-    AccountId, Balance, RootConnection, SignedConnection, TxStatus,
+    AccountId, Balance, RootConnection, SignedConnection, Ss58Codec, TxStatus,
 };
 use primitives::TOKEN;
-use subxt::ext::sp_core::crypto::Ss58Codec;
 
-pub async fn bond(
-    stash_connection: SignedConnection,
-    initial_stake_in_tokens: u32,
-    controller_account: String,
-) {
-    let controller_account =
-        AccountId::from_ss58check(&controller_account).expect("Address is valid");
-
+pub async fn bond(stash_connection: SignedConnection, initial_stake_in_tokens: u32) {
     let initial_stake = initial_stake_in_tokens as Balance * TOKEN;
     stash_connection
-        .bond(initial_stake, controller_account, TxStatus::Finalized)
+        .bond(initial_stake, TxStatus::Finalized)
         .await
         .unwrap();
 }

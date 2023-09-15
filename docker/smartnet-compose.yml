@@ -14,10 +14,9 @@ services:
       - NODE_KEY_PATH=/data/$NODE_ID/p2p_secret
       - PORT=30333
       - PURGE_BEFORE_START=false
-      - RPC_PORT=9933
+      - RPC_PORT=9943
       - RUST_LOG=info
       - UNIT_CREATION_DELAY=300
-      - WS_PORT=9943
       - BOOT_NODES=/ip4/127.0.0.1/tcp/30333/p2p/$BOOTNODE_PEER_ID
       - PUBLIC_ADDR=/ip4/127.0.0.1/tcp/30333
       - VALIDATOR_PORT=30343
@@ -26,13 +25,10 @@ services:
       - ./data/:/data/
     expose:
       - 30333
-      - 9933
       - 9943
     ports:
       - 0.0.0.0:30333:30333
-      - 0.0.0.0:9933:9933
       - 0.0.0.0:9943:9943
-      - 0.0.0.0:9944:9943
 
 networks:
   default:

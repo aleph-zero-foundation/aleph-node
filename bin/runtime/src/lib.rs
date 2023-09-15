@@ -302,6 +302,7 @@ impl pallet_scheduler::Config for Runtime {
 impl pallet_sudo::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeCall = RuntimeCall;
+    type WeightInfo = pallet_sudo::weights::SubstrateWeight<Runtime>;
 }
 
 pub struct SessionInfoImpl;
@@ -686,9 +687,6 @@ impl pallet_utility::Config for Runtime {
     type PalletsOrigin = OriginCaller;
 }
 
-// Prints debug output of the `contracts` pallet to stdout if the node is started with `-lruntime::contracts=debug`.
-const CONTRACTS_DEBUG_OUTPUT: bool = true;
-
 parameter_types! {
     // Refundable deposit per storage item
     pub const DepositPerItem: Balance = 32 * CONTRACT_DEPOSIT_PER_BYTE;
@@ -858,6 +856,8 @@ mod benches {
     #[cfg(not(feature = "liminal"))]
     frame_benchmarking::define_benchmarks!([]);
 }
+
+type EventRecord = frame_system::EventRecord<RuntimeEvent, Hash>;
 
 impl_runtime_apis! {
     impl sp_api::Core<Block> for Runtime {
@@ -1036,7 +1036,7 @@ impl_runtime_apis! {
         }
     }
 
-    impl pallet_contracts::ContractsApi<Block, AccountId, Balance, AlephBlockNumber, Hash>
+    impl pallet_contracts::ContractsApi<Block, AccountId, Balance, AlephBlockNumber, Hash, EventRecord>
         for Runtime
     {
         fn call(
@@ -1046,7 +1046,7 @@ impl_runtime_apis! {
             gas_limit: Option<Weight>,
             storage_deposit_limit: Option<Balance>,
             input_data: Vec<u8>,
-        ) -> pallet_contracts_primitives::ContractExecResult<Balance> {
+        ) -> pallet_contracts_primitives::ContractExecResult<Balance, EventRecord> {
             let gas_limit = gas_limit.unwrap_or(BlockWeights::get().max_block);
             Contracts::bare_call(
                 origin,
@@ -1055,7 +1055,8 @@ impl_runtime_apis! {
                 gas_limit,
                 storage_deposit_limit,
                 input_data,
-                CONTRACTS_DEBUG_OUTPUT,
+                pallet_contracts::DebugInfo::UnsafeDebug,
+                pallet_contracts::CollectEvents::UnsafeCollect,
                 pallet_contracts::Determinism::Enforced,
             )
         }
@@ -1068,7 +1069,7 @@ impl_runtime_apis! {
             code: pallet_contracts_primitives::Code<Hash>,
             data: Vec<u8>,
             salt: Vec<u8>,
-        ) -> pallet_contracts_primitives::ContractInstantiateResult<AccountId, Balance>
+        ) -> pallet_contracts_primitives::ContractInstantiateResult<AccountId, Balance, EventRecord>
         {
             let gas_limit = gas_limit.unwrap_or(BlockWeights::get().max_block);
             Contracts::bare_instantiate(
@@ -1079,7 +1080,8 @@ impl_runtime_apis! {
                 code,
                 data,
                 salt,
-                CONTRACTS_DEBUG_OUTPUT
+                pallet_contracts::DebugInfo::UnsafeDebug,
+                pallet_contracts::CollectEvents::UnsafeCollect,
             )
         }
 

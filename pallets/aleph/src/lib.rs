@@ -82,7 +82,7 @@ pub mod pallet {
 
     /// Default finality version. Relevant for sessions before the first version change occurs.
     #[pallet::type_value]
-    pub(crate) fn DefaultFinalityVersion<T: Config>() -> Version {
+    pub(crate) fn DefaultFinalityVersion() -> Version {
         DEFAULT_FINALITY_VERSION
     }
 
@@ -121,7 +121,7 @@ pub mod pallet {
     #[pallet::storage]
     #[pallet::getter(fn finality_version)]
     pub(super) type FinalityVersion<T: Config> =
-        StorageValue<_, Version, ValueQuery, DefaultFinalityVersion<T>>;
+        StorageValue<_, Version, ValueQuery, DefaultFinalityVersion>;
 
     /// Scheduled finality version change.
     #[pallet::storage]
@@ -351,7 +351,7 @@ pub mod pallet {
     #[pallet::genesis_build]
     impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
         fn build(&self) {
-            <FinalityVersion<T>>::put(&self.finality_version);
+            <FinalityVersion<T>>::put(self.finality_version);
         }
     }
 }

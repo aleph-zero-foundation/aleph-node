@@ -82,12 +82,7 @@ pub trait StakingApi {
 #[async_trait::async_trait]
 pub trait StakingUserApi {
     /// API for [`bond`](https://paritytech.github.io/substrate/master/pallet_staking/struct.Pallet.html#method.bond) call.
-    async fn bond(
-        &self,
-        initial_stake: Balance,
-        controller_id: AccountId,
-        status: TxStatus,
-    ) -> anyhow::Result<TxInfo>;
+    async fn bond(&self, initial_stake: Balance, status: TxStatus) -> anyhow::Result<TxInfo>;
 
     /// API for [`validate`](https://paritytech.github.io/substrate/master/pallet_staking/struct.Pallet.html#method.validate) call.
     async fn validate(
@@ -138,11 +133,7 @@ pub trait StakingApiExt {
     ///     nominator_stash_accounts: Vec<AccountId>,
     ///     nominee_account: AccountId,
     /// ) {
-    ///     let stash_controller_accounts = nominator_stash_accounts
-    ///         .iter()
-    ///         .cloned()
-    ///         .zip(nominator_controller_accounts.iter().cloned())
-    ///         .collect::<Vec<_>>();
+    ///     let stash_controller_accounts = nominator_stash_accounts.clone();
     ///
     ///     let mut rng = thread_rng();
     ///     for chunk in stash_controller_accounts
@@ -170,7 +161,7 @@ pub trait StakingApiExt {
     /// ```
     async fn batch_bond(
         &self,
-        accounts: &[(AccountId, AccountId)],
+        accounts: &[AccountId],
         stake: Balance,
         status: TxStatus,
     ) -> anyhow::Result<TxInfo>;
@@ -334,17 +325,10 @@ impl<C: ConnectionApi + AsConnection> StakingApi for C {
 
 #[async_trait::async_trait]
 impl<S: SignedConnectionApi> StakingUserApi for S {
-    async fn bond(
-        &self,
-        initial_stake: Balance,
-        controller_id: AccountId,
-        status: TxStatus,
-    ) -> anyhow::Result<TxInfo> {
-        let tx = api::tx().staking().bond(
-            MultiAddress::<Static<AccountId>, ()>::Id(Static(controller_id)),
-            initial_stake,
-            RewardDestination::Staked,
-        );
+    async fn bond(&self, initial_stake: Balance, status: TxStatus) -> anyhow::Result<TxInfo> {
+        let tx = api::tx()
+            .staking()
+            .bond(initial_stake, RewardDestination::Staked);
 
         self.send_tx(tx, status).await
     }
@@ -489,15 +473,14 @@ impl<C: AsConnection + Sync> StakingRawApi for C {
 impl StakingApiExt for RootConnection {
     async fn batch_bond(
         &self,
-        accounts: &[(AccountId, AccountId)],
+        accounts: &[AccountId],
         stake: Balance,
         status: TxStatus,
     ) -> anyhow::Result<TxInfo> {
         let calls = accounts
             .iter()
-            .map(|(s, c)| {
+            .map(|s| {
                 let b = Staking(bond {
-                    controller: MultiAddress::Id(Static(c.clone())),
                     value: stake,
                     payee: RewardDestination::Staked,
                 });
