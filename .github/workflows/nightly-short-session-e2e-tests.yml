@@ -22,6 +22,45 @@ jobs:
     with:
       build-e2e-client: true
 
+  get-e2e-test-case-names:
+    name: Get e2e test case names
+    runs-on: ubuntu-20.04
+    needs: [build-e2e-client-image]
+    outputs:
+      testcases: ${{ steps.get-testcases.outputs.testcases }}
+    steps:
+      - name: Download artifact with the test suite image
+        uses: actions/download-artifact@v2
+        with:
+          name: aleph-e2e-client
+
+      - name: Load test suite docker image
+        shell: bash
+        run: docker load -i aleph-e2e-client.tar
+
+      - name: Get testcases
+        shell: bash
+        id: get-testcases
+        run: |
+          testcases=$(docker run --entrypoint aleph-e2e-client aleph-e2e-client:latest \
+            `# basically cargo test --list under the hood` \
+            --list | \
+            `# filter by testcases (not benches)` \
+            grep "test::" | \
+            `# remote test:: prefix` \
+            sed -e 's/test:://g' | \
+            `# for now limit testcases one testcase` \
+            grep 'finalization::finalization' | \
+            `# first column is testcase name` \
+            awk '{print $1;}' | \
+            `# add "" quotes` \
+            sed -e 's/:$/"/g' -e 's/^/"/g' | \
+            `# swap newlines with command and a space` \
+            tr '\n' ', ' | \
+            `# but remove last trailing comma so it is valid JSON array` \
+            sed 's/.$//')
+          echo "testcases=[$testcases]" >> $GITHUB_OUTPUT
+
   build-test-node-and-runtime:
     name: Build test node and runtime
     needs: [check-vars-and-secrets]
@@ -51,9 +90,18 @@ jobs:
     secrets: inherit
 
   runs-e2e-test-on-fe:
-    needs: [push-featurnet-node-image-to-ecr, build-e2e-client-image, store-test-node-and-runtime]
-    name: Run e2e test on FE
-    runs-on: [self-hosted, Linux, X64, large]
+    needs:
+      - push-featurnet-node-image-to-ecr
+      - build-e2e-client-image
+      - store-test-node-and-runtime
+      - get-e2e-test-case-names
+    name: e2e
+    runs-on: [self-hosted, Linux, X64, small]
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        testcase: ${{ fromJSON(needs.get-e2e-test-case-names.outputs.testcases) }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -65,10 +113,12 @@ jobs:
       - name: Get fe name
         id: get-final-featurenet-name
         shell: bash
+        env:
         # yamllint disable rule:line-length
+          APP_NAME: ${{ format('{0}-{1}', github.run_id, matrix.testcase) }}
         run: |
-          final_featurename_local=${{ steps.get-ref-properties.outputs.branch-name-for-argo }}-${{ github.run_id }}
-          echo "final-featurenet-name=$final_featurename_local" >> $GITHUB_OUTPUT
+          final_featurename_local=${{ env.APP_NAME }}
+          echo "final-featurenet-name=$(printf $final_featurename_local | sed 's|::|-|g' | sed 's|_|-|g')" >> $GITHUB_OUTPUT
         # yamllint enable rule:line-length
 
       - name: Create featurenet from scratch
@@ -103,15 +153,16 @@ jobs:
         shell: bash
         run: docker load -i aleph-e2e-client.tar
 
-      - name: Run finalization e2e test
+      - name: Run ${{ matrix.testcase }} e2e test
         shell: bash
         # yamllint disable rule:line-length
         run: |
           docker run --network host \
-            -e NODE_URL="wss://${{ steps.create-featurenet.outputs.ws-hostname }}.dev.azero.dev:443" \
-            -e TEST_CASES="finalization::finalization" \
+            -e NODE_URL="wss://${{ steps.create-featurenet.outputs.ws-hostname }}:443" \
+            -e TEST_CASES="${{ matrix.testcase }}" \
             -e RUST_LOG=info \
             aleph-e2e-client:latest
+        timeout-minutes: 15
         # yamllint enable rule:line-length
 
       - name: Delete featurenet app and data

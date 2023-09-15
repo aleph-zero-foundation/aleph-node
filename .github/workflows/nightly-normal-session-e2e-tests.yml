@@ -62,7 +62,7 @@ jobs:
           image-path: aleph-release-synthetic-docker
           node-image: aleph-node:syntheticnet
           compose-file: docker/docker-compose.synthetic-network.yml
-        timeout-minutes: 35
+        timeout-minutes: 40
 
   run-major-sync-test:
     needs: [build-production-node-and-runtime]

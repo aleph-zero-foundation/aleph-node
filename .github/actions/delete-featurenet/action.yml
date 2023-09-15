@@ -109,6 +109,6 @@ runs:
           -e AWS_SECRET_ACCESS_KEY \
           -e AWS_REGION \
           -e FEATURENETS_S3_BUCKET_NAME=${{ inputs.featurenet-keys-s3bucket-name }} \
-          -e FEATURENET_NAME=${{ steps.get-final-name.outputs.final-featurenet-name }} \
+          -e FEATURENET_NAME=fe-${{ steps.get-final-name.outputs.final-featurenet-name }} \
           ${{ inputs.ecr-public-registry }}featurenet-helper:v0.4.0 \
           delete-featurenet-data-from-s3
