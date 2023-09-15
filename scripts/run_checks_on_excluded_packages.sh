@@ -24,7 +24,9 @@ for p in ${packages[@]}; do
   pushd "$p"
 
   if [[ "$p" =~ .*contracts.* ]] && [[ "$p" != "contracts/poseidon_host_bench" ]]; then
-    cargo contract check
+    echo "Disabling contract check as per https://github.com/727-Ventures/openbrush-contracts"
+    echo "is not available."
+    # cargo contract check
   elif [ "$p" = "baby-liminal-extension" ] || [ "$p" = "contracts/poseidon_host_bench" ]; then
     # cargo clippy --release --no-default-features --features substrate \
       #  --target wasm32-unknown-unknown -- --no-deps -D warnings
