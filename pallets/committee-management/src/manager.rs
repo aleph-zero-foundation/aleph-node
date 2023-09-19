@@ -18,8 +18,8 @@ use crate::{
 /// *  We update rewards and clear block count for the session `S`.
 /// 3. `start_session(S + 1)` is called.
 /// *  if session `S+1` starts new era we populate totals and unban all validators whose ban expired.
-/// *  if session `S+1` % [`BanConfig::clean_session_counter_delay`] == 0, we
-///    clean up underperformed session counter
+/// *  if session `S+1` % `clean_session_counter_delay` == 0, we clean up underperformed session counter.
+/// * `clean_session_counter_delay` is read from pallet's storage
 /// 4. `new_session(S + 2)` is called.
 /// *  If session `S+2` starts new era we emit fresh bans events
 /// *  We rotate the validators for session `S + 2` using the information about reserved and non reserved validators.

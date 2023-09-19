@@ -37,7 +37,6 @@ for p in ${packages[@]}; do
     cargo clippy -- --no-deps -D warnings
   fi
 
-  cargo +nightly-2023-01-10 fmt --all --check
   popd
 
 done

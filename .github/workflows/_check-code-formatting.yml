@@ -23,4 +23,4 @@ jobs:
           components: rustfmt
 
       - name: Run Format Checks
-        run: cargo +nightly-2023-01-10 fmt --all
+        run: cargo +nightly-2023-01-10 fmt --all --check

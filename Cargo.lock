@@ -5738,7 +5738,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-aleph"
-version = "0.5.5"
+version = "0.6.0"
 dependencies = [
  "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.43)",
  "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.43)",
@@ -5883,7 +5883,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-committee-management"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.43)",
  "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.43)",
@@ -6003,7 +6003,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-elections"
-version = "0.5.4"
+version = "0.6.0"
 dependencies = [
  "frame-election-provider-support",
  "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v0.9.43)",
