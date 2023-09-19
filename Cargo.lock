@@ -400,7 +400,7 @@ dependencies = [
 
 [[package]]
 name = "aleph-runtime"
-version = "0.9.1"
+version = "0.10.0"
 dependencies = [
  "baby-liminal-extension",
  "frame-benchmarking",
