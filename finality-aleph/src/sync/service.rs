@@ -18,8 +18,8 @@ use crate::{
         tasks::{Action as TaskAction, PreRequest, RequestTask},
         ticker::Ticker,
         Block, BlockIdFor, BlockIdentifier, BlockImport, ChainStatus, ChainStatusNotification,
-        ChainStatusNotifier, Finalizer, Justification, JustificationSubmissions, RequestBlocks,
-        Verifier, LOG_TARGET,
+        ChainStatusNotifier, Finalizer, Header, Justification, JustificationSubmissions,
+        RequestBlocks, Verifier, LOG_TARGET,
     },
 };
 
@@ -109,6 +109,7 @@ where
                 Metrics::noop()
             }
         };
+
         Ok((
             Service {
                 network,
@@ -387,6 +388,7 @@ where
         use ChainStatusNotification::*;
         match event {
             BlockImported(header) => {
+                let number = header.id().number();
                 trace!(target: LOG_TARGET, "Handling a new imported block.");
                 self.metrics.report_event(Event::HandleBlockImported);
                 if let Err(e) = self.handler.block_imported(header) {
@@ -395,14 +397,20 @@ where
                         target: LOG_TARGET,
                         "Error marking block as imported: {}.", e
                     )
+                } else {
+                    // TODO: best block could decrease in case of reorgs.
+                    // TODO: use instead is_best_block info from Forest
+                    self.metrics.update_best_block_if_better(number);
                 }
             }
-            BlockFinalized(_) => {
+            BlockFinalized(header) => {
                 trace!(target: LOG_TARGET, "Handling a new finalized block.");
                 self.metrics.report_event(Event::HandleBlockFinalized);
                 if self.broadcast_ticker.try_tick() {
                     self.broadcast();
                 }
+                self.metrics
+                    .update_top_finalized_block(header.id().number());
             }
         }
     }

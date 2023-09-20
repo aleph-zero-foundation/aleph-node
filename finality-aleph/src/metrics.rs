@@ -22,14 +22,19 @@ const MAX_BLOCKS_PER_CHECKPOINT: usize = 5000;
 
 const LOG_TARGET: &str = "aleph-metrics";
 
-struct Inner {
-    prev: HashMap<Checkpoint, Checkpoint>,
-    gauges: HashMap<Checkpoint, Gauge<U64>>,
-    starts: HashMap<Checkpoint, LruCache<BlockHash, Instant>>,
+/// TODO(A0-3009): Improve BlockMetrics and rename to TimedBlockMetrics or such
+#[derive(Clone)]
+pub enum BlockMetrics {
+    Prometheus {
+        prev: HashMap<Checkpoint, Checkpoint>,
+        gauges: HashMap<Checkpoint, Gauge<U64>>,
+        starts: Arc<Mutex<HashMap<Checkpoint, LruCache<BlockHash, Instant>>>>,
+    },
+    Noop,
 }
 
-impl Inner {
-    fn new(registry: &Registry) -> Result<Self, PrometheusError> {
+impl BlockMetrics {
+    pub fn new(registry: Option<&Registry>) -> Result<Self, PrometheusError> {
         use Checkpoint::*;
         let keys = [
             Importing,
@@ -39,6 +44,12 @@ impl Inner {
             Aggregating,
             Finalized,
         ];
+
+        let registry = match registry {
+            None => return Ok(Self::Noop),
+            Some(registry) => registry,
+        };
+
         let prev: HashMap<_, _> = keys[1..]
             .iter()
             .cloned()
@@ -53,23 +64,28 @@ impl Inner {
             );
         }
 
-        Ok(Self {
+        Ok(Self::Prometheus {
             prev,
             gauges,
-            starts: keys
-                .iter()
-                .map(|k| {
-                    (
-                        *k,
-                        LruCache::new(NonZeroUsize::new(MAX_BLOCKS_PER_CHECKPOINT).unwrap()),
-                    )
-                })
-                .collect(),
+            starts: Arc::new(Mutex::new(
+                keys.iter()
+                    .map(|k| {
+                        (
+                            *k,
+                            LruCache::new(NonZeroUsize::new(MAX_BLOCKS_PER_CHECKPOINT).unwrap()),
+                        )
+                    })
+                    .collect(),
+            )),
         })
     }
 
-    fn report_block(
-        &mut self,
+    pub fn noop() -> Self {
+        Self::Noop
+    }
+
+    pub fn report_block(
+        &self,
         hash: BlockHash,
         checkpoint_time: Instant,
         checkpoint_type: Checkpoint,
@@ -81,14 +97,22 @@ impl Inner {
             hash,
             checkpoint_time
         );
+        let (prev, gauges, starts) = match self {
+            BlockMetrics::Noop => return,
+            BlockMetrics::Prometheus {
+                prev,
+                gauges,
+                starts,
+            } => (prev, gauges, starts),
+        };
 
-        self.starts.entry(checkpoint_type).and_modify(|starts| {
+        let starts = &mut *starts.lock();
+        starts.entry(checkpoint_type).and_modify(|starts| {
             starts.put(hash, checkpoint_time);
         });
 
-        if let Some(prev_checkpoint_type) = self.prev.get(&checkpoint_type) {
-            if let Some(start) = self
-                .starts
+        if let Some(prev_checkpoint_type) = prev.get(&checkpoint_type) {
+            if let Some(start) = starts
                 .get_mut(prev_checkpoint_type)
                 .expect("All checkpoint types were initialized")
                 .get(&hash)
@@ -108,7 +132,7 @@ impl Inner {
                         Duration::new(0, 0)
                     }
                 };
-                self.gauges
+                gauges
                     .get(&checkpoint_type)
                     .expect("All checkpoint types were initialized")
                     .set(duration.as_millis() as u64);
@@ -127,56 +151,21 @@ pub enum Checkpoint {
     Finalized,
 }
 
-/// TODO(A0-3009): Replace this whole thing.
-#[derive(Clone)]
-pub struct BlockMetrics {
-    inner: Option<Arc<Mutex<Inner>>>,
-}
-
-impl BlockMetrics {
-    pub fn noop() -> Self {
-        Self { inner: None }
-    }
-
-    pub fn new(registry: &Registry) -> Result<Self, PrometheusError> {
-        let inner = Some(Arc::new(Mutex::new(Inner::new(registry)?)));
-
-        Ok(Self { inner })
-    }
-
-    pub fn report_block(
-        &self,
-        hash: BlockHash,
-        checkpoint_time: Instant,
-        checkpoint_type: Checkpoint,
-    ) {
-        if let Some(inner) = &self.inner {
-            inner
-                .lock()
-                .report_block(hash, checkpoint_time, checkpoint_type);
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::cmp::min;
 
     use super::*;
 
-    fn register_dummy_metrics() -> BlockMetrics {
-        BlockMetrics::new(&Registry::new()).unwrap()
+    fn register_prometheus_metrics_with_dummy_registry() -> BlockMetrics {
+        BlockMetrics::new(Some(&Registry::new())).unwrap()
     }
 
     fn starts_for(m: &BlockMetrics, c: Checkpoint) -> usize {
-        m.inner
-            .as_ref()
-            .expect("There are some metrics")
-            .lock()
-            .starts
-            .get(&c)
-            .unwrap()
-            .len()
+        match &m {
+            BlockMetrics::Prometheus { starts, .. } => starts.lock().get(&c).unwrap().len(),
+            _ => 0,
+        }
     }
 
     fn check_reporting_with_memory_excess(metrics: &BlockMetrics, checkpoint: Checkpoint) {
@@ -190,28 +179,28 @@ mod tests {
     }
 
     #[test]
-    fn registration_with_no_register_creates_empty_metrics() {
+    fn noop_metrics() {
         let m = BlockMetrics::noop();
         m.report_block(BlockHash::random(), Instant::now(), Checkpoint::Ordered);
-        assert!(m.inner.is_none());
+        assert!(matches!(m, BlockMetrics::Noop));
     }
 
     #[test]
     fn should_keep_entries_up_to_defined_limit() {
-        let m = register_dummy_metrics();
+        let m = register_prometheus_metrics_with_dummy_registry();
         check_reporting_with_memory_excess(&m, Checkpoint::Ordered);
     }
 
     #[test]
     fn should_manage_space_for_checkpoints_independently() {
-        let m = register_dummy_metrics();
+        let m = register_prometheus_metrics_with_dummy_registry();
         check_reporting_with_memory_excess(&m, Checkpoint::Ordered);
         check_reporting_with_memory_excess(&m, Checkpoint::Imported);
     }
 
     #[test]
     fn given_not_monotonic_clock_when_report_block_is_called_repeatedly_code_does_not_panic() {
-        let metrics = register_dummy_metrics();
+        let metrics = register_prometheus_metrics_with_dummy_registry();
         let earlier_timestamp = Instant::now();
         let later_timestamp = earlier_timestamp + Duration::new(0, 5);
         let hash = BlockHash::random();
