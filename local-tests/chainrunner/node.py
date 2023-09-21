@@ -68,14 +68,6 @@ class Node:
             raise KeyError("RPC port unknown, please set rpc_port flag")
         return port
 
-    def ws_port(self):
-        """Return WS port for this node. The value is taken from `flags` dictionary.
-        Raises KeyError if not present."""
-        port = self.flags.get('ws_port', self.flags.get('ws-port'))
-        if port is None:
-            raise KeyError("WS port unknown, please set ws_port flag")
-        return port
-
     def greplog(self, regexp):
         """Find in the logs all occurrences of the given regexp. Returns a list of matches."""
         if not self.logfile:
@@ -178,7 +170,7 @@ class Node:
         Returns an instance of ExtrinsicReceipt."""
         with open(check_file(runtime_path), 'rb') as file:
             runtime = file.read()
-        port = self.ws_port()
+        port = self.rpc_port()
         subint = SubstrateInterface(url=f'ws://localhost:{port}', ss58_format=42)
         set_code_call = subint.compose_call(call_module='System', call_function='set_code', call_params={'code': runtime})
         zero_weight = {"proof_size":0, "ref_time":0}

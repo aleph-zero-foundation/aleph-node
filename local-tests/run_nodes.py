@@ -11,8 +11,7 @@ nodes = 4
 workdir = '.'
 binary = '../target/release/aleph-node'
 port = 30334
-ws_port = 9944
-rpc_port = 9933
+rpc_port = 9944
 
 phrases = ['//Alice', '//Bob', '//Charlie', '//Dave', '//Ezekiel', '//Fanny', '//George', '//Hugo']
 keys_dict = generate_keys(binary, phrases)
@@ -30,7 +29,6 @@ chain.set_flags('validator',
                 'unsafe-rpc-external',
                 'no-mdns',
                 port=Seq(port),
-                ws_port=Seq(ws_port),
                 rpc_port=Seq(rpc_port),
                 unit_creation_delay=500,
                 execution='Native',
