@@ -7,33 +7,30 @@ use frame_support::{
     traits::{EstimateNextSessionRotation, OnFinalize, OnInitialize},
     weights::{RuntimeDbWeight, Weight},
 };
+use frame_system::pallet_prelude::BlockNumberFor;
 use primitives::{AuthorityId, SessionInfoProvider};
-use sp_api_hidden_includes_construct_runtime::hidden_include::traits::GenesisBuild;
 use sp_core::H256;
 use sp_runtime::{
     impl_opaque_keys,
-    testing::{Header, TestXt, UintAuthorityId},
+    testing::{TestXt, UintAuthorityId},
     traits::{ConvertInto, IdentityLookup, OpaqueKeys},
+    BuildStorage,
 };
 
 use super::*;
 use crate as pallet_aleph;
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 pub(crate) type AccountId = u64;
 
 construct_runtime!(
-    pub enum Test where
-        Block = Block,
-        NodeBlock = Block,
-        UncheckedExtrinsic = UncheckedExtrinsic,
+    pub enum Test
     {
-        System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-        Aleph: pallet_aleph::{Pallet, Storage, Event<T>},
-        Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
-        Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
+        System: frame_system,
+        Balances: pallet_balances,
+        Aleph: pallet_aleph,
+        Session: pallet_session,
+        Timestamp: pallet_timestamp,
     }
 );
 
@@ -59,13 +56,12 @@ impl frame_system::Config for Test {
     type BlockLength = ();
     type RuntimeOrigin = RuntimeOrigin;
     type RuntimeCall = RuntimeCall;
-    type Index = u64;
-    type BlockNumber = u64;
+    type Nonce = u64;
+    type Block = Block;
     type Hash = H256;
     type Hashing = sp_runtime::traits::BlakeTwo256;
     type AccountId = AccountId;
     type Lookup = IdentityLookup<Self::AccountId>;
-    type Header = Header;
     type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type DbWeight = TestDbWeight;
@@ -99,20 +95,20 @@ impl pallet_balances::Config for Test {
     type AccountStore = System;
     type WeightInfo = ();
     type MaxLocks = ();
-    type HoldIdentifier = ();
     type FreezeIdentifier = ();
     type MaxHolds = ConstU32<0>;
     type MaxFreezes = ConstU32<0>;
+    type RuntimeHoldReason = ();
 }
 
 pub struct SessionInfoImpl;
-impl SessionInfoProvider<<Test as frame_system::Config>::BlockNumber> for SessionInfoImpl {
+impl SessionInfoProvider<BlockNumberFor<Test>> for SessionInfoImpl {
     fn current_session() -> SessionIndex {
         pallet_session::CurrentIndex::<Test>::get()
     }
     fn next_session_block_number(
-        current_block: <Test as frame_system::Config>::BlockNumber,
-    ) -> Option<<Test as frame_system::Config>::BlockNumber> {
+        current_block: BlockNumberFor<Test>,
+    ) -> Option<BlockNumberFor<Test>> {
         <Test as pallet_session::Config>::NextSessionRotation::estimate_next_session_rotation(
             current_block,
         )
@@ -174,9 +170,10 @@ pub fn new_session_validators(validators: &[u64]) -> impl Iterator<Item = (&u64,
 }
 
 pub fn new_test_ext(authorities: &[(u64, u64)]) -> sp_io::TestExternalities {
-    let mut t = frame_system::GenesisConfig::default()
-        .build_storage::<Test>()
-        .unwrap();
+    let mut t = <frame_system::GenesisConfig<Test> as BuildStorage>::build_storage(
+        &frame_system::GenesisConfig::default(),
+    )
+    .expect("Storage should be build.");
 
     let balances: Vec<_> = (0..authorities.len())
         .map(|i| (i as u64, 10_000_000))

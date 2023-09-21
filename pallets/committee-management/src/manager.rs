@@ -1,4 +1,5 @@
 use frame_support::log::debug;
+use frame_system::pallet_prelude::BlockNumberFor;
 use pallet_session::SessionManager;
 use primitives::{EraManager, FinalityCommitteeManager, SessionCommittee};
 use sp_staking::{EraIndex, SessionIndex};
@@ -24,7 +25,7 @@ use crate::{
 /// *  If session `S+2` starts new era we emit fresh bans events
 /// *  We rotate the validators for session `S + 2` using the information about reserved and non reserved validators.
 
-impl<T> pallet_authorship::EventHandler<T::AccountId, T::BlockNumber> for Pallet<T>
+impl<T> pallet_authorship::EventHandler<T::AccountId, BlockNumberFor<T>> for Pallet<T>
 where
     T: Config,
 {

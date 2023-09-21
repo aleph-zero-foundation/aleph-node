@@ -1,6 +1,6 @@
 use sc_cli::{
     clap::{self, Parser, Subcommand as ClapSubcommand},
-    ChainSpec, PurgeChainCmd, RunCmd, RuntimeVersion, SubstrateCli,
+    PurgeChainCmd, RunCmd, SubstrateCli,
 };
 
 use crate::{
@@ -59,10 +59,6 @@ impl SubstrateCli for Cli {
             _ => chain_spec::ChainSpec::from_json_file(id.into()),
         };
         Ok(Box::new(chainspec?))
-    }
-
-    fn native_runtime_version(_: &Box<dyn ChainSpec>) -> &'static RuntimeVersion {
-        &aleph_runtime::VERSION
     }
 }
 

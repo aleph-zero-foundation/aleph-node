@@ -24,7 +24,7 @@ use frame_support::{
     sp_runtime::Perquintill,
     traits::{
         ConstBool, ConstU32, EqualPrivilegeOnly, EstimateNextSessionRotation, SortedMembers,
-        U128CurrencyToVote, WithdrawReasons,
+        WithdrawReasons,
     },
     weights::constants::WEIGHT_REF_TIME_PER_MILLIS,
     PalletId,
@@ -44,7 +44,7 @@ use primitives::{
     ADDRESSES_ENCODING, DEFAULT_BAN_REASON_LENGTH, DEFAULT_MAX_WINNERS, DEFAULT_SESSIONS_PER_ERA,
     DEFAULT_SESSION_PERIOD, MAX_BLOCK_SIZE, MILLISECS_PER_BLOCK, TOKEN,
 };
-pub use primitives::{AccountId, AccountIndex, Balance, Hash, Index, Signature};
+pub use primitives::{AccountId, AccountIndex, Balance, Hash, Nonce, Signature};
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::{sr25519::AuthorityId as AuraId, SlotDuration};
 use sp_core::{crypto::KeyTypeId, ConstU128, OpaqueMetadata};
@@ -59,7 +59,7 @@ use sp_runtime::{
     ApplyExtrinsicResult, FixedU128,
 };
 pub use sp_runtime::{FixedPointNumber, Perbill, Permill};
-use sp_staking::EraIndex;
+use sp_staking::{currency_to_vote::U128CurrencyToVote, EraIndex};
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -89,6 +89,7 @@ pub mod opaque {
     }
 }
 
+#[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
@@ -154,16 +155,14 @@ impl frame_system::Config for Runtime {
     type RuntimeCall = RuntimeCall;
     /// The lookup mechanism to get account ID from whatever is passed in dispatchers.
     type Lookup = AccountIdLookup<AccountId, ()>;
-    /// The index type for storing how many extrinsics an account has signed.
-    type Index = Index;
-    /// The index type for blocks.
-    type BlockNumber = AlephBlockNumber;
+    /// The type for storing how many extrinsics an account has signed.
+    type Nonce = Nonce;
+    /// The block type.
+    type Block = Block;
     /// The type for hashing blocks and tries.
     type Hash = Hash;
     /// The hashing algorithm used.
     type Hashing = BlakeTwo256;
-    /// The header type.
-    type Header = AlephHeader;
     /// The ubiquitous event type.
     type RuntimeEvent = RuntimeEvent;
     /// The ubiquitous origin type.
@@ -201,6 +200,7 @@ impl pallet_aura::Config for Runtime {
     type MaxAuthorities = MaxAuthorities;
     type AuthorityId = AuraId;
     type DisabledValidators = ();
+    type AllowMultipleBlocksPerSlot = ConstBool<false>;
 }
 
 parameter_types! {
@@ -229,10 +229,10 @@ impl pallet_balances::Config for Runtime {
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
-    type HoldIdentifier = ();
     type FreezeIdentifier = ();
     type MaxHolds = ConstU32<0>;
     type MaxFreezes = ConstU32<0>;
+    type RuntimeHoldReason = RuntimeHoldReason;
 }
 
 type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
@@ -568,10 +568,10 @@ impl pallet_staking::Config for Runtime {
     type BenchmarkingConfig = StakingBenchmarkingConfig;
     type WeightInfo = PayoutStakersDecreasedWeightInfo;
     type CurrencyBalance = Balance;
-    type OnStakerSlash = NominationPools;
     type HistoryDepth = HistoryDepth;
     type TargetList = pallet_staking::UseValidatorsMap<Self>;
     type AdminOrigin = EnsureRoot<AccountId>;
+    type EventListeners = NominationPools;
 }
 
 parameter_types! {
@@ -720,6 +720,7 @@ impl pallet_contracts::Config for Runtime {
     type MaxStorageKeyLen = ConstU32<128>;
     type UnsafeUnstableInterface = ConstBool<false>;
     type MaxDebugBufferLen = ConstU32<{ 2 * 1024 * 1024 }>;
+    type Migrations = ();
 }
 
 parameter_types! {
@@ -751,12 +752,7 @@ impl pallet_identity::Config for Runtime {
 // Create the runtime by composing the FRAME pallets that were previously configured.
 #[cfg(not(feature = "liminal"))]
 construct_runtime!(
-    pub struct Runtime
-    where
-        Block = Block,
-        NodeBlock = opaque::Block,
-        UncheckedExtrinsic = UncheckedExtrinsic,
-    {
+    pub struct Runtime {
         System: frame_system,
         RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip,
         Scheduler: pallet_scheduler,
@@ -784,12 +780,7 @@ construct_runtime!(
 
 #[cfg(feature = "liminal")]
 construct_runtime!(
-    pub struct Runtime
-    where
-        Block = Block,
-        NodeBlock = opaque::Block,
-        UncheckedExtrinsic = UncheckedExtrinsic,
-    {
+    pub struct Runtime {
         System: frame_system,
         RandomnessCollectiveFlip: pallet_insecure_randomness_collective_flip,
         Scheduler: pallet_scheduler,
@@ -949,8 +940,8 @@ impl_runtime_apis! {
         }
     }
 
-    impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Index> for Runtime {
-        fn account_nonce(account: AccountId) -> Index {
+    impl frame_system_rpc_runtime_api::AccountNonceApi<Block, AccountId, Nonce> for Runtime {
+        fn account_nonce(account: AccountId) -> Nonce {
             System::account_nonce(account)
         }
     }

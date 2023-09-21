@@ -81,7 +81,6 @@ pub use connections::{
 pub enum AlephConfig {}
 
 impl Config for AlephConfig {
-    type Index = <PolkadotConfig as Config>::Index;
     type Hash = <PolkadotConfig as Config>::Hash;
     type AccountId = AccountId;
     type Address = MultiAddress<Self::AccountId, u32>;

@@ -3,16 +3,13 @@
 use frame_election_provider_support::{data_provider, ElectionDataProvider, VoteWeight};
 use frame_support::{
     construct_runtime, parameter_types, sp_io,
-    traits::{ConstU32, GenesisBuild},
+    traits::ConstU32,
     weights::{RuntimeDbWeight, Weight},
     BasicExternalities, BoundedVec,
 };
 use primitives::{BannedValidators, CommitteeSeats, DEFAULT_MAX_WINNERS};
 use sp_core::H256;
-use sp_runtime::{
-    testing::{Header, TestXt},
-    traits::IdentityLookup,
-};
+use sp_runtime::{testing::TestXt, traits::IdentityLookup, BuildStorage};
 use sp_staking::EraIndex;
 use sp_std::cell::RefCell;
 
@@ -20,18 +17,13 @@ use super::*;
 use crate as pallet_elections;
 use crate::traits::ValidatorProvider;
 
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
 type Block = frame_system::mocking::MockBlock<Test>;
 
 construct_runtime!(
-    pub enum Test where
-        Block = Block,
-        NodeBlock = Block,
-        UncheckedExtrinsic = UncheckedExtrinsic,
-    {
-        System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-        Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
-        Elections: pallet_elections::{Pallet, Call, Storage, Config<T>, Event<T>},
+    pub struct Test {
+        System: frame_system,
+        Balances: pallet_balances,
+        Elections: pallet_elections,
     }
 );
 
@@ -54,13 +46,12 @@ impl frame_system::Config for Test {
     type BlockLength = ();
     type RuntimeOrigin = RuntimeOrigin;
     type RuntimeCall = RuntimeCall;
-    type Index = u64;
-    type BlockNumber = u64;
+    type Nonce = u64;
     type Hash = H256;
+    type Block = Block;
     type Hashing = sp_runtime::traits::BlakeTwo256;
     type AccountId = u64;
     type Lookup = IdentityLookup<Self::AccountId>;
-    type Header = Header;
     type RuntimeEvent = RuntimeEvent;
     type BlockHashCount = BlockHashCount;
     type DbWeight = TestDbWeight;
@@ -89,10 +80,10 @@ impl pallet_balances::Config for Test {
     type AccountStore = System;
     type WeightInfo = ();
     type MaxLocks = ();
-    type HoldIdentifier = ();
     type FreezeIdentifier = ();
     type MaxHolds = ConstU32<0>;
     type MaxFreezes = ConstU32<0>;
+    type RuntimeHoldReason = ();
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Test
@@ -211,9 +202,10 @@ impl TestExtBuilder {
     }
 
     pub fn build(self) -> sp_io::TestExternalities {
-        let mut t = frame_system::GenesisConfig::default()
-            .build_storage::<Test>()
-            .unwrap();
+        let mut t = <frame_system::GenesisConfig<Test> as BuildStorage>::build_storage(
+            &frame_system::GenesisConfig::default(),
+        )
+        .expect("Storage should be build.");
 
         let validators: Vec<_> = self
             .non_reserved_validators

@@ -141,7 +141,7 @@ fn main() -> sc_cli::Result<()> {
             let runner = cli.create_runner(cmd)?;
             runner.sync_run(|config| {
                 if let frame_benchmarking_cli::BenchmarkCmd::Pallet(cmd) = cmd {
-                    cmd.run::<Block, ExecutorDispatch>(config)
+                    cmd.run::<Block, ()>(config)
                 } else {
                     Err(sc_cli::Error::Input("Wrong subcommand".to_string()))
                 }
@@ -150,7 +150,7 @@ fn main() -> sc_cli::Result<()> {
         #[cfg(not(feature = "runtime-benchmarks"))]
         Some(Subcommand::Benchmark) => Err(
             "Benchmarking wasn't enabled when building the node. You can enable it with \
-				     `--features runtime-benchmarks`."
+                    `--features runtime-benchmarks`."
                 .into(),
         ),
         None => {

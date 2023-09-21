@@ -15,6 +15,7 @@ frame-support = { workspace = true }
 frame-system = { workspace = true }
 pallet-session = { workspace = true }
 sp-std = { workspace = true }
+sp-runtime = { workspace = true }
 
 primitives = { workspace = true }
 
@@ -23,8 +24,6 @@ pallet-balances = { workspace = true }
 pallet-timestamp = { workspace = true }
 sp-core = { workspace = true }
 sp-io = { workspace = true }
-sp-runtime = { workspace = true }
-
 [features]
 default = ["std"]
 std = [
@@ -35,7 +34,9 @@ std = [
     "pallet-session/std",
     "sp-std/std",
     "primitives/std",
-    "pallet-balances/std"
+    "pallet-balances/std",
+    "sp-runtime/std",
+    "sp-io/std",
 ]
 try-runtime = [
     "frame-support/try-runtime",

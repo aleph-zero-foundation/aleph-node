@@ -15,11 +15,9 @@ use frame_support::{
     traits::{OneSessionHandler, StorageVersion},
 };
 pub use pallet::*;
-#[cfg(feature = "std")]
-use primitives::LEGACY_FINALITY_VERSION;
 use primitives::{
     ConsensusLog::AlephAuthorityChange, SessionIndex, Version, VersionChange, ALEPH_ENGINE_ID,
-    DEFAULT_FINALITY_VERSION,
+    DEFAULT_FINALITY_VERSION, LEGACY_FINALITY_VERSION,
 };
 use sp_std::prelude::*;
 
@@ -48,7 +46,7 @@ pub mod pallet {
     pub trait Config: frame_system::Config {
         type AuthorityId: Member + Parameter + RuntimeAppPublic + MaybeSerializeDeserialize;
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-        type SessionInfoProvider: SessionInfoProvider<<Self as frame_system::Config>::BlockNumber>;
+        type SessionInfoProvider: SessionInfoProvider<BlockNumberFor<Self>>;
         type SessionManager: SessionManager<<Self as frame_system::Config>::AccountId>;
         type NextSessionAuthorityProvider: NextSessionAuthorityProvider<Self>;
     }
@@ -117,7 +115,7 @@ pub mod pallet {
 
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        fn on_finalize(block_number: T::BlockNumber) {
+        fn on_finalize(block_number: BlockNumberFor<T>) {
             if let Some(session_change_block) =
                 T::SessionInfoProvider::next_session_block_number(block_number)
             {
@@ -324,8 +322,7 @@ pub mod pallet {
         pub _marker: PhantomData<T>,
     }
 
-    #[cfg(feature = "std")]
-    impl<T: Config> Default for GenesisConfig<T> {
+    impl<T: Config> core::default::Default for GenesisConfig<T> {
         fn default() -> Self {
             Self {
                 finality_version: LEGACY_FINALITY_VERSION as u32,
@@ -335,7 +332,7 @@ pub mod pallet {
     }
 
     #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             <FinalityVersion<T>>::put(self.finality_version);
         }

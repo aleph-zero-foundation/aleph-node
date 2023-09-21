@@ -252,23 +252,14 @@ pub mod pallet {
     }
 
     #[pallet::genesis_config]
+    #[derive(frame_support::DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
         pub committee_ban_config: BanConfigStruct,
         pub session_validators: SessionValidators<T::AccountId>,
     }
 
-    #[cfg(feature = "std")]
-    impl<T: Config> Default for GenesisConfig<T> {
-        fn default() -> Self {
-            Self {
-                committee_ban_config: Default::default(),
-                session_validators: Default::default(),
-            }
-        }
-    }
-
     #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             <BanConfig<T>>::put(self.committee_ban_config.clone());
             <CurrentAndNextSessionValidatorsStorage<T>>::put(CurrentAndNextSessionValidators {

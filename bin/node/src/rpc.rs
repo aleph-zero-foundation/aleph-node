@@ -7,7 +7,7 @@
 
 use std::sync::Arc;
 
-use aleph_runtime::{opaque::Block, AccountId, Balance, Index};
+use aleph_runtime::{opaque::Block, AccountId, Balance, Nonce};
 use finality_aleph::{Justification, JustificationTranslator};
 use futures::channel::mpsc;
 use jsonrpsee::RpcModule;
@@ -45,7 +45,7 @@ where
         + Sync
         + 'static,
     BE: sc_client_api::Backend<Block> + 'static,
-    C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Index>
+    C::Api: substrate_frame_rpc_system::AccountNonceApi<Block, AccountId, Nonce>
         + pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>
         + BlockBuilder<Block>,
     P: TransactionPool + 'static,

@@ -93,16 +93,16 @@ pub async fn prepare_validators<S: SignedConnectionApi + AuthorRpc>(
     let mut handles = vec![];
     for (i, stash) in accounts.stash_raw_keys.iter().enumerate() {
         let connection = SignedConnection::new(node, KeyPair::new(stash.clone())).await;
+        let stash = stash.clone();
         handles.push(tokio::spawn(async move {
             connection
                 .bond(MIN_VALIDATOR_BOND, TxStatus::Finalized)
                 .await
                 .unwrap();
-        }));
-        let connection =
-            SignedConnection::new(&validator_address(i as u32), KeyPair::new(stash.clone())).await;
-        let keys = connection.author_rotate_keys().await?;
-        handles.push(tokio::spawn(async move {
+            let connection =
+                SignedConnection::new(&validator_address(i as u32), KeyPair::new(stash.clone()))
+                    .await;
+            let keys = connection.author_rotate_keys().await.unwrap();
             connection
                 .set_keys(keys, TxStatus::Finalized)
                 .await

@@ -13,7 +13,6 @@ targets = ["x86_64-unknown-linux-gnu"]
 [dependencies]
 parity-scale-codec = { workspace = true, features = ["derive"] }
 scale-info = { workspace = true, features = ["derive"] }
-serde = { workspace = true, features = ["derive"], optional = true }
 
 frame-executive = { workspace = true }
 frame-support = { workspace = true }
@@ -98,7 +97,6 @@ std = [
     "pallet-vesting/std",
     "pallet-multisig/std",
     "pallet-utility/std",
-    "serde",
     "sp-api/std",
     "sp-block-builder/std",
     "sp-consensus-aura/std",
@@ -119,6 +117,8 @@ std = [
     "pallet-nomination-pools/std",
     "pallet-nomination-pools-runtime-api/std",
     "pallet-committee-management/std",
+    "sp-io/std",
+    "scale-info/std",
 ]
 short_session = ["primitives/short_session"]
 try-runtime = [

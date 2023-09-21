@@ -42,6 +42,7 @@ std = [
     "sp-staking/std",
     "sp-std/std",
     "primitives/std",
+    "pallets-support/std",
 ]
 
 try-runtime = [

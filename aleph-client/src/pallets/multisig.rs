@@ -224,7 +224,7 @@ impl<C: ConnectionApi> MultisigApiExt for C {
     ) -> Timepoint {
         let multisigs = api::storage()
             .multisig()
-            .multisigs(&Static(party_account.clone()), call_hash);
+            .multisigs(Static(party_account.clone()), call_hash);
         self.get_storage_entry(&multisigs, block_hash).await.when
     }
 }

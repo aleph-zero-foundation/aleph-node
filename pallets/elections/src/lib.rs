@@ -33,7 +33,10 @@ pub mod pallet {
         Supports,
     };
     use frame_support::{pallet_prelude::*, traits::Get};
-    use frame_system::{ensure_root, pallet_prelude::OriginFor};
+    use frame_system::{
+        ensure_root,
+        pallet_prelude::{BlockNumberFor, OriginFor},
+    };
     use primitives::{BannedValidators, CommitteeSeats, ElectionOpenness};
 
     use super::*;
@@ -45,7 +48,7 @@ pub mod pallet {
         /// Something that provides data for elections.
         type DataProvider: ElectionDataProvider<
             AccountId = Self::AccountId,
-            BlockNumber = Self::BlockNumber,
+            BlockNumber = BlockNumberFor<Self>,
         >;
         type ValidatorProvider: ValidatorProvider<AccountId = Self::AccountId>;
         /// The maximum number of winners that can be elected by this `ElectionProvider`
@@ -160,9 +163,9 @@ pub mod pallet {
     }
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<T::BlockNumber> for Pallet<T> {
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         #[cfg(feature = "try-runtime")]
-        fn try_state(_n: T::BlockNumber) -> Result<(), DispatchError> {
+        fn try_state(_n: BlockNumberFor<T>) -> Result<(), DispatchError> {
             let current_validators = CurrentEraValidators::<T>::get();
             Self::ensure_validators_are_ok(
                 current_validators.reserved,
@@ -181,25 +184,15 @@ pub mod pallet {
     }
 
     #[pallet::genesis_config]
+    #[derive(frame_support::DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
         pub non_reserved_validators: Vec<T::AccountId>,
         pub reserved_validators: Vec<T::AccountId>,
         pub committee_seats: CommitteeSeats,
     }
 
-    #[cfg(feature = "std")]
-    impl<T: Config> Default for GenesisConfig<T> {
-        fn default() -> Self {
-            Self {
-                non_reserved_validators: Vec::new(),
-                reserved_validators: Vec::new(),
-                committee_seats: Default::default(),
-            }
-        }
-    }
-
     #[pallet::genesis_build]
-    impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             <CommitteeSize<T>>::put(self.committee_seats);
             <NextEraCommitteeSize<T>>::put(self.committee_seats);
@@ -282,7 +275,7 @@ pub mod pallet {
 
     impl<T: Config> ElectionProviderBase for Pallet<T> {
         type AccountId = T::AccountId;
-        type BlockNumber = T::BlockNumber;
+        type BlockNumber = BlockNumberFor<T>;
         type Error = ElectionError;
         type DataProvider = T::DataProvider;
         type MaxWinners = T::MaxWinners;

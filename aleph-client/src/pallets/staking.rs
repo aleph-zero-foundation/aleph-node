@@ -271,7 +271,7 @@ impl<C: ConnectionApi + AsConnection> StakingApi for C {
     ) -> Exposure<AccountId, Balance> {
         let addrs = api::storage()
             .staking()
-            .eras_stakers(era, &Static(account_id.clone()));
+            .eras_stakers(era, Static(account_id.clone()));
 
         let exposure = self.get_storage_entry(&addrs, at).await;
         Exposure {

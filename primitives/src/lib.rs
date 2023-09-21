@@ -3,7 +3,6 @@
 
 use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
-#[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::KeyTypeId;
 pub use sp_runtime::{
@@ -57,7 +56,7 @@ pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::Account
 pub type AccountIndex = u32;
 
 /// Index of a transaction in the chain.
-pub type Index = u32;
+pub type Nonce = u32;
 
 /// A hash of some data used by the chain.
 pub type Hash = sp_core::H256;
@@ -121,8 +120,7 @@ pub enum ElectionOpenness {
 }
 
 /// Represent desirable size of a committee in a session
-#[derive(Decode, Encode, TypeInfo, Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Decode, Encode, TypeInfo, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CommitteeSeats {
     /// Size of reserved validators in a session
     pub reserved_seats: u32,
@@ -155,8 +153,7 @@ pub trait FinalityCommitteeManager<T> {
 }
 
 /// Configurable parameters for ban validator mechanism
-#[derive(Decode, Encode, TypeInfo, Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Decode, Encode, TypeInfo, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BanConfig {
     /// performance ratio threshold in a session
     /// calculated as ratio of number of blocks produced to expected number of blocks for a single validator
@@ -310,8 +307,7 @@ pub trait ValidatorProvider {
     fn current_era_committee_size() -> CommitteeSeats;
 }
 
-#[derive(Decode, Encode, TypeInfo, Clone)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Decode, Encode, TypeInfo, Clone, Serialize, Deserialize)]
 pub struct SessionValidators<T> {
     pub committee: Vec<T>,
     pub non_committee: Vec<T>,

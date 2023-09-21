@@ -6,7 +6,7 @@ use std::{
 use aleph_client::{
     api::contracts::events::{CodeRemoved, CodeStored, Instantiated},
     contract_transcode,
-    pallet_contracts::wasm::OwnerInfo,
+    pallet_contracts::wasm::CodeInfo,
     pallets::contract::{ContractsApi, ContractsUserApi},
     sp_weights::weight_v2::Weight,
     waiting::{AlephWaiting, BlockStatus},
@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     commands::{
         ContractCall, ContractInstantiate, ContractInstantiateWithCode, ContractOptions,
-        ContractOwnerInfo, ContractRemoveCode, ContractUploadCode,
+        ContractCodeInfo, ContractRemoveCode, ContractUploadCode,
     },
     contracts::contract_transcode::ContractMessageTranscoder,
 };
@@ -244,10 +244,10 @@ pub async fn call(
     Ok(())
 }
 
-pub async fn owner_info(connection: Connection, command: ContractOwnerInfo) -> Option<OwnerInfo> {
-    let ContractOwnerInfo { code_hash } = command;
+pub async fn code_info(connection: Connection, command: ContractCodeInfo) -> Option<CodeInfo> {
+    let ContractCodeInfo { code_hash } = command;
 
-    connection.get_owner_info(code_hash, None).await
+    connection.get_code_info(code_hash, None).await
 }
 
 pub async fn remove_code(

@@ -2,8 +2,8 @@ use std::{collections::HashSet, str::FromStr, string::ToString};
 
 use aleph_runtime::{
     AccountId, AlephConfig, AuraConfig, BalancesConfig, CommitteeManagementConfig, ElectionsConfig,
-    GenesisConfig, Perbill, SessionConfig, SessionKeys, StakingConfig, SudoConfig, SystemConfig,
-    VestingConfig, WASM_BINARY,
+    Perbill, RuntimeGenesisConfig, SessionConfig, SessionKeys, StakingConfig, SudoConfig,
+    SystemConfig, VestingConfig, WASM_BINARY,
 };
 use libp2p::PeerId;
 use pallet_staking::{Forcing, StakerStatus};
@@ -36,7 +36,7 @@ pub const DEFAULT_SUDO_ACCOUNT: &str = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcN
 pub const DEFAULT_BACKUP_FOLDER: &str = "backup-stash";
 
 /// Specialized `ChainSpec`. This is a specialization of the general Substrate ChainSpec type.
-pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
+pub type ChainSpec = sc_service::GenericChainSpec<RuntimeGenesisConfig>;
 
 #[derive(Clone)]
 pub struct SerializablePeerId {
@@ -292,7 +292,7 @@ struct AccountsConfig {
     stakers: Vec<(AccountId, AccountId, u128, StakerStatus<AccountId>)>,
 }
 
-/// Provides accounts for GenesisConfig setup based on distinct staking accounts.
+/// Provides accounts for RuntimeGenesisConfig setup based on distinct staking accounts.
 /// Assumes validator == stash, but controller is a distinct account
 fn configure_chain_spec_fields(
     unique_accounts_balances: Vec<(AccountId, u128)>,
@@ -358,7 +358,7 @@ fn generate_genesis_config(
     controller_accounts: Vec<AccountId>,
     min_validator_count: u32,
     finality_version: FinalityVersion,
-) -> GenesisConfig {
+) -> RuntimeGenesisConfig {
     let special_accounts = {
         let mut all = rich_accounts.unwrap_or_default();
         all.push(sudo_account.clone());
@@ -389,10 +389,11 @@ fn generate_genesis_config(
     let accounts_config =
         configure_chain_spec_fields(unique_accounts_balances, authorities, controller_accounts);
 
-    GenesisConfig {
+    RuntimeGenesisConfig {
         system: SystemConfig {
             // Add Wasm runtime to storage.
             code: wasm_binary.to_vec(),
+            ..Default::default()
         },
         balances: BalancesConfig {
             // Configure endowed accounts with an initial, significant balance

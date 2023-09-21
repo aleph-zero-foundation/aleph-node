@@ -46,6 +46,8 @@ std = [
     "sp-std/std",
     "sp-staking/std",
     "primitives/std",
+    "sp-io/std",
+    "pallets-support/std",
 ]
 try-runtime = [
     "frame-support/try-runtime",
