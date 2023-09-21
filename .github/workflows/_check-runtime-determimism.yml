@@ -28,7 +28,7 @@ jobs:
 
       - name: Build runtime 2nd time and compare checksum with previous build
         env:
-          ARTIFACT: aleph_runtime.compact.wasm
+          ARTIFACT: aleph_runtime.compact.compressed.wasm
           TARGET_DIR: target/production/wbuild/aleph-runtime
         run: |
           mkdir -p "$TARGET_DIR"

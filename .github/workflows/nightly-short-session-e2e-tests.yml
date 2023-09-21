@@ -67,6 +67,7 @@ jobs:
     uses: ./.github/workflows/_build-test-node-and-runtime.yml
     secrets: inherit
 
+  # this job is required for bootstrapping featurenet
   store-test-node-and-runtime:
     name: Store test node and runtime in Devnet bucket
     runs-on: ubuntu-20.04

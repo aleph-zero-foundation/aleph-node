@@ -84,7 +84,7 @@ runs:
       uses: Cardinal-Cryptography/github-actions/copy-file-to-s3@v1
       with:
         source-path: target/${{ steps.get-local-envs.outputs.cargo_profile }}/wbuild/aleph-runtime
-        source-filename: aleph_runtime.compact.wasm
+        source-filename: aleph_runtime.compact.compressed.wasm
         s3-bucket-path:
           # yamllint disable-line rule:line-length
           builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-${{ inputs.profile }}-runtime

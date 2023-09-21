@@ -59,7 +59,7 @@ let
 
   modePath = if release then "release" else "debug";
   pathToWasm = "target/" + modePath + "/wbuild/aleph-runtime/target/wasm32-unknown-unknown/" + modePath + "/aleph_runtime.wasm";
-  pathToCompactWasm = "target/" + modePath + "/wbuild/aleph-runtime/aleph_runtime.compact.wasm";
+  pathToCompactWasm = "target/" + modePath + "/wbuild/aleph-runtime/aleph_runtime.compact.compressed.wasm";
 
   featureIntoPrefixedFeature = packageName: feature: packageName + "/" + feature;
   featuresIntoPrefixedFeatures = package: features: builtins.map (featureIntoPrefixedFeature package) features;

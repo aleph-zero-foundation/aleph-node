@@ -41,6 +41,6 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: aleph-production-runtime
-          path: target/production/wbuild/aleph-runtime/aleph_runtime.compact.wasm
+          path: target/production/wbuild/aleph-runtime/aleph_runtime.compact.compressed.wasm
           if-no-files-found: error
           retention-days: 7
