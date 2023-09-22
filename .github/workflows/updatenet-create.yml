@@ -73,7 +73,7 @@ jobs:
 
       - name: Delete old featurenet app and data
         if: contains(github.event.pull_request.labels.*.name, 'state:created-featurenet')
-        uses: Cardinal-Cryptography/github-actions/delete-featurenet@v1
+        uses: Cardinal-Cryptography/github-actions/delete-featurenet@v2
         with:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
           aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
@@ -81,6 +81,7 @@ jobs:
           ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}
           argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
           repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
+          repo-featurenet-template-name: ${{ secrets.REPO_FEATURENET_TEMPLATE_NAME }}
           argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
           featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
           featurenet-name: ${{ steps.get-updatenet-name.outputs.final-updatenet-name }}
@@ -98,12 +99,13 @@ jobs:
           debug: true
 
       - name: Create updatenet from scratch, node binary from testnet or mainnet
-        uses: Cardinal-Cryptography/github-actions/create-featurenet@v1
+        uses: Cardinal-Cryptography/github-actions/create-featurenet@v2
         id: create-updatenet
         with:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
           argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
           repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
+          repo-featurenet-template-name: ${{ secrets.REPO_FEATURENET_TEMPLATE_NAME }}
           argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
           ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}
           featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
@@ -114,14 +116,7 @@ jobs:
           internal: ${{ inputs.internal && 'true' || 'false' }}
           git-commit-author: ${{ secrets.AUTOCOMMIT_AUTHOR }}
           git-commit-email: ${{ secrets.AUTOCOMMIT_EMAIL }}
-
-      - name: Wait for the aleph-node binary to accept some blocks
-        uses: Cardinal-Cryptography/github-actions/wait-for-finalized-heads@v1
-        with:
-          gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
-          repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
-          # yamllint disable-line rule:line-length
-          json-rpc-endpoint: https://${{ steps.create-updatenet.outputs.ws-hostname }}
+          wait-for-finalized-heads: "true"
 
       - name: Finish featurenet Deployment
         uses: bobheadxi/deployments@v1

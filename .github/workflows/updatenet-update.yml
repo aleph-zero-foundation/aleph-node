@@ -94,12 +94,13 @@ jobs:
           override: true
 
       - name: Update featurenet data, app and deploy it
-        uses: Cardinal-Cryptography/github-actions/create-featurenet@v1
+        uses: Cardinal-Cryptography/github-actions/create-featurenet@v2
         id: create-updatenet
         with:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
           argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
           repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
+          repo-featurenet-template-name: ${{ secrets.REPO_FEATURENET_TEMPLATE_NAME }}
           argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
           ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}
           featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
@@ -111,13 +112,7 @@ jobs:
           git-commit-author: ${{ secrets.AUTOCOMMIT_AUTHOR }}
           git-commit-email: ${{ secrets.AUTOCOMMIT_EMAIL }}
           hard-refresh: 'true'
-
-      - name: Wait for the aleph-node binary to accept some blocks
-        uses: Cardinal-Cryptography/github-actions/wait-for-finalized-heads@v1
-        with:
-          gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
-          repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
-          json-rpc-endpoint: https://${{ steps.create-updatenet.outputs.ws-hostname }}
+          wait-for-finalized-heads: "true"
 
       - name: Finish featurenet Deployment
         uses: bobheadxi/deployments@v1

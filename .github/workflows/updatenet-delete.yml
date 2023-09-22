@@ -41,7 +41,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Delete featurenet app and data
-        uses: Cardinal-Cryptography/github-actions/delete-featurenet@v1
+        uses: Cardinal-Cryptography/github-actions/delete-featurenet@v2
         with:
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
           aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
@@ -49,6 +49,7 @@ jobs:
           ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}
           argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
           repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
+          repo-featurenet-template-name: ${{ secrets.REPO_FEATURENET_TEMPLATE_NAME }}
           argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
           featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
           featurenet-name: ${{ steps.get-updatenet-name.outputs.final-updatenet-name }}
