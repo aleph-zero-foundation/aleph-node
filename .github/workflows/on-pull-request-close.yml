@@ -17,7 +17,7 @@ jobs:
       name: ${{ steps.get-argocd-featurenet-app-name.outputs.name }}
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Get branch name and commit SHA
         id: get-ref-properties
