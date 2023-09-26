@@ -30,14 +30,14 @@ jobs:
 
       - name: Get Testnet node commit SHA
         id: get-testnet-node-commit-sha
-        uses: Cardinal-Cryptography/github-actions/get-node-system-version@v1
+        uses: Cardinal-Cryptography/github-actions/get-node-system-version@v2
         with:
           env: testnet
 
       - name: Call action get-ref-properties
         id: get-ref-properties
         # yamllint disable-line rule:line-length
-        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v2
 
       - name: Compare Testnet node SHA version with currently deployed SHA
         if: inputs.force != true

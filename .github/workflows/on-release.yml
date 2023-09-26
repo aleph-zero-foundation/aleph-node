@@ -28,7 +28,7 @@ jobs:
       - name: Call action get-ref-properties
         id: get-ref-properties
         # yamllint disable-line rule:line-length
-        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v2
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v3

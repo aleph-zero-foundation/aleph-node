@@ -39,7 +39,7 @@ jobs:
       # or release branch, see on-main-or-release-branch-commit.yml
       - name: Check release candidate docker image existence
         # yamllint disable-line rule:line-length
-        uses: Cardinal-Cryptography/github-actions/check-image-existence-ecr@v1
+        uses: Cardinal-Cryptography/github-actions/check-image-existence-ecr@v2
         with:
           ecr-image: ${{ steps.get-docker-image-names.outputs.ecr-rc-image }}
 

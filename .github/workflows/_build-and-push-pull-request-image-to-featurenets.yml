@@ -16,7 +16,7 @@ jobs:
 
       - name: Call action get-ref-properties
         id: get-ref-properties
-        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v2
 
       - name: Download test aleph-node artifact
         uses: actions/download-artifact@v3
