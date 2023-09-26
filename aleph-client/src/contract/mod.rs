@@ -143,7 +143,7 @@ impl ContractInstance {
         sender: AccountId,
     ) -> Result<T> {
         let result = self
-            .dry_run(conn, message, args, sender)
+            .dry_run(conn, message, args, sender, 0)
             .await?
             .result
             .map_err(|e| anyhow!("Contract exec failed {:?}", e))?;
@@ -192,7 +192,7 @@ impl ContractInstance {
         value: Balance,
     ) -> Result<TxInfo> {
         let dry_run_result = self
-            .dry_run(conn, message, args, conn.account_id().clone())
+            .dry_run(conn, message, args, conn.account_id().clone(), value)
             .await?;
 
         let data = self.encode(message, args)?;
@@ -224,12 +224,13 @@ impl ContractInstance {
         message: &str,
         args: &[S],
         sender: AccountId,
+        value: Balance,
     ) -> Result<ContractExecResult<Balance, EventRecord>> {
         let payload = self.encode(message, args)?;
         let args = ContractCallArgs {
             origin: sender,
             dest: self.address.clone(),
-            value: 0,
+            value,
             gas_limit: None,
             input_data: payload,
             storage_deposit_limit: None,
