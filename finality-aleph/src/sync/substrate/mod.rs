@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use sc_consensus::import_queue::{ImportQueueService, IncomingBlock};
 use sp_consensus::BlockOrigin;
 use sp_runtime::traits::{CheckedSub, Header as _, One};
@@ -5,7 +7,7 @@ use sp_runtime::traits::{CheckedSub, Header as _, One};
 use crate::{
     aleph_primitives::{Block, Header},
     sync::{Block as BlockT, BlockImport, Header as HeaderT},
-    BlockId,
+    BlockId, TimingBlockMetrics,
 };
 
 mod chain_status;
@@ -21,14 +23,32 @@ pub use justification::{
 pub use status_notifier::SubstrateChainStatusNotifier;
 pub use verification::{SessionVerifier, SubstrateFinalizationInfo, VerifierCache};
 
+use crate::metrics::Checkpoint;
+
 /// Wrapper around the trait object that we get from Substrate.
-pub struct BlockImporter(pub Box<dyn ImportQueueService<Block>>);
+pub struct BlockImporter {
+    importer: Box<dyn ImportQueueService<Block>>,
+    metrics: TimingBlockMetrics,
+}
+
+impl BlockImporter {
+    pub fn new(importer: Box<dyn ImportQueueService<Block>>) -> Self {
+        Self {
+            importer,
+            metrics: TimingBlockMetrics::Noop,
+        }
+    }
+    pub fn attach_metrics(&mut self, metrics: TimingBlockMetrics) {
+        self.metrics = metrics;
+    }
+}
 
 impl BlockImport<Block> for BlockImporter {
     fn import_block(&mut self, block: Block) {
         let origin = BlockOrigin::NetworkBroadcast;
+        let hash = block.header.hash();
         let incoming_block = IncomingBlock::<Block> {
-            hash: block.header.hash(),
+            hash,
             header: Some(block.header),
             body: Some(block.extrinsics),
             indexed_body: None,
@@ -39,7 +59,9 @@ impl BlockImport<Block> for BlockImporter {
             import_existing: false,
             state: None,
         };
-        self.0.import_blocks(origin, vec![incoming_block]);
+        self.metrics
+            .report_block_if_not_present(hash, Instant::now(), Checkpoint::Importing);
+        self.importer.import_blocks(origin, vec![incoming_block]);
     }
 }
 

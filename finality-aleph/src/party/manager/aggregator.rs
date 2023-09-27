@@ -22,8 +22,8 @@ use crate::{
         AuthoritySubtaskCommon, Task,
     },
     sync::{substrate::Justification, JustificationSubmissions, JustificationTranslator},
-    BlockId, BlockMetrics, CurrentRmcNetworkData, Keychain, LegacyRmcNetworkData,
-    SessionBoundaries, STATUS_REPORT_INTERVAL,
+    BlockId, CurrentRmcNetworkData, Keychain, LegacyRmcNetworkData, SessionBoundaries,
+    TimingBlockMetrics, STATUS_REPORT_INTERVAL,
 };
 
 /// IO channels used by the aggregator task.
@@ -39,7 +39,7 @@ where
 async fn process_new_block_data<CN, LN>(
     aggregator: &mut Aggregator<'_, CN, LN>,
     block: BlockId,
-    metrics: &BlockMetrics,
+    metrics: &TimingBlockMetrics,
 ) where
     CN: Network<CurrentRmcNetworkData>,
     LN: Network<LegacyRmcNetworkData>,
@@ -87,7 +87,7 @@ async fn run_aggregator<B, C, CN, LN, JS>(
     io: IO<JS>,
     client: Arc<C>,
     session_boundaries: &SessionBoundaries,
-    metrics: BlockMetrics,
+    metrics: TimingBlockMetrics,
     mut exit_rx: oneshot::Receiver<()>,
 ) -> Result<(), ()>
 where
@@ -174,7 +174,7 @@ pub fn task<B, C, CN, LN, JS>(
     client: Arc<C>,
     io: IO<JS>,
     session_boundaries: SessionBoundaries,
-    metrics: BlockMetrics,
+    metrics: TimingBlockMetrics,
     multikeychain: Keychain,
     version: AggregatorVersion<CN, LN>,
 ) -> Task
@@ -194,12 +194,8 @@ where
     let task = {
         async move {
             let aggregator_io = match version {
-                Current(rmc_network) => {
-                    Aggregator::new_current(&multikeychain, rmc_network, metrics.clone())
-                }
-                Legacy(rmc_network) => {
-                    Aggregator::new_legacy(&multikeychain, rmc_network, metrics.clone())
-                }
+                Current(rmc_network) => Aggregator::new_current(&multikeychain, rmc_network),
+                Legacy(rmc_network) => Aggregator::new_legacy(&multikeychain, rmc_network),
             };
             debug!(target: "aleph-party", "Running the aggregator task for {:?}", session_id);
             let result = run_aggregator(

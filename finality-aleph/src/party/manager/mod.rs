@@ -30,9 +30,9 @@ use crate::{
         backup::ABFTBackup, manager::aggregator::AggregatorVersion, traits::NodeSessionManager,
     },
     sync::{substrate::Justification, JustificationSubmissions, JustificationTranslator},
-    AuthorityId, BlockId, BlockMetrics, CurrentRmcNetworkData, Keychain, LegacyRmcNetworkData,
-    NodeIndex, SessionBoundaries, SessionBoundaryInfo, SessionId, SessionPeriod, UnitCreationDelay,
-    VersionedNetworkData,
+    AuthorityId, BlockId, CurrentRmcNetworkData, Keychain, LegacyRmcNetworkData, NodeIndex,
+    SessionBoundaries, SessionBoundaryInfo, SessionId, SessionPeriod, TimingBlockMetrics,
+    UnitCreationDelay, VersionedNetworkData,
 };
 
 mod aggregator;
@@ -108,7 +108,7 @@ where
     justifications_for_sync: JS,
     justification_translator: JustificationTranslator,
     block_requester: RB,
-    metrics: BlockMetrics,
+    metrics: TimingBlockMetrics,
     spawn_handle: SpawnHandle,
     session_manager: SM,
     keystore: Arc<dyn Keystore>,
@@ -136,7 +136,7 @@ where
         justifications_for_sync: JS,
         justification_translator: JustificationTranslator,
         block_requester: RB,
-        metrics: BlockMetrics,
+        metrics: TimingBlockMetrics,
         spawn_handle: SpawnHandle,
         session_manager: SM,
         keystore: Arc<dyn Keystore>,

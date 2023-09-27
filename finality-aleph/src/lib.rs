@@ -59,7 +59,7 @@ pub mod testing;
 pub use crate::{
     import::{AlephBlockImport, TracingBlockImport},
     justification::AlephJustification,
-    metrics::BlockMetrics,
+    metrics::TimingBlockMetrics,
     network::{Protocol, ProtocolNaming},
     nodes::run_validator_node,
     session::SessionPeriod,
@@ -281,7 +281,7 @@ pub struct AlephConfig<C, SC> {
     pub spawn_handle: SpawnHandle,
     pub keystore: Arc<dyn Keystore>,
     pub justification_rx: mpsc::UnboundedReceiver<Justification>,
-    pub metrics: BlockMetrics,
+    pub metrics: TimingBlockMetrics,
     pub registry: Option<Registry>,
     pub session_period: SessionPeriod,
     pub millisecs_per_block: MillisecsPerBlock,

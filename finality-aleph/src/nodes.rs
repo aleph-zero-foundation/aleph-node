@@ -55,7 +55,7 @@ where
         sync_network,
         client,
         chain_status,
-        import_queue_handle,
+        mut import_queue_handle,
         select_chain,
         spawn_handle,
         keystore,
@@ -148,6 +148,7 @@ where
         genesis_header,
     );
     let finalizer = AlephFinalizer::new(client.clone(), metrics.clone());
+    import_queue_handle.attach_metrics(metrics.clone());
     let database_io = SyncDatabaseIO::new(chain_status.clone(), finalizer, import_queue_handle);
     let (sync_service, justifications_for_sync, request_block) = match SyncService::new(
         block_sync_network,

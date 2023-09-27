@@ -7,9 +7,9 @@ use std::{
 
 use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use finality_aleph::{
-    run_validator_node, AlephBlockImport, AlephConfig, BlockImporter, BlockMetrics, Justification,
+    run_validator_node, AlephBlockImport, AlephConfig, BlockImporter, Justification,
     JustificationTranslator, MillisecsPerBlock, Protocol, ProtocolNaming, RateLimiterConfig,
-    SessionPeriod, SubstrateChainStatus, TracingBlockImport,
+    SessionPeriod, SubstrateChainStatus, TimingBlockMetrics, TracingBlockImport,
 };
 use futures::channel::mpsc;
 use log::warn;
@@ -92,7 +92,7 @@ pub fn new_partial(
             mpsc::UnboundedSender<Justification>,
             mpsc::UnboundedReceiver<Justification>,
             Option<Telemetry>,
-            BlockMetrics,
+            TimingBlockMetrics,
         ),
     >,
     ServiceError,
@@ -136,11 +136,11 @@ pub fn new_partial(
         client.clone(),
     );
 
-    let metrics = match BlockMetrics::new(config.prometheus_registry()) {
+    let metrics = match TimingBlockMetrics::new(config.prometheus_registry()) {
         Ok(metrics) => metrics,
         Err(e) => {
             warn!("Failed to register Prometheus metrics: {:?}.", e);
-            BlockMetrics::noop()
+            TimingBlockMetrics::noop()
         }
     };
 
@@ -326,7 +326,7 @@ pub fn new_authority(
     let backoff_authoring_blocks = Some(LimitNonfinalized(aleph_config.max_nonfinalized_blocks()));
     let prometheus_registry = config.prometheus_registry().cloned();
 
-    let import_queue_handle = BlockImporter(import_queue.service());
+    let import_queue_handle = BlockImporter::new(import_queue.service());
 
     let chain_status = SubstrateChainStatus::new(backend.clone())
         .map_err(|e| ServiceError::Other(format!("failed to set up chain status: {e}")))?;

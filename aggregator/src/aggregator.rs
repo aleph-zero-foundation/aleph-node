@@ -11,7 +11,7 @@ use parity_scale_codec::Codec;
 
 use crate::{
     multicast::{Hash, Multicast, SignableHash},
-    Metrics, ProtocolSink,
+    ProtocolSink,
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -28,22 +28,26 @@ pub type AggregatorResult<R> = Result<R, AggregatorError>;
 pub type IOResult = Result<(), IOError>;
 
 /// A wrapper around an `rmc::Multicast` returning the signed hashes in the order of the [`Multicast::start_multicast`] calls.
-pub struct BlockSignatureAggregator<H: Hash + Copy, PMS, M: Metrics<H>> {
+pub struct BlockSignatureAggregator<H: Hash + Copy, PMS> {
     signatures: HashMap<H, PMS>,
     hash_queue: VecDeque<H>,
     started_hashes: HashSet<H>,
-    metrics: M,
     last_change: Instant,
 }
 
-impl<H: Copy + Hash, PMS, M: Metrics<H>> BlockSignatureAggregator<H, PMS, M> {
-    pub fn new(metrics: M) -> Self {
+impl<H: Copy + Hash, PMS> Default for BlockSignatureAggregator<H, PMS> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<H: Copy + Hash, PMS> BlockSignatureAggregator<H, PMS> {
+    pub fn new() -> Self {
         BlockSignatureAggregator {
             signatures: HashMap::new(),
             hash_queue: VecDeque::new(),
             started_hashes: HashSet::new(),
             last_change: Instant::now(),
-            metrics,
         }
     }
 
@@ -51,7 +55,6 @@ impl<H: Copy + Hash, PMS, M: Metrics<H>> BlockSignatureAggregator<H, PMS, M> {
         if !self.started_hashes.insert(hash) {
             return Err(AggregatorError::DuplicateHash);
         }
-        self.metrics.report_aggregation_complete(hash);
         if self.hash_queue.is_empty() {
             self.last_change = Instant::now();
         }
@@ -115,13 +118,12 @@ pub struct IO<
     N: ProtocolSink<D>,
     PMS,
     RMC: Multicast<H, PMS>,
-    M: Metrics<H>,
 > {
     messages_for_rmc: mpsc::UnboundedSender<D>,
     messages_from_rmc: mpsc::UnboundedReceiver<D>,
     network: N,
     multicast: RMC,
-    aggregator: BlockSignatureAggregator<H, PMS, M>,
+    aggregator: BlockSignatureAggregator<H, PMS>,
 }
 
 impl<
@@ -130,15 +132,14 @@ impl<
         N: ProtocolSink<D>,
         PMS,
         RMC: Multicast<H, PMS>,
-        M: Metrics<H>,
-    > IO<H, D, N, PMS, RMC, M>
+    > IO<H, D, N, PMS, RMC>
 {
     pub fn new(
         messages_for_rmc: mpsc::UnboundedSender<D>,
         messages_from_rmc: mpsc::UnboundedReceiver<D>,
         network: N,
         multicast: RMC,
-        aggregator: BlockSignatureAggregator<H, PMS, M>,
+        aggregator: BlockSignatureAggregator<H, PMS>,
     ) -> Self {
         IO {
             messages_for_rmc,
@@ -233,10 +234,7 @@ mod tests {
 
     use parity_scale_codec::{Decode, Encode};
 
-    use crate::{
-        aggregator::{AggregatorError, BlockSignatureAggregator},
-        Metrics,
-    };
+    use crate::aggregator::{AggregatorError, BlockSignatureAggregator};
 
     #[derive(Hash, PartialEq, Eq, Clone, Copy, Encode, Decode, Debug)]
     struct MockHash(pub [u8; 32]);
@@ -255,13 +253,8 @@ mod tests {
     type TestMultisignature = usize;
     const TEST_SIGNATURE: TestMultisignature = 42;
 
-    struct MockMetrics;
-    impl Metrics<MockHash> for MockMetrics {
-        fn report_aggregation_complete(&mut self, _h: MockHash) {}
-    }
-
-    fn build_aggregator() -> BlockSignatureAggregator<MockHash, TestMultisignature, MockMetrics> {
-        BlockSignatureAggregator::new(MockMetrics)
+    fn build_aggregator() -> BlockSignatureAggregator<MockHash, TestMultisignature> {
+        BlockSignatureAggregator::new()
     }
 
     fn build_hash(b0: u8) -> MockHash {

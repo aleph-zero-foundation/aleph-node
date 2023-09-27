@@ -1,4 +1,4 @@
-use std::{fmt::Debug, hash::Hash};
+use std::fmt::Debug;
 
 use aleph_bft_rmc::Message;
 use aleph_bft_types::Recipient;
@@ -22,8 +22,4 @@ pub enum NetworkError {
 pub trait ProtocolSink<D>: Send + Sync {
     async fn next(&mut self) -> Option<D>;
     fn send(&self, data: D, recipient: Recipient) -> Result<(), NetworkError>;
-}
-
-pub trait Metrics<H: Debug + Hash + Eq + Debug + Copy> {
-    fn report_aggregation_complete(&mut self, h: H);
 }
