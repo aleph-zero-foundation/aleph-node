@@ -110,7 +110,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v3
+        uses: aws-actions/configure-aws-credentials@v4
         env:
           AWS_REGION: us-east-1
         with:

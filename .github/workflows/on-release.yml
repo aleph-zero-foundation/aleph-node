@@ -31,7 +31,7 @@ jobs:
         uses: Cardinal-Cryptography/github-actions/get-ref-properties@v2
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v3
+        uses: aws-actions/configure-aws-credentials@v4
         env:
           AWS_REGION: us-east-1
         with:
