@@ -5,7 +5,6 @@ use futures::{channel::mpsc, StreamExt};
 use log::{debug, error, trace, warn};
 use substrate_prometheus_endpoint::Registry;
 
-pub use crate::sync::handler::DatabaseIO;
 use crate::{
     network::GossipNetwork,
     session::SessionBoundaryInfo,
@@ -15,7 +14,7 @@ use crate::{
             VersionedNetworkData,
         },
         forest::ExtensionRequest,
-        handler::{Action, Error as HandlerError, HandleStateAction, Handler},
+        handler::{Action, DatabaseIO, Error as HandlerError, HandleStateAction, Handler},
         message_limiter::{Error as MsgLimiterError, MsgLimiter},
         metrics::{Event, Metrics},
         task_queue::TaskQueue,
@@ -25,11 +24,59 @@ use crate::{
         ChainStatusNotifier, Finalizer, Header, Justification, JustificationSubmissions,
         RequestBlocks, UnverifiedJustification, Verifier, LOG_TARGET,
     },
+    SyncOracle,
 };
 
 const BROADCAST_COOLDOWN: Duration = Duration::from_millis(600);
 const CHAIN_EXTENSION_COOLDOWN: Duration = Duration::from_millis(300);
 const TICK_PERIOD: Duration = Duration::from_secs(5);
+
+pub struct IO<B, J, N, CE, CS, F, BI>
+where
+    B: Block,
+    J: Justification<Header = B::Header>,
+    N: GossipNetwork<VersionedNetworkData<B, J>>,
+    CE: ChainStatusNotifier<B::Header>,
+    CS: ChainStatus<B, J>,
+    F: Finalizer<J>,
+    BI: BlockImport<B>,
+{
+    network: N,
+    chain_events: CE,
+    sync_oracle: SyncOracle,
+    additional_justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
+    database_io: DatabaseIO<B, J, CS, F, BI>,
+}
+
+impl<B, J, N, CE, CS, F, BI> IO<B, J, N, CE, CS, F, BI>
+where
+    B: Block,
+    J: Justification<Header = B::Header>,
+    N: GossipNetwork<VersionedNetworkData<B, J>>,
+    CE: ChainStatusNotifier<B::Header>,
+    CS: ChainStatus<B, J>,
+    F: Finalizer<J>,
+    BI: BlockImport<B>,
+{
+    pub fn new(
+        chain_status: CS,
+        finalizer: F,
+        block_importer: BI,
+        network: N,
+        chain_events: CE,
+        sync_oracle: SyncOracle,
+        additional_justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
+    ) -> Self {
+        let database_io = DatabaseIO::new(chain_status, finalizer, block_importer);
+        IO {
+            network,
+            chain_events,
+            sync_oracle,
+            additional_justifications_from_user,
+            database_io,
+        }
+    }
+}
 
 /// A service synchronizing the knowledge about the chain between the nodes.
 pub struct Service<B, J, N, CE, CS, V, F, BI>
@@ -87,12 +134,9 @@ where
     /// Also returns an interface for submitting additional justifications,
     /// and an interface for requesting blocks.
     pub fn new(
-        network: N,
-        chain_events: CE,
         verifier: V,
-        database_io: DatabaseIO<B, J, CS, F, BI>,
         session_info: SessionBoundaryInfo,
-        additional_justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
+        io: IO<B, J, N, CE, CS, F, BI>,
         metrics_registry: Option<Registry>,
     ) -> Result<
         (
@@ -102,8 +146,15 @@ where
         ),
         HandlerError<B, J, CS, V, F>,
     > {
+        let IO {
+            network,
+            chain_events,
+            sync_oracle,
+            additional_justifications_from_user,
+            database_io,
+        } = io;
         let network = VersionWrapper::new(network);
-        let handler = Handler::new(database_io, verifier, session_info)?;
+        let handler = Handler::new(database_io, verifier, sync_oracle, session_info)?;
         let tasks = TaskQueue::new();
         let broadcast_ticker = Ticker::new(TICK_PERIOD, BROADCAST_COOLDOWN);
         let chain_extension_ticker = Ticker::new(TICK_PERIOD, CHAIN_EXTENSION_COOLDOWN);

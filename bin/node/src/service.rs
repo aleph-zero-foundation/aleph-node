@@ -9,7 +9,7 @@ use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use finality_aleph::{
     run_validator_node, AlephBlockImport, AlephConfig, BlockImporter, Justification,
     JustificationTranslator, MillisecsPerBlock, Protocol, ProtocolNaming, RateLimiterConfig,
-    SessionPeriod, SubstrateChainStatus, TimingBlockMetrics, TracingBlockImport,
+    SessionPeriod, SubstrateChainStatus, SyncOracle, TimingBlockMetrics, TracingBlockImport,
 };
 use futures::channel::mpsc;
 use log::warn;
@@ -354,6 +354,8 @@ pub fn new_authority(
 
     let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
 
+    let sync_oracle = SyncOracle::new();
+
     let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _, _, _, _, _>(
         StartAuraParams {
             slot_duration,
@@ -375,7 +377,7 @@ pub fn new_authority(
             force_authoring,
             backoff_authoring_blocks,
             keystore: keystore_container.keystore(),
-            sync_oracle: sync_network.clone(),
+            sync_oracle: sync_oracle.clone(),
             justification_sync_link: sync_network.clone(),
             block_proposal_slot_portion: SlotProportion::new(2f32 / 3f32),
             max_block_proposal_slot_portion: None,
@@ -419,6 +421,7 @@ pub fn new_authority(
         validator_port: aleph_config.validator_port(),
         protocol_naming,
         rate_limiter_config,
+        sync_oracle,
     };
 
     task_manager.spawn_essential_handle().spawn_blocking(

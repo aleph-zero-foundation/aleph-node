@@ -1451,7 +1451,7 @@ checksum = "b9b68e3193982cd54187d71afdb2a271ad4cf8af157858e9cb911b91321de143"
 dependencies = [
  "core2",
  "multibase",
- "multihash 0.17.0",
+ "multihash",
  "serde",
  "unsigned-varint",
 ]
@@ -2706,7 +2706,7 @@ dependencies = [
  "hash-db 0.16.0",
  "ip_network",
  "log",
- "lru 0.10.1",
+ "lru",
  "network-clique",
  "parity-scale-codec",
  "parking_lot 0.12.1",
@@ -4437,7 +4437,7 @@ dependencies = [
  "libp2p-identity",
  "log",
  "multiaddr",
- "multihash 0.17.0",
+ "multihash",
  "multistream-select",
  "once_cell",
  "parking_lot 0.12.1",
@@ -4479,7 +4479,7 @@ dependencies = [
  "libp2p-identity",
  "libp2p-swarm",
  "log",
- "lru 0.10.1",
+ "lru",
  "quick-protobuf",
  "quick-protobuf-codec",
  "smallvec",
@@ -4497,7 +4497,7 @@ dependencies = [
  "ed25519-dalek 2.0.0",
  "log",
  "multiaddr",
- "multihash 0.17.0",
+ "multihash",
  "quick-protobuf",
  "rand 0.8.5",
  "sha2 0.10.7",
@@ -4744,7 +4744,7 @@ dependencies = [
  "libp2p-identity",
  "libp2p-noise",
  "log",
- "multihash 0.17.0",
+ "multihash",
  "quick-protobuf",
  "quick-protobuf-codec",
  "rand 0.8.5",
@@ -4930,15 +4930,6 @@ name = "log"
 version = "0.4.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b5e6163cb8c49088c2c36f57875e58ccd8c87c7427f7fbd50ea6710b2f3f2e8f"
-
-[[package]]
-name = "lru"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6e8aaa3f231bb4bd57b84b2d5dc3ae7f350265df8aa96492e0bc394a1571909"
-dependencies = [
- "hashbrown 0.12.3",
-]
 
 [[package]]
 name = "lru"
@@ -5229,7 +5220,7 @@ dependencies = [
  "data-encoding",
  "log",
  "multibase",
- "multihash 0.17.0",
+ "multihash",
  "percent-encoding",
  "serde",
  "static_assertions",
@@ -5246,19 +5237,6 @@ dependencies = [
  "base-x",
  "data-encoding",
  "data-encoding-macro",
-]
-
-[[package]]
-name = "multihash"
-version = "0.16.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c346cf9999c631f002d8f977c4eaeaa0e6386f16007202308d0b3757522c2cc"
-dependencies = [
- "core2",
- "digest 0.10.7",
- "multihash-derive",
- "sha2 0.10.7",
- "unsigned-varint",
 ]
 
 [[package]]
@@ -5429,7 +5407,7 @@ dependencies = [
  "hash-db 0.16.0",
  "ip_network",
  "log",
- "lru 0.10.1",
+ "lru",
  "parity-scale-codec",
  "rand 0.8.5",
  "rate-limiter",

@@ -25,9 +25,9 @@ use crate::{
     session::SessionBoundaryInfo,
     session_map::{AuthorityProviderImpl, FinalityNotifierImpl, SessionMapUpdater},
     sync::{
-        ChainStatus, DatabaseIO as SyncDatabaseIO, FinalizationStatus, Justification,
-        JustificationTranslator, OldSyncCompatibleRequestBlocks, Service as SyncService,
-        SubstrateChainStatusNotifier, SubstrateFinalizationInfo, VerifierCache,
+        ChainStatus, FinalizationStatus, Justification, JustificationTranslator,
+        OldSyncCompatibleRequestBlocks, Service as SyncService, SubstrateChainStatusNotifier,
+        SubstrateFinalizationInfo, VerifierCache, IO as SyncIO,
     },
     AlephConfig,
 };
@@ -70,6 +70,7 @@ where
         validator_port,
         protocol_naming,
         rate_limiter_config,
+        sync_oracle,
     } = aleph_config;
 
     // We generate the phrase manually to only save the key in RAM, we don't want to have these
@@ -149,19 +150,20 @@ where
     );
     let finalizer = AlephFinalizer::new(client.clone(), metrics.clone());
     import_queue_handle.attach_metrics(metrics.clone());
-    let database_io = SyncDatabaseIO::new(chain_status.clone(), finalizer, import_queue_handle);
-    let (sync_service, justifications_for_sync, request_block) = match SyncService::new(
+    let sync_io = SyncIO::new(
+        chain_status.clone(),
+        finalizer,
+        import_queue_handle,
         block_sync_network,
         chain_events,
-        verifier,
-        database_io,
-        session_info.clone(),
+        sync_oracle,
         justification_rx,
-        registry.clone(),
-    ) {
-        Ok(x) => x,
-        Err(e) => panic!("Failed to initialize Sync service: {e}"),
-    };
+    );
+    let (sync_service, justifications_for_sync, request_block) =
+        match SyncService::new(verifier, session_info.clone(), sync_io, registry.clone()) {
+            Ok(x) => x,
+            Err(e) => panic!("Failed to initialize Sync service: {e}"),
+        };
     let sync_task = async move { sync_service.run().await };
 
     let (connection_manager_service, connection_manager) = ConnectionManager::new(

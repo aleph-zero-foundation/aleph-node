@@ -21,7 +21,7 @@ mod tasks;
 mod ticker;
 
 pub use compatibility::OldSyncCompatibleRequestBlocks;
-pub use service::{DatabaseIO, Service};
+pub use service::{Service, IO};
 pub use substrate::{
     Justification as SubstrateJustification, JustificationTranslator, SessionVerifier,
     SubstrateChainStatus, SubstrateChainStatusNotifier, SubstrateFinalizationInfo, VerifierCache,

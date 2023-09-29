@@ -596,13 +596,20 @@ where
         }
     }
 
+    /// How far behind in finalization are we.
+    pub fn behind_finalization(&self) -> u32 {
+        self.highest_justified
+            .number()
+            .saturating_sub(self.root_id.number())
+    }
+
     /// Returns an extension request with the appropriate data if either:
     /// 1. We know of a justified header for which we do not have a block, or
     /// 2. We know of nodes which have children of our favourite block.
     pub fn extension_request(&self) -> ExtensionRequest<I, J> {
         use ExtensionRequest::*;
         use VertexHandle::*;
-        if self.highest_justified.number() > self.root_id.number() {
+        if self.behind_finalization() > 0 {
             // This should always happen, but if it doesn't falling back to other forms of extension requests is acceptable.
             if let Some((know_most, branch_knowledge)) =
                 self.prepare_request_info(&self.highest_justified, true)

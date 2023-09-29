@@ -53,6 +53,7 @@ mod party;
 mod session;
 mod session_map;
 mod sync;
+mod sync_oracle;
 #[cfg(test)]
 pub mod testing;
 
@@ -67,6 +68,7 @@ pub use crate::{
         substrate::{BlockImporter, Justification},
         JustificationTranslator, SubstrateChainStatus,
     },
+    sync_oracle::SyncOracle,
 };
 
 /// Constant defining how often components of finality-aleph should report their state
@@ -291,4 +293,5 @@ pub struct AlephConfig<C, SC> {
     pub validator_port: u16,
     pub protocol_naming: ProtocolNaming,
     pub rate_limiter_config: RateLimiterConfig,
+    pub sync_oracle: SyncOracle,
 }
