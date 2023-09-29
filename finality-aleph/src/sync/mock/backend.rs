@@ -416,7 +416,7 @@ impl Verifier<MockJustification> for Backend {
             .session_id_from_block_num(top_number);
         let justification_session = storage
             .session_boundary_info
-            .session_id_from_block_num(justification.id().number);
+            .session_id_from_block_num(justification.header().id().number);
         if justification_session.0 > current_session.0 + 1
             || current_session.0 + 1 - justification_session.0 >= VERIFIER_CACHE_SIZE as u32
         {

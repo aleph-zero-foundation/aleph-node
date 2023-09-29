@@ -9,6 +9,7 @@ use crate::{
         data::{BranchKnowledge, ResponseItem},
         handler::Request,
         Block, BlockIdFor, BlockStatus, ChainStatus, FinalizationStatus, Header, Justification,
+        UnverifiedJustification,
     },
     BlockIdentifier,
 };
@@ -417,7 +418,7 @@ where
         let top_justification = request.state().top_justification();
         let target = request.target_id();
 
-        let upper_limit = self.upper_limit(top_justification.id());
+        let upper_limit = self.upper_limit(top_justification.header().id());
 
         // request too far into future
         if target.number() > upper_limit {
@@ -435,7 +436,7 @@ where
         let response_items = self.response_items(
             head,
             request.branch_knowledge().clone(),
-            top_justification.id(),
+            top_justification.header().id(),
         )?;
 
         Ok(Action::new(response_items))

@@ -4,7 +4,7 @@ use parity_scale_codec::{Decode, Encode};
 use sp_core::H256;
 
 use crate::{
-    sync::{Block, ChainStatusNotification, Header, Justification},
+    sync::{Block, ChainStatusNotification, Header, Justification, UnverifiedJustification},
     BlockIdentifier,
 };
 
@@ -169,15 +169,11 @@ impl MockJustification {
     }
 }
 
-impl Header for MockJustification {
-    type Identifier = MockIdentifier;
+impl UnverifiedJustification for MockJustification {
+    type Header = MockHeader;
 
-    fn id(&self) -> Self::Identifier {
-        self.header().id()
-    }
-
-    fn parent_id(&self) -> Option<Self::Identifier> {
-        self.header().parent_id()
+    fn header(&self) -> &Self::Header {
+        &self.header
     }
 }
 

@@ -7,9 +7,11 @@ pub enum Event {
     Broadcast,
     SendRequest,
     SendTo,
+    SendExtensionRequest,
     HandleState,
     HandleRequestResponse,
     HandleRequest,
+    HandleExtensionRequest,
     HandleTask,
     HandleBlockImported,
     HandleBlockFinalized,
@@ -28,9 +30,11 @@ impl Event {
             Broadcast => "broadcast",
             SendRequest => "send_request",
             SendTo => "send_to",
+            SendExtensionRequest => "send_extension_request",
             HandleState => "handle_state",
             HandleRequestResponse => "handle_request_response",
             HandleRequest => "handle_request",
+            HandleExtensionRequest => "handle_extension_request",
             HandleTask => "handle_task",
             HandleBlockImported => "handle_block_imported",
             HandleBlockFinalized => "handle_block_finalized",
@@ -41,13 +45,15 @@ impl Event {
     }
 }
 
-const ALL_EVENTS: [Event; 12] = [
+const ALL_EVENTS: [Event; 14] = [
     Broadcast,
     SendRequest,
     SendTo,
+    SendExtensionRequest,
     HandleState,
     HandleRequestResponse,
     HandleRequest,
+    HandleExtensionRequest,
     HandleTask,
     HandleBlockImported,
     HandleBlockFinalized,
@@ -56,12 +62,14 @@ const ALL_EVENTS: [Event; 12] = [
     HandleInternalRequest,
 ];
 
-const ERRORING_EVENTS: [Event; 9] = [
+const ERRORING_EVENTS: [Event; 11] = [
     Broadcast,
     SendRequest,
     SendTo,
+    SendExtensionRequest,
     HandleState,
     HandleRequest,
+    HandleExtensionRequest,
     HandleTask,
     HandleBlockImported,
     HandleJustificationFromUser,
@@ -141,23 +149,19 @@ impl Metrics {
         }
     }
 
-    pub fn update_best_block_if_better(&self, number: BlockNumber) {
+    pub fn update_best_block(&self, number: BlockNumber) {
         if let Metrics::Prometheus { best_block, .. } = self {
-            let number = number as u64;
-            if number > best_block.get() {
-                best_block.set(number)
-            }
+            best_block.set(number as u64)
         }
     }
 
     pub fn update_top_finalized_block(&self, number: BlockNumber) {
-        let top_finalized_block = match self {
-            Metrics::Noop => return,
-            Metrics::Prometheus {
-                top_finalized_block,
-                ..
-            } => top_finalized_block,
-        };
-        top_finalized_block.set(number as u64);
+        if let Metrics::Prometheus {
+            top_finalized_block,
+            ..
+        } = self
+        {
+            top_finalized_block.set(number as u64);
+        }
     }
 }

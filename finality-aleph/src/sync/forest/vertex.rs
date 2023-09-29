@@ -198,13 +198,18 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
     }
 
     /// Adds the information the header provides to the vertex.
-    pub fn insert_header(&mut self, parent: BlockIdFor<J>, holder: Option<I>) {
+    /// Returns whether this is a new header.
+    pub fn insert_header(&mut self, parent: BlockIdFor<J>, holder: Option<I>) -> bool {
         self.add_block_holder(holder);
-        if let InnerVertex::Empty { required } = self.inner {
-            self.inner = InnerVertex::Header {
-                importance: HeaderImportance::Unimported(required),
-                parent,
-            };
+        match self.inner {
+            InnerVertex::Empty { required } => {
+                self.inner = InnerVertex::Header {
+                    importance: HeaderImportance::Unimported(required),
+                    parent,
+                };
+                true
+            }
+            _ => false,
         }
     }
 

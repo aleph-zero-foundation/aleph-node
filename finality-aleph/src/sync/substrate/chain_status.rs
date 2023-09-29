@@ -16,7 +16,8 @@ use crate::{
     justification::backwards_compatible_decode,
     sync::{
         substrate::{BlockId, Justification},
-        BlockIdFor, BlockStatus, ChainStatus, FinalizationStatus, Header, LOG_TARGET,
+        BlockIdFor, BlockStatus, ChainStatus, FinalizationStatus, Header, Justification as _,
+        LOG_TARGET,
     },
 };
 
@@ -167,7 +168,7 @@ impl ChainStatus<Block, Justification> for SubstrateChainStatus {
         number: BlockNumber,
     ) -> Result<FinalizationStatus<Justification>, Self::Error> {
         use FinalizationStatus::*;
-        if number > self.top_finalized()?.id().number {
+        if number > self.top_finalized()?.header().id().number {
             return Ok(NotFinalized);
         }
 
