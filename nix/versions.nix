@@ -3,7 +3,7 @@ rec {
   rustToolchain =
     let
       # use Rust toolchain declared by the rust-toolchain.toml file
-      rustToolchain = with nixpkgs; overrideRustTarget ( rustChannelOf { date = "2022-10-30"; channel = "nightly"; } );
+      rustToolchain = with nixpkgs; overrideRustTarget ( rustChannelOf { channel = "1.70"; } );
 
       overrideRustTarget = rustChannel: rustChannel // {
         rust = rustChannel.rust.override {
@@ -18,8 +18,8 @@ rec {
       # this overlay allows us to use a version of the rust toolchain specified by the rust-toolchain.toml file
       rustOverlay =
         import (builtins.fetchTarball {
-          url = "https://github.com/mozilla/nixpkgs-mozilla/archive/f233fdc4ff6ba2ffeb1e3e3cd6d63bb1297d6996.tar.gz";
-          sha256 = "1rzz03h0b38l5sg61rmfvzpbmbd5fn2jsi1ccvq22rb76s1nbh8i";
+          url = "https://github.com/mozilla/nixpkgs-mozilla/archive/7800b921f749d74ecb8456f35f7ef04cd49b4d24.tar.gz";
+          sha256 = "1shxjmpmx92q9msh9qy3bz3pk9xcj4rkbphy0q01qgmmrc2f313h";
         });
 
       # pinned version of nix packages

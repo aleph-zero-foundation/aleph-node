@@ -11,7 +11,6 @@ services:
       - NET_RAW
       - SYS_PTRACE
     environment:
-      - SYNTHETIC_NETWORK=10.77.0.0/16
       - PUBLIC_VALIDATOR_ADDRESS=Node0:30343
     ports:
       - 3000:80
@@ -28,7 +27,6 @@ services:
       - NET_RAW
       - SYS_PTRACE
     environment:
-      - SYNTHETIC_NETWORK=10.77.0.0/16
       - PUBLIC_VALIDATOR_ADDRESS=Node1:30344
       - BOOT_NODES=/dns4/Node0/tcp/30333/p2p/$BOOTNODE_PEER_ID
     ports:
@@ -46,7 +44,6 @@ services:
       - NET_RAW
       - SYS_PTRACE
     environment:
-      - SYNTHETIC_NETWORK=10.77.0.0/16
       - PUBLIC_VALIDATOR_ADDRESS=Node2:30345
       - BOOT_NODES=/dns4/Node0/tcp/30333/p2p/$BOOTNODE_PEER_ID
     ports:
@@ -64,7 +61,6 @@ services:
       - NET_RAW
       - SYS_PTRACE
     environment:
-      - SYNTHETIC_NETWORK=10.77.0.0/16
       - PUBLIC_VALIDATOR_ADDRESS=Node3:30346
       - BOOT_NODES=/dns4/Node0/tcp/30333/p2p/$BOOTNODE_PEER_ID
     ports:
@@ -82,7 +78,6 @@ services:
       - NET_RAW
       - SYS_PTRACE
     environment:
-      - SYNTHETIC_NETWORK=10.77.0.0/16
       - PUBLIC_VALIDATOR_ADDRESS=Node4:30347
       - BOOT_NODES=/dns4/Node0/tcp/30333/p2p/$BOOTNODE_PEER_ID
     ports:
@@ -90,7 +85,6 @@ services:
 
 networks:
   synthetic-network:
-    ipam:
-      config:
-        - subnet: 10.77.0.0/16
+    name: synthetic-network
+    driver: bridge
 

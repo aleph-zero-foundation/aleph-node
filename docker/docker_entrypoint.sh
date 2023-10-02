@@ -54,7 +54,7 @@ ARGS=(
   --rpc-cors all
   --no-mdns
   --rpc-max-connections "${RPC_MAX_CONNECTIONS}"
-   --unsafe-rpc-external
+  --unsafe-rpc-external
   --enable-log-reloading
   --db-cache "${DB_CACHE}"
   --runtime-cache-size "${RUNTIME_CACHE_SIZE}"

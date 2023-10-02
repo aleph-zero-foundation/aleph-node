@@ -40,6 +40,7 @@ mod high_latency;
 mod lenient_threshold;
 mod rewards;
 mod staking;
+mod sync;
 mod transfer;
 mod treasury;
 mod utility;

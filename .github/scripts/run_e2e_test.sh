@@ -57,9 +57,12 @@ function set_randomized_test_params {
   NON_RESERVED_SEATS=$((${VALIDATOR_COUNT} - ${RESERVED_SEATS}))
 }
 
+NODE_URL=${NODE_URL:-"ws://127.0.0.1:9943"}
+NETWORK=${NETWORK:-"container:Node0"}
+
 ARGS=(
-  --network "container:Node0"
-  -e NODE_URL="ws://127.0.0.1:9943"
+  --network "${NETWORK}"
+  -e NODE_URL="${NODE_URL}"
   -e RUST_LOG=info
   -e VALIDATOR_COUNT
 )

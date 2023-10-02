@@ -2,7 +2,7 @@ use std::{thread::sleep, time::Duration};
 
 use anyhow::anyhow;
 use codec::Decode;
-use log::info;
+use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use subxt::{
     blocks::ExtrinsicEvents,
@@ -374,10 +374,11 @@ impl Connection {
     /// * `retries` - number of connection attempts
     async fn new_with_retries(address: &str, mut retries: u32) -> Connection {
         loop {
+            debug!(target: "aleph-client", "new_with_retries: address={address} retries_left={retries}");
             let client = SubxtClient::from_url(&address).await;
             match (retries, client) {
                 (_, Ok(client)) => return Connection { client },
-                (0, Err(e)) => panic!("{e:?}"),
+                (0, Err(e)) => panic!("new_with_retries failed for address {address}: {e:?}"),
                 _ => {
                     sleep(Duration::from_secs(Self::RETRY_WAIT_SECS));
                     retries -= 1;

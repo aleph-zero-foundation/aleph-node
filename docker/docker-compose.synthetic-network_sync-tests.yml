@@ -1,0 +1,83 @@
+services:
+  Node0:
+    extends:
+      file: docker-compose.synthetic-network.yml
+      service: Node0
+    environment:
+      - CUSTOM_ARGS="--max-nonfinalized-blocks=128"
+      - RPC_PORT=9943
+
+  Node1:
+    extends:
+      file: docker-compose.synthetic-network.yml
+      service: Node1
+    environment:
+      - CUSTOM_ARGS="--max-nonfinalized-blocks=128"
+      - RPC_PORT=9943
+
+  Node2:
+    extends:
+      file: docker-compose.synthetic-network.yml
+      service: Node2
+    environment:
+      - CUSTOM_ARGS="--max-nonfinalized-blocks=128"
+      - RPC_PORT=9943
+
+  Node3:
+    extends:
+      file: docker-compose.synthetic-network.yml
+      service: Node3
+    environment:
+      - CUSTOM_ARGS="--max-nonfinalized-blocks=128"
+      - RPC_PORT=9943
+
+  Node4:
+    extends:
+      file: docker-compose.synthetic-network.yml
+      service: Node4
+    environment:
+      - CUSTOM_ARGS="--max-nonfinalized-blocks=128"
+      - RPC_PORT=9943
+
+  Node5:
+    extends:
+      file: docker-compose.base.yml
+      service: Node5
+    image: aleph-node:syntheticnet
+    networks:
+      - synthetic-network
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_PTRACE
+    environment:
+      - PUBLIC_VALIDATOR_ADDRESS=Node5:30348
+      - BOOT_NODES=/dns4/Node0/tcp/30333/p2p/$BOOTNODE_PEER_ID
+      - CUSTOM_ARGS="--max-nonfinalized-blocks=128"
+      - RPC_PORT=9943
+    ports:
+      - 3005:80
+
+  Node6:
+    extends:
+      file: docker-compose.base.yml
+      service: Node6
+    image: aleph-node:syntheticnet
+    networks:
+      - synthetic-network
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_PTRACE
+    environment:
+      - PUBLIC_VALIDATOR_ADDRESS=Node6:30349
+      - BOOT_NODES=/dns4/Node0/tcp/30333/p2p/$BOOTNODE_PEER_ID
+      - CUSTOM_ARGS="--max-nonfinalized-blocks=128"
+      - RPC_PORT=9943
+    ports:
+      - 3006:80
+
+networks:
+  synthetic-network:
+    name: synthetic-network
+    driver: bridge

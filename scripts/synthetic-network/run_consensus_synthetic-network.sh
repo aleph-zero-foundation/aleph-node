@@ -48,8 +48,10 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+NODES_COUNT=${NODES_COUNT:-5}
 BUILD_IMAGE=${BUILD_IMAGE:-true}
 UPDATE=${UPDATE:-false}
+DOCKER_COMPOSE=${DOCKER_COMPOSE:-./docker/docker-compose.synthetic-network.yml}
 
 if [[ "$BUILD_IMAGE" = true ]]; then
     log "building custom docker image for synthetic-network tests"
@@ -58,7 +60,7 @@ if [[ "$BUILD_IMAGE" = true ]]; then
 fi
 
 log "running synthetic-network"
-DOCKER_COMPOSE=./docker/docker-compose.synthetic-network.yml ./.github/scripts/run_consensus.sh
+DOCKER_COMPOSE=${DOCKER_COMPOSE} ./.github/scripts/run_consensus.sh -n $NODES_COUNT -m $NODES_COUNT
 log "open a web browser at http://localhost:3000 (port 3000 is Node0, 3001 is Node1, ...)"
 xdg-open http://localhost:3000
 
