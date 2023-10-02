@@ -21,6 +21,7 @@ pub use frame_support::{
     StorageValue,
 };
 use frame_support::{
+    pallet_prelude::Get,
     sp_runtime::Perquintill,
     traits::{
         ConstBool, ConstU32, EqualPrivilegeOnly, EstimateNextSessionRotation, SortedMembers,
@@ -94,10 +95,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 56,
+    spec_version: 66,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 16,
+    transaction_version: 17,
     state_version: 0,
 };
 
@@ -720,7 +721,11 @@ impl pallet_contracts::Config for Runtime {
     type MaxStorageKeyLen = ConstU32<128>;
     type UnsafeUnstableInterface = ConstBool<false>;
     type MaxDebugBufferLen = ConstU32<{ 2 * 1024 * 1024 }>;
-    type Migrations = ();
+    type Migrations = (
+        pallet_contracts::migration::v10::Migration<Runtime>,
+        pallet_contracts::migration::v11::Migration<Runtime>,
+        pallet_contracts::migration::v12::Migration<Runtime>,
+    );
 }
 
 parameter_types! {
@@ -828,6 +833,20 @@ pub type SignedExtra = (
     frame_system::CheckWeight<Runtime>,
     pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 );
+
+pub struct ZeroMaxGlobalCommission;
+impl Get<Perbill> for ZeroMaxGlobalCommission {
+    fn get() -> Perbill {
+        Perbill::from_percent(0)
+    }
+}
+
+/// All migrations that will run on the next runtime upgrade.
+///
+/// Should be cleared after every release.
+pub type Migrations =
+    (pallet_nomination_pools::migration::v4::MigrateV3ToV5<Runtime, ZeroMaxGlobalCommission>,);
+
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
     generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
@@ -840,6 +859,7 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
+    Migrations,
 >;
 
 #[cfg(feature = "runtime-benchmarks")]
