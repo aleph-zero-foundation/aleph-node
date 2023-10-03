@@ -6,6 +6,8 @@ use std::{
 
 use parity_scale_codec::Codec;
 
+use crate::BlockId;
+
 mod compatibility;
 mod data;
 mod forest;
@@ -27,8 +29,6 @@ pub use substrate::{
     SubstrateChainStatus, SubstrateChainStatusNotifier, SubstrateFinalizationInfo, VerifierCache,
 };
 
-use crate::BlockIdentifier;
-
 const LOG_TARGET: &str = "aleph-block-sync";
 
 /// The identifier of a connected peer.
@@ -38,13 +38,11 @@ impl<T: Debug + Clone + Hash + Eq> PeerId for T {}
 
 /// The header of a block, containing information about the parent relation.
 pub trait Header: Clone + Codec + Debug + Send + Sync + 'static {
-    type Identifier: BlockIdentifier;
-
     /// The identifier of this block.
-    fn id(&self) -> Self::Identifier;
+    fn id(&self) -> BlockId;
 
     /// The identifier of this block's parent.
-    fn parent_id(&self) -> Option<Self::Identifier>;
+    fn parent_id(&self) -> Option<BlockId>;
 }
 
 /// The block, including a header.
@@ -60,8 +58,6 @@ pub trait BlockImport<B>: Send + 'static {
     /// Import the block.
     fn import_block(&mut self, block: B);
 }
-
-type BlockIdFor<J> = <<J as Justification>::Header as Header>::Identifier;
 
 pub trait UnverifiedJustification: Clone + Codec + Send + Sync + Debug + 'static {
     type Header: Header;
@@ -159,10 +155,10 @@ where
     type Error: Display;
 
     /// The status of the block.
-    fn status_of(&self, id: BlockIdFor<J>) -> Result<BlockStatus<J>, Self::Error>;
+    fn status_of(&self, id: BlockId) -> Result<BlockStatus<J>, Self::Error>;
 
     /// Export a copy of the block.
-    fn block(&self, id: BlockIdFor<J>) -> Result<Option<B>, Self::Error>;
+    fn block(&self, id: BlockId) -> Result<Option<B>, Self::Error>;
 
     /// The justification at this block number, if we have it otherwise just block id if
     /// the block is finalized without justification. Should return NotFinalized variant if
@@ -176,7 +172,7 @@ where
     fn top_finalized(&self) -> Result<J, Self::Error>;
 
     /// Children of the specified block.
-    fn children(&self, id: BlockIdFor<J>) -> Result<Vec<J::Header>, Self::Error>;
+    fn children(&self, id: BlockId) -> Result<Vec<J::Header>, Self::Error>;
 }
 
 /// An interface for submitting additional justifications to the justification sync.
@@ -192,9 +188,9 @@ pub trait JustificationSubmissions<J: Justification>: Clone + Send + 'static {
 
 /// An interface for requesting specific blocks from the block sync.
 /// Required by the data availability mechanism in ABFT.
-pub trait RequestBlocks<BI: BlockIdentifier>: Clone + Send + Sync + 'static {
+pub trait RequestBlocks: Clone + Send + Sync + 'static {
     type Error: Display;
 
     /// Request the given block.
-    fn request_block(&self, block_id: BI) -> Result<(), Self::Error>;
+    fn request_block(&self, block_id: BlockId) -> Result<(), Self::Error>;
 }

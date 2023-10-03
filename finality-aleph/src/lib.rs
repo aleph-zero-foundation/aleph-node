@@ -10,7 +10,7 @@ use futures::{
     channel::{mpsc, oneshot},
     Future,
 };
-use parity_scale_codec::{Codec, Decode, Encode, Output};
+use parity_scale_codec::{Decode, Encode, Output};
 use primitives as aleph_primitives;
 use primitives::{AuthorityId, Block as AlephBlock, BlockHash, BlockNumber, Hash as AlephHash};
 use sc_client_api::{
@@ -229,14 +229,9 @@ where
 {
 }
 
-/// The identifier of a block, the least amount of knowledge we can have about a block.
-pub trait BlockIdentifier: Clone + Hash + Debug + Eq + Codec + Send + Sync + 'static {
-    /// The block number, useful when reasoning about hopeless forks.
-    fn number(&self) -> BlockNumber;
-}
-
 type Hasher = abft::HashWrapper<BlakeTwo256>;
 
+/// The identifier of a block, the least amount of knowledge we can have about a block.
 #[derive(PartialEq, Eq, Clone, Debug, Encode, Decode, Hash)]
 pub struct BlockId {
     hash: BlockHash,
@@ -246,6 +241,10 @@ pub struct BlockId {
 impl BlockId {
     pub fn new(hash: BlockHash, number: BlockNumber) -> Self {
         BlockId { hash, number }
+    }
+
+    pub fn number(&self) -> BlockNumber {
+        self.number
     }
 }
 
@@ -258,12 +257,6 @@ impl From<(BlockHash, BlockNumber)> for BlockId {
 impl Display for BlockId {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
         write!(f, "#{} ({})", self.number, self.hash,)
-    }
-}
-
-impl BlockIdentifier for BlockId {
-    fn number(&self) -> BlockNumber {
-        self.number
     }
 }
 

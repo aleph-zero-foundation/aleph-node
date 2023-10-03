@@ -15,10 +15,10 @@ use crate::{
     },
     justification::backwards_compatible_decode,
     sync::{
-        substrate::{BlockId, Justification},
-        BlockIdFor, BlockStatus, ChainStatus, FinalizationStatus, Header, Justification as _,
-        LOG_TARGET,
+        substrate::Justification, BlockStatus, ChainStatus, FinalizationStatus, Header,
+        Justification as _, LOG_TARGET,
     },
+    BlockId,
 };
 
 /// What can go wrong when checking chain status
@@ -108,7 +108,7 @@ impl SubstrateChainStatus {
         self.backend.blockchain().body(hash)
     }
 
-    fn header(&self, id: &BlockIdFor<Justification>) -> Result<Option<AlephHeader>, Error> {
+    fn header(&self, id: &BlockId) -> Result<Option<AlephHeader>, Error> {
         let maybe_header = self.header_for_hash(id.hash)?;
         match maybe_header
             .as_ref()
@@ -186,7 +186,7 @@ impl ChainStatus<Block, Justification> for SubstrateChainStatus {
         }
     }
 
-    fn block(&self, id: BlockIdFor<Justification>) -> Result<Option<Block>, Self::Error> {
+    fn block(&self, id: BlockId) -> Result<Option<Block>, Self::Error> {
         let header = match self.header(&id)? {
             Some(header) => header,
             None => return Ok(None),
@@ -198,10 +198,7 @@ impl ChainStatus<Block, Justification> for SubstrateChainStatus {
         Ok(Some(Block::new(header, body)))
     }
 
-    fn status_of(
-        &self,
-        id: BlockIdFor<Justification>,
-    ) -> Result<BlockStatus<Justification>, Self::Error> {
+    fn status_of(&self, id: BlockId) -> Result<BlockStatus<Justification>, Self::Error> {
         let header = match self.header(&id)? {
             Some(header) => header,
             None => return Ok(BlockStatus::Unknown),
@@ -230,7 +227,7 @@ impl ChainStatus<Block, Justification> for SubstrateChainStatus {
             .ok_or(Error::MissingJustification(finalized_hash))
     }
 
-    fn children(&self, id: BlockIdFor<Justification>) -> Result<Vec<AlephHeader>, Self::Error> {
+    fn children(&self, id: BlockId) -> Result<Vec<AlephHeader>, Self::Error> {
         // This checks whether we have the block at all and the provided id is consistent.
         self.header(&id)?;
         Ok(self

@@ -1,40 +1,27 @@
 use std::hash::Hash;
 
 use parity_scale_codec::{Decode, Encode};
-use sp_core::H256;
+use primitives::{BlockHash, BlockNumber};
 
 use crate::{
     sync::{Block, ChainStatusNotification, Header, Justification, UnverifiedJustification},
-    BlockIdentifier,
+    BlockId,
 };
 
 mod backend;
 mod status_notifier;
 
-type MockNumber = u32;
-type MockHash = H256;
-
 pub use backend::Backend;
 
 pub type MockPeerId = u32;
 
-#[derive(Clone, Hash, Debug, PartialEq, Eq, Encode, Decode)]
-pub struct MockIdentifier {
-    number: MockNumber,
-    hash: MockHash,
-}
-
-impl MockIdentifier {
-    fn new(number: MockNumber, hash: MockHash) -> Self {
-        MockIdentifier { number, hash }
-    }
-
-    pub fn new_random(number: MockNumber) -> Self {
-        MockIdentifier::new(number, MockHash::random())
+impl BlockId {
+    pub fn new_random(number: BlockNumber) -> Self {
+        Self::new(BlockHash::random(), number)
     }
 
     pub fn random_child(&self) -> MockHeader {
-        let id = MockIdentifier::new_random(self.number + 1);
+        let id = Self::new_random(self.number + 1);
         let parent = Some(self.clone());
         MockHeader { id, parent }
     }
@@ -46,31 +33,25 @@ impl MockIdentifier {
     }
 }
 
-impl BlockIdentifier for MockIdentifier {
-    fn number(&self) -> u32 {
-        self.number
-    }
-}
-
 #[derive(Clone, Hash, Debug, PartialEq, Eq, Encode, Decode)]
 pub struct MockHeader {
-    id: MockIdentifier,
-    parent: Option<MockIdentifier>,
+    id: BlockId,
+    parent: Option<BlockId>,
 }
 
 impl MockHeader {
     pub fn genesis() -> Self {
         MockHeader {
-            id: MockIdentifier {
+            id: BlockId {
                 number: 0,
-                hash: MockHash::zero(),
+                hash: BlockHash::zero(),
             },
             parent: None,
         }
     }
 
-    pub fn random_parentless(number: MockNumber) -> Self {
-        let id = MockIdentifier::new_random(number);
+    pub fn random_parentless(number: BlockNumber) -> Self {
+        let id = BlockId::new_random(number);
         MockHeader { id, parent: None }
     }
 
@@ -84,7 +65,7 @@ impl MockHeader {
 }
 
 struct RandomBranch {
-    parent: MockIdentifier,
+    parent: BlockId,
 }
 
 impl Iterator for RandomBranch {
@@ -98,13 +79,11 @@ impl Iterator for RandomBranch {
 }
 
 impl Header for MockHeader {
-    type Identifier = MockIdentifier;
-
-    fn id(&self) -> Self::Identifier {
+    fn id(&self) -> BlockId {
         self.id.clone()
     }
 
-    fn parent_id(&self) -> Option<Self::Identifier> {
+    fn parent_id(&self) -> Option<BlockId> {
         self.parent.clone()
     }
 }
@@ -135,13 +114,11 @@ impl MockBlock {
 }
 
 impl Header for MockBlock {
-    type Identifier = MockIdentifier;
-
-    fn id(&self) -> Self::Identifier {
+    fn id(&self) -> BlockId {
         self.header().id()
     }
 
-    fn parent_id(&self) -> Option<Self::Identifier> {
+    fn parent_id(&self) -> Option<BlockId> {
         self.header().parent_id()
     }
 }

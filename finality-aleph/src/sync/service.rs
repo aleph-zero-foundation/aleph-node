@@ -20,9 +20,9 @@ use crate::{
         task_queue::TaskQueue,
         tasks::{Action as TaskAction, RequestTask},
         ticker::Ticker,
-        Block, BlockIdFor, BlockIdentifier, BlockImport, ChainStatus, ChainStatusNotification,
-        ChainStatusNotifier, Finalizer, Header, Justification, JustificationSubmissions,
-        RequestBlocks, UnverifiedJustification, Verifier, LOG_TARGET,
+        Block, BlockId, BlockImport, ChainStatus, ChainStatusNotification, ChainStatusNotifier,
+        Finalizer, Header, Justification, JustificationSubmissions, RequestBlocks,
+        UnverifiedJustification, Verifier, LOG_TARGET,
     },
     SyncOracle,
 };
@@ -92,13 +92,13 @@ where
 {
     network: VersionWrapper<B, J, N>,
     handler: Handler<B, N::PeerId, J, CS, V, F, BI>,
-    tasks: TaskQueue<RequestTask<BlockIdFor<J>>>,
+    tasks: TaskQueue<RequestTask>,
     broadcast_ticker: Ticker,
     chain_extension_ticker: Ticker,
     chain_events: CE,
     justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
     additional_justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
-    block_requests_from_user: mpsc::UnboundedReceiver<BlockIdFor<J>>,
+    block_requests_from_user: mpsc::UnboundedReceiver<BlockId>,
     _phantom: PhantomData<B>,
     metrics: Metrics,
 }
@@ -111,10 +111,10 @@ impl<J: Justification> JustificationSubmissions<J> for mpsc::UnboundedSender<J::
     }
 }
 
-impl<BI: BlockIdentifier> RequestBlocks<BI> for mpsc::UnboundedSender<BI> {
-    type Error = mpsc::TrySendError<BI>;
+impl RequestBlocks for mpsc::UnboundedSender<BlockId> {
+    type Error = mpsc::TrySendError<BlockId>;
 
-    fn request_block(&self, block_id: BI) -> Result<(), Self::Error> {
+    fn request_block(&self, block_id: BlockId) -> Result<(), Self::Error> {
         self.unbounded_send(block_id)
     }
 }
@@ -142,7 +142,7 @@ where
         (
             Self,
             impl JustificationSubmissions<J> + Clone,
-            impl RequestBlocks<BlockIdFor<J>>,
+            impl RequestBlocks,
         ),
         HandlerError<B, J, CS, V, F>,
     > {
@@ -187,7 +187,7 @@ where
         ))
     }
 
-    fn request_block(&mut self, block_id: BlockIdFor<J>) {
+    fn request_block(&mut self, block_id: BlockId) {
         debug!(
             target: LOG_TARGET,
             "Initiating a request for block {:?}.", block_id
@@ -276,7 +276,7 @@ where
         }
     }
 
-    fn send_request(&mut self, pre_request: PreRequest<N::PeerId, J>) {
+    fn send_request(&mut self, pre_request: PreRequest<N::PeerId>) {
         self.metrics.report_event(Event::SendRequest);
         let state = match self.handler.state() {
             Ok(state) => state,
@@ -481,7 +481,7 @@ where
         }
     }
 
-    fn handle_task(&mut self, task: RequestTask<BlockIdFor<J>>) {
+    fn handle_task(&mut self, task: RequestTask) {
         trace!(target: LOG_TARGET, "Handling task {}.", task);
         if let TaskAction::Request(pre_request, (task, delay)) =
             task.process(self.handler.interest_provider())
@@ -519,7 +519,7 @@ where
         }
     }
 
-    fn handle_internal_request(&mut self, id: BlockIdFor<J>) {
+    fn handle_internal_request(&mut self, id: BlockId) {
         trace!(
             target: LOG_TARGET,
             "Handling an internal request for block {:?}.",

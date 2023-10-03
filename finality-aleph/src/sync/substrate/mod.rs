@@ -66,16 +66,14 @@ impl BlockImport<Block> for BlockImporter {
 }
 
 impl HeaderT for Header {
-    type Identifier = BlockId;
-
-    fn id(&self) -> Self::Identifier {
+    fn id(&self) -> BlockId {
         BlockId {
             hash: self.hash(),
             number: *self.number(),
         }
     }
 
-    fn parent_id(&self) -> Option<Self::Identifier> {
+    fn parent_id(&self) -> Option<BlockId> {
         let number = self.number().checked_sub(&One::one())?;
         Some(BlockId {
             hash: *self.parent_hash(),

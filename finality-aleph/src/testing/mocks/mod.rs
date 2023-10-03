@@ -7,13 +7,12 @@ pub use proposal::{
 use sp_runtime::traits::BlakeTwo256;
 use substrate_test_runtime::Extrinsic;
 
-use crate::{aleph_primitives::BlockNumber, BlockId};
+use crate::aleph_primitives::BlockNumber;
 
 type Hashing = BlakeTwo256;
 pub type TBlock = sp_runtime::generic::Block<THeader, Extrinsic>;
 pub type THeader = sp_runtime::generic::Header<BlockNumber, Hashing>;
 pub type THash = substrate_test_runtime::Hash;
-pub type TBlockIdentifier = BlockId;
 
 mod acceptance_policy;
 mod block_finalizer;

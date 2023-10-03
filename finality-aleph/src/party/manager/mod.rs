@@ -30,7 +30,7 @@ use crate::{
         backup::ABFTBackup, manager::aggregator::AggregatorVersion, traits::NodeSessionManager,
     },
     sync::{substrate::Justification, JustificationSubmissions, JustificationTranslator},
-    AuthorityId, BlockId, CurrentRmcNetworkData, Keychain, LegacyRmcNetworkData, NodeIndex,
+    AuthorityId, CurrentRmcNetworkData, Keychain, LegacyRmcNetworkData, NodeIndex,
     SessionBoundaries, SessionBoundaryInfo, SessionId, SessionPeriod, TimingBlockMetrics,
     UnitCreationDelay, VersionedNetworkData,
 };
@@ -97,7 +97,7 @@ where
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
-    RB: RequestBlocks<BlockId>,
+    RB: RequestBlocks,
     SM: SessionManager<VersionedNetworkData> + 'static,
     JS: JustificationSubmissions<Justification> + Send + Sync + Clone,
 {
@@ -123,7 +123,7 @@ where
     C::Api: crate::aleph_primitives::AlephSessionApi<B>,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
-    RB: RequestBlocks<BlockId>,
+    RB: RequestBlocks,
     SM: SessionManager<VersionedNetworkData>,
     JS: JustificationSubmissions<Justification> + Send + Sync + Clone + 'static,
 {
@@ -405,7 +405,7 @@ where
     C::Api: crate::aleph_primitives::AlephSessionApi<B>,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
-    RB: RequestBlocks<BlockId>,
+    RB: RequestBlocks,
     SM: SessionManager<VersionedNetworkData>,
     JS: JustificationSubmissions<Justification> + Send + Sync + Clone + 'static,
 {

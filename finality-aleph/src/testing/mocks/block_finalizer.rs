@@ -1,7 +1,6 @@
 use sp_blockchain::Error;
 use sp_runtime::{traits::Block, Justification};
 
-use super::TBlockIdentifier;
 use crate::{
     finalization::BlockFinalizer,
     testing::mocks::{single_action_mock::SingleActionMock, TBlock},
@@ -27,19 +26,15 @@ impl MockedBlockFinalizer {
 
     pub async fn has_been_invoked_with(&self, block: TBlock) -> bool {
         self.mock
-            .has_been_invoked_with(|(TBlockIdentifier { hash, number }, _)| {
+            .has_been_invoked_with(|(BlockId { hash, number }, _)| {
                 block.hash() == hash && block.header.number == number
             })
             .await
     }
 }
 
-impl BlockFinalizer<TBlockIdentifier> for MockedBlockFinalizer {
-    fn finalize_block(
-        &self,
-        block_id: TBlockIdentifier,
-        justification: Justification,
-    ) -> Result<(), Error> {
+impl BlockFinalizer for MockedBlockFinalizer {
+    fn finalize_block(&self, block_id: BlockId, justification: Justification) -> Result<(), Error> {
         self.mock.invoke_with((block_id, justification));
         Ok(())
     }

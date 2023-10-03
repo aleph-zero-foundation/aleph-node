@@ -13,7 +13,6 @@ use crate::{
     network::data::component::Receiver,
     party::{AuthoritySubtaskCommon, Task},
     sync::RequestBlocks,
-    BlockId,
 };
 
 /// Runs the data store within a single session.
@@ -25,7 +24,7 @@ where
     B: Block<Hash = BlockHash>,
     B::Header: Header<Number = BlockNumber>,
     C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
-    RB: RequestBlocks<BlockId> + 'static,
+    RB: RequestBlocks + 'static,
     Message: AlephNetworkMessage + Debug + Send + Sync + Codec + 'static,
     R: Receiver<Message> + 'static,
 {

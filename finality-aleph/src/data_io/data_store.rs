@@ -149,7 +149,7 @@ where
     B: BlockT<Hash = BlockHash>,
     B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
-    RB: RequestBlocks<BlockId> + 'static,
+    RB: RequestBlocks + 'static,
     Message: AlephNetworkMessage
         + std::fmt::Debug
         + Send
@@ -182,7 +182,7 @@ where
     B: BlockT<Hash = BlockHash>,
     B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
-    RB: RequestBlocks<BlockId> + 'static,
+    RB: RequestBlocks + 'static,
     Message: AlephNetworkMessage
         + std::fmt::Debug
         + Send

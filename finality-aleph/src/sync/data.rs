@@ -7,8 +7,8 @@ use static_assertions::const_assert;
 use crate::{
     aleph_primitives::MAX_BLOCK_SIZE,
     network::GossipNetwork,
-    sync::{Block, BlockIdFor, Header, Justification, PeerId, UnverifiedJustification, LOG_TARGET},
-    Version,
+    sync::{Block, Header, Justification, PeerId, UnverifiedJustification, LOG_TARGET},
+    BlockId, Version,
 };
 
 /// The representation of the database state to be sent to other nodes.
@@ -81,21 +81,21 @@ pub type ResponseItems<B, J> = Vec<ResponseItem<B, J>>;
 /// with a given one. All the variants are exhaustive and exclusive due to the
 /// properties of the `Forest` structure.
 #[derive(Clone, Debug, Encode, Decode, PartialEq, Eq)]
-pub enum BranchKnowledge<J: Justification> {
+pub enum BranchKnowledge {
     /// ID of the oldest known ancestor if none of them are imported.
     /// It must be different from the, imported by definition, root.
-    LowestId(BlockIdFor<J>),
+    LowestId(BlockId),
     /// ID of the top imported ancestor if any of them is imported.
     /// Since imported vertices are connected to the root, the oldest known
     /// ancestor is, implicitly, the root.
-    TopImported(BlockIdFor<J>),
+    TopImported(BlockId),
 }
 
 /// Request content, first version.
 #[derive(Clone, Debug, Encode, Decode)]
 pub struct RequestV1<J: Justification> {
-    target_id: BlockIdFor<J>,
-    branch_knowledge: BranchKnowledge<J>,
+    target_id: BlockId,
+    branch_knowledge: BranchKnowledge,
     state: StateV1<J>,
 }
 
@@ -116,8 +116,8 @@ impl<J: Justification> RequestV1<J> {
 /// Request content, current version.
 #[derive(Clone, Debug, Encode, Decode)]
 pub struct Request<J: Justification> {
-    target_id: BlockIdFor<J>,
-    branch_knowledge: BranchKnowledge<J>,
+    target_id: BlockId,
+    branch_knowledge: BranchKnowledge,
     state: State<J>,
 }
 
@@ -152,11 +152,7 @@ impl<J: Justification> From<Request<J>> for RequestV1<J> {
 }
 
 impl<J: Justification> Request<J> {
-    pub fn new(
-        target_id: BlockIdFor<J>,
-        branch_knowledge: BranchKnowledge<J>,
-        state: State<J>,
-    ) -> Self {
+    pub fn new(target_id: BlockId, branch_knowledge: BranchKnowledge, state: State<J>) -> Self {
         Self {
             target_id,
             branch_knowledge,
@@ -169,27 +165,23 @@ impl<J: Justification> Request<J> {
     pub fn state(&self) -> &State<J> {
         &self.state
     }
-    pub fn target_id(&self) -> &BlockIdFor<J> {
+    pub fn target_id(&self) -> &BlockId {
         &self.target_id
     }
-    pub fn branch_knowledge(&self) -> &BranchKnowledge<J> {
+    pub fn branch_knowledge(&self) -> &BranchKnowledge {
         &self.branch_knowledge
     }
 }
 
 /// Data that can be used to generate a request given our state.
-pub struct PreRequest<I: PeerId, J: Justification> {
-    id: BlockIdFor<J>,
-    branch_knowledge: BranchKnowledge<J>,
+pub struct PreRequest<I: PeerId> {
+    id: BlockId,
+    branch_knowledge: BranchKnowledge,
     know_most: HashSet<I>,
 }
 
-impl<I: PeerId, J: Justification> PreRequest<I, J> {
-    pub fn new(
-        id: BlockIdFor<J>,
-        branch_knowledge: BranchKnowledge<J>,
-        know_most: HashSet<I>,
-    ) -> Self {
+impl<I: PeerId> PreRequest<I> {
+    pub fn new(id: BlockId, branch_knowledge: BranchKnowledge, know_most: HashSet<I>) -> Self {
         PreRequest {
             id,
             branch_knowledge,
@@ -198,7 +190,7 @@ impl<I: PeerId, J: Justification> PreRequest<I, J> {
     }
 
     /// Convert to a request and recipients given a state.
-    pub fn with_state(self, state: State<J>) -> (Request<J>, HashSet<I>) {
+    pub fn with_state<J: Justification>(self, state: State<J>) -> (Request<J>, HashSet<I>) {
         let PreRequest {
             id,
             branch_knowledge,

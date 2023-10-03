@@ -25,7 +25,7 @@ use crate::{
     BlockId,
 };
 
-impl<B> RequestBlocks<BlockId> for Arc<SyncingService<B>>
+impl<B> RequestBlocks for Arc<SyncingService<B>>
 where
     B: Block<Hash = BlockHash>,
     B::Header: Header<Number = BlockNumber>,

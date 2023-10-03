@@ -7,11 +7,8 @@ use std::{
 use rand::{thread_rng, Rng};
 
 use crate::{
-    sync::{
-        data::PreRequest, forest::Interest, handler::InterestProvider, BlockIdFor, Header,
-        Justification, PeerId,
-    },
-    BlockIdentifier,
+    sync::{data::PreRequest, forest::Interest, handler::InterestProvider, Justification, PeerId},
+    BlockId,
 };
 
 const MIN_DELAY: Duration = Duration::from_millis(300);
@@ -27,37 +24,36 @@ fn delay_for_attempt(attempt: u32) -> Duration {
 }
 
 /// A task for requesting blocks. Keeps track of how many times it was executed.
-pub struct RequestTask<BI: BlockIdentifier> {
-    id: BI,
+pub struct RequestTask {
+    id: BlockId,
     tries: u32,
 }
 
-impl<BI: BlockIdentifier> Display for RequestTask<BI> {
+impl Display for RequestTask {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
         write!(f, "block request for {:?}, attempt {}", self.id, self.tries)
     }
 }
 
-type DelayedTask<BI> = (RequestTask<BI>, Duration);
+type DelayedTask = (RequestTask, Duration);
 
 /// What do to with the task, either ignore or perform a request and add a delayed task.
-pub enum Action<I: PeerId, J: Justification> {
+pub enum Action<I: PeerId> {
     Ignore,
-    Request(PreRequest<I, J>, DelayedTask<BlockIdFor<J>>),
+    Request(PreRequest<I>, DelayedTask),
 }
 
-impl<BI: BlockIdentifier> RequestTask<BI> {
+impl RequestTask {
     /// A new task for requesting block with the provided ID.
-    pub fn new(id: BI) -> Self {
+    pub fn new(id: BlockId) -> Self {
         RequestTask { id, tries: 0 }
     }
 
     /// Process the task.
-    pub fn process<I, J>(self, interest_provider: InterestProvider<I, J>) -> Action<I, J>
+    pub fn process<I, J>(self, interest_provider: InterestProvider<I, J>) -> Action<I>
     where
         I: PeerId,
         J: Justification,
-        J::Header: Header<Identifier = BI>,
     {
         let RequestTask { id, tries } = self;
         match interest_provider.get(&id) {

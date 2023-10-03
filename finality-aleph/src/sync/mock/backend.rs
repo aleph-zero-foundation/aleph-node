@@ -11,19 +11,19 @@ use crate::{
     nodes::VERIFIER_CACHE_SIZE,
     session::{SessionBoundaryInfo, SessionId},
     sync::{
-        mock::{MockBlock, MockHeader, MockIdentifier, MockJustification, MockNotification},
+        mock::{MockBlock, MockHeader, MockJustification, MockNotification},
         Block, BlockImport, BlockStatus, ChainStatus, ChainStatusNotifier, FinalizationStatus,
         Finalizer, Header, Justification as JustificationT, Verifier,
     },
-    BlockIdentifier,
+    BlockId,
 };
 
 #[derive(Clone, Debug)]
 struct BackendStorage {
     session_boundary_info: SessionBoundaryInfo,
-    blockchain: HashMap<MockIdentifier, MockBlock>,
-    finalized: Vec<MockIdentifier>,
-    prune_candidates: HashSet<MockIdentifier>,
+    blockchain: HashMap<BlockId, MockBlock>,
+    finalized: Vec<BlockId>,
+    prune_candidates: HashSet<BlockId>,
 }
 
 #[derive(Clone, Debug)]
@@ -33,11 +33,11 @@ pub struct Backend {
 }
 
 fn is_predecessor(
-    blockchain: &HashMap<MockIdentifier, MockBlock>,
-    id: &MockIdentifier,
-    maybe_predecessor: &MockIdentifier,
-    definitely_not: &HashSet<MockIdentifier>,
-    definitely: &HashSet<MockIdentifier>,
+    blockchain: &HashMap<BlockId, MockBlock>,
+    id: &BlockId,
+    maybe_predecessor: &BlockId,
+    definitely_not: &HashSet<BlockId>,
+    definitely: &HashSet<BlockId>,
 ) -> bool {
     let mut header = blockchain.get(id).expect("should exist").header();
     while let Some(parent) = header.parent_id() {
@@ -308,7 +308,7 @@ impl Display for StatusError {
 impl ChainStatus<MockBlock, MockJustification> for Backend {
     type Error = StatusError;
 
-    fn status_of(&self, id: MockIdentifier) -> Result<BlockStatus<MockJustification>, Self::Error> {
+    fn status_of(&self, id: BlockId) -> Result<BlockStatus<MockJustification>, Self::Error> {
         let storage = self.inner.lock();
         let block = match storage.blockchain.get(&id) {
             Some(block) => block,
@@ -322,7 +322,7 @@ impl ChainStatus<MockBlock, MockJustification> for Backend {
         }
     }
 
-    fn block(&self, id: MockIdentifier) -> Result<Option<MockBlock>, Self::Error> {
+    fn block(&self, id: BlockId) -> Result<Option<MockBlock>, Self::Error> {
         Ok(self.inner.lock().blockchain.get(&id).cloned())
     }
 
@@ -369,7 +369,7 @@ impl ChainStatus<MockBlock, MockJustification> for Backend {
             .ok_or(StatusError)
     }
 
-    fn children(&self, id: MockIdentifier) -> Result<Vec<MockHeader>, Self::Error> {
+    fn children(&self, id: BlockId) -> Result<Vec<MockHeader>, Self::Error> {
         match self.status_of(id.clone())? {
             BlockStatus::Unknown => Err(StatusError),
             _ => {

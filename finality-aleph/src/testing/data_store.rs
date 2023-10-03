@@ -42,7 +42,7 @@ impl TestBlockRequester {
     }
 }
 
-impl RequestBlocks<BlockId> for TestBlockRequester {
+impl RequestBlocks for TestBlockRequester {
     type Error = TrySendError<BlockId>;
     fn request_block(&self, block_id: BlockId) -> Result<(), Self::Error> {
         self.blocks.unbounded_send(block_id)

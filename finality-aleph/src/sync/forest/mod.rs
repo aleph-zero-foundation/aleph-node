@@ -10,8 +10,8 @@ use static_assertions::const_assert;
 
 use crate::{
     aleph_primitives::DEFAULT_SESSION_PERIOD,
-    sync::{data::BranchKnowledge, Block, BlockIdFor, ChainStatus, Header, Justification, PeerId},
-    BlockIdentifier, BlockNumber,
+    sync::{data::BranchKnowledge, Block, BlockId, ChainStatus, Header, Justification, PeerId},
+    BlockNumber,
 };
 
 mod vertex;
@@ -28,8 +28,8 @@ pub enum SpecialState {
 
 enum VertexHandleMut<'a, I: PeerId, J: Justification> {
     Special(SpecialState),
-    Unknown(VacantEntry<'a, BlockIdFor<J>, VertexWithChildren<I, J>>),
-    Candidate(OccupiedEntry<'a, BlockIdFor<J>, VertexWithChildren<I, J>>),
+    Unknown(VacantEntry<'a, BlockId, VertexWithChildren<I, J>>),
+    Candidate(OccupiedEntry<'a, BlockId, VertexWithChildren<I, J>>),
 }
 
 enum VertexHandle<'a, I: PeerId, J: Justification> {
@@ -41,28 +41,28 @@ enum VertexHandle<'a, I: PeerId, J: Justification> {
 /// Our interest in a branch referred to by a vertex,
 /// including all the information required to prepare a request.
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub enum Interest<I: PeerId, J: Justification> {
+pub enum Interest<I: PeerId> {
     /// We are not interested in requesting this branch.
     Uninterested,
     /// We would like to have this branch.
     Required {
         know_most: HashSet<I>,
-        branch_knowledge: BranchKnowledge<J>,
+        branch_knowledge: BranchKnowledge,
     },
 }
 
 /// What kind of extension we should request and from whom.
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub enum ExtensionRequest<I: PeerId, J: Justification> {
+pub enum ExtensionRequest<I: PeerId> {
     /// We are not interested in requesting anything at this point.
     Noop,
     /// We would like to have children of our favourite block.
     FavouriteBlock { know_most: HashSet<I> },
     /// We would like to have the justified block.
     HighestJustified {
-        id: BlockIdFor<J>,
+        id: BlockId,
         know_most: HashSet<I>,
-        branch_knowledge: BranchKnowledge<J>,
+        branch_knowledge: BranchKnowledge,
     },
 }
 
@@ -125,7 +125,7 @@ where
 
 pub struct VertexWithChildren<I: PeerId, J: Justification> {
     vertex: Vertex<I, J>,
-    children: HashSet<BlockIdFor<J>>,
+    children: HashSet<BlockId>,
 }
 
 impl<I: PeerId, J: Justification> VertexWithChildren<I, J> {
@@ -136,7 +136,7 @@ impl<I: PeerId, J: Justification> VertexWithChildren<I, J> {
         }
     }
 
-    fn add_child(&mut self, child: BlockIdFor<J>) {
+    fn add_child(&mut self, child: BlockId) {
         self.children.insert(child);
     }
 }
@@ -153,17 +153,17 @@ where
     I: PeerId,
     J: Justification,
 {
-    vertices: HashMap<BlockIdFor<J>, VertexWithChildren<I, J>>,
-    highest_justified: BlockIdFor<J>,
-    justified_blocks: HashMap<BlockNumber, BlockIdFor<J>>,
-    imported_leaves: HashSet<BlockIdFor<J>>,
-    favourite: BlockIdFor<J>,
-    root_id: BlockIdFor<J>,
-    root_children: HashSet<BlockIdFor<J>>,
-    compost_bin: HashSet<BlockIdFor<J>>,
+    vertices: HashMap<BlockId, VertexWithChildren<I, J>>,
+    highest_justified: BlockId,
+    justified_blocks: HashMap<BlockNumber, BlockId>,
+    imported_leaves: HashSet<BlockId>,
+    favourite: BlockId,
+    root_id: BlockId,
+    root_children: HashSet<BlockId>,
+    compost_bin: HashSet<BlockId>,
 }
 
-type Edge<J> = (BlockIdFor<J>, BlockIdFor<J>);
+type Edge = (BlockId, BlockId);
 
 impl<I, J> Forest<I, J>
 where
@@ -208,7 +208,7 @@ where
         Ok(forest)
     }
 
-    fn special_state(&self, id: &BlockIdFor<J>) -> Option<SpecialState> {
+    fn special_state(&self, id: &BlockId) -> Option<SpecialState> {
         use SpecialState::*;
         if id == &self.root_id {
             Some(HighestFinalized)
@@ -223,7 +223,7 @@ where
         }
     }
 
-    fn get_mut(&mut self, id: &BlockIdFor<J>) -> VertexHandleMut<I, J> {
+    fn get_mut(&mut self, id: &BlockId) -> VertexHandleMut<I, J> {
         use VertexHandleMut::*;
         if let Some(state) = self.special_state(id) {
             Special(state)
@@ -235,7 +235,7 @@ where
         }
     }
 
-    fn get(&self, id: &BlockIdFor<J>) -> VertexHandle<I, J> {
+    fn get(&self, id: &BlockId) -> VertexHandle<I, J> {
         use VertexHandle::*;
         if let Some(state) = self.special_state(id) {
             Special(state)
@@ -247,7 +247,7 @@ where
         }
     }
 
-    fn connect_parent(&mut self, id: &BlockIdFor<J>) {
+    fn connect_parent(&mut self, id: &BlockId) {
         use SpecialState::*;
         use VertexHandleMut::*;
         if let Candidate(mut entry) = self.get_mut(id) {
@@ -280,7 +280,7 @@ where
         };
     }
 
-    fn set_required(&mut self, id: &BlockIdFor<J>) {
+    fn set_required(&mut self, id: &BlockId) {
         if let VertexHandleMut::Candidate(mut entry) = self.get_mut(id) {
             let vertex = entry.get_mut();
             if vertex.vertex.set_required() {
@@ -291,7 +291,7 @@ where
         }
     }
 
-    fn set_explicitly_required(&mut self, id: &BlockIdFor<J>) -> bool {
+    fn set_explicitly_required(&mut self, id: &BlockId) -> bool {
         match self.get_mut(id) {
             VertexHandleMut::Candidate(mut entry) => {
                 match entry.get_mut().vertex.set_explicitly_required() {
@@ -308,7 +308,7 @@ where
         }
     }
 
-    fn insert_id(&mut self, id: BlockIdFor<J>, holder: Option<I>) -> Result<(), Error> {
+    fn insert_id(&mut self, id: BlockId, holder: Option<I>) -> Result<(), Error> {
         match self.special_state(&id) {
             Some(SpecialState::TooNew) => Err(Error::TooNew),
             Some(_) => Ok(()),
@@ -323,7 +323,7 @@ where
         }
     }
 
-    fn process_header(&mut self, header: &J::Header) -> Result<Edge<J>, Error> {
+    fn process_header(&mut self, header: &J::Header) -> Result<Edge, Error> {
         Ok((
             header.id(),
             header.parent_id().ok_or(Error::HeaderMissingParentId)?,
@@ -333,7 +333,7 @@ where
     /// Updates the provider block identifier, returns whether it became a new explicitly required.
     pub fn update_block_identifier(
         &mut self,
-        id: &BlockIdFor<J>,
+        id: &BlockId,
         holder: Option<I>,
         required: bool,
     ) -> Result<bool, Error> {
@@ -407,7 +407,7 @@ where
     }
 
     /// Updates the `highest_justified` if the given id is higher.
-    fn try_update_highest_justified(&mut self, id: BlockIdFor<J>) -> bool {
+    fn try_update_highest_justified(&mut self, id: BlockId) -> bool {
         match id.number() > self.highest_justified.number() {
             true => {
                 self.highest_justified = id;
@@ -462,7 +462,7 @@ where
             .clone();
     }
 
-    fn prune(&mut self, id: &BlockIdFor<J>) {
+    fn prune(&mut self, id: &BlockId) {
         if let Some(VertexWithChildren { children, .. }) = self.vertices.remove(id) {
             self.imported_leaves.remove(id);
             self.compost_bin.insert(id.clone());
@@ -508,7 +508,7 @@ where
 
     /// Returns the BranchKnowledge regarding the given block id,
     /// or None if there is no branch at all.
-    fn branch_knowledge(&self, mut id: BlockIdFor<J>) -> Option<BranchKnowledge<J>> {
+    fn branch_knowledge(&self, mut id: BlockId) -> Option<BranchKnowledge> {
         use SpecialState::*;
         use VertexHandle::*;
         // traverse ancestors till we reach something imported or a parentless vertex
@@ -547,9 +547,9 @@ where
     /// Can be forced to fake interest, but only for blocks we know about.
     fn prepare_request_info(
         &self,
-        id: &BlockIdFor<J>,
+        id: &BlockId,
         force: bool,
-    ) -> Option<(HashSet<I>, BranchKnowledge<J>)> {
+    ) -> Option<(HashSet<I>, BranchKnowledge)> {
         use VertexHandle::Candidate;
         match self.get(id) {
             Candidate(vertex) => {
@@ -568,7 +568,7 @@ where
     }
 
     /// How much interest we have for requesting the block.
-    pub fn request_interest(&self, id: &BlockIdFor<J>) -> Interest<I, J> {
+    pub fn request_interest(&self, id: &BlockId) -> Interest<I> {
         match self.prepare_request_info(id, false) {
             Some((know_most, branch_knowledge)) => Interest::Required {
                 know_most,
@@ -579,7 +579,7 @@ where
     }
 
     /// Whether we would like to eventually import this block.
-    pub fn importable(&self, id: &BlockIdFor<J>) -> bool {
+    pub fn importable(&self, id: &BlockId) -> bool {
         use VertexHandle::Candidate;
         match self.get(id) {
             Candidate(vertex) => {
@@ -589,7 +589,7 @@ where
         }
     }
 
-    fn know_most(&self, id: &BlockIdFor<J>) -> HashSet<I> {
+    fn know_most(&self, id: &BlockId) -> HashSet<I> {
         match self.get(id) {
             VertexHandle::Candidate(vertex) => vertex.vertex.know_most().clone(),
             _ => HashSet::new(),
@@ -606,7 +606,7 @@ where
     /// Returns an extension request with the appropriate data if either:
     /// 1. We know of a justified header for which we do not have a block, or
     /// 2. We know of nodes which have children of our favourite block.
-    pub fn extension_request(&self) -> ExtensionRequest<I, J> {
+    pub fn extension_request(&self) -> ExtensionRequest<I> {
         use ExtensionRequest::*;
         use VertexHandle::*;
         if self.behind_finalization() > 0 {
@@ -646,7 +646,7 @@ where
 
     /// Whether this block should be skipped during importing.
     /// It either needs to be already imported, or too old to be checked.
-    pub fn skippable(&self, id: &BlockIdFor<J>) -> bool {
+    pub fn skippable(&self, id: &BlockId) -> bool {
         use SpecialState::{BelowMinimal, HighestFinalized};
         use VertexHandle::{Candidate, Special};
         match self.get(id) {
@@ -657,7 +657,7 @@ where
     }
 
     /// The ID of the favourite block, i.e. the one for which we will accept imports of children.
-    pub fn favourite_block(&self) -> BlockIdFor<J> {
+    pub fn favourite_block(&self) -> BlockId {
         self.favourite.clone()
     }
 }
@@ -674,7 +674,7 @@ mod tests {
             mock::{Backend, MockHeader, MockJustification, MockPeerId},
             ChainStatus, Header, Justification,
         },
-        BlockIdentifier, BlockNumber, SessionPeriod,
+        BlockNumber, SessionPeriod,
     };
 
     type MockForest = Forest<MockPeerId, MockJustification>;
