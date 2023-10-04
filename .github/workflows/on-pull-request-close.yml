@@ -40,7 +40,7 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'state:created-featurenet')
     name: Delete featurenet
     needs: [get-featurenet-name]
-    uses: ./.github/workflows/delete-featurenet.yml
+    uses: ./.github/workflows/featurenet-delete.yml
     with:
       featurenet-name: ${{ needs.get-featurenet-name.outputs.name }}
     secrets: inherit

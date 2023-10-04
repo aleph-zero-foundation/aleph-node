@@ -37,7 +37,7 @@ jobs:
     if: github.event.label.name == 'trigger:create-featurenet'
     needs: [get-featurenet-name]
     name: Create featurenet
-    uses: ./.github/workflows/create-featurenet.yml
+    uses: ./.github/workflows/featurenet-create-from-branch.yml
     with:
       featurenet-name: ${{ needs.get-featurenet-name.outputs.name }}
     secrets: inherit
@@ -52,7 +52,7 @@ jobs:
       )
     needs: [get-featurenet-name]
     name: Delete featurenet
-    uses: ./.github/workflows/delete-featurenet.yml
+    uses: ./.github/workflows/featurenet-delete.yml
     with:
       featurenet-name: ${{ needs.get-featurenet-name.outputs.name }}
     secrets: inherit

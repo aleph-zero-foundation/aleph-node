@@ -1,0 +1,79 @@
+---
+name: FE - Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      featurenet-name:
+        description: Name of featurenet
+        required: true
+        type: string
+      destination:
+        description: Node image tag, ie 7-byte SHA of some existing ECR aleph-node image tag
+        required: true
+        type: string
+      rolling-update-partition:
+        description: |
+          Number from 0 to N-1, where N is size of am existing featurenet.
+          All aleph-node-validator-N with an ordinal N that is great than or equal to the partition
+          will be updated. If not specified, all nodes will be updated.
+        required: true
+        default: "0"
+        type: string
+      replicas:
+        description: 'Number of replicas to start, from 0 to 50'
+        required: true
+        default: '5'
+        type: string
+      internal:
+        description: 'Internal network, accessible from VPN only'
+        required: true
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      featurenet-name:
+        description: Name of featurenet
+        required: true
+        type: string
+      destination:
+        description: Node image tag, ie 7-byte SHA of some existing ECR aleph-node image tag
+        required: true
+        type: string
+      rolling-update-partition:
+        description: |
+          Number from 0 to N-1, where N is size of am existing featurenet.
+          All aleph-node-validator-N with an ordinal N that is great than or equal to the partition
+          will be updated. If not specified, all nodes will be updated.
+        required: false
+        default: "0"
+        type: string
+      replicas:
+        description: 'Number of replicas to start, from 0 to 50'
+        required: false
+        default: '5'
+        type: string
+      internal:
+        description: 'Internal network, accessible from VPN only'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
+  update-featurenet:
+    needs: [check-vars-and-secrets]
+    name: Update featurenet
+    # yamllint disable-line rule:line-length
+    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-update.yml@v3
+    secrets: inherit
+    with:
+      featurenet-name: ${{ inputs.featurenet-name }}
+      destination: ${{ inputs.destination }}
+      rolling-update-partition: ${{ inputs.rolling-update-partition }}
+      replicas: ${{ inputs.replicas }}
+      internal: ${{ inputs.internal && true || false }}

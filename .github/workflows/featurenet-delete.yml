@@ -1,0 +1,31 @@
+---
+name: FE - Delete
+
+on:
+  workflow_call:
+    inputs:
+      featurenet-name:
+        description: 'Name of featurenet'
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      featurenet-name:
+        description: 'Name of featurenet'
+        type: string
+        required: true
+
+jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
+  delete-featurenet:
+    needs: [check-vars-and-secrets]
+    name: Delete featurenet
+    # yamllint disable-line rule:line-length
+    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-delete.yml@v3
+    secrets: inherit
+    with:
+      featurenet-name: ${{ inputs.featurenet-name }}

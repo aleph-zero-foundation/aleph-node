@@ -1,0 +1,84 @@
+---
+name: FE - Create from net
+
+on:
+  workflow_dispatch:
+    inputs:
+      featurenet-name:
+        description: 'Name of the featurenet'
+        required: true
+        type: string
+      start:
+        description: 'aleph-node image to be started'
+        required: true
+        type: choice
+        options:
+          - testnet
+          - mainnet
+        default: testnet
+      expiration:
+        description: 'Time after which featurenet will be removed'
+        required: true
+        type: choice
+        options:
+          - 48h
+          - 24h
+          - 12h
+          - 3h
+          - 96h
+          - never
+        default: 48h
+      replicas:
+        description: 'Number of replicas to start, from 0 to 50'
+        required: true
+        default: '5'
+        type: string
+      internal:
+        description: 'Internal network, accessible from VPN only'
+        required: true
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      featurenet-name:
+        description: 'Name of the featurenet'
+        required: true
+        type: string
+      start:
+        description: 'aleph-node image to be started'
+        required: true
+        type: string
+      expiration:
+        description: 'Time after which featurenet will be removed: "Xh" or "never"'
+        required: false
+        type: string
+        default: 48h
+      replicas:
+        description: 'Number of replicas to start, from 0 to 50'
+        required: false
+        default: '5'
+        type: string
+      internal:
+        description: 'Internal network, accessible from VPN only'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
+  create-featurenet:
+    needs: [check-vars-and-secrets]
+    name: Create featurenet
+    # yamllint disable-line rule:line-length
+    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-create-from-net.yml@v3
+    secrets: inherit
+    with:
+      featurenet-name: ${{ inputs.featurenet-name }}
+      start: ${{ inputs.start == 'mainnet' && 'mainnet' || 'testnet' }}
+      expiration: ${{ inputs.expiration }}
+      replicas: ${{ inputs.replicas }}
+      internal: ${{ inputs.internal && true || false }}

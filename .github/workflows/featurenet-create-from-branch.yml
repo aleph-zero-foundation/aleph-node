@@ -1,0 +1,117 @@
+---
+name: FE - Create from branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      featurenet-name:
+        description: 'Name of featurenet'
+        type: string
+        required: true
+      expiration:
+        description: 'Time after which featurenet will be removed'
+        required: true
+        type: choice
+        options:
+          - 48h
+          - 24h
+          - 12h
+          - 3h
+          - 96h
+          - never
+        default: '48h'
+      replicas:
+        description: 'Number of replicas to start, from 0 to 50'
+        required: true
+        default: '5'
+        type: string
+      internal:
+        description: 'Internal network, accessible from VPN only'
+        required: true
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      featurenet-name:
+        description: 'Name of featurenet'
+        type: string
+        required: true
+      expiration:
+        description: 'Time after which featurenet will be removed'
+        required: false
+        type: string
+        default: '48h'
+      replicas:
+        description: 'Number of replicas to start, from 0 to 50'
+        required: false
+        default: '5'
+        type: string
+      internal:
+        description: 'Internal network, accessible from VPN only'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  validate-inputs:
+    name: Validate inputs
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Validate inputs
+        shell: bash
+        # yamllint disable rule:line-length
+        run: |
+          if [[
+          ! "${{ inputs.featurenet-name }}" =~ ^[a-z0-9][a-z0-9\-]{4,48}$
+          ]]
+          then
+            echo "!!! Invalid featurenet name"
+            exit 1
+          fi
+        # yamllint enable rule:line-length
+
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    needs: [validate-inputs]
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
+  build-test-node-and-runtime:
+    name: Build test node and runtime
+    needs: [check-vars-and-secrets]
+    uses: ./.github/workflows/_build-test-node-and-runtime.yml
+    secrets: inherit
+
+  store-test-node-and-runtime:
+    name: Store test node and runtime in Devnet bucket
+    runs-on: ubuntu-20.04
+    needs: [build-test-node-and-runtime]
+    steps:
+      - name: Checkout aleph-node source code
+        uses: actions/checkout@v4
+
+      - name: Store test node and runtime
+        uses: ./.github/actions/store-node-and-runtime
+        with:
+          profile: test
+          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
+          aws-bucket: ${{ secrets.CI_DEVNET_S3BUCKET_NAME }}
+
+  push-featurnet-node-image-to-ecr:
+    needs: [store-test-node-and-runtime]
+    name: Build and push PR tesdocker image to ECR
+    uses: ./.github/workflows/_build-and-push-pull-request-image-to-featurenets.yml
+    secrets: inherit
+
+  create-featurenet:
+    needs: [push-featurnet-node-image-to-ecr]
+    name: Create featurenet based on the PR
+    # yamllint disable-line rule:line-length
+    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-create-from-branch.yml@v3
+    secrets: inherit
+    with:
+      expiration: ${{ inputs.expiration }}
+      replicas: ${{ inputs.replicas }}
+      internal: ${{ inputs.internal && true || false }}
+      featurenet-name: ${{ inputs.featurenet-name }}

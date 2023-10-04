@@ -84,7 +84,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
           aws-bucket: ${{ secrets.CI_DEVNET_S3BUCKET_NAME }}
 
-  push-featurnet-node-image-to-ecr:
+  push-featurenet-node-image-to-ecr:
     needs: [build-test-node-and-runtime]
     name: Build and push PR test docker image to ECR
     uses: ./.github/workflows/_build-and-push-pull-request-image-to-featurenets.yml
@@ -92,7 +92,7 @@ jobs:
 
   runs-e2e-test-on-fe:
     needs:
-      - push-featurnet-node-image-to-ecr
+      - push-featurenet-node-image-to-ecr
       - build-e2e-client-image
       - store-test-node-and-runtime
       - get-e2e-test-case-names
