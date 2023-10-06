@@ -95,7 +95,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 66,
+    spec_version: 67,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 17,
@@ -844,8 +844,10 @@ impl Get<Perbill> for ZeroMaxGlobalCommission {
 /// All migrations that will run on the next runtime upgrade.
 ///
 /// Should be cleared after every release.
-pub type Migrations =
-    (pallet_nomination_pools::migration::v4::MigrateV3ToV5<Runtime, ZeroMaxGlobalCommission>,);
+pub type Migrations = (
+    pallet_nomination_pools::migration::v4::MigrateV3ToV5<Runtime, ZeroMaxGlobalCommission>,
+    pallet_contracts::migration::Migration<Runtime>,
+);
 
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
