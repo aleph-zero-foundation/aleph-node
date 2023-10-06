@@ -51,12 +51,3 @@ pub trait NodeSessionManager {
     /// Returns idx of the node if it is in the authority set, None otherwise
     fn node_idx(&self, authorities: &[AuthorityId]) -> Option<NodeIndex>;
 }
-
-pub trait SyncState {
-    /// Are we in the process of downloading the chain?
-    ///
-    /// Like [`RequestBlocks::is_major_syncing`][1].
-    ///
-    /// [1]: finality_aleph::network::RequestBlocks::is_major_syncing
-    fn is_major_syncing(&self) -> bool;
-}

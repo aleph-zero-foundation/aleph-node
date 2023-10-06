@@ -13,7 +13,7 @@ use crate::{
     party::{
         backup::ABFTBackup,
         manager::AuthorityTask,
-        traits::{ChainState, NodeSessionManager, SyncState},
+        traits::{ChainState, NodeSessionManager},
     },
     AuthorityId, NodeIndex, SessionId,
 };
@@ -50,29 +50,6 @@ impl ChainState for Arc<MockChainState> {
 
     fn finalized_number(&self) -> BlockNumber {
         *self.finalized_block.lock().unwrap()
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct MockSyncState {
-    pub is_syncing: AMutex<bool>,
-}
-
-impl MockSyncState {
-    pub fn new() -> Self {
-        Self {
-            is_syncing: Arc::new(Mutex::new(false)),
-        }
-    }
-
-    pub fn _set_is_syncing(&self, is_syncing: bool) {
-        *self.is_syncing.lock().unwrap() = is_syncing;
-    }
-}
-
-impl SyncState for Arc<MockSyncState> {
-    fn is_major_syncing(&self) -> bool {
-        *self.is_syncing.lock().unwrap()
     }
 }
 

@@ -7,11 +7,11 @@ use tokio::{task::spawn_blocking, time::sleep};
 use crate::{
     party::{
         manager::{Handle, SubtaskCommon as AuthoritySubtaskCommon, Task},
-        traits::{ChainState, NodeSessionManager, SyncState},
+        traits::{ChainState, NodeSessionManager},
     },
     session::SessionBoundaryInfo,
     session_map::ReadOnlySessionMap,
-    SessionId,
+    SessionId, SyncOracle,
 };
 
 pub(crate) mod backup;
@@ -22,24 +22,23 @@ pub mod traits;
 #[cfg(test)]
 mod mocks;
 
-pub(crate) struct ConsensusPartyParams<ST, CS, NSM> {
+pub(crate) struct ConsensusPartyParams<CS, NSM> {
     pub session_authorities: ReadOnlySessionMap,
     pub chain_state: CS,
-    pub sync_state: ST,
+    pub sync_oracle: SyncOracle,
     pub backup_saving_path: Option<PathBuf>,
     pub session_manager: NSM,
     pub session_info: SessionBoundaryInfo,
 }
 
-pub(crate) struct ConsensusParty<ST, CS, NSM>
+pub(crate) struct ConsensusParty<CS, NSM>
 where
-    ST: SyncState,
     CS: ChainState,
     NSM: NodeSessionManager,
 {
     session_authorities: ReadOnlySessionMap,
     chain_state: CS,
-    sync_state: ST,
+    sync_oracle: SyncOracle,
     backup_saving_path: Option<PathBuf>,
     session_manager: NSM,
     session_info: SessionBoundaryInfo,
@@ -47,16 +46,15 @@ where
 
 const SESSION_STATUS_CHECK_PERIOD: Duration = Duration::from_millis(1000);
 
-impl<ST, CS, NSM> ConsensusParty<ST, CS, NSM>
+impl<CS, NSM> ConsensusParty<CS, NSM>
 where
-    ST: SyncState,
     CS: ChainState,
     NSM: NodeSessionManager,
 {
-    pub(crate) fn new(params: ConsensusPartyParams<ST, CS, NSM>) -> Self {
+    pub(crate) fn new(params: ConsensusPartyParams<CS, NSM>) -> Self {
         let ConsensusPartyParams {
             session_authorities,
-            sync_state,
+            sync_oracle,
             backup_saving_path,
             chain_state,
             session_manager,
@@ -64,7 +62,7 @@ where
             ..
         } = params;
         Self {
-            sync_state,
+            sync_oracle,
             session_authorities,
             backup_saving_path,
             chain_state,
@@ -239,9 +237,7 @@ where
     async fn catch_up(&mut self) -> SessionId {
         let mut finalized_number = self.chain_state.finalized_number();
         let mut previous_finalized_number = None;
-        while self.sync_state.is_major_syncing()
-            && Some(finalized_number) != previous_finalized_number
-        {
+        while self.sync_oracle.major_sync() && Some(finalized_number) != previous_finalized_number {
             sleep(Duration::from_millis(500)).await;
             previous_finalized_number = Some(finalized_number);
             finalized_number = self.chain_state.finalized_number();
@@ -265,16 +261,15 @@ mod tests {
     use crate::{
         aleph_primitives::{AuthorityId, SessionAuthorityData},
         party::{
-            mocks::{MockChainState, MockNodeSessionManager, MockSyncState},
+            mocks::{MockChainState, MockNodeSessionManager},
             ConsensusParty, ConsensusPartyParams, SESSION_STATUS_CHECK_PERIOD,
         },
         session::SessionBoundaryInfo,
         session_map::SharedSessionMap,
-        SessionId, SessionPeriod,
+        SessionId, SessionPeriod, SyncOracle,
     };
 
-    type Party =
-        ConsensusParty<Arc<MockSyncState>, Arc<MockChainState>, Arc<MockNodeSessionManager>>;
+    type Party = ConsensusParty<Arc<MockChainState>, Arc<MockNodeSessionManager>>;
 
     struct PartyState {
         validator_started: Vec<SessionId>,
@@ -484,7 +479,6 @@ mod tests {
     #[derive(Debug)]
     struct MockController {
         pub shared_session_map: SharedSessionMap,
-        pub _sync_state_mock: Arc<MockSyncState>,
         pub chain_state_mock: Arc<MockChainState>,
         pub node_session_manager: Arc<MockNodeSessionManager>,
     }
@@ -493,20 +487,19 @@ mod tests {
     fn create_mocked_consensus_party(
         session_period: SessionPeriod,
     ) -> (
-        ConsensusParty<Arc<MockSyncState>, Arc<MockChainState>, Arc<MockNodeSessionManager>>,
+        ConsensusParty<Arc<MockChainState>, Arc<MockNodeSessionManager>>,
         MockController,
     ) {
         let shared_map = SharedSessionMap::new();
         let readonly_session_authorities = shared_map.read_only();
 
         let chain_state = Arc::new(MockChainState::new());
-        let sync_state = Arc::new(MockSyncState::new());
+        let sync_oracle = SyncOracle::new();
         let session_manager = Arc::new(MockNodeSessionManager::new());
         let session_info = SessionBoundaryInfo::new(session_period);
 
         let controller = MockController {
             shared_session_map: shared_map,
-            _sync_state_mock: sync_state.clone(),
             chain_state_mock: chain_state.clone(),
             node_session_manager: session_manager.clone(),
         };
@@ -514,7 +507,7 @@ mod tests {
         let params = ConsensusPartyParams {
             session_authorities: readonly_session_authorities,
             chain_state,
-            sync_state,
+            sync_oracle,
             backup_saving_path: None,
             session_manager,
             session_info,

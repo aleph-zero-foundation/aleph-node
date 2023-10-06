@@ -220,6 +220,7 @@ fn setup(
         Arc<SyncingService<Block>>,
         ProtocolNaming,
         NetworkStarter,
+        SyncOracle,
     ),
     ServiceError,
 > {
@@ -255,10 +256,11 @@ fn setup(
             warp_sync_params: None,
         })?;
 
-    let sync_oracle = sync_network.clone();
+    let sync_oracle = SyncOracle::new();
     let rpc_builder = {
         let client = client.clone();
         let pool = transaction_pool.clone();
+        let sync_oracle = sync_oracle.clone();
         Box::new(move |deny_unsafe, _| {
             let deps = RpcFullDeps {
                 client: client.clone(),
@@ -294,6 +296,7 @@ fn setup(
         sync_network,
         protocol_naming,
         network_starter,
+        sync_oracle,
     ))
 }
 
@@ -330,18 +333,19 @@ pub fn new_authority(
 
     let chain_status = SubstrateChainStatus::new(backend.clone())
         .map_err(|e| ServiceError::Other(format!("failed to set up chain status: {e}")))?;
-    let (_rpc_handlers, network, sync_network, protocol_naming, network_starter) = setup(
-        config,
-        backend,
-        chain_status.clone(),
-        &keystore_container,
-        import_queue,
-        transaction_pool.clone(),
-        &mut task_manager,
-        client.clone(),
-        &mut telemetry,
-        justification_tx,
-    )?;
+    let (_rpc_handlers, network, sync_network, protocol_naming, network_starter, sync_oracle) =
+        setup(
+            config,
+            backend,
+            chain_status.clone(),
+            &keystore_container,
+            import_queue,
+            transaction_pool.clone(),
+            &mut task_manager,
+            client.clone(),
+            &mut telemetry,
+            justification_tx,
+        )?;
 
     let mut proposer_factory = sc_basic_authorship::ProposerFactory::new(
         task_manager.spawn_handle(),
@@ -353,8 +357,6 @@ pub fn new_authority(
     proposer_factory.set_default_block_size_limit(MAX_BLOCK_SIZE as usize);
 
     let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
-
-    let sync_oracle = SyncOracle::new();
 
     let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _, _, _, _, _>(
         StartAuraParams {

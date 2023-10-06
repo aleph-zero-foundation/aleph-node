@@ -156,7 +156,7 @@ where
         import_queue_handle,
         block_sync_network,
         chain_events,
-        sync_oracle,
+        sync_oracle.clone(),
         justification_rx,
     );
     let (sync_service, justifications_for_sync, request_block) =
@@ -191,7 +191,7 @@ where
 
     let party = ConsensusParty::new(ConsensusPartyParams {
         session_authorities,
-        sync_state: block_requester,
+        sync_oracle,
         backup_saving_path,
         chain_state: ChainStateImpl {
             client: client.clone(),
