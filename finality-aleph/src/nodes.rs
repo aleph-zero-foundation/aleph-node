@@ -25,9 +25,9 @@ use crate::{
     session::SessionBoundaryInfo,
     session_map::{AuthorityProviderImpl, FinalityNotifierImpl, SessionMapUpdater},
     sync::{
-        ChainStatus, FinalizationStatus, Justification, JustificationTranslator,
-        Service as SyncService, SubstrateChainStatusNotifier, SubstrateFinalizationInfo,
-        VerifierCache, IO as SyncIO,
+        ChainStatus, DatabaseIO as SyncDatabaseIO, FinalizationStatus, Justification,
+        JustificationTranslator, Service as SyncService, SubstrateChainStatusNotifier,
+        SubstrateFinalizationInfo, VerifierCache, IO as SyncIO,
     },
     AlephConfig,
 };
@@ -65,6 +65,7 @@ where
         session_period,
         millisecs_per_block,
         justification_rx,
+        block_rx,
         backup_saving_path,
         external_addresses,
         validator_port,
@@ -149,13 +150,12 @@ where
     let finalizer = AlephFinalizer::new(client.clone(), metrics.clone());
     import_queue_handle.attach_metrics(metrics.clone());
     let sync_io = SyncIO::new(
-        chain_status.clone(),
-        finalizer,
-        import_queue_handle,
+        SyncDatabaseIO::new(chain_status.clone(), finalizer, import_queue_handle),
         block_sync_network,
         chain_events,
         sync_oracle.clone(),
         justification_rx,
+        block_rx,
     );
     let (sync_service, justifications_for_sync, request_block) =
         match SyncService::new(verifier, session_info.clone(), sync_io, registry.clone()) {

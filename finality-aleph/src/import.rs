@@ -1,6 +1,10 @@
-use std::{fmt::Debug, time::Instant};
+use std::{
+    error::Error,
+    fmt::{Debug, Display, Error as FmtError, Formatter},
+    time::Instant,
+};
 
-use futures::channel::mpsc::{TrySendError, UnboundedSender};
+use futures::channel::mpsc::{self, TrySendError, UnboundedReceiver, UnboundedSender};
 use log::{debug, warn};
 use sc_consensus::{
     BlockCheckParams, BlockImport, BlockImportParams, ImportResult, JustificationImport,
@@ -215,5 +219,87 @@ where
                     ConsensusError::ClientImport(format!("Could not translate justification: {e}"))
                 }
             })
+    }
+}
+
+/// A wrapper around a block import that actually sends all the blocks elsewhere through a channel.
+/// Very barebones, e.g. does not work with justifications, but sufficient for passing to Aura.
+#[derive(Clone)]
+pub struct RedirectingBlockImport<I>
+where
+    I: BlockImport<Block> + Clone + Send,
+{
+    inner: I,
+    blocks_tx: UnboundedSender<Block>,
+}
+
+impl<I> RedirectingBlockImport<I>
+where
+    I: BlockImport<Block> + Clone + Send,
+{
+    pub fn new(inner: I) -> (Self, UnboundedReceiver<Block>) {
+        let (blocks_tx, blocks_rx) = mpsc::unbounded();
+        (Self { inner, blocks_tx }, blocks_rx)
+    }
+}
+
+/// What can go wrong when redirecting a block import.
+#[derive(Debug)]
+pub enum RedirectingImportError<E> {
+    Inner(E),
+    MissingBody,
+    ChannelClosed,
+}
+
+impl<E: Display> Display for RedirectingImportError<E> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
+        use RedirectingImportError::*;
+        match self {
+            Inner(e) => write!(f, "{}", e),
+            MissingBody => write!(
+                f,
+                "redirecting block import does not support importing blocks without a body"
+            ),
+            ChannelClosed => write!(f, "channel closed, cannot redirect import"),
+        }
+    }
+}
+
+impl<E: Display + Debug> Error for RedirectingImportError<E> {}
+
+#[async_trait::async_trait]
+impl<I> BlockImport<Block> for RedirectingBlockImport<I>
+where
+    I: BlockImport<Block> + Clone + Send,
+{
+    type Error = RedirectingImportError<I::Error>;
+    type Transaction = I::Transaction;
+
+    async fn check_block(
+        &mut self,
+        block: BlockCheckParams<Block>,
+    ) -> Result<ImportResult, Self::Error> {
+        self.inner
+            .check_block(block)
+            .await
+            .map_err(RedirectingImportError::Inner)
+    }
+
+    async fn import_block(
+        &mut self,
+        block: BlockImportParams<Block, Self::Transaction>,
+    ) -> Result<ImportResult, Self::Error> {
+        let header = block.post_header();
+        let BlockImportParams { body, .. } = block;
+
+        let extrinsics = body.ok_or(RedirectingImportError::MissingBody)?;
+
+        self.blocks_tx
+            .unbounded_send(Block { header, extrinsics })
+            .map_err(|_| RedirectingImportError::ChannelClosed)?;
+
+        // We claim it was successfully imported and no further action is necessary.
+        // This is likely inaccurate, but again, should be enough for Aura.
+        Ok(ImportResult::Imported(Default::default()))
     }
 }

@@ -9,7 +9,8 @@ use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use finality_aleph::{
     run_validator_node, AlephBlockImport, AlephConfig, BlockImporter, Justification,
     JustificationTranslator, MillisecsPerBlock, Protocol, ProtocolNaming, RateLimiterConfig,
-    SessionPeriod, SubstrateChainStatus, SyncOracle, TimingBlockMetrics, TracingBlockImport,
+    RedirectingBlockImport, SessionPeriod, SubstrateChainStatus, SyncOracle, TimingBlockMetrics,
+    TracingBlockImport,
 };
 use futures::channel::mpsc;
 use log::warn;
@@ -88,7 +89,6 @@ pub fn new_partial(
         sc_consensus::DefaultImportQueue<Block, FullClient>,
         sc_transaction_pool::FullPool<Block, FullClient>,
         (
-            TracingBlockImport<Arc<FullClient>>,
             mpsc::UnboundedSender<Justification>,
             mpsc::UnboundedReceiver<Justification>,
             Option<Telemetry>,
@@ -151,7 +151,7 @@ pub fn new_partial(
             .map_err(|e| ServiceError::Other(format!("failed to set up chain status: {e}")))?,
     );
     let aleph_block_import = AlephBlockImport::new(
-        tracing_block_import.clone(),
+        tracing_block_import,
         justification_tx.clone(),
         justification_translator,
     );
@@ -190,13 +190,7 @@ pub fn new_partial(
         keystore_container,
         select_chain,
         transaction_pool,
-        other: (
-            tracing_block_import,
-            justification_tx,
-            justification_rx,
-            telemetry,
-            metrics,
-        ),
+        other: (justification_tx, justification_rx, telemetry, metrics),
     })
 }
 
@@ -313,8 +307,10 @@ pub fn new_authority(
         keystore_container,
         select_chain,
         transaction_pool,
-        other: (block_import, justification_tx, justification_rx, mut telemetry, metrics),
+        other: (justification_tx, justification_rx, mut telemetry, metrics),
     } = new_partial(&config)?;
+
+    let (block_import, block_rx) = RedirectingBlockImport::new(client.clone());
 
     let backup_path = backup_path(&aleph_config, config.base_path.path());
 
@@ -380,7 +376,7 @@ pub fn new_authority(
             backoff_authoring_blocks,
             keystore: keystore_container.keystore(),
             sync_oracle: sync_oracle.clone(),
-            justification_sync_link: sync_network.clone(),
+            justification_sync_link: (),
             block_proposal_slot_portion: SlotProportion::new(2f32 / 3f32),
             max_block_proposal_slot_portion: None,
             telemetry: telemetry.as_ref().map(|x| x.handle()),
@@ -415,6 +411,7 @@ pub fn new_authority(
         spawn_handle: task_manager.spawn_handle().into(),
         keystore: keystore_container.keystore(),
         justification_rx,
+        block_rx,
         metrics,
         registry: prometheus_registry,
         unit_creation_delay: aleph_config.unit_creation_delay(),

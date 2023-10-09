@@ -1,4 +1,3 @@
-use core::marker::PhantomData;
 use std::{collections::HashSet, time::Duration};
 
 use futures::{channel::mpsc, StreamExt};
@@ -45,6 +44,7 @@ where
     chain_events: CE,
     sync_oracle: SyncOracle,
     additional_justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
+    blocks_from_creator: mpsc::UnboundedReceiver<B>,
     database_io: DatabaseIO<B, J, CS, F, BI>,
 }
 
@@ -59,20 +59,19 @@ where
     BI: BlockImport<B>,
 {
     pub fn new(
-        chain_status: CS,
-        finalizer: F,
-        block_importer: BI,
+        database_io: DatabaseIO<B, J, CS, F, BI>,
         network: N,
         chain_events: CE,
         sync_oracle: SyncOracle,
         additional_justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
+        blocks_from_creator: mpsc::UnboundedReceiver<B>,
     ) -> Self {
-        let database_io = DatabaseIO::new(chain_status, finalizer, block_importer);
         IO {
             network,
             chain_events,
             sync_oracle,
             additional_justifications_from_user,
+            blocks_from_creator,
             database_io,
         }
     }
@@ -99,7 +98,7 @@ where
     justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
     additional_justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
     block_requests_from_user: mpsc::UnboundedReceiver<BlockId>,
-    _phantom: PhantomData<B>,
+    blocks_from_creator: mpsc::UnboundedReceiver<B>,
     metrics: Metrics,
 }
 
@@ -151,6 +150,7 @@ where
             chain_events,
             sync_oracle,
             additional_justifications_from_user,
+            blocks_from_creator,
             database_io,
         } = io;
         let network = VersionWrapper::new(network);
@@ -178,9 +178,9 @@ where
                 chain_events,
                 justifications_from_user,
                 additional_justifications_from_user,
+                blocks_from_creator,
                 block_requests_from_user,
                 metrics,
-                _phantom: PhantomData,
             },
             justifications_for_sync,
             block_requests_for_sync,
@@ -596,6 +596,19 @@ where
         }
     }
 
+    fn handle_own_block(&mut self, block: B) {
+        let broadcast = self.handler.handle_own_block(block);
+        if let Err(e) = self
+            .network
+            .broadcast(NetworkData::RequestResponse(broadcast))
+        {
+            warn!(
+                target: LOG_TARGET,
+                "Error broadcasting newly created block: {}.", e
+            )
+        }
+    }
+
     /// Stay synchronized.
     pub async fn run(mut self) {
         loop {
@@ -631,6 +644,13 @@ where
                         self.handle_internal_request(block_id)
                     },
                     None => warn!(target: LOG_TARGET, "Channel with internal block request from user closed."),
+                },
+                maybe_own_block = self.blocks_from_creator.next() => match maybe_own_block {
+                    Some(block) => {
+                        debug!(target: LOG_TARGET, "Received new own block: {:?}.", block.header().id());
+                        self.handle_own_block(block)
+                    },
+                    None => warn!(target: LOG_TARGET, "Channel with own blocks closed."),
                 },
             }
         }

@@ -58,7 +58,7 @@ mod sync_oracle;
 pub mod testing;
 
 pub use crate::{
-    import::{AlephBlockImport, TracingBlockImport},
+    import::{AlephBlockImport, RedirectingBlockImport, TracingBlockImport},
     justification::AlephJustification,
     metrics::TimingBlockMetrics,
     network::{Protocol, ProtocolNaming},
@@ -276,6 +276,7 @@ pub struct AlephConfig<C, SC> {
     pub spawn_handle: SpawnHandle,
     pub keystore: Arc<dyn Keystore>,
     pub justification_rx: mpsc::UnboundedReceiver<Justification>,
+    pub block_rx: mpsc::UnboundedReceiver<AlephBlock>,
     pub metrics: TimingBlockMetrics,
     pub registry: Option<Registry>,
     pub session_period: SessionPeriod,

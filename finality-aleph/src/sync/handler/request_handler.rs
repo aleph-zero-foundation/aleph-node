@@ -250,6 +250,12 @@ where
         }
     }
 
+    fn single_block(block: B) -> Self {
+        let mut result = Self::empty();
+        result.add_block_and_header(block);
+        result
+    }
+
     fn from_just(justification: J) -> Self {
         Self {
             just: Some(justification),
@@ -435,4 +441,12 @@ where
 
         Ok(Action::new(response_items))
     }
+}
+
+/// Create a pseudo-response from a single block that assumes the recipent has the parent block.
+/// USeful for broadcasting self-created blocks.
+pub fn block_to_response<B: Block, J: Justification<Header = B::Header>>(
+    block: B,
+) -> Vec<ResponseItem<B, J>> {
+    PreChunk::single_block(block).into_chunk()
 }

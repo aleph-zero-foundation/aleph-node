@@ -22,7 +22,7 @@ use crate::{
 };
 
 mod request_handler;
-pub use request_handler::{Action, RequestHandlerError};
+pub use request_handler::{block_to_response, Action, RequestHandlerError};
 
 use crate::sync::data::{ResponseItem, ResponseItems};
 
@@ -583,11 +583,11 @@ where
                     if self.forest.skippable(&h.id()) {
                         continue;
                     }
+                    if let Err(e) = self.forest.update_header(&h, Some(peer.clone()), false) {
+                        return (new_highest, Some(Error::Forest(e)));
+                    }
                     if !self.forest.importable(&h.id()) {
                         return (new_highest, Some(Error::HeaderNotRequired));
-                    }
-                    if let Err(e) = self.forest.update_header(&h, Some(peer.clone()), true) {
-                        return (new_highest, Some(Error::Forest(e)));
                     }
                 }
                 ResponseItem::Block(b) => {
@@ -721,6 +721,12 @@ where
     /// Returns the extension request we could be making right now.
     pub fn extension_request(&self) -> ExtensionRequest<I> {
         self.forest.extension_request()
+    }
+
+    /// Handle a block freshly created by this node. Imports it and returns a form of it that can be broadcast.
+    pub fn handle_own_block(&mut self, block: B) -> Vec<ResponseItem<B, J>> {
+        self.block_importer.import_block(block.clone());
+        block_to_response(block)
     }
 }
 
@@ -1329,7 +1335,10 @@ mod tests {
         );
         let (new_info, maybe_error) = handler.handle_request_response(response, 12);
         assert!(!new_info, "should not create new highest justified");
-        assert!(maybe_error.is_none(), "should work");
+        match maybe_error {
+            None => panic!("should fail when it reaches the top finalized"),
+            Some(_) => (),
+        }
 
         // check that the fork is pruned
         assert_eq!(
@@ -1420,7 +1429,10 @@ mod tests {
         );
         let (new_info, maybe_error) = handler.handle_request_response(response, 12);
         assert!(!new_info, "should not create new highest justified");
-        assert!(maybe_error.is_none(), "should work");
+        match maybe_error {
+            None => panic!("should fail when it reaches the top finalized"),
+            Some(_) => (),
+        }
 
         // check that the fork is pruned
         assert_eq!(
@@ -2204,6 +2216,57 @@ mod tests {
 
         assert!(handler.handle_internal_request(&headers[1].id()).unwrap());
         assert!(!handler.handle_internal_request(&headers[1].id()).unwrap());
+    }
+
+    #[test]
+    fn broadcasts_own_block() {
+        let (mut handler, backend, _keep, _genesis) = setup();
+        let block = MockBlock::new(
+            backend
+                .top_finalized()
+                .expect("mock backend works")
+                .header()
+                .random_branch()
+                .next()
+                .expect("branch creation succeeds"),
+            true,
+        );
+
+        let result = handler.handle_own_block(block.clone());
+        match result.get(0).expect("the header is there") {
+            ResponseItem::Header(header) => assert_eq!(header, block.header()),
+            other => panic!("expected header item, got {:?}", other),
+        }
+        match result.get(1).expect("the block is there") {
+            ResponseItem::Block(block_item) => assert_eq!(block_item.header(), block.header()),
+            other => panic!("expected block item, got {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn accepts_broadcast_block() {
+        let (mut handler, backend, mut notifier, _genesis) = setup();
+        let block = MockBlock::new(
+            backend
+                .top_finalized()
+                .expect("mock backend works")
+                .header()
+                .random_branch()
+                .next()
+                .expect("branch creation succeeds"),
+            true,
+        );
+
+        let broadcast = handler.handle_own_block(block.clone());
+        match handler.handle_request_response(broadcast, rand::random()) {
+            (true, _) => panic!("block unexpectedly changed top finalized"),
+            (false, Some(e)) => panic!("error handling block broadcast: {}", e),
+            (false, None) => (),
+        }
+        assert_eq!(
+            notifier.next().await.expect("should receive notification"),
+            BlockImported(block.header().clone())
+        );
     }
 
     //TODO(A0-2984): remove this after legacy sync is excised
