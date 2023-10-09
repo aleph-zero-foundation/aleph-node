@@ -8,7 +8,6 @@ use parity_scale_codec::Codec;
 
 use crate::BlockId;
 
-mod compatibility;
 mod data;
 mod forest;
 mod handler;
@@ -22,7 +21,6 @@ mod task_queue;
 mod tasks;
 mod ticker;
 
-pub use compatibility::OldSyncCompatibleRequestBlocks;
 pub use service::{Service, IO};
 pub use substrate::{
     Justification as SubstrateJustification, JustificationTranslator, SessionVerifier,

@@ -26,8 +26,8 @@ use crate::{
     session_map::{AuthorityProviderImpl, FinalityNotifierImpl, SessionMapUpdater},
     sync::{
         ChainStatus, FinalizationStatus, Justification, JustificationTranslator,
-        OldSyncCompatibleRequestBlocks, Service as SyncService, SubstrateChainStatusNotifier,
-        SubstrateFinalizationInfo, VerifierCache, IO as SyncIO,
+        Service as SyncService, SubstrateChainStatusNotifier, SubstrateFinalizationInfo,
+        VerifierCache, IO as SyncIO,
     },
     AlephConfig,
 };
@@ -116,8 +116,6 @@ where
     );
     let gossip_network_task = async move { gossip_network_service.run().await };
 
-    let block_requester = sync_network.clone();
-
     let map_updater = SessionMapUpdater::new(
         AuthorityProviderImpl::new(client.clone()),
         FinalityNotifierImpl::new(client.clone()),
@@ -186,9 +184,6 @@ where
     spawn_handle.spawn("aleph/gossip_network", gossip_network_task);
     debug!(target: "aleph-party", "Gossip network has started.");
 
-    let compatible_block_request =
-        OldSyncCompatibleRequestBlocks::new(block_requester.clone(), request_block);
-
     let party = ConsensusParty::new(ConsensusPartyParams {
         session_authorities,
         sync_oracle,
@@ -204,7 +199,7 @@ where
             unit_creation_delay,
             justifications_for_sync,
             JustificationTranslator::new(chain_status.clone()),
-            compatible_block_request,
+            request_block,
             metrics,
             spawn_handle,
             connection_manager,

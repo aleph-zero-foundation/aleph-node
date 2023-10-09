@@ -6,38 +6,17 @@ use log::{error, trace};
 use sc_network::{
     multiaddr::Protocol as MultiaddressProtocol, Event as SubstrateEvent, Multiaddr,
     NetworkEventStream as _, NetworkNotification, NetworkPeers, NetworkService,
-    NetworkSyncForkRequest, NotificationSenderT, PeerId, ProtocolName,
+    NotificationSenderT, PeerId, ProtocolName,
 };
 use sc_network_common::{
     sync::{SyncEvent, SyncEventStream},
     ExHashT,
 };
 use sc_network_sync::SyncingService;
-use sp_runtime::traits::{Block, Header};
+use sp_runtime::traits::Block;
 use tokio::select;
 
-use crate::{
-    aleph_primitives::{BlockHash, BlockNumber},
-    network::{
-        gossip::{Event, EventStream, NetworkSender, Protocol, RawNetwork},
-        RequestBlocks,
-    },
-    BlockId,
-};
-
-impl<B> RequestBlocks for Arc<SyncingService<B>>
-where
-    B: Block<Hash = BlockHash>,
-    B::Header: Header<Number = BlockNumber>,
-{
-    fn request_stale_block(&self, block_id: BlockId) {
-        // The below comment is adapted from substrate:
-        // Notifies the sync service to try and sync the given block from the given peers. If the given vector
-        // of peers is empty (as in our case) then the underlying implementation should make a best effort to fetch
-        // the block from any peers it is connected to.
-        SyncingService::set_sync_fork_request(self, Vec::new(), block_id.hash, block_id.number)
-    }
-}
+use crate::network::gossip::{Event, EventStream, NetworkSender, Protocol, RawNetwork};
 
 /// Name of the network protocol used by Aleph Zero to disseminate validator
 /// authentications.
