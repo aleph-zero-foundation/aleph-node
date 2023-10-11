@@ -248,7 +248,9 @@ jobs:
     name: Slack notification
     runs-on: ubuntu-20.04
     needs: [check-nightly-pipeline-completion]
-    if: ${{ !cancelled() }}
+    if: >
+      !cancelled() &&
+      github.event_name != 'workflow_dispatch'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -258,4 +260,4 @@ jobs:
         with:
           notify-on: "always"
         env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_NIGHTLY_PIPELINE }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_DEV_ONDUTY }}

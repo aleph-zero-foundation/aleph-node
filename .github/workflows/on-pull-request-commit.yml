@@ -41,19 +41,16 @@ jobs:
     needs: [build-test-node-and-runtime]
     uses: ./.github/workflows/_build-test-node-and-e2e-client-image.yml
 
-  run-e2e-tests:
-    name: Run e2e tests
+  run-e2e-finalization-test:
+    name: Run e2e finalization test
     needs: [build-test-node-image-and-e2e-client-image]
-    uses: ./.github/workflows/_run-e2e-tests.yml
-
-  check-e2e-test-suite-completion:
-    needs: [run-e2e-tests]
-    name: Check e2e test suite completion
-    if: ${{ !cancelled() }}
     runs-on: ubuntu-20.04
     steps:
-      - name: All e2e tests completed
-        run: |
-          # due to the fact GitHub treats skipped jobs as success, and when any of dependant
-          # jobs fail, this check will be skipped, we need to check status manually
-          jq --exit-status 'all(.result == "success")' <<< '${{ toJson(needs) }}'
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: finalization::finalization
+        timeout-minutes: 3

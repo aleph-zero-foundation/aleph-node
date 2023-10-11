@@ -1,5 +1,5 @@
 ---
-#  This workflow run e2e tests as jobs (ie, in paraller)
+#  This workflow run e2e tests as jobs (ie, in parallel)
 name: Run e2e tests
 on:
   workflow_call:
@@ -16,11 +16,11 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: finalization::finalization
-        timeout-minutes: 2
-
+        timeout-minutes: 3
 
   run-e2e-rewards-disable-node-test:
     name: Run e2e reward points - disable node test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -31,11 +31,12 @@ jobs:
         with:
           test-case: rewards::disable_node
           follow-up-finalization-check: true
-        timeout-minutes: 15
+        timeout-minutes: 20
 
 
   run-e2e-token-transfer-test:
     name: Run e2e token transfer test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -45,10 +46,11 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: token_transfer
-        timeout-minutes: 3
+        timeout-minutes: 20
 
   run-e2e-fee-calculation-test:
     name: Run e2e fee calculation test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -58,10 +60,11 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: fee_calculation
-        timeout-minutes: 5
+        timeout-minutes: 20
 
   run-e2e-channeling-fee-test:
     name: Run e2e channeling fee test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -71,10 +74,11 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: channeling_fee_and_tip
-        timeout-minutes: 4
+        timeout-minutes: 20
 
   run-e2e-treasury-access-test:
     name: Run e2e treasury access test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -84,10 +88,11 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: treasury_access
-        timeout-minutes: 4
+        timeout-minutes: 20
 
   run-e2e-batch-transactions-test:
     name: Run e2e batch transactions test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -97,10 +102,11 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: batch_transactions
-        timeout-minutes: 4
+        timeout-minutes: 20
 
   run-e2e-staking-era-payouts-test:
     name: Run e2e staking era payouts test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -111,11 +117,12 @@ jobs:
         with:
           test-case: staking_era_payouts
           follow-up-finalization-check: true
-        timeout-minutes: 15
+        timeout-minutes: 20
 
 
   run-e2e-staking-new-validator-test:
     name: Run e2e staking new validator test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -126,11 +133,12 @@ jobs:
         with:
           test-case: staking_new_validator
           follow-up-finalization-check: true
-        timeout-minutes: 10
+        timeout-minutes: 20
 
 
   run-e2e-change-validators-test:
     name: Run e2e change validators test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -141,10 +149,11 @@ jobs:
         with:
           test-case: change_validators
           follow-up-finalization-check: true
-        timeout-minutes: 3
+        timeout-minutes: 20
 
   run-e2e-fail-change-validators-test:
     name: Run e2e fail change validators test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -155,10 +164,11 @@ jobs:
         with:
           test-case: fail_changing_validators
           follow-up-finalization-check: true
-        timeout-minutes: 3
+        timeout-minutes: 20
 
   run-e2e-validators-rotate:
     name: Run validators rotation test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -169,10 +179,11 @@ jobs:
         with:
           test-case: validators_rotate
           follow-up-finalization-check: true
-        timeout-minutes: 10
+        timeout-minutes: 20
 
   run-e2e-era-payout:
     name: Run era payout test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -183,10 +194,11 @@ jobs:
         with:
           test-case: era_payout::era_payout
           follow-up-finalization-check: true
-        timeout-minutes: 10
+        timeout-minutes: 20
 
   run-e2e-era-validators:
     name: Run era validators test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -197,10 +209,11 @@ jobs:
         with:
           test-case: era_validators
           follow-up-finalization-check: true
-        timeout-minutes: 10
+        timeout-minutes: 20
 
   run-e2e-rewards-force-new-era:
     name: Run force new era test to check rewards
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -211,10 +224,11 @@ jobs:
         with:
           test-case: rewards::force_new_era
           follow-up-finalization-check: true
-        timeout-minutes: 10
+        timeout-minutes: 20
 
   run-e2e-rewards-stake-change:
     name: Run reward points with stake changed test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -225,10 +239,11 @@ jobs:
         with:
           test-case: rewards::points_stake_change
           follow-up-finalization-check: true
-        timeout-minutes: 10
+        timeout-minutes: 20
 
   run-e2e-rewards-change-stake-force-new-era:
     name: Run reward points with stake changed and new era forced test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -239,10 +254,11 @@ jobs:
         with:
           test-case: rewards::change_stake_and_force_new_era
           follow-up-finalization-check: true
-        timeout-minutes: 10
+        timeout-minutes: 20
 
   run-e2e-rewards-points-basic:
     name: Run basic reward points calculation test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -253,10 +269,11 @@ jobs:
         with:
           test-case: points_basic
           follow-up-finalization-check: true
-        timeout-minutes: 10
+        timeout-minutes: 20
 
   run-e2e-authorities-are-staking:
     name: Run authorities are staking test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -270,10 +287,11 @@ jobs:
           reserved-seats: 3
           non-reserved-seats: 3
           follow-up-finalization-check: true
-        timeout-minutes: 15
+        timeout-minutes: 20
 
   run-e2e-ban-automatic:
     name: Run ban automatic test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -284,10 +302,11 @@ jobs:
         with:
           test-case: ban_automatic
           follow-up-finalization-check: true
-        timeout-minutes: 15
+        timeout-minutes: 20
 
   run-e2e-ban-manual:
     name: Run ban manual test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -298,10 +317,11 @@ jobs:
         with:
           test-case: ban_manual
           follow-up-finalization-check: true
-        timeout-minutes: 15
+        timeout-minutes: 20
 
   run-e2e-ban-counter-clearing:
     name: Run ban counter clearing test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -312,10 +332,11 @@ jobs:
         with:
           test-case: clearing_session_count
           follow-up-finalization-check: true
-        timeout-minutes: 15
+        timeout-minutes: 20
 
   run-e2e-ban-threshold:
     name: Run ban threshold test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -326,10 +347,11 @@ jobs:
         with:
           test-case: ban_threshold
           follow-up-finalization-check: true
-        timeout-minutes: 15
+        timeout-minutes: 20
 
   run-e2e-permissionless-ban:
     name: Run permissionless ban test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -340,10 +362,11 @@ jobs:
         with:
           test-case: permissionless_ban
           follow-up-finalization-check: true
-        timeout-minutes: 15
+        timeout-minutes: 20
 
   run-e2e-version-upgrade:
     name: Run basic (positive) version-upgrade test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -357,10 +380,11 @@ jobs:
           UPGRADE_VERSION: 1
           UPGRADE_SESSION: 3
           UPGRADE_FINALIZATION_WAIT_SESSIONS: 2
-        timeout-minutes: 10
+        timeout-minutes: 20
 
   run-e2e-adder-contract-test:
     name: Run e2e adder contract test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -377,10 +401,11 @@ jobs:
         with:
           deploy-adder: true
           test-case: adder
-        timeout-minutes: 10
+        timeout-minutes: 20
 
   run-e2e-finality-version-change:
     name: Run finality version change test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -391,10 +416,11 @@ jobs:
         with:
           test-case: finality_version::finality_version_change
           follow-up-finalization-check: true
-        timeout-minutes: 10
+        timeout-minutes: 20
 
   run-e2e-committee-split-reserved-01:
     name: Run committee split test with node-0 and node-1 dead
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -407,10 +433,11 @@ jobs:
         with:
           test-case: committee_split::split_test_reserved_01
           node-count: 7
-        timeout-minutes: 10
+        timeout-minutes: 20
 
   run-e2e-committee-split-reserved-12:
     name: Run committee split test with node-1 and node-2 dead
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -423,10 +450,11 @@ jobs:
         with:
           test-case: committee_split::split_test_reserved_12
           node-count: 7
-        timeout-minutes: 10
+        timeout-minutes: 20
 
   run-e2e-committee-split-reserved-02:
     name: Run committee split test with node-0 and node-2 dead
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -439,10 +467,11 @@ jobs:
         with:
           test-case: committee_split::split_test_reserved_02
           node-count: 7
-        timeout-minutes: 10
+        timeout-minutes: 20
 
   run-e2e-committee-split-test-success-without-any-deads:
     name: Run committee split test without any deads
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -456,10 +485,11 @@ jobs:
           test-case: committee_split::split_test_success_without_any_deads
           follow-up-finalization-check: true
           node-count: 7
-        timeout-minutes: 10
+        timeout-minutes: 20
 
   run-e2e-committee-split-test-success-with-one-dead:
     name: Run committee split test with one node dead
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -473,10 +503,11 @@ jobs:
           test-case: committee_split::split_test_success_with_one_dead
           follow-up-finalization-check: true
           node-count: 7
-        timeout-minutes: 10
+        timeout-minutes: 20
 
   run-e2e-set-emergency-finalizer:
     name: Run set emergency finalizer test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -487,10 +518,11 @@ jobs:
         with:
           test-case: set_emergency_finalizer_test
           follow-up-finalization-check: true
-        timeout-minutes: 4
+        timeout-minutes: 20
 
   run-e2e-set-lenient-threshold:
     name: Run set lenient threshold test
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -501,9 +533,10 @@ jobs:
         with:
           test-case: set_lenient_threshold_test
           follow-up-finalization-check: true
-        timeout-minutes: 3
+        timeout-minutes: 20
 
   run-e2e-emergency-finalizer-usage:
+    needs: [run-e2e-finalization-test]
     name: Run chain dead scenario
     runs-on: ubuntu-20.04
     steps:
@@ -518,10 +551,11 @@ jobs:
           test-case: chain_dead_scenario
           follow-up-finalization-check: true
           node-count: 6
-        timeout-minutes: 8
+        timeout-minutes: 20
 
   run-e2e-committee-split-test-success-with-all-non-reserved-dead:
     name: Run committee split test with all non-reserved nodes dead
+    needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -535,4 +569,4 @@ jobs:
           test-case: committee_split::split_test_success_with_all_non_reserved_dead
           follow-up-finalization-check: true
           node-count: 7
-        timeout-minutes: 10
+        timeout-minutes: 20
