@@ -1,9 +1,13 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, num::NonZeroUsize};
+
+use lru::LruCache;
 
 use crate::{
     sync::{Justification, PeerId},
     BlockId,
 };
+
+const MAX_KNOW_MOST: usize = 200;
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq)]
 enum Importance {
@@ -36,10 +40,10 @@ enum InnerVertex<J: Justification> {
 }
 
 /// The complete vertex, including metadata about peers that know most about the data it refers to.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct Vertex<I: PeerId, J: Justification> {
     inner: InnerVertex<J>,
-    know_most: HashSet<I>,
+    know_most: LruCache<I, ()>,
 }
 
 impl<I: PeerId, J: Justification> Vertex<I, J> {
@@ -49,7 +53,9 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
             inner: InnerVertex::Empty {
                 required: Importance::Auxiliary,
             },
-            know_most: HashSet::new(),
+            know_most: LruCache::new(
+                NonZeroUsize::new(MAX_KNOW_MOST).expect("the constant is not zero"),
+            ),
         }
     }
 
@@ -130,8 +136,12 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
     }
 
     /// The list of peers which know most about the data this vertex refers to.
-    pub fn know_most(&self) -> &HashSet<I> {
-        &self.know_most
+    pub fn know_most(&self) -> HashSet<I> {
+        self.know_most
+            .iter()
+            .map(|(peer, ())| peer)
+            .cloned()
+            .collect()
     }
 
     /// Set the vertex to be explicitly required, returns whether anything changed, i.e. the vertex
@@ -195,7 +205,7 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
     pub fn add_block_holder(&mut self, holder: Option<I>) {
         if let Some(holder) = holder {
             if !matches!(self.inner, InnerVertex::Justification { .. }) {
-                self.know_most.insert(holder);
+                self.know_most.put(holder, ());
             }
         }
     }
@@ -262,7 +272,10 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
                     parent,
                     justification,
                 };
-                self.know_most = holder.into_iter().collect();
+                self.know_most.clear();
+                if let Some(peer) = holder {
+                    self.know_most.put(peer, ());
+                }
             }
             Header {
                 importance: HeaderImportance::Imported,
@@ -273,11 +286,14 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
                     parent,
                     justification,
                 };
-                self.know_most = holder.into_iter().collect();
+                self.know_most.clear();
+                if let Some(peer) = holder {
+                    self.know_most.put(peer, ());
+                }
             }
             Justification { .. } => {
                 if let Some(holder) = holder {
-                    self.know_most.insert(holder);
+                    self.know_most.put(holder, ());
                 }
             }
         }
@@ -305,7 +321,7 @@ mod tests {
         assert!(!vertex.imported());
         assert!(vertex.parent().is_none());
         assert!(vertex.know_most().is_empty());
-        assert_eq!(vertex.clone().ready(), Err(vertex));
+        assert!(vertex.ready().is_err());
     }
 
     #[test]
@@ -371,7 +387,7 @@ mod tests {
         assert!(!vertex.imported());
         assert_eq!(vertex.parent(), Some(&parent));
         assert!(vertex.know_most().contains(&peer_id));
-        assert_eq!(vertex.clone().ready(), Err(vertex));
+        assert!(vertex.ready().is_err());
     }
 
     #[test]
@@ -447,7 +463,7 @@ mod tests {
         assert!(!vertex.requestable());
         assert!(vertex.imported());
         assert_eq!(vertex.parent(), Some(&parent));
-        assert_eq!(vertex.clone().ready(), Err(vertex));
+        assert!(vertex.ready().is_err());
     }
 
     #[test]
@@ -460,7 +476,7 @@ mod tests {
         assert!(!vertex.requestable());
         assert!(vertex.imported());
         assert_eq!(vertex.parent(), Some(&parent));
-        assert_eq!(vertex.clone().ready(), Err(vertex));
+        assert!(vertex.ready().is_err());
     }
 
     #[test]
@@ -474,7 +490,7 @@ mod tests {
         assert!(!vertex.requestable());
         assert!(vertex.imported());
         assert_eq!(vertex.parent(), Some(&parent));
-        assert_eq!(vertex.clone().ready(), Err(vertex));
+        assert!(vertex.ready().is_err());
     }
 
     #[test]
@@ -523,7 +539,7 @@ mod tests {
         assert!(!vertex.imported());
         assert_eq!(vertex.parent(), Some(&parent));
         assert!(vertex.know_most().contains(&peer_id));
-        assert_eq!(vertex.clone().ready(), Err(vertex));
+        assert!(vertex.ready().is_err());
     }
 
     #[test]
@@ -541,7 +557,7 @@ mod tests {
         assert!(!vertex.imported());
         assert_eq!(vertex.parent(), Some(&parent));
         assert!(vertex.know_most().is_empty());
-        assert_eq!(vertex.clone().ready(), Err(vertex));
+        assert!(vertex.ready().is_err());
     }
 
     #[test]
@@ -557,7 +573,7 @@ mod tests {
         assert!(!vertex.requestable());
         assert!(vertex.imported());
         assert_eq!(vertex.parent(), Some(&parent));
-        assert_eq!(vertex.ready(), Ok(justification));
+        assert_eq!(vertex.ready().expect("should be ready"), justification);
     }
 
     #[test]
@@ -629,6 +645,6 @@ mod tests {
         assert!(!vertex.requestable());
         assert!(vertex.imported());
         assert_eq!(vertex.parent(), Some(&parent));
-        assert_eq!(vertex.ready(), Ok(justification));
+        assert_eq!(vertex.ready().expect("should be ready"), justification);
     }
 }

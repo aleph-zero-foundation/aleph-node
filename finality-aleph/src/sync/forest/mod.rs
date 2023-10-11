@@ -557,7 +557,7 @@ where
                 if !(force || vertex.vertex.requestable()) {
                     return None;
                 }
-                let know_most = vertex.vertex.know_most().clone();
+                let know_most = vertex.vertex.know_most();
                 // should always return Some, as the branch of a Candidate always exists
                 self.branch_knowledge(id.clone())
                     .map(|branch_knowledge| (know_most, branch_knowledge))
@@ -591,7 +591,7 @@ where
 
     fn know_most(&self, id: &BlockId) -> HashSet<I> {
         match self.get(id) {
-            VertexHandle::Candidate(vertex) => vertex.vertex.know_most().clone(),
+            VertexHandle::Candidate(vertex) => vertex.vertex.know_most(),
             _ => HashSet::new(),
         }
     }
