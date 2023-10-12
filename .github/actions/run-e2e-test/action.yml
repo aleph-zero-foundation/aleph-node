@@ -68,10 +68,10 @@ runs:
     - name: Run consensus party
       shell: bash
       run: |
-        NODE_IMAGE=${{ inputs.node-image }} \
-        DOCKER_COMPOSE=${{ inputs.compose-file }} \
+        NODE_IMAGE='${{ inputs.node-image }}' \
+        DOCKER_COMPOSE='${{ inputs.compose-file }}' \
           ./.github/scripts/run_consensus.sh \
-            -m ${{ inputs.min-validator-count }} -n ${{ inputs.node-count }}
+            -m '${{ inputs.min-validator-count }}' -n '${{ inputs.node-count }}'
 
     - name: Sleep
       shell: bash
@@ -97,13 +97,13 @@ runs:
       shell: bash
       run: |
         ARGS=(
-          -t "${{ inputs.test-case }}"
-          -r "${{ inputs.randomized }}"
-          -m "${{ inputs.min-validator-count }}"
+          -t '${{ inputs.test-case }}'
+          -r '${{ inputs.randomized }}'
+          -m '${{ inputs.min-validator-count }}'
         )
 
-        RESERVED_SEATS="${{ inputs.reserved-seats }}"
-        NON_RESERVED_SEATS="${{ inputs.non-reserved-seats }}"
+        RESERVED_SEATS='${{ inputs.reserved-seats }}'
+        NON_RESERVED_SEATS='${{ inputs.non-reserved-seats }}'
 
         if [[ -n "${RANDOMIZED}" ]]; then
           ARGS+=(-r "${RANDOMIZED}")
@@ -116,7 +116,7 @@ runs:
           )
         fi
 
-        DEPLOY_ADDER="${{ inputs.deploy-adder }}"
+        DEPLOY_ADDER='${{ inputs.deploy-adder }}'
 
         if [[ "${DEPLOY_ADDER}" = "true" ]]; then
           pushd contracts/adder
@@ -124,7 +124,7 @@ runs:
           popd
         fi
 
-        DEPLOY_BUTTON="${{ inputs.deploy-button }}"
+        DEPLOY_BUTTON='${{ inputs.deploy-button }}'
 
         if [[ "${DEPLOY_BUTTON}" = "true" ]]; then
           source contracts/env/dev
@@ -135,7 +135,7 @@ runs:
 
         ./.github/scripts/run_e2e_test.sh "${ARGS[@]}"
 
-        CLEAN_BUTTON="${{ inputs.clean-button }}"
+        CLEAN_BUTTON='${{ inputs.clean-button }}'
 
         if [[ "${CLEAN_BUTTON}" = "true" ]]; then
           source contracts/env/dev
@@ -147,4 +147,4 @@ runs:
       shell: bash
       run: |
         ./.github/scripts/run_e2e_test.sh \
-          -t finalization::finalization -m "${{ inputs.min-validator-count }}"
+          -t finalization::finalization -m '${{ inputs.min-validator-count }}'

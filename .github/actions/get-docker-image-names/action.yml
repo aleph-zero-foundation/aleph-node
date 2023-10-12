@@ -47,9 +47,9 @@ runs:
     - name: Check if tag push was a trigger
       shell: bash
       run: |
-        if [[ -z "${{ steps.get-ref-properties.outputs.tag }}" ]]; then
-          echo "Error: did you forgot to run this workflow from tag?"
-          echo "Instead, it was run from branch ${{ steps.get-ref-properties.outputs.branch }}"
+        if [[ -z '${{ steps.get-ref-properties.outputs.tag }}' ]]; then
+          echo 'Error: did you forgot to run this workflow from tag?'
+          echo 'Instead, it was run from branch ${{ steps.get-ref-properties.outputs.branch }}'
           exit 1
         fi
 
@@ -59,8 +59,8 @@ runs:
       run: |
         commit_sha=${{ steps.get-ref-properties.outputs.sha }}
         commit_tag=${{ steps.get-ref-properties.outputs.tag }}
-        ecr=${{ inputs.ecr-repo }}
-        dockerhub=${{ inputs.dockerhub-repo }}
+        ecr='${{ inputs.ecr-repo }}'
+        dockerhub='${{ inputs.dockerhub-repo }}'
         echo "ecr-rc-image=${ecr}:${commit_sha}" >> $GITHUB_OUTPUT
         echo "ecr-deploy-image=${ecr}:${commit_tag}" >> $GITHUB_OUTPUT
         echo "dockerhub-testnet-image=${dockerhub}:testnet-${commit_tag}" >> $GITHUB_OUTPUT
