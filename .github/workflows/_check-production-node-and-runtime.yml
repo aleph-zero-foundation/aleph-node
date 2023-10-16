@@ -1,0 +1,30 @@
+---
+# This workflow checks production version of aleph-node and aleph-runtime, ie
+# only compilation and not linking, which takes most of the time
+name: Check production node and runtime
+on:
+  workflow_call:
+
+jobs:
+  main:
+    name: Check production node and runtime
+    runs-on: [self-hosted, Linux, X64, large]
+    env:
+      RUST_BACKTRACE: full
+      RUSTC_WRAPPER: sccache
+    steps:
+      - name: Checkout aleph-node source code
+        uses: actions/checkout@v4
+
+      - name: Call action get-ref-properties
+        id: get-ref-properties
+        # yamllint disable-line rule:line-length
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v2
+
+      - name: Install Rust toolchain
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v2
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Check production binary and runtime
+        run: cargo check --profile production -p aleph-node

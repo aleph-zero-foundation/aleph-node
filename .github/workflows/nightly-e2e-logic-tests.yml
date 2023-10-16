@@ -50,6 +50,6 @@ jobs:
       - name: Send Slack message
         uses: ./.github/actions/slack-notification
         with:
-          notify-on: "always"
+          notify-on: "failure"
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_DEV_ONDUTY }}

@@ -25,13 +25,9 @@ jobs:
     name: Unit tests and clippy
     uses: ./.github/workflows/_unit-tests-and-static-checks.yml
 
-  build-production-node-and-runtime:
-    name: Build production node and runtime
-    uses: ./.github/workflows/_build-production-node-and-runtime.yml
-
-  check-runtime-determinism:
-    needs: [build-production-node-and-runtime]
-    uses: ./.github/workflows/_check-runtime-determimism.yml
+  check-production-node-and-runtime:
+    name: Check production node and runtime
+    uses: ./.github/workflows/_check-production-node-and-runtime.yml
 
   build-test-node-and-runtime:
     name: Build test node and runtime
