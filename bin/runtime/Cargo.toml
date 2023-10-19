@@ -54,6 +54,7 @@ sp-staking = { workspace = true }
 sp-std = { workspace = true }
 sp-transaction-pool = { workspace = true }
 sp-version = { workspace = true }
+sp-application-crypto = { workspace = true }
 
 # Benchmarking stuff
 frame-benchmarking = { workspace = true, optional = true }
@@ -119,6 +120,7 @@ std = [
     "pallet-committee-management/std",
     "sp-io/std",
     "scale-info/std",
+    "sp-application-crypto/std",
 ]
 short_session = ["primitives/short_session"]
 try-runtime = [
