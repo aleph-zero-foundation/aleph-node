@@ -1021,6 +1021,10 @@ impl_runtime_apis! {
 
             queued_keys.into_iter().filter_map(|(_, keys)| keys.get(AURA)).collect()
         }
+
+         fn key_owner(key: AlephId) -> Option<AccountId> {
+            Session::key_owner(primitives::KEY_TYPE, key.as_ref())
+        }
     }
 
     impl pallet_nomination_pools_runtime_api::NominationPoolsApi<Block, AccountId, Balance> for Runtime {
