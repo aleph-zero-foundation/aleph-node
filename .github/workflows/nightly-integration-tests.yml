@@ -3,7 +3,7 @@ name: Nightly pipeline integration tests
 on:
   workflow_dispatch:
   schedule:
-    - cron: '01 00 * * *'
+    - cron: '00 01 * * *'
 
 concurrency:
   group: "${{ github.ref }}-${{ github.workflow }}"
