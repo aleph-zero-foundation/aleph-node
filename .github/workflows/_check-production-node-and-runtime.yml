@@ -19,10 +19,10 @@ jobs:
       - name: Call action get-ref-properties
         id: get-ref-properties
         # yamllint disable-line rule:line-length
-        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v2
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v3
 
       - name: Install Rust toolchain
-        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v2
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v3
         with:
           targets: wasm32-unknown-unknown
 

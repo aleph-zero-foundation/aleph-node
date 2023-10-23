@@ -97,7 +97,7 @@ jobs:
       - name: Call action get-ref-properties
         id: get-ref-properties
         # yamllint disable-line rule:line-length
-        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v2
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v3
 
       - name: Install jq
         shell: bash
