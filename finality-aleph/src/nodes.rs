@@ -7,10 +7,11 @@ use network_clique::{RateLimitingDialer, RateLimitingListener, Service, SpawnHan
 use rate_limiter::SleepingRateLimiter;
 use sc_client_api::Backend;
 use sp_consensus::SelectChain;
+use sp_consensus_aura::AuraApi;
 use sp_keystore::Keystore;
 
 use crate::{
-    aleph_primitives::Block,
+    aleph_primitives::{AlephSessionApi, AuraId, Block},
     crypto::AuthorityPen,
     finalization::AlephFinalizer,
     network::{
@@ -33,7 +34,9 @@ use crate::{
 };
 
 // How many sessions we remember.
-pub const VERIFIER_CACHE_SIZE: usize = 2;
+// Keep in mind that Aura stores authority info in the parent block,
+// so the actual size probably needs to be increased by one.
+pub const VERIFIER_CACHE_SIZE: usize = 3;
 
 pub fn new_pen(mnemonic: &str, keystore: Arc<dyn Keystore>) -> AuthorityPen {
     let validator_peer_id = keystore
@@ -46,7 +49,7 @@ pub fn new_pen(mnemonic: &str, keystore: Arc<dyn Keystore>) -> AuthorityPen {
 pub async fn run_validator_node<C, BE, SC>(aleph_config: AlephConfig<C, SC>)
 where
     C: crate::ClientForAleph<Block, BE> + Send + Sync + 'static,
-    C::Api: crate::aleph_primitives::AlephSessionApi<Block>,
+    C::Api: AlephSessionApi<Block> + AuraApi<Block, AuraId>,
     BE: Backend<Block> + 'static,
     SC: SelectChain<Block> + 'static,
 {

@@ -149,6 +149,7 @@ sp-blockchain = { git = "https://github.com/Cardinal-Cryptography/substrate.git"
 sp-block-builder = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v1.0.0", default-features = false }
 sp-consensus = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v1.0.0", default-features = false }
 sp-consensus-aura = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v1.0.0", default-features = false }
+sp-consensus-slots = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v1.0.0", default-features = false }
 sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v1.0.0", default-features = false }
 sp-inherents = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v1.0.0", default-features = false }
 sp-io = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v1.0.0", default-features = false }

@@ -39,7 +39,7 @@ pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
 use primitives::{
     staking::MAX_NOMINATORS_REWARDED_PER_VALIDATOR, wrap_methods, ApiError as AlephApiError,
-    AuthorityId as AlephId, Block as AlephBlock, BlockId as AlephBlockId,
+    AuraId, AuthorityId as AlephId, Block as AlephBlock, BlockId as AlephBlockId,
     BlockNumber as AlephBlockNumber, Header as AlephHeader, SessionAuthorityData, SessionCommittee,
     SessionIndex, SessionInfoProvider, SessionValidatorError, Version as FinalityVersion,
     ADDRESSES_ENCODING, DEFAULT_BAN_REASON_LENGTH, DEFAULT_MAX_WINNERS, DEFAULT_SESSIONS_PER_ERA,
@@ -48,7 +48,7 @@ use primitives::{
 pub use primitives::{AccountId, AccountIndex, Balance, Hash, Nonce, Signature};
 use sp_api::impl_runtime_apis;
 use sp_application_crypto::key_types::AURA;
-use sp_consensus_aura::{sr25519::AuthorityId as AuraId, SlotDuration};
+use sp_consensus_aura::SlotDuration;
 use sp_core::{crypto::KeyTypeId, ConstU128, OpaqueMetadata};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;

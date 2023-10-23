@@ -1,9 +1,10 @@
-use std::{collections::HashMap, marker::PhantomData, sync::Arc};
+use std::{collections::HashMap, marker::PhantomData, ops::Deref, sync::Arc};
 
 use futures::StreamExt;
 use log::{debug, error, trace};
 use sc_client_api::{Backend, FinalityNotification};
 use sc_utils::mpsc::TracingUnboundedReceiver;
+use sp_consensus_aura::AuraApi;
 use sp_runtime::traits::{Block, Header};
 use tokio::sync::{
     oneshot::{Receiver as OneShotReceiver, Sender as OneShotSender},
@@ -11,7 +12,7 @@ use tokio::sync::{
 };
 
 use crate::{
-    aleph_primitives::{AlephSessionApi, BlockHash, BlockNumber, SessionAuthorityData},
+    aleph_primitives::{AlephSessionApi, AuraId, BlockHash, BlockNumber, SessionAuthorityData},
     session::SessionBoundaryInfo,
     ClientForAleph, SessionId, SessionPeriod,
 };
@@ -26,6 +27,10 @@ pub trait AuthorityProvider {
     fn authority_data(&self, block_number: BlockNumber) -> Option<SessionAuthorityData>;
     /// returns next session authority data where current session is for block
     fn next_authority_data(&self, block_number: BlockNumber) -> Option<SessionAuthorityData>;
+    /// returns list of Aura authorities for a given block number
+    fn aura_authorities(&self, block_number: BlockNumber) -> Option<Vec<AuraId>>;
+    /// returns list of next session Aura authorities for a given block number
+    fn next_aura_authorities(&self, block_number: BlockNumber) -> Option<Vec<AuraId>>;
 }
 
 /// Default implementation of authority provider trait.
@@ -34,7 +39,7 @@ pub trait AuthorityProvider {
 pub struct AuthorityProviderImpl<C, B, BE>
 where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: crate::aleph_primitives::AlephSessionApi<B>,
+    C::Api: crate::aleph_primitives::AlephSessionApi<B> + AuraApi<B, AuraId>,
     B: Block<Hash = BlockHash>,
     BE: Backend<B> + 'static,
 {
@@ -45,7 +50,7 @@ where
 impl<C, B, BE> AuthorityProviderImpl<C, B, BE>
 where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: crate::aleph_primitives::AlephSessionApi<B>,
+    C::Api: crate::aleph_primitives::AlephSessionApi<B> + AuraApi<B, AuraId>,
     B: Block<Hash = BlockHash>,
     B::Header: Header<Number = BlockNumber>,
     BE: Backend<B> + 'static,
@@ -74,19 +79,32 @@ where
 impl<C, B, BE> AuthorityProvider for AuthorityProviderImpl<C, B, BE>
 where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: crate::aleph_primitives::AlephSessionApi<B>,
+    C::Api: AlephSessionApi<B> + AuraApi<B, AuraId>,
     B: Block<Hash = BlockHash>,
     B::Header: Header<Number = BlockNumber>,
     BE: Backend<B> + 'static,
 {
+    fn aura_authorities(&self, block_number: BlockNumber) -> Option<Vec<AuraId>> {
+        AuraApi::authorities(
+            self.client.runtime_api().deref(),
+            self.block_hash(block_number)?,
+        )
+        .ok()
+    }
+
+    fn next_aura_authorities(&self, block_number: BlockNumber) -> Option<Vec<AuraId>> {
+        AlephSessionApi::next_session_aura_authorities(
+            self.client.runtime_api().deref(),
+            self.block_hash(block_number)?,
+        )
+        .ok()
+    }
+
     fn authority_data(&self, block_number: BlockNumber) -> Option<SessionAuthorityData> {
         let block_hash = self.block_hash(block_number)?;
         match self.client.runtime_api().authority_data(block_hash) {
             Ok(data) => Some(data),
-            Err(_) => self
-                .client
-                .runtime_api()
-                .authorities(block_hash)
+            Err(_) => AlephSessionApi::authorities(self.client.runtime_api().deref(), block_hash)
                 .map(|authorities| SessionAuthorityData::new(authorities, None))
                 .ok(),
         }
@@ -430,6 +448,14 @@ mod tests {
 
         fn next_authority_data(&self, block_number: BlockNumber) -> Option<SessionAuthorityData> {
             self.next_session_map.get(&block_number).cloned()
+        }
+
+        fn aura_authorities(&self, _block_number: BlockNumber) -> Option<Vec<AuraId>> {
+            None
+        }
+
+        fn next_aura_authorities(&self, _block_number: BlockNumber) -> Option<Vec<AuraId>> {
+            None
         }
     }
 

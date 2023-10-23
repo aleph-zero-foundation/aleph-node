@@ -1,6 +1,6 @@
 [package]
 name = "finality-aleph"
-version = "0.8.0"
+version = "0.9.0"
 license = "Apache 2.0"
 authors.workspace = true
 edition.workspace = true
@@ -44,6 +44,7 @@ substrate-prometheus-endpoint = { workspace = true }
 
 sc-client-api = { workspace = true }
 sc-consensus = { workspace = true }
+sc-consensus-aura = { workspace = true }
 sc-network = { workspace = true }
 sc-network-common = { workspace = true }
 sc-network-sync = { workspace = true }
@@ -55,11 +56,14 @@ sp-api = { workspace = true }
 sp-application-crypto = { workspace = true }
 sp-blockchain = { workspace = true }
 sp-consensus = { workspace = true }
+sp-consensus-aura = { workspace = true }
+sp-consensus-slots = { workspace = true }
 sp-core = { workspace = true }
 sp-io = { workspace = true }
 sp-keystore = { workspace = true }
 sp-runtime = { workspace = true }
 sp-state-machine = { workspace = true }
+sp-timestamp = { workspace = true }
 sp-trie = { workspace = true }
 
 [dev-dependencies]

@@ -13,11 +13,10 @@ use sc_cli::{
 use sc_keystore::LocalKeystore;
 use sc_service::config::{BasePath, KeystoreConfig};
 use sp_application_crypto::{key_types, Ss58Codec};
-use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_keystore::Keystore;
 
 use crate::{
-    aleph_primitives::AuthorityId as AlephId,
+    aleph_primitives::{AuraId, AuthorityId as AlephId},
     chain_spec::{
         self, account_id_from_string, AuthorityKeys, ChainParams, ChainSpec, SerializablePeerId,
         DEFAULT_BACKUP_FOLDER,

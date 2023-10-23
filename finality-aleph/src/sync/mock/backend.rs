@@ -387,20 +387,21 @@ impl ChainStatus<MockBlock, MockJustification> for Backend {
 
 #[derive(Debug)]
 pub enum VerifierError {
-    IncorrectJustification,
-    IncorrectSession,
+    Justification,
+    Session,
+    Header,
 }
 
 impl Display for VerifierError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
-        write!(f, "{:?}", self)
+        write!(f, "incorrect {:?}", self)
     }
 }
 
 impl Verifier<MockJustification> for Backend {
     type Error = VerifierError;
 
-    fn verify(
+    fn verify_justification(
         &mut self,
         justification: MockJustification,
     ) -> Result<MockJustification, Self::Error> {
@@ -420,11 +421,18 @@ impl Verifier<MockJustification> for Backend {
         if justification_session.0 > current_session.0 + 1
             || current_session.0 + 1 - justification_session.0 >= VERIFIER_CACHE_SIZE as u32
         {
-            return Err(Self::Error::IncorrectSession);
+            return Err(Self::Error::Session);
         }
         match justification.is_correct {
             true => Ok(justification),
-            false => Err(Self::Error::IncorrectJustification),
+            false => Err(Self::Error::Justification),
+        }
+    }
+
+    fn verify_header(&mut self, header: MockHeader) -> Result<MockHeader, Self::Error> {
+        match header.valid() {
+            true => Ok(header),
+            false => Err(Self::Error::Header),
         }
     }
 }

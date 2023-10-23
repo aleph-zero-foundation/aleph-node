@@ -10,7 +10,10 @@ use static_assertions::const_assert;
 
 use crate::{
     aleph_primitives::DEFAULT_SESSION_PERIOD,
-    sync::{data::BranchKnowledge, Block, BlockId, ChainStatus, Header, Justification, PeerId},
+    sync::{
+        data::BranchKnowledge, Block, BlockId, ChainStatus, Header, Justification, PeerId,
+        UnverifiedHeaderFor,
+    },
     BlockNumber,
 };
 
@@ -98,8 +101,8 @@ impl Display for Error {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum InitializationError<B, J, CS>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     CS: ChainStatus<B, J>,
 {
     Error(Error),
@@ -108,8 +111,8 @@ where
 
 impl<B, J, CS> Display for InitializationError<B, J, CS>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     CS: ChainStatus<B, J>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
@@ -172,7 +175,7 @@ where
 {
     pub fn new<B, CS>(chain_status: &CS) -> Result<Self, InitializationError<B, J, CS>>
     where
-        B: Block<Header = J::Header>,
+        B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
         CS: ChainStatus<B, J>,
     {
         let top_finalized = chain_status

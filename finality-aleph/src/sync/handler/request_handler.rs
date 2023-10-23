@@ -9,7 +9,7 @@ use crate::{
         data::{BranchKnowledge, ResponseItem},
         handler::Request,
         Block, BlockStatus, ChainStatus, FinalizationStatus, Header, Justification,
-        UnverifiedJustification,
+        UnverifiedHeader, UnverifiedHeaderFor, UnverifiedJustification,
     },
     BlockId,
 };
@@ -90,8 +90,8 @@ enum State {
 
 struct StepResult<B, J>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
     pre_chunk: PreChunk<B, J>,
     state: State,
@@ -100,8 +100,8 @@ where
 
 impl<B, J> StepResult<B, J>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
     fn new(head: HeadOfChunk<J>, state: State) -> Self {
         Self {
@@ -194,8 +194,8 @@ where
 #[derive(Debug)]
 pub enum Action<B, J>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
     RequestBlock(BlockId),
     Response(Vec<ResponseItem<B, J>>),
@@ -204,8 +204,8 @@ where
 
 impl<B, J> Action<B, J>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
     fn request_block(id: BlockId) -> Self {
         Action::RequestBlock(id)
@@ -222,18 +222,18 @@ where
 #[derive(Default)]
 struct PreChunk<B, J>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
     pub just: Option<J>,
     pub blocks: Vec<B>,
-    pub headers: Vec<J::Header>,
+    pub headers: Vec<UnverifiedHeaderFor<J>>,
 }
 
 impl<B, J> PreChunk<B, J>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
     fn new(head: &HeadOfChunk<J>) -> Self {
         match head {
@@ -291,8 +291,8 @@ where
 
 pub struct RequestHandler<'a, B, J, CS>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     CS: ChainStatus<B, J>,
 {
     chain_status: &'a CS,
@@ -302,8 +302,8 @@ where
 
 impl<'a, B, J, CS> HandlerTypes for RequestHandler<'a, B, J, CS>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     CS: ChainStatus<B, J>,
 {
     type Justification = J;
@@ -312,8 +312,8 @@ where
 
 impl<'a, B, J, CS> RequestHandler<'a, B, J, CS>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     CS: ChainStatus<B, J>,
 {
     pub fn new(chain_status: &'a CS, session_info: &'a SessionBoundaryInfo) -> Self {
@@ -444,8 +444,8 @@ where
 }
 
 /// Create a pseudo-response from a single block that assumes the recipent has the parent block.
-/// USeful for broadcasting self-created blocks.
-pub fn block_to_response<B: Block, J: Justification<Header = B::Header>>(
+/// Useful for broadcasting self-created blocks.
+pub fn block_to_response<J: Justification, B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>>(
     block: B,
 ) -> Vec<ResponseItem<B, J>> {
     PreChunk::single_block(block).into_chunk()

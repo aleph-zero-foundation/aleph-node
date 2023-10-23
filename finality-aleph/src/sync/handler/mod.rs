@@ -16,7 +16,7 @@ use crate::{
         },
         handler::request_handler::RequestHandler,
         Block, BlockImport, BlockStatus, ChainStatus, Finalizer, Header, Justification, PeerId,
-        UnverifiedJustification, Verifier,
+        UnverifiedHeader, UnverifiedHeaderFor, UnverifiedJustification, Verifier,
     },
     BlockId, BlockNumber, SyncOracle,
 };
@@ -29,8 +29,8 @@ use crate::sync::data::{ResponseItem, ResponseItems};
 /// Handles for interacting with the blockchain database.
 pub struct DatabaseIO<B, J, CS, F, BI>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     CS: ChainStatus<B, J>,
     F: Finalizer<J>,
     BI: BlockImport<B>,
@@ -43,8 +43,8 @@ where
 
 impl<B, J, CS, F, BI> DatabaseIO<B, J, CS, F, BI>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     CS: ChainStatus<B, J>,
     F: Finalizer<J>,
     BI: BlockImport<B>,
@@ -99,8 +99,8 @@ enum MissedImportData {
 
 enum TrySyncError<B, J, CS>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     CS: ChainStatus<B, J>,
 {
     ChainStatus(CS::Error),
@@ -118,8 +118,8 @@ impl MissedImportData {
         chain_status: &CS,
     ) -> Result<(), CS::Error>
     where
-        B: Block,
-        J: Justification<Header = B::Header>,
+        J: Justification,
+        B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
         CS: ChainStatus<B, J>,
     {
         use MissedImportData::*;
@@ -141,9 +141,9 @@ impl MissedImportData {
         forest: &mut Forest<I, J>,
     ) -> Result<(), TrySyncError<B, J, CS>>
     where
-        B: Block,
+        J: Justification,
+        B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
         I: PeerId,
-        J: Justification<Header = B::Header>,
         CS: ChainStatus<B, J>,
     {
         use MissedImportData::*;
@@ -194,9 +194,9 @@ impl MissedImportData {
 /// Handler for data incoming from the network.
 pub struct Handler<B, I, J, CS, V, F, BI>
 where
-    B: Block,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     I: PeerId,
-    J: Justification<Header = B::Header>,
     CS: ChainStatus<B, J>,
     V: Verifier<J>,
     F: Finalizer<J>,
@@ -217,8 +217,8 @@ where
 #[derive(Clone, Debug)]
 pub enum HandleStateAction<B, J>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
     /// A response for the peer that sent us the data.
     Response(NetworkData<B, J>),
@@ -230,8 +230,8 @@ where
 
 impl<B, J> HandleStateAction<B, J>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
     fn response(justification: J::Unverified, other_justification: Option<J::Unverified>) -> Self {
         Self::Response(NetworkData::StateBroadcastResponse(
@@ -253,7 +253,7 @@ where
 pub enum Error<B, J, CS, V, F>
 where
     J: Justification,
-    B: Block<Header = J::Header>,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     CS: ChainStatus<B, J>,
     V: Verifier<J>,
     F: Finalizer<J>,
@@ -273,7 +273,7 @@ where
 impl<B, J, CS, V, F> Display for Error<B, J, CS, V, F>
 where
     J: Justification,
-    B: Block<Header = J::Header>,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     CS: ChainStatus<B, J>,
     V: Verifier<J>,
     F: Finalizer<J>,
@@ -305,7 +305,7 @@ where
 impl<B, J, CS, V, F> From<ForestError> for Error<B, J, CS, V, F>
 where
     J: Justification,
-    B: Block<Header = J::Header>,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     CS: ChainStatus<B, J>,
     V: Verifier<J>,
     F: Finalizer<J>,
@@ -318,7 +318,7 @@ where
 impl<B, J, CS, V, F> From<TrySyncError<B, J, CS>> for Error<B, J, CS, V, F>
 where
     J: Justification,
-    B: Block<Header = J::Header>,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     CS: ChainStatus<B, J>,
     V: Verifier<J>,
     F: Finalizer<J>,
@@ -335,7 +335,7 @@ where
 impl<B, J, CS, V, F> From<RequestHandlerError<CS::Error>> for Error<B, J, CS, V, F>
 where
     J: Justification,
-    B: Block<Header = J::Header>,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     CS: ChainStatus<B, J>,
     V: Verifier<J>,
     F: Finalizer<J>,
@@ -347,9 +347,9 @@ where
 
 impl<B, I, J, CS, V, F, BI> HandlerTypes for Handler<B, I, J, CS, V, F, BI>
 where
-    B: Block,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     I: PeerId,
-    J: Justification<Header = B::Header>,
     CS: ChainStatus<B, J>,
     V: Verifier<J>,
     F: Finalizer<J>,
@@ -360,9 +360,9 @@ where
 
 impl<B, I, J, CS, V, F, BI> Handler<B, I, J, CS, V, F, BI>
 where
-    B: Block,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     I: PeerId,
-    J: Justification<Header = B::Header>,
     CS: ChainStatus<B, J>,
     V: Verifier<J>,
     F: Finalizer<J>,
@@ -510,7 +510,7 @@ where
     ) -> Result<bool, <Self as HandlerTypes>::Error> {
         let justification = self
             .verifier
-            .verify(justification)
+            .verify_justification(justification)
             .map_err(Error::Verifier)?;
         let new_highest = self
             .forest
@@ -519,6 +519,14 @@ where
         self.sync_oracle
             .update_behind(self.forest.behind_finalization());
         Ok(new_highest)
+    }
+
+    /// Verify an unverified header.
+    fn verify_header(
+        &mut self,
+        header: UnverifiedHeaderFor<J>,
+    ) -> Result<J::Header, <Self as HandlerTypes>::Error> {
+        self.verifier.verify_header(header).map_err(Error::Verifier)
     }
 
     /// Handle a justification from the user, returning whether it became the new highest justification.
@@ -583,6 +591,10 @@ where
                     if self.forest.skippable(&h.id()) {
                         continue;
                     }
+                    let h = match self.verify_header(h) {
+                        Ok(h) => h,
+                        Err(e) => return (new_highest, Some(e)),
+                    };
                     if let Err(e) = self.forest.update_header(&h, Some(peer.clone()), false) {
                         return (new_highest, Some(Error::Forest(e)));
                     }
@@ -644,23 +656,23 @@ where
             .session_id_from_block_num(local_top_number);
         match local_session.0.checked_sub(remote_session.0) {
             // remote session number larger than ours, we can try to import the justification
-            None => Ok(HandleStateAction::maybe_extend(
-                self.handle_justification(state.top_justification(), Some(peer.clone()))?
-                    || self
-                        .forest
-                        .update_header(&state.favourite_block(), Some(peer), false)?,
-            )),
+            None => {
+                let header = self.verify_header(state.favourite_block())?;
+                Ok(HandleStateAction::maybe_extend(
+                    self.handle_justification(state.top_justification(), Some(peer.clone()))?
+                        || self.forest.update_header(&header, Some(peer), false)?,
+                ))
+            }
             // same session
             Some(0) => match remote_top_number >= local_top_number {
                 // remote top justification higher than ours, we can import the justification
-                true => Ok(HandleStateAction::maybe_extend(
-                    self.handle_justification(state.top_justification(), Some(peer.clone()))?
-                        || self.forest.update_header(
-                            &state.favourite_block(),
-                            Some(peer),
-                            false,
-                        )?,
-                )),
+                true => {
+                    let header = self.verify_header(state.favourite_block())?;
+                    Ok(HandleStateAction::maybe_extend(
+                        self.handle_justification(state.top_justification(), Some(peer.clone()))?
+                            || self.forest.update_header(&header, Some(peer), false)?,
+                    ))
+                }
                 // remote top justification lower than ours, we can send a response
                 false => Ok(HandleStateAction::response(
                     local_top.into_unverified(),
@@ -693,8 +705,8 @@ where
             .status_of(self.forest.favourite_block())
             .map_err(Error::ChainStatus)?
         {
-            Justified(justification) => justification.header().clone(),
-            Present(header) => header,
+            Justified(justification) => justification.header().clone().into_unverified(),
+            Present(header) => header.into_unverified(),
             Unknown => return Err(Error::MissingFavouriteBlock),
         };
         Ok(State::new(top_justification, favourite_block))
@@ -734,7 +746,7 @@ where
 mod tests {
     use std::collections::HashSet;
 
-    use super::{DatabaseIO, HandleStateAction, HandleStateAction::*, Handler};
+    use super::{DatabaseIO, Error, HandleStateAction, HandleStateAction::*, Handler};
     use crate::{
         session::{SessionBoundaryInfo, SessionId},
         sync::{
@@ -1089,6 +1101,30 @@ mod tests {
         assert!(new_info);
         assert!(maybe_error.is_none());
         consume_branch_finalized_notifications(&mut notifier, &branch[15..].to_vec()).await;
+    }
+
+    #[tokio::test]
+    async fn handles_response_with_incorrect_headers() {
+        let (mut handler, _backend, _notifier, genesis) = setup();
+        let branch = grow_light_branch(&mut handler, &genesis, 15, 4);
+        let mut response = branch_response(
+            branch,
+            BranchResponseContent {
+                headers: true,
+                blocks: true,
+                justifications: true,
+            },
+        );
+        for item in response.iter_mut() {
+            if let ResponseItem::Header(header) = item {
+                header.invalidate();
+            }
+        }
+        let (_, maybe_error) = handler.handle_request_response(response, 7);
+        match maybe_error {
+            Some(Error::Verifier(_)) => (),
+            e => panic!("should return Verifier error, {e:?}"),
+        };
     }
 
     #[tokio::test]
@@ -1728,6 +1764,31 @@ mod tests {
             }
             other_action => panic!("expected a response with justifications, got {other_action:?}"),
         }
+    }
+
+    #[test]
+    fn handles_state_with_incorrect_headers() {
+        let (mut handler, backend, _keep, genesis) = setup();
+        let peer = rand::random();
+        let mut header = genesis.random_child();
+        header.invalidate();
+        let state = State::new(
+            MockJustification::for_header(
+                backend.top_finalized().expect("genesis").header().clone(),
+            ),
+            header,
+        );
+        match handler.handle_state(state, peer) {
+            Err(Error::Verifier(_)) => (),
+            e => panic!("should return Verifier error, {e:?}"),
+        };
+        let mut header = MockHeader::random_parentless(1000).random_child();
+        header.invalidate();
+        let state = State::new(MockJustification::for_header(header.clone()), header);
+        match handler.handle_state(state, peer) {
+            Err(Error::Verifier(_)) => (),
+            e => panic!("should return Verifier error, {e:?}"),
+        };
     }
 
     fn setup_request_tests(

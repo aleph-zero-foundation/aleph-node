@@ -20,8 +20,8 @@ use crate::{
         tasks::{Action as TaskAction, RequestTask},
         ticker::Ticker,
         Block, BlockId, BlockImport, ChainStatus, ChainStatusNotification, ChainStatusNotifier,
-        Finalizer, Header, Justification, JustificationSubmissions, RequestBlocks,
-        UnverifiedJustification, Verifier, LOG_TARGET,
+        Finalizer, Justification, JustificationSubmissions, RequestBlocks, UnverifiedHeader,
+        UnverifiedHeaderFor, UnverifiedJustification, Verifier, LOG_TARGET,
     },
     SyncOracle,
 };
@@ -32,10 +32,10 @@ const TICK_PERIOD: Duration = Duration::from_secs(5);
 
 pub struct IO<B, J, N, CE, CS, F, BI>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     N: GossipNetwork<VersionedNetworkData<B, J>>,
-    CE: ChainStatusNotifier<B::Header>,
+    CE: ChainStatusNotifier<J::Header>,
     CS: ChainStatus<B, J>,
     F: Finalizer<J>,
     BI: BlockImport<B>,
@@ -50,10 +50,10 @@ where
 
 impl<B, J, N, CE, CS, F, BI> IO<B, J, N, CE, CS, F, BI>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     N: GossipNetwork<VersionedNetworkData<B, J>>,
-    CE: ChainStatusNotifier<B::Header>,
+    CE: ChainStatusNotifier<J::Header>,
     CS: ChainStatus<B, J>,
     F: Finalizer<J>,
     BI: BlockImport<B>,
@@ -80,10 +80,10 @@ where
 /// A service synchronizing the knowledge about the chain between the nodes.
 pub struct Service<B, J, N, CE, CS, V, F, BI>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     N: GossipNetwork<VersionedNetworkData<B, J>>,
-    CE: ChainStatusNotifier<B::Header>,
+    CE: ChainStatusNotifier<J::Header>,
     CS: ChainStatus<B, J>,
     V: Verifier<J>,
     F: Finalizer<J>,
@@ -120,10 +120,10 @@ impl RequestBlocks for mpsc::UnboundedSender<BlockId> {
 
 impl<B, J, N, CE, CS, V, F, BI> Service<B, J, N, CE, CS, V, F, BI>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     N: GossipNetwork<VersionedNetworkData<B, J>>,
-    CE: ChainStatusNotifier<B::Header>,
+    CE: ChainStatusNotifier<J::Header>,
     CS: ChainStatus<B, J>,
     V: Verifier<J>,
     F: Finalizer<J>,
@@ -333,7 +333,7 @@ where
                 match e {
                     HandlerError::Verifier(e) => debug!(
                         target: LOG_TARGET,
-                        "Could not verify justification in sync state from {:?}: {}.", peer, e
+                        "Could not verify data in sync state from {:?}: {}.", peer, e
                     ),
                     e => warn!(
                         target: LOG_TARGET,
@@ -417,10 +417,9 @@ where
             .handler
             .handle_request_response(response_items, peer.clone());
         match maybe_error {
-            Some(HandlerError::Verifier(e)) => debug!(
-                target: LOG_TARGET,
-                "Could not verify justification from user: {}", e
-            ),
+            Some(HandlerError::Verifier(e)) => {
+                debug!(target: LOG_TARGET, "Could not verify data from user: {}", e)
+            }
             Some(e) => warn!(
                 target: LOG_TARGET,
                 "Failed to handle sync request response from {:?}: {}.", peer, e

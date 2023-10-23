@@ -2688,7 +2688,7 @@ dependencies = [
 
 [[package]]
 name = "finality-aleph"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "aggregator 0.2.1",
  "aggregator 0.5.0",
@@ -2717,6 +2717,7 @@ dependencies = [
  "sc-block-builder",
  "sc-client-api",
  "sc-consensus",
+ "sc-consensus-aura",
  "sc-network",
  "sc-network-common",
  "sc-network-sync",
@@ -2728,11 +2729,14 @@ dependencies = [
  "sp-application-crypto 23.0.0",
  "sp-blockchain",
  "sp-consensus",
+ "sp-consensus-aura",
+ "sp-consensus-slots",
  "sp-core 21.0.0",
  "sp-io 23.0.0",
  "sp-keystore",
  "sp-runtime 24.0.0",
  "sp-state-machine",
+ "sp-timestamp",
  "sp-trie",
  "static_assertions",
  "substrate-prometheus-endpoint",
@@ -6598,7 +6602,7 @@ dependencies = [
 
 [[package]]
 name = "primitives"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "parity-scale-codec",
  "scale-info",

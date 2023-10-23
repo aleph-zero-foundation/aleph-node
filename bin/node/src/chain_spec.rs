@@ -15,13 +15,12 @@ use sc_service::ChainType;
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Number, Value};
 use sp_application_crypto::Ss58Codec;
-use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{sr25519, Pair};
 
 use crate::aleph_primitives::{
     staking::{MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND},
-    AuthorityId as AlephId, SessionValidators, Version as FinalityVersion, ADDRESSES_ENCODING,
-    LEGACY_FINALITY_VERSION, TOKEN, TOKEN_DECIMALS,
+    AuraId, AuthorityId as AlephId, SessionValidators, Version as FinalityVersion,
+    ADDRESSES_ENCODING, LEGACY_FINALITY_VERSION, TOKEN, TOKEN_DECIMALS,
 };
 
 pub const CHAINTYPE_DEV: &str = "dev";

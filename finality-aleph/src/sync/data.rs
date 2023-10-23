@@ -7,7 +7,10 @@ use static_assertions::const_assert;
 use crate::{
     aleph_primitives::MAX_BLOCK_SIZE,
     network::GossipNetwork,
-    sync::{Block, Header, Justification, PeerId, UnverifiedJustification, LOG_TARGET},
+    sync::{
+        Block, Justification, PeerId, UnverifiedHeader, UnverifiedHeaderFor,
+        UnverifiedJustification, LOG_TARGET,
+    },
     BlockId, Version,
 };
 
@@ -19,10 +22,10 @@ pub struct StateV1<J: Justification> {
 }
 
 /// The representation of the database state to be sent to other nodes.
-#[derive(Clone, PartialEq, Debug, Encode, Decode)]
+#[derive(Clone, Debug, Encode, Decode)]
 pub struct State<J: Justification> {
     top_justification: J::Unverified,
-    favourite_block: J::Header,
+    favourite_block: UnverifiedHeaderFor<J>,
 }
 
 impl<J: Justification> From<StateV1<J>> for State<J> {
@@ -46,7 +49,7 @@ impl<J: Justification> From<State<J>> for StateV1<J> {
 }
 
 impl<J: Justification> State<J> {
-    pub fn new(top_justification: J::Unverified, favourite_block: J::Header) -> Self {
+    pub fn new(top_justification: J::Unverified, favourite_block: UnverifiedHeaderFor<J>) -> Self {
         State {
             top_justification,
             favourite_block,
@@ -57,7 +60,7 @@ impl<J: Justification> State<J> {
         self.top_justification.clone()
     }
 
-    pub fn favourite_block(&self) -> J::Header {
+    pub fn favourite_block(&self) -> UnverifiedHeaderFor<J> {
         self.favourite_block.clone()
     }
 }
@@ -66,11 +69,11 @@ impl<J: Justification> State<J> {
 #[derive(Clone, Debug, Encode, Decode)]
 pub enum ResponseItem<B, J>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
     Justification(J::Unverified),
-    Header(J::Header),
+    Header(UnverifiedHeaderFor<J>),
     Block(B),
 }
 
@@ -204,8 +207,8 @@ impl<I: PeerId> PreRequest<I> {
 #[derive(Clone, Debug, Encode, Decode)]
 pub enum NetworkDataV2<B: Block, J: Justification>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
     /// A periodic state broadcast, so that neighbouring nodes can request what they are missing,
     /// send what we are missing, and sometimes just use the justifications to update their own
@@ -224,8 +227,8 @@ where
 #[derive(Clone, Debug, Encode, Decode)]
 pub enum NetworkData<B: Block, J: Justification>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
     /// A periodic state broadcast, so that neighbouring nodes can request what they are missing,
     /// send what we are missing, and sometimes just use the justifications to update their own
@@ -244,8 +247,8 @@ where
 
 impl<B: Block, J: Justification> From<NetworkDataV2<B, J>> for NetworkData<B, J>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
     fn from(data: NetworkDataV2<B, J>) -> Self {
         match data {
@@ -263,8 +266,8 @@ where
 
 impl<B: Block, J: Justification> From<NetworkData<B, J>> for NetworkDataV2<B, J>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
     fn from(data: NetworkData<B, J>) -> Self {
         match data {
@@ -287,8 +290,8 @@ where
 #[derive(Clone, Debug)]
 pub enum VersionedNetworkData<B: Block, J: Justification>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
     // Most likely from the future.
     Other(Version, Vec<u8>),
@@ -328,8 +331,8 @@ fn encode_with_version(version: Version, payload: &[u8]) -> Vec<u8> {
 
 impl<B, J> Encode for VersionedNetworkData<B, J>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
     fn size_hint(&self) -> usize {
         use VersionedNetworkData::*;
@@ -356,8 +359,8 @@ where
 
 impl<B, J> Decode for VersionedNetworkData<B, J>
 where
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
     fn decode<I: CodecInput>(input: &mut I) -> Result<Self, CodecError> {
         use VersionedNetworkData::*;
@@ -382,8 +385,8 @@ where
 pub struct VersionWrapper<B, J, N>
 where
     N: GossipNetwork<VersionedNetworkData<B, J>>,
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
     inner: N,
     _phantom: PhantomData<(B, J)>,
@@ -392,8 +395,8 @@ where
 impl<B, J, N> VersionWrapper<B, J, N>
 where
     N: GossipNetwork<VersionedNetworkData<B, J>>,
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
     /// Wrap the inner network.
     pub fn new(inner: N) -> Self {
@@ -408,8 +411,8 @@ where
 impl<B, J, N> GossipNetwork<NetworkData<B, J>> for VersionWrapper<B, J, N>
 where
     N: GossipNetwork<VersionedNetworkData<B, J>>,
-    B: Block,
-    J: Justification<Header = B::Header>,
+    J: Justification,
+    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
     type Error = N::Error;
     type PeerId = N::PeerId;

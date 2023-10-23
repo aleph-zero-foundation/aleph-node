@@ -6,7 +6,7 @@ use std::{
 use sp_runtime::SaturatedConversion;
 
 use crate::{
-    aleph_primitives::BlockNumber,
+    aleph_primitives::{AuraId, BlockNumber},
     session::{SessionBoundaryInfo, SessionId},
     session_map::AuthorityProvider,
     sync::{
@@ -19,6 +19,7 @@ use crate::{
 #[derive(Debug, PartialEq, Eq)]
 pub enum CacheError {
     UnknownAuthorities(SessionId),
+    UnknownAuraAuthorities(SessionId),
     SessionTooOld(SessionId, SessionId),
     SessionInFuture(SessionId, SessionId),
     BadGenesisHeader,
@@ -42,6 +43,12 @@ impl Display for CacheError {
                     "authorities for session {session:?} not known even though they should be"
                 )
             }
+            UnknownAuraAuthorities(session) => {
+                write!(
+                    f,
+                    "Aura authorities for session {session:?} not known even though they should be"
+                )
+            }
             BadGenesisHeader => {
                 write!(
                     f,
@@ -52,8 +59,14 @@ impl Display for CacheError {
     }
 }
 
-/// Cache storing SessionVerifier structs for multiple sessions. Keeps up to `cache_size` verifiers of top sessions.
-/// If the session is too new or ancient it will fail to return a SessionVerifier.
+struct CachedData {
+    session_verifier: SessionVerifier,
+    aura_authorities: Vec<AuraId>,
+}
+
+/// Cache storing SessionVerifier structs and Aura authorities for multiple sessions.
+/// Keeps up to `cache_size` verifiers of top sessions.
+/// If the session is too new or ancient it will fail to return requested data.
 /// Highest session verifier this cache returns is for the session after the current finalization session.
 /// Lowest session verifier this cache returns is for `top_returned_session` - `cache_size`.
 pub struct VerifierCache<AP, FI, H>
@@ -62,7 +75,7 @@ where
     FI: FinalizationInfo,
     H: Header,
 {
-    sessions: HashMap<SessionId, SessionVerifier>,
+    cached_data: HashMap<SessionId, CachedData>,
     session_info: SessionBoundaryInfo,
     finalization_info: FI,
     authority_provider: AP,
@@ -86,7 +99,7 @@ where
         genesis_header: H,
     ) -> Self {
         Self {
-            sessions: HashMap::new(),
+            cached_data: HashMap::new(),
             session_info,
             finalization_info,
             authority_provider,
@@ -101,22 +114,34 @@ where
     }
 }
 
-/// Download authorities for the session and return `SessionVerifier` for them. `session_id` should be the first session,
-/// or the first block from the session number `session_id - 1` should be finalized.
-fn download_session_verifier<AP: AuthorityProvider>(
+fn download_data<AP: AuthorityProvider>(
     authority_provider: &AP,
     session_id: SessionId,
     session_info: &SessionBoundaryInfo,
-) -> Option<SessionVerifier> {
-    let maybe_authority_data = match session_id {
-        SessionId(0) => authority_provider.authority_data(0),
+) -> Result<CachedData, CacheError> {
+    Ok(match session_id {
+        SessionId(0) => CachedData {
+            session_verifier: authority_provider
+                .authority_data(0)
+                .ok_or(CacheError::UnknownAuthorities(session_id))?
+                .into(),
+            aura_authorities: authority_provider
+                .aura_authorities(0)
+                .ok_or(CacheError::UnknownAuraAuthorities(session_id))?,
+        },
         SessionId(id) => {
             let prev_first = session_info.first_block_of_session(SessionId(id - 1));
-            authority_provider.next_authority_data(prev_first)
+            CachedData {
+                session_verifier: authority_provider
+                    .next_authority_data(prev_first)
+                    .ok_or(CacheError::UnknownAuthorities(session_id))?
+                    .into(),
+                aura_authorities: authority_provider
+                    .next_aura_authorities(prev_first)
+                    .ok_or(CacheError::UnknownAuraAuthorities(session_id))?,
+            }
         }
-    };
-
-    maybe_authority_data.map(|a| a.into())
+    })
 }
 
 impl<AP, FI, H> VerifierCache<AP, FI, H>
@@ -125,21 +150,34 @@ where
     FI: FinalizationInfo,
     H: Header,
 {
-    /// Prune all sessions with a number smaller than `session_id`
-    fn prune(&mut self, session_id: SessionId) {
-        self.sessions.retain(|&id, _| id >= session_id);
-        self.lower_bound = session_id;
+    // Prune old session data if necessary
+    fn try_prune(&mut self, session_id: SessionId) {
+        if session_id.0
+            >= self
+                .lower_bound
+                .0
+                .saturating_add(self.cache_size.saturated_into())
+        {
+            let new_lower_bound = SessionId(
+                session_id
+                    .0
+                    .saturating_sub(self.cache_size.saturated_into())
+                    + 1,
+            );
+            self.cached_data.retain(|&id, _| id >= new_lower_bound);
+            self.lower_bound = new_lower_bound;
+        }
     }
 
-    /// Returns session verifier for block number if available. Updates cache if necessary.
-    pub fn get(&mut self, number: BlockNumber) -> Result<&SessionVerifier, CacheError> {
+    fn get_data(&mut self, number: BlockNumber) -> Result<&CachedData, CacheError> {
         let session_id = self.session_info.session_id_from_block_num(number);
 
         if session_id < self.lower_bound {
             return Err(CacheError::SessionTooOld(session_id, self.lower_bound));
         }
 
-        // We are sure about authorities in all session that have first block from previous session finalized.
+        // We are sure about authorities in all session that have first block
+        // from previous session finalized.
         let upper_bound = SessionId(
             self.session_info
                 .session_id_from_block_num(self.finalization_info.finalized_number())
@@ -150,40 +188,42 @@ where
             return Err(CacheError::SessionInFuture(session_id, upper_bound));
         }
 
-        if session_id.0
-            >= self
-                .lower_bound
-                .0
-                .saturating_add(self.cache_size.saturated_into())
-        {
-            self.prune(SessionId(
-                session_id
-                    .0
-                    .saturating_sub(self.cache_size.saturated_into())
-                    + 1,
-            ));
-        }
+        self.try_prune(session_id);
 
-        let verifier = match self.sessions.entry(session_id) {
+        Ok(match self.cached_data.entry(session_id) {
             Entry::Occupied(occupied) => occupied.into_mut(),
-            Entry::Vacant(vacant) => {
-                let verifier = download_session_verifier(
-                    &self.authority_provider,
-                    session_id,
-                    &self.session_info,
-                )
-                .ok_or(CacheError::UnknownAuthorities(session_id))?;
-                vacant.insert(verifier)
-            }
-        };
+            Entry::Vacant(vacant) => vacant.insert(download_data(
+                &self.authority_provider,
+                session_id,
+                &self.session_info,
+            )?),
+        })
+    }
 
-        Ok(verifier)
+    /// Returns the list of Aura authorities for a given block number. Updates cache if necessary.
+    /// Must be called using the number of the PARENT of the verified block.
+    /// This method assumes that the queued Aura authorities will indeed become Aura authorities
+    /// in the next session.
+    pub fn get_aura_authorities(
+        &mut self,
+        number: BlockNumber,
+    ) -> Result<&Vec<AuraId>, CacheError> {
+        Ok(&self.get_data(number)?.aura_authorities)
+    }
+
+    /// Returns session verifier for block number if available. Updates cache if necessary.
+    /// Must be called using the number of the verified block.
+    pub fn get(&mut self, number: BlockNumber) -> Result<&SessionVerifier, CacheError> {
+        Ok(&self.get_data(number)?.session_verifier)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use std::{cell::Cell, collections::HashMap};
+
+    use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+    use sp_runtime::testing::UintAuthorityId;
 
     use super::{
         AuthorityProvider, BlockNumber, CacheError, FinalizationInfo, SessionVerifier,
@@ -197,7 +237,7 @@ mod tests {
     };
 
     const SESSION_PERIOD: u32 = 30;
-    const CACHE_SIZE: usize = 2;
+    const CACHE_SIZE: usize = 3;
 
     type TestVerifierCache<'a> =
         VerifierCache<MockAuthorityProvider, MockFinalizationInfo<'a>, MockHeader>;
@@ -214,6 +254,7 @@ mod tests {
 
     struct MockAuthorityProvider {
         session_map: HashMap<SessionId, SessionAuthorityData>,
+        aura_authority_map: HashMap<SessionId, Vec<AuraId>>,
         session_info: SessionBoundaryInfo,
     }
 
@@ -221,14 +262,23 @@ mod tests {
         authority_data(session_id * 4, (session_id + 1) * 4)
     }
 
+    fn aura_authority_data_for_session(session_id: u32) -> Vec<AuraId> {
+        (session_id * 4..(session_id + 1) * 4)
+            .map(|id| UintAuthorityId(id.into()).to_public_key())
+            .collect()
+    }
+
     impl MockAuthorityProvider {
         fn new(session_n: u32) -> Self {
             let session_map = (0..session_n + 1)
                 .map(|s| (SessionId(s), authority_data_for_session(s)))
                 .collect();
-
+            let aura_authority_map = (0..session_n + 1)
+                .map(|s| (SessionId(s), aura_authority_data_for_session(s)))
+                .collect();
             Self {
                 session_map,
+                aura_authority_map,
                 session_info: SessionBoundaryInfo::new(SessionPeriod(SESSION_PERIOD)),
             }
         }
@@ -243,6 +293,20 @@ mod tests {
 
         fn next_authority_data(&self, block_number: BlockNumber) -> Option<SessionAuthorityData> {
             self.session_map
+                .get(&SessionId(
+                    self.session_info.session_id_from_block_num(block_number).0 + 1,
+                ))
+                .cloned()
+        }
+
+        fn aura_authorities(&self, block_number: BlockNumber) -> Option<Vec<AuraId>> {
+            self.aura_authority_map
+                .get(&self.session_info.session_id_from_block_num(block_number))
+                .cloned()
+        }
+
+        fn next_aura_authorities(&self, block_number: BlockNumber) -> Option<Vec<AuraId>> {
+            self.aura_authority_map
                 .get(&SessionId(
                     self.session_info.session_id_from_block_num(block_number).0 + 1,
                 ))
@@ -313,9 +377,11 @@ mod tests {
 
     #[test]
     fn prunes_old_sessions() {
+        assert_eq!(CACHE_SIZE, 3);
+
         let finalized_number = Cell::new(0);
 
-        let mut verifier = setup_test(3, &finalized_number);
+        let mut verifier = setup_test(4, &finalized_number);
 
         check_session_verifier(&mut verifier, 0);
         check_session_verifier(&mut verifier, 1);
@@ -323,14 +389,17 @@ mod tests {
         finalize_first_in_session(&finalized_number, 1);
         check_session_verifier(&mut verifier, 2);
 
+        finalize_first_in_session(&finalized_number, 2);
+        check_session_verifier(&mut verifier, 3);
+
         // Should no longer have verifier for session 0
         assert_eq!(
             session_verifier(&mut verifier, 0),
             Err(CacheError::SessionTooOld(SessionId(0), SessionId(1)))
         );
 
-        finalize_first_in_session(&finalized_number, 2);
-        check_session_verifier(&mut verifier, 3);
+        finalize_first_in_session(&finalized_number, 3);
+        check_session_verifier(&mut verifier, 4);
 
         // Should no longer have verifier for session 1
         assert_eq!(

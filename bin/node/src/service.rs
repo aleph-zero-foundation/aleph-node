@@ -158,6 +158,9 @@ pub fn new_partial(
 
     let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
 
+    // DO NOT change Aura parameters without updating the finality-aleph sync accordingly,
+    // in particular the code responsible for verifying incoming Headers, as it is supposed
+    // to duplicate parts of Aura internal logic
     let import_queue = sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _>(
         ImportQueueParams {
             block_import: aleph_block_import.clone(),
