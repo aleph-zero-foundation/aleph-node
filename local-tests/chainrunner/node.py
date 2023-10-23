@@ -5,11 +5,14 @@ import re
 import requests
 import subprocess
 import time
+from jsonrpcclient import Error, Ok
+from collections import namedtuple
 
 from substrateinterface import SubstrateInterface, Keypair
 
 from .utils import flags_from_dict, check_file, check_finalized
 
+NodeInfoCache = namedtuple("NodeInfoCache", ["highest_block", "highest_finalized"])
 
 class Node:
     """A class representing a single node of a running blockchain.
@@ -27,6 +30,7 @@ class Node:
         self.process = None
         self.flags = {}
         self.running = False
+        self.info_cache = NodeInfoCache(highest_block=-1, highest_finalized=-1)
 
     def _stdargs(self):
         return ['--base-path', self.path, '--chain', self.chainspec]
@@ -76,14 +80,42 @@ class Node:
             log = f.read()
         return re.findall(regexp, log)
 
+    def highest_hash(self):
+        highest_block = self.rpc('chain_getBlockHash', None)
+        if isinstance(highest_block, Ok):
+            return highest_block.result
+        else:
+            return None
+
+    def highest_finalized_hash(self):
+        highest_finalized = self.rpc('chain_getFinalizedHead', None)
+        if isinstance(highest_finalized, Ok):
+            return highest_finalized.result
+        else:
+            return None
+
+    def block_number(self, hash):
+        block = self.rpc('chain_getBlock', [hash])
+        if isinstance(block, Ok):
+            return int(block.result['block']['header']['number'], 16)
+        else:
+            return -1
+
     def highest_block(self):
-        """Find in the logs the height of the most recent block.
+        """Find the height of the most recent block.
         Return two ints: highest block and highest finalized block."""
-        results = self.greplog(r'best: #(\d+) .+ finalized #(\d+)')
-        if results:
-            a, b = results[-1]
-            return int(a), int(b)
-        return -1, -1
+        try:
+            highest_block_hash = self.highest_hash()
+            highest_finalized_hash = self.highest_finalized_hash()
+            highest_block, highest_finalized = self.block_number(highest_block_hash), self.block_number(highest_finalized_hash)
+        except Exception:
+            highest_block, highest_finalized = -1, -1
+
+        highest_block = highest_block if highest_block != -1 else self.info_cache.highest_block
+        highest_finalized = highest_finalized if highest_finalized != -1 else self.info_cache.highest_finalized
+        self.info_cache = NodeInfoCache(highest_block=highest_block, highest_finalized=highest_finalized)
+
+        return highest_block, highest_finalized
 
     def check_authorities(self):
         """Find in the logs the number of authorities this node is connected to.

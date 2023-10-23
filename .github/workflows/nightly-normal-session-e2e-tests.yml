@@ -210,6 +210,26 @@ jobs:
           ALEPH_NODE_BINARY: ../target/release/aleph-node
         run: ./.github/scripts/test_major_sync.sh
 
+  run-force-reorg-test:
+    needs: [build-production-node-and-runtime]
+    name: Run force reorgs test
+    runs-on: [self-hosted, Linux, X64, medium]
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Download release artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: aleph-production-node
+          path: target/release/
+
+      - name: Run test
+        timeout-minutes: 15
+        env:
+          ALEPH_NODE_BINARY: ../target/release/aleph-node
+        run: ./.github/scripts/test_force_reorg.sh
+
 
   run-e2e-no-quorum-without-high-out-latency:
     needs: [build-production-node-and-e2e-client-image]
@@ -233,6 +253,7 @@ jobs:
       run-e2e-high-out-latency,
       run-e2e-no-quorum-without-high-out-latency,
       run-major-sync-test,
+      run-force-reorg-test,
     ]
     name: Check nightly test suite completion
     if: ${{ !cancelled() }}
