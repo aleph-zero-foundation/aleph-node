@@ -11,6 +11,7 @@ use crate::{
     abft::Recipient,
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{
+        address_cache::{ValidatorAddressCacheUpdater, ValidatorAddressingInfo},
         session::{
             data::DataInSession, Authentication, Connections, Discovery, DiscoveryMessage,
             SessionHandler, SessionHandlerError,
@@ -78,10 +79,11 @@ impl<A: AddressingInformation> ManagerActions<A> {
 ///    1. In-session messages are forwarded to the user.
 ///    2. Authentication messages forwarded to session handlers.
 /// 4. Running periodic maintenance, mostly related to node discovery.
-pub struct Manager<NI: NetworkIdentity, D: Data> {
+pub struct Manager<NI: NetworkIdentity, D: Data, VCU: ValidatorAddressCacheUpdater> {
     network_identity: NI,
     connections: Connections<NI::PeerId>,
     sessions: HashMap<SessionId, Session<D, NI::AddressingInformation>>,
+    validator_address_cache_updater: VCU,
     discovery_cooldown: Duration,
 }
 
@@ -92,13 +94,18 @@ pub enum SendError {
     NoSession,
 }
 
-impl<NI: NetworkIdentity, D: Data> Manager<NI, D> {
+impl<NI: NetworkIdentity, D: Data, VCU: ValidatorAddressCacheUpdater> Manager<NI, D, VCU> {
     /// Create a new connection manager.
-    pub fn new(network_identity: NI, discovery_cooldown: Duration) -> Self {
+    pub fn new(
+        network_identity: NI,
+        validator_address_cache_updater: VCU,
+        discovery_cooldown: Duration,
+    ) -> Self {
         Manager {
             network_identity,
             connections: Connections::new(),
             sessions: HashMap::new(),
+            validator_address_cache_updater,
             discovery_cooldown,
         }
     }
@@ -205,6 +212,15 @@ impl<NI: NetworkIdentity, D: Data> Manager<NI, D> {
             node_id,
             pen,
         } = pre_session;
+        self.validator_address_cache_updater.update(
+            node_id,
+            ValidatorAddressingInfo {
+                session: session_id,
+                network_level_address: address.address(),
+                validator_network_peer_id: address.peer_id().to_string(),
+            },
+        );
+
         let peers_to_stay = session
             .handler
             .update(Some((node_id, pen)), verifier, address)?
@@ -308,20 +324,29 @@ impl<NI: NetworkIdentity, D: Data> Manager<NI, D> {
         message: DiscoveryMessage<NI::AddressingInformation>,
     ) -> ManagerActions<NI::AddressingInformation> {
         let session_id = message.session_id();
+        let creator = message.0.creator();
         match self.sessions.get_mut(&session_id) {
             Some(Session {
                 handler, discovery, ..
             }) => {
                 let (maybe_address, maybe_message) =
                     discovery.handle_authentication(message, handler);
-                let maybe_command = match (maybe_address, handler.is_validator()) {
-                    (Some(address), true) => {
+                let mut maybe_command = None;
+                if let Some(address) = maybe_address {
+                    self.validator_address_cache_updater.update(
+                        creator,
+                        ValidatorAddressingInfo {
+                            session: session_id,
+                            network_level_address: address.address(),
+                            validator_network_peer_id: address.peer_id().to_string(),
+                        },
+                    );
+                    if handler.is_validator() {
                         debug!(target: "aleph-network", "Adding addresses for session {:?} to reserved: {:?}", session_id, address);
                         self.connections.add_peers(session_id, [address.peer_id()]);
-                        Some(ConnectionCommand::AddReserved([address].into()))
+                        maybe_command = Some(ConnectionCommand::AddReserved([address].into()));
                     }
-                    _ => None,
-                };
+                }
                 ManagerActions {
                     maybe_command,
                     maybe_message,
@@ -439,15 +464,19 @@ mod tests {
         SendError,
     };
     use crate::{
-        network::{mock::crypto_basics, session::data::DataInSession},
+        network::{
+            address_cache::{test::noop_updater, ValidatorAddressCacheUpdater},
+            mock::crypto_basics,
+            session::data::DataInSession,
+        },
         Recipient, SessionId,
     };
 
     const NUM_NODES: usize = 7;
     const DISCOVERY_PERIOD: Duration = Duration::from_secs(60);
 
-    fn build() -> Manager<MockAddressingInformation, i32> {
-        Manager::new(random_address(), DISCOVERY_PERIOD)
+    fn build() -> Manager<MockAddressingInformation, i32, impl ValidatorAddressCacheUpdater> {
+        Manager::new(random_address(), noop_updater(), DISCOVERY_PERIOD)
     }
 
     #[test]

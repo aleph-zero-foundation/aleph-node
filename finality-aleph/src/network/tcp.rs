@@ -106,6 +106,10 @@ impl AddressingInformation for SignedTcpAddressingInformation {
         self.peer_id()
             .verify(&self.addressing_information.encode(), &self.signature)
     }
+
+    fn address(&self) -> String {
+        self.addressing_information.primary_address.clone()
+    }
 }
 
 impl NetworkIdentity for SignedTcpAddressingInformation {

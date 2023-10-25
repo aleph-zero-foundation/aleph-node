@@ -16,6 +16,7 @@ use crate::{
     abft::Recipient,
     crypto::{AuthorityPen, AuthorityVerifier},
     network::{
+        address_cache::ValidatorAddressCacheUpdater,
         session::{
             data::DataInSession,
             manager::{
@@ -176,10 +177,11 @@ pub struct Service<
     NI: NetworkIdentity,
     CN: CliqueNetwork<NI::PeerId, NI::AddressingInformation, DataInSession<D>>,
     GN: GossipNetwork<VersionedAuthentication<NI::AddressingInformation>>,
+    VCU: ValidatorAddressCacheUpdater,
 > where
     NI::PeerId: PublicKey,
 {
-    manager: Manager<NI, D>,
+    manager: Manager<NI, D, VCU>,
     commands_from_user: mpsc::UnboundedReceiver<SessionCommand<D>>,
     messages_from_user: mpsc::UnboundedReceiver<(D, SessionId, Recipient)>,
     validator_network: CN,
@@ -214,7 +216,8 @@ impl<
         NI: NetworkIdentity,
         CN: CliqueNetwork<NI::PeerId, NI::AddressingInformation, DataInSession<D>>,
         GN: GossipNetwork<VersionedAuthentication<NI::AddressingInformation>>,
-    > Service<D, NI, CN, GN>
+        VCU: ValidatorAddressCacheUpdater,
+    > Service<D, NI, CN, GN, VCU>
 where
     NI::PeerId: PublicKey,
 {
@@ -222,9 +225,10 @@ where
         network_identity: NI,
         validator_network: CN,
         gossip_network: GN,
+        validator_address_cache_updater: VCU,
         config: Config,
     ) -> (
-        Service<D, NI, CN, GN>,
+        Service<D, NI, CN, GN, VCU>,
         impl SessionManager<D, Error = ManagerError>,
     ) {
         let Config {
@@ -232,7 +236,11 @@ where
             maintenance_period,
             initial_delay,
         } = config;
-        let manager = Manager::new(network_identity, discovery_cooldown);
+        let manager = Manager::new(
+            network_identity,
+            validator_address_cache_updater,
+            discovery_cooldown,
+        );
         let (commands_for_service, commands_from_user) = mpsc::unbounded();
         let (messages_for_service, messages_from_user) = mpsc::unbounded();
         (

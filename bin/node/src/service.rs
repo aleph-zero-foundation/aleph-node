@@ -402,6 +402,8 @@ pub fn new_authority(
             .unwrap_or(usize::MAX),
     };
 
+    let validator_address_cache = None;
+
     let aleph_config = AlephConfig {
         network,
         sync_network,
@@ -424,6 +426,7 @@ pub fn new_authority(
         protocol_naming,
         rate_limiter_config,
         sync_oracle,
+        validator_address_cache,
     };
 
     task_manager.spawn_essential_handle().spawn_blocking(

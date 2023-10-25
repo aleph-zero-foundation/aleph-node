@@ -1,5 +1,6 @@
 use parity_scale_codec::Codec;
 
+pub mod address_cache;
 pub mod data;
 mod gossip;
 #[cfg(test)]

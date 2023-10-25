@@ -14,7 +14,9 @@ use crate::{
     aleph_primitives::{AlephSessionApi, AuraId, Block},
     crypto::AuthorityPen,
     finalization::AlephFinalizer,
+    idx_to_account::ValidatorIndexToAccountIdConverterImpl,
     network::{
+        address_cache::validator_address_cache_updater,
         session::{ConnectionManager, ConnectionManagerConfig},
         tcp::{new_tcp_network, KEY_TYPE},
         GossipService, SubstrateNetwork,
@@ -75,6 +77,7 @@ where
         protocol_naming,
         rate_limiter_config,
         sync_oracle,
+        validator_address_cache,
     } = aleph_config;
 
     // We generate the phrase manually to only save the key in RAM, we don't want to have these
@@ -167,10 +170,16 @@ where
         };
     let sync_task = async move { sync_service.run().await };
 
+    let validator_address_cache_updater = validator_address_cache_updater(
+        validator_address_cache,
+        ValidatorIndexToAccountIdConverterImpl::new(client.clone(), session_info.clone()),
+    );
+
     let (connection_manager_service, connection_manager) = ConnectionManager::new(
         network_identity,
         validator_network,
         authentication_network,
+        validator_address_cache_updater,
         ConnectionManagerConfig::with_session_period(&session_period, &millisecs_per_block),
     );
 
