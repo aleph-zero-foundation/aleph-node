@@ -42,6 +42,6 @@ runs:
       run: |
         docker push '${{ inputs.target-image }}'
         if [[ -n '${{ inputs.additional-image }}' ]]; then
-          docker tag '${{ inputs.source-image }}' '${{ inputs.additional-image }}'
+          docker tag '${{ inputs.target-image }}' '${{ inputs.additional-image }}'
           docker push '${{ inputs.additional-image }}'
         fi
