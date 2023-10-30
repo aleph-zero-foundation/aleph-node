@@ -1,6 +1,6 @@
 [package]
 name = "cliain"
-version = "0.12.1"
+version = "0.12.2"
 edition = "2021"
 license = "GPL-3.0-or-later"
 
@@ -8,12 +8,12 @@ license = "GPL-3.0-or-later"
 anyhow = "1.0"
 clap = { version = "3.0", features = ["derive"] }
 codec = { package = 'parity-scale-codec', version = "3.0.0", features = ['derive'] }
-contract-metadata = "2.0.2"
-contract-transcode = "2.1.0"
+contract-metadata = "3.2.0"
+contract-transcode = "3.2.0"
 dialoguer = "0.10.0"
 env_logger = "0.8"
 hex = "0.4.3"
-ink_metadata = { version = "=4.0.1", features = ["derive"] }
+ink_metadata = { version = "4.3.0", features = ["derive"] }
 liminal-ark-relations = { version = "0.4.0", optional = true }
 log = "0.4"
 serde = { version = "1.0.137", features = ["derive"] }
