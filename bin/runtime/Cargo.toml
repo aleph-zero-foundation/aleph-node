@@ -1,6 +1,6 @@
 [package]
 name = "aleph-runtime"
-version = "0.10.0"
+version = "0.13.0+dev"
 license = "GPL-3.0-or-later"
 authors.workspace = true
 edition.workspace = true

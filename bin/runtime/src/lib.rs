@@ -96,10 +96,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 56,
+    spec_version: 67,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 16,
+    transaction_version: 17,
     state_version: 0,
 };
 
@@ -830,6 +830,7 @@ pub type SignedExtra = (
     frame_system::CheckWeight<Runtime>,
     pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 );
+
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
     generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
