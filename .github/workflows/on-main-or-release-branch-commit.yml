@@ -18,6 +18,10 @@ jobs:
     name: Build production node and runtime
     uses: ./.github/workflows/_build-production-node-and-runtime.yml
 
+  check-runtime-determinism:
+    needs: [build-production-node-and-runtime]
+    uses: ./.github/workflows/_check-runtime-determimism.yml
+
   store-production-node-and-runtime-in-mainnet-s3:
     name: Store production node and runtime in Mainnet bucket
     runs-on: ubuntu-20.04

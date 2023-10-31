@@ -4,6 +4,9 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '00 01 * * *'
+  push:
+    branches:
+      - 'release-*'
 
 concurrency:
   group: "${{ github.ref }}-${{ github.workflow }}"
