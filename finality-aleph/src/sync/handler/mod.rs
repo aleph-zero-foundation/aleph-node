@@ -435,7 +435,7 @@ where
         header: J::Header,
     ) -> Result<(), <Self as HandlerTypes>::Error> {
         if let Err(e) = self.forest.update_body(&header) {
-            if matches!(e, ForestError::TooNew) {
+            if matches!(e, ForestError::TooNew | ForestError::ParentNotImported) {
                 self.missed_import_data
                     .update(header.id().number(), &self.chain_status)
                     .map_err(Error::ChainStatus)?;

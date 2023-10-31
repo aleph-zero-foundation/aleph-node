@@ -133,8 +133,10 @@ where
             target: LOG_TARGET,
             "Initiating a request for highest justified block {:?}.", block_id
         );
-        self.tasks
-            .schedule_in(RequestTask::new_highest_justified(block_id), Duration::ZERO);
+        self.tasks.schedule_in(
+            RequestTask::new_highest_justified(block_id),
+            Duration::from_millis(200),
+        );
     }
 
     fn request_block(&mut self, block_id: BlockIdFor<J>) {
