@@ -381,7 +381,21 @@ where
             block_importer,
             ..
         } = database_io;
-        let forest = Forest::new(&chain_status).map_err(Error::ForestInitialization)?;
+        let (forest, too_many_nonfinalized) =
+            Forest::new(&chain_status).map_err(Error::ForestInitialization)?;
+        let mut missed_import_data = MissedImportData::new();
+        if too_many_nonfinalized {
+            missed_import_data
+                .update(
+                    chain_status
+                        .best_block()
+                        .map_err(Error::ChainStatus)?
+                        .id()
+                        .number(),
+                    &chain_status,
+                )
+                .map_err(Error::ChainStatus)?;
+        }
         Ok(Handler {
             chain_status,
             verifier,
@@ -389,7 +403,7 @@ where
             forest,
             session_info,
             block_importer,
-            missed_import_data: MissedImportData::new(),
+            missed_import_data,
             phantom: PhantomData,
         })
     }
