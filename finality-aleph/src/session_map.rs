@@ -13,10 +13,10 @@ use tokio::sync::{
 
 use crate::{
     aleph_primitives::{AlephSessionApi, AuraId, BlockHash, BlockNumber, SessionAuthorityData},
+    runtime_api::RuntimeApi,
     session::SessionBoundaryInfo,
     ClientForAleph, SessionId, SessionPeriod,
 };
-
 const PRUNING_THRESHOLD: u32 = 10;
 const LOG_TARGET: &str = "aleph-session-updater";
 type SessionMap = HashMap<SessionId, SessionAuthorityData>;
@@ -36,28 +36,32 @@ pub trait AuthorityProvider {
 /// Default implementation of authority provider trait.
 /// If state pruning is on and set to `n`, will no longer be able to
 /// answer for `num < finalized_number - n`.
-pub struct AuthorityProviderImpl<C, B, BE>
+pub struct AuthorityProviderImpl<C, B, BE, RA>
 where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
     C::Api: crate::aleph_primitives::AlephSessionApi<B> + AuraApi<B, AuraId>,
     B: Block<Hash = BlockHash>,
     BE: Backend<B> + 'static,
+    RA: RuntimeApi,
 {
     client: Arc<C>,
+    api: RA,
     _phantom: PhantomData<(B, BE)>,
 }
 
-impl<C, B, BE> AuthorityProviderImpl<C, B, BE>
+impl<C, B, BE, RA> AuthorityProviderImpl<C, B, BE, RA>
 where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
     C::Api: crate::aleph_primitives::AlephSessionApi<B> + AuraApi<B, AuraId>,
     B: Block<Hash = BlockHash>,
     B::Header: Header<Number = BlockNumber>,
     BE: Backend<B> + 'static,
+    RA: RuntimeApi,
 {
-    pub fn new(client: Arc<C>) -> Self {
+    pub fn new(client: Arc<C>, api: RA) -> Self {
         Self {
             client,
+            api,
             _phantom: PhantomData,
         }
     }
@@ -76,13 +80,14 @@ where
     }
 }
 
-impl<C, B, BE> AuthorityProvider for AuthorityProviderImpl<C, B, BE>
+impl<C, B, BE, RA> AuthorityProvider for AuthorityProviderImpl<C, B, BE, RA>
 where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
     C::Api: AlephSessionApi<B> + AuraApi<B, AuraId>,
     B: Block<Hash = BlockHash>,
     B::Header: Header<Number = BlockNumber>,
     BE: Backend<B> + 'static,
+    RA: RuntimeApi,
 {
     fn aura_authorities(&self, block_number: BlockNumber) -> Option<Vec<AuraId>> {
         AuraApi::authorities(
@@ -93,11 +98,9 @@ where
     }
 
     fn next_aura_authorities(&self, block_number: BlockNumber) -> Option<Vec<AuraId>> {
-        AlephSessionApi::next_session_aura_authorities(
-            self.client.runtime_api().deref(),
-            self.block_hash(block_number)?,
-        )
-        .ok()
+        self.api
+            .next_aura_authorities(self.block_hash(block_number)?)
+            .ok()
     }
 
     fn authority_data(&self, block_number: BlockNumber) -> Option<SessionAuthorityData> {

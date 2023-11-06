@@ -14,7 +14,8 @@ use parity_scale_codec::{Decode, Encode, Output};
 use primitives as aleph_primitives;
 use primitives::{AuthorityId, Block as AlephBlock, BlockHash, BlockNumber, Hash as AlephHash};
 use sc_client_api::{
-    Backend, BlockBackend, BlockchainEvents, Finalizer, LockImportRun, TransactionFor,
+    Backend, BlockBackend, BlockchainEvents, Finalizer, LockImportRun, StorageProvider,
+    TransactionFor,
 };
 use sc_consensus::BlockImport;
 use sc_network::NetworkService;
@@ -51,6 +52,7 @@ mod metrics;
 mod network;
 mod nodes;
 mod party;
+mod runtime_api;
 mod session;
 mod session_map;
 mod sync;
@@ -209,6 +211,7 @@ pub trait ClientForAleph<B, BE>:
     + HeaderMetadata<B, Error = sp_blockchain::Error>
     + BlockchainEvents<B>
     + BlockBackend<B>
+    + StorageProvider<B, BE>
 where
     BE: Backend<B>,
     B: Block,
@@ -226,7 +229,8 @@ where
         + HeaderMetadata<B, Error = sp_blockchain::Error>
         + BlockchainEvents<B>
         + BlockImport<B, Transaction = TransactionFor<BE, B>, Error = sp_consensus::Error>
-        + BlockBackend<B>,
+        + BlockBackend<B>
+        + StorageProvider<B, BE>,
 {
 }
 

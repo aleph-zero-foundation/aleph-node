@@ -65,13 +65,13 @@ sp-runtime = { workspace = true }
 sp-state-machine = { workspace = true }
 sp-timestamp = { workspace = true }
 sp-trie = { workspace = true }
+aleph-runtime = { workspace = true }
 
 [dev-dependencies]
 substrate-test-runtime-client = { workspace = true }
 substrate-test-runtime = { workspace = true }
 substrate-test-client = { workspace = true }
 sc-block-builder = { workspace = true }
-aleph-runtime = { workspace = true }
 
 [features]
 only_legacy = []
