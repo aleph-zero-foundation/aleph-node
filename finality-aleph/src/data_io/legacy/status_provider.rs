@@ -5,7 +5,7 @@ use crate::{
     aleph_primitives::BlockNumber,
     data_io::{
         chain_info::ChainInfoProvider,
-        proposal::{AlephProposal, PendingProposalStatus, ProposalStatus},
+        legacy::proposal::{AlephProposal, PendingProposalStatus, ProposalStatus},
     },
 };
 

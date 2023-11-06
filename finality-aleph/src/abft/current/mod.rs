@@ -4,6 +4,11 @@ use network_clique::SpawnHandleT;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::traits::{Block, Header};
 
+mod network;
+mod traits;
+
+pub use network::NetworkData;
+
 use super::common::sanity_check_round_delays;
 pub use crate::aleph_primitives::{BlockHash, BlockNumber, CURRENT_FINALITY_VERSION as VERSION};
 use crate::{
@@ -17,13 +22,13 @@ use crate::{
     oneshot,
     party::{
         backup::ABFTBackup,
-        manager::{SubtaskCommon, Task},
+        manager::{Task, TaskCommon},
     },
     CurrentNetworkData, Hasher, Keychain, NodeIndex, SessionId, SignatureSet, UnitCreationDelay,
 };
 
 pub fn run_member<B, C, ADN>(
-    subtask_common: SubtaskCommon,
+    subtask_common: TaskCommon,
     multikeychain: Keychain,
     config: Config,
     network: NetworkWrapper<
@@ -46,7 +51,7 @@ where
         config.max_round,
         config.delay_config.unit_creation_delay.clone(),
     );
-    let SubtaskCommon {
+    let TaskCommon {
         spawn_handle,
         session_id,
     } = subtask_common;

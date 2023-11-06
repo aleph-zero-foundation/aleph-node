@@ -6,7 +6,7 @@ use tokio::{task::spawn_blocking, time::sleep};
 
 use crate::{
     party::{
-        manager::{Handle, SubtaskCommon as AuthoritySubtaskCommon, Task},
+        manager::{Handle, Task, TaskCommon as AuthoritySubtaskCommon},
         traits::{ChainState, NodeSessionManager},
     },
     session::SessionBoundaryInfo,

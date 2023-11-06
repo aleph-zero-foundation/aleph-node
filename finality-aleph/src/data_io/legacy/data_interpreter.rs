@@ -6,9 +6,8 @@ use log::{debug, error, warn};
 use crate::{
     data_io::{
         chain_info::{AuxFinalizationChainInfoProvider, CachedChainInfoProvider},
-        proposal::ProposalStatus,
-        status_provider::get_proposal_status,
-        AlephData, ChainInfoProvider,
+        legacy::{proposal::ProposalStatus, status_provider::get_proposal_status, AlephData},
+        ChainInfoProvider,
     },
     mpsc::TrySendError,
     BlockId, SessionBoundaries,

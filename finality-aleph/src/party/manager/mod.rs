@@ -17,7 +17,13 @@ use crate::{
     },
     aleph_primitives::{AlephSessionApi, BlockHash, BlockNumber, KEY_TYPE},
     crypto::{AuthorityPen, AuthorityVerifier},
-    data_io::{ChainTracker, DataStore, OrderedDataInterpreter, SubstrateChainInfoProvider},
+    data_io::{
+        legacy::{
+            ChainTracker as LegacyChainTracker, DataStore as LegacyDataStore,
+            OrderedDataInterpreter as LegacyOrderedDataInterpreter,
+        },
+        ChainTracker, DataStore, OrderedDataInterpreter, SubstrateChainInfoProvider,
+    },
     mpsc,
     network::{
         data::{
@@ -30,23 +36,20 @@ use crate::{
         backup::ABFTBackup, manager::aggregator::AggregatorVersion, traits::NodeSessionManager,
     },
     sync::{substrate::Justification, JustificationSubmissions, JustificationTranslator},
-    AuthorityId, CurrentRmcNetworkData, Keychain, LegacyRmcNetworkData, NodeIndex,
+    AuthorityId, BlockId, CurrentRmcNetworkData, Keychain, LegacyRmcNetworkData, NodeIndex,
     SessionBoundaries, SessionBoundaryInfo, SessionId, SessionPeriod, TimingBlockMetrics,
     UnitCreationDelay, VersionedNetworkData,
 };
 
 mod aggregator;
 mod authority;
-mod chain_tracker;
-mod data_store;
 mod task;
 
-pub use authority::{SubtaskCommon, Subtasks, Task as AuthorityTask};
-pub use task::{Handle, Task};
+pub use authority::{Subtasks, Task as AuthorityTask};
+pub use task::{Handle, Runnable, Task, TaskCommon};
 
 use crate::{
     abft::{CURRENT_VERSION, LEGACY_VERSION},
-    data_io::DataProvider,
     sync::RequestBlocks,
 };
 
@@ -64,13 +67,12 @@ type CurrentNetworkType = SimpleNetwork<
     SessionSender<CurrentRmcNetworkData>,
 >;
 
-struct SubtasksParams<C, SC, B, N, BE, JS>
+struct SubtasksParams<C, B, N, BE, JS>
 where
     B: BlockT<Hash = BlockHash>,
     B::Header: HeaderT<Number = BlockNumber>,
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
-    SC: SelectChain<B> + 'static,
     N: Network<VersionedNetworkData> + 'static,
     JS: JustificationSubmissions<Justification> + Send + Sync + Clone,
 {
@@ -79,14 +81,14 @@ where
     session_id: SessionId,
     data_network: N,
     session_boundaries: SessionBoundaries,
-    subtask_common: SubtaskCommon,
-    data_provider: DataProvider,
-    ordered_data_interpreter: OrderedDataInterpreter<SubstrateChainInfoProvider<B, C>>,
+    subtask_common: TaskCommon,
+    blocks_for_aggregator: mpsc::UnboundedSender<BlockId>,
+    chain_info: SubstrateChainInfoProvider<B, C>,
     aggregator_io: aggregator::IO<JS>,
     multikeychain: Keychain,
     exit_rx: oneshot::Receiver<()>,
     backup: ABFTBackup,
-    chain_tracker: ChainTracker<B, SC, C>,
+    // TODO: check if SC is necessary at all
     phantom: PhantomData<BE>,
 }
 
@@ -159,7 +161,7 @@ where
 
     fn legacy_subtasks<N: Network<VersionedNetworkData> + 'static>(
         &self,
-        params: SubtasksParams<C, SC, B, N, BE, JS>,
+        params: SubtasksParams<C, B, N, BE, JS>,
     ) -> Subtasks {
         let SubtasksParams {
             n_members,
@@ -168,22 +170,33 @@ where
             data_network,
             session_boundaries,
             subtask_common,
-            data_provider,
-            ordered_data_interpreter,
+            blocks_for_aggregator,
+            chain_info,
             aggregator_io,
             multikeychain,
             exit_rx,
             backup,
-            chain_tracker,
             ..
         } = params;
+        let (chain_tracker, data_provider) = LegacyChainTracker::new(
+            self.select_chain.clone(),
+            self.client.clone(),
+            session_boundaries.clone(),
+            Default::default(),
+            self.metrics.clone(),
+        );
+        let ordered_data_interpreter = LegacyOrderedDataInterpreter::new(
+            blocks_for_aggregator,
+            chain_info,
+            session_boundaries.clone(),
+        );
         let consensus_config =
             legacy_create_aleph_config(n_members, node_id, session_id, self.unit_creation_delay);
         let data_network = data_network.map();
 
         let (unfiltered_aleph_network, rmc_network) =
             split(data_network, "aleph_network", "rmc_network");
-        let (data_store, aleph_network) = DataStore::new(
+        let (data_store, aleph_network) = LegacyDataStore::new(
             session_boundaries.clone(),
             self.client.clone(),
             self.block_requester.clone(),
@@ -210,14 +223,14 @@ where
                 multikeychain,
                 AggregatorVersion::<CurrentNetworkType, _>::Legacy(rmc_network),
             ),
-            chain_tracker::task(subtask_common.clone(), chain_tracker),
-            data_store::task(subtask_common, data_store),
+            task::task(subtask_common.clone(), chain_tracker, "chain tracker"),
+            task::task(subtask_common, data_store, "data store"),
         )
     }
 
     fn current_subtasks<N: Network<VersionedNetworkData> + 'static>(
         &self,
-        params: SubtasksParams<C, SC, B, N, BE, JS>,
+        params: SubtasksParams<C, B, N, BE, JS>,
     ) -> Subtasks {
         let SubtasksParams {
             n_members,
@@ -226,15 +239,26 @@ where
             data_network,
             session_boundaries,
             subtask_common,
-            data_provider,
-            ordered_data_interpreter,
+            blocks_for_aggregator,
+            chain_info,
             aggregator_io,
             multikeychain,
             exit_rx,
             backup,
-            chain_tracker,
             ..
         } = params;
+        let (chain_tracker, data_provider) = ChainTracker::new(
+            self.select_chain.clone(),
+            self.client.clone(),
+            session_boundaries.clone(),
+            Default::default(),
+            self.metrics.clone(),
+        );
+        let ordered_data_interpreter = OrderedDataInterpreter::new(
+            blocks_for_aggregator,
+            chain_info,
+            session_boundaries.clone(),
+        );
         let consensus_config =
             current_create_aleph_config(n_members, node_id, session_id, self.unit_creation_delay);
         let data_network = data_network.map();
@@ -268,8 +292,8 @@ where
                 multikeychain,
                 AggregatorVersion::<_, LegacyNetworkType>::Current(rmc_network),
             ),
-            chain_tracker::task(subtask_common.clone(), chain_tracker),
-            data_store::task(subtask_common, data_store),
+            task::task(subtask_common.clone(), chain_tracker, "chain tracker"),
+            task::task(subtask_common, data_store, "data store"),
         )
     }
 
@@ -293,21 +317,9 @@ where
         let session_boundaries = self.session_info.boundaries_for_session(session_id);
         let (blocks_for_aggregator, blocks_from_interpreter) = mpsc::unbounded();
 
-        let (chain_tracker, data_provider) = ChainTracker::new(
-            self.select_chain.clone(),
-            self.client.clone(),
-            session_boundaries.clone(),
-            Default::default(),
-            self.metrics.clone(),
-        );
+        let chain_info = SubstrateChainInfoProvider::new(self.client.clone());
 
-        let ordered_data_interpreter = OrderedDataInterpreter::new(
-            blocks_for_aggregator,
-            SubstrateChainInfoProvider::new(self.client.clone()),
-            session_boundaries.clone(),
-        );
-
-        let subtask_common = SubtaskCommon {
+        let subtask_common = TaskCommon {
             spawn_handle: self.spawn_handle.clone(),
             session_id: session_id.0,
         };
@@ -340,13 +352,12 @@ where
             data_network,
             session_boundaries,
             subtask_common,
-            data_provider,
-            ordered_data_interpreter,
+            blocks_for_aggregator,
+            chain_info,
             aggregator_io,
             multikeychain,
             exit_rx,
             backup,
-            chain_tracker,
             phantom: PhantomData,
         };
 

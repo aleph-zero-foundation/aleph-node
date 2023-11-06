@@ -24,9 +24,11 @@ use crate::{
     aleph_primitives::{BlockHash, BlockNumber},
     data_io::{
         chain_info::{CachedChainInfoProvider, ChainInfoProvider, SubstrateChainInfoProvider},
-        proposal::{AlephProposal, PendingProposalStatus, ProposalStatus},
-        status_provider::get_proposal_status,
-        AlephNetworkMessage,
+        legacy::{
+            proposal::{AlephProposal, PendingProposalStatus, ProposalStatus},
+            status_provider::get_proposal_status,
+            AlephNetworkMessage,
+        },
     },
     network::data::{
         component::{Network as ComponentNetwork, Receiver, SimpleNetwork},

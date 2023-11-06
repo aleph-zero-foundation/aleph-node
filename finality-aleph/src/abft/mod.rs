@@ -20,13 +20,13 @@ use aleph_bft_crypto::{PartialMultisignature, Signature};
 pub use crypto::Keychain;
 pub use current::{
     create_aleph_config as current_create_aleph_config, run_member as run_current_member,
-    VERSION as CURRENT_VERSION,
+    NetworkData as CurrentNetworkData, VERSION as CURRENT_VERSION,
 };
 pub use legacy::{
     create_aleph_config as legacy_create_aleph_config, run_member as run_legacy_member,
-    VERSION as LEGACY_VERSION,
+    NetworkData as LegacyNetworkData, VERSION as LEGACY_VERSION,
 };
-pub use network::{CurrentNetworkData, LegacyNetworkData, NetworkWrapper};
+pub use network::NetworkWrapper;
 use parity_scale_codec::{Decode, Encode};
 pub use traits::{Hash, SpawnHandle, Wrapper as HashWrapper};
 pub use types::{NodeCount, NodeIndex, Recipient};

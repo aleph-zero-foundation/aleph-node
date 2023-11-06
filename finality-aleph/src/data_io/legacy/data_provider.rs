@@ -12,7 +12,7 @@ use sp_runtime::{
 
 use crate::{
     aleph_primitives::{BlockHash, BlockNumber},
-    data_io::{proposal::UnvalidatedAlephProposal, AlephData, MAX_DATA_BRANCH_LEN},
+    data_io::legacy::{proposal::UnvalidatedAlephProposal, AlephData, MAX_DATA_BRANCH_LEN},
     metrics::Checkpoint,
     party::manager::Runnable,
     BlockId, SessionBoundaries, TimingBlockMetrics,

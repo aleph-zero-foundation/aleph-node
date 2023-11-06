@@ -8,44 +8,10 @@ use parity_scale_codec::{Codec, Decode, Encode};
 use sc_service::SpawnTaskHandle;
 use sp_runtime::traits::Hash as SpHash;
 
-use crate::data_io::{AlephData, ChainInfoProvider, DataProvider, OrderedDataInterpreter};
-
 /// A convenience trait for gathering all of the desired hash characteristics.
 pub trait Hash: AsRef<[u8]> + StdHash + Eq + Clone + Codec + Debug + Send + Sync {}
 
 impl<T: AsRef<[u8]> + StdHash + Eq + Clone + Codec + Debug + Send + Sync> Hash for T {}
-
-#[async_trait::async_trait]
-impl current_aleph_bft::DataProvider<AlephData> for DataProvider {
-    async fn get_data(&mut self) -> Option<AlephData> {
-        DataProvider::get_data(self).await
-    }
-}
-
-#[async_trait::async_trait]
-impl legacy_aleph_bft::DataProvider<AlephData> for DataProvider {
-    async fn get_data(&mut self) -> Option<AlephData> {
-        DataProvider::get_data(self).await
-    }
-}
-
-impl<CIP> current_aleph_bft::FinalizationHandler<AlephData> for OrderedDataInterpreter<CIP>
-where
-    CIP: ChainInfoProvider,
-{
-    fn data_finalized(&mut self, data: AlephData) {
-        OrderedDataInterpreter::data_finalized(self, data)
-    }
-}
-
-impl<CIP> legacy_aleph_bft::FinalizationHandler<AlephData> for OrderedDataInterpreter<CIP>
-where
-    CIP: ChainInfoProvider,
-{
-    fn data_finalized(&mut self, data: AlephData) {
-        OrderedDataInterpreter::data_finalized(self, data)
-    }
-}
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Wrapper<H: SpHash> {

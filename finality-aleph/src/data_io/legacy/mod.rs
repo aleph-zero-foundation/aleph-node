@@ -2,17 +2,12 @@ use std::{fmt::Debug, hash::Hash, num::NonZeroUsize};
 
 use parity_scale_codec::{Decode, Encode};
 
-mod chain_info;
 mod data_interpreter;
 mod data_provider;
 mod data_store;
 mod proposal;
 mod status_provider;
 
-/// TODO(A0-3461): This is only temporary so we can change the proposal type once. Should be removed after that is done, and only the current version should be used.
-pub mod legacy;
-
-pub use chain_info::{ChainInfoProvider, SubstrateChainInfoProvider};
 pub use data_interpreter::OrderedDataInterpreter;
 pub use data_provider::{ChainTracker, DataProvider};
 pub use data_store::{DataStore, DataStoreConfig};

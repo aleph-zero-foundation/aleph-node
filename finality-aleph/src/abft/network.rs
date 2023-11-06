@@ -3,34 +3,9 @@ use std::marker::PhantomData;
 use log::warn;
 
 use crate::{
-    abft::SignatureSet,
-    crypto::Signature,
-    data_io::{AlephData, AlephNetworkMessage},
     network::{data::Network, Data},
-    Hasher, Recipient,
+    Recipient,
 };
-
-pub type LegacyNetworkData =
-    legacy_aleph_bft::NetworkData<Hasher, AlephData, Signature, SignatureSet<Signature>>;
-
-pub type CurrentNetworkData =
-    current_aleph_bft::NetworkData<Hasher, AlephData, Signature, SignatureSet<Signature>>;
-
-impl AlephNetworkMessage
-    for legacy_aleph_bft::NetworkData<Hasher, AlephData, Signature, SignatureSet<Signature>>
-{
-    fn included_data(&self) -> Vec<AlephData> {
-        self.included_data()
-    }
-}
-
-impl AlephNetworkMessage
-    for current_aleph_bft::NetworkData<Hasher, AlephData, Signature, SignatureSet<Signature>>
-{
-    fn included_data(&self) -> Vec<AlephData> {
-        self.included_data()
-    }
-}
 
 /// A wrapper needed only because of type system theoretical constraints. Sadness.
 pub struct NetworkWrapper<D: Data, DN: Network<D>> {

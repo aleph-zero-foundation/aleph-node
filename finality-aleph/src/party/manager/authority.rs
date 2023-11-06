@@ -3,7 +3,7 @@ use log::{debug, trace, warn};
 
 use crate::{
     party::{Handle, Task as PureTask},
-    NodeIndex, SpawnHandle,
+    NodeIndex,
 };
 
 /// A wrapper for running the authority task within a specific session.
@@ -104,11 +104,4 @@ impl Subtasks {
         debug!(target: "aleph-party", "Stopped all processes");
         result.and(stop_result)
     }
-}
-
-/// Common args for authority subtasks.
-#[derive(Clone)]
-pub struct SubtaskCommon {
-    pub spawn_handle: SpawnHandle,
-    pub session_id: u32,
 }
