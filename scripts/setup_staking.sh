@@ -62,34 +62,7 @@ EOF
   exit 0
 }
 
-NORMAL=$(tput sgr0)
-GREEN=$(tput setaf 2; tput bold)
-YELLOW=$(tput setaf 3)
-RED=$(tput setaf 1)
-
-function get_timestamp() {
-  echo "$(date +'%Y-%m-%d %T:%3N')"
-}
-
-function error() {
-    echo -e "$(get_timestamp) $RED$*$NORMAL"
-    exit 1
-}
-
-function info() {
-    echo -e "$(get_timestamp) $GREEN$*$NORMAL"
-}
-
-function warning() {
-    echo -e "$(get_timestamp) $YELLOW$*$NORMAL"
-}
-
-function sigint_trap()
-{
-   echo
-   info "Ctrl+C pressed, exiting cleanly."
-   exit 0
-}
+source ./scripts/common.sh
 
 trap sigint_trap SIGINT
 

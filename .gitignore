@@ -27,3 +27,6 @@ __pycache__/
 
 # ink!
 contracts/addresses.json
+
+# run_nodes.sh
+run-nodes-local/

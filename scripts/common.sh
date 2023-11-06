@@ -110,3 +110,25 @@ function get_last_block() {
     done
     printf "%d" $last_block
 }
+
+NORMAL=$(tput sgr0)
+GREEN=$(tput setaf 2; tput bold)
+YELLOW=$(tput setaf 3)
+RED=$(tput setaf 1)
+
+function get_timestamp() {
+  echo "$(date +'%Y-%m-%d %T:%3N')"
+}
+
+function error() {
+    echo -e "$(get_timestamp) $RED$*$NORMAL"
+    exit 1
+}
+
+function info() {
+    echo -e "$(get_timestamp) $GREEN$*$NORMAL"
+}
+
+function warning() {
+    echo -e "$(get_timestamp) $YELLOW$*$NORMAL"
+}
