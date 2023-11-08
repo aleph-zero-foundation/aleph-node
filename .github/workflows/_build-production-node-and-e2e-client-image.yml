@@ -101,7 +101,9 @@ jobs:
 
       - name: Build release docker image
         id: build-image
+        shell: bash
         run: |
+          export TERM=xterm-256color
           scripts/synthetic-network/build_synthetic-network.sh
           docker save -o aleph-node.tar aleph-node:syntheticnet
 
