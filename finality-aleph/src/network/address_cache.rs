@@ -1,15 +1,16 @@
-use std::{fmt::Debug, num::NonZeroUsize, sync::Arc};
+use std::{collections::HashMap, fmt::Debug, num::NonZeroUsize, sync::Arc};
 
 use lru::LruCache;
 use parking_lot::Mutex;
 use primitives::AccountId;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     abft::NodeIndex, idx_to_account::ValidatorIndexToAccountIdConverter, session::SessionId,
 };
 
 /// Network details for a given validator in a given session.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ValidatorAddressingInfo {
     /// Session to which given information applies.
     pub session: SessionId,
@@ -20,7 +21,7 @@ pub struct ValidatorAddressingInfo {
 }
 
 /// Stores most recent information about validator addresses.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ValidatorAddressCache {
     data: Arc<Mutex<LruCache<AccountId, ValidatorAddressingInfo>>>,
 }
@@ -39,6 +40,10 @@ impl ValidatorAddressCache {
 
     pub fn insert(&self, validator_stash: AccountId, info: ValidatorAddressingInfo) {
         self.data.lock().put(validator_stash, info);
+    }
+
+    pub fn snapshot(&self) -> HashMap<AccountId, ValidatorAddressingInfo> {
+        HashMap::from_iter(self.data.lock().iter().map(|(k, v)| (k.clone(), v.clone())))
     }
 }
 

@@ -64,7 +64,10 @@ pub use crate::{
     import::{AlephBlockImport, RedirectingBlockImport, TracingBlockImport},
     justification::AlephJustification,
     metrics::TimingBlockMetrics,
-    network::{address_cache::ValidatorAddressCache, Protocol, ProtocolNaming},
+    network::{
+        address_cache::{ValidatorAddressCache, ValidatorAddressingInfo},
+        Protocol, ProtocolNaming,
+    },
     nodes::run_validator_node,
     session::SessionPeriod,
     sync::{

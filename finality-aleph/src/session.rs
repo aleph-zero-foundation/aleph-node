@@ -1,4 +1,5 @@
 use parity_scale_codec::{Decode, Encode};
+use serde::{Deserialize, Serialize};
 
 use crate::aleph_primitives::BlockNumber;
 
@@ -68,7 +69,21 @@ pub mod testing {
     }
 }
 
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
+#[derive(
+    Copy,
+    Clone,
+    Debug,
+    Default,
+    Eq,
+    PartialEq,
+    Hash,
+    Ord,
+    PartialOrd,
+    Encode,
+    Decode,
+    Serialize,
+    Deserialize,
+)]
 pub struct SessionId(pub u32);
 
 impl SessionId {

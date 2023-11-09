@@ -1,6 +1,9 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
-use finality_aleph::{AlephJustification, BlockId, Justification, JustificationTranslator};
+use finality_aleph::{
+    AlephJustification, BlockId, Justification, JustificationTranslator, ValidatorAddressCache,
+    ValidatorAddressingInfo,
+};
 use futures::channel::mpsc;
 use jsonrpsee::{
     core::{error::Error as JsonRpseeError, RpcResult},
@@ -55,6 +58,9 @@ pub enum Error {
     /// Failed to find a block with provided hash.
     #[error("Failed to find a block with hash {0}.")]
     UnknownHash(String),
+    /// Network info caching is not enabled.
+    #[error("Unable to get any data, because network info caching is not enabled.")]
+    NetworkInfoCachingNotEnabled,
 }
 
 // Base code for all system errors.
@@ -77,6 +83,8 @@ const FAILED_STORAGE_DECODING_ERROR: i32 = BASE_ERROR + 7;
 const FAILED_HEADER_DECODING_ERROR: i32 = BASE_ERROR + 8;
 /// Failed to find a block with provided hash.
 const UNKNOWN_HASH_ERROR: i32 = BASE_ERROR + 9;
+/// Network info caching is not enabled.
+const NETWORK_INFO_CACHING_NOT_ENABLED_ERROR: i32 = BASE_ERROR + 10;
 
 impl From<Error> for JsonRpseeError {
     fn from(e: Error) -> Self {
@@ -132,6 +140,11 @@ impl From<Error> for JsonRpseeError {
                 format!("Failed to find a block with hash {hash}.",),
                 None::<()>,
             )),
+            Error::NetworkInfoCachingNotEnabled => CallError::Custom(ErrorObject::owned(
+                NETWORK_INFO_CACHING_NOT_ENABLED_ERROR,
+                "Unable to get any data, because network info caching is not enabled.",
+                None::<()>,
+            )),
         }
         .into()
     }
@@ -156,6 +169,9 @@ pub trait AlephNodeApi<BE> {
     ///
     #[method(name = "ready")]
     fn ready(&self) -> RpcResult<bool>;
+
+    #[method(name = "unstable_validatorNetworkInfo")]
+    fn validator_network_info(&self) -> RpcResult<HashMap<AccountId, ValidatorAddressingInfo>>;
 }
 
 /// Aleph Node API implementation
@@ -164,6 +180,7 @@ pub struct AlephNode<Client, SO> {
     justification_translator: JustificationTranslator,
     client: Arc<Client>,
     sync_oracle: SO,
+    validator_address_cache: Option<ValidatorAddressCache>,
 }
 
 impl<Client, SO> AlephNode<Client, SO>
@@ -175,12 +192,14 @@ where
         justification_translator: JustificationTranslator,
         client: Arc<Client>,
         sync_oracle: SO,
+        validator_address_cache: Option<ValidatorAddressCache>,
     ) -> Self {
         AlephNode {
             import_justification_tx,
             justification_translator,
             client,
             sync_oracle,
+            validator_address_cache,
         }
     }
 }
@@ -247,6 +266,13 @@ where
 
     fn ready(&self) -> RpcResult<bool> {
         Ok(!self.sync_oracle.is_offline() && !self.sync_oracle.is_major_syncing())
+    }
+
+    fn validator_network_info(&self) -> RpcResult<HashMap<AccountId, ValidatorAddressingInfo>> {
+        self.validator_address_cache
+            .as_ref()
+            .map(|c| c.snapshot())
+            .ok_or(Error::NetworkInfoCachingNotEnabled.into())
     }
 }
 

@@ -8,7 +8,7 @@
 use std::sync::Arc;
 
 use aleph_runtime::{opaque::Block, AccountId, Balance, Nonce};
-use finality_aleph::{Justification, JustificationTranslator};
+use finality_aleph::{Justification, JustificationTranslator, ValidatorAddressCache};
 use futures::channel::mpsc;
 use jsonrpsee::RpcModule;
 use sc_client_api::StorageProvider;
@@ -30,6 +30,7 @@ pub struct FullDeps<C, P, SO> {
     pub import_justification_tx: mpsc::UnboundedSender<Justification>,
     pub justification_translator: JustificationTranslator,
     pub sync_oracle: SO,
+    pub validator_address_cache: Option<ValidatorAddressCache>,
 }
 
 /// Instantiate all full RPC extensions.
@@ -62,6 +63,7 @@ where
         import_justification_tx,
         justification_translator,
         sync_oracle,
+        validator_address_cache,
     } = deps;
 
     module.merge(System::new(client.clone(), pool, deny_unsafe).into_rpc())?;
@@ -75,6 +77,7 @@ where
             justification_translator,
             client,
             sync_oracle,
+            validator_address_cache,
         )
         .into_rpc(),
     )?;

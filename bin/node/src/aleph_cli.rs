@@ -51,6 +51,11 @@ pub struct AlephCli {
     /// Maximum bit-rate per node in bytes per second of the alephbft validator network.
     #[clap(long, default_value_t = 64 * 1024)]
     alephbft_bit_rate_per_connection: u64,
+
+    /// Don't spend some extra time to collect more debugging data (e.g. validator network details).
+    /// By default collecting is enabled, as the impact on performance is negligible, if any.
+    #[clap(long, default_value_t = false)]
+    no_collection_of_extra_debugging_data: bool,
 }
 
 impl AlephCli {
@@ -91,5 +96,9 @@ impl AlephCli {
 
     pub fn alephbft_bit_rate_per_connection(&self) -> u64 {
         self.alephbft_bit_rate_per_connection
+    }
+
+    pub fn no_collection_of_extra_debugging_data(&self) -> bool {
+        self.no_collection_of_extra_debugging_data
     }
 }
