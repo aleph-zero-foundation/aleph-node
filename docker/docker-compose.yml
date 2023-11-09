@@ -1,5 +1,3 @@
-# When increasing number of nodes in this file, change default value of --validators-count param in e2e-tests/src/config.rs
-
 services:
   Node0:
     extends:
@@ -48,3 +46,16 @@ services:
       file: docker-compose.base.yml
       service: Node7
     network_mode: host
+
+  Node8:
+    extends:
+      file: docker-compose.base.yml
+      service: Node8
+    network_mode: host
+
+  Node9:
+    extends:
+      file: docker-compose.base.yml
+      service: Node9
+    network_mode: host
+

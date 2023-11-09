@@ -100,7 +100,7 @@ pub async fn prepare_validators<S: SignedConnectionApi + AuthorRpc>(
                 .await
                 .unwrap();
             let connection =
-                SignedConnection::new(&validator_address(i as u32), KeyPair::new(stash.clone()))
+                SignedConnection::new(&validator_address((i + 1) as u32), KeyPair::new(stash.clone()))
                     .await;
             let keys = connection.author_rotate_keys().await.unwrap();
             connection
@@ -115,10 +115,11 @@ pub async fn prepare_validators<S: SignedConnectionApi + AuthorRpc>(
     Ok(())
 }
 
-/// gets ws address to `n-th` node
+/// gets ws address to `n-th` validator node, it starts from 9945 port as 9944 port is RPC node
 pub fn validator_address(index: u32) -> String {
+    assert!(index > 0, "index must be a positive value, as 0 index is reserved for RPC node!");
     const BASE: &str = "ws://127.0.0.1";
-    const FIRST_PORT: u32 = 9943;
+    const FIRST_PORT: u32 = 9944;
 
     let port = FIRST_PORT + index;
 

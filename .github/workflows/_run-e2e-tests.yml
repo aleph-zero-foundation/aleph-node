@@ -533,9 +533,9 @@ jobs:
         with:
           test-case: set_lenient_threshold_test
           follow-up-finalization-check: true
-        timeout-minutes: 20
+        timeout-minutes: 5
 
-  run-e2e-emergency-finalizer-usage:
+  run-e2e-chain-dead-scenario:
     needs: [run-e2e-finalization-test]
     name: Run chain dead scenario
     runs-on: ubuntu-20.04

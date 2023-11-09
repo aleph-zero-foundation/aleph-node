@@ -7,7 +7,7 @@ services:
       service: AlephBootNode
     container_name: Node0
     environment:
-      - RPC_PORT=9943
+      - RPC_PORT=9944
       - PORT=30333
       - VALIDATOR_PORT=30343
       - PUBLIC_VALIDATOR_ADDRESS=127.0.0.1:30343
@@ -19,7 +19,7 @@ services:
       service: AlephNonBootNode
     container_name: Node1
     environment:
-      - RPC_PORT=9944
+      - RPC_PORT=9945
       - PORT=30334
       - VALIDATOR_PORT=30344
       - PUBLIC_VALIDATOR_ADDRESS=127.0.0.1:30344
@@ -34,7 +34,7 @@ services:
       service: AlephNonBootNode
     container_name: Node2
     environment:
-      - RPC_PORT=9945
+      - RPC_PORT=9946
       - PORT=30335
       - VALIDATOR_PORT=30345
       - PUBLIC_VALIDATOR_ADDRESS=127.0.0.1:30345
@@ -49,7 +49,7 @@ services:
       service: AlephNonBootNode
     container_name: Node3
     environment:
-      - RPC_PORT=9946
+      - RPC_PORT=9947
       - PORT=30336
       - VALIDATOR_PORT=30346
       - PUBLIC_VALIDATOR_ADDRESS=127.0.0.1:30346
@@ -64,7 +64,7 @@ services:
       service: AlephNonBootNode
     container_name: Node4
     environment:
-      - RPC_PORT=9947
+      - RPC_PORT=9948
       - PORT=30337
       - VALIDATOR_PORT=30347
       - PUBLIC_VALIDATOR_ADDRESS=127.0.0.1:30347
@@ -79,7 +79,7 @@ services:
       service: AlephNonBootNode
     container_name: Node5
     environment:
-      - RPC_PORT=9948
+      - RPC_PORT=9949
       - PORT=30338
       - VALIDATOR_PORT=30348
       - PUBLIC_VALIDATOR_ADDRESS=127.0.0.1:30348
@@ -94,11 +94,11 @@ services:
       service: AlephNonBootNode
     container_name: Node6
     environment:
-      - RPC_PORT=9949
+      - RPC_PORT=9950
       - PORT=30339
       - VALIDATOR_PORT=30349
       - PUBLIC_VALIDATOR_ADDRESS=127.0.0.1:30349
-      - NAME=Node5
+      - NAME=Node6
       # key derived from "//6"
       - BASE_PATH=/data/5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY
       - NODE_KEY_PATH=/data/5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY/p2p_secret
@@ -109,11 +109,41 @@ services:
       service: AlephNonBootNode
     container_name: Node7
     environment:
-      - RPC_PORT=9950
+      - RPC_PORT=9951
       - PORT=30340
       - VALIDATOR_PORT=30350
       - PUBLIC_VALIDATOR_ADDRESS=127.0.0.1:30350
-      - NAME=Node5
+      - NAME=Node7
       # key derived from "//7"
       - BASE_PATH=/data/5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ
       - NODE_KEY_PATH=/data/5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ/p2p_secret
+
+  Node8:
+    extends:
+      file: common.yml
+      service: AlephNonBootNode
+    container_name: Node8
+    environment:
+      - RPC_PORT=9952
+      - PORT=30341
+      - VALIDATOR_PORT=30351
+      - PUBLIC_VALIDATOR_ADDRESS=127.0.0.1:30351
+      - NAME=Node8
+      # key derived from "//8
+      - BASE_PATH=/data/5CUnSsgAyLND3bxxnfNhgWXSe9Wn676JzLpGLgyJv858qhoX
+      - NODE_KEY_PATH=/data/5CUnSsgAyLND3bxxnfNhgWXSe9Wn676JzLpGLgyJv858qhoX/p2p_secret
+
+  Node9:
+    extends:
+      file: common.yml
+      service: AlephNonBootNode
+    container_name: Node9
+    environment:
+      - RPC_PORT=9953
+      - PORT=30342
+      - VALIDATOR_PORT=30352
+      - PUBLIC_VALIDATOR_ADDRESS=127.0.0.1:30352
+      - NAME=Node9
+      # key derived from "//9
+      - BASE_PATH=/data/5CVKn7HAZW1Ky4r7Vkgsr7VEW88C2sHgUNDiwHY9Ct2hjU8q
+      - NODE_KEY_PATH=/data/5CVKn7HAZW1Ky4r7Vkgsr7VEW88C2sHgUNDiwHY9Ct2hjU8q/p2p_secret

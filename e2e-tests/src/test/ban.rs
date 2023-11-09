@@ -33,9 +33,9 @@ use crate::{
 const SESSIONS_TO_CHECK: SessionCount = 5;
 
 const VALIDATOR_TO_DISABLE_NON_RESERVED_INDEX: u32 = 0;
-const VALIDATOR_TO_DISABLE_OVERALL_INDEX: u32 = 2;
-// Address for //2 (Node2). Depends on the infrastructure setup.
-const NODE_TO_DISABLE_ADDRESS: &str = "ws://127.0.0.1:9945";
+const VALIDATOR_TO_DISABLE_OVERALL_INDEX: u32 = 3;
+// Address for //3 (Node3). Depends on the infrastructure setup.
+const NODE_TO_DISABLE_ADDRESS: &str = "ws://127.0.0.1:9947";
 const SESSIONS_TO_MEET_BAN_THRESHOLD: SessionCount = 4;
 
 const VALIDATOR_TO_MANUALLY_BAN_NON_RESERVED_INDEX: u32 = 1;

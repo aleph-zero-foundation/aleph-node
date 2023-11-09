@@ -60,7 +60,7 @@ if [[ "$BUILD_IMAGE" = true ]]; then
 fi
 
 log "running synthetic-network"
-DOCKER_COMPOSE=${DOCKER_COMPOSE} ./.github/scripts/run_consensus.sh -n $NODES_COUNT -m $NODES_COUNT
+DOCKER_COMPOSE=${DOCKER_COMPOSE} ./.github/scripts/run_consensus.sh -n $NODES_COUNT
 log "open a web browser at http://localhost:3000 (port 3000 is Node0, 3001 is Node1, ...)"
 xdg-open http://localhost:3000
 

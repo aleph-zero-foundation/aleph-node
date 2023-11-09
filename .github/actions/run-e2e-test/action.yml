@@ -7,17 +7,9 @@ inputs:
     description: 'Number of nodes to run.'
     required: false
     default: '5'
-  min-validator-count:
-    description: 'Minimum number of nodes below which chain enters emergency state.'
-    required: false
-    default: '4'
   test-case:
     description: 'Name of test to run.'
     required: false
-  randomized:
-    description: 'Whether to use randomized test params.'
-    required: false
-    default: 'false'
   reserved-seats:
     description: 'Number of reserved seats available to validators.'
     required: false
@@ -70,8 +62,7 @@ runs:
       run: |
         NODE_IMAGE='${{ inputs.node-image }}' \
         DOCKER_COMPOSE='${{ inputs.compose-file }}' \
-          ./.github/scripts/run_consensus.sh \
-            -m '${{ inputs.min-validator-count }}' -n '${{ inputs.node-count }}'
+          ./.github/scripts/run_consensus.sh -n '${{ inputs.node-count }}'
 
     - name: Sleep
       shell: bash
@@ -98,16 +89,10 @@ runs:
       run: |
         ARGS=(
           -t '${{ inputs.test-case }}'
-          -r '${{ inputs.randomized }}'
-          -m '${{ inputs.min-validator-count }}'
         )
 
         RESERVED_SEATS='${{ inputs.reserved-seats }}'
         NON_RESERVED_SEATS='${{ inputs.non-reserved-seats }}'
-
-        if [[ -n "${RANDOMIZED}" ]]; then
-          ARGS+=(-r "${RANDOMIZED}")
-        fi
 
         if [[ -n "${RESERVED_SEATS}" && -n "${NON_RESERVED_SEATS}" ]]; then
           ARGS+=(
@@ -146,5 +131,4 @@ runs:
       if: inputs.follow-up-finalization-check == 'true'
       shell: bash
       run: |
-        ./.github/scripts/run_e2e_test.sh \
-          -t finalization::finalization -m '${{ inputs.min-validator-count }}'
+        ./.github/scripts/run_e2e_test.sh -t finalization::finalization

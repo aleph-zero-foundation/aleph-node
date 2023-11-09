@@ -133,16 +133,13 @@ async fn chill_validators(node: &str, chilling: Vec<KeyPair>) {
 /// 4. Verify only staking validators are in force.
 ///
 /// Note:
-///  - `pallet_staking` has `MinimumValidatorCount` (usually set to 4 in chain spec) and this cannot be
+///  - `pallet_staking` has `MinimumValidatorCount` (hardcoded to 4 in chain spec) and this cannot be
 /// changed on a running chain.
 ///  - our e2e tests run with 5 validators by default.
 /// Thus, running on default settings and chilling 2 validators (1 reserved and 1 non reserved) is
 /// a no go: `pallet_staking` will protest and won't proceed with a new committee.
 /// To mitigate this, our e2e pipeline accepts a `node-count` parameter to specify the desired
-/// number of nodes to run in consensus. Additionally, there is a `min-validator-count`
-/// parameter to set `MinimumValidatorCount` in the chain spec as the chain is set up.
-/// For this specific test case, we use `node-count = 6` and `min-validator-count = 4`, which
-/// satisfies the outlined conditions.
+/// number of nodes to run in consensus. 
 #[tokio::test]
 pub async fn authorities_are_staking() -> anyhow::Result<()> {
     let config = setup_test();

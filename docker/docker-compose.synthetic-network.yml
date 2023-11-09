@@ -83,6 +83,23 @@ services:
     ports:
       - 3004:80
 
+  Node5:
+    extends:
+      file: docker-compose.base.yml
+      service: Node5
+    image: aleph-node:syntheticnet
+    networks:
+      - synthetic-network
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_PTRACE
+    environment:
+      - PUBLIC_VALIDATOR_ADDRESS=Node5:30348
+      - BOOT_NODES=/dns4/Node0/tcp/30333/p2p/$BOOTNODE_PEER_ID
+    ports:
+      - 3005:80
+
 networks:
   synthetic-network:
     name: synthetic-network

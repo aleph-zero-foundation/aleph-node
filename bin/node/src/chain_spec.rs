@@ -20,7 +20,7 @@ use sp_core::{sr25519, Pair};
 use crate::aleph_primitives::{
     staking::{MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND},
     AuraId, AuthorityId as AlephId, SessionValidators, Version as FinalityVersion,
-    ADDRESSES_ENCODING, LEGACY_FINALITY_VERSION, TOKEN, TOKEN_DECIMALS,
+    ADDRESSES_ENCODING, LEGACY_FINALITY_VERSION, TOKEN_DECIMALS,
 };
 
 pub const CHAINTYPE_DEV: &str = "dev";
@@ -139,10 +139,6 @@ pub struct ChainParams {
     #[arg(long, value_parser = parse_account_id)]
     faucet_account_id: Option<AccountId>,
 
-    /// Minimum number of stakers before chain enters emergency state.
-    #[arg(long, default_value = "4")]
-    min_validator_count: u32,
-
     /// Finality version at chain inception.
     #[arg(long, default_value = LEGACY_FINALITY_VERSION.to_string())]
     finality_version: FinalityVersion,
@@ -181,10 +177,6 @@ impl ChainParams {
         self.faucet_account_id.clone()
     }
 
-    pub fn min_validator_count(&self) -> u32 {
-        self.min_validator_count
-    }
-
     pub fn finality_version(&self) -> FinalityVersion {
         self.finality_version
     }
@@ -213,17 +205,12 @@ pub fn config(
     chain_params: ChainParams,
     authorities: Vec<AuthorityKeys>,
 ) -> Result<ChainSpec, String> {
-    let controller_accounts: Vec<AccountId> = to_account_ids(&authorities)
-        .enumerate()
-        .map(|(index, _account)| account_id_from_string(format!("//{index}//Controller").as_str()))
-        .collect();
-    generate_chain_spec_config(chain_params, authorities, controller_accounts)
+    generate_chain_spec_config(chain_params, authorities)
 }
 
 fn generate_chain_spec_config(
     chain_params: ChainParams,
     authorities: Vec<AuthorityKeys>,
-    controller_accounts: Vec<AccountId>,
 ) -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
     let token_symbol = String::from(chain_params.token_symbol());
@@ -233,7 +220,6 @@ fn generate_chain_spec_config(
     let sudo_account = chain_params.sudo_account_id();
     let rich_accounts = chain_params.rich_account_ids();
     let faucet_account = chain_params.faucet_account_id();
-    let min_validator_count = chain_params.min_validator_count();
     let finality_version = chain_params.finality_version();
 
     Ok(ChainSpec::from_genesis(
@@ -249,8 +235,6 @@ fn generate_chain_spec_config(
                 sudo_account.clone(), // Sudo account, will also be pre funded
                 rich_accounts.clone(), // Pre-funded accounts
                 faucet_account.clone(), // Pre-funded faucet account
-                controller_accounts.clone(), // Controller accounts for staking.
-                min_validator_count,
                 finality_version,
             )
         },
@@ -294,20 +278,9 @@ struct AccountsConfig {
 /// Provides accounts for RuntimeGenesisConfig setup based on distinct staking accounts.
 /// Assumes validator == stash, but controller is a distinct account
 fn configure_chain_spec_fields(
-    unique_accounts_balances: Vec<(AccountId, u128)>,
+    balances: Vec<(AccountId, u128)>,
     authorities: Vec<AuthorityKeys>,
-    controllers: Vec<AccountId>,
 ) -> AccountsConfig {
-    let balances = unique_accounts_balances
-        .into_iter()
-        .chain(
-            controllers
-                .clone()
-                .into_iter()
-                .map(|account| (account, TOKEN)),
-        )
-        .collect();
-
     let keys = authorities
         .iter()
         .map(|auth| {
@@ -324,12 +297,13 @@ fn configure_chain_spec_fields(
 
     let stakers = authorities
         .iter()
-        .zip(controllers)
         .enumerate()
-        .map(|(validator_idx, (validator, controller))| {
+        .map(|(validator_idx, validator)| {
             (
                 validator.account_id.clone(),
-                controller,
+                // this is controller account but in Substrate 1.0.0, it is omitted anyway,
+                // so it does not matter what we pass in the below line as always stash == controller
+                validator.account_id.clone(),
                 (validator_idx + 1) as u128 * MIN_VALIDATOR_BOND,
                 StakerStatus::Validator,
             )
@@ -354,8 +328,6 @@ fn generate_genesis_config(
     sudo_account: AccountId,
     rich_accounts: Option<Vec<AccountId>>,
     faucet_account: Option<AccountId>,
-    controller_accounts: Vec<AccountId>,
-    min_validator_count: u32,
     finality_version: FinalityVersion,
 ) -> RuntimeGenesisConfig {
     let special_accounts = {
@@ -385,8 +357,7 @@ fn generate_genesis_config(
 
     let validator_count = authorities.len() as u32;
 
-    let accounts_config =
-        configure_chain_spec_fields(unique_accounts_balances, authorities, controller_accounts);
+    let accounts_config = configure_chain_spec_fields(unique_accounts_balances, authorities);
 
     RuntimeGenesisConfig {
         system: SystemConfig {
@@ -416,8 +387,7 @@ fn generate_genesis_config(
         staking: StakingConfig {
             force_era: Forcing::NotForcing,
             validator_count,
-            // to satisfy some e2e tests as this cannot be changed during runtime
-            minimum_validator_count: min_validator_count,
+            minimum_validator_count: 4,
             slash_reward_fraction: Perbill::from_percent(10),
             stakers: accounts_config.stakers,
             min_validator_bond: MIN_VALIDATOR_BOND,

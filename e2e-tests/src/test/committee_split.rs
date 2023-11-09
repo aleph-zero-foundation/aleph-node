@@ -54,9 +54,9 @@ async fn prepare_test() -> anyhow::Result<()> {
 pub async fn disable_validators(indexes: &[u32]) -> anyhow::Result<()> {
     info!("Disabling {:?} validators", indexes);
     let mut connections = vec![];
-    let address = validator_address(0);
 
     for &index in indexes {
+        let address = validator_address(index);
         let validator_seed = get_validator_seed(index);
         let validator = NodeKeys::from(validator_seed).validator;
 
@@ -109,21 +109,21 @@ async fn split_disable(validators: &[u32]) -> anyhow::Result<()> {
 }
 
 #[tokio::test]
-/// Check if reserved node-0 and node-1 are in the finality committee
-async fn split_test_reserved_01() -> anyhow::Result<()> {
-    split_disable(&[0, 1]).await
-}
-
-#[tokio::test]
 /// Check if reserved node-1 and node-2 are in the finality committee
 async fn split_test_reserved_12() -> anyhow::Result<()> {
     split_disable(&[1, 2]).await
 }
 
 #[tokio::test]
-/// Check if reserved node-0 and node-2 are in the finality committee
-async fn split_test_reserved_02() -> anyhow::Result<()> {
-    split_disable(&[0, 2]).await
+/// Check if reserved node-2 and node-3 are in the finality committee
+async fn split_test_reserved_23() -> anyhow::Result<()> {
+    split_disable(&[2, 3]).await
+}
+
+#[tokio::test]
+/// Check if reserved node-1 and node-3 are in the finality committee
+async fn split_test_reserved_13() -> anyhow::Result<()> {
+    split_disable(&[1, 3]).await
 }
 
 #[tokio::test]
@@ -143,7 +143,7 @@ async fn split_test_success_with_one_dead() -> anyhow::Result<()> {
     prepare_test().await?;
 
     let connection = setup_test().get_first_signed_connection().await;
-    disable_validators(&[0]).await?;
+    disable_validators(&[1]).await?;
     connection.wait_for_n_eras(1, BlockStatus::Finalized).await;
 
     Ok(())
@@ -158,7 +158,7 @@ async fn split_test_success_with_all_non_reserved_dead() -> anyhow::Result<()> {
 
     let connection = setup_test().get_first_signed_connection().await;
     // kill all non-reserved
-    disable_validators(&[3, 4, 5, 6]).await?;
+    disable_validators(&[4, 5, 6, 7]).await?;
     // 5 session, so all of the non-reserved nodes have enough time to be in the finality committee
     connection
         .wait_for_n_sessions(5, BlockStatus::Finalized)

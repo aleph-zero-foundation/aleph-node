@@ -134,11 +134,11 @@ pub struct Config {
     /// WS endpoint address of the node to connect to
     pub node: String,
 
-    /// Number of //0, //1, ... validators to run e2e tests on
+    /// Number of validators to run e2e tests on
     pub validator_count: u32,
 
     /// Seed values to create accounts
-    /// Optional: by default we use //0, //1, ... seeds for validators
+    /// Optional: by default we use //1, //2, ... seeds for validators
     pub validators_seeds: Option<Vec<String>>,
 
     /// Seed value of sudo account
@@ -165,7 +165,7 @@ impl Config {
     }
 
     pub fn validator_names(&self) -> Vec<String> {
-        (0..self.validator_count)
+        (1..self.validator_count+1)
             .map(|id| format!("Node{id}"))
             .collect()
     }
@@ -216,7 +216,7 @@ impl Config {
         .map(
             |(node_name, synthetic_network_url, ip_address, account)| -> anyhow::Result<_> {
                 Ok(NodeConfig::new(
-                    format!("ws://{node_name}:9943"),
+                    format!("ws://{node_name}:9944"),
                     node_name,
                     Url::parse(&synthetic_network_url)?,
                     ip_address,

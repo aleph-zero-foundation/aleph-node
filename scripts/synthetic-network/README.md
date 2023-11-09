@@ -21,33 +21,35 @@ Additionally, this folder contains an example .js script introducing API of the 
 
 # How to run e2e-tests that use synthetic-network
 
-All following commands are run from within root folder of this repository.
-
-```shell
+```bash
 # build aleph-node docker-image
-# it assumes that aleph-node binary is stored at ./target/release/aleph-node
-docker build -t aleph-node:latest -f docker/Dockerfile .
+# we assume that aleph-node binary is stored at ./target/release/aleph-node
+aleph-node$ docker build -t aleph-node:latest -f docker/Dockerfile .
+
+# build e2e-tests
+aleph-node$ cd e2e-tests
+e2e-tests$ cargo test --release --no-run --locked
+# copy created binary to e2e-tests/target/release/, built test binary is in the last line of
+# the above command, e.g.
+# cp target/release/deps/aleph_e2e_client-44dc7cbed6112daa target/release/aleph-e2e-client
+e2e-tests$ docker build --tag aleph-e2e-client:latest -f Dockerfile .
+e2e-tests$ cd ..
 
 # run synthetic-network with aleph-node using docker-compose
 # by default, it should build for you a docker-image for synthetic-network
 # consult its help for available options
 ./scripts/synthetic-network/run_consensus_synthetic-network.sh
 
-# run e2e-tests
-cd e2e-tests
-cargo test --release --no-run --locked
-# copy created binary to e2e-tests/target/release/, built test binary is in the last line of
-# the above command, e.g.
-# cp target/release/deps/aleph_e2e_client-44dc7cbed6112daa target/release/aleph-e2e-client
-docker build --tag aleph-e2e-client:latest -f Dockerfile .
-cd ..
-.github/scripts/run_e2e_test.sh -t high_out_latency_for_all -m 5
+# run tests for the block sync component
+aleph-node$ VALIDATOR_COUNT=7 NETWORK="synthetic-network" NODE_URL="ws://Node0:9944" ./.github/scripts/run_e2e_test.sh -t test::sync -n 7
+# another example
+aleph-node$ .github/scripts/run_e2e_test.sh -t high_out_latency_for_all
 ```
 
 There's a `OUT_LATENCY` env which control output latency in e2e tests. If not specified, there's 200ms
 default used:
 ```shell
-OUT_LATENCY=300 .github/scripts/run_e2e_test.sh -t high_out_latency_for_all -m 5
+OUT_LATENCY=300 .github/scripts/run_e2e_test.sh -t high_out_latency_for_all -n 5
 ```
 
 If you'd like to start `run_consensus_synthetic-network.sh` again, run below command first. 
