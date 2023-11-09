@@ -205,10 +205,11 @@ jobs:
           path: target/release/
 
       - name: Run test
-        timeout-minutes: 15
-        env:
-          ALEPH_NODE_BINARY: ../target/release/aleph-node
-        run: ./.github/scripts/test_major_sync.sh
+        timeout-minutes: 65
+        run: |
+          ./.github/scripts/test_python_general.sh \
+            --aleph-node ../target/release/aleph-node \
+            --testcase test_major_sync
 
   run-force-reorg-test:
     needs: [build-production-node-and-runtime]
@@ -226,9 +227,10 @@ jobs:
 
       - name: Run test
         timeout-minutes: 15
-        env:
-          ALEPH_NODE_BINARY: ../target/release/aleph-node
-        run: ./.github/scripts/test_force_reorg.sh
+        run: |
+          ./.github/scripts/test_python_general.sh \
+            --aleph-node ../target/release/aleph-node \
+            --testcase test_force_reorg
 
 
   run-e2e-no-quorum-without-high-out-latency:
@@ -249,12 +251,16 @@ jobs:
         timeout-minutes: 35
 
   check-nightly-pipeline-completion:
-    needs: [
-      run-e2e-high-out-latency,
-      run-e2e-no-quorum-without-high-out-latency,
-      run-major-sync-test,
-      run-force-reorg-test,
-    ]
+    needs: [run-e2e-high-out-latency,
+            run-e2e-sync-test-one_node_catching_up_and_then_becoming_necessary_for_consensus,
+            run-e2e-sync-test-one_node_catching_up,
+            run-e2e-sync-test-into_two_groups_and_one_quorum_and_switch_quorum_between_them,
+            run-e2e-sync-test-into_multiple_groups_of_two,
+            run-e2e-sync-test-into_two_equal_size_groups_with_no_quorum,
+            run-e2e-sync-test-into_two_groups_one_with_quorum,
+            run-force-reorg-test,
+            run-major-sync-test,
+            run-e2e-no-quorum-without-high-out-latency]
     name: Check nightly test suite completion
     if: ${{ !cancelled() }}
     runs-on: ubuntu-20.04

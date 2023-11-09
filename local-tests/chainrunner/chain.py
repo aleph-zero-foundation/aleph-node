@@ -212,6 +212,7 @@ class Chain:
         deadline = time.time() + timeout
         while self.get_highest_finalized(nodes) <= old_finalized + finalized_delta:
             time.sleep(5)
+            print('wait_for_finalization: the highest finalized is ', self.get_highest_finalized(nodes))
             if time.time() > deadline:
                 raise TimeoutError(f'Block finalization stalled after {timeout} seconds')
         nodes = [self.nodes[i] for i in nodes]
