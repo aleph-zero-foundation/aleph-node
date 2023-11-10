@@ -381,7 +381,21 @@ where
             block_importer,
             ..
         } = database_io;
-        let forest = Forest::new(&chain_status).map_err(Error::ForestInitialization)?;
+        let (forest, too_many_nonfinalized) =
+            Forest::new(&chain_status).map_err(Error::ForestInitialization)?;
+        let mut missed_import_data = MissedImportData::new();
+        if too_many_nonfinalized {
+            missed_import_data
+                .update(
+                    chain_status
+                        .best_block()
+                        .map_err(Error::ChainStatus)?
+                        .id()
+                        .number(),
+                    &chain_status,
+                )
+                .map_err(Error::ChainStatus)?;
+        }
         Ok(Handler {
             chain_status,
             verifier,
@@ -389,8 +403,8 @@ where
             forest,
             session_info,
             block_importer,
-            missed_import_data: MissedImportData::new(),
             sync_oracle,
+            missed_import_data,
             phantom: PhantomData,
         })
     }
@@ -436,7 +450,7 @@ where
         header: J::Header,
     ) -> Result<(), <Self as HandlerTypes>::Error> {
         if let Err(e) = self.forest.update_body(&header) {
-            if matches!(e, ForestError::TooNew) {
+            if matches!(e, ForestError::TooNew | ForestError::ParentNotImported) {
                 self.missed_import_data
                     .update(header.id().number(), &self.chain_status)
                     .map_err(Error::ChainStatus)?;
