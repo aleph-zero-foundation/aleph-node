@@ -21,7 +21,7 @@ use crate::{
         ticker::Ticker,
         Block, BlockId, BlockImport, ChainStatus, ChainStatusNotification, ChainStatusNotifier,
         Finalizer, Justification, JustificationSubmissions, RequestBlocks, UnverifiedHeader,
-        UnverifiedHeaderFor, UnverifiedJustification, Verifier, LOG_TARGET,
+        UnverifiedHeaderFor, Verifier, LOG_TARGET,
     },
     SyncOracle,
 };
@@ -211,12 +211,6 @@ where
             }
         };
         trace!(target: LOG_TARGET, "Broadcasting state: {:?}", state);
-        // Since we just computed the state this is a good moment to update
-        // the metrics.
-        self.metrics
-            .update_top_finalized_block(state.top_justification().header().id().number());
-        self.metrics
-            .update_best_block(state.favourite_block().id().number());
 
         let data = NetworkData::StateBroadcast(state);
         if let Err(e) = self.network.broadcast(data) {

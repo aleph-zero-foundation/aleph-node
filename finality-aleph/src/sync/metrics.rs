@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use substrate_prometheus_endpoint::{register, Counter, Gauge, PrometheusError, Registry, U64};
+use substrate_prometheus_endpoint::{register, Counter, PrometheusError, Registry, U64};
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum Event {
@@ -21,8 +21,6 @@ pub enum Event {
 }
 
 use Event::*;
-
-use crate::BlockNumber;
 
 impl Event {
     fn name(&self) -> &str {
@@ -80,8 +78,6 @@ pub enum Metrics {
     Prometheus {
         event_calls: HashMap<Event, Counter<U64>>,
         event_errors: HashMap<Event, Counter<U64>>,
-        top_finalized_block: Gauge<U64>,
-        best_block: Gauge<U64>,
     },
     Noop,
 }
@@ -121,11 +117,6 @@ impl Metrics {
         Ok(Metrics::Prometheus {
             event_calls,
             event_errors,
-            top_finalized_block: register(
-                Gauge::new("aleph_top_finalized_block", "no help")?,
-                &registry,
-            )?,
-            best_block: register(Gauge::new("aleph_best_block", "no help")?, &registry)?,
         })
     }
 
@@ -146,22 +137,6 @@ impl Metrics {
             if let Some(counter) = event_errors.get(&event) {
                 counter.inc();
             }
-        }
-    }
-
-    pub fn update_best_block(&self, number: BlockNumber) {
-        if let Metrics::Prometheus { best_block, .. } = self {
-            best_block.set(number as u64)
-        }
-    }
-
-    pub fn update_top_finalized_block(&self, number: BlockNumber) {
-        if let Metrics::Prometheus {
-            top_finalized_block,
-            ..
-        } = self
-        {
-            top_finalized_block.set(number as u64);
         }
     }
 }

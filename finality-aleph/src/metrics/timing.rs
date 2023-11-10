@@ -14,15 +14,13 @@ use substrate_prometheus_endpoint::{
     exponential_buckets, prometheus, register, Histogram, HistogramOpts, PrometheusError, Registry,
 };
 
-use crate::{aleph_primitives::BlockHash, Display};
+use crate::{aleph_primitives::BlockHash, metrics::LOG_TARGET, Display};
 
 // How many entries (block hash + timestamp) we keep in memory per one checkpoint type.
 // Each entry takes 32B (Hash) + 16B (Instant), so a limit of 5000 gives ~234kB (per checkpoint).
 // Notice that some issues like finalization stall may lead to incomplete metrics
 // (e.g. when the gap between checkpoints for a block grows over `MAX_BLOCKS_PER_CHECKPOINT`).
 const MAX_BLOCKS_PER_CHECKPOINT: usize = 5000;
-
-const LOG_TARGET: &str = "aleph-metrics";
 
 #[derive(Clone)]
 pub enum TimingBlockMetrics {
