@@ -45,13 +45,13 @@ jobs:
 
       - name: Tag and push image to ECR
         shell: bash
+        env:
+          RC_IMAGE: ${{ steps.get-docker-image-names.outputs.ecr-rc-image }}
+          DEPLOY_IMAGE: ${{ steps.get-docker-image-names.outputs.ecr-deploy-image }}
         run: |
-          rc_image=${{ steps.get-docker-image-names.outputs.ecr-rc-image }}
-          deploy_image=${{ steps.get-docker-image-names.outputs.ecr-deploy-image }}
-
-          docker pull ${rc_image}
-          docker tag ${rc_image} ${deploy_image}
-          docker push ${deploy_image}
+          docker pull '${{ env.RC_IMAGE }}'
+          docker tag '${{ env.RC_IMAGE }}' '${{ env.DEPLOY_IMAGE }}'
+          docker push '${{ env.DEPLOY_IMAGE }}'
 
   slack:
     name: Slack notification

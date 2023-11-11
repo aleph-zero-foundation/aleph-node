@@ -31,7 +31,7 @@ jobs:
 
       - name: Push to Aleph-Zero-Foundation
         # yamllint disable-line rule:line-length
-        run: git push https://x-access-token:${{ secrets.SYNCAZF }}@github.com/aleph-zero-foundation/aleph-node.git
+        run: git push 'https://x-access-token:${{ secrets.SYNCAZF }}@github.com/aleph-zero-foundation/aleph-node.git'
 
 
   sync-release-branch:
@@ -78,13 +78,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: aleph-zero-foundation/aleph-node
-          token: "${{ secrets.SYNCAZF }}"
+          token: ${{ secrets.SYNCAZF }}
           path: aleph-zero-foundation-aleph-node
           fetch-depth: 0
 
       - name: Checkout commit SHA and add tag in Aleph-Zero-Foundation repository
         run: |
           cd aleph-zero-foundation-aleph-node/
-          git checkout "${{ steps.get-ref-properties.outputs.sha }}"
-          git tag "${{ steps.get-ref-properties.outputs.tag }}"
-          git push origin "${{ steps.get-ref-properties.outputs.tag }}"
+          git checkout '${{ steps.get-ref-properties.outputs.sha }}'
+          git tag '${{ steps.get-ref-properties.outputs.tag }}'
+          git push origin '${{ steps.get-ref-properties.outputs.tag }}'

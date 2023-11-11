@@ -31,9 +31,9 @@ jobs:
           ARTIFACT: aleph_runtime.compact.compressed.wasm
           TARGET_DIR: target/production/wbuild/aleph-runtime
         run: |
-          mkdir -p "$TARGET_DIR"
-          mv "$ARTIFACT" "$TARGET_DIR"
-          sha256sum "$TARGET_DIR/$ARTIFACT" > checksum.sha256
+          mkdir -p '${{ env.TARGET_DIR }}'
+          mv '${{ env.ARTIFACT }}' '${{ env.TARGET_DIR }}'
+          sha256sum '${{ env.TARGET_DIR }}/${{ env.ARTIFACT }}' > checksum.sha256
           cargo clean
           cargo build --profile production -p aleph-runtime
           sha256sum -c checksum.sha256

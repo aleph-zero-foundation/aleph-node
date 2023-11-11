@@ -44,8 +44,8 @@ jobs:
           target-image: ${{ steps.get-docker-image-names.outputs.dockerhub-testnet-image }}
           additional-image:
             ${{ steps.get-docker-image-names.outputs.dockerhub-testnet-latest-image }}
-          dockerhub-username: "${{ secrets.DOCKERHUB_USERNAME }}"
-          dockerhub-password: "${{ secrets.DOCKERHUB_PASSWORD }}"
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub-password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
   slack:
     name: Slack notification

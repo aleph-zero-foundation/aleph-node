@@ -56,14 +56,16 @@ runs:
     - name: Get node image names
       id: get-docker-image-names
       shell: bash
+      env:
+        COMMIT_SHA: ${{ steps.get-ref-properties.outputs.sha }}
+        COMMIT_TAG: ${{ steps.get-ref-properties.outputs.tag }}
+        ECR: ${{ inputs.ecr-repo }}
+        DOCKERHUB: ${{ inputs.dockerhub-repo }}
+      # yamllint disable rule:line-length
       run: |
-        commit_sha=${{ steps.get-ref-properties.outputs.sha }}
-        commit_tag=${{ steps.get-ref-properties.outputs.tag }}
-        ecr='${{ inputs.ecr-repo }}'
-        dockerhub='${{ inputs.dockerhub-repo }}'
-        echo "ecr-rc-image=${ecr}:${commit_sha}" >> $GITHUB_OUTPUT
-        echo "ecr-deploy-image=${ecr}:${commit_tag}" >> $GITHUB_OUTPUT
-        echo "dockerhub-testnet-image=${dockerhub}:testnet-${commit_tag}" >> $GITHUB_OUTPUT
-        echo "dockerhub-mainnet-image=${dockerhub}:mainnet-${commit_tag}" >> $GITHUB_OUTPUT
-        echo "dockerhub-testnet-latest-image=${dockerhub}:testnet-latest" >> $GITHUB_OUTPUT
-        echo "dockerhub-mainnet-latest-image=${dockerhub}:mainnet-latest" >> $GITHUB_OUTPUT
+        echo 'ecr-rc-image=${{ env.ECR }}:${{ env.COMMIT_SHA }}' >> $GITHUB_OUTPUT
+        echo 'ecr-deploy-image=${{ env.ECR }}:${{ env.COMMIT_TAG }}' >> $GITHUB_OUTPUT
+        echo 'dockerhub-testnet-image=${{ env.DOCKERHUB }}:testnet-${{ env.COMMIT_TAG }}' >> $GITHUB_OUTPUT
+        echo 'dockerhub-mainnet-image=${{ env.DOCKERHUB }}:mainnet-${{ env.COMMIT_TAG }}' >> $GITHUB_OUTPUT
+        echo 'dockerhub-testnet-latest-image=${{ env.DOCKERHUB }}:testnet-latest' >> $GITHUB_OUTPUT
+        echo 'dockerhub-mainnet-latest-image=${{ env.DOCKERHUB }}:mainnet-latest' >> $GITHUB_OUTPUT

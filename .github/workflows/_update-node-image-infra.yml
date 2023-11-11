@@ -18,8 +18,8 @@ jobs:
       - name: Validate action inputs
         shell: bash
         run: |
-          if [[ "${{ inputs.env }}" != 'testnet' && "${{ inputs.env }}" != 'mainnet' ]]; then
-            echo "Error: inputs.env should be either mainnet or testnet!"
+          if [[ '${{ inputs.env }}' != 'testnet' && '${{ inputs.env }}' != 'mainnet' ]]; then
+            echo 'Error: inputs.env should be either mainnet or testnet!'
             exit 1
           fi
 
@@ -59,7 +59,7 @@ jobs:
           # yamllint disable-line rule:line-length
           repository: ${{ steps.get-repo-owner.outputs.repo-owner }}/${{ secrets.REPO_ARGOCD_APPS_NAME }}
           token: ${{ secrets.CI_GH_TOKEN }}
-          path: "${{ secrets.REPO_ARGOCD_APPS_NAME }}"
+          path: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
 
       - name: Init kustomize
         uses: imranismail/setup-kustomize@v2
@@ -96,4 +96,4 @@ jobs:
           author_email: ${{ secrets.AUTOCOMMIT_EMAIL }}
           message: "Update ${{ inputs.env }} aleph-node tag ${{ env.TAG }}"
           add: "*.yaml"
-          cwd: "${{ secrets.REPO_ARGOCD_APPS_NAME }}"
+          cwd: ${{ secrets.REPO_ARGOCD_APPS_NAME }}

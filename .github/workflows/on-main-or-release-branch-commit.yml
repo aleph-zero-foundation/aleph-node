@@ -92,12 +92,12 @@ jobs:
           CURRENT_IMAGE: aleph-node
           ECR_PUSH_IMAGE: ${{ vars.ECR_PUBLIC_REGISTRY }}aleph-node
         run: |
-          docker tag ${{ env.CURRENT_IMAGE }} \
-            ${{ env.ECR_PUSH_IMAGE }}:${{ steps.get-ref-properties.outputs.sha }}
-          docker push ${{ env.ECR_PUSH_IMAGE }}:${{ steps.get-ref-properties.outputs.sha }}
-          if [[ "${{ steps.get-ref-properties.outputs.branch }}" -eq "main" ]]; then
-            docker tag ${{ env.CURRENT_IMAGE }} ${{ env.ECR_PUSH_IMAGE }}:latest
-            docker push ${{ env.ECR_PUSH_IMAGE }}:latest
+          docker tag '${{ env.CURRENT_IMAGE }}' \
+            '${{ env.ECR_PUSH_IMAGE }}:${{ steps.get-ref-properties.outputs.sha }}'
+          docker push '${{ env.ECR_PUSH_IMAGE }}:${{ steps.get-ref-properties.outputs.sha }}'
+          if [[ '${{ steps.get-ref-properties.outputs.branch }}' -eq 'main' ]]; then
+            docker tag '${{ env.CURRENT_IMAGE }}' '${{ env.ECR_PUSH_IMAGE }}:latest'
+            docker push '${{ env.ECR_PUSH_IMAGE }}:latest'
           fi
 
   send-slack-notification-release:

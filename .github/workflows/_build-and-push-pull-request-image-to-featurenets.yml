@@ -32,7 +32,7 @@ jobs:
           ls -alh target/release/
           ls -alh ./docker/
           docker build \
-            --tag ${{ vars.ECR_PUBLIC_REGISTRY }}feature-env-aleph-node:${{ env.IMAGE_TAG }} \
+            --tag '${{ vars.ECR_PUBLIC_REGISTRY }}feature-env-aleph-node:${{ env.IMAGE_TAG }}' \
             -f ./docker/Dockerfile .
 
       - name: Login to ECR
@@ -47,4 +47,4 @@ jobs:
           # yamllint disable-line rule:line-length
           IMAGE_TAG: fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo-with-sha }}
         run: |
-          docker push ${{ vars.ECR_PUBLIC_REGISTRY }}feature-env-aleph-node:${{ env.IMAGE_TAG }}
+          docker push '${{ vars.ECR_PUBLIC_REGISTRY }}feature-env-aleph-node:${{ env.IMAGE_TAG }}'

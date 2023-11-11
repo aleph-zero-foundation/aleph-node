@@ -36,7 +36,7 @@ jobs:
 
       - name: Cargo | Build release binary
         run: |
-          if [[ ${{ matrix.runtime }} = 'liminal' ]]; then
+          if [[ '${{ matrix.runtime }}' = 'liminal' ]]; then
             FEATURES="--features liminal"
           fi
           cd ./bin/cliain && cargo build --release ${FEATURES}
@@ -76,13 +76,13 @@ jobs:
                steps.get-ref-properties.outputs.branch-name-flattened) ||
                matrix.runtime == 'liminal' && steps.get-ref-properties.outputs.sha }}
         run: |
-          docker build -t "${{ env.REGISTRY }}${{ env.IMAGE_NAME }}:${{ env.TAG }}" \
+          docker build -t '${{ env.REGISTRY }}${{ env.IMAGE_NAME }}:${{ env.TAG }}' \
             -f ./bin/cliain/Dockerfile ./bin/cliain
           if [[ \
-            "${{ github.event_name }}" == "workflow_dispatch" || \
-            "${{ github.event_name }}" == "push" \
+            '${{ github.event_name }}' == 'workflow_dispatch' || \
+            '${{ github.event_name }}' == 'push' \
           ]]; then
-             docker push "${{ env.REGISTRY }}${{ env.IMAGE_NAME }}:${{ env.TAG }}"
+             docker push '${{ env.REGISTRY }}${{ env.IMAGE_NAME }}:${{ env.TAG }}'
           fi
 
       - name: Configure AWS credentials for S3 AWS

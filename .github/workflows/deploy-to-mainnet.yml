@@ -43,8 +43,8 @@ jobs:
         if: inputs.force != true
         shell: bash
         run: |
-          testnet_sha=${{ steps.get-testnet-node-commit-sha.outputs.sha }}
-          current_sha=${{ steps.get-ref-properties.outputs.sha }}
+          testnet_sha='${{ steps.get-testnet-node-commit-sha.outputs.sha }}'
+          current_sha='${{ steps.get-ref-properties.outputs.sha }}'
           if [[ "${testnet_sha}" != "${current_sha}" ]]; then
             echo "Error: Testnet RPC system.version sha ${testnet_sha} is different from the"
             echo "node you're trying to deploy: ${current_sha}. If you know what you're doing"
@@ -81,8 +81,8 @@ jobs:
           target-image: ${{ steps.get-docker-image-names.outputs.dockerhub-mainnet-image }}
           additional-image:
             ${{ steps.get-docker-image-names.outputs.dockerhub-mainnet-latest-image }}
-          dockerhub-username: "${{ secrets.DOCKERHUB_USERNAME }}"
-          dockerhub-password: "${{ secrets.DOCKERHUB_PASSWORD }}"
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub-password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
   slack:
     name: Slack notification

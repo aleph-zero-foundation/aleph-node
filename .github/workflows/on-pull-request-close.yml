@@ -30,8 +30,7 @@ jobs:
           # yamllint disable-line rule:line-length
           FE_NAME: ${{ format('{0}{1}', 'fe-', steps.get-ref-properties.outputs.branch-name-for-argo) }}
         run: |
-          name_local=${{ env.FE_NAME }}
-          echo "name=$name_local" >> $GITHUB_OUTPUT
+          echo 'name=${{ env.FE_NAME }}' >> $GITHUB_OUTPUT
 
   delete-featurenet:
     if: >

@@ -34,27 +34,30 @@ jobs:
           field: 'toolchain.channel'
 
       - name: Install prerequisites
+        env:
+          RUST_TOOLCHAIN: ${{ steps.aleph-client-toolchain-channel.outputs.value }}
+          RUST_CONTRACTS_TOOLCHAIN: ${{ steps.contracts-toolchain-channel.outputs.value }}
+        # yamllint disable rule:line-length
         run: |
-          RUST_TOOLCHAIN=${{ steps.aleph-client-toolchain-channel.outputs.value }}
-          RUST_CONTRACTS_TOOLCHAIN=${{ steps.contracts-toolchain-channel.outputs.value }}
-          rustup toolchain install ${RUST_TOOLCHAIN}
-          rustup toolchain install ${RUST_CONTRACTS_TOOLCHAIN}
-          rustup component add rust-src --toolchain ${RUST_CONTRACTS_TOOLCHAIN}
+          rustup toolchain install '${{ env.RUST_TOOLCHAIN }}'
+          rustup toolchain install '${{ env.RUST_CONTRACTS_TOOLCHAIN }}'
+          rustup component add rust-src --toolchain '${{ env.RUST_CONTRACTS_TOOLCHAIN }}'
 
-          mkdir -p /tmp/contracts_toolchain/$RUST_CONTRACTS_TOOLCHAIN/
-          mkdir -p /tmp/$RUST_TOOLCHAIN/
+          mkdir -p '/tmp/contracts_toolchain/${{ env.RUST_CONTRACTS_TOOLCHAIN }}/'
+          mkdir -p '/tmp/${{ env.RUST_TOOLCHAIN }}/'
 
           export WASM_BUILD_WORKSPACE_HINT=${PWD}
-          export CARGO_TARGET_DIR=/tmp/contracts_toolchain/$RUST_CONTRACTS_TOOLCHAIN/target/
+          export CARGO_TARGET_DIR='/tmp/contracts_toolchain/${{ env.RUST_CONTRACTS_TOOLCHAIN }}/target/'
 
-          cargo +${RUST_CONTRACTS_TOOLCHAIN} \
-            install --version $CARGO_CONTRACT_VERSION \
+          cargo '+${{ env.RUST_CONTRACTS_TOOLCHAIN }}' \
+            install --version '${{ env.CARGO_CONTRACT_VERSION }}' \
             --force --locked cargo-contract
 
-          export CARGO_TARGET_DIR=/tmp/$RUST_TOOLCHAIN/target/
+          export CARGO_TARGET_DIR='/tmp/${{ env.RUST_TOOLCHAIN }}/target/'
 
-          cargo +${RUST_TOOLCHAIN} \
+          cargo '+${{ env.RUST_TOOLCHAIN }}' \
             install aleph-zero-cargo-nono --locked
+        # yamllint enable rule:line-length
 
       - name: Check excluded packages
         env:
@@ -72,13 +75,13 @@ jobs:
           # a version bump
           #
           # cd baby-liminal-extension/
-          # ${CHECK}
-          # ${CHECK} --features ink
+          # ${{ env.CHECK }}
+          # ${{ env.CHECK }} --features ink
 
           cd poseidon/
-          ${CHECK}
-          ${CHECK} --features circuit
+          ${{ env.CHECK }}
+          ${{ env.CHECK }} --features circuit
 
           cd ../relations/ark/
-          ${CHECK}
-          ${CHECK} --features circuit
+          ${{ env.CHECK }}
+          ${{ env.CHECK }} --features circuit

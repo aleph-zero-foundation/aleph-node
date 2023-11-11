@@ -118,7 +118,7 @@ jobs:
         # yamllint disable rule:line-length
           APP_NAME: ${{ format('{0}-{1}', github.run_id, matrix.testcase) }}
         run: |
-          final_featurename_local=${{ env.APP_NAME }}
+          final_featurename_local='${{ env.APP_NAME }}'
           echo "final-featurenet-name=$(printf $final_featurename_local | sed 's|::|-|g' | sed 's|_|-|g')" >> $GITHUB_OUTPUT
         # yamllint enable rule:line-length
 
@@ -153,8 +153,8 @@ jobs:
         # yamllint disable rule:line-length
         run: |
           docker run --network host \
-            -e NODE_URL="wss://${{ steps.create-featurenet.outputs.ws-hostname }}:443" \
-            -e TEST_CASES="${{ matrix.testcase }}" \
+            -e NODE_URL='wss://${{ steps.create-featurenet.outputs.ws-hostname }}:443' \
+            -e TEST_CASES='${{ matrix.testcase }}' \
             -e RUST_LOG=info \
             aleph-e2e-client:latest
         timeout-minutes: 15

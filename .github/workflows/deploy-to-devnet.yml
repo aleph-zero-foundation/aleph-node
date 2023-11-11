@@ -49,7 +49,7 @@ jobs:
         with:
           repository: Cardinal-Cryptography/${{ secrets.REPO_ARGOCD_APPS_NAME }}
           token: ${{ secrets.CI_GH_TOKEN }}
-          path: "${{ secrets.REPO_ARGOCD_APPS_NAME }}"
+          path: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
 
       - name: Init kustomize
         uses: imranismail/setup-kustomize@v2
@@ -64,7 +64,7 @@ jobs:
       - name: Sync all validator's keystores from S3
         run: |
           #!/bin/bash
-          aws s3 cp s3://alephzero-devnet-eu-central-1-keys-bucket/data data --recursive
+          aws s3 cp s3://${{ secrets.DEVNET_KEYS_S3BUCKET_NAME }}/data data --recursive
           # rename validator paths
           declare -A \
             NAMES=([aleph-node-validator-0]=5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH \
@@ -84,11 +84,10 @@ jobs:
       - name: Generate chainspec
         env:
           RELEASE_TAG: ${{ steps.vars.outputs.sha_short }}
-
         # yamllint disable rule:line-length
         run: |
           #!/bin/bash
-          aws s3 cp s3://alephzero-devnet-eu-central-1-keys-bucket/data data --recursive
+          aws s3 cp 's3://${{ secrets.DEVNET_KEYS_S3BUCKET_NAME }}/data' data --recursive
 
           # well-known accounts
           ALICE=5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
@@ -97,12 +96,12 @@ jobs:
           EVE=5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw
 
           docker run -i -v $(pwd)/data:/data --env RUST_BACKTRACE=1 --entrypoint \
-            "/usr/local/bin/aleph-node" ${{ vars.ECR_PUBLIC_REGISTRY }}aleph-node:${RELEASE_TAG} \
+            '/usr/local/bin/aleph-node' '${{ vars.ECR_PUBLIC_REGISTRY }}aleph-node:${{ env.RELEASE_TAG }}' \
             bootstrap-chain --raw --base-path /data --chain-id a0dnet1 \
             --account-ids 5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH,5GBNeWRhZc2jXu7D55rBimKYDk8PGk8itRYFTPfC8RJLKG5o,5Dfis6XL8J2P6JHUnUtArnFWndn62SydeP8ee8sG2ky9nfm9,5F4H97f7nQovyrbiq4ZetaaviNwThSVcFobcA5aGab6167dK,5DiDShBWa1fQx6gLzpf3SFBhMinCoyvHM1BWjPNsmXS8hkrW,5EFb84yH9tpcFuiKUcsmdoF7xeeY3ajG1ZLQimxQoFt9HMKR,5DZLHESsfGrJ5YzT3HuRPXsSNb589xQ4Unubh1mYLodzKdVY,5GHJzqvG6tXnngCpG7B12qjUvbo5e4e9z8Xjidk3CQZHxTPZ,5CUnSsgAyLND3bxxnfNhgWXSe9Wn676JzLpGLgyJv858qhoX,5CVKn7HAZW1Ky4r7Vkgsr7VEW88C2sHgUNDiwHY9Ct2hjU8q \
             --sudo-account-id 5F4SvwaUEQubiqkPF8YnRfcN77cLsT2DfG4vFeQmSXNjR7hD \
             --rich-account-ids $ALICE,$BOB,$CHARLIE,$EVE > chainspec.json
-          aws s3 cp chainspec.json s3://alephzero-devnet-eu-central-1-keys-bucket/chainspec.json
+          aws s3 cp chainspec.json 's3://${{ secrets.DEVNET_KEYS_S3BUCKET_NAME }}/chainspec.json'
         # yamllint enable rule:line-length
 
       - name: Stop and purge db Devnet
@@ -114,18 +113,18 @@ jobs:
           kubectl delete pvc -l app=aleph-node-validator -n devnet --ignore-not-found=true
 
       - name: Start Devnet
+        # yamllint disable rule:line-length
         env:
-          RELEASE_TAG: ${{ steps.vars.outputs.sha_short }}
+          IMAGE_PLACEHOLDER: ${{ vars.ECR_PUBLIC_REGISTRY }}aleph-node:${{ steps.vars.outputs.sha_short }}
         run: |
           #!/bin/bash
-          export image_placeholder=${{ vars.ECR_PUBLIC_REGISTRY }}aleph-node:${RELEASE_TAG}
-
-          cd ${{ secrets.REPO_ARGOCD_APPS_NAME }}/aleph-node-validators/overlays/devnet/eu-central-1
+          cd '${{ secrets.REPO_ARGOCD_APPS_NAME }}/aleph-node-validators/overlays/devnet/eu-central-1'
           kustomize edit set image \
-            "aleph-node-validator-image-placeholder=${image_placeholder}"
+            'aleph-node-validator-image-placeholder=${{ env.IMAGE_PLACEHOLDER }}'
           kustomize build . | kubectl apply -f -
           sleep 2
           kubectl rollout status --watch --timeout=3600s statefulset/aleph-node-validator -n devnet
+        # yamllint enable rule:line-length
 
       - name: Waiting 5 minutes for validators to boot
         run: |
@@ -139,7 +138,7 @@ jobs:
           author_email: ${{ secrets.AUTOCOMMIT_EMAIL }}
           message: "Update Devnet docker image tag to: ${{ steps.vars.outputs.sha_short }}"
           add: "*.yaml"
-          cwd: "${{ secrets.REPO_ARGOCD_APPS_NAME }}"
+          cwd: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
 
   slack:
     name: Slack notification

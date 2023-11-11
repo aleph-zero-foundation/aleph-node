@@ -28,12 +28,12 @@ jobs:
         run: |
           set +e
           fail=0
-          # compare every worflow except e2e tests as those might get added on main
+          # compare every workflow except e2e tests as those might get added on main
           for i in $(ls -1 .github/workflows/*.yml | grep -v on-pull-request-commit.yml)
           do
             diff -ur $i aleph-node-main/$i > $i.diff
             if [[ $(cat $i.diff | wc -l) > 0 ]]; then
-              echo ""
+              echo ''
               cat $i.diff
               fail=1
             fi
@@ -42,12 +42,12 @@ jobs:
           do
             diff -ur $i aleph-node-main/$i > $i.diff
             if [[ $(cat $i.diff | wc -l) > 0 ]]; then
-              echo ""
+              echo ''
               cat $i.diff
               fail=1
             fi
           done
           if [[ $fail == 1 ]]; then
-            echo "!!! YAML files in .github on this branch differ from the ones on main branch!"
+            echo '!!! YAML files in .github on this branch differ from the ones on main branch!'
             exit 1
           fi
