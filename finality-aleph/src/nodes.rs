@@ -12,6 +12,13 @@ use sp_keystore::Keystore;
 
 use crate::{
     aleph_primitives::{AlephSessionApi, AuraId, Block},
+    block::{
+        substrate::{
+            JustificationTranslator, SubstrateChainStatusNotifier, SubstrateFinalizationInfo,
+            VerifierCache,
+        },
+        ChainStatus, FinalizationStatus, Justification,
+    },
     crypto::AuthorityPen,
     finalization::AlephFinalizer,
     idx_to_account::ValidatorIndexToAccountIdConverterImpl,
@@ -29,11 +36,7 @@ use crate::{
     runtime_api::RuntimeApiImpl,
     session::SessionBoundaryInfo,
     session_map::{AuthorityProviderImpl, FinalityNotifierImpl, SessionMapUpdater},
-    sync::{
-        ChainStatus, DatabaseIO as SyncDatabaseIO, FinalizationStatus, Justification,
-        JustificationTranslator, Service as SyncService, SubstrateChainStatusNotifier,
-        SubstrateFinalizationInfo, VerifierCache, IO as SyncIO,
-    },
+    sync::{DatabaseIO as SyncDatabaseIO, Service as SyncService, IO as SyncIO},
     AlephConfig,
 };
 

@@ -6,11 +6,9 @@ use static_assertions::const_assert;
 
 use crate::{
     aleph_primitives::MAX_BLOCK_SIZE,
+    block::{Block, Justification, UnverifiedHeader, UnverifiedHeaderFor, UnverifiedJustification},
     network::GossipNetwork,
-    sync::{
-        Block, Justification, PeerId, UnverifiedHeader, UnverifiedHeaderFor,
-        UnverifiedJustification, LOG_TARGET,
-    },
+    sync::{PeerId, LOG_TARGET},
     BlockId, Version,
 };
 

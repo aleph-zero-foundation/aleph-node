@@ -4,12 +4,14 @@ use std::fmt::{Display, Formatter};
 use primitives::BlockNumber;
 
 use crate::{
+    block::{
+        Block, BlockStatus, ChainStatus, FinalizationStatus, Header, Justification,
+        UnverifiedHeader, UnverifiedHeaderFor, UnverifiedJustification,
+    },
     session::{SessionBoundaryInfo, SessionId},
     sync::{
         data::{BranchKnowledge, ResponseItem},
         handler::Request,
-        Block, BlockStatus, ChainStatus, FinalizationStatus, Header, Justification,
-        UnverifiedHeader, UnverifiedHeaderFor, UnverifiedJustification,
     },
     BlockId,
 };

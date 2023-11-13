@@ -16,6 +16,7 @@ use crate::{
         run_legacy_member, SpawnHandle,
     },
     aleph_primitives::{AlephSessionApi, BlockHash, BlockNumber, KEY_TYPE},
+    block::substrate::{Justification, JustificationTranslator},
     crypto::{AuthorityPen, AuthorityVerifier},
     data_io::{
         legacy::{
@@ -35,7 +36,7 @@ use crate::{
     party::{
         backup::ABFTBackup, manager::aggregator::AggregatorVersion, traits::NodeSessionManager,
     },
-    sync::{substrate::Justification, JustificationSubmissions, JustificationTranslator},
+    sync::JustificationSubmissions,
     AuthorityId, BlockId, CurrentRmcNetworkData, Keychain, LegacyRmcNetworkData, NodeIndex,
     SessionBoundaries, SessionBoundaryInfo, SessionId, SessionPeriod, TimingBlockMetrics,
     UnitCreationDelay, VersionedNetworkData,
@@ -88,7 +89,6 @@ where
     multikeychain: Keychain,
     exit_rx: oneshot::Receiver<()>,
     backup: ABFTBackup,
-    // TODO: check if SC is necessary at all
     phantom: PhantomData<BE>,
 }
 

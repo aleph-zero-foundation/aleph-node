@@ -14,9 +14,9 @@ use sp_runtime::{traits::Header as HeaderT, Justification as SubstrateJustificat
 
 use crate::{
     aleph_primitives::{Block, BlockHash, BlockNumber, ALEPH_ENGINE_ID},
+    block::substrate::{Justification, JustificationTranslator, TranslateError},
     justification::{backwards_compatible_decode, DecodeError},
     metrics::{Checkpoint, TimingBlockMetrics},
-    sync::substrate::{Justification, JustificationTranslator, TranslateError},
     BlockId,
 };
 

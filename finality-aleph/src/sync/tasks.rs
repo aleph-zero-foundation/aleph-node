@@ -7,7 +7,8 @@ use std::{
 use rand::{thread_rng, Rng};
 
 use crate::{
-    sync::{data::PreRequest, forest::Interest, handler::InterestProvider, Justification, PeerId},
+    block::Justification,
+    sync::{data::PreRequest, forest::Interest, handler::InterestProvider, PeerId},
     BlockId,
 };
 

@@ -17,9 +17,7 @@ use crate::{
     aleph_primitives::{
         AccountId, AuraId, AuthoritySignature, Block, BlockNumber, Header, MILLISECS_PER_BLOCK,
     },
-    session::{SessionBoundaryInfo, SessionId},
-    session_map::AuthorityProvider,
-    sync::{
+    block::{
         substrate::{
             verification::{
                 verifier::SessionVerifier, EquivocationProof, FinalizationInfo,
@@ -29,6 +27,8 @@ use crate::{
         },
         Header as HeaderT, VerifiedHeader, Verifier,
     },
+    session::{SessionBoundaryInfo, SessionId},
+    session_map::AuthorityProvider,
 };
 
 // How many slots in the future (according to the system time) can the verified header be.
@@ -407,8 +407,8 @@ mod tests {
     };
     use crate::{
         aleph_primitives::SessionAuthorityData,
+        block::mock::MockHeader,
         session::{testing::authority_data, SessionBoundaryInfo, SessionId},
-        sync::mock::MockHeader,
         SessionPeriod,
     };
 

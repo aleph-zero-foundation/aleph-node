@@ -45,11 +45,11 @@ where
     B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B>,
 {
-    if block.number.is_zero() {
+    if block.number().is_zero() {
         return None;
     }
-    if let Some(header) = client.header(block.hash).expect("client must respond") {
-        Some((*header.parent_hash(), block.number - 1).into())
+    if let Some(header) = client.header(block.hash()).expect("client must respond") {
+        Some((*header.parent_hash(), block.number() - 1).into())
     } else {
         warn!(target: "aleph-data-store", "Trying to fetch the parent of an unknown block {:?}.", block);
         None
@@ -68,16 +68,16 @@ where
 {
     let mut curr_block = best_block;
     let mut branch = Vec::new();
-    while curr_block.number > finalized_block.number {
-        if curr_block.number - finalized_block.number
+    while curr_block.number() > finalized_block.number() {
+        if curr_block.number() - finalized_block.number()
             <= <BlockNumber>::saturated_from(MAX_DATA_BRANCH_LEN)
         {
-            branch.push(curr_block.hash);
+            branch.push(curr_block.hash());
         }
         curr_block = get_parent(client, &curr_block).expect("block of num >= 1 must have a parent")
     }
-    if curr_block.hash == finalized_block.hash {
-        let num_last = finalized_block.number + <BlockNumber>::saturated_from(branch.len());
+    if curr_block.hash() == finalized_block.hash() {
+        let num_last = finalized_block.number() + <BlockNumber>::saturated_from(branch.len());
         // The hashes in `branch` are ordered from top to bottom -- need to reverse.
         branch.reverse();
         Ok(AlephData {
@@ -173,7 +173,7 @@ where
         let finalized_block: BlockId =
             (client_info.finalized_hash, client_info.finalized_number).into();
 
-        if finalized_block.number >= self.session_boundaries.last_block() {
+        if finalized_block.number() >= self.session_boundaries.last_block() {
             // This session is already finished, but this instance of ChainTracker has not been terminated yet.
             // We go with the default -- empty proposal, this does not have any significance.
             *self.data_to_propose.lock() = None;
@@ -195,12 +195,12 @@ where
             highest_finalized: finalized_block.clone(),
         });
 
-        if best_block_in_session.number == finalized_block.number {
+        if best_block_in_session.number() == finalized_block.number() {
             // We don't have anything to propose, we go ahead with an empty proposal.
             *self.data_to_propose.lock() = None;
             return;
         }
-        if best_block_in_session.number < finalized_block.number {
+        if best_block_in_session.number() < finalized_block.number() {
             // Because of the client synchronization, in extremely rare cases this could happen.
             warn!(target: "aleph-data-store", "Error updating data. best_block {:?} is lower than finalized {:?}.", best_block_in_session, finalized_block);
             return;
@@ -243,7 +243,7 @@ where
                     Some((reduced_header.hash(), *reduced_header.number()).into())
                 }
                 Some(prev) => {
-                    if prev.number < last_block {
+                    if prev.number() < last_block {
                         // The previous best block was below the sessioun boundary, we cannot really optimize
                         // but must compute the new best_block_in_session naively.
                         let reduced_header =
@@ -254,9 +254,9 @@ where
                         let reduced_header = reduce_header_to_num(
                             &*self.client,
                             new_best_header.clone(),
-                            prev.number,
+                            prev.number(),
                         );
-                        if reduced_header.hash() != prev.hash {
+                        if reduced_header.hash() != prev.hash() {
                             // The new_best_block is not a descendant of `prev`, we need to update.
                             // In the opposite case we do nothing, as the `prev` is already correct.
                             let reduced_header =

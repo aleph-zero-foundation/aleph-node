@@ -4,11 +4,11 @@ use sp_runtime::traits::Header as SubstrateHeader;
 
 use crate::{
     aleph_primitives::Block,
-    finalization::{AlephFinalizer, BlockFinalizer},
-    sync::{
+    block::{
         substrate::{InnerJustification, Justification},
         Finalizer,
     },
+    finalization::{AlephFinalizer, BlockFinalizer},
 };
 
 impl<BE, C> Finalizer<Justification> for AlephFinalizer<Block, BE, C>

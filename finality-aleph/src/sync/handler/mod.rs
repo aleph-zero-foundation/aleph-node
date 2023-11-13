@@ -7,6 +7,10 @@ use std::{
 };
 
 use crate::{
+    block::{
+        Block, BlockImport, BlockStatus, ChainStatus, Finalizer, Header, Justification,
+        UnverifiedHeader, UnverifiedHeaderFor, UnverifiedJustification, VerifiedHeader, Verifier,
+    },
     session::{SessionBoundaryInfo, SessionId},
     sync::{
         data::{BranchKnowledge, NetworkData, Request, State},
@@ -15,8 +19,7 @@ use crate::{
             InitializationError as ForestInitializationError, Interest,
         },
         handler::request_handler::RequestHandler,
-        Block, BlockImport, BlockStatus, ChainStatus, Finalizer, Header, Justification, PeerId,
-        UnverifiedHeader, UnverifiedHeaderFor, UnverifiedJustification, VerifiedHeader, Verifier,
+        PeerId,
     },
     BlockId, BlockNumber, SyncOracle,
 };
@@ -821,15 +824,18 @@ mod tests {
 
     use super::{DatabaseIO, Error, HandleStateAction, HandleStateAction::*, Handler};
     use crate::{
+        block::{
+            mock::{Backend, MockBlock, MockHeader, MockJustification},
+            Block, BlockImport, ChainStatus,
+            ChainStatusNotification::*,
+            ChainStatusNotifier, Header,
+        },
         session::{SessionBoundaryInfo, SessionId},
         sync::{
             data::{BranchKnowledge::*, NetworkData, Request, ResponseItem, ResponseItems, State},
             forest::{ExtensionRequest, Interest},
             handler::Action,
-            mock::{Backend, MockBlock, MockHeader, MockJustification, MockPeerId},
-            Block, BlockImport, ChainStatus,
-            ChainStatusNotification::*,
-            ChainStatusNotifier, Header, Justification,
+            Justification, MockPeerId,
         },
         BlockId, BlockNumber, SessionPeriod, SyncOracle,
     };

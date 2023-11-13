@@ -57,12 +57,12 @@ impl ClientChainBuilder {
         self.client.finalize_block(*hash, None).unwrap();
     }
 
-    pub fn genesis_hash_num(&self) -> BlockId {
+    pub fn genesis_id(&self) -> BlockId {
         BlockId::new(self.client.info().genesis_hash, 0)
     }
 
     pub fn genesis_hash(&self) -> H256 {
-        self.genesis_hash_num().hash
+        self.genesis_id().hash()
     }
 
     pub fn get_unique_bytes(&mut self) -> Vec<u8> {

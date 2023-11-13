@@ -430,7 +430,7 @@ async fn sends_block_request_on_missing_block() {
         let requested_block = timeout(TIMEOUT_SUCC, test_handler.next_block_request())
             .await
             .expect("Did not receive block request from Data Store");
-        assert_eq!(requested_block.hash, blocks[0].hash());
+        assert_eq!(requested_block.hash(), blocks[0].hash());
 
         test_handler.import_branch(blocks).await;
 

@@ -4,14 +4,14 @@ use parity_scale_codec::{Decode, Encode};
 
 use crate::{
     aleph_primitives::Header,
-    justification::AlephJustification,
-    sync::{
+    block::{
         substrate::{
             chain_status::{Error as ChainStatusError, SubstrateChainStatus},
             BlockId,
         },
         BlockStatus, ChainStatus, Justification as JustificationT, UnverifiedJustification,
     },
+    justification::AlephJustification,
 };
 
 /// Proper `AlephJustification` or a variant indicating virtual justification

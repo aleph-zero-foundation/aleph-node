@@ -10,10 +10,8 @@ use static_assertions::const_assert;
 
 use crate::{
     aleph_primitives::DEFAULT_SESSION_PERIOD,
-    sync::{
-        data::BranchKnowledge, Block, BlockId, ChainStatus, Header, Justification, PeerId,
-        UnverifiedHeaderFor,
-    },
+    block::{Block, ChainStatus, Header, Justification, UnverifiedHeaderFor},
+    sync::{data::BranchKnowledge, BlockId, PeerId},
     BlockNumber,
 };
 
@@ -676,12 +674,12 @@ mod tests {
 
     use super::{Error, ExtensionRequest::*, Forest, Interest::*, MAX_DEPTH};
     use crate::{
-        session::SessionBoundaryInfo,
-        sync::{
-            data::BranchKnowledge::*,
-            mock::{Backend, MockHeader, MockJustification, MockPeerId},
-            ChainStatus, Header, Justification,
+        block::{
+            mock::{Backend, MockHeader, MockJustification},
+            ChainStatus, Header,
         },
+        session::SessionBoundaryInfo,
+        sync::{data::BranchKnowledge::*, Justification, MockPeerId},
         BlockNumber, SessionPeriod,
     };
 

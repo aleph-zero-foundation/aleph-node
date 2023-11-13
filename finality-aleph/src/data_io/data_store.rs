@@ -320,9 +320,9 @@ where
                     continue;
                 }
             };
-            let parent_num = bottom_block.number - 1;
+            let parent_num = bottom_block.number() - 1;
             if let Ok(finalized_block) = self.chain_info_provider.get_finalized_at(parent_num) {
-                if parent_hash != finalized_block.hash {
+                if parent_hash != finalized_block.hash() {
                     warn!(target: "aleph-data-store", "The proposal {:?} is pending because the parent: \
                         {:?}, does not agree with the block finalized at this height: {:?}.", proposal, parent_hash, finalized_block);
                 } else {
@@ -363,11 +363,11 @@ where
     }
 
     fn on_block_finalized(&mut self, block: BlockId) {
-        if self.highest_finalized_num < block.number {
+        if self.highest_finalized_num < block.number() {
             // We don't assume block.num = self.highest_finalized_num + 1 as the finality import queue does
             // not quite guarantee this.
             let old_num = self.highest_finalized_num;
-            let new_num = block.number;
+            let new_num = block.number();
             self.highest_finalized_num = new_num;
             // We activate all finality triggers in [old_num + 1, block.num].
             let mut num = old_num + 1;

@@ -53,7 +53,8 @@ where
     C: HeaderBackend<B> + LockImportRun<B, BE> + Finalizer<B, BE>,
 {
     fn finalize_block(&self, block: BlockId, justification: Justification) -> Result<(), Error> {
-        let BlockId { number, hash } = block;
+        let number = block.number();
+        let hash = block.hash();
 
         let status = self.client.info();
         if status.finalized_number >= number {

@@ -6,7 +6,7 @@ use tokio::select;
 
 use crate::{
     aleph_primitives::{Block, Header},
-    sync::{ChainStatusNotification, ChainStatusNotifier},
+    block::{ChainStatusNotification, ChainStatusNotifier},
 };
 
 /// What can go wrong when waiting for next chain status notification.

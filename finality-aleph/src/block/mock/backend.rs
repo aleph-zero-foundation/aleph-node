@@ -8,14 +8,14 @@ use futures::channel::mpsc::{self, UnboundedSender};
 use parking_lot::Mutex;
 
 use crate::{
-    nodes::VERIFIER_CACHE_SIZE,
-    session::{SessionBoundaryInfo, SessionId},
-    sync::{
+    block::{
         mock::{MockBlock, MockHeader, MockJustification, MockNotification},
         Block, BlockImport, BlockStatus, ChainStatus, ChainStatusNotifier,
         EquivocationProof as EquivocationProofT, FinalizationStatus, Finalizer, Header,
         Justification as JustificationT, VerifiedHeader, Verifier,
     },
+    nodes::VERIFIER_CACHE_SIZE,
+    session::{SessionBoundaryInfo, SessionId},
     BlockId,
 };
 

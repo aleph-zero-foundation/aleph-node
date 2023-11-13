@@ -2,7 +2,7 @@ use std::fmt::{Display, Error as FmtError, Formatter};
 
 use futures::channel::mpsc::UnboundedReceiver;
 
-use crate::sync::{
+use crate::block::{
     mock::{MockHeader, MockNotification},
     ChainStatusNotifier,
 };

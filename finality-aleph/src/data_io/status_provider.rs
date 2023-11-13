@@ -20,7 +20,7 @@ where
     use PendingProposalStatus::*;
     use ProposalStatus::*;
 
-    let current_highest_finalized = chain_info_provider.get_highest_finalized().number;
+    let current_highest_finalized = chain_info_provider.get_highest_finalized().number();
 
     if current_highest_finalized >= proposal.number_top_block() {
         return Ignore;
@@ -91,7 +91,7 @@ where
         if let Ok(finalized_block) =
             chain_info_provider.get_finalized_at(bottom_num + <BlockNumber>::saturated_from(i))
         {
-            if finalized_block.hash != proposal[i] {
+            if finalized_block.hash() != proposal[i] {
                 return true;
             }
         } else {
@@ -118,7 +118,7 @@ where
         } else {
             return false;
         };
-    parent_hash == finalized.hash
+    parent_hash == finalized.hash()
 }
 
 // Checks that the subsequent blocks in the branch are in the parent-child relation, as required.
@@ -208,7 +208,7 @@ mod tests {
 
         let aux_chain_info_provider = AuxFinalizationChainInfoProvider::new(
             SubstrateChainInfoProvider::new(client),
-            chain_builder.genesis_hash_num(),
+            chain_builder.genesis_id(),
         );
 
         (

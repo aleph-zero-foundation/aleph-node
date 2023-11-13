@@ -13,6 +13,7 @@ use crate::{
     abft::SignatureSet,
     aggregation::Aggregator,
     aleph_primitives::{BlockHash, BlockNumber},
+    block::substrate::{Justification, JustificationTranslator},
     crypto::Signature,
     justification::AlephJustification,
     metrics::Checkpoint,
@@ -21,7 +22,7 @@ use crate::{
         manager::aggregator::AggregatorVersion::{Current, Legacy},
         AuthoritySubtaskCommon, Task,
     },
-    sync::{substrate::Justification, JustificationSubmissions, JustificationTranslator},
+    sync::JustificationSubmissions,
     BlockId, CurrentRmcNetworkData, Keychain, LegacyRmcNetworkData, SessionBoundaries,
     TimingBlockMetrics, STATUS_REPORT_INTERVAL,
 };
@@ -45,9 +46,9 @@ async fn process_new_block_data<CN, LN>(
     LN: Network<LegacyRmcNetworkData>,
 {
     trace!(target: "aleph-party", "Received unit {:?} in aggregator.", block);
-    metrics.report_block(block.hash, std::time::Instant::now(), Checkpoint::Ordered);
+    metrics.report_block(block.hash(), std::time::Instant::now(), Checkpoint::Ordered);
 
-    aggregator.start_aggregation(block.hash).await;
+    aggregator.start_aggregation(block.hash()).await;
 }
 
 fn process_hash<B, C, JS>(
@@ -105,7 +106,7 @@ where
     } = io;
 
     let blocks_from_interpreter = blocks_from_interpreter.take_while(|block| {
-        let block_num = block.number;
+        let block_num = block.number();
         async move {
             if block_num == session_boundaries.last_block() {
                 debug!(target: "aleph-party", "Aggregator is processing last block in session.");
@@ -124,7 +125,7 @@ where
         tokio::select! {
             maybe_block = blocks_from_interpreter.next() => {
                 if let Some(block) = maybe_block {
-                    hash_of_last_block = Some(block.hash);
+                    hash_of_last_block = Some(block.hash());
                     process_new_block_data::<CN, LN>(
                         &mut aggregator,
                         block,

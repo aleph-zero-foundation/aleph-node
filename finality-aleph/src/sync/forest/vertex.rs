@@ -2,10 +2,7 @@ use std::{collections::HashSet, num::NonZeroUsize};
 
 use lru::LruCache;
 
-use crate::{
-    sync::{Justification, PeerId},
-    BlockId,
-};
+use crate::{block::Justification, sync::PeerId, BlockId};
 
 const MAX_KNOW_MOST: usize = 200;
 
@@ -304,10 +301,11 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
 mod tests {
     use super::Vertex;
     use crate::{
-        sync::{
-            mock::{MockHeader, MockJustification, MockPeerId},
+        block::{
+            mock::{MockHeader, MockJustification},
             Header,
         },
+        sync::MockPeerId,
         BlockId,
     };
 

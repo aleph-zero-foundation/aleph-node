@@ -3,7 +3,7 @@ use std::hash::Hash;
 use parity_scale_codec::{Decode, Encode};
 
 use crate::{
-    sync::{
+    block::{
         Block, ChainStatusNotification, Header, Justification, UnverifiedHeader,
         UnverifiedJustification,
     },
@@ -14,8 +14,6 @@ mod backend;
 mod status_notifier;
 
 pub use backend::{Backend, EquivocationProof as MockEquivocationProof};
-
-pub type MockPeerId = u32;
 
 impl BlockId {
     pub fn new_random(number: BlockNumber) -> Self {

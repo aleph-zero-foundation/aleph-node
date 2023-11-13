@@ -53,11 +53,11 @@ where
     fn is_block_imported(&mut self, block: &BlockId) -> bool {
         let maybe_header = self
             .client
-            .header(block.hash)
+            .header(block.hash())
             .expect("client must answer a query");
         if let Some(header) = maybe_header {
             // If the block number is incorrect, we treat as not imported.
-            return *header.number() == block.number;
+            return *header.number() == block.number();
         }
         false
     }
@@ -83,7 +83,11 @@ where
     }
 
     fn get_parent_hash(&mut self, block: &BlockId) -> Result<BlockHash, ()> {
-        if let Some(header) = self.client.header(block.hash).expect("client must respond") {
+        if let Some(header) = self
+            .client
+            .header(block.hash())
+            .expect("client must respond")
+        {
             Ok(*header.parent_hash())
         } else {
             Err(())
@@ -145,12 +149,12 @@ where
             return Ok((*hash, num).into());
         }
 
-        if self.get_highest_finalized().number < num {
+        if self.get_highest_finalized().number() < num {
             return Err(());
         }
 
         if let Ok(block) = self.chain_info_provider.get_finalized_at(num) {
-            self.finalized_cache.put(num, block.hash);
+            self.finalized_cache.put(num, block.hash());
             return Ok(block);
         }
         Err(())
@@ -212,17 +216,17 @@ where
 
     fn get_finalized_at(&mut self, num: BlockNumber) -> Result<BlockId, ()> {
         let highest_finalized_inner = self.chain_info_provider.get_highest_finalized();
-        if num <= highest_finalized_inner.number {
+        if num <= highest_finalized_inner.number() {
             return self.chain_info_provider.get_finalized_at(num);
         }
-        if num > self.aux_finalized.number {
+        if num > self.aux_finalized.number() {
             return Err(());
         }
         // We are in the situation: internal_highest_finalized < num <= aux_finalized
         let mut curr_block = self.aux_finalized.clone();
-        while curr_block.number > num {
+        while curr_block.number() > num {
             let parent_hash = self.chain_info_provider.get_parent_hash(&curr_block)?;
-            curr_block = (parent_hash, curr_block.number - 1).into();
+            curr_block = (parent_hash, curr_block.number() - 1).into();
         }
         Ok(curr_block)
     }
@@ -233,7 +237,7 @@ where
 
     fn get_highest_finalized(&mut self) -> BlockId {
         let highest_finalized_inner = self.chain_info_provider.get_highest_finalized();
-        if self.aux_finalized.number > highest_finalized_inner.number {
+        if self.aux_finalized.number() > highest_finalized_inner.number() {
             self.aux_finalized.clone()
         } else {
             highest_finalized_inner

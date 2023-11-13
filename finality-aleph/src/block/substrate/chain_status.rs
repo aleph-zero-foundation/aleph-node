@@ -13,11 +13,11 @@ use crate::{
     aleph_primitives::{
         Block, BlockNumber, Hash as AlephHash, Header as AlephHeader, ALEPH_ENGINE_ID,
     },
-    justification::backwards_compatible_decode,
-    sync::{
-        substrate::Justification, BlockStatus, ChainStatus, FinalizationStatus, Header,
-        Justification as _, LOG_TARGET,
+    block::{
+        substrate::{Justification, LOG_TARGET},
+        BlockStatus, ChainStatus, FinalizationStatus, Header, Justification as _,
     },
+    justification::backwards_compatible_decode,
     BlockId,
 };
 

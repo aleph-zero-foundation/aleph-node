@@ -10,7 +10,7 @@ use sp_consensus_slots::Slot;
 
 use crate::{
     aleph_primitives::{AccountId, AuraId, Block, BlockNumber, Header},
-    sync::{
+    block::{
         substrate::verification::{cache::CacheError, verifier::SessionVerificationError},
         EquivocationProof as EquivocationProofT, Header as HeaderT,
     },

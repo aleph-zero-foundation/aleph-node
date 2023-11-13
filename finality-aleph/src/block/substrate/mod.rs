@@ -6,8 +6,9 @@ use sp_runtime::traits::{CheckedSub, Header as _, One};
 
 use crate::{
     aleph_primitives::{Block, Header},
-    sync::{Block as BlockT, BlockImport, Header as HeaderT, UnverifiedHeader},
-    BlockId, TimingBlockMetrics,
+    block::{Block as BlockT, BlockId, BlockImport, Header as HeaderT, UnverifiedHeader},
+    metrics::Checkpoint,
+    TimingBlockMetrics,
 };
 
 mod chain_status;
@@ -23,7 +24,39 @@ pub use justification::{
 pub use status_notifier::SubstrateChainStatusNotifier;
 pub use verification::{SessionVerifier, SubstrateFinalizationInfo, VerifierCache};
 
-use crate::metrics::Checkpoint;
+const LOG_TARGET: &str = "aleph-substrate";
+
+impl UnverifiedHeader for Header {
+    fn id(&self) -> BlockId {
+        BlockId {
+            hash: self.hash(),
+            number: *self.number(),
+        }
+    }
+}
+
+impl HeaderT for Header {
+    type Unverified = Self;
+
+    fn id(&self) -> BlockId {
+        BlockId {
+            hash: self.hash(),
+            number: *self.number(),
+        }
+    }
+
+    fn parent_id(&self) -> Option<BlockId> {
+        let number = self.number().checked_sub(&One::one())?;
+        Some(BlockId {
+            hash: *self.parent_hash(),
+            number,
+        })
+    }
+
+    fn into_unverified(self) -> Self::Unverified {
+        self
+    }
+}
 
 /// Wrapper around the trait object that we get from Substrate.
 pub struct BlockImporter {
@@ -62,38 +95,6 @@ impl BlockImport<Block> for BlockImporter {
         self.metrics
             .report_block_if_not_present(hash, Instant::now(), Checkpoint::Importing);
         self.importer.import_blocks(origin, vec![incoming_block]);
-    }
-}
-
-impl UnverifiedHeader for Header {
-    fn id(&self) -> BlockId {
-        BlockId {
-            hash: self.hash(),
-            number: *self.number(),
-        }
-    }
-}
-
-impl HeaderT for Header {
-    type Unverified = Self;
-
-    fn id(&self) -> BlockId {
-        BlockId {
-            hash: self.hash(),
-            number: *self.number(),
-        }
-    }
-
-    fn parent_id(&self) -> Option<BlockId> {
-        let number = self.number().checked_sub(&One::one())?;
-        Some(BlockId {
-            hash: *self.parent_hash(),
-            number,
-        })
-    }
-
-    fn into_unverified(self) -> Self::Unverified {
-        self
     }
 }
 
