@@ -12,7 +12,7 @@ impl<CIP> current_aleph_bft::FinalizationHandler<AlephData> for OrderedDataInter
 where
     CIP: ChainInfoProvider,
 {
-    fn data_finalized(&mut self, data: AlephData) {
+    fn data_finalized(&mut self, data: AlephData, _creator: current_aleph_bft::NodeIndex) {
         OrderedDataInterpreter::data_finalized(self, data)
     }
 }

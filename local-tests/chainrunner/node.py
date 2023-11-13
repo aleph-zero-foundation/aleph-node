@@ -196,6 +196,17 @@ class Node:
         self.start(name)
         return highest_finalized
 
+    def update_finality_version(self, session, sudo_phrase):
+        """Bump the finality version stored on chain by 1."""
+        port = self.rpc_port()
+        subint = SubstrateInterface(url=f'ws://localhost:{port}', ss58_format=42)
+        version = subint.query(module='Aleph', storage_function='FinalityVersion').value
+        set_version_call = subint.compose_call(call_module='Aleph', call_function='schedule_finality_version_change', call_params={'version_incoming': version + 1, 'session': session})
+        zero_weight = {"proof_size": 0, "ref_time": 0}
+        sudo_call = subint.compose_call(call_module='Sudo', call_function='sudo_unchecked_weight', call_params={'call': set_version_call, 'weight': zero_weight})
+        extrinsic = subint.create_signed_extrinsic(call=sudo_call, keypair=Keypair.create_from_uri(sudo_phrase))
+        return subint.submit_extrinsic(extrinsic, wait_for_inclusion=True)
+
     def update_runtime(self, runtime_path, sudo_phrase):
         """Compose and submit `set_code` extrinsic containing runtime from supplied `runtime_path`.
         `sudo_phrase` should be the seed phrase for chain's sudo account.

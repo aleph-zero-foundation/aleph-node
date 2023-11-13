@@ -34,7 +34,7 @@ pub fn unit_creation_delay_fn(unit_creation_delay: UnitCreationDelay) -> DelaySc
 }
 
 // 7 days (as milliseconds)
-const SESSION_LEN_LOWER_BOUND_MS: u128 = 1000 * 60 * 60 * 24 * 7;
+pub const SESSION_LEN_LOWER_BOUND_MS: u128 = 1000 * 60 * 60 * 24 * 7;
 
 pub fn sanity_check_round_delays(max_rounds: u16, round_delays: DelaySchedule) {
     let delays_ok = sanity_check_round_delays_inner(max_rounds, round_delays);

@@ -41,23 +41,15 @@ pub type LegacyAggregator<'a, N> = legacy_aleph_aggregator::IO<
     NoopMetrics,
 >;
 
-pub type CurrentSignableBlockHash = current_aleph_aggregator::SignableHash<BlockHash>;
-pub type CurrentRmc<'a> =
-    current_aleph_bft_rmc::ReliableMulticast<'a, CurrentSignableBlockHash, Keychain>;
-pub type CurrentAggregator<'a, N> = current_aleph_aggregator::IO<
-    BlockHash,
-    CurrentRmcNetworkData,
-    NetworkWrapper<CurrentRmcNetworkData, N>,
-    SignatureSet<Signature>,
-    CurrentRmc<'a>,
->;
+pub type CurrentAggregator<N> =
+    current_aleph_aggregator::IO<BlockHash, NetworkWrapper<CurrentRmcNetworkData, N>, Keychain>;
 
 enum EitherAggregator<'a, CN, LN>
 where
     LN: Network<LegacyRmcNetworkData>,
     CN: Network<CurrentRmcNetworkData>,
 {
-    Current(CurrentAggregator<'a, CN>),
+    Current(Box<CurrentAggregator<CN>>),
     Legacy(LegacyAggregator<'a, LN>),
 }
 
@@ -90,7 +82,7 @@ where
             scheduler,
         );
         // For the compatibility with the legacy aggregator we need extra `Option` layer
-        let aggregator = legacy_aleph_aggregator::BlockSignatureAggregator::new(None);
+        let aggregator = legacy_aleph_aggregator::BlockSignatureAggregator::new(NoopMetrics);
         let aggregator_io = LegacyAggregator::<LN>::new(
             messages_for_rmc,
             messages_from_rmc,
@@ -105,29 +97,17 @@ where
     }
 
     pub fn new_current(multikeychain: &'a Keychain, rmc_network: CN) -> Self {
-        let (messages_for_rmc, messages_from_network) = mpsc::unbounded();
-        let (messages_for_network, messages_from_rmc) = mpsc::unbounded();
         let scheduler = current_aleph_bft_rmc::DoublingDelayScheduler::new(
             tokio::time::Duration::from_millis(500),
         );
-        let rmc = current_aleph_bft_rmc::ReliableMulticast::new(
-            messages_from_network,
-            messages_for_network,
-            multikeychain,
-            current_aleph_bft::Keychain::node_count(multikeychain),
-            scheduler,
-        );
+        let rmc_handler = current_aleph_bft_rmc::Handler::new(multikeychain.clone());
+        let rmc_service = current_aleph_bft_rmc::Service::new(scheduler, rmc_handler);
         let aggregator = current_aleph_aggregator::BlockSignatureAggregator::new();
-        let aggregator_io = CurrentAggregator::<CN>::new(
-            messages_for_rmc,
-            messages_from_rmc,
-            NetworkWrapper::new(rmc_network),
-            rmc,
-            aggregator,
-        );
+        let aggregator_io =
+            CurrentAggregator::<CN>::new(NetworkWrapper::new(rmc_network), rmc_service, aggregator);
 
         Self {
-            agg: EitherAggregator::Current(aggregator_io),
+            agg: EitherAggregator::Current(Box::new(aggregator_io)),
         }
     }
 

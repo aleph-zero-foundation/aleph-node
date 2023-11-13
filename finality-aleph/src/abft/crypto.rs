@@ -68,7 +68,7 @@ impl current_aleph_bft::Keychain for Keychain {
         Keychain::node_count(self).into()
     }
 
-    async fn sign(&self, msg: &[u8]) -> Signature {
+    fn sign(&self, msg: &[u8]) -> Signature {
         Keychain::sign(self, msg)
     }
 
@@ -105,8 +105,8 @@ impl current_aleph_bft::MultiKeychain for Keychain {
         index: current_aleph_bft::NodeIndex,
     ) -> Self::PartialMultisignature {
         current_aleph_bft::PartialMultisignature::add_signature(
-            SignatureSet(legacy_aleph_bft::SignatureSet::with_size(
-                legacy_aleph_bft::Keychain::node_count(self),
+            SignatureSet(aleph_bft_crypto::SignatureSet::with_size(
+                aleph_bft_crypto::Keychain::node_count(self),
             )),
             signature,
             index,
@@ -129,8 +129,8 @@ impl legacy_aleph_bft::MultiKeychain for Keychain {
         index: legacy_aleph_bft::NodeIndex,
     ) -> Self::PartialMultisignature {
         legacy_aleph_bft::PartialMultisignature::add_signature(
-            SignatureSet(legacy_aleph_bft::SignatureSet::with_size(
-                legacy_aleph_bft::Keychain::node_count(self),
+            SignatureSet(aleph_bft_crypto::SignatureSet::with_size(
+                aleph_bft_crypto::Keychain::node_count(self),
             )),
             signature,
             index,

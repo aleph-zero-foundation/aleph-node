@@ -101,7 +101,7 @@ pub const DEFAULT_FINALITY_VERSION: Version = 0;
 /// Current version of abft.
 pub const CURRENT_FINALITY_VERSION: u16 = LEGACY_FINALITY_VERSION + 1;
 /// Legacy version of abft.
-pub const LEGACY_FINALITY_VERSION: u16 = 1;
+pub const LEGACY_FINALITY_VERSION: u16 = 2;
 pub const LENIENT_THRESHOLD: Perquintill = Perquintill::from_percent(90);
 
 /// Hold set of validators that produce blocks and set of validators that participate in finality

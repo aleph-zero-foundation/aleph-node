@@ -1,6 +1,6 @@
 [package]
 name = "finality-aleph"
-version = "0.9.0"
+version = "0.10.0"
 license = "Apache 2.0"
 authors.workspace = true
 edition.workspace = true
@@ -11,14 +11,14 @@ repository.workspace = true
 # fixed version to 'freeze' some types used in abft, mainly `SignatureSet` used in justification and signature aggregation
 aleph-bft-crypto = { workspace = true }
 
-current-aleph-bft = { package = "aleph-bft", version = "0.20" }
-current-aleph-bft-rmc = { package = "aleph-bft-rmc", version = "0.6" }
-legacy-aleph-bft = { package = "aleph-bft", version = "0.19" }
-legacy-aleph-bft-rmc = { package = "aleph-bft-rmc", version = "0.5" }
+current-aleph-bft = { package = "aleph-bft", version = "0.33" }
+current-aleph-bft-rmc = { package = "aleph-bft-rmc", version = "0.11" }
+legacy-aleph-bft = { package = "aleph-bft", version = "0.20" }
+legacy-aleph-bft-rmc = { package = "aleph-bft-rmc", version = "0.6" }
 
 network-clique = { workspace = true }
 primitives = { workspace = true }
-legacy-aleph-aggregator = { package = "aggregator", git = "https://github.com/Cardinal-Cryptography/aleph-node.git", tag = "aggregator-v0.2.1" }
+legacy-aleph-aggregator = { package = "aggregator", git = "https://github.com/Cardinal-Cryptography/aleph-node.git", tag = "r-12.1" }
 current-aleph-aggregator = { path = "../aggregator", package = "aggregator" }
 rate-limiter = { package = "rate-limiter", path = "../rate-limiter" }
 
