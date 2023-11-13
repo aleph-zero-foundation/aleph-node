@@ -92,16 +92,34 @@ pub trait Justification: Clone + Send + Sync + Debug + 'static {
 
 type UnverifiedHeaderFor<J> = <<J as Justification>::Header as Header>::Unverified;
 
+pub trait EquivocationProof: Display {
+    /// Returns if we are the offender.
+    fn are_we_equivocating(&self) -> bool;
+}
+
+pub struct VerifiedHeader<J: Justification, P: EquivocationProof> {
+    pub header: J::Header,
+    pub maybe_equivocation_proof: Option<P>,
+}
+
 /// A verifier of justifications and headers.
 pub trait Verifier<J: Justification> {
+    type EquivocationProof: EquivocationProof;
     type Error: Display;
 
     /// Verifies the raw justification and returns a full justification if successful, otherwise an
     /// error.
     fn verify_justification(&mut self, justification: J::Unverified) -> Result<J, Self::Error>;
 
-    // /// Verifies the raw header and returns a full header if successful, otherwise an error.
-    fn verify_header(&mut self, header: UnverifiedHeaderFor<J>) -> Result<J::Header, Self::Error>;
+    /// Verifies the raw header and returns a struct containing a full header and possibly
+    /// an equivocation proof if successful, otherwise an error.
+    /// In case the header comes from a block that we've just authored,
+    /// the `just_created` flag must be set to `true`.
+    fn verify_header(
+        &mut self,
+        header: UnverifiedHeaderFor<J>,
+        just_created: bool,
+    ) -> Result<VerifiedHeader<J, Self::EquivocationProof>, Self::Error>;
 }
 
 /// A facility for finalizing blocks using justifications.

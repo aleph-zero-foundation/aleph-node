@@ -20,8 +20,8 @@ use crate::{
         tasks::{Action as TaskAction, RequestTask},
         ticker::Ticker,
         Block, BlockId, BlockImport, ChainStatus, ChainStatusNotification, ChainStatusNotifier,
-        Finalizer, Justification, JustificationSubmissions, RequestBlocks, UnverifiedHeader,
-        UnverifiedHeaderFor, Verifier, LOG_TARGET,
+        EquivocationProof, Finalizer, Justification, JustificationSubmissions, RequestBlocks,
+        UnverifiedHeader, UnverifiedHeaderFor, Verifier, LOG_TARGET,
     },
     SyncOracle,
 };
@@ -307,6 +307,15 @@ where
         }
     }
 
+    fn process_equivocation_proofs(&self, proofs: Vec<V::EquivocationProof>) {
+        for proof in proofs {
+            warn!(target: LOG_TARGET, "Equivocation detected: {proof}");
+            if proof.are_we_equivocating() {
+                panic!("We are equivocating, which is ILLEGAL - shutting down the node. This is probably caused by running two instances of the node with the same set of credentials. Make sure that you are running ONLY ONE instance of the node. If the problem persists, contact the Aleph Zero developers on Discord.");
+            }
+        }
+    }
+
     fn handle_state(&mut self, state: State<J>, peer: N::PeerId) {
         self.metrics.report_event(Event::HandleState);
         use HandleStateAction::*;
@@ -317,11 +326,14 @@ where
             peer
         );
         match self.handler.handle_state(state, peer.clone()) {
-            Ok(action) => match action {
-                Response(data) => self.send_to(data, peer),
-                ExtendChain => self.try_request_chain_extension(),
-                Noop => (),
-            },
+            Ok((action, maybe_proof)) => {
+                self.process_equivocation_proofs(maybe_proof.into_iter().collect());
+                match action {
+                    Response(data) => self.send_to(data, peer),
+                    ExtendChain => self.try_request_chain_extension(),
+                    Noop => (),
+                };
+            }
             Err(e) => {
                 self.metrics.report_event_error(Event::HandleState);
                 match e {
@@ -407,7 +419,7 @@ where
             response_items,
         );
         self.metrics.report_event(Event::HandleRequestResponse);
-        let (new_info, maybe_error) = self
+        let (new_info, equivocation_proofs, maybe_error) = self
             .handler
             .handle_request_response(response_items, peer.clone());
         match maybe_error {
@@ -420,6 +432,7 @@ where
             ),
             _ => {}
         }
+        self.process_equivocation_proofs(equivocation_proofs);
         if new_info {
             self.try_request_chain_extension();
         }
@@ -590,16 +603,26 @@ where
     }
 
     fn handle_own_block(&mut self, block: B) {
-        let broadcast = self.handler.handle_own_block(block);
-        if let Err(e) = self
-            .network
-            .broadcast(NetworkData::RequestResponse(broadcast))
-        {
-            warn!(
-                target: LOG_TARGET,
-                "Error broadcasting newly created block: {}.", e
-            )
-        }
+        match self.handler.handle_own_block(block) {
+            Ok((broadcast, maybe_proof)) => {
+                self.process_equivocation_proofs(maybe_proof.into_iter().collect());
+                if let Err(e) = self
+                    .network
+                    .broadcast(NetworkData::RequestResponse(broadcast))
+                {
+                    warn!(
+                        target: LOG_TARGET,
+                        "Error broadcasting newly created block: {}.", e
+                    )
+                };
+            }
+            Err(e) => {
+                warn!(
+                    target: LOG_TARGET,
+                    "Error handling newly created block: {}.", e
+                );
+            }
+        };
     }
 
     /// Stay synchronized.

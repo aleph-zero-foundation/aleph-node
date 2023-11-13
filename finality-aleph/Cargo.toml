@@ -29,6 +29,7 @@ env_logger = { workspace = true }
 futures = { workspace = true }
 futures-timer = { workspace = true }
 hash-db = { workspace = true }
+hex = { workspace = true }
 ip_network = { workspace = true }
 log = { workspace = true }
 lru = { workspace = true }

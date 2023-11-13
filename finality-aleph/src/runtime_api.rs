@@ -20,7 +20,8 @@ use crate::{
 pub trait RuntimeApi {
     type Error: Display;
     /// Returns aura authorities for the next session using state from block `at`
-    fn next_aura_authorities(&self, at: BlockHash) -> Result<Vec<AuraId>, Self::Error>;
+    fn next_aura_authorities(&self, at: BlockHash)
+        -> Result<Vec<(AccountId, AuraId)>, Self::Error>;
 }
 
 type QueuedKeys = Vec<(AccountId, SessionKeys)>;
@@ -95,16 +96,18 @@ where
 {
     type Error = ApiError;
 
-    fn next_aura_authorities(&self, at: BlockHash) -> Result<Vec<AuraId>, Self::Error> {
+    fn next_aura_authorities(
+        &self,
+        at: BlockHash,
+    ) -> Result<Vec<(AccountId, AuraId)>, Self::Error> {
         if let Ok(authorities) = self.client.runtime_api().next_session_aura_authorities(at) {
             return Ok(authorities);
         }
 
         let queued_keys: QueuedKeys = self.read_storage("Session", "QueuedKeys", at)?;
-
         Ok(queued_keys
             .into_iter()
-            .filter_map(|(_, keys)| keys.get(AURA))
+            .filter_map(|(account_id, keys)| keys.get(AURA).map(|key| (account_id, key)))
             .collect())
     }
 }

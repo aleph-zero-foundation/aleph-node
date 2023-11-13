@@ -281,7 +281,7 @@ sp_api::decl_runtime_apis! {
         fn predict_session_committee(
             session: SessionIndex
         ) -> Result<SessionCommittee<AccountId>, SessionValidatorError>;
-        fn next_session_aura_authorities() -> Vec<AuraId>;
+        fn next_session_aura_authorities() -> Vec<(AccountId, AuraId)>;
         /// Returns owner (`AccountId`) corresponding to an AuthorityId (in some contexts referenced
         /// also as `aleph_key` - consensus engine's part of session keys) in the current session
         /// of AlephBFT (finalisation committee).

@@ -12,7 +12,9 @@ use tokio::sync::{
 };
 
 use crate::{
-    aleph_primitives::{AlephSessionApi, AuraId, BlockHash, BlockNumber, SessionAuthorityData},
+    aleph_primitives::{
+        AccountId, AlephSessionApi, AuraId, BlockHash, BlockNumber, SessionAuthorityData,
+    },
     runtime_api::RuntimeApi,
     session::SessionBoundaryInfo,
     ClientForAleph, SessionId, SessionPeriod,
@@ -30,7 +32,7 @@ pub trait AuthorityProvider {
     /// returns list of Aura authorities for a given block number
     fn aura_authorities(&self, block_number: BlockNumber) -> Option<Vec<AuraId>>;
     /// returns list of next session Aura authorities for a given block number
-    fn next_aura_authorities(&self, block_number: BlockNumber) -> Option<Vec<AuraId>>;
+    fn next_aura_authorities(&self, block_number: BlockNumber) -> Option<Vec<(AccountId, AuraId)>>;
 }
 
 /// Default implementation of authority provider trait.
@@ -97,7 +99,7 @@ where
         .ok()
     }
 
-    fn next_aura_authorities(&self, block_number: BlockNumber) -> Option<Vec<AuraId>> {
+    fn next_aura_authorities(&self, block_number: BlockNumber) -> Option<Vec<(AccountId, AuraId)>> {
         self.api
             .next_aura_authorities(self.block_hash(block_number)?)
             .ok()
@@ -457,7 +459,10 @@ mod tests {
             None
         }
 
-        fn next_aura_authorities(&self, _block_number: BlockNumber) -> Option<Vec<AuraId>> {
+        fn next_aura_authorities(
+            &self,
+            _block_number: BlockNumber,
+        ) -> Option<Vec<(AccountId, AuraId)>> {
             None
         }
     }

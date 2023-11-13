@@ -3,17 +3,37 @@ use std::{
     fmt::{Debug, Display, Error as FmtError, Formatter},
 };
 
-use sp_runtime::SaturatedConversion;
+use parity_scale_codec::Encode;
+use sc_consensus_aura::{find_pre_digest, CompatibleDigestItem};
+use sp_consensus_aura::sr25519::{AuthorityPair, AuthoritySignature as AuraSignature};
+use sp_consensus_slots::Slot;
+use sp_core::{Pair, H256};
+use sp_runtime::{
+    traits::{Header as SubstrateHeader, Zero},
+    SaturatedConversion,
+};
 
 use crate::{
-    aleph_primitives::{AuraId, BlockNumber},
+    aleph_primitives::{
+        AccountId, AuraId, AuthoritySignature, Block, BlockNumber, Header, MILLISECS_PER_BLOCK,
+    },
     session::{SessionBoundaryInfo, SessionId},
     session_map::AuthorityProvider,
     sync::{
-        substrate::verification::{verifier::SessionVerifier, FinalizationInfo},
-        Header,
+        substrate::{
+            verification::{
+                verifier::SessionVerifier, EquivocationProof, FinalizationInfo,
+                HeaderVerificationError, VerificationError,
+            },
+            InnerJustification, Justification,
+        },
+        Header as HeaderT, VerifiedHeader, Verifier,
     },
 };
+
+// How many slots in the future (according to the system time) can the verified header be.
+// Must be non-negative. Chosen arbitrarily by timorl.
+const HEADER_VERIFICATION_SLOT_OFFSET: u64 = 10;
 
 /// Ways in which a justification can fail verification.
 #[derive(Debug, PartialEq, Eq)]
@@ -61,57 +81,7 @@ impl Display for CacheError {
 
 struct CachedData {
     session_verifier: SessionVerifier,
-    aura_authorities: Vec<AuraId>,
-}
-
-/// Cache storing SessionVerifier structs and Aura authorities for multiple sessions.
-/// Keeps up to `cache_size` verifiers of top sessions.
-/// If the session is too new or ancient it will fail to return requested data.
-/// Highest session verifier this cache returns is for the session after the current finalization session.
-/// Lowest session verifier this cache returns is for `top_returned_session` - `cache_size`.
-pub struct VerifierCache<AP, FI, H>
-where
-    AP: AuthorityProvider,
-    FI: FinalizationInfo,
-    H: Header,
-{
-    cached_data: HashMap<SessionId, CachedData>,
-    session_info: SessionBoundaryInfo,
-    finalization_info: FI,
-    authority_provider: AP,
-    cache_size: usize,
-    /// Lowest currently available session.
-    lower_bound: SessionId,
-    genesis_header: H,
-}
-
-impl<AP, FI, H> VerifierCache<AP, FI, H>
-where
-    AP: AuthorityProvider,
-    FI: FinalizationInfo,
-    H: Header,
-{
-    pub fn new(
-        session_info: SessionBoundaryInfo,
-        finalization_info: FI,
-        authority_provider: AP,
-        cache_size: usize,
-        genesis_header: H,
-    ) -> Self {
-        Self {
-            cached_data: HashMap::new(),
-            session_info,
-            finalization_info,
-            authority_provider,
-            cache_size,
-            lower_bound: SessionId(0),
-            genesis_header,
-        }
-    }
-
-    pub fn genesis_header(&self) -> &H {
-        &self.genesis_header
-    }
+    aura_authorities: Vec<(Option<AccountId>, AuraId)>,
 }
 
 fn download_data<AP: AuthorityProvider>(
@@ -127,7 +97,10 @@ fn download_data<AP: AuthorityProvider>(
                 .into(),
             aura_authorities: authority_provider
                 .aura_authorities(0)
-                .ok_or(CacheError::UnknownAuraAuthorities(session_id))?,
+                .ok_or(CacheError::UnknownAuraAuthorities(session_id))?
+                .into_iter()
+                .map(|auth| (None, auth))
+                .collect(),
         },
         SessionId(id) => {
             let prev_first = session_info.first_block_of_session(SessionId(id - 1));
@@ -138,18 +111,62 @@ fn download_data<AP: AuthorityProvider>(
                     .into(),
                 aura_authorities: authority_provider
                     .next_aura_authorities(prev_first)
-                    .ok_or(CacheError::UnknownAuraAuthorities(session_id))?,
+                    .ok_or(CacheError::UnknownAuraAuthorities(session_id))?
+                    .into_iter()
+                    .map(|(acc, auth)| (Some(acc), auth))
+                    .collect(),
             }
         }
     })
+}
+
+/// Cache storing SessionVerifier structs and Aura authorities for multiple sessions.
+/// Keeps up to `cache_size` verifiers of top sessions.
+/// If the session is too new or ancient it will fail to return requested data.
+/// Highest session verifier this cache returns is for the session after the current finalization session.
+/// Lowest session verifier this cache returns is for `top_returned_session` - `cache_size`.
+pub struct VerifierCache<AP, FI, H>
+where
+    AP: AuthorityProvider,
+    FI: FinalizationInfo,
+    H: HeaderT,
+{
+    cached_data: HashMap<SessionId, CachedData>,
+    equivocation_cache: HashMap<u64, (H, bool)>,
+    session_info: SessionBoundaryInfo,
+    finalization_info: FI,
+    authority_provider: AP,
+    cache_size: usize,
+    /// Lowest currently available session.
+    lower_bound: SessionId,
+    genesis_header: H,
 }
 
 impl<AP, FI, H> VerifierCache<AP, FI, H>
 where
     AP: AuthorityProvider,
     FI: FinalizationInfo,
-    H: Header,
+    H: HeaderT,
 {
+    pub fn new(
+        session_info: SessionBoundaryInfo,
+        finalization_info: FI,
+        authority_provider: AP,
+        cache_size: usize,
+        genesis_header: H,
+    ) -> Self {
+        Self {
+            cached_data: HashMap::new(),
+            equivocation_cache: HashMap::new(),
+            session_info,
+            finalization_info,
+            authority_provider,
+            cache_size,
+            lower_bound: SessionId(0),
+            genesis_header,
+        }
+    }
+
     // Prune old session data if necessary
     fn try_prune(&mut self, session_id: SessionId) {
         if session_id.0
@@ -165,6 +182,12 @@ where
                     + 1,
             );
             self.cached_data.retain(|&id, _| id >= new_lower_bound);
+            self.equivocation_cache.retain(|_, (header, _)| {
+                self.session_info
+                    .session_id_from_block_num(header.id().number())
+                    >= new_lower_bound
+            });
+
             self.lower_bound = new_lower_bound;
         }
     }
@@ -200,17 +223,6 @@ where
         })
     }
 
-    /// Returns the list of Aura authorities for a given block number. Updates cache if necessary.
-    /// Must be called using the number of the PARENT of the verified block.
-    /// This method assumes that the queued Aura authorities will indeed become Aura authorities
-    /// in the next session.
-    pub fn get_aura_authorities(
-        &mut self,
-        number: BlockNumber,
-    ) -> Result<&Vec<AuraId>, CacheError> {
-        Ok(&self.get_data(number)?.aura_authorities)
-    }
-
     /// Returns session verifier for block number if available. Updates cache if necessary.
     /// Must be called using the number of the verified block.
     pub fn get(&mut self, number: BlockNumber) -> Result<&SessionVerifier, CacheError> {
@@ -218,16 +230,180 @@ where
     }
 }
 
+impl<AP, FS> VerifierCache<AP, FS, Header>
+where
+    AP: AuthorityProvider,
+    FS: FinalizationInfo,
+{
+    /// Returns the list of Aura authorities for a given block number. Updates cache if necessary.
+    /// Must be called using the number of the PARENT of the verified block.
+    /// This method assumes that the queued Aura authorities will indeed become Aura authorities
+    /// in the next session.
+    pub fn get_aura_authorities(
+        &mut self,
+        number: BlockNumber,
+    ) -> Result<&Vec<(Option<AccountId>, AuraId)>, CacheError> {
+        Ok(&self.get_data(number)?.aura_authorities)
+    }
+
+    fn parse_aura_header(
+        &mut self,
+        header: &mut Header,
+    ) -> Result<(Slot, AuraSignature, H256, AuraId, Option<AccountId>), HeaderVerificationError>
+    {
+        use HeaderVerificationError::*;
+        let slot =
+            find_pre_digest::<Block, AuthoritySignature>(header).map_err(PreDigestLookupError)?;
+
+        // pop the seal BEFORE hashing
+        let seal = header.digest_mut().pop().ok_or(MissingSeal)?;
+        let sig = seal.as_aura_seal().ok_or(IncorrectSeal)?;
+
+        let pre_hash = header.hash();
+        // push the seal back
+        header.digest_mut().push(seal);
+
+        // Aura: authorities are stored in the parent block
+        let parent_number = header.number() - 1;
+        let authorities = self
+            .get_aura_authorities(parent_number)
+            .map_err(|_| MissingAuthorityData)?;
+        // Aura: round robin
+        let idx = *slot % (authorities.len() as u64);
+        let (maybe_account_id, author) = authorities
+            .get(idx as usize)
+            .expect("idx < authorities.len()")
+            .clone();
+
+        Ok((slot, sig, pre_hash, author, maybe_account_id))
+    }
+
+    // This function assumes that:
+    // 1. This is not a genesis header
+    // 2. Headers are created by Aura.
+    // 3. Slot number is calculated using the current system time.
+    fn verify_aura_header(
+        &mut self,
+        slot: &Slot,
+        sig: &AuraSignature,
+        pre_hash: H256,
+        author: &AuraId,
+    ) -> Result<(), VerificationError> {
+        use HeaderVerificationError::*;
+        // Aura: slot number is calculated using the system time.
+        // This code duplicates one of the parameters that we pass to Aura when starting the node!
+        let slot_now = Slot::from_timestamp(
+            sp_timestamp::Timestamp::current(),
+            sp_consensus_slots::SlotDuration::from_millis(MILLISECS_PER_BLOCK),
+        );
+        if *slot > slot_now + HEADER_VERIFICATION_SLOT_OFFSET {
+            return Err(VerificationError::HeaderVerification(HeaderTooNew(*slot)));
+        }
+        if !AuthorityPair::verify(sig, pre_hash.as_ref(), author) {
+            return Err(VerificationError::HeaderVerification(IncorrectAuthority));
+        }
+        Ok(())
+    }
+
+    // This function assumes that:
+    // 1. This is not a genesis header
+    // 2. Headers are created by Aura.
+    fn check_for_equivocation(
+        &mut self,
+        header: &Header,
+        slot: Slot,
+        author: AuraId,
+        maybe_account_id: Option<AccountId>,
+        just_created: bool,
+    ) -> Result<Option<EquivocationProof>, VerificationError> {
+        match self.equivocation_cache.entry(slot.into()) {
+            Entry::Occupied(occupied) => {
+                let (cached_header, certainly_own) = occupied.into_mut();
+                if cached_header == header {
+                    *certainly_own |= just_created;
+                    return Ok(None);
+                }
+                Ok(Some(EquivocationProof {
+                    header_a: cached_header.clone(),
+                    header_b: header.clone(),
+                    are_we_equivocating: *certainly_own || just_created,
+                    account_id: maybe_account_id,
+                    author,
+                }))
+            }
+            Entry::Vacant(vacant) => {
+                vacant.insert((header.clone(), just_created));
+                Ok(None)
+            }
+        }
+    }
+}
+
+impl<AP, FS> Verifier<Justification> for VerifierCache<AP, FS, Header>
+where
+    AP: AuthorityProvider,
+    FS: FinalizationInfo,
+{
+    type EquivocationProof = EquivocationProof;
+    type Error = VerificationError;
+
+    fn verify_justification(
+        &mut self,
+        justification: Justification,
+    ) -> Result<Justification, Self::Error> {
+        let header = &justification.header;
+        match &justification.inner_justification {
+            InnerJustification::AlephJustification(aleph_justification) => {
+                let verifier = self.get(*header.number())?;
+                verifier.verify_bytes(aleph_justification, header.hash().encode())?;
+                Ok(justification)
+            }
+            InnerJustification::Genesis => match header == &self.genesis_header {
+                true => Ok(justification),
+                false => Err(Self::Error::Cache(CacheError::BadGenesisHeader)),
+            },
+        }
+    }
+
+    fn verify_header(
+        &mut self,
+        mut header: Header,
+        just_created: bool,
+    ) -> Result<VerifiedHeader<Justification, Self::EquivocationProof>, Self::Error> {
+        // compare genesis header directly to the one we know
+        if header.number().is_zero() {
+            return match header == self.genesis_header {
+                true => Ok(VerifiedHeader {
+                    header,
+                    maybe_equivocation_proof: None,
+                }),
+                false => Err(VerificationError::HeaderVerification(
+                    HeaderVerificationError::IncorrectGenesis,
+                )),
+            };
+        }
+        let (slot, sig, pre_hash, author, maybe_account_id) =
+            self.parse_aura_header(&mut header)
+                .map_err(VerificationError::HeaderVerification)?;
+        self.verify_aura_header(&slot, &sig, pre_hash, &author)?;
+        let maybe_equivocation_proof =
+            self.check_for_equivocation(&header, slot, author, maybe_account_id, just_created)?;
+        Ok(VerifiedHeader {
+            header,
+            maybe_equivocation_proof,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{cell::Cell, collections::HashMap};
 
-    use sp_consensus_aura::sr25519::AuthorityId as AuraId;
     use sp_runtime::testing::UintAuthorityId;
 
     use super::{
-        AuthorityProvider, BlockNumber, CacheError, FinalizationInfo, SessionVerifier,
-        VerifierCache,
+        AccountId, AuraId, AuthorityProvider, BlockNumber, CacheError, FinalizationInfo,
+        SessionVerifier, VerifierCache,
     };
     use crate::{
         aleph_primitives::SessionAuthorityData,
@@ -305,12 +481,21 @@ mod tests {
                 .cloned()
         }
 
-        fn next_aura_authorities(&self, block_number: BlockNumber) -> Option<Vec<AuraId>> {
+        fn next_aura_authorities(
+            &self,
+            block_number: BlockNumber,
+        ) -> Option<Vec<(AccountId, AuraId)>> {
+            let placeholder_id = AccountId::new([0; 32]);
             self.aura_authority_map
                 .get(&SessionId(
                     self.session_info.session_id_from_block_num(block_number).0 + 1,
                 ))
                 .cloned()
+                .map(|v| {
+                    v.into_iter()
+                        .map(|aura_id| (placeholder_id.clone(), aura_id))
+                        .collect()
+                })
         }
     }
 

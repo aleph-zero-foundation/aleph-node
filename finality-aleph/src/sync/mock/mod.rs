@@ -13,7 +13,7 @@ use crate::{
 mod backend;
 mod status_notifier;
 
-pub use backend::Backend;
+pub use backend::{Backend, EquivocationProof as MockEquivocationProof};
 
 pub type MockPeerId = u32;
 
@@ -29,6 +29,7 @@ impl BlockId {
             id,
             parent,
             valid: true,
+            equivocated: false,
         }
     }
 
@@ -44,6 +45,7 @@ pub struct MockHeader {
     id: BlockId,
     parent: Option<BlockId>,
     valid: bool,
+    equivocated: bool,
 }
 
 impl MockHeader {
@@ -55,6 +57,7 @@ impl MockHeader {
             },
             parent: None,
             valid: true,
+            equivocated: false,
         }
     }
 
@@ -64,6 +67,7 @@ impl MockHeader {
             id,
             parent: None,
             valid: true,
+            equivocated: false,
         }
     }
 
@@ -81,6 +85,14 @@ impl MockHeader {
 
     pub fn valid(&self) -> bool {
         self.valid
+    }
+
+    pub fn make_equivocated(&mut self) {
+        self.equivocated = true;
+    }
+
+    pub fn equivocated(&self) -> bool {
+        self.equivocated
     }
 }
 
