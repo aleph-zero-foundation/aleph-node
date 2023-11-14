@@ -27,8 +27,29 @@ jobs:
     needs: [build-test-node-image-and-e2e-client-image]
     uses: ./.github/workflows/_run-e2e-tests.yml
 
-  check-e2e-test-suite-completion:
-    needs: [run-e2e-tests]
+  run-recover-after-abft-update-test:
+    needs: [build-test-node-and-runtime]
+    name: Run recovery test after abft update
+    runs-on: [self-hosted, Linux, X64, medium]
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Download release artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: aleph-test-node
+          path: target/release/
+
+      - name: Run test
+        timeout-minutes: 15
+        run: |
+          ./.github/scripts/test_python_general.sh \
+            --aleph-node ../target/release/aleph-node \
+            --testcase test_recover_after_abft_update
+
+  check-nightly-pipeline-completion:
+    needs: [run-e2e-tests, run-recover-after-abft-update-test]
     name: Check e2e test suite completion
     if: ${{ !cancelled() }}
     runs-on: ubuntu-20.04
@@ -42,7 +63,7 @@ jobs:
   slack-notification:
     name: Slack notification
     runs-on: ubuntu-20.04
-    needs: [check-e2e-test-suite-completion]
+    needs: [check-nightly-pipeline-completion]
     if: >
       !cancelled() &&
       github.event_name != 'workflow_dispatch'
