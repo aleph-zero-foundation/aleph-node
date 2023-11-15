@@ -7,7 +7,7 @@ use std::{
     str::FromStr,
 };
 
-use log::{debug, warn};
+use log::debug;
 
 const BACKUP_FILE_EXTENSION: &str = ".abfts";
 
@@ -118,27 +118,32 @@ pub fn rotate(
     Ok((backup_saver, backup_loader))
 }
 
-/// Removes the backup directory for a session.
+/// Removes the backup directory for all old sessions except the current session.
 ///
 /// `backup_path` is the path to the backup directory (i.e. the argument to `--backup-saving-path`).
 /// If it is `None`, nothing is done.
 ///
-/// Any filesystem errors are logged and dropped.
+/// Any filesystem errors are returned.
 ///
-/// This should be done after the end of the session.
-pub fn remove(path: Option<PathBuf>, session_id: u32) {
-    let path = match path {
-        Some(path) => path.join(session_id.to_string()),
-        None => return,
-    };
-    match fs::remove_dir_all(path) {
-        Ok(()) => {
-            debug!(target: "aleph-party", "Removed backup for session {}", session_id);
-        }
-        Err(err) => {
-            if err.kind() != io::ErrorKind::NotFound {
-                warn!(target: "aleph-party", "Error cleaning up backup for session {}: {}", session_id, err);
-            }
+/// This should be done at the beginning of the new session.
+pub fn remove_old_backups(path: Option<PathBuf>, current_session: u32) -> io::Result<()> {
+    if let Some(path) = path {
+        for read_dir in fs::read_dir(path)? {
+            let item = read_dir?;
+            match item.file_name().to_str() {
+                Some(name) => match name.parse::<u32>() {
+                    Ok(session_id) => {
+                        if session_id < current_session {
+                            fs::remove_dir_all(item.path())?;
+                        }
+                    }
+                    Err(_) => {
+                        debug!(target: "aleph-party", "backup directory contains unexpected data.")
+                    }
+                },
+                None => debug!(target: "aleph-party", "backup directory contains unexpected data."),
+            };
         }
     }
+    Ok(())
 }

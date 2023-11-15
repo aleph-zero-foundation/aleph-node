@@ -73,9 +73,13 @@ where
 
     async fn run_session(&mut self, session_id: SessionId) {
         let last_block = self.session_info.last_block_of_session(session_id);
-        if let Some(previous_session_id) = session_id.0.checked_sub(1) {
+        if session_id.0.checked_sub(1).is_some() {
             let backup_saving_path = self.backup_saving_path.clone();
-            spawn_blocking(move || backup::remove(backup_saving_path, previous_session_id));
+            spawn_blocking(move || {
+                if let Err(e) = backup::remove_old_backups(backup_saving_path, session_id.0) {
+                    warn!(target: "aleph-party", "Error when clearing old backups: {}", e);
+                }
+            });
         }
 
         // Early skip attempt -- this will trigger during catching up (initial sync).
