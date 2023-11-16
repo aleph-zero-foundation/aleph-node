@@ -1,11 +1,13 @@
 #![cfg(test)]
 
-use frame_election_provider_support::{data_provider, ElectionDataProvider, VoteWeight};
+use frame_election_provider_support::{
+    data_provider, DataProviderBounds, ElectionDataProvider, VoteWeight,
+};
 use frame_support::{
-    construct_runtime, parameter_types, sp_io,
+    construct_runtime, parameter_types,
     traits::ConstU32,
     weights::{RuntimeDbWeight, Weight},
-    BasicExternalities, BoundedVec,
+    BoundedVec,
 };
 use primitives::{BannedValidators, CommitteeSeats, DEFAULT_MAX_WINNERS};
 use sp_core::H256;
@@ -155,11 +157,13 @@ impl ElectionDataProvider for StakingMock {
     type BlockNumber = u64;
     type MaxVotesPerVoter = MaxVotesPerVoter;
 
-    fn electable_targets(_maybe_max_len: Option<usize>) -> data_provider::Result<Vec<AccountId>> {
+    fn electable_targets(
+        _maybe_max_len: DataProviderBounds,
+    ) -> data_provider::Result<Vec<AccountId>> {
         ELECTABLE_TARGETS.with(|et| Ok(et.borrow().clone()))
     }
 
-    fn electing_voters(_maybe_max_len: Option<usize>) -> data_provider::Result<Vec<Vote>> {
+    fn electing_voters(_maybe_max_len: DataProviderBounds) -> data_provider::Result<Vec<Vote>> {
         ELECTING_VOTERS.with(|ev| Ok(ev.borrow().clone()))
     }
 
@@ -227,10 +231,9 @@ impl TestExtBuilder {
         .assimilate_storage(&mut t)
         .unwrap();
 
-        BasicExternalities::execute_with_storage(&mut t, || {
-            self.storage_version.put::<Pallet<Test>>()
-        });
+        let mut ext: sp_io::TestExternalities = t.into();
+        ext.execute_with(|| self.storage_version.put::<Pallet<Test>>());
 
-        t.into()
+        ext
     }
 }

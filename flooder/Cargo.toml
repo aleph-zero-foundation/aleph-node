@@ -6,8 +6,8 @@ edition = "2021"
 license = "Apache 2.0"
 
 [dependencies]
-sp-core = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v1.0.0", features = ["full_crypto"] }
-sp-runtime = { git = "https://github.com/Cardinal-Cryptography/substrate.git", branch = "aleph-v1.0.0" }
+sp-core = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.1.0", features = ["full_crypto"] }
+sp-runtime = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.1.0" }
 
 # other dependencies
 serde_json = { version = "1.0" }

@@ -1,8 +1,8 @@
 #![cfg(test)]
 
 use frame_election_provider_support::{ElectionProvider, Support};
-use frame_support::bounded_vec;
 use primitives::CommitteeSeats;
+use sp_core::bounded_vec;
 
 use crate::{
     mock::{

@@ -86,7 +86,7 @@ pub fn new_partial(
         FullClient,
         FullBackend,
         FullSelectChain,
-        sc_consensus::DefaultImportQueue<Block, FullClient>,
+        sc_consensus::DefaultImportQueue<Block>,
         sc_transaction_pool::FullPool<Block, FullClient>,
         (
             mpsc::UnboundedSender<Justification>,
@@ -204,7 +204,7 @@ fn setup(
     backend: Arc<FullBackend>,
     chain_status: SubstrateChainStatus,
     keystore_container: &KeystoreContainer,
-    import_queue: sc_consensus::DefaultImportQueue<Block, FullClient>,
+    import_queue: sc_consensus::DefaultImportQueue<Block>,
     transaction_pool: Arc<sc_transaction_pool::FullPool<Block, FullClient>>,
     task_manager: &mut TaskManager,
     client: Arc<FullClient>,

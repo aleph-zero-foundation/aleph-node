@@ -1,4 +1,5 @@
-use frame_support::{log::info, pallet_prelude::Get};
+use frame_support::pallet_prelude::Get;
+use log::info;
 use parity_scale_codec::Encode;
 use primitives::{
     BanHandler, BanInfo, BanReason, BannedValidators, CommitteeSeats, EraValidators,

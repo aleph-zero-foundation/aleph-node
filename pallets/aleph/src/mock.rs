@@ -3,7 +3,7 @@
 use frame_support::{
     construct_runtime,
     pallet_prelude::ConstU32,
-    parameter_types, sp_io,
+    parameter_types,
     traits::{EstimateNextSessionRotation, OnFinalize, OnInitialize},
     weights::{RuntimeDbWeight, Weight},
 };

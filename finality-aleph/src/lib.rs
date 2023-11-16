@@ -15,7 +15,6 @@ use primitives as aleph_primitives;
 use primitives::{AuthorityId, Block as AlephBlock, BlockHash, BlockNumber, Hash as AlephHash};
 use sc_client_api::{
     Backend, BlockBackend, BlockchainEvents, Finalizer, LockImportRun, StorageProvider,
-    TransactionFor,
 };
 use sc_consensus::BlockImport;
 use sc_network::NetworkService;
@@ -210,7 +209,7 @@ pub trait ClientForAleph<B, BE>:
     LockImportRun<B, BE>
     + Finalizer<B, BE>
     + ProvideRuntimeApi<B>
-    + BlockImport<B, Transaction = TransactionFor<BE, B>, Error = sp_consensus::Error>
+    + BlockImport<B, Error = sp_consensus::Error>
     + HeaderBackend<B>
     + HeaderMetadata<B, Error = sp_blockchain::Error>
     + BlockchainEvents<B>
@@ -232,7 +231,7 @@ where
         + HeaderBackend<B>
         + HeaderMetadata<B, Error = sp_blockchain::Error>
         + BlockchainEvents<B>
-        + BlockImport<B, Transaction = TransactionFor<BE, B>, Error = sp_consensus::Error>
+        + BlockImport<B, Error = sp_consensus::Error>
         + BlockBackend<B>
         + StorageProvider<B, BE>,
 {

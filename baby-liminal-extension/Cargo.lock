@@ -52,7 +52,7 @@ version = "0.7.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a824f2aa7e75a0c98c5a504fceb80649e9c35265d44525b5f94de4771a395cd"
 dependencies = [
- "getrandom 0.2.10",
+ "getrandom 0.2.11",
  "once_cell",
  "version_check",
 ]
@@ -64,7 +64,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "91429305e9f0a25f6205c5b8e0d2db09e0708a7a6df0f42212bb56c32c8ac97a"
 dependencies = [
  "cfg-if",
- "getrandom 0.2.10",
+ "getrandom 0.2.11",
  "once_cell",
  "version_check",
  "zerocopy",
@@ -84,8 +84,8 @@ name = "aleph-runtime"
 version = "0.13.0+dev"
 dependencies = [
  "frame-executive",
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
  "pallet-aleph",
@@ -94,7 +94,7 @@ dependencies = [
  "pallet-baby-liminal",
  "pallet-balances",
  "pallet-committee-management",
- "pallet-contracts 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "pallet-contracts 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "pallet-contracts-primitives 24.0.0",
  "pallet-elections",
  "pallet-identity",
@@ -115,17 +115,17 @@ dependencies = [
  "parity-scale-codec",
  "primitives",
  "scale-info",
- "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-application-crypto 23.0.0",
  "sp-block-builder",
  "sp-consensus-aura",
  "sp-core 21.0.0",
- "sp-inherents 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-inherents 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-io 23.0.0",
  "sp-offchain",
  "sp-runtime 24.0.0",
  "sp-session",
- "sp-staking 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-staking 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-std 8.0.0",
  "sp-transaction-pool",
  "sp-version 22.0.0",
@@ -169,6 +169,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cab112f0a86d568ea0e627cc1d6be74a1e9cd55214684db5561995f6dad897c6"
 dependencies = [
  "num-traits",
+]
+
+[[package]]
+name = "aquamarine"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df752953c49ce90719c7bf1fc587bc8227aed04732ea0c0f85e5397d7fdbd1a1"
+dependencies = [
+ "include_dir",
+ "itertools",
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -277,6 +291,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-ed-on-bls12-381-bandersnatch"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9cde0f2aa063a2a5c28d39b47761aa102bda7c13c84fc118a61b87c7b2f785c"
+dependencies = [
+ "ark-bls12-381",
+ "ark-ec",
+ "ark-ff",
+ "ark-std",
+]
+
+[[package]]
 name = "ark-ed-on-bn254"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -356,6 +382,48 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-scale"
+version = "0.0.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "49b08346a3e38e2be792ef53ee168623c9244d968ff00cd70fb9932f6fe36393"
+dependencies = [
+ "ark-ec",
+ "ark-ff",
+ "ark-serialize",
+ "ark-std",
+ "parity-scale-codec",
+]
+
+[[package]]
+name = "ark-scale"
+version = "0.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51bd73bb6ddb72630987d37fa963e99196896c0d0ea81b7c894567e74a2f83af"
+dependencies = [
+ "ark-ec",
+ "ark-ff",
+ "ark-serialize",
+ "ark-std",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
+name = "ark-secret-scalar"
+version = "0.0.2"
+source = "git+https://github.com/w3f/ring-vrf?rev=3119f51#3119f51b54b69308abfb0671f6176cb125ae1bf1"
+dependencies = [
+ "ark-ec",
+ "ark-ff",
+ "ark-serialize",
+ "ark-std",
+ "ark-transcript",
+ "digest 0.10.7",
+ "rand_core 0.6.4",
+ "zeroize",
+]
+
+[[package]]
 name = "ark-serialize"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -401,10 +469,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-transcript"
+version = "0.0.2"
+source = "git+https://github.com/w3f/ring-vrf?rev=3119f51#3119f51b54b69308abfb0671f6176cb125ae1bf1"
+dependencies = [
+ "ark-ff",
+ "ark-serialize",
+ "ark-std",
+ "digest 0.10.7",
+ "rand_core 0.6.4",
+ "sha3",
+]
+
+[[package]]
 name = "array-bytes"
-version = "6.1.0"
+version = "6.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9b1c5a481ec30a5abd8dfbd94ab5cf1bb4e9a66be7f1b3b322f2f1170c200fd"
+checksum = "de17a919934ad8c5cc99a1a74de4e2dab95d6121a8f27f94755ff525b630382c"
 
 [[package]]
 name = "array-init"
@@ -438,7 +519,7 @@ checksum = "a66537f1bb974b254c98ed142ff995236e81b9d0fe4db0575f46612cb15eb0f9"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -473,6 +554,28 @@ dependencies = [
  "miniz_oxide",
  "object 0.32.1",
  "rustc-demangle",
+]
+
+[[package]]
+name = "bandersnatch_vrfs"
+version = "0.0.1"
+source = "git+https://github.com/w3f/ring-vrf?rev=3119f51#3119f51b54b69308abfb0671f6176cb125ae1bf1"
+dependencies = [
+ "ark-bls12-381",
+ "ark-ec",
+ "ark-ed-on-bls12-381-bandersnatch",
+ "ark-ff",
+ "ark-scale 0.0.11",
+ "ark-serialize",
+ "ark-std",
+ "dleq_vrf",
+ "fflonk",
+ "merlin 3.0.0",
+ "rand_chacha 0.3.1",
+ "rand_core 0.6.4",
+ "ring",
+ "sha2 0.10.8",
+ "zeroize",
 ]
 
 [[package]]
@@ -615,9 +718,12 @@ dependencies = [
 
 [[package]]
 name = "bs58"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "771fe0050b883fcc3ea2359b1a96bcfbc090b7116eae7c3c512c7a083fdf23d3"
+checksum = "f5353f36341f7451062466f0b755b96ac3a9547e4d7f6b70d603fc721a7d7896"
+dependencies = [
+ "tinyvec",
+]
 
 [[package]]
 name = "build-helper"
@@ -788,6 +894,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "common"
+version = "0.1.0"
+source = "git+https://github.com/w3f/ring-proof?rev=0e948f3#0e948f3c28cbacecdd3020403c4841c0eb339213"
+dependencies = [
+ "ark-ec",
+ "ark-ff",
+ "ark-poly",
+ "ark-serialize",
+ "ark-std",
+ "fflonk",
+ "merlin 3.0.0",
+]
+
+[[package]]
+name = "common-path"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2382f75942f4b3be3690fe4f86365e9c853c1587d6ee58212cebf6e2a9ccd101"
+
+[[package]]
 name = "const-oid"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -795,9 +921,9 @@ checksum = "28c122c3980598d243d63d9a704629a2d748d101f278052ff068be5a4423ab6f"
 
 [[package]]
 name = "const-random"
-version = "0.1.16"
+version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11df32a13d7892ec42d51d3d175faba5211ffe13ed25d4fb348ac9e9ce835593"
+checksum = "5aaf16c9c2c612020bcfd042e170f6e32de9b9d75adb5277cdbbd2e2c8c8299a"
 dependencies = [
  "const-random-macro",
 ]
@@ -808,7 +934,7 @@ version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9d839f2a20b0aee515dc581a6172f2321f96cab76c1a38a4c584a194955390e"
 dependencies = [
- "getrandom 0.2.10",
+ "getrandom 0.2.11",
  "once_cell",
  "tiny-keccak",
 ]
@@ -970,6 +1096,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "curve25519-dalek"
+version = "4.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e89b8c6a2e4b1f45971ad09761aafb85514a84744b67a95e32c3cc1352d1f65c"
+dependencies = [
+ "cfg-if",
+ "cpufeatures",
+ "curve25519-dalek-derive",
+ "digest 0.10.7",
+ "fiat-crypto",
+ "platforms",
+ "rustc_version 0.4.0",
+ "subtle",
+]
+
+[[package]]
+name = "curve25519-dalek-derive"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f46882e17999c6cc590af592290432be3bce0428cb0d5f8b6715e4dc7b383eb3"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.39",
+]
+
+[[package]]
 name = "cxx"
 version = "1.0.110"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -993,7 +1146,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "scratch",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -1010,7 +1163,7 @@ checksum = "587663dd5fb3d10932c8aecfe7c844db1bcf0aee93eeab08fac13dc1212c2e7f"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -1138,7 +1291,24 @@ checksum = "487585f4d0c6655fe74905e2504d8ad6908e4db67f744eb140876906c2f3175d"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
+]
+
+[[package]]
+name = "dleq_vrf"
+version = "0.0.2"
+source = "git+https://github.com/w3f/ring-vrf?rev=3119f51#3119f51b54b69308abfb0671f6176cb125ae1bf1"
+dependencies = [
+ "ark-ec",
+ "ark-ff",
+ "ark-scale 0.0.10",
+ "ark-secret-scalar",
+ "ark-serialize",
+ "ark-std",
+ "ark-transcript",
+ "arrayvec 0.7.4",
+ "rand_core 0.6.4",
+ "zeroize",
 ]
 
 [[package]]
@@ -1146,6 +1316,33 @@ name = "doc-comment"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fea41bba32d969b513997752735605054bc0dfa92b4c56bf1189f2e174be7a10"
+
+[[package]]
+name = "docify"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4235e9b248e2ba4b92007fe9c646f3adf0ffde16dc74713eacc92b8bc58d8d2f"
+dependencies = [
+ "docify_macros",
+]
+
+[[package]]
+name = "docify_macros"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47020e12d7c7505670d1363dd53d6c23724f71a90a3ae32ff8eba40de8404626"
+dependencies = [
+ "common-path",
+ "derive-syn-parse",
+ "once_cell",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "syn 2.0.39",
+ "termcolor",
+ "toml",
+ "walkdir",
+]
 
 [[package]]
 name = "downcast-rs"
@@ -1176,9 +1373,9 @@ dependencies = [
 
 [[package]]
 name = "dyn-clone"
-version = "1.0.14"
+version = "1.0.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23d2f3407d9a573d666de4b5bdf10569d73ca9478087346697dcbae6244bfbcd"
+checksum = "545b22097d44f8a9581187cdf93de7a71e4722bf51200cfaba810865b49a495d"
 
 [[package]]
 name = "ecdsa"
@@ -1208,23 +1405,22 @@ dependencies = [
 
 [[package]]
 name = "ed25519"
-version = "1.5.3"
+version = "2.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91cff35c70bba8a626e3185d8cd48cc11b5437e1a5bcd15b9b5fa3c64b6dfee7"
+checksum = "115531babc129696a58c64a4fef0a8bf9e9698629fb97e9e40767d235cfbcd53"
 dependencies = [
- "signature 1.6.4",
+ "signature 2.1.0",
 ]
 
 [[package]]
 name = "ed25519-dalek"
-version = "1.0.1"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c762bae6dcaf24c4c84667b8579785430908723d5c889f469d76a41d59cc7a9d"
+checksum = "7277392b266383ef8396db7fdeb1e77b6c52fed775f5df15bb24f35b72156980"
 dependencies = [
- "curve25519-dalek 3.2.0",
+ "curve25519-dalek 4.1.1",
  "ed25519",
- "sha2 0.9.9",
- "zeroize",
+ "sha2 0.10.8",
 ]
 
 [[package]]
@@ -1302,7 +1498,7 @@ checksum = "f95e2801cd355d4a1a3e3953ce6ee5ae9603a5c833455343a8bfe3f44d418246"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -1332,9 +1528,9 @@ checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
 name = "errno"
-version = "0.3.5"
+version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac3e13f66a2f95e32a39eaa81f6b95d42878ca0e1db0c7543723dfe12557e860"
+checksum = "7c18ee0ed65a5f1f81cac6b1d213b69c35fa47d4252ad41f1486dbd8226fe36e"
 dependencies = [
  "libc",
  "windows-sys 0.48.0",
@@ -1355,7 +1551,7 @@ dependencies = [
  "fs-err",
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -1395,6 +1591,25 @@ dependencies = [
  "rand_core 0.6.4",
  "subtle",
 ]
+
+[[package]]
+name = "fflonk"
+version = "0.1.0"
+source = "git+https://github.com/w3f/fflonk#e141d4b6f42fb481aefe1b479788694945b6940d"
+dependencies = [
+ "ark-ec",
+ "ark-ff",
+ "ark-poly",
+ "ark-serialize",
+ "ark-std",
+ "merlin 3.0.0",
+]
+
+[[package]]
+name = "fiat-crypto"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a481586acf778f1b1455424c343f71124b048ffa5f4fc3f8f6ae9dc432dcb3c7"
 
 [[package]]
 name = "filetime"
@@ -1438,18 +1653,18 @@ dependencies = [
 [[package]]
 name = "frame-benchmarking"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-support-procedural 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-support-procedural 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "linregress",
  "log",
  "parity-scale-codec",
  "paste",
  "scale-info",
  "serde",
- "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-application-crypto 23.0.0",
  "sp-core 21.0.0",
  "sp-io 23.0.0",
@@ -1463,22 +1678,22 @@ dependencies = [
 [[package]]
 name = "frame-election-provider-solution-type"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
 name = "frame-election-provider-support"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "frame-election-provider-solution-type",
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "parity-scale-codec",
  "scale-info",
  "sp-arithmetic 16.0.0",
@@ -1491,11 +1706,12 @@ dependencies = [
 [[package]]
 name = "frame-executive"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "frame-try-runtime",
+ "log",
  "parity-scale-codec",
  "scale-info",
  "sp-core 21.0.0",
@@ -1560,12 +1776,14 @@ dependencies = [
 [[package]]
 name = "frame-support"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
+ "aquamarine",
  "bitflags 1.3.2",
+ "docify",
  "environmental",
  "frame-metadata 16.0.0",
- "frame-support-procedural 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support-procedural 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "impl-trait-for-tuples",
  "k256 0.13.1",
  "log",
@@ -1574,20 +1792,24 @@ dependencies = [
  "paste",
  "scale-info",
  "serde",
+ "serde_json",
  "smallvec",
- "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-arithmetic 16.0.0",
  "sp-core 21.0.0",
  "sp-core-hashing-proc-macro 9.0.0",
  "sp-debug-derive 8.0.0",
- "sp-inherents 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-genesis-builder",
+ "sp-inherents 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-io 23.0.0",
+ "sp-metadata-ir",
  "sp-runtime 24.0.0",
- "sp-staking 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-staking 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-state-machine",
  "sp-std 8.0.0",
  "sp-tracing 10.0.0",
  "sp-weights 20.0.0",
+ "static_assertions",
  "tt-call",
 ]
 
@@ -1609,19 +1831,19 @@ dependencies = [
 [[package]]
 name = "frame-support-procedural"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "Inflector",
  "cfg-expr 0.15.5",
  "derive-syn-parse",
  "expander",
- "frame-support-procedural-tools 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support-procedural-tools 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "itertools",
  "macro_magic",
  "proc-macro-warning",
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -1639,13 +1861,13 @@ dependencies = [
 [[package]]
 name = "frame-support-procedural-tools"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
- "frame-support-procedural-tools-derive 3.0.0 (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support-procedural-tools-derive 3.0.0 (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "proc-macro-crate",
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -1661,11 +1883,11 @@ dependencies = [
 [[package]]
 name = "frame-support-procedural-tools-derive"
 version = "3.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -1688,10 +1910,10 @@ dependencies = [
 [[package]]
 name = "frame-system"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "cfg-if",
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "log",
  "parity-scale-codec",
  "scale-info",
@@ -1707,20 +1929,20 @@ dependencies = [
 [[package]]
 name = "frame-system-rpc-runtime-api"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "parity-scale-codec",
- "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
 ]
 
 [[package]]
 name = "frame-try-runtime"
 version = "0.10.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "parity-scale-codec",
- "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-runtime 24.0.0",
  "sp-std 8.0.0",
 ]
@@ -1794,7 +2016,7 @@ checksum = "53b153fd91e4b0147f4aced87be237c98248656bb01050b96bf3ee89220a8ddb"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -1860,9 +2082,9 @@ dependencies = [
 
 [[package]]
 name = "getrandom"
-version = "0.2.10"
+version = "0.2.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be4136b2a15dd319360be1c07d9933517ccf0be8f16bf62a3bee4f0d618df427"
+checksum = "fe9006bed769170c11f845cf00c7c1e9092aeb3f268e007c3e760ac68008070f"
 dependencies = [
  "cfg-if",
  "libc",
@@ -2092,6 +2314,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "include_dir"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "18762faeff7122e89e0857b02f7ce6fcc0d101d5e9ad2ad7846cc01d61b7f19e"
+dependencies = [
+ "include_dir_macros",
+]
+
+[[package]]
+name = "include_dir_macros"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b139284b5cf57ecfa712bcc66950bb635b31aff41c188e8a4cfc758eca374a3f"
+dependencies = [
+ "proc-macro2",
+ "quote",
+]
+
+[[package]]
 name = "indexmap"
 version = "1.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2104,9 +2345,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "2.0.2"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8adf3ddd720272c6ea8bf59463c04e0f93d0bbf7c5439b691bca2987e0270897"
+checksum = "d530e1a18b1cb4c484e6e34556a0d948706958449fca0cab753d649f2bce3d1f"
 dependencies = [
  "equivalent",
  "hashbrown 0.14.2",
@@ -2164,7 +2405,7 @@ dependencies = [
  "quote",
  "serde",
  "serde_json",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -2221,7 +2462,7 @@ dependencies = [
  "itertools",
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -2236,7 +2477,7 @@ dependencies = [
  "parity-scale-codec",
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
  "synstructure",
 ]
 
@@ -2326,12 +2567,6 @@ checksum = "276ec31bcb4a9ee45f58bec6f9ec700ae4cf4f4f8f2fa7e06cb406bd5ffdd770"
 dependencies = [
  "num-traits",
 ]
-
-[[package]]
-name = "intx"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6f38a50a899dc47a6d0ed5508e7f601a2e34c3a85303514b5d137f3c10a0c75"
 
 [[package]]
 name = "io-lifetimes"
@@ -2488,9 +2723,9 @@ dependencies = [
 
 [[package]]
 name = "js-sys"
-version = "0.3.64"
+version = "0.3.65"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5f195fe497f702db0f318b07fdd68edb16955aed830df8363d837542f8f935a"
+checksum = "54c0c35952f67de54bb584e9fd912b3023117cbafc0a77d8f3dee1fb5f572fe8"
 dependencies = [
  "wasm-bindgen",
 ]
@@ -2537,9 +2772,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.149"
+version = "0.2.150"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a08173bc88b7955d1b3145aa561539096c421ac8debde8cbc3612ec635fee29b"
+checksum = "89d92a4743f9a61002fae18374ed11e7973f530cb3a3255fb354818118b2203c"
 
 [[package]]
 name = "libm"
@@ -2621,9 +2856,9 @@ checksum = "f051f77a7c8e6957c0696eac88f26b0117e54f52d3fc682ab19397a8812846a4"
 
 [[package]]
 name = "linux-raw-sys"
-version = "0.4.10"
+version = "0.4.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da2479e8c062e40bf0066ffa0bc823de0a9368974af99c9f6df941d2c231e03f"
+checksum = "969488b55f8ac402214f3f5fd243ebb7206cf82de60d3172994707a4bcc2b829"
 
 [[package]]
 name = "lock_api"
@@ -2659,7 +2894,7 @@ dependencies = [
  "macro_magic_core",
  "macro_magic_macros",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -2673,7 +2908,7 @@ dependencies = [
  "macro_magic_core_macros",
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -2684,7 +2919,7 @@ checksum = "d710e1214dffbab3b5dacb21475dde7d6ed84c69ff722b3a47a782668d44fbac"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -2695,7 +2930,7 @@ checksum = "b8fb85ec1620619edf2984a7693497d4ec88a9665d8b87e942856884c92dbf2a"
 dependencies = [
  "macro_magic_core",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -2969,8 +3204,8 @@ checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 name = "pallet-aleph"
 version = "0.6.0"
 dependencies = [
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "pallet-session",
  "parity-scale-codec",
  "primitives",
@@ -2982,10 +3217,11 @@ dependencies = [
 [[package]]
 name = "pallet-aura"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "log",
  "pallet-timestamp",
  "parity-scale-codec",
  "scale-info",
@@ -2998,10 +3234,10 @@ dependencies = [
 [[package]]
 name = "pallet-authorship"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "impl-trait-for-tuples",
  "parity-scale-codec",
  "scale-info",
@@ -3015,8 +3251,8 @@ version = "0.1.0"
 dependencies = [
  "ark-bls12-381",
  "ark-serialize",
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "jf-plonk",
  "parity-scale-codec",
  "scale-info",
@@ -3026,11 +3262,11 @@ dependencies = [
 [[package]]
 name = "pallet-balances"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "frame-benchmarking",
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "log",
  "parity-scale-codec",
  "scale-info",
@@ -3042,8 +3278,8 @@ dependencies = [
 name = "pallet-committee-management"
 version = "0.2.0"
 dependencies = [
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "pallet-authorship",
  "pallet-session",
  "pallet-staking",
@@ -3055,7 +3291,7 @@ dependencies = [
  "scale-info",
  "sp-io 23.0.0",
  "sp-runtime 24.0.0",
- "sp-staking 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-staking 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-std 8.0.0",
 ]
 
@@ -3087,29 +3323,30 @@ dependencies = [
 [[package]]
 name = "pallet-contracts"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "bitflags 1.3.2",
  "environmental",
  "frame-benchmarking",
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "impl-trait-for-tuples",
  "log",
+ "pallet-balances",
  "pallet-contracts-primitives 24.0.0",
- "pallet-contracts-proc-macro 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "pallet-contracts-proc-macro 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "parity-scale-codec",
  "rand 0.8.5",
  "scale-info",
  "serde",
  "smallvec",
- "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-core 21.0.0",
  "sp-io 23.0.0",
  "sp-runtime 24.0.0",
  "sp-std 8.0.0",
  "wasm-instrument",
- "wasmi 0.30.0",
+ "wasmi 0.31.0",
 ]
 
 [[package]]
@@ -3127,7 +3364,7 @@ dependencies = [
 [[package]]
 name = "pallet-contracts-primitives"
 version = "24.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "bitflags 1.3.2",
  "parity-scale-codec",
@@ -3150,11 +3387,11 @@ dependencies = [
 [[package]]
 name = "pallet-contracts-proc-macro"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -3162,8 +3399,8 @@ name = "pallet-elections"
 version = "0.6.0"
 dependencies = [
  "frame-election-provider-support",
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "pallet-authorship",
  "pallet-balances",
  "pallet-staking",
@@ -3176,19 +3413,19 @@ dependencies = [
  "sp-core 21.0.0",
  "sp-io 23.0.0",
  "sp-runtime 24.0.0",
- "sp-staking 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-staking 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-std 8.0.0",
 ]
 
 [[package]]
 name = "pallet-identity"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "enumflags2",
  "frame-benchmarking",
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "parity-scale-codec",
  "scale-info",
  "sp-io 23.0.0",
@@ -3199,10 +3436,10 @@ dependencies = [
 [[package]]
 name = "pallet-insecure-randomness-collective-flip"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "parity-scale-codec",
  "safe-mix",
  "scale-info",
@@ -3213,11 +3450,11 @@ dependencies = [
 [[package]]
 name = "pallet-multisig"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "frame-benchmarking",
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "log",
  "parity-scale-codec",
  "scale-info",
@@ -3229,38 +3466,41 @@ dependencies = [
 [[package]]
 name = "pallet-nomination-pools"
 version = "1.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "log",
+ "pallet-balances",
  "parity-scale-codec",
  "scale-info",
  "sp-core 21.0.0",
  "sp-io 23.0.0",
  "sp-runtime 24.0.0",
- "sp-staking 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-staking 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-std 8.0.0",
+ "sp-tracing 10.0.0",
 ]
 
 [[package]]
 name = "pallet-nomination-pools-runtime-api"
 version = "1.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "pallet-nomination-pools",
  "parity-scale-codec",
- "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-std 8.0.0",
 ]
 
 [[package]]
 name = "pallet-scheduler"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "docify",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "log",
  "parity-scale-codec",
  "scale-info",
@@ -3273,10 +3513,10 @@ dependencies = [
 [[package]]
 name = "pallet-session"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "impl-trait-for-tuples",
  "log",
  "pallet-timestamp",
@@ -3286,7 +3526,8 @@ dependencies = [
  "sp-io 23.0.0",
  "sp-runtime 24.0.0",
  "sp-session",
- "sp-staking 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-staking 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "sp-state-machine",
  "sp-std 8.0.0",
  "sp-trie",
 ]
@@ -3294,12 +3535,12 @@ dependencies = [
 [[package]]
 name = "pallet-staking"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "frame-benchmarking",
  "frame-election-provider-support",
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "log",
  "pallet-authorship",
  "pallet-session",
@@ -3309,18 +3550,18 @@ dependencies = [
  "sp-application-crypto 23.0.0",
  "sp-io 23.0.0",
  "sp-runtime 24.0.0",
- "sp-staking 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-staking 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-std 8.0.0",
 ]
 
 [[package]]
 name = "pallet-sudo"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "frame-benchmarking",
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "parity-scale-codec",
  "scale-info",
  "sp-io 23.0.0",
@@ -3331,28 +3572,29 @@ dependencies = [
 [[package]]
 name = "pallet-timestamp"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "frame-benchmarking",
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "log",
  "parity-scale-codec",
  "scale-info",
- "sp-inherents 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-inherents 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-io 23.0.0",
  "sp-runtime 24.0.0",
  "sp-std 8.0.0",
+ "sp-storage 13.0.0",
  "sp-timestamp",
 ]
 
 [[package]]
 name = "pallet-transaction-payment"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "parity-scale-codec",
  "scale-info",
  "serde",
@@ -3365,11 +3607,11 @@ dependencies = [
 [[package]]
 name = "pallet-transaction-payment-rpc-runtime-api"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "pallet-transaction-payment",
  "parity-scale-codec",
- "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-runtime 24.0.0",
  "sp-weights 20.0.0",
 ]
@@ -3377,11 +3619,11 @@ dependencies = [
 [[package]]
 name = "pallet-treasury"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "frame-benchmarking",
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "impl-trait-for-tuples",
  "pallet-balances",
  "parity-scale-codec",
@@ -3394,11 +3636,11 @@ dependencies = [
 [[package]]
 name = "pallet-utility"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "frame-benchmarking",
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "parity-scale-codec",
  "scale-info",
  "sp-core 21.0.0",
@@ -3410,11 +3652,11 @@ dependencies = [
 [[package]]
 name = "pallet-vesting"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "frame-benchmarking",
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "frame-system 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "log",
  "parity-scale-codec",
  "scale-info",
@@ -3426,7 +3668,7 @@ dependencies = [
 name = "pallets-support"
 version = "0.1.4"
 dependencies = [
- "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "frame-support 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-std 8.0.0",
 ]
 
@@ -3545,6 +3787,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "26072860ba924cbfa98ea39c8c19b4dd6a4a25423dbdf219c1eca91aa0cf6964"
 
 [[package]]
+name = "platforms"
+version = "3.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "14e6ab3f592e6fb464fc9712d8d6e6912de6473954635fd76a589d832cffcbb0"
+
+[[package]]
 name = "poly1305"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3581,12 +3829,12 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "serde",
- "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-application-crypto 23.0.0",
  "sp-consensus-aura",
  "sp-core 21.0.0",
  "sp-runtime 24.0.0",
- "sp-staking 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-staking 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-std 8.0.0",
 ]
 
@@ -3601,6 +3849,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "proc-macro-error"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
+dependencies = [
+ "proc-macro-error-attr",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+ "version_check",
+]
+
+[[package]]
+name = "proc-macro-error-attr"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "version_check",
+]
+
+[[package]]
 name = "proc-macro-warning"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3608,7 +3880,7 @@ checksum = "3d1eaa7fa0aa1929ffdf7eeb6eac234dde6268914a14ad44d23521ab6a9b258e"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -3703,7 +3975,7 @@ version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
- "getrandom 0.2.10",
+ "getrandom 0.2.11",
 ]
 
 [[package]]
@@ -3765,7 +4037,7 @@ checksum = "7f7473c2cfcf90008193dd0e3e16599455cb601a9fce322b5bb55de799664925"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -3834,6 +4106,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ring"
+version = "0.1.0"
+source = "git+https://github.com/w3f/ring-proof?rev=0e948f3#0e948f3c28cbacecdd3020403c4841c0eb339213"
+dependencies = [
+ "ark-ec",
+ "ark-ff",
+ "ark-poly",
+ "ark-serialize",
+ "ark-std",
+ "common",
+ "fflonk",
+ "merlin 3.0.0",
+]
+
+[[package]]
 name = "rlibc"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3898,7 +4185,7 @@ dependencies = [
  "bitflags 2.4.1",
  "errno",
  "libc",
- "linux-raw-sys 0.4.10",
+ "linux-raw-sys 0.4.11",
  "windows-sys 0.48.0",
 ]
 
@@ -4187,29 +4474,29 @@ checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
 name = "serde"
-version = "1.0.190"
+version = "1.0.192"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91d3c334ca1ee894a2c6f6ad698fe8c435b76d504b13d436f0685d648d6d96f7"
+checksum = "bca2a08484b285dcb282d0f67b26cadc0df8b19f8c12502c13d966bf9482f001"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.190"
+version = "1.0.192"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67c5609f394e5c2bd7fc51efda478004ea80ef42fee983d5c67a65e34f32c0e3"
+checksum = "d6c7207fbec9faa48073f3e3074cbe553af6ea512d7c21ba46e434e70ea9fbc1"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
 name = "serde_json"
-version = "1.0.107"
+version = "1.0.108"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b420ce6e3d8bd882e9b243c6eed35dbc9a6110c9769e74b584e0d68d1f20c65"
+checksum = "3d1c7e3eac408d115102c4c24ad393e0821bb3a5df4d506a80f85f7a742a526b"
 dependencies = [
  "itoa",
  "ryu",
@@ -4368,13 +4655,13 @@ dependencies = [
 [[package]]
 name = "sp-api"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "hash-db 0.16.0",
  "log",
  "parity-scale-codec",
  "scale-info",
- "sp-api-proc-macro 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-api-proc-macro 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-core 21.0.0",
  "sp-externalities 0.19.0",
  "sp-metadata-ir",
@@ -4401,7 +4688,7 @@ dependencies = [
 [[package]]
 name = "sp-api-proc-macro"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "Inflector",
  "blake2",
@@ -4409,7 +4696,7 @@ dependencies = [
  "proc-macro-crate",
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -4427,7 +4714,7 @@ dependencies = [
 [[package]]
 name = "sp-application-crypto"
 version = "23.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -4453,7 +4740,7 @@ dependencies = [
 [[package]]
 name = "sp-arithmetic"
 version = "16.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "integer-sqrt",
  "num-traits",
@@ -4467,10 +4754,10 @@ dependencies = [
 [[package]]
 name = "sp-block-builder"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
- "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
- "sp-inherents 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "sp-inherents 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-runtime 24.0.0",
  "sp-std 8.0.0",
 ]
@@ -4478,15 +4765,15 @@ dependencies = [
 [[package]]
 name = "sp-consensus-aura"
 version = "0.10.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "async-trait",
  "parity-scale-codec",
  "scale-info",
- "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-application-crypto 23.0.0",
  "sp-consensus-slots",
- "sp-inherents 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-inherents 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-runtime 24.0.0",
  "sp-std 8.0.0",
  "sp-timestamp",
@@ -4495,7 +4782,7 @@ dependencies = [
 [[package]]
 name = "sp-consensus-slots"
 version = "0.10.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -4528,9 +4815,11 @@ dependencies = [
 [[package]]
 name = "sp-core"
 version = "21.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "array-bytes",
+ "arrayvec 0.7.4",
+ "bandersnatch_vrfs",
  "bitflags 1.3.2",
  "blake2",
  "bounded-collections",
@@ -4587,7 +4876,7 @@ dependencies = [
 [[package]]
 name = "sp-core-hashing"
 version = "9.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "blake2b_simd",
  "byteorder",
@@ -4611,11 +4900,11 @@ dependencies = [
 [[package]]
 name = "sp-core-hashing-proc-macro"
 version = "9.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "quote",
  "sp-core-hashing 9.0.0",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -4631,11 +4920,11 @@ dependencies = [
 [[package]]
 name = "sp-debug-derive"
 version = "8.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -4652,12 +4941,23 @@ dependencies = [
 [[package]]
 name = "sp-externalities"
 version = "0.19.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "environmental",
  "parity-scale-codec",
  "sp-std 8.0.0",
  "sp-storage 13.0.0",
+]
+
+[[package]]
+name = "sp-genesis-builder"
+version = "0.1.0"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
+dependencies = [
+ "serde_json",
+ "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
+ "sp-runtime 24.0.0",
+ "sp-std 8.0.0",
 ]
 
 [[package]]
@@ -4674,7 +4974,7 @@ dependencies = [
 [[package]]
 name = "sp-inherents"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "async-trait",
  "impl-trait-for-tuples",
@@ -4704,10 +5004,9 @@ dependencies = [
 [[package]]
 name = "sp-io"
 version = "23.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "bytes",
- "ed25519",
  "ed25519-dalek",
  "libsecp256k1",
  "log",
@@ -4729,7 +5028,7 @@ dependencies = [
 [[package]]
 name = "sp-keystore"
 version = "0.27.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "parity-scale-codec",
  "parking_lot",
@@ -4741,7 +5040,7 @@ dependencies = [
 [[package]]
 name = "sp-maybe-compressed-blob"
 version = "4.1.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "thiserror",
  "zstd",
@@ -4750,7 +5049,7 @@ dependencies = [
 [[package]]
 name = "sp-metadata-ir"
 version = "0.1.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "frame-metadata 16.0.0",
  "parity-scale-codec",
@@ -4761,7 +5060,7 @@ dependencies = [
 [[package]]
 name = "sp-npos-elections"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -4775,9 +5074,9 @@ dependencies = [
 [[package]]
 name = "sp-offchain"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
- "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-core 21.0.0",
  "sp-runtime 24.0.0",
 ]
@@ -4785,7 +5084,7 @@ dependencies = [
 [[package]]
 name = "sp-panic-handler"
 version = "8.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "backtrace",
  "lazy_static",
@@ -4815,7 +5114,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime"
 version = "24.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "either",
  "hash256-std-hasher",
@@ -4855,7 +5154,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface"
 version = "17.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "bytes",
  "impl-trait-for-tuples",
@@ -4885,27 +5184,27 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface-proc-macro"
 version = "11.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "Inflector",
  "proc-macro-crate",
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
 name = "sp-session"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
- "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-core 21.0.0",
  "sp-keystore",
  "sp-runtime 24.0.0",
- "sp-staking 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-staking 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-std 8.0.0",
 ]
 
@@ -4924,7 +5223,7 @@ dependencies = [
 [[package]]
 name = "sp-staking"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "impl-trait-for-tuples",
  "parity-scale-codec",
@@ -4938,7 +5237,7 @@ dependencies = [
 [[package]]
 name = "sp-state-machine"
 version = "0.28.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "hash-db 0.16.0",
  "log",
@@ -4964,7 +5263,7 @@ source = "git+https://github.com/Cardinal-Cryptography/substrate?branch=aleph-v0
 [[package]]
 name = "sp-std"
 version = "8.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 
 [[package]]
 name = "sp-storage"
@@ -4980,7 +5279,7 @@ dependencies = [
 [[package]]
 name = "sp-storage"
 version = "13.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "impl-serde",
  "parity-scale-codec",
@@ -4993,11 +5292,11 @@ dependencies = [
 [[package]]
 name = "sp-timestamp"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "async-trait",
  "parity-scale-codec",
- "sp-inherents 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-inherents 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-runtime 24.0.0",
  "sp-std 8.0.0",
  "thiserror",
@@ -5017,7 +5316,7 @@ dependencies = [
 [[package]]
 name = "sp-tracing"
 version = "10.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "parity-scale-codec",
  "sp-std 8.0.0",
@@ -5029,16 +5328,16 @@ dependencies = [
 [[package]]
 name = "sp-transaction-pool"
 version = "4.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
- "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0)",
+ "sp-api 4.0.0-dev (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0)",
  "sp-runtime 24.0.0",
 ]
 
 [[package]]
 name = "sp-trie"
 version = "22.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "ahash 0.8.6",
  "hash-db 0.16.0",
@@ -5074,7 +5373,7 @@ dependencies = [
 [[package]]
 name = "sp-version"
 version = "22.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "impl-serde",
  "parity-scale-codec",
@@ -5102,12 +5401,12 @@ dependencies = [
 [[package]]
 name = "sp-version-proc-macro"
 version = "8.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "parity-scale-codec",
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -5123,7 +5422,7 @@ dependencies = [
 [[package]]
 name = "sp-wasm-interface"
 version = "14.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "anyhow",
  "impl-trait-for-tuples",
@@ -5150,7 +5449,7 @@ dependencies = [
 [[package]]
 name = "sp-weights"
 version = "20.0.0"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "parity-scale-codec",
  "scale-info",
@@ -5235,9 +5534,9 @@ dependencies = [
 
 [[package]]
 name = "substrate-bip39"
-version = "0.4.4"
+version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49eee6965196b32f882dd2ee85a92b1dbead41b04e53907f269de3b0dc04733c"
+checksum = "e620c7098893ba667438b47169c00aacdd9e7c10e042250ce2b60b087ec97328"
 dependencies = [
  "hmac 0.11.0",
  "pbkdf2 0.8.0",
@@ -5249,7 +5548,7 @@ dependencies = [
 [[package]]
 name = "substrate-wasm-builder"
 version = "5.0.0-dev"
-source = "git+https://github.com/Cardinal-Cryptography/substrate.git?branch=aleph-v1.0.0#357a82e70f10aedd2e9a87e32462cfec08663be2"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.1.0#1ee59f0f2dd25b94a16cb6eea1e0844c9351f5e6"
 dependencies = [
  "ansi_term",
  "build-helper",
@@ -5283,9 +5582,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.38"
+version = "2.0.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e96b79aaa137db8f61e26363a0c9b47d8b4ec75da28b7d1d614c2303e232408b"
+checksum = "23e78b90f2fcf45d3e842032ce32e3f2d1545ba6636271dcbf24fa306d87be7a"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5300,7 +5599,7 @@ checksum = "285ba80e733fac80aa4270fbcdf83772a79b80aa35c97075320abfee4a915b06"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
  "unicode-xid",
 ]
 
@@ -5378,7 +5677,7 @@ checksum = "266b2e40bc00e5a6c09c3584011e08b06f123c00362c92b975ba9843aaaa14b8"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -5461,7 +5760,7 @@ version = "0.19.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b5bb770da30e5cbfde35a2d7b9b8a2c4b8ef89548a7a6aeab5c9a576e3e7421"
 dependencies = [
- "indexmap 2.0.2",
+ "indexmap 2.1.0",
  "serde",
  "serde_spanned",
  "toml_datetime",
@@ -5487,7 +5786,7 @@ checksum = "34704c8d6ebcbc939824180af020566b01a7c01f80641264eba0999f6c2b6be7"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -5701,9 +6000,9 @@ checksum = "9c8d87e72b64a3b4db28d11ce29237c246188f4f51057d65a7eab63b7987e423"
 
 [[package]]
 name = "wasm-bindgen"
-version = "0.2.87"
+version = "0.2.88"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7706a72ab36d8cb1f80ffbf0e071533974a60d0a308d01a5d0375bf60499a342"
+checksum = "7daec296f25a1bae309c0cd5c29c4b260e510e6d813c286b19eaadf409d40fce"
 dependencies = [
  "cfg-if",
  "wasm-bindgen-macro",
@@ -5711,24 +6010,24 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-backend"
-version = "0.2.87"
+version = "0.2.88"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ef2b6d3c510e9625e5fe6f509ab07d66a760f0885d858736483c32ed7809abd"
+checksum = "e397f4664c0e4e428e8313a469aaa58310d302159845980fd23b0f22a847f217"
 dependencies = [
  "bumpalo",
  "log",
  "once_cell",
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
  "wasm-bindgen-shared",
 ]
 
 [[package]]
 name = "wasm-bindgen-macro"
-version = "0.2.87"
+version = "0.2.88"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dee495e55982a3bd48105a7b947fd2a9b4a8ae3010041b9e0faab3f9cd028f1d"
+checksum = "5961017b3b08ad5f3fe39f1e79877f8ee7c23c5e5fd5eb80de95abc41f1f16b2"
 dependencies = [
  "quote",
  "wasm-bindgen-macro-support",
@@ -5736,22 +6035,22 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro-support"
-version = "0.2.87"
+version = "0.2.88"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54681b18a46765f095758388f2d0cf16eb8d4169b639ab575a8f5693af210c7b"
+checksum = "c5353b8dab669f5e10f5bd76df26a9360c748f054f862ff5f3f8aae0c7fb3907"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
  "wasm-bindgen-backend",
  "wasm-bindgen-shared",
 ]
 
 [[package]]
 name = "wasm-bindgen-shared"
-version = "0.2.87"
+version = "0.2.88"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca6ad05a4870b2bf5fe995117d3728437bd27d7cd5f06f13c17443ef369775a1"
+checksum = "0d046c5d029ba91a1ed14da14dca44b68bf2f124cfbaf741c54151fdb3e0750b"
 
 [[package]]
 name = "wasm-instrument"
@@ -5764,9 +6063,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-opt"
-version = "0.112.0"
+version = "0.114.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87fef6d0d508f08334e0ab0e6877feb4c0ecb3956bcf2cb950699b22fedf3e9c"
+checksum = "effbef3bd1dde18acb401f73e740a6f3d4a1bc651e9773bddc512fe4d8d68f67"
 dependencies = [
  "anyhow",
  "libc",
@@ -5780,9 +6079,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-opt-cxx-sys"
-version = "0.112.0"
+version = "0.114.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc816bbc1596c8f2e8127e137a760c798023ef3d378f2ae51f0f1840e2dfa445"
+checksum = "c09e24eb283919ace2ed5733bda4842a59ce4c8de110ef5c6d98859513d17047"
 dependencies = [
  "anyhow",
  "cxx",
@@ -5792,9 +6091,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-opt-sys"
-version = "0.112.0"
+version = "0.114.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40199e4f68ef1071b3c6d0bd8026a12b481865d4b9e49c156932ea9a6234dd14"
+checksum = "36f2f817bed2e8d65eb779fa37317e74de15585751f903c9118342d1970703a4"
 dependencies = [
  "anyhow",
  "cc",
@@ -5816,15 +6115,14 @@ dependencies = [
 
 [[package]]
 name = "wasmi"
-version = "0.30.0"
+version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e51fb5c61993e71158abf5bb863df2674ca3ec39ed6471c64f07aeaf751d67b4"
+checksum = "1f341edb80021141d4ae6468cbeefc50798716a347d4085c3811900049ea8945"
 dependencies = [
- "intx",
  "smallvec",
  "spin",
  "wasmi_arena 0.4.0",
- "wasmi_core 0.12.0",
+ "wasmi_core 0.13.0",
  "wasmparser-nostd 0.100.1",
 ]
 
@@ -5853,9 +6151,9 @@ dependencies = [
 
 [[package]]
 name = "wasmi_core"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "624e6333e861ef49095d2d678b76ebf30b06bf37effca845be7e5b87c90071b7"
+checksum = "dcf1a7db34bff95b85c261002720c00c3a6168256dcb93041d3fa2054d19856a"
 dependencies = [
  "downcast-rs",
  "libm",
@@ -6207,9 +6505,9 @@ checksum = "ed94fce61571a4006852b7389a063ab983c02eb1bb37b47f8272ce92d06d9538"
 
 [[package]]
 name = "winnow"
-version = "0.5.17"
+version = "0.5.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3b801d0e0a6726477cc207f60162da452f3a95adb368399bef20a946e06f65c"
+checksum = "829846f3e3db426d4cee4510841b71a8e58aa2a76b1132579487ae430ccd9c7b"
 dependencies = [
  "memchr",
 ]
@@ -6255,22 +6553,22 @@ checksum = "9828b178da53440fa9c766a3d2f73f7cf5d0ac1fe3980c1e5018d899fd19e07b"
 
 [[package]]
 name = "zerocopy"
-version = "0.7.20"
+version = "0.7.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd66a62464e3ffd4e37bd09950c2b9dd6c4f8767380fabba0d523f9a775bc85a"
+checksum = "8cd369a67c0edfef15010f980c3cbe45d7f651deac2cd67ce097cd801de16557"
 dependencies = [
  "zerocopy-derive",
 ]
 
 [[package]]
 name = "zerocopy-derive"
-version = "0.7.20"
+version = "0.7.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "255c4596d41e6916ced49cfafea18727b24d67878fa180ddfd69b9df34fd1726"
+checksum = "c2f140bda219a26ccc0cdb03dba58af72590c53b22642577d88a927bc5c87d6b"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -6290,7 +6588,7 @@ checksum = "ce36e65b0d2999d2aafac989fb249189a141aee1f53c612c1f37d72631959f69"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.38",
+ "syn 2.0.39",
 ]
 
 [[package]]

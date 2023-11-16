@@ -1,5 +1,5 @@
-use frame_support::log::debug;
 use frame_system::pallet_prelude::BlockNumberFor;
+use log::debug;
 use pallet_session::SessionManager;
 use primitives::{EraManager, FinalityCommitteeManager, SessionCommittee};
 use sp_staking::{EraIndex, SessionIndex};

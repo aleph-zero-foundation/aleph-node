@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt, iter, pin::Pin, sync::Arc};
 
 use async_trait::async_trait;
 use futures::stream::{Stream, StreamExt};
-use log::{error, trace};
+use log::{error, trace, warn};
 use sc_network::{
     multiaddr::Protocol as MultiaddressProtocol, Event as SubstrateEvent, Multiaddr,
     NetworkEventStream as _, NetworkNotification, NetworkPeers, NetworkService,
@@ -209,14 +209,18 @@ impl<B: Block, H: ExHashT> EventStream<PeerId> for NetworkEventStream<B, H> {
                         PeerDisconnected(remote) => {
                             trace!(target: "aleph-network", "Disconnected event for peer {:?}", remote);
                             let addresses: Vec<_> = iter::once(remote).collect();
-                            self.network.remove_peers_from_reserved_set(
+                            if let Err(e) = self.network.remove_peers_from_reserved_set(
                                 self.naming.protocol_name(&Protocol::Authentication),
                                 addresses.clone(),
-                            );
-                            self.network.remove_peers_from_reserved_set(
+                            ) {
+                                warn!(target: "aleph-network", "Error while removing peer from Protocol::Authentication reserved set: {}", e)
+                            }
+                            if let Err(e) = self.network.remove_peers_from_reserved_set(
                                 self.naming.protocol_name(&Protocol::BlockSync),
                                 addresses,
-                            );
+                            ) {
+                                warn!(target: "aleph-network", "Error while removing peer from Protocol::BlockSync reserved set: {}", e)
+                            }
                             continue;
                         }
                     }

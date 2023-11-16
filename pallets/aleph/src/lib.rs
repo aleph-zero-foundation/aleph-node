@@ -10,7 +10,6 @@ mod impls;
 mod traits;
 
 use frame_support::{
-    log,
     sp_runtime::BoundToRuntimeAppPublic,
     traits::{OneSessionHandler, StorageVersion},
 };

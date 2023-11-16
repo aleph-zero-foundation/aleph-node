@@ -29,8 +29,8 @@ pub struct ValidatorTotalRewards<T>(pub BTreeMap<T, TotalReward>);
 #[pallet_doc("../README.md")]
 pub mod pallet {
     use frame_election_provider_support::{
-        BoundedSupportsOf, ElectionDataProvider, ElectionProvider, ElectionProviderBase, Support,
-        Supports,
+        BoundedSupportsOf, DataProviderBounds, ElectionDataProvider, ElectionProvider,
+        ElectionProviderBase, Support, Supports,
     };
     use frame_support::{pallet_prelude::*, traits::Get};
     use frame_system::{
@@ -290,10 +290,11 @@ pub mod pallet {
         /// 1) "`NextEraNonReservedValidators` that are staking and are not banned" in case of Permissioned ElectionOpenness
         /// 2) "All staking and not banned validators" in case of Permissionless ElectionOpenness
         fn elect() -> Result<BoundedSupportsOf<Self>, Self::Error> {
-            let staking_validators = Self::DataProvider::electable_targets(None)
-                .map_err(Self::Error::DataProvider)?
-                .into_iter()
-                .collect::<BTreeSet<_>>();
+            let staking_validators =
+                Self::DataProvider::electable_targets(DataProviderBounds::default())
+                    .map_err(Self::Error::DataProvider)?
+                    .into_iter()
+                    .collect::<BTreeSet<_>>();
             let staking_reserved_validators = NextEraReservedValidators::<T>::get()
                 .into_iter()
                 .filter(|v| staking_validators.contains(v))
@@ -340,8 +341,8 @@ pub mod pallet {
                 })
                 .collect::<BTreeMap<_, _>>();
 
-            let voters =
-                Self::DataProvider::electing_voters(None).map_err(Self::Error::DataProvider)?;
+            let voters = Self::DataProvider::electing_voters(DataProviderBounds::default())
+                .map_err(Self::Error::DataProvider)?;
             for (voter, vote, targets) in voters {
                 // The parameter `Staking::MAX_NOMINATIONS` is set to 1 which guarantees that
                 // `len(targets) == 1`.

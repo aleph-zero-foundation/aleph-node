@@ -32,7 +32,7 @@ pub type BalanceOf<T> =
 pub mod pallet {
     use ark_serialize::CanonicalDeserialize;
     use frame_support::{
-        dispatch::PostDispatchInfo, log, pallet_prelude::*, sp_runtime::DispatchErrorWithPostInfo,
+        dispatch::PostDispatchInfo, pallet_prelude::*, sp_runtime::DispatchErrorWithPostInfo,
     };
     use frame_system::pallet_prelude::OriginFor;
     use jf_plonk::{

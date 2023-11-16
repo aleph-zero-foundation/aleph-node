@@ -7,7 +7,7 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 pub use frame_support::{
-    construct_runtime, log, parameter_types,
+    construct_runtime, parameter_types,
     traits::{
         Currency, EstimateNextNewSession, Imbalance, KeyOwnerProofSystem, LockIdentifier, Nothing,
         OnUnbalanced, Randomness, ValidatorSet,
@@ -545,6 +545,8 @@ impl pallet_staking::BenchmarkingConfig for StakingBenchmarkingConfig {
     type MaxNominators = ConstU32<1000>;
 }
 
+const MAX_NOMINATORS: u32 = 1;
+
 impl pallet_staking::Config for Runtime {
     // Do not change this!!! It guarantees that we have DPoS instead of NPoS.
     type Currency = Balances;
@@ -552,7 +554,7 @@ impl pallet_staking::Config for Runtime {
     type CurrencyToVote = U128CurrencyToVote;
     type ElectionProvider = Elections;
     type GenesisElectionProvider = Elections;
-    type MaxNominations = ConstU32<1>;
+    type NominationsQuota = pallet_staking::FixedNominationsQuota<MAX_NOMINATORS>;
     type RewardRemainder = Treasury;
     type RuntimeEvent = RuntimeEvent;
     type Slash = Treasury;
@@ -699,6 +701,7 @@ parameter_types! {
     // Maximum size of the lazy deletion queue of terminated contracts.
     pub const DeletionQueueDepth: u32 = 128;
     pub Schedule: pallet_contracts::Schedule<Runtime> = Default::default();
+    pub CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(30);
 }
 
 impl pallet_contracts::Config for Runtime {
@@ -722,7 +725,12 @@ impl pallet_contracts::Config for Runtime {
     type MaxStorageKeyLen = ConstU32<128>;
     type UnsafeUnstableInterface = ConstBool<false>;
     type MaxDebugBufferLen = ConstU32<{ 2 * 1024 * 1024 }>;
+    type RuntimeHoldReason = RuntimeHoldReason;
     type Migrations = ();
+    type MaxDelegateDependencies = ConstU32<32>;
+    type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
+    type Debug = ();
+    type Environment = ();
 }
 
 parameter_types! {

@@ -45,7 +45,6 @@ where
     I: BlockImport<Block> + Send + Sync,
 {
     type Error = I::Error;
-    type Transaction = I::Transaction;
 
     async fn check_block(
         &mut self,
@@ -56,7 +55,7 @@ where
 
     async fn import_block(
         &mut self,
-        block: BlockImportParams<Block, Self::Transaction>,
+        block: BlockImportParams<Block>,
     ) -> Result<ImportResult, Self::Error> {
         let post_hash = block.post_hash();
         // Self-created blocks are imported without using the import queue,
@@ -146,7 +145,6 @@ where
     I: BlockImport<Block> + Clone + Send,
 {
     type Error = I::Error;
-    type Transaction = I::Transaction;
 
     async fn check_block(
         &mut self,
@@ -157,7 +155,7 @@ where
 
     async fn import_block(
         &mut self,
-        mut block: BlockImportParams<Block, Self::Transaction>,
+        mut block: BlockImportParams<Block>,
     ) -> Result<ImportResult, Self::Error> {
         let number = *block.header.number();
         let post_hash = block.post_hash();
@@ -273,7 +271,6 @@ where
     I: BlockImport<Block> + Clone + Send,
 {
     type Error = RedirectingImportError<I::Error>;
-    type Transaction = I::Transaction;
 
     async fn check_block(
         &mut self,
@@ -287,7 +284,7 @@ where
 
     async fn import_block(
         &mut self,
-        block: BlockImportParams<Block, Self::Transaction>,
+        block: BlockImportParams<Block>,
     ) -> Result<ImportResult, Self::Error> {
         let header = block.post_header();
         let BlockImportParams { body, .. } = block;

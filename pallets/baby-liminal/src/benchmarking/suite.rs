@@ -1,12 +1,13 @@
 #![allow(clippy::let_unit_value)]
 
-use frame_benchmarking::{account, benchmarks, vec, Vec};
+use frame_benchmarking::{account, benchmarks};
 use frame_support::{
     sp_runtime::traits::Bounded,
     traits::{Currency, Get},
     BoundedVec,
 };
 use frame_system::RawOrigin;
+use sp_std::vec::Vec;
 
 use crate::{
     BalanceOf, Call, Config, Pallet, VerificationKeyDeposits, VerificationKeyIdentifier,
