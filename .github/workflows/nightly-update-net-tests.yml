@@ -1,0 +1,150 @@
+---
+# This workflow performs two updates: from Testnet to the latest main and
+# from Mainnet to the latest main
+name: Nightly update net tests
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '00 02 * * *'
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
+  get-aleph-node-main-sha:
+    needs: [check-vars-and-secrets]
+    name: Get aleph-node main SHA
+    outputs:
+      updatenet-testnet-name: ${{ steps.get-featurenet-name.outputs.updatenet-testnet-name }}
+      updatenet-mainnet-name: ${{ steps.get-featurenet-name.outputs.updatenet-mainnet-name }}
+      aleph-node-main-hash: ${{ steps.get-update-hashes.outputs.update-hash }}
+    runs-on: [self-hosted, Linux, X64, small]
+    steps:
+      - name: Get featurenet name
+        id: get-featurenet-name
+        run: |
+          echo "updatenet-testnet-name=ops-updatenet-testnet" >> $GITHUB_OUTPUT
+          echo "updatenet-mainnet-name=ops-updatenet-mainnet" >> $GITHUB_OUTPUT
+
+      - name: Checkout aleph-node repository
+        uses: actions/checkout@v4
+        with:
+          path: aleph-node
+          ref: main
+          repository: Cardinal-Cryptography/aleph-node
+          token: ${{ secrets.CI_GH_TOKEN }}
+          fetch-depth: 0
+
+      - name: Get main commit hash
+        shell: bash
+        id: get-update-hashes
+        run: |
+          cd aleph-node
+          update_hash=$(git rev-parse --short HEAD)
+          echo "update-hash=${update_hash::7}" >> $GITHUB_OUTPUT
+
+  delete-ops-testnet-featurenet:
+    needs: [get-aleph-node-main-sha, check-vars-and-secrets]
+    name: Delete existing ops-updatenet-testnet featurenet
+    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-delete.yml@v3
+    secrets: inherit
+    with:
+      featurenet-name: ${{ needs.get-aleph-node-main-sha.outputs.updatenet-testnet-name }}
+
+  delete-ops-mainnet-featurenet:
+    needs: [get-aleph-node-main-sha, check-vars-and-secrets]
+    name: Delete existing ops-updatenet-mainnet featurenet
+    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-delete.yml@v3
+    secrets: inherit
+    with:
+      featurenet-name: ${{ needs.get-aleph-node-main-sha.outputs.updatenet-mainnet-name }}
+
+  create-featurenet-from-testnet:
+    needs: [get-aleph-node-main-sha, delete-ops-testnet-featurenet]
+    name: Create featurenet from testnet
+    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-create-from-net.yml@v3
+    secrets: inherit
+    with:
+      featurenet-name: ${{ needs.get-aleph-node-main-sha.outputs.updatenet-testnet-name }}
+      start: 'testnet'
+      expiration: '4h'
+      replicas: '7'
+      internal: true
+
+  create-featurenet-from-mainnet:
+    needs: [get-aleph-node-main-sha, delete-ops-mainnet-featurenet]
+    name: Create featurenet from mainnet
+    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-create-from-net.yml@v3
+    secrets: inherit
+    with:
+      featurenet-name: ${{ needs.get-aleph-node-main-sha.outputs.updatenet-mainnet-name }}
+      start: 'mainnet'
+      expiration: '4h'
+      replicas: '7'
+      internal: true
+
+  update-featurenet-from-testnet:
+    needs: [get-aleph-node-main-sha, create-featurenet-from-testnet]
+    # yamllint disable-line rule:line-length
+    name: Update featurenet from testnet to ${{ needs.get-aleph-node-main-sha.outputs.aleph-node-main-hash }}
+    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-update.yml@v3
+    secrets: inherit
+    with:
+      featurenet-name: ${{ needs.get-aleph-node-main-sha.outputs.updatenet-testnet-name }}
+      destination: ${{ needs.get-aleph-node-main-sha.outputs.aleph-node-main-hash }}
+      rolling-update-partition: '0'
+      replicas: '7'
+      internal: true
+
+  update-featurenet-from-mainnet:
+    needs: [get-aleph-node-main-sha, create-featurenet-from-mainnet]
+    # yamllint disable-line rule:line-length
+    name: Update featurenet from mainnet to ${{ needs.get-aleph-node-main-sha.outputs.aleph-node-main-hash }}
+    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-update.yml@v3
+    secrets: inherit
+    with:
+      featurenet-name: ${{ needs.get-aleph-node-main-sha.outputs.updatenet-mainnet-name }}
+      destination: ${{ needs.get-aleph-node-main-sha.outputs.aleph-node-main-hash }}
+      rolling-update-partition: '0'
+      replicas: '7'
+      internal: true
+
+  delete-featurenet-from-testnet:
+    needs: [get-aleph-node-main-sha, update-featurenet-from-testnet]
+    name: Delete featurenet from testnet
+    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-delete.yml@v3
+    secrets: inherit
+    with:
+      featurenet-name: ${{ needs.get-aleph-node-main-sha.outputs.updatenet-testnet-name }}
+
+  delete-featurenet-from-mainnet:
+    needs: [get-aleph-node-main-sha, update-featurenet-from-mainnet]
+    name: Delete featurenet from mainnet
+    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-delete.yml@v3
+    secrets: inherit
+    with:
+      featurenet-name: ${{ needs.get-aleph-node-main-sha.outputs.updatenet-mainnet-name }}
+
+  slack-notification:
+    name: Slack notification
+    runs-on: ubuntu-20.04
+    needs: [delete-featurenet-from-testnet, delete-featurenet-from-mainnet]
+    if: >
+      !cancelled() &&
+      github.event_name != 'workflow_dispatch'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Send Slack message
+        uses: ./.github/actions/slack-notification
+        with:
+          notify-on: "failure"
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_DEV_ONDUTY }}
