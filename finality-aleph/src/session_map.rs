@@ -24,7 +24,7 @@ const LOG_TARGET: &str = "aleph-session-updater";
 type SessionMap = HashMap<SessionId, SessionAuthorityData>;
 type SessionSubscribers = HashMap<SessionId, Vec<OneShotSender<SessionAuthorityData>>>;
 
-pub trait AuthorityProvider {
+pub trait AuthorityProvider: Clone + Send + Sync + 'static {
     /// returns authority data for block
     fn authority_data(&self, block_number: BlockNumber) -> Option<SessionAuthorityData>;
     /// returns next session authority data where current session is for block
@@ -49,6 +49,20 @@ where
     client: Arc<C>,
     api: RA,
     _phantom: PhantomData<(B, BE)>,
+}
+
+impl<C, B, BE, RA> Clone for AuthorityProviderImpl<C, B, BE, RA>
+where
+    C: ClientForAleph<B, BE> + Send + Sync + 'static,
+    C::Api: crate::aleph_primitives::AlephSessionApi<B> + AuraApi<B, AuraId>,
+    B: Block<Hash = BlockHash>,
+    B::Header: Header<Number = BlockNumber>,
+    BE: Backend<B> + 'static,
+    RA: RuntimeApi,
+{
+    fn clone(&self) -> Self {
+        AuthorityProviderImpl::new(self.client.clone(), self.api.clone())
+    }
 }
 
 impl<C, B, BE, RA> AuthorityProviderImpl<C, B, BE, RA>
@@ -426,6 +440,7 @@ mod tests {
         }
     }
 
+    #[derive(Clone)]
     struct MockProvider {
         pub session_map: HashMap<BlockNumber, SessionAuthorityData>,
         pub next_session_map: HashMap<BlockNumber, SessionAuthorityData>,

@@ -8,8 +8,9 @@ use std::{
 
 use crate::{
     block::{
-        Block, BlockImport, BlockStatus, ChainStatus, Finalizer, Header, Justification,
-        UnverifiedHeader, UnverifiedHeaderFor, UnverifiedJustification, VerifiedHeader, Verifier,
+        Block, BlockImport, BlockStatus, ChainStatus, Finalizer, Header, HeaderVerifier,
+        Justification, JustificationVerifier, UnverifiedHeader, UnverifiedHeaderFor,
+        UnverifiedJustification, VerifiedHeader,
     },
     session::{SessionBoundaryInfo, SessionId},
     sync::{
@@ -201,7 +202,7 @@ where
     B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     I: PeerId,
     CS: ChainStatus<B, J>,
-    V: Verifier<J>,
+    V: JustificationVerifier<J> + HeaderVerifier<J::Header>,
     F: Finalizer<J>,
     BI: BlockImport<B>,
 {
@@ -233,11 +234,11 @@ where
 
 type HandleStateOutput<B, J, V> = (
     HandleStateAction<B, J>,
-    Option<<V as Verifier<J>>::EquivocationProof>,
+    Option<<V as HeaderVerifier<<J as Justification>::Header>>::EquivocationProof>,
 );
 type HandleOwnBlockOutput<B, J, V> = (
     Vec<ResponseItem<B, J>>,
-    Option<<V as Verifier<J>>::EquivocationProof>,
+    Option<<V as HeaderVerifier<<J as Justification>::Header>>::EquivocationProof>,
 );
 
 impl<B, J> HandleStateAction<B, J>
@@ -261,16 +262,17 @@ where
 }
 
 /// What can go wrong when handling a piece of data.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum Error<B, J, CS, V, F>
 where
     J: Justification,
     B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     CS: ChainStatus<B, J>,
-    V: Verifier<J>,
+    V: JustificationVerifier<J> + HeaderVerifier<J::Header>,
     F: Finalizer<J>,
 {
-    Verifier(V::Error),
+    JustificationVerifier(<V as JustificationVerifier<J>>::Error),
+    HeaderVerifier(<V as HeaderVerifier<J::Header>>::Error),
     ChainStatus(CS::Error),
     Finalizer(F::Error),
     Forest(ForestError),
@@ -287,13 +289,14 @@ where
     J: Justification,
     B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     CS: ChainStatus<B, J>,
-    V: Verifier<J>,
+    V: JustificationVerifier<J> + HeaderVerifier<J::Header>,
     F: Finalizer<J>,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
         use Error::*;
         match self {
-            Verifier(e) => write!(f, "verifier error: {e}"),
+            JustificationVerifier(e) => write!(f, "justification verifier error: {e}"),
+            HeaderVerifier(e) => write!(f, "header verifier error: {e}"),
             ChainStatus(e) => write!(f, "chain status error: {e}"),
             Finalizer(e) => write!(f, "finalized error: {e}"),
             Forest(e) => write!(f, "forest error: {e}"),
@@ -319,7 +322,7 @@ where
     J: Justification,
     B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     CS: ChainStatus<B, J>,
-    V: Verifier<J>,
+    V: JustificationVerifier<J> + HeaderVerifier<J::Header>,
     F: Finalizer<J>,
 {
     fn from(e: ForestError) -> Self {
@@ -332,7 +335,7 @@ where
     J: Justification,
     B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     CS: ChainStatus<B, J>,
-    V: Verifier<J>,
+    V: JustificationVerifier<J> + HeaderVerifier<J::Header>,
     F: Finalizer<J>,
 {
     fn from(e: TrySyncError<B, J, CS>) -> Self {
@@ -349,7 +352,7 @@ where
     J: Justification,
     B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     CS: ChainStatus<B, J>,
-    V: Verifier<J>,
+    V: JustificationVerifier<J> + HeaderVerifier<J::Header>,
     F: Finalizer<J>,
 {
     fn from(e: RequestHandlerError<CS::Error>) -> Self {
@@ -363,7 +366,7 @@ where
     B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     I: PeerId,
     CS: ChainStatus<B, J>,
-    V: Verifier<J>,
+    V: JustificationVerifier<J> + HeaderVerifier<J::Header>,
     F: Finalizer<J>,
     BI: BlockImport<B>,
 {
@@ -376,7 +379,7 @@ where
     B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
     I: PeerId,
     CS: ChainStatus<B, J>,
-    V: Verifier<J>,
+    V: JustificationVerifier<J> + HeaderVerifier<J::Header>,
     F: Finalizer<J>,
     BI: BlockImport<B>,
 {
@@ -465,14 +468,17 @@ where
         &mut self,
         block: B,
         own_block: bool,
-    ) -> Result<Option<<V as Verifier<J>>::EquivocationProof>, <Self as HandlerTypes>::Error> {
+    ) -> Result<
+        Option<<V as HeaderVerifier<J::Header>>::EquivocationProof>,
+        <Self as HandlerTypes>::Error,
+    > {
         let VerifiedHeader {
             maybe_equivocation_proof,
             ..
         } = self
             .verifier
             .verify_header(block.header().clone(), own_block)
-            .map_err(Error::Verifier)?;
+            .map_err(Error::HeaderVerifier)?;
         self.block_importer.import_block(block);
         Ok(maybe_equivocation_proof)
     }
@@ -558,7 +564,7 @@ where
         let justification = self
             .verifier
             .verify_justification(justification)
-            .map_err(Error::Verifier)?;
+            .map_err(Error::JustificationVerifier)?;
         let new_highest = self
             .forest
             .update_justification(justification, maybe_peer)?;
@@ -639,7 +645,7 @@ where
                     let h = match self
                         .verifier
                         .verify_header(h, false)
-                        .map_err(Error::Verifier)
+                        .map_err(Error::HeaderVerifier)
                     {
                         Ok(VerifiedHeader {
                             header: h,
@@ -734,7 +740,7 @@ where
         } = self
             .verifier
             .verify_header(state.favourite_block(), false)
-            .map_err(Error::Verifier)?;
+            .map_err(Error::HeaderVerifier)?;
         let action = match local_session.0.checked_sub(remote_session.0) {
             // remote session number larger than ours, we can try to import the justification
             None => HandleStateAction::maybe_extend(
@@ -1202,7 +1208,7 @@ mod tests {
         }
         let (_, _, maybe_error) = handler.handle_request_response(response, 7);
         match maybe_error {
-            Some(Error::Verifier(_)) => (),
+            Some(Error::HeaderVerifier(_)) => (),
             e => panic!("should return Verifier error, {e:?}"),
         };
     }
@@ -1893,14 +1899,14 @@ mod tests {
             header,
         );
         match handler.handle_state(state, peer) {
-            Err(Error::Verifier(_)) => (),
+            Err(Error::HeaderVerifier(_)) => (),
             e => panic!("should return Verifier error, {e:?}"),
         };
         let mut header = MockHeader::random_parentless(1000).random_child();
         header.invalidate();
         let state = State::new(MockJustification::for_header(header.clone()), header);
         match handler.handle_state(state, peer) {
-            Err(Error::Verifier(_)) => (),
+            Err(Error::HeaderVerifier(_)) => (),
             e => panic!("should return Verifier error, {e:?}"),
         };
     }

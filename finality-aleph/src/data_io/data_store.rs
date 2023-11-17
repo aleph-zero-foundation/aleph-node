@@ -22,6 +22,7 @@ use sp_runtime::traits::{Block as BlockT, Header as HeaderT};
 
 use crate::{
     aleph_primitives::{BlockHash, BlockNumber},
+    block::{Header, HeaderVerifier, UnverifiedHeader},
     data_io::{
         chain_info::{CachedChainInfoProvider, ChainInfoProvider, SubstrateChainInfoProvider},
         proposal::{AlephProposal, PendingProposalStatus, ProposalStatus},
@@ -65,13 +66,13 @@ impl PendingProposalInfo {
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub struct PendingMessageInfo<M: AlephNetworkMessage> {
+pub struct PendingMessageInfo<UH: UnverifiedHeader, M: AlephNetworkMessage<UH>> {
     message: M,
     // Data items that we still wait for
-    pending_proposals: HashSet<AlephProposal>,
+    pending_proposals: HashSet<AlephProposal<UH>>,
 }
 
-impl<M: AlephNetworkMessage> PendingMessageInfo<M> {
+impl<UH: UnverifiedHeader, M: AlephNetworkMessage<UH>> PendingMessageInfo<UH, M> {
     fn new(message: M) -> Self {
         PendingMessageInfo {
             message,
@@ -145,13 +146,13 @@ impl Default for DataStoreConfig {
 
 /// This component is used for filtering available data for Aleph Network.
 /// It needs to be started by calling the run method.
-pub struct DataStore<B, C, RB, Message, R>
+pub struct DataStore<B, C, RB, Message, R, V>
 where
     B: BlockT<Hash = BlockHash>,
-    B::Header: HeaderT<Number = BlockNumber>,
+    B::Header: HeaderT<Number = BlockNumber> + UnverifiedHeader + Header<Unverified = B::Header>,
     C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
     RB: RequestBlocks + 'static,
-    Message: AlephNetworkMessage
+    Message: AlephNetworkMessage<B::Header>
         + std::fmt::Debug
         + Send
         + Sync
@@ -159,15 +160,17 @@ where
         + parity_scale_codec::Codec
         + 'static,
     R: Receiver<Message>,
+    V: HeaderVerifier<B::Header>,
 {
     next_free_id: MessageId,
-    pending_proposals: HashMap<AlephProposal, PendingProposalInfo>,
-    event_triggers: HashMap<ChainEvent, HashSet<AlephProposal>>,
+    pending_proposals: HashMap<AlephProposal<B::Header>, PendingProposalInfo>,
+    event_triggers: HashMap<ChainEvent, HashSet<AlephProposal<B::Header>>>,
     // We use BtreeMap instead of HashMap to be able to fetch the Message with lowest MessageId
     // when pruning messages.
-    pending_messages: BTreeMap<MessageId, PendingMessageInfo<Message>>,
+    pending_messages: BTreeMap<MessageId, PendingMessageInfo<B::Header, Message>>,
     chain_info_provider: CachedChainInfoProvider<SubstrateChainInfoProvider<B, C>>,
-    available_proposals_cache: LruCache<AlephProposal, ProposalStatus>,
+    verifier: V,
+    available_proposals_cache: LruCache<AlephProposal<B::Header>, ProposalStatus>,
     num_triggers_registered_since_last_pruning: usize,
     highest_finalized_num: BlockNumber,
     session_boundaries: SessionBoundaries,
@@ -178,13 +181,13 @@ where
     messages_for_aleph: UnboundedSender<Message>,
 }
 
-impl<B, C, RB, Message, R> DataStore<B, C, RB, Message, R>
+impl<B, C, RB, Message, R, V> DataStore<B, C, RB, Message, R, V>
 where
     B: BlockT<Hash = BlockHash>,
-    B::Header: HeaderT<Number = BlockNumber>,
+    B::Header: HeaderT<Number = BlockNumber> + UnverifiedHeader + Header<Unverified = B::Header>,
     C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
     RB: RequestBlocks + 'static,
-    Message: AlephNetworkMessage
+    Message: AlephNetworkMessage<B::Header>
         + std::fmt::Debug
         + Send
         + Sync
@@ -192,11 +195,13 @@ where
         + parity_scale_codec::Codec
         + 'static,
     R: Receiver<Message>,
+    V: HeaderVerifier<B::Header>,
 {
     /// Returns a struct to be run and a network that outputs messages filtered as appropriate
     pub fn new<N: ComponentNetwork<Message, R = R>>(
         session_boundaries: SessionBoundaries,
         client: Arc<C>,
+        verifier: V,
         block_requester: RB,
         config: DataStoreConfig,
         component_network: N,
@@ -217,6 +222,7 @@ where
                 event_triggers: HashMap::new(),
                 pending_messages: BTreeMap::new(),
                 chain_info_provider,
+                verifier,
                 available_proposals_cache: LruCache::new(config.available_proposals_cache_capacity),
                 num_triggers_registered_since_last_pruning: 0,
                 highest_finalized_num,
@@ -336,7 +342,11 @@ where
         }
     }
 
-    fn register_block_import_trigger(&mut self, proposal: &AlephProposal, block: &BlockId) {
+    fn register_block_import_trigger(
+        &mut self,
+        proposal: &AlephProposal<B::Header>,
+        block: &BlockId,
+    ) {
         self.num_triggers_registered_since_last_pruning += 1;
         self.event_triggers
             .entry(ChainEvent::Imported(block.clone()))
@@ -344,7 +354,11 @@ where
             .insert(proposal.clone());
     }
 
-    fn register_finality_trigger(&mut self, proposal: &AlephProposal, number: BlockNumber) {
+    fn register_finality_trigger(
+        &mut self,
+        proposal: &AlephProposal<B::Header>,
+        number: BlockNumber,
+    ) {
         self.num_triggers_registered_since_last_pruning += 1;
         if number > self.highest_finalized_num {
             self.event_triggers
@@ -354,7 +368,7 @@ where
         }
     }
 
-    fn register_next_finality_trigger(&mut self, proposal: &AlephProposal) {
+    fn register_next_finality_trigger(&mut self, proposal: &AlephProposal<B::Header>) {
         if self.highest_finalized_num < proposal.number_below_branch() {
             self.register_finality_trigger(proposal, proposal.number_below_branch());
         } else if self.highest_finalized_num < proposal.number_top_block() {
@@ -392,7 +406,7 @@ where
         }
     }
 
-    fn on_proposal_available(&mut self, proposal: &AlephProposal) {
+    fn on_proposal_available(&mut self, proposal: &AlephProposal<B::Header>) {
         if let Some(proposal_info) = self.pending_proposals.remove(proposal) {
             for id in proposal_info.messages {
                 self.remove_proposal_from_pending_message(proposal, id);
@@ -402,7 +416,7 @@ where
 
     // Makes an availability check for `data` and updates its status. Outputs whether the bump resulted in
     // this proposal becoming available.
-    fn bump_proposal(&mut self, proposal: &AlephProposal) -> bool {
+    fn bump_proposal(&mut self, proposal: &AlephProposal<B::Header>) -> bool {
         // Some minor inefficiencies in HashMap access below because of borrow checker.
         let old_status = match self.pending_proposals.get(proposal) {
             None => {
@@ -444,13 +458,18 @@ where
     // Outputs the current status of the proposal based on the `old_status` (for optimization).
     fn check_proposal_availability(
         &mut self,
-        proposal: &AlephProposal,
+        proposal: &AlephProposal<B::Header>,
         old_status: Option<&ProposalStatus>,
     ) -> ProposalStatus {
         if let Some(status) = self.available_proposals_cache.get(proposal) {
             return status.clone();
         }
-        let status = get_proposal_status(&mut self.chain_info_provider, proposal, old_status);
+        let status = get_proposal_status(
+            &mut self.chain_info_provider,
+            &mut self.verifier,
+            proposal,
+            old_status,
+        );
         match status {
             ProposalStatus::Finalize(_) | ProposalStatus::Ignore => {
                 // We can cache only if the proposal is available. If it is pending, its
@@ -472,8 +491,8 @@ where
     // If the proposal is available, message_info is not modified.
     fn add_message_proposal_dependency(
         &mut self,
-        proposal: &AlephProposal,
-        message_info: &mut PendingMessageInfo<Message>,
+        proposal: &AlephProposal<B::Header>,
+        message_info: &mut PendingMessageInfo<B::Header, Message>,
         id: MessageId,
     ) {
         if !self.pending_proposals.contains_key(proposal) {
@@ -530,7 +549,11 @@ where
 
     // This is called upon a proposal being available -- we remove it from the set of
     // proposals a message waits for.
-    fn remove_proposal_from_pending_message(&mut self, proposal: &AlephProposal, id: MessageId) {
+    fn remove_proposal_from_pending_message(
+        &mut self,
+        proposal: &AlephProposal<B::Header>,
+        id: MessageId,
+    ) {
         let mut message_info = match self.pending_messages.remove(&id) {
             Some(message_info) => message_info,
             None => {
@@ -547,7 +570,11 @@ where
         }
     }
 
-    fn remove_message_id_from_pending_proposal(&mut self, proposal: &AlephProposal, id: MessageId) {
+    fn remove_message_id_from_pending_proposal(
+        &mut self,
+        proposal: &AlephProposal<B::Header>,
+        id: MessageId,
+    ) {
         if let Occupied(mut proposal_entry) = self.pending_proposals.entry(proposal.clone()) {
             let proposal_info = proposal_entry.get_mut();
             proposal_info.messages.remove(&id);
@@ -635,13 +662,13 @@ where
 }
 
 #[async_trait::async_trait]
-impl<B, C, RB, Message, R> Runnable for DataStore<B, C, RB, Message, R>
+impl<B, C, RB, Message, R, V> Runnable for DataStore<B, C, RB, Message, R, V>
 where
     B: BlockT<Hash = BlockHash>,
-    B::Header: HeaderT<Number = BlockNumber>,
+    B::Header: HeaderT<Number = BlockNumber> + UnverifiedHeader + Header<Unverified = B::Header>,
     C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
     RB: RequestBlocks + 'static,
-    Message: AlephNetworkMessage
+    Message: AlephNetworkMessage<B::Header>
         + std::fmt::Debug
         + Send
         + Sync
@@ -649,6 +676,7 @@ where
         + parity_scale_codec::Codec
         + 'static,
     R: Receiver<Message> + 'static,
+    V: HeaderVerifier<B::Header>,
 {
     async fn run(mut self, exit: oneshot::Receiver<()>) {
         DataStore::run(&mut self, exit).await

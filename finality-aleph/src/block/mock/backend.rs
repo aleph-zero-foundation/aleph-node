@@ -12,7 +12,7 @@ use crate::{
         mock::{MockBlock, MockHeader, MockJustification, MockNotification},
         Block, BlockImport, BlockStatus, ChainStatus, ChainStatusNotifier,
         EquivocationProof as EquivocationProofT, FinalizationStatus, Finalizer, Header,
-        Justification as JustificationT, VerifiedHeader, Verifier,
+        HeaderVerifier, Justification as JustificationT, JustificationVerifier, VerifiedHeader,
     },
     nodes::VERIFIER_CACHE_SIZE,
     session::{SessionBoundaryInfo, SessionId},
@@ -414,8 +414,7 @@ impl Display for VerifierError {
     }
 }
 
-impl Verifier<MockJustification> for Backend {
-    type EquivocationProof = EquivocationProof;
+impl JustificationVerifier<MockJustification> for Backend {
     type Error = VerifierError;
 
     fn verify_justification(
@@ -445,12 +444,17 @@ impl Verifier<MockJustification> for Backend {
             false => Err(Self::Error::Justification),
         }
     }
+}
+
+impl HeaderVerifier<MockHeader> for Backend {
+    type EquivocationProof = EquivocationProof;
+    type Error = VerifierError;
 
     fn verify_header(
         &mut self,
         header: MockHeader,
         _just_created: bool,
-    ) -> Result<VerifiedHeader<MockJustification, Self::EquivocationProof>, Self::Error> {
+    ) -> Result<VerifiedHeader<MockHeader, Self::EquivocationProof>, Self::Error> {
         match (header.valid(), header.equivocated()) {
             (true, false) => Ok(VerifiedHeader {
                 header,

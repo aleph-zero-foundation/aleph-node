@@ -345,13 +345,14 @@ mod tests {
     use tokio::time::sleep;
 
     use crate::{
-        data_io::{
+        data_io::legacy::{
             data_provider::{ChainTracker, ChainTrackerConfig},
+            test::aleph_data_from_blocks,
             DataProvider, MAX_DATA_BRANCH_LEN,
         },
         testing::{
             client_chain_builder::ClientChainBuilder,
-            mocks::{aleph_data_from_blocks, TestClientBuilder, TestClientBuilderExt},
+            mocks::{TestClientBuilder, TestClientBuilderExt},
         },
         SessionBoundaryInfo, SessionId, SessionPeriod, TimingBlockMetrics,
     };

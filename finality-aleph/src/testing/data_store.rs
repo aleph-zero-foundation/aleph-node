@@ -24,7 +24,7 @@ use crate::{
         client_chain_builder::ClientChainBuilder,
         mocks::{
             aleph_data_from_blocks, aleph_data_from_headers, TBlock, THeader, TestClientBuilder,
-            TestClientBuilderExt,
+            TestClientBuilderExt, TestVerifier,
         },
     },
     BlockId, Recipient,
@@ -49,10 +49,10 @@ impl RequestBlocks for TestBlockRequester {
     }
 }
 
-type TestData = Vec<AlephData>;
+type TestData = Vec<AlephData<THeader>>;
 
-impl AlephNetworkMessage for TestData {
-    fn included_data(&self) -> Vec<AlephData> {
+impl AlephNetworkMessage<THeader> for TestData {
+    fn included_data(&self) -> Vec<AlephData<THeader>> {
         self.clone()
     }
 }
@@ -170,6 +170,7 @@ fn prepare_data_store(
     let (mut data_store, network) = DataStore::new(
         session_boundaries,
         client.clone(),
+        TestVerifier,
         block_requester,
         data_store_config,
         test_network,

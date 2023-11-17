@@ -42,7 +42,7 @@ impl Display for BlockId {
 }
 
 /// The unverified header of a block, containing information about the parent relation.
-pub trait UnverifiedHeader: Clone + Codec + Debug + Send + Sync + 'static {
+pub trait UnverifiedHeader: Clone + Codec + Debug + Send + Sync + Eq + 'static {
     /// The identifier of this block.
     fn id(&self) -> BlockId;
 }
@@ -82,6 +82,15 @@ pub trait Justification: Clone + Send + Sync + Debug + 'static {
     fn into_unverified(self) -> Self::Unverified;
 }
 
+/// A verifier of justifications.
+pub trait JustificationVerifier<J: Justification> {
+    type Error: Display + Debug;
+
+    /// Verifies the raw justification and returns a full justification if successful, otherwise an
+    /// error.
+    fn verify_justification(&mut self, justification: J::Unverified) -> Result<J, Self::Error>;
+}
+
 pub type UnverifiedHeaderFor<J> = <<J as Justification>::Header as Header>::Unverified;
 
 pub trait EquivocationProof: Display {
@@ -89,19 +98,15 @@ pub trait EquivocationProof: Display {
     fn are_we_equivocating(&self) -> bool;
 }
 
-pub struct VerifiedHeader<J: Justification, P: EquivocationProof> {
-    pub header: J::Header,
+pub struct VerifiedHeader<H: Header, P: EquivocationProof> {
+    pub header: H,
     pub maybe_equivocation_proof: Option<P>,
 }
 
-/// A verifier of justifications and headers.
-pub trait Verifier<J: Justification> {
+/// A verifier of headers.
+pub trait HeaderVerifier<H: Header>: Clone + Send + Sync + 'static {
     type EquivocationProof: EquivocationProof;
-    type Error: Display;
-
-    /// Verifies the raw justification and returns a full justification if successful, otherwise an
-    /// error.
-    fn verify_justification(&mut self, justification: J::Unverified) -> Result<J, Self::Error>;
+    type Error: Display + Debug;
 
     /// Verifies the raw header and returns a struct containing a full header and possibly
     /// an equivocation proof if successful, otherwise an error.
@@ -109,9 +114,9 @@ pub trait Verifier<J: Justification> {
     /// the `just_created` flag must be set to `true`.
     fn verify_header(
         &mut self,
-        header: UnverifiedHeaderFor<J>,
+        header: H::Unverified,
         just_created: bool,
-    ) -> Result<VerifiedHeader<J, Self::EquivocationProof>, Self::Error>;
+    ) -> Result<VerifiedHeader<H, Self::EquivocationProof>, Self::Error>;
 }
 
 /// The block, including a header.

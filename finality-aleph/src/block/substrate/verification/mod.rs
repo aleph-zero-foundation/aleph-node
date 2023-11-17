@@ -23,12 +23,18 @@ pub use cache::VerifierCache;
 pub use verifier::SessionVerifier;
 
 /// Supplies finalized number. Will be unified together with other traits we used in A0-1839.
-pub trait FinalizationInfo {
+pub trait FinalizationInfo: Clone + Send + Sync + 'static {
     fn finalized_number(&self) -> BlockNumber;
 }
 
 /// Substrate specific implementation of `FinalizationInfo`
 pub struct SubstrateFinalizationInfo<BE: HeaderBackend<Block>>(Arc<BE>);
+
+impl<BE: HeaderBackend<Block>> Clone for SubstrateFinalizationInfo<BE> {
+    fn clone(&self) -> Self {
+        SubstrateFinalizationInfo(self.0.clone())
+    }
+}
 
 impl<BE: HeaderBackend<Block>> SubstrateFinalizationInfo<BE> {
     pub fn new(client: Arc<BE>) -> Self {
@@ -36,7 +42,7 @@ impl<BE: HeaderBackend<Block>> SubstrateFinalizationInfo<BE> {
     }
 }
 
-impl<BE: HeaderBackend<Block>> FinalizationInfo for SubstrateFinalizationInfo<BE> {
+impl<BE: HeaderBackend<Block> + 'static> FinalizationInfo for SubstrateFinalizationInfo<BE> {
     fn finalized_number(&self) -> BlockNumber {
         self.0.info().finalized_number
     }

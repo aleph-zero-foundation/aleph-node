@@ -7,8 +7,8 @@ use substrate_prometheus_endpoint::Registry;
 use crate::{
     block::{
         Block, BlockImport, ChainStatus, ChainStatusNotification, ChainStatusNotifier,
-        EquivocationProof, Finalizer, Justification, UnverifiedHeader, UnverifiedHeaderFor,
-        Verifier,
+        EquivocationProof, Finalizer, HeaderVerifier, Justification, JustificationVerifier,
+        UnverifiedHeader, UnverifiedHeaderFor,
     },
     network::GossipNetwork,
     session::SessionBoundaryInfo,
@@ -88,7 +88,7 @@ where
     N: GossipNetwork<VersionedNetworkData<B, J>>,
     CE: ChainStatusNotifier<J::Header>,
     CS: ChainStatus<B, J>,
-    V: Verifier<J>,
+    V: JustificationVerifier<J> + HeaderVerifier<J::Header>,
     F: Finalizer<J>,
     BI: BlockImport<B>,
 {
@@ -128,7 +128,7 @@ where
     N: GossipNetwork<VersionedNetworkData<B, J>>,
     CE: ChainStatusNotifier<J::Header>,
     CS: ChainStatus<B, J>,
-    V: Verifier<J>,
+    V: JustificationVerifier<J> + HeaderVerifier<J::Header>,
     F: Finalizer<J>,
     BI: BlockImport<B>,
 {
@@ -340,9 +340,13 @@ where
             Err(e) => {
                 self.metrics.report_event_error(Event::HandleState);
                 match e {
-                    HandlerError::Verifier(e) => debug!(
+                    HandlerError::JustificationVerifier(e) => debug!(
                         target: LOG_TARGET,
-                        "Could not verify data in sync state from {:?}: {}.", peer, e
+                        "Could not verify justification data in sync state from {:?}: {}.", peer, e
+                    ),
+                    HandlerError::HeaderVerifier(e) => debug!(
+                        target: LOG_TARGET,
+                        "Could not verify header data in sync state from {:?}: {}.", peer, e
                     ),
                     e => warn!(
                         target: LOG_TARGET,
@@ -371,9 +375,13 @@ where
             self.handler
                 .handle_state_response(justification, maybe_justification, peer.clone());
         match maybe_error {
-            Some(HandlerError::Verifier(e)) => debug!(
+            Some(HandlerError::JustificationVerifier(e)) => debug!(
                 target: LOG_TARGET,
                 "Could not verify justification in sync state from {:?}: {}.", peer, e
+            ),
+            Some(HandlerError::HeaderVerifier(e)) => debug!(
+                target: LOG_TARGET,
+                "Could not verify header in sync state from {:?}: {}.", peer, e
             ),
             Some(e) => warn!(
                 target: LOG_TARGET,
@@ -401,9 +409,13 @@ where
                 self.metrics
                     .report_event_error(Event::HandleJustificationFromUser);
                 match e {
-                    HandlerError::Verifier(e) => debug!(
+                    HandlerError::JustificationVerifier(e) => debug!(
                         target: LOG_TARGET,
                         "Could not verify justification from user: {}", e
+                    ),
+                    HandlerError::HeaderVerifier(e) => debug!(
+                        target: LOG_TARGET,
+                        "Could not verify header from user: {}", e
                     ),
                     e => warn!(
                         target: LOG_TARGET,
@@ -426,8 +438,17 @@ where
             .handler
             .handle_request_response(response_items, peer.clone());
         match maybe_error {
-            Some(HandlerError::Verifier(e)) => {
-                debug!(target: LOG_TARGET, "Could not verify data from user: {}", e)
+            Some(HandlerError::JustificationVerifier(e)) => {
+                debug!(
+                    target: LOG_TARGET,
+                    "Could not verify justification from user: {}", e
+                )
+            }
+            Some(HandlerError::HeaderVerifier(e)) => {
+                debug!(
+                    target: LOG_TARGET,
+                    "Could not verify header from user: {}", e
+                )
             }
             Some(e) => warn!(
                 target: LOG_TARGET,
@@ -476,9 +497,13 @@ where
             Err(e) => {
                 self.metrics.report_event_error(Event::HandleRequest);
                 match e {
-                    HandlerError::Verifier(e) => debug!(
+                    HandlerError::JustificationVerifier(e) => debug!(
                         target: LOG_TARGET,
                         "Could not verify justification from user: {}", e
+                    ),
+                    HandlerError::HeaderVerifier(e) => debug!(
+                        target: LOG_TARGET,
+                        "Could not verify header from user: {}", e
                     ),
                     e => warn!(
                         target: LOG_TARGET,
@@ -543,9 +568,13 @@ where
             Err(e) => {
                 self.metrics.report_event(Event::HandleInternalRequest);
                 match e {
-                    HandlerError::Verifier(e) => debug!(
+                    HandlerError::JustificationVerifier(e) => debug!(
                         target: LOG_TARGET,
                         "Could not verify justification from user: {}", e
+                    ),
+                    HandlerError::HeaderVerifier(e) => debug!(
+                        target: LOG_TARGET,
+                        "Could not verify header from user: {}", e
                     ),
                     e => warn!(
                         target: LOG_TARGET,
@@ -575,9 +604,13 @@ where
                 self.metrics
                     .report_event_error(Event::HandleExtensionRequest);
                 match e {
-                    HandlerError::Verifier(e) => debug!(
+                    HandlerError::JustificationVerifier(e) => debug!(
                         target: LOG_TARGET,
                         "Could not verify justification from {:?}: {}", peer, e
+                    ),
+                    HandlerError::HeaderVerifier(e) => debug!(
+                        target: LOG_TARGET,
+                        "Could not verify header from {:?}: {}", peer, e
                     ),
                     e => warn!(
                         target: LOG_TARGET,

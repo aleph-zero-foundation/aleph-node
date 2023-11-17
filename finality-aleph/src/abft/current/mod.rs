@@ -17,6 +17,7 @@ use crate::{
         common::{unit_creation_delay_fn, MAX_ROUNDS, SESSION_LEN_LOWER_BOUND_MS},
         NetworkWrapper,
     },
+    block::{Header as BlockHeader, HeaderVerifier, UnverifiedHeader},
     crypto::Signature,
     data_io::{AlephData, OrderedDataInterpreter, SubstrateChainInfoProvider},
     network::data::Network,
@@ -28,23 +29,31 @@ use crate::{
     CurrentNetworkData, Hasher, Keychain, NodeIndex, SessionId, SignatureSet, UnitCreationDelay,
 };
 
-pub fn run_member<B, C, ADN>(
+type WrappedNetwork<H, ADN> = NetworkWrapper<
+    current_aleph_bft::NetworkData<Hasher, AlephData<H>, Signature, SignatureSet<Signature>>,
+    ADN,
+>;
+
+pub fn run_member<B, C, ADN, V>(
     subtask_common: TaskCommon,
     multikeychain: Keychain,
     config: Config,
-    network: NetworkWrapper<
-        current_aleph_bft::NetworkData<Hasher, AlephData, Signature, SignatureSet<Signature>>,
-        ADN,
+    network: WrappedNetwork<B::Header, ADN>,
+    data_provider: impl current_aleph_bft::DataProvider<AlephData<B::Header>> + Send + 'static,
+    ordered_data_interpreter: OrderedDataInterpreter<
+        SubstrateChainInfoProvider<B, C>,
+        B::Header,
+        V,
     >,
-    data_provider: impl current_aleph_bft::DataProvider<AlephData> + Send + 'static,
-    ordered_data_interpreter: OrderedDataInterpreter<SubstrateChainInfoProvider<B, C>>,
     backup: ABFTBackup,
 ) -> Task
 where
     B: Block<Hash = BlockHash>,
-    B::Header: Header<Number = BlockNumber>,
+    B::Header:
+        Header<Number = BlockNumber> + UnverifiedHeader + BlockHeader<Unverified = B::Header>,
     C: HeaderBackend<B> + Send + 'static,
-    ADN: Network<CurrentNetworkData> + 'static,
+    ADN: Network<CurrentNetworkData<B::Header>> + 'static,
+    V: HeaderVerifier<B::Header>,
 {
     let TaskCommon {
         spawn_handle,

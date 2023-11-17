@@ -25,7 +25,7 @@ use crate::{
             },
             InnerJustification, Justification,
         },
-        Header as HeaderT, VerifiedHeader, Verifier,
+        Header as HeaderT, HeaderVerifier, JustificationVerifier, VerifiedHeader,
     },
     session::{SessionBoundaryInfo, SessionId},
     session_map::AuthorityProvider,
@@ -36,7 +36,7 @@ use crate::{
 const HEADER_VERIFICATION_SLOT_OFFSET: u64 = 10;
 
 /// Ways in which a justification can fail verification.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum CacheError {
     UnknownAuthorities(SessionId),
     UnknownAuraAuthorities(SessionId),
@@ -79,6 +79,7 @@ impl Display for CacheError {
     }
 }
 
+#[derive(Clone)]
 struct CachedData {
     session_verifier: SessionVerifier,
     aura_authorities: Vec<(Option<AccountId>, AuraId)>,
@@ -125,6 +126,7 @@ fn download_data<AP: AuthorityProvider>(
 /// If the session is too new or ancient it will fail to return requested data.
 /// Highest session verifier this cache returns is for the session after the current finalization session.
 /// Lowest session verifier this cache returns is for `top_returned_session` - `cache_size`.
+#[derive(Clone)]
 pub struct VerifierCache<AP, FI, H>
 where
     AP: AuthorityProvider,
@@ -339,12 +341,11 @@ where
     }
 }
 
-impl<AP, FS> Verifier<Justification> for VerifierCache<AP, FS, Header>
+impl<AP, FS> JustificationVerifier<Justification> for VerifierCache<AP, FS, Header>
 where
     AP: AuthorityProvider,
     FS: FinalizationInfo,
 {
-    type EquivocationProof = EquivocationProof;
     type Error = VerificationError;
 
     fn verify_justification(
@@ -364,12 +365,21 @@ where
             },
         }
     }
+}
+
+impl<AP, FS> HeaderVerifier<Header> for VerifierCache<AP, FS, Header>
+where
+    AP: AuthorityProvider,
+    FS: FinalizationInfo,
+{
+    type Error = VerificationError;
+    type EquivocationProof = EquivocationProof;
 
     fn verify_header(
         &mut self,
         mut header: Header,
         just_created: bool,
-    ) -> Result<VerifiedHeader<Justification, Self::EquivocationProof>, Self::Error> {
+    ) -> Result<VerifiedHeader<Header, Self::EquivocationProof>, Self::Error> {
         // compare genesis header directly to the one we know
         if header.number().is_zero() {
             return match header == self.genesis_header {
@@ -397,7 +407,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{cell::Cell, collections::HashMap};
+    use std::{
+        collections::HashMap,
+        sync::{Arc, Mutex},
+    };
 
     use sp_runtime::testing::UintAuthorityId;
 
@@ -415,19 +428,20 @@ mod tests {
     const SESSION_PERIOD: u32 = 30;
     const CACHE_SIZE: usize = 3;
 
-    type TestVerifierCache<'a> =
-        VerifierCache<MockAuthorityProvider, MockFinalizationInfo<'a>, MockHeader>;
+    type TestVerifierCache = VerifierCache<MockAuthorityProvider, MockFinalizationInfo, MockHeader>;
 
-    struct MockFinalizationInfo<'a> {
-        finalized_number: &'a Cell<BlockNumber>,
+    #[derive(Clone)]
+    struct MockFinalizationInfo {
+        finalized_number: Arc<Mutex<BlockNumber>>,
     }
 
-    impl<'a> FinalizationInfo for MockFinalizationInfo<'a> {
+    impl FinalizationInfo for MockFinalizationInfo {
         fn finalized_number(&self) -> BlockNumber {
-            self.finalized_number.get()
+            *self.finalized_number.lock().expect("mutex works")
         }
     }
 
+    #[derive(Clone)]
     struct MockAuthorityProvider {
         session_map: HashMap<SessionId, SessionAuthorityData>,
         aura_authority_map: HashMap<SessionId, Vec<AuraId>>,
@@ -499,7 +513,7 @@ mod tests {
         }
     }
 
-    fn setup_test(max_session_n: u32, finalized_number: &'_ Cell<u32>) -> TestVerifierCache<'_> {
+    fn setup_test(max_session_n: u32, finalized_number: Arc<Mutex<u32>>) -> TestVerifierCache {
         let finalization_info = MockFinalizationInfo { finalized_number };
         let authority_provider = MockAuthorityProvider::new(max_session_n);
         let genesis_header = MockHeader::random_parentless(0);
@@ -513,8 +527,8 @@ mod tests {
         )
     }
 
-    fn finalize_first_in_session(finalized_number: &Cell<u32>, session_id: u32) {
-        finalized_number.set(session_id * SESSION_PERIOD);
+    fn finalize_first_in_session(finalized_number: Arc<Mutex<u32>>, session_id: u32) {
+        *finalized_number.lock().expect("mutex works") = session_id * SESSION_PERIOD;
     }
 
     fn session_verifier(
@@ -533,28 +547,28 @@ mod tests {
 
     #[test]
     fn genesis_session() {
-        let finalized_number = Cell::new(0);
+        let finalized_number = Arc::new(Mutex::new(0));
 
-        let mut verifier = setup_test(0, &finalized_number);
+        let mut verifier = setup_test(0, finalized_number);
 
         check_session_verifier(&mut verifier, 0);
     }
 
     #[test]
     fn normal_session() {
-        let finalized_number = Cell::new(0);
+        let finalized_number = Arc::new(Mutex::new(0));
 
-        let mut verifier = setup_test(3, &finalized_number);
+        let mut verifier = setup_test(3, finalized_number.clone());
 
         check_session_verifier(&mut verifier, 0);
         check_session_verifier(&mut verifier, 1);
 
-        finalize_first_in_session(&finalized_number, 1);
+        finalize_first_in_session(finalized_number.clone(), 1);
         check_session_verifier(&mut verifier, 0);
         check_session_verifier(&mut verifier, 1);
         check_session_verifier(&mut verifier, 2);
 
-        finalize_first_in_session(&finalized_number, 2);
+        finalize_first_in_session(finalized_number, 2);
         check_session_verifier(&mut verifier, 1);
         check_session_verifier(&mut verifier, 2);
         check_session_verifier(&mut verifier, 3);
@@ -564,17 +578,17 @@ mod tests {
     fn prunes_old_sessions() {
         assert_eq!(CACHE_SIZE, 3);
 
-        let finalized_number = Cell::new(0);
+        let finalized_number = Arc::new(Mutex::new(0));
 
-        let mut verifier = setup_test(4, &finalized_number);
+        let mut verifier = setup_test(4, finalized_number.clone());
 
         check_session_verifier(&mut verifier, 0);
         check_session_verifier(&mut verifier, 1);
 
-        finalize_first_in_session(&finalized_number, 1);
+        finalize_first_in_session(finalized_number.clone(), 1);
         check_session_verifier(&mut verifier, 2);
 
-        finalize_first_in_session(&finalized_number, 2);
+        finalize_first_in_session(finalized_number.clone(), 2);
         check_session_verifier(&mut verifier, 3);
 
         // Should no longer have verifier for session 0
@@ -583,7 +597,7 @@ mod tests {
             Err(CacheError::SessionTooOld(SessionId(0), SessionId(1)))
         );
 
-        finalize_first_in_session(&finalized_number, 3);
+        finalize_first_in_session(finalized_number, 3);
         check_session_verifier(&mut verifier, 4);
 
         // Should no longer have verifier for session 1
@@ -595,11 +609,11 @@ mod tests {
 
     #[test]
     fn session_from_future() {
-        let finalized_number = Cell::new(0);
+        let finalized_number = Arc::new(Mutex::new(0));
 
-        let mut verifier = setup_test(3, &finalized_number);
+        let mut verifier = setup_test(3, finalized_number.clone());
 
-        finalize_first_in_session(&finalized_number, 1);
+        finalize_first_in_session(finalized_number, 1);
 
         // Did not finalize first block in session 2 yet
         assert_eq!(
@@ -610,15 +624,15 @@ mod tests {
 
     #[test]
     fn authority_provider_error() {
-        let finalized_number = Cell::new(0);
-        let mut verifier = setup_test(0, &finalized_number);
+        let finalized_number = Arc::new(Mutex::new(0));
+        let mut verifier = setup_test(0, finalized_number.clone());
 
         assert_eq!(
             session_verifier(&mut verifier, 1),
             Err(CacheError::UnknownAuthorities(SessionId(1)))
         );
 
-        finalize_first_in_session(&finalized_number, 1);
+        finalize_first_in_session(finalized_number, 1);
 
         assert_eq!(
             session_verifier(&mut verifier, 2),

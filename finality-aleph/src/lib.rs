@@ -32,6 +32,7 @@ use crate::{
         SignatureSet, SpawnHandle, CURRENT_VERSION, LEGACY_VERSION,
     },
     aggregation::{CurrentRmcNetworkData, LegacyRmcNetworkData},
+    block::UnverifiedHeader,
     compatibility::{Version, Versioned},
     network::data::split::Split,
     session::{SessionBoundaries, SessionBoundaryInfo, SessionId},
@@ -106,13 +107,13 @@ pub struct MillisecsPerBlock(pub u64);
 pub struct UnitCreationDelay(pub u64);
 
 type LegacySplitData = Split<LegacyNetworkData, LegacyRmcNetworkData>;
-type CurrentSplitData = Split<CurrentNetworkData, CurrentRmcNetworkData>;
+type CurrentSplitData<UH> = Split<CurrentNetworkData<UH>, CurrentRmcNetworkData>;
 
 impl Versioned for LegacyNetworkData {
     const VERSION: Version = Version(LEGACY_VERSION);
 }
 
-impl Versioned for CurrentNetworkData {
+impl<UH: UnverifiedHeader> Versioned for CurrentNetworkData<UH> {
     const VERSION: Version = Version(CURRENT_VERSION);
 }
 
@@ -164,7 +165,7 @@ impl<L: Versioned + Encode, R: Versioned + Encode> Encode for VersionedEitherMes
     }
 }
 
-type VersionedNetworkData = VersionedEitherMessage<LegacySplitData, CurrentSplitData>;
+type VersionedNetworkData<UH> = VersionedEitherMessage<LegacySplitData, CurrentSplitData<UH>>;
 
 #[derive(Debug, Display, Clone)]
 pub enum VersionedTryFromError {
@@ -172,20 +173,20 @@ pub enum VersionedTryFromError {
     ExpectedOldGotNew,
 }
 
-impl TryFrom<VersionedNetworkData> for LegacySplitData {
+impl<UH: UnverifiedHeader> TryFrom<VersionedNetworkData<UH>> for LegacySplitData {
     type Error = VersionedTryFromError;
 
-    fn try_from(value: VersionedNetworkData) -> Result<Self, Self::Error> {
+    fn try_from(value: VersionedNetworkData<UH>) -> Result<Self, Self::Error> {
         Ok(match value {
             VersionedEitherMessage::Left(data) => data,
             VersionedEitherMessage::Right(_) => return Err(ExpectedOldGotNew),
         })
     }
 }
-impl TryFrom<VersionedNetworkData> for CurrentSplitData {
+impl<UH: UnverifiedHeader> TryFrom<VersionedNetworkData<UH>> for CurrentSplitData<UH> {
     type Error = VersionedTryFromError;
 
-    fn try_from(value: VersionedNetworkData) -> Result<Self, Self::Error> {
+    fn try_from(value: VersionedNetworkData<UH>) -> Result<Self, Self::Error> {
         Ok(match value {
             VersionedEitherMessage::Left(_) => return Err(ExpectedNewGotOld),
             VersionedEitherMessage::Right(data) => data,
@@ -193,14 +194,14 @@ impl TryFrom<VersionedNetworkData> for CurrentSplitData {
     }
 }
 
-impl From<LegacySplitData> for VersionedNetworkData {
+impl<UH: UnverifiedHeader> From<LegacySplitData> for VersionedNetworkData<UH> {
     fn from(data: LegacySplitData) -> Self {
         VersionedEitherMessage::Left(data)
     }
 }
 
-impl From<CurrentSplitData> for VersionedNetworkData {
-    fn from(data: CurrentSplitData) -> Self {
+impl<UH: UnverifiedHeader> From<CurrentSplitData<UH>> for VersionedNetworkData<UH> {
+    fn from(data: CurrentSplitData<UH>) -> Self {
         VersionedEitherMessage::Right(data)
     }
 }

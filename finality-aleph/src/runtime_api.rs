@@ -17,7 +17,7 @@ use crate::{
 };
 
 /// Trait handling connection between host code and runtime storage
-pub trait RuntimeApi {
+pub trait RuntimeApi: Clone + Send + Sync + 'static {
     type Error: Display;
     /// Returns aura authorities for the next session using state from block `at`
     fn next_aura_authorities(&self, at: BlockHash)
@@ -26,7 +26,6 @@ pub trait RuntimeApi {
 
 type QueuedKeys = Vec<(AccountId, SessionKeys)>;
 
-#[derive(Clone)]
 pub struct RuntimeApiImpl<C, B, BE>
 where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
@@ -36,6 +35,18 @@ where
 {
     client: Arc<C>,
     _phantom: PhantomData<(B, BE)>,
+}
+
+impl<C, B, BE> Clone for RuntimeApiImpl<C, B, BE>
+where
+    C: ClientForAleph<B, BE> + Send + Sync + 'static,
+    C::Api: AlephSessionApi<B>,
+    B: Block<Hash = BlockHash>,
+    BE: Backend<B> + 'static,
+{
+    fn clone(&self) -> Self {
+        RuntimeApiImpl::new(self.client.clone())
+    }
 }
 
 impl<C, B, BE> RuntimeApiImpl<C, B, BE>

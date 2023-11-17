@@ -180,11 +180,15 @@ where
         justification_rx,
         block_rx,
     );
-    let (sync_service, justifications_for_sync, request_block) =
-        match SyncService::new(verifier, session_info.clone(), sync_io, registry.clone()) {
-            Ok(x) => x,
-            Err(e) => panic!("Failed to initialize Sync service: {e}"),
-        };
+    let (sync_service, justifications_for_sync, request_block) = match SyncService::new(
+        verifier.clone(),
+        session_info.clone(),
+        sync_io,
+        registry.clone(),
+    ) {
+        Ok(x) => x,
+        Err(e) => panic!("Failed to initialize Sync service: {e}"),
+    };
     let sync_task = async move { sync_service.run().await };
 
     let validator_address_cache_updater = validator_address_cache_updater(
@@ -228,6 +232,7 @@ where
         session_manager: NodeSessionManagerImpl::new(
             client,
             select_chain,
+            verifier,
             session_period,
             unit_creation_delay,
             justifications_for_sync,

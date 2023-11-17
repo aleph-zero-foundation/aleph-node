@@ -1,6 +1,12 @@
-use std::{fmt::Debug, hash::Hash, num::NonZeroUsize};
+use std::{
+    fmt::Debug,
+    hash::{Hash, Hasher},
+    num::NonZeroUsize,
+};
 
 use parity_scale_codec::{Decode, Encode};
+
+use crate::block::UnverifiedHeader;
 
 mod chain_info;
 mod data_interpreter;
@@ -22,15 +28,21 @@ pub use proposal::UnvalidatedAlephProposal;
 pub const MAX_DATA_BRANCH_LEN: usize = 7;
 
 /// The data ordered by the Aleph consensus.
-#[derive(Clone, Debug, Encode, Decode, Hash, PartialEq, Eq)]
-pub struct AlephData {
-    pub head_proposal: UnvalidatedAlephProposal,
+#[derive(Clone, Debug, Encode, Decode, PartialEq, Eq)]
+pub struct AlephData<UH: UnverifiedHeader> {
+    pub head_proposal: UnvalidatedAlephProposal<UH>,
+}
+
+impl<UH: UnverifiedHeader> Hash for AlephData<UH> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.head_proposal.hash(state);
+    }
 }
 
 /// A trait allowing to check the data contained in an AlephBFT network message, for the purpose of
 /// data availability checks.
-pub trait AlephNetworkMessage: Clone + Debug {
-    fn included_data(&self) -> Vec<AlephData>;
+pub trait AlephNetworkMessage<UH: UnverifiedHeader>: Clone + Debug {
+    fn included_data(&self) -> Vec<AlephData<UH>>;
 }
 
 #[derive(Clone, Debug)]

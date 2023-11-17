@@ -156,20 +156,20 @@ mod tests {
                 AuxFinalizationChainInfoProvider, CachedChainInfoProvider,
                 SubstrateChainInfoProvider,
             },
-            proposal::{
-                AlephProposal,
-                PendingProposalStatus::*,
-                ProposalStatus::{self, *},
+            legacy::{
+                proposal::{
+                    AlephProposal,
+                    PendingProposalStatus::*,
+                    ProposalStatus::{self, *},
+                },
+                status_provider::get_proposal_status,
+                test::unvalidated_proposal_from_headers,
+                ChainInfoCacheConfig, MAX_DATA_BRANCH_LEN,
             },
-            status_provider::get_proposal_status,
-            ChainInfoCacheConfig, MAX_DATA_BRANCH_LEN,
         },
         testing::{
             client_chain_builder::ClientChainBuilder,
-            mocks::{
-                unvalidated_proposal_from_headers, TBlock, THeader, TestClient, TestClientBuilder,
-                TestClientBuilderExt,
-            },
+            mocks::{TBlock, THeader, TestClient, TestClientBuilder, TestClientBuilderExt},
         },
         SessionBoundaryInfo, SessionId, SessionPeriod,
     };
