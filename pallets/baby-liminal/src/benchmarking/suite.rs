@@ -7,7 +7,7 @@ use frame_support::{
     BoundedVec,
 };
 use frame_system::RawOrigin;
-use sp_std::vec::Vec;
+use sp_std::{vec, vec::Vec};
 
 use crate::{
     BalanceOf, Call, Config, Pallet, VerificationKeyDeposits, VerificationKeyIdentifier,

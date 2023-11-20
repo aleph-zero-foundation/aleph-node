@@ -1154,10 +1154,10 @@ impl_runtime_apis! {
         fn dispatch_benchmark(
             config: frame_benchmarking::BenchmarkConfig
         ) -> Result<Vec<frame_benchmarking::BenchmarkBatch>, sp_runtime::RuntimeString> {
-            use frame_benchmarking::{Benchmarking, BenchmarkBatch, TrackedStorageKey};
+            use frame_benchmarking::{Benchmarking, BenchmarkBatch};
             use frame_support::traits::WhitelistedStorageKeys;
 
-            let whitelist: Vec<TrackedStorageKey> = AllPalletsWithSystem::whitelisted_storage_keys();
+            let whitelist: Vec<_> = AllPalletsWithSystem::whitelisted_storage_keys();
 
             let params = (&config, &whitelist);
             let mut batches = Vec::<BenchmarkBatch>::new();
