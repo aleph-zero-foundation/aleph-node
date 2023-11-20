@@ -13,6 +13,7 @@ use tokio::time::timeout;
 
 use crate::{
     aleph_primitives::BlockNumber,
+    block::Header as _,
     data_io::{AlephData, AlephNetworkMessage, DataStore, DataStoreConfig, MAX_DATA_BRANCH_LEN},
     network::{
         data::{component::Network as ComponentNetwork, Network as DataNetwork},
@@ -42,10 +43,10 @@ impl TestBlockRequester {
     }
 }
 
-impl RequestBlocks for TestBlockRequester {
+impl RequestBlocks<THeader> for TestBlockRequester {
     type Error = TrySendError<BlockId>;
-    fn request_block(&self, block_id: BlockId) -> Result<(), Self::Error> {
-        self.blocks.unbounded_send(block_id)
+    fn request_block(&self, header: THeader) -> Result<(), Self::Error> {
+        self.blocks.unbounded_send(header.id())
     }
 }
 

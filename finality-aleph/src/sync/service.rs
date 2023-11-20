@@ -7,7 +7,7 @@ use substrate_prometheus_endpoint::Registry;
 use crate::{
     block::{
         Block, BlockImport, ChainStatus, ChainStatusNotification, ChainStatusNotifier,
-        EquivocationProof, Finalizer, HeaderVerifier, Justification, JustificationVerifier,
+        EquivocationProof, Finalizer, Header, HeaderVerifier, Justification, JustificationVerifier,
         UnverifiedHeader, UnverifiedHeaderFor,
     },
     network::GossipNetwork,
@@ -24,7 +24,7 @@ use crate::{
         task_queue::TaskQueue,
         tasks::{Action as TaskAction, RequestTask},
         ticker::Ticker,
-        BlockId, JustificationSubmissions, RequestBlocks, LOG_TARGET,
+        BlockId, JustificationSubmissions, LegacyRequestBlocks, RequestBlocks, LOG_TARGET,
     },
     SyncOracle,
 };
@@ -100,7 +100,8 @@ where
     chain_events: CE,
     justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
     additional_justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
-    block_requests_from_user: mpsc::UnboundedReceiver<BlockId>,
+    block_requests_from_user: mpsc::UnboundedReceiver<B::UnverifiedHeader>,
+    legacy_block_requests_from_user: mpsc::UnboundedReceiver<BlockId>,
     blocks_from_creator: mpsc::UnboundedReceiver<B>,
     metrics: Metrics,
 }
@@ -113,11 +114,26 @@ impl<J: Justification> JustificationSubmissions<J> for mpsc::UnboundedSender<J::
     }
 }
 
-impl RequestBlocks for mpsc::UnboundedSender<BlockId> {
+// TODO(A0-3494): This will be unnecessary, just impl the trait for the sender.
+#[derive(Clone)]
+struct CompatibilityRequestBlocks<UH: UnverifiedHeader> {
+    current: mpsc::UnboundedSender<UH>,
+    legacy: mpsc::UnboundedSender<BlockId>,
+}
+
+impl<UH: UnverifiedHeader> LegacyRequestBlocks for CompatibilityRequestBlocks<UH> {
     type Error = mpsc::TrySendError<BlockId>;
 
     fn request_block(&self, block_id: BlockId) -> Result<(), Self::Error> {
-        self.unbounded_send(block_id)
+        self.legacy.unbounded_send(block_id)
+    }
+}
+
+impl<UH: UnverifiedHeader> RequestBlocks<UH> for CompatibilityRequestBlocks<UH> {
+    type Error = mpsc::TrySendError<UH>;
+
+    fn request_block(&self, header: UH) -> Result<(), Self::Error> {
+        self.current.unbounded_send(header)
     }
 }
 
@@ -144,7 +160,7 @@ where
         (
             Self,
             impl JustificationSubmissions<J> + Clone,
-            impl RequestBlocks,
+            impl RequestBlocks<B::UnverifiedHeader> + LegacyRequestBlocks,
         ),
         HandlerError<B, J, CS, V, F>,
     > {
@@ -163,6 +179,7 @@ where
         let chain_extension_ticker = Ticker::new(TICK_PERIOD, CHAIN_EXTENSION_COOLDOWN);
         let (justifications_for_sync, justifications_from_user) = mpsc::unbounded();
         let (block_requests_for_sync, block_requests_from_user) = mpsc::unbounded();
+        let (legacy_block_requests_for_sync, legacy_block_requests_from_user) = mpsc::unbounded();
         let metrics = match Metrics::new(metrics_registry) {
             Ok(metrics) => metrics,
             Err(e) => {
@@ -183,10 +200,14 @@ where
                 additional_justifications_from_user,
                 blocks_from_creator,
                 block_requests_from_user,
+                legacy_block_requests_from_user,
                 metrics,
             },
             justifications_for_sync,
-            block_requests_for_sync,
+            CompatibilityRequestBlocks {
+                current: block_requests_for_sync,
+                legacy: legacy_block_requests_for_sync,
+            },
         ))
     }
 
@@ -252,11 +273,15 @@ where
         match self.handler.extension_request() {
             FavouriteBlock { know_most } => self.request_favourite_extension(know_most),
             HighestJustified {
-                id,
+                header,
                 know_most,
                 branch_knowledge,
             } => {
-                self.send_request(PreRequest::new(id, branch_knowledge, know_most));
+                self.send_request(PreRequest::new(
+                    header.into_unverified(),
+                    branch_knowledge,
+                    know_most,
+                ));
                 self.chain_extension_ticker.reset();
             }
             Noop => {
@@ -273,7 +298,7 @@ where
         }
     }
 
-    fn send_request(&mut self, pre_request: PreRequest<N::PeerId>) {
+    fn send_request(&mut self, pre_request: PreRequest<UnverifiedHeaderFor<J>, N::PeerId>) {
         self.metrics.report_event(Event::SendRequest);
         let state = match self.handler.state() {
             Ok(state) => state,
@@ -310,7 +335,7 @@ where
         }
     }
 
-    fn process_equivocation_proofs(&self, proofs: Vec<V::EquivocationProof>) {
+    fn process_equivocation_proofs<I: IntoIterator<Item = V::EquivocationProof>>(&self, proofs: I) {
         for proof in proofs {
             warn!(target: LOG_TARGET, "Equivocation detected: {proof}");
             if proof.are_we_equivocating() {
@@ -330,7 +355,7 @@ where
         );
         match self.handler.handle_state(state, peer.clone()) {
             Ok((action, maybe_proof)) => {
-                self.process_equivocation_proofs(maybe_proof.into_iter().collect());
+                self.process_equivocation_proofs(maybe_proof);
                 match action {
                     Response(data) => self.send_to(data, peer),
                     ExtendChain => self.try_request_chain_extension(),
@@ -484,16 +509,22 @@ where
         self.metrics.report_event(Event::HandleRequest);
 
         match self.handler.handle_request(request) {
-            Ok(Action::Response(response_items)) => {
-                if let Err(e) = self.send_big_response(&response_items, peer) {
-                    error!(
-                        target: LOG_TARGET,
-                        "Error while sending request response: {}.", e
-                    );
-                    self.metrics.report_event_error(Event::HandleRequest);
+            Ok((action, maybe_equivocation_proof)) => {
+                self.process_equivocation_proofs(maybe_equivocation_proof);
+                match action {
+                    Action::Response(response_items) => {
+                        if let Err(e) = self.send_big_response(&response_items, peer) {
+                            error!(
+                                target: LOG_TARGET,
+                                "Error while sending request response: {}.", e
+                            );
+                            self.metrics.report_event_error(Event::HandleRequest);
+                        }
+                    }
+                    Action::RequestBlock(header) => self.request_block(header.id()),
+                    _ => {}
                 }
             }
-            Ok(Action::RequestBlock(id)) => self.request_block(id),
             Err(e) => {
                 self.metrics.report_event_error(Event::HandleRequest);
                 match e {
@@ -511,7 +542,6 @@ where
                     ),
                 }
             }
-            _ => {}
         }
     }
 
@@ -553,25 +583,24 @@ where
         }
     }
 
-    fn handle_internal_request(&mut self, id: BlockId) {
+    fn handle_internal_request(&mut self, header: B::UnverifiedHeader) {
+        let id = header.id();
         trace!(
             target: LOG_TARGET,
             "Handling an internal request for block {:?}.",
             id,
         );
         self.metrics.report_event(Event::HandleInternalRequest);
-        match self.handler.handle_internal_request(&id) {
-            Ok(true) => self.request_block(id),
-
-            Ok(_) => debug!(target: LOG_TARGET, "Already requested block {:?}.", id),
-
+        match self.handler.handle_internal_request(header) {
+            Ok((request, maybe_equivocation)) => {
+                if request {
+                    self.request_block(id);
+                }
+                self.process_equivocation_proofs(maybe_equivocation);
+            }
             Err(e) => {
                 self.metrics.report_event(Event::HandleInternalRequest);
                 match e {
-                    HandlerError::JustificationVerifier(e) => debug!(
-                        target: LOG_TARGET,
-                        "Could not verify justification from user: {}", e
-                    ),
                     HandlerError::HeaderVerifier(e) => debug!(
                         target: LOG_TARGET,
                         "Could not verify header from user: {}", e
@@ -581,6 +610,28 @@ where
                         "Error handling internal request for block {:?}: {}.", id, e
                     ),
                 }
+            }
+        }
+    }
+
+    fn handle_legacy_internal_request(&mut self, id: BlockId) {
+        trace!(
+            target: LOG_TARGET,
+            "Handling a legacy internal request for block {:?}.",
+            id,
+        );
+        self.metrics.report_event(Event::HandleInternalRequest);
+        match self.handler.handle_legacy_internal_request(&id) {
+            Ok(true) => self.request_block(id),
+
+            Ok(_) => debug!(target: LOG_TARGET, "Already requested block {:?}.", id),
+
+            Err(e) => {
+                self.metrics.report_event(Event::HandleInternalRequest);
+                warn!(
+                    target: LOG_TARGET,
+                    "Error handling legacy internal request for block {:?}: {}.", id, e
+                )
             }
         }
     }
@@ -598,7 +649,7 @@ where
                         .report_event_error(Event::HandleExtensionRequest);
                 }
             }
-            Ok(Action::RequestBlock(id)) => self.request_block(id),
+            Ok(Action::RequestBlock(header)) => self.request_block(header.id()),
             Ok(Action::Noop) => {}
             Err(e) => {
                 self.metrics
@@ -641,7 +692,7 @@ where
     fn handle_own_block(&mut self, block: B) {
         match self.handler.handle_own_block(block) {
             Ok((broadcast, maybe_proof)) => {
-                self.process_equivocation_proofs(maybe_proof.into_iter().collect());
+                self.process_equivocation_proofs(maybe_proof);
                 if let Err(e) = self
                     .network
                     .broadcast(NetworkData::RequestResponse(broadcast))
@@ -690,12 +741,19 @@ where
                     },
                     None => warn!(target: LOG_TARGET, "Channel with additional justifications from user closed."),
                 },
-                maybe_block_id = self.block_requests_from_user.next() => match maybe_block_id {
-                    Some(block_id) => {
-                        debug!(target: LOG_TARGET, "Received new internal block request from user: {:?}.", block_id);
-                        self.handle_internal_request(block_id)
+                maybe_header = self.block_requests_from_user.next() => match maybe_header {
+                    Some(header) => {
+                        debug!(target: LOG_TARGET, "Received new internal block request from user: {:?}.", header);
+                        self.handle_internal_request(header)
                     },
                     None => warn!(target: LOG_TARGET, "Channel with internal block request from user closed."),
+                },
+                maybe_block_id = self.legacy_block_requests_from_user.next() => match maybe_block_id {
+                    Some(block_id) => {
+                        debug!(target: LOG_TARGET, "Received new internal block request from user: {:?}.", block_id);
+                        self.handle_legacy_internal_request(block_id)
+                    },
+                    None => warn!(target: LOG_TARGET, "Channel with legacy internal block request from user closed."),
                 },
                 maybe_own_block = self.blocks_from_creator.next() => match maybe_own_block {
                     Some(block) => {

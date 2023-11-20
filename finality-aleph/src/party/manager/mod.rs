@@ -54,7 +54,7 @@ pub use task::{Handle, Runnable, Task, TaskCommon};
 
 use crate::{
     abft::{CURRENT_VERSION, LEGACY_VERSION},
-    sync::RequestBlocks,
+    sync::{LegacyRequestBlocks, RequestBlocks},
 };
 
 #[cfg(feature = "only_legacy")]
@@ -102,7 +102,7 @@ where
     C: crate::ClientForAleph<B, BE> + Send + Sync + 'static,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
-    RB: RequestBlocks,
+    RB: RequestBlocks<B::Header> + LegacyRequestBlocks,
     SM: SessionManager<VersionedNetworkData<B::Header>> + 'static,
     JS: JustificationSubmissions<Justification> + Send + Sync + Clone,
     V: HeaderVerifier<B::Header>,
@@ -130,7 +130,7 @@ where
     C::Api: crate::aleph_primitives::AlephSessionApi<B>,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
-    RB: RequestBlocks,
+    RB: RequestBlocks<B::Header> + LegacyRequestBlocks,
     SM: SessionManager<VersionedNetworkData<B::Header>>,
     JS: JustificationSubmissions<Justification> + Send + Sync + Clone + 'static,
     V: HeaderVerifier<B::Header>,
@@ -426,7 +426,7 @@ where
     C::Api: crate::aleph_primitives::AlephSessionApi<B>,
     BE: Backend<B> + 'static,
     SC: SelectChain<B> + 'static,
-    RB: RequestBlocks,
+    RB: RequestBlocks<B::Header> + LegacyRequestBlocks,
     SM: SessionManager<VersionedNetworkData<B::Header>>,
     JS: JustificationSubmissions<Justification> + Send + Sync + Clone + 'static,
     V: HeaderVerifier<B::Header>,

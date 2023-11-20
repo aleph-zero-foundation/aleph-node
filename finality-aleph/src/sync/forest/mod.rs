@@ -10,8 +10,11 @@ use static_assertions::const_assert;
 
 use crate::{
     aleph_primitives::DEFAULT_SESSION_PERIOD,
-    block::{Block, ChainStatus, Header, Justification, UnverifiedHeaderFor},
-    sync::{data::BranchKnowledge, BlockId, PeerId},
+    block::{Block, ChainStatus, Header, Justification, UnverifiedHeader, UnverifiedHeaderFor},
+    sync::{
+        data::{BranchKnowledge, MaybeHeader},
+        BlockId, PeerId,
+    },
     BlockNumber,
 };
 
@@ -41,12 +44,14 @@ enum VertexHandle<'a, I: PeerId, J: Justification> {
 
 /// Our interest in a branch referred to by a vertex,
 /// including all the information required to prepare a request.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub enum Interest<I: PeerId> {
+#[derive(Clone, Debug)]
+pub enum Interest<UH: UnverifiedHeader, I: PeerId> {
     /// We are not interested in requesting this branch.
     Uninterested,
     /// We would like to have this branch.
     Required {
+        // TODO(A0-3494): This should be a `Header` (no unverified).
+        header: MaybeHeader<UH>,
         know_most: HashSet<I>,
         branch_knowledge: BranchKnowledge,
     },
@@ -54,14 +59,14 @@ pub enum Interest<I: PeerId> {
 
 /// What kind of extension we should request and from whom.
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub enum ExtensionRequest<I: PeerId> {
+pub enum ExtensionRequest<H: Header, I: PeerId> {
     /// We are not interested in requesting anything at this point.
     Noop,
     /// We would like to have children of our favourite block.
     FavouriteBlock { know_most: HashSet<I> },
     /// We would like to have the justified block.
     HighestJustified {
-        id: BlockId,
+        header: H,
         know_most: HashSet<I>,
         branch_knowledge: BranchKnowledge,
     },
@@ -155,11 +160,11 @@ where
     J: Justification,
 {
     vertices: HashMap<BlockId, VertexWithChildren<I, J>>,
-    highest_justified: BlockId,
+    highest_justified: J::Header,
     justified_blocks: HashMap<BlockNumber, BlockId>,
-    imported_leaves: HashSet<BlockId>,
-    favourite: BlockId,
-    root_id: BlockId,
+    imported_leaves: HashMap<BlockId, J::Header>,
+    favourite: J::Header,
+    root: J::Header,
     root_children: HashSet<BlockId>,
     compost_bin: HashSet<BlockId>,
 }
@@ -182,20 +187,20 @@ where
             .top_finalized()
             .map_err(InitializationError::ChainStatus)?
             .header()
-            .id();
+            .clone();
         let mut forest = Self {
             vertices: HashMap::new(),
             highest_justified: top_finalized.clone(),
             justified_blocks: HashMap::new(),
-            imported_leaves: HashSet::new(),
+            imported_leaves: HashMap::new(),
             favourite: top_finalized.clone(),
-            root_id: top_finalized.clone(),
+            root: top_finalized.clone(),
             root_children: HashSet::new(),
             compost_bin: HashSet::new(),
         };
 
         // Populate the forest
-        let mut deque = VecDeque::from([top_finalized]);
+        let mut deque = VecDeque::from([top_finalized.id()]);
         while let Some(id) = deque.pop_front() {
             let children = chain_status
                 .children(id)
@@ -216,11 +221,11 @@ where
 
     fn special_state(&self, id: &BlockId) -> Option<SpecialState> {
         use SpecialState::*;
-        if id == &self.root_id {
+        if id == &self.root.id() {
             Some(HighestFinalized)
-        } else if id.number() <= self.root_id.number() {
+        } else if id.number() <= self.root.id().number() {
             Some(BelowMinimal)
-        } else if id.number() > self.root_id.number() + MAX_DEPTH {
+        } else if id.number() > self.root.id().number() + MAX_DEPTH {
             Some(TooNew)
         } else if self.compost_bin.contains(id) {
             Some(HopelessFork)
@@ -259,7 +264,7 @@ where
         if let Candidate(mut entry) = self.get_mut(id) {
             let vertex = entry.get_mut();
             let required = vertex.vertex.importable();
-            if let Some(parent_id) = vertex.vertex.parent().cloned() {
+            if let Some(parent_id) = vertex.vertex.parent() {
                 match self.get_mut(&parent_id) {
                     Unknown(entry) => {
                         entry
@@ -290,7 +295,7 @@ where
         if let VertexHandleMut::Candidate(mut entry) = self.get_mut(id) {
             let vertex = entry.get_mut();
             if vertex.vertex.set_required() {
-                if let Some(id) = vertex.vertex.parent().cloned() {
+                if let Some(id) = vertex.vertex.parent() {
                     self.set_required(&id);
                 }
             }
@@ -302,7 +307,7 @@ where
             VertexHandleMut::Candidate(mut entry) => {
                 match entry.get_mut().vertex.set_explicitly_required() {
                     true => {
-                        if let Some(parent_id) = entry.get_mut().vertex.parent().cloned() {
+                        if let Some(parent_id) = entry.get_mut().vertex.parent() {
                             self.set_required(&parent_id);
                         }
                         true
@@ -360,10 +365,10 @@ where
         required: bool,
     ) -> Result<bool, Error> {
         let (id, parent_id) = self.process_header(header)?;
-        let mut new_descendant = parent_id == self.root_id;
+        let mut new_descendant = parent_id == self.root.id();
         self.insert_id(id.clone(), holder.clone())?;
         if let VertexHandleMut::Candidate(mut entry) = self.get_mut(&id) {
-            if !entry.get_mut().vertex.insert_header(parent_id, holder) {
+            if !entry.get_mut().vertex.insert_header(header.clone(), holder) {
                 new_descendant = false;
             }
             self.connect_parent(&id);
@@ -395,16 +400,16 @@ where
         match self.get_mut(&id) {
             Candidate(mut entry) => {
                 let vertex = &mut entry.get_mut().vertex;
-                let update_favourite = vertex.insert_body(parent_id.clone());
+                let update_favourite = vertex.insert_body(header.clone());
                 if vertex.justified_block() {
                     self.justified_blocks.insert(id.number(), id.clone());
                 }
                 if update_favourite {
-                    if parent_id == self.favourite {
-                        self.favourite = id.clone();
+                    if parent_id == self.favourite.id() {
+                        self.favourite = header.clone();
                     }
                     self.imported_leaves.remove(&parent_id);
-                    self.imported_leaves.insert(id);
+                    self.imported_leaves.insert(id, header.clone());
                 }
                 Ok(())
             }
@@ -412,11 +417,11 @@ where
         }
     }
 
-    /// Updates the `highest_justified` if the given id is higher.
-    fn try_update_highest_justified(&mut self, id: BlockId) -> bool {
-        match id.number() > self.highest_justified.number() {
+    /// Updates the `highest_justified` if the given header is higher.
+    fn try_update_highest_justified(&mut self, header: &J::Header) -> bool {
+        match header.id().number() > self.highest_justified.id().number() {
             true => {
-                self.highest_justified = id;
+                self.highest_justified = header.clone();
                 true
             }
             false => false,
@@ -430,13 +435,13 @@ where
         justification: J,
         holder: Option<I>,
     ) -> Result<bool, Error> {
-        let header = justification.header();
+        let header = justification.header().clone();
         if header.id().number() == 0 {
             // this is the genesis block
             return Ok(false);
         }
-        let (id, parent_id) = self.process_header(header)?;
-        self.update_header(header, None, false)?;
+        let (id, parent_id) = self.process_header(&header)?;
+        self.update_header(&header, None, false)?;
         Ok(match self.get_mut(&id) {
             VertexHandleMut::Candidate(mut entry) => {
                 let vertex = &mut entry.get_mut().vertex;
@@ -444,7 +449,7 @@ where
                 if vertex.justified_block() {
                     self.justified_blocks.insert(id.number(), id.clone());
                 }
-                self.try_update_highest_justified(id.clone())
+                self.try_update_highest_justified(&header)
             }
             _ => false,
         })
@@ -454,7 +459,7 @@ where
         use SpecialState::*;
         use VertexHandle::*;
         if matches!(
-            self.get(&self.favourite),
+            self.get(&self.favourite.id()),
             Special(HighestFinalized) | Candidate(_)
         ) {
             // The favourite is fine.
@@ -463,8 +468,9 @@ where
         self.favourite = self
             .imported_leaves
             .iter()
-            .max_by_key(|leaf| leaf.number())
-            .unwrap_or(&self.root_id)
+            .max_by_key(|(leaf_id, _)| leaf_id.number())
+            .map(|(_, header)| header)
+            .unwrap_or(&self.root)
             .clone();
     }
 
@@ -500,9 +506,9 @@ where
                 match vertex.ready() {
                     // should always match, as the id is taken from self.justified_blocks
                     Ok(justification) => {
-                        self.root_id = id.clone();
+                        self.root = justification.header().clone();
                         self.root_children = children;
-                        self.prune_level(self.root_id.number());
+                        self.prune_level(self.root.id().number());
                         return Some(justification);
                     }
                     Err(_vertex) => panic!("Block sync justified_blocks cache corrupted, please restart the Node and contact the developers"),
@@ -526,7 +532,7 @@ where
                         return Some(BranchKnowledge::TopImported(id));
                     }
                     // try update current id to parent_id
-                    match vertex.vertex.parent().cloned() {
+                    match vertex.vertex.parent() {
                         // it has a parent, continue
                         Some(parent_id) => id = parent_id,
                         // does not have parent, thus is the lowest known,
@@ -555,7 +561,11 @@ where
         &self,
         id: &BlockId,
         force: bool,
-    ) -> Option<(HashSet<I>, BranchKnowledge)> {
+    ) -> Option<(
+        MaybeHeader<UnverifiedHeaderFor<J>>,
+        HashSet<I>,
+        BranchKnowledge,
+    )> {
         use VertexHandle::Candidate;
         match self.get(id) {
             Candidate(vertex) => {
@@ -563,10 +573,14 @@ where
                 if !(force || vertex.vertex.requestable()) {
                     return None;
                 }
+                let maybe_header = match vertex.vertex.header() {
+                    Some(header) => MaybeHeader::Header(header.into_unverified()),
+                    None => MaybeHeader::Id(id.clone()),
+                };
                 let know_most = vertex.vertex.know_most();
                 // should always return Some, as the branch of a Candidate always exists
                 self.branch_knowledge(id.clone())
-                    .map(|branch_knowledge| (know_most, branch_knowledge))
+                    .map(|branch_knowledge| (maybe_header, know_most, branch_knowledge))
             }
             // request only Candidates
             _ => None,
@@ -574,9 +588,10 @@ where
     }
 
     /// How much interest we have for requesting the block.
-    pub fn request_interest(&self, id: &BlockId) -> Interest<I> {
+    pub fn request_interest(&self, id: &BlockId) -> Interest<UnverifiedHeaderFor<J>, I> {
         match self.prepare_request_info(id, false) {
-            Some((know_most, branch_knowledge)) => Interest::Required {
+            Some((header, know_most, branch_knowledge)) => Interest::Required {
+                header,
                 know_most,
                 branch_knowledge,
             },
@@ -589,7 +604,7 @@ where
         use VertexHandle::Candidate;
         match self.get(id) {
             Candidate(vertex) => {
-                vertex.vertex.importable() || vertex.vertex.parent() == Some(&self.favourite)
+                vertex.vertex.importable() || vertex.vertex.parent() == Some(self.favourite.id())
             }
             _ => false,
         }
@@ -605,29 +620,30 @@ where
     /// How far behind in finalization are we.
     pub fn behind_finalization(&self) -> u32 {
         self.highest_justified
+            .id()
             .number()
-            .saturating_sub(self.root_id.number())
+            .saturating_sub(self.root.id().number())
     }
 
     /// Returns an extension request with the appropriate data if either:
     /// 1. We know of a justified header for which we do not have a block, or
     /// 2. We know of nodes which have children of our favourite block.
-    pub fn extension_request(&self) -> ExtensionRequest<I> {
+    pub fn extension_request(&self) -> ExtensionRequest<J::Header, I> {
         use ExtensionRequest::*;
         use VertexHandle::*;
         if self.behind_finalization() > 0 {
             // This should always happen, but if it doesn't falling back to other forms of extension requests is acceptable.
-            if let Some((know_most, branch_knowledge)) =
-                self.prepare_request_info(&self.highest_justified, true)
+            if let Some((_, know_most, branch_knowledge)) =
+                self.prepare_request_info(&self.highest_justified.id(), true)
             {
                 return HighestJustified {
-                    id: self.highest_justified.clone(),
+                    header: self.highest_justified.clone(),
                     know_most,
                     branch_knowledge,
                 };
             }
         }
-        if let Candidate(vertex) = self.get(&self.favourite) {
+        if let Candidate(vertex) = self.get(&self.favourite.id()) {
             let know_most: HashSet<_> = vertex
                 .children
                 .iter()
@@ -637,7 +653,7 @@ where
                 return FavouriteBlock { know_most };
             }
         }
-        if let Special(SpecialState::HighestFinalized) = self.get(&self.favourite) {
+        if let Special(SpecialState::HighestFinalized) = self.get(&self.favourite.id()) {
             let know_most: HashSet<_> = self
                 .root_children
                 .iter()
@@ -662,8 +678,8 @@ where
         }
     }
 
-    /// The ID of the favourite block, i.e. the one for which we will accept imports of children.
-    pub fn favourite_block(&self) -> BlockId {
+    /// The header of the favourite block, i.e. the one for which we will accept imports of children.
+    pub fn favourite_block(&self) -> J::Header {
         self.favourite.clone()
     }
 }
@@ -679,7 +695,10 @@ mod tests {
             ChainStatus, Header,
         },
         session::SessionBoundaryInfo,
-        sync::{data::BranchKnowledge::*, Justification, MockPeerId},
+        sync::{
+            data::{BranchKnowledge::*, MaybeHeader},
+            Justification, MockPeerId,
+        },
         BlockNumber, SessionPeriod,
     };
 
@@ -703,10 +722,13 @@ mod tests {
     fn initially_empty() {
         let (initial_header, mut forest) = setup();
         assert!(forest.try_finalize(&1).is_none());
-        assert_eq!(forest.request_interest(&initial_header.id()), Uninterested);
+        assert!(matches!(
+            forest.request_interest(&initial_header.id()),
+            Uninterested
+        ));
         assert!(!forest.importable(&initial_header.id()));
         assert_eq!(forest.extension_request(), Noop);
-        assert_eq!(forest.favourite_block(), initial_header.id());
+        assert_eq!(forest.favourite_block(), initial_header);
     }
 
     #[test]
@@ -718,7 +740,7 @@ mod tests {
             .update_block_identifier(&child.id(), Some(peer_id), false)
             .expect("it's not too high"));
         assert!(forest.try_finalize(&1).is_none());
-        assert_eq!(forest.request_interest(&child.id()), Uninterested);
+        assert!(matches!(forest.request_interest(&child.id()), Uninterested));
         // We don't know this is a descendant.
         assert!(!forest.importable(&child.id()));
         assert_eq!(forest.extension_request(), Noop);
@@ -767,7 +789,7 @@ mod tests {
             .update_header(&child, Some(peer_id), false)
             .expect("header was correct"));
         assert!(forest.try_finalize(&1).is_none());
-        assert_eq!(forest.request_interest(&child.id()), Uninterested);
+        assert!(matches!(forest.request_interest(&child.id()), Uninterested));
         assert!(forest.importable(&child.id()));
         let know_most = HashSet::from([peer_id]);
         assert_eq!(forest.extension_request(), FavouriteBlock { know_most });
@@ -782,7 +804,7 @@ mod tests {
             .update_header(&child, Some(peer_id), false)
             .expect("header was correct"));
         assert!(forest.try_finalize(&1).is_none());
-        assert_eq!(forest.request_interest(&child.id()), Uninterested);
+        assert!(matches!(forest.request_interest(&child.id()), Uninterested));
         assert!(forest.importable(&child.id()));
         let child_know_most = HashSet::from([peer_id]);
         let know_most = child_know_most.clone();
@@ -796,7 +818,10 @@ mod tests {
             "should not count as a child of the favourite",
         );
         assert!(forest.try_finalize(&1).is_none());
-        assert_eq!(forest.request_interest(&grandchild.id()), Uninterested);
+        assert!(matches!(
+            forest.request_interest(&grandchild.id()),
+            Uninterested
+        ));
         assert!(!forest.importable(&grandchild.id()));
         assert_eq!(
             forest.extension_request(),
@@ -886,7 +911,10 @@ mod tests {
             .update_justification(child.clone(), Some(peer_id))
             .expect("header was correct"));
         assert!(forest.try_finalize(&1).is_none());
-        assert_eq!(forest.request_interest(&child.header().id()), Uninterested);
+        assert!(matches!(
+            forest.request_interest(&child.header().id()),
+            Uninterested
+        ));
         match forest.extension_request() {
             HighestJustified { know_most, .. } => {
                 assert!(know_most.contains(&peer_id))
@@ -905,7 +933,10 @@ mod tests {
             .update_justification(child.clone(), Some(peer_id))
             .expect("header was correct"));
         assert!(forest.try_finalize(&1).is_none());
-        assert_eq!(forest.request_interest(&child.header().id()), Uninterested);
+        assert!(matches!(
+            forest.request_interest(&child.header().id()),
+            Uninterested
+        ));
         match forest.extension_request() {
             HighestJustified { know_most, .. } => {
                 assert!(know_most.contains(&peer_id))
@@ -922,11 +953,14 @@ mod tests {
             "should be new highest justified"
         );
         assert!(forest.try_finalize(&1).is_none());
-        assert_eq!(forest.request_interest(&child.header().id()), Uninterested);
-        assert_eq!(
+        assert!(matches!(
+            forest.request_interest(&child.header().id()),
+            Uninterested
+        ));
+        assert!(matches!(
             forest.request_interest(&grandchild.header().id()),
             Uninterested
-        );
+        ));
         match forest.extension_request() {
             HighestJustified { know_most, .. } => {
                 assert!(know_most.contains(&grandpeer_id))
@@ -965,9 +999,9 @@ mod tests {
         let child = initial_header.random_child();
         forest.update_body(&child).expect("header was correct");
         assert!(forest.try_finalize(&1).is_none());
-        assert_eq!(forest.request_interest(&child.id()), Uninterested);
+        assert!(matches!(forest.request_interest(&child.id()), Uninterested));
         assert!(!forest.importable(&child.id()));
-        assert_eq!(forest.favourite_block(), child.id());
+        assert_eq!(forest.favourite_block(), child);
         assert_eq!(forest.extension_request(), Noop);
     }
 
@@ -984,9 +1018,12 @@ mod tests {
             Err(Error::ParentNotImported)
         ));
         assert!(forest.try_finalize(&1).is_none());
-        assert_eq!(forest.request_interest(&child.id()), Uninterested);
+        assert!(matches!(forest.request_interest(&child.id()), Uninterested));
         assert!(forest.importable(&child.id()));
-        assert_eq!(forest.request_interest(&grandchild.id()), Uninterested);
+        assert!(matches!(
+            forest.request_interest(&grandchild.id()),
+            Uninterested
+        ));
         assert!(!forest.importable(&grandchild.id()));
     }
 
@@ -999,7 +1036,10 @@ mod tests {
             .update_justification(child.clone(), Some(peer_id))
             .expect("header was correct"));
         assert!(forest.try_finalize(&1).is_none());
-        assert_eq!(forest.request_interest(&child.header().id()), Uninterested);
+        assert!(matches!(
+            forest.request_interest(&child.header().id()),
+            Uninterested
+        ));
         match forest.extension_request() {
             HighestJustified { know_most, .. } => {
                 assert!(know_most.contains(&peer_id))
@@ -1110,7 +1150,10 @@ mod tests {
             .update_body(child.header())
             .expect("header was correct");
         assert_eq!(forest.try_finalize(&1).expect("the block is ready"), child);
-        assert_eq!(forest.request_interest(&fork_child.id()), Uninterested);
+        assert!(matches!(
+            forest.request_interest(&fork_child.id()),
+            Uninterested
+        ));
         assert!(!forest.importable(&fork_child.id()));
         assert_eq!(
             forest.update_header(&fork_child, Some(fork_peer_id), true),
@@ -1145,7 +1188,10 @@ mod tests {
             .expect("header was correct");
         assert_eq!(forest.try_finalize(&1).expect("the block is ready"), child);
         for header in fork_branch {
-            assert_eq!(forest.request_interest(&header.id()), Uninterested);
+            assert!(matches!(
+                forest.request_interest(&header.id()),
+                Uninterested
+            ));
             assert!(!forest.importable(&header.id()));
         }
         assert_eq!(forest.extension_request(), Noop);
@@ -1157,9 +1203,12 @@ mod tests {
         let fork_branch: Vec<_> = initial_header.random_branch().take(2).collect();
         for header in &fork_branch {
             forest.update_body(header).expect("header was correct");
-            assert_eq!(forest.request_interest(&header.id()), Uninterested);
+            assert!(matches!(
+                forest.request_interest(&header.id()),
+                Uninterested
+            ));
             assert!(!forest.importable(&header.id()));
-            assert_eq!(forest.favourite_block(), header.id());
+            assert_eq!(forest.favourite_block(), header.clone());
         }
         assert_eq!(forest.extension_request(), Noop);
         let favourite_block = fork_branch.last().expect("the fork is not empty");
@@ -1190,14 +1239,14 @@ mod tests {
                 know_most: fork_child_know_most
             }
         );
-        assert_eq!(forest.favourite_block(), favourite_block.id());
+        assert_eq!(forest.favourite_block(), favourite_block.clone());
         assert!(forest
             .update_justification(child.clone(), Some(peer_id))
             .expect("header was correct"));
         assert_eq!(forest.try_finalize(&1).expect("the block is ready"), child);
         let know_most = HashSet::from([greatgrandpeer_id]);
         assert_eq!(forest.extension_request(), FavouriteBlock { know_most });
-        assert_eq!(forest.favourite_block(), grandchild.id());
+        assert_eq!(forest.favourite_block(), grandchild);
     }
 
     #[test]
@@ -1219,7 +1268,10 @@ mod tests {
         assert!(!forest
             .update_header(header, Some(peer_id), false)
             .expect("header was correct"));
-        assert_eq!(forest.request_interest(&header.id()), Uninterested);
+        assert!(matches!(
+            forest.request_interest(&header.id()),
+            Uninterested
+        ));
         assert!(!forest.importable(&header.id()));
         let header = &branch[3];
         let peer_id = rand::random();
@@ -1254,7 +1306,10 @@ mod tests {
         assert!(forest
             .update_header(header, Some(peer_id), false)
             .expect("header was correct"));
-        assert_eq!(forest.request_interest(&header.id()), Uninterested);
+        assert!(matches!(
+            forest.request_interest(&header.id()),
+            Uninterested
+        ));
         assert!(forest.importable(&header.id()));
         // skip branch[1]
         let header = &branch[2];
@@ -1262,7 +1317,10 @@ mod tests {
         assert!(!forest
             .update_header(header, Some(peer_id), false)
             .expect("header was correct"));
-        assert_eq!(forest.request_interest(&header.id()), Uninterested);
+        assert!(matches!(
+            forest.request_interest(&header.id()),
+            Uninterested
+        ));
         assert!(!forest.importable(&header.id()));
         let header = &branch[3];
         let peer_id = rand::random();
@@ -1271,9 +1329,16 @@ mod tests {
             .expect("header was correct"));
         match forest.request_interest(&header.id()) {
             Required {
+                header: required_header,
                 know_most,
                 branch_knowledge,
             } => {
+                match required_header {
+                    MaybeHeader::Header(required_header) => {
+                        assert_eq!(required_header, header.clone())
+                    }
+                    MaybeHeader::Id(_) => panic!("Expected required header, got id."),
+                }
                 assert!(know_most.contains(&peer_id));
                 // we only know parent from branch[2], namely branch[1]
                 assert_eq!(branch_knowledge, LowestId(branch[1].id()));
@@ -1333,10 +1398,10 @@ mod tests {
             assert!(forest
                 .update_justification(justification.clone(), Some(peer_id))
                 .expect("header was correct"));
-            assert_eq!(
+            assert!(matches!(
                 forest.request_interest(&justification.header().id()),
                 Uninterested
-            );
+            ));
             assert!(forest.importable(&justification.header().id()));
             forest
                 .update_body(justification.header())
@@ -1367,10 +1432,10 @@ mod tests {
                 assert!(forest
                     .update_justification(justification.clone(), Some(peer_id))
                     .expect("header was correct"));
-                assert_eq!(
+                assert!(matches!(
                     forest.request_interest(&justification.header().id()),
                     Uninterested
-                );
+                ));
                 assert!(forest.importable(&justification.header().id()));
             }
             forest
@@ -1416,14 +1481,20 @@ mod tests {
             .update_justification(child.clone(), Some(peer_id))
             .expect("header was correct"));
         assert!(forest.try_finalize(&1).is_none());
-        assert_eq!(forest.request_interest(&child.header().id()), Uninterested);
+        assert!(matches!(
+            forest.request_interest(&child.header().id()),
+            Uninterested
+        ));
         assert!(forest.importable(&child.header().id()));
         forest
             .update_body(child.header())
             .expect("header was correct");
         assert_eq!(forest.try_finalize(&1).expect("the block is ready"), child);
         for header in &fork {
-            assert_eq!(forest.request_interest(&header.id()), Uninterested);
+            assert!(matches!(
+                forest.request_interest(&header.id()),
+                Uninterested
+            ));
             assert!(!forest.importable(&header.id()));
         }
     }
@@ -1443,7 +1514,10 @@ mod tests {
                     .expect("header was correct")
                     || header.id().number() == initial_header.id().number() + 1
             );
-            assert_eq!(forest.request_interest(&header.id()), Uninterested);
+            assert!(matches!(
+                forest.request_interest(&header.id()),
+                Uninterested
+            ));
             assert!(
                 !forest.importable(&header.id())
                     || header.id().number() == initial_header.id().number() + 1

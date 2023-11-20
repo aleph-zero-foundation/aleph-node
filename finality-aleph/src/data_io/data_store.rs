@@ -151,7 +151,7 @@ where
     B: BlockT<Hash = BlockHash>,
     B::Header: HeaderT<Number = BlockNumber> + UnverifiedHeader + Header<Unverified = B::Header>,
     C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
-    RB: RequestBlocks + 'static,
+    RB: RequestBlocks<B::Header>,
     Message: AlephNetworkMessage<B::Header>
         + std::fmt::Debug
         + Send
@@ -186,7 +186,7 @@ where
     B: BlockT<Hash = BlockHash>,
     B::Header: HeaderT<Number = BlockNumber> + UnverifiedHeader + Header<Unverified = B::Header>,
     C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
-    RB: RequestBlocks + 'static,
+    RB: RequestBlocks<B::Header>,
     Message: AlephNetworkMessage<B::Header>
         + std::fmt::Debug
         + Send
@@ -307,11 +307,12 @@ where
                 _ => continue,
             };
 
-            let block = proposal.top_block();
-            if !self.chain_info_provider.is_block_imported(&block) {
-                debug!(target: "aleph-data-store", "Requesting a block {:?} after it has been missing for {:?} secs.", block, time_waiting.as_secs());
-                if let Err(e) = self.block_requester.request_block(block.clone()) {
-                    warn!(target: "aleph-data-store", "Error requesting block {:?}, {}.", block, e);
+            let header = proposal.top_block_header();
+            let block_id = proposal.top_block();
+            if !self.chain_info_provider.is_block_imported(&block_id) {
+                debug!(target: "aleph-data-store", "Requesting a block {:?} after it has been missing for {:?} secs.", block_id, time_waiting.as_secs());
+                if let Err(e) = self.block_requester.request_block(header) {
+                    warn!(target: "aleph-data-store", "Error requesting block {:?}, {}.", block_id, e);
                 }
                 continue;
             }
@@ -667,7 +668,7 @@ where
     B: BlockT<Hash = BlockHash>,
     B::Header: HeaderT<Number = BlockNumber> + UnverifiedHeader + Header<Unverified = B::Header>,
     C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
-    RB: RequestBlocks + 'static,
+    RB: RequestBlocks<B::Header>,
     Message: AlephNetworkMessage<B::Header>
         + std::fmt::Debug
         + Send

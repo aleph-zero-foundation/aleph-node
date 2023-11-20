@@ -35,7 +35,7 @@ use crate::{
         Network as DataNetwork,
     },
     party::manager::Runnable,
-    sync::RequestBlocks,
+    sync::LegacyRequestBlocks,
     BlockId, SessionBoundaries,
 };
 
@@ -152,7 +152,7 @@ where
     B: BlockT<Hash = BlockHash>,
     B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
-    RB: RequestBlocks + 'static,
+    RB: LegacyRequestBlocks,
     Message: AlephNetworkMessage
         + std::fmt::Debug
         + Send
@@ -185,7 +185,7 @@ where
     B: BlockT<Hash = BlockHash>,
     B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
-    RB: RequestBlocks + 'static,
+    RB: LegacyRequestBlocks,
     Message: AlephNetworkMessage
         + std::fmt::Debug
         + Send
@@ -642,7 +642,7 @@ where
     B: BlockT<Hash = BlockHash>,
     B::Header: HeaderT<Number = BlockNumber>,
     C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
-    RB: RequestBlocks + 'static,
+    RB: LegacyRequestBlocks,
     Message: AlephNetworkMessage
         + std::fmt::Debug
         + Send

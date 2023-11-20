@@ -10,7 +10,7 @@ use crate::{
     },
     session::{SessionBoundaryInfo, SessionId},
     sync::{
-        data::{BranchKnowledge, ResponseItem},
+        data::{BranchKnowledge, MaybeHeader, ResponseItem},
         handler::Request,
     },
     BlockId,
@@ -199,7 +199,7 @@ where
     J: Justification,
     B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
-    RequestBlock(BlockId),
+    RequestBlock(MaybeHeader<UnverifiedHeaderFor<J>>),
     Response(Vec<ResponseItem<B, J>>),
     Noop,
 }
@@ -209,8 +209,8 @@ where
     J: Justification,
     B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
-    fn request_block(id: BlockId) -> Self {
-        Action::RequestBlock(id)
+    fn request_block(maybe_header: MaybeHeader<UnverifiedHeaderFor<J>>) -> Self {
+        Action::RequestBlock(maybe_header)
     }
 
     fn new(response_items: Vec<ResponseItem<B, J>>) -> Self {
@@ -418,16 +418,16 @@ where
     pub fn action(self, request: Request<J>) -> HandlerResult<Action<B, J>, Self> {
         let our_top_justification = self.chain_status.top_finalized()?;
         let top_justification = request.state().top_justification();
-        let target = request.target_id();
+        let target = request.target();
 
         let upper_limit = self.upper_limit(top_justification.header().id());
 
         // request too far into future
-        if target.number() > upper_limit {
+        if target.id().number() > upper_limit {
             return Ok(Action::Noop);
         }
 
-        let head = match self.chain_status.status_of(target.clone())? {
+        let head = match self.chain_status.status_of(target.id())? {
             BlockStatus::Unknown => return Ok(Action::request_block(target.clone())),
             BlockStatus::Justified(justification) => HeadOfChunk::Justification(justification),
             BlockStatus::Present(header) => HeadOfChunk::Header(header),

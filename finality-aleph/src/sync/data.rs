@@ -6,7 +6,10 @@ use static_assertions::const_assert;
 
 use crate::{
     aleph_primitives::MAX_BLOCK_SIZE,
-    block::{Block, Justification, UnverifiedHeader, UnverifiedHeaderFor, UnverifiedJustification},
+    block::{
+        Block, Header, Justification, UnverifiedHeader, UnverifiedHeaderFor,
+        UnverifiedJustification,
+    },
     network::GossipNetwork,
     sync::{PeerId, LOG_TARGET},
     BlockId, Version,
@@ -114,10 +117,27 @@ impl<J: Justification> RequestV1<J> {
     }
 }
 
+// TODO(A0-3494): Only needed because old requests did not have headers, afterwards we will have headers always.
+#[derive(Clone, Debug, Encode, Decode)]
+pub enum MaybeHeader<UH: UnverifiedHeader> {
+    Header(UH),
+    Id(BlockId),
+}
+
+impl<UH: UnverifiedHeader> MaybeHeader<UH> {
+    pub fn id(&self) -> BlockId {
+        use MaybeHeader::*;
+        match self {
+            Header(header) => header.id(),
+            Id(id) => id.clone(),
+        }
+    }
+}
+
 /// Request content, current version.
 #[derive(Clone, Debug, Encode, Decode)]
 pub struct Request<J: Justification> {
-    target_id: BlockId,
+    target: MaybeHeader<UnverifiedHeaderFor<J>>,
     branch_knowledge: BranchKnowledge,
     state: State<J>,
 }
@@ -130,7 +150,7 @@ impl<J: Justification> From<RequestV1<J>> for Request<J> {
             state,
         } = other;
         Request {
-            target_id,
+            target: MaybeHeader::Id(target_id),
             branch_knowledge,
             state: state.into(),
         }
@@ -140,10 +160,14 @@ impl<J: Justification> From<RequestV1<J>> for Request<J> {
 impl<J: Justification> From<Request<J>> for RequestV1<J> {
     fn from(other: Request<J>) -> Self {
         let Request {
-            target_id,
+            target,
             branch_knowledge,
             state,
         } = other;
+        let target_id = match target {
+            MaybeHeader::Header(header) => header.id(),
+            MaybeHeader::Id(id) => id,
+        };
         RequestV1 {
             target_id,
             branch_knowledge,
@@ -153,9 +177,13 @@ impl<J: Justification> From<Request<J>> for RequestV1<J> {
 }
 
 impl<J: Justification> Request<J> {
-    pub fn new(target_id: BlockId, branch_knowledge: BranchKnowledge, state: State<J>) -> Self {
+    pub fn new(
+        target: MaybeHeader<UnverifiedHeaderFor<J>>,
+        branch_knowledge: BranchKnowledge,
+        state: State<J>,
+    ) -> Self {
         Self {
-            target_id,
+            target,
             branch_knowledge,
             state,
         }
@@ -166,8 +194,8 @@ impl<J: Justification> Request<J> {
     pub fn state(&self) -> &State<J> {
         &self.state
     }
-    pub fn target_id(&self) -> &BlockId {
-        &self.target_id
+    pub fn target(&self) -> &MaybeHeader<UnverifiedHeaderFor<J>> {
+        &self.target
     }
     pub fn branch_knowledge(&self) -> &BranchKnowledge {
         &self.branch_knowledge
@@ -175,29 +203,45 @@ impl<J: Justification> Request<J> {
 }
 
 /// Data that can be used to generate a request given our state.
-pub struct PreRequest<I: PeerId> {
-    id: BlockId,
+pub struct PreRequest<UH: UnverifiedHeader, I: PeerId> {
+    header: MaybeHeader<UH>,
     branch_knowledge: BranchKnowledge,
     know_most: HashSet<I>,
 }
 
-impl<I: PeerId> PreRequest<I> {
-    pub fn new(id: BlockId, branch_knowledge: BranchKnowledge, know_most: HashSet<I>) -> Self {
+impl<UH: UnverifiedHeader, I: PeerId> PreRequest<UH, I> {
+    pub fn new_headerless(
+        id: BlockId,
+        branch_knowledge: BranchKnowledge,
+        know_most: HashSet<I>,
+    ) -> Self {
         PreRequest {
-            id,
+            header: MaybeHeader::Id(id),
+            branch_knowledge,
+            know_most,
+        }
+    }
+
+    pub fn new(header: UH, branch_knowledge: BranchKnowledge, know_most: HashSet<I>) -> Self {
+        PreRequest {
+            header: MaybeHeader::Header(header),
             branch_knowledge,
             know_most,
         }
     }
 
     /// Convert to a request and recipients given a state.
-    pub fn with_state<J: Justification>(self, state: State<J>) -> (Request<J>, HashSet<I>) {
+    pub fn with_state<J>(self, state: State<J>) -> (Request<J>, HashSet<I>)
+    where
+        J: Justification,
+        J::Header: Header<Unverified = UH>,
+    {
         let PreRequest {
-            id,
+            header,
             branch_knowledge,
             know_most,
         } = self;
-        (Request::new(id, branch_knowledge, state), know_most)
+        (Request::new(header, branch_knowledge, state), know_most)
     }
 }
 

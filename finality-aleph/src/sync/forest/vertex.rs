@@ -2,7 +2,11 @@ use std::{collections::HashSet, num::NonZeroUsize};
 
 use lru::LruCache;
 
-use crate::{block::Justification, sync::PeerId, BlockId};
+use crate::{
+    block::{Header, Justification},
+    sync::PeerId,
+    BlockId,
+};
 
 const MAX_KNOW_MOST: usize = 200;
 
@@ -26,7 +30,7 @@ enum InnerVertex<J: Justification> {
     /// Vertex with added Header.
     Header {
         importance: HeaderImportance,
-        parent: BlockId,
+        header: J::Header,
     },
     /// Vertex with added Header and Justification.
     Justification {
@@ -124,11 +128,22 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
     }
 
     /// The parent of the vertex, if known.
-    pub fn parent(&self) -> Option<&BlockId> {
+    pub fn parent(&self) -> Option<BlockId> {
         match &self.inner {
             InnerVertex::Empty { .. } => None,
-            InnerVertex::Header { parent, .. } => Some(parent),
-            InnerVertex::Justification { parent, .. } => Some(parent),
+            InnerVertex::Header { header, .. } => header.parent_id(),
+            InnerVertex::Justification { parent, .. } => Some(parent.clone()),
+        }
+    }
+
+    /// The header of the vertex, if known.
+    pub fn header(&self) -> Option<J::Header> {
+        match &self.inner {
+            InnerVertex::Empty { .. } => None,
+            InnerVertex::Header { header, .. } => Some(header.clone()),
+            InnerVertex::Justification { justification, .. } => {
+                Some(justification.header().clone())
+            }
         }
     }
 
@@ -158,11 +173,11 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
             }
             Header {
                 importance: Unimported(Required | Auxiliary),
-                parent,
+                header,
             } => {
                 self.inner = Header {
                     importance: Unimported(ExplicitlyRequired),
-                    parent: parent.clone(),
+                    header: header.clone(),
                 };
                 true
             }
@@ -185,11 +200,11 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
             }
             Header {
                 importance: Unimported(Auxiliary),
-                parent,
+                header,
             } => {
                 self.inner = Header {
                     importance: Unimported(Required),
-                    parent: parent.clone(),
+                    header: header.clone(),
                 };
                 true
             }
@@ -209,13 +224,13 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
 
     /// Adds the information the header provides to the vertex.
     /// Returns whether this is a new header.
-    pub fn insert_header(&mut self, parent: BlockId, holder: Option<I>) -> bool {
+    pub fn insert_header(&mut self, header: J::Header, holder: Option<I>) -> bool {
         self.add_block_holder(holder);
         match self.inner {
             InnerVertex::Empty { required } => {
                 self.inner = InnerVertex::Header {
                     importance: HeaderImportance::Unimported(required),
-                    parent,
+                    header,
                 };
                 true
             }
@@ -225,7 +240,7 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
 
     /// Adds the information the header provides to the vertex and marks it as imported. Returns
     /// whether it was not imported before.
-    pub fn insert_body(&mut self, parent: BlockId) -> bool {
+    pub fn insert_body(&mut self, header: J::Header) -> bool {
         use InnerVertex::*;
         match &self.inner {
             Empty { .. }
@@ -234,7 +249,7 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
                 ..
             } => {
                 self.inner = Header {
-                    parent,
+                    header,
                     importance: HeaderImportance::Imported,
                 };
                 true
@@ -379,11 +394,13 @@ mod tests {
         let mut vertex = MockVertex::new();
         let peer_id = rand::random();
         let parent = BlockId::new_random(43);
-        vertex.insert_header(parent.clone(), Some(peer_id));
+        let header = parent.random_child();
+        vertex.insert_header(header.clone(), Some(peer_id));
         assert!(!vertex.importable());
         assert!(!vertex.requestable());
         assert!(!vertex.imported());
-        assert_eq!(vertex.parent(), Some(&parent));
+        assert_eq!(vertex.parent(), Some(parent));
+        assert_eq!(vertex.header(), Some(header));
         assert!(vertex.know_most().contains(&peer_id));
         assert!(vertex.ready().is_err());
     }
@@ -393,7 +410,8 @@ mod tests {
         let mut vertex = MockVertex::new();
         let peer_id = rand::random();
         let parent = BlockId::new_random(43);
-        vertex.insert_header(parent, Some(peer_id));
+        let header = parent.random_child();
+        vertex.insert_header(header, Some(peer_id));
         let other_peer_id = rand::random();
         vertex.add_block_holder(Some(other_peer_id));
         assert!(vertex.know_most().contains(&peer_id));
@@ -405,7 +423,8 @@ mod tests {
         let mut vertex = MockVertex::new();
         let peer_id = rand::random();
         let parent = BlockId::new_random(43);
-        vertex.insert_header(parent, Some(peer_id));
+        let header = parent.random_child();
+        vertex.insert_header(header, Some(peer_id));
         assert!(vertex.set_required());
         assert!(vertex.importable());
         assert!(!vertex.set_required());
@@ -417,7 +436,8 @@ mod tests {
         let mut vertex = MockVertex::new();
         let peer_id = rand::random();
         let parent = BlockId::new_random(43);
-        vertex.insert_header(parent, Some(peer_id));
+        let header = parent.random_child();
+        vertex.insert_header(header, Some(peer_id));
         assert!(vertex.set_explicitly_required());
         assert!(vertex.importable());
         assert!(vertex.requestable());
@@ -432,7 +452,8 @@ mod tests {
         assert!(vertex.set_required());
         let peer_id = rand::random();
         let parent = BlockId::new_random(43);
-        vertex.insert_header(parent, Some(peer_id));
+        let header = parent.random_child();
+        vertex.insert_header(header, Some(peer_id));
         assert!(vertex.importable());
         assert!(!vertex.set_required());
         assert!(vertex.importable());
@@ -444,7 +465,8 @@ mod tests {
         assert!(vertex.set_explicitly_required());
         let peer_id = rand::random();
         let parent = BlockId::new_random(43);
-        vertex.insert_header(parent, Some(peer_id));
+        let header = parent.random_child();
+        vertex.insert_header(header, Some(peer_id));
         assert!(vertex.importable());
         assert!(vertex.requestable());
         assert!(!vertex.set_explicitly_required());
@@ -456,11 +478,13 @@ mod tests {
     fn empty_to_body() {
         let mut vertex = MockVertex::new();
         let parent = BlockId::new_random(43);
-        assert!(vertex.insert_body(parent.clone()));
+        let header = parent.random_child();
+        assert!(vertex.insert_body(header.clone()));
         assert!(!vertex.importable());
         assert!(!vertex.requestable());
         assert!(vertex.imported());
-        assert_eq!(vertex.parent(), Some(&parent));
+        assert_eq!(vertex.parent(), Some(parent));
+        assert_eq!(vertex.header(), Some(header));
         assert!(vertex.ready().is_err());
     }
 
@@ -468,12 +492,14 @@ mod tests {
     fn body_twice() {
         let mut vertex = MockVertex::new();
         let parent = BlockId::new_random(43);
-        assert!(vertex.insert_body(parent.clone()));
-        assert!(!vertex.insert_body(parent.clone()));
+        let header = parent.random_child();
+        assert!(vertex.insert_body(header.clone()));
+        assert!(!vertex.insert_body(header.clone()));
         assert!(!vertex.importable());
         assert!(!vertex.requestable());
         assert!(vertex.imported());
-        assert_eq!(vertex.parent(), Some(&parent));
+        assert_eq!(vertex.parent(), Some(parent));
+        assert_eq!(vertex.header(), Some(header));
         assert!(vertex.ready().is_err());
     }
 
@@ -482,12 +508,14 @@ mod tests {
         let mut vertex = MockVertex::new();
         let peer_id = rand::random();
         let parent = BlockId::new_random(43);
-        vertex.insert_header(parent.clone(), Some(peer_id));
-        assert!(vertex.insert_body(parent.clone()));
+        let header = parent.random_child();
+        vertex.insert_header(header.clone(), Some(peer_id));
+        assert!(vertex.insert_body(header.clone()));
         assert!(!vertex.importable());
         assert!(!vertex.requestable());
         assert!(vertex.imported());
-        assert_eq!(vertex.parent(), Some(&parent));
+        assert_eq!(vertex.parent(), Some(parent));
+        assert_eq!(vertex.header(), Some(header));
         assert!(vertex.ready().is_err());
     }
 
@@ -495,7 +523,8 @@ mod tests {
     fn body_set_required() {
         let mut vertex = MockVertex::new();
         let parent = BlockId::new_random(43);
-        assert!(vertex.insert_body(parent));
+        let header = parent.random_child();
+        assert!(vertex.insert_body(header));
         assert!(!vertex.set_required());
         assert!(!vertex.importable());
         assert!(!vertex.set_explicitly_required());
@@ -508,7 +537,8 @@ mod tests {
         let mut vertex = MockVertex::new();
         assert!(vertex.set_required());
         let parent = BlockId::new_random(43);
-        assert!(vertex.insert_body(parent));
+        let header = parent.random_child();
+        assert!(vertex.insert_body(header));
         assert!(!vertex.importable());
         assert!(!vertex.requestable());
     }
@@ -518,7 +548,8 @@ mod tests {
         let mut vertex = MockVertex::new();
         assert!(vertex.set_explicitly_required());
         let parent = BlockId::new_random(43);
-        assert!(vertex.insert_body(parent));
+        let header = parent.random_child();
+        assert!(vertex.insert_body(header));
         assert!(!vertex.importable());
         assert!(!vertex.requestable());
     }
@@ -535,7 +566,7 @@ mod tests {
         assert!(vertex.importable());
         assert!(!vertex.requestable());
         assert!(!vertex.imported());
-        assert_eq!(vertex.parent(), Some(&parent));
+        assert_eq!(vertex.parent(), Some(parent));
         assert!(vertex.know_most().contains(&peer_id));
         assert!(vertex.ready().is_err());
     }
@@ -546,14 +577,14 @@ mod tests {
         let parent_header = MockHeader::random_parentless(0);
         let header = parent_header.random_child();
         let parent = header.parent_id().expect("born of a parent");
-        let justification = MockJustification::for_header(header);
+        let justification = MockJustification::for_header(header.clone());
         let peer_id = rand::random();
-        vertex.insert_header(parent.clone(), Some(peer_id));
+        vertex.insert_header(header, Some(peer_id));
         vertex.insert_justification(parent.clone(), justification, None);
         assert!(vertex.importable());
         assert!(!vertex.requestable());
         assert!(!vertex.imported());
-        assert_eq!(vertex.parent(), Some(&parent));
+        assert_eq!(vertex.parent(), Some(parent));
         assert!(vertex.know_most().is_empty());
         assert!(vertex.ready().is_err());
     }
@@ -564,13 +595,13 @@ mod tests {
         let parent_header = MockHeader::random_parentless(0);
         let header = parent_header.random_child();
         let parent = header.parent_id().expect("born of a parent");
-        let justification = MockJustification::for_header(header);
-        assert!(vertex.insert_body(parent.clone()));
+        let justification = MockJustification::for_header(header.clone());
+        assert!(vertex.insert_body(header));
         vertex.insert_justification(parent.clone(), justification.clone(), None);
         assert!(!vertex.importable());
         assert!(!vertex.requestable());
         assert!(vertex.imported());
-        assert_eq!(vertex.parent(), Some(&parent));
+        assert_eq!(vertex.parent(), Some(parent));
         assert_eq!(vertex.ready().expect("should be ready"), justification);
     }
 
@@ -636,13 +667,13 @@ mod tests {
         let parent_header = MockHeader::random_parentless(0);
         let header = parent_header.random_child();
         let parent = header.parent_id().expect("born of a parent");
-        let justification = MockJustification::for_header(header);
+        let justification = MockJustification::for_header(header.clone());
         vertex.insert_justification(parent.clone(), justification.clone(), None);
-        assert!(vertex.insert_body(parent.clone()));
+        assert!(vertex.insert_body(header));
         assert!(!vertex.importable());
         assert!(!vertex.requestable());
         assert!(vertex.imported());
-        assert_eq!(vertex.parent(), Some(&parent));
+        assert_eq!(vertex.parent(), Some(parent));
         assert_eq!(vertex.ready().expect("should be ready"), justification);
     }
 }

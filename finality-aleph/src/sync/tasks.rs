@@ -7,8 +7,13 @@ use std::{
 use rand::{thread_rng, Rng};
 
 use crate::{
-    block::Justification,
-    sync::{data::PreRequest, forest::Interest, handler::InterestProvider, PeerId},
+    block::{Justification, UnverifiedHeader, UnverifiedHeaderFor},
+    sync::{
+        data::{MaybeHeader, PreRequest},
+        forest::Interest,
+        handler::InterestProvider,
+        PeerId,
+    },
     BlockId,
 };
 
@@ -39,9 +44,9 @@ impl Display for RequestTask {
 type DelayedTask = (RequestTask, Duration);
 
 /// What do to with the task, either ignore or perform a request and add a delayed task.
-pub enum Action<I: PeerId> {
+pub enum Action<UH: UnverifiedHeader, I: PeerId> {
     Ignore,
-    Request(PreRequest<I>, DelayedTask),
+    Request(PreRequest<UH, I>, DelayedTask),
 }
 
 impl RequestTask {
@@ -51,7 +56,10 @@ impl RequestTask {
     }
 
     /// Process the task.
-    pub fn process<I, J>(self, interest_provider: InterestProvider<I, J>) -> Action<I>
+    pub fn process<I, J>(
+        self,
+        interest_provider: InterestProvider<I, J>,
+    ) -> Action<UnverifiedHeaderFor<J>, I>
     where
         I: PeerId,
         J: Justification,
@@ -59,6 +67,7 @@ impl RequestTask {
         let RequestTask { id, tries } = self;
         match interest_provider.get(&id) {
             Interest::Required {
+                header,
                 branch_knowledge,
                 know_most,
             } => {
@@ -69,8 +78,16 @@ impl RequestTask {
                     false => HashSet::new(),
                 };
                 let tries = tries + 1;
+                let pre_request = match header {
+                    MaybeHeader::Header(header) => {
+                        PreRequest::new(header, branch_knowledge, know_most)
+                    }
+                    MaybeHeader::Id(id) => {
+                        PreRequest::new_headerless(id, branch_knowledge, know_most)
+                    }
+                };
                 Action::Request(
-                    PreRequest::new(id.clone(), branch_knowledge, know_most),
+                    pre_request,
                     (
                         RequestTask {
                             id: id.clone(),
