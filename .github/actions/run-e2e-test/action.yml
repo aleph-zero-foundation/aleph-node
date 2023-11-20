@@ -68,10 +68,6 @@ runs:
       shell: bash
       run: sleep 60
 
-    - name: Display bootnode logs
-      shell: bash
-      run: docker logs Node0 --follow &
-
     - name: Download artifact with the test suite image
       if: inputs.test-case != ''
       uses: actions/download-artifact@v3
@@ -84,6 +80,7 @@ runs:
       run: docker load -i aleph-e2e-client.tar
 
     - name: Run single e2e test
+      id: run-single-e2e-test
       if: inputs.test-case != ''
       shell: bash
       run: |
@@ -126,6 +123,31 @@ runs:
           source contracts/env/dev
           contracts/scripts/clean.sh
         fi
+
+    - name: Get log tarball file name
+      if: ${{ failure() }}
+      id: get-log-tarball-file-name
+      shell: bash
+      run: |
+        test_case_escaped=$(echo ${{ inputs.test-case }} | sed 's/::/-/g')
+        echo "name=${test_case_escaped}" >> $GITHUB_OUTPUT
+
+    - name: Archive logs from failed e2e test
+      if: ${{ failure() }}
+      shell: bash
+      run: |
+        ./.github/scripts/run_consensus.sh -n '${{ inputs.node-count }}' \
+          --archive-logs \
+          "aleph-node-${{ steps.get-log-tarball-file-name.outputs.name }}-e2e-failure.tgz"
+
+    - name: Upload logs from failed e2e test
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v3
+      with:
+        path: aleph-node-${{ steps.get-log-tarball-file-name.outputs.name }}-e2e-failure.tgz
+        name: aleph-node-${{ steps.get-log-tarball-file-name.outputs.name }}-e2e-failure.tgz
+        if-no-files-found: error
+        retention-days: 7
 
     - name: Run finalization e2e test
       if: inputs.follow-up-finalization-check == 'true'

@@ -49,4 +49,3 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: finalization::finalization
-        timeout-minutes: 3
