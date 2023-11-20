@@ -108,7 +108,7 @@ jobs:
     needs: [push-featurnet-node-image-to-ecr]
     name: Create featurenet based on the PR
     # yamllint disable-line rule:line-length
-    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-create-from-branch.yml@v3
+    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-create-from-branch.yml@v4
     secrets: inherit
     with:
       expiration: ${{ inputs.expiration }}

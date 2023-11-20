@@ -69,7 +69,7 @@ jobs:
     needs: [check-vars-and-secrets]
     name: Update featurenet
     # yamllint disable-line rule:line-length
-    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-update.yml@v3
+    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-update.yml@v4
     secrets: inherit
     with:
       featurenet-name: ${{ inputs.featurenet-name }}

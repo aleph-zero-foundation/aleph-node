@@ -21,7 +21,7 @@ jobs:
 
       - name: Get branch name and commit SHA
         id: get-ref-properties
-        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v3
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v4
 
       - name: Get argocd featurenet app name
         id: get-argocd-featurenet-app-name

@@ -43,7 +43,7 @@ jobs:
           retention-days: 7
 
       - name: Install Rust Toolchain
-        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v3
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v4
 
       - name: Build binary and docker image
         run: |
