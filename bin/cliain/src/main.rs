@@ -3,11 +3,12 @@ use std::env;
 use aleph_client::{account_from_keypair, aleph_keypair_from_string, keypair_from_string, Pair};
 use clap::Parser;
 use cliain::{
-    bond, call, change_validators, finalize, force_new_era, instantiate, instantiate_with_code,
-    next_session_keys, nominate, code_info, prepare_keys, prompt_password_hidden, remove_code,
-    rotate_keys, schedule_upgrade, set_emergency_finalizer, set_keys, set_staking_limits, transfer,
-    treasury_approve, treasury_propose, treasury_reject, update_runtime, upload_code, validate,
-    vest, vest_other, vested_transfer, Command, ConnectionConfig,
+    bond, call, change_validators, code_info, finalize, force_new_era, instantiate,
+    instantiate_with_code, next_session_keys, nominate, prepare_keys, prompt_password_hidden,
+    remove_code, rotate_keys, schedule_upgrade, set_emergency_finalizer, set_keys,
+    set_staking_limits, transfer_keep_alive, treasury_approve, treasury_propose, treasury_reject,
+    update_runtime, upload_code, validate, vest, vest_other, vested_transfer, Command,
+    ConnectionConfig,
 };
 #[cfg(feature = "liminal")]
 use cliain::{
@@ -105,11 +106,11 @@ async fn main() -> anyhow::Result<()> {
         Command::Validate {
             commission_percentage,
         } => validate(cfg.get_signed_connection().await, commission_percentage).await,
-        Command::Transfer {
+        Command::TransferKeepAlive {
             amount_in_tokens,
             to_account,
         } => {
-            transfer(
+            transfer_keep_alive(
                 cfg.get_signed_connection().await,
                 amount_in_tokens,
                 to_account,

@@ -139,7 +139,7 @@ async fn chill_validators(node: &str, chilling: Vec<KeyPair>) {
 /// Thus, running on default settings and chilling 2 validators (1 reserved and 1 non reserved) is
 /// a no go: `pallet_staking` will protest and won't proceed with a new committee.
 /// To mitigate this, our e2e pipeline accepts a `node-count` parameter to specify the desired
-/// number of nodes to run in consensus. 
+/// number of nodes to run in consensus.
 #[tokio::test]
 pub async fn authorities_are_staking() -> anyhow::Result<()> {
     let config = setup_test();

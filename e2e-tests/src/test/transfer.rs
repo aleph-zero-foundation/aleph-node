@@ -16,7 +16,7 @@ pub async fn token_transfer() -> anyhow::Result<()> {
 
     let transfer_value = 1000;
     connection
-        .transfer(to.clone(), transfer_value, TxStatus::Finalized)
+        .transfer_keep_alive(to.clone(), transfer_value, TxStatus::Finalized)
         .await?;
 
     let balance_after = connection.get_free_balance(to.clone(), None).await;

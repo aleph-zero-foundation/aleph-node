@@ -41,7 +41,7 @@ pub async fn channeling_fee_and_tip() -> anyhow::Result<()> {
     let possible_treasury_gain_from_staking = connection.possible_treasury_payout().await?;
 
     let transfer = connection
-        .transfer_with_tip(to, transfer_amount, tip, TxStatus::Finalized)
+        .transfer_keep_alive_with_tip(to, transfer_amount, tip, TxStatus::Finalized)
         .await?;
     let fee = connection.get_tx_fee(transfer).await?;
 

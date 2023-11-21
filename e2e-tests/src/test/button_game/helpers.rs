@@ -84,7 +84,7 @@ pub async fn transfer(
 ) -> Result<()> {
     let from = KeyPair::new(from.signer().clone());
     SignedConnection::from_connection(conn.clone(), from)
-        .transfer(to.account_id().clone(), amount, TxStatus::Finalized)
+        .transfer_keep_alive(to.account_id().clone(), amount, TxStatus::Finalized)
         .await
         .map(|_| ())
 }

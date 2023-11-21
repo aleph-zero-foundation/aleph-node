@@ -60,7 +60,7 @@ pub async fn transfer<S: SignedConnectionApi>(
     to: &KeyPair,
     amount: Balance,
 ) -> Result<()> {
-    conn.transfer(to.signer().public().into(), amount, TxStatus::Finalized)
+    conn.transfer_keep_alive(to.signer().public().into(), amount, TxStatus::Finalized)
         .await
         .map(|_| ())
 }

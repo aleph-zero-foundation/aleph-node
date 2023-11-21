@@ -3,10 +3,14 @@ use aleph_client::{
 };
 use primitives::TOKEN;
 
-pub async fn transfer(connection: SignedConnection, amount_in_tokens: u64, to_account: String) {
+pub async fn transfer_keep_alive(
+    connection: SignedConnection,
+    amount_in_tokens: u64,
+    to_account: String,
+) {
     let to_account = AccountId::from_ss58check(&to_account).expect("Address is valid");
     connection
-        .transfer(
+        .transfer_keep_alive(
             to_account,
             amount_in_tokens as Balance * TOKEN,
             TxStatus::Finalized,

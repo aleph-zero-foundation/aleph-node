@@ -378,8 +378,8 @@ pub enum Command {
         max_validators_count: Option<u32>,
     },
 
-    /// Transfer funds via balances pallet
-    Transfer {
+    /// TransferKeepAlive funds via balances pallet
+    TransferKeepAlive {
         /// Number of tokens to send,
         #[clap(long)]
         amount_in_tokens: u64,

@@ -40,7 +40,7 @@ async fn flood(
 
                     info!("sending #{} transactions", tx_count);
                     for _ in 0..tx_count {
-                        conn.transfer(dest.clone(), transfer_amount, status)
+                        conn.transfer_keep_alive(dest.clone(), transfer_amount, status)
                             .await
                             .unwrap();
                     }
@@ -80,7 +80,7 @@ async fn initialize_n_accounts<F: Fn(u32) -> String>(
     }
     for conn in connections.iter() {
         connection
-            .transfer(
+            .transfer_keep_alive(
                 conn.account_id().clone(),
                 account_balance,
                 TxStatus::Submitted,
@@ -90,7 +90,7 @@ async fn initialize_n_accounts<F: Fn(u32) -> String>(
     }
 
     connection
-        .transfer(connection.account_id().clone(), 1, TxStatus::Finalized)
+        .transfer_keep_alive(connection.account_id().clone(), 1, TxStatus::Finalized)
         .await
         .unwrap();
 

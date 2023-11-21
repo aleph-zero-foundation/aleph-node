@@ -82,7 +82,7 @@ pub async fn prepare_validators<S: SignedConnectionApi + AuthorRpc>(
     accounts: &Accounts,
 ) -> anyhow::Result<()> {
     connection
-        .batch_transfer(
+        .batch_transfer_keep_alive(
             &accounts.stash_accounts,
             MIN_VALIDATOR_BOND + TOKEN,
             TxStatus::Finalized,
@@ -99,9 +99,11 @@ pub async fn prepare_validators<S: SignedConnectionApi + AuthorRpc>(
                 .bond(MIN_VALIDATOR_BOND, TxStatus::Finalized)
                 .await
                 .unwrap();
-            let connection =
-                SignedConnection::new(&validator_address((i + 1) as u32), KeyPair::new(stash.clone()))
-                    .await;
+            let connection = SignedConnection::new(
+                &validator_address((i + 1) as u32),
+                KeyPair::new(stash.clone()),
+            )
+            .await;
             let keys = connection.author_rotate_keys().await.unwrap();
             connection
                 .set_keys(keys, TxStatus::Finalized)
@@ -117,7 +119,10 @@ pub async fn prepare_validators<S: SignedConnectionApi + AuthorRpc>(
 
 /// gets ws address to `n-th` validator node, it starts from 9945 port as 9944 port is RPC node
 pub fn validator_address(index: u32) -> String {
-    assert!(index > 0, "index must be a positive value, as 0 index is reserved for RPC node!");
+    assert!(
+        index > 0,
+        "index must be a positive value, as 0 index is reserved for RPC node!"
+    );
     const BASE: &str = "ws://127.0.0.1";
     const FIRST_PORT: u32 = 9944;
 

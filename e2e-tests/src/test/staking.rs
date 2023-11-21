@@ -52,7 +52,7 @@ pub async fn staking_era_payouts() -> anyhow::Result<()> {
     let stashes_accounts = account_ids_from_keys(&stashes_accounts_key_pairs);
 
     connection
-        .batch_transfer(
+        .batch_transfer_keep_alive(
             &stashes_accounts,
             MIN_NOMINATOR_BOND + TOKEN,
             TxStatus::InBlock,
@@ -138,7 +138,7 @@ pub async fn staking_new_validator() -> anyhow::Result<()> {
 
     // to cover tx fees as we need a bit more than VALIDATOR_STAKE
     root_connection
-        .transfer(
+        .transfer_keep_alive(
             stash_account.clone(),
             MIN_VALIDATOR_BOND + 2 * TOKEN,
             TxStatus::InBlock,

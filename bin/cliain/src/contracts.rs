@@ -19,8 +19,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     commands::{
-        ContractCall, ContractInstantiate, ContractInstantiateWithCode, ContractOptions,
-        ContractCodeInfo, ContractRemoveCode, ContractUploadCode,
+        ContractCall, ContractCodeInfo, ContractInstantiate, ContractInstantiateWithCode,
+        ContractOptions, ContractRemoveCode, ContractUploadCode,
     },
     contracts::contract_transcode::ContractMessageTranscoder,
 };

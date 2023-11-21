@@ -165,7 +165,7 @@ impl Config {
     }
 
     pub fn validator_names(&self) -> Vec<String> {
-        (1..self.validator_count+1)
+        (1..self.validator_count + 1)
             .map(|id| format!("Node{id}"))
             .collect()
     }

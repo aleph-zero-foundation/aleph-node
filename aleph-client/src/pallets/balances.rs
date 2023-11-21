@@ -3,7 +3,7 @@ use subxt::utils::{MultiAddress, Static};
 use crate::{
     aleph_zero::{self, api},
     connections::TxInfo,
-    pallet_balances::{pallet::Call::transfer, types::BalanceLock},
+    pallet_balances::{pallet::Call::transfer_keep_alive, types::BalanceLock},
     pallets::utility::UtilityApi,
     AccountId, AsConnection, Balance, BlockHash,
     Call::Balances,
@@ -41,17 +41,17 @@ pub trait BalanceApi {
 /// Pallet balances API
 #[async_trait::async_trait]
 pub trait BalanceUserApi {
-    /// API for [`transfer`](https://paritytech.github.io/substrate/master/pallet_balances/pallet/struct.Pallet.html#method.transfer) call.
-    async fn transfer(
+    /// API for [`transfer_keep_alive`](https://paritytech.github.io/polkadot-sdk/master/pallet_balances/pallet/struct.Pallet.html#method.transfer_keep_alive) call.
+    async fn transfer_keep_alive(
         &self,
         dest: AccountId,
         amount: Balance,
         status: TxStatus,
     ) -> anyhow::Result<TxInfo>;
 
-    /// API for [`transfer`](https://paritytech.github.io/substrate/master/pallet_balances/pallet/struct.Pallet.html#method.transfer) call.
+    /// API for [`transfer_keep_alive`](https://paritytech.github.io/polkadot-sdk/master/pallet_balances/pallet/struct.Pallet.html#method.transfer_keep_alive) call.
     /// Include tip in the tx.
-    async fn transfer_with_tip(
+    async fn transfer_keep_alive_with_tip(
         &self,
         dest: AccountId,
         amount: Balance,
@@ -63,7 +63,7 @@ pub trait BalanceUserApi {
 /// Pallet balances logic not directly related to any pallet call.
 #[async_trait::async_trait]
 pub trait BalanceUserBatchExtApi {
-    /// Performs batch of `balances.transfer` calls.
+    /// Performs batch of `balances.transfer_keep_alive` calls.
     /// * `dest` - a list of accounts to send tokens to
     /// * `amount` - an amount to transfer
     /// * `status` - a [`TxStatus`] for a tx to wait for
@@ -72,12 +72,12 @@ pub trait BalanceUserBatchExtApi {
     /// ```ignore
     ///  for chunk in stash_accounts.chunks(1024) {
     ///         connection
-    ///             .batch_transfer(chunk, 1_000_000_000_000u128, TxStatus::InBlock)
+    ///             .batch_transfer_keep_alive(chunk, 1_000_000_000_000u128, TxStatus::InBlock)
     ///             .await
     ///             .unwrap();
     ///     }
     /// ```
-    async fn batch_transfer(
+    async fn batch_transfer_keep_alive(
         &self,
         dest: &[AccountId],
         amount: Balance,
@@ -129,7 +129,7 @@ impl<C: ConnectionApi + AsConnection> BalanceApi for C {
 
 #[async_trait::async_trait]
 impl<S: SignedConnectionApi> BalanceUserApi for S {
-    async fn transfer(
+    async fn transfer_keep_alive(
         &self,
         dest: AccountId,
         amount: Balance,
@@ -137,11 +137,11 @@ impl<S: SignedConnectionApi> BalanceUserApi for S {
     ) -> anyhow::Result<TxInfo> {
         let tx = api::tx()
             .balances()
-            .transfer(MultiAddress::Id(dest.into()), amount);
+            .transfer_keep_alive(MultiAddress::Id(dest.into()), amount);
         self.send_tx(tx, status).await
     }
 
-    async fn transfer_with_tip(
+    async fn transfer_keep_alive_with_tip(
         &self,
         dest: AccountId,
         amount: Balance,
@@ -150,7 +150,7 @@ impl<S: SignedConnectionApi> BalanceUserApi for S {
     ) -> anyhow::Result<TxInfo> {
         let tx = api::tx()
             .balances()
-            .transfer(MultiAddress::Id(dest.into()), amount);
+            .transfer_keep_alive(MultiAddress::Id(dest.into()), amount);
 
         self.send_tx_with_params(tx, ParamsBuilder::new().tip(tip), status)
             .await
@@ -159,7 +159,7 @@ impl<S: SignedConnectionApi> BalanceUserApi for S {
 
 #[async_trait::async_trait]
 impl<S: SignedConnectionApi> BalanceUserBatchExtApi for S {
-    async fn batch_transfer(
+    async fn batch_transfer_keep_alive(
         &self,
         dests: &[AccountId],
         amount: Balance,
@@ -168,7 +168,7 @@ impl<S: SignedConnectionApi> BalanceUserBatchExtApi for S {
         let calls = dests
             .iter()
             .map(|dest| {
-                Balances(transfer {
+                Balances(transfer_keep_alive {
                     dest: MultiAddress::Id(dest.clone().into()),
                     value: amount,
                 })

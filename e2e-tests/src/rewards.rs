@@ -364,7 +364,7 @@ pub async fn validators_bond_extra_stakes(config: &Config, additional_stakes: &[
 
         // Additional TOKEN to cover fees
         root_connection
-            .transfer(validator_id, *additional_stake + TOKEN, TxStatus::Finalized)
+            .transfer_keep_alive(validator_id, *additional_stake + TOKEN, TxStatus::Finalized)
             .await
             .unwrap();
         let stash_connection = SignedConnection::new(node, account_keys.validator).await;

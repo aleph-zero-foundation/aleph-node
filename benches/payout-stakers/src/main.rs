@@ -300,7 +300,7 @@ async fn generate_nominator_accounts_with_minimal_bond<S: SignedConnectionApi>(
     for chunk in stash_accounts.chunks(TRANSFER_CALL_BATCH_LIMIT) {
         // potentially change to + 1
         connection
-            .batch_transfer(chunk, MIN_NOMINATOR_BOND * 10, TxStatus::InBlock)
+            .batch_transfer_keep_alive(chunk, MIN_NOMINATOR_BOND * 10, TxStatus::InBlock)
             .await
             .unwrap();
     }

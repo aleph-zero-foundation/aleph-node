@@ -117,7 +117,7 @@ async fn fill_blocks(block_occupancy: BlockOccupancy, blocks: u32, connection: &
 
     for _ in 0..blocks {
         connection
-            .batch_transfer(
+            .batch_transfer_keep_alive(
                 &DESTINATIONS[..limit],
                 existential_deposit,
                 TxStatus::InBlock,
@@ -136,7 +136,7 @@ async fn current_fees(connection: &SignedConnection) -> (Balance, FixedU128) {
     let to = keypair_from_string("//1").account_id().clone();
 
     let tx_info = connection
-        .transfer(to, 1, TxStatus::Finalized)
+        .transfer_keep_alive(to, 1, TxStatus::Finalized)
         .await
         .unwrap();
     let fee = connection.get_tx_fee(tx_info).await.unwrap();

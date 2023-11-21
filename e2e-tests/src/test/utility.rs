@@ -13,7 +13,7 @@ pub async fn batch_transactions() -> anyhow::Result<()> {
 
     let accounts: Vec<_> = repeat(to.clone()).take(NUMBER_OF_TRANSACTIONS).collect();
     connection
-        .batch_transfer(&accounts, 1000, TxStatus::Finalized)
+        .batch_transfer_keep_alive(&accounts, 1000, TxStatus::Finalized)
         .await?;
 
     Ok(())
