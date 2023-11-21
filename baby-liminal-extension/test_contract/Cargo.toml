@@ -1,0 +1,30 @@
+[package]
+name = "baby-liminal-extension-test-contract"
+version = "0.1.0"
+authors = ["Cardinal"]
+edition = "2021"
+homepage = "https://alephzero.org"
+repository = "https://github.com/aleph-zero-foundation/aleph-node"
+license = "Apache-2.0"
+publish = false
+
+[dependencies]
+ink = { version = "=4.3.0", default-features = false }
+
+scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
+scale-info = { version = "2.6", default-features = false, features = ["derive"], optional = true }
+
+baby-liminal-extension = { path = "../", features = ["ink"] }
+
+[lib]
+path = "lib.rs"
+
+[features]
+default = ["std"]
+std = [
+    "ink/std",
+    "scale/std",
+    "scale-info/std",
+    "baby-liminal-extension/ink-std",
+]
+ink-as-dependency = []

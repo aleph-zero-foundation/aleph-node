@@ -46,3 +46,6 @@ jobs:
         with:
           command: test
           args: -- --skip clique_network
+
+      - name: Run tests for baby liminal chain extension
+        run: cd baby-liminal-extension && make test-frontend

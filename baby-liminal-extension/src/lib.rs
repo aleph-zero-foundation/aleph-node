@@ -1,97 +1,23 @@
+//! # Baby Liminal Extension
+//!
+//! This crate provides a way for smart contracts to interact with the [`pallet_baby_liminal`]
+//! runtime module.
+
 #![cfg_attr(not(feature = "std"), no_std)]
+#![deny(missing_docs)]
 
-#[cfg(all(feature = "ink", feature = "substrate"))]
-compile_error!(
-    "Features `ink` and `substrate` are mutually exclusive and cannot be enabled together"
-);
+// Rust features are additive, so this is the only way we can ensure that only one of these is
+// enabled.
+#[cfg(all(feature = "ink", feature = "runtime"))]
+compile_error!("Features `ink` and `runtime` are mutually exclusive and cannot be used together");
+
+pub mod extension_ids;
+#[cfg(feature = "ink")]
+pub mod frontend;
+pub mod status_codes;
 
 #[cfg(feature = "ink")]
-pub mod ink;
-
-#[cfg(feature = "substrate")]
-pub mod substrate;
-
-#[cfg(feature = "substrate")]
-pub mod executor;
-
-#[cfg(feature = "ink")]
-use ::ink::{prelude::vec::Vec, primitives::AccountId as AccountId32};
-#[cfg(feature = "substrate")]
-use obce::substrate::{sp_runtime::AccountId32, sp_std::vec::Vec};
-
-// `pallet_baby_liminal::store_key` errors
-const BABY_LIMINAL_STORE_KEY_ERROR: u32 = 10_000;
-pub const BABY_LIMINAL_STORE_KEY_TOO_LONG_KEY: u32 = BABY_LIMINAL_STORE_KEY_ERROR + 1;
-pub const BABY_LIMINAL_STORE_KEY_IDENTIFIER_IN_USE: u32 = BABY_LIMINAL_STORE_KEY_ERROR + 2;
-pub const BABY_LIMINAL_STORE_KEY_ERROR_UNKNOWN: u32 = BABY_LIMINAL_STORE_KEY_ERROR + 3;
-
-// `pallet_baby_liminal::verify` errors
-const BABY_LIMINAL_VERIFY_ERROR: u32 = 11_000;
-pub const BABY_LIMINAL_VERIFY_DESERIALIZING_PROOF_FAIL: u32 = BABY_LIMINAL_VERIFY_ERROR + 1;
-pub const BABY_LIMINAL_VERIFY_DESERIALIZING_INPUT_FAIL: u32 = BABY_LIMINAL_VERIFY_ERROR + 2;
-pub const BABY_LIMINAL_VERIFY_UNKNOWN_IDENTIFIER: u32 = BABY_LIMINAL_VERIFY_ERROR + 3;
-pub const BABY_LIMINAL_VERIFY_DESERIALIZING_KEY_FAIL: u32 = BABY_LIMINAL_VERIFY_ERROR + 4;
-pub const BABY_LIMINAL_VERIFY_VERIFICATION_FAIL: u32 = BABY_LIMINAL_VERIFY_ERROR + 5;
-pub const BABY_LIMINAL_VERIFY_INCORRECT_PROOF: u32 = BABY_LIMINAL_VERIFY_ERROR + 6;
-pub const BABY_LIMINAL_VERIFY_ERROR_UNKNOWN: u32 = BABY_LIMINAL_VERIFY_ERROR + 7;
-
-/// Chain extension errors enumeration.
-///
-/// All inner variants are convertible to [`RetVal`]
-/// via [`TryFrom`] impl.
-///
-/// To ensure that [`RetVal`] is returned when possible in implementation
-/// its methods should be marked with `#[obce(ret_val)]`.
-///
-/// [`RetVal`]: obce::substrate::pallet_contracts::chain_extension::RetVal
-#[obce::error]
-pub enum BabyLiminalError {
-    // `pallet_baby_liminal::store_key` errors
-    #[obce(ret_val = "BABY_LIMINAL_STORE_KEY_IDENTIFIER_IN_USE")]
-    IdentifierAlreadyInUse,
-    #[obce(ret_val = "BABY_LIMINAL_STORE_KEY_TOO_LONG_KEY")]
-    VerificationKeyTooLong,
-    #[obce(ret_val = "BABY_LIMINAL_STORE_KEY_ERROR_UNKNOWN")]
-    StoreKeyErrorUnknown,
-
-    // `pallet_baby_liminal::verify` errors
-    #[obce(ret_val = "BABY_LIMINAL_VERIFY_UNKNOWN_IDENTIFIER")]
-    UnknownVerificationKeyIdentifier,
-    #[obce(ret_val = "BABY_LIMINAL_VERIFY_DESERIALIZING_PROOF_FAIL")]
-    DeserializingProofFailed,
-    #[obce(ret_val = "BABY_LIMINAL_VERIFY_DESERIALIZING_INPUT_FAIL")]
-    DeserializingPublicInputFailed,
-    #[obce(ret_val = "BABY_LIMINAL_VERIFY_DESERIALIZING_KEY_FAIL")]
-    DeserializingVerificationKeyFailed,
-    #[obce(ret_val = "BABY_LIMINAL_VERIFY_VERIFICATION_FAIL")]
-    VerificationFailed,
-    #[obce(ret_val = "BABY_LIMINAL_VERIFY_INCORRECT_PROOF")]
-    IncorrectProof,
-    #[obce(ret_val = "BABY_LIMINAL_VERIFY_ERROR_UNKNOWN")]
-    VerifyErrorUnknown,
-}
+pub use frontend::{BabyLiminalError, BabyLiminalExtension, Environment};
 
 /// Copied from `pallet_baby_liminal`.
 pub type VerificationKeyIdentifier = [u8; 8];
-
-/// BabyLiminal chain extension definition.
-#[obce::definition(id = "baby-liminal-extension@v0.1")]
-pub trait BabyLiminalExtension {
-    /// Directly call `pallet_baby_liminal::store_key`.
-    #[obce(id = 41)]
-    fn store_key(
-        &mut self,
-        origin: AccountId32,
-        identifier: VerificationKeyIdentifier,
-        key: Vec<u8>,
-    ) -> Result<(), BabyLiminalError>;
-
-    /// Directly call `pallet_baby_liminal::verify`.
-    #[obce(id = 42)]
-    fn verify(
-        &mut self,
-        identifier: VerificationKeyIdentifier,
-        proof: Vec<u8>,
-        input: Vec<u8>,
-    ) -> Result<(), BabyLiminalError>;
-}

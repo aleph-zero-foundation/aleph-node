@@ -1,51 +1,39 @@
 [package]
 name = "baby-liminal-extension"
 version = "0.1.0"
-authors = ["Cardinal Cryptography"]
+authors = ["Cardinal"]
 edition = "2021"
 homepage = "https://alephzero.org"
 repository = "https://github.com/aleph-zero-foundation/aleph-node"
-license = "Apache 2.0"
-publish = false
+license = "Apache-2.0"
 
 [dependencies]
-ink = { version = "~4.0.1", default-features = false, optional = true }
-
-scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
-scale-info = { version = "2.3", default-features = false, features = ["derive"], optional = true }
-
-obce = { git = "https://github.com/727-Ventures/obce", rev = "5e3da417c2189ddd4e9ef82cd586f8ec94b8952a", default-features = false }
-sp-io = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.2.0", default-features = false, features = ["disable_panic_handler", "disable_oom"] }
-
-pallet-baby-liminal = { path = "../pallets/baby-liminal", default-features = false, optional = true }
-
-[dev-dependencies]
-aleph-runtime = { path = "../bin/runtime" , features = ["liminal"]}
+ink = { version = "4.3.0", default-features = false, optional = true }
+scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"], optional = true }
+scale-info = { version = "2.6", default-features = false, features = ["derive"], optional = true }
 
 [features]
-default = ["std", "substrate"]
-std = [
-    "scale-info/std",
-    "scale/std",
-    "obce/std",
-    "sp-io/std",
+# This is an artificial feature that is used by 3rd party crates in macro expansions.
+std = []
+
+# `runtime` and `runtime-std` features are dedicated to the runtime crate. They bring the backend part of the extension.
+runtime = [
 ]
-substrate = [
-    "obce/substrate",
-    "pallet-baby-liminal",
+runtime-std = [
+    "runtime",
+    "std",
 ]
+
+# `ink` and `ink-std` features are dedicated to the ink! part of the extension. They bring the smart contract part of
+# the extension.
 ink = [
-    "obce/ink",
     "dep:ink",
+    "scale",
 ]
 ink-std = [
-    "std",
     "ink",
-    "obce/ink-std",
+    "std",
     "ink/std",
+    "scale/std",
+    "scale-info/std",
 ]
-ink-as-dependency = []
-
-[[test]]
-name = "substrate"
-path = "tests/substrate.rs"

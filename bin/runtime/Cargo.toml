@@ -65,7 +65,7 @@ pallet-elections = { workspace = true }
 primitives = { workspace = true }
 
 # Liminal-related dependencies
-baby-liminal-extension = { workspace = true, features = ["substrate"], optional = true }
+baby-liminal-extension = { workspace = true, features = ["runtime"], optional = true }
 pallet-baby-liminal = { workspace = true, optional = true }
 
 [build-dependencies]
