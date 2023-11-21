@@ -128,6 +128,9 @@ pub fn rotate(
 /// This should be done at the beginning of the new session.
 pub fn remove_old_backups(path: Option<PathBuf>, current_session: u32) -> io::Result<()> {
     if let Some(path) = path {
+        if !path.exists() {
+            return Ok(());
+        }
         for read_dir in fs::read_dir(path)? {
             let item = read_dir?;
             match item.file_name().to_str() {
