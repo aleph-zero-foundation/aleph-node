@@ -9,6 +9,8 @@ name: Deploy to Devnet
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '00 00 * * *'
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
