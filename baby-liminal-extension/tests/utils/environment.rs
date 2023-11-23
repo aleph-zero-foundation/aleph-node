@@ -7,7 +7,8 @@ use std::{
 };
 
 use baby_liminal_extension::{
-    executor::Executor, substrate::ByteCount, BabyLiminalExtension, VerificationKeyIdentifier,
+    backend_executor::Executor, substrate::ByteCount, BabyLiminalExtension,
+    VerificationKeyIdentifier,
 };
 use obce::substrate::{
     frame_support::weights::Weight, sp_runtime::AccountId32, ChainExtensionEnvironment,

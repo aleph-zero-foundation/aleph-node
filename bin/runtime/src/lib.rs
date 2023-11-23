@@ -714,6 +714,9 @@ impl pallet_contracts::Config for Runtime {
     type CallFilter = Nothing;
     type WeightPrice = pallet_transaction_payment::Pallet<Self>;
     type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
+    #[cfg(feature = "liminal")]
+    type ChainExtension = baby_liminal_extension::BabyLiminalChainExtension<Runtime>;
+    #[cfg(not(feature = "liminal"))]
     type ChainExtension = ();
     type Schedule = Schedule;
     type CallStack = [pallet_contracts::Frame<Self>; 16];

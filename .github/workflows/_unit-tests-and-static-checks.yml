@@ -48,4 +48,5 @@ jobs:
           args: -- --skip clique_network
 
       - name: Run tests for baby liminal chain extension
-        run: cd baby-liminal-extension && make test-frontend
+        working-directory: baby-liminal-extension
+        run: make clippy && make test-frontend

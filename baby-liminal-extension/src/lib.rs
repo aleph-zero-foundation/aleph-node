@@ -11,13 +11,30 @@
 #[cfg(all(feature = "ink", feature = "runtime"))]
 compile_error!("Features `ink` and `runtime` are mutually exclusive and cannot be used together");
 
+// ------ Common stuff -----------------------------------------------------------------------------
+
+pub mod args;
 pub mod extension_ids;
-#[cfg(feature = "ink")]
-pub mod frontend;
 pub mod status_codes;
+
+// ------ Frontend stuff ---------------------------------------------------------------------------
+
+#[cfg(feature = "ink")]
+mod frontend;
 
 #[cfg(feature = "ink")]
 pub use frontend::{BabyLiminalError, BabyLiminalExtension, Environment};
 
 /// Copied from `pallet_baby_liminal`.
+#[cfg(feature = "ink")]
 pub type VerificationKeyIdentifier = [u8; 8];
+
+// ------ Backend stuff ----------------------------------------------------------------------------
+
+#[cfg(feature = "runtime")]
+mod backend;
+
+#[cfg(feature = "runtime")]
+pub use backend::BabyLiminalChainExtension;
+#[cfg(feature = "runtime")]
+pub use pallet_baby_liminal::VerificationKeyIdentifier;

@@ -157,7 +157,7 @@ runtime-benchmarks = [
 
 # Liminal-related features
 liminal = [
-    #"baby-liminal-extension",
+    "baby-liminal-extension",
     "pallet-baby-liminal",
     "sp-io/disable_oom",
     "sp-io/disable_panic_handler"
@@ -165,6 +165,7 @@ liminal = [
 liminal-std = [
     "liminal",
     "std",
+    "baby-liminal-extension/runtime-std",
     "pallet-baby-liminal/std",
 ]
 liminal-try-runtime = [

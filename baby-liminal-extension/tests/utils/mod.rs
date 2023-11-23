@@ -2,7 +2,7 @@ use std::sync::mpsc::Receiver;
 
 use aleph_runtime::Runtime;
 use baby_liminal_extension::{
-    executor::Executor,
+    backend_executor::Executor,
     substrate::{weight_of_store_key, Extension},
     BabyLiminalExtension, VerificationKeyIdentifier,
 };
