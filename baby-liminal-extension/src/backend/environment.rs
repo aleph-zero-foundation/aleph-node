@@ -3,7 +3,6 @@ use pallet_contracts::chain_extension::{
     BufInBufOutState, ChargedAmount, Environment as SubstrateEnvironment, Ext,
 };
 use scale::Decode;
-use sp_std::vec::Vec;
 
 use super::ByteCount;
 
@@ -20,7 +19,6 @@ pub trait Environment {
     type ChargedAmount;
 
     fn in_len(&self) -> ByteCount;
-    fn read(&self, max_len: u32) -> Result<Vec<u8>, DispatchError>;
     // It has to be `mut`, because there's a leftover in pallet contracts.
     fn read_as_unbounded<T: Decode>(&mut self, len: u32) -> Result<T, DispatchError>;
     // It has to be `mut`, because there's a leftover in pallet contracts.
@@ -41,10 +39,6 @@ impl<E: Ext> Environment for SubstrateEnvironment<'_, '_, E, BufInBufOutState> {
 
     fn in_len(&self) -> ByteCount {
         self.in_len()
-    }
-
-    fn read(&self, max_len: u32) -> Result<Vec<u8>, DispatchError> {
-        self.read(max_len)
     }
 
     fn read_as_unbounded<T: Decode>(&mut self, len: u32) -> Result<T, DispatchError> {

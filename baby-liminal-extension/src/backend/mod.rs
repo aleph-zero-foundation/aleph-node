@@ -3,6 +3,7 @@ use executor::BackendExecutor as BackendExecutorT;
 use frame_support::{pallet_prelude::DispatchError, sp_runtime::AccountId32};
 use frame_system::Config as SystemConfig;
 use log::error;
+use pallet_baby_liminal::Error::*;
 use pallet_contracts::chain_extension::{
     ChainExtension, Environment as SubstrateEnvironment, Ext, InitState,
     Result as ChainExtensionResult, RetVal,
@@ -12,11 +13,13 @@ use sp_std::marker::PhantomData;
 use crate::{
     backend::executor::MinimalRuntime,
     extension_ids::{STORE_KEY_EXT_ID, VERIFY_EXT_ID},
-    status_codes::{STORE_KEY_SUCCESS, VERIFY_SUCCESS},
+    status_codes::*,
 };
 
 mod environment;
 mod executor;
+#[cfg(test)]
+mod tests;
 
 type ByteCount = u32;
 
@@ -63,23 +66,33 @@ where
     pub fn store_key<BackendExecutor: BackendExecutorT, Environment: EnvironmentT>(
         mut env: Environment,
     ) -> ChainExtensionResult<RetVal> {
-        // todo: charge weight, validate args, handle errors
+        // todo: charge weight, validate args
         let args = env.read_as_unbounded(env.in_len())?;
-        BackendExecutor::store_key(args)
-            .map_err(|_| ())
-            .expect("`store_key` failed; this should be handled more gently");
-        Ok(RetVal::Converging(STORE_KEY_SUCCESS))
+        let status = match BackendExecutor::store_key(args) {
+            Ok(()) => STORE_KEY_SUCCESS,
+            Err(VerificationKeyTooLong) => STORE_KEY_TOO_LONG_KEY,
+            Err(IdentifierAlreadyInUse) => STORE_KEY_IDENTIFIER_IN_USE,
+            Err(_) => STORE_KEY_ERROR_UNKNOWN,
+        };
+        Ok(RetVal::Converging(status))
     }
 
     /// Handle `verify` chain extension call.
     pub fn verify<BackendExecutor: BackendExecutorT, Environment: EnvironmentT>(
         mut env: Environment,
     ) -> ChainExtensionResult<RetVal> {
-        // todo: charge weight, validate args, handle errors
+        // todo: charge weight, validate args
         let args = env.read_as_unbounded(env.in_len())?;
-        BackendExecutor::verify(args)
-            .map_err(|_| ())
-            .expect("`verify` failed; this should be handled more gently");
-        Ok(RetVal::Converging(VERIFY_SUCCESS))
+        let status = match BackendExecutor::verify(args) {
+            Ok(()) => VERIFY_SUCCESS,
+            Err((DeserializingProofFailed, _)) => VERIFY_DESERIALIZING_PROOF_FAIL,
+            Err((DeserializingPublicInputFailed, _)) => VERIFY_DESERIALIZING_INPUT_FAIL,
+            Err((UnknownVerificationKeyIdentifier, _)) => VERIFY_UNKNOWN_IDENTIFIER,
+            Err((DeserializingVerificationKeyFailed, _)) => VERIFY_DESERIALIZING_KEY_FAIL,
+            Err((VerificationFailed, _)) => VERIFY_VERIFICATION_FAIL,
+            Err((IncorrectProof, _)) => VERIFY_INCORRECT_PROOF,
+            Err(_) => STORE_KEY_ERROR_UNKNOWN,
+        };
+        Ok(RetVal::Converging(status))
     }
 }

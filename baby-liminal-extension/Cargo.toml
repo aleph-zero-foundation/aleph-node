@@ -9,6 +9,7 @@ license = "Apache-2.0"
 
 [dependencies]
 # Common dependencies:
+
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 
 # Frontend dependencies:
@@ -26,6 +27,9 @@ pallet-contracts = { git = "https://github.com/Cardinal-Cryptography/polkadot-sd
 sp-std = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.2.0", default-features = false, optional = true }
 
 pallet-baby-liminal = { path = "../pallets/baby-liminal", default-features = false, optional = true }
+
+[dev-dependencies]
+aleph-runtime = { path = "../bin/runtime", features = ["liminal"] }
 
 [features]
 # This is an artificial feature that is used by 3rd party crates in macro expansions.

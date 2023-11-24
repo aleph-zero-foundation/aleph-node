@@ -28,6 +28,10 @@ jobs:
           command: clippy
           args: --all-targets -- --no-deps -D warnings
 
+      - name: Run clippy for baby liminal chain extension
+        working-directory: baby-liminal-extension
+        run: make clippy
+
   unit-tests:
     name: Run unit tests
     runs-on: [self-hosted, Linux, X64, large]
@@ -47,6 +51,12 @@ jobs:
           command: test
           args: -- --skip clique_network
 
+      - name: Install Nightly Rust Toolchain (for unstable features in tests)
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v4
+        with:
+          channel: nightly-2023-05-22-unknown-linux-gnu
+          targets: wasm32-unknown-unknown
+
       - name: Run tests for baby liminal chain extension
         working-directory: baby-liminal-extension
-        run: make clippy && make test-frontend
+        run: make test
