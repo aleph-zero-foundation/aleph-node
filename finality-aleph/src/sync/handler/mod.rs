@@ -287,8 +287,8 @@ where
     ForestInitialization(ForestInitializationError<B, J, CS>),
     RequestHandlerError(RequestHandlerError<CS::Error>),
     MissingJustification,
-    BlockNotImportable,
-    HeaderNotRequired,
+    BlockNotImportable(BlockId),
+    HeaderNotRequired(BlockId),
 }
 
 impl<B, J, CS, V, F> Display for Error<B, J, CS, V, F>
@@ -313,10 +313,16 @@ where
                 f,
                 "justification for the last block of a past session missing"
             ),
-            BlockNotImportable => {
-                write!(f, "cannot import a block that we do not consider required")
+            BlockNotImportable(id) => {
+                write!(
+                    f,
+                    "cannot import a block {} that we do not consider required",
+                    id
+                )
             }
-            HeaderNotRequired => write!(f, "header was not required, but it should have been"),
+            HeaderNotRequired(id) => {
+                write!(f, "header {} was not required, but it should have been", id)
+            }
         }
     }
 }
@@ -686,7 +692,7 @@ where
                         return (
                             new_highest,
                             equivocation_proofs,
-                            Some(Error::HeaderNotRequired),
+                            Some(Error::HeaderNotRequired(h.id())),
                         );
                     }
                 }
@@ -711,7 +717,7 @@ where
                             return (
                                 new_highest,
                                 equivocation_proofs,
-                                Some(Error::BlockNotImportable),
+                                Some(Error::BlockNotImportable(b.header().id())),
                             )
                         }
                     };

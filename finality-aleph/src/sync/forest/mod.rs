@@ -442,6 +442,7 @@ where
         }
         let (id, parent_id) = self.process_header(&header)?;
         self.update_header(&header, None, false)?;
+        self.set_required(&parent_id);
         Ok(match self.get_mut(&id) {
             VertexHandleMut::Candidate(mut entry) => {
                 let vertex = &mut entry.get_mut().vertex;
@@ -969,6 +970,54 @@ mod tests {
         }
         assert!(forest.importable(&child.header().id()));
         assert!(forest.importable(&grandchild.header().id()));
+    }
+
+    #[test]
+    fn unimportant_parent_of_justification_importable() {
+        let (initial_header, mut forest) = setup();
+        let first_child = initial_header.random_child();
+        let peer_id = rand::random();
+        assert!(forest
+            .update_header(&first_child, Some(peer_id), false)
+            .expect("header was correct"));
+        assert!(matches!(
+            forest.request_interest(&first_child.id()),
+            Uninterested
+        ));
+        match forest.extension_request() {
+            FavouriteBlock { know_most, .. } => {
+                assert!(know_most.contains(&peer_id))
+            }
+            other_state => panic!("Expected favourite block, got {other_state:?}."),
+        }
+        assert!(forest.importable(&first_child.id()));
+        let second_child = initial_header.random_child();
+        let other_peer_id = rand::random();
+        assert!(forest
+            .update_header(&second_child, Some(other_peer_id), false)
+            .expect("header was correct"));
+        assert!(matches!(
+            forest.request_interest(&second_child.id()),
+            Uninterested
+        ));
+        match forest.extension_request() {
+            FavouriteBlock { know_most, .. } => {
+                assert!(know_most.contains(&peer_id))
+            }
+            other_state => panic!("Expected favourite block, got {other_state:?}."),
+        }
+        assert!(forest.importable(&first_child.id()));
+        assert!(forest.importable(&second_child.id()));
+        forest
+            .update_body(&first_child)
+            .expect("header was correct");
+        assert!(!forest.importable(&second_child.id()));
+        let justification = MockJustification::for_header(second_child.random_child());
+        let peer_id = rand::random();
+        assert!(forest
+            .update_justification(justification, Some(peer_id))
+            .expect("header was correct"));
+        assert!(forest.importable(&second_child.id()));
     }
 
     #[test]
