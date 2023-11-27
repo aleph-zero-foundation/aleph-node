@@ -34,6 +34,12 @@ pub use handler::tests::authentication;
 pub use handler::{Handler as SessionHandler, HandlerError as SessionHandlerError};
 pub use service::{Config as ConnectionManagerConfig, ManagerError, Service as ConnectionManager};
 
+/// The maximum size an authentication can have and be accepted.
+/// This leaves a generous margin of error, as the signature is 64 bytes,
+/// the public key of the peer is 32 bytes, a single IP/DNS address
+/// at most ~260 and no one should need more than a couple of these.
+pub const MAX_MESSAGE_SIZE: u64 = 1024 * 1024;
+
 /// Data validators use to authenticate themselves for a single session
 /// and disseminate their addresses.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Encode, Decode)]

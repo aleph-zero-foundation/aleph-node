@@ -348,6 +348,10 @@ type ByteCount = u32;
 // Maximum block size is 5mb so we have spare for at least 3 blocks.
 pub const MAX_SYNC_MESSAGE_SIZE: u32 = 15 * 1024 * 1024 + 1024;
 const_assert!(MAX_SYNC_MESSAGE_SIZE > 3 * MAX_BLOCK_SIZE);
+/// The toal maximal message size that should be accepted, slighly
+/// larger than the above to include the version plus some wiggle-room.
+pub const MAX_MESSAGE_SIZE: u64 = 16 * 1024 * 1024;
+const_assert!(MAX_MESSAGE_SIZE > MAX_SYNC_MESSAGE_SIZE as u64 + 128);
 
 fn encode_with_version(version: Version, payload: &[u8]) -> Vec<u8> {
     let size = payload.len().try_into().unwrap_or(ByteCount::MAX);

@@ -34,8 +34,9 @@ use crate::{
     aggregation::{CurrentRmcNetworkData, LegacyRmcNetworkData},
     block::UnverifiedHeader,
     compatibility::{Version, Versioned},
-    network::data::split::Split,
+    network::{data::split::Split, session::MAX_MESSAGE_SIZE as MAX_AUTHENTICATION_MESSAGE_SIZE},
     session::{SessionBoundaries, SessionBoundaryInfo, SessionId},
+    sync::MAX_MESSAGE_SIZE as MAX_BLOCK_SYNC_MESSAGE_SIZE,
     VersionedTryFromError::{ExpectedNewGotOld, ExpectedOldGotNew},
 };
 
@@ -81,6 +82,13 @@ pub use crate::{
 /// Constant defining how often components of finality-aleph should report their state
 const STATUS_REPORT_INTERVAL: Duration = Duration::from_secs(20);
 
+fn max_message_size(protocol: Protocol) -> u64 {
+    match protocol {
+        Protocol::Authentication => MAX_AUTHENTICATION_MESSAGE_SIZE,
+        Protocol::BlockSync => MAX_BLOCK_SYNC_MESSAGE_SIZE,
+    }
+}
+
 /// Returns a NonDefaultSetConfig for the specified protocol.
 pub fn peers_set_config(
     naming: ProtocolNaming,
@@ -88,11 +96,7 @@ pub fn peers_set_config(
 ) -> sc_network::config::NonDefaultSetConfig {
     let mut config = sc_network::config::NonDefaultSetConfig::new(
         naming.protocol_name(&protocol),
-        // max_notification_size should be larger than the maximum possible honest message size (in bytes).
-        // Max size of alert is UNIT_SIZE * MAX_UNITS_IN_ALERT ~ 100 * 5000 = 50000 bytes
-        // Max size of parents response UNIT_SIZE * N_MEMBERS ~ 100 * N_MEMBERS
-        // When adding other (large) message types we need to make sure this limit is fine.
-        1024 * 1024,
+        max_message_size(protocol),
     );
 
     config.set_config = sc_network::config::SetConfig::default();
