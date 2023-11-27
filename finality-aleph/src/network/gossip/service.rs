@@ -301,23 +301,29 @@ impl<N: RawNetwork, AD: Data, BSD: Data> Service<N, AD, BSD> {
     }
 
     fn send_authentication_data(&mut self, data: AD, peer_id: N::PeerId) {
+        trace!(
+            target: LOG_TARGET,
+            "Sending authentication data to peer {:?}.",
+            peer_id,
+        );
         if let Err(e) = self.send_to_authentication_peer(data, peer_id.clone()) {
-            trace!(
+            debug!(
                 target: LOG_TARGET,
-                "Failed to send to peer{:?}, {:?}",
-                peer_id,
-                e
+                "Failed to send to peer{:?}, {:?}", peer_id, e
             );
         }
     }
 
     fn send_block_sync_data(&mut self, data: BSD, peer_id: N::PeerId) {
+        trace!(
+            target: LOG_TARGET,
+            "Sending block sync data to peer {:?}.",
+            peer_id,
+        );
         if let Err(e) = self.send_to_block_sync_peer(data, peer_id.clone()) {
-            trace!(
+            debug!(
                 target: LOG_TARGET,
-                "Failed to send to peer{:?}, {:?}",
-                peer_id,
-                e
+                "Failed to send to peer{:?}, {:?}", peer_id, e
             );
         }
     }
@@ -345,10 +351,15 @@ impl<N: RawNetwork, AD: Data, BSD: Data> Service<N, AD, BSD> {
     }
 
     fn send_to_random_authentication(&mut self, data: AD, peer_ids: HashSet<N::PeerId>) {
+        trace!(
+            target: LOG_TARGET,
+            "Sending authentication data to random peer among {:?}.",
+            peer_ids,
+        );
         let peer_id = match self.random_peer(&peer_ids, Protocol::Authentication) {
             Some(peer_id) => peer_id.clone(),
             None => {
-                trace!(
+                debug!(
                     target: LOG_TARGET,
                     "Failed to send authentication message to random peer, no peers are available."
                 );
@@ -359,10 +370,15 @@ impl<N: RawNetwork, AD: Data, BSD: Data> Service<N, AD, BSD> {
     }
 
     fn send_to_random_block_sync(&mut self, data: BSD, peer_ids: HashSet<N::PeerId>) {
+        trace!(
+            target: LOG_TARGET,
+            "Sending block sync data to random peer among {:?}.",
+            peer_ids,
+        );
         let peer_id = match self.random_peer(&peer_ids, Protocol::BlockSync) {
             Some(peer_id) => peer_id.clone(),
             None => {
-                trace!(
+                debug!(
                     target: LOG_TARGET,
                     "Failed to send block sync message to random peer, no peers are available."
                 );
