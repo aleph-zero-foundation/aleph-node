@@ -217,11 +217,15 @@ impl pallet_authorship::Config for Runtime {
 parameter_types! {
     pub const ExistentialDeposit: u128 = 500 * PICO_AZERO;
     pub const MaxLocks: u32 = 50;
+    // We have only 2 reasons for holds - CodeUploadDeposit and StorageDeposit.
+    pub const MaxHolds: u32 = 2;
+    pub const MaxFreezes: u32 = 0;
+    pub const MaxReserves: u32 = 50;
 }
 
 impl pallet_balances::Config for Runtime {
     type MaxLocks = MaxLocks;
-    type MaxReserves = ();
+    type MaxReserves = MaxReserves;
     type ReserveIdentifier = [u8; 8];
     /// The type for recording an account's balance.
     type Balance = Balance;
@@ -232,8 +236,8 @@ impl pallet_balances::Config for Runtime {
     type AccountStore = System;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
     type FreezeIdentifier = ();
-    type MaxHolds = ConstU32<0>;
-    type MaxFreezes = ConstU32<0>;
+    type MaxHolds = MaxHolds;
+    type MaxFreezes = MaxFreezes;
     type RuntimeHoldReason = RuntimeHoldReason;
 }
 
