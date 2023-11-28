@@ -31,6 +31,7 @@ pub trait WeightInfo {
     fn overwrite_equal_key(key_length: u32) -> Weight;
     fn overwrite_key(key_length: u32) -> Weight;
     fn delete_key(key_length: u32) -> Weight;
+    fn verify() -> Weight;
 }
 
 impl<I: BenchmarkInfo> WeightInfo for I {
@@ -49,14 +50,19 @@ impl<I: BenchmarkInfo> WeightInfo for I {
     fn delete_key(key_length: u32) -> Weight {
         <I as BenchmarkInfo>::delete_key(key_length)
     }
+
+    fn verify() -> Weight {
+        <I as BenchmarkInfo>::verify() 
+    }
 }
 
 /// Benchmark results for pallet_baby_liminal.
 trait BenchmarkInfo {
-	fn store_key(l: u32, ) -> Weight;
-	fn overwrite_equal_key(l: u32, ) -> Weight;
-	fn overwrite_key(l: u32, ) -> Weight;
-	fn delete_key(l: u32, ) -> Weight;
+    fn store_key(l: u32, ) -> Weight;
+    fn overwrite_equal_key(l: u32, ) -> Weight;
+    fn overwrite_key(l: u32, ) -> Weight;
+    fn delete_key(l: u32, ) -> Weight;
+    fn verify() -> Weight;
 }
 
 /// Weights for pallet_baby_liminal using the Substrate node and recommended hardware.
@@ -128,6 +134,10 @@ impl<T: frame_system::Config> BenchmarkInfo for AlephWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(3_u64))
 			.saturating_add(T::DbWeight::get().writes(3_u64))
 	}
+
+	fn verify() -> Weight {
+		Weight::zero()
+	}
 }
 
 // For backwards compatibility and tests
@@ -197,5 +207,9 @@ impl BenchmarkInfo for () {
 		Weight::from_parts(34_440_507_u64, 0)
 			.saturating_add(RocksDbWeight::get().reads(3_u64))
 			.saturating_add(RocksDbWeight::get().writes(3_u64))
+	}
+
+	fn verify() -> Weight {
+		Weight::zero()
 	}
 }

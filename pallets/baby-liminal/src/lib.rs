@@ -277,7 +277,7 @@ pub mod pallet {
         /// system)
         /// - verifying procedure fails (e.g. incompatible verification key and proof)
         /// - proof is incorrect
-        #[pallet::weight(0)]
+        #[pallet::weight(T::WeightInfo::verify())]
         #[pallet::call_index(3)]
         pub fn verify(
             _origin: OriginFor<T>,
