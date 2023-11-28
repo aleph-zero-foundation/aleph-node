@@ -402,11 +402,11 @@ where
         match maybe_error {
             Some(HandlerError::JustificationVerifier(e)) => debug!(
                 target: LOG_TARGET,
-                "Could not verify justification in sync state from {:?}: {}.", peer, e
+                "Could not verify justification in sync state response from {:?}: {}.", peer, e
             ),
             Some(HandlerError::HeaderVerifier(e)) => debug!(
                 target: LOG_TARGET,
-                "Could not verify header in sync state from {:?}: {}.", peer, e
+                "Could not verify header in sync state response from {:?}: {}.", peer, e
             ),
             Some(e) => warn!(
                 target: LOG_TARGET,
