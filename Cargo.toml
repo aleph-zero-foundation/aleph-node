@@ -120,6 +120,7 @@ pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/Cardina
 pallet-treasury = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.2.0", default-features = false }
 pallet-utility = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.2.0", default-features = false }
 pallet-vesting = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.2.0", default-features = false }
+pallet-proxy = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.2.0", default-features = false }
 
 sc-basic-authorship = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.2.0" }
 sc-block-builder = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.2.0" }

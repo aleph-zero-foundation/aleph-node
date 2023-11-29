@@ -63,6 +63,7 @@ pallet-aleph = { workspace = true }
 pallet-committee-management= { workspace = true }
 pallet-elections = { workspace = true }
 primitives = { workspace = true }
+pallet-proxy = { workspace = true }
 
 # Liminal-related dependencies
 baby-liminal-extension = { workspace = true, features = ["runtime"], optional = true }
@@ -97,6 +98,7 @@ std = [
     "pallet-treasury/std",
     "pallet-vesting/std",
     "pallet-multisig/std",
+    "pallet-proxy/std",
     "pallet-utility/std",
     "sp-api/std",
     "sp-block-builder/std",
@@ -148,6 +150,7 @@ try-runtime = [
     "pallet-multisig/try-runtime",
     "pallet-utility/try-runtime",
     "pallet-committee-management/try-runtime",
+    "pallet-proxy/try-runtime"
 ]
 enable_treasury_proposals = []
 runtime-benchmarks = [

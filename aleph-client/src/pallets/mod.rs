@@ -17,6 +17,8 @@ pub mod elections;
 pub mod fee;
 /// Pallet multisig API
 pub mod multisig;
+/// Pallet Proxy API
+pub mod proxy;
 /// Pallet session API
 pub mod session;
 /// Pallet staking API
