@@ -16,6 +16,18 @@ use substrate_prometheus_endpoint::{
 
 use crate::{aleph_primitives::BlockHash, metrics::LOG_TARGET, Display};
 
+pub trait Clock {
+    fn now(&self) -> Instant;
+}
+
+#[derive(Clone)]
+pub struct DefaultClock;
+impl Clock for DefaultClock {
+    fn now(&self) -> Instant {
+        Instant::now()
+    }
+}
+
 // How many entries (block hash + timestamp) we keep in memory per one checkpoint type.
 // Each entry takes 32B (Hash) + 16B (Instant), so a limit of 5000 gives ~234kB (per checkpoint).
 // Notice that some issues like finalization stall may lead to incomplete metrics
@@ -23,17 +35,18 @@ use crate::{aleph_primitives::BlockHash, metrics::LOG_TARGET, Display};
 const MAX_BLOCKS_PER_CHECKPOINT: usize = 5000;
 
 #[derive(Clone)]
-pub enum TimingBlockMetrics {
+pub enum TimingBlockMetrics<C: Clock> {
     Prometheus {
         time_since_prev_checkpoint: HashMap<Checkpoint, Histogram>,
         imported_to_finalized: Histogram,
         starts: Arc<Mutex<HashMap<Checkpoint, LruCache<BlockHash, Instant>>>>,
+        clock: C,
     },
     Noop,
 }
 
-impl TimingBlockMetrics {
-    pub fn new(registry: Option<&Registry>) -> Result<Self, PrometheusError> {
+impl<C: Clock> TimingBlockMetrics<C> {
+    pub fn new(registry: Option<&Registry>, clock: C) -> Result<Self, PrometheusError> {
         use Checkpoint::*;
         let keys = [Importing, Imported, Proposed, Ordered, Finalized];
         let target_time_since_prev_checkpoint = HashMap::from([
@@ -46,7 +59,7 @@ impl TimingBlockMetrics {
         const BUCKETS_FACTOR: f64 = 1.5;
 
         let registry = match registry {
-            None => return Ok(Self::Noop),
+            None => return Ok(TimingBlockMetrics::Noop),
             Some(registry) => registry,
         };
 
@@ -77,7 +90,7 @@ impl TimingBlockMetrics {
             );
         }
 
-        Ok(Self::Prometheus {
+        Ok(TimingBlockMetrics::Prometheus {
             time_since_prev_checkpoint,
             imported_to_finalized: register(
                 Histogram::with_opts(
@@ -96,59 +109,49 @@ impl TimingBlockMetrics {
                     })
                     .collect(),
             )),
+            clock,
         })
     }
 
     pub fn noop() -> Self {
-        Self::Noop
+        TimingBlockMetrics::Noop
     }
 
-    pub fn report_block_if_not_present(
-        &self,
-        hash: BlockHash,
-        checkpoint_time: Instant,
-        checkpoint_type: Checkpoint,
-    ) {
-        let starts = match self {
-            TimingBlockMetrics::Noop => return,
-            TimingBlockMetrics::Prometheus { starts, .. } => starts,
-        };
-        if !starts
-            .lock()
-            .get_mut(&checkpoint_type)
-            .expect("All checkpoint types were initialized")
-            .contains(&hash)
-        {
-            self.report_block(hash, checkpoint_time, checkpoint_type);
-        }
-    }
-
-    pub fn report_block(
-        &self,
-        hash: BlockHash,
-        checkpoint_time: Instant,
-        checkpoint_type: Checkpoint,
-    ) {
-        trace!(
-            target: LOG_TARGET,
-            "Reporting block stage: {:?} (hash: {:?}, at: {:?}",
-            checkpoint_type,
-            hash,
-            checkpoint_time
-        );
-        let (time_since_prev_checkpoint, imported_to_finalized, starts) = match self {
+    /// Reports a block at the given [`Checkpoint`] if it hasn't been done before.
+    pub fn report_block(&self, hash: BlockHash, checkpoint_type: Checkpoint) {
+        let (time_since_prev_checkpoint, imported_to_finalized, starts, clock) = match self {
             TimingBlockMetrics::Noop => return,
             TimingBlockMetrics::Prometheus {
                 time_since_prev_checkpoint,
                 imported_to_finalized,
                 starts,
-            } => (time_since_prev_checkpoint, imported_to_finalized, starts),
+                clock,
+            } => (
+                time_since_prev_checkpoint,
+                imported_to_finalized,
+                starts,
+                clock,
+            ),
         };
 
         let starts = &mut *starts.lock();
-        starts.entry(checkpoint_type).and_modify(|starts| {
-            starts.put(hash, checkpoint_time);
-        });
+        let checkpoint_lru = starts
+            .get_mut(&checkpoint_type)
+            .expect("All checkpoint types were initialized");
+        if checkpoint_lru.contains(&hash) {
+            return;
+        }
+
+        let checkpoint_time = clock.now();
+        trace!(
+            target: LOG_TARGET,
+            "Reporting timing of block at stage: {:?} (hash: {:?}, time: {:?}",
+            checkpoint_type,
+            hash,
+            checkpoint_time
+        );
+
+        checkpoint_lru.put(hash, checkpoint_time);
 
         if let Some(prev_checkpoint_type) = checkpoint_type.prev() {
             if let Some(start) = starts
@@ -173,6 +176,7 @@ impl TimingBlockMetrics {
                     .observe(duration.as_secs_f64() * 1000.);
             }
         }
+
         if checkpoint_type == Checkpoint::Finalized {
             if let Some(start) = starts
                 .get_mut(&Checkpoint::Imported)
@@ -263,26 +267,50 @@ fn exponential_buckets_two_sided(
 
 #[cfg(test)]
 mod tests {
-    use std::cmp::min;
+    use std::{cell::RefCell, cmp::min};
 
     use Checkpoint::*;
 
     use super::*;
 
-    fn register_prometheus_metrics_with_dummy_registry() -> TimingBlockMetrics {
-        TimingBlockMetrics::new(Some(&Registry::new())).unwrap()
+    struct TestClock {
+        step: RefCell<usize>,
+        times: Vec<Instant>,
     }
 
-    fn starts_for(m: &TimingBlockMetrics, c: Checkpoint) -> usize {
+    impl TestClock {
+        fn from_times(times: Vec<Instant>) -> Self {
+            TestClock {
+                step: 0.into(),
+                times,
+            }
+        }
+    }
+
+    impl Clock for TestClock {
+        fn now(&self) -> Instant {
+            let instant = self
+                .times
+                .get(*self.step.borrow())
+                .expect("TestClock should be properly initialized");
+            *self.step.borrow_mut() += 1;
+            *instant
+        }
+    }
+
+    fn starts_for<C: Clock>(m: &TimingBlockMetrics<C>, c: Checkpoint) -> usize {
         match &m {
             TimingBlockMetrics::Prometheus { starts, .. } => starts.lock().get(&c).unwrap().len(),
             _ => 0,
         }
     }
 
-    fn check_reporting_with_memory_excess(metrics: &TimingBlockMetrics, checkpoint: Checkpoint) {
+    fn check_reporting_with_memory_excess<C: Clock>(
+        metrics: &TimingBlockMetrics<C>,
+        checkpoint: Checkpoint,
+    ) {
         for i in 1..(MAX_BLOCKS_PER_CHECKPOINT + 10) {
-            metrics.report_block(BlockHash::random(), Instant::now(), checkpoint);
+            metrics.report_block(BlockHash::random(), checkpoint);
             assert_eq!(
                 min(i, MAX_BLOCKS_PER_CHECKPOINT),
                 starts_for(metrics, checkpoint)
@@ -292,43 +320,48 @@ mod tests {
 
     #[test]
     fn noop_metrics() {
-        let m = TimingBlockMetrics::noop();
-        m.report_block(BlockHash::random(), Instant::now(), Ordered);
+        let m = TimingBlockMetrics::<DefaultClock>::noop();
+        m.report_block(BlockHash::random(), Ordered);
         assert!(matches!(m, TimingBlockMetrics::Noop));
     }
 
     #[test]
     fn should_keep_entries_up_to_defined_limit() {
-        let m = register_prometheus_metrics_with_dummy_registry();
+        let m = TimingBlockMetrics::new(Some(&Registry::new()), DefaultClock).unwrap();
         check_reporting_with_memory_excess(&m, Ordered);
     }
 
     #[test]
     fn should_manage_space_for_checkpoints_independently() {
-        let m = register_prometheus_metrics_with_dummy_registry();
+        let m = TimingBlockMetrics::new(Some(&Registry::new()), DefaultClock).unwrap();
         check_reporting_with_memory_excess(&m, Ordered);
         check_reporting_with_memory_excess(&m, Imported);
     }
 
     #[test]
     fn given_not_monotonic_clock_when_report_block_is_called_repeatedly_code_does_not_panic() {
-        let metrics = register_prometheus_metrics_with_dummy_registry();
         let earlier_timestamp = Instant::now();
         let later_timestamp = earlier_timestamp + Duration::new(0, 5);
+        let timestamps = vec![later_timestamp, earlier_timestamp];
+        let test_clock = TestClock::from_times(timestamps);
+        let metrics = TimingBlockMetrics::new(Some(&Registry::new()), test_clock).unwrap();
+
         let hash = BlockHash::random();
-        metrics.report_block(hash, later_timestamp, Proposed);
-        metrics.report_block(hash, earlier_timestamp, Ordered);
+        metrics.report_block(hash, Proposed);
+        metrics.report_block(hash, Ordered);
     }
 
     #[test]
     fn test_report_block_if_not_present() {
-        let metrics = register_prometheus_metrics_with_dummy_registry();
         let earlier_timestamp = Instant::now();
         let later_timestamp = earlier_timestamp + Duration::new(0, 5);
-        let hash = BlockHash::random();
+        let timestamps = vec![earlier_timestamp, later_timestamp];
+        let test_clock = TestClock::from_times(timestamps);
+        let metrics = TimingBlockMetrics::new(Some(&Registry::new()), test_clock).unwrap();
 
-        metrics.report_block(hash, earlier_timestamp, Proposed);
-        metrics.report_block_if_not_present(hash, later_timestamp, Proposed);
+        let hash = BlockHash::random();
+        metrics.report_block(hash, Proposed);
+        metrics.report_block(hash, Proposed);
 
         let timestamp = match &metrics {
             TimingBlockMetrics::Prometheus { starts, .. } => starts

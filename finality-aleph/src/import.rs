@@ -1,7 +1,6 @@
 use std::{
     error::Error,
     fmt::{Debug, Display, Error as FmtError, Formatter},
-    time::Instant,
 };
 
 use futures::channel::mpsc::{self, TrySendError, UnboundedReceiver, UnboundedSender};
@@ -16,7 +15,7 @@ use crate::{
     aleph_primitives::{Block, BlockHash, BlockNumber, ALEPH_ENGINE_ID},
     block::substrate::{Justification, JustificationTranslator, TranslateError},
     justification::{backwards_compatible_decode, DecodeError},
-    metrics::{Checkpoint, TimingBlockMetrics},
+    metrics::{AllBlockMetrics, Checkpoint},
     BlockId,
 };
 
@@ -28,17 +27,18 @@ where
     I: BlockImport<Block> + Send + Sync,
 {
     inner: I,
-    metrics: TimingBlockMetrics,
+    metrics: AllBlockMetrics,
 }
 
 impl<I> TracingBlockImport<I>
 where
     I: BlockImport<Block> + Send + Sync,
 {
-    pub fn new(inner: I, metrics: TimingBlockMetrics) -> Self {
+    pub fn new(inner: I, metrics: AllBlockMetrics) -> Self {
         TracingBlockImport { inner, metrics }
     }
 }
+
 #[async_trait::async_trait]
 impl<I> BlockImport<Block> for TracingBlockImport<I>
 where
@@ -60,14 +60,12 @@ where
         let post_hash = block.post_hash();
         // Self-created blocks are imported without using the import queue,
         // so we need to report them here.
-        self.metrics
-            .report_block_if_not_present(post_hash, Instant::now(), Checkpoint::Importing);
+        self.metrics.report_block(post_hash, Checkpoint::Importing);
 
         let result = self.inner.import_block(block).await;
 
         if let Ok(ImportResult::Imported(_)) = &result {
-            self.metrics
-                .report_block(post_hash, Instant::now(), Checkpoint::Imported);
+            self.metrics.report_block(post_hash, Checkpoint::Imported);
         }
         result
     }

@@ -28,6 +28,7 @@ use crate::{
         },
         ChainTracker, DataStore, OrderedDataInterpreter, SubstrateChainInfoProvider,
     },
+    metrics::AllBlockMetrics,
     mpsc,
     network::{
         data::{
@@ -41,8 +42,8 @@ use crate::{
     },
     sync::JustificationSubmissions,
     AuthorityId, BlockId, CurrentRmcNetworkData, Keychain, LegacyRmcNetworkData, NodeIndex,
-    SessionBoundaries, SessionBoundaryInfo, SessionId, SessionPeriod, TimingBlockMetrics,
-    UnitCreationDelay, VersionedNetworkData,
+    SessionBoundaries, SessionBoundaryInfo, SessionId, SessionPeriod, UnitCreationDelay,
+    VersionedNetworkData,
 };
 
 mod aggregator;
@@ -115,7 +116,7 @@ where
     justifications_for_sync: JS,
     justification_translator: JustificationTranslator,
     block_requester: RB,
-    metrics: TimingBlockMetrics,
+    metrics: AllBlockMetrics,
     spawn_handle: SpawnHandle,
     session_manager: SM,
     keystore: Arc<dyn Keystore>,
@@ -145,7 +146,7 @@ where
         justifications_for_sync: JS,
         justification_translator: JustificationTranslator,
         block_requester: RB,
-        metrics: TimingBlockMetrics,
+        metrics: AllBlockMetrics,
         spawn_handle: SpawnHandle,
         session_manager: SM,
         keystore: Arc<dyn Keystore>,

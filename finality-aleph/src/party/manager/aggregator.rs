@@ -16,7 +16,7 @@ use crate::{
     block::substrate::{Justification, JustificationTranslator},
     crypto::Signature,
     justification::AlephJustification,
-    metrics::Checkpoint,
+    metrics::{AllBlockMetrics, Checkpoint},
     network::data::Network,
     party::{
         manager::aggregator::AggregatorVersion::{Current, Legacy},
@@ -24,7 +24,7 @@ use crate::{
     },
     sync::JustificationSubmissions,
     BlockId, CurrentRmcNetworkData, Keychain, LegacyRmcNetworkData, SessionBoundaries,
-    TimingBlockMetrics, STATUS_REPORT_INTERVAL,
+    STATUS_REPORT_INTERVAL,
 };
 
 /// IO channels used by the aggregator task.
@@ -40,13 +40,13 @@ where
 async fn process_new_block_data<CN, LN>(
     aggregator: &mut Aggregator<'_, CN, LN>,
     block: BlockId,
-    metrics: &TimingBlockMetrics,
+    metrics: &AllBlockMetrics,
 ) where
     CN: Network<CurrentRmcNetworkData>,
     LN: Network<LegacyRmcNetworkData>,
 {
     trace!(target: "aleph-party", "Received unit {:?} in aggregator.", block);
-    metrics.report_block(block.hash(), std::time::Instant::now(), Checkpoint::Ordered);
+    metrics.report_block(block.hash(), Checkpoint::Ordered);
 
     aggregator.start_aggregation(block.hash()).await;
 }
@@ -88,7 +88,7 @@ async fn run_aggregator<B, C, CN, LN, JS>(
     io: IO<JS>,
     client: Arc<C>,
     session_boundaries: &SessionBoundaries,
-    metrics: TimingBlockMetrics,
+    metrics: AllBlockMetrics,
     mut exit_rx: oneshot::Receiver<()>,
 ) -> Result<(), ()>
 where
@@ -175,7 +175,7 @@ pub fn task<B, C, CN, LN, JS>(
     client: Arc<C>,
     io: IO<JS>,
     session_boundaries: SessionBoundaries,
-    metrics: TimingBlockMetrics,
+    metrics: AllBlockMetrics,
     multikeychain: Keychain,
     version: AggregatorVersion<CN, LN>,
 ) -> Task

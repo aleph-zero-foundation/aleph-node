@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use sc_consensus::import_queue::{ImportQueueService, IncomingBlock};
 use sp_consensus::BlockOrigin;
 use sp_runtime::traits::{CheckedSub, Header as _, One};
@@ -7,7 +5,7 @@ use sp_runtime::traits::{CheckedSub, Header as _, One};
 use crate::{
     aleph_primitives::{Block, Header},
     block::{Block as BlockT, BlockId, BlockImport, Header as HeaderT, UnverifiedHeader},
-    metrics::Checkpoint,
+    metrics::{AllBlockMetrics, Checkpoint},
     TimingBlockMetrics,
 };
 
@@ -61,17 +59,18 @@ impl HeaderT for Header {
 /// Wrapper around the trait object that we get from Substrate.
 pub struct BlockImporter {
     importer: Box<dyn ImportQueueService<Block>>,
-    metrics: TimingBlockMetrics,
+    metrics: AllBlockMetrics,
 }
 
 impl BlockImporter {
     pub fn new(importer: Box<dyn ImportQueueService<Block>>) -> Self {
         Self {
             importer,
-            metrics: TimingBlockMetrics::Noop,
+            metrics: AllBlockMetrics::new(TimingBlockMetrics::Noop),
         }
     }
-    pub fn attach_metrics(&mut self, metrics: TimingBlockMetrics) {
+
+    pub fn attach_metrics(&mut self, metrics: AllBlockMetrics) {
         self.metrics = metrics;
     }
 }
@@ -92,8 +91,7 @@ impl BlockImport<Block> for BlockImporter {
             import_existing: false,
             state: None,
         };
-        self.metrics
-            .report_block_if_not_present(hash, Instant::now(), Checkpoint::Importing);
+        self.metrics.report_block(hash, Checkpoint::Importing);
         self.importer.import_blocks(origin, vec![incoming_block]);
     }
 }

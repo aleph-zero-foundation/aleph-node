@@ -13,9 +13,9 @@ use sp_runtime::{
 use crate::{
     aleph_primitives::{BlockHash, BlockNumber},
     data_io::legacy::{proposal::UnvalidatedAlephProposal, AlephData, MAX_DATA_BRANCH_LEN},
-    metrics::Checkpoint,
+    metrics::{AllBlockMetrics, Checkpoint},
     party::manager::Runnable,
-    BlockId, SessionBoundaries, TimingBlockMetrics,
+    BlockId, SessionBoundaries,
 };
 
 // Reduce block header to the level given by num, by traversing down via parents.
@@ -143,7 +143,7 @@ where
         client: Arc<C>,
         session_boundaries: SessionBoundaries,
         config: ChainTrackerConfig,
-        metrics: TimingBlockMetrics,
+        metrics: AllBlockMetrics,
     ) -> (Self, DataProvider) {
         let data_to_propose = Arc::new(Mutex::new(None));
         (
@@ -309,7 +309,7 @@ where
 #[derive(Clone)]
 pub struct DataProvider {
     data_to_propose: Arc<Mutex<Option<AlephData>>>,
-    metrics: TimingBlockMetrics,
+    metrics: AllBlockMetrics,
 }
 
 // Honest nodes propose data in session `k` as follows:
@@ -325,9 +325,8 @@ impl DataProvider {
         let data_to_propose = (*self.data_to_propose.lock()).take();
 
         if let Some(data) = &data_to_propose {
-            self.metrics.report_block_if_not_present(
+            self.metrics.report_block(
                 *data.head_proposal.branch.last().unwrap(),
-                std::time::Instant::now(),
                 Checkpoint::Proposed,
             );
             debug!(target: "aleph-data-store", "Outputting {:?} in get_data", data);
@@ -350,6 +349,7 @@ mod tests {
             test::aleph_data_from_blocks,
             DataProvider, MAX_DATA_BRANCH_LEN,
         },
+        metrics::AllBlockMetrics,
         testing::{
             client_chain_builder::ClientChainBuilder,
             mocks::{TestClientBuilder, TestClientBuilderExt},
@@ -385,7 +385,7 @@ mod tests {
             client,
             session_boundaries,
             config,
-            TimingBlockMetrics::noop(),
+            AllBlockMetrics::new(TimingBlockMetrics::noop()),
         );
 
         let (exit_chain_tracker_tx, exit_chain_tracker_rx) = oneshot::channel();
