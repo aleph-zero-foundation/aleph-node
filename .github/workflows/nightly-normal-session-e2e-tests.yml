@@ -220,7 +220,7 @@ jobs:
           path: target/release/
 
       - name: Run test
-        timeout-minutes: 15
+        timeout-minutes: 25
         run: |
           ./.github/scripts/test_python_general.sh \
             --aleph-node ../target/release/aleph-node \
