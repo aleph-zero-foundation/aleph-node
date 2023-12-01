@@ -12,8 +12,42 @@ jobs:
     uses: ./.github/workflows/_check-vars-and-secrets.yml
     secrets: inherit
 
-  push-ecr-image:
+  check-node-version:
     needs: [check-vars-and-secrets]
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Call action get-ref-properties
+        id: get-ref-properties
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v4
+
+      - name: Read node version
+        id: read-node-version
+        uses: SebRollen/toml-action@v1.0.2
+        with:
+          file: 'bin/node/Cargo.toml'
+          field: 'package.version'
+
+      - name: Check if node version matches with tag
+        shell: bash
+        # yamllint disable rule:line-length
+        run: |
+          # cut release candidate part of the tag
+          tag=$(echo '${{ steps.get-ref-properties.outputs.tag }}' | sed 's/-rc[0-9]*$//g')
+          # cut major version from Cargo.toml
+          expected_tag=r-$(echo '${{ steps.read-node-version.outputs.value }}' | sed -e 's/^[0-9]\+\.//g')
+          if [[ ${tag} != ${expected_tag} ]]; then
+            echo "Error: tag version does not match version in bin/node/Cargo.toml"
+            echo "Non-release candidate part of the tag is ${tag}"
+            echo "Expected tag from node version is ${expected_tag}"
+            exit 1
+          fi
+        # yamllint enable rule:line-length
+
+  push-ecr-image:
+    needs: [check-node-version]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -38,7 +72,6 @@ jobs:
       # fail, as there would be no aleph-node-<sha> image on ECR for <sha> that is not on main
       # or release branch, see on-main-or-release-branch-commit.yml
       - name: Check release candidate docker image existence
-        # yamllint disable-line rule:line-length
         uses: Cardinal-Cryptography/github-actions/check-image-existence-ecr@v4
         with:
           ecr-image: ${{ steps.get-docker-image-names.outputs.ecr-rc-image }}
