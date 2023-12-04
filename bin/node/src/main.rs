@@ -1,30 +1,16 @@
+mod pruning_config;
+
 #[cfg(any(feature = "try-runtime", feature = "runtime-benchmarks"))]
 use aleph_node::ExecutorDispatch;
 use aleph_node::{new_authority, new_partial, Cli, Subcommand};
 #[cfg(any(feature = "try-runtime", feature = "runtime-benchmarks"))]
 use aleph_runtime::Block;
-use log::{info, warn};
+use log::info;
 use primitives::HEAP_PAGES;
-use sc_cli::{clap::Parser, CliConfiguration, DatabasePruningMode, PruningParams, SubstrateCli};
+use pruning_config::PruningConfigValidator;
+use sc_cli::{clap::Parser, SubstrateCli};
 use sc_network::config::Role;
 use sc_service::{Configuration, PartialComponents};
-
-fn default_state_pruning() -> Option<DatabasePruningMode> {
-    Some(DatabasePruningMode::Archive)
-}
-
-fn default_blocks_pruning() -> DatabasePruningMode {
-    DatabasePruningMode::ArchiveCanonical
-}
-
-fn pruning_changed(params: &PruningParams) -> bool {
-    let state_pruning_changed =
-        params.state_pruning.is_some() && (params.state_pruning != default_state_pruning());
-
-    let blocks_pruning_changed = params.blocks_pruning != default_blocks_pruning();
-
-    state_pruning_changed || blocks_pruning_changed
-}
 
 fn enforce_heap_pages(config: &mut Configuration) {
     config.default_heap_pages = Some(HEAP_PAGES);
@@ -32,15 +18,8 @@ fn enforce_heap_pages(config: &mut Configuration) {
 
 fn main() -> sc_cli::Result<()> {
     let mut cli = Cli::parse();
-    let overwritten_pruning = pruning_changed(&cli.run.import_params.pruning_params);
-    if !cli.aleph.experimental_pruning() {
-        cli.run.import_params.pruning_params.state_pruning = default_state_pruning();
-        cli.run.import_params.pruning_params.blocks_pruning = default_blocks_pruning();
-    // We need to override state pruning to our default (archive), as substrate has 256 by default.
-    // 256 does not work with our code.
-    } else if cli.run.import_params.pruning_params.state_pruning.is_none() {
-        cli.run.import_params.pruning_params.state_pruning = default_state_pruning();
-    }
+
+    let pruning_config_validation_result = PruningConfigValidator::process(&mut cli);
 
     match &cli.subcommand {
         Some(Subcommand::BootstrapChain(cmd)) => cmd.run(),
@@ -155,14 +134,8 @@ fn main() -> sc_cli::Result<()> {
         ),
         None => {
             let runner = cli.create_runner(&cli.run)?;
-            if cli.aleph.experimental_pruning() {
-                warn!("Experimental_pruning was turned on. Usage of this flag can lead to misbehaviour, which can be punished. State pruning: {:?}; Blocks pruning: {:?};",
-                    cli.run.state_pruning()?.unwrap_or_default(),
-                    cli.run.blocks_pruning()?,
-                );
-            } else if overwritten_pruning {
-                warn!("Pruning not supported. Switching to keeping all block bodies and states.");
-            }
+
+            pruning_config_validation_result.report();
 
             let mut aleph_cli_config = cli.aleph;
             runner.run_node_until_exit(|mut config| async move {
@@ -185,30 +158,5 @@ fn main() -> sc_cli::Result<()> {
                 new_authority(config, aleph_cli_config).map_err(sc_cli::Error::Service)
             })
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use sc_service::{BlocksPruning, PruningMode};
-
-    use super::{default_blocks_pruning, default_state_pruning, PruningParams};
-
-    #[test]
-    fn pruning_sanity_check() {
-        let pruning_params = PruningParams {
-            state_pruning: default_state_pruning(),
-            blocks_pruning: default_blocks_pruning(),
-        };
-
-        assert_eq!(
-            pruning_params.blocks_pruning().unwrap(),
-            BlocksPruning::KeepFinalized
-        );
-
-        assert_eq!(
-            pruning_params.state_pruning().unwrap().unwrap(),
-            PruningMode::ArchiveAll
-        );
     }
 }

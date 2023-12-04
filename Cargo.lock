@@ -396,6 +396,7 @@ dependencies = [
  "sp-runtime",
  "sp-timestamp",
  "sp-transaction-pool",
+ "static_assertions",
  "substrate-build-script-utils",
  "substrate-frame-rpc-system",
  "thiserror",

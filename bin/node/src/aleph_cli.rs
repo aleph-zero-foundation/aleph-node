@@ -42,11 +42,11 @@ pub struct AlephCli {
     #[clap(long, default_value_t = 20)]
     max_nonfinalized_blocks: u32,
 
-    /// Experimental flag, allows pruning
-    ///
-    /// TURNING THIS FLAG ON, CAN LEAD TO MALICIOUS BEHAVIOUR AND CAN BE PUNISHED ACCORDINGLY!
+    /// Enable database pruning. It removes older entries in the state-database. Pruning of blocks is not supported.
+    /// Note that we only support pruning with ParityDB database backend.
+    /// See also `--state-pruning` option for more details.
     #[clap(long, default_value_t = false)]
-    experimental_pruning: bool,
+    enable_pruning: bool,
 
     /// Maximum bit-rate per node in bytes per second of the alephbft validator network.
     #[clap(long, default_value_t = 64 * 1024)]
@@ -90,8 +90,8 @@ impl AlephCli {
         self.max_nonfinalized_blocks
     }
 
-    pub fn experimental_pruning(&self) -> bool {
-        self.experimental_pruning
+    pub fn enable_pruning(&self) -> bool {
+        self.enable_pruning
     }
 
     pub fn alephbft_bit_rate_per_connection(&self) -> u64 {

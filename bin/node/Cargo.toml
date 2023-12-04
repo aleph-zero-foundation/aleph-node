@@ -24,6 +24,7 @@ futures = { workspace = true }
 hex = { workspace = true }
 hex-literal = { workspace = true }
 libp2p = { workspace = true }
+static_assertions = { workspace = true }
 thiserror = { workspace = true }
 
 sc-basic-authorship = { workspace = true }
