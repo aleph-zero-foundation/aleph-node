@@ -65,6 +65,8 @@ jobs:
     name: Build test node and runtime
     needs: [check-vars-and-secrets]
     uses: ./.github/workflows/_build-test-node-and-runtime.yml
+    with:
+      ref: ${{ github.ref }}
     secrets: inherit
 
   # this job is required for bootstrapping featurenet
@@ -84,15 +86,17 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
           aws-bucket: ${{ secrets.CI_DEVNET_S3BUCKET_NAME }}
 
-  push-featurenet-node-image-to-ecr:
+  push-featurenet-test-node-image-to-ecr:
     needs: [build-test-node-and-runtime]
     name: Build and push PR test docker image to ECR
-    uses: ./.github/workflows/_build-and-push-pull-request-image-to-featurenets.yml
+    uses: ./.github/workflows/_build-and-push-test-image-to-featurenets.yml
+    with:
+      ref: ${{ github.ref }}
     secrets: inherit
 
   runs-e2e-test-on-fe:
     needs:
-      - push-featurenet-node-image-to-ecr
+      - push-featurenet-test-node-image-to-ecr
       - build-e2e-client-image
       - store-test-node-and-runtime
       - get-e2e-test-case-names
@@ -123,16 +127,16 @@ jobs:
         # yamllint enable rule:line-length
 
       - name: Create featurenet from scratch
-        uses: Cardinal-Cryptography/github-actions/create-featurenet@v4
+        uses: Cardinal-Cryptography/github-actions/create-featurenet@v5
         id: create-featurenet
         with:
+          gh-ci-user: ${{ secrets.CI_GH_USER }}
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
           argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
-          repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
           repo-featurenet-template-name: ${{ secrets.REPO_FEATURENET_TEMPLATE_NAME }}
-          argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
-          ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}
-          featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
+          # yamllint disable-line rule:line-length
+          featurenet-aleph-node-image: ${{ needs.push-featurenet-test-node-image-to-ecr.outputs.image-tag }}
+          featurenet-ecr-repo: true
           expiration: '3h'
           featurenet-name: ${{ steps.get-final-featurenet-name.outputs.final-featurenet-name }}
           git-commit-author: ${{ secrets.AUTOCOMMIT_AUTHOR }}
@@ -161,17 +165,15 @@ jobs:
         # yamllint enable rule:line-length
 
       - name: Delete old featurenet app and data
-        uses: Cardinal-Cryptography/github-actions/delete-featurenet@v4
+        if: always()
+        uses: Cardinal-Cryptography/github-actions/delete-featurenet@v5
         with:
+          gh-ci-user: ${{ secrets.CI_GH_USER }}
           gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
           aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
-          ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}
           argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
-          repo-featurenets-name: ${{ secrets.REPO_OPS_FEATURENETS_NAME }}
           repo-featurenet-template-name: ${{ secrets.REPO_FEATURENET_TEMPLATE_NAME }}
-          argo-host: ${{ secrets.ARGOCD_DEVNET_HOST }}
-          featurenet-keys-s3bucket-name: ${{ secrets.FEATURENET_KEYS_S3BUCKET_NAME }}
           featurenet-name: ${{ steps.get-final-featurenet-name.outputs.final-featurenet-name }}
           git-commit-author: ${{ secrets.AUTOCOMMIT_AUTHOR }}
           git-commit-email: ${{ secrets.AUTOCOMMIT_EMAIL }}

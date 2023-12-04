@@ -8,8 +8,8 @@ on:
         description: Name of featurenet
         required: true
         type: string
-      destination:
-        description: Node image tag, ie 7-byte SHA of some existing ECR aleph-node image tag
+      ref:
+        description: 'git ref: hash, branch, tag'
         required: true
         type: string
       rolling-update-partition:
@@ -28,52 +28,72 @@ on:
       internal:
         description: 'Internal network, accessible from VPN only'
         required: true
-        type: boolean
-        default: false
-  workflow_call:
-    inputs:
-      featurenet-name:
-        description: Name of featurenet
-        required: true
-        type: string
-      destination:
-        description: Node image tag, ie 7-byte SHA of some existing ECR aleph-node image tag
-        required: true
-        type: string
-      rolling-update-partition:
-        description: |
-          Number from 0 to N-1, where N is size of am existing featurenet.
-          All aleph-node-validator-N with an ordinal N that is great than or equal to the partition
-          will be updated. If not specified, all nodes will be updated.
-        required: false
-        default: "0"
-        type: string
-      replicas:
-        description: 'Number of replicas to start, from 0 to 50'
-        required: false
-        default: '5'
-        type: string
-      internal:
-        description: 'Internal network, accessible from VPN only'
-        required: false
         type: boolean
         default: false
 
 jobs:
+  validate-inputs:
+    name: Validate inputs
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Validate inputs
+        shell: bash
+        # yamllint disable rule:line-length
+        run: |
+          if [[ ! '${{ inputs.featurenet-name }}' =~ ^[a-z0-9][a-z0-9\-]{4,48}$ ]]; then
+            echo '!!! Invalid featurenet name'
+            exit 1
+          fi
+          if [[ ! '${{ inputs.ref }}' =~ ^[a-zA-Z0-9][a-zA-Z0-9\._\-]{1,48}$ ]]; then
+            echo "!!! Invalid ref"
+            exit 1
+          fi
+        # yamllint enable rule:line-length
+
+  check-image-existence:
+    needs: [validate-inputs]
+    name: Check if node image tag exists
+    runs-on: ubuntu-20.04
+    outputs:
+      image-tag: ${{ steps.check-image-exists.outputs.image-tag }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Call action get-ref-properties
+        id: get-ref-properties
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v4
+
+      - name: Check if node image tag exists
+        id: check-image-exists
+        shell: bash
+        run: |
+          image_tag='${{ steps.get-ref-properties.outputs.sha }}'
+          image='${{ vars.ECR_PUBLIC_REGISTRY }}'aleph-node:${image_tag}
+          if ! docker manifest inspect ${image}; then
+           echo "!! Image ${image} does not exist.";
+           exit 1;
+          fi
+          echo "image-tag=${image_tag}" >> $GITHUB_OUTPUT
+
   check-vars-and-secrets:
+    needs: [check-image-existence]
     name: Check vars and secrets
     uses: ./.github/workflows/_check-vars-and-secrets.yml
     secrets: inherit
 
   update-featurenet:
-    needs: [check-vars-and-secrets]
+    needs: [check-vars-and-secrets, check-image-existence]
     name: Update featurenet
     # yamllint disable-line rule:line-length
-    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-update.yml@v4
+    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-create.yml@v5
     secrets: inherit
     with:
       featurenet-name: ${{ inputs.featurenet-name }}
-      destination: ${{ inputs.destination }}
+      aleph-node-image: ${{ needs.check-image-existence.outputs.image-tag }}
       rolling-update-partition: ${{ inputs.rolling-update-partition }}
       replicas: ${{ inputs.replicas }}
       internal: ${{ inputs.internal && true || false }}
+      delete-first: false

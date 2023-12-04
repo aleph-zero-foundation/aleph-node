@@ -5,14 +5,27 @@
 name: Build and push PR image to featurenets
 on:
   workflow_call:
-
+    inputs:
+      ref:
+        description: "git ref: hash, branch, tag or 'mainnet' or 'testnet'"
+        type: string
+        required: true
+    outputs:
+      image-tag:
+        description: Tag of pushed docker image
+        value: ${{ jobs.main.outputs.image-tag }}
 jobs:
   main:
     name: Build and push image
     runs-on: ubuntu-20.04
+    outputs:
+      image-tag: ${{ steps.push-image.outputs.image-tag }}
     steps:
       - name: Checkout aleph-node
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
 
       - name: Call action get-ref-properties
         id: get-ref-properties
@@ -43,8 +56,10 @@ jobs:
           password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
 
       - name: Push image to the featurenet registry
+        id: push-image
         env:
           # yamllint disable-line rule:line-length
           IMAGE_TAG: fe-${{ steps.get-ref-properties.outputs.branch-name-for-argo-with-sha }}
         run: |
           docker push '${{ vars.ECR_PUBLIC_REGISTRY }}feature-env-aleph-node:${{ env.IMAGE_TAG }}'
+          echo 'image-tag=${{ env.IMAGE_TAG }}' >> $GITHUB_OUTPUT

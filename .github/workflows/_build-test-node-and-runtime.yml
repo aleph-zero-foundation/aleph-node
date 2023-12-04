@@ -4,6 +4,11 @@
 name: Build test node and runtime
 on:
   workflow_call:
+    inputs:
+      ref:
+        description: "git ref: hash, branch, tag or 'mainnet' or 'testnet'"
+        type: string
+        required: true
 
 jobs:
   main:
@@ -15,11 +20,9 @@ jobs:
     steps:
       - name: Checkout aleph-node source code
         uses: actions/checkout@v4
-
-      - name: Call action get-ref-properties
-        id: get-ref-properties
-        # yamllint disable-line rule:line-length
-        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
 
       - name: Install Rust toolchain
         uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v4

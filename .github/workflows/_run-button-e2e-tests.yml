@@ -20,6 +20,8 @@ jobs:
     needs: [check-vars-and-secrets]
     name: Build test node and runtime
     uses: ./.github/workflows/_build-test-node-and-runtime.yml
+    with:
+      ref: ${{ github.ref }}
 
   store-test-node-and-runtime:
     name: Store test node and runtime in Devnet bucket

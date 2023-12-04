@@ -32,6 +32,8 @@ jobs:
   build-test-node-and-runtime:
     name: Build test node and runtime
     uses: ./.github/workflows/_build-test-node-and-runtime.yml
+    with:
+      ref: ${{ github.ref }}
 
   build-test-node-image-and-e2e-client-image:
     needs: [build-test-node-and-runtime]
