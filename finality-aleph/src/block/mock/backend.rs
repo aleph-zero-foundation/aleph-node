@@ -264,7 +264,7 @@ impl Finalizer<MockJustification> for Backend {
 }
 
 impl BlockImport<MockBlock> for Backend {
-    fn import_block(&mut self, block: MockBlock) {
+    fn import_block(&mut self, block: MockBlock, _own: bool) {
         if !block.verify() {
             return;
         }

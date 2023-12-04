@@ -325,10 +325,10 @@ impl DataProvider {
         let data_to_propose = (*self.data_to_propose.lock()).take();
 
         if let Some(data) = &data_to_propose {
-            self.metrics.report_block(
-                *data.head_proposal.branch.last().unwrap(),
-                Checkpoint::Proposed,
-            );
+            let number = data.head_proposal.number;
+            let hash = *data.head_proposal.branch.last().unwrap();
+            self.metrics
+                .report_block(BlockId::new(hash, number), Checkpoint::Proposed, None);
             debug!(target: "aleph-data-store", "Outputting {:?} in get_data", data);
         };
 
@@ -354,7 +354,7 @@ mod tests {
             client_chain_builder::ClientChainBuilder,
             mocks::{TestClientBuilder, TestClientBuilderExt},
         },
-        SessionBoundaryInfo, SessionId, SessionPeriod, TimingBlockMetrics,
+        SessionBoundaryInfo, SessionId, SessionPeriod,
     };
 
     const SESSION_LEN: u32 = 100;
@@ -385,7 +385,7 @@ mod tests {
             client,
             session_boundaries,
             config,
-            AllBlockMetrics::new(TimingBlockMetrics::noop()),
+            AllBlockMetrics::new(None),
         );
 
         let (exit_chain_tracker_tx, exit_chain_tracker_rx) = oneshot::channel();

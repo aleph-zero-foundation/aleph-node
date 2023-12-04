@@ -6,7 +6,6 @@ use crate::{
     aleph_primitives::{Block, Header},
     block::{Block as BlockT, BlockId, BlockImport, Header as HeaderT, UnverifiedHeader},
     metrics::{AllBlockMetrics, Checkpoint},
-    TimingBlockMetrics,
 };
 
 mod chain_status;
@@ -66,7 +65,7 @@ impl BlockImporter {
     pub fn new(importer: Box<dyn ImportQueueService<Block>>) -> Self {
         Self {
             importer,
-            metrics: AllBlockMetrics::new(TimingBlockMetrics::Noop),
+            metrics: AllBlockMetrics::new(None),
         }
     }
 
@@ -76,9 +75,15 @@ impl BlockImporter {
 }
 
 impl BlockImport<Block> for BlockImporter {
-    fn import_block(&mut self, block: Block) {
-        let origin = BlockOrigin::NetworkBroadcast;
+    fn import_block(&mut self, block: Block, own: bool) {
+        // We only need to distinguish between blocks produced by us and blocks incoming from the network
+        // for the purpose of running `FinalityRateMetrics`. We use `BlockOrigin` to make this distinction.
+        let origin = match own {
+            true => BlockOrigin::Own,
+            false => BlockOrigin::NetworkBroadcast,
+        };
         let hash = block.header.hash();
+        let number = *block.header.number();
         let incoming_block = IncomingBlock::<Block> {
             hash,
             header: Some(block.header),
@@ -91,7 +96,8 @@ impl BlockImport<Block> for BlockImporter {
             import_existing: false,
             state: None,
         };
-        self.metrics.report_block(hash, Checkpoint::Importing);
+        self.metrics
+            .report_block(BlockId::new(hash, number), Checkpoint::Importing, Some(own));
         self.importer.import_blocks(origin, vec![incoming_block]);
     }
 }

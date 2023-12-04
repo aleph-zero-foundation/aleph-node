@@ -472,8 +472,7 @@ where
     /// Check for equivocations and then send the block to the block importer.
     /// It's important to pass every incoming block through this function, as the block importer
     /// will accept equivocated headers, and then notify us by sending back a VERIFIED header.
-    /// Also, this is the last place we know if we've authored the block, without having to
-    /// check it by hand.
+    /// The knowledge of authorship of the block is passed further to the block importer.
     fn import_block(
         &mut self,
         block: B,
@@ -486,7 +485,7 @@ where
             maybe_equivocation_proof,
             ..
         } = self.verify_header(block.header().clone(), own_block)?;
-        self.block_importer.import_block(block);
+        self.block_importer.import_block(block, own_block);
         Ok(maybe_equivocation_proof)
     }
 
@@ -927,7 +926,7 @@ mod tests {
             .take(branch_length)
             .collect();
         for header in &result {
-            backend.import_block(MockBlock::new(header.clone(), true));
+            backend.import_block(MockBlock::new(header.clone(), true), false);
         }
         result
     }
@@ -1075,7 +1074,7 @@ mod tests {
             handler
                 .handle_justification_from_user(justification)
                 .expect("should work");
-            backend.import_block(block);
+            backend.import_block(block, false);
             match notifier.next().await {
                 Ok(BlockImported(header)) => {
                     handler.block_imported(header).expect("should work");
@@ -2002,7 +2001,7 @@ mod tests {
 
         let headers: Vec<MockHeader> = import_branch(&mut backend_a, 110);
         for header in &headers {
-            backend_b.import_block(MockBlock::new(header.clone(), true));
+            backend_b.import_block(MockBlock::new(header.clone(), true), false);
         }
 
         let justifications: Vec<MockJustification> = headers
@@ -2709,7 +2708,7 @@ mod tests {
         let branch: Vec<_> = genesis.random_branch().take(2137).collect();
         for header in branch.iter() {
             let block = MockBlock::new(header.clone(), true);
-            backend.import_block(block);
+            backend.import_block(block, false);
             match notifier.next().await {
                 Ok(BlockImported(header)) => {
                     // we ignore failures, as we expect some

@@ -67,7 +67,7 @@ pub use crate::{
     },
     import::{AlephBlockImport, RedirectingBlockImport, TracingBlockImport},
     justification::AlephJustification,
-    metrics::{AllBlockMetrics, DefaultClock, TimingBlockMetrics},
+    metrics::{AllBlockMetrics, DefaultClock, FinalityRateMetrics, TimingBlockMetrics},
     network::{
         address_cache::{ValidatorAddressCache, ValidatorAddressingInfo},
         Protocol, ProtocolNaming, SubstrateNetwork, SubstrateNetworkEventStream,

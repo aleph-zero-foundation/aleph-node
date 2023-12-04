@@ -8,9 +8,9 @@ use std::{
 use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use finality_aleph::{
     run_validator_node, AlephBlockImport, AlephConfig, AllBlockMetrics, BlockImporter,
-    DefaultClock, Justification, JustificationTranslator, MillisecsPerBlock, Protocol,
-    ProtocolNaming, RateLimiterConfig, RedirectingBlockImport, SessionPeriod, SubstrateChainStatus,
-    SubstrateNetwork, SyncOracle, TimingBlockMetrics, TracingBlockImport, ValidatorAddressCache,
+    Justification, JustificationTranslator, MillisecsPerBlock, Protocol, ProtocolNaming,
+    RateLimiterConfig, RedirectingBlockImport, SessionPeriod, SubstrateChainStatus,
+    SubstrateNetwork, SyncOracle, TracingBlockImport, ValidatorAddressCache,
 };
 use futures::channel::mpsc;
 use log::warn;
@@ -134,17 +134,7 @@ pub fn new_partial(
         client.clone(),
     );
 
-    let timing_metrics = match TimingBlockMetrics::new(config.prometheus_registry(), DefaultClock) {
-        Ok(timing_metrics) => timing_metrics,
-        Err(e) => {
-            warn!(
-                "Failed to register Prometheus block timing metrics: {:?}.",
-                e
-            );
-            TimingBlockMetrics::noop()
-        }
-    };
-    let metrics = AllBlockMetrics::new(timing_metrics);
+    let metrics = AllBlockMetrics::new(config.prometheus_registry());
 
     let (justification_tx, justification_rx) = mpsc::unbounded();
     let tracing_block_import = TracingBlockImport::new(client.clone(), metrics.clone());
