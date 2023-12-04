@@ -15,7 +15,9 @@ pub use gossip::{
     Error as GossipError, Network as GossipNetwork, Protocol, Service as GossipService,
 };
 use network_clique::{AddressingInformation, NetworkIdentity, PeerId};
-pub use substrate::{ProtocolNaming, SubstrateNetwork};
+pub use substrate::{
+    NetworkEventStream as SubstrateNetworkEventStream, ProtocolNaming, SubstrateNetwork,
+};
 
 /// A basic alias for properties we expect basic data to satisfy.
 pub trait Data: Clone + Codec + Send + Sync + 'static {}

@@ -39,7 +39,7 @@ enum Command<D: Data, P: Clone + Debug + Eq + Hash + Send + 'static> {
 ///   1. Messages are forwarded to the user.
 ///   2. Various forms of (dis)connecting, keeping track of all currently connected nodes.
 /// 3. Outgoing messages, sending them out, using 1.2. to broadcast.
-pub struct Service<N: RawNetwork, AD: Data, BSD: Data> {
+pub struct Service<N: RawNetwork, ES: EventStream<N::PeerId>, AD: Data, BSD: Data> {
     network: N,
     messages_from_authentication_user: mpsc::UnboundedReceiver<Command<AD, N::PeerId>>,
     messages_from_block_sync_user: mpsc::UnboundedReceiver<Command<BSD, N::PeerId>>,
@@ -52,6 +52,7 @@ pub struct Service<N: RawNetwork, AD: Data, BSD: Data> {
     spawn_handle: SpawnHandle,
     metrics: Metrics,
     timestamp_of_last_log_that_channel_is_full: HashMap<(N::PeerId, Protocol), Instant>,
+    network_event_stream: ES,
 }
 
 struct ServiceInterface<D: Data, P: Clone + Debug + Eq + Hash + Send + 'static> {
@@ -117,9 +118,10 @@ enum SendError {
     SendingFailed,
 }
 
-impl<N: RawNetwork, AD: Data, BSD: Data> Service<N, AD, BSD> {
+impl<N: RawNetwork, ES: EventStream<N::PeerId>, AD: Data, BSD: Data> Service<N, ES, AD, BSD> {
     pub fn new(
         network: N,
+        network_event_stream: ES,
         spawn_handle: SpawnHandle,
         metrics_registry: Option<Registry>,
     ) -> (
@@ -154,6 +156,7 @@ impl<N: RawNetwork, AD: Data, BSD: Data> Service<N, AD, BSD> {
                 block_sync_connected_peers: HashSet::new(),
                 block_sync_peer_senders: HashMap::new(),
                 timestamp_of_last_log_that_channel_is_full: HashMap::new(),
+                network_event_stream,
             },
             ServiceInterface {
                 messages_from_service: messages_from_authentication_service,
@@ -501,12 +504,10 @@ impl<N: RawNetwork, AD: Data, BSD: Data> Service<N, AD, BSD> {
     }
 
     pub async fn run(mut self) {
-        let mut events_from_network = self.network.event_stream();
-
         let mut status_ticker = time::interval(STATUS_REPORT_INTERVAL);
         loop {
             tokio::select! {
-                maybe_event = events_from_network.next_event() => match maybe_event {
+                maybe_event = self.network_event_stream.next_event() => match maybe_event {
                     Some(event) => if self.handle_network_event(event).is_err() {
                         error!(target: LOG_TARGET, "Cannot forward messages to user.");
                         return;
@@ -555,7 +556,7 @@ mod tests {
     use super::{Error, SendError, Service};
     use crate::network::{
         gossip::{
-            mock::{MockEvent, MockRawNetwork, MockSenderError},
+            mock::{MockEvent, MockEventStream, MockRawNetwork, MockSenderError},
             Network,
         },
         mock::MockData,
@@ -567,7 +568,7 @@ mod tests {
     pub struct TestData {
         pub network: MockRawNetwork,
         gossip_network: Box<dyn Network<MockData, Error = Error, PeerId = MockPublicKey>>,
-        pub service: Service<MockRawNetwork, MockData, MockData>,
+        pub service: Service<MockRawNetwork, MockEventStream, MockData, MockData>,
         // `TaskManager` can't be dropped for `SpawnTaskHandle` to work
         _task_manager: TaskManager,
         // If we drop the sync network, the underlying network service dies, stopping the whole
@@ -579,13 +580,16 @@ mod tests {
         fn prepare() -> Self {
             let task_manager = TaskManager::new(Handle::current(), None).unwrap();
 
-            // Event stream will never be taken, so we can drop the receiver
-            let (event_stream_oneshot_tx, _) = oneshot::channel();
+            let (event_stream_oneshot_tx, _event_stream_oneshot_rx) = oneshot::channel();
 
             // Prepare service
             let network = MockRawNetwork::new(event_stream_oneshot_tx);
-            let (service, gossip_network, other_network) =
-                Service::new(network.clone(), task_manager.spawn_handle().into(), None);
+            let (service, gossip_network, other_network) = Service::new(
+                network.clone(),
+                network.event_stream(),
+                task_manager.spawn_handle().into(),
+                None,
+            );
             let gossip_network = Box::new(gossip_network);
             let other_network = Box::new(other_network);
 
@@ -787,7 +791,6 @@ mod tests {
 
         let expected = (message_2.encode(), peer_id, PROTOCOL);
 
-        println!("just before");
         assert_eq!(
             test_data
                 .network

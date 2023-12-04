@@ -88,10 +88,6 @@ pub trait RawNetwork: Clone + Send + Sync + 'static {
     type SenderError: std::error::Error;
     type NetworkSender: NetworkSender;
     type PeerId: Clone + Debug + Eq + Hash + Send + 'static;
-    type EventStream: EventStream<Self::PeerId>;
-
-    /// Returns a stream of events representing what happens on the network.
-    fn event_stream(&self) -> Self::EventStream;
 
     /// Returns a sender to the given peer using a given protocol. Returns Error if not connected to the peer.
     fn sender(

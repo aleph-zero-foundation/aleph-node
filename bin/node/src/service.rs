@@ -10,7 +10,7 @@ use finality_aleph::{
     run_validator_node, AlephBlockImport, AlephConfig, AllBlockMetrics, BlockImporter,
     DefaultClock, Justification, JustificationTranslator, MillisecsPerBlock, Protocol,
     ProtocolNaming, RateLimiterConfig, RedirectingBlockImport, SessionPeriod, SubstrateChainStatus,
-    SyncOracle, TimingBlockMetrics, TracingBlockImport, ValidatorAddressCache,
+    SubstrateNetwork, SyncOracle, TimingBlockMetrics, TracingBlockImport, ValidatorAddressCache,
 };
 use futures::channel::mpsc;
 use log::warn;
@@ -18,8 +18,6 @@ use sc_client_api::{BlockBackend, HeaderBackend};
 use sc_consensus::ImportQueue;
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
 use sc_consensus_slots::BackoffAuthoringBlocksStrategy;
-use sc_network::NetworkService;
-use sc_network_sync::SyncingService;
 use sc_service::{
     error::Error as ServiceError, Configuration, KeystoreContainer, NetworkStarter, RpcHandlers,
     TFullClient, TaskManager,
@@ -218,9 +216,7 @@ fn setup(
 ) -> Result<
     (
         RpcHandlers,
-        Arc<NetworkService<Block, BlockHash>>,
-        Arc<SyncingService<Block>>,
-        ProtocolNaming,
+        SubstrateNetwork<Block, BlockHash>,
         NetworkStarter,
         SyncOracle,
         Option<ValidatorAddressCache>,
@@ -302,11 +298,11 @@ fn setup(
         telemetry: telemetry.as_mut(),
     })?;
 
+    let substrate_network = SubstrateNetwork::new(network, sync_network, protocol_naming);
+
     Ok((
         rpc_handlers,
-        network,
-        sync_network,
-        protocol_naming,
+        substrate_network,
         network_starter,
         sync_oracle,
         validator_address_cache,
@@ -351,27 +347,20 @@ pub fn new_authority(
 
     let collect_extra_debugging_data = !aleph_config.no_collection_of_extra_debugging_data();
 
-    let (
-        _rpc_handlers,
-        network,
-        sync_network,
-        protocol_naming,
-        network_starter,
-        sync_oracle,
-        validator_address_cache,
-    ) = setup(
-        config,
-        backend,
-        chain_status.clone(),
-        &keystore_container,
-        import_queue,
-        transaction_pool.clone(),
-        &mut task_manager,
-        client.clone(),
-        &mut telemetry,
-        justification_tx,
-        collect_extra_debugging_data,
-    )?;
+    let (_rpc_handlers, substrate_network, network_starter, sync_oracle, validator_address_cache) =
+        setup(
+            config,
+            backend,
+            chain_status.clone(),
+            &keystore_container,
+            import_queue,
+            transaction_pool.clone(),
+            &mut task_manager,
+            client.clone(),
+            &mut telemetry,
+            justification_tx,
+            collect_extra_debugging_data,
+        )?;
 
     let mut proposer_factory = sc_basic_authorship::ProposerFactory::new(
         task_manager.spawn_handle(),
@@ -429,9 +418,13 @@ pub fn new_authority(
             .unwrap_or(usize::MAX),
     };
 
+    // Network event stream needs to be created before starting the network,
+    // otherwise some events might be missed.
+    let network_event_stream = substrate_network.event_stream();
+
     let aleph_config = AlephConfig {
-        network,
-        sync_network,
+        network: substrate_network,
+        network_event_stream,
         client,
         chain_status,
         import_queue_handle,
@@ -448,7 +441,6 @@ pub fn new_authority(
         backup_saving_path: backup_path,
         external_addresses: aleph_config.external_addresses(),
         validator_port: aleph_config.validator_port(),
-        protocol_naming,
         rate_limiter_config,
         sync_oracle,
         validator_address_cache,

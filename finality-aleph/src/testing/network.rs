@@ -101,8 +101,9 @@ async fn prepare_one_session_test_data() -> TestData {
     let network = MockRawNetwork::new(event_stream_tx);
     let validator_network = MockCliqueNetwork::new();
 
-    let (gossip_service, gossip_network, sync_network) = GossipService::<_, _, MockData>::new(
+    let (gossip_service, gossip_network, sync_network) = GossipService::<_, _, _, MockData>::new(
         network.clone(),
+        network.event_stream(),
         task_manager.spawn_handle().into(),
         None,
     );

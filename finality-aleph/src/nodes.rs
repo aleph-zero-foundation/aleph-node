@@ -27,7 +27,7 @@ use crate::{
         address_cache::validator_address_cache_updater,
         session::{ConnectionManager, ConnectionManagerConfig},
         tcp::{new_tcp_network, KEY_TYPE},
-        GossipService, SubstrateNetwork,
+        GossipService,
     },
     party::{
         impls::ChainStateImpl, manager::NodeSessionManagerImpl, ConsensusParty,
@@ -62,7 +62,7 @@ where
 {
     let AlephConfig {
         network,
-        sync_network,
+        network_event_stream,
         client,
         chain_status,
         mut import_queue_handle,
@@ -79,7 +79,6 @@ where
         backup_saving_path,
         external_addresses,
         validator_port,
-        protocol_naming,
         rate_limiter_config,
         sync_oracle,
         validator_address_cache,
@@ -122,7 +121,8 @@ where
     });
 
     let (gossip_network_service, authentication_network, block_sync_network) = GossipService::new(
-        SubstrateNetwork::new(network.clone(), sync_network.clone(), protocol_naming),
+        network,
+        network_event_stream,
         spawn_handle.clone(),
         registry.clone(),
     );
