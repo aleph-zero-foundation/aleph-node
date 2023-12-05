@@ -13,6 +13,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  run-liminal-ci-cd:
+    if: contains(github.event.pull_request.labels.*.name, 'liminal-CI')
+    name: Run liminal checks on PR
+    uses: ./.github/workflows/_liminal-checks-on-pr.yml
+    secrets: inherit
+
+  check-cliain-build:
+    name: Check cliain build
+    uses: ./.github/workflows/_build-and-push-cliain.yml
+    with:
+      liminal-runtime: false
+      check-only: true
+
   check-excluded-packages:
     name: Check excluded packages
     uses: ./.github/workflows/_check-excluded-packages.yml

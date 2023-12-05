@@ -1,17 +1,24 @@
 ---
 #  This workflow builds aleph-node with feature liminal
 #  features enabled. Those binaries MUST NOT be used in the production.
-name: Build liminal node
+name: Build/check liminal node
 on:
   workflow_call:
+    inputs:
+      check-only:
+        description: 'Set to true if compilation linking phase should be omitted'
+        required: true
+        type: boolean
+        default: false
 
 jobs:
   main:
-    name: Build liminal node
+    name: Build or check liminal node
     runs-on: [self-hosted, Linux, X64, large]
     env:
       RUST_BACKTRACE: full
       RUSTC_WRAPPER: sccache
+      CARGO_COMMAND: ${{ inputs.check-only && 'check' || 'build' }}
     steps:
       - name: Checkout aleph-node source code
         uses: actions/checkout@v4
@@ -21,11 +28,12 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
-      - name: Build test binary and runtime
+      - name: ${{ env.CARGO_COMMAND }} test liminal aleph-node binary
         run: |
-          cargo build --release -p aleph-node --features 'liminal'
+          cargo ${{ env.CARGO_COMMAND }} --release -p aleph-node --features 'liminal'
 
-      - name: Upload test binary to GH Artifacts
+      - name: Upload liminal aleph-node binary to GH Artifacts
+        if: ${{ inputs.check-only != true }}
         uses: actions/upload-artifact@v2
         with:
           name: aleph-node-liminal

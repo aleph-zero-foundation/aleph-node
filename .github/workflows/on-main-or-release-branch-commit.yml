@@ -13,6 +13,15 @@ jobs:
     uses: ./.github/workflows/_check-vars-and-secrets.yml
     secrets: inherit
 
+  build-and-push-cliain:
+    needs: [check-vars-and-secrets]
+    name: Build and push cliain
+    uses: ./.github/workflows/_build-and-push-cliain.yml
+    secrets: inherit
+    with:
+      liminal-runtime: false
+      check-only: false
+
   build-production-node-and-runtime:
     needs: [check-vars-and-secrets]
     name: Build production node and runtime
@@ -54,57 +63,20 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
           aws-bucket: ${{ secrets.CI_DEVNET_S3BUCKET_NAME }}
 
-  push-node-image-to-ecr:
-    name: Push node docker image to the ECR
+  push-production-node-image-to-ecr:
+    name: Push production node docker image to ECR
     needs: [build-production-node-and-runtime]
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout aleph-node sources
-        uses: actions/checkout@v4
-
-      - name: Call action get-ref-properties
-        id: get-ref-properties
-        # yamllint disable-line rule:line-length
-        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v4
-
-      - name: Download node production binary from artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: aleph-production-node
-          path: target/release/
-
-      - name: Build production docker node image
-        id: build-image
-        run: |
-          chmod +x target/release/aleph-node
-          docker build --tag aleph-node:latest -f ./docker/Dockerfile .
-
-      - name: Login to Public Amazon ECR
-        id: login-public-ecr
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ vars.ECR_PUBLIC_HOST }}
-          username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
-          password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
-
-      - name: Push aleph-node image to ECR
-        env:
-          CURRENT_IMAGE: aleph-node
-          ECR_PUSH_IMAGE: ${{ vars.ECR_PUBLIC_REGISTRY }}aleph-node
-        run: |
-          docker tag '${{ env.CURRENT_IMAGE }}' \
-            '${{ env.ECR_PUSH_IMAGE }}:${{ steps.get-ref-properties.outputs.sha }}'
-          docker push '${{ env.ECR_PUSH_IMAGE }}:${{ steps.get-ref-properties.outputs.sha }}'
-          if [[ '${{ steps.get-ref-properties.outputs.branch }}' -eq 'main' ]]; then
-            docker tag '${{ env.CURRENT_IMAGE }}' '${{ env.ECR_PUSH_IMAGE }}:latest'
-            docker push '${{ env.ECR_PUSH_IMAGE }}:latest'
-          fi
+    uses: ./.github/workflows/_push-node-image-to-ecr.yml
+    secrets: inherit
+    with:
+      node-binary: aleph-production-node
+      docker-image-name: aleph-node
 
   send-slack-notification-release:
     name: Send Slack notification about workflow status
     runs-on: ubuntu-20.04
     if: always() && startsWith(github.ref_name, 'release-')
-    needs: [push-node-image-to-ecr]
+    needs: [push-production-node-image-to-ecr]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -120,7 +92,7 @@ jobs:
     name: Send Slack notification about workflow status
     runs-on: ubuntu-20.04
     if: always() && github.ref_name == 'main'
-    needs: [push-node-image-to-ecr]
+    needs: [push-production-node-image-to-ecr]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

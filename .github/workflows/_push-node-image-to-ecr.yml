@@ -1,0 +1,59 @@
+---
+#  This workflow builds docker aleph-node image based on binary stored in GH artifacts
+name: Build and push node image to ECR
+on:
+  workflow_call:
+    inputs:
+      node-binary:
+        description: 'Name of aleph-node binary stored in GH artifacts'
+        required: true
+        type: string
+      docker-image-name:
+        description: 'Name of node docker to be uploaded to ECR'
+        required: true
+        type: string
+
+jobs:
+  main:
+    name: Push node docker image to the ECR
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout aleph-node sources
+        uses: actions/checkout@v4
+
+      - name: Call action get-ref-properties
+        id: get-ref-properties
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v4
+
+      - name: Download ${{ inputs.node-binary }} binary from artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.node-binary }}
+          path: target/release/
+
+      - name: Build docker node image
+        id: build-image
+        run: |
+          chmod +x target/release/aleph-node
+          docker build --tag ${{ inputs.docker-image-name }}:latest -f ./docker/Dockerfile .
+
+      - name: Login to Public Amazon ECR
+        id: login-public-ecr
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.ECR_PUBLIC_HOST }}
+          username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+          password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+
+      - name: Push ${{ inputs.docker-image-name }} image to ECR
+        env:
+          CURRENT_IMAGE: ${{ inputs.docker-image-name }}
+          ECR_PUSH_IMAGE: ${{ vars.ECR_PUBLIC_REGISTRY }}${{ inputs.docker-image-name }}
+        run: |
+          docker tag '${{ env.CURRENT_IMAGE }}' \
+            '${{ env.ECR_PUSH_IMAGE }}:${{ steps.get-ref-properties.outputs.sha }}'
+          docker push '${{ env.ECR_PUSH_IMAGE }}:${{ steps.get-ref-properties.outputs.sha }}'
+          if [[ '${{ steps.get-ref-properties.outputs.branch }}' -eq 'main' ]]; then
+            docker tag '${{ env.CURRENT_IMAGE }}' '${{ env.ECR_PUSH_IMAGE }}:latest'
+            docker push '${{ env.ECR_PUSH_IMAGE }}:latest'
+          fi

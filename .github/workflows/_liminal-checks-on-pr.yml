@@ -1,0 +1,62 @@
+---
+# This workflow is intented to run only on commit to PRs that have attached 'liminal-CI' label
+# to them, or when such label is added to the PR
+name: Liminal checks on PR
+
+on:
+  workflow_call:
+
+jobs:
+  chain-extension-clippy:
+    name: Run clippy for the chain extension
+    runs-on: [self-hosted, Linux, X64, large]
+    env:
+      CARGO_INCREMENTAL: 0
+      RUSTC_WRAPPER: sccache
+    steps:
+      - name: Checkout Source code
+        uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v4
+
+      - name: Run clippy for baby liminal chain extension
+        env:
+          RUSTC_WRAPPER: ""
+          RUSTC_WORKSPACE_WRAPPER: sccache
+        working-directory: baby-liminal-extension
+        run: make clippy
+
+  chain-extension-unit-tests:
+    name: Run unit tests for the chain extension
+    runs-on: [self-hosted, Linux, X64, large]
+    env:
+      CARGO_INCREMENTAL: 0
+      RUSTC_WRAPPER: sccache
+    steps:
+      - name: Checkout Source code
+        uses: actions/checkout@v4
+
+      - name: Install Nightly Rust Toolchain (for unstable features in tests)
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v4
+        with:
+          channel: nightly-2023-05-22-unknown-linux-gnu
+          targets: wasm32-unknown-unknown
+
+      - name: Run tests for baby liminal chain extension
+        working-directory: baby-liminal-extension
+        run: make test
+
+  liminal-cliain-build:
+    name: Liminal cliain build
+    uses: ./.github/workflows/_build-and-push-cliain.yml
+    with:
+      liminal-runtime: true
+      check-only: false
+      push: false
+
+  check-liminal-node-build:
+    name: Check build liminal node
+    uses: ./.github/workflows/_liminal-build-node.yml
+    with:
+      check-only: true

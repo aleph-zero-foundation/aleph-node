@@ -1,0 +1,55 @@
+---
+name: Liminal CI/CD on main branch commit
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
+  build-and-push-cliain-liminal:
+    needs: [check-vars-and-secrets]
+    name: Build and push cliain
+    uses: ./.github/workflows/_build-and-push-cliain.yml
+    secrets: inherit
+    with:
+      liminal-runtime: true
+      check-only: false
+      push: true
+
+  build-liminal-node:
+    needs: [check-vars-and-secrets]
+    name: Build production node and runtime
+    uses: ./.github/workflows/_liminal-build-node.yml
+    with:
+      check-only: false
+
+  push-liminal-node-image-to-ecr:
+    name: Push liminal node docker image to ECR
+    needs: [build-liminal-node]
+    uses: ./.github/workflows/_push-node-image-to-ecr.yml
+    secrets: inherit
+    with:
+      node-binary: aleph-node-liminal
+      docker-image-name: aleph-node-liminal
+
+  send-slack-notification-main:
+    name: Send Slack notification about workflow status
+    runs-on: ubuntu-20.04
+    if: always() && github.ref_name == 'main'
+    needs: [push-liminal-node-image-to-ecr, build-and-push-cliain-liminal]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Send Slack message
+        uses: ./.github/actions/slack-notification
+        with:
+          notify-on: "failure"
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_DEV_ONDUTY }}

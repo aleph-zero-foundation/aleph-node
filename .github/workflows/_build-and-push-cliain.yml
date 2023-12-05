@@ -1,0 +1,125 @@
+---
+name: Build/Check and optionally push cliain docker image
+
+on:
+  workflow_call:
+    inputs:
+      liminal-runtime:
+        description: 'Set to true if cliain should be built with liminal runtime'
+        required: true
+        type: boolean
+        default: false
+      check-only:
+        description: 'Set to true if compilation linking phase should be omitted'
+        required: true
+        type: boolean
+        default: false
+      push:
+        description: 'Set to true to push cliain image to ECR'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build-or-check-cliain:
+    name: Build or check cliain binary
+    runs-on: [self-hosted, Linux, X64, large]
+    env:
+      CARGO_COMMAND: ${{ inputs.check-only && 'check' || 'build' }}
+      FEATURES: ${{ inputs.liminal-runtime && '--features liminal' || '' }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v4
+
+      - name: ${{ env.CARGO_COMMAND }} cliain binary
+        run: |
+          cd ./bin/cliain && cargo ${{ env.CARGO_COMMAND }} --release ${{ env.FEATURES }}
+
+      - name: Test SNARK relations
+        if: ${{ inputs.liminal-runtime && inputs.check-only != true }}
+        run: ./.github/scripts/test_cliain_snark_relations.sh
+
+      - name: Upload cliain binary to GH artifacts
+        if: ${{ inputs.check-only != true }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: cliain
+          path: bin/cliain/target/release/cliain
+          if-no-files-found: error
+          retention-days: 7
+
+  push-cliain-to-ecr:
+    name: Build and push cliain docker image to ecr
+    needs: [build-or-check-cliain]
+    if: ${{ inputs.check-only != true && inputs.push == true }}
+    runs-on: ubuntu-20.04
+    env:
+      ECR_PUBLIC_HOST: ${{ vars.ECR_PUBLIC_HOST }}
+      ECR_PUBLIC_REGISTRY: ${{ vars.ECR_PUBLIC_REGISTRY }}
+      AWS_MAINNET_ACCESS_KEY_ID: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+      AWS_MAINNET_SECRET_ACCESS_KEY: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+      CI_DEVNET_S3BUCKET_NAME: ${{ secrets.CI_DEVNET_S3BUCKET_NAME }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Call action get-ref-properties
+        id: get-ref-properties
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v4
+
+      - name: Download cliain from GH artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: cliain
+          path: bin/cliain/target/release/cliain
+
+      - name: Login to Public Amazon ECR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.ECR_PUBLIC_HOST }}
+          username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
+          password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
+
+      - name: Build and push latest docker image
+        env:
+          IMAGE: ${{ inputs.liminal-runtime && 'cliain-liminal' || 'cliain' }}
+          TAG: ${{ steps.get-ref-properties.outputs.sha }}
+          REGISTRY: ${{ vars.ECR_PUBLIC_REGISTRY }}
+        run: |
+          registry='${{ env.REGISTRY }}'
+          image_and_tag='${{ env.IMAGE }}:${{ env.TAG }}'
+          docker build -t ${registry}${image_and_tag} -f ./bin/cliain/Dockerfile ./bin/cliain
+          docker push ${registry}${image_and_tag}
+          if [[ '${{ steps.get-ref-properties.outputs.branch }}' -eq 'main' ]]; then
+            docker tag ${registry}${image_and_tag} ${registry}'${{ env.IMAGE }}:latest'
+            docker push ${registry}'${{ env.IMAGE }}:latest'
+          fi
+
+      - name: Configure AWS credentials for S3 AWS
+        if: ${{ inputs.liminal-runtime != true && inputs.check-only != true }}
+        uses: aws-actions/configure-aws-credentials@v4
+        env:
+          AWS_ACCESS_KEY_ID: ""
+          AWS_SECRET_ACCESS_KEY: ""
+          AWS_SESSION_TOKEN: ""
+          AWS_DEFAULT_REGION: ""
+          AWS_REGION: us-east-1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Copy binary to S3 AWS bucket (non-liminal)
+        if: ${{ inputs.liminal-runtime != true && inputs.check-only != true }}
+        uses: Cardinal-Cryptography/github-actions/copy-file-to-s3@v4
+        with:
+          source-path: bin/cliain/target/release
+          source-filename: cliain
+          s3-bucket-path:
+            builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/cliain
+          s3-bucket-filename:
+            cliain-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
+          s3-bucket-name: ${{ secrets.CI_DEVNET_S3BUCKET_NAME }}

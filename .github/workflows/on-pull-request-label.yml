@@ -17,3 +17,9 @@ jobs:
     with:
       deploy: false
     secrets: inherit
+
+  run-liminal-ci-cd:
+    if: github.event.label.name == 'liminal-CI'
+    name: Run checks on PR
+    uses: ./.github/workflows/_liminal-checks-on-pr.yml
+    secrets: inherit
