@@ -29,8 +29,8 @@ pub mod api {
         "NominationPools",
         "Identity",
         "CommitteeManagement",
-        "BabyLiminal",
         "Proxy",
+        "BabyLiminal",
     ];
     pub static RUNTIME_APIS: [&str; 12usize] = [
         "Core",
@@ -1738,11 +1738,11 @@ pub mod api {
         pub fn committee_management(&self) -> committee_management::constants::ConstantsApi {
             committee_management::constants::ConstantsApi
         }
-        pub fn baby_liminal(&self) -> baby_liminal::constants::ConstantsApi {
-            baby_liminal::constants::ConstantsApi
-        }
         pub fn proxy(&self) -> proxy::constants::ConstantsApi {
             proxy::constants::ConstantsApi
+        }
+        pub fn baby_liminal(&self) -> baby_liminal::constants::ConstantsApi {
+            baby_liminal::constants::ConstantsApi
         }
     }
     pub struct StorageApi;
@@ -1812,11 +1812,11 @@ pub mod api {
         pub fn committee_management(&self) -> committee_management::storage::StorageApi {
             committee_management::storage::StorageApi
         }
-        pub fn baby_liminal(&self) -> baby_liminal::storage::StorageApi {
-            baby_liminal::storage::StorageApi
-        }
         pub fn proxy(&self) -> proxy::storage::StorageApi {
             proxy::storage::StorageApi
+        }
+        pub fn baby_liminal(&self) -> baby_liminal::storage::StorageApi {
+            baby_liminal::storage::StorageApi
         }
     }
     pub struct TransactionApi;
@@ -1872,11 +1872,11 @@ pub mod api {
         pub fn committee_management(&self) -> committee_management::calls::TransactionApi {
             committee_management::calls::TransactionApi
         }
-        pub fn baby_liminal(&self) -> baby_liminal::calls::TransactionApi {
-            baby_liminal::calls::TransactionApi
-        }
         pub fn proxy(&self) -> proxy::calls::TransactionApi {
             proxy::calls::TransactionApi
+        }
+        pub fn baby_liminal(&self) -> baby_liminal::calls::TransactionApi {
+            baby_liminal::calls::TransactionApi
         }
     }
     #[doc = r" check whether the metadata provided is aligned with this statically generated code."]
@@ -16441,475 +16441,6 @@ pub mod api {
             }
         }
     }
-    pub mod baby_liminal {
-        use super::{root_mod, runtime_types};
-        #[doc = "The `Error` enum of this pallet."]
-        pub type Error = runtime_types::pallet_baby_liminal::pallet::Error;
-        #[doc = "Contains a variant per dispatchable extrinsic that this pallet has."]
-        pub type Call = runtime_types::pallet_baby_liminal::pallet::Call;
-        pub mod calls {
-            use super::{root_mod, runtime_types};
-            type DispatchError = runtime_types::sp_runtime::DispatchError;
-            pub mod types {
-                use super::runtime_types;
-                #[derive(
-                    :: subxt :: ext :: codec :: Decode,
-                    :: subxt :: ext :: codec :: Encode,
-                    :: subxt :: ext :: scale_decode :: DecodeAsType,
-                    :: subxt :: ext :: scale_encode :: EncodeAsType,
-                    Clone,
-                    Debug,
-                    Eq,
-                    PartialEq,
-                )]
-                # [codec (crate = :: subxt :: ext :: codec)]
-                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-                pub struct StoreKey {
-                    pub identifier: [::core::primitive::u8; 8usize],
-                    pub key: ::std::vec::Vec<::core::primitive::u8>,
-                }
-                impl ::subxt::blocks::StaticExtrinsic for StoreKey {
-                    const PALLET: &'static str = "BabyLiminal";
-                    const CALL: &'static str = "store_key";
-                }
-                #[derive(
-                    :: subxt :: ext :: codec :: Decode,
-                    :: subxt :: ext :: codec :: Encode,
-                    :: subxt :: ext :: scale_decode :: DecodeAsType,
-                    :: subxt :: ext :: scale_encode :: EncodeAsType,
-                    Clone,
-                    Debug,
-                    Eq,
-                    PartialEq,
-                )]
-                # [codec (crate = :: subxt :: ext :: codec)]
-                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-                pub struct DeleteKey {
-                    pub identifier: [::core::primitive::u8; 8usize],
-                }
-                impl ::subxt::blocks::StaticExtrinsic for DeleteKey {
-                    const PALLET: &'static str = "BabyLiminal";
-                    const CALL: &'static str = "delete_key";
-                }
-                #[derive(
-                    :: subxt :: ext :: codec :: Decode,
-                    :: subxt :: ext :: codec :: Encode,
-                    :: subxt :: ext :: scale_decode :: DecodeAsType,
-                    :: subxt :: ext :: scale_encode :: EncodeAsType,
-                    Clone,
-                    Debug,
-                    Eq,
-                    PartialEq,
-                )]
-                # [codec (crate = :: subxt :: ext :: codec)]
-                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-                pub struct OverwriteKey {
-                    pub identifier: [::core::primitive::u8; 8usize],
-                    pub key: ::std::vec::Vec<::core::primitive::u8>,
-                }
-                impl ::subxt::blocks::StaticExtrinsic for OverwriteKey {
-                    const PALLET: &'static str = "BabyLiminal";
-                    const CALL: &'static str = "overwrite_key";
-                }
-                #[derive(
-                    :: subxt :: ext :: codec :: Decode,
-                    :: subxt :: ext :: codec :: Encode,
-                    :: subxt :: ext :: scale_decode :: DecodeAsType,
-                    :: subxt :: ext :: scale_encode :: EncodeAsType,
-                    Clone,
-                    Debug,
-                    Eq,
-                    PartialEq,
-                )]
-                # [codec (crate = :: subxt :: ext :: codec)]
-                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-                pub struct Verify {
-                    pub verification_key_identifier: [::core::primitive::u8; 8usize],
-                    pub proof: ::std::vec::Vec<::core::primitive::u8>,
-                    pub public_input: ::std::vec::Vec<::core::primitive::u8>,
-                }
-                impl ::subxt::blocks::StaticExtrinsic for Verify {
-                    const PALLET: &'static str = "BabyLiminal";
-                    const CALL: &'static str = "verify";
-                }
-            }
-            pub struct TransactionApi;
-            impl TransactionApi {
-                #[doc = "See [`Pallet::store_key`]."]
-                pub fn store_key(
-                    &self,
-                    identifier: [::core::primitive::u8; 8usize],
-                    key: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::Payload<types::StoreKey> {
-                    ::subxt::tx::Payload::new_static(
-                        "BabyLiminal",
-                        "store_key",
-                        types::StoreKey { identifier, key },
-                        [
-                            226u8, 173u8, 42u8, 12u8, 111u8, 201u8, 89u8, 185u8, 242u8, 28u8, 64u8,
-                            177u8, 83u8, 126u8, 68u8, 173u8, 212u8, 60u8, 115u8, 67u8, 39u8, 213u8,
-                            24u8, 69u8, 152u8, 150u8, 16u8, 80u8, 99u8, 1u8, 67u8, 162u8,
-                        ],
-                    )
-                }
-                #[doc = "See [`Pallet::delete_key`]."]
-                pub fn delete_key(
-                    &self,
-                    identifier: [::core::primitive::u8; 8usize],
-                ) -> ::subxt::tx::Payload<types::DeleteKey> {
-                    ::subxt::tx::Payload::new_static(
-                        "BabyLiminal",
-                        "delete_key",
-                        types::DeleteKey { identifier },
-                        [
-                            227u8, 37u8, 33u8, 159u8, 222u8, 112u8, 176u8, 21u8, 72u8, 204u8,
-                            202u8, 203u8, 183u8, 217u8, 118u8, 233u8, 135u8, 46u8, 169u8, 32u8,
-                            176u8, 143u8, 13u8, 208u8, 138u8, 149u8, 122u8, 139u8, 72u8, 188u8,
-                            141u8, 165u8,
-                        ],
-                    )
-                }
-                #[doc = "See [`Pallet::overwrite_key`]."]
-                pub fn overwrite_key(
-                    &self,
-                    identifier: [::core::primitive::u8; 8usize],
-                    key: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::Payload<types::OverwriteKey> {
-                    ::subxt::tx::Payload::new_static(
-                        "BabyLiminal",
-                        "overwrite_key",
-                        types::OverwriteKey { identifier, key },
-                        [
-                            81u8, 75u8, 3u8, 90u8, 146u8, 125u8, 177u8, 71u8, 229u8, 119u8, 242u8,
-                            86u8, 154u8, 92u8, 11u8, 164u8, 191u8, 137u8, 176u8, 149u8, 23u8,
-                            242u8, 183u8, 189u8, 183u8, 82u8, 19u8, 68u8, 129u8, 17u8, 20u8, 55u8,
-                        ],
-                    )
-                }
-                #[doc = "See [`Pallet::verify`]."]
-                pub fn verify(
-                    &self,
-                    verification_key_identifier: [::core::primitive::u8; 8usize],
-                    proof: ::std::vec::Vec<::core::primitive::u8>,
-                    public_input: ::std::vec::Vec<::core::primitive::u8>,
-                ) -> ::subxt::tx::Payload<types::Verify> {
-                    ::subxt::tx::Payload::new_static(
-                        "BabyLiminal",
-                        "verify",
-                        types::Verify {
-                            verification_key_identifier,
-                            proof,
-                            public_input,
-                        },
-                        [
-                            207u8, 205u8, 93u8, 214u8, 65u8, 56u8, 45u8, 187u8, 118u8, 253u8, 98u8,
-                            52u8, 136u8, 52u8, 102u8, 241u8, 219u8, 16u8, 128u8, 191u8, 74u8, 36u8,
-                            212u8, 227u8, 118u8, 40u8, 210u8, 252u8, 48u8, 250u8, 19u8, 200u8,
-                        ],
-                    )
-                }
-            }
-        }
-        #[doc = "The `Event` enum of this pallet"]
-        pub type Event = runtime_types::pallet_baby_liminal::pallet::Event;
-        pub mod events {
-            use super::runtime_types;
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            # [codec (crate = :: subxt :: ext :: codec)]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            #[doc = "Verification key has been successfully stored."]
-            #[doc = ""]
-            #[doc = "\\[ account_id, identifier \\]"]
-            pub struct VerificationKeyStored(
-                pub ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                pub [::core::primitive::u8; 8usize],
-            );
-            impl ::subxt::events::StaticEvent for VerificationKeyStored {
-                const PALLET: &'static str = "BabyLiminal";
-                const EVENT: &'static str = "VerificationKeyStored";
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            # [codec (crate = :: subxt :: ext :: codec)]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            #[doc = "Verification key has been successfully deleted."]
-            #[doc = ""]
-            #[doc = "\\[ identifier \\]"]
-            pub struct VerificationKeyDeleted(
-                pub ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                pub [::core::primitive::u8; 8usize],
-            );
-            impl ::subxt::events::StaticEvent for VerificationKeyDeleted {
-                const PALLET: &'static str = "BabyLiminal";
-                const EVENT: &'static str = "VerificationKeyDeleted";
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            # [codec (crate = :: subxt :: ext :: codec)]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            #[doc = "Verification key has been successfully overwritten."]
-            #[doc = ""]
-            #[doc = "\\[ identifier \\]"]
-            pub struct VerificationKeyOverwritten(pub [::core::primitive::u8; 8usize]);
-            impl ::subxt::events::StaticEvent for VerificationKeyOverwritten {
-                const PALLET: &'static str = "BabyLiminal";
-                const EVENT: &'static str = "VerificationKeyOverwritten";
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            # [codec (crate = :: subxt :: ext :: codec)]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            #[doc = "Proof has been successfully verified."]
-            #[doc = ""]
-            #[doc = "\\[ identifier \\]"]
-            pub struct VerificationSucceeded(pub [::core::primitive::u8; 8usize]);
-            impl ::subxt::events::StaticEvent for VerificationSucceeded {
-                const PALLET: &'static str = "BabyLiminal";
-                const EVENT: &'static str = "VerificationSucceeded";
-            }
-        }
-        pub mod storage {
-            use super::runtime_types;
-            pub struct StorageApi;
-            impl StorageApi {
-                pub fn verification_keys(
-                    &self,
-                    _0: impl ::std::borrow::Borrow<[::core::primitive::u8; 8usize]>,
-                ) -> ::subxt::storage::address::Address<
-                    ::subxt::storage::address::StaticStorageMapKey,
-                    runtime_types::bounded_collections::bounded_vec::BoundedVec<
-                        ::core::primitive::u8,
-                    >,
-                    ::subxt::storage::address::Yes,
-                    (),
-                    ::subxt::storage::address::Yes,
-                > {
-                    ::subxt::storage::address::Address::new_static(
-                        "BabyLiminal",
-                        "VerificationKeys",
-                        vec![::subxt::storage::address::make_static_storage_map_key(
-                            _0.borrow(),
-                        )],
-                        [
-                            248u8, 224u8, 91u8, 23u8, 168u8, 32u8, 15u8, 174u8, 143u8, 143u8,
-                            154u8, 59u8, 165u8, 89u8, 38u8, 154u8, 230u8, 41u8, 188u8, 79u8, 153u8,
-                            252u8, 114u8, 90u8, 97u8, 81u8, 15u8, 87u8, 127u8, 147u8, 253u8, 177u8,
-                        ],
-                    )
-                }
-                pub fn verification_keys_root(
-                    &self,
-                ) -> ::subxt::storage::address::Address<
-                    ::subxt::storage::address::StaticStorageMapKey,
-                    runtime_types::bounded_collections::bounded_vec::BoundedVec<
-                        ::core::primitive::u8,
-                    >,
-                    (),
-                    (),
-                    ::subxt::storage::address::Yes,
-                > {
-                    ::subxt::storage::address::Address::new_static(
-                        "BabyLiminal",
-                        "VerificationKeys",
-                        Vec::new(),
-                        [
-                            248u8, 224u8, 91u8, 23u8, 168u8, 32u8, 15u8, 174u8, 143u8, 143u8,
-                            154u8, 59u8, 165u8, 89u8, 38u8, 154u8, 230u8, 41u8, 188u8, 79u8, 153u8,
-                            252u8, 114u8, 90u8, 97u8, 81u8, 15u8, 87u8, 127u8, 147u8, 253u8, 177u8,
-                        ],
-                    )
-                }
-                pub fn verification_key_owners(
-                    &self,
-                    _0: impl ::std::borrow::Borrow<[::core::primitive::u8; 8usize]>,
-                ) -> ::subxt::storage::address::Address<
-                    ::subxt::storage::address::StaticStorageMapKey,
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    ::subxt::storage::address::Yes,
-                    (),
-                    ::subxt::storage::address::Yes,
-                > {
-                    ::subxt::storage::address::Address::new_static(
-                        "BabyLiminal",
-                        "VerificationKeyOwners",
-                        vec![::subxt::storage::address::make_static_storage_map_key(
-                            _0.borrow(),
-                        )],
-                        [
-                            241u8, 20u8, 150u8, 166u8, 238u8, 78u8, 141u8, 182u8, 184u8, 253u8,
-                            109u8, 153u8, 167u8, 157u8, 91u8, 41u8, 171u8, 152u8, 37u8, 177u8,
-                            173u8, 155u8, 206u8, 168u8, 237u8, 28u8, 181u8, 4u8, 172u8, 36u8,
-                            227u8, 198u8,
-                        ],
-                    )
-                }
-                pub fn verification_key_owners_root(
-                    &self,
-                ) -> ::subxt::storage::address::Address<
-                    ::subxt::storage::address::StaticStorageMapKey,
-                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    (),
-                    (),
-                    ::subxt::storage::address::Yes,
-                > {
-                    ::subxt::storage::address::Address::new_static(
-                        "BabyLiminal",
-                        "VerificationKeyOwners",
-                        Vec::new(),
-                        [
-                            241u8, 20u8, 150u8, 166u8, 238u8, 78u8, 141u8, 182u8, 184u8, 253u8,
-                            109u8, 153u8, 167u8, 157u8, 91u8, 41u8, 171u8, 152u8, 37u8, 177u8,
-                            173u8, 155u8, 206u8, 168u8, 237u8, 28u8, 181u8, 4u8, 172u8, 36u8,
-                            227u8, 198u8,
-                        ],
-                    )
-                }
-                pub fn verification_key_deposits(
-                    &self,
-                    _0: impl ::std::borrow::Borrow<
-                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
-                    >,
-                    _1: impl ::std::borrow::Borrow<[::core::primitive::u8; 8usize]>,
-                ) -> ::subxt::storage::address::Address<
-                    ::subxt::storage::address::StaticStorageMapKey,
-                    ::core::primitive::u128,
-                    ::subxt::storage::address::Yes,
-                    (),
-                    ::subxt::storage::address::Yes,
-                > {
-                    ::subxt::storage::address::Address::new_static(
-                        "BabyLiminal",
-                        "VerificationKeyDeposits",
-                        vec![
-                            ::subxt::storage::address::make_static_storage_map_key(_0.borrow()),
-                            ::subxt::storage::address::make_static_storage_map_key(_1.borrow()),
-                        ],
-                        [
-                            82u8, 177u8, 45u8, 211u8, 7u8, 60u8, 94u8, 246u8, 219u8, 97u8, 138u8,
-                            44u8, 18u8, 104u8, 222u8, 56u8, 81u8, 139u8, 59u8, 212u8, 121u8, 208u8,
-                            20u8, 119u8, 114u8, 246u8, 143u8, 234u8, 36u8, 101u8, 192u8, 13u8,
-                        ],
-                    )
-                }
-                pub fn verification_key_deposits_root(
-                    &self,
-                ) -> ::subxt::storage::address::Address<
-                    ::subxt::storage::address::StaticStorageMapKey,
-                    ::core::primitive::u128,
-                    (),
-                    (),
-                    ::subxt::storage::address::Yes,
-                > {
-                    ::subxt::storage::address::Address::new_static(
-                        "BabyLiminal",
-                        "VerificationKeyDeposits",
-                        Vec::new(),
-                        [
-                            82u8, 177u8, 45u8, 211u8, 7u8, 60u8, 94u8, 246u8, 219u8, 97u8, 138u8,
-                            44u8, 18u8, 104u8, 222u8, 56u8, 81u8, 139u8, 59u8, 212u8, 121u8, 208u8,
-                            20u8, 119u8, 114u8, 246u8, 143u8, 234u8, 36u8, 101u8, 192u8, 13u8,
-                        ],
-                    )
-                }
-            }
-        }
-        pub mod constants {
-            use super::runtime_types;
-            pub struct ConstantsApi;
-            impl ConstantsApi {
-                #[doc = " Limits how many bytes verification key can have."]
-                #[doc = ""]
-                #[doc = " Verification keys are stored, therefore this is separated from the limits on proof or"]
-                #[doc = " public input."]
-                pub fn maximum_verification_key_length(
-                    &self,
-                ) -> ::subxt::constants::Address<::core::primitive::u32> {
-                    ::subxt::constants::Address::new_static(
-                        "BabyLiminal",
-                        "MaximumVerificationKeyLength",
-                        [
-                            98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
-                            125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
-                            178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
-                            145u8,
-                        ],
-                    )
-                }
-                #[doc = " Limits how many bytes proof or public input can have."]
-                pub fn maximum_data_length(
-                    &self,
-                ) -> ::subxt::constants::Address<::core::primitive::u32> {
-                    ::subxt::constants::Address::new_static(
-                        "BabyLiminal",
-                        "MaximumDataLength",
-                        [
-                            98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
-                            125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
-                            178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
-                            145u8,
-                        ],
-                    )
-                }
-                #[doc = " Deposit amount for storing a verification key"]
-                #[doc = ""]
-                #[doc = " Will get locked and returned upon deleting the key by the owner"]
-                pub fn verification_key_deposit_per_byte(
-                    &self,
-                ) -> ::subxt::constants::Address<::core::primitive::u128> {
-                    ::subxt::constants::Address::new_static(
-                        "BabyLiminal",
-                        "VerificationKeyDepositPerByte",
-                        [
-                            84u8, 157u8, 140u8, 4u8, 93u8, 57u8, 29u8, 133u8, 105u8, 200u8, 214u8,
-                            27u8, 144u8, 208u8, 218u8, 160u8, 130u8, 109u8, 101u8, 54u8, 210u8,
-                            136u8, 71u8, 63u8, 49u8, 237u8, 234u8, 15u8, 178u8, 98u8, 148u8, 156u8,
-                        ],
-                    )
-                }
-            }
-        }
-    }
     pub mod proxy {
         use super::{root_mod, runtime_types};
         #[doc = "The `Error` enum of this pallet."]
@@ -17779,6 +17310,475 @@ pub mod api {
             }
         }
     }
+    pub mod baby_liminal {
+        use super::{root_mod, runtime_types};
+        #[doc = "The `Error` enum of this pallet."]
+        pub type Error = runtime_types::pallet_baby_liminal::pallet::Error;
+        #[doc = "Contains a variant per dispatchable extrinsic that this pallet has."]
+        pub type Call = runtime_types::pallet_baby_liminal::pallet::Call;
+        pub mod calls {
+            use super::{root_mod, runtime_types};
+            type DispatchError = runtime_types::sp_runtime::DispatchError;
+            pub mod types {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct StoreKey {
+                    pub identifier: [::core::primitive::u8; 8usize],
+                    pub key: ::std::vec::Vec<::core::primitive::u8>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for StoreKey {
+                    const PALLET: &'static str = "BabyLiminal";
+                    const CALL: &'static str = "store_key";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct DeleteKey {
+                    pub identifier: [::core::primitive::u8; 8usize],
+                }
+                impl ::subxt::blocks::StaticExtrinsic for DeleteKey {
+                    const PALLET: &'static str = "BabyLiminal";
+                    const CALL: &'static str = "delete_key";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct OverwriteKey {
+                    pub identifier: [::core::primitive::u8; 8usize],
+                    pub key: ::std::vec::Vec<::core::primitive::u8>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for OverwriteKey {
+                    const PALLET: &'static str = "BabyLiminal";
+                    const CALL: &'static str = "overwrite_key";
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Verify {
+                    pub verification_key_identifier: [::core::primitive::u8; 8usize],
+                    pub proof: ::std::vec::Vec<::core::primitive::u8>,
+                    pub public_input: ::std::vec::Vec<::core::primitive::u8>,
+                }
+                impl ::subxt::blocks::StaticExtrinsic for Verify {
+                    const PALLET: &'static str = "BabyLiminal";
+                    const CALL: &'static str = "verify";
+                }
+            }
+            pub struct TransactionApi;
+            impl TransactionApi {
+                #[doc = "See [`Pallet::store_key`]."]
+                pub fn store_key(
+                    &self,
+                    identifier: [::core::primitive::u8; 8usize],
+                    key: ::std::vec::Vec<::core::primitive::u8>,
+                ) -> ::subxt::tx::Payload<types::StoreKey> {
+                    ::subxt::tx::Payload::new_static(
+                        "BabyLiminal",
+                        "store_key",
+                        types::StoreKey { identifier, key },
+                        [
+                            226u8, 173u8, 42u8, 12u8, 111u8, 201u8, 89u8, 185u8, 242u8, 28u8, 64u8,
+                            177u8, 83u8, 126u8, 68u8, 173u8, 212u8, 60u8, 115u8, 67u8, 39u8, 213u8,
+                            24u8, 69u8, 152u8, 150u8, 16u8, 80u8, 99u8, 1u8, 67u8, 162u8,
+                        ],
+                    )
+                }
+                #[doc = "See [`Pallet::delete_key`]."]
+                pub fn delete_key(
+                    &self,
+                    identifier: [::core::primitive::u8; 8usize],
+                ) -> ::subxt::tx::Payload<types::DeleteKey> {
+                    ::subxt::tx::Payload::new_static(
+                        "BabyLiminal",
+                        "delete_key",
+                        types::DeleteKey { identifier },
+                        [
+                            227u8, 37u8, 33u8, 159u8, 222u8, 112u8, 176u8, 21u8, 72u8, 204u8,
+                            202u8, 203u8, 183u8, 217u8, 118u8, 233u8, 135u8, 46u8, 169u8, 32u8,
+                            176u8, 143u8, 13u8, 208u8, 138u8, 149u8, 122u8, 139u8, 72u8, 188u8,
+                            141u8, 165u8,
+                        ],
+                    )
+                }
+                #[doc = "See [`Pallet::overwrite_key`]."]
+                pub fn overwrite_key(
+                    &self,
+                    identifier: [::core::primitive::u8; 8usize],
+                    key: ::std::vec::Vec<::core::primitive::u8>,
+                ) -> ::subxt::tx::Payload<types::OverwriteKey> {
+                    ::subxt::tx::Payload::new_static(
+                        "BabyLiminal",
+                        "overwrite_key",
+                        types::OverwriteKey { identifier, key },
+                        [
+                            81u8, 75u8, 3u8, 90u8, 146u8, 125u8, 177u8, 71u8, 229u8, 119u8, 242u8,
+                            86u8, 154u8, 92u8, 11u8, 164u8, 191u8, 137u8, 176u8, 149u8, 23u8,
+                            242u8, 183u8, 189u8, 183u8, 82u8, 19u8, 68u8, 129u8, 17u8, 20u8, 55u8,
+                        ],
+                    )
+                }
+                #[doc = "See [`Pallet::verify`]."]
+                pub fn verify(
+                    &self,
+                    verification_key_identifier: [::core::primitive::u8; 8usize],
+                    proof: ::std::vec::Vec<::core::primitive::u8>,
+                    public_input: ::std::vec::Vec<::core::primitive::u8>,
+                ) -> ::subxt::tx::Payload<types::Verify> {
+                    ::subxt::tx::Payload::new_static(
+                        "BabyLiminal",
+                        "verify",
+                        types::Verify {
+                            verification_key_identifier,
+                            proof,
+                            public_input,
+                        },
+                        [
+                            207u8, 205u8, 93u8, 214u8, 65u8, 56u8, 45u8, 187u8, 118u8, 253u8, 98u8,
+                            52u8, 136u8, 52u8, 102u8, 241u8, 219u8, 16u8, 128u8, 191u8, 74u8, 36u8,
+                            212u8, 227u8, 118u8, 40u8, 210u8, 252u8, 48u8, 250u8, 19u8, 200u8,
+                        ],
+                    )
+                }
+            }
+        }
+        #[doc = "The `Event` enum of this pallet"]
+        pub type Event = runtime_types::pallet_baby_liminal::pallet::Event;
+        pub mod events {
+            use super::runtime_types;
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                :: subxt :: ext :: scale_decode :: DecodeAsType,
+                :: subxt :: ext :: scale_encode :: EncodeAsType,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            # [codec (crate = :: subxt :: ext :: codec)]
+            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+            #[doc = "Verification key has been successfully stored."]
+            #[doc = ""]
+            #[doc = "\\[ account_id, identifier \\]"]
+            pub struct VerificationKeyStored(
+                pub ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                pub [::core::primitive::u8; 8usize],
+            );
+            impl ::subxt::events::StaticEvent for VerificationKeyStored {
+                const PALLET: &'static str = "BabyLiminal";
+                const EVENT: &'static str = "VerificationKeyStored";
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                :: subxt :: ext :: scale_decode :: DecodeAsType,
+                :: subxt :: ext :: scale_encode :: EncodeAsType,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            # [codec (crate = :: subxt :: ext :: codec)]
+            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+            #[doc = "Verification key has been successfully deleted."]
+            #[doc = ""]
+            #[doc = "\\[ identifier \\]"]
+            pub struct VerificationKeyDeleted(
+                pub ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                pub [::core::primitive::u8; 8usize],
+            );
+            impl ::subxt::events::StaticEvent for VerificationKeyDeleted {
+                const PALLET: &'static str = "BabyLiminal";
+                const EVENT: &'static str = "VerificationKeyDeleted";
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                :: subxt :: ext :: scale_decode :: DecodeAsType,
+                :: subxt :: ext :: scale_encode :: EncodeAsType,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            # [codec (crate = :: subxt :: ext :: codec)]
+            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+            #[doc = "Verification key has been successfully overwritten."]
+            #[doc = ""]
+            #[doc = "\\[ identifier \\]"]
+            pub struct VerificationKeyOverwritten(pub [::core::primitive::u8; 8usize]);
+            impl ::subxt::events::StaticEvent for VerificationKeyOverwritten {
+                const PALLET: &'static str = "BabyLiminal";
+                const EVENT: &'static str = "VerificationKeyOverwritten";
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                :: subxt :: ext :: scale_decode :: DecodeAsType,
+                :: subxt :: ext :: scale_encode :: EncodeAsType,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            # [codec (crate = :: subxt :: ext :: codec)]
+            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+            #[doc = "Proof has been successfully verified."]
+            #[doc = ""]
+            #[doc = "\\[ identifier \\]"]
+            pub struct VerificationSucceeded(pub [::core::primitive::u8; 8usize]);
+            impl ::subxt::events::StaticEvent for VerificationSucceeded {
+                const PALLET: &'static str = "BabyLiminal";
+                const EVENT: &'static str = "VerificationSucceeded";
+            }
+        }
+        pub mod storage {
+            use super::runtime_types;
+            pub struct StorageApi;
+            impl StorageApi {
+                pub fn verification_keys(
+                    &self,
+                    _0: impl ::std::borrow::Borrow<[::core::primitive::u8; 8usize]>,
+                ) -> ::subxt::storage::address::Address<
+                    ::subxt::storage::address::StaticStorageMapKey,
+                    runtime_types::bounded_collections::bounded_vec::BoundedVec<
+                        ::core::primitive::u8,
+                    >,
+                    ::subxt::storage::address::Yes,
+                    (),
+                    ::subxt::storage::address::Yes,
+                > {
+                    ::subxt::storage::address::Address::new_static(
+                        "BabyLiminal",
+                        "VerificationKeys",
+                        vec![::subxt::storage::address::make_static_storage_map_key(
+                            _0.borrow(),
+                        )],
+                        [
+                            248u8, 224u8, 91u8, 23u8, 168u8, 32u8, 15u8, 174u8, 143u8, 143u8,
+                            154u8, 59u8, 165u8, 89u8, 38u8, 154u8, 230u8, 41u8, 188u8, 79u8, 153u8,
+                            252u8, 114u8, 90u8, 97u8, 81u8, 15u8, 87u8, 127u8, 147u8, 253u8, 177u8,
+                        ],
+                    )
+                }
+                pub fn verification_keys_root(
+                    &self,
+                ) -> ::subxt::storage::address::Address<
+                    ::subxt::storage::address::StaticStorageMapKey,
+                    runtime_types::bounded_collections::bounded_vec::BoundedVec<
+                        ::core::primitive::u8,
+                    >,
+                    (),
+                    (),
+                    ::subxt::storage::address::Yes,
+                > {
+                    ::subxt::storage::address::Address::new_static(
+                        "BabyLiminal",
+                        "VerificationKeys",
+                        Vec::new(),
+                        [
+                            248u8, 224u8, 91u8, 23u8, 168u8, 32u8, 15u8, 174u8, 143u8, 143u8,
+                            154u8, 59u8, 165u8, 89u8, 38u8, 154u8, 230u8, 41u8, 188u8, 79u8, 153u8,
+                            252u8, 114u8, 90u8, 97u8, 81u8, 15u8, 87u8, 127u8, 147u8, 253u8, 177u8,
+                        ],
+                    )
+                }
+                pub fn verification_key_owners(
+                    &self,
+                    _0: impl ::std::borrow::Borrow<[::core::primitive::u8; 8usize]>,
+                ) -> ::subxt::storage::address::Address<
+                    ::subxt::storage::address::StaticStorageMapKey,
+                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                    ::subxt::storage::address::Yes,
+                    (),
+                    ::subxt::storage::address::Yes,
+                > {
+                    ::subxt::storage::address::Address::new_static(
+                        "BabyLiminal",
+                        "VerificationKeyOwners",
+                        vec![::subxt::storage::address::make_static_storage_map_key(
+                            _0.borrow(),
+                        )],
+                        [
+                            241u8, 20u8, 150u8, 166u8, 238u8, 78u8, 141u8, 182u8, 184u8, 253u8,
+                            109u8, 153u8, 167u8, 157u8, 91u8, 41u8, 171u8, 152u8, 37u8, 177u8,
+                            173u8, 155u8, 206u8, 168u8, 237u8, 28u8, 181u8, 4u8, 172u8, 36u8,
+                            227u8, 198u8,
+                        ],
+                    )
+                }
+                pub fn verification_key_owners_root(
+                    &self,
+                ) -> ::subxt::storage::address::Address<
+                    ::subxt::storage::address::StaticStorageMapKey,
+                    ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                    (),
+                    (),
+                    ::subxt::storage::address::Yes,
+                > {
+                    ::subxt::storage::address::Address::new_static(
+                        "BabyLiminal",
+                        "VerificationKeyOwners",
+                        Vec::new(),
+                        [
+                            241u8, 20u8, 150u8, 166u8, 238u8, 78u8, 141u8, 182u8, 184u8, 253u8,
+                            109u8, 153u8, 167u8, 157u8, 91u8, 41u8, 171u8, 152u8, 37u8, 177u8,
+                            173u8, 155u8, 206u8, 168u8, 237u8, 28u8, 181u8, 4u8, 172u8, 36u8,
+                            227u8, 198u8,
+                        ],
+                    )
+                }
+                pub fn verification_key_deposits(
+                    &self,
+                    _0: impl ::std::borrow::Borrow<
+                        ::subxt::utils::Static<::subxt::ext::sp_core::crypto::AccountId32>,
+                    >,
+                    _1: impl ::std::borrow::Borrow<[::core::primitive::u8; 8usize]>,
+                ) -> ::subxt::storage::address::Address<
+                    ::subxt::storage::address::StaticStorageMapKey,
+                    ::core::primitive::u128,
+                    ::subxt::storage::address::Yes,
+                    (),
+                    ::subxt::storage::address::Yes,
+                > {
+                    ::subxt::storage::address::Address::new_static(
+                        "BabyLiminal",
+                        "VerificationKeyDeposits",
+                        vec![
+                            ::subxt::storage::address::make_static_storage_map_key(_0.borrow()),
+                            ::subxt::storage::address::make_static_storage_map_key(_1.borrow()),
+                        ],
+                        [
+                            82u8, 177u8, 45u8, 211u8, 7u8, 60u8, 94u8, 246u8, 219u8, 97u8, 138u8,
+                            44u8, 18u8, 104u8, 222u8, 56u8, 81u8, 139u8, 59u8, 212u8, 121u8, 208u8,
+                            20u8, 119u8, 114u8, 246u8, 143u8, 234u8, 36u8, 101u8, 192u8, 13u8,
+                        ],
+                    )
+                }
+                pub fn verification_key_deposits_root(
+                    &self,
+                ) -> ::subxt::storage::address::Address<
+                    ::subxt::storage::address::StaticStorageMapKey,
+                    ::core::primitive::u128,
+                    (),
+                    (),
+                    ::subxt::storage::address::Yes,
+                > {
+                    ::subxt::storage::address::Address::new_static(
+                        "BabyLiminal",
+                        "VerificationKeyDeposits",
+                        Vec::new(),
+                        [
+                            82u8, 177u8, 45u8, 211u8, 7u8, 60u8, 94u8, 246u8, 219u8, 97u8, 138u8,
+                            44u8, 18u8, 104u8, 222u8, 56u8, 81u8, 139u8, 59u8, 212u8, 121u8, 208u8,
+                            20u8, 119u8, 114u8, 246u8, 143u8, 234u8, 36u8, 101u8, 192u8, 13u8,
+                        ],
+                    )
+                }
+            }
+        }
+        pub mod constants {
+            use super::runtime_types;
+            pub struct ConstantsApi;
+            impl ConstantsApi {
+                #[doc = " Limits how many bytes verification key can have."]
+                #[doc = ""]
+                #[doc = " Verification keys are stored, therefore this is separated from the limits on proof or"]
+                #[doc = " public input."]
+                pub fn maximum_verification_key_length(
+                    &self,
+                ) -> ::subxt::constants::Address<::core::primitive::u32> {
+                    ::subxt::constants::Address::new_static(
+                        "BabyLiminal",
+                        "MaximumVerificationKeyLength",
+                        [
+                            98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
+                            125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
+                            178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
+                            145u8,
+                        ],
+                    )
+                }
+                #[doc = " Limits how many bytes proof or public input can have."]
+                pub fn maximum_data_length(
+                    &self,
+                ) -> ::subxt::constants::Address<::core::primitive::u32> {
+                    ::subxt::constants::Address::new_static(
+                        "BabyLiminal",
+                        "MaximumDataLength",
+                        [
+                            98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
+                            125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
+                            178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
+                            145u8,
+                        ],
+                    )
+                }
+                #[doc = " Deposit amount for storing a verification key"]
+                #[doc = ""]
+                #[doc = " Will get locked and returned upon deleting the key by the owner"]
+                pub fn verification_key_deposit_per_byte(
+                    &self,
+                ) -> ::subxt::constants::Address<::core::primitive::u128> {
+                    ::subxt::constants::Address::new_static(
+                        "BabyLiminal",
+                        "VerificationKeyDepositPerByte",
+                        [
+                            84u8, 157u8, 140u8, 4u8, 93u8, 57u8, 29u8, 133u8, 105u8, 200u8, 214u8,
+                            27u8, 144u8, 208u8, 218u8, 160u8, 130u8, 109u8, 101u8, 54u8, 210u8,
+                            136u8, 71u8, 63u8, 49u8, 237u8, 234u8, 15u8, 178u8, 98u8, 148u8, 156u8,
+                        ],
+                    )
+                }
+            }
+        }
+    }
     pub mod runtime_types {
         use super::runtime_types;
         pub mod aleph_runtime {
@@ -17890,9 +17890,9 @@ pub mod api {
                 #[codec(index = 21)]
                 CommitteeManagement(runtime_types::pallet_committee_management::pallet::Call),
                 #[codec(index = 22)]
-                BabyLiminal(runtime_types::pallet_baby_liminal::pallet::Call),
-                #[codec(index = 23)]
                 Proxy(runtime_types::pallet_proxy::pallet::Call),
+                #[codec(index = 41)]
+                BabyLiminal(runtime_types::pallet_baby_liminal::pallet::Call),
             }
             #[derive(
                 :: subxt :: ext :: codec :: Decode,
@@ -17939,9 +17939,9 @@ pub mod api {
                 #[codec(index = 21)]
                 CommitteeManagement(runtime_types::pallet_committee_management::pallet::Error),
                 #[codec(index = 22)]
-                BabyLiminal(runtime_types::pallet_baby_liminal::pallet::Error),
-                #[codec(index = 23)]
                 Proxy(runtime_types::pallet_proxy::pallet::Error),
+                #[codec(index = 41)]
+                BabyLiminal(runtime_types::pallet_baby_liminal::pallet::Error),
             }
             #[derive(
                 :: subxt :: ext :: codec :: Decode,
@@ -17992,9 +17992,9 @@ pub mod api {
                 #[codec(index = 21)]
                 CommitteeManagement(runtime_types::pallet_committee_management::pallet::Event),
                 #[codec(index = 22)]
-                BabyLiminal(runtime_types::pallet_baby_liminal::pallet::Event),
-                #[codec(index = 23)]
                 Proxy(runtime_types::pallet_proxy::pallet::Event),
+                #[codec(index = 41)]
+                BabyLiminal(runtime_types::pallet_baby_liminal::pallet::Event),
             }
             #[derive(
                 :: subxt :: ext :: codec :: Decode,
