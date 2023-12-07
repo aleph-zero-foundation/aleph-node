@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::marker::PhantomData;
 
 use frame_support::{pallet_prelude::Weight, sp_runtime::DispatchError};
@@ -33,10 +31,9 @@ trait _Read {
 }
 
 /// A testing implementation for `crate::backend::environment::Environment`.
-pub struct MockedEnvironment<FM: FunctionMode, RM: ReadingMode> {
-    /// An optional callback to be invoked just before (failing to) read. `Some(_)` only if
-    /// `RM = CorruptedMode`.
-    on_read: Option<Box<dyn Fn()>>,
+pub struct MockedEnvironment<'charger, FM: FunctionMode, RM: ReadingMode> {
+    /// Accumulator for charged weight.
+    charger: &'charger mut Weight,
 
     /// How many bytes are there waiting to be read.
     in_len: ByteCount,
@@ -48,10 +45,10 @@ pub struct MockedEnvironment<FM: FunctionMode, RM: ReadingMode> {
 }
 
 /// Creating environment with corrupted reading.
-impl<FM: FunctionMode> MockedEnvironment<FM, CorruptedMode> {
-    pub fn new(in_len: ByteCount, on_read: Option<Box<dyn Fn()>>) -> Self {
+impl<'charger, FM: FunctionMode> MockedEnvironment<'charger, FM, CorruptedMode> {
+    pub fn new(charger: &'charger mut Weight, in_len: ByteCount) -> Self {
         Self {
-            on_read,
+            charger,
             in_len,
             content: None,
             _phantom: Default::default(),
@@ -60,18 +57,17 @@ impl<FM: FunctionMode> MockedEnvironment<FM, CorruptedMode> {
 }
 
 /// Corrupted reading with possible additional callback invoked.
-impl<FM: FunctionMode> _Read for MockedEnvironment<FM, CorruptedMode> {
+impl<'charger, FM: FunctionMode> _Read for MockedEnvironment<'charger, FM, CorruptedMode> {
     fn _read(&self, _max_len: ByteCount) -> Result<Vec<u8>, DispatchError> {
-        self.on_read.as_ref().map(|action| action());
         Err(DispatchError::Other("Some error"))
     }
 }
 
 /// Creating environment with correct reading of `content`.
-impl<FM: FunctionMode> MockedEnvironment<FM, StandardMode> {
-    pub fn new(content: Vec<u8>) -> Self {
+impl<'charger, FM: FunctionMode> MockedEnvironment<'charger, FM, StandardMode> {
+    pub fn new(charger: &'charger mut Weight, content: Vec<u8>) -> Self {
         Self {
-            on_read: None,
+            charger,
             in_len: content.len() as ByteCount,
             content: Some(content),
             _phantom: Default::default(),
@@ -80,7 +76,7 @@ impl<FM: FunctionMode> MockedEnvironment<FM, StandardMode> {
 }
 
 /// Successful reading.
-impl<FM: FunctionMode> _Read for MockedEnvironment<FM, StandardMode> {
+impl<'charger, FM: FunctionMode> _Read for MockedEnvironment<'charger, FM, StandardMode> {
     fn _read(&self, max_len: ByteCount) -> Result<Vec<u8>, DispatchError> {
         let content = self.content.as_ref().unwrap();
         if max_len > self.in_len {
@@ -91,9 +87,10 @@ impl<FM: FunctionMode> _Read for MockedEnvironment<FM, StandardMode> {
     }
 }
 
-impl<FM: FunctionMode, RM: ReadingMode> Environment for MockedEnvironment<FM, RM>
+impl<'charger, FM: FunctionMode, RM: ReadingMode> Environment
+    for MockedEnvironment<'charger, FM, RM>
 where
-    MockedEnvironment<FM, RM>: _Read,
+    MockedEnvironment<'charger, FM, RM>: _Read,
 {
     type ChargedAmount = Weight;
 
@@ -111,8 +108,12 @@ where
     }
 
     fn charge_weight(&mut self, amount: Weight) -> Result<Weight, DispatchError> {
+        *self.charger += amount;
         Ok(amount)
     }
 
-    fn adjust_weight(&mut self, _: Weight, _: Weight) {}
+    fn adjust_weight(&mut self, previously_charged: Weight, actual_charge: Weight) {
+        *self.charger -= previously_charged;
+        *self.charger += actual_charge;
+    }
 }

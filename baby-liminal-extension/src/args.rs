@@ -20,6 +20,16 @@ pub struct StoreKeyArgs {
     pub key: Vec<u8>,
 }
 
+impl StoreKeyArgs {
+    /// Returns the approximate size of the encoded key. It is an upper bound, because the
+    /// encoding must also include the vector length.
+    #[cfg(feature = "runtime")]
+    pub fn approximate_key_size(encoded_len: usize) -> usize {
+        use sp_std::mem::size_of;
+        encoded_len - size_of::<AccountId>() - size_of::<VerificationKeyIdentifier>()
+    }
+}
+
 /// A struct describing layout for the `verify` chain extension.
 #[derive(Clone, Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
 pub struct VerifyArgs {

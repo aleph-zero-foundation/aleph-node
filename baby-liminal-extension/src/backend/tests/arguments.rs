@@ -6,11 +6,11 @@ use crate::{
     VerificationKeyIdentifier,
 };
 
-const DEPOSITOR: [u8; 32] = [1; 32];
-const IDENTIFIER: VerificationKeyIdentifier = [41; 8];
-const VK: [u8; 2] = [4, 1];
-const PROOF: [u8; 20] = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3, 2, 3, 8, 4];
-const INPUT: [u8; 11] = [0, 5, 7, 7, 2, 1, 5, 6, 6, 4, 9];
+pub const DEPOSITOR: [u8; 32] = [1; 32];
+pub const IDENTIFIER: VerificationKeyIdentifier = [41; 8];
+pub const VK: [u8; 2] = [4, 1];
+pub const PROOF: [u8; 20] = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3, 2, 3, 8, 4];
+pub const INPUT: [u8; 11] = [0, 5, 7, 7, 2, 1, 5, 6, 6, 4, 9];
 
 /// Returns encoded arguments to `store_key` chain extension call.
 pub fn store_key_args() -> Vec<u8> {

@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use frame_support::pallet_prelude::Weight;
 use pallet_baby_liminal::Error as PalletError;
 

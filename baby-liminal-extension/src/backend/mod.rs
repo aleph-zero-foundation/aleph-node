@@ -3,7 +3,7 @@ use executor::BackendExecutor as BackendExecutorT;
 use frame_support::{pallet_prelude::DispatchError, sp_runtime::AccountId32};
 use frame_system::Config as SystemConfig;
 use log::error;
-use pallet_baby_liminal::Error::*;
+use pallet_baby_liminal::{AlephWeight, Error::*, WeightInfo};
 use pallet_contracts::chain_extension::{
     ChainExtension, Environment as SubstrateEnvironment, Ext, InitState,
     Result as ChainExtensionResult, RetVal,
@@ -11,6 +11,7 @@ use pallet_contracts::chain_extension::{
 use sp_std::marker::PhantomData;
 
 use crate::{
+    args::StoreKeyArgs,
     backend::executor::MinimalRuntime,
     extension_ids::{STORE_KEY_EXT_ID, VERIFY_EXT_ID},
     status_codes::*,
@@ -48,8 +49,10 @@ where
         let func_id = env.func_id() as u32;
 
         match func_id {
-            STORE_KEY_EXT_ID => Self::store_key::<Runtime, _>(env.buf_in_buf_out()),
-            VERIFY_EXT_ID => Self::verify::<Runtime, _>(env.buf_in_buf_out()),
+            STORE_KEY_EXT_ID => {
+                Self::store_key::<Runtime, _, AlephWeight<Runtime>>(env.buf_in_buf_out())
+            }
+            VERIFY_EXT_ID => Self::verify::<Runtime, _, AlephWeight<Runtime>>(env.buf_in_buf_out()),
             _ => {
                 error!("Called an unregistered `func_id`: {func_id}");
                 Err(DispatchError::Other("Called an unregistered `func_id`"))
@@ -63,11 +66,31 @@ where
     <Runtime as SystemConfig>::RuntimeOrigin: From<Option<AccountId32>>,
 {
     /// Handle `store_key` chain extension call.
-    pub fn store_key<BackendExecutor: BackendExecutorT, Environment: EnvironmentT>(
+    pub fn store_key<
+        BackendExecutor: BackendExecutorT,
+        Environment: EnvironmentT,
+        Weighting: WeightInfo,
+    >(
         mut env: Environment,
     ) -> ChainExtensionResult<RetVal> {
-        // todo: charge weight, validate args
-        let args = env.read_as_unbounded(env.in_len())?;
+        // ------- Pre-charge weight. --------------------------------------------------------------
+        let approx_key_size = StoreKeyArgs::approximate_key_size(env.in_len() as usize);
+        let pre_charge = env.charge_weight(Weighting::store_key(approx_key_size as ByteCount))?;
+
+        // ------- Read the arguments. -------------------------------------------------------------
+        //
+        // TODO: charge additional weight for the args size (spam protection);
+        // this requires some benchmarking (maybe possible here, instead of polluting pallet's code)
+        // JIRA: https://cardinal-cryptography.atlassian.net/browse/A0-3578
+        let args = env.read_as_unbounded::<StoreKeyArgs>(env.in_len())?;
+
+        // ------- Adjust weight if needed. --------------------------------------------------------
+        env.adjust_weight(
+            pre_charge,
+            Weighting::store_key(args.key.len() as ByteCount),
+        );
+
+        // ------- Forward the call and translate the status. --------------------------------------
         let status = match BackendExecutor::store_key(args) {
             Ok(()) => STORE_KEY_SUCCESS,
             Err(VerificationKeyTooLong) => STORE_KEY_TOO_LONG_KEY,
@@ -78,12 +101,38 @@ where
     }
 
     /// Handle `verify` chain extension call.
-    pub fn verify<BackendExecutor: BackendExecutorT, Environment: EnvironmentT>(
+    pub fn verify<
+        BackendExecutor: BackendExecutorT,
+        Environment: EnvironmentT,
+        Weighting: WeightInfo,
+    >(
         mut env: Environment,
     ) -> ChainExtensionResult<RetVal> {
-        // todo: charge weight, validate args
+        // ------- Pre-charge optimistic weight. ---------------------------------------------------
+        let pre_charge = env.charge_weight(Weighting::verify())?;
+
+        // ------- Read the arguments. -------------------------------------------------------------
+        //
+        // TODO: charge additional weight for the args size (spam protection);
+        // this requires some benchmarking (maybe possible here, instead of polluting pallet's code)
+        // JIRA: https://cardinal-cryptography.atlassian.net/browse/A0-3578
         let args = env.read_as_unbounded(env.in_len())?;
-        let status = match BackendExecutor::verify(args) {
+
+        // ------- Forward the call. ---------------------------------------------------------------
+        let result = BackendExecutor::verify(args);
+
+        // ------- Adjust weight if needed. --------------------------------------------------------
+        match &result {
+            // In the failure case, if pallet provides us with a post-dispatch weight, we can make
+            // an adjustment.
+            Err((_, Some(actual_weight))) => env.adjust_weight(pre_charge, *actual_weight),
+            // Otherwise (positive case, or pallet doesn't provide us with any adjustment hint), we
+            // don't need to do anything.
+            Ok(_) | Err((_, None)) => {}
+        };
+
+        // ------- Translate the status. -----------------------------------------------------------
+        let status = match result {
             Ok(()) => VERIFY_SUCCESS,
             Err((DeserializingProofFailed, _)) => VERIFY_DESERIALIZING_PROOF_FAIL,
             Err((DeserializingPublicInputFailed, _)) => VERIFY_DESERIALIZING_INPUT_FAIL,
