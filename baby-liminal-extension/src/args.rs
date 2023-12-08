@@ -2,33 +2,9 @@
 //! proper argument encoding. On the runtime side, they can be used for decoding the arguments.
 
 #[cfg(feature = "ink")]
-use {crate::VerificationKeyIdentifier, ink::prelude::vec::Vec, ink::primitives::AccountId};
+use {crate::VerificationKeyIdentifier, ink::prelude::vec::Vec};
 #[cfg(feature = "runtime")]
-use {
-    frame_support::sp_runtime::AccountId32 as AccountId,
-    pallet_baby_liminal::VerificationKeyIdentifier, sp_std::vec::Vec,
-};
-
-/// A struct describing layout for the `store_key` chain extension.
-#[derive(Clone, Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
-pub struct StoreKeyArgs {
-    /// The account ID of the key depositor.
-    pub depositor: AccountId,
-    /// The identifier of the key.
-    pub identifier: VerificationKeyIdentifier,
-    /// The key itself.
-    pub key: Vec<u8>,
-}
-
-impl StoreKeyArgs {
-    /// Returns the approximate size of the encoded key. It is an upper bound, because the
-    /// encoding must also include the vector length.
-    #[cfg(feature = "runtime")]
-    pub fn approximate_key_size(encoded_len: usize) -> usize {
-        use sp_std::mem::size_of;
-        encoded_len - size_of::<AccountId>() - size_of::<VerificationKeyIdentifier>()
-    }
-}
+use {pallet_baby_liminal::VerificationKeyIdentifier, sp_std::vec::Vec};
 
 /// A struct describing layout for the `verify` chain extension.
 #[derive(Clone, Debug, PartialEq, Eq, scale::Encode, scale::Decode)]

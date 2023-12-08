@@ -1,7 +1,6 @@
 //! # Baby Liminal Extension
 //!
-//! This crate provides a way for smart contracts to interact with the [`pallet_baby_liminal`]
-//! runtime module.
+//! This crate provides a way for smart contracts to work with ZK proofs (SNARKs).
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![deny(missing_docs)]

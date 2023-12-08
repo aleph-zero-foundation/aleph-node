@@ -3,7 +3,6 @@
 use ink::{
     env::{DefaultEnvironment, Environment as EnvironmentT},
     prelude::vec::Vec,
-    primitives::AccountId,
 };
 
 use crate::VerificationKeyIdentifier;
@@ -13,12 +12,7 @@ use crate::VerificationKeyIdentifier;
 #[allow(missing_docs)] // Error variants are self-descriptive.
 /// Chain extension errors enumeration.
 pub enum BabyLiminalError {
-    // `pallet_baby_liminal::store_key` errors
-    VerificationKeyTooLong,
-    IdentifierAlreadyInUse,
-    StoreKeyErrorUnknown,
-
-    // `pallet_baby_liminal::verify` errors
+    // Proof verification errors.
     UnknownVerificationKeyIdentifier,
     DeserializingProofFailed,
     DeserializingPublicInputFailed,
@@ -45,14 +39,9 @@ impl ink::env::chain_extension::FromStatusCode for BabyLiminalError {
 
         match status_code {
             // Success codes
-            STORE_KEY_SUCCESS | VERIFY_SUCCESS => Ok(()),
+            VERIFY_SUCCESS => Ok(()),
 
-            // `pallet_baby_liminal::store_key` errors
-            STORE_KEY_TOO_LONG_KEY => Err(Self::VerificationKeyTooLong),
-            STORE_KEY_IDENTIFIER_IN_USE => Err(Self::IdentifierAlreadyInUse),
-            STORE_KEY_ERROR_UNKNOWN => Err(Self::StoreKeyErrorUnknown),
-
-            // `pallet_baby_liminal::verify` errors
+            // Proof verification errors
             VERIFY_DESERIALIZING_PROOF_FAIL => Err(Self::DeserializingProofFailed),
             VERIFY_DESERIALIZING_INPUT_FAIL => Err(Self::DeserializingPublicInputFailed),
             VERIFY_UNKNOWN_IDENTIFIER => Err(Self::UnknownVerificationKeyIdentifier),
@@ -71,20 +60,11 @@ impl ink::env::chain_extension::FromStatusCode for BabyLiminalError {
 pub trait BabyLiminalExtension {
     type ErrorCode = BabyLiminalError;
 
-    /// Directly call `pallet_baby_liminal::store_key`.
+    /// Verify a ZK proof `proof` given the public input `input` against the verification key
+    /// `identifier`.
     // IMPORTANT: this must match the extension ID in `extension_ids.rs`! However, because constants
     // are not inlined before macro processing, we can't use an identifier from another module here.
-    #[ink(extension = 41)]
-    fn store_key(
-        origin: AccountId,
-        identifier: VerificationKeyIdentifier,
-        key: Vec<u8>,
-    ) -> Result<(), BabyLiminalError>;
-
-    /// Directly call `pallet_baby_liminal::verify`.
-    // IMPORTANT: this must match the extension ID in `extension_ids.rs`! However, because constants
-    // are not inlined before macro processing, we can't use an identifier from another module here.
-    #[ink(extension = 42)]
+    #[ink(extension = 0)]
     fn verify(
         identifier: VerificationKeyIdentifier,
         proof: Vec<u8>,

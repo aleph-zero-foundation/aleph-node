@@ -7,9 +7,6 @@ use crate::backend::{environment::Environment, ByteCount};
 
 /// Trait serving as a type-level flag indicating which method we are testing.
 pub trait FunctionMode {}
-/// We are testing `store_key`.
-pub enum StoreKeyMode {}
-impl FunctionMode for StoreKeyMode {}
 /// We are testing `verify`.
 pub enum VerifyMode {}
 impl FunctionMode for VerifyMode {}
