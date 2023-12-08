@@ -45,16 +45,14 @@ jobs:
   build-test-node-and-runtime:
     name: Build test node and runtime
     uses: ./.github/workflows/_build-test-node-and-runtime.yml
+    secrets: inherit
     with:
       ref: ${{ github.ref }}
-
-  build-test-node-image-and-e2e-client-image:
-    needs: [build-test-node-and-runtime]
-    uses: ./.github/workflows/_build-test-node-and-e2e-client-image.yml
+      build-e2e-tests-targets: true
 
   run-e2e-finalization-test:
     name: Run e2e finalization test
-    needs: [build-test-node-image-and-e2e-client-image]
+    needs: [build-test-node-and-runtime]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -64,3 +62,5 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: finalization::finalization
+          # yamllint disable-line rule:line-length
+          aleph-e2e-client-image: ${{ needs.build-test-node-and-runtime.outputs.aleph-e2e-client-image }}

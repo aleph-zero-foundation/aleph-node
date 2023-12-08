@@ -17,17 +17,18 @@ jobs:
   build-test-node-and-runtime:
     name: Build test node and runtime
     uses: ./.github/workflows/_build-test-node-and-runtime.yml
+    secrets: inherit
     with:
       ref: ${{ github.ref }}
-
-  build-test-node-image-and-e2e-client-image:
-    needs: [build-test-node-and-runtime]
-    uses: ./.github/workflows/_build-test-node-and-e2e-client-image.yml
+      build-e2e-tests-targets: true
 
   run-e2e-tests:
     name: Run e2e tests
-    needs: [build-test-node-image-and-e2e-client-image]
+    needs: [build-test-node-and-runtime]
     uses: ./.github/workflows/_run-e2e-tests.yml
+    with:
+      # yamllint disable-line rule:line-length
+      aleph-e2e-client-image: ${{ needs.build-test-node-and-runtime.outputs.aleph-e2e-client-image }}
 
   run-recover-after-abft-update-test:
     needs: [build-test-node-and-runtime]

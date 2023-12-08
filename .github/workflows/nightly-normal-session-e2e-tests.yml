@@ -16,23 +16,26 @@ jobs:
     uses: ./.github/workflows/_check-vars-and-secrets.yml
     secrets: inherit
 
+  build-aleph-e2e-client-image:
+    needs: [check-vars-and-secrets]
+    name: Build aleph-e2e-client image
+    uses: ./.github/workflows/_build-aleph-e2e-client-image.yml
+    with:
+      ref: ${{ github.ref }}
+    secrets: inherit
+
   build-production-node-and-runtime:
     needs: [check-vars-and-secrets]
-    name: Build production node and runtime artifacts (PR version)
+    name: Build production node and runtime
     uses: ./.github/workflows/_build-production-node-and-runtime.yml
 
-  build-production-node-and-e2e-client-image:
+  build-synthetic-node:
     needs: [build-production-node-and-runtime]
-    name: Build production node and e2e client docker image
-    uses: ./.github/workflows/_build-production-node-and-e2e-client-image.yml
-    secrets: inherit
-    with:
-      build-production-node: true
-      build-synthetic-network-docker: true
-      build-e2e-client: true
+    name: Build synthetic node
+    uses: ./.github/workflows/_build-synthetic-node.yml
 
   run-e2e-high-out-latency:
-    needs: [build-production-node-and-e2e-client-image]
+    needs: [build-synthetic-node, build-aleph-e2e-client-image]
     name: Run high out-latency test
     runs-on: ubuntu-20.04
     steps:
@@ -46,10 +49,12 @@ jobs:
           image-path: aleph-release-synthetic-docker
           node-image: aleph-node:syntheticnet
           compose-file: docker/docker-compose.synthetic-network.yml
+          # yamllint disable-line rule:line-length
+          aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
         timeout-minutes: 40
 
   run-e2e-sync-test-one_node_catching_up_and_then_becoming_necessary_for_consensus:
-    needs: [build-production-node-and-e2e-client-image]
+    needs: [build-synthetic-node, build-aleph-e2e-client-image]
     name: Sync test using synthetic-network - one node catching up and then
           becoming necessary for consensus
     runs-on: ubuntu-20.04
@@ -69,10 +74,12 @@ jobs:
           node-image: aleph-node:syntheticnet
           compose-file: docker/docker-compose.synthetic-network_sync-tests.yml
           node-count: 7
+          # yamllint disable-line rule:line-length
+          aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
         timeout-minutes: 35
 
   run-e2e-sync-test-one_node_catching_up:
-    needs: [build-production-node-and-e2e-client-image]
+    needs: [build-synthetic-node, build-aleph-e2e-client-image]
     name: Sync test using synthetic-network - one node catching up
     runs-on: ubuntu-20.04
     steps:
@@ -91,10 +98,12 @@ jobs:
           node-image: aleph-node:syntheticnet
           compose-file: docker/docker-compose.synthetic-network_sync-tests.yml
           node-count: 7
+          # yamllint disable-line rule:line-length
+          aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
         timeout-minutes: 35
 
   run-e2e-sync-test-into_two_groups_and_one_quorum_and_switch_quorum_between_them:
-    needs: [build-production-node-and-e2e-client-image]
+    needs: [build-synthetic-node, build-aleph-e2e-client-image]
     name: Sync test using synthetic-network - into two groups and one quorum
           and switch quorum between them
     runs-on: ubuntu-20.04
@@ -114,10 +123,12 @@ jobs:
           node-image: aleph-node:syntheticnet
           compose-file: docker/docker-compose.synthetic-network_sync-tests.yml
           node-count: 7
+          # yamllint disable-line rule:line-length
+          aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
         timeout-minutes: 35
 
   run-e2e-sync-test-into_multiple_groups_of_two:
-    needs: [build-production-node-and-e2e-client-image]
+    needs: [build-synthetic-node, build-aleph-e2e-client-image]
     name: Sync test using synthetic-network - into multiple groups of two
     runs-on: ubuntu-20.04
     steps:
@@ -136,10 +147,12 @@ jobs:
           node-image: aleph-node:syntheticnet
           compose-file: docker/docker-compose.synthetic-network_sync-tests.yml
           node-count: 7
+          # yamllint disable-line rule:line-length
+          aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
         timeout-minutes: 35
 
   run-e2e-sync-test-into_two_equal_size_groups_with_no_quorum:
-    needs: [build-production-node-and-e2e-client-image]
+    needs: [build-synthetic-node, build-aleph-e2e-client-image]
     name: Sync test using synthetic-network - into two equal size groups
           with no quorum
     runs-on: ubuntu-20.04
@@ -159,10 +172,12 @@ jobs:
           node-image: aleph-node:syntheticnet
           compose-file: docker/docker-compose.synthetic-network_sync-tests.yml
           node-count: 7
+          # yamllint disable-line rule:line-length
+          aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
         timeout-minutes: 35
 
   run-e2e-sync-test-into_two_groups_one_with_quorum:
-    needs: [build-production-node-and-e2e-client-image]
+    needs: [build-synthetic-node, build-aleph-e2e-client-image]
     name: Sync test using synthetic-network - into two groups one with
           quorum
     runs-on: ubuntu-20.04
@@ -182,6 +197,8 @@ jobs:
           node-image: aleph-node:syntheticnet
           compose-file: docker/docker-compose.synthetic-network_sync-tests.yml
           node-count: 7
+          # yamllint disable-line rule:line-length
+          aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
         timeout-minutes: 35
 
   run-major-sync-test:
@@ -228,7 +245,7 @@ jobs:
 
 
   run-e2e-no-quorum-without-high-out-latency:
-    needs: [build-production-node-and-e2e-client-image]
+    needs: [build-synthetic-node, build-aleph-e2e-client-image]
     name: Run high out-latency for every quorum
     runs-on: ubuntu-20.04
     steps:
@@ -242,6 +259,8 @@ jobs:
           image-path: aleph-release-synthetic-docker
           node-image: aleph-node:syntheticnet
           compose-file: docker/docker-compose.synthetic-network.yml
+          # yamllint disable-line rule:line-length
+          aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
         timeout-minutes: 35
 
   check-nightly-pipeline-completion:

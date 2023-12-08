@@ -1,0 +1,40 @@
+---
+#  This workflow builds synthetic network aleph-node docker
+# it requires base aleph-node image
+name: Build production node image and e2e client image
+on:
+  workflow_call:
+
+jobs:
+  main:
+    name: Build synthetic node docker image
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout Source code
+        uses: actions/checkout@v4
+
+      - name: Download release artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: aleph-production-node
+          path: target/release/
+
+      - name: Build release docker image
+        run: |
+          chmod +x target/release/aleph-node
+          docker build --tag aleph-node:latest -f ./docker/Dockerfile .
+
+      - name: Build synthetic aleph-node image
+        shell: bash
+        run: |
+          export TERM=xterm-256color
+          scripts/synthetic-network/build_synthetic-network.sh
+          docker save -o aleph-node.tar aleph-node:syntheticnet
+
+      - name: Upload synthetic aleph-node image
+        uses: actions/upload-artifact@v3
+        with:
+          name: aleph-release-synthetic-docker
+          path: aleph-node.tar
+          if-no-files-found: error
+          retention-days: 7

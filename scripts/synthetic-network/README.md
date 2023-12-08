@@ -43,13 +43,13 @@ e2e-tests$ cd ..
 # run tests for the block sync component
 aleph-node$ VALIDATOR_COUNT=7 NETWORK="synthetic-network" NODE_URL="ws://Node0:9944" ./.github/scripts/run_e2e_test.sh -t test::sync -n 7
 # another example
-aleph-node$ .github/scripts/run_e2e_test.sh -t high_out_latency_for_all
+aleph-node$ .github/scripts/run_e2e_test.sh -t high_out_latency_for_all -a public.ecr.aws/p6e8q1z1/aleph-e2e-client:latest
 ```
 
 There's a `OUT_LATENCY` env which control output latency in e2e tests. If not specified, there's 200ms
 default used:
 ```shell
-OUT_LATENCY=300 .github/scripts/run_e2e_test.sh -t high_out_latency_for_all -n 5
+OUT_LATENCY=300 .github/scripts/run_e2e_test.sh -t high_out_latency_for_all -n 5 -a public.ecr.aws/p6e8q1z1/aleph-e2e-client:latest
 ```
 
 If you'd like to start `run_consensus_synthetic-network.sh` again, run below command first. 

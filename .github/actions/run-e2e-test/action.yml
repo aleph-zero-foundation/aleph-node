@@ -9,7 +9,7 @@ inputs:
     default: '5'
   test-case:
     description: 'Name of test to run.'
-    required: false
+    required: true
   reserved-seats:
     description: 'Number of reserved seats available to validators.'
     required: false
@@ -43,10 +43,19 @@ inputs:
     description: 'Custom docker-compose configuration'
     required: false
     default: ''
+  aleph-e2e-client-image:
+    description: 'aleph-e2e-client image'
+    required: true
 
 runs:
   using: 'composite'
   steps:
+    - name: Checkout aleph-node sources
+      uses: actions/checkout@v4
+
+    - name: Call action get-ref-properties
+      id: get-ref-properties
+      uses: Cardinal-Cryptography/github-actions/get-ref-properties@v5
 
     - name: Download artifact with docker image
       uses: actions/download-artifact@v2
@@ -64,28 +73,22 @@ runs:
         DOCKER_COMPOSE='${{ inputs.compose-file }}' \
           ./.github/scripts/run_consensus.sh -n '${{ inputs.node-count }}'
 
-    - name: Sleep
-      shell: bash
-      run: sleep 60
-
-    - name: Download artifact with the test suite image
-      if: inputs.test-case != ''
+    - name: Download aleph-e2e-client artifact
       uses: actions/download-artifact@v3
       with:
         name: aleph-e2e-client
 
     - name: Load test suite docker image
-      if: inputs.test-case != ''
       shell: bash
       run: docker load -i aleph-e2e-client.tar
 
     - name: Run single e2e test
       id: run-single-e2e-test
-      if: inputs.test-case != ''
       shell: bash
       run: |
         ARGS=(
           -t '${{ inputs.test-case }}'
+          -a '${{ inputs.aleph-e2e-client-image }}'
         )
 
         RESERVED_SEATS='${{ inputs.reserved-seats }}'
@@ -153,4 +156,5 @@ runs:
       if: inputs.follow-up-finalization-check == 'true'
       shell: bash
       run: |
-        ./.github/scripts/run_e2e_test.sh -t finalization::finalization
+        ./.github/scripts/run_e2e_test.sh -t finalization::finalization \
+          -a '${{ inputs.aleph-e2e-client-image }}'

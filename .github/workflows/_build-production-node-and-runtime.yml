@@ -18,8 +18,7 @@ jobs:
 
       - name: Call action get-ref-properties
         id: get-ref-properties
-        # yamllint disable-line rule:line-length
-        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v4
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v5
 
       - name: Install Rust toolchain
         uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v4
@@ -43,6 +42,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      # required by _check-runtime-determinism.yml workflow
       - name: Upload release runtime to GH artifacts
         uses: actions/upload-artifact@v3
         with:
