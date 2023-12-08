@@ -23,14 +23,6 @@ inputs:
     description: 'Whether to deploy the adder sample contract to the node.'
     required: false
     default: 'false'
-  clean-button:
-    description: 'Whether to remove the button game contracts after running test suite.'
-    required: false
-    default: 'false'
-  deploy-button:
-    description: 'Whether to deploy the button game contracts to the node.'
-    required: false
-    default: 'false'
   image-path:
     description: 'Custom path to docker image for aleph-node'
     required: false
@@ -109,23 +101,7 @@ runs:
           popd
         fi
 
-        DEPLOY_BUTTON='${{ inputs.deploy-button }}'
-
-        if [[ "${DEPLOY_BUTTON}" = "true" ]]; then
-          source contracts/env/dev
-          export LIFETIME=20
-          contracts/scripts/deploy.sh
-          source contracts/scripts/test_env
-        fi
-
         ./.github/scripts/run_e2e_test.sh "${ARGS[@]}"
-
-        CLEAN_BUTTON='${{ inputs.clean-button }}'
-
-        if [[ "${CLEAN_BUTTON}" = "true" ]]; then
-          source contracts/env/dev
-          contracts/scripts/clean.sh
-        fi
 
     - name: Get log tarball file name
       if: ${{ failure() }}

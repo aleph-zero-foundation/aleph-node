@@ -11,21 +11,18 @@ jobs:
     env:
       CARGO_INCREMENTAL: 0
       RUSTC_WRAPPER: sccache
-      CARGO_CONTRACT_VERSION: 3.0.1
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Install rustup and rust toolchain
+      # TODO this is not ideal, as we need this step onlt to have rustup in the path
+      # This step install Rust wfrom root rust-toolchain.toml, which is not used later
+      # by this worfklow. Action install-rust-toolchain should have optional parameter path
+      # in which we pass relative path to aleph-client to read its rust-toolchain.toml file
+      - name: Install Rust Toolchain
         uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v4
 
-      - name: Read contracts toolchain
-        id: contracts-toolchain-channel
-        uses: SebRollen/toml-action@v1.0.2
-        with:
-          file: 'contracts/rust-toolchain.toml'
-          field: 'toolchain.channel'
-
+      # aleph-client and all its dependees still require nightly Rust version
       - name: Read aleph-client toolchain
         id: aleph-client-toolchain-channel
         uses: SebRollen/toml-action@v1.0.2
@@ -33,51 +30,33 @@ jobs:
           file: 'aleph-client/rust-toolchain.toml'
           field: 'toolchain.channel'
 
+      - name: Read workspace excluded packages list
+        id: workspace-excluded-packages
+        uses: SebRollen/toml-action@v1.0.2
+        with:
+          file: 'Cargo.toml'
+          field: 'workspace.exclude'
+
       - name: Install prerequisites
         env:
           RUST_TOOLCHAIN: ${{ steps.aleph-client-toolchain-channel.outputs.value }}
-          RUST_CONTRACTS_TOOLCHAIN: ${{ steps.contracts-toolchain-channel.outputs.value }}
-        # yamllint disable rule:line-length
         run: |
           rustup toolchain install '${{ env.RUST_TOOLCHAIN }}'
-          rustup toolchain install '${{ env.RUST_CONTRACTS_TOOLCHAIN }}'
-          rustup component add rust-src --toolchain '${{ env.RUST_CONTRACTS_TOOLCHAIN }}'
-
-          mkdir -p '/tmp/contracts_toolchain/${{ env.RUST_CONTRACTS_TOOLCHAIN }}/'
-          mkdir -p '/tmp/${{ env.RUST_TOOLCHAIN }}/'
-
-          export WASM_BUILD_WORKSPACE_HINT=${PWD}
-          export CARGO_TARGET_DIR='/tmp/contracts_toolchain/${{ env.RUST_CONTRACTS_TOOLCHAIN }}/target/'
-
-          cargo '+${{ env.RUST_CONTRACTS_TOOLCHAIN }}' \
-            install --version '${{ env.CARGO_CONTRACT_VERSION }}' \
-            --force --locked cargo-contract
-
-          export CARGO_TARGET_DIR='/tmp/${{ env.RUST_TOOLCHAIN }}/target/'
-
           cargo '+${{ env.RUST_TOOLCHAIN }}' \
             install aleph-zero-cargo-nono --locked
-        # yamllint enable rule:line-length
 
       - name: Check excluded packages
         env:
           RUSTC_WRAPPER: ""
           RUSTC_WORKSPACE_WRAPPER: sccache
         run: |
-          ./scripts/run_checks_on_excluded_packages.sh
+          ./scripts/run_checks_on_excluded_packages.sh \
+            "${{ steps.workspace-excluded-packages.outputs.value }}"
 
       - name: Assert that packages are compatible with no-std
         env:
           CHECK: aleph-zero-cargo-nono check --no-default-features
         run: |
-          # `sp-io/src/lib.rs` from `aleph-v0.9.38` cannot be parsed with
-          # `syn` from `aleph-zero-cargo-nono`; we have to wait for
-          # a version bump
-          #
-          # cd baby-liminal-extension/
-          # ${{ env.CHECK }}
-          # ${{ env.CHECK }} --features ink
-
           cd poseidon/
           ${{ env.CHECK }}
           ${{ env.CHECK }} --features circuit
