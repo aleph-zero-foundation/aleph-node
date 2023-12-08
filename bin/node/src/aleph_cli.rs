@@ -4,7 +4,7 @@ use finality_aleph::UnitCreationDelay;
 use log::warn;
 use sc_cli::clap::{self, ArgGroup, Parser};
 
-use crate::aleph_primitives::DEFAULT_UNIT_CREATION_DELAY;
+use crate::aleph_primitives::{DEFAULT_MAX_NON_FINALIZED_BLOCKS, DEFAULT_UNIT_CREATION_DELAY};
 
 #[derive(Debug, Parser, Clone)]
 #[clap(group(ArgGroup::new("backup")))]
@@ -39,7 +39,7 @@ pub struct AlephCli {
     /// The maximum number of nonfinalized blocks, after which block production should be locally
     /// stopped. DO NOT CHANGE THIS, PRODUCING MORE OR FEWER BLOCKS MIGHT BE CONSIDERED MALICIOUS
     /// BEHAVIOUR AND PUNISHED ACCORDINGLY!
-    #[clap(long, default_value_t = 20)]
+    #[clap(long, default_value_t = DEFAULT_MAX_NON_FINALIZED_BLOCKS)]
     max_nonfinalized_blocks: u32,
 
     /// Enable database pruning. It removes older entries in the state-database. Pruning of blocks is not supported.
@@ -84,7 +84,7 @@ impl AlephCli {
     }
 
     pub fn max_nonfinalized_blocks(&self) -> u32 {
-        if self.max_nonfinalized_blocks != 20 {
+        if self.max_nonfinalized_blocks != DEFAULT_MAX_NON_FINALIZED_BLOCKS {
             warn!("Running block production with a value of max-nonfinalized-blocks {}, which is not the default of 20. THIS MIGHT BE CONSIDERED MALICIOUS BEHAVIOUR AND RESULT IN PENALTIES!", self.max_nonfinalized_blocks);
         }
         self.max_nonfinalized_blocks

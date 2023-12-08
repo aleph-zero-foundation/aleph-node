@@ -19,7 +19,7 @@ interact with its web-ui.
 Additionally, this folder contains an example .js script introducing API of the synthetic-network. You can use it by executing
 `run_script_for_synthetic-network.sh --script-path ./latency.js`.
 
-# How to run e2e-tests that use synthetic-network
+# How to run e2e-tests that using synthetic-network?
 
 ```bash
 # build aleph-node docker-image

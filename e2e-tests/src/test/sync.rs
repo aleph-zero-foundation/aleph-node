@@ -1,11 +1,20 @@
+use std::cmp::max;
+
+use aleph_client::{
+    pallets::{committee_management::CommitteeManagementApi, session::SessionApi},
+    utility::BlocksApi,
+    waiting::AlephWaiting,
+};
 use anyhow::{anyhow, Context};
+use futures::future::join_all;
 use log::info;
+use synthetic_link::PortRange;
 
 use crate::{
     config::{setup_test, NodeConfig},
     synthetic_network::{
         await_finalized_blocks, await_new_blocks, execute_synthetic_network_test,
-        NodesConnectivityConfiguration,
+        ConnectivityConfiguration, NodesConnectivityConfiguration,
     },
 };
 
@@ -255,6 +264,108 @@ pub async fn into_two_groups_one_with_quorum() -> anyhow::Result<()> {
         NUMBER_OF_BLOCKS_TO_WAIT,
         NUMBER_OF_BLOCKS_TO_WAIT,
     )
+    .await
+}
+
+/// Checks if nodes are able to proceed after a large finalization stall.
+/// Main motiviation of this test is to check whether database pruning does not remove too much of the state data
+/// so the finalization can continue in case of a big best-finalized gap.
+#[tokio::test]
+pub async fn large_finalization_stall() -> anyhow::Result<()> {
+    const NUMBER_OF_BLOCKS_TO_WAIT_AFTER_RECONNECT: u32 = 311;
+    const VALIDATOR_NETWORK_PORT: u16 = 30343;
+
+    let config = setup_test();
+    if config.validator_count < 4 {
+        return Err(anyhow!(
+            "provided test-network is to small ({0}), should be >= 4",
+            config.validator_count,
+        ));
+    }
+
+    let nodes_configs = config
+        .nodes_configs()
+        .context("unable to build configuration for test nodes")?;
+
+    await_finalized_blocks(nodes_configs.as_slice(), 0, 2).await?;
+
+    let connections = join_all(
+        nodes_configs
+            .as_slice()
+            .into_iter()
+            .map(|config| async move {
+                (
+                    config.node_name().to_owned(),
+                    config.create_signed_connection().await,
+                )
+            }),
+    )
+    .await;
+
+    let session_period = connections[0].1.get_session_period().await?;
+
+    let mut disconnect_configuration = NodesConnectivityConfiguration::new();
+    for node in nodes_configs.as_slice() {
+        let mut node_configuration = ConnectivityConfiguration::new();
+        node_configuration.disconnect_with_ports(nodes_configs.as_slice().iter().map(|node| {
+            (
+                node.ip_address().clone(),
+                PortRange::from(VALIDATOR_NETWORK_PORT),
+            )
+        }));
+
+        disconnect_configuration.set_config(node, node_configuration);
+    }
+
+    let reconnect_configuration = disconnect_configuration.clone().reconnect();
+
+    execute_synthetic_network_test(nodes_configs.clone().as_slice(), async move {
+        disconnect_configuration.commit().await?;
+
+        let mut wait_block = u32::MIN;
+        for (node_name, connection) in connections.iter() {
+            let finalized = connection.get_finalized_block_hash().await?;
+
+            let session = connection.get_session(Some(finalized)).await;
+            let first_block_of_session = connection
+                .first_block_of_session(session)
+                .await?
+                .context(format!(
+                    "unable to retrieve first block of session {session} at node {node_name}"
+                ))
+                .unwrap();
+            let first_block_of_session = connection
+                .get_block_number(first_block_of_session)
+                .await?
+                .ok_or(anyhow::anyhow!(
+                    "Failed to retrieve block number for hash {finalized:?} at node {node_name}"
+                ))?;
+
+            // NOTE at the time of writing, sync won't accept blocks from sessions beyond `session of last finalized block + 1`
+            let last_block_to_produce = first_block_of_session + 2 * session_period;
+            wait_block = max(wait_block, last_block_to_produce);
+        }
+
+        info!("awaiting {wait_block} block");
+        for (node_name, connection) in connections.iter() {
+            info!("awaiting {wait_block} block at node {node_name}");
+            connection
+                .wait_for_block(
+                    |block| block >= wait_block,
+                    aleph_client::waiting::BlockStatus::Best,
+                )
+                .await;
+        }
+
+        reconnect_configuration.commit().await?;
+
+        await_finalized_blocks(
+            nodes_configs.as_slice(),
+            wait_block,
+            NUMBER_OF_BLOCKS_TO_WAIT_AFTER_RECONNECT,
+        )
+        .await
+    })
     .await
 }
 

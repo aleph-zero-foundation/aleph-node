@@ -84,7 +84,7 @@ fi
 if [[ -n "${OUT_LATENCY:-}" ]]; then
     ARGS+=(-e OUT_LATENCY)
 fi
-timeout_duration="20m"
+timeout_duration="${TIMEOUT_MINUTES:-15m}"
 echo "Running test, logs will be shown when tests finishes or after ${timeout_duration} timeout."
 # a hack to set global timeout on a e2e testcase run
 # we can't do that on GH yaml level due to https://github.com/actions/runner/issues/1979

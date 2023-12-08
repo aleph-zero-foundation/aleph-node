@@ -104,6 +104,8 @@ pub const CURRENT_FINALITY_VERSION: u16 = LEGACY_FINALITY_VERSION + 1;
 pub const LEGACY_FINALITY_VERSION: u16 = 2;
 pub const LENIENT_THRESHOLD: Perquintill = Perquintill::from_percent(90);
 
+pub const DEFAULT_MAX_NON_FINALIZED_BLOCKS: u32 = 20;
+
 /// Hold set of validators that produce blocks and set of validators that participate in finality
 /// during session.
 #[derive(Decode, Encode, TypeInfo, Debug, Clone, PartialEq, Eq)]

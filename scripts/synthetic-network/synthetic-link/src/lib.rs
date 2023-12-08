@@ -188,6 +188,12 @@ impl AsRef<RangeInclusive<u16>> for PortRange {
     }
 }
 
+impl From<u16> for PortRange {
+    fn from(value: u16) -> Self {
+        Self(value..=value)
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 struct PortRangeSerde {
     port_min: u16,

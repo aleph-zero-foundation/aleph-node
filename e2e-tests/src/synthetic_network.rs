@@ -1,6 +1,7 @@
 use std::{
     cmp::max,
-    collections::{hash_map::Entry, HashMap, HashSet},
+    collections::{hash_map::Entry, HashMap},
+    iter::repeat,
     mem::swap,
     net::Ipv4Addr,
 };
@@ -48,14 +49,19 @@ impl SyntheticNetworkConfigurator {
         self
     }
 
-    fn set_bit_rate(&mut self, bits_per_second: u64, node: Ipv4Addr) -> &mut Self {
+    fn set_bit_rate(
+        &mut self,
+        bits_per_second: u64,
+        node: Ipv4Addr,
+        port_range: PortRange,
+    ) -> &mut Self {
         let node_int: u32 = node.into();
         let node_int = node_int.to_be();
         let label = format!("{}", node_int);
 
         info!(
-            "creating a synthetic-network flow with label {} for node {} with bit-rate of {}",
-            &label, &node, bits_per_second
+            "creating a synthetic-network flow with label {} for node {}:{}-{} with bit-rate of {}",
+            &label, &node, port_range.as_ref().start(), port_range.as_ref().end(), bits_per_second
         );
 
         let flow = self
@@ -76,22 +82,36 @@ impl SyntheticNetworkConfigurator {
         };
         flow.flow.ip = IpPattern::Ip(node_int);
         flow.flow.protocol = Protocol::All;
-        flow.flow.port_range = PortRange::all();
+        flow.flow.port_range = port_range;
         flow.link.ingress.rate = bits_per_second;
         flow.link.egress.rate = bits_per_second;
         self
     }
 
     pub fn disconnect_node_from(&mut self, nodes: impl IntoIterator<Item = Ipv4Addr>) -> &mut Self {
-        for node in nodes {
-            self.set_bit_rate(0, node);
+        self.disconnect_node_from_port_range(nodes.into_iter().zip(repeat(PortRange::all())))
+    }
+
+    pub fn disconnect_node_from_port_range(
+        &mut self,
+        nodes: impl IntoIterator<Item = (Ipv4Addr, PortRange)>,
+    ) -> &mut Self {
+        for (node, port_range) in nodes {
+            self.set_bit_rate(0, node, port_range);
         }
         self
     }
 
     pub fn connect_node_to(&mut self, nodes: impl IntoIterator<Item = Ipv4Addr>) -> &mut Self {
-        for node in nodes {
-            self.set_bit_rate(QualityOfService::default().rate, node);
+        self.connect_node_to_port_range(nodes.into_iter().zip(repeat(PortRange::all())))
+    }
+
+    pub fn connect_node_to_port_range(
+        &mut self,
+        nodes: impl IntoIterator<Item = (Ipv4Addr, PortRange)>,
+    ) -> &mut Self {
+        for (node, port_range) in nodes {
+            self.set_bit_rate(QualityOfService::default().rate, node, port_range);
         }
         self
     }
@@ -123,36 +143,55 @@ pub async fn set_out_latency(
 
 #[derive(Clone)]
 pub struct ConnectivityConfiguration {
-    to_connect: HashSet<Ipv4Addr>,
-    to_disconnect: HashSet<Ipv4Addr>,
+    pub to_connect: HashMap<Ipv4Addr, PortRange>,
+    pub to_disconnect: HashMap<Ipv4Addr, PortRange>,
 }
 
 impl ConnectivityConfiguration {
+    pub fn new() -> Self {
+        Self {
+            to_connect: HashMap::new(),
+            to_disconnect: HashMap::new(),
+        }
+    }
+
     pub fn reconnect(&mut self) -> &mut Self {
         swap(&mut self.to_connect, &mut self.to_disconnect);
-        self.to_disconnect = HashSet::new();
+        self.to_disconnect = HashMap::new();
         self
     }
 
-    pub fn connect(&mut self, to_connect: impl IntoIterator<Item = Ipv4Addr>) -> &mut Self {
-        for address in to_connect {
+    pub fn connect_with_ports(
+        &mut self,
+        to_connect: impl IntoIterator<Item = (Ipv4Addr, PortRange)>,
+    ) -> &mut Self {
+        for (address, port_range) in to_connect {
             self.to_disconnect.remove(&address);
-            self.to_connect.insert(address);
+            self.to_connect.insert(address, port_range);
         }
         self
     }
 
     pub fn disconnect(&mut self, to_disconnect: impl IntoIterator<Item = Ipv4Addr>) -> &mut Self {
-        for address in to_disconnect {
+        self.disconnect_with_ports(to_disconnect.into_iter().zip(repeat(PortRange::all())))
+    }
+
+    pub fn disconnect_with_ports(
+        &mut self,
+        to_disconnect: impl IntoIterator<Item = (Ipv4Addr, PortRange)>,
+    ) -> &mut Self {
+        for (address, port_range) in to_disconnect {
             self.to_connect.remove(&address);
-            self.to_disconnect.insert(address);
+            self.to_disconnect.insert(address, port_range);
         }
         self
     }
 }
 
+type SyntheticNetworkUrl = String;
+
 #[derive(Clone)]
-pub struct NodesConnectivityConfiguration(HashMap<String, ConnectivityConfiguration>);
+pub struct NodesConnectivityConfiguration(HashMap<SyntheticNetworkUrl, ConnectivityConfiguration>);
 
 type GroupedNodes = Vec<Vec<NodeConfig>>;
 
@@ -160,23 +199,24 @@ impl From<GroupedNodes> for NodesConnectivityConfiguration {
     fn from(groups: Vec<Vec<NodeConfig>>) -> Self {
         let mut grouped = HashMap::with_capacity(groups.len());
         for (group_index, group) in groups.iter().enumerate() {
-            let other_nodes: HashSet<_> = groups
+            let other_nodes: HashMap<_, _> = groups
                 .iter()
                 .enumerate()
                 .filter_map(|(index, group)| (index != group_index).then_some(group.iter()))
                 .flatten()
                 .map(|node| node.ip_address())
                 .cloned()
+                .zip(repeat(PortRange::all()))
                 .collect();
 
             for node in group {
                 grouped
                     .entry(node.synthetic_network_url().to_string())
                     .and_modify(|config: &mut ConnectivityConfiguration| {
-                        config.disconnect(other_nodes.clone());
+                        config.disconnect(other_nodes.keys().cloned());
                     })
                     .or_insert_with(|| ConnectivityConfiguration {
-                        to_connect: HashSet::new(),
+                        to_connect: HashMap::new(),
                         to_disconnect: other_nodes.clone(),
                     });
             }
@@ -186,14 +226,18 @@ impl From<GroupedNodes> for NodesConnectivityConfiguration {
 }
 
 impl NodesConnectivityConfiguration {
+    pub fn new() -> Self {
+        Self(HashMap::new())
+    }
+
     pub async fn commit(self) -> anyhow::Result<()> {
         for (node, config) in self.0 {
             info!("Building connectivity configuration for node {}", node);
 
             let mut client = SyntheticNetworkClient::new(node);
             let mut configurator = SyntheticNetworkConfigurator::new(Default::default());
-            configurator.connect_node_to(config.to_connect);
-            configurator.disconnect_node_from(config.to_disconnect);
+            configurator.connect_node_to_port_range(config.to_connect);
+            configurator.disconnect_node_from_port_range(config.to_disconnect);
             client.commit_config(&configurator.into()).await?
         }
 
@@ -206,8 +250,8 @@ impl NodesConnectivityConfiguration {
                 Entry::Occupied(mut entry) => {
                     let entry = entry.get_mut();
                     entry
-                        .connect(config.to_connect)
-                        .disconnect(config.to_disconnect)
+                        .connect_with_ports(config.to_connect)
+                        .disconnect_with_ports(config.to_disconnect)
                 }
                 Entry::Vacant(entry) => entry.insert(config),
             };
@@ -220,6 +264,11 @@ impl NodesConnectivityConfiguration {
             configuration.reconnect();
         }
         self
+    }
+
+    pub fn set_config(&mut self, node: &NodeConfig, configuration: ConnectivityConfiguration) {
+        self.0
+            .insert(node.synthetic_network_url().to_string(), configuration);
     }
 }
 
