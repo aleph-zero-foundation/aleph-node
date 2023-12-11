@@ -17,6 +17,9 @@ inputs:
   ecr-public-registry:
     required: true
     description: 'ECR public registry'
+  push:
+    required: false
+    description: Set to 'true' to push aleph-e2e-client to ECR
 outputs:
   aleph-e2e-client-image:
     description: Built aleph-e2e-client image name
@@ -49,6 +52,7 @@ runs:
           grep aleph_e2e_client) target/release/aleph-e2e-client
 
     - name: Login to Public Amazon ECR
+      if: ${{ inputs.push == 'true' }}
       uses: docker/login-action@v3
       with:
         registry: ${{ inputs.ecr-public-host }}
@@ -69,7 +73,8 @@ runs:
         docker build --tag ${image_and_tag} -f Dockerfile .
         docker save -o aleph-e2e-client.tar ${image_and_tag}
         echo "image=${image_and_tag}" >> $GITHUB_OUTPUT
-        if [[ '${{ steps.get-ref-properties.outputs.branch }}' -eq 'main' ]]; then
+        if [[ '${{ steps.get-ref-properties.outputs.branch }}' -eq 'main' && \
+              '${{ inputs.push }}' == 'true' ]]; then
           docker tag ${image_and_tag} ${registry}'${{ env.IMAGE }}:${{ env.TAG }}'
           docker push ${registry}'${{ env.IMAGE }}:${{ env.TAG }}'
           docker tag ${image_and_tag} ${registry}'${{ env.IMAGE }}:latest'

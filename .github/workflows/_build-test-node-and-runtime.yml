@@ -9,29 +9,11 @@ on:
         description: "git ref: hash, branch, tag or 'mainnet' or 'testnet'"
         type: string
         required: true
-      build-e2e-tests-targets:
-        description: 'Set to true if aleph-node image and aleph-e2e-client should be built'
-        type: boolean
-        required: false
-        default: false
-    outputs:
-      aleph-e2e-client-image:
-        description: Built image tag of aleph-e2e-client
-        value: ${{ jobs.build-artifacts.outputs.aleph-e2e-client-image }}
 
 jobs:
-  check-vars-and-secrets:
-    name: Check vars and secrets
-    uses: ./.github/workflows/_check-vars-and-secrets.yml
-    secrets: inherit
-
   build-artifacts:
     name: Build test node and runtime
-    needs: [check-vars-and-secrets]
     runs-on: [self-hosted, Linux, X64, large]
-    outputs:
-      # yamllint disable-line rule:line-length
-      aleph-e2e-client-image: ${{ steps.build-and-push-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
     env:
       RUST_BACKTRACE: full
       RUSTC_WRAPPER: sccache
@@ -72,7 +54,6 @@ jobs:
           retention-days: 7
 
       - name: Build test docker image
-        if: ${{ inputs.build-e2e-tests-targets == true }}
         id: build-image
         run: |
           chmod +x target/release/aleph-node
@@ -81,21 +62,9 @@ jobs:
 
       # this is solely required by action/run-e2e-test.yml, also it should not be required
       - name: Upload test docker image
-        if: ${{ inputs.build-e2e-tests-targets == true }}
         uses: actions/upload-artifact@v3
         with:
           name: aleph-test-docker
           path: aleph-node.tar
           if-no-files-found: error
           retention-days: 7
-
-      - name: Build and push aleph-e2e-client image
-        id: build-and-push-aleph-e2e-client-image
-        if: ${{ inputs.build-e2e-tests-targets == true }}
-        uses: ./.github/actions/build-and-push-aleph-e2e-client-image
-        with:
-          ref: ${{ inputs.ref }}
-          aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
-          ecr-public-host: ${{ vars.ECR_PUBLIC_HOST }}
-          ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}

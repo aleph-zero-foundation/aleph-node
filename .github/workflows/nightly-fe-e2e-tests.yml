@@ -21,7 +21,14 @@ jobs:
     uses: ./.github/workflows/_build-test-node-and-runtime.yml
     with:
       ref: ${{ github.ref }}
-      build-e2e-tests-targets: true
+
+  build-aleph-e2e-client-image:
+    needs: [check-vars-and-secrets]
+    name: Build aleph-e2e-client image
+    uses: ./.github/workflows/_build-aleph-e2e-client-image.yml
+    with:
+      ref: ${{ github.ref }}
+      push: true
     secrets: inherit
 
   push-featurenet-test-node-image-to-ecr:
@@ -35,10 +42,10 @@ jobs:
   get-e2e-test-case-names:
     name: Get e2e test case names
     runs-on: ubuntu-20.04
-    needs: [build-test-node-and-runtime]
+    needs: [build-aleph-e2e-client-image]
     env:
       # yamllint disable-line rule:line-length
-      ALEPH_E2E_CLIENT_IMAGE: '${{ needs.build-test-node-and-runtime.outputs.aleph-e2e-client-image }}'
+      ALEPH_E2E_CLIENT_IMAGE: '${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}'
     outputs:
       testcases: ${{ steps.get-testcases.outputs.testcases }}
     steps:
@@ -78,11 +85,12 @@ jobs:
     needs:
       - push-featurenet-test-node-image-to-ecr
       - get-e2e-test-case-names
+      - build-aleph-e2e-client-image
       - build-test-node-and-runtime
     name: e2e
     env:
       # yamllint disable-line rule:line-length
-      ALEPH_E2E_CLIENT_IMAGE: '${{ needs.build-test-node-and-runtime.outputs.aleph-e2e-client-image }}'
+      ALEPH_E2E_CLIENT_IMAGE: '${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}'
     runs-on: [self-hosted, Linux, X64, small]
     strategy:
       fail-fast: false

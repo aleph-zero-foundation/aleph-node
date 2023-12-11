@@ -22,6 +22,7 @@ jobs:
     uses: ./.github/workflows/_build-aleph-e2e-client-image.yml
     with:
       ref: ${{ github.ref }}
+      push: true
     secrets: inherit
 
   build-production-node-and-runtime:

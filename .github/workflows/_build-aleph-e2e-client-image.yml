@@ -8,6 +8,11 @@ on:
         description: "git ref: hash, branch, tag or 'mainnet' or 'testnet'"
         type: string
         required: true
+      push:
+        required: false
+        description: 'Set to true to push aleph-e2e-client to ECR'
+        type: boolean
+        default: false
     outputs:
       aleph-e2e-client-image:
         description: Built image tag of aleph-e2e-client
@@ -16,11 +21,13 @@ on:
 jobs:
   check-vars-and-secrets:
     name: Check vars and secrets
+    if: ${{ inputs.push == true }}
     uses: ./.github/workflows/_check-vars-and-secrets.yml
     secrets: inherit
 
   build-artifacts:
     name: Build aleph-e2e-client image
+    if: ${{ always() }}
     needs: [check-vars-and-secrets]
     runs-on: [self-hosted, Linux, X64, large]
     outputs:
@@ -54,3 +61,4 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
           ecr-public-host: ${{ vars.ECR_PUBLIC_HOST }}
           ecr-public-registry: ${{ vars.ECR_PUBLIC_REGISTRY }}
+          push: ${{ inputs.push && 'true' || 'false' }}

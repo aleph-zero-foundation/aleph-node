@@ -17,10 +17,16 @@ jobs:
     if: contains(github.event.pull_request.labels.*.name, 'liminal-CI')
     name: Run liminal checks on PR
     uses: ./.github/workflows/_liminal-checks-on-pr.yml
-    secrets: inherit
+
+  code-formatting:
+    name: Check code formatting
+    uses: ./.github/workflows/_check-code-formatting.yml
 
   check-cliain-build:
     name: Check cliain build
+    # this is not directly needed, but in order to better pack self-hosted runners we run those
+    # two small in time jobs one after another
+    needs: [code-formatting]
     uses: ./.github/workflows/_build-and-push-cliain.yml
     with:
       liminal-runtime: false
@@ -29,10 +35,6 @@ jobs:
   check-excluded-packages:
     name: Check excluded packages
     uses: ./.github/workflows/_check-excluded-packages.yml
-
-  code-formatting:
-    name: Check code formatting
-    uses: ./.github/workflows/_check-code-formatting.yml
 
   unit-tests-and-static-checks:
     name: Unit tests and clippy
@@ -45,14 +47,19 @@ jobs:
   build-test-node-and-runtime:
     name: Build test node and runtime
     uses: ./.github/workflows/_build-test-node-and-runtime.yml
-    secrets: inherit
     with:
       ref: ${{ github.ref }}
-      build-e2e-tests-targets: true
+
+  build-aleph-e2e-client-image:
+    name: Build aleph-e2e-client image
+    uses: ./.github/workflows/_build-aleph-e2e-client-image.yml
+    with:
+      ref: ${{ github.ref }}
+      push: false
 
   run-e2e-finalization-test:
     name: Run e2e finalization test
-    needs: [build-test-node-and-runtime]
+    needs: [build-test-node-and-runtime, build-aleph-e2e-client-image]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout source code
@@ -63,4 +70,4 @@ jobs:
         with:
           test-case: finalization::finalization
           # yamllint disable-line rule:line-length
-          aleph-e2e-client-image: ${{ needs.build-test-node-and-runtime.outputs.aleph-e2e-client-image }}
+          aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
