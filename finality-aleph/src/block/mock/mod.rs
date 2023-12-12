@@ -28,6 +28,7 @@ impl BlockId {
             parent,
             valid: true,
             equivocated: false,
+            own: false,
         }
     }
 
@@ -44,6 +45,7 @@ pub struct MockHeader {
     parent: Option<BlockId>,
     valid: bool,
     equivocated: bool,
+    own: bool,
 }
 
 impl MockHeader {
@@ -56,6 +58,7 @@ impl MockHeader {
             parent: None,
             valid: true,
             equivocated: false,
+            own: false,
         }
     }
 
@@ -66,6 +69,7 @@ impl MockHeader {
             parent: None,
             valid: true,
             equivocated: false,
+            own: false,
         }
     }
 
@@ -91,6 +95,14 @@ impl MockHeader {
 
     pub fn equivocated(&self) -> bool {
         self.equivocated
+    }
+
+    pub fn make_own(&mut self) {
+        self.own = true;
+    }
+
+    pub fn own(&self) -> bool {
+        self.own
     }
 }
 

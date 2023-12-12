@@ -117,6 +117,12 @@ pub trait HeaderVerifier<H: Header>: Clone + Send + Sync + 'static {
         header: H::Unverified,
         just_created: bool,
     ) -> Result<VerifiedHeader<H, Self::EquivocationProof>, Self::Error>;
+
+    /// Returns if the given header was already verified and marked as our own block.
+    /// This method DOES NOT return perfectly reliable results, but it should work
+    /// for blocks that have not yet been finalized or discarded as forks, assuming
+    /// that the verifier was not recreated in the meantime.
+    fn own_block(&self, header: &H) -> bool;
 }
 
 /// The block, including a header.

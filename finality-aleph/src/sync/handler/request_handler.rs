@@ -10,7 +10,7 @@ use crate::{
     },
     session::{SessionBoundaryInfo, SessionId},
     sync::{
-        data::{BranchKnowledge, MaybeHeader, ResponseItem},
+        data::{BranchKnowledge, MaybeHeader, ResponseItem, ResponseItems},
         handler::Request,
     },
     BlockId,
@@ -48,7 +48,7 @@ impl<T: Display> Display for RequestHandlerError<T> {
     }
 }
 
-type Chunk<B, J> = Vec<ResponseItem<B, J>>;
+type Chunk<B, J> = ResponseItems<B, J>;
 
 pub trait HandlerTypes {
     type Justification: Justification;
@@ -200,7 +200,7 @@ where
     B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
     RequestBlock(MaybeHeader<UnverifiedHeaderFor<J>>),
-    Response(Vec<ResponseItem<B, J>>),
+    Response(ResponseItems<B, J>),
     Noop,
 }
 
@@ -213,7 +213,7 @@ where
         Action::RequestBlock(maybe_header)
     }
 
-    fn new(response_items: Vec<ResponseItem<B, J>>) -> Self {
+    fn new(response_items: ResponseItems<B, J>) -> Self {
         match response_items.is_empty() {
             true => Action::Noop,
             false => Action::Response(response_items),
@@ -377,7 +377,7 @@ where
         mut head: HeadOfChunk<J>,
         branch_knowledge: BranchKnowledge,
         to: BlockId,
-    ) -> HandlerResult<Vec<ResponseItem<B, J>>, Self> {
+    ) -> HandlerResult<ResponseItems<B, J>, Self> {
         let mut response_items = vec![];
         let mut state = State::EverythingButHeader;
 
@@ -449,6 +449,6 @@ where
 /// Useful for broadcasting self-created blocks.
 pub fn block_to_response<J: Justification, B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>>(
     block: B,
-) -> Vec<ResponseItem<B, J>> {
+) -> ResponseItems<B, J> {
     PreChunk::single_block(block).into_chunk()
 }

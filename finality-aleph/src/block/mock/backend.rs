@@ -475,4 +475,8 @@ impl HeaderVerifier<MockHeader> for Backend {
             (false, _) => Err(Self::Error::Header),
         }
     }
+
+    fn own_block(&self, header: &MockHeader) -> bool {
+        header.own
+    }
 }

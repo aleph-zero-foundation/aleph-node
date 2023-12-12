@@ -59,6 +59,10 @@ impl HeaderVerifier<THeader> for TestVerifier {
             maybe_equivocation_proof: None,
         })
     }
+
+    fn own_block(&self, _header: &THeader) -> bool {
+        false
+    }
 }
 
 mod acceptance_policy;

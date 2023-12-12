@@ -574,12 +574,26 @@ where
             BlockImported(header) => {
                 trace!(target: LOG_TARGET, "Handling a new imported block.");
                 self.metrics.report_event(Event::HandleBlockImported);
-                if let Err(e) = self.handler.block_imported(header) {
-                    self.metrics.report_event_error(Event::HandleBlockImported);
-                    error!(
-                        target: LOG_TARGET,
-                        "Error marking block as imported: {}.", e
-                    )
+                match self.handler.block_imported(header) {
+                    Ok(Some(broadcast)) => {
+                        if let Err(e) = self
+                            .network
+                            .broadcast(NetworkData::RequestResponse(broadcast))
+                        {
+                            warn!(
+                                target: LOG_TARGET,
+                                "Error broadcasting newly created block: {}.", e
+                            )
+                        };
+                    }
+                    Ok(None) => (),
+                    Err(e) => {
+                        self.metrics.report_event_error(Event::HandleBlockImported);
+                        error!(
+                            target: LOG_TARGET,
+                            "Error marking block as imported: {}.", e
+                        );
+                    }
                 }
             }
             BlockFinalized(_) => {
@@ -703,17 +717,8 @@ where
 
     fn handle_own_block(&mut self, block: B) {
         match self.handler.handle_own_block(block) {
-            Ok((broadcast, maybe_proof)) => {
+            Ok(maybe_proof) => {
                 self.process_equivocation_proofs(maybe_proof);
-                if let Err(e) = self
-                    .network
-                    .broadcast(NetworkData::RequestResponse(broadcast))
-                {
-                    warn!(
-                        target: LOG_TARGET,
-                        "Error broadcasting newly created block: {}.", e
-                    )
-                };
             }
             Err(e) => {
                 warn!(

@@ -236,10 +236,6 @@ type HandleStateOutput<B, J, V> = (
     HandleStateAction<B, J>,
     Option<<V as HeaderVerifier<<J as Justification>::Header>>::EquivocationProof>,
 );
-type HandleOwnBlockOutput<B, J, V> = (
-    Vec<ResponseItem<B, J>>,
-    Option<<V as HeaderVerifier<<J as Justification>::Header>>::EquivocationProof>,
-);
 type HandleRequestOutput<B, J, V> = (
     Action<B, J>,
     Option<<V as HeaderVerifier<<J as Justification>::Header>>::EquivocationProof>,
@@ -289,6 +285,7 @@ where
     MissingJustification,
     BlockNotImportable(BlockId),
     HeaderNotRequired(BlockId),
+    MissingImportedBlock(BlockId),
 }
 
 impl<B, J, CS, V, F> Display for Error<B, J, CS, V, F>
@@ -322,6 +319,9 @@ where
             }
             HeaderNotRequired(id) => {
                 write!(f, "header {} was not required, but it should have been", id)
+            }
+            MissingImportedBlock(id) => {
+                write!(f, "we have received a notification about block {} being imported, but we cannot retrieve it from the database", id)
             }
         }
     }
@@ -501,10 +501,11 @@ where
     }
 
     /// Inform the handler that a block has been imported.
+    /// If we are the author, this method prepares the block for broadcast and returns it.
     pub fn block_imported(
         &mut self,
         header: J::Header,
-    ) -> Result<(), <Self as HandlerTypes>::Error> {
+    ) -> Result<Option<ResponseItems<B, J>>, <Self as HandlerTypes>::Error> {
         if let Err(e) = self.forest.update_body(&header) {
             if matches!(e, ForestError::TooNew | ForestError::ParentNotImported) {
                 self.missed_import_data
@@ -513,7 +514,14 @@ where
             }
             return Err(e.into());
         }
-        self.try_finalize()
+        self.try_finalize()?;
+        Ok(match self.verifier.own_block(&header) {
+            true => match self.chain_status.block(header.id()) {
+                Ok(Some(block)) => Some(block_to_response(block)),
+                _ => return Err(Error::MissingImportedBlock(header.id())),
+            },
+            false => None,
+        })
     }
 
     /// Handle a request for potentially substantial amounts of data.
@@ -856,13 +864,16 @@ where
         self.forest.extension_request()
     }
 
-    /// Handle a block freshly created by this node. Imports it and returns a form of it that can be broadcast, and possibly an equivocation proof.
+    /// Handle a block freshly created by this node.
+    /// Imports it and possibly returns an equivocation proof.
     pub fn handle_own_block(
         &mut self,
         block: B,
-    ) -> Result<HandleOwnBlockOutput<B, J, V>, <Self as HandlerTypes>::Error> {
-        let maybe_equivocation_proof = self.import_block(block.clone(), true)?;
-        Ok((block_to_response(block), maybe_equivocation_proof))
+    ) -> Result<
+        Option<<V as HeaderVerifier<J::Header>>::EquivocationProof>,
+        <Self as HandlerTypes>::Error,
+    > {
+        self.import_block(block, true)
     }
 }
 
@@ -2633,18 +2644,21 @@ mod tests {
     #[test]
     fn broadcasts_own_block() {
         let (mut handler, backend, _keep, _genesis) = setup();
-        let block = MockBlock::new(
-            backend
-                .top_finalized()
-                .expect("mock backend works")
-                .header()
-                .random_branch()
-                .next()
-                .expect("branch creation succeeds"),
-            true,
-        );
+        let mut header = backend
+            .top_finalized()
+            .expect("mock backend works")
+            .header()
+            .random_branch()
+            .next()
+            .expect("branch creation succeeds");
+        header.make_own();
+        let block = MockBlock::new(header.clone(), true);
 
-        let result = handler.handle_own_block(block.clone()).expect("correct").0;
+        handler.handle_own_block(block.clone()).expect("handled");
+        let result = handler
+            .block_imported(header)
+            .expect("correct")
+            .expect("known");
         match result.get(0).expect("the header is there") {
             ResponseItem::Header(header) => assert_eq!(header, block.header()),
             other => panic!("expected header item, got {:?}", other),
@@ -2670,7 +2684,6 @@ mod tests {
         let proof = handler
             .handle_own_block(block)
             .expect("correct")
-            .1
             .expect("should return proof");
         assert_eq!(proof.0, header);
     }
@@ -2678,18 +2691,21 @@ mod tests {
     #[tokio::test]
     async fn accepts_broadcast_block() {
         let (mut handler, backend, mut notifier, _genesis) = setup();
-        let block = MockBlock::new(
-            backend
-                .top_finalized()
-                .expect("mock backend works")
-                .header()
-                .random_branch()
-                .next()
-                .expect("branch creation succeeds"),
-            true,
-        );
+        let mut header = backend
+            .top_finalized()
+            .expect("mock backend works")
+            .header()
+            .random_branch()
+            .next()
+            .expect("branch creation succeeds");
+        header.make_own();
+        let block = MockBlock::new(header.clone(), true);
 
-        let broadcast = handler.handle_own_block(block.clone()).expect("correct").0;
+        handler.handle_own_block(block.clone()).expect("handled");
+        let broadcast = handler
+            .block_imported(header)
+            .expect("correct")
+            .expect("known");
         match handler.handle_request_response(broadcast, rand::random()) {
             (true, _, _) => panic!("block unexpectedly changed top finalized"),
             (false, _, Some(e)) => panic!("error handling block broadcast: {}", e),

@@ -1,5 +1,5 @@
 use std::{
-    collections::{hash_map::Entry, HashMap},
+    collections::{hash_map::Entry, HashMap, HashSet},
     fmt::{Debug, Display, Error as FmtError, Formatter},
 };
 
@@ -25,7 +25,7 @@ use crate::{
             },
             InnerJustification, Justification,
         },
-        Header as HeaderT, HeaderVerifier, JustificationVerifier, VerifiedHeader,
+        BlockId, Header as HeaderT, HeaderVerifier, JustificationVerifier, VerifiedHeader,
     },
     session::{SessionBoundaryInfo, SessionId},
     session_map::AuthorityProvider,
@@ -135,6 +135,7 @@ where
 {
     cached_data: HashMap<SessionId, CachedData>,
     equivocation_cache: HashMap<u64, (H, bool)>,
+    own_blocks_cache: HashSet<BlockId>,
     session_info: SessionBoundaryInfo,
     finalization_info: FI,
     authority_provider: AP,
@@ -160,6 +161,7 @@ where
         Self {
             cached_data: HashMap::new(),
             equivocation_cache: HashMap::new(),
+            own_blocks_cache: HashSet::new(),
             session_info,
             finalization_info,
             authority_provider,
@@ -189,6 +191,14 @@ where
                     .session_id_from_block_num(header.id().number())
                     >= new_lower_bound
             });
+            self.own_blocks_cache = self
+                .equivocation_cache
+                .iter()
+                .filter_map(|(_, (header, own_block))| match own_block {
+                    true => Some(header.id()),
+                    false => None,
+                })
+                .collect();
 
             self.lower_bound = new_lower_bound;
         }
@@ -323,6 +333,9 @@ where
                 let (cached_header, certainly_own) = occupied.into_mut();
                 if cached_header == header {
                     *certainly_own |= just_created;
+                    if *certainly_own {
+                        self.own_blocks_cache.insert(header.id());
+                    }
                     return Ok(None);
                 }
                 Ok(Some(EquivocationProof {
@@ -335,6 +348,9 @@ where
             }
             Entry::Vacant(vacant) => {
                 vacant.insert((header.clone(), just_created));
+                if just_created {
+                    self.own_blocks_cache.insert(header.id());
+                }
                 Ok(None)
             }
         }
@@ -402,6 +418,10 @@ where
             header,
             maybe_equivocation_proof,
         })
+    }
+
+    fn own_block(&self, header: &Header) -> bool {
+        self.own_blocks_cache.contains(&header.id())
     }
 }
 
