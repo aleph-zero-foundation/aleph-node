@@ -72,7 +72,6 @@ impl pallet_baby_liminal::Config for TestRuntime {
     type WeightInfo = ();
     type Currency = Balances;
     type MaximumVerificationKeyLength = ConstU32<10_000>;
-    type MaximumDataLength = ConstU32<10_000>;
     type VerificationKeyDepositPerByte = ConstU64<10>;
 }
 

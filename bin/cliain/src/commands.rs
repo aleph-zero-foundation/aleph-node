@@ -178,21 +178,6 @@ pub enum BabyLiminal {
         #[clap(long)]
         vk_file: PathBuf,
     },
-
-    /// Verify a proof against public input with a stored verification key.
-    Verify {
-        /// The key identifier.
-        #[clap(long, value_parser(parsing::parse_identifier))]
-        identifier: VerificationKeyIdentifier,
-
-        /// Path to a file containing the proof.
-        #[clap(long)]
-        proof_file: PathBuf,
-
-        /// Path to a file containing the public input.
-        #[clap(long)]
-        input_file: PathBuf,
-    },
 }
 
 #[cfg(feature = "liminal")]

@@ -20,15 +20,6 @@ pub trait BabyLiminalUserApi {
         key: Vec<u8>,
         status: TxStatus,
     ) -> Result<TxInfo>;
-
-    /// Verify a proof.
-    async fn verify(
-        &self,
-        identifier: VerificationKeyIdentifier,
-        proof: Vec<u8>,
-        public_input: Vec<u8>,
-        status: TxStatus,
-    ) -> Result<TxInfo>;
 }
 
 /// Pallet baby liminal API that requires sudo.
@@ -59,19 +50,6 @@ impl BabyLiminalUserApi for SignedConnection {
         status: TxStatus,
     ) -> Result<TxInfo> {
         let tx = api::tx().baby_liminal().store_key(identifier, key);
-        self.send_tx(tx, status).await
-    }
-
-    async fn verify(
-        &self,
-        identifier: VerificationKeyIdentifier,
-        proof: Vec<u8>,
-        public_input: Vec<u8>,
-        status: TxStatus,
-    ) -> Result<TxInfo> {
-        let tx = api::tx()
-            .baby_liminal()
-            .verify(identifier, proof, public_input);
         self.send_tx(tx, status).await
     }
 }

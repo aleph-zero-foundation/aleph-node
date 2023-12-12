@@ -1,40 +1,83 @@
-use frame_support::{pallet_prelude::Weight, sp_runtime::AccountId32};
-use frame_system::Config as SystemConfig;
-use pallet_baby_liminal::{Config as BabyLiminalConfig, Error as PalletError, Pallet};
+use ark_serialize::CanonicalDeserialize;
+use jf_plonk::{
+    errors::PlonkError,
+    proof_system::{
+        structs::{Proof, VerifyingKey},
+        PlonkKzgSnark, UniversalSNARK,
+    },
+    transcript::StandardTranscript,
+};
+use pallet_baby_liminal::{Config as BabyLiminalConfig, VerificationKeys};
 use pallet_contracts::Config as ContractsConfig;
+use scale::{Decode, Encode};
+use sp_std::vec::Vec;
 
 use crate::args::VerifyArgs;
 
-/// Minimal runtime configuration required by the chain extension executor.
-pub trait MinimalRuntime: SystemConfig + BabyLiminalConfig + ContractsConfig {}
-impl<R: SystemConfig + BabyLiminalConfig + ContractsConfig> MinimalRuntime for R {}
-
-/// Generalized pallet executor, that can be mocked for testing purposes.
-pub trait BackendExecutor {
-    /// The pallet's error enum is generic. For most purposes however, it doesn't matter what type
-    /// will be passed there. Normally, `Runtime` will be the generic argument, but in the testing
-    /// context it will be enough to instantiate it with `()`.
-    type ErrorGenericType;
-
-    fn verify(
-        args: VerifyArgs,
-    ) -> Result<(), (PalletError<Self::ErrorGenericType>, Option<Weight>)>;
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Encode, Decode)]
+pub enum ExecutorError {
+    /// No verification key available under this identifier.
+    UnknownVerificationKeyIdentifier,
+    /// Couldn't deserialize proof.
+    DeserializingProofFailed,
+    /// Couldn't deserialize public input.
+    DeserializingPublicInputFailed,
+    /// Couldn't deserialize verification key from storage.
+    DeserializingVerificationKeyFailed,
+    /// Verification procedure has failed. Proof still can be correct.
+    VerificationFailed,
+    /// Proof has been found as incorrect.
+    IncorrectProof,
 }
 
-/// Default implementation for the chain extension mechanics.
-impl<Runtime: MinimalRuntime> BackendExecutor for Runtime
-where
-    <Runtime as SystemConfig>::RuntimeOrigin: From<Option<AccountId32>>,
-{
-    type ErrorGenericType = Runtime;
+/// Represents an 'engine' that handles chain extension calls.
+pub trait BackendExecutor {
+    fn verify(args: VerifyArgs) -> Result<(), ExecutorError>;
+}
 
-    fn verify(
-        args: VerifyArgs,
-    ) -> Result<(), (PalletError<Self::ErrorGenericType>, Option<Weight>)> {
-        Pallet::<Runtime>::bare_verify(
-            args.verification_key_identifier,
-            args.proof,
-            args.public_input,
-        )
+/// Minimal runtime configuration required by the standard chain extension executor.
+pub trait MinimalRuntime: BabyLiminalConfig + ContractsConfig {}
+impl<R: BabyLiminalConfig + ContractsConfig> MinimalRuntime for R {}
+
+pub type Curve = ark_bls12_381::Bls12_381;
+pub type CircuitField = ark_bls12_381::Fr;
+
+/// Default implementation for the chain extension mechanics.
+impl<Runtime: MinimalRuntime> BackendExecutor for Runtime {
+    fn verify(args: VerifyArgs) -> Result<(), ExecutorError> {
+        // ----------- Deserialize arguments -------------------------------------------------------
+        let proof: Proof<Curve> = CanonicalDeserialize::deserialize_compressed(&*args.proof)
+            .map_err(|e| {
+                log::error!("Deserializing proof failed: {e:?}");
+                ExecutorError::DeserializingProofFailed
+            })?;
+
+        let public_input: Vec<CircuitField> =
+            CanonicalDeserialize::deserialize_compressed(&*args.public_input).map_err(|e| {
+                log::error!("Deserializing public input failed: {e:?}");
+                ExecutorError::DeserializingPublicInputFailed
+            })?;
+
+        // ----------- Read and deserialize verification key ---------------------------------------
+        let verification_key = VerificationKeys::<Runtime>::get(args.verification_key_identifier)
+            .ok_or(ExecutorError::UnknownVerificationKeyIdentifier)?;
+
+        let verification_key: VerifyingKey<Curve> =
+            CanonicalDeserialize::deserialize_compressed(&**verification_key).map_err(|e| {
+                log::error!("Deserializing verification key failed: {e:?}");
+                ExecutorError::DeserializingVerificationKeyFailed
+            })?;
+
+        // ----------- Verify proof ----------------------------------------------------------------
+        match PlonkKzgSnark::verify::<StandardTranscript>(
+            &verification_key,
+            &public_input,
+            &proof,
+            None,
+        ) {
+            Ok(_) => Ok(()),
+            Err(PlonkError::WrongProof) => Err(ExecutorError::IncorrectProof),
+            Err(_) => Err(ExecutorError::VerificationFailed),
+        }
     }
 }

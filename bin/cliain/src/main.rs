@@ -13,7 +13,7 @@ use cliain::{
 #[cfg(feature = "liminal")]
 use cliain::{
     delete_key, generate_keys, generate_keys_from_srs, generate_proof, generate_srs, overwrite_key,
-    store_key, verify, verify_proof, BabyLiminal, SnarkRelation,
+    store_key, verify_proof, BabyLiminal, SnarkRelation,
 };
 use log::{error, info};
 
@@ -266,22 +266,6 @@ async fn main() -> anyhow::Result<()> {
                     overwrite_key(cfg.get_root_connection().await, identifier, vk_file).await
                 {
                     error!("Unable to overwrite key: {why:?}")
-                }
-            }
-            BabyLiminal::Verify {
-                identifier,
-                proof_file,
-                input_file,
-            } => {
-                if let Err(why) = verify(
-                    cfg.get_signed_connection().await,
-                    identifier,
-                    proof_file,
-                    input_file,
-                )
-                .await
-                {
-                    error!("Unable to verify proof: {why:?}")
                 }
             }
         },

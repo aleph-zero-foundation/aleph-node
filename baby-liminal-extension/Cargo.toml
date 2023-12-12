@@ -27,6 +27,9 @@ pallet-contracts = { git = "https://github.com/Cardinal-Cryptography/polkadot-sd
 sp-std = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.2.0", default-features = false, optional = true }
 
 pallet-baby-liminal = { path = "../pallets/baby-liminal", default-features = false, optional = true }
+ark-bls12-381 = { version = "0.4.0", default-features = false, features = ["curve"], optional = true }
+ark-serialize = { version = "0.4.0", default-features = false, optional = true }
+jf-plonk = { git = "https://github.com/Cardinal-Cryptography/jellyfish", branch = "substrate-compatible", default-features = false, optional = true }
 
 [dev-dependencies]
 aleph-runtime = { path = "../bin/runtime", features = ["liminal"] }
@@ -43,6 +46,9 @@ runtime = [
     "pallet-contracts",
     "sp-std",
     "pallet-baby-liminal",
+    "ark-bls12-381",
+    "ark-serialize",
+    "jf-plonk",
 ]
 runtime-std = [
     "runtime",
@@ -53,6 +59,9 @@ runtime-std = [
     "pallet-contracts/std",
     "sp-std/std",
     "pallet-baby-liminal/std",
+    "ark-bls12-381/std",
+    "ark-serialize/std",
+    "jf-plonk/std",
 ]
 
 # `ink` and `ink-std` features are dedicated to the ink! part of the extension. They bring the smart contract part of

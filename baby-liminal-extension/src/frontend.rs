@@ -48,7 +48,6 @@ impl ink::env::chain_extension::FromStatusCode for BabyLiminalError {
             VERIFY_DESERIALIZING_KEY_FAIL => Err(Self::DeserializingVerificationKeyFailed),
             VERIFY_VERIFICATION_FAIL => Err(Self::VerificationFailed),
             VERIFY_INCORRECT_PROOF => Err(Self::IncorrectProof),
-            VERIFY_ERROR_UNKNOWN => Err(Self::VerifyErrorUnknown),
 
             unexpected => Err(Self::UnknownError(unexpected)),
         }

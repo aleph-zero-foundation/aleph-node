@@ -34,7 +34,7 @@ pub use version_upgrade::schedule_upgrade;
 pub use vesting::{vest, vest_other, vested_transfer};
 #[cfg(feature = "liminal")]
 pub use {
-    baby_liminal::{delete_key, overwrite_key, store_key, verify},
+    baby_liminal::{delete_key, overwrite_key, store_key},
     commands::{BabyLiminal, SnarkRelation},
     snark_relations::{
         generate_keys, generate_keys_from_srs, generate_proof, generate_srs, verify as verify_proof,

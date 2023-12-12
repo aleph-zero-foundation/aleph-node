@@ -46,18 +46,3 @@ pub async fn overwrite_key(
         .await
         .map(|_| ())
 }
-
-/// Calls `pallet_baby_liminal::verify`.
-pub async fn verify(
-    connection: SignedConnection,
-    identifier: VerificationKeyIdentifier,
-    proof_file: PathBuf,
-    public_input_file: PathBuf,
-) -> Result<()> {
-    let proof = read_bytes(&proof_file)?;
-    let input = read_bytes(&public_input_file)?;
-    connection
-        .verify(identifier, proof, input, TxStatus::Finalized)
-        .await
-        .map(|_| ())
-}

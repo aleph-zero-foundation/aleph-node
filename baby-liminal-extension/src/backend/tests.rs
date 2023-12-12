@@ -4,17 +4,17 @@ mod executor;
 
 use aleph_runtime::Runtime as AlephRuntime;
 use frame_support::pallet_prelude::Weight;
-use pallet_baby_liminal::{Error::*, WeightInfo};
 use pallet_contracts::chain_extension::{ChainExtension, RetVal};
 
 use crate::{
     backend::{
-        executor::BackendExecutor,
+        executor::{BackendExecutor, ExecutorError::*},
         tests::{
             arguments::verify_args,
             environment::{CorruptedMode, MockedEnvironment, StandardMode, VerifyMode},
             executor::{Panicker, VerifyErrorer, VerifyOkayer},
         },
+        weights::{TestWeight, WeightInfo},
     },
     status_codes::*,
     BabyLiminalChainExtension,
@@ -24,10 +24,13 @@ fn simulate_verify<Exc: BackendExecutor>(expected_ret_val: u32) {
     let mut charged = Weight::zero();
     let env = MockedEnvironment::<VerifyMode, StandardMode>::new(&mut charged, verify_args());
 
-    let result = BabyLiminalChainExtension::<AlephRuntime>::verify::<Exc, _, ()>(env);
+    let result = BabyLiminalChainExtension::<AlephRuntime>::verify::<Exc, _, TestWeight>(env);
 
     assert!(matches!(result, Ok(RetVal::Converging(ret_val)) if ret_val == expected_ret_val));
-    assert_eq!(charged, <()>::verify());
+
+    let expected_charged = <TestWeight as WeightInfo>::verify()
+        + TestWeight::verify_read_args(verify_args().len() as u32);
+    assert_eq!(charged, expected_charged);
 }
 
 #[test]
@@ -38,15 +41,19 @@ fn extension_is_enabled() {
 #[test]
 #[allow(non_snake_case)]
 fn verify__charges_before_reading_arguments() {
+    let in_len = 41;
     let mut charged = Weight::zero();
     // `CorruptedMode` ensures that the CE call will fail at argument reading/decoding phase.
-    let env = MockedEnvironment::<VerifyMode, CorruptedMode>::new(&mut charged, 41);
+    let env = MockedEnvironment::<VerifyMode, CorruptedMode>::new(&mut charged, in_len);
 
     // `Panicker` ensures that the call will not be forwarded to the pallet.
-    let result = BabyLiminalChainExtension::<AlephRuntime>::verify::<Panicker, _, ()>(env);
+    let result = BabyLiminalChainExtension::<AlephRuntime>::verify::<Panicker, _, TestWeight>(env);
 
     assert!(matches!(result, Err(_)));
-    assert_eq!(charged, <()>::verify());
+    assert_eq!(
+        charged,
+        TestWeight::verify_read_args(in_len) + TestWeight::verify()
+    );
 }
 
 #[test]

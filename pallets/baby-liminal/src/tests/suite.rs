@@ -1,11 +1,9 @@
 use frame_support::{assert_err, assert_ok, sp_runtime, traits::ReservableCurrency, BoundedVec};
 use frame_system::{pallet_prelude::OriginFor, Config};
-use once_cell::sync::Lazy;
 use sp_runtime::traits::Get;
 
 use super::setup::*;
 use crate::{
-    tests::relation::{get_artifacts, get_incorrect_proof, get_invalid_input, Artifacts},
     Error, VerificationKeyDeposits, VerificationKeyIdentifier, VerificationKeyOwners,
     VerificationKeys,
 };
@@ -14,18 +12,8 @@ type BabyLiminal = crate::Pallet<TestRuntime>;
 
 const IDENTIFIER: VerificationKeyIdentifier = [0; 8];
 
-static ARTIFACTS: Lazy<Artifacts> = Lazy::new(get_artifacts);
-
 fn vk() -> Vec<u8> {
-    ARTIFACTS.vk.clone()
-}
-
-fn proof() -> Vec<u8> {
-    ARTIFACTS.proof.clone()
-}
-
-fn input() -> Vec<u8> {
-    ARTIFACTS.input.clone()
+    vec![41; 1000]
 }
 
 fn owner() -> OriginFor<TestRuntime> {
@@ -165,120 +153,5 @@ fn does_not_store_too_long_key() {
             BabyLiminal::store_key(owner(), IDENTIFIER, vec![0; (limit + 1) as usize]),
             Error::<TestRuntime>::VerificationKeyTooLong
         );
-    });
-}
-
-#[test]
-fn verifies_proof() {
-    new_test_ext().execute_with(|| {
-        put_key();
-
-        assert_ok!(BabyLiminal::verify(owner(), IDENTIFIER, proof(), input(),));
-    });
-}
-
-#[test]
-fn verify_shouts_when_data_is_too_long() {
-    new_test_ext().execute_with(|| {
-        let limit: u32 = <TestRuntime as crate::Config>::MaximumDataLength::get();
-
-        let result =
-            BabyLiminal::verify(owner(), IDENTIFIER, vec![0; (limit + 1) as usize], input());
-        assert_err!(
-            result.map_err(|e| e.error),
-            Error::<TestRuntime>::DataTooLong
-        );
-        assert!(result.unwrap_err().post_info.actual_weight.is_some());
-
-        let result =
-            BabyLiminal::verify(owner(), IDENTIFIER, proof(), vec![0; (limit + 1) as usize]);
-        assert_err!(
-            result.map_err(|e| e.error),
-            Error::<TestRuntime>::DataTooLong
-        );
-        assert!(result.unwrap_err().post_info.actual_weight.is_some());
-    });
-}
-
-#[test]
-fn verify_shouts_when_no_key_was_registered() {
-    new_test_ext().execute_with(|| {
-        let result = BabyLiminal::verify(owner(), IDENTIFIER, proof(), input());
-
-        assert_err!(
-            result.map_err(|e| e.error),
-            Error::<TestRuntime>::UnknownVerificationKeyIdentifier
-        );
-        assert!(result.unwrap_err().post_info.actual_weight.is_some());
-    });
-}
-
-#[test]
-fn verify_shouts_when_key_is_not_deserializable() {
-    new_test_ext().execute_with(|| {
-        VerificationKeys::<TestRuntime>::insert(
-            IDENTIFIER,
-            BoundedVec::try_from(vec![0, 1, 2]).unwrap(),
-        );
-
-        let result = BabyLiminal::verify(owner(), IDENTIFIER, proof(), input());
-
-        assert_err!(
-            result.map_err(|e| e.error),
-            Error::<TestRuntime>::DeserializingVerificationKeyFailed
-        );
-        assert!(result.unwrap_err().post_info.actual_weight.is_some());
-    });
-}
-
-#[test]
-fn verify_shouts_when_proof_is_not_deserializable() {
-    new_test_ext().execute_with(|| {
-        put_key();
-
-        let result = BabyLiminal::verify(owner(), IDENTIFIER, input(), input());
-
-        assert_err!(
-            result.map_err(|e| e.error),
-            Error::<TestRuntime>::DeserializingProofFailed
-        );
-        assert!(result.unwrap_err().post_info.actual_weight.is_some());
-    });
-}
-
-#[test]
-fn verify_shouts_when_input_is_not_deserializable() {
-    new_test_ext().execute_with(|| {
-        put_key();
-
-        let result = BabyLiminal::verify(owner(), IDENTIFIER, proof(), proof());
-
-        assert_err!(
-            result.map_err(|e| e.error),
-            Error::<TestRuntime>::DeserializingPublicInputFailed
-        );
-        assert!(result.unwrap_err().post_info.actual_weight.is_some());
-    });
-}
-
-#[test]
-fn verify_shouts_when_verification_fails() {
-    new_test_ext().execute_with(|| {
-        put_key();
-        let result = BabyLiminal::verify(owner(), IDENTIFIER, proof(), get_invalid_input());
-
-        assert_err!(result, Error::<TestRuntime>::VerificationFailed);
-        assert!(result.unwrap_err().post_info.actual_weight.is_none());
-    });
-}
-
-#[test]
-fn verify_shouts_when_proof_is_incorrect() {
-    new_test_ext().execute_with(|| {
-        put_key();
-        let result = BabyLiminal::verify(owner(), IDENTIFIER, get_incorrect_proof(), input());
-
-        assert_err!(result, Error::<TestRuntime>::IncorrectProof);
-        assert!(result.unwrap_err().post_info.actual_weight.is_none());
     });
 }
