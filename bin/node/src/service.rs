@@ -355,7 +355,7 @@ pub fn new_authority(
     let mut proposer_factory = sc_basic_authorship::ProposerFactory::new(
         task_manager.spawn_handle(),
         client.clone(),
-        transaction_pool,
+        transaction_pool.clone(),
         prometheus_registry.as_ref(),
         None,
     );
@@ -434,6 +434,7 @@ pub fn new_authority(
         rate_limiter_config,
         sync_oracle,
         validator_address_cache,
+        transaction_pool,
     };
 
     task_manager.spawn_essential_handle().spawn_blocking(
