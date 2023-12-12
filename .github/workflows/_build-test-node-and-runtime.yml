@@ -40,7 +40,7 @@ jobs:
 
       - name: Ensure liminal symbols are not present
         run: |
-          nm --demangle=rust target/production/aleph-node | grep -q liminal \
+          nm --demangle=rust target/release/aleph-node | grep -q liminal \
             && { echo "Liminal symbols are present"; exit 1; } \
             || echo "Liminal symbols are not present"
 

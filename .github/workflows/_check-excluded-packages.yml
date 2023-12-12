@@ -15,7 +15,7 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      # TODO this is not ideal, as we need this step onlt to have rustup in the path
+      # TODO this is not ideal, as we need this step only to have rustup in the path
       # This step install Rust wfrom root rust-toolchain.toml, which is not used later
       # by this worfklow. Action install-rust-toolchain should have optional parameter path
       # in which we pass relative path to aleph-client to read its rust-toolchain.toml file
@@ -50,8 +50,9 @@ jobs:
           RUSTC_WRAPPER: ""
           RUSTC_WORKSPACE_WRAPPER: sccache
         run: |
-          ./scripts/run_checks_on_excluded_packages.sh \
-            "${{ steps.workspace-excluded-packages.outputs.value }}"
+          ./.github/scripts/run_checks_on_excluded_packages.sh \
+            --packages "${{ steps.workspace-excluded-packages.outputs.value }}" \
+            --skip-liminal
 
       - name: Assert that packages are compatible with no-std
         env:

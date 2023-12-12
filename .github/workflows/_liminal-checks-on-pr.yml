@@ -27,6 +27,14 @@ jobs:
         working-directory: baby-liminal-extension
         run: make clippy
 
+      - name: Check liminal excluded packages
+        env:
+          RUSTC_WRAPPER: ""
+          RUSTC_WORKSPACE_WRAPPER: sccache
+        run: |
+          ./.github/scripts/run_checks_on_excluded_packages.sh --packages \
+            [pallets/baby-liminal,poseidon,relations/ark,relations/ark/src/proc_macro,relations/jf]
+
   chain-extension-unit-tests:
     name: Run unit tests for the chain extension
     runs-on: [self-hosted, Linux, X64, large]
