@@ -13,7 +13,7 @@ function run_ink_builder() {
     --name ink_builder \
     --platform linux/amd64 \
     --detach \
-    --rm public.ecr.aws/p6e8q1z1/ink-dev:2.0.0 sleep 1d 1>&2
+    --rm public.ecr.aws/p6e8q1z1/ink-dev:1.0.0 sleep 1d 1>&2
 }
 
 function ink_build() {
