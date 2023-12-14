@@ -7,13 +7,11 @@ use aleph_client::{AccountId, Balance, TxStatus};
 use clap::{clap_derive::ValueEnum, Args, Subcommand};
 use primitives::{BlockHash, BlockNumber, CommitteeSeats, SessionIndex};
 use serde::{Deserialize, Serialize};
+
 #[cfg(feature = "liminal")]
-use {
-    crate::snark_relations::{
-        parsing::parse_some_system, NonUniversalProvingSystem, RelationArgs, SomeProvingSystem,
-        UniversalProvingSystem,
-    },
-    aleph_client::pallets::baby_liminal::VerificationKeyIdentifier,
+use crate::snark_relations::{
+    parsing::parse_some_system, NonUniversalProvingSystem, RelationArgs, SomeProvingSystem,
+    UniversalProvingSystem,
 };
 
 #[derive(Debug, Clone, Args)]
@@ -149,31 +147,9 @@ impl From<ExtrinsicState> for TxStatus {
 
 #[cfg(feature = "liminal")]
 #[derive(Debug, Clone, Subcommand)]
-pub enum BabyLiminal {
+pub enum VkStorage {
     /// Store a verification key under an identifier in the pallet's storage.
     StoreKey {
-        /// The key identifier.
-        #[clap(long, value_parser(parsing::parse_identifier))]
-        identifier: VerificationKeyIdentifier,
-
-        /// Path to a file containing the verification key.
-        #[clap(long)]
-        vk_file: PathBuf,
-    },
-
-    /// Delete the verification key under an identifier in the pallet's storage.
-    DeleteKey {
-        /// The key identifier.
-        #[clap(long, value_parser(parsing::parse_identifier))]
-        identifier: VerificationKeyIdentifier,
-    },
-
-    /// Overwrite the verification key under an identifier in the pallet's storage.
-    OverwriteKey {
-        /// The key identifier.
-        #[clap(long, value_parser(parsing::parse_identifier))]
-        identifier: VerificationKeyIdentifier,
-
         /// Path to a file containing the verification key.
         #[clap(long)]
         vk_file: PathBuf,
@@ -484,10 +460,10 @@ pub enum Command {
         expected_state: ExtrinsicState,
     },
 
-    /// Interact with `pallet_baby_liminal`.
+    /// Interact with `pallet_vk_storage`.
     #[cfg(feature = "liminal")]
     #[clap(subcommand)]
-    BabyLiminal(BabyLiminal),
+    VkStorage(VkStorage),
 
     /// Interact with `relations` crate.
     ///
@@ -495,23 +471,4 @@ pub enum Command {
     #[cfg(feature = "liminal")]
     #[clap(subcommand)]
     SnarkRelation(Box<SnarkRelation>),
-}
-
-#[cfg(feature = "liminal")]
-mod parsing {
-    use aleph_client::pallets::baby_liminal::VerificationKeyIdentifier;
-    use anyhow::anyhow;
-
-    /// Try to convert `&str` to `VerificationKeyIdentifier`.
-    ///
-    /// We handle one, most probable error type ourselves (i.e. incorrect length) to give a better
-    /// message than the default `"could not convert slice to array"`.
-    pub fn parse_identifier(ident: &str) -> anyhow::Result<VerificationKeyIdentifier> {
-        match ident.len() {
-            4 => Ok(ident.as_bytes().try_into()?),
-            _ => Err(anyhow!(
-                "Identifier has an incorrect length (should be 4 characters)"
-            )),
-        }
-    }
 }

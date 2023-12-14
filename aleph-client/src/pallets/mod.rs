@@ -2,9 +2,6 @@
 pub mod aleph;
 /// Pallet author API
 pub mod author;
-/// Pallet baby liminal API
-#[cfg(feature = "liminal")]
-pub mod baby_liminal;
 /// Pallet balances API
 pub mod balances;
 /// Pallet committee-management API
@@ -33,3 +30,6 @@ pub mod treasury;
 pub mod utility;
 /// Pallet vesting API
 pub mod vesting;
+/// Pallet vk storage API
+#[cfg(feature = "liminal")]
+pub mod vk_storage;

@@ -50,7 +50,7 @@ packages=($packages_escaped)
 if [[ "${SKIP_LIMINAL}" == "true" ]]; then
   # cargo clippy-liminal-extension is done in _liminal-checks-on-pr.yml
   packages=("${packages[@]/baby-liminal-extension}")
-  packages=("${packages[@]/pallets\/baby-liminal}")
+  packages=("${packages[@]/pallets\/vk-storage}")
   packages=("${packages[@]/poseidon}")
   packages=("${packages[@]/relations\/ark\/src\/proc_macro}")
   packages=("${packages[@]/relations\/ark}")

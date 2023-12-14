@@ -339,19 +339,21 @@ impl pallet_aleph::Config for Runtime {
 }
 
 #[cfg(feature = "liminal")]
+use pallet_vk_storage::StorageCharge;
+#[cfg(feature = "liminal")]
 parameter_types! {
     // We allow 10kB keys, proofs and public inputs. This is a 100% blind guess.
     pub const MaximumVerificationKeyLength: u32 = 10_000;
-    pub const VerificationKeyDepositPerByte: u128 = MILLI_AZERO;
+    // We always charge (10 + `key_length`) mAZERO for storing a key. This is a 100% blind guess.
+    pub const VkStorageCharge: StorageCharge = StorageCharge::linear(10 * MILLI_AZERO as u64, MILLI_AZERO as u64);
 }
 
 #[cfg(feature = "liminal")]
-impl pallet_baby_liminal::Config for Runtime {
-    type Currency = Balances;
+impl pallet_vk_storage::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = pallet_baby_liminal::AlephWeight<Runtime>;
-    type MaximumVerificationKeyLength = MaximumVerificationKeyLength;
-    type VerificationKeyDepositPerByte = VerificationKeyDepositPerByte;
+    type WeightInfo = pallet_vk_storage::AlephWeight<Runtime>;
+    type MaximumKeyLength = MaximumVerificationKeyLength;
+    type StorageCharge = VkStorageCharge;
 }
 
 impl_opaque_keys! {
@@ -909,7 +911,7 @@ construct_runtime!(
         Identity: pallet_identity = 20,
         CommitteeManagement: pallet_committee_management = 21,
         Proxy: pallet_proxy = 22,
-        BabyLiminal: pallet_baby_liminal = 41,
+        VkStorage: pallet_vk_storage = 41,
     }
 );
 
@@ -952,7 +954,7 @@ pub type Executive = frame_executive::Executive<
 #[cfg(feature = "runtime-benchmarks")]
 mod benches {
     #[cfg(feature = "liminal")]
-    frame_benchmarking::define_benchmarks!([pallet_baby_liminal, BabyLiminal]);
+    frame_benchmarking::define_benchmarks!([pallet_vk_storage, VkStorage]);
     #[cfg(not(feature = "liminal"))]
     frame_benchmarking::define_benchmarks!([]);
 }

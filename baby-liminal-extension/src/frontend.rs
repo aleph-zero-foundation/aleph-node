@@ -5,8 +5,6 @@ use ink::{
     prelude::vec::Vec,
 };
 
-use crate::VerificationKeyIdentifier;
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, scale::Encode, scale::Decode)]
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
 #[allow(missing_docs)] // Error variants are self-descriptive.
@@ -65,7 +63,7 @@ pub trait BabyLiminalExtension {
     // are not inlined before macro processing, we can't use an identifier from another module here.
     #[ink(extension = 0)]
     fn verify(
-        identifier: VerificationKeyIdentifier,
+        identifier: crate::KeyHash,
         proof: Vec<u8>,
         input: Vec<u8>,
     ) -> Result<(), BabyLiminalError>;

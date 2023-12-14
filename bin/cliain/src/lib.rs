@@ -1,5 +1,3 @@
-#[cfg(feature = "liminal")]
-mod baby_liminal;
 mod commands;
 mod contracts;
 mod finalization;
@@ -14,6 +12,8 @@ mod treasury;
 mod validators;
 mod version_upgrade;
 mod vesting;
+#[cfg(feature = "liminal")]
+mod vk_storage;
 
 use aleph_client::{keypair_from_string, Connection, RootConnection, SignedConnection};
 pub use commands::Command;
@@ -34,11 +34,11 @@ pub use version_upgrade::schedule_upgrade;
 pub use vesting::{vest, vest_other, vested_transfer};
 #[cfg(feature = "liminal")]
 pub use {
-    baby_liminal::{delete_key, overwrite_key, store_key},
-    commands::{BabyLiminal, SnarkRelation},
+    commands::{SnarkRelation, VkStorage},
     snark_relations::{
         generate_keys, generate_keys_from_srs, generate_proof, generate_srs, verify as verify_proof,
     },
+    vk_storage::store_key,
 };
 
 pub struct ConnectionConfig {

@@ -7,8 +7,8 @@ use jf_plonk::{
     },
     transcript::StandardTranscript,
 };
-use pallet_baby_liminal::{Config as BabyLiminalConfig, VerificationKeys};
 use pallet_contracts::Config as ContractsConfig;
+use pallet_vk_storage::{Config as BabyLiminalConfig, VerificationKeys};
 use scale::{Decode, Encode};
 use sp_std::vec::Vec;
 
@@ -59,7 +59,7 @@ impl<Runtime: MinimalRuntime> BackendExecutor for Runtime {
             })?;
 
         // ----------- Read and deserialize verification key ---------------------------------------
-        let verification_key = VerificationKeys::<Runtime>::get(args.verification_key_identifier)
+        let verification_key = VerificationKeys::<Runtime>::get(args.verification_key_hash)
             .ok_or(ExecutorError::UnknownVerificationKeyIdentifier)?;
 
         let verification_key: VerifyingKey<Curve> =

@@ -67,7 +67,7 @@ pallet-proxy = { workspace = true }
 
 # Liminal-related dependencies
 baby-liminal-extension = { workspace = true, features = ["runtime"], optional = true }
-pallet-baby-liminal = { workspace = true, optional = true }
+pallet-vk-storage = { workspace = true, optional = true }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true }
@@ -161,7 +161,7 @@ runtime-benchmarks = [
 # Liminal-related features
 liminal = [
     "baby-liminal-extension",
-    "pallet-baby-liminal",
+    "pallet-vk-storage",
     "sp-io/disable_oom",
     "sp-io/disable_panic_handler"
 ]
@@ -169,15 +169,15 @@ liminal-std = [
     "liminal",
     "std",
     "baby-liminal-extension/runtime-std",
-    "pallet-baby-liminal/std",
+    "pallet-vk-storage/std",
 ]
 liminal-try-runtime = [
     "liminal",
     "try-runtime",
-    "pallet-baby-liminal/try-runtime",
+    "pallet-vk-storage/try-runtime",
 ]
 liminal-runtime-benchmarks = [
     "liminal",
     "runtime-benchmarks",
-    "pallet-baby-liminal/runtime-benchmarks",
+    "pallet-vk-storage/runtime-benchmarks",
 ]

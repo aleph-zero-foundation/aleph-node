@@ -17,7 +17,7 @@ mod test_contract {
         pub fn call_verify(&self) {
             self.env()
                 .extension()
-                .verify([0; 8], vec![0; 41], vec![0; 82])
+                .verify(Default::default(), vec![0; 41], vec![0; 82])
                 .unwrap();
         }
     }

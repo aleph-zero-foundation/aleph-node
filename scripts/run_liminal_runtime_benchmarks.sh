@@ -15,11 +15,10 @@ cargo run --release -p aleph-node --features liminal-runtime-benchmarks -- boots
 
 cargo run --release -p aleph-node --features liminal-runtime-benchmarks -- benchmark pallet \
     --chain=chainspec.json \
-    --pallet=pallet_baby_liminal \
+    --pallet=pallet_vk_storage \
     --extrinsic='*' \
     --steps=20 \
     --repeat=5 \
     --template=.maintain/pallet-weight-template.hbs \
-    --execution=wasm \
     --wasm-execution=compiled \
-    --output=pallets/baby-liminal/src/weights.rs
+    --output=pallets/vk-storage/src/weights.rs

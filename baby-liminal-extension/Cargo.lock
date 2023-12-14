@@ -92,7 +92,6 @@ dependencies = [
  "pallet-aleph",
  "pallet-aura",
  "pallet-authorship",
- "pallet-baby-liminal",
  "pallet-balances",
  "pallet-committee-management",
  "pallet-contracts",
@@ -114,6 +113,7 @@ dependencies = [
  "pallet-treasury",
  "pallet-utility",
  "pallet-vesting",
+ "pallet-vk-storage",
  "parity-scale-codec",
  "primitives",
  "scale-info",
@@ -529,10 +529,11 @@ dependencies = [
  "ink",
  "jf-plonk",
  "log",
- "pallet-baby-liminal",
  "pallet-contracts",
+ "pallet-vk-storage",
  "parity-scale-codec",
  "scale-info",
+ "sp-core",
  "sp-std",
 ]
 
@@ -3006,19 +3007,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-baby-liminal"
-version = "0.1.0"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "log",
- "parity-scale-codec",
- "scale-info",
- "sp-std",
-]
-
-[[package]]
 name = "pallet-balances"
 version = "4.0.0-dev"
 source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.2.0#d9bb021ae2f7d752e1739e72294facf1b5dd2838"
@@ -3391,6 +3379,20 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-vk-storage"
+version = "0.1.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
  "sp-std",
 ]
 

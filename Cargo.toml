@@ -24,7 +24,7 @@ exclude = [
     "e2e-tests",
     "flooder",
     "fork-off",
-    "pallets/baby-liminal",
+    "pallets/vk-storage",
     "poseidon",
     "relations/ark",
     "relations/ark/src/proc_macro",
@@ -185,4 +185,4 @@ ark-r1cs-std = { version = "^0.3.0" , default-features = false }
 ark-relations = { version = "^0.3.0", default-features = false }
 
 baby-liminal-extension = { path = "baby-liminal-extension", default-features = false }
-pallet-baby-liminal = { path = "pallets/baby-liminal", default-features = false }
+pallet-vk-storage = { path = "pallets/vk-storage", default-features = false }
