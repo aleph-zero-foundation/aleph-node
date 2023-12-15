@@ -179,5 +179,6 @@ liminal-try-runtime = [
 liminal-runtime-benchmarks = [
     "liminal",
     "runtime-benchmarks",
+    "baby-liminal-extension/runtime-benchmarks",
     "pallet-vk-storage/runtime-benchmarks",
 ]

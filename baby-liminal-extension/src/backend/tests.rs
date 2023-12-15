@@ -1,6 +1,7 @@
 mod arguments;
 mod environment;
 mod executor;
+mod weighting;
 
 use aleph_runtime::Runtime as AlephRuntime;
 use frame_support::pallet_prelude::Weight;
@@ -13,8 +14,9 @@ use crate::{
             arguments::verify_args,
             environment::{CorruptedMode, MockedEnvironment, StandardMode, VerifyMode},
             executor::{Panicker, VerifyErrorer, VerifyOkayer},
+            weighting::TestWeight,
         },
-        weights::{TestWeight, WeightInfo},
+        weights::WeightInfo,
     },
     status_codes::*,
     BabyLiminalChainExtension,

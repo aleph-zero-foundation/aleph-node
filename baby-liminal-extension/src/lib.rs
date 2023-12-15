@@ -39,5 +39,7 @@ pub use {
 #[cfg(feature = "runtime")]
 mod backend;
 
+#[cfg(feature = "runtime-benchmarks")]
+pub use backend::ChainExtensionBenchmarking;
 #[cfg(feature = "runtime")]
 pub use {backend::BabyLiminalChainExtension, pallet_vk_storage::KeyHash};

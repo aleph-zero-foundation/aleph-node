@@ -30,6 +30,10 @@ ark-bls12-381 = { version = "0.4.0", default-features = false, features = ["curv
 ark-serialize = { version = "0.4.0", default-features = false, optional = true }
 jf-plonk = { git = "https://github.com/Cardinal-Cryptography/jellyfish", branch = "substrate-compatible", default-features = false, optional = true }
 
+# Benchmarking
+
+frame-benchmarking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.2.0", optional = true }
+
 [dev-dependencies]
 aleph-runtime = { path = "../bin/runtime", features = ["liminal"] }
 
@@ -75,4 +79,9 @@ ink-std = [
     "std",
     "ink/std",
     "sp-core/std",
+]
+
+runtime-benchmarks = [
+    "runtime",
+    "frame-benchmarking",
 ]

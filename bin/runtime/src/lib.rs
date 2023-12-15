@@ -954,7 +954,10 @@ pub type Executive = frame_executive::Executive<
 #[cfg(feature = "runtime-benchmarks")]
 mod benches {
     #[cfg(feature = "liminal")]
-    frame_benchmarking::define_benchmarks!([pallet_vk_storage, VkStorage]);
+    frame_benchmarking::define_benchmarks!(
+        [pallet_vk_storage, VkStorage]
+        [baby_liminal_extension, baby_liminal_extension::ChainExtensionBenchmarking<Runtime>]
+    );
     #[cfg(not(feature = "liminal"))]
     frame_benchmarking::define_benchmarks!([]);
 }

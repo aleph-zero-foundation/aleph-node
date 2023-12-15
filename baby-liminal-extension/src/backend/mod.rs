@@ -18,11 +18,16 @@ use crate::{
     status_codes::*,
 };
 
+#[cfg(feature = "runtime-benchmarks")]
+mod benchmarking;
 mod environment;
 mod executor;
 #[cfg(test)]
 mod tests;
 mod weights;
+
+#[cfg(feature = "runtime-benchmarks")]
+pub use benchmarking::ChainExtensionBenchmarking;
 
 type ByteCount = u32;
 
@@ -51,7 +56,7 @@ where
         let (ext_id, func_id) = (env.ext_id(), env.func_id());
         match (ext_id, func_id) {
             (BABY_LIMINAL_EXTENSION_ID, VERIFY_FUNC_ID) => {
-                Self::verify::<Runtime, _, AlephWeight>(env.buf_in_buf_out())
+                Self::verify::<Runtime, _, AlephWeight<Runtime>>(env.buf_in_buf_out())
             }
             _ => {
                 error!("There is no function `{func_id}` registered for an extension `{ext_id}`");

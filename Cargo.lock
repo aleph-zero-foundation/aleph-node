@@ -1055,6 +1055,7 @@ version = "0.1.0"
 dependencies = [
  "ark-bls12-381",
  "ark-serialize",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "jf-plonk",

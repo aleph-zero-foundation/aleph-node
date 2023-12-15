@@ -524,6 +524,7 @@ dependencies = [
  "aleph-runtime",
  "ark-bls12-381",
  "ark-serialize",
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "ink",
