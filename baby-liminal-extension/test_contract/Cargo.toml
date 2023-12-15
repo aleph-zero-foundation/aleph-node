@@ -9,11 +9,7 @@ license = "Apache-2.0"
 publish = false
 
 [dependencies]
-ink = { version = "=4.3.0", default-features = false }
-
-scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
-scale-info = { version = "2.6", default-features = false, features = ["derive"], optional = true }
-
+ink = { version = "5.0.0-rc", default-features = false }
 baby-liminal-extension = { path = "../", features = ["ink"] }
 
 [lib]
@@ -23,8 +19,6 @@ path = "lib.rs"
 default = ["std"]
 std = [
     "ink/std",
-    "scale/std",
-    "scale-info/std",
     "baby-liminal-extension/ink-std",
 ]
 ink-as-dependency = []

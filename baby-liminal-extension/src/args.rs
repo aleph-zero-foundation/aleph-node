@@ -7,7 +7,9 @@ use ink::prelude::vec::Vec;
 use sp_std::vec::Vec;
 
 /// A struct describing layout for the `verify` chain extension.
-#[derive(Clone, Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "ink", ink::scale_derive(Encode, Decode))]
+#[cfg_attr(feature = "runtime", derive(scale::Encode, scale::Decode))]
 pub struct VerifyArgs {
     /// The hash of the verification key.
     pub verification_key_hash: crate::KeyHash,

@@ -30,11 +30,15 @@ mod test_contract {
 
         struct MockedVerifyExtension;
         impl ink::env::test::ChainExtension for MockedVerifyExtension {
-            fn func_id(&self) -> u32 {
-                baby_liminal_extension::extension_ids::VERIFY_EXT_ID
+            fn ext_id(&self) -> u16 {
+                baby_liminal_extension::extension_ids::EXTENSION_ID
             }
 
-            fn call(&mut self, _: &[u8], _: &mut Vec<u8>) -> u32 {
+            fn call(&mut self, func_id: u16, _: &[u8], _: &mut Vec<u8>) -> u32 {
+                assert_eq!(
+                    func_id,
+                    baby_liminal_extension::extension_ids::VERIFY_FUNC_ID
+                );
                 baby_liminal_extension::status_codes::VERIFY_SUCCESS
             }
         }

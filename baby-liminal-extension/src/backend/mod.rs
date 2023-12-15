@@ -14,7 +14,7 @@ use crate::{
         executor::MinimalRuntime,
         weights::{AlephWeight, WeightInfo},
     },
-    extension_ids::VERIFY_EXT_ID,
+    extension_ids::{EXTENSION_ID as BABY_LIMINAL_EXTENSION_ID, VERIFY_FUNC_ID},
     status_codes::*,
 };
 
@@ -48,12 +48,13 @@ where
         &mut self,
         env: SubstrateEnvironment<E, InitState>,
     ) -> ChainExtensionResult<RetVal> {
-        let func_id = env.func_id() as u32;
-
-        match func_id {
-            VERIFY_EXT_ID => Self::verify::<Runtime, _, AlephWeight>(env.buf_in_buf_out()),
+        let (ext_id, func_id) = (env.ext_id(), env.func_id());
+        match (ext_id, func_id) {
+            (BABY_LIMINAL_EXTENSION_ID, VERIFY_FUNC_ID) => {
+                Self::verify::<Runtime, _, AlephWeight>(env.buf_in_buf_out())
+            }
             _ => {
-                error!("Called an unregistered `func_id`: {func_id}");
+                error!("There is no function `{func_id}` registered for an extension `{ext_id}`");
                 Err(DispatchError::Other("Called an unregistered `func_id`"))
             }
         }
