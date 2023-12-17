@@ -44,7 +44,7 @@ jobs:
 
       - name: Upload cliain binary to GH artifacts
         if: ${{ inputs.check-only != true }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cliain
           path: bin/cliain/target/release/cliain

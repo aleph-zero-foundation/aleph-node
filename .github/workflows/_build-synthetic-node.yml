@@ -32,7 +32,7 @@ jobs:
           docker save -o aleph-node.tar aleph-node:syntheticnet
 
       - name: Upload synthetic aleph-node image
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: aleph-release-synthetic-docker
           path: aleph-node.tar

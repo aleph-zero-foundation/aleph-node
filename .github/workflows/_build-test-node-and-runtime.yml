@@ -46,7 +46,7 @@ jobs:
 
       # this is required for some workflows, yet ideally it should not be required
       - name: Upload test binary to GH Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: aleph-test-node
           path: target/release/aleph-node
@@ -62,7 +62,7 @@ jobs:
 
       # this is solely required by action/run-e2e-test.yml, also it should not be required
       - name: Upload test docker image
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: aleph-test-docker
           path: aleph-node.tar

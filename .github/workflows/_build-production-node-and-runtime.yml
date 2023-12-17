@@ -35,7 +35,7 @@ jobs:
             || echo "Liminal symbols are not present"
 
       - name: Upload release binary to GH artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: aleph-production-node
           path: target/production/aleph-node
@@ -44,7 +44,7 @@ jobs:
 
       # required by _check-runtime-determinism.yml workflow
       - name: Upload release runtime to GH artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: aleph-production-runtime
           path: target/production/wbuild/aleph-runtime/aleph_runtime.compact.compressed.wasm
