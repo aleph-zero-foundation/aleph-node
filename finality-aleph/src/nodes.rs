@@ -76,7 +76,7 @@ where
         unit_creation_delay,
         session_period,
         millisecs_per_block,
-        justification_rx,
+        justification_channel_provider,
         block_rx,
         backup_saving_path,
         external_addresses,
@@ -176,15 +176,16 @@ where
     );
     let finalizer = AlephFinalizer::new(client.clone(), metrics.clone());
     import_queue_handle.attach_metrics(metrics.clone());
+    let justifications_for_sync = justification_channel_provider.get_sender();
     let sync_io = SyncIO::new(
         SyncDatabaseIO::new(chain_status.clone(), finalizer, import_queue_handle),
         block_sync_network,
         chain_events,
         sync_oracle.clone(),
-        justification_rx,
+        justification_channel_provider.into_receiver(),
         block_rx,
     );
-    let (sync_service, justifications_for_sync, request_block) = match SyncService::new(
+    let (sync_service, request_block) = match SyncService::new(
         verifier.clone(),
         session_info.clone(),
         sync_io,

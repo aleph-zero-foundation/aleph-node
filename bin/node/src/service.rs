@@ -8,8 +8,8 @@ use std::{
 use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use finality_aleph::{
     run_validator_node, AlephBlockImport, AlephConfig, AllBlockMetrics, BlockImporter,
-    Justification, JustificationTranslator, MillisecsPerBlock, Protocol, ProtocolNaming,
-    RateLimiterConfig, RedirectingBlockImport, SessionPeriod, SubstrateChainStatus,
+    ChannelProvider, Justification, JustificationTranslator, MillisecsPerBlock, Protocol,
+    ProtocolNaming, RateLimiterConfig, RedirectingBlockImport, SessionPeriod, SubstrateChainStatus,
     SubstrateNetwork, SyncOracle, TracingBlockImport, ValidatorAddressCache,
 };
 use futures::channel::mpsc;
@@ -87,8 +87,7 @@ pub fn new_partial(
         sc_consensus::DefaultImportQueue<Block>,
         sc_transaction_pool::FullPool<Block, FullClient>,
         (
-            mpsc::UnboundedSender<Justification>,
-            mpsc::UnboundedReceiver<Justification>,
+            ChannelProvider<Justification>,
             Option<Telemetry>,
             AllBlockMetrics,
         ),
@@ -136,7 +135,7 @@ pub fn new_partial(
 
     let metrics = AllBlockMetrics::new(config.prometheus_registry());
 
-    let (justification_tx, justification_rx) = mpsc::unbounded();
+    let justification_channel_provider = ChannelProvider::new();
     let tracing_block_import = TracingBlockImport::new(client.clone(), metrics.clone());
     let justification_translator = JustificationTranslator::new(
         SubstrateChainStatus::new(backend.clone())
@@ -144,7 +143,7 @@ pub fn new_partial(
     );
     let aleph_block_import = AlephBlockImport::new(
         tracing_block_import,
-        justification_tx.clone(),
+        justification_channel_provider.get_sender(),
         justification_translator,
     );
 
@@ -185,7 +184,7 @@ pub fn new_partial(
         keystore_container,
         select_chain,
         transaction_pool,
-        other: (justification_tx, justification_rx, telemetry, metrics),
+        other: (justification_channel_provider, telemetry, metrics),
     })
 }
 
@@ -312,7 +311,7 @@ pub fn new_authority(
         keystore_container,
         select_chain,
         transaction_pool,
-        other: (justification_tx, justification_rx, mut telemetry, metrics),
+        other: (justification_channel_provider, mut telemetry, metrics),
     } = new_partial(&config)?;
 
     let (block_import, block_rx) = RedirectingBlockImport::new(client.clone());
@@ -348,7 +347,7 @@ pub fn new_authority(
             &mut task_manager,
             client.clone(),
             &mut telemetry,
-            justification_tx,
+            justification_channel_provider.get_sender(),
             collect_extra_debugging_data,
         )?;
 
@@ -423,7 +422,7 @@ pub fn new_authority(
         millisecs_per_block,
         spawn_handle: task_manager.spawn_handle().into(),
         keystore: keystore_container.keystore(),
-        justification_rx,
+        justification_channel_provider,
         block_rx,
         metrics,
         registry: prometheus_registry,

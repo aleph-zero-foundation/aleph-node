@@ -46,7 +46,7 @@ where
     network: N,
     chain_events: CE,
     sync_oracle: SyncOracle,
-    additional_justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
+    justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
     blocks_from_creator: mpsc::UnboundedReceiver<B>,
     database_io: DatabaseIO<B, J, CS, F, BI>,
 }
@@ -66,14 +66,14 @@ where
         network: N,
         chain_events: CE,
         sync_oracle: SyncOracle,
-        additional_justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
+        justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
         blocks_from_creator: mpsc::UnboundedReceiver<B>,
     ) -> Self {
         IO {
             network,
             chain_events,
             sync_oracle,
-            additional_justifications_from_user,
+            justifications_from_user,
             blocks_from_creator,
             database_io,
         }
@@ -99,7 +99,6 @@ where
     chain_extension_ticker: Ticker,
     chain_events: CE,
     justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
-    additional_justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
     block_requests_from_user: mpsc::UnboundedReceiver<B::UnverifiedHeader>,
     legacy_block_requests_from_user: mpsc::UnboundedReceiver<BlockId>,
     blocks_from_creator: mpsc::UnboundedReceiver<B>,
@@ -149,8 +148,7 @@ where
     BI: BlockImport<B>,
 {
     /// Create a new service using the provided network for communication.
-    /// Also returns an interface for submitting additional justifications,
-    /// and an interface for requesting blocks.
+    /// Also returns an interface for requesting blocks.
     pub fn new(
         verifier: V,
         session_info: SessionBoundaryInfo,
@@ -159,7 +157,6 @@ where
     ) -> Result<
         (
             Self,
-            impl JustificationSubmissions<J> + Clone,
             impl RequestBlocks<B::UnverifiedHeader> + LegacyRequestBlocks,
         ),
         HandlerError<B, J, CS, V, F>,
@@ -168,7 +165,7 @@ where
             network,
             chain_events,
             sync_oracle,
-            additional_justifications_from_user,
+            justifications_from_user,
             blocks_from_creator,
             database_io,
         } = io;
@@ -177,7 +174,6 @@ where
         let tasks = TaskQueue::new();
         let broadcast_ticker = Ticker::new(TICK_PERIOD, BROADCAST_COOLDOWN);
         let chain_extension_ticker = Ticker::new(TICK_PERIOD, CHAIN_EXTENSION_COOLDOWN);
-        let (justifications_for_sync, justifications_from_user) = mpsc::unbounded();
         let (block_requests_for_sync, block_requests_from_user) = mpsc::unbounded();
         let (legacy_block_requests_for_sync, legacy_block_requests_from_user) = mpsc::unbounded();
         let metrics = match Metrics::new(metrics_registry) {
@@ -197,13 +193,11 @@ where
                 chain_extension_ticker,
                 chain_events,
                 justifications_from_user,
-                additional_justifications_from_user,
                 blocks_from_creator,
                 block_requests_from_user,
                 legacy_block_requests_from_user,
                 metrics,
             },
-            justifications_for_sync,
             CompatibilityRequestBlocks {
                 current: block_requests_for_sync,
                 legacy: legacy_block_requests_for_sync,
@@ -750,13 +744,6 @@ where
                         self.handle_justification_from_user(justification);
                     },
                     None => warn!(target: LOG_TARGET, "Channel with justifications from user closed."),
-                },
-                maybe_justification = self.additional_justifications_from_user.next() => match maybe_justification {
-                    Some(justification) => {
-                        debug!(target: LOG_TARGET, "Received new additional justification from user: {:?}.", justification);
-                        self.handle_justification_from_user(justification);
-                    },
-                    None => warn!(target: LOG_TARGET, "Channel with additional justifications from user closed."),
                 },
                 maybe_header = self.block_requests_from_user.next() => match maybe_header {
                     Some(header) => {

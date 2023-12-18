@@ -7,7 +7,10 @@ use std::{
 
 use derive_more::Display;
 use futures::{
-    channel::{mpsc, oneshot},
+    channel::{
+        mpsc::{self, unbounded, UnboundedReceiver, UnboundedSender},
+        oneshot,
+    },
     Future,
 };
 use parity_scale_codec::{Decode, Encode, Output};
@@ -240,6 +243,32 @@ where
 {
 }
 
+pub struct ChannelProvider<T> {
+    sender: UnboundedSender<T>,
+    receiver: UnboundedReceiver<T>,
+}
+
+impl<T> ChannelProvider<T> {
+    pub fn new() -> Self {
+        let (sender, receiver) = unbounded();
+        ChannelProvider { sender, receiver }
+    }
+
+    pub fn get_sender(&self) -> UnboundedSender<T> {
+        self.sender.clone()
+    }
+
+    pub fn into_receiver(self) -> UnboundedReceiver<T> {
+        self.receiver
+    }
+}
+
+impl<T> Default for ChannelProvider<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 type Hasher = abft::HashWrapper<BlakeTwo256>;
 
 #[derive(Clone)]
@@ -257,7 +286,7 @@ pub struct AlephConfig<C, SC, T> {
     pub select_chain: SC,
     pub spawn_handle: SpawnHandle,
     pub keystore: Arc<dyn Keystore>,
-    pub justification_rx: mpsc::UnboundedReceiver<Justification>,
+    pub justification_channel_provider: ChannelProvider<Justification>,
     pub block_rx: mpsc::UnboundedReceiver<AlephBlock>,
     pub metrics: AllBlockMetrics,
     pub registry: Option<Registry>,
