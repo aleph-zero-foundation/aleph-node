@@ -63,12 +63,12 @@ hex = { version = "0.4" }
 hex-literal = { version = "0.3" }
 ip_network = { version = "0.4" }
 jsonrpsee = { version = "0.16.3" }
-libp2p = { version = "0.51.3" }
+libp2p = { version = "0.51" }
 log = { version = "0.4", default-features = false }
 lru = { version = "0.10" }
 parity-scale-codec = { version = "3.0", default-features = false }
 parking_lot = { version = "0.12" }
-paste = { version = "1.0.11" }
+paste = { version = "1.0" }
 rand = { version = "0.8.5", default-features = false }
 scale-info = { version = "2.0", default-features = false }
 serde = { version = "1.0", default-features = false }
@@ -77,7 +77,7 @@ smallvec = { version = "1", default-features = false }
 static_assertions = { version = "1.1" }
 thiserror = { version = "1.0" }
 tiny-bip39 = { version = "1.0" }
-tokio = { version = "1.32" }
+tokio = { version = "1.35" }
 rand_pcg = { version = "0.3.1", default-features = false }
 
 frame-benchmarking = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.2.0", default-features = false }
