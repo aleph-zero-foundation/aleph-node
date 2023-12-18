@@ -29,6 +29,8 @@ jobs:
     needs: [check-vars-and-secrets]
     name: Build production node and runtime
     uses: ./.github/workflows/_build-production-node-and-runtime.yml
+    with:
+      ref: ${{ github.ref }}
 
   build-synthetic-node:
     needs: [build-production-node-and-runtime]

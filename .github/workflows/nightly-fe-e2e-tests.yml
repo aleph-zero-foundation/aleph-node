@@ -15,13 +15,6 @@ jobs:
     uses: ./.github/workflows/_check-vars-and-secrets.yml
     secrets: inherit
 
-  build-test-node-and-runtime:
-    name: Build test node and runtime
-    needs: [check-vars-and-secrets]
-    uses: ./.github/workflows/_build-test-node-and-runtime.yml
-    with:
-      ref: ${{ github.ref }}
-
   build-aleph-e2e-client-image:
     needs: [check-vars-and-secrets]
     name: Build aleph-e2e-client image
@@ -31,110 +24,62 @@ jobs:
       push: true
     secrets: inherit
 
-  push-featurenet-test-node-image-to-ecr:
-    needs: [build-test-node-and-runtime]
-    name: Build and push PR test docker image to ECR
-    uses: ./.github/workflows/_build-and-push-test-image-to-featurenets.yml
+  get-full-docker-image-path:
+    name: Get full aleph-node full docker path path
+    needs: [check-vars-and-secrets]
+    runs-on: ubuntu-20.04
+    outputs:
+      fqdn-image: ${{ steps.get-aleph-node-fqdn-image.outputs.fqdn-image }}
+      ref: ${{ steps.get-aleph-node-fqdn-image.outputs.ref }}
+      image-exists: ${{ steps.get-aleph-node-fqdn-image.outputs.image-exists }}
+    steps:
+      - name: Get aleph-node fqdn path from ${{ github.ref }}
+        id: get-aleph-node-fqdn-image
+        uses: Cardinal-Cryptography/github-actions/get-aleph-node-fqdn-image@v6
+        with:
+          ref: ${{ github.ref }}
+          test-binary: 'false'
+          ecr-dev-node-repo: ${{ vars.ECR_DEV_ALEPH_NODE_REPO }}
+          ecr-prod-node-repo: ${{ vars.ECR_ALEPH_NODE_REPO }}
+
+  build-and-push-featurenet-node-image:
+    needs: [get-full-docker-image-path]
+    if: ${{ needs.get-full-docker-image-path.outputs.image-exists != 'true' }}
+    name: Build and push PR test docker image from ${{ github.ref }}
+    uses: ./.github/workflows/_build-and-push-featurenet-node-image.yml
     with:
-      ref: ${{ github.ref }}
+      ref: ${{ needs.get-full-docker-image-path.outputs.ref }}
+      fqdn-image: ${{ needs.get-full-docker-image-path.outputs.fqdn-image }}
+      short-session: false
     secrets: inherit
 
-  get-e2e-test-case-names:
-    name: Get e2e test case names
-    runs-on: ubuntu-20.04
-    needs: [build-aleph-e2e-client-image]
-    env:
-      # yamllint disable-line rule:line-length
-      ALEPH_E2E_CLIENT_IMAGE: '${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}'
-    outputs:
-      testcases: ${{ steps.get-testcases.outputs.testcases }}
-    steps:
-      - name: Download aleph-e2e-client artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: aleph-e2e-client
-
-      - name: Load test suite docker image
-        shell: bash
-        run: docker load -i aleph-e2e-client.tar
-
-      - name: Get testcases
-        shell: bash
-        id: get-testcases
-        run: |
-          testcases=$(docker run --entrypoint aleph-e2e-client '${{ env.ALEPH_E2E_CLIENT_IMAGE }}' \
-            `# basically cargo test --list under the hood` \
-            --list | \
-            `# filter by testcases (not benches)` \
-            grep "test::" | \
-            `# remote test:: prefix` \
-            sed -e 's/test:://g' | \
-            `# for now limit testcases one testcase` \
-            grep 'finalization::finalization' | \
-            `# first column is testcase name` \
-            awk '{print $1;}' | \
-            `# add "" quotes` \
-            sed -e 's/:$/"/g' -e 's/^/"/g' | \
-            `# swap newlines with command and a space` \
-            tr '\n' ', ' | \
-            `# but remove last trailing comma so it is valid JSON array` \
-            sed 's/.$//')
-          echo "testcases=[$testcases]" >> $GITHUB_OUTPUT
-
-  runs-e2e-test-on-fe:
+  create-featurenet:
     needs:
-      - push-featurenet-test-node-image-to-ecr
-      - get-e2e-test-case-names
+      - get-full-docker-image-path
+      - build-and-push-featurenet-node-image
+    # to prevent this job to be skipped when on of the parent jobs is skipped
+    if: ${{ !cancelled() }}
+    name: Create featurenet from ${{ github.ref }}
+    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-create.yml@v6
+    secrets: inherit
+    with:
+      featurenet-name: 'ops-finalization-e2e'
+      aleph-node-image: ${{ needs.get-full-docker-image-path.outputs.fqdn-image }}
+      validators: '6'
+      expiration: '3h'
+      internal: true
+      delete-first: true
+
+  runs-finalization-e2e-test-on-fe:
+    needs:
+      - create-featurenet
       - build-aleph-e2e-client-image
-      - build-test-node-and-runtime
-    name: e2e
+    name: Runs finalization e2e on FE
     env:
       # yamllint disable-line rule:line-length
       ALEPH_E2E_CLIENT_IMAGE: '${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}'
     runs-on: [self-hosted, Linux, X64, small]
-    strategy:
-      fail-fast: false
-      max-parallel: 3
-      matrix:
-        testcase: ${{ fromJSON(needs.get-e2e-test-case-names.outputs.testcases) }}
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Call action get-ref-properties
-        id: get-ref-properties
-        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v5
-
-      - name: Get fe name
-        id: get-final-featurenet-name
-        shell: bash
-        env:
-        # yamllint disable rule:line-length
-          APP_NAME: ${{ format('{0}-{1}', github.run_id, matrix.testcase) }}
-        run: |
-          final_featurename_local='${{ env.APP_NAME }}'
-          echo "final-featurenet-name=$(printf $final_featurename_local | sed 's|::|-|g' | sed 's|_|-|g')" >> $GITHUB_OUTPUT
-        # yamllint enable rule:line-length
-
-      # TODO this should be called via action
-      # Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-create.yml
-      - name: Create featurenet from scratch
-        uses: Cardinal-Cryptography/github-actions/create-featurenet@v5
-        id: create-featurenet
-        with:
-          gh-ci-user: ${{ secrets.CI_GH_USER }}
-          gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
-          argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
-          repo-featurenet-template-name: ${{ secrets.REPO_FEATURENET_TEMPLATE_NAME }}
-          # yamllint disable-line rule:line-length
-          featurenet-aleph-node-image: ${{ needs.push-featurenet-test-node-image-to-ecr.outputs.image-tag }}
-          featurenet-ecr-repo: true
-          expiration: '3h'
-          featurenet-name: ${{ steps.get-final-featurenet-name.outputs.final-featurenet-name }}
-          git-commit-author: ${{ secrets.AUTOCOMMIT_AUTHOR }}
-          git-commit-email: ${{ secrets.AUTOCOMMIT_EMAIL }}
-          wait-for-finalized-heads: "true"
-
       - name: Download aleph-e2e-client artifact
         uses: actions/download-artifact@v3
         with:
@@ -144,36 +89,30 @@ jobs:
         shell: bash
         run: docker load -i aleph-e2e-client.tar
 
-      - name: Run ${{ matrix.testcase }} e2e test
+      - name: Run e2e test
         shell: bash
-        env:
-          TAG: ${{ steps.get-ref-properties.outputs.sha }}
         run: |
           docker run --network host \
-            -e NODE_URL='wss://${{ steps.create-featurenet.outputs.ws-hostname }}:443' \
-            -e TEST_CASES='${{ matrix.testcase }}' \
+            -e NODE_URL='wss://${{ needs.create-featurenet.outputs.ws-hostname }}:443' \
+            -e TEST_CASES='finalization::finalization' \
             -e RUST_LOG=info \
             '${{ env.ALEPH_E2E_CLIENT_IMAGE }}'
         timeout-minutes: 15
 
-      - name: Delete old featurenet app and data
-        if: always()
-        uses: Cardinal-Cryptography/github-actions/delete-featurenet@v5
-        with:
-          gh-ci-user: ${{ secrets.CI_GH_USER }}
-          gh-ci-token: ${{ secrets.CI_GH_TOKEN }}
-          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
-          argo-sync-user-token: ${{ secrets.ARGO_SYNC_USER_TOKEN }}
-          repo-featurenet-template-name: ${{ secrets.REPO_FEATURENET_TEMPLATE_NAME }}
-          featurenet-name: ${{ steps.get-final-featurenet-name.outputs.final-featurenet-name }}
-          git-commit-author: ${{ secrets.AUTOCOMMIT_AUTHOR }}
-          git-commit-email: ${{ secrets.AUTOCOMMIT_EMAIL }}
+  delete-featurenet:
+    if: ${{ always() }}
+    needs:
+      - runs-finalization-e2e-test-on-fe
+    name: Delete featurenet
+    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-delete.yml@v5
+    secrets: inherit
+    with:
+      featurenet-name: 'ops-finalization-e2e'
 
   slack-notification:
     name: Slack notification
     runs-on: ubuntu-20.04
-    needs: [runs-e2e-test-on-fe]
+    needs: [delete-featurenet]
     if: >
       !cancelled() &&
       github.event_name != 'workflow_dispatch'

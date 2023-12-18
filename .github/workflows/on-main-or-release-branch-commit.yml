@@ -35,6 +35,8 @@ jobs:
     needs: [check-vars-and-secrets]
     name: Build production node and runtime
     uses: ./.github/workflows/_build-production-node-and-runtime.yml
+    with:
+      ref: ${{ github.ref }}
 
   check-runtime-determinism:
     needs: [build-production-node-and-runtime]
@@ -55,22 +57,6 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
           aws-bucket: ${{ secrets.CI_MAINNET_S3BUCKET_NAME }}
-
-  store-production-node-and-runtime-in-devnet-s3:
-    name: Store production node and runtime in Devnet bucket
-    runs-on: ubuntu-20.04
-    needs: [build-production-node-and-runtime]
-    steps:
-      - name: Checkout aleph-node source code
-        uses: actions/checkout@v4
-
-      - name: Store production node and runtime
-        uses: ./.github/actions/store-node-and-runtime
-        with:
-          profile: production
-          aws-access-key-id: ${{ secrets.AWS_DEVNET_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
-          aws-bucket: ${{ secrets.CI_DEVNET_S3BUCKET_NAME }}
 
   push-production-node-image-to-ecr:
     name: Push production node docker image to ECR

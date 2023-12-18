@@ -1,9 +1,13 @@
 ---
-#  This workflow builds production version of aleph-node and aleph-runtime, ie with some
-#  features enabled. Those binaries MUST be used in the production.
+#  This workflow builds production version of aleph-node and aleph-runtime
 name: Build production node and runtime
 on:
   workflow_call:
+    inputs:
+      ref:
+        description: 'git ref: hash, branch, tag to build production aleph-node binary from'
+        type: string
+        required: true
 
 jobs:
   main:
@@ -15,6 +19,9 @@ jobs:
     steps:
       - name: Checkout aleph-node source code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
 
       - name: Call action get-ref-properties
         id: get-ref-properties

@@ -6,7 +6,7 @@ on:
   workflow_call:
     inputs:
       ref:
-        description: "git ref: hash, branch, tag or 'mainnet' or 'testnet'"
+        description: 'git ref: hash, branch, tag to build test aleph-node binary from'
         type: string
         required: true
 

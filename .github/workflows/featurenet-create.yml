@@ -5,11 +5,11 @@ on:
   workflow_dispatch:
     inputs:
       featurenet-name:
-        description: 'Name of featurenet'
+        description: 'Name of the featurenet'
         type: string
         required: true
       ref:
-        description: "git ref: hash, branch, tag - or 'mainnet' or 'testnet'"
+        description: "git ref: full commit hash, branch, tag - or 'mainnet' or 'testnet'"
         type: string
         required: true
       expiration:
@@ -24,8 +24,8 @@ on:
           - 96h
           - never
         default: '48h'
-      replicas:
-        description: 'Number of replicas to start, from 0 to 50'
+      validators:
+        description: 'Number of validators to start, from 0 to 50'
         required: true
         default: '5'
         type: string
@@ -34,31 +34,10 @@ on:
         required: true
         type: boolean
         default: false
-  workflow_call:
-    inputs:
-      featurenet-name:
-        description: 'Name of featurenet'
-        type: string
+      short-session:
+        description: 'Use short session aleph-node binary'
         required: true
-      ref:
-        description: "git ref: hash, branch, tag - or 'mainnet' or 'testnet'"
-        type: string
-        required: true
-      expiration:
-        description: 'Time after which featurenet will be removed'
-        required: false
-        type: string
-        default: '48h'
-      replicas:
-        description: 'Number of replicas to start, from 0 to 50'
-        required: false
-        default: '5'
-        type: string
-      internal:
-        description: 'Internal network, accessible from VPN only'
-        required: false
         type: boolean
-        default: false
 
 jobs:
   validate-inputs:
@@ -67,7 +46,6 @@ jobs:
     steps:
       - name: Validate inputs
         shell: bash
-        # yamllint disable rule:line-length
         run: |
           if [[ ! '${{ inputs.featurenet-name }}' =~ ^[a-z0-9][a-z0-9\-]{4,48}$ ]]; then
             echo '!!! Invalid featurenet name'
@@ -77,7 +55,6 @@ jobs:
             echo "!!! Invalid ref"
             exit 1
           fi
-        # yamllint enable rule:line-length
 
   check-vars-and-secrets:
     name: Check vars and secrets
@@ -85,52 +62,46 @@ jobs:
     uses: ./.github/workflows/_check-vars-and-secrets.yml
     secrets: inherit
 
-  build-test-node-and-runtime:
-    if: ${{ inputs.ref != 'mainnet' && inputs.ref != 'testnet' }}
-    name: Build test node and runtime
+  get-full-docker-image-path:
+    name: Get full aleph-node full docker path path
     needs: [check-vars-and-secrets]
-    uses: ./.github/workflows/_build-test-node-and-runtime.yml
+    runs-on: ubuntu-20.04
+    outputs:
+      fqdn-image: ${{ steps.get-aleph-node-fqdn-image.outputs.fqdn-image }}
+      ref: ${{ steps.get-aleph-node-fqdn-image.outputs.ref }}
+      image-exists: ${{ steps.get-aleph-node-fqdn-image.outputs.image-exists }}
+    steps:
+      - name: Get aleph-node fqdn path
+        id: get-aleph-node-fqdn-image
+        uses: Cardinal-Cryptography/github-actions/get-aleph-node-fqdn-image@v6
+        with:
+          ref: ${{ inputs.ref }}
+          test-binary: ${{ inputs.short-session == true && 'true' || 'false' }}
+          ecr-dev-node-repo: ${{ vars.ECR_DEV_ALEPH_NODE_REPO }}
+          ecr-prod-node-repo: ${{ vars.ECR_ALEPH_NODE_REPO }}
+
+  build-and-push-featurenet-node-image:
+    needs: [get-full-docker-image-path]
+    if: ${{ needs.get-full-docker-image-path.outputs.image-exists != 'true' }}
+    name: Build and push PR test docker image
+    uses: ./.github/workflows/_build-and-push-featurenet-node-image.yml
     with:
-      ref: ${{ inputs.ref }}
+      ref: ${{ needs.get-full-docker-image-path.outputs.ref }}
+      fqdn-image: ${{ needs.get-full-docker-image-path.outputs.fqdn-image }}
+      short-session: ${{ inputs.short-session }}
     secrets: inherit
 
-  push-featurenet-test-node-image-to-ecr:
-    if: ${{ inputs.ref != 'mainnet' && inputs.ref != 'testnet' }}
-    needs: [build-test-node-and-runtime]
-    name: Build and push PR test docker image to ECR
-    uses: ./.github/workflows/_build-and-push-test-image-to-featurenets.yml
-    with:
-      ref: ${{ inputs.ref }}
-    secrets: inherit
-
-  create-featurenet-from-branch:
-    if: ${{ inputs.ref != 'mainnet' && inputs.ref != 'testnet' }}
-    needs: [push-featurenet-test-node-image-to-ecr]
+  create-featurenet:
+    needs: [get-full-docker-image-path, build-and-push-featurenet-node-image]
+    # to prevent this job to be skipped when on of the parent jobs is skipped
+    if: ${{ !cancelled() }}
     name: Create featurenet from branch
-    # yamllint disable-line rule:line-length
-    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-create.yml@v5
+    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-create.yml@v6
     secrets: inherit
     with:
-      expiration: ${{ inputs.expiration }}
-      replicas: ${{ inputs.replicas }}
-      internal: ${{ inputs.internal && true || false }}
       featurenet-name: ${{ inputs.featurenet-name }}
-      aleph-node-image: ${{ needs.push-featurenet-test-node-image-to-ecr.outputs.image-tag }}
-      featurenet-ecr-repo: true
-      delete-first: true
-
-  create-featurenet-from-net:
-    if: ${{ inputs.ref == 'mainnet' || inputs.ref == 'testnet' }}
-    needs: [check-vars-and-secrets]
-    name: Create featurenet from net
-    # yamllint disable-line rule:line-length
-    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-create.yml@v5
-    secrets: inherit
-    with:
+      aleph-node-image: ${{ needs.get-full-docker-image-path.outputs.fqdn-image }}
+      validators: ${{ inputs.validators }}
       expiration: ${{ inputs.expiration }}
-      replicas: ${{ inputs.replicas }}
       internal: ${{ inputs.internal && true || false }}
-      featurenet-name: ${{ inputs.featurenet-name }}
-      aleph-node-image: ${{ inputs.ref }}
-      featurenet-ecr-repo: false
       delete-first: true
