@@ -12,18 +12,6 @@ on:
         description: 'git ref: full commit hash, branch, tag'
         required: true
         type: string
-      expiration:
-        description: 'Time after which featurenet will be removed'
-        required: true
-        type: choice
-        options:
-          - 48h
-          - 24h
-          - 12h
-          - 3h
-          - 96h
-          - never
-        default: '48h'
       rolling-update-partition:
         description: |
           A number from 0 to N-1, where N is a number of validators.
@@ -32,16 +20,6 @@ on:
         required: true
         default: "0"
         type: string
-      validators:
-        description: 'Number of validators of the existing featurenet'
-        required: true
-        default: '5'
-        type: string
-      internal:
-        description: 'Internal network, accessible from VPN only'
-        required: true
-        type: boolean
-        default: false
       short-session:
         description: 'Use short session aleph-node binary'
         required: true
@@ -108,9 +86,5 @@ jobs:
     with:
       featurenet-name: ${{ inputs.featurenet-name }}
       aleph-node-image: ${{ needs.get-full-docker-image-path.outputs.fqdn-image }}
-      validators: ${{ inputs.validators }}
-      expiration: ${{ inputs.expiration }}
-      internal: ${{ inputs.internal && true || false }}
       rolling-update-partition: ${{ inputs.rolling-update-partition }}
-      # temporary solution before clean up of not required arguments in update
-      sudo-account-id: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
+      update: true
