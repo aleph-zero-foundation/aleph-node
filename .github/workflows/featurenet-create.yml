@@ -38,6 +38,11 @@ on:
         description: 'Use short session aleph-node binary'
         required: true
         type: boolean
+      sudo-account-id:
+        description: 'Sudo account ID'
+        type: string
+        required: true
+        default: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
 
 jobs:
   validate-inputs:
@@ -105,3 +110,4 @@ jobs:
       expiration: ${{ inputs.expiration }}
       internal: ${{ inputs.internal && true || false }}
       delete-first: true
+      sudo-account-id: ${{ inputs.sudo-account-id }}
