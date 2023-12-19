@@ -147,6 +147,26 @@ impl<I: PeerId, J: Justification> VertexWithChildren<I, J> {
     }
 }
 
+/// Forest status that will be logged periodically.
+pub struct Status {
+    /// Number of the highest finalized block.
+    finalized: BlockId,
+    /// Number of the highest imported block.
+    imported: BlockId,
+    /// Number of the favourite block.
+    favourite: BlockId,
+}
+
+impl Display for Status {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
+        write!(
+            f,
+            "Imported: {}, finalized: {}, favourite: {}.",
+            self.imported, self.finalized, self.favourite
+        )
+    }
+}
+
 // How deep can the forest be, vaguely based on two sessions ahead, which is the most we expect to
 // ever need worst case scenario.
 //
@@ -682,6 +702,20 @@ where
     /// The header of the favourite block, i.e. the one for which we will accept imports of children.
     pub fn favourite_block(&self) -> J::Header {
         self.favourite.clone()
+    }
+
+    /// Reports status of the Forest.
+    pub fn status(&self) -> Status {
+        Status {
+            finalized: self.root.id(),
+            imported: self
+                .imported_leaves
+                .keys()
+                .max_by_key(|leaf_id| leaf_id.number())
+                .unwrap_or(&self.root.id())
+                .clone(),
+            favourite: self.favourite_block().id(),
+        }
     }
 }
 

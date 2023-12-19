@@ -17,7 +17,7 @@ use crate::{
         data::{BranchKnowledge, MaybeHeader, NetworkData, Request, State},
         forest::{
             Error as ForestError, ExtensionRequest, Forest,
-            InitializationError as ForestInitializationError, Interest,
+            InitializationError as ForestInitializationError, Interest, Status as ForestStatus,
         },
         handler::request_handler::RequestHandler,
         PeerId,
@@ -432,6 +432,10 @@ where
             missed_import_data,
             phantom: PhantomData,
         })
+    }
+
+    pub fn status(&self) -> ForestStatus {
+        self.forest.status()
     }
 
     fn try_finalize(&mut self) -> Result<(), <Self as HandlerTypes>::Error> {

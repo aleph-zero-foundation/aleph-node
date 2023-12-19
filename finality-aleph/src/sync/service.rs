@@ -1,8 +1,9 @@
 use std::{collections::HashSet, time::Duration};
 
 use futures::{channel::mpsc, StreamExt};
-use log::{debug, error, trace, warn};
+use log::{debug, error, info, trace, warn};
 use substrate_prometheus_endpoint::Registry;
+use tokio::time;
 
 use crate::{
     block::{
@@ -26,7 +27,7 @@ use crate::{
         ticker::Ticker,
         BlockId, JustificationSubmissions, LegacyRequestBlocks, RequestBlocks, LOG_TARGET,
     },
-    SyncOracle,
+    SyncOracle, STATUS_REPORT_INTERVAL,
 };
 
 const BROADCAST_COOLDOWN: Duration = Duration::from_millis(600);
@@ -725,6 +726,7 @@ where
 
     /// Stay synchronized.
     pub async fn run(mut self) {
+        let mut status_ticker = time::interval(STATUS_REPORT_INTERVAL);
         loop {
             tokio::select! {
                 maybe_data = self.network.next() => match maybe_data {
@@ -765,6 +767,9 @@ where
                         self.handle_own_block(block)
                     },
                     None => warn!(target: LOG_TARGET, "Channel with own blocks closed."),
+                },
+                _ = status_ticker.tick() => {
+                    info!(target: LOG_TARGET, "{}", self.handler.status());
                 },
             }
         }
