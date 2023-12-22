@@ -1,0 +1,58 @@
+---
+name: Weekly test featurenets create (short session, full sha)
+
+on:
+  # At 03:20 on Wednesday
+  schedule:
+    - cron: '20 3 * * 3'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
+  create-featurenet-from-full-sha:
+    needs: [check-vars-and-secrets]
+    name: Create featurenet from full SHA
+    uses: ./.github/workflows/featurenet-create.yml
+    secrets: inherit
+    with:
+      featurenet-name: 'ops-test-full-hash'
+      ref: '787c39186884aaf86ed48f46f575a8cd8cfd13e8'
+      expiration: '2h'
+      validators: '5'
+      internal: true
+      short-session: true
+
+  delete-featurenet:
+    if: ${{ always() }}
+    needs: [create-featurenet-from-full-sha]
+    name: Delete featurenet
+    uses: ./.github/workflows/featurenet-delete.yml
+    secrets: inherit
+    with:
+      featurenet-name: 'ops-test-full-hash'
+
+  slack:
+    name: Slack notification
+    runs-on: ubuntu-20.04
+    needs: [delete-featurenet]
+    if: >
+      !cancelled() &&
+      github.event_name != 'workflow_dispatch'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Send Slack message
+        uses: ./.github/actions/slack-notification
+        with:
+          notify-on: "failure"
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_DEV_ONDUTY }}

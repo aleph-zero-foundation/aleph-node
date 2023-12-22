@@ -1,0 +1,73 @@
+---
+# This workflow performs from Testnet to the latest main update.
+# Test means that net starts from plain (empty) aleph-node chain, bootstraped using starting
+# node image, and then performs rolling restart to target node image
+# What this test validates are changes in finalization area to aleph-node binary
+
+name: Nightly update net test from Testnet to main
+on:
+  workflow_dispatch:
+  # Daily at 02:20
+  schedule:
+    - cron: '20 02 * * *'
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  check-vars-and-secrets:
+    name: Check vars and secrets
+    uses: ./.github/workflows/_check-vars-and-secrets.yml
+    secrets: inherit
+
+  create-featurenet-from-testnet:
+    needs: [check-vars-and-secrets]
+    name: Create featurenet from testnet
+    uses: ./.github/workflows/featurenet-create.yml
+    secrets: inherit
+    with:
+      featurenet-name: 'ops-updatenet-testnet'
+      ref: 'testnet'
+      expiration: '4h'
+      validators: '8'
+      internal: true
+      short-session: false
+
+  update-featurenet-to-main:
+    needs: [create-featurenet-from-testnet]
+    name: Update featurenet to main
+    uses: ./.github/workflows/featurenet-update.yml
+    secrets: inherit
+    with:
+      featurenet-name: 'ops-updatenet-testnet'
+      ref: 'main'
+      rolling-update-partition: '0'
+      short-session: false
+
+  delete-featurenet:
+    if: ${{ always() }}
+    needs: [update-featurenet-to-main]
+    name: Delete featurenet
+    uses: ./.github/workflows/featurenet-delete.yml
+    secrets: inherit
+    with:
+      featurenet-name: 'ops-updatenet-testnet'
+
+  slack-notification:
+    name: Slack notification
+    runs-on: ubuntu-20.04
+    needs: [delete-featurenet]
+    if: >
+      !cancelled() &&
+      github.event_name != 'workflow_dispatch'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Send Slack message
+        uses: ./.github/actions/slack-notification
+        with:
+          notify-on: "failure"
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_DEV_ONDUTY }}

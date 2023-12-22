@@ -41,7 +41,41 @@ on:
       sudo-account-id:
         description: 'Sudo account ID'
         type: string
+        required: false
+        default: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
+  workflow_call:
+    inputs:
+      featurenet-name:
+        description: 'Name of the featurenet'
+        type: string
         required: true
+      ref:
+        description: "git ref: full commit hash, branch, tag - or 'mainnet' or 'testnet'"
+        type: string
+        required: true
+      expiration:
+        description: 'Time after which featurenet will be removed'
+        required: true
+        type: string
+        default: '48h'
+      validators:
+        description: 'Number of validators to start, from 0 to 50'
+        required: true
+        default: '5'
+        type: string
+      internal:
+        description: 'Internal network, accessible from VPN only'
+        required: true
+        type: boolean
+        default: false
+      short-session:
+        description: 'Use short session aleph-node binary'
+        required: true
+        type: boolean
+      sudo-account-id:
+        description: 'Sudo account ID'
+        type: string
+        required: false
         default: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
 
 jobs:
@@ -100,7 +134,7 @@ jobs:
     needs: [get-full-docker-image-path, build-and-push-featurenet-node-image]
     # to prevent this job to be skipped when on of the parent jobs is skipped
     if: ${{ !cancelled() }}
-    name: Create featurenet from branch
+    name: Create featurenet
     uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-create.yml@v6
     secrets: inherit
     with:

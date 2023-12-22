@@ -24,6 +24,28 @@ on:
         description: 'Use short session aleph-node binary'
         required: true
         type: boolean
+  workflow_call:
+    inputs:
+      featurenet-name:
+        description: 'Name of featurenet'
+        required: true
+        type: string
+      ref:
+        description: 'git ref: full commit hash, branch, tag'
+        required: true
+        type: string
+      rolling-update-partition:
+        description: |
+          A number from 0 to N-1, where N is a number of validators.
+          All aleph-node-validator-N with an ordinal N that is great than or equal to the partition
+          will be updated. If not specified, all nodes will be updated.
+        required: true
+        default: "0"
+        type: string
+      short-session:
+        description: 'Use short session aleph-node binary'
+        required: true
+        type: boolean
 
 jobs:
   validate-inputs:
