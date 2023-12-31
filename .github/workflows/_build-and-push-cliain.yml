@@ -71,7 +71,7 @@ jobs:
         uses: Cardinal-Cryptography/github-actions/get-ref-properties@v5
 
       - name: Download cliain from GH artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: cliain
           path: bin/cliain/target/release/cliain

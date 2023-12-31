@@ -51,7 +51,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download release artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: aleph-test-node
           path: target/release/
