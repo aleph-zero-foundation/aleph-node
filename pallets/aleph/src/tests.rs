@@ -87,6 +87,21 @@ fn test_session_rotation() {
 }
 
 #[test]
+fn test_session_rotation_with_larger_permuted_authorities() {
+    new_test_ext(&[(1u64, 1u64), (2u64, 2u64)]).execute_with(|| {
+        initialize_session();
+        run_session(1);
+
+        NextFinalityCommittee::<Test>::put(vec![5, 6]);
+        let new_validators = new_session_validators(&[1, 2]);
+        let queued_validators = new_session_validators(&[6, 4, 5]);
+        Aleph::on_new_session(true, new_validators, queued_validators);
+        assert_eq!(Aleph::authorities(), to_authorities(&[1, 2]));
+        assert_eq!(Aleph::next_authorities(), to_authorities(&[5, 6]));
+    })
+}
+
+#[test]
 fn test_emergency_signer() {
     new_test_ext(&[(1u64, 1u64), (2u64, 2u64)]).execute_with(|| {
         initialize_session();

@@ -33,7 +33,7 @@ pub mod pallet {
     };
     use pallet_session::SessionManager;
     use primitives::SessionInfoProvider;
-    use sp_std::collections::btree_set::BTreeSet;
+    use sp_std::collections::btree_map::BTreeMap;
     #[cfg(feature = "std")]
     use sp_std::marker::PhantomData;
 
@@ -132,21 +132,15 @@ pub mod pallet {
         fn get_authorities_for_next_session(
             next_authorities: Vec<(&T::AccountId, T::AuthorityId)>,
         ) -> Vec<T::AuthorityId> {
-            let next_committee_ids: BTreeSet<_> =
-                NextFinalityCommittee::<T>::get().into_iter().collect();
-
-            let next_committee_authorities: Vec<_> = next_authorities
+            let mut account_to_authority: BTreeMap<_, _> = next_authorities.into_iter().collect();
+            let next_committee_accounts = NextFinalityCommittee::<T>::get();
+            let expected_len = next_committee_accounts.len();
+            let next_committee_authorities: Vec<_> = next_committee_accounts
                 .into_iter()
-                .filter_map(|(account_id, auth_id)| {
-                    if next_committee_ids.contains(account_id) {
-                        Some(auth_id)
-                    } else {
-                        None
-                    }
-                })
+                .filter_map(|account_id| account_to_authority.remove(&account_id))
                 .collect();
 
-            if next_committee_authorities.len() != next_committee_ids.len() {
+            if next_committee_authorities.len() != expected_len {
                 log::error!(
                     target: LOG_TARGET,
                     "Not all committee members were converted to keys."
