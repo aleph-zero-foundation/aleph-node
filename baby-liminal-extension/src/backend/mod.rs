@@ -1,5 +1,6 @@
+use aleph_runtime_interfaces::snark_verifier::VerifierError::*;
 use environment::Environment as EnvironmentT;
-use executor::{BackendExecutor as BackendExecutorT, ExecutorError::*};
+use executor::BackendExecutor as BackendExecutorT;
 use frame_support::{pallet_prelude::DispatchError, sp_runtime::AccountId32};
 use frame_system::Config as SystemConfig;
 use log::error;
@@ -91,7 +92,6 @@ where
         // ------- Translate the status. -----------------------------------------------------------
         let status = match result {
             Ok(()) => VERIFY_SUCCESS,
-            Err(DeserializingProofFailed) => VERIFY_DESERIALIZING_PROOF_FAIL,
             Err(DeserializingPublicInputFailed) => VERIFY_DESERIALIZING_INPUT_FAIL,
             Err(UnknownVerificationKeyIdentifier) => VERIFY_UNKNOWN_IDENTIFIER,
             Err(DeserializingVerificationKeyFailed) => VERIFY_DESERIALIZING_KEY_FAIL,

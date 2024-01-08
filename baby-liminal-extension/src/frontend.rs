@@ -12,7 +12,6 @@ use ink::{
 pub enum BabyLiminalError {
     // Proof verification errors.
     UnknownVerificationKeyIdentifier,
-    DeserializingProofFailed,
     DeserializingPublicInputFailed,
     DeserializingVerificationKeyFailed,
     VerificationFailed,
@@ -40,7 +39,6 @@ impl ink::env::chain_extension::FromStatusCode for BabyLiminalError {
             VERIFY_SUCCESS => Ok(()),
 
             // Proof verification errors
-            VERIFY_DESERIALIZING_PROOF_FAIL => Err(Self::DeserializingProofFailed),
             VERIFY_DESERIALIZING_INPUT_FAIL => Err(Self::DeserializingPublicInputFailed),
             VERIFY_UNKNOWN_IDENTIFIER => Err(Self::UnknownVerificationKeyIdentifier),
             VERIFY_DESERIALIZING_KEY_FAIL => Err(Self::DeserializingVerificationKeyFailed),

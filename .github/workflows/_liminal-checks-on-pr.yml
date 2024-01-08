@@ -55,6 +55,23 @@ jobs:
         working-directory: baby-liminal-extension
         run: make test
 
+  runtime-interface-unit-tests:
+    name: Run unit tests for the SNARK verification runtime interface
+    runs-on: [self-hosted, Linux, X64, large]
+    env:
+      CARGO_INCREMENTAL: 0
+      RUSTC_WRAPPER: sccache
+    steps:
+      - name: Checkout Source code
+        uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v4
+
+      - name: Run tests for SNARK verification runtime interface
+        working-directory: runtime-interfaces
+        run: cargo test --release --features "liminal-std"
+
   liminal-cliain-build:
     name: Liminal cliain build
     uses: ./.github/workflows/_build-and-push-cliain.yml

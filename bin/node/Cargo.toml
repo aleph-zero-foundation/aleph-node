@@ -63,6 +63,7 @@ frame-benchmarking-cli = { workspace = true, optional = true }
 frame-benchmarking = { workspace = true, optional = true }
 
 aleph-runtime = { workspace = true }
+aleph-runtime-interfaces = { workspace = true, optional = true }
 finality-aleph = { workspace = true }
 primitives = { workspace = true }
 
@@ -104,6 +105,7 @@ only_legacy = [
 # Liminal-related features
 liminal = [
     "aleph-runtime/liminal",
+    "aleph-runtime-interfaces/liminal-std",
 ]
 liminal-try-runtime = [
     "liminal",

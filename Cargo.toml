@@ -29,6 +29,7 @@ exclude = [
     "relations/ark",
     "relations/ark/src/proc_macro",
     "relations/jf",
+    "runtime-interfaces",
     "scripts/synthetic-network/synthetic-link",
 ]
 
@@ -178,11 +179,7 @@ pallets-support = { path = "pallets/support", default-features = false }
 primitives = { path = "primitives", default-features = false }
 
 # Liminal-related dependencies
-ark-bls12-381 = { version = "^0.3.0" }
-ark-ff = { version = "^0.3.0", default-features = false }
-ark-serialize = { version = "^0.3.0", default-features = false }
-ark-r1cs-std = { version = "^0.3.0" , default-features = false }
-ark-relations = { version = "^0.3.0", default-features = false }
 
+aleph-runtime-interfaces = { path = "runtime-interfaces", default-features = false }
 baby-liminal-extension = { path = "baby-liminal-extension", default-features = false }
 pallet-vk-storage = { path = "pallets/vk-storage", default-features = false }

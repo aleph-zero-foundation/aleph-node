@@ -1,7 +1,6 @@
-use crate::{
-    args::VerifyArgs,
-    backend::executor::{BackendExecutor, ExecutorError},
-};
+use aleph_runtime_interfaces::snark_verifier::VerifierError;
+
+use crate::{args::VerifyArgs, backend::executor::BackendExecutor};
 
 /// Describes how the `Executor` should behave when one of its methods is called.
 #[derive(Clone, Eq, PartialEq)]
@@ -11,13 +10,13 @@ pub enum Responder {
     /// Return `Ok(())`.
     Okayer,
     /// Return `Err(Error)`.
-    Errorer(ExecutorError),
+    Errorer(VerifierError),
 }
 
 /// Auxiliary method to construct type argument.
 ///
 /// Due to "`struct/enum construction is not supported in generic constants`".
-pub const fn make_errorer<const ERROR: ExecutorError>() -> Responder {
+pub const fn make_errorer<const ERROR: VerifierError>() -> Responder {
     Responder::Errorer(ERROR)
 }
 
@@ -33,10 +32,10 @@ pub type Panicker = MockedExecutor<{ Responder::Panicker }>;
 pub type VerifyOkayer = MockedExecutor<{ Responder::Okayer }>;
 
 /// Executor that will return `Err(ERROR)` for `verify`.
-pub type VerifyErrorer<const ERROR: ExecutorError> = MockedExecutor<{ make_errorer::<ERROR>() }>;
+pub type VerifyErrorer<const ERROR: VerifierError> = MockedExecutor<{ make_errorer::<ERROR>() }>;
 
 impl<const VERIFY_RESPONDER: Responder> BackendExecutor for MockedExecutor<VERIFY_RESPONDER> {
-    fn verify(_: VerifyArgs) -> Result<(), ExecutorError> {
+    fn verify(_: VerifyArgs) -> Result<(), VerifierError> {
         match VERIFY_RESPONDER {
             Responder::Panicker => panic!("Function `verify` shouldn't have been executed"),
             Responder::Okayer => Ok(()),

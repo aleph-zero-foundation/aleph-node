@@ -4,12 +4,13 @@ mod executor;
 mod weighting;
 
 use aleph_runtime::Runtime as AlephRuntime;
+use aleph_runtime_interfaces::snark_verifier::VerifierError::*;
 use frame_support::pallet_prelude::Weight;
 use pallet_contracts::chain_extension::{ChainExtension, RetVal};
 
 use crate::{
     backend::{
-        executor::{BackendExecutor, ExecutorError::*},
+        executor::BackendExecutor,
         tests::{
             arguments::verify_args,
             environment::{CorruptedMode, MockedEnvironment, StandardMode, VerifyMode},
@@ -62,12 +63,6 @@ fn verify__charges_before_reading_arguments() {
 #[allow(non_snake_case)]
 fn verify__positive_scenario() {
     simulate_verify::<VerifyOkayer>(VERIFY_SUCCESS)
-}
-
-#[test]
-#[allow(non_snake_case)]
-fn verify__pallet_says_proof_deserialization_failed() {
-    simulate_verify::<VerifyErrorer<{ DeserializingProofFailed }>>(VERIFY_DESERIALIZING_PROOF_FAIL)
 }
 
 #[test]
