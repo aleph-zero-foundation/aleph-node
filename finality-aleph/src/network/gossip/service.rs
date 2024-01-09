@@ -1,3 +1,4 @@
+use core::fmt;
 use std::{
     collections::{HashMap, HashSet},
     fmt::{Debug, Display, Error as FmtError, Formatter},
@@ -7,7 +8,7 @@ use std::{
 };
 
 use futures::{channel::mpsc, StreamExt};
-use log::{debug, error, info, trace, warn};
+use log::{debug, info, trace, warn};
 use network_clique::SpawnHandleT;
 use rand::{seq::IteratorRandom, thread_rng};
 use substrate_prometheus_endpoint::Registry;
@@ -72,6 +73,31 @@ impl Display for Error {
         match self {
             ServiceStopped => {
                 write!(f, "gossip network service stopped")
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum GossipServiceError {
+    NetworkStreamTerminated,
+    AuthorizationStreamTerminated,
+    BlockSyncStreamTerminated,
+    UnableToForwardMessageToUser,
+}
+
+impl fmt::Display for GossipServiceError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            GossipServiceError::NetworkStreamTerminated => write!(f, "Network event stream ended."),
+            GossipServiceError::AuthorizationStreamTerminated => {
+                write!(f, "Authentication user message stream ended.")
+            }
+            GossipServiceError::BlockSyncStreamTerminated => {
+                write!(f, "Block sync user message stream ended.")
+            }
+            GossipServiceError::UnableToForwardMessageToUser => {
+                write!(f, "Cannot forward messages to user.")
             }
         }
     }
@@ -503,36 +529,28 @@ impl<N: RawNetwork, ES: EventStream<N::PeerId>, AD: Data, BSD: Data> Service<N, 
         info!(target: LOG_TARGET, "{}", status);
     }
 
-    pub async fn run(mut self) {
+    pub async fn run(mut self) -> Result<(), GossipServiceError> {
+        use GossipServiceError as Error;
+
         let mut status_ticker = time::interval(STATUS_REPORT_INTERVAL);
         loop {
             tokio::select! {
-                maybe_event = self.network_event_stream.next_event() => match maybe_event {
-                    Some(event) => if self.handle_network_event(event).is_err() {
-                        error!(target: LOG_TARGET, "Cannot forward messages to user.");
-                        return;
-                    },
-                    None => {
-                        error!(target: LOG_TARGET, "Network event stream ended.");
-                        return;
+                maybe_event = self.network_event_stream.next_event() => {
+                    let event = maybe_event.ok_or(Error::NetworkStreamTerminated)?;
+                    self.handle_network_event(event).map_err(|_| Error::UnableToForwardMessageToUser)?;
+                },
+                maybe_message = self.messages_from_authentication_user.next() => {
+                    match maybe_message.ok_or(Error::AuthorizationStreamTerminated)? {
+                        Command::Broadcast(message) => self.broadcast_authentication(message),
+                        Command::SendToRandom(message, peer_ids) => self.send_to_random_authentication(message, peer_ids),
+                        Command::Send(message, peer_id) => self.send_authentication_data(message, peer_id),
                     }
                 },
-                maybe_message = self.messages_from_authentication_user.next() => match maybe_message {
-                    Some(Command::Broadcast(message)) => self.broadcast_authentication(message),
-                    Some(Command::SendToRandom(message, peer_ids)) => self.send_to_random_authentication(message, peer_ids),
-                    Some(Command::Send(message, peer_id)) => self.send_authentication_data(message, peer_id),
-                    None => {
-                        error!(target: LOG_TARGET, "Authentication user message stream ended.");
-                        return;
-                    }
-                },
-                maybe_message = self.messages_from_block_sync_user.next() => match maybe_message {
-                    Some(Command::Broadcast(message)) => self.broadcast_block_sync(message),
-                    Some(Command::SendToRandom(message, peer_ids)) => self.send_to_random_block_sync(message, peer_ids),
-                    Some(Command::Send(message, peer_id)) => self.send_block_sync_data(message, peer_id),
-                    None => {
-                        error!(target: LOG_TARGET, "Block sync user message stream ended.");
-                        return;
+                maybe_message = self.messages_from_block_sync_user.next() => {
+                    match maybe_message.ok_or(Error::BlockSyncStreamTerminated)? {
+                        Command::Broadcast(message) => self.broadcast_block_sync(message),
+                        Command::SendToRandom(message, peer_ids) => self.send_to_random_block_sync(message, peer_ids),
+                        Command::Send(message, peer_id) => self.send_block_sync_data(message, peer_id),
                     }
                 },
                 _ = status_ticker.tick() => {

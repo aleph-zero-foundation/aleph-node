@@ -1,7 +1,7 @@
 use std::{marker::PhantomData, sync::Arc, time::Duration};
 
 use futures::channel::oneshot;
-use log::{debug, warn};
+use log::{debug, error, warn};
 use parking_lot::Mutex;
 use sc_client_api::HeaderBackend;
 use sp_consensus::SelectChain;
@@ -17,6 +17,8 @@ use crate::{
     party::manager::Runnable,
     BlockId, SessionBoundaries,
 };
+
+const LOG_TARGET: &str = "aleph-data-store";
 
 // Reduce block header to the level given by num, by traversing down via parents.
 pub fn reduce_header_to_num<B, C>(client: &C, header: B::Header, num: BlockNumber) -> B::Header
@@ -51,7 +53,10 @@ where
     if let Some(header) = client.header(block.hash()).expect("client must respond") {
         Some((*header.parent_hash(), block.number() - 1).into())
     } else {
-        warn!(target: "aleph-data-store", "Trying to fetch the parent of an unknown block {:?}.", block);
+        warn!(
+            target: LOG_TARGET,
+            "Trying to fetch the parent of an unknown block {:?}.", block
+        );
         None
     }
 }
@@ -86,7 +91,12 @@ where
     } else {
         // By backtracking from the best block we reached a block conflicting with best finalized.
         // This is most likely a bug, or some extremely unlikely synchronization issue of the client.
-        warn!(target: "aleph-data-store", "Error computing proposal. Conflicting blocks: {:?}, finalized {:?}", curr_block, finalized_block);
+        warn!(
+            target: LOG_TARGET,
+            "Error computing proposal. Conflicting blocks: {:?}, finalized {:?}",
+            curr_block,
+            finalized_block
+        );
         Err(())
     }
 }
@@ -202,7 +212,12 @@ where
         }
         if best_block_in_session.number() < finalized_block.number() {
             // Because of the client synchronization, in extremely rare cases this could happen.
-            warn!(target: "aleph-data-store", "Error updating data. best_block {:?} is lower than finalized {:?}.", best_block_in_session, finalized_block);
+            warn!(
+                target: LOG_TARGET,
+                "Error updating data. best_block {:?} is lower than finalized {:?}.",
+                best_block_in_session,
+                finalized_block
+            );
             return;
         }
 
@@ -271,22 +286,13 @@ where
         }
     }
 
-    pub async fn run(mut self, mut exit: oneshot::Receiver<()>) {
+    async fn run(mut self) {
         let mut best_block_in_session: Option<BlockId> = None;
         loop {
-            let delay = futures_timer::Delay::new(self.config.refresh_interval);
-            tokio::select! {
-                _ = delay => {
-                    best_block_in_session = self.get_best_block_in_session(best_block_in_session).await;
-                    if let Some(best_block) = &best_block_in_session {
-                        self.update_data(best_block);
-                    }
-
-                }
-                _ = &mut exit => {
-                    debug!(target: "aleph-data-store", "Task for refreshing best chain received exit signal. Terminating.");
-                    return;
-                }
+            futures_timer::Delay::new(self.config.refresh_interval).await;
+            best_block_in_session = self.get_best_block_in_session(best_block_in_session).await;
+            if let Some(best_block) = &best_block_in_session {
+                self.update_data(best_block);
             }
         }
     }
@@ -301,7 +307,10 @@ where
     SC: SelectChain<B> + 'static,
 {
     async fn run(mut self, exit: oneshot::Receiver<()>) {
-        ChainTracker::run(self, exit).await
+        tokio::select! {
+            _ = self.run() => error!(target: LOG_TARGET, "Task for refreshing best chain finished."),
+            _ = exit => debug!(target: LOG_TARGET, "Task for refreshing best chain received exit signal. Terminating."),
+        }
     }
 }
 
@@ -329,7 +338,7 @@ impl DataProvider {
             let hash = *data.head_proposal.branch.last().unwrap();
             self.metrics
                 .report_block(BlockId::new(hash, number), Checkpoint::Proposed, None);
-            debug!(target: "aleph-data-store", "Outputting {:?} in get_data", data);
+            debug!(target: LOG_TARGET, "Outputting {:?} in get_data", data);
         };
 
         data_to_propose
@@ -350,6 +359,7 @@ mod tests {
             DataProvider, MAX_DATA_BRANCH_LEN,
         },
         metrics::AllBlockMetrics,
+        party::manager::Runnable,
         testing::{
             client_chain_builder::ClientChainBuilder,
             mocks::{TestClientBuilder, TestClientBuilderExt},
@@ -391,7 +401,7 @@ mod tests {
         let (exit_chain_tracker_tx, exit_chain_tracker_rx) = oneshot::channel();
         (
             async move {
-                chain_tracker.run(exit_chain_tracker_rx).await;
+                Runnable::run(chain_tracker, exit_chain_tracker_rx).await;
             },
             exit_chain_tracker_tx,
             chain_builder,

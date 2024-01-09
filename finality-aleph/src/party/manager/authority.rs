@@ -91,7 +91,7 @@ impl Subtasks {
         result
     }
 
-    /// Blocks until the task is done and returns true if it quit unexpectedly.
+    /// Blocks until the task is done and returns Err if it quit unexpectedly.
     pub async fn wait_completion(mut self) -> Result<(), ()> {
         let result = tokio::select! {
             _ = &mut self.exit => Ok(()),

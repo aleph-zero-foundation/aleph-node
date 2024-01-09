@@ -4,7 +4,7 @@ use std::{
     time::Duration,
 };
 
-use futures::channel::oneshot;
+use futures::{channel::oneshot, future::FusedFuture};
 use network_clique::{
     mock::{
         key, random_address_from, MockAddressingInformation, MockNetwork as MockCliqueNetwork,
@@ -119,13 +119,19 @@ async fn prepare_one_session_test_data() -> TestData {
     let sync_network = Box::new(sync_network);
 
     let network_manager_task = async move {
+        if network_manager_exit_rx.is_terminated() {
+            return;
+        }
         tokio::select! {
-            _ =connection_manager_service.run() => { },
+            _ = connection_manager_service.run() => { },
             _ = network_manager_exit_rx => { },
         };
     };
 
     let gossip_service_task = async move {
+        if gossip_service_exit_rx.is_terminated() {
+            return;
+        }
         tokio::select! {
             _ = gossip_service.run() => { },
             _ = gossip_service_exit_rx => { },

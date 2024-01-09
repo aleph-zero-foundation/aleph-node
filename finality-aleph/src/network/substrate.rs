@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fmt, iter, pin::Pin, sync::Arc};
 
 use async_trait::async_trait;
-use futures::stream::{Stream, StreamExt};
+use futures::stream::{Fuse, Stream, StreamExt};
 use log::{error, trace, warn};
 use sc_network::{
     multiaddr::Protocol as MultiaddressProtocol, Event as SubstrateEvent, Multiaddr,
@@ -11,7 +11,6 @@ use sc_network::{
 use sc_network_common::{sync::SyncEvent, ExHashT};
 use sc_network_sync::SyncingService;
 use sp_runtime::traits::Block;
-use tokio::select;
 
 use crate::network::gossip::{Event, EventStream, NetworkSender, Protocol, RawNetwork};
 
@@ -124,8 +123,8 @@ impl NetworkSender for SubstrateNetworkSender {
 }
 
 pub struct NetworkEventStream<B: Block, H: ExHashT> {
-    stream: Pin<Box<dyn Stream<Item = SubstrateEvent> + Send>>,
-    sync_stream: Pin<Box<dyn Stream<Item = SyncEvent> + Send>>,
+    stream: Fuse<Pin<Box<dyn Stream<Item = SubstrateEvent> + Send>>>,
+    sync_stream: Fuse<Pin<Box<dyn Stream<Item = SyncEvent> + Send>>>,
     naming: ProtocolNaming,
     network: Arc<NetworkService<B, H>>,
 }
@@ -137,7 +136,7 @@ impl<B: Block, H: ExHashT> EventStream<PeerId> for NetworkEventStream<B, H> {
         use SubstrateEvent::*;
         use SyncEvent::*;
         loop {
-            select! {
+            tokio::select! {
                 Some(event) = self.stream.next() => {
                     match event {
                         NotificationStreamOpened {
@@ -237,8 +236,11 @@ impl<B: Block, H: ExHashT> SubstrateNetwork<B, H> {
 
     pub fn event_stream(&self) -> NetworkEventStream<B, H> {
         NetworkEventStream {
-            stream: Box::pin(self.network.event_stream("aleph-network")),
-            sync_stream: Box::pin(self.sync_network.event_stream("aleph-syncing-network")),
+            stream: self.network.event_stream("aleph-network").fuse(),
+            sync_stream: self
+                .sync_network
+                .event_stream("aleph-syncing-network")
+                .fuse(),
             naming: self.naming.clone(),
             network: self.network.clone(),
         }

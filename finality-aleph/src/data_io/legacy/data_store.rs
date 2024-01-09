@@ -1,6 +1,7 @@
 use std::{
     collections::{hash_map::Entry::Occupied, BTreeMap, HashMap, HashSet},
     default::Default,
+    fmt::Display,
     hash::Hash,
     num::NonZeroUsize,
     sync::Arc,
@@ -12,6 +13,7 @@ use futures::{
         mpsc::{self, UnboundedSender},
         oneshot,
     },
+    stream::FusedStream,
     StreamExt,
 };
 use futures_timer::Delay;
@@ -102,6 +104,29 @@ impl Default for DataStoreConfig {
             available_proposals_cache_capacity: NonZeroUsize::new(8000).unwrap(),
             periodic_maintenance_interval: Duration::from_secs(25),
             request_block_after: Duration::from_secs(20),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Error {
+    BlockImportStreamClosed,
+    FinalizedBlocksStreamClosed,
+    NetworkMessagesTerminated,
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::BlockImportStreamClosed => {
+                write!(f, "Block import notification stream was closed.")
+            }
+            Error::FinalizedBlocksStreamClosed => {
+                write!(f, "Finalized block import notification stream was closed.")
+            }
+            Error::NetworkMessagesTerminated => {
+                write!(f, "Stream with network messages was closed.")
+            }
         }
     }
 }
@@ -233,26 +258,36 @@ where
         )
     }
 
-    pub async fn run(&mut self, mut exit: oneshot::Receiver<()>) {
+    pub async fn run(&mut self, mut exit: oneshot::Receiver<()>) -> Result<(), Error> {
         let mut maintenance_clock = Delay::new(self.config.periodic_maintenance_interval);
         let mut import_stream = self.client.import_notification_stream();
+        if import_stream.is_terminated() {
+            return Err(Error::BlockImportStreamClosed);
+        }
         let mut finality_stream = self.client.finality_notification_stream();
+        if finality_stream.is_terminated() {
+            return Err(Error::FinalizedBlocksStreamClosed);
+        }
         loop {
             self.prune_pending_messages();
             self.prune_triggers();
+
             tokio::select! {
-                Some(message) = self.messages_from_network.next() => {
+                maybe_message = self.messages_from_network.next() => {
+                    let message = maybe_message.ok_or(Error::NetworkMessagesTerminated)?;
                     trace!(target: "aleph-data-store", "Received message at Data Store {:?}", message);
                     self.on_message_received(message);
-                }
-                Some(block) = &mut import_stream.next() => {
+                },
+                maybe_block = import_stream.next() => {
+                    let block = maybe_block.ok_or(Error::BlockImportStreamClosed)?;
                     trace!(target: "aleph-data-store", "Block import notification at Data Store for block {:?}", block);
                     self.on_block_imported((block.header.hash(), *block.header.number()).into());
                 },
-                Some(block) = &mut finality_stream.next() => {
+                maybe_block = finality_stream.next() => {
+                    let block = maybe_block.ok_or(Error::FinalizedBlocksStreamClosed)?;
                     trace!(target: "aleph-data-store", "Finalized block import notification at Data Store for block {:?}", block);
                     self.on_block_finalized((block.header.hash(), *block.header.number()).into());
-                }
+                },
                 _ = &mut maintenance_clock => {
                     self.run_maintenance();
                     maintenance_clock = Delay::new(self.config.periodic_maintenance_interval);
@@ -263,6 +298,8 @@ where
                 }
             }
         }
+        debug!(target: "aleph-data-store", "Data store finished");
+        Ok(())
     }
 
     // Updates our highest known and highest finalized block info directly from the client.
@@ -653,6 +690,8 @@ where
     R: Receiver<Message> + 'static,
 {
     async fn run(mut self, exit: oneshot::Receiver<()>) {
-        DataStore::run(&mut self, exit).await
+        if let Err(err) = DataStore::run(&mut self, exit).await {
+            error!(target: "aleph-data-store", "Legacy DataStore exited with error: {err}.");
+        }
     }
 }

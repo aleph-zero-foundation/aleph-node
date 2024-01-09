@@ -57,7 +57,10 @@ fn spawn_peer(
     // run the service
     tokio::spawn(async {
         let (_exit, rx) = oneshot::channel();
-        service.run(rx).await;
+        service
+            .run(rx)
+            .await
+            .expect("Service should exit without any errors");
     });
     // start connecting with the peers
     let mut peer_ids = Vec::with_capacity(addr.len());

@@ -1,10 +1,10 @@
 use std::{
+    fmt::Display,
     num::NonZeroUsize,
     time::{Duration, Instant},
 };
 
-use futures::StreamExt;
-use log::warn;
+use futures::{stream::FusedStream, StreamExt};
 use lru::LruCache;
 use sc_client_api::{
     BlockBackend, BlockImportNotification, FinalityNotification, FinalityNotifications,
@@ -19,10 +19,9 @@ use sp_runtime::{
 use substrate_prometheus_endpoint::{
     register, Counter, Gauge, Histogram, HistogramOpts, PrometheusError, Registry, U64,
 };
-use tokio::select;
 
 use crate::{
-    metrics::{exponential_buckets_two_sided, TransactionPoolInfoProvider, LOG_TARGET},
+    metrics::{exponential_buckets_two_sided, TransactionPoolInfoProvider},
     BlockNumber,
 };
 
@@ -30,6 +29,35 @@ use crate::{
 const TRANSACTION_CACHE_SIZE: usize = 100_000;
 
 const BUCKETS_FACTOR: f64 = 1.4;
+
+#[derive(Debug)]
+pub enum Error {
+    NoRegistry,
+    UnableToCreateMetrics(PrometheusError),
+    BlockImportStreamClosed,
+    FinalizedBlocksStreamClosed,
+    TransactionStreamClosed,
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::NoRegistry => write!(f, "Registry can not be empty."),
+            Error::UnableToCreateMetrics(e) => {
+                write!(f, "Failed to create metrics: {e}.")
+            }
+            Error::BlockImportStreamClosed => {
+                write!(f, "Block import notification stream ended unexpectedly.")
+            }
+            Error::FinalizedBlocksStreamClosed => {
+                write!(f, "Finality notification stream ended unexpectedly.")
+            }
+            Error::TransactionStreamClosed => {
+                write!(f, "Transaction stream ended unexpectedly.")
+            }
+        }
+    }
+}
 
 enum ChainStateMetrics {
     Prometheus {
@@ -135,59 +163,48 @@ pub async fn run_chain_state_metrics<
     TP: TransactionPoolInfoProvider<Extrinsic = X>,
 >(
     backend: &BE,
-    import_notifications: ImportNotifications<B>,
-    finality_notifications: FinalityNotifications<B>,
+    mut import_notifications: ImportNotifications<B>,
+    mut finality_notifications: FinalityNotifications<B>,
     registry: Option<Registry>,
     mut transaction_pool_info_provider: TP,
-) {
+) -> Result<(), Error> {
     if registry.is_none() {
-        return;
+        return Err(Error::NoRegistry);
+    }
+    if import_notifications.is_terminated() {
+        return Err(Error::BlockImportStreamClosed);
+    }
+    if finality_notifications.is_terminated() {
+        return Err(Error::FinalizedBlocksStreamClosed);
     }
 
-    let metrics = match ChainStateMetrics::new(registry) {
-        Ok(metrics) => metrics,
-        Err(e) => {
-            warn!(target: LOG_TARGET, "Failed to create metrics: {e}.");
-            return;
-        }
-    };
-
+    let metrics = ChainStateMetrics::new(registry).map_err(Error::UnableToCreateMetrics)?;
     let mut cache: LruCache<TP::TxHash, Instant> = LruCache::new(
         NonZeroUsize::new(TRANSACTION_CACHE_SIZE).expect("the cache size is a non-zero constant"),
     );
 
-    let mut import_notifications = import_notifications.fuse();
-    let mut finality_notifications = finality_notifications.fuse();
     let mut previous_best: Option<HE> = None;
 
     loop {
-        select! {
-            maybe_block = import_notifications.next() => match maybe_block {
-                Some(block) => handle_block_imported(
+        tokio::select! {
+            maybe_block = import_notifications.next() => {
+                let block = maybe_block.ok_or(Error::BlockImportStreamClosed)?;
+                handle_block_imported(
                     block,
                     backend,
                     &metrics,
                     &mut transaction_pool_info_provider,
                     &mut cache,
                     &mut previous_best,
-                ),
-                None => warn!(
-                    target: LOG_TARGET,
-                    "Block import notification stream ended unexpectedly"
-                ),
+                );
             },
-            maybe_block = finality_notifications.next() => match maybe_block {
-                Some(block) => handle_block_finalized(block, &metrics),
-                None => warn!(
-                    target: LOG_TARGET,
-                    "Finality notification stream ended unexpectedly"
-                ),
+            maybe_block = finality_notifications.next() => {
+                let block = maybe_block.ok_or(Error::FinalizedBlocksStreamClosed)?;
+                handle_block_finalized(block, &metrics);
             },
             maybe_transaction = transaction_pool_info_provider.next_transaction() => {
-                match maybe_transaction {
-                    Some(hash) => handle_transaction_in_pool(hash, &mut cache),
-                    None => warn!(target: LOG_TARGET, "Transaction stream ended unexpectedly"),
-                }
+                let hash = maybe_transaction.ok_or(Error::TransactionStreamClosed)?;
+                handle_transaction_in_pool(hash, &mut cache);
             }
         }
     }
