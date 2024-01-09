@@ -14,12 +14,6 @@ pub use snark_verifier::verify;
 #[cfg(feature = "std")]
 pub use snark_verifier::HostFunctions;
 
-/// Log_2(max number of rows in a supported circuit).
-///
-/// Note: the same constant MUST be used in the params generation for preparing proving and
-/// verifying keys.
-pub const CIRCUIT_MAX_K: u32 = 12;
-
 /// Gathers errors that can happen during proof verification.
 #[derive(Copy, Clone, Eq, PartialEq, Debug, codec::Encode, codec::Decode)]
 pub enum VerifierError {
@@ -33,6 +27,18 @@ pub enum VerifierError {
     VerificationFailed,
     /// Proof has been found as incorrect.
     IncorrectProof,
+}
+
+/// Serializes `vk` together with `k` into a vector of bytes.
+///
+/// A corresponding deserialization procedure is implemented in the verifier.
+#[cfg(feature = "std")]
+pub fn serialize_vk(vk: halo2_proofs::plonk::VerifyingKey<G1Affine>, k: u32) -> Vec<u8> {
+    let mut buffer = Vec::new();
+    buffer.extend(k.to_le_bytes());
+    // We use `SerdeFormat::RawBytesUnchecked` here for performance reasons.
+    buffer.extend(vk.to_bytes(halo2_proofs::SerdeFormat::RawBytesUnchecked));
+    buffer
 }
 
 /// An interface that provides to the runtime a functionality of verifying halo2 SNARKs.
