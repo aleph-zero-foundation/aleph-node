@@ -1785,7 +1785,7 @@ dependencies = [
 [[package]]
 name = "halo2_proofs"
 version = "0.2.0"
-source = "git+https://github.com/Cardinal-Cryptography/pse-halo2?branch=substrate-compatible#90a1eeb58cb21bc5de100c46d8cfcdf32138f5af"
+source = "git+https://github.com/Cardinal-Cryptography/pse-halo2?branch=aleph#6747312150634f2fd8f7a563448306132e0fd89e"
 dependencies = [
  "blake2b_simd",
  "ff",
