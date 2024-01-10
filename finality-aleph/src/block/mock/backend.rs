@@ -329,7 +329,7 @@ impl ChainStatus<MockBlock, MockJustification> for Backend {
 
     fn finalized_at(
         &self,
-        number: u32,
+        number: BlockNumber,
     ) -> Result<FinalizationStatus<MockJustification>, Self::Error> {
         use FinalizationStatus::*;
 

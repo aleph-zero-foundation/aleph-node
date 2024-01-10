@@ -8,23 +8,20 @@ use std::{
     time::{self, Duration},
 };
 
-use futures::{
-    channel::{
-        mpsc::{self, UnboundedSender},
-        oneshot,
-    },
-    stream::FusedStream,
-    StreamExt,
+use futures::channel::{
+    mpsc::{self, UnboundedSender},
+    oneshot,
 };
 use futures_timer::Delay;
 use log::{debug, error, info, trace, warn};
 use lru::LruCache;
-use sc_client_api::{BlockchainEvents, HeaderBackend};
-use sp_runtime::traits::{Block as BlockT, Header as HeaderT};
 
 use crate::{
-    aleph_primitives::{BlockHash, BlockNumber},
-    block::{Header, HeaderVerifier, UnverifiedHeader},
+    aleph_primitives::BlockNumber,
+    block::{
+        BlockchainEvents, ChainStatusNotification, ChainStatusNotifier, Header, HeaderBackend,
+        HeaderVerifier, UnverifiedHeader,
+    },
     data_io::{
         chain_info::{CachedChainInfoProvider, ChainInfoProvider, SubstrateChainInfoProvider},
         proposal::{AlephProposal, PendingProposalStatus, ProposalStatus},
@@ -39,6 +36,8 @@ use crate::{
     sync::RequestBlocks,
     BlockId, SessionBoundaries,
 };
+
+const LOG_TARGET: &str = "aleph-data-store";
 
 type MessageId = u64;
 
@@ -109,19 +108,15 @@ impl Default for DataStoreConfig {
 
 #[derive(Debug)]
 pub enum Error {
-    BlockImportStreamClosed,
-    FinalizedBlocksStreamClosed,
+    ChainNotificationsTerminated,
     NetworkMessagesTerminated,
 }
 
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::BlockImportStreamClosed => {
-                write!(f, "Block import notification stream was closed.")
-            }
-            Error::FinalizedBlocksStreamClosed => {
-                write!(f, "Finalized block import notification stream was closed.")
+            Error::ChainNotificationsTerminated => {
+                write!(f, "Chain notifications stream was closed.")
             }
             Error::NetworkMessagesTerminated => {
                 write!(f, "Stream with network messages was closed.")
@@ -171,13 +166,13 @@ impl Display for Error {
 
 /// This component is used for filtering available data for Aleph Network.
 /// It needs to be started by calling the run method.
-pub struct DataStore<B, C, RB, Message, R, V>
+pub struct DataStore<H, HB, BEV, RB, Message, R, V>
 where
-    B: BlockT<Hash = BlockHash>,
-    B::Header: HeaderT<Number = BlockNumber> + UnverifiedHeader + Header<Unverified = B::Header>,
-    C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
-    RB: RequestBlocks<B::Header>,
-    Message: AlephNetworkMessage<B::Header>
+    H: Header,
+    HB: HeaderBackend<H> + 'static,
+    BEV: BlockchainEvents<H>,
+    RB: RequestBlocks<H::Unverified>,
+    Message: AlephNetworkMessage<H::Unverified>
         + std::fmt::Debug
         + Send
         + Sync
@@ -185,34 +180,34 @@ where
         + parity_scale_codec::Codec
         + 'static,
     R: Receiver<Message>,
-    V: HeaderVerifier<B::Header>,
+    V: HeaderVerifier<H>,
 {
     next_free_id: MessageId,
-    pending_proposals: HashMap<AlephProposal<B::Header>, PendingProposalInfo>,
-    event_triggers: HashMap<ChainEvent, HashSet<AlephProposal<B::Header>>>,
+    pending_proposals: HashMap<AlephProposal<H::Unverified>, PendingProposalInfo>,
+    event_triggers: HashMap<ChainEvent, HashSet<AlephProposal<H::Unverified>>>,
     // We use BtreeMap instead of HashMap to be able to fetch the Message with lowest MessageId
     // when pruning messages.
-    pending_messages: BTreeMap<MessageId, PendingMessageInfo<B::Header, Message>>,
-    chain_info_provider: CachedChainInfoProvider<SubstrateChainInfoProvider<B, C>>,
+    pending_messages: BTreeMap<MessageId, PendingMessageInfo<H::Unverified, Message>>,
+    chain_info_provider: CachedChainInfoProvider<SubstrateChainInfoProvider<H, HB>>,
     verifier: V,
-    available_proposals_cache: LruCache<AlephProposal<B::Header>, ProposalStatus>,
+    available_proposals_cache: LruCache<AlephProposal<H::Unverified>, ProposalStatus>,
     num_triggers_registered_since_last_pruning: usize,
     highest_finalized_num: BlockNumber,
     session_boundaries: SessionBoundaries,
-    client: Arc<C>,
+    blockchain_events: Arc<BEV>,
     block_requester: RB,
     config: DataStoreConfig,
     messages_from_network: R,
     messages_for_aleph: UnboundedSender<Message>,
 }
 
-impl<B, C, RB, Message, R, V> DataStore<B, C, RB, Message, R, V>
+impl<H, HB, BEV, RB, Message, R, V> DataStore<H, HB, BEV, RB, Message, R, V>
 where
-    B: BlockT<Hash = BlockHash>,
-    B::Header: HeaderT<Number = BlockNumber> + UnverifiedHeader + Header<Unverified = B::Header>,
-    C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
-    RB: RequestBlocks<B::Header>,
-    Message: AlephNetworkMessage<B::Header>
+    H: Header,
+    HB: HeaderBackend<H>,
+    BEV: BlockchainEvents<H>,
+    RB: RequestBlocks<H::Unverified>,
+    Message: AlephNetworkMessage<H::Unverified>
         + std::fmt::Debug
         + Send
         + Sync
@@ -220,12 +215,13 @@ where
         + parity_scale_codec::Codec
         + 'static,
     R: Receiver<Message>,
-    V: HeaderVerifier<B::Header>,
+    V: HeaderVerifier<H>,
 {
     /// Returns a struct to be run and a network that outputs messages filtered as appropriate
     pub fn new<N: ComponentNetwork<Message, R = R>>(
         session_boundaries: SessionBoundaries,
-        client: Arc<C>,
+        header_backend: HB,
+        blockchain_events: Arc<BEV>,
         verifier: V,
         block_requester: RB,
         config: DataStoreConfig,
@@ -233,13 +229,12 @@ where
     ) -> (Self, impl DataNetwork<Message>) {
         let (messages_for_aleph, messages_from_data_store) = mpsc::unbounded();
         let (messages_to_network, messages_from_network) = component_network.into();
-        let status = client.info();
+        let highest_finalized_num = header_backend.top_finalized_id().number();
         let chain_info_provider = CachedChainInfoProvider::new(
-            SubstrateChainInfoProvider::new(client.clone()),
+            SubstrateChainInfoProvider::new(header_backend),
             Default::default(),
         );
 
-        let highest_finalized_num = status.finalized_number;
         (
             DataStore {
                 next_free_id: 0,
@@ -252,7 +247,7 @@ where
                 num_triggers_registered_since_last_pruning: 0,
                 highest_finalized_num,
                 session_boundaries,
-                client,
+                blockchain_events,
                 block_requester,
                 config,
                 messages_from_network,
@@ -264,45 +259,41 @@ where
 
     pub async fn run(&mut self, mut exit: oneshot::Receiver<()>) -> Result<(), Error> {
         let mut maintenance_clock = Delay::new(self.config.periodic_maintenance_interval);
-        let mut import_stream = self.client.import_notification_stream();
-        if import_stream.is_terminated() {
-            return Err(Error::BlockImportStreamClosed);
-        }
-        let mut finality_stream = self.client.finality_notification_stream();
-        if finality_stream.is_terminated() {
-            return Err(Error::FinalizedBlocksStreamClosed);
-        }
+        let mut chain_status_notifier = self.blockchain_events.chain_status_notifier();
         loop {
             self.prune_pending_messages();
             self.prune_triggers();
-
             tokio::select! {
                 maybe_message = self.messages_from_network.next() => {
                     let message = maybe_message.ok_or(Error::NetworkMessagesTerminated)?;
-                    trace!(target: "aleph-data-store", "Received message at Data Store {:?}", message);
+                    trace!(target: LOG_TARGET, "Received message at Data Store {:?}", message);
                     self.on_message_received(message);
-                },
-                maybe_block = import_stream.next() => {
-                    let block = maybe_block.ok_or(Error::BlockImportStreamClosed)?;
-                    trace!(target: "aleph-data-store", "Block import notification at Data Store for block {:?}", block);
-                    self.on_block_imported((block.header.hash(), *block.header.number()).into());
-                },
-                maybe_block = finality_stream.next() => {
-                    let block = maybe_block.ok_or(Error::FinalizedBlocksStreamClosed)?;
-                    trace!(target: "aleph-data-store", "Finalized block import notification at Data Store for block {:?}", block);
-                    self.on_block_finalized((block.header.hash(), *block.header.number()).into());
-                },
+                }
+                maybe_notification = chain_status_notifier.next() => {
+                    let notification =
+                        maybe_notification.map_err(|_| Error::ChainNotificationsTerminated)?;
+                    match notification {
+                        ChainStatusNotification::BlockImported(header) => {
+                            trace!(target: LOG_TARGET, "Block import notification at Data Store for block with header {:?}", header);
+                            self.on_block_imported(header.id());
+                        }
+                        ChainStatusNotification::BlockFinalized(header) => {
+                            trace!(target: LOG_TARGET, "Finalized block import notification at Data Store for block with header {:?}", header);
+                            self.on_block_finalized(header.id());
+                        }
+                    }
+                }
                 _ = &mut maintenance_clock => {
                     self.run_maintenance();
                     maintenance_clock = Delay::new(self.config.periodic_maintenance_interval);
                 }
                 _ = &mut exit => {
-                    debug!(target: "aleph-data-store", "Data Store task received exit signal. Terminating.");
+                    debug!(target: LOG_TARGET, "Data Store task received exit signal. Terminating.");
                     break;
                 }
             }
         }
-        debug!(target: "aleph-data-store", "Data store finished");
+        debug!(target: LOG_TARGET, "Data store finished");
         Ok(())
     }
 
@@ -323,13 +314,21 @@ where
             .collect();
         match proposals_with_timestamps.len() {
             0 => {
-                trace!(target: "aleph-data-store", "No pending proposals in data store during maintenance.");
+                trace!(
+                    target: LOG_TARGET,
+                    "No pending proposals in data store during maintenance."
+                );
             }
             1..=5 => {
-                info!(target: "aleph-data-store", "Data Store maintenance. Awaiting {:?} proposals: {:?}",proposals_with_timestamps.len(), proposals_with_timestamps);
+                info!(
+                    target: LOG_TARGET,
+                    "Data Store maintenance. Awaiting {:?} proposals: {:?}",
+                    proposals_with_timestamps.len(),
+                    proposals_with_timestamps
+                );
             }
             _ => {
-                info!(target: "aleph-data-store", "Data Store maintenance. Awaiting {:?} proposals: (showing 5 initial only) {:?}",proposals_with_timestamps.len(), &proposals_with_timestamps[..5]);
+                info!(target: LOG_TARGET, "Data Store maintenance. Awaiting {:?} proposals: (showing 5 initial only) {:?}",proposals_with_timestamps.len(), &proposals_with_timestamps[..5]);
             }
         }
 
@@ -347,9 +346,17 @@ where
             let header = proposal.top_block_header();
             let block_id = proposal.top_block();
             if !self.chain_info_provider.is_block_imported(&block_id) {
-                debug!(target: "aleph-data-store", "Requesting a block {:?} after it has been missing for {:?} secs.", block_id, time_waiting.as_secs());
+                debug!(
+                    target: LOG_TARGET,
+                    "Requesting a block {:?} after it has been missing for {:?} secs.",
+                    block_id,
+                    time_waiting.as_secs()
+                );
                 if let Err(e) = self.block_requester.request_block(header) {
-                    warn!(target: "aleph-data-store", "Error requesting block {:?}, {}.", block_id, e);
+                    warn!(
+                        target: LOG_TARGET,
+                        "Error requesting block {:?}, {}.", block_id, e
+                    );
                 }
                 continue;
             }
@@ -360,29 +367,48 @@ where
             let parent_hash = match self.chain_info_provider.get_parent_hash(&bottom_block) {
                 Ok(ph) => ph,
                 _ => {
-                    warn!(target: "aleph-data-store", "Expected the block below the proposal {:?} to be imported", proposal);
+                    warn!(
+                        target: LOG_TARGET,
+                        "Expected the block below the proposal {:?} to be imported", proposal
+                    );
                     continue;
                 }
             };
             let parent_num = bottom_block.number() - 1;
             if let Ok(finalized_block) = self.chain_info_provider.get_finalized_at(parent_num) {
                 if parent_hash != finalized_block.hash() {
-                    warn!(target: "aleph-data-store", "The proposal {:?} is pending because the parent: \
-                        {:?}, does not agree with the block finalized at this height: {:?}.", proposal, parent_hash, finalized_block);
+                    warn!(
+                        target: LOG_TARGET,
+                        "The proposal {:?} is pending because the parent: \
+                        {:?}, does not agree with the block finalized at this height: {:?}.",
+                        proposal,
+                        parent_hash,
+                        finalized_block
+                    );
                 } else {
-                    warn!(target: "aleph-data-store", "The proposal {:?} is pending even though blocks \
-                            have been imported and parent was finalized.", proposal);
+                    warn!(
+                        target: LOG_TARGET,
+                        "The proposal {:?} is pending even though blocks \
+                            have been imported and parent was finalized.",
+                        proposal
+                    );
                 }
             } else {
-                debug!(target: "aleph-data-store", "Justification for block {:?} {:?} \
-                        still not present after {:?} secs.", parent_num, parent_hash, time_waiting.as_secs());
+                debug!(
+                    target: LOG_TARGET,
+                    "Justification for block {:?} {:?} \
+                        still not present after {:?} secs.",
+                    parent_num,
+                    parent_hash,
+                    time_waiting.as_secs()
+                );
             }
         }
     }
 
     fn register_block_import_trigger(
         &mut self,
-        proposal: &AlephProposal<B::Header>,
+        proposal: &AlephProposal<H::Unverified>,
         block: &BlockId,
     ) {
         self.num_triggers_registered_since_last_pruning += 1;
@@ -394,7 +420,7 @@ where
 
     fn register_finality_trigger(
         &mut self,
-        proposal: &AlephProposal<B::Header>,
+        proposal: &AlephProposal<H::Unverified>,
         number: BlockNumber,
     ) {
         self.num_triggers_registered_since_last_pruning += 1;
@@ -406,7 +432,7 @@ where
         }
     }
 
-    fn register_next_finality_trigger(&mut self, proposal: &AlephProposal<B::Header>) {
+    fn register_next_finality_trigger(&mut self, proposal: &AlephProposal<H::Unverified>) {
         if self.highest_finalized_num < proposal.number_below_branch() {
             self.register_finality_trigger(proposal, proposal.number_below_branch());
         } else if self.highest_finalized_num < proposal.number_top_block() {
@@ -444,7 +470,7 @@ where
         }
     }
 
-    fn on_proposal_available(&mut self, proposal: &AlephProposal<B::Header>) {
+    fn on_proposal_available(&mut self, proposal: &AlephProposal<H::Unverified>) {
         if let Some(proposal_info) = self.pending_proposals.remove(proposal) {
             for id in proposal_info.messages {
                 self.remove_proposal_from_pending_message(proposal, id);
@@ -454,7 +480,7 @@ where
 
     // Makes an availability check for `data` and updates its status. Outputs whether the bump resulted in
     // this proposal becoming available.
-    fn bump_proposal(&mut self, proposal: &AlephProposal<B::Header>) -> bool {
+    fn bump_proposal(&mut self, proposal: &AlephProposal<H::Unverified>) -> bool {
         // Some minor inefficiencies in HashMap access below because of borrow checker.
         let old_status = match self.pending_proposals.get(proposal) {
             None => {
@@ -496,7 +522,7 @@ where
     // Outputs the current status of the proposal based on the `old_status` (for optimization).
     fn check_proposal_availability(
         &mut self,
-        proposal: &AlephProposal<B::Header>,
+        proposal: &AlephProposal<H::Unverified>,
         old_status: Option<&ProposalStatus>,
     ) -> ProposalStatus {
         if let Some(status) = self.available_proposals_cache.get(proposal) {
@@ -529,8 +555,8 @@ where
     // If the proposal is available, message_info is not modified.
     fn add_message_proposal_dependency(
         &mut self,
-        proposal: &AlephProposal<B::Header>,
-        message_info: &mut PendingMessageInfo<B::Header, Message>,
+        proposal: &AlephProposal<H::Unverified>,
+        message_info: &mut PendingMessageInfo<H::Unverified, Message>,
         id: MessageId,
     ) {
         if !self.pending_proposals.contains_key(proposal) {
@@ -574,9 +600,16 @@ where
     }
 
     fn on_message_dependencies_resolved(&self, message: Message) {
-        trace!(target: "aleph-data-store", "Sending message from DataStore {:?}", message);
+        trace!(
+            target: LOG_TARGET,
+            "Sending message from DataStore {:?}",
+            message
+        );
         if let Err(e) = self.messages_for_aleph.unbounded_send(message) {
-            error!(target: "aleph-data-store", "Unable to send a ready message from DataStore {}", e);
+            error!(
+                target: LOG_TARGET,
+                "Unable to send a ready message from DataStore {}", e
+            );
         }
     }
 
@@ -589,13 +622,18 @@ where
     // proposals a message waits for.
     fn remove_proposal_from_pending_message(
         &mut self,
-        proposal: &AlephProposal<B::Header>,
+        proposal: &AlephProposal<H::Unverified>,
         id: MessageId,
     ) {
         let mut message_info = match self.pending_messages.remove(&id) {
             Some(message_info) => message_info,
             None => {
-                warn!(target: "aleph-data-store", "Message {:?} not found when resolving a proposal dependency {:?}.", id, proposal);
+                warn!(
+                    target: LOG_TARGET,
+                    "Message {:?} not found when resolving a proposal dependency {:?}.",
+                    id,
+                    proposal
+                );
                 return;
             }
         };
@@ -610,7 +648,7 @@ where
 
     fn remove_message_id_from_pending_proposal(
         &mut self,
-        proposal: &AlephProposal<B::Header>,
+        proposal: &AlephProposal<H::Unverified>,
         id: MessageId,
     ) {
         if let Occupied(mut proposal_entry) = self.pending_proposals.entry(proposal.clone()) {
@@ -620,7 +658,10 @@ where
                 proposal_entry.remove();
             }
         } else {
-            warn!(target: "aleph-data-store", "Proposal {:?} with id {:?} referenced in message does not exist", proposal, id);
+            warn!(
+                target: LOG_TARGET,
+                "Proposal {:?} with id {:?} referenced in message does not exist", proposal, id
+            );
         }
     }
 
@@ -640,7 +681,10 @@ where
                 false
             }
         } else {
-            warn!(target: "aleph-data-store", "Tried to prune a message but there are none pending.");
+            warn!(
+                target: LOG_TARGET,
+                "Tried to prune a message but there are none pending."
+            );
             false
         }
     }
@@ -652,7 +696,10 @@ where
             || self.pending_proposals.len() > self.config.max_proposals_pending
         {
             if !self.prune_single_message() {
-                warn!(target: "aleph-data-store", "Message pruning in DataStore failed. Moving on.");
+                warn!(
+                    target: LOG_TARGET,
+                    "Message pruning in DataStore failed. Moving on."
+                );
                 break;
             }
         }
@@ -678,8 +725,14 @@ where
             match unvalidated_proposal.validate_bounds(&self.session_boundaries) {
                 Ok(proposal) => proposals.push(proposal),
                 Err(error) => {
-                    warn!(target: "aleph-data-store", "Message {:?} dropped as it contains \
-                            proposal {:?} not within bounds ({:?}).", message, unvalidated_proposal, error);
+                    warn!(
+                        target: LOG_TARGET,
+                        "Message {:?} dropped as it contains \
+                            proposal {:?} not within bounds ({:?}).",
+                        message,
+                        unvalidated_proposal,
+                        error
+                    );
                     return;
                 }
             }
@@ -700,13 +753,13 @@ where
 }
 
 #[async_trait::async_trait]
-impl<B, C, RB, Message, R, V> Runnable for DataStore<B, C, RB, Message, R, V>
+impl<H, HB, BEV, RB, Message, R, V> Runnable for DataStore<H, HB, BEV, RB, Message, R, V>
 where
-    B: BlockT<Hash = BlockHash>,
-    B::Header: HeaderT<Number = BlockNumber> + UnverifiedHeader + Header<Unverified = B::Header>,
-    C: HeaderBackend<B> + BlockchainEvents<B> + Send + Sync + 'static,
-    RB: RequestBlocks<B::Header>,
-    Message: AlephNetworkMessage<B::Header>
+    H: Header,
+    HB: HeaderBackend<H>,
+    BEV: BlockchainEvents<H> + Send + Sync + 'static,
+    RB: RequestBlocks<H::Unverified>,
+    Message: AlephNetworkMessage<H::Unverified>
         + std::fmt::Debug
         + Send
         + Sync
@@ -714,11 +767,11 @@ where
         + parity_scale_codec::Codec
         + 'static,
     R: Receiver<Message> + 'static,
-    V: HeaderVerifier<B::Header>,
+    V: HeaderVerifier<H>,
 {
     async fn run(mut self, exit: oneshot::Receiver<()>) {
         if let Err(err) = DataStore::run(&mut self, exit).await {
-            error!(target: "aleph-data-store", "DataStore exited with error: {err}.");
+            error!(target: LOG_TARGET, "DataStore exited with error: {err}.");
         }
     }
 }

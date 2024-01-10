@@ -6,18 +6,16 @@ pub use client::{Backend, TestClient, TestClientBuilder, TestClientBuilderExt};
 pub use proposal::{
     aleph_data_from_blocks, aleph_data_from_headers, unvalidated_proposal_from_headers,
 };
-use sp_runtime::traits::BlakeTwo256;
-use substrate_test_runtime::Extrinsic;
+use sp_core::H256;
 
 use crate::{
-    aleph_primitives::BlockNumber,
+    aleph_primitives::{Block, Header},
     block::{EquivocationProof, HeaderVerifier, VerifiedHeader},
 };
 
-type Hashing = BlakeTwo256;
-pub type TBlock = sp_runtime::generic::Block<THeader, Extrinsic>;
-pub type THeader = sp_runtime::generic::Header<BlockNumber, Hashing>;
-pub type THash = substrate_test_runtime::Hash;
+pub type TBlock = Block;
+pub type THeader = Header;
+pub type THash = H256;
 
 #[derive(Clone)]
 pub struct TestVerifier;

@@ -79,7 +79,8 @@ impl ClientChainBuilder {
         builder
             .push(
                 ExtrinsicBuilder::new_deposit_log_digest_item(DigestItem::Other(unique_bytes))
-                    .build(),
+                    .build()
+                    .into(),
             )
             .unwrap();
         let block = builder.build().unwrap().block;

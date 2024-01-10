@@ -3,8 +3,6 @@ use std::time::Duration;
 use current_aleph_bft::{create_config, default_delay_config, Config, LocalIO, Terminator};
 use log::debug;
 use network_clique::SpawnHandleT;
-use sp_blockchain::HeaderBackend;
-use sp_runtime::traits::{Block, Header};
 
 mod network;
 mod traits;
@@ -17,7 +15,7 @@ use crate::{
         common::{unit_creation_delay_fn, MAX_ROUNDS, SESSION_LEN_LOWER_BOUND_MS},
         NetworkWrapper,
     },
-    block::{Header as BlockHeader, HeaderVerifier, UnverifiedHeader},
+    block::{Header, HeaderBackend, HeaderVerifier},
     crypto::Signature,
     data_io::{AlephData, OrderedDataInterpreter, SubstrateChainInfoProvider},
     network::data::Network,
@@ -34,26 +32,20 @@ type WrappedNetwork<H, ADN> = NetworkWrapper<
     ADN,
 >;
 
-pub fn run_member<B, C, ADN, V>(
+pub fn run_member<H, C, ADN, V>(
     subtask_common: TaskCommon,
     multikeychain: Keychain,
     config: Config,
-    network: WrappedNetwork<B::Header, ADN>,
-    data_provider: impl current_aleph_bft::DataProvider<AlephData<B::Header>> + Send + 'static,
-    ordered_data_interpreter: OrderedDataInterpreter<
-        SubstrateChainInfoProvider<B, C>,
-        B::Header,
-        V,
-    >,
+    network: WrappedNetwork<H::Unverified, ADN>,
+    data_provider: impl current_aleph_bft::DataProvider<AlephData<H::Unverified>> + Send + 'static,
+    ordered_data_interpreter: OrderedDataInterpreter<SubstrateChainInfoProvider<H, C>, H, V>,
     backup: ABFTBackup,
 ) -> Task
 where
-    B: Block<Hash = BlockHash>,
-    B::Header:
-        Header<Number = BlockNumber> + UnverifiedHeader + BlockHeader<Unverified = B::Header>,
-    C: HeaderBackend<B> + Send + 'static,
-    ADN: Network<CurrentNetworkData<B::Header>> + 'static,
-    V: HeaderVerifier<B::Header>,
+    H: Header,
+    C: HeaderBackend<H> + 'static,
+    ADN: Network<CurrentNetworkData<H::Unverified>> + 'static,
+    V: HeaderVerifier<H>,
 {
     let TaskCommon {
         spawn_handle,

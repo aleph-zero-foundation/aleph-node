@@ -1,6 +1,6 @@
 use std::fmt::{Display, Error as FmtError, Formatter};
 
-use futures::StreamExt;
+use futures::{stream::FusedStream, StreamExt};
 use sc_client_api::client::{FinalityNotifications, ImportNotifications};
 
 use crate::{
@@ -56,6 +56,16 @@ impl ChainStatusNotifier<Header> for SubstrateChainStatusNotifier {
     type Error = Error;
 
     async fn next(&mut self) -> Result<ChainStatusNotification<Header>, Self::Error> {
+        match (
+            self.finality_notifications.is_terminated(),
+            self.import_notifications.is_terminated(),
+        ) {
+            (true, true) => return Err(Error::AllStreamsTerminated),
+            (true, _) => return Err(Error::JustificationStreamClosed),
+            (_, true) => return Err(Error::ImportStreamClosed),
+            _ => {}
+        }
+
         futures::select! {
             maybe_block = self.finality_notifications.next() => {
                 maybe_block

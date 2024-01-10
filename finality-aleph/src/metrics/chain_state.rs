@@ -621,7 +621,7 @@ mod test {
             .client
             .new_block_at(genesis, Default::default(), false)
             .unwrap();
-        block_1b_builder.push(xt1).unwrap();
+        block_1b_builder.push(xt1.into()).unwrap();
         let block_1b = block_1b_builder.build().unwrap().block;
         setup.pool.import_block(block_1b.clone()).await;
         setup.pool.finalize(block_1b.hash()).await;

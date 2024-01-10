@@ -4,7 +4,7 @@ use std::{
 };
 
 use log::warn;
-use sc_client_api::{blockchain::HeaderBackend, Backend as _};
+use sc_client_api::{blockchain::HeaderBackend as _, Backend as _};
 use sc_service::TFullBackend;
 use sp_blockchain::{Backend as _, Error as BackendError, Info};
 use sp_runtime::traits::{Block as SubstrateBlock, Header as SubstrateHeader};
@@ -15,7 +15,8 @@ use crate::{
     },
     block::{
         substrate::{Justification, LOG_TARGET},
-        BlockStatus, ChainStatus, FinalizationStatus, Header, Justification as _,
+        BlockHash, BlockStatus, ChainStatus, FinalizationStatus, Header, HeaderBackend,
+        Justification as _,
     },
     justification::backwards_compatible_decode,
     BlockId,
@@ -240,5 +241,44 @@ impl ChainStatus<Block, Justification> for SubstrateChainStatus {
             .into_iter()
             .flatten()
             .collect())
+    }
+}
+
+impl HeaderBackend<AlephHeader> for SubstrateChainStatus {
+    type Error = Error;
+
+    fn header(&self, id: &BlockId) -> Result<Option<AlephHeader>, Self::Error> {
+        SubstrateChainStatus::header(self, id)
+    }
+
+    fn header_of_finalized_at(
+        &self,
+        number: BlockNumber,
+    ) -> Result<Option<AlephHeader>, Self::Error> {
+        match self.finalized_at(number) {
+            Ok(FinalizationStatus::FinalizedWithJustification(justification)) => {
+                Ok(Some(justification.header().clone()))
+            }
+            Ok(FinalizationStatus::FinalizedByDescendant(header)) => Ok(Some(header)),
+            Ok(FinalizationStatus::NotFinalized) => Ok(None),
+            Err(e) => Err(e),
+        }
+    }
+
+    fn top_finalized_id(&self) -> BlockId {
+        let info = self.info();
+        BlockId {
+            hash: info.finalized_hash,
+            number: info.finalized_number,
+        }
+    }
+
+    fn hash_to_id(&self, hash: BlockHash) -> Result<Option<BlockId>, Self::Error> {
+        match self.header_for_hash(hash) {
+            Ok(maybe_header) => {
+                Ok(maybe_header.map(|header| (header.hash(), *header.number()).into()))
+            }
+            Err(e) => Err(Self::Error::Backend(e)),
+        }
     }
 }

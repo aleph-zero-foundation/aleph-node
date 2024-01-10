@@ -14,11 +14,8 @@ use sp_keystore::Keystore;
 use crate::{
     aleph_primitives::{AlephSessionApi, AuraId, Block},
     block::{
-        substrate::{
-            JustificationTranslator, SubstrateChainStatusNotifier, SubstrateFinalizationInfo,
-            VerifierCache,
-        },
-        ChainStatus, FinalizationStatus, Justification,
+        substrate::{JustificationTranslator, SubstrateFinalizationInfo, VerifierCache},
+        BlockchainEvents, ChainStatus, FinalizationStatus, Justification,
     },
     crypto::AuthorityPen,
     finalization::AlephFinalizer,
@@ -163,10 +160,7 @@ where
         debug!(target: LOG_TARGET, "SessionMapUpdater finished.");
     });
 
-    let chain_events = SubstrateChainStatusNotifier::new(
-        client.finality_notification_stream(),
-        client.every_import_notification_stream(),
-    );
+    let chain_events = client.chain_status_notifier();
 
     let client_for_slo_metrics = client.clone();
     let registry_for_slo_metrics = registry.clone();
@@ -270,6 +264,7 @@ where
         },
         session_manager: NodeSessionManagerImpl::new(
             client,
+            chain_status.clone(),
             select_chain,
             verifier,
             session_period,

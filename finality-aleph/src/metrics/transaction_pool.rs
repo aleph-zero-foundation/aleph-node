@@ -166,7 +166,7 @@ pub mod test {
 
         pub async fn submit(&mut self, at: &THash, xt: Extrinsic) {
             self.pool
-                .submit_one(*at, TransactionSource::External, xt)
+                .submit_one(*at, TransactionSource::External, xt.into())
                 .await
                 .unwrap();
         }

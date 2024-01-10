@@ -1,9 +1,15 @@
 use std::sync::Arc;
 
+use primitives::{BlockHash, BlockNumber};
+use sp_blockchain::HeaderBackend;
 use substrate_test_client::{client, sc_client_db, sc_executor};
 use substrate_test_runtime_client::{GenesisParameters, LocalExecutorDispatch};
 
-use crate::testing::mocks::TBlock;
+use crate::{
+    block::HeaderBackend as AlephHeaderBackend,
+    testing::mocks::{TBlock, THeader},
+    BlockId,
+};
 
 // /// A `TestClient` with `test-runtime` builder.
 pub type TestClientBuilder<E, B> =
@@ -61,5 +67,45 @@ impl TestClientBuilderExt
     fn build_with_backend(self) -> (TestClient, Arc<Backend>) {
         let backend = self.backend();
         (self.build_with_native_executor(None).0, backend)
+    }
+}
+
+// TODO: remove when we will have abstraction for block import and use block::mock::Backend
+// instead of TestClient.
+impl AlephHeaderBackend<THeader> for Arc<TestClient> {
+    type Error = sp_blockchain::Error;
+
+    fn header(&self, id: &BlockId) -> Result<Option<THeader>, Self::Error> {
+        TestClient::header(self, id.hash())
+    }
+
+    fn header_of_finalized_at(&self, number: BlockNumber) -> Result<Option<THeader>, Self::Error> {
+        match TestClient::hash(self, number) {
+            Ok(Some(hash)) => {
+                if self.top_finalized_id().number() >= number {
+                    Ok(Some(
+                        self.header(&(hash, number).into())?
+                            .expect("header must exist"),
+                    ))
+                } else {
+                    Ok(None)
+                }
+            }
+            Ok(None) => Err(sp_blockchain::Error::UnknownBlocks("{number}".into())),
+            Err(e) => Err(e),
+        }
+    }
+
+    fn top_finalized_id(&self) -> BlockId {
+        let info = self.chain_info();
+        (info.finalized_hash, info.finalized_number).into()
+    }
+
+    fn hash_to_id(&self, hash: BlockHash) -> Result<Option<BlockId>, Self::Error> {
+        match TestClient::number(self, hash) {
+            Ok(Some(number)) => Ok(Some((hash, number).into())),
+            Ok(None) => Ok(None),
+            Err(e) => Err(e),
+        }
     }
 }

@@ -160,12 +160,21 @@ pub enum ChainStatusNotification<H: Header> {
 /// A stream of notifications about the chain status in the database changing.
 /// We assume that this will return all the events, otherwise we will end up with a broken state.
 #[async_trait::async_trait]
-pub trait ChainStatusNotifier<H: Header> {
+pub trait ChainStatusNotifier<H: Header>: Send {
     type Error: Debug + Display;
 
     /// Returns a chain status notification when it is available.
     /// This method's implementation must be cancellation safe.
     async fn next(&mut self) -> Result<ChainStatusNotification<H>, Self::Error>;
+}
+
+/// A facility for getting ChainStatusNotifier.
+pub trait BlockchainEvents<H: Header>: Send {
+    type ChainStatusNotifier: ChainStatusNotifier<H>;
+
+    /// Returns a chain status notifier, which will contain all the events
+    /// that appeared after this call.
+    fn chain_status_notifier(&self) -> Self::ChainStatusNotifier;
 }
 
 /// The status of a block in the database.
@@ -215,7 +224,7 @@ where
     /// The justification at this block number, if we have it otherwise just block id if
     /// the block is finalized without justification. Should return NotFinalized variant if
     /// the request is above the top finalized.
-    fn finalized_at(&self, number: u32) -> Result<FinalizationStatus<J>, Self::Error>;
+    fn finalized_at(&self, number: BlockNumber) -> Result<FinalizationStatus<J>, Self::Error>;
 
     /// The header of the best block.
     fn best_block(&self) -> Result<J::Header, Self::Error>;
@@ -225,4 +234,25 @@ where
 
     /// Children of the specified block.
     fn children(&self, id: BlockId) -> Result<Vec<J::Header>, Self::Error>;
+}
+
+pub trait HeaderBackend<H: Header>: Send + Sync {
+    type Error: Debug;
+    /// Get block header. Returns `None` if block is not found.
+    fn header(&self, id: &BlockId) -> Result<Option<H>, Self::Error>;
+    /// Get hash of a finalized block with a given number. Returns Ok(None) if block exists in
+    /// the database, but is not finalized yet.
+    fn header_of_finalized_at(&self, number: BlockNumber) -> Result<Option<H>, Self::Error>;
+    /// Get currently highest finalized block.
+    fn top_finalized_id(&self) -> BlockId;
+    /// Get full id of a block with a given hash
+    fn hash_to_id(&self, hash: BlockHash) -> Result<Option<BlockId>, Self::Error>;
+}
+
+/// A strategy for selecting a leaf that should be considered as the best block.
+#[async_trait::async_trait]
+pub trait BestBlockSelector<H: Header>: Sync + Send + Clone {
+    type Error: Debug;
+    /// Return header of the leaf that should be considered the best block.
+    async fn select_best(&self) -> Result<H, Self::Error>;
 }

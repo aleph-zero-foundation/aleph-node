@@ -1,15 +1,16 @@
-use std::{marker::PhantomData, sync::Arc};
+use std::marker::PhantomData;
 
-use log::error;
+use log::{debug, info};
 use lru::LruCache;
-use sc_client_api::HeaderBackend;
-use sp_runtime::traits::{Block as BlockT, Header as HeaderT};
 
 use crate::{
     aleph_primitives::{BlockHash, BlockNumber},
+    block::{Header, HeaderBackend},
     data_io::ChainInfoCacheConfig,
     BlockId,
 };
+
+const LOG_TARGET: &str = "aleph-data-store";
 
 pub trait ChainInfoProvider: Send + Sync + 'static {
     fn is_block_imported(&mut self, block: &BlockId) -> bool;
@@ -21,82 +22,74 @@ pub trait ChainInfoProvider: Send + Sync + 'static {
     fn get_highest_finalized(&mut self) -> BlockId;
 }
 
-pub struct SubstrateChainInfoProvider<B, C>
+pub struct SubstrateChainInfoProvider<H, HB>
 where
-    B: BlockT<Hash = BlockHash>,
-    B::Header: HeaderT<Number = BlockNumber>,
-    C: HeaderBackend<B> + 'static,
+    H: Header,
+    HB: HeaderBackend<H> + 'static,
 {
-    client: Arc<C>,
-    _phantom: PhantomData<B>,
+    client: HB,
+    _phantom: PhantomData<H>,
 }
 
-impl<B, C> SubstrateChainInfoProvider<B, C>
+impl<H, HB> SubstrateChainInfoProvider<H, HB>
 where
-    B: BlockT<Hash = BlockHash>,
-    B::Header: HeaderT<Number = BlockNumber>,
-    C: HeaderBackend<B>,
+    H: Header,
+    HB: HeaderBackend<H>,
 {
-    pub fn new(client: Arc<C>) -> Self {
+    pub fn new(client: HB) -> Self {
         SubstrateChainInfoProvider {
             client,
             _phantom: PhantomData,
         }
     }
 }
-impl<B, C> ChainInfoProvider for SubstrateChainInfoProvider<B, C>
+impl<H, HB> ChainInfoProvider for SubstrateChainInfoProvider<H, HB>
 where
-    B: BlockT<Hash = BlockHash>,
-    B::Header: HeaderT<Number = BlockNumber>,
-    C: HeaderBackend<B>,
+    H: Header,
+    HB: HeaderBackend<H>,
 {
     fn is_block_imported(&mut self, block: &BlockId) -> bool {
-        let maybe_header = self
-            .client
-            .header(block.hash())
-            .expect("client must answer a query");
-        if let Some(header) = maybe_header {
-            // If the block number is incorrect, we treat as not imported.
-            return *header.number() == block.number();
+        match self.client.header(block) {
+            Ok(maybe_header) => maybe_header.is_some(),
+            Err(e) => {
+                debug!(
+                    target: LOG_TARGET,
+                    "Error while fetching header in ChainInfoProvider: {:?}", e
+                );
+                false
+            }
         }
-        false
     }
 
-    fn get_finalized_at(&mut self, num: BlockNumber) -> Result<BlockId, ()> {
-        if self.client.info().finalized_number < num {
-            return Err(());
-        }
-
-        let block_hash = match self.client.hash(num).ok().flatten() {
-            None => {
-                error!(target: "chain-info", "Could not get hash for block #{:?}", num);
-                return Err(());
-            }
-            Some(h) => h,
-        };
-
-        if let Some(header) = self.client.header(block_hash).expect("client must respond") {
-            Ok((header.hash(), num).into())
-        } else {
-            Err(())
+    fn get_finalized_at(&mut self, number: BlockNumber) -> Result<BlockId, ()> {
+        match self.client.header_of_finalized_at(number) {
+            Ok(Some(header)) => Ok(header.id()),
+            _ => Err(()),
         }
     }
 
     fn get_parent_hash(&mut self, block: &BlockId) -> Result<BlockHash, ()> {
-        if let Some(header) = self
-            .client
-            .header(block.hash())
-            .expect("client must respond")
-        {
-            Ok(*header.parent_hash())
-        } else {
-            Err(())
+        match self.client.header(block) {
+            Ok(Some(header)) => Ok(header.parent_id().ok_or(())?.hash()),
+            Ok(None) => {
+                info!(
+                    target: LOG_TARGET,
+                    "Block not found while getting parent hash in ChainInfoProvider"
+                );
+                Err(())
+            }
+            Err(e) => {
+                info!(
+                    target: LOG_TARGET,
+                    "Error while getting parent hash in ChainInfoProvider: {:?}", e
+                );
+                Err(())
+            }
         }
     }
 
     fn get_highest_finalized(&mut self) -> BlockId {
-        let status = self.client.info();
-        (status.finalized_hash, status.finalized_number).into()
+        self.client.top_finalized_id()
     }
 }
 

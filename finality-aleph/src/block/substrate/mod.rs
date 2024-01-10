@@ -21,6 +21,8 @@ pub use justification::{
 pub use status_notifier::SubstrateChainStatusNotifier;
 pub use verification::{SessionVerifier, SubstrateFinalizationInfo, VerifierCache};
 
+use crate::block::{BestBlockSelector, BlockchainEvents};
+
 const LOG_TARGET: &str = "aleph-substrate";
 
 impl UnverifiedHeader for Header {
@@ -108,5 +110,24 @@ impl BlockT for Block {
     /// The header of the block.
     fn header(&self) -> &Self::UnverifiedHeader {
         &self.header
+    }
+}
+
+impl<C: sc_client_api::BlockchainEvents<Block> + Send> BlockchainEvents<Header> for C {
+    type ChainStatusNotifier = SubstrateChainStatusNotifier;
+
+    fn chain_status_notifier(&self) -> SubstrateChainStatusNotifier {
+        SubstrateChainStatusNotifier::new(
+            self.finality_notification_stream(),
+            self.every_import_notification_stream(),
+        )
+    }
+}
+
+#[async_trait::async_trait]
+impl<SC: sp_consensus::SelectChain<Block>> BestBlockSelector<Header> for SC {
+    type Error = sp_consensus::Error;
+    async fn select_best(&self) -> Result<Header, Self::Error> {
+        self.best_chain().await
     }
 }

@@ -3,15 +3,11 @@ use std::{marker::PhantomData, sync::Arc, time::Duration};
 use futures::channel::oneshot;
 use log::{debug, error, warn};
 use parking_lot::Mutex;
-use sc_client_api::HeaderBackend;
-use sp_consensus::SelectChain;
-use sp_runtime::{
-    traits::{Block as BlockT, Header as HeaderT, Zero},
-    SaturatedConversion,
-};
+use sp_runtime::{traits::Zero, SaturatedConversion};
 
 use crate::{
-    aleph_primitives::{BlockHash, BlockNumber},
+    aleph_primitives::BlockNumber,
+    block::{BestBlockSelector, Header, HeaderBackend},
     data_io::legacy::{proposal::UnvalidatedAlephProposal, AlephData, MAX_DATA_BRANCH_LEN},
     metrics::{AllBlockMetrics, Checkpoint},
     party::manager::Runnable,
@@ -21,37 +17,39 @@ use crate::{
 const LOG_TARGET: &str = "aleph-data-store";
 
 // Reduce block header to the level given by num, by traversing down via parents.
-pub fn reduce_header_to_num<B, C>(client: &C, header: B::Header, num: BlockNumber) -> B::Header
+pub fn reduce_header_to_num<H, C>(client: &C, header: H, num: BlockNumber) -> H
 where
-    B: BlockT,
-    B::Header: HeaderT<Number = BlockNumber>,
-    C: HeaderBackend<B>,
+    H: Header,
+    C: HeaderBackend<H>,
 {
     assert!(
-        header.number() >= &num,
+        header.id().number() >= num,
         "Cannot reduce {header:?} to number {num:?}"
     );
     let mut curr_header = header;
-    while curr_header.number() > &num {
+    while curr_header.id().number() > num {
         curr_header = client
-            .header(*curr_header.parent_hash())
+            .header(
+                &curr_header
+                    .parent_id()
+                    .expect("number() > num >= 0, so parent exists qed."),
+            )
             .expect("client must respond")
             .expect("parent hash is known by the client");
     }
     curr_header
 }
 
-pub fn get_parent<B, C>(client: &C, block: &BlockId) -> Option<BlockId>
+pub fn get_parent<H, C>(client: &C, block: &BlockId) -> Option<BlockId>
 where
-    B: BlockT<Hash = BlockHash>,
-    B::Header: HeaderT<Number = BlockNumber>,
-    C: HeaderBackend<B>,
+    H: Header,
+    C: HeaderBackend<H>,
 {
     if block.number().is_zero() {
         return None;
     }
-    if let Some(header) = client.header(block.hash()).expect("client must respond") {
-        Some((*header.parent_hash(), block.number() - 1).into())
+    if let Some(header) = client.header(block).expect("client must respond") {
+        Some(header.parent_id()?)
     } else {
         warn!(
             target: LOG_TARGET,
@@ -61,15 +59,14 @@ where
     }
 }
 
-pub fn get_proposal<B, C>(
+pub fn get_proposal<H, C>(
     client: &C,
     best_block: BlockId,
     finalized_block: BlockId,
 ) -> Result<AlephData, ()>
 where
-    B: BlockT<Hash = BlockHash>,
-    B::Header: HeaderT<Number = BlockNumber>,
-    C: HeaderBackend<B>,
+    H: Header,
+    C: HeaderBackend<H>,
 {
     let mut curr_block = best_block;
     let mut branch = Vec::new();
@@ -125,32 +122,30 @@ struct ChainInfo {
 /// Internally it frequently updates a `data_to_propose` field that is shared with a `DataProvider`, which
 /// in turn is a tiny wrapper around this single shared resource that takes out `data_to_propose` whenever
 /// `get_data` is called.
-pub struct ChainTracker<B, SC, C>
+pub struct ChainTracker<H, BBS, C>
 where
-    B: BlockT<Hash = BlockHash>,
-    B::Header: HeaderT<Number = BlockNumber>,
-    C: HeaderBackend<B> + 'static,
-    SC: SelectChain<B> + 'static,
+    H: Header,
+    C: HeaderBackend<H> + 'static,
+    BBS: BestBlockSelector<H> + 'static,
 {
-    select_chain: SC,
-    client: Arc<C>,
+    best_block_selection_strategy: BBS,
+    client: C,
     data_to_propose: Arc<Mutex<Option<AlephData>>>,
     session_boundaries: SessionBoundaries,
     prev_chain_info: Option<ChainInfo>,
     config: ChainTrackerConfig,
-    _phantom: PhantomData<B>,
+    _phantom: PhantomData<H>,
 }
 
-impl<B, SC, C> ChainTracker<B, SC, C>
+impl<H, BBS, C> ChainTracker<H, BBS, C>
 where
-    B: BlockT<Hash = BlockHash>,
-    B::Header: HeaderT<Number = BlockNumber>,
-    C: HeaderBackend<B> + 'static,
-    SC: SelectChain<B> + 'static,
+    H: Header,
+    C: HeaderBackend<H> + 'static,
+    BBS: BestBlockSelector<H> + 'static,
 {
     pub fn new(
-        select_chain: SC,
-        client: Arc<C>,
+        best_block_selection_strategy: BBS,
+        client: C,
         session_boundaries: SessionBoundaries,
         config: ChainTrackerConfig,
         metrics: AllBlockMetrics,
@@ -158,7 +153,7 @@ where
         let data_to_propose = Arc::new(Mutex::new(None));
         (
             ChainTracker {
-                select_chain,
+                best_block_selection_strategy,
                 client,
                 data_to_propose: data_to_propose.clone(),
                 session_boundaries,
@@ -174,15 +169,11 @@ where
     }
 
     fn update_data(&mut self, best_block_in_session: &BlockId) {
-        // We use best_block_in_session argument and the highest_finalized block from the client and compute
+        // We use best_block_in_session argument and the top_finalized block from the client and compute
         // the corresponding `AlephData<B>` in `data_to_propose` for AlephBFT. To not recompute this many
         // times we remember these "inputs" in `prev_chain_info` and upon match we leave the old value
         // of `data_to_propose` unaffected.
-
-        let client_info = self.client.info();
-        let finalized_block: BlockId =
-            (client_info.finalized_hash, client_info.finalized_number).into();
-
+        let finalized_block = self.client.top_finalized_id();
         if finalized_block.number() >= self.session_boundaries.last_block() {
             // This session is already finished, but this instance of ChainTracker has not been terminated yet.
             // We go with the default -- empty proposal, this does not have any significance.
@@ -221,17 +212,18 @@ where
             return;
         }
 
-        if let Ok(proposal) = get_proposal(
-            &*self.client,
-            best_block_in_session.clone(),
-            finalized_block,
-        ) {
+        if let Ok(proposal) =
+            get_proposal(&self.client, best_block_in_session.clone(), finalized_block)
+        {
             *self.data_to_propose.lock() = Some(proposal);
         }
     }
 
-    async fn get_best_header(&self) -> B::Header {
-        self.select_chain.best_chain().await.expect("No best chain")
+    async fn get_best_header(&self) -> H {
+        self.best_block_selection_strategy
+            .select_best()
+            .await
+            .expect("Failed to select the chain tip")
     }
 
     // Returns the highest ancestor of best_block that fits in session_boundaries (typically the best block itself).
@@ -242,41 +234,41 @@ where
         // then we don't need to recompute `best_block_in_session`, as `prev_best_block` is already correct.
 
         let new_best_header = self.get_best_header().await;
-        if new_best_header.number() < &self.session_boundaries.first_block() {
+        if new_best_header.id().number() < self.session_boundaries.first_block() {
             return None;
         }
         let last_block = self.session_boundaries.last_block();
-        let new_best_block = (new_best_header.hash(), *new_best_header.number()).into();
-        if new_best_header.number() <= &last_block {
+        let new_best_block = new_best_header.id();
+        if new_best_header.id().number() <= last_block {
             Some(new_best_block)
         } else {
             match prev_best_block {
                 None => {
                     // This is the the first time we see a block in this session.
                     let reduced_header =
-                        reduce_header_to_num(&*self.client, new_best_header, last_block);
-                    Some((reduced_header.hash(), *reduced_header.number()).into())
+                        reduce_header_to_num(&self.client, new_best_header, last_block);
+                    Some(reduced_header.id())
                 }
                 Some(prev) => {
                     if prev.number() < last_block {
                         // The previous best block was below the sessioun boundary, we cannot really optimize
                         // but must compute the new best_block_in_session naively.
                         let reduced_header =
-                            reduce_header_to_num(&*self.client, new_best_header, last_block);
-                        Some((reduced_header.hash(), *reduced_header.number()).into())
+                            reduce_header_to_num(&self.client, new_best_header, last_block);
+                        Some(reduced_header.id())
                     } else {
                         // Both `prev_best_block` and thus also `new_best_header` are above (or equal to) `last_block`, we optimize.
                         let reduced_header = reduce_header_to_num(
-                            &*self.client,
+                            &self.client,
                             new_best_header.clone(),
                             prev.number(),
                         );
-                        if reduced_header.hash() != prev.hash() {
+                        if reduced_header.id().hash() != prev.hash() {
                             // The new_best_block is not a descendant of `prev`, we need to update.
                             // In the opposite case we do nothing, as the `prev` is already correct.
                             let reduced_header =
-                                reduce_header_to_num(&*self.client, new_best_header, last_block);
-                            Some((reduced_header.hash(), *reduced_header.number()).into())
+                                reduce_header_to_num(&self.client, new_best_header, last_block);
+                            Some(reduced_header.id())
                         } else {
                             Some(prev)
                         }
@@ -299,12 +291,11 @@ where
 }
 
 #[async_trait::async_trait]
-impl<B, SC, C> Runnable for ChainTracker<B, SC, C>
+impl<H, BBS, C> Runnable for ChainTracker<H, BBS, C>
 where
-    B: BlockT<Hash = BlockHash>,
-    B::Header: HeaderT<Number = BlockNumber>,
-    C: HeaderBackend<B> + 'static,
-    SC: SelectChain<B> + 'static,
+    H: Header,
+    C: HeaderBackend<H> + 'static,
+    BBS: BestBlockSelector<H> + 'static,
 {
     async fn run(mut self, exit: oneshot::Receiver<()>) {
         tokio::select! {

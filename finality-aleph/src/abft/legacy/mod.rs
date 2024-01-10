@@ -1,8 +1,6 @@
 use legacy_aleph_bft::{default_config, Config, LocalIO, Terminator};
 use log::debug;
 use network_clique::SpawnHandleT;
-use sp_blockchain::HeaderBackend;
-use sp_runtime::traits::{Block, Header};
 
 mod network;
 mod traits;
@@ -13,6 +11,7 @@ use super::common::{sanity_check_round_delays, unit_creation_delay_fn, MAX_ROUND
 pub use crate::aleph_primitives::{BlockHash, BlockNumber, LEGACY_FINALITY_VERSION as VERSION};
 use crate::{
     abft::NetworkWrapper,
+    block::{Header, HeaderBackend},
     data_io::{
         legacy::{AlephData, OrderedDataInterpreter},
         SubstrateChainInfoProvider,
@@ -26,19 +25,18 @@ use crate::{
     Keychain, LegacyNetworkData, NodeIndex, SessionId, UnitCreationDelay,
 };
 
-pub fn run_member<B, C, ADN>(
+pub fn run_member<H, C, ADN>(
     subtask_common: TaskCommon,
     multikeychain: Keychain,
     config: Config,
     network: NetworkWrapper<LegacyNetworkData, ADN>,
     data_provider: impl legacy_aleph_bft::DataProvider<AlephData> + Send + 'static,
-    ordered_data_interpreter: OrderedDataInterpreter<SubstrateChainInfoProvider<B, C>>,
+    ordered_data_interpreter: OrderedDataInterpreter<SubstrateChainInfoProvider<H, C>>,
     backup: ABFTBackup,
 ) -> Task
 where
-    B: Block<Hash = BlockHash>,
-    B::Header: Header<Number = BlockNumber>,
-    C: HeaderBackend<B> + Send + 'static,
+    H: Header,
+    C: HeaderBackend<H> + Send + 'static,
     ADN: Network<LegacyNetworkData> + 'static,
 {
     // Remove this check once we implement one on the AlephBFT side (A0-2583).

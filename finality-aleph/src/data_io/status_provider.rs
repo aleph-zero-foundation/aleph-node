@@ -214,9 +214,9 @@ mod tests {
     }
 
     type TestCachedChainInfo =
-        CachedChainInfoProvider<SubstrateChainInfoProvider<TBlock, TestClient>>;
+        CachedChainInfoProvider<SubstrateChainInfoProvider<THeader, Arc<TestClient>>>;
     type TestAuxChainInfo =
-        AuxFinalizationChainInfoProvider<SubstrateChainInfoProvider<TBlock, TestClient>>;
+        AuxFinalizationChainInfoProvider<SubstrateChainInfoProvider<THeader, Arc<TestClient>>>;
 
     fn prepare_proposal_test() -> (ClientChainBuilder, TestCachedChainInfo, TestAuxChainInfo) {
         let client = Arc::new(TestClientBuilder::new().build());

@@ -1,6 +1,5 @@
-use sp_runtime::traits::Block as BlockT;
-
 use crate::{
+    block::{Block, UnverifiedHeader},
     data_io::{AlephData, UnvalidatedAlephProposal},
     testing::mocks::{TBlock, THeader},
 };
@@ -9,7 +8,10 @@ pub fn unvalidated_proposal_from_headers(
     mut headers: Vec<THeader>,
 ) -> UnvalidatedAlephProposal<THeader> {
     let head = headers.pop().unwrap();
-    let tail = headers.into_iter().map(|header| header.hash()).collect();
+    let tail = headers
+        .into_iter()
+        .map(|header| header.id().hash())
+        .collect();
     UnvalidatedAlephProposal::new(head, tail)
 }
 
