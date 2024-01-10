@@ -15,6 +15,7 @@ mod tests;
 mod weights;
 
 use frame_support::{
+    dispatch::PostDispatchInfo,
     pallet_prelude::{StorageVersion, Weight},
     sp_runtime::traits::BlakeTwo256,
 };
@@ -95,8 +96,8 @@ pub mod pallet {
         /// 2. If the key is already stored, this call will succeed and charge the full weight, even though the whole
         /// work could have been avoided.
         #[pallet::call_index(0)]
-        #[pallet::weight(T::WeightInfo::store_key(key.len() as u32) + T::StorageCharge::get().charge_for(key.len()))]
-        pub fn store_key(origin: OriginFor<T>, key: Vec<u8>) -> DispatchResult {
+        #[pallet::weight(T::WeightInfo::store_key(key.len() as u32))]
+        pub fn store_key(origin: OriginFor<T>, key: Vec<u8>) -> DispatchResultWithPostInfo {
             ensure_signed(origin)?;
 
             ensure!(
@@ -105,6 +106,7 @@ pub mod pallet {
             );
 
             let hash = KeyHasher::hash(&key);
+            let key_len = key.len();
             VerificationKeys::<T>::insert(
                 hash,
                 BoundedVec::try_from(key)
@@ -112,7 +114,13 @@ pub mod pallet {
             );
 
             Self::deposit_event(Event::VerificationKeyStored(hash));
-            Ok(())
+            Ok(PostDispatchInfo {
+                actual_weight: Some(
+                    T::WeightInfo::store_key(key_len as u32)
+                        .saturating_add(T::StorageCharge::get().charge_for(key_len)),
+                ),
+                pays_fee: Pays::Yes,
+            })
         }
     }
 }
