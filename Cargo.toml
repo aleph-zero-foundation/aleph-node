@@ -23,7 +23,6 @@ exclude = [
     "contracts/adder",
     "e2e-tests",
     "flooder",
-    "fork-off",
     "pallets/vk-storage",
     "poseidon",
     "relations/ark",
