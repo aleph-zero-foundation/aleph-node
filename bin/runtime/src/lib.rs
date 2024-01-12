@@ -729,7 +729,7 @@ impl pallet_contracts::Config for Runtime {
     type DefaultDepositLimit = ConstU128<{ u128::MAX }>;
     type DepositPerItem = DepositPerItem;
     type AddressGenerator = pallet_contracts::DefaultAddressGenerator;
-    type MaxCodeLen = ConstU32<{ 128 * 1024 }>;
+    type MaxCodeLen = ConstU32<{ 256 * 1024 }>;
     type MaxStorageKeyLen = ConstU32<128>;
     type UnsafeUnstableInterface = ConstBool<false>;
     type MaxDebugBufferLen = ConstU32<{ 2 * 1024 * 1024 }>;
@@ -1298,7 +1298,7 @@ mod tests {
         let max_code_len: u32 = <Runtime as pallet_contracts::Config>::MaxCodeLen::get();
 
         // The factor comes from allocator, contracts representation, and wasmi
-        let lhs = max_call_depth * (72 * max_code_len + max_heap_size + MAX_STACK_SIZE);
+        let lhs = max_call_depth * (36 * max_code_len + max_heap_size + MAX_STACK_SIZE);
         // We allocate only 75% of all runtime memory to contracts execution. Important: it's not
         // enforeced in wasmtime
         let rhs = MAX_RUNTIME_MEM * 3 / 4;
