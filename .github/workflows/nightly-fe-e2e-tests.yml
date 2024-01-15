@@ -81,7 +81,7 @@ jobs:
     runs-on: [self-hosted, Linux, X64, small]
     steps:
       - name: Download aleph-e2e-client artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: aleph-e2e-client
 

@@ -45,7 +45,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download aleph-node artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         env:
           TARGET_PATH: ${{ inputs.short-session == true && 'release' || 'production' }}
           ARTIFACT: ${{ inputs.short-session == true &&

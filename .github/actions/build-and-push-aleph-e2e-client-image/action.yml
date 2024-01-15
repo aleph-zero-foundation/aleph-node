@@ -84,7 +84,7 @@ runs:
     # in order to prevent rate quota exceeded, on workflows which requires many aleph-e2e-client
     # runs, we download them from GH artifacts instead from ECR
     - name: Upload aleph-e2e-client artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: aleph-e2e-client
         path: e2e-tests/aleph-e2e-client.tar

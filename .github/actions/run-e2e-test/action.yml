@@ -50,7 +50,7 @@ runs:
       uses: Cardinal-Cryptography/github-actions/get-ref-properties@v5
 
     - name: Download artifact with docker image
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.image-path }}
 
@@ -66,7 +66,7 @@ runs:
           ./.github/scripts/run_consensus.sh -n '${{ inputs.node-count }}'
 
     - name: Download aleph-e2e-client artifact
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: aleph-e2e-client
 
@@ -121,7 +121,7 @@ runs:
 
     - name: Upload logs from failed e2e test
       if: ${{ failure() }}
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         path: aleph-node-${{ steps.get-log-tarball-file-name.outputs.name }}-e2e-failure.tgz
         name: aleph-node-${{ steps.get-log-tarball-file-name.outputs.name }}-e2e-failure.tgz

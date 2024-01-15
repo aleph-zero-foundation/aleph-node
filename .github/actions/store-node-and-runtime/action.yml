@@ -44,13 +44,13 @@ runs:
       uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
 
     - name: Download binary from GH artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: aleph-${{ inputs.profile }}-node
         path: target/${{ steps.get-local-envs.outputs.cargo_profile }}
 
     - name: Download runtime from GH artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: aleph-${{ inputs.profile }}-runtime
         path: target/${{ steps.get-local-envs.outputs.cargo_profile }}/wbuild/aleph-runtime
