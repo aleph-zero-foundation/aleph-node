@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Rust toolchain
-        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v4
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v6
 
       - name: ${{ env.CARGO_COMMAND }} cliain binary
         run: |
@@ -68,7 +68,7 @@ jobs:
 
       - name: Call action get-ref-properties
         id: get-ref-properties
-        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v5
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v6
 
       - name: Download cliain from GH artifact
         uses: actions/download-artifact@v4
@@ -114,7 +114,7 @@ jobs:
 
       - name: Copy binary to S3 AWS bucket (non-liminal)
         if: ${{ inputs.liminal-runtime != true && inputs.check-only != true }}
-        uses: Cardinal-Cryptography/github-actions/copy-file-to-s3@v4
+        uses: Cardinal-Cryptography/github-actions/copy-file-to-s3@v6
         with:
           source-path: bin/cliain/target/release
           source-filename: cliain

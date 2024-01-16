@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Rust Toolchain
-        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v4
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v6
 
       - name: Run clippy
         uses: actions-rs/cargo@v1
@@ -39,7 +39,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Rust Toolchain
-        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v4
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v6
 
       - name: Run Unit Test Suite
         uses: actions-rs/cargo@v1

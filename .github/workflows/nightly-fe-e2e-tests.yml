@@ -104,7 +104,7 @@ jobs:
     needs:
       - runs-finalization-e2e-test-on-fe
     name: Delete featurenet
-    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-delete.yml@v5
+    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-delete.yml@v6
     secrets: inherit
     with:
       featurenet-name: 'ops-finalization-e2e'

@@ -23,7 +23,7 @@ jobs:
 
       - name: Call action get-ref-properties
         id: get-ref-properties
-        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v5
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v6
 
       - name: Download ${{ inputs.node-binary }} binary from artifacts
         uses: actions/download-artifact@v4

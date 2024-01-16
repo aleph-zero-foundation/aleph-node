@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Nightly Rust Toolchain
-        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v4
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v6
         with:
           channel: nightly-2023-01-10
           targets: wasm32-unknown-unknown
