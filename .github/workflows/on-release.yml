@@ -27,7 +27,6 @@ jobs:
 
       - name: Call action get-ref-properties
         id: get-ref-properties
-        # yamllint disable-line rule:line-length
         uses: Cardinal-Cryptography/github-actions/get-ref-properties@v6
 
       - name: Configure AWS credentials
@@ -59,10 +58,19 @@ jobs:
           aws s3 cp '${{ env.S3BUCKET_URL }}/${{ env.S3BUCKET_FILE }}' \
              'aleph-node-${{ steps.get-ref-properties.outputs.sha }}-linux-amd64.tar.gz'
 
+      - name: Generate release artifacts checksum (SHA256)
+        uses: jmgilman/actions-generate-checksum@v1
+        with:
+          output:
+            checksums-${{ steps.get-ref-properties.outputs.sha }}-linux-amd64.tar.gz.SHA256.txt
+          patterns: |
+            *.tar.gz
+
       - name: Add runtime and binary to the release
         uses: softprops/action-gh-release@v1
         with:
           files: |
+            checksums-${{ steps.get-ref-properties.outputs.sha }}-linux-amd64.tar.gz.SHA256.txt
             aleph-runtime-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
             aleph-node-${{ steps.get-ref-properties.outputs.sha }}-linux-amd64.tar.gz
 
