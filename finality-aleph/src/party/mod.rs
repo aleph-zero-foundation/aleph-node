@@ -498,7 +498,7 @@ mod tests {
         let readonly_session_authorities = shared_map.read_only();
 
         let chain_state = Arc::new(MockChainState::new());
-        let sync_oracle = SyncOracle::new();
+        let (sync_oracle, _) = SyncOracle::new();
         let session_manager = Arc::new(MockNodeSessionManager::new());
         let session_info = SessionBoundaryInfo::new(session_period);
 

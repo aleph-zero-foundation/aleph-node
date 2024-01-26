@@ -1,5 +1,8 @@
 use std::{
-    sync::Arc,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
     time::{Duration, Instant},
 };
 
@@ -17,14 +20,19 @@ const MAJOR_SYNC_THRESHOLD: Duration = Duration::from_secs(10);
 pub struct SyncOracle {
     last_far_behind: Arc<Mutex<Instant>>,
     last_update: Arc<Mutex<Instant>>,
+    // TODO: remove when SyncingService is no longer needed
+    is_major_syncing: Arc<AtomicBool>,
 }
 
 impl SyncOracle {
-    pub fn new() -> Self {
-        SyncOracle {
+    pub fn new() -> (Self, Arc<AtomicBool>) {
+        let is_major_syncing = Arc::new(AtomicBool::new(true));
+        let oracle = SyncOracle {
             last_update: Arc::new(Mutex::new(Instant::now() - OFFLINE_THRESHOLD)),
             last_far_behind: Arc::new(Mutex::new(Instant::now())),
-        }
+            is_major_syncing: is_major_syncing.clone(),
+        };
+        (oracle, is_major_syncing)
     }
 
     pub fn update_behind(&self, behind: u32) {
@@ -33,16 +41,20 @@ impl SyncOracle {
         if behind > FAR_BEHIND_THRESHOLD {
             *self.last_far_behind.lock() = now;
         }
+        self.major_sync();
     }
 
     pub fn major_sync(&self) -> bool {
-        self.last_far_behind.lock().elapsed() < MAJOR_SYNC_THRESHOLD
+        let is_major_syncing = self.last_far_behind.lock().elapsed() < MAJOR_SYNC_THRESHOLD;
+        self.is_major_syncing
+            .store(is_major_syncing, Ordering::Relaxed);
+        is_major_syncing
     }
 }
 
 impl Default for SyncOracle {
     fn default() -> Self {
-        SyncOracle::new()
+        SyncOracle::new().0
     }
 }
 

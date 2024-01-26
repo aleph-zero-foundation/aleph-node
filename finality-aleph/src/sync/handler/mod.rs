@@ -924,7 +924,7 @@ mod tests {
         let handler = Handler::new(
             database_io,
             verifier,
-            SyncOracle::new(),
+            SyncOracle::new().0,
             SESSION_BOUNDARY_INFO,
         )
         .expect("mock backend works");
@@ -1839,7 +1839,7 @@ mod tests {
         let mut handler = Handler::new(
             database_io,
             verifier,
-            SyncOracle::new(),
+            SyncOracle::new().0,
             SessionBoundaryInfo::new(SessionPeriod(20)),
         )
         .expect("mock backend works");

@@ -245,7 +245,7 @@ fn setup(
             block_relay: None,
         })?;
 
-    let sync_oracle = SyncOracle::new();
+    let (sync_oracle, _) = SyncOracle::new();
 
     let validator_address_cache = match collect_extra_debugging_data {
         true => Some(ValidatorAddressCache::new()),
