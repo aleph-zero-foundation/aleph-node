@@ -8,6 +8,7 @@ use std::{
 
 use futures::stream::StreamExt;
 use log::{debug, trace, warn};
+use sc_network::config::FullNetworkConfiguration;
 use sc_network_common::sync::SyncEvent;
 use sc_network_sync::{service::chain_sync::ToServiceCommand, SyncingService};
 use sc_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnboundedSender};
@@ -38,7 +39,7 @@ where
     B: Block<Hash = BlockHash>,
     B::Header: Header<Number = BlockNumber>,
 {
-    handler: Handler,
+    handler: Handler<B>,
     commands_from_user: TracingUnboundedReceiver<ToServiceCommand<B>>,
     events_for_users: Vec<TracingUnboundedSender<SyncEvent>>,
 }
@@ -52,12 +53,16 @@ where
     // TODO(A0-3886): This shouldn't need to return the substrate type after replacing RPCs.
     // In particular, it shouldn't depend on `B`. This is also the only reason why
     // the `major_sync` argument is needed.
-    pub fn new(major_sync: Arc<AtomicBool>) -> (Self, SyncingService<B>) {
+    pub fn new(
+        major_sync: Arc<AtomicBool>,
+        genesis_hash: B::Hash,
+        net_config: &FullNetworkConfiguration,
+    ) -> (Self, SyncingService<B>) {
         let (commands_for_service, commands_from_user) =
             tracing_unbounded("mpsc_base_protocol", 100_000);
         (
             Service {
-                handler: Handler::new(),
+                handler: Handler::new(genesis_hash, net_config),
                 commands_from_user,
                 events_for_users: Vec::new(),
             },
