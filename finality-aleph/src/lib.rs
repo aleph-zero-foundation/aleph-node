@@ -43,6 +43,7 @@ use crate::{
 
 mod abft;
 mod aggregation;
+mod base_protocol;
 mod block;
 mod compatibility;
 mod crypto;
