@@ -4,9 +4,12 @@ use aleph_client::{
     keypair_from_string,
     pallet_balances::pallet::Call::transfer_allow_death,
     pallet_session::pallet::Call::set_keys,
-    pallet_staking::{pallet::pallet::Call::bond, RewardDestination},
+    pallet_staking::{
+        pallet::pallet::Call::{bond, chill, nominate},
+        RewardDestination,
+    },
     pallet_utility::pallet::Call::batch,
-    pallets::{balances::BalanceUserApi, proxy::ProxyUserApi},
+    pallets::{balances::BalanceUserApi, proxy::ProxyUserApi, staking::StakingUserApi},
     utility::BlocksApi,
     AsConnection, AsSigned, Connection, KeyPair, RootConnection, SignedConnection, TxStatus,
 };
@@ -14,6 +17,7 @@ use primitives::TOKEN;
 use subxt::utils::{MultiAddress, Static};
 
 use crate::{
+    accounts::{accounts_seeds_to_keys, get_validators_seeds},
     config::setup_test,
     test::proxy::ProxyCallExpectedStatus::{Failure, Success},
 };
@@ -253,6 +257,56 @@ pub async fn non_transfer_proxy_works() -> anyhow::Result<()> {
         ),
     ];
 
+    perform_and_check_calls(root_connection.as_connection().clone(), &handle, calls).await;
+
+    Ok(())
+}
+
+#[tokio::test]
+pub async fn nomination_proxy_works() -> anyhow::Result<()> {
+    let config = setup_test();
+    let root_connection = config.create_root_connection().await;
+    let handle = setup_proxy(root_connection.clone(), ProxyType::Nomination).await;
+    let test_account_connection = SignedConnection::from_connection(
+        root_connection.as_connection().clone(),
+        handle.account.clone(),
+    );
+    let validator_0_id = accounts_seeds_to_keys(&get_validators_seeds(config))[0]
+        .account_id()
+        .clone();
+
+    let calls = vec![
+        (
+            RuntimeCall::Staking(bond {
+                value: 1000,
+                payee: RewardDestination::Staked,
+            }),
+            Failure,
+        ),
+        (
+            RuntimeCall::Utility(batch {
+                calls: vec![RuntimeCall::Staking(bond {
+                    value: 1000,
+                    payee: RewardDestination::Staked,
+                })],
+            }),
+            Failure,
+        ),
+    ];
+    perform_and_check_calls(root_connection.as_connection().clone(), &handle, calls).await;
+
+    test_account_connection
+        .bond(2500 * TOKEN, TxStatus::Finalized)
+        .await?;
+    let calls = vec![
+        (
+            RuntimeCall::Staking(nominate {
+                targets: vec![MultiAddress::Id(Static(validator_0_id.clone()))],
+            }),
+            Success,
+        ),
+        (RuntimeCall::Staking(chill {}), Failure),
+    ];
     perform_and_check_calls(root_connection.as_connection().clone(), &handle, calls).await;
 
     Ok(())

@@ -793,6 +793,7 @@ pub enum ProxyType {
     Any = 0,
     NonTransfer = 1,
     Staking = 2,
+    Nomination = 3,
 }
 impl Default for ProxyType {
     fn default() -> Self {
@@ -825,17 +826,30 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
                         | RuntimeCall::NominationPools(..)
                 )
             }
+            ProxyType::Nomination => {
+                matches!(
+                    c,
+                    RuntimeCall::Staking(pallet_staking::Call::nominate { .. })
+                )
+            }
         }
     }
     fn is_superset(&self, o: &Self) -> bool {
-        // ProxyType::Staking ⊆ ProxyType::NonTransfer ⊆ ProxyType::Any
-        match (self, o) {
-            (ProxyType::Any, _) => true,
-            (_, ProxyType::Any) => false,
-            (ProxyType::NonTransfer, ProxyType::Staking) => true,
-            (ProxyType::Staking, ProxyType::NonTransfer) => false,
-            (ProxyType::Staking, ProxyType::Staking) => true,
-            (ProxyType::NonTransfer, ProxyType::NonTransfer) => true,
+        // ProxyType::Nomination ⊆ ProxyType::Staking ⊆ ProxyType::NonTransfer ⊆ ProxyType::Any
+        match self {
+            ProxyType::Any => true,
+            ProxyType::NonTransfer => match o {
+                ProxyType::Any => false,
+                ProxyType::NonTransfer | ProxyType::Staking | ProxyType::Nomination => true,
+            },
+            ProxyType::Staking => match o {
+                ProxyType::Any | ProxyType::NonTransfer => false,
+                ProxyType::Staking | ProxyType::Nomination => true,
+            },
+            ProxyType::Nomination => match o {
+                ProxyType::Any | ProxyType::NonTransfer | ProxyType::Staking => false,
+                ProxyType::Nomination => true,
+            },
         }
     }
 }
@@ -1276,6 +1290,21 @@ mod tests {
     use smallvec::Array;
 
     use super::*;
+
+    #[test]
+    fn test_proxy_is_superset() {
+        let proxies = [
+            ProxyType::Any,
+            ProxyType::NonTransfer,
+            ProxyType::Staking,
+            ProxyType::Nomination,
+        ];
+        for (i, proxy) in proxies.iter().enumerate() {
+            for (j, other) in proxies.iter().enumerate() {
+                assert_eq!(proxy.is_superset(other), i <= j);
+            }
+        }
+    }
 
     #[test]
     fn state_version_must_be_zero() {
