@@ -1,16 +1,14 @@
 mod pruning_config;
 
-#[cfg(any(feature = "try-runtime", feature = "runtime-benchmarks"))]
-use aleph_node::ExecutorDispatch;
 use aleph_node::{new_authority, new_partial, Cli, Subcommand};
-#[cfg(any(feature = "try-runtime", feature = "runtime-benchmarks"))]
-use aleph_runtime::Block;
 use log::info;
 use primitives::HEAP_PAGES;
 use pruning_config::PruningConfigValidator;
 use sc_cli::{clap::Parser, SubstrateCli};
 use sc_network::config::Role;
 use sc_service::{Configuration, PartialComponents};
+#[cfg(any(feature = "try-runtime", feature = "runtime-benchmarks"))]
+use {aleph_node::ExecutorDispatch, aleph_runtime::Block, sc_executor::NativeExecutionDispatch};
 
 fn enforce_heap_pages(config: &mut Configuration) {
     config.default_heap_pages = Some(HEAP_PAGES);
@@ -120,7 +118,7 @@ fn main() -> sc_cli::Result<()> {
             let runner = cli.create_runner(cmd)?;
             runner.sync_run(|config| {
                 if let frame_benchmarking_cli::BenchmarkCmd::Pallet(cmd) = cmd {
-                    cmd.run::<Block, ()>(config)
+                    cmd.run::<Block, <ExecutorDispatch as NativeExecutionDispatch>::ExtendHostFunctions>(config)
                 } else {
                     Err(sc_cli::Error::Input("Wrong subcommand".to_string()))
                 }

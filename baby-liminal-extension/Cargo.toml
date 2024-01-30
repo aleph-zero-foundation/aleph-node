@@ -35,6 +35,9 @@ frame-benchmarking = { default-features = false, git = "https://github.com/Cardi
 [dev-dependencies]
 aleph-runtime = { path = "../bin/runtime", features = ["liminal"] }
 
+[build-dependencies]
+halo2_proofs = { git = "https://github.com/Cardinal-Cryptography/pse-halo2", branch = "aleph", default-features = false, features = ["mock-kzg-params"] }
+
 [features]
 # This is an artificial feature that is used by 3rd party crates in macro expansions.
 std = []

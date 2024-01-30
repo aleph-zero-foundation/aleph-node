@@ -14,7 +14,7 @@ pub trait MinimalRuntime: VkStorageConfig + ContractsConfig {}
 impl<R: VkStorageConfig + ContractsConfig> MinimalRuntime for R {}
 
 /// Default implementation for the chain extension mechanics.
-impl<Runtime: MinimalRuntime> BackendExecutor for Runtime {
+impl<Runtime: VkStorageConfig> BackendExecutor for Runtime {
     fn verify(args: VerifyArgs) -> Result<(), VerifierError> {
         let verifying_key = VerificationKeys::<Runtime>::get(args.verification_key_hash)
             .ok_or(VerifierError::UnknownVerificationKeyIdentifier)?

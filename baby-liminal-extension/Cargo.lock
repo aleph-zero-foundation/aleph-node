@@ -424,6 +424,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-support",
  "frame-system",
+ "halo2_proofs",
  "ink",
  "log",
  "pallet-contracts",
