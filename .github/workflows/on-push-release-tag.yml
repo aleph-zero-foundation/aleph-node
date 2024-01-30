@@ -25,7 +25,7 @@ jobs:
 
       - name: Read node version
         id: read-node-version
-        uses: SebRollen/toml-action@v1.0.2
+        uses: SebRollen/toml-action@v1.2.0
         with:
           file: 'bin/node/Cargo.toml'
           field: 'package.version'

@@ -134,7 +134,7 @@ jobs:
           sleep 300
 
       - name: GIT | Commit changes to argocd apps repository.
-        uses: EndBug/add-and-commit@v9.1.3
+        uses: EndBug/add-and-commit@v9.1.4
         with:
           author_name: ${{ secrets.AUTOCOMMIT_AUTHOR }}
           author_email: ${{ secrets.AUTOCOMMIT_EMAIL }}

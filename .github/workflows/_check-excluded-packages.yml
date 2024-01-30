@@ -25,14 +25,14 @@ jobs:
       # aleph-client and all its dependees still require nightly Rust version
       - name: Read aleph-client toolchain
         id: aleph-client-toolchain-channel
-        uses: SebRollen/toml-action@v1.0.2
+        uses: SebRollen/toml-action@v1.2.0
         with:
           file: 'aleph-client/rust-toolchain.toml'
           field: 'toolchain.channel'
 
       - name: Read workspace excluded packages list
         id: workspace-excluded-packages
-        uses: SebRollen/toml-action@v1.0.2
+        uses: SebRollen/toml-action@v1.2.0
         with:
           file: 'Cargo.toml'
           field: 'workspace.exclude'
