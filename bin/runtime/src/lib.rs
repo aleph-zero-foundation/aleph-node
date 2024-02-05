@@ -23,8 +23,8 @@ pub use frame_support::{
 use frame_support::{
     sp_runtime::Perquintill,
     traits::{
-        ConstBool, ConstU32, EqualPrivilegeOnly, EstimateNextSessionRotation, InstanceFilter,
-        SortedMembers, WithdrawReasons,
+        ConstBool, ConstU32, Contains, EqualPrivilegeOnly, EstimateNextSessionRotation,
+        InstanceFilter, SortedMembers, WithdrawReasons,
     },
     weights::constants::WEIGHT_REF_TIME_PER_MILLIS,
     PalletId,
@@ -709,14 +709,27 @@ parameter_types! {
     pub CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(30);
 }
 
+// The filter for the runtime calls that are allowed to be executed by contracts.
+// Currently we allow only staking and nomination pools calls.
+pub enum ContractsCallRuntimeFilter {}
+
+impl Contains<RuntimeCall> for ContractsCallRuntimeFilter {
+    fn contains(call: &RuntimeCall) -> bool {
+        matches!(
+            call,
+            RuntimeCall::Staking(_) | RuntimeCall::NominationPools(_)
+        )
+    }
+}
+
 impl pallet_contracts::Config for Runtime {
     type Time = Timestamp;
     type Randomness = RandomnessCollectiveFlip;
     type Currency = Balances;
     type RuntimeEvent = RuntimeEvent;
     type RuntimeCall = RuntimeCall;
-    // The safest default is to allow no calls at all. This is unsafe experimental feature with no support in ink!
-    type CallFilter = Nothing;
+
+    type CallFilter = ContractsCallRuntimeFilter;
     type WeightPrice = pallet_transaction_payment::Pallet<Self>;
     type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
     #[cfg(feature = "liminal")]
@@ -1273,6 +1286,173 @@ mod tests {
     use smallvec::Array;
 
     use super::*;
+
+    #[test]
+    // This test is to make sure that we don't break call-runtime.
+    fn test_staking_pallet_index() {
+        // arbitrary call that is easy to construct
+        let c = RuntimeCall::Staking(pallet_staking::Call::bond_extra { max_additional: 0 });
+        // first byte is pallet index
+        assert_eq!(c.encode()[0], 8);
+    }
+
+    #[test]
+    // This test is to make sure that we don't break call-runtime.
+    fn test_nomination_pools_pallet_index() {
+        // arbitrary call that is easy to construct
+        let c = RuntimeCall::NominationPools(pallet_nomination_pools::Call::chill { pool_id: 0 });
+        // first byte is pallet index
+        assert_eq!(c.encode()[0], 19);
+    }
+
+    fn match_staking_call(c: pallet_staking::Call<Runtime>) {
+        match c {
+            pallet_staking::Call::bond { value: _, payee: _ } => {}
+            pallet_staking::Call::bond_extra { max_additional: _ } => {}
+            pallet_staking::Call::unbond { value: _ } => {}
+            pallet_staking::Call::withdraw_unbonded {
+                num_slashing_spans: _,
+            } => {}
+            pallet_staking::Call::validate { prefs: _ } => {}
+            pallet_staking::Call::nominate { targets: _ } => {}
+            pallet_staking::Call::chill {} => {}
+            pallet_staking::Call::set_payee { payee: _ } => {}
+            pallet_staking::Call::set_controller {} => {}
+            pallet_staking::Call::set_validator_count { new: _ } => {}
+            pallet_staking::Call::increase_validator_count { additional: _ } => {}
+            pallet_staking::Call::scale_validator_count { factor: _ } => {}
+            pallet_staking::Call::force_no_eras {} => {}
+            pallet_staking::Call::force_new_era {} => {}
+            pallet_staking::Call::set_invulnerables { invulnerables: _ } => {}
+            pallet_staking::Call::force_unstake {
+                stash: _,
+                num_slashing_spans: _,
+            } => {}
+            pallet_staking::Call::force_new_era_always {} => {}
+            pallet_staking::Call::cancel_deferred_slash {
+                era: _,
+                slash_indices: _,
+            } => {}
+            pallet_staking::Call::payout_stakers {
+                validator_stash: _,
+                era: _,
+            } => {}
+            pallet_staking::Call::rebond { value: _ } => {}
+            pallet_staking::Call::reap_stash {
+                stash: _,
+                num_slashing_spans: _,
+            } => {}
+            pallet_staking::Call::kick { who: _ } => {}
+            pallet_staking::Call::set_staking_configs {
+                min_nominator_bond: _,
+                min_validator_bond: _,
+                max_nominator_count: _,
+                max_validator_count: _,
+                chill_threshold: _,
+                min_commission: _,
+            } => {}
+            pallet_staking::Call::chill_other { controller: _ } => {}
+            pallet_staking::Call::force_apply_min_commission { validator_stash: _ } => {}
+            pallet_staking::Call::set_min_commission { new: _ } => {}
+            pallet_staking::Call::__Ignore(..) => {}
+        }
+    }
+
+    fn match_nomination_pools_call(c: pallet_nomination_pools::Call<Runtime>) {
+        match c {
+            pallet_nomination_pools::Call::join {
+                amount: _,
+                pool_id: _,
+            } => {}
+            pallet_nomination_pools::Call::bond_extra { extra: _ } => {}
+            pallet_nomination_pools::Call::claim_payout {} => {}
+            pallet_nomination_pools::Call::unbond {
+                member_account: _,
+                unbonding_points: _,
+            } => {}
+            pallet_nomination_pools::Call::pool_withdraw_unbonded {
+                pool_id: _,
+                num_slashing_spans: _,
+            } => {}
+            pallet_nomination_pools::Call::withdraw_unbonded {
+                member_account: _,
+                num_slashing_spans: _,
+            } => {}
+            pallet_nomination_pools::Call::create {
+                amount: _,
+                root: _,
+                nominator: _,
+                bouncer: _,
+            } => {}
+            pallet_nomination_pools::Call::create_with_pool_id {
+                amount: _,
+                root: _,
+                nominator: _,
+                bouncer: _,
+                pool_id: _,
+            } => {}
+            pallet_nomination_pools::Call::nominate {
+                pool_id: _,
+                validators: _,
+            } => {}
+            pallet_nomination_pools::Call::set_state {
+                pool_id: _,
+                state: _,
+            } => {}
+            pallet_nomination_pools::Call::set_metadata {
+                pool_id: _,
+                metadata: _,
+            } => {}
+            pallet_nomination_pools::Call::set_configs {
+                min_join_bond: _,
+                min_create_bond: _,
+                max_pools: _,
+                max_members: _,
+                max_members_per_pool: _,
+                global_max_commission: _,
+            } => {}
+            pallet_nomination_pools::Call::update_roles {
+                pool_id: _,
+                new_root: _,
+                new_nominator: _,
+                new_bouncer: _,
+            } => {}
+            pallet_nomination_pools::Call::chill { pool_id: _ } => {}
+            pallet_nomination_pools::Call::bond_extra_other {
+                member: _,
+                extra: _,
+            } => {}
+            pallet_nomination_pools::Call::set_claim_permission { permission: _ } => {}
+            pallet_nomination_pools::Call::claim_payout_other { other: _ } => {}
+            pallet_nomination_pools::Call::set_commission {
+                pool_id: _,
+                new_commission: _,
+            } => {}
+            pallet_nomination_pools::Call::set_commission_max {
+                pool_id: _,
+                max_commission: _,
+            } => {}
+            pallet_nomination_pools::Call::set_commission_change_rate {
+                pool_id: _,
+                change_rate: _,
+            } => {}
+            pallet_nomination_pools::Call::claim_commission { pool_id: _ } => {}
+            pallet_nomination_pools::Call::__Ignore(..) => {}
+        }
+    }
+
+    #[test]
+    fn test_call_runtime_api_stability() {
+        // If this thing does not compile it means there are breaking changes in staking or nomination pools pallet. This affects call-runtime.
+        // Please do not fix blindly -- action required, escalate.
+        let _ = {
+            |c: RuntimeCall| match c {
+                RuntimeCall::Staking(call) => match_staking_call(call),
+                RuntimeCall::NominationPools(call) => match_nomination_pools_call(call),
+                _ => {}
+            }
+        };
+    }
 
     #[test]
     fn state_version_must_be_zero() {
