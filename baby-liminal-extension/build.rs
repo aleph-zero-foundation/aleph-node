@@ -59,21 +59,29 @@ fn main() {
 
     // We run benchmarks for up to ~4K gates - this is to be changed for the final version. Now, we keep it low for
     // developer convenience.
-    const CIRCUIT_MAX_K: u32 = 12;
+    const CIRCUIT_MAX_K: u32 = 20;
     // We run a common setup for all generated circuits.
     let params = ParamsKZG::<Bn256>::setup(CIRCUIT_MAX_K, ParamsKZG::<Bn256>::mock_rng());
 
-    let artifacts = generate_artifacts::<5, 3>(&params);
-
-    let path = |suf| {
+    let path = |instances, row_blowup, suf| {
         Path::new(&env::current_dir().unwrap())
             .join("benchmark-resources")
-            .join(format!("5_3_{suf}"))
+            .join(format!("{instances}_{row_blowup}_{suf}"))
     };
 
-    fs::write(&path("vk"), artifacts.verification_key).unwrap();
-    fs::write(&path("proof"), artifacts.proof).unwrap();
-    fs::write(&path("input"), artifacts.public_input).unwrap();
+    const INSTANCES: &[usize] = &[1, 2, 8, 16, 64, 128];
+    const ROW_BLOWUP: &[usize] = &[1, 8, 64, 512, 4096];
+
+    for instances in INSTANCES {
+        for row_blowup in ROW_BLOWUP {
+            let artifacts = generate_artifacts(*instances, *row_blowup, &params);
+
+            let path = |suf| path(*instances, *row_blowup, suf);
+            fs::write(&path("vk"), artifacts.verification_key).unwrap();
+            fs::write(&path("proof"), artifacts.proof).unwrap();
+            fs::write(&path("input"), artifacts.public_input).unwrap();
+        }
+    }
 }
 
 /// This module contains the code that is used to generate the SNARK artifacts (proof generation).
@@ -98,11 +106,13 @@ mod artifacts {
     }
 
     /// Run the proof generation for the given circuit and parameters.
-    pub fn generate_artifacts<const INSTANCES: usize, const ROW_BLOWUP: usize>(
+    pub fn generate_artifacts(
+        instances: usize,
+        row_blowup: usize,
         params: &ParamsKZG<Bn256>,
     ) -> Artifacts {
-        let circuit = BenchCircuit::<INSTANCES, ROW_BLOWUP>::natural_numbers();
-        let instances = (0..INSTANCES)
+        let circuit = BenchCircuit::natural_numbers(instances, row_blowup);
+        let instances = (0..instances)
             .map(|i| Fr::from((i * i) as u64))
             .collect::<Vec<_>>();
 
@@ -147,27 +157,24 @@ mod circuit {
         standard_plonk::{StandardPlonk, StandardPlonkConfig},
     };
 
-    pub struct BenchCircuit<const INSTANCES: usize, const ROW_BLOWUP: usize> {
+    #[derive(Default)]
+    pub struct BenchCircuit {
+        /// The number of instances.
+        instances: usize,
+        /// The row blowup factor.
+        row_blowup: usize,
         /// The roots of the instances (`i`th root is a square root of `i`th instance).
-        roots: [Fr; INSTANCES],
+        roots: Vec<Fr>,
     }
 
-    impl<const INSTANCES: usize, const ROW_BLOWUP: usize> Default
-        for BenchCircuit<INSTANCES, ROW_BLOWUP>
-    {
-        fn default() -> Self {
-            BenchCircuit {
-                roots: [Fr::zero(); INSTANCES],
-            }
-        }
-    }
-
-    impl<const INSTANCES: usize, const ROW_BLOWUP: usize> BenchCircuit<INSTANCES, ROW_BLOWUP> {
+    impl BenchCircuit {
         /// Create a circuit with the consecutive natural numbers as advices.
-        pub fn natural_numbers() -> Self {
-            let roots: Vec<_> = (0..INSTANCES).map(|i| Fr::from(i as u64)).collect();
+        pub fn natural_numbers(instances: usize, row_blowup: usize) -> Self {
+            let roots = (0..instances).map(|i| Fr::from(i as u64)).collect();
             Self {
-                roots: roots.try_into().unwrap(),
+                instances,
+                row_blowup,
+                roots,
             }
         }
 
@@ -192,9 +199,7 @@ mod circuit {
         }
     }
 
-    impl<const INSTANCES: usize, const ROW_BLOWUP: usize> Circuit<Fr>
-        for BenchCircuit<INSTANCES, ROW_BLOWUP>
-    {
+    impl Circuit<Fr> for BenchCircuit {
         type Config = <StandardPlonk as Circuit<Fr>>::Config;
         type FloorPlanner = <StandardPlonk as Circuit<Fr>>::FloorPlanner;
 
@@ -211,7 +216,7 @@ mod circuit {
             config: Self::Config,
             mut layouter: impl Layouter<Fr>,
         ) -> Result<(), Error> {
-            for instance_idx in 0..INSTANCES {
+            for instance_idx in 0..self.instances {
                 // For every instance, we ensure that the corresponding advice is indeed a square root of it.
                 layouter.assign_region(
                     || format!("check {instance_idx}-th root"),
@@ -219,11 +224,17 @@ mod circuit {
                 )?;
             }
 
-            for instance_idx in 0..INSTANCES {
+            for instance_idx in 0..self.instances {
                 // We also do some dummy work to blow up the number of rows.
-                for copy in 0..(ROW_BLOWUP - 1) {
+                for copy in 0..(self.row_blowup - 1) {
                     layouter.assign_region(
-                        || format!("check {instance_idx}-th root ({}/{})", copy + 1, ROW_BLOWUP),
+                        || {
+                            format!(
+                                "check {instance_idx}-th root ({}/{})",
+                                copy + 1,
+                                self.row_blowup
+                            )
+                        },
                         |mut region| {
                             self.neg_root_square(instance_idx, &mut region, &config)?;
 

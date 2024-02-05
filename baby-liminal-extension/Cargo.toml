@@ -31,12 +31,13 @@ pallet-vk-storage = { path = "../pallets/vk-storage", default-features = false, 
 # Benchmarking
 
 frame-benchmarking = { default-features = false, git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.2.0", optional = true }
+paste = { version = "1.0.11", optional = true }
 
 [dev-dependencies]
 aleph-runtime = { path = "../bin/runtime", features = ["liminal"] }
 
 [build-dependencies]
-halo2_proofs = { git = "https://github.com/Cardinal-Cryptography/pse-halo2", branch = "aleph", default-features = false, features = ["mock-kzg-params"] }
+halo2_proofs = { git = "https://github.com/Cardinal-Cryptography/pse-halo2", branch = "aleph", default-features = false, features = ["mock-kzg-params", "multicore"] }
 
 [features]
 # This is an artificial feature that is used by 3rd party crates in macro expansions.
@@ -81,4 +82,5 @@ ink-std = [
 runtime-benchmarks = [
     "runtime",
     "frame-benchmarking",
+    "paste",
 ]

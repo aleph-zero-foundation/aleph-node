@@ -24,13 +24,17 @@
 //! Please note, that in the current form, it would be sufficient to just use the `VkStorage` pallet as the `Pallet`
 //! type and `pallete_vk_storage::Config` as the `Config` trait. However, we want to keep the benchmarking of the
 //! chain extension abstracted from the pallets that it uses. This is why we define our own dummy pallet and config.
+//!
+//! # Macro-generated benchmark suite
+//!
+//! Since we want to run benchmarks for different circuit parameters, we use a macro to generate all the corresponding
+//! benchmark functions.
+//!
+//! However, since the whole benchmark suite is defined with `#[benchmarks]` macro, we cannot use an auxiliary macro
+//! within it -- this is due to the macro expansion order. To overcome this problem, we provide a macro that generates
+//! the whole benchmark suite.
 
-use frame_benchmarking::v2::*;
-use frame_support::{sp_runtime::traits::Hash, BoundedVec};
-use pallet_vk_storage::{KeyHasher, VerificationKeys};
-use sp_std::vec;
-
-use crate::args::VerifyArgs;
+#![allow(unused_imports)]
 
 /// Dummy trait that defines the pallet's configuration. Since `auto trait` is not stable yet, we just provide a full
 /// blanket implementation for all runtimes that contain the `pallet_vk_storage` pallet.
@@ -51,66 +55,88 @@ pub type ChainExtensionBenchmarking<T> = Pallet<T>;
 ///
 /// Since the benchmarks are run within the runtime, we don't have access to the common `std::fs` utilities.
 /// Fortunately, we can still make use of the `include_bytes` macro.
-fn get_verification_artifacts<T: pallet_vk_storage::Config>() -> (
-    VerifyArgs,
-    BoundedVec<u8, <T as pallet_vk_storage::Config>::MaximumKeyLength>,
-) {
-    // We use a macro here, because a function cannot put literal variables in the `include_bytes` macro.
-    macro_rules! get {
-        ($art:literal) => {
-            include_bytes!(concat!("../../benchmark-resources/5_3_", $art)).to_vec()
-        };
-    }
+///
+/// We use a macro here, because a function cannot put literal variables in the `include_bytes` macro.
+macro_rules! get_artifact {
+    ($instances:literal, $row_blowup:literal, $art:literal) => {
+        include_bytes!(concat!(
+            "../../benchmark-resources/",
+            $instances,
+            "_",
+            $row_blowup,
+            "_",
+            $art
+        ))
+        .to_vec()
+    };
+}
 
-    let verification_key = get!("vk");
+/// Generate the benchmark suite for the given circuit parameters.
+macro_rules! generate_benchmarks {
     (
-        VerifyArgs {
-            verification_key_hash: KeyHasher::hash(&verification_key),
-            proof: get!("proof"),
-            public_input: get!("input"),
-        },
-        verification_key.try_into().unwrap(),
-    )
+        circuit_parameters: $(($instances:literal, $row_blowup:literal)),*
+    ) => {
+        paste::paste! {
+            use frame_benchmarking::v2::*;
+            use frame_support::{sp_runtime::traits::Hash, BoundedVec};
+            use pallet_vk_storage::{KeyHasher, VerificationKeys};
+            use sp_std::vec;
+
+            #[benchmarks]
+            mod benchmarks {
+                use scale::{Decode, Encode};
+
+                use super::*;
+                use crate::{args::VerifyArgs, backend::BackendExecutorT};
+
+                /// Benchmark `verify` arguments decoding.
+                #[benchmark]
+                fn verify_read_args(
+                    // Check input length up to ~10MB
+                    x: Linear<0, 10_000_000>,
+                ) {
+                    let args = VerifyArgs {
+                        verification_key_hash: Default::default(),
+                        proof: vec![1; (x / 2) as usize],
+                        public_input: vec![2; (x / 2) as usize],
+                    }
+                    .encode();
+
+                    #[block]
+                    {
+                        VerifyArgs::decode(&mut &args[..]).unwrap();
+                    }
+                }
+
+
+                $(#[benchmark]
+                fn [<verify_ $instances _ $row_blowup>] () {
+                    let verification_key = get_artifact!($instances, $row_blowup, "vk");
+                    let args = VerifyArgs {
+                        verification_key_hash: KeyHasher::hash(&verification_key),
+                        proof: get_artifact!($instances, $row_blowup, "proof"),
+                        public_input: get_artifact!($instances, $row_blowup, "input"),
+                    };
+
+                    let verification_key: BoundedVec<_, _> = verification_key.try_into().unwrap();
+                    VerificationKeys::<T>::insert(args.verification_key_hash, verification_key);
+
+                    #[block]
+                    {
+                        <T as BackendExecutorT>::verify(args).unwrap();
+                    }
+                })*
+            }
+        }
+    };
 }
 
-#[benchmarks]
-mod benchmarks {
-    use scale::{Decode, Encode};
-
-    use super::*;
-    use crate::{args::VerifyArgs, backend::BackendExecutorT};
-
-    /// Benchmark `verify` arguments decoding.
-    #[benchmark]
-    fn verify_read_args(
-        // Check input length up to ~10MB
-        x: Linear<0, 10_000_000>,
-    ) {
-        let args = VerifyArgs {
-            verification_key_hash: Default::default(),
-            proof: vec![1; (x / 2) as usize],
-            public_input: vec![2; (x / 2) as usize],
-        }
-        .encode();
-
-        #[block]
-        {
-            VerifyArgs::decode(&mut &args[..]).unwrap();
-        }
-    }
-
-    /// Benchmark proof verification (covering both reading the verification key from the storage and the actual
-    /// verification).
-    ///
-    /// Due to macro internals, we cannot name the benchmark just `verify`.
-    #[benchmark]
-    fn verify_proof() {
-        let (args, verification_key) = get_verification_artifacts::<T>();
-        VerificationKeys::<T>::insert(args.verification_key_hash, verification_key);
-
-        #[block]
-        {
-            <T as BackendExecutorT>::verify(args).unwrap();
-        }
-    }
-}
+generate_benchmarks!(
+    circuit_parameters:
+        (1, 1), (1, 8), (1, 64), (1, 512), (1, 4096),
+        (2, 1), (2, 8), (2, 64), (2, 512), (2, 4096),
+        (8, 1), (8, 8), (8, 64), (8, 512), (8, 4096),
+        (16, 1), (16, 8), (16, 64), (16, 512), (16, 4096),
+        (64, 1), (64, 8), (64, 64), (64, 512), (64, 4096),
+        (128, 1), (128, 8), (128, 64), (128, 512), (128, 4096)
+);
