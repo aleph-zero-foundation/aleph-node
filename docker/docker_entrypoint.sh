@@ -43,7 +43,6 @@ fi
 
 ARGS=(
   --validator
-  --execution Native
   --name "${NAME}"
   --base-path "${BASE_PATH}"
   --pool-limit "${POOL_LIMIT}"
