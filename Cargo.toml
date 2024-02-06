@@ -77,7 +77,7 @@ smallvec = { version = "1", default-features = false }
 static_assertions = { version = "1.1" }
 thiserror = { version = "1.0" }
 tiny-bip39 = { version = "1.0" }
-tokio = { version = "1.35" }
+tokio = { version = "1.36" }
 rand_pcg = { version = "0.3.1", default-features = false }
 
 frame-benchmarking = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.2.0", default-features = false }
