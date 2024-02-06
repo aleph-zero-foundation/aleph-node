@@ -4,9 +4,8 @@
 name: Weekly sync from snapshot test, pruned
 on:
   # At 03:00 on Tuesday
-  # TODO: fix the time to actually be correct
   schedule:
-    - cron: '0 3 2 4 2'
+    - cron: '0 3 * * 2'
   workflow_dispatch:
 
 concurrency:
@@ -18,3 +17,48 @@ jobs:
     name: Check vars and secrets
     uses: ./.github/workflows/_check-vars-and-secrets.yml
     secrets: inherit
+
+  build-production-node-and-runtime:
+    needs: [check-vars-and-secrets]
+    name: Build production node and runtime
+    uses: ./.github/workflows/_build-production-node-and-runtime.yml
+    with:
+      ref: ${{ github.ref }}
+
+  get-snapshot-and-sync:
+    needs: [build-production-node-and-runtime]
+    name: Download snapshot and run
+    runs-on: [self-hosted, Linux, X64, medium-1000GB]
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Download release artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: aleph-production-node
+
+      - name: Download snapshot
+        timeout-minutes: 180
+        run: |
+          ./.github/scripts/test_testnet_db_sync.sh \
+            --pruned
+
+
+  slack-notification:
+    name: Slack notification
+    runs-on: ubuntu-20.04
+    needs: [get-snapshot-and-sync]
+    if: >
+      !cancelled() &&
+      github.event_name != 'workflow_dispatch'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Send Slack message
+        uses: ./.github/actions/slack-notification
+        with:
+          notify-on: "failure"
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_DEV_ONDUTY }}
