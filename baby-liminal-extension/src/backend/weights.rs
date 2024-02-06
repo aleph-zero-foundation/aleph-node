@@ -23,7 +23,10 @@
 #![allow(unused_variables)]
 
 use frame_support::{traits::Get, weights::{Weight, constants::RocksDbWeight}};
-use sp_std::marker::PhantomData;
+use sp_std::{
+    marker::PhantomData,
+    vec::Vec
+};
 use crate::backend::ByteCount;
 
 /// Weight functions needed for baby_liminal_extension.
@@ -45,7 +48,7 @@ pub trait WeightInfo {
 
 impl<I: BenchmarkInfo> WeightInfo for I {
     fn verify() -> Weight {
-        *[
+        let (ref_times, proof_sizes) = [
             <I as BenchmarkInfo>::verify_1_1(),
             <I as BenchmarkInfo>::verify_1_8(),
             <I as BenchmarkInfo>::verify_1_64(),
@@ -76,7 +79,11 @@ impl<I: BenchmarkInfo> WeightInfo for I {
             <I as BenchmarkInfo>::verify_128_64(),
             <I as BenchmarkInfo>::verify_128_512(),
             <I as BenchmarkInfo>::verify_128_4096(),
-        ].iter().max().unwrap()
+        ].iter().map(|w|(w.ref_time(), w.proof_size())).unzip::<_,_,Vec<_>, Vec<_>>();
+        Weight::from_parts(
+            *ref_times.iter().max().unwrap(),
+            *proof_sizes.iter().max().unwrap(),
+        )
     }
 
     fn verify_read_args(input_length: ByteCount) -> Weight {
