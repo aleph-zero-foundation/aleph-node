@@ -6,7 +6,7 @@ source ./scripts/common.sh
 # ------------------------ constants -------------------------------------------
 
 export NODE_ID=5D34dL5prEUaGNQtPPZ3yN5Y6BnkfXunKXXz6fo7ZJbLwRRH
-CHAINSPEC_FILE="./liminal-benchmark-chainspec.json"
+CHAINSPEC_FILE="./benchmark-chainspec.json"
 
 # ------------------------ argument parsing and usage --------------------------
 
@@ -14,6 +14,8 @@ function usage(){
   cat << EOF
 Usage:
   $0
+  --feature-control
+      Run benchmarks for the feature-control pallet
   --vk-storage
       Run benchmarks for the vk-storage pallet
   --chain-extension
@@ -23,10 +25,15 @@ EOF
 }
 
 VK_STORAGE=""
+FEATURE_CONTROL=""
 CHAIN_EXTENSION=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --feature-control)
+      FEATURE_CONTROL="true"
+      shift
+      ;;
     --vk-storage)
       VK_STORAGE="true"
       shift
@@ -64,9 +71,9 @@ function bootstrap() {
     --base-path /tmp/ \
     --account-ids $NODE_ID \
     --sudo-account-id $NODE_ID \
-    --chain-id liminalnet \
-    --token-symbol LMNLZERO \
-    --chain-name 'Aleph Zero LiminalNet' \
+    --chain-id benchmarknet \
+    --token-symbol BZERO \
+    --chain-name 'Aleph Zero BenchmarkNet' \
     > "${CHAINSPEC_FILE}"
 }
 
@@ -85,8 +92,12 @@ function benchmark() {
         --output="${output_path}"
 }
 
-function benchmark_pallet() {
+function benchmark_vk_storage_pallet() {
   benchmark pallet_vk_storage pallets/vk-storage/src/weights.rs
+}
+
+function benchmark_feature_control_pallet() {
+  benchmark pallet_feature_control pallets/feature-control/src/weights.rs
 }
 
 function benchmark_chain_extension() {
@@ -95,13 +106,18 @@ function benchmark_chain_extension() {
 
 # ------------------------ main ------------------------------------------------
 
-if [[ -z "${VK_STORAGE}" && -z "${CHAIN_EXTENSION}" ]] ; then
+if [[ -z "${FEATURE_CONTROL}" && -z "${VK_STORAGE}" && -z "${CHAIN_EXTENSION}" ]] ; then
   echo "No benchmarks selected, exiting."
+fi
+
+if [[ "${FEATURE_CONTROL}" == "true" ]]; then
+  bootstrap
+  benchmark_feature_control_pallet
 fi
 
 if [[ "${VK_STORAGE}" == "true" ]]; then
   bootstrap
-  benchmark_pallet
+  benchmark_vk_storage_pallet
 fi
 
 if [[ "${CHAIN_EXTENSION}" == "true" ]]; then

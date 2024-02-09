@@ -882,6 +882,12 @@ impl pallet_proxy::Config for Runtime {
     type AnnouncementDepositFactor = AnnouncementDepositFactor;
 }
 
+impl pallet_feature_control::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type WeightInfo = pallet_feature_control::AlephWeight<Runtime>;
+    type Supervisor = EnsureRoot<AccountId>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 #[cfg(not(feature = "liminal"))]
 construct_runtime!(
@@ -909,6 +915,7 @@ construct_runtime!(
         Identity: pallet_identity = 20,
         CommitteeManagement: pallet_committee_management = 21,
         Proxy: pallet_proxy = 22,
+        FeatureControl: pallet_feature_control = 23,
     }
 );
 
@@ -938,6 +945,7 @@ construct_runtime!(
         Identity: pallet_identity = 20,
         CommitteeManagement: pallet_committee_management = 21,
         Proxy: pallet_proxy = 22,
+        FeatureControl: pallet_feature_control = 23,
         VkStorage: pallet_vk_storage = 41,
     }
 );
@@ -982,11 +990,12 @@ pub type Executive = frame_executive::Executive<
 mod benches {
     #[cfg(feature = "liminal")]
     frame_benchmarking::define_benchmarks!(
+        [pallet_feature_control, FeatureControl]
         [pallet_vk_storage, VkStorage]
         [baby_liminal_extension, baby_liminal_extension::ChainExtensionBenchmarking<Runtime>]
     );
     #[cfg(not(feature = "liminal"))]
-    frame_benchmarking::define_benchmarks!([]);
+    frame_benchmarking::define_benchmarks!([pallet_feature_control, FeatureControl]);
 }
 
 type EventRecord = frame_system::EventRecord<RuntimeEvent, Hash>;
