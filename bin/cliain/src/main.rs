@@ -11,10 +11,7 @@ use cliain::{
     ConnectionConfig,
 };
 #[cfg(feature = "liminal")]
-use cliain::{
-    generate_keys, generate_keys_from_srs, generate_proof, generate_srs, store_key, verify_proof,
-    SnarkRelation, VkStorage,
-};
+use cliain::{store_key, VkStorage};
 use log::{error, info};
 
 #[derive(Debug, Parser, Clone)]
@@ -46,8 +43,6 @@ fn read_seed(command: &Command, seed: Option<String>) -> String {
         | Command::RotateKeys
         | Command::SeedToSS58 { .. }
         | Command::ContractCodeInfo { .. } => String::new(),
-        #[cfg(feature = "liminal")]
-        Command::SnarkRelation { .. } => String::new(),
         _ => read_secret(seed, "Provide seed for the signer account:"),
     }
 }
@@ -246,40 +241,6 @@ async fn main() -> anyhow::Result<()> {
             VkStorage::StoreKey { vk_file } => {
                 if let Err(why) = store_key(cfg.get_signed_connection().await, vk_file).await {
                     error!("Unable to store key: {why:?}")
-                }
-            }
-        },
-
-        #[cfg(feature = "liminal")]
-        Command::SnarkRelation(cmd) => match *cmd {
-            SnarkRelation::GenerateSrs {
-                system,
-                num_constraints,
-                num_variables,
-                degree,
-            } => generate_srs(system, num_constraints, num_variables, degree),
-            SnarkRelation::GenerateKeysFromSrs {
-                relation,
-                system,
-                srs_file,
-            } => generate_keys_from_srs(relation, system, srs_file),
-            SnarkRelation::GenerateKeys { relation, system } => generate_keys(relation, system),
-            SnarkRelation::GenerateProof {
-                relation,
-                system,
-                proving_key_file,
-            } => generate_proof(relation, system, proving_key_file),
-            SnarkRelation::Verify {
-                verifying_key_file,
-                proof_file,
-                public_input_file,
-                system,
-            } => {
-                if verify_proof(verifying_key_file, proof_file, public_input_file, system) {
-                    println!("Proof is correct")
-                } else {
-                    error!("Incorrect proof!");
-                    std::process::exit(1);
                 }
             }
         },

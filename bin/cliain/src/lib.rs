@@ -4,8 +4,6 @@ mod finalization;
 mod keys;
 mod runtime;
 mod secret;
-#[cfg(feature = "liminal")]
-mod snark_relations;
 mod staking;
 mod transfer;
 mod treasury;
@@ -33,13 +31,7 @@ pub use validators::change_validators;
 pub use version_upgrade::schedule_upgrade;
 pub use vesting::{vest, vest_other, vested_transfer};
 #[cfg(feature = "liminal")]
-pub use {
-    commands::{SnarkRelation, VkStorage},
-    snark_relations::{
-        generate_keys, generate_keys_from_srs, generate_proof, generate_srs, verify as verify_proof,
-    },
-    vk_storage::store_key,
-};
+pub use {commands::VkStorage, vk_storage::store_key};
 
 pub struct ConnectionConfig {
     node_endpoint: String,

@@ -53,15 +53,3 @@ jobs:
           ./.github/scripts/run_checks_on_excluded_packages.sh \
             --packages "${{ steps.workspace-excluded-packages.outputs.value }}" \
             --skip-liminal
-
-      - name: Assert that packages are compatible with no-std
-        env:
-          CHECK: aleph-zero-cargo-nono check --no-default-features
-        run: |
-          cd poseidon/
-          ${{ env.CHECK }}
-          ${{ env.CHECK }} --features circuit
-
-          cd ../relations/ark/
-          ${{ env.CHECK }}
-          ${{ env.CHECK }} --features circuit

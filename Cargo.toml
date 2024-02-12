@@ -25,10 +25,6 @@ exclude = [
     "e2e-tests",
     "flooder",
     "pallets/vk-storage",
-    "poseidon",
-    "relations/ark",
-    "relations/ark/src/proc_macro",
-    "relations/jf",
     "runtime-interfaces",
     "scripts/synthetic-network/synthetic-link",
 ]

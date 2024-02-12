@@ -8,12 +8,6 @@ use clap::{clap_derive::ValueEnum, Args, Subcommand};
 use primitives::{BlockHash, BlockNumber, CommitteeSeats, SessionIndex};
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "liminal")]
-use crate::snark_relations::{
-    parsing::parse_some_system, NonUniversalProvingSystem, RelationArgs, SomeProvingSystem,
-    UniversalProvingSystem,
-};
-
 #[derive(Debug, Clone, Args)]
 pub struct ContractOptions {
     /// balance to transfer from the call origin to the contract
@@ -153,92 +147,6 @@ pub enum VkStorage {
         /// Path to a file containing the verification key.
         #[clap(long)]
         vk_file: PathBuf,
-    },
-}
-
-#[cfg(feature = "liminal")]
-#[derive(Debug, Clone, Subcommand)]
-pub enum SnarkRelation {
-    GenerateSrs {
-        /// Proving system to use.
-        #[clap(long, short, value_enum, default_value = "marlin")]
-        system: UniversalProvingSystem,
-
-        /// Maximum supported number of constraints.
-        #[clap(long, default_value = "10000")]
-        num_constraints: usize,
-
-        /// Maximum supported number of variables.
-        #[clap(long, default_value = "10000")]
-        num_variables: usize,
-
-        /// Maximum supported polynomial degree.
-        #[clap(long, default_value = "10000")]
-        degree: usize,
-    },
-
-    /// Generate verifying and proving key from SRS and save them to separate binary files.
-    GenerateKeysFromSrs {
-        ///Relation to work with.
-        #[clap(subcommand)]
-        relation: RelationArgs,
-
-        /// Proving system to use.
-        #[clap(long, short, value_enum, default_value = "marlin")]
-        system: UniversalProvingSystem,
-
-        /// Path to a file containing SRS.
-        #[clap(long)]
-        srs_file: PathBuf,
-    },
-
-    /// Generate verifying and proving key and save them to separate binary files.
-    GenerateKeys {
-        /// Relation to work with.
-        #[clap(subcommand)]
-        relation: RelationArgs,
-
-        /// Proving system to use.
-        #[clap(long, short, value_enum, default_value = "groth16")]
-        system: NonUniversalProvingSystem,
-    },
-
-    /// Generate proof and public input and save them to separate binary files.
-    GenerateProof {
-        /// Relation to work with.
-        #[clap(subcommand)]
-        relation: RelationArgs,
-
-        /// Proving system to use.
-        ///
-        /// Accepts either `NonUniversalProvingSystem` or `UniversalProvingSystem`.
-        #[clap(long, short, value_enum, default_value = "groth16", value_parser = parse_some_system)]
-        system: SomeProvingSystem,
-
-        /// Path to a file containing proving key.
-        #[clap(long, short)]
-        proving_key_file: PathBuf,
-    },
-
-    /// Verify proof.
-    Verify {
-        /// Path to a file containing verifying key.
-        #[clap(long, short)]
-        verifying_key_file: PathBuf,
-
-        /// Path to a file containing proof.
-        #[clap(long, short)]
-        proof_file: PathBuf,
-
-        /// Path to a file containing public input.
-        #[clap(long, short)]
-        public_input_file: PathBuf,
-
-        /// Proving system to use.
-        ///
-        /// Accepts either `NonUniversalProvingSystem` or `UniversalProvingSystem`.
-        #[clap(long, short, value_enum, default_value = "groth16", value_parser = parse_some_system)]
-        system: SomeProvingSystem,
     },
 }
 
@@ -464,11 +372,4 @@ pub enum Command {
     #[cfg(feature = "liminal")]
     #[clap(subcommand)]
     VkStorage(VkStorage),
-
-    /// Interact with `relations` crate.
-    ///
-    /// Inner object is boxed, because it is significantly bigger than any other variant (clippy).
-    #[cfg(feature = "liminal")]
-    #[clap(subcommand)]
-    SnarkRelation(Box<SnarkRelation>),
 }

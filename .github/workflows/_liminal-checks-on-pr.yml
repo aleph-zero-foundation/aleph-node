@@ -33,7 +33,7 @@ jobs:
           RUSTC_WORKSPACE_WRAPPER: sccache
         run: |
           ./.github/scripts/run_checks_on_excluded_packages.sh --packages \
-            [pallets/vk-storage,poseidon,relations/ark,relations/ark/src/proc_macro,relations/jf]
+            [pallets/vk-storage]
 
   chain-extension-unit-tests:
     name: Run unit tests for the chain extension
