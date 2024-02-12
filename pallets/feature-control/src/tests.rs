@@ -3,8 +3,6 @@ use frame_support::{
     sp_runtime::DispatchError::BadOrigin,
 };
 use frame_system::{mocking::MockBlock, EnsureRoot};
-#[cfg(feature = "runtime-benchmarks")]
-pub use setup::{new_test_ext, TestRuntime};
 use sp_io::TestExternalities;
 use sp_runtime::BuildStorage;
 
@@ -28,7 +26,7 @@ impl crate::Config for TestRuntime {
     type Supervisor = EnsureRoot<Self::AccountId>;
 }
 
-fn new_test_ext() -> TestExternalities {
+pub fn new_test_ext() -> TestExternalities {
     let t = <frame_system::GenesisConfig<TestRuntime> as BuildStorage>::build_storage(
         &frame_system::GenesisConfig::default(),
     )
