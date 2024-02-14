@@ -1,5 +1,4 @@
 use aleph_runtime_interfaces::snark_verifier::{verify, VerifierError};
-use pallet_contracts::Config as ContractsConfig;
 use pallet_vk_storage::{Config as VkStorageConfig, VerificationKeys};
 
 use crate::args::VerifyArgs;
@@ -8,10 +7,6 @@ use crate::args::VerifyArgs;
 pub trait BackendExecutor {
     fn verify(args: VerifyArgs) -> Result<(), VerifierError>;
 }
-
-/// Minimal runtime configuration required by the standard chain extension executor.
-pub trait MinimalRuntime: VkStorageConfig + ContractsConfig {}
-impl<R: VkStorageConfig + ContractsConfig> MinimalRuntime for R {}
 
 /// Default implementation for the chain extension mechanics.
 impl<Runtime: VkStorageConfig> BackendExecutor for Runtime {

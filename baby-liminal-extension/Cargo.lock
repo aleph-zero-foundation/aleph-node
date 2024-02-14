@@ -429,6 +429,7 @@ dependencies = [
  "ink",
  "log",
  "pallet-contracts",
+ "pallet-feature-control",
  "pallet-vk-storage",
  "parity-scale-codec",
  "paste",

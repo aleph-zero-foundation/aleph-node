@@ -23,6 +23,8 @@ frame-system = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.gi
 pallet-contracts = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.2.0", default-features = false, optional = true }
 sp-std = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.2.0", default-features = false, optional = true }
 
+pallet-feature-control = { path = "../pallets/feature-control", default-features = false, optional = true }
+
 ## Proof verification dependencies:
 
 aleph-runtime-interfaces = { path = "../runtime-interfaces", default-features = false, optional = true }
@@ -51,6 +53,7 @@ runtime = [
     "frame-system",
     "pallet-contracts",
     "sp-std",
+    "pallet-feature-control",
     "pallet-vk-storage",
     "aleph-runtime-interfaces/liminal",
 ]
@@ -62,6 +65,7 @@ runtime-std = [
     "frame-system/std",
     "pallet-contracts/std",
     "sp-std/std",
+    "pallet-feature-control/std",
     "pallet-vk-storage/std",
     "aleph-runtime-interfaces/liminal-std",
 ]

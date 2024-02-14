@@ -37,11 +37,6 @@ fn simulate_verify<Exc: BackendExecutor>(expected_ret_val: u32) {
 }
 
 #[test]
-fn extension_is_enabled() {
-    assert!(BabyLiminalChainExtension::<AlephRuntime>::enabled())
-}
-
-#[test]
 #[allow(non_snake_case)]
 fn verify__charges_before_reading_arguments() {
     let in_len = 41;

@@ -4,17 +4,21 @@ use executor::BackendExecutor as BackendExecutorT;
 use frame_support::{pallet_prelude::DispatchError, sp_runtime::AccountId32};
 use frame_system::Config as SystemConfig;
 use log::error;
-use pallet_contracts::chain_extension::{
-    ChainExtension, Environment as SubstrateEnvironment, Ext, InitState,
-    Result as ChainExtensionResult, RetVal,
+use pallet_contracts::{
+    chain_extension::{
+        ChainExtension, Environment as SubstrateEnvironment, Ext, InitState,
+        Result as ChainExtensionResult, RetVal,
+    },
+    Config as ContractsConfig,
 };
+use pallet_feature_control::{
+    Config as FeatureControlConfig, Feature, Pallet as FeatureControlPallet,
+};
+use pallet_vk_storage::Config as VkStorageConfig;
 use sp_std::marker::PhantomData;
 
 use crate::{
-    backend::{
-        executor::MinimalRuntime,
-        weights::{AlephWeight, WeightInfo},
-    },
+    backend::weights::{AlephWeight, WeightInfo},
     extension_ids::{EXTENSION_ID as BABY_LIMINAL_EXTENSION_ID, VERIFY_FUNC_ID},
     status_codes::*,
 };
@@ -31,6 +35,10 @@ mod weights;
 pub use benchmarking::ChainExtensionBenchmarking;
 
 type ByteCount = u32;
+
+/// Minimal runtime configuration required by the standard chain extension executor.
+pub trait MinimalRuntime: VkStorageConfig + ContractsConfig + FeatureControlConfig {}
+impl<R: VkStorageConfig + ContractsConfig + FeatureControlConfig> MinimalRuntime for R {}
 
 /// The actual implementation of the chain extension. This is the code on the runtime side that will
 /// be executed when the chain extension is called.
@@ -64,6 +72,10 @@ where
                 Err(DispatchError::Other("Called an unregistered `func_id`"))
             }
         }
+    }
+
+    fn enabled() -> bool {
+        FeatureControlPallet::<Runtime>::is_feature_enabled(Feature::OnChainVerifier)
     }
 }
 
