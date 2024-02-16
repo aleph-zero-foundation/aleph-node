@@ -7,18 +7,13 @@ use sc_executor::NativeElseWasmExecutor;
 pub struct ExecutorDispatch;
 
 impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
-    #[cfg(all(feature = "liminal", feature = "runtime-benchmarks"))]
+    #[cfg(feature = "runtime-benchmarks")]
     type ExtendHostFunctions = (
         aleph_runtime_interfaces::snark_verifier::HostFunctions,
         frame_benchmarking::benchmarking::HostFunctions,
     );
-
-    #[cfg(all(feature = "liminal", not(feature = "runtime-benchmarks")))]
+    #[cfg(not(feature = "runtime-benchmarks"))]
     type ExtendHostFunctions = (aleph_runtime_interfaces::snark_verifier::HostFunctions,);
-    #[cfg(all(not(feature = "liminal"), feature = "runtime-benchmarks"))]
-    type ExtendHostFunctions = (frame_benchmarking::benchmarking::HostFunctions,);
-    #[cfg(all(not(feature = "liminal"), not(feature = "runtime-benchmarks")))]
-    type ExtendHostFunctions = ();
 
     fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
         aleph_runtime::api::dispatch(method, data)

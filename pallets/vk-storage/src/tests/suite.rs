@@ -24,7 +24,7 @@ fn stores_new_vk() {
     new_test_ext().execute_with(|| {
         assert_ok!(VkStorage::store_key(caller(), vk()));
 
-        let stored_key = VerificationKeys::<TestRuntime>::get(&vk_hash());
+        let stored_key = VerificationKeys::<TestRuntime>::get(vk_hash());
         assert!(stored_key.is_some());
         assert_eq!(stored_key.unwrap().to_vec(), vk());
     });
@@ -37,7 +37,7 @@ fn overwrite_is_idempotent() {
         assert_ok!(VkStorage::store_key(caller(), vk()));
         assert_ok!(VkStorage::store_key(caller(), vk()));
 
-        let stored_key = VerificationKeys::<TestRuntime>::get(&vk_hash());
+        let stored_key = VerificationKeys::<TestRuntime>::get(vk_hash());
         assert!(stored_key.is_some());
         assert_eq!(stored_key.unwrap().to_vec(), vk());
     });

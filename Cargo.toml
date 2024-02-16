@@ -2,6 +2,7 @@
 
 members = [
     "aggregator",
+    "baby-liminal-extension",
     "bin/node",
     "bin/runtime",
     "clique",
@@ -11,21 +12,20 @@ members = [
     "pallets/feature-control",
     "pallets/committee-management",
     "pallets/support",
+    "pallets/vk-storage",
     "primitives",
     "rate-limiter",
+    "runtime-interfaces",
 ]
 
 exclude = [
     "aleph-client",
-    "baby-liminal-extension",
     "benches/payout-stakers",
     "bin/cliain",
     "bin/finalizer",
     "contracts/adder",
     "e2e-tests",
     "flooder",
-    "pallets/vk-storage",
-    "runtime-interfaces",
     "scripts/synthetic-network/synthetic-link",
 ]
 
@@ -45,6 +45,7 @@ homepage = "https://alephzero.org"
 repository = "https://github.com/Cardinal-Cryptography/aleph-node"
 
 [workspace.dependencies]
+ahash = { version = "=0.8.6", default-features = false } # reqiured until Rust is updated to 1.71 (https://solana.stackexchange.com/questions/8800/error-use-of-unstable-library-feature-build-hasher-simple-hash-one)
 aleph-bft-crypto = { version = "0.8" }
 aleph-bft-mock = { version = "0.11.1" }
 aleph-bft-rmc = { version = "0.11" }
@@ -58,6 +59,7 @@ futures-timer = { version = "3.0" }
 hash-db = { version = "0.16", default-features = false }
 hex = { version = "0.4" }
 hex-literal = { version = "0.3" }
+ink = { version = "5.0.0-rc" }
 ip_network = { version = "0.4" }
 jsonrpsee = { version = "0.16.3" }
 libp2p = { version = "0.51" }
@@ -164,7 +166,13 @@ substrate-wasm-builder = { git = "https://github.com/Cardinal-Cryptography/polka
 
 try-runtime-cli = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.2.0" }
 
+halo2_proofs = { git = "https://github.com/Cardinal-Cryptography/pse-halo2", branch = "aleph", default-features = false }
+
+# Local crates
+
 aleph-runtime = { path = "bin/runtime" }
+aleph-runtime-interfaces = { path = "runtime-interfaces", default-features = false }
+baby-liminal-extension = { path = "baby-liminal-extension", default-features = false }
 finality-aleph = { path = "finality-aleph" }
 network-clique = { path = "clique" }
 rate-limiter = { path = "rate-limiter" }
@@ -173,10 +181,5 @@ pallet-committee-management = { path = "pallets/committee-management", default-f
 pallet-elections = { path = "pallets/elections", default-features = false }
 pallet-feature-control = { path = "pallets/feature-control", default-features = false }
 pallets-support = { path = "pallets/support", default-features = false }
-primitives = { path = "primitives", default-features = false }
-
-# Liminal-related dependencies
-
-aleph-runtime-interfaces = { path = "runtime-interfaces", default-features = false }
-baby-liminal-extension = { path = "baby-liminal-extension", default-features = false }
 pallet-vk-storage = { path = "pallets/vk-storage", default-features = false }
+primitives = { path = "primitives", default-features = false }

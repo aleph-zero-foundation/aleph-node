@@ -29,7 +29,7 @@ pub fn do_verify(
         &verifying_key,
         SingleStrategy::new(&params),
         &[&[&instances]],
-        &mut Blake2bRead::init(&proof[..]),
+        &mut Blake2bRead::init(proof),
     )
     .map_err(|err| match err {
         Error::ConstraintSystemFailure => VerifierError::IncorrectProof,

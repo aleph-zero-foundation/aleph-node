@@ -1,4 +1,4 @@
-use scale::Encode;
+use parity_scale_codec::Encode;
 
 use crate::{args::VerifyArgs, KeyHash};
 

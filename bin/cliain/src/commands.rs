@@ -139,7 +139,6 @@ impl From<ExtrinsicState> for TxStatus {
     }
 }
 
-#[cfg(feature = "liminal")]
 #[derive(Debug, Clone, Subcommand)]
 pub enum VkStorage {
     /// Store a verification key under an identifier in the pallet's storage.
@@ -369,7 +368,6 @@ pub enum Command {
     },
 
     /// Interact with `pallet_vk_storage`.
-    #[cfg(feature = "liminal")]
     #[clap(subcommand)]
     VkStorage(VkStorage),
 }

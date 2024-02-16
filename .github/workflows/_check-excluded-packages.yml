@@ -51,5 +51,4 @@ jobs:
           RUSTC_WORKSPACE_WRAPPER: sccache
         run: |
           ./.github/scripts/run_checks_on_excluded_packages.sh \
-            --packages "${{ steps.workspace-excluded-packages.outputs.value }}" \
-            --skip-liminal
+            --packages "${{ steps.workspace-excluded-packages.outputs.value }}"

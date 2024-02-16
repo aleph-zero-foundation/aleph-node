@@ -29,6 +29,3 @@ primitives = { path = "../../primitives" }
 [features]
 default = ["std"]
 std = []
-liminal = [
-    "aleph_client/liminal",
-]

@@ -13,11 +13,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  run-liminal-ci-cd:
-    if: contains(github.event.pull_request.labels.*.name, 'liminal-CI')
-    name: Run liminal checks on PR
-    uses: ./.github/workflows/_liminal-checks-on-pr.yml
-
   code-formatting:
     name: Check code formatting
     uses: ./.github/workflows/_check-code-formatting.yml
@@ -29,7 +24,6 @@ jobs:
     needs: [code-formatting]
     uses: ./.github/workflows/_build-and-push-cliain.yml
     with:
-      liminal-runtime: false
       check-only: true
 
   check-excluded-packages:

@@ -26,7 +26,12 @@ jobs:
           RUSTC_WORKSPACE_WRAPPER: sccache
         with:
           command: clippy
-          args: --all-targets -- --no-deps -D warnings
+          args: --all-targets --workspace --exclude baby-liminal-extension -- --no-deps -D warnings
+
+      # Run clippy for the chain extension: it requires a different setup.
+      - name: Run clippy for chain extension
+        working-directory: baby-liminal-extension
+        run: make clippy
 
   unit-tests:
     name: Run unit tests
@@ -45,4 +50,24 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: -- --skip clique_network
+          args: --workspace --exclude baby-liminal-extension -- --skip clique_network
+
+  unit-tests-chain-extension:
+    name: Run unit tests for chain extension
+    runs-on: [self-hosted, Linux, X64, large]
+    env:
+      CARGO_INCREMENTAL: 0
+      RUSTC_WRAPPER: sccache
+    steps:
+      - name: Checkout Source code
+        uses: actions/checkout@v4
+
+      - name: Install Nightly Rust Toolchain
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v6
+        with:
+          channel: nightly-2023-05-22-unknown-linux-gnu
+          targets: wasm32-unknown-unknown
+
+      - name: Run unit tests for chain extension
+        working-directory: baby-liminal-extension
+        run: make test

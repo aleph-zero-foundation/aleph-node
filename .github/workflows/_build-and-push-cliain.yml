@@ -4,11 +4,6 @@ name: Build/Check and optionally push cliain docker image
 on:
   workflow_call:
     inputs:
-      liminal-runtime:
-        description: 'Set to true if cliain should be built with liminal runtime'
-        required: true
-        type: boolean
-        default: false
       check-only:
         description: 'Set to true if compilation linking phase should be omitted'
         required: true
@@ -26,7 +21,6 @@ jobs:
     runs-on: [self-hosted, Linux, X64, large]
     env:
       CARGO_COMMAND: ${{ inputs.check-only && 'check' || 'build' }}
-      FEATURES: ${{ inputs.liminal-runtime && '--features liminal' || '' }}
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -81,7 +75,7 @@ jobs:
 
       - name: Build and push latest docker image
         env:
-          IMAGE: ${{ inputs.liminal-runtime && 'cliain-liminal' || 'cliain' }}
+          IMAGE: 'cliain'
           TAG: ${{ steps.get-ref-properties.outputs.sha }}
           REGISTRY: ${{ vars.ECR_PUBLIC_REGISTRY }}
         run: |
@@ -95,7 +89,7 @@ jobs:
           fi
 
       - name: Configure AWS credentials for S3 AWS
-        if: ${{ inputs.liminal-runtime != true && inputs.check-only != true }}
+        if: ${{ inputs.check-only != true }}
         uses: aws-actions/configure-aws-credentials@v4
         env:
           AWS_ACCESS_KEY_ID: ""
@@ -108,8 +102,8 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_DEVNET_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Copy binary to S3 AWS bucket (non-liminal)
-        if: ${{ inputs.liminal-runtime != true && inputs.check-only != true }}
+      - name: Copy binary to S3 AWS bucket
+        if: ${{ inputs.check-only != true }}
         uses: Cardinal-Cryptography/github-actions/copy-file-to-s3@v6
         with:
           source-path: bin/cliain/target/release

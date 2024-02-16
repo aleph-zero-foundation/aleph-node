@@ -13,24 +13,16 @@ Usage:
 
     --packages PACKAGES
         List of aleph-node crates to check, in a below form
-        [aleph-client,baby-liminal-extension,benches/payout-stakers, ...]
-    [--skip-liminal]
-      optional: excluded liminal crates from checks
+        [aleph-client,benches/payout-stakers, ...]
 EOF
   exit 0
 }
-
-SKIP_LIMINAL="false"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --packages)
       PACKAGES="$2"
       shift;shift
-      ;;
-    --skip-liminal)
-      SKIP_LIMINAL="true"
-      shift
       ;;
     *)
       echo "Error: Unrecognized argument $1!"
@@ -47,11 +39,6 @@ fi
 packages_escaped=$(echo "${PACKAGES}" | sed -e 's/,/ /g' | tr -d '[]')
 packages=($packages_escaped)
 
-if [[ "${SKIP_LIMINAL}" == "true" ]]; then
-  # cargo clippy-liminal-extension is done in _liminal-checks-on-pr.yml
-  packages=("${packages[@]/baby-liminal-extension}")
-  packages=("${packages[@]/pallets\/vk-storage}")
-fi
 echo ${packages[@]}
 
 for p in ${packages[@]}; do

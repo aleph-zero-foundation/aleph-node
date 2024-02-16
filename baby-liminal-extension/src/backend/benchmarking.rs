@@ -84,7 +84,7 @@ macro_rules! generate_benchmarks {
 
             #[benchmarks]
             mod benchmarks {
-                use scale::{Decode, Encode};
+                use parity_scale_codec::{Decode, Encode};
 
                 use super::*;
                 use crate::{args::VerifyArgs, backend::BackendExecutorT};

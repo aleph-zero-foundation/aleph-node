@@ -20,6 +20,7 @@ use frame_support::{
     sp_runtime::traits::BlakeTwo256,
 };
 pub use pallet::*;
+use parity_scale_codec::{Decode, Encode};
 use sp_core::H256;
 pub use weights::{AlephWeight, WeightInfo};
 
@@ -128,7 +129,7 @@ pub mod pallet {
 ///
 /// This should be used to impose higher costs on storing anything in this pallet (since there is no way of clearing
 /// the storage). The costs should be charged in addition to the standard operation costs (i.e., database costs).
-#[derive(Clone, Copy, Debug, PartialEq, Eq, codec::Encode, codec::Decode, scale_info::TypeInfo)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Encode, Decode, scale_info::TypeInfo)]
 pub struct StorageCharge {
     base: u64,
     per_byte: u64,

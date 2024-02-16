@@ -31,5 +31,4 @@ pub mod utility;
 /// Pallet vesting API
 pub mod vesting;
 /// Pallet vk storage API
-#[cfg(feature = "liminal")]
 pub mod vk_storage;

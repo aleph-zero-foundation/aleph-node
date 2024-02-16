@@ -73,8 +73,6 @@ Usage:
       set to not delete AlephBFT backups; by default they are removed since
       this script is intended to bootstrap chain by default, in which case you do not want to have
       them in 99% of scenarios
-    [--liminal]
-      build nodes with liminal feature
 EOF
   exit 0
 }
@@ -86,7 +84,6 @@ DONT_BOOTSTRAP=${DONT_BOOTSTRAP:-""}
 DONT_BUILD_ALEPH_NODE=${DONT_BUILD_ALEPH_NODE:-""}
 DONT_DELETE_DB=${DONT_DELETE_DB:-""}
 DONT_REMOVE_ABFT_BACKUPS=${DONT_REMOVE_ABFT_BACKUPS:-""}
-LIMINAL_BUILD=${LIMINAL_BUILD:-""}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -120,10 +117,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     --dont-remove-abft-backups)
       DONT_REMOVE_ABFT_BACKUPS="true"
-      shift
-      ;;
-    --liminal)
-      LIMINAL_BUILD="liminal"
       shift
       ;;
     *)
@@ -235,7 +228,7 @@ fi
 
 if [[ -z "${DONT_BUILD_ALEPH_NODE}" ]]; then
   info "Building testing aleph-node binary (short session)."
-  cargo build --release -p aleph-node --features "short_session enable_treasury_proposals ${LIMINAL_BUILD}"
+  cargo build --release -p aleph-node --features "short_session enable_treasury_proposals"
 elif [[ ! -x "${ALEPH_NODE}" ]]; then
   error "${ALEPH_NODE} does not exist or it's not an executable file!"
 fi

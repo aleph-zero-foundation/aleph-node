@@ -139,10 +139,7 @@ fn rejects_mismatching_input() {
         vk,
     } = setup(1, 2, 3);
 
-    assert_eq!(
-        verify(&proof, &vec![], &vk),
-        Err(VerifierError::IncorrectProof)
-    );
+    assert_eq!(verify(&proof, &[], &vk), Err(VerifierError::IncorrectProof));
 
     let public_input = [public_input.clone(), public_input].concat();
 
@@ -160,7 +157,7 @@ fn rejects_invalid_vk() {
         vk,
     } = setup(1, 2, 3);
 
-    let vk = vk.iter().map(|i| i + 1).collect::<Vec<_>>();
+    let vk = vk.iter().map(|i| i.saturating_add(1)).collect::<Vec<_>>();
 
     assert_eq!(
         verify(&proof, &public_input, &vk),
@@ -192,7 +189,11 @@ fn rejects_invalid_proof() {
         vk,
     } = setup(1, 2, 3);
 
-    let proof = proof.iter().map(|i| i + 1).skip(3).collect::<Vec<_>>();
+    let proof = proof
+        .iter()
+        .map(|i| i.saturating_add(1))
+        .skip(3)
+        .collect::<Vec<_>>();
 
     assert_eq!(
         verify(&proof, &public_input, &vk),

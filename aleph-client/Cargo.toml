@@ -30,6 +30,3 @@ primitives = { path = "../primitives" }
 
 [dev-dependencies]
 tokio = "1.21"
-
-[features]
-liminal = []

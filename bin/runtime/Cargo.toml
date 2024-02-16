@@ -65,10 +65,9 @@ pallet-elections = { workspace = true }
 pallet-feature-control = { workspace = true }
 primitives = { workspace = true }
 pallet-proxy = { workspace = true }
+pallet-vk-storage = { workspace = true }
 
-# Liminal-related dependencies
-baby-liminal-extension = { workspace = true, features = ["runtime"], optional = true }
-pallet-vk-storage = { workspace = true, optional = true }
+baby-liminal-extension = { workspace = true, features = ["runtime"] }
 
 [build-dependencies]
 substrate-wasm-builder = { workspace = true }
@@ -88,6 +87,7 @@ std = [
     "pallet-authorship/std",
     "pallet-balances/std",
     "pallet-elections/std",
+    "pallet-feature-control/std",
     "pallet-identity/std",
     "pallet-insecure-randomness-collective-flip/std",
     "pallet-session/std",
@@ -101,6 +101,7 @@ std = [
     "pallet-multisig/std",
     "pallet-proxy/std",
     "pallet-utility/std",
+    "pallet-vk-storage/std",
     "sp-api/std",
     "sp-block-builder/std",
     "sp-consensus-aura/std",
@@ -124,6 +125,7 @@ std = [
     "sp-io/std",
     "scale-info/std",
     "sp-application-crypto/std",
+    "baby-liminal-extension/runtime-std",
 ]
 short_session = ["primitives/short_session"]
 try-runtime = [
@@ -153,33 +155,12 @@ try-runtime = [
     "pallet-committee-management/try-runtime",
     "pallet-proxy/try-runtime",
     "pallet-feature-control/try-runtime",
+    "pallet-vk-storage/try-runtime",
 ]
 enable_treasury_proposals = []
 runtime-benchmarks = [
     "frame-system/runtime-benchmarks",
     "frame-benchmarking/runtime-benchmarks",
     "pallet-feature-control/runtime-benchmarks",
-]
-
-# Liminal-related features
-liminal = [
-    "baby-liminal-extension",
-    "pallet-vk-storage",
-]
-liminal-std = [
-    "liminal",
-    "std",
-    "baby-liminal-extension/runtime-std",
-    "pallet-vk-storage/std",
-]
-liminal-try-runtime = [
-    "liminal",
-    "try-runtime",
-    "pallet-vk-storage/try-runtime",
-]
-liminal-runtime-benchmarks = [
-    "liminal",
-    "runtime-benchmarks",
-    "baby-liminal-extension/runtime-benchmarks",
     "pallet-vk-storage/runtime-benchmarks",
 ]

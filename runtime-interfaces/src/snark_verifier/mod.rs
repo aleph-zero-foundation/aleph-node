@@ -8,6 +8,7 @@ mod tests;
 
 #[cfg(feature = "std")]
 pub use implementation::{Curve, Fr, G1Affine};
+use parity_scale_codec::{Decode, Encode};
 // Reexport `verify` and `HostFunctions`, so that they are not imported like
 // `aleph-runtime-interfaces::snark_verifier::snark_verifier::<>`.
 pub use snark_verifier::verify;
@@ -15,7 +16,7 @@ pub use snark_verifier::verify;
 pub use snark_verifier::HostFunctions;
 
 /// Gathers errors that can happen during proof verification.
-#[derive(Copy, Clone, Eq, PartialEq, Debug, codec::Encode, codec::Decode)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Encode, Decode)]
 pub enum VerifierError {
     /// No verification key available under this identifier.
     UnknownVerificationKeyIdentifier,

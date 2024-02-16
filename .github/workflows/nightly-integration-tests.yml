@@ -36,29 +36,10 @@ jobs:
         with:
           command: test
 
-  run-liminal-integration-tests:
-    name: Run liminal integration tests
-    runs-on: [self-hosted, Linux, X64, large]
-    env:
-      CARGO_INCREMENTAL: 0
-      RUSTC_WRAPPER: sccache
-    steps:
-      - name: Checkout Source code
-        uses: actions/checkout@v4
-
-      - name: Install Rust Toolchain
-        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v6
-
-      - name: Run Test Suite
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --features "liminal-try-runtime liminal-runtime-benchmarks"
-
   slack-notification:
     name: Slack notification
     runs-on: ubuntu-20.04
-    needs: [run-tests, run-liminal-integration-tests, check-vars-and-secrets]
+    needs: [run-tests, check-vars-and-secrets]
     if: ${{ !cancelled() }}
     steps:
       - name: Checkout repository

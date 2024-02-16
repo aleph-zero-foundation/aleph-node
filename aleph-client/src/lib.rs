@@ -32,13 +32,6 @@ use subxt::{
 
 use crate::api::runtime_types::aleph_runtime::RuntimeCall as Call;
 
-#[cfg(not(feature = "liminal"))]
-#[allow(clippy::all)]
-#[doc(hidden)]
-mod aleph_zero;
-
-#[cfg(feature = "liminal")]
-#[path = "./aleph_zero_liminal.rs"]
 #[allow(clippy::all)]
 #[doc(hidden)]
 mod aleph_zero;

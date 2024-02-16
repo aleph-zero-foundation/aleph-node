@@ -4,12 +4,15 @@
 #[cfg(feature = "ink")]
 use ink::prelude::vec::Vec;
 #[cfg(feature = "runtime")]
-use sp_std::vec::Vec;
+use {
+    parity_scale_codec::{Decode, Encode},
+    sp_std::vec::Vec,
+};
 
 /// A struct describing layout for the `verify` chain extension.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "ink", ink::scale_derive(Encode, Decode))]
-#[cfg_attr(feature = "runtime", derive(scale::Encode, scale::Decode))]
+#[cfg_attr(feature = "runtime", derive(Encode, Decode))]
 pub struct VerifyArgs {
     /// The hash of the verification key.
     pub verification_key_hash: crate::KeyHash,

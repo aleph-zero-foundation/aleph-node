@@ -19,7 +19,6 @@ jobs:
     uses: ./.github/workflows/_build-and-push-cliain.yml
     secrets: inherit
     with:
-      liminal-runtime: false
       check-only: false
 
   build-aleph-e2e-client-image:

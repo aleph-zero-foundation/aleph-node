@@ -2,7 +2,7 @@ use frame_support::{sp_runtime::DispatchError, weights::Weight};
 use pallet_contracts::chain_extension::{
     BufInBufOutState, ChargedAmount, Environment as SubstrateEnvironment, Ext,
 };
-use scale::Decode;
+use parity_scale_codec::Decode;
 
 use super::ByteCount;
 

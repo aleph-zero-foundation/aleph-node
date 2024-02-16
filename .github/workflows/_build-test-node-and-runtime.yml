@@ -38,12 +38,6 @@ jobs:
           cargo build --release -p aleph-node \
             --features "short_session enable_treasury_proposals only_legacy"
 
-      - name: Ensure liminal symbols are not present
-        run: |
-          nm --demangle=rust target/release/aleph-node | grep -q liminal \
-            && { echo "Liminal symbols are present"; exit 1; } \
-            || echo "Liminal symbols are not present"
-
       # this is required for some workflows, yet ideally it should not be required
       - name: Upload test binary to GH Artifacts
         uses: actions/upload-artifact@v4

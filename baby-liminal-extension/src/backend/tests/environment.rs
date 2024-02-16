@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use frame_support::{pallet_prelude::Weight, sp_runtime::DispatchError};
-use scale::Decode;
+use parity_scale_codec::Decode;
 
 use crate::backend::{environment::Environment, ByteCount};
 
