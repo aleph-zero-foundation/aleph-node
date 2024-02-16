@@ -143,7 +143,7 @@ mod test {
 
     use network_clique::mock::MockAddressingInformation;
     use parity_scale_codec::{Decode, Encode};
-    use sp_keystore::testing::MemoryKeystore as Keystore;
+    use sc_keystore::LocalKeystore;
 
     use super::VersionedAuthentication;
     use crate::{
@@ -166,7 +166,7 @@ mod test {
             String::from("addr3"),
         ];
 
-        let keystore = Arc::new(Keystore::new());
+        let keystore = Arc::new(LocalKeystore::in_memory());
         let pen = new_pen(mnemonic, keystore);
         let identity = new_identity(external_addresses, &pen);
 

@@ -38,6 +38,18 @@ use crate::{
 type FullClient = sc_service::TFullClient<Block, RuntimeApi, AlephExecutor>;
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
+type ServiceComponents = sc_service::PartialComponents<
+    FullClient,
+    FullBackend,
+    FullSelectChain,
+    sc_consensus::DefaultImportQueue<Block>,
+    sc_transaction_pool::FullPool<Block, FullClient>,
+    (
+        ChannelProvider<Justification>,
+        Option<Telemetry>,
+        AllBlockMetrics,
+    ),
+>;
 
 struct LimitNonfinalized(u32);
 
@@ -76,24 +88,7 @@ fn backup_path(aleph_config: &AlephCli, base_path: &Path) -> Option<PathBuf> {
     }
 }
 
-#[allow(clippy::type_complexity)]
-pub fn new_partial(
-    config: &Configuration,
-) -> Result<
-    sc_service::PartialComponents<
-        FullClient,
-        FullBackend,
-        FullSelectChain,
-        sc_consensus::DefaultImportQueue<Block>,
-        sc_transaction_pool::FullPool<Block, FullClient>,
-        (
-            ChannelProvider<Justification>,
-            Option<Telemetry>,
-            AllBlockMetrics,
-        ),
-    >,
-    ServiceError,
-> {
+pub fn new_partial(config: &Configuration) -> Result<ServiceComponents, ServiceError> {
     let telemetry = config
         .telemetry_endpoints
         .clone()
@@ -276,7 +271,7 @@ fn setup(
         network: network.clone(),
         sync_service: sync_network.clone(),
         client,
-        keystore: keystore_container.keystore(),
+        keystore: keystore_container.local_keystore(),
         task_manager,
         transaction_pool,
         rpc_builder,
@@ -382,7 +377,7 @@ pub fn new_authority(
             },
             force_authoring,
             backoff_authoring_blocks,
-            keystore: keystore_container.keystore(),
+            keystore: keystore_container.local_keystore(),
             sync_oracle: sync_oracle.clone(),
             justification_sync_link: (),
             block_proposal_slot_portion: SlotProportion::new(2f32 / 3f32),
@@ -421,7 +416,7 @@ pub fn new_authority(
         session_period,
         millisecs_per_block,
         spawn_handle: task_manager.spawn_handle().into(),
-        keystore: keystore_container.keystore(),
+        keystore: keystore_container.local_keystore(),
         justification_channel_provider,
         block_rx,
         metrics,

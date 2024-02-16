@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use futures::channel::oneshot;
 use log::{debug, info, trace, warn};
 use network_clique::SpawnHandleT;
+use sc_keystore::{Keystore, LocalKeystore};
 use sp_application_crypto::RuntimeAppPublic;
-use sp_keystore::Keystore;
 use sp_runtime::traits::{Block as BlockT, Header as HeaderT};
 
 use crate::{
@@ -118,7 +118,7 @@ where
     metrics: AllBlockMetrics,
     spawn_handle: SpawnHandle,
     session_manager: SM,
-    keystore: Arc<dyn Keystore>,
+    keystore: Arc<LocalKeystore>,
     _phantom: PhantomData<(B, H)>,
 }
 
@@ -150,7 +150,7 @@ where
         metrics: AllBlockMetrics,
         spawn_handle: SpawnHandle,
         session_manager: SM,
-        keystore: Arc<dyn Keystore>,
+        keystore: Arc<LocalKeystore>,
     ) -> Self {
         Self {
             client,

@@ -6,10 +6,10 @@ use log::{debug, error};
 use network_clique::{RateLimitingDialer, RateLimitingListener, Service, SpawnHandleT};
 use rate_limiter::SleepingRateLimiter;
 use sc_client_api::Backend;
+use sc_keystore::{Keystore, LocalKeystore};
 use sc_transaction_pool_api::TransactionPool;
 use sp_consensus::SelectChain;
 use sp_consensus_aura::AuraApi;
-use sp_keystore::Keystore;
 
 use crate::{
     aleph_primitives::{AlephSessionApi, AuraId, Block},
@@ -45,7 +45,7 @@ pub const VERIFIER_CACHE_SIZE: usize = 3;
 
 const LOG_TARGET: &str = "aleph-party";
 
-pub fn new_pen(mnemonic: &str, keystore: Arc<dyn Keystore>) -> AuthorityPen {
+pub fn new_pen(mnemonic: &str, keystore: Arc<LocalKeystore>) -> AuthorityPen {
     let validator_peer_id = keystore
         .ed25519_generate_new(KEY_TYPE, Some(mnemonic))
         .expect("generating a key should work");

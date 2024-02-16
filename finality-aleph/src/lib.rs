@@ -20,9 +20,9 @@ use sc_client_api::{
     Backend, BlockBackend, BlockchainEvents, Finalizer, LockImportRun, StorageProvider,
 };
 use sc_consensus::BlockImport;
+use sc_keystore::LocalKeystore;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::{HeaderBackend, HeaderMetadata};
-use sp_keystore::Keystore;
 use sp_runtime::traits::{BlakeTwo256, Block};
 use substrate_prometheus_endpoint::Registry;
 use tokio::time::Duration;
@@ -286,7 +286,7 @@ pub struct AlephConfig<C, SC, T> {
     pub import_queue_handle: BlockImporter,
     pub select_chain: SC,
     pub spawn_handle: SpawnHandle,
-    pub keystore: Arc<dyn Keystore>,
+    pub keystore: Arc<LocalKeystore>,
     pub justification_channel_provider: ChannelProvider<Justification>,
     pub block_rx: mpsc::UnboundedReceiver<AlephBlock>,
     pub metrics: AllBlockMetrics,

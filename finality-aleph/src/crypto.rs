@@ -1,8 +1,9 @@
 use std::{convert::TryInto, sync::Arc};
 
 use parity_scale_codec::{Decode, Encode};
+use sc_keystore::{Keystore, LocalKeystore};
 use sp_core::crypto::KeyTypeId;
-use sp_keystore::{Error as KeystoreError, Keystore};
+use sp_keystore::Error as KeystoreError;
 use sp_runtime::RuntimeAppPublic;
 
 use crate::{
@@ -32,7 +33,7 @@ impl From<AuthoritySignature> for Signature {
 pub struct AuthorityPen {
     key_type_id: KeyTypeId,
     authority_id: AuthorityId,
-    keystore: Arc<dyn Keystore>,
+    keystore: Arc<LocalKeystore>,
 }
 
 impl AuthorityPen {
@@ -42,7 +43,7 @@ impl AuthorityPen {
     /// AuthorityPen will work for any future attempts at signing.
     pub fn new_with_key_type(
         authority_id: AuthorityId,
-        keystore: Arc<dyn Keystore>,
+        keystore: Arc<LocalKeystore>,
         key_type: KeyTypeId,
     ) -> Result<Self, Error> {
         // Check whether this signing setup works
@@ -63,7 +64,7 @@ impl AuthorityPen {
     /// Will attempt to sign a test message to verify that signing works.
     /// Returns errors if anything goes wrong during this attempt, otherwise we assume the
     /// AuthorityPen will work for any future attempts at signing.
-    pub fn new(authority_id: AuthorityId, keystore: Arc<dyn Keystore>) -> Result<Self, Error> {
+    pub fn new(authority_id: AuthorityId, keystore: Arc<LocalKeystore>) -> Result<Self, Error> {
         Self::new_with_key_type(authority_id, keystore, KEY_TYPE)
     }
 
@@ -146,13 +147,13 @@ impl From<SignatureV1> for Signature {
 
 #[cfg(test)]
 mod tests {
-    use sp_keystore::{testing::MemoryKeystore as Keystore, Keystore as _};
+    use sp_keystore::Keystore as _;
 
     use super::*;
     use crate::abft::NodeIndex;
 
     fn generate_keys(names: &[String]) -> (Vec<AuthorityPen>, AuthorityVerifier) {
-        let key_store = Arc::new(Keystore::new());
+        let key_store = Arc::new(LocalKeystore::in_memory());
         let mut authority_ids = Vec::with_capacity(names.len());
         for name in names {
             let pk = key_store

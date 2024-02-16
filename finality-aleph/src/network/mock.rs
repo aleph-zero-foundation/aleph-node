@@ -2,7 +2,8 @@ use std::{sync::Arc, time::Duration};
 
 use futures::{channel::mpsc, StreamExt};
 use parity_scale_codec::{Decode, Encode, Output};
-use sp_keystore::{testing::MemoryKeystore as Keystore, Keystore as _};
+use sc_keystore::LocalKeystore;
+use sp_keystore::Keystore as _;
 use tokio::time::timeout;
 
 use crate::{
@@ -109,7 +110,7 @@ impl<T> Default for Channel<T> {
 pub fn crypto_basics(
     num_crypto_basics: usize,
 ) -> (Vec<(NodeIndex, AuthorityPen)>, AuthorityVerifier) {
-    let keystore = Arc::new(Keystore::new());
+    let keystore = Arc::new(LocalKeystore::in_memory());
     let mut auth_ids = Vec::with_capacity(num_crypto_basics);
     for _ in 0..num_crypto_basics {
         let pk = keystore.ed25519_generate_new(KEY_TYPE, None).unwrap();
