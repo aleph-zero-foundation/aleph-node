@@ -3,6 +3,7 @@ use std::{thread::sleep, time::Duration};
 use anyhow::anyhow;
 use codec::Decode;
 use log::{debug, info};
+use primitives::Nonce;
 use serde::{Deserialize, Serialize};
 use subxt::{
     blocks::ExtrinsicEvents,
@@ -13,7 +14,7 @@ use subxt::{
         address::{Address, StaticStorageMapKey, Yes},
         StorageAddress,
     },
-    tx::TxPayload,
+    tx::{SubmittableExtrinsic as SubxtSubmittable, TxPayload},
 };
 
 use crate::{
@@ -137,6 +138,17 @@ impl From<ExtrinsicEvents<AlephConfig>> for TxInfo {
     }
 }
 
+/// A signed extrinsics ready to be submitted.
+pub struct SubmittableExtrinsic {
+    submittable: SubxtSubmittable<AlephConfig, SubxtClient>,
+}
+
+impl From<SubxtSubmittable<AlephConfig, SubxtClient>> for SubmittableExtrinsic {
+    fn from(submittable: SubxtSubmittable<AlephConfig, SubxtClient>) -> Self {
+        Self { submittable }
+    }
+}
+
 /// Signed connection should be able to sends transactions to chain
 #[async_trait::async_trait]
 pub trait SignedConnectionApi: ConnectionApi {
@@ -170,6 +182,19 @@ pub trait SignedConnectionApi: ConnectionApi {
         params: ParamsBuilder,
         status: TxStatus,
     ) -> anyhow::Result<TxInfo>;
+
+    /// Lower level api: signs a transaction with given params and nonce.
+    /// * `tx` - encoded transaction payload
+    /// * `params` - optional tx params e.g. tip
+    /// * `nonce` - tx nonce.
+    /// # Returns
+    /// A signed transaction ready to be submitted via this connection.
+    fn sign_with_params<Call: TxPayload + Send + Sync>(
+        &self,
+        tx: Call,
+        params: ParamsBuilder,
+        nonce: Nonce,
+    ) -> anyhow::Result<SubmittableExtrinsic>;
 
     /// Returns account id which signs this connection
     fn account_id(&self) -> &AccountId;
@@ -294,6 +319,37 @@ impl<C: AsConnection + Sync> ConnectionApi for C {
     }
 }
 
+impl SubmittableExtrinsic {
+    pub async fn submit(&self, status: TxStatus) -> anyhow::Result<TxInfo> {
+        Ok(match status {
+            TxStatus::InBlock => self
+                .submittable
+                .submit_and_watch()
+                .await?
+                .wait_for_in_block()
+                .await?
+                .wait_for_success()
+                .await?
+                .into(),
+            TxStatus::Finalized => self
+                .submittable
+                .submit_and_watch()
+                .await?
+                .wait_for_finalized_success()
+                .await?
+                .into(),
+            // In case of Submitted block hash does not mean anything
+            TxStatus::Submitted => {
+                let tx_hash = self.submittable.submit().await?;
+                TxInfo {
+                    block_hash: Default::default(),
+                    tx_hash,
+                }
+            }
+        })
+    }
+}
+
 #[async_trait::async_trait]
 impl<S: AsSigned + Sync> SignedConnectionApi for S {
     async fn send_tx<Call: TxPayload + Send + Sync>(
@@ -312,36 +368,39 @@ impl<S: AsSigned + Sync> SignedConnectionApi for S {
         status: TxStatus,
     ) -> anyhow::Result<TxInfo> {
         if let Some(details) = tx.validation_details() {
-            info!(target:"aleph-client", "Sending extrinsic {}.{} with params: {:?}", details.pallet_name, details.call_name, params);
+            info!(
+                target:"aleph-client", "Sending extrinsic {}.{} with params: {:?}",
+                details.pallet_name,
+                details.call_name,
+                params,
+            );
         }
 
-        let progress = self
+        let signed: SubmittableExtrinsic = self
             .as_connection()
             .as_client()
             .tx()
-            .sign_and_submit_then_watch(&tx, &self.as_signed().signer().inner, params)
-            .await
-            .map_err(|e| anyhow!("Failed to submit transaction: {:?}", e))?;
-
-        let info: TxInfo = match status {
-            TxStatus::InBlock => progress
-                .wait_for_in_block()
-                .await?
-                .wait_for_success()
-                .await?
-                .into(),
-            TxStatus::Finalized => progress.wait_for_finalized_success().await?.into(),
-            // In case of Submitted block hash does not mean anything
-            TxStatus::Submitted => {
-                return Ok(TxInfo {
-                    block_hash: Default::default(),
-                    tx_hash: progress.extrinsic_hash(),
-                })
-            }
-        };
+            .create_signed(&tx, &self.as_signed().signer().inner, params)
+            .await?
+            .into();
+        let info = signed.submit(status).await?;
         info!(target: "aleph-client", "tx with hash {:?} included in block {:?}", info.tx_hash, info.block_hash);
 
         Ok(info)
+    }
+
+    fn sign_with_params<Call: TxPayload + Send + Sync>(
+        &self,
+        tx: Call,
+        params: ParamsBuilder,
+        nonce: Nonce,
+    ) -> anyhow::Result<SubmittableExtrinsic> {
+        Ok(self
+            .as_connection()
+            .as_client()
+            .tx()
+            .create_signed_with_nonce(&tx, &self.as_signed().signer().inner, nonce.into(), params)?
+            .into())
     }
 
     fn account_id(&self) -> &AccountId {

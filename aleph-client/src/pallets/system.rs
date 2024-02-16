@@ -1,8 +1,9 @@
+use primitives::Nonce;
 use subxt::utils::Static;
 
 use crate::{
-    api, connections::TxInfo, frame_system::pallet::Call::set_code, AccountId, Balance, BlockHash,
-    Call::System, ConnectionApi, RootConnection, SudoCall, TxStatus,
+    api, connections::TxInfo, frame_system::pallet::Call::set_code, AccountId, AsConnection,
+    Balance, BlockHash, Call::System, ConnectionApi, RootConnection, SudoCall, TxStatus,
 };
 
 /// Pallet system read-only api.
@@ -14,6 +15,10 @@ pub trait SystemApi {
     ///
     /// it uses [`system.account`](https://paritytech.github.io/substrate/master/frame_system/pallet/struct.Pallet.html#method.account) storage
     async fn get_free_balance(&self, account: AccountId, at: Option<BlockHash>) -> Balance;
+
+    /// returns account nonce of a given account
+    /// * `account` - account id
+    async fn account_nonce(&self, account: &AccountId) -> anyhow::Result<Nonce>;
 }
 
 /// Pallet system api.
@@ -33,7 +38,7 @@ impl SystemSudoApi for RootConnection {
 }
 
 #[async_trait::async_trait]
-impl<C: ConnectionApi> SystemApi for C {
+impl<C: AsConnection + Sync> SystemApi for C {
     async fn get_free_balance(&self, account: AccountId, at: Option<BlockHash>) -> Balance {
         let addrs = api::storage().system().account(Static(account));
 
@@ -41,5 +46,10 @@ impl<C: ConnectionApi> SystemApi for C {
             None => 0,
             Some(account) => account.data.free,
         }
+    }
+
+    async fn account_nonce(&self, account: &AccountId) -> anyhow::Result<Nonce> {
+        let conn = self.as_connection();
+        Ok(conn.client.tx().account_nonce(account).await?.try_into()?)
     }
 }
