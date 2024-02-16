@@ -18,11 +18,24 @@ use frame_support::pallet_prelude::StorageVersion;
 pub use pallet::*;
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;
+use serde::{Deserialize, Serialize};
 use sp_core::RuntimeDebug;
 pub use weights::{AlephWeight, WeightInfo};
 
 /// All available optional features for the Aleph Zero runtime.
-#[derive(Clone, Copy, PartialEq, Eq, RuntimeDebug, Encode, Decode, MaxEncodedLen, TypeInfo)]
+#[derive(
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    RuntimeDebug,
+    Encode,
+    Decode,
+    MaxEncodedLen,
+    TypeInfo,
+    Serialize,
+    Deserialize,
+)]
 pub enum Feature {
     /// The on-chain verifier feature involves:
     /// - VkStorage pallet (for storing verification keys)
@@ -38,6 +51,7 @@ const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
 pub mod pallet {
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::OriginFor;
+    use sp_std::vec::Vec;
 
     use super::{weights::WeightInfo, *};
 
@@ -66,6 +80,26 @@ pub mod pallet {
     #[pallet::pallet]
     #[pallet::storage_version(STORAGE_VERSION)]
     pub struct Pallet<T>(_);
+
+    /// We can set active features right away in the genesis config.
+    #[pallet::genesis_config]
+    #[derive(frame_support::DefaultNoBound)]
+    pub struct GenesisConfig<T: Config> {
+        /// Features to be activated from the very beginning.
+        pub active_features: Vec<Feature>,
+        /// Generic marker.
+        #[serde(skip)]
+        pub _phantom: PhantomData<T>,
+    }
+
+    #[pallet::genesis_build]
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
+        fn build(&self) {
+            for feature in &self.active_features {
+                ActiveFeatures::<T>::insert(feature, ());
+            }
+        }
+    }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {

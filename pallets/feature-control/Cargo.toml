@@ -11,6 +11,7 @@ repository.workspace = true
 log = { workspace = true }
 parity-scale-codec = { workspace = true }
 scale-info = { workspace = true }
+serde = { workspace = true }
 
 frame-benchmarking = { workspace = true, optional = true }
 frame-support = { workspace = true }
@@ -27,6 +28,7 @@ std = [
     "log/std",
     "parity-scale-codec/std",
     "scale-info/std",
+    "serde/std",
     "frame-support/std",
     "frame-system/std",
     "sp-core/std",

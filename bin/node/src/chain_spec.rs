@@ -2,8 +2,8 @@ use std::{collections::HashSet, str::FromStr, string::ToString};
 
 use aleph_runtime::{
     AccountId, AlephConfig, AuraConfig, BalancesConfig, CommitteeManagementConfig, ElectionsConfig,
-    Perbill, RuntimeGenesisConfig, SessionConfig, SessionKeys, StakingConfig, SudoConfig,
-    SystemConfig, VestingConfig, WASM_BINARY,
+    Feature, FeatureControlConfig, Perbill, RuntimeGenesisConfig, SessionConfig, SessionKeys,
+    StakingConfig, SudoConfig, SystemConfig, VestingConfig, WASM_BINARY,
 };
 use libp2p::PeerId;
 use pallet_staking::{Forcing, StakerStatus};
@@ -408,6 +408,10 @@ fn generate_genesis_config(
                 committee: accounts_config.members,
                 non_committee: vec![],
             },
+        },
+        feature_control: FeatureControlConfig {
+            active_features: vec![Feature::OnChainVerifier],
+            ..Default::default()
         },
     }
 }
