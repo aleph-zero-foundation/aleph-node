@@ -43,6 +43,8 @@ tokio = { workspace = true, features = ["sync", "macros", "time", "rt-multi-thre
 
 substrate-prometheus-endpoint = { workspace = true }
 
+frame-support = { workspace = true }
+
 sc-client-api = { workspace = true }
 sc-consensus = { workspace = true }
 sc-consensus-aura = { workspace = true }

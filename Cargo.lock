@@ -2427,6 +2427,7 @@ dependencies = [
  "bytes",
  "derive_more",
  "env_logger",
+ "frame-support",
  "futures",
  "futures-timer",
  "hash-db",
