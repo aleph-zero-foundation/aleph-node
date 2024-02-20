@@ -109,4 +109,3 @@ jobs:
       featurenet-name: ${{ inputs.featurenet-name }}
       aleph-node-image: ${{ needs.get-full-docker-image-path.outputs.fqdn-image }}
       rolling-update-partition: ${{ inputs.rolling-update-partition }}
-      update: true
