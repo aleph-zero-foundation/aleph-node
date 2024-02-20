@@ -347,7 +347,7 @@ mod tests {
         data_io::legacy::{
             data_provider::{ChainTracker, ChainTrackerConfig},
             test::aleph_data_from_blocks,
-            DataProvider, MAX_DATA_BRANCH_LEN,
+            AlephData, DataProvider, MAX_DATA_BRANCH_LEN,
         },
         metrics::AllBlockMetrics,
         party::manager::Runnable,
@@ -360,8 +360,10 @@ mod tests {
 
     const SESSION_LEN: u32 = 100;
     // The lower the interval the less time the tests take, however setting this too low might cause
-    // the tests to fail. Even though 1ms works with no issues, we set it to 5ms for safety.
+    // the tests to fail.
     const REFRESH_INTERVAL: Duration = Duration::from_millis(5);
+    //  Sleep time that's usually enough for the internal refreshing in ChainTracker to finish.
+    const SLEEP_TIME: Duration = Duration::from_millis(15);
 
     fn prepare_chain_tracker_test() -> (
         impl Future<Output = ()>,
@@ -400,9 +402,22 @@ mod tests {
         )
     }
 
-    // Sleep enough time so that the internal refreshing in ChainTracker has time to finish.
-    async fn sleep_enough() {
-        sleep(REFRESH_INTERVAL + REFRESH_INTERVAL + REFRESH_INTERVAL).await;
+    // Retries sleeping and checking if data in provider is available.
+    // This theoretically might fail, but practically shouldn't.
+    async fn sleep_until_data_available(data_provider: &mut DataProvider) -> AlephData {
+        const RETRIES: u128 = 1000;
+        for _ in 0..RETRIES {
+            sleep(SLEEP_TIME).await;
+            let maybe_data = data_provider.get_data().await;
+            if let Some(data) = maybe_data {
+                return data;
+            }
+        }
+        panic!(
+            "Data not available after {}ms (usually should be available after {}ms).",
+            RETRIES * REFRESH_INTERVAL.as_millis(),
+            REFRESH_INTERVAL.as_millis()
+        );
     }
 
     async fn run_test<F, S>(scenario: S)
@@ -424,7 +439,7 @@ mod tests {
     #[tokio::test(flavor = "multi_thread")]
     async fn proposes_empty_and_nonempty_when_expected() {
         run_test(|mut chain_builder, mut data_provider| async move {
-            sleep_enough().await;
+            sleep(SLEEP_TIME).await;
 
             assert_eq!(
                 data_provider.get_data().await,
@@ -436,9 +451,7 @@ mod tests {
                 .initialize_single_branch_and_import(2 * MAX_DATA_BRANCH_LEN)
                 .await;
 
-            sleep_enough().await;
-
-            let data = data_provider.get_data().await.unwrap();
+            let data = sleep_until_data_available(&mut data_provider).await;
             let expected_data = aleph_data_from_blocks(blocks[..MAX_DATA_BRANCH_LEN].to_vec());
             assert_eq!(data, expected_data);
         })
@@ -453,14 +466,13 @@ mod tests {
                 .await;
             for height in 1..(2 * MAX_DATA_BRANCH_LEN) {
                 chain_builder.finalize_block(&blocks[height - 1].header.hash());
-                sleep_enough().await;
-                let data = data_provider.get_data().await.unwrap();
+                let data = sleep_until_data_available(&mut data_provider).await;
                 let expected_data =
                     aleph_data_from_blocks(blocks[height..(MAX_DATA_BRANCH_LEN + height)].to_vec());
                 assert_eq!(data, expected_data);
             }
             chain_builder.finalize_block(&blocks.last().unwrap().header.hash());
-            sleep_enough().await;
+            sleep(SLEEP_TIME).await;
             assert_eq!(
                 data_provider.get_data().await,
                 None,
@@ -478,14 +490,13 @@ mod tests {
                     (SESSION_LEN as usize) + 3 * MAX_DATA_BRANCH_LEN,
                 )
                 .await;
-            sleep_enough().await;
-            let data = data_provider.get_data().await.unwrap();
+            let data = sleep_until_data_available(&mut data_provider).await;
             let expected_data = aleph_data_from_blocks(blocks[0..MAX_DATA_BRANCH_LEN].to_vec());
             assert_eq!(data, expected_data);
 
             // Finalize a block beyond the last block in the session.
             chain_builder.finalize_block(&blocks.last().unwrap().header.hash());
-            sleep_enough().await;
+            sleep(SLEEP_TIME).await;
             assert_eq!(
                 data_provider.get_data().await,
                 None,
