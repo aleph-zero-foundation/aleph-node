@@ -35,6 +35,17 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
+          args: --workspace --exclude baby-liminal-extension
+
+      - name: Install Rust Toolchain For Chain Extension Tests
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v6
+        with:
+          channel: nightly-2023-05-22-unknown-linux-gnu
+          targets: wasm32-unknown-unknown
+
+      - name: Run Unit Tests For Chain Extension
+        working-directory: baby-liminal-extension
+        run: make test
 
   slack-notification:
     name: Slack notification
