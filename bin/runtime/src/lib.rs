@@ -747,7 +747,11 @@ impl pallet_contracts::Config for Runtime {
     type UnsafeUnstableInterface = ConstBool<false>;
     type MaxDebugBufferLen = ConstU32<{ 2 * 1024 * 1024 }>;
     type RuntimeHoldReason = RuntimeHoldReason;
-    type Migrations = ();
+    type Migrations = (
+        pallet_contracts::migration::v13::Migration<Runtime>,
+        pallet_contracts::migration::v14::Migration<Runtime, Balances>,
+        pallet_contracts::migration::v15::Migration<Runtime>,
+    );
     type MaxDelegateDependencies = ConstU32<32>;
     type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
     type Debug = ();
@@ -964,6 +968,11 @@ pub type SignedExtra = (
     pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
 );
 
+/// All migrations that will run on the next runtime upgrade.
+///
+/// Should be cleared after every release.
+pub type Migrations = (pallet_contracts::migration::Migration<Runtime>,);
+
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic =
     generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
@@ -976,6 +985,7 @@ pub type Executive = frame_executive::Executive<
     frame_system::ChainContext<Runtime>,
     Runtime,
     AllPalletsWithSystem,
+    Migrations,
 >;
 
 #[cfg(feature = "runtime-benchmarks")]
