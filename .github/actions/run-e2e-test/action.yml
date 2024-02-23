@@ -38,6 +38,11 @@ inputs:
   aleph-e2e-client-image:
     description: 'aleph-e2e-client image'
     required: true
+  timeout-minutes:
+    description: 'The maximum number of minutes to let a test run before it is canceled and
+      considered failed'
+    required: false
+    default: 15
 
 runs:
   using: 'composite'
@@ -101,6 +106,7 @@ runs:
           popd
         fi
 
+        export TIMEOUT_MINUTES="${{ inputs.timeout-minutes }}m"
         ./.github/scripts/run_e2e_test.sh "${ARGS[@]}"
 
     - name: Get log tarball file name
