@@ -10,6 +10,8 @@ pub mod committee_management;
 pub mod contract;
 /// Pallet elections API
 pub mod elections;
+/// Pallet feature control API
+pub mod feature_control;
 /// Pallet transaction payment API
 pub mod fee;
 /// Pallet multisig API
