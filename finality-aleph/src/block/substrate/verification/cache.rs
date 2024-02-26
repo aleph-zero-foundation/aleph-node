@@ -121,6 +121,9 @@ fn download_data<AP: AuthorityProvider>(
     })
 }
 
+// Equivocations only happen per time slot _and_ session..
+type SessionSlot = (SessionId, Slot);
+
 /// Cache storing SessionVerifier structs and Aura authorities for multiple sessions.
 /// Keeps up to `cache_size` verifiers of top sessions.
 /// If the session is too new or ancient it will fail to return requested data.
@@ -134,7 +137,7 @@ where
     H: HeaderT,
 {
     cached_data: HashMap<SessionId, CachedData>,
-    equivocation_cache: HashMap<u64, (H, bool)>,
+    equivocation_cache: HashMap<SessionSlot, (H, bool)>,
     own_blocks_cache: HashSet<BlockId>,
     session_info: SessionBoundaryInfo,
     finalization_info: FI,
@@ -204,9 +207,11 @@ where
         }
     }
 
-    fn get_data(&mut self, number: BlockNumber) -> Result<&CachedData, CacheError> {
-        let session_id = self.session_info.session_id_from_block_num(number);
+    fn session_id_from_block_num(&self, number: BlockNumber) -> SessionId {
+        self.session_info.session_id_from_block_num(number)
+    }
 
+    fn get_data(&mut self, session_id: SessionId) -> Result<&CachedData, CacheError> {
         if session_id < self.lower_bound {
             return Err(CacheError::SessionTooOld(session_id, self.lower_bound));
         }
@@ -238,7 +243,9 @@ where
     /// Returns session verifier for block number if available. Updates cache if necessary.
     /// Must be called using the number of the verified block.
     pub fn get(&mut self, number: BlockNumber) -> Result<&SessionVerifier, CacheError> {
-        Ok(&self.get_data(number)?.session_verifier)
+        Ok(&self
+            .get_data(self.session_id_from_block_num(number))?
+            .session_verifier)
     }
 }
 
@@ -247,22 +254,23 @@ where
     AP: AuthorityProvider,
     FS: FinalizationInfo,
 {
-    /// Returns the list of Aura authorities for a given block number. Updates cache if necessary.
-    /// Must be called using the number of the PARENT of the verified block.
+    /// Returns the list of Aura authorities for a given session. Updates cache if necessary.
     /// This method assumes that the queued Aura authorities will indeed become Aura authorities
     /// in the next session.
-    pub fn get_aura_authorities(
+    fn get_aura_authorities(
         &mut self,
-        number: BlockNumber,
+        session_id: SessionId,
     ) -> Result<&Vec<(Option<AccountId>, AuraId)>, CacheError> {
-        Ok(&self.get_data(number)?.aura_authorities)
+        Ok(&self.get_data(session_id)?.aura_authorities)
     }
 
     fn parse_aura_header(
         &mut self,
         header: &mut Header,
-    ) -> Result<(Slot, AuraSignature, H256, AuraId, Option<AccountId>), HeaderVerificationError>
-    {
+    ) -> Result<
+        (SessionSlot, AuraSignature, H256, AuraId, Option<AccountId>),
+        HeaderVerificationError,
+    > {
         use HeaderVerificationError::*;
         let slot =
             find_pre_digest::<Block, AuthoritySignature>(header).map_err(PreDigestLookupError)?;
@@ -277,8 +285,9 @@ where
 
         // Aura: authorities are stored in the parent block
         let parent_number = header.number() - 1;
+        let session_id = self.session_id_from_block_num(parent_number);
         let authorities = self
-            .get_aura_authorities(parent_number)
+            .get_aura_authorities(session_id)
             .map_err(|_| MissingAuthorityData)?;
         // Aura: round robin
         let idx = *slot % (authorities.len() as u64);
@@ -287,7 +296,7 @@ where
             .expect("idx < authorities.len()")
             .clone();
 
-        Ok((slot, sig, pre_hash, author, maybe_account_id))
+        Ok(((session_id, slot), sig, pre_hash, author, maybe_account_id))
     }
 
     // This function assumes that:
@@ -296,7 +305,7 @@ where
     // 3. Slot number is calculated using the current system time.
     fn verify_aura_header(
         &mut self,
-        slot: &Slot,
+        session_slot: &SessionSlot,
         sig: &AuraSignature,
         pre_hash: H256,
         author: &AuraId,
@@ -308,8 +317,10 @@ where
             sp_timestamp::Timestamp::current(),
             sp_consensus_slots::SlotDuration::from_millis(MILLISECS_PER_BLOCK),
         );
-        if *slot > slot_now + HEADER_VERIFICATION_SLOT_OFFSET {
-            return Err(VerificationError::HeaderVerification(HeaderTooNew(*slot)));
+        if session_slot.1 > slot_now + HEADER_VERIFICATION_SLOT_OFFSET {
+            return Err(VerificationError::HeaderVerification(HeaderTooNew(
+                session_slot.1,
+            )));
         }
         if !AuthorityPair::verify(sig, pre_hash.as_ref(), author) {
             return Err(VerificationError::HeaderVerification(IncorrectAuthority));
@@ -323,12 +334,12 @@ where
     fn check_for_equivocation(
         &mut self,
         header: &Header,
-        slot: Slot,
+        session_slot: SessionSlot,
         author: AuraId,
         maybe_account_id: Option<AccountId>,
         just_created: bool,
     ) -> Result<Option<EquivocationProof>, VerificationError> {
-        match self.equivocation_cache.entry(slot.into()) {
+        match self.equivocation_cache.entry(session_slot) {
             Entry::Occupied(occupied) => {
                 let (cached_header, certainly_own) = occupied.into_mut();
                 if cached_header == header {
@@ -408,12 +419,17 @@ where
                 )),
             };
         }
-        let (slot, sig, pre_hash, author, maybe_account_id) =
-            self.parse_aura_header(&mut header)
-                .map_err(VerificationError::HeaderVerification)?;
-        self.verify_aura_header(&slot, &sig, pre_hash, &author)?;
-        let maybe_equivocation_proof =
-            self.check_for_equivocation(&header, slot, author, maybe_account_id, just_created)?;
+        let (session_slot, sig, pre_hash, author, maybe_account_id) = self
+            .parse_aura_header(&mut header)
+            .map_err(VerificationError::HeaderVerification)?;
+        self.verify_aura_header(&session_slot, &sig, pre_hash, &author)?;
+        let maybe_equivocation_proof = self.check_for_equivocation(
+            &header,
+            session_slot,
+            author,
+            maybe_account_id,
+            just_created,
+        )?;
         Ok(VerifiedHeader {
             header,
             maybe_equivocation_proof,
