@@ -69,7 +69,7 @@ Usage:
        set if you do not want to build testing aleph-node binary
     [--dont-delete-db]
       set to not delete database
-    [--dont-remove-abtf-backups]
+    [--dont-remove-abft-backups]
       set to not delete AlephBFT backups; by default they are removed since
       this script is intended to bootstrap chain by default, in which case you do not want to have
       them in 99% of scenarios

@@ -9,6 +9,7 @@ members = [
     "pallets/aleph",
     "pallets/elections",
     "pallets/committee-management",
+    "pallets/operations",
     "pallets/support",
     "primitives",
     "rate-limiter",
@@ -175,6 +176,7 @@ rate-limiter = { path = "rate-limiter" }
 pallet-aleph = { path = "pallets/aleph", default-features = false }
 pallet-committee-management = { path = "pallets/committee-management", default-features = false }
 pallet-elections = { path = "pallets/elections", default-features = false }
+pallet-operations = { path = "pallets/operations", default-features = false }
 pallets-support = { path = "pallets/support", default-features = false }
 primitives = { path = "primitives", default-features = false }
 

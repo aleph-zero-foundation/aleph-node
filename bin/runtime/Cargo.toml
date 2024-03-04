@@ -1,6 +1,6 @@
 [package]
 name = "aleph-runtime"
-version = "0.13.0"
+version = "0.13.1"
 license = "GPL-3.0-or-later"
 authors.workspace = true
 edition.workspace = true
@@ -63,6 +63,7 @@ frame-benchmarking = { workspace = true, optional = true }
 pallet-aleph = { workspace = true }
 pallet-committee-management= { workspace = true }
 pallet-elections = { workspace = true }
+pallet-operations = { workspace = true }
 primitives = { workspace = true }
 pallet-proxy = { workspace = true }
 
@@ -88,6 +89,7 @@ std = [
     "pallet-authorship/std",
     "pallet-balances/std",
     "pallet-elections/std",
+    "pallet-operations/std",
     "pallet-identity/std",
     "pallet-insecure-randomness-collective-flip/std",
     "pallet-session/std",

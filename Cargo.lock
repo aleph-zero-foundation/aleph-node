@@ -346,7 +346,7 @@ dependencies = [
 
 [[package]]
 name = "aleph-node"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "aleph-runtime",
  "finality-aleph",
@@ -405,7 +405,7 @@ dependencies = [
 
 [[package]]
 name = "aleph-runtime"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "baby-liminal-extension",
  "frame-benchmarking",
@@ -428,6 +428,7 @@ dependencies = [
  "pallet-multisig",
  "pallet-nomination-pools",
  "pallet-nomination-pools-runtime-api",
+ "pallet-operations",
  "pallet-proxy",
  "pallet-scheduler",
  "pallet-session",
@@ -5945,6 +5946,25 @@ dependencies = [
  "parity-scale-codec",
  "sp-api",
  "sp-std",
+]
+
+[[package]]
+name = "pallet-operations"
+version = "0.1.0"
+dependencies = [
+ "frame-election-provider-support",
+ "frame-support",
+ "frame-system",
+ "log",
+ "pallet-balances",
+ "pallet-session",
+ "pallet-staking",
+ "pallet-timestamp",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
 ]
 
 [[package]]
