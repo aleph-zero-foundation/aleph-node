@@ -99,10 +99,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 67,
+    spec_version: 70,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 17,
+    transaction_version: 18,
     state_version: 0,
 };
 
@@ -234,8 +234,7 @@ impl pallet_authorship::Config for Runtime {
 parameter_types! {
     pub const ExistentialDeposit: u128 = 500 * PICO_AZERO;
     pub const MaxLocks: u32 = 50;
-    // We have only 2 reasons for holds - CodeUploadDeposit and StorageDeposit.
-    pub const MaxHolds: u32 = 2;
+    pub const MaxHolds: u32 = 50;
     pub const MaxFreezes: u32 = 0;
     pub const MaxReserves: u32 = 50;
 }
@@ -388,6 +387,13 @@ impl pallet_elections::Config for Runtime {
     type ValidatorProvider = Staking;
     type MaxWinners = MaxWinners;
     type BannedValidators = CommitteeManagement;
+}
+
+impl pallet_operations::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type AccountInfoProvider = System;
+    type BalancesProvider = Balances;
+    type NextKeysSessionProvider = Session;
 }
 
 impl pallet_committee_management::Config for Runtime {
@@ -924,6 +930,7 @@ construct_runtime!(
         Proxy: pallet_proxy = 22,
         FeatureControl: pallet_feature_control = 23,
         VkStorage: pallet_vk_storage = 24,
+        Operations: pallet_operations = 255,
     }
 );
 
@@ -1158,6 +1165,12 @@ impl_runtime_apis! {
 
         fn balance_to_points(pool_id: pallet_nomination_pools::PoolId, new_funds: Balance) -> Balance {
             NominationPools::api_balance_to_points(pool_id, new_funds)
+        }
+    }
+
+    impl pallet_staking_runtime_api::StakingApi<Block, Balance> for Runtime {
+        fn nominations_quota(_balance: Balance) -> u32 {
+            MAX_NOMINATORS
         }
     }
 

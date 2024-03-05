@@ -33,6 +33,7 @@ pallet-insecure-randomness-collective-flip = { workspace = true }
 pallet-scheduler = { workspace = true }
 pallet-session = { workspace = true }
 pallet-staking = { workspace = true }
+pallet-staking-runtime-api = { workspace = true }
 pallet-sudo = { workspace = true }
 pallet-timestamp = { workspace = true }
 pallet-transaction-payment = { workspace = true }
@@ -63,6 +64,7 @@ pallet-aleph = { workspace = true }
 pallet-committee-management= { workspace = true }
 pallet-elections = { workspace = true }
 pallet-feature-control = { workspace = true }
+pallet-operations = { workspace = true }
 primitives = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-vk-storage = { workspace = true }
@@ -88,10 +90,12 @@ std = [
     "pallet-balances/std",
     "pallet-elections/std",
     "pallet-feature-control/std",
+    "pallet-operations/std",
     "pallet-identity/std",
     "pallet-insecure-randomness-collective-flip/std",
     "pallet-session/std",
     "pallet-staking/std",
+    "pallet-staking-runtime-api/std",
     "pallet-sudo/std",
     "pallet-timestamp/std",
     "pallet-transaction-payment/std",
