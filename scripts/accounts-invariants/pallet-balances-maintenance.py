@@ -15,12 +15,17 @@ from substrateinterface.storage import StorageKey
 
 class ChainMajorVersion(enum.Enum):
     PRE_12_MAJOR_VERSION = 65,
-    AT_LEAST_12_MAJOR_VERSION = 68
+    AT_LEAST_12_MAJOR_VERSION = 68,
+    AT_LEAST_13_1_VERSION = 70,
 
     @classmethod
     def from_spec_version(cls, spec_version):
-        return cls(ChainMajorVersion.PRE_12_MAJOR_VERSION if spec_version <= 65
-                   else ChainMajorVersion.AT_LEAST_12_MAJOR_VERSION)
+        if spec_version <= 65:
+            return cls(ChainMajorVersion.PRE_12_MAJOR_VERSION)
+        elif 68 <= spec_version < 70:
+            return cls(ChainMajorVersion.AT_LEAST_12_MAJOR_VERSION)
+        elif spec_version >= 70:
+            return cls(ChainMajorVersion.AT_LEAST_13_1_VERSION)
 
 
 def get_args() -> argparse.Namespace:
@@ -65,6 +70,11 @@ Accounts that do not satisfy those checks are written to accounts-with-failed-in
                         default=10,
                         help='How many accounts to fix in one script run session.'
                              ' Default: 10')
+    parser.add_argument('--fix-consumers-calls-in-batch',
+                        type=int,
+                        default=10,
+                        help='How many consumers underflow accounts to fix in one script run session.'
+                             ' Default: 10')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--fix-free-balance',
                        action='store_true',
@@ -73,7 +83,7 @@ Accounts that do not satisfy those checks are written to accounts-with-failed-in
                             'It requires AlephNode < 12.X version and SENDER_ACCOUNT env to be set with '
                             'a mnemonic phrase of sender account that has funds for transfers and fees. '
                             'dust-accounts.json file is saved with all such accounts.'
-                            'Must be used exclusively with --upgrade-accounts or --fix-double-providers-count'
+                            'Must be used exclusively with --upgrade-accounts or --fix-double-providers-count.'
                             'Default: False')
     group.add_argument('--upgrade-accounts',
                        action='store_true',
@@ -81,7 +91,7 @@ Accounts that do not satisfy those checks are written to accounts-with-failed-in
                             'for all accounts on a chain. It requires at least AlephNode 12.X version '
                             'and SENDER_ACCOUNT env to be set with a mnemonic phrase of sender account that has funds '
                             'for transfers and fees.'
-                            'Must be used exclusively with --fix-free-balance or --fix-double-providers-count'
+                            'Must be used exclusively with --fix-free-balance or --fix-double-providers-count.'
                             'Default: False')
     group.add_argument('--fix-double-providers-count',
                        action='store_true',
@@ -89,7 +99,14 @@ Accounts that do not satisfy those checks are written to accounts-with-failed-in
                             'and decrease this counter by one using System.SetStorage call. '
                             'It requires at least AlephNode 12.X version '
                             'and SENDER_ACCOUNT env to be set with a sudo mnemonic phrase. '
-                            'Must be used exclusively with --fix-free-balance or --upgrade-accounts'
+                            'Must be used exclusively with --fix-free-balance or --upgrade-accounts.'
+                            'Default: False')
+    group.add_argument('--fix-consumers-counter-underflow',
+                       action='store_true',
+                       help='Specify this switch if script should query all accounts that have underflow consumers '
+                            'counter, and fix consumers counter by issuing batch calls of '
+                            'Operations.fix_accounts_consumers_underflow call.'
+                            'It requires at least AlephNode 13.1 version '
                             'Default: False')
     return parser.parse_args()
 
@@ -333,11 +350,7 @@ def upgrade_accounts(chain_connection,
     :return: None. Can raise exception in case of SubstrateRequestException thrown
     """
     log.info("Querying all accounts.")
-    all_accounts_on_chain = list(map(lambda x: x[0], filter_accounts(chain_connection,
-                                                                     ed,
-                                                                     chain_major_version,
-                                                                     lambda x, y, z: True,
-                                                                     "\'all accounts\'")))
+    all_accounts_on_chain = list(map(lambda x: x[0], get_all_accounts(chain_connection)))
 
     for (i, account_ids_chunk) in enumerate(chunks(all_accounts_on_chain, input_args.upgrade_accounts_in_batch)):
         upgrade_accounts_call = chain_connection.compose_call(
@@ -599,6 +612,151 @@ def set_providers_counter_to_one(chain_connection, account_info, internal_system
     return fixed_account_info_hexstring
 
 
+def query_contract_and_code_owners_accounts(chain_connection):
+    """
+    Returns contract accounts and code owners.
+    """
+    code_owners = set()
+    contract_accounts = set()
+
+    log.info(f"Querying code owners.")
+    code_info_of_query = chain_connection.query_map('Contracts', 'CodeInfoOf', page_size=1000)
+
+    for (i, (account_id, info)) in enumerate(code_info_of_query):
+        code_owners.add(info.serialize()['owner'])
+        if i % 5000 == 0 and i > 0:
+            log.info(f"Checked {i} code owners")
+    log.info(f"Total code owners is {len(code_owners)}")
+    log.debug(f"Code owners: {code_owners}")
+
+    log.info(f"Querying contract accounts.")
+    contract_info_of_query = chain_connection.query_map('Contracts', 'ContractInfoOf', page_size=1000)
+    for (i, (account_id, info)) in enumerate(contract_info_of_query):
+        contract_accounts.add(account_id.value)
+        if i % 5000 == 0 and i > 0:
+            log.info(f"Checked {i} contracts")
+    log.info(f"Total contracts count is {len(contract_accounts)}")
+    log.debug(f"Contract accounts: {contract_accounts}")
+
+    return code_owners, contract_accounts
+
+
+def no_consumers_zero_reserved(account_id, account_info):
+    """
+    Checks if an account has zero consumers, but non-zero reserved amount.
+    """
+    consumers = account_info['consumers']
+    reserved = account_info['data']['reserved']
+    if consumers == 0 and reserved > 0:
+        log.debug(f"Found an account that has zero consumers and non-zero reserved: {account_id}")
+        return True
+    return False
+
+
+def staker_has_consumers_underflow(account_id, consumers, locks, next_keys):
+    """
+    Checks if an account is a staker or vester that has underflow consumers counter.
+    """
+    vesting_lock_encoded_id = "0x76657374696e6720"
+    staking_lock_encoded_id = "0x7374616b696e6720"
+    if account_id in locks and len(locks[account_id]) > 0:
+        log.debug(f"Account {account_id} has following locks: {locks[account_id]}")
+        vesting_lock = next(filter(lambda lock: lock['id'] == vesting_lock_encoded_id, locks[account_id]), None)
+        if vesting_lock is not None and consumers == 1:
+            log.debug(f"Found vesting lock: {vesting_lock}")
+            log.debug(f"Found an account that has one consumer and vesting lock: {account_id}")
+            return True
+        staking_lock = next(filter(lambda lock: lock['id'] == staking_lock_encoded_id, locks[account_id]), None)
+        if staking_lock is not None:
+            log.debug(f"Found staking lock: {staking_lock}")
+            if consumers == 2:
+                log.debug(f"Found an account that has two consumers and staking lock: {account_id}")
+                return True
+            if consumers == 3 and account_id in next_keys:
+                log.debug(f"Found an account that has three consumers, staking lock, and next session key: "
+                          f"{account_id}")
+                return True
+    return False
+
+
+def has_account_consumer_underflow(account_id_and_info, locks, next_keys):
+    """
+    Returns True if an account has consumers underflow
+    """
+    account_id, account_info = account_id_and_info
+    consumers = account_info['consumers']
+    return no_consumers_zero_reserved(account_id, account_info) or \
+        staker_has_consumers_underflow(account_id, consumers,locks, next_keys)
+
+
+def query_accounts_with_consumers_counter_underflow(chain_connection):
+    """
+    Queries all accounts that have an underflow of consumers counter, which is either of those account categories:
+    * `consumers`  == 0, `reserved`  > 0
+    * `consumers`  == 1, `balances.Locks` contain an entry with `id`  == `vesting`
+    * `consumers`  == 2, `balances.Locks` contain an entry with `id`  == `staking`
+    * `consumers`  == 3, `balances.Locks` contain entries with `id`  == `staking` and accountId is in `session.nextKeys`
+    """
+    log.info("Querying session.nextKeys.")
+    next_keys = set()
+    for account_id, _ in chain_connection.query_map("Session", "NextKeys", page_size=1000):
+        next_keys.add(account_id.value)
+    log.debug(f"Found below accounts in Session.nextKeys: {next_keys}")
+
+    log.info("Querying balances.locks.")
+    locks = {}
+    for account_id, lock in chain_connection.query_map("Balances", "Locks", page_size=1000):
+        locks[account_id.value] = lock.value
+    log.debug(f"Found below locks: {locks}")
+
+    log.info("Querying all accounts and filtering by consumers underflow predicate.")
+    return [account_id_and_info for account_id_and_info in get_all_accounts(chain_connection) if
+            has_account_consumer_underflow(account_id_and_info, locks, next_keys)]
+
+
+def get_all_accounts(chain_connection):
+    return filter_accounts(chain_connection,
+                           None,
+                           None,
+                           lambda x, y, z: True,
+                           "\'all accounts\'")
+
+
+def batch_fix_accounts_consumers_underflow(chain_connection,
+                                           input_args,
+                                           accounts,
+                                           sender_keypair):
+    """
+    Send Operations.fix_accounts_consumers_underflow call in a batch
+    :param chain_connection: WS connection handler
+    :param input_args: script input arguments returned from argparse
+    :param accounts: list of accounts to fix their consumers counter
+    :param sender_keypair: keypair of sender account
+    :return: None. Can raise exception in case of SubstrateRequestException thrown
+    """
+    for (i, account_ids_chunk) in enumerate(chunks(accounts, input_args.fix_consumers_calls_in_batch)):
+        operations_calls = list(map(lambda account: chain_connection.compose_call(
+            call_module='Operations',
+            call_function='fix_accounts_consumers_underflow',
+            call_params={
+                'who': account
+            }), account_ids_chunk))
+        batch_call = chain_connection.compose_call(
+            call_module='Utility',
+            call_function='batch_all',
+            call_params={
+                'calls': operations_calls
+            }
+        )
+
+        extrinsic = chain_connection.create_signed_extrinsic(call=batch_call, keypair=sender_keypair)
+        log.info(f"About to send {len(operations_calls)} Operations.fix_accounts_consumers_underflow, "
+                 f"from {sender_keypair.ss58_address} to below accounts: "
+                 f"{account_ids_chunk}")
+
+        submit_extrinsic(chain_connection, extrinsic, len(operations_calls), args.dry_run)
+
+
 def chunks(list_of_elements, n):
     """
     Lazily split 'list_of_elements' into 'n'-sized chunks.
@@ -659,12 +817,12 @@ if __name__ == "__main__":
     args = get_args()
     log = get_global_logger(args)
 
-    if args.fix_free_balance or args.upgrade_accounts or args.fix_double_providers_count:
+    if args.fix_free_balance or args.upgrade_accounts or args.fix_double_providers_count \
+            or args.fix_consumers_counter_underflow:
         sender_origin_account_seed = os.getenv('SENDER_ACCOUNT')
         if sender_origin_account_seed is None:
-            log.error(f"When specifying --fix-free-balance or --upgrade-accounts or --fix-double-providers-count"
-                      f", env SENDER_ACCOUNT must exists. "
-                      f"Exiting.")
+            log.error(f"When specifying --fix-free-balance or --upgrade-accounts or --fix-double-providers-count or "
+                      f"--fix-consumers-counter-underflow, env SENDER_ACCOUNT must exists. Exiting.")
             exit(1)
     if args.dry_run:
         log.info(f"Dry-run mode is enabled.")
@@ -686,6 +844,11 @@ if __name__ == "__main__":
         if chain_major_version is not ChainMajorVersion.AT_LEAST_12_MAJOR_VERSION:
             log.error(f"--fix-double-providers-count can be used only on chains with at least 12 version. Exiting.")
             exit(4)
+    if args.fix_consumers_counter_underflow:
+        if chain_major_version is not ChainMajorVersion.AT_LEAST_13_1_VERSION:
+            log.error(f"--query-consumers-counter-underflow can be used only on chains with at least 13.1 version. "
+                      f"Exiting.")
+            exit(5)
 
     existential_deposit = chain_ws_connection.get_constant("Balances", "ExistentialDeposit").value
     log.info(f"Existential deposit is {format_balance(chain_ws_connection, existential_deposit)}")
@@ -727,6 +890,30 @@ if __name__ == "__main__":
                                    input_args=args,
                                    chain_major_version=chain_major_version,
                                    sudo_sender_keypair=sudo_account_keypair)
+    if args.fix_consumers_counter_underflow:
+        log.info(f"This script is going to query all accounts that have underflow of consumers counter, "
+                 f"and fix them using runtime Operations.fix_accounts_consumers_underflow extrinsic.")
+        accounts_with_consumers_underflow = \
+            query_accounts_with_consumers_counter_underflow(chain_connection=chain_ws_connection)
+        log.info(f"Found {len(accounts_with_consumers_underflow)} accounts with consumers underflow.")
+        if len(accounts_with_consumers_underflow) > 0:
+            save_accounts_to_json_file("accounts_with_consumers_underflow.json", accounts_with_consumers_underflow)
+            code_owners, contract_accounts = query_contract_and_code_owners_accounts(
+                chain_connection=chain_ws_connection)
+            accounts_with_consumers_underflow_set = set(list(map(lambda x: x[0], accounts_with_consumers_underflow)))
+            code_owners_intersection = accounts_with_consumers_underflow_set.intersection(code_owners)
+            if len(code_owners_intersection):
+                log.warning(
+                    f"There are common code owners accounts and consumers underflow accounts: {code_owners_intersection}")
+            contract_accounts_intersection = accounts_with_consumers_underflow_set.intersection(contract_accounts)
+            if len(contract_accounts_intersection):
+                log.warning(
+                    f"There are common contract accounts and consumers underflow accounts: {contract_accounts_intersection}")
+            sender_origin_account_keypair = substrateinterface.Keypair.create_from_uri(sender_origin_account_seed)
+            batch_fix_accounts_consumers_underflow(chain_connection=chain_ws_connection,
+                                                   input_args=args,
+                                                   sender_keypair=sender_origin_account_keypair,
+                                                   accounts=list(accounts_with_consumers_underflow_set))
 
     log.info(f"Performing pallet balances sanity checks.")
     perform_account_sanity_checks(chain_connection=chain_ws_connection,
