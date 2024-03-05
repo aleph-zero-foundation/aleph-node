@@ -53,11 +53,8 @@ jobs:
     needs: [push-dockerhub-image-testnet]
     if: always()
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Send Slack message
-        uses: ./.github/actions/slack-notification
+        uses: Cardinal-Cryptography/github-actions/slack-notification@v6
         with:
           notify-on: "always"
         env:
