@@ -950,6 +950,7 @@ construct_runtime!(
         CommitteeManagement: pallet_committee_management = 21,
         Proxy: pallet_proxy = 22,
         BabyLiminal: pallet_baby_liminal = 41,
+        Operations: pallet_operations = 255,
     }
 );
 
