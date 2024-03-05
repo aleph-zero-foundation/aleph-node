@@ -262,16 +262,13 @@ impl<T: Config> Pallet<T> {
             lenient_threshold,
         )
         .into_iter()
-        .chain(
-            Self::reward_for_session_committee(
-                committee,
-                nr_of_sessions,
-                blocks_per_session,
-                &validator_total_rewards,
-                lenient_threshold,
-            )
-            .into_iter(),
-        );
+        .chain(Self::reward_for_session_committee(
+            committee,
+            nr_of_sessions,
+            blocks_per_session,
+            &validator_total_rewards,
+            lenient_threshold,
+        ));
 
         T::ValidatorRewardsHandler::add_rewards(rewards);
     }
@@ -285,7 +282,7 @@ impl<T: Config> Pallet<T> {
 
         let non_committee = non_reserved
             .into_iter()
-            .chain(reserved.into_iter())
+            .chain(reserved)
             .filter(|a| !committee.contains(a))
             .collect();
 

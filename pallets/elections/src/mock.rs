@@ -86,6 +86,7 @@ impl pallet_balances::Config for Test {
     type MaxHolds = ConstU32<0>;
     type MaxFreezes = ConstU32<0>;
     type RuntimeHoldReason = ();
+    type RuntimeFreezeReason = RuntimeFreezeReason;
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Test

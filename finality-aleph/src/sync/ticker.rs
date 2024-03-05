@@ -116,15 +116,13 @@ mod tests {
     async fn plain_wait() {
         let mut ticker = setup_ticker();
 
-        assert!(matches!(
-            timeout(MIN_TIMEOUT_PLUS, ticker.wait_and_tick()).await,
-            Err(_)
-        ));
+        assert!(timeout(MIN_TIMEOUT_PLUS, ticker.wait_and_tick())
+            .await
+            .is_err());
         assert_eq!(timeout(MAX_TIMEOUT, ticker.wait_and_tick()).await, Ok(true));
-        assert!(matches!(
-            timeout(MIN_TIMEOUT_PLUS, ticker.wait_and_tick()).await,
-            Err(_)
-        ));
+        assert!(timeout(MIN_TIMEOUT_PLUS, ticker.wait_and_tick())
+            .await
+            .is_err());
     }
 
     #[tokio::test]
@@ -135,10 +133,9 @@ mod tests {
         sleep(MIN_TIMEOUT).await;
         assert!(ticker.try_tick());
 
-        assert!(matches!(
-            timeout(MIN_TIMEOUT_PLUS, ticker.wait_and_tick()).await,
-            Err(_)
-        ));
+        assert!(timeout(MIN_TIMEOUT_PLUS, ticker.wait_and_tick())
+            .await
+            .is_err());
         assert_eq!(timeout(MAX_TIMEOUT, ticker.wait_and_tick()).await, Ok(true));
     }
 
@@ -152,10 +149,9 @@ mod tests {
             timeout(MIN_TIMEOUT_PLUS, ticker.wait_and_tick()).await,
             Ok(false)
         );
-        assert!(matches!(
-            timeout(MIN_TIMEOUT_PLUS, ticker.wait_and_tick()).await,
-            Err(_)
-        ));
+        assert!(timeout(MIN_TIMEOUT_PLUS, ticker.wait_and_tick())
+            .await
+            .is_err());
         assert_eq!(timeout(MAX_TIMEOUT, ticker.wait_and_tick()).await, Ok(true));
     }
 
@@ -181,10 +177,9 @@ mod tests {
         );
 
         ticker.reset();
-        assert!(matches!(
-            timeout(MIN_TIMEOUT_PLUS, ticker.wait_and_tick()).await,
-            Err(_)
-        ));
+        assert!(timeout(MIN_TIMEOUT_PLUS, ticker.wait_and_tick())
+            .await
+            .is_err());
         assert_eq!(
             timeout(MAX_TIMEOUT_PLUS, ticker.wait_and_tick()).await,
             Ok(true)
@@ -199,10 +194,9 @@ mod tests {
         assert!(ticker.try_tick());
 
         ticker.reset();
-        assert!(matches!(
-            timeout(MIN_TIMEOUT_PLUS, ticker.wait_and_tick()).await,
-            Err(_)
-        ));
+        assert!(timeout(MIN_TIMEOUT_PLUS, ticker.wait_and_tick())
+            .await
+            .is_err());
         assert_eq!(
             timeout(MAX_TIMEOUT_PLUS, ticker.wait_and_tick()).await,
             Ok(true)

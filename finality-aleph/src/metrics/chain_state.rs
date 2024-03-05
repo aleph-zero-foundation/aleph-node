@@ -643,7 +643,7 @@ mod test {
             .extrinsic(AccountKeyring::Alice, AccountKeyring::Bob, 0);
         let xt2 = setup
             .pool
-            .extrinsic(AccountKeyring::Dave, AccountKeyring::Eve, 0);
+            .extrinsic(AccountKeyring::Charlie, AccountKeyring::Eve, 0);
 
         setup.pool.submit(&genesis, xt1.clone()).await;
         setup.pool.submit(&genesis, xt2.clone()).await;

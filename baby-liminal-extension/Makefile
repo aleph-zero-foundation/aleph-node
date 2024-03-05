@@ -1,7 +1,7 @@
 .PHONY: test test-frontend test-backend lint clippy clean help
 
 AT_TEST_CONTRACT = --manifest-path test_contract/Cargo.toml
-TEST_TOOLCHAIN = nightly-2023-05-22-unknown-linux-gnu # needed for unstable features regarding const generics
+TEST_TOOLCHAIN = nightly-2024-02-14 # needed for unstable features regarding const generics
 
 test: test-frontend test-backend ## Run all tests
 

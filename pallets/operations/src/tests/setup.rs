@@ -83,6 +83,7 @@ impl pallet_balances::Config for TestRuntime {
     type MaxHolds = ConstU32<0>;
     type MaxFreezes = ConstU32<0>;
     type RuntimeHoldReason = ();
+    type RuntimeFreezeReason = ();
 }
 
 pub struct OtherSessionHandler;

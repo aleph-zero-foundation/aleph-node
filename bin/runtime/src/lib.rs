@@ -23,6 +23,7 @@ pub use frame_support::{
 use frame_support::{
     sp_runtime::Perquintill,
     traits::{
+        tokens::{PayFromAccount, UnityAssetBalanceConversion},
         ConstBool, ConstU32, Contains, EqualPrivilegeOnly, EstimateNextSessionRotation,
         InstanceFilter, SortedMembers, WithdrawReasons,
     },
@@ -35,6 +36,7 @@ use frame_try_runtime::UpgradeCheckSelect;
 pub use pallet_balances::Call as BalancesCall;
 use pallet_committee_management::SessionAndEraManager;
 pub use pallet_feature_control::Feature;
+use pallet_identity::simple::IdentityInfo;
 use pallet_session::QueuedKeys;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
@@ -57,8 +59,8 @@ pub use sp_runtime::BuildStorage;
 use sp_runtime::{
     create_runtime_str, generic, impl_opaque_keys,
     traits::{
-        AccountIdLookup, BlakeTwo256, Block as BlockT, Bounded, Convert, ConvertInto, One,
-        OpaqueKeys,
+        AccountIdLookup, BlakeTwo256, Block as BlockT, Bounded, Convert, ConvertInto,
+        IdentityLookup, One, OpaqueKeys,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, FixedU128, RuntimeDebug,
@@ -235,7 +237,7 @@ parameter_types! {
     pub const ExistentialDeposit: u128 = 500 * PICO_AZERO;
     pub const MaxLocks: u32 = 50;
     pub const MaxHolds: u32 = 50;
-    pub const MaxFreezes: u32 = 0;
+    pub const MaxFreezes: u32 = 50;
     pub const MaxReserves: u32 = 50;
 }
 
@@ -251,10 +253,11 @@ impl pallet_balances::Config for Runtime {
     type ExistentialDeposit = ExistentialDeposit;
     type AccountStore = System;
     type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
-    type FreezeIdentifier = ();
+    type FreezeIdentifier = RuntimeFreezeReason;
     type MaxHolds = MaxHolds;
     type MaxFreezes = MaxFreezes;
     type RuntimeHoldReason = RuntimeHoldReason;
+    type RuntimeFreezeReason = RuntimeFreezeReason;
 }
 
 type NegativeImbalance = <Balances as Currency<AccountId>>::NegativeImbalance;
@@ -465,6 +468,7 @@ impl pallet_nomination_pools::Config for Runtime {
     type MaxUnbonding = ConstU32<8>;
     type PalletId = NominationPoolsPalletId;
     type MaxPointsToBalance = MaxPointsToBalance;
+    type RuntimeFreezeReason = RuntimeFreezeReason;
 }
 
 parameter_types! {
@@ -677,6 +681,7 @@ parameter_types! {
     // Every 4 hours we fund accepted proposals.
     pub const SpendPeriod: AlephBlockNumber = 4 * BLOCKS_PER_HOUR;
     pub const TreasuryPalletId: PalletId = PalletId(*b"a0/trsry");
+    pub TreasuryAccount: AccountId = Treasury::account_id();
 }
 
 pub struct TreasuryGovernance;
@@ -704,6 +709,12 @@ impl pallet_treasury::Config for Runtime {
     type SpendOrigin = frame_support::traits::NeverEnsureOrigin<u128>;
     type SpendPeriod = SpendPeriod;
     type WeightInfo = pallet_treasury::weights::SubstrateWeight<Runtime>;
+    type AssetKind = ();
+    type Beneficiary = Self::AccountId;
+    type BeneficiaryLookup = IdentityLookup<Self::AccountId>;
+    type Paymaster = PayFromAccount<Balances, TreasuryAccount>;
+    type BalanceConverter = UnityAssetBalanceConversion;
+    type PayoutPeriod = ConstU32<0>;
 }
 
 impl pallet_utility::Config for Runtime {
@@ -792,6 +803,7 @@ impl pallet_identity::Config for Runtime {
     type ForceOrigin = EnsureRoot<AccountId>;
     type RegistrarOrigin = EnsureRoot<AccountId>;
     type WeightInfo = pallet_identity::weights::SubstrateWeight<Self>;
+    type IdentityInformation = IdentityInfo<MaxAdditionalFields>;
 }
 parameter_types! {
     // Key size = 32, value size = 8
@@ -1465,6 +1477,7 @@ mod tests {
                 change_rate: _,
             } => {}
             pallet_nomination_pools::Call::claim_commission { pool_id: _ } => {}
+            pallet_nomination_pools::Call::adjust_pool_deposit { pool_id: _ } => {}
             pallet_nomination_pools::Call::__Ignore(..) => {}
         }
     }

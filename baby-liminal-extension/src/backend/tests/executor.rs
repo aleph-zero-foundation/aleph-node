@@ -1,9 +1,18 @@
-use aleph_runtime_interfaces::snark_verifier::VerifierError;
+use core::marker::ConstParamTy;
 
 use crate::{args::VerifyArgs, backend::executor::BackendExecutor};
 
+#[derive(ConstParamTy, Copy, Clone, Eq, PartialEq, Debug)]
+pub enum VerifierError {
+    UnknownVerificationKeyIdentifier,
+    DeserializingPublicInputFailed,
+    DeserializingVerificationKeyFailed,
+    VerificationFailed,
+    IncorrectProof,
+}
+
 /// Describes how the `Executor` should behave when one of its methods is called.
-#[derive(Clone, Eq, PartialEq)]
+#[derive(ConstParamTy, Clone, Eq, PartialEq)]
 pub enum Responder {
     /// Twist and shout.
     Panicker,
@@ -35,11 +44,28 @@ pub type VerifyOkayer = MockedExecutor<{ Responder::Okayer }>;
 pub type VerifyErrorer<const ERROR: VerifierError> = MockedExecutor<{ make_errorer::<ERROR>() }>;
 
 impl<const VERIFY_RESPONDER: Responder> BackendExecutor for MockedExecutor<VERIFY_RESPONDER> {
-    fn verify(_: VerifyArgs) -> Result<(), VerifierError> {
+    fn verify(
+        _: VerifyArgs,
+    ) -> Result<(), aleph_runtime_interfaces::snark_verifier::VerifierError> {
         match VERIFY_RESPONDER {
             Responder::Panicker => panic!("Function `verify` shouldn't have been executed"),
             Responder::Okayer => Ok(()),
-            Responder::Errorer(e) => Err(e),
+            Responder::Errorer(e) => {
+                use aleph_runtime_interfaces::snark_verifier::VerifierError::*;
+                match e {
+                    VerifierError::UnknownVerificationKeyIdentifier => {
+                        Err(UnknownVerificationKeyIdentifier)
+                    }
+                    VerifierError::DeserializingPublicInputFailed => {
+                        Err(DeserializingPublicInputFailed)
+                    }
+                    VerifierError::DeserializingVerificationKeyFailed => {
+                        Err(DeserializingVerificationKeyFailed)
+                    }
+                    VerifierError::VerificationFailed => Err(VerificationFailed),
+                    VerifierError::IncorrectProof => Err(IncorrectProof),
+                }
+            }
         }
     }
 }

@@ -1,6 +1,6 @@
 use std::{
     collections::BTreeMap,
-    fmt::{Display, Formatter, Result as FmtResult},
+    fmt::{Display, Formatter, Result as FmtResult, Write},
     fs,
     path::PathBuf,
 };
@@ -15,11 +15,10 @@ use futures::{stream::FuturesUnordered, StreamExt};
 use subxt::config::Header;
 
 fn pretty_print_h256(h: &H256) -> String {
-    let prefix =
-        h.0.iter()
-            .take(4)
-            .map(|byte| format!("{byte:02x}"))
-            .collect::<String>();
+    let prefix = h.0.iter().take(4).fold(String::new(), |mut output, byte| {
+        let _ = write!(output, "{byte:02x}");
+        output
+    });
     format!("0x{prefix}..")
 }
 

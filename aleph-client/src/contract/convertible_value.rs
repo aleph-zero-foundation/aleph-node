@@ -149,21 +149,50 @@ impl TryFrom<ConvertibleValue> for String {
     }
 }
 
-auto trait NotEq {}
-// We're basically telling the compiler that there is no instance of NotEq for `(X,X)` tuple.
-// Or put differently - that you can't implement `NotEq` for `(X,X)`.
-impl<X> !NotEq for (X, X) {}
-
-impl<T> TryFrom<ConvertibleValue> for Option<T>
-where
-    T: TryFrom<ConvertibleValue, Error = anyhow::Error> + Debug,
-    // We will derive this impl only when `T != ConvertibleValue`.
-    // Otherwise we will get a conflict with generic impl in the rust `core` crate.
-    (ConvertibleValue, T): NotEq,
-{
+impl TryFrom<ConvertibleValue> for Option<String> {
     type Error = anyhow::Error;
 
-    fn try_from(value: ConvertibleValue) -> Result<Option<T>> {
+    fn try_from(value: ConvertibleValue) -> Result<Option<String>> {
+        let tuple = match &value.0 {
+            Value::Tuple(tuple) => tuple,
+            _ => bail!("Expected {:?} to be a Some(_) or None Tuple.", &value),
+        };
+
+        match tuple.ident() {
+            Some(x) if x == "Some" => {
+                if tuple.values().count() == 1 {
+                    let item =
+                        ConvertibleValue(tuple.values().next().unwrap().clone()).try_into()?;
+                    Ok(Some(item))
+                } else {
+                    bail!(
+                        "Unexpected number of elements in Some(_) variant: {:?}. Expected one.",
+                        &value
+                    );
+                }
+            }
+            Some(x) if x == "None" => {
+                if tuple.values().count() == 0 {
+                    Ok(None)
+                } else {
+                    bail!(
+                        "Unexpected number of elements in None variant: {:?}. Expected zero.",
+                        &value
+                    );
+                }
+            }
+            _ => bail!(
+                "Expected `.ident()` to be `Some` or `None`, got: {:?}",
+                &tuple
+            ),
+        }
+    }
+}
+
+impl TryFrom<ConvertibleValue> for Option<AccountId> {
+    type Error = anyhow::Error;
+
+    fn try_from(value: ConvertibleValue) -> Result<Option<AccountId>> {
         let tuple = match &value.0 {
             Value::Tuple(tuple) => tuple,
             _ => bail!("Expected {:?} to be a Some(_) or None Tuple.", &value),

@@ -15,7 +15,6 @@ sp-core = { workspace = true, optional = true }
 
 # Backend dependencies:
 
-ahash = { workspace = true, optional = true } # Required until Rust is updated to 1.71
 getrandom = { version = "0.2.12", features = ["js"], optional = true }
 log = { workspace = true, optional = true }
 parity-scale-codec = { workspace = true, features = ["derive"], optional = true }
@@ -50,7 +49,6 @@ std = []
 # `runtime` and `runtime-std` features are dedicated to the runtime crate. They bring the backend part of the extension.
 runtime = [
     "getrandom",
-    "ahash",
     "log",
     "parity-scale-codec",
     "frame-support",

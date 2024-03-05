@@ -414,7 +414,7 @@ where
         self.num_triggers_registered_since_last_pruning += 1;
         self.event_triggers
             .entry(ChainEvent::Imported(block.clone()))
-            .or_insert_with(HashSet::new)
+            .or_default()
             .insert(proposal.clone());
     }
 
@@ -427,7 +427,7 @@ where
         if number > self.highest_finalized_num {
             self.event_triggers
                 .entry(ChainEvent::Finalized(number))
-                .or_insert_with(HashSet::new)
+                .or_default()
                 .insert(proposal.clone());
         }
     }

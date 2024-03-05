@@ -99,6 +99,7 @@ impl pallet_balances::Config for Test {
     type MaxHolds = ConstU32<0>;
     type MaxFreezes = ConstU32<0>;
     type RuntimeHoldReason = ();
+    type RuntimeFreezeReason = RuntimeFreezeReason;
 }
 
 pub struct SessionInfoImpl;
@@ -164,9 +165,7 @@ pub fn to_authorities(authorities: &[u64]) -> Vec<AuthorityId> {
 }
 
 pub fn new_session_validators(validators: &[u64]) -> impl Iterator<Item = (&u64, AuthorityId)> {
-    validators
-        .iter()
-        .zip(to_authorities(validators).into_iter())
+    validators.iter().zip(to_authorities(validators))
 }
 
 pub fn new_test_ext(authorities: &[(u64, u64)]) -> sp_io::TestExternalities {
