@@ -77,7 +77,7 @@ chmod +x aleph-node
     --no-mdns 1>/dev/null 2>/dev/null &
 
 echo "Waiting a moment for the node to start up..."
-sleep 1m
+sleep 5m
 
 get_current_block
 echo "Syncing to ${TARGET_BLOCK} starting at ${CURRENT_BLOCK}."
