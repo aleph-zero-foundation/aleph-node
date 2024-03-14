@@ -48,8 +48,8 @@ repository = "https://github.com/Cardinal-Cryptography/aleph-node"
 [workspace.dependencies]
 aleph-bft-crypto = { version = "0.8" }
 aleph-bft-mock = { version = "0.11.1" }
-aleph-bft-rmc = { version = "0.11" }
-aleph-bft-types = { version = "0.11" }
+aleph-bft-rmc = { version = "0.12" }
+aleph-bft-types = { version = "0.12" }
 async-trait = { version = "0.1" }
 bytes = { version = "1.5" }
 derive_more = { version = "0.99" }
@@ -59,7 +59,7 @@ futures-timer = { version = "3.0" }
 hash-db = { version = "0.16", default-features = false }
 hex = { version = "0.4" }
 hex-literal = { version = "0.3" }
-ink = { version = "5.0.0-rc" }
+ink = { version = "5.0.0" }
 ip_network = { version = "0.4" }
 jsonrpsee = { version = "0.16.3" }
 libp2p = { version = "0.51" }
@@ -69,7 +69,7 @@ parity-scale-codec = { version = "3.0", default-features = false }
 parking_lot = { version = "0.12" }
 paste = { version = "1.0" }
 rand = { version = "0.8.5", default-features = false }
-scale-info = { version = "2.0", default-features = false }
+scale-info = { version = "2.11", default-features = false }
 serde = { version = "1.0", default-features = false }
 serde_json = { version = "1.0", default-features = false }
 smallvec = { version = "1", default-features = false }
