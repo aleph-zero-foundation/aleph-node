@@ -88,7 +88,7 @@ timeout_duration="${TIMEOUT_MINUTES:-20m}"
 echo "Running test, logs will be shown when tests finishes or after ${timeout_duration} timeout."
 # a hack to set global timeout on a e2e testcase run
 # we can't do that on GH yaml level due to https://github.com/actions/runner/issues/1979
-docker_service=$(docker run -v "$(pwd)/contracts:/contracts" -v "$(pwd)/docker/data:/data" -d "${ARGS[@]}" \
+docker_service=$(docker run -v "$(pwd)/contracts:/contracts" -v "$(pwd)/docker/data:/data" -v "$(pwd)/e2e-tests:/e2e-tests" -d "${ARGS[@]}" \
     "${ALEPH_E2E_CLIENT_IMAGE}")
 set +e
 timeout_output=$(timeout "${timeout_duration}" docker wait "${docker_service}")

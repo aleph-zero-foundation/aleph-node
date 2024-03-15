@@ -617,3 +617,33 @@ jobs:
           test-case: non_transfer_proxy_works
           follow-up-finalization-check: true
           aleph-e2e-client-image: ${{ inputs.aleph-e2e-client-image }}
+
+  run-e2e-fresh-chain-has-verifier-enabled:
+    name: Run fresh chain has verifier enabled test
+    needs: [run-e2e-finalization-test]
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: fresh_chain_has_verifier_enabled
+          follow-up-finalization-check: true
+          aleph-e2e-client-image: ${{ inputs.aleph-e2e-client-image }}
+
+  run-e2e-verifier-can-be-disabled:
+    name: Run verifier can be disabled test
+    needs: [run-e2e-finalization-test]
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: verifier_can_be_disabled
+          follow-up-finalization-check: true
+          aleph-e2e-client-image: ${{ inputs.aleph-e2e-client-image }}

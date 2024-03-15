@@ -38,6 +38,7 @@ mod finalization;
 mod helpers;
 mod high_latency;
 mod lenient_threshold;
+mod on_chain_verifier;
 mod proxy;
 mod rewards;
 mod staking;

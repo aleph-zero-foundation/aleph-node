@@ -1,6 +1,11 @@
 use crate::{
-    api, pallet_feature_control::Feature, BlockHash, ConnectionApi, RootConnection,
-    SignedConnectionApi, TxInfo, TxStatus,
+    aleph_runtime::RuntimeCall::FeatureControl,
+    api,
+    pallet_feature_control::{
+        pallet::Call::{disable, enable},
+        Feature,
+    },
+    BlockHash, ConnectionApi, RootConnection, SudoCall, TxInfo, TxStatus,
 };
 
 /// Read only pallet feature control API.
@@ -30,12 +35,12 @@ impl<C: ConnectionApi> FeatureControlApi for C {
 #[async_trait::async_trait]
 impl FeatureControlSudoApi for RootConnection {
     async fn enable_feature(&self, feature: Feature, status: TxStatus) -> anyhow::Result<TxInfo> {
-        let tx = api::tx().feature_control().enable(feature);
-        self.send_tx(tx, status).await
+        self.sudo_unchecked(FeatureControl(enable { feature }), status)
+            .await
     }
 
     async fn disable_feature(&self, feature: Feature, status: TxStatus) -> anyhow::Result<TxInfo> {
-        let tx = api::tx().feature_control().disable(feature);
-        self.send_tx(tx, status).await
+        self.sudo_unchecked(FeatureControl(disable { feature }), status)
+            .await
     }
 }
