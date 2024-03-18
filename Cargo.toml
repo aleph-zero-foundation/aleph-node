@@ -69,7 +69,7 @@ parity-scale-codec = { version = "3.0", default-features = false }
 parking_lot = { version = "0.12" }
 paste = { version = "1.0" }
 rand = { version = "0.8.5", default-features = false }
-scale-info = { version = "2.0", default-features = false }
+scale-info = { version = "2.11", default-features = false }
 serde = { version = "1.0", default-features = false }
 serde_json = { version = "1.0", default-features = false }
 smallvec = { version = "1", default-features = false }
