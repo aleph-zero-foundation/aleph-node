@@ -1,6 +1,6 @@
 [package]
 name = "aleph-node"
-version = "0.13.1"
+version = "0.13.2"
 description = "Aleph node binary"
 build = "build.rs"
 license = "GPL-3.0-or-later"
