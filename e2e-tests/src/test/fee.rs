@@ -106,7 +106,9 @@ pub async fn fee_calculation() -> anyhow::Result<()> {
 /// amount is equal to the existential deposit of the chain.
 async fn fill_blocks(block_occupancy: BlockOccupancy, blocks: u32, connection: &SignedConnection) {
     let limit = match block_occupancy {
-        BlockOccupancy::Low => 140,
+        // 850 transfers == 37.3% weight < 37.5% == 50% of 75% that is maximum real block occupancy for transfer transactions
+        BlockOccupancy::Low => 850,
+        // above 37.5% block weight
         BlockOccupancy::High => 1000,
     };
 
