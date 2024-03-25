@@ -1,9 +1,6 @@
 #![allow(clippy::nonminimal_bool)]
 
-use frame_support::{
-    dispatch::DispatchResultWithPostInfo, pallet_prelude::Get, traits::LockIdentifier,
-    WeakBoundedVec,
-};
+use frame_support::{dispatch::DispatchResult, traits::LockIdentifier, WeakBoundedVec};
 use pallet_balances::BalanceLock;
 use parity_scale_codec::Encode;
 use sp_core::hexdisplay::HexDisplay;
@@ -11,57 +8,78 @@ use sp_runtime::DispatchError;
 
 use crate::{
     pallet::{Config, Event, Pallet},
-    traits::{AccountInfoProvider, BalancesProvider, NextKeysSessionProvider},
+    traits::{AccountInfoProvider, BalancesProvider, BondedStashProvider, NextKeysSessionProvider},
     LOG_TARGET, STAKING_ID, VESTING_ID,
 };
 
 impl<T: Config> Pallet<T> {
     /// Checks if account has an underflow of `consumers` counter. In such case, it increments
     /// it by one.
-    pub fn fix_underflow_consumer_counter(who: T::AccountId) -> DispatchResultWithPostInfo {
-        let mut weight = T::DbWeight::get().reads(1);
-        let consumers = T::AccountInfoProvider::get_consumers(&who);
+    pub fn fix_underflow_consumer_counter(who: T::AccountId) -> DispatchResult {
+        let current_consumers = T::AccountInfoProvider::get_consumers(&who);
+        let mut expected_consumers: u32 = 0;
 
-        weight += T::DbWeight::get().reads(1);
-        if Self::no_consumers_some_reserved(&who, consumers) {
-            Self::increment_consumers(who)?;
-            weight += T::DbWeight::get().writes(1);
-            return Ok(Some(weight).into());
+        if Self::reserved_or_frozen_non_zero(&who) {
+            expected_consumers += 1;
+        }
+        let has_vesting_lock = Self::has_vesting_lock(&who);
+        let has_staking_lock = Self::has_staking_lock(&who);
+        if has_staking_lock || has_vesting_lock {
+            expected_consumers += 1;
+            if has_staking_lock {
+                expected_consumers += 1;
+            }
+        }
+        if Self::has_next_session_keys_and_account_is_controller(&who) {
+            expected_consumers += 1;
         }
 
-        weight += T::DbWeight::get().reads(2);
-        if Self::staker_has_consumers_underflow(&who, consumers) {
+        if current_consumers < expected_consumers {
+            log::debug!(
+                target: LOG_TARGET,
+                "Account {:?} has current consumers {} less than expected consumers {:?}, incrementing ",
+                HexDisplay::from(&who.encode()), current_consumers, expected_consumers);
             Self::increment_consumers(who)?;
-            weight += T::DbWeight::get().writes(1);
-            return Ok(Some(weight).into());
+        } else {
+            log::debug!(
+                target: LOG_TARGET,
+                "Account {:?} does not have consumers underflow, not incrementing",
+                HexDisplay::from(&who.encode())
+            );
         }
 
-        log::debug!(
-            target: LOG_TARGET,
-            "Account {:?} has correct consumer counter, not incrementing",
-            HexDisplay::from(&who.encode())
-        );
-        Ok(Some(weight).into())
+        Ok(())
     }
 
-    fn staker_has_consumers_underflow(who: &T::AccountId, consumers: u32) -> bool {
+    fn reserved_or_frozen_non_zero(who: &T::AccountId) -> bool {
+        !T::BalancesProvider::is_reserved_zero(who) || !T::BalancesProvider::is_frozen_zero(who)
+    }
+
+    fn has_vesting_lock(who: &T::AccountId) -> bool {
         let locks = T::BalancesProvider::locks(who);
-        let has_vesting_lock = Self::has_lock(&locks, VESTING_ID);
-        let vester_has_consumers_underflow = consumers == 1 && has_vesting_lock;
-        let has_staking_lock = Self::has_lock(&locks, STAKING_ID);
-        let nominator_has_consumers_underflow = consumers == 2 && has_staking_lock;
-        let has_next_session_keys = T::NextKeysSessionProvider::has_next_session_keys(who);
-        let validator_has_consumers_underflow =
-            consumers == 3 && has_staking_lock && has_next_session_keys;
-        vester_has_consumers_underflow
-            || nominator_has_consumers_underflow
-            || validator_has_consumers_underflow
+        Self::has_lock(&locks, VESTING_ID)
     }
 
-    fn no_consumers_some_reserved(who: &T::AccountId, consumers: u32) -> bool {
-        let is_reserved_not_zero = T::BalancesProvider::is_reserved_not_zero(who);
+    fn has_staking_lock(who: &T::AccountId) -> bool {
+        let locks = T::BalancesProvider::locks(who);
+        Self::has_lock(&locks, STAKING_ID)
+    }
 
-        consumers == 0 && is_reserved_not_zero
+    fn has_next_session_keys_and_account_is_controller(who: &T::AccountId) -> bool {
+        let has_next_session_keys = T::NextKeysSessionProvider::has_next_session_keys(who);
+        let stash_equal_to_controller = match T::BondedStashProvider::get_controller(who) {
+            Some(controller) => *who == controller,
+            None => false,
+        };
+        if has_next_session_keys && stash_equal_to_controller {
+            return true;
+        }
+        match T::BondedStashProvider::get_stash(who) {
+            Some(stash) => {
+                *who != stash && T::NextKeysSessionProvider::has_next_session_keys(&stash)
+            }
+            None => false,
+        }
     }
 
     fn has_lock<U, V>(locks: &WeakBoundedVec<BalanceLock<U>, V>, id: LockIdentifier) -> bool {

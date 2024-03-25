@@ -5760,6 +5760,7 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-runtime",
+ "sp-staking",
 ]
 
 [[package]]

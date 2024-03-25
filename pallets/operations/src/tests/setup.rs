@@ -188,6 +188,7 @@ impl pallet_operations::Config for TestRuntime {
     type AccountInfoProvider = System;
     type BalancesProvider = Balances;
     type NextKeysSessionProvider = Session;
+    type BondedStashProvider = Staking;
 }
 
 pub fn new_test_ext(accounts_and_balances: &[(u64, bool, u128)]) -> sp_io::TestExternalities {
