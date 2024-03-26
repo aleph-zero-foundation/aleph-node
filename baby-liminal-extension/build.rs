@@ -24,6 +24,9 @@
 //! and put them in the `benchmark-resources` directory. Changing the build script will trigger the artifacts generation
 //! again. On the other hand, changing any other file in this crate will not be considered as a reason for rerunning.
 //!
+//! Note: if a file for a particular circuit already exists, it will not be generated again. Furthermore, if all files
+//! are present, the trusted setup procedure (the heaviest computation) will also be skipped.
+//!
 //! # What circuits are generated?
 //!
 //! We provide a generic circuit that can be parametrized with the number of instances and the number of rows. More
@@ -40,16 +43,16 @@
 //! The rest of the gates are batches of `ROW_BLOWUP - 1` copies of the `i`th gate (`i`th batch corresponds to the `ith`
 //! gate).
 
-/// This build script is used only for the runtime benchmarking setup. We don't need to do anything here in other case.
-#[cfg(not(feature = "runtime-benchmarks"))]
-fn main() {}
-
 #[cfg(feature = "runtime-benchmarks")]
 use {
     artifacts::generate_artifacts,
     halo2_proofs::{halo2curves::bn256::Bn256, poly::kzg::commitment::ParamsKZG},
-    std::{env, fs, path::Path},
+    std::{cell::OnceCell, env, fs, path::Path},
 };
+
+/// This build script is used only for the runtime benchmarking setup. We don't need to do anything here in other case.
+#[cfg(not(feature = "runtime-benchmarks"))]
+fn main() {}
 
 #[cfg(feature = "runtime-benchmarks")]
 fn main() {
@@ -61,7 +64,7 @@ fn main() {
     // developer convenience.
     const CIRCUIT_MAX_K: u32 = 20;
     // We run a common setup for all generated circuits.
-    let params = ParamsKZG::<Bn256>::setup(CIRCUIT_MAX_K, ParamsKZG::<Bn256>::mock_rng());
+    let params = OnceCell::new();
 
     let path = |instances, row_blowup, suf| {
         Path::new(&env::current_dir().unwrap())
@@ -74,9 +77,22 @@ fn main() {
 
     for instances in INSTANCES {
         for row_blowup in ROW_BLOWUP {
-            let artifacts = generate_artifacts(*instances, *row_blowup, &params);
-
             let path = |suf| path(*instances, *row_blowup, suf);
+            if [path("vk"), path("proof"), path("input")]
+                .into_iter()
+                .all(|p| p.exists())
+            {
+                continue;
+            }
+
+            let artifacts = generate_artifacts(
+                *instances,
+                *row_blowup,
+                params.get_or_init(|| {
+                    ParamsKZG::<Bn256>::setup(CIRCUIT_MAX_K, ParamsKZG::<Bn256>::mock_rng())
+                }),
+            );
+
             fs::write(&path("vk"), artifacts.verification_key).unwrap();
             fs::write(&path("proof"), artifacts.proof).unwrap();
             fs::write(&path("input"), artifacts.public_input).unwrap();

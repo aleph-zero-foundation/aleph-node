@@ -61,7 +61,7 @@ sp-application-crypto = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
 
 pallet-aleph = { workspace = true }
-pallet-committee-management= { workspace = true }
+pallet-committee-management = { workspace = true }
 pallet-elections = { workspace = true }
 pallet-feature-control = { workspace = true }
 pallet-operations = { workspace = true }
@@ -166,6 +166,7 @@ enable_treasury_proposals = []
 runtime-benchmarks = [
     "frame-system/runtime-benchmarks",
     "frame-benchmarking/runtime-benchmarks",
+    "baby-liminal-extension/runtime-benchmarks",
     "pallet-feature-control/runtime-benchmarks",
     "pallet-vk-storage/runtime-benchmarks",
 ]
