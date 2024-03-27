@@ -2,8 +2,8 @@ use std::{collections::HashSet, str::FromStr, string::ToString};
 
 use aleph_runtime::{
     AccountId, AlephConfig, AuraConfig, BalancesConfig, CommitteeManagementConfig, ElectionsConfig,
-    Feature, FeatureControlConfig, Perbill, RuntimeGenesisConfig, SessionConfig, SessionKeys,
-    StakingConfig, SudoConfig, SystemConfig, VestingConfig, WASM_BINARY,
+    Feature, FeatureControlConfig, Perbill, RuntimeGenesisConfig, SessionConfig, StakingConfig,
+    SudoConfig, SystemConfig, VestingConfig, WASM_BINARY,
 };
 use libp2p::PeerId;
 use pallet_staking::{Forcing, StakerStatus};
@@ -19,8 +19,8 @@ use sp_core::{sr25519, Pair};
 
 use crate::aleph_primitives::{
     staking::{MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND},
-    AuraId, AuthorityId as AlephId, SessionValidators, Version as FinalityVersion,
-    ADDRESSES_ENCODING, LEGACY_FINALITY_VERSION, TOKEN_DECIMALS,
+    AlephNodeSessionKeys as SessionKeys, AuraId, AuthorityId as AlephId, SessionValidators,
+    Version as FinalityVersion, ADDRESSES_ENCODING, LEGACY_FINALITY_VERSION, TOKEN_DECIMALS,
 };
 
 pub const CHAINTYPE_DEV: &str = "dev";

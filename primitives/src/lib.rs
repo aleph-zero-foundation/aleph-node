@@ -11,6 +11,7 @@ pub use sp_runtime::{
     BoundedVec, ConsensusEngineId, OpaqueExtrinsic as UncheckedExtrinsic, Perbill,
 };
 use sp_runtime::{
+    impl_opaque_keys,
     traits::{IdentifyAccount, Verify},
     MultiSignature, Perquintill,
 };
@@ -34,6 +35,13 @@ sp_application_crypto::with_pair! {
 }
 pub type AuthoritySignature = app::Signature;
 pub type AuthorityId = app::Public;
+
+impl_opaque_keys! {
+    pub struct AlephNodeSessionKeys {
+        pub aura: AuraId,
+        pub aleph: AuthorityId,
+    }
+}
 
 pub type Balance = u128;
 pub type Header = generic::Header<BlockNumber, BlakeTwo256>;

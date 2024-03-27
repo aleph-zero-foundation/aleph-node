@@ -34,6 +34,7 @@ ip_network = { workspace = true }
 log = { workspace = true }
 lru = { workspace = true }
 parity-scale-codec = { workspace = true, features = ["derive"] }
+scale-info = { workspace = true, features = ["derive"] }
 parking_lot = { workspace = true }
 rand = { workspace = true }
 serde = { workspace = true }
@@ -71,7 +72,6 @@ sp-runtime = { workspace = true }
 sp-state-machine = { workspace = true }
 sp-timestamp = { workspace = true }
 sp-trie = { workspace = true }
-aleph-runtime = { workspace = true }
 
 [dev-dependencies]
 substrate-test-runtime-client = { workspace = true }
@@ -79,6 +79,7 @@ substrate-test-runtime = { workspace = true }
 substrate-test-client = { workspace = true }
 sc-block-builder = { workspace = true }
 sc-basic-authorship = { workspace = true }
+aleph-runtime = { workspace = true }
 
 [features]
 only_legacy = []

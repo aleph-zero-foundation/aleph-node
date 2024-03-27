@@ -42,11 +42,12 @@ pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use primitives::{
-    staking::MAX_NOMINATORS_REWARDED_PER_VALIDATOR, wrap_methods, ApiError as AlephApiError,
-    AuraId, AuthorityId as AlephId, Block as AlephBlock, BlockId as AlephBlockId,
-    BlockNumber as AlephBlockNumber, Header as AlephHeader, SessionAuthorityData, SessionCommittee,
-    SessionIndex, SessionInfoProvider, SessionValidatorError, Version as FinalityVersion,
-    ADDRESSES_ENCODING, DEFAULT_BAN_REASON_LENGTH, DEFAULT_MAX_WINNERS, DEFAULT_SESSIONS_PER_ERA,
+    staking::MAX_NOMINATORS_REWARDED_PER_VALIDATOR, wrap_methods,
+    AlephNodeSessionKeys as SessionKeys, ApiError as AlephApiError, AuraId, AuthorityId as AlephId,
+    Block as AlephBlock, BlockId as AlephBlockId, BlockNumber as AlephBlockNumber,
+    Header as AlephHeader, SessionAuthorityData, SessionCommittee, SessionIndex,
+    SessionInfoProvider, SessionValidatorError, Version as FinalityVersion, ADDRESSES_ENCODING,
+    DEFAULT_BAN_REASON_LENGTH, DEFAULT_MAX_WINNERS, DEFAULT_SESSIONS_PER_ERA,
     DEFAULT_SESSION_PERIOD, MAX_BLOCK_SIZE, MILLISECS_PER_BLOCK, TOKEN,
 };
 pub use primitives::{AccountId, AccountIndex, Balance, Hash, Nonce, Signature};
@@ -381,13 +382,6 @@ impl pallet_vk_storage::Config for Runtime {
     type StorageCharge = VkStorageCharge;
 }
 
-impl_opaque_keys! {
-    pub struct SessionKeys {
-        pub aura: Aura,
-        pub aleph: Aleph,
-    }
-}
-
 parameter_types! {
     pub const SessionPeriod: u32 = DEFAULT_SESSION_PERIOD;
     pub const MaximumBanReasonLength: u32 = DEFAULT_BAN_REASON_LENGTH;
@@ -434,7 +428,7 @@ impl pallet_session::Config for Runtime {
     type ShouldEndSession = pallet_session::PeriodicSessions<SessionPeriod, Offset>;
     type NextSessionRotation = pallet_session::PeriodicSessions<SessionPeriod, Offset>;
     type SessionManager = Aleph;
-    type SessionHandler = <SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
+    type SessionHandler = (Aura, Aleph);
     type Keys = SessionKeys;
     type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
 }

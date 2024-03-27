@@ -2528,6 +2528,7 @@ dependencies = [
  "sc-transaction-pool",
  "sc-transaction-pool-api",
  "sc-utils",
+ "scale-info",
  "serde",
  "sp-api",
  "sp-application-crypto",

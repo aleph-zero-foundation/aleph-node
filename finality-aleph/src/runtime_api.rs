@@ -4,7 +4,6 @@ use std::{
     sync::Arc,
 };
 
-use aleph_runtime::SessionKeys;
 use frame_support::StorageHasher;
 use parity_scale_codec::{Decode, DecodeAll, Encode, Error as DecodeError};
 use sc_client_api::Backend;
@@ -24,8 +23,6 @@ pub trait RuntimeApi: Clone + Send + Sync + 'static {
     fn next_aura_authorities(&self, at: BlockHash)
         -> Result<Vec<(AccountId, AuraId)>, Self::Error>;
 }
-
-type QueuedKeys = Vec<(AccountId, SessionKeys)>;
 
 pub struct RuntimeApiImpl<C, B, BE>
 where
@@ -136,6 +133,8 @@ impl Display for ApiError {
         }
     }
 }
+
+type QueuedKeys = Vec<(AccountId, primitives::AlephNodeSessionKeys)>;
 
 impl<C, B, BE> RuntimeApi for RuntimeApiImpl<C, B, BE>
 where
