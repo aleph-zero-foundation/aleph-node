@@ -52,7 +52,7 @@ aleph-bft-mock = { version = "0.11.1" }
 aleph-bft-rmc = { version = "0.11" }
 aleph-bft-types = { version = "0.11" }
 async-trait = { version = "0.1" }
-bytes = { version = "1.5" }
+bytes = { version = "1.6" }
 derive_more = { version = "0.99" }
 env_logger = { version = "0.10" }
 futures = { version = "0.3" }
@@ -60,7 +60,7 @@ futures-timer = { version = "3.0" }
 hash-db = { version = "0.16", default-features = false }
 hex = { version = "0.4" }
 hex-literal = { version = "0.3" }
-ink = { version = "5.0.0-rc", default-features = false }
+ink = { version = "5.0.0", default-features = false }
 ip_network = { version = "0.4" }
 jsonrpsee = { version = "0.16.3" }
 libp2p = { version = "0.51" }
