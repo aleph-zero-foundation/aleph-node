@@ -43,75 +43,118 @@ impl_opaque_keys! {
     }
 }
 
-pub type Balance = u128;
-pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
-pub type Block = generic::Block<Header, UncheckedExtrinsic>;
-pub type BlockId = generic::BlockId<Block>;
-pub type BlockHash = <Header as HeaderT>::Hash;
+/// The block number type used by AlephNode.
+/// 32-bits will allow for 136 years of blocks assuming 1 block per second.
 pub type BlockNumber = u32;
-pub type SessionCount = u32;
-pub type BlockCount = u32;
 
 /// Alias to 512-bit hash when used in the context of a transaction signature on the chain.
+/// This allows one of several kinds of underlying crypto to be used, so isn't a fixed size when encoded.
 pub type Signature = MultiSignature;
+
+/// Alias to the public key used for this chain, actually a `MultiSigner`. Like the signature, this
+/// also isn't a fixed size when encoded, as different cryptos have different size public keys.
+pub type AccountPublic = <Signature as Verify>::Signer;
 
 /// Some way of identifying an account on the chain. We intentionally make it equivalent
 /// to the public key of our transaction signing scheme.
-pub type AccountId = <<Signature as Verify>::Signer as IdentifyAccount>::AccountId;
+/// Alias to the opaque account ID type for this chain, actually a `AccountId32`. This is always
+/// 32 bytes.
+pub type AccountId = <AccountPublic as IdentifyAccount>::AccountId;
 
 /// The type for looking up accounts. We don't expect more than 4 billion of them, but you
 /// never know...
 pub type AccountIndex = u32;
 
-/// Index of a transaction in the chain.
-pub type Nonce = u32;
-
 /// A hash of some data used by the chain.
 pub type Hash = sp_core::H256;
 
-// Default number of heap pages that gives limit of 256MB for a runtime instance since each page is 64KB
+/// Index of a transaction in the chain.
+pub type Nonce = u32;
+
+/// The balance of an account.
+pub type Balance = u128;
+
+/// Header type.
+pub type Header = generic::Header<BlockNumber, BlakeTwo256>;
+
+/// Block type.
+pub type Block = generic::Block<Header, UncheckedExtrinsic>;
+
+/// Block ID.
+pub type BlockId = generic::BlockId<Block>;
+
+/// Block Hash type
+pub type BlockHash = <Header as HeaderT>::Hash;
+
+/// The address format for describing accounts.
+pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
+
+/// Session Count type
+pub type SessionCount = u32;
+
+/// Block Count type
+pub type BlockCount = u32;
+
+/// Default number of heap pages. That gives a limit of 256MB for a runtime instance, since each page is 64KB
 pub const HEAP_PAGES: u64 = 4096;
 
+/// How much execution time fits in a single block
 pub const MILLISECS_PER_BLOCK: u64 = 1000;
-// We agreed to 5MB as the block size limit.
+
+/// Block size limit.
 pub const MAX_BLOCK_SIZE: u32 = 5 * 1024 * 1024;
 
-// Quick sessions for testing purposes
+// --------------- Test build  ---------------------
+/// How many blocks is in single session
 #[cfg(feature = "short_session")]
 pub const DEFAULT_SESSION_PERIOD: u32 = 30;
+
+/// How many sessions is in single era
 #[cfg(feature = "short_session")]
 pub const DEFAULT_SESSIONS_PER_ERA: SessionIndex = 3;
+// --------------- Test build end  ---------------------
 
-// Default values outside testing
+// --------------- Production build ---------------------
+/// How many blocks is in single session
 #[cfg(not(feature = "short_session"))]
 pub const DEFAULT_SESSION_PERIOD: u32 = 900;
+
+/// How many sessions is in single era
 #[cfg(not(feature = "short_session"))]
 pub const DEFAULT_SESSIONS_PER_ERA: SessionIndex = 96;
+// --------------- Production build end ---------------------
 
+/// How many decimals AZERO coin has
 pub const TOKEN_DECIMALS: u32 = 12;
+
+/// Representation of 1 AZERO coin
 pub const TOKEN: u128 = 10u128.pow(TOKEN_DECIMALS);
 
+/// This is used as an identifier of the chain. 42 is the generic substrate prefix.
 pub const ADDRESSES_ENCODING: u8 = 42;
+
+/// ABFT unit creation delay (in ms)
 pub const DEFAULT_UNIT_CREATION_DELAY: u64 = 300;
 
+/// Committee Size for new chains
 pub const DEFAULT_COMMITTEE_SIZE: u32 = 4;
-
-pub const DEFAULT_BAN_MINIMAL_EXPECTED_PERFORMANCE: Perbill = Perbill::from_percent(0);
-pub const DEFAULT_BAN_SESSION_COUNT_THRESHOLD: SessionCount = 3;
-pub const DEFAULT_BAN_REASON_LENGTH: u32 = 300;
-pub const DEFAULT_MAX_WINNERS: u32 = u32::MAX;
 
 pub const DEFAULT_CLEAN_SESSION_COUNTER_DELAY: SessionCount = 960;
 pub const DEFAULT_BAN_PERIOD: EraIndex = 10;
 
 /// Version returned when no version has been set.
 pub const DEFAULT_FINALITY_VERSION: Version = 0;
+
 /// Current version of abft.
 pub const CURRENT_FINALITY_VERSION: u16 = LEGACY_FINALITY_VERSION + 1;
+
 /// Legacy version of abft.
 pub const LEGACY_FINALITY_VERSION: u16 = 2;
+
+/// Percentage of validator performance that is treated as 100% performance
 pub const LENIENT_THRESHOLD: Perquintill = Perquintill::from_percent(90);
 
+/// Number of non-finalized blocks that halts block production
 pub const DEFAULT_MAX_NON_FINALIZED_BLOCKS: u32 = 20;
 
 /// Hold set of validators that produce blocks and set of validators that participate in finality
@@ -175,6 +218,11 @@ pub struct BanConfig {
     /// how many eras a validator is banned for
     pub ban_period: EraIndex,
 }
+
+pub const DEFAULT_BAN_MINIMAL_EXPECTED_PERFORMANCE: Perbill = Perbill::from_percent(0);
+pub const DEFAULT_BAN_SESSION_COUNT_THRESHOLD: SessionCount = 3;
+pub const DEFAULT_BAN_REASON_LENGTH: u32 = 300;
+pub const DEFAULT_MAX_WINNERS: u32 = u32::MAX;
 
 impl Default for BanConfig {
     fn default() -> Self {
