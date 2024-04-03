@@ -17,7 +17,7 @@ use crate::{config::setup_test, transfer::setup_for_transfer};
 /// In order to increase the block occupancy we need to transfer funds to a lot of accounts. This
 /// array contains the accounts we will be transferring funds to.
 static DESTINATIONS: Lazy<Vec<AccountId>> = Lazy::new(|| {
-    (0..1000)
+    (0..1200)
         .map(|i| keypair_from_string(&format!("//{i}")).account_id().clone())
         .collect()
 });
@@ -109,7 +109,7 @@ async fn fill_blocks(block_occupancy: BlockOccupancy, blocks: u32, connection: &
         // 850 transfers == 37.3% weight < 37.5% == 50% of 75% that is maximum real block occupancy for transfer transactions
         BlockOccupancy::Low => 850,
         // above 37.5% block weight
-        BlockOccupancy::High => 1000,
+        BlockOccupancy::High => 1200,
     };
 
     let existential_deposit = connection
