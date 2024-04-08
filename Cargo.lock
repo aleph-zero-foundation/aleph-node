@@ -288,7 +288,6 @@ dependencies = [
  "parity-scale-codec",
  "primitives",
  "sc-basic-authorship",
- "sc-block-builder",
  "sc-chain-spec",
  "sc-cli",
  "sc-client-api",
@@ -315,7 +314,6 @@ dependencies = [
  "sp-consensus",
  "sp-consensus-aura",
  "sp-core",
- "sp-inherents",
  "sp-io",
  "sp-keystore",
  "sp-runtime",
@@ -2486,7 +2484,7 @@ dependencies = [
 
 [[package]]
 name = "finality-aleph"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "aggregator 0.4.0",
  "aggregator 0.6.0",
@@ -2495,7 +2493,6 @@ dependencies = [
  "aleph-bft-crypto 0.8.0",
  "aleph-bft-rmc 0.11.1",
  "aleph-bft-rmc 0.6.1",
- "aleph-runtime",
  "async-trait",
  "bytes",
  "derive_more",
@@ -6457,18 +6454,28 @@ dependencies = [
 
 [[package]]
 name = "primitives"
-version = "0.8.1"
+version = "0.14.0+dev"
 dependencies = [
+ "frame-support",
+ "frame-system-rpc-runtime-api",
+ "pallet-transaction-payment",
+ "pallet-transaction-payment-rpc-runtime-api",
  "parity-scale-codec",
  "scale-info",
  "serde",
  "sp-api",
  "sp-application-crypto",
+ "sp-block-builder",
  "sp-consensus-aura",
  "sp-core",
+ "sp-inherents",
+ "sp-offchain",
  "sp-runtime",
+ "sp-session",
  "sp-staking",
  "sp-std",
+ "sp-transaction-pool",
+ "sp-version",
 ]
 
 [[package]]

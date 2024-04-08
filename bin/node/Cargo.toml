@@ -28,7 +28,6 @@ static_assertions = { workspace = true }
 thiserror = { workspace = true }
 
 sc-basic-authorship = { workspace = true }
-sc-block-builder = { workspace = true }
 sc-chain-spec = { workspace = true }
 sc-cli = { workspace = true }
 sc-client-api = { workspace = true }
@@ -43,13 +42,12 @@ sc-service = { workspace = true }
 sc-telemetry = { workspace = true }
 sc-transaction-pool = { workspace = true }
 sc-transaction-pool-api = { workspace = true }
-
 sp-application-crypto = { workspace = true }
 sp-arithmetic = { workspace = true }
+sp-block-builder = { workspace = true }
 sp-consensus = { workspace = true }
 sp-consensus-aura = { workspace = true }
 sp-core = { workspace = true }
-sp-inherents = { workspace = true }
 sp-io = { workspace = true }
 sp-keystore = { workspace = true }
 sp-runtime = { workspace = true }
@@ -62,7 +60,9 @@ try-runtime-cli = { workspace = true, optional = true }
 frame-benchmarking-cli = { workspace = true, optional = true }
 frame-benchmarking = { workspace = true, optional = true }
 
+# this is only neeeded for chainspec generation
 aleph-runtime = { workspace = true }
+
 aleph-runtime-interfaces = { workspace = true }
 finality-aleph = { workspace = true }
 primitives = { workspace = true }
@@ -73,7 +73,7 @@ sc-rpc = { workspace = true }
 sc-rpc-api = { workspace = true }
 sp-api = { workspace = true }
 sp-blockchain = { workspace = true }
-sp-block-builder = { workspace = true }
+
 substrate-frame-rpc-system = { workspace = true }
 pallet-transaction-payment-rpc = { workspace = true }
 
@@ -84,7 +84,7 @@ substrate-build-script-utils = { workspace = true }
 default = []
 short_session = [
     "aleph-runtime/short_session",
-    "primitives/short_session"
+    "primitives/short_session",
 ]
 try-runtime = [
     "aleph-runtime/try-runtime",

@@ -5,7 +5,6 @@ use std::{
     sync::Arc,
 };
 
-use aleph_runtime::{self, opaque::Block, RuntimeApi};
 use finality_aleph::{
     run_validator_node, AlephBlockImport, AlephConfig, AllBlockMetrics, BlockImporter,
     ChannelProvider, Justification, JustificationTranslator, MillisecsPerBlock, Protocol,
@@ -13,6 +12,9 @@ use finality_aleph::{
     SubstrateNetwork, SyncOracle, TracingBlockImport, ValidatorAddressCache,
 };
 use log::warn;
+use primitives::{
+    fake_runtime_api::fake_runtime::RuntimeApi, AlephSessionApi, Block, MAX_BLOCK_SIZE,
+};
 use sc_basic_authorship::ProposerFactory;
 use sc_client_api::{BlockBackend, HeaderBackend};
 use sc_consensus::ImportQueue;
@@ -28,7 +30,6 @@ use sp_consensus_aura::{sr25519::AuthorityPair as AuraPair, Slot};
 
 use crate::{
     aleph_cli::AlephCli,
-    aleph_primitives::{AlephSessionApi, MAX_BLOCK_SIZE},
     chain_spec::DEFAULT_BACKUP_FOLDER,
     executor::AlephExecutor,
     rpc::{create_full as create_full_rpc, FullDeps as RpcFullDeps},

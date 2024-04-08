@@ -1,6 +1,6 @@
 [package]
 name = "finality-aleph"
-version = "0.10.0"
+version = "0.11.0"
 license = "Apache 2.0"
 authors.workspace = true
 edition.workspace = true
@@ -79,7 +79,6 @@ substrate-test-runtime = { workspace = true }
 substrate-test-client = { workspace = true }
 sc-block-builder = { workspace = true }
 sc-basic-authorship = { workspace = true }
-aleph-runtime = { workspace = true }
 
 [features]
 only_legacy = []

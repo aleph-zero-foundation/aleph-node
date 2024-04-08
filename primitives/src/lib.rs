@@ -18,6 +18,8 @@ use sp_runtime::{
 pub use sp_staking::{EraIndex, SessionIndex};
 use sp_std::vec::Vec;
 
+pub mod fake_runtime_api;
+
 pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"alp0");
 
 // Same as GRANDPA_ENGINE_ID because as of right now substrate sends only

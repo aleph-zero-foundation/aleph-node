@@ -7,10 +7,10 @@
 
 use std::sync::Arc;
 
-use aleph_runtime::{opaque::Block, AccountId, Balance, Nonce};
 use finality_aleph::{Justification, JustificationTranslator, ValidatorAddressCache};
 use futures::channel::mpsc;
 use jsonrpsee::RpcModule;
+use primitives::{AccountId, Balance, Block, Nonce};
 use sc_client_api::StorageProvider;
 pub use sc_rpc_api::DenyUnsafe;
 use sc_transaction_pool_api::TransactionPool;

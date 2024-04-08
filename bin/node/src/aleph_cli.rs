@@ -2,9 +2,8 @@ use std::path::PathBuf;
 
 use finality_aleph::UnitCreationDelay;
 use log::warn;
+use primitives::{DEFAULT_MAX_NON_FINALIZED_BLOCKS, DEFAULT_UNIT_CREATION_DELAY};
 use sc_cli::clap::{self, ArgGroup, Parser};
-
-use crate::aleph_primitives::{DEFAULT_MAX_NON_FINALIZED_BLOCKS, DEFAULT_UNIT_CREATION_DELAY};
 
 #[derive(Debug, Parser, Clone)]
 #[clap(group(ArgGroup::new("backup")))]

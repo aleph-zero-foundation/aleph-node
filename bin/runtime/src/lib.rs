@@ -44,10 +44,9 @@ use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use primitives::{
     staking::MAX_NOMINATORS_REWARDED_PER_VALIDATOR, wrap_methods, Address,
     AlephNodeSessionKeys as SessionKeys, ApiError as AlephApiError, AuraId, AuthorityId as AlephId,
-    Block as AlephBlock, BlockId as AlephBlockId, BlockNumber as AlephBlockNumber,
-    Header as AlephHeader, SessionAuthorityData, SessionCommittee, SessionIndex,
-    SessionInfoProvider, SessionValidatorError, Version as FinalityVersion, ADDRESSES_ENCODING,
-    DEFAULT_BAN_REASON_LENGTH, DEFAULT_MAX_WINNERS, DEFAULT_SESSIONS_PER_ERA,
+    BlockNumber as AlephBlockNumber, Header as AlephHeader, SessionAuthorityData, SessionCommittee,
+    SessionIndex, SessionInfoProvider, SessionValidatorError, Version as FinalityVersion,
+    ADDRESSES_ENCODING, DEFAULT_BAN_REASON_LENGTH, DEFAULT_MAX_WINNERS, DEFAULT_SESSIONS_PER_ERA,
     DEFAULT_SESSION_PERIOD, MAX_BLOCK_SIZE, MILLISECS_PER_BLOCK, TOKEN,
 };
 pub use primitives::{AccountId, AccountIndex, Balance, Hash, Nonce, Signature};
@@ -58,7 +57,7 @@ use sp_core::{crypto::KeyTypeId, ConstU128, OpaqueMetadata};
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 use sp_runtime::{
-    create_runtime_str, generic, impl_opaque_keys,
+    create_runtime_str, generic,
     traits::{
         AccountIdLookup, BlakeTwo256, Block as BlockT, Bounded, Convert, ConvertInto,
         IdentityLookup, One, OpaqueKeys,
@@ -72,30 +71,6 @@ use sp_std::prelude::*;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
-
-/// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
-/// the specifics of the runtime. They can then be made to be agnostic over specific formats
-/// of data like extrinsics, allowing for them to continue syncing the network through upgrades
-/// to even the core data structures.
-pub mod opaque {
-    pub use sp_runtime::OpaqueExtrinsic as UncheckedExtrinsic;
-
-    use super::*;
-
-    /// Opaque block header type.
-    pub type Header = AlephHeader;
-    /// Opaque block type.
-    pub type Block = AlephBlock;
-    /// Opaque block identifier type.
-    pub type BlockId = AlephBlockId;
-
-    impl_opaque_keys! {
-        pub struct SessionKeys {
-            pub aura: Aura,
-            pub aleph: Aleph,
-        }
-    }
-}
 
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
@@ -1072,13 +1047,13 @@ impl_runtime_apis! {
 
     impl sp_session::SessionKeys<Block> for Runtime {
         fn generate_session_keys(seed: Option<Vec<u8>>) -> Vec<u8> {
-            opaque::SessionKeys::generate(seed)
+            SessionKeys::generate(seed)
         }
 
         fn decode_session_keys(
             encoded: Vec<u8>,
         ) -> Option<Vec<(Vec<u8>, KeyTypeId)>> {
-            opaque::SessionKeys::decode_into_raw_public_keys(&encoded)
+            SessionKeys::decode_into_raw_public_keys(&encoded)
         }
     }
 

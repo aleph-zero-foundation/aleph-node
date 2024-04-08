@@ -4,8 +4,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use aleph_runtime::AccountId;
 use libp2p::identity::{ed25519 as libp2p_ed25519, PublicKey};
+use primitives::{AccountId, AuraId, AuthorityId as AlephId};
 use sc_cli::{
     clap::{self, Args, Parser},
     Error, KeystoreParams,
@@ -15,12 +15,9 @@ use sc_service::config::{BasePath, KeystoreConfig};
 use sp_application_crypto::{key_types, Ss58Codec};
 use sp_keystore::Keystore;
 
-use crate::{
-    aleph_primitives::{AuraId, AuthorityId as AlephId},
-    chain_spec::{
-        self, account_id_from_string, AuthorityKeys, ChainParams, ChainSpec, SerializablePeerId,
-        DEFAULT_BACKUP_FOLDER,
-    },
+use crate::chain_spec::{
+    self, account_id_from_string, AuthorityKeys, ChainParams, ChainSpec, SerializablePeerId,
+    DEFAULT_BACKUP_FOLDER,
 };
 
 #[derive(Debug, Args)]
@@ -67,10 +64,10 @@ fn aura_key(keystore: &impl Keystore) -> AuraId {
 
 /// returns Aleph key, if absent a new key is generated
 fn aleph_key(keystore: &impl Keystore) -> AlephId {
-    Keystore::ed25519_public_keys(keystore, crate::aleph_primitives::KEY_TYPE)
+    Keystore::ed25519_public_keys(keystore, primitives::KEY_TYPE)
         .pop()
         .unwrap_or_else(|| {
-            Keystore::ed25519_generate_new(keystore, crate::aleph_primitives::KEY_TYPE, None)
+            Keystore::ed25519_generate_new(keystore, primitives::KEY_TYPE, None)
                 .expect("Could not create Aleph key")
         })
         .into()
