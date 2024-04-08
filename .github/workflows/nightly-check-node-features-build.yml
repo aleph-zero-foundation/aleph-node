@@ -1,0 +1,48 @@
+---
+# This workflow checks node build with various features
+name: Feature-gated builds
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '00 20 * * *'
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  feature-gated-builds:
+    name: Feature-gated builds
+    runs-on: [self-hosted, Linux, X64, large]
+    env:
+      RUST_BACKTRACE: full
+      RUSTC_WRAPPER: sccache
+    steps:
+      - name: Checkout aleph-node source code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v6
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: aleph-runtime with try-runtime
+        run: cargo check --profile production -p aleph-runtime --features try-runtime --locked
+
+      - name: aleph-node with runtime-benchmarks
+        run: cargo check --profile production -p aleph-node --features runtime-benchmarks --locked
+
+  slack-notification:
+    name: Slack notification
+    runs-on: ubuntu-20.04
+    needs: [feature-gated-builds]
+    if: >
+      !cancelled() &&
+      github.event_name != 'workflow_dispatch'
+    steps:
+      - name: Send Slack message
+        uses: Cardinal-Cryptography/github-actions/slack-notification@v6
+        with:
+          notify-on: "failure"
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_DEV_ONDUTY }}
