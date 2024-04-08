@@ -15,7 +15,7 @@ sp-core = { workspace = true, optional = true }
 
 # Backend dependencies:
 
-getrandom = { version = "0.2.12", features = ["js"], optional = true }
+getrandom = { version = "0.2.13", features = ["js"], optional = true }
 log = { workspace = true, optional = true }
 parity-scale-codec = { workspace = true, features = ["derive"], optional = true }
 
