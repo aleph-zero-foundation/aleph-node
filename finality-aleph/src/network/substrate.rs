@@ -6,10 +6,10 @@ use log::{error, trace, warn};
 use sc_network::{
     multiaddr::Protocol as MultiaddressProtocol, Event as SubstrateEvent, Multiaddr,
     NetworkEventStream as _, NetworkNotification, NetworkPeers, NetworkService,
-    NotificationSenderT, PeerId, ProtocolName, SyncEventStream,
+    NotificationSenderT, PeerId, ProtocolName,
 };
-use sc_network_common::{sync::SyncEvent, ExHashT};
-use sc_network_sync::SyncingService;
+use sc_network_common::ExHashT;
+use sc_network_sync::{SyncEvent, SyncEventStream, SyncingService};
 use sp_runtime::traits::Block;
 
 use crate::network::gossip::{Event, EventStream, NetworkSender, Protocol, RawNetwork};

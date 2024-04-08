@@ -9,8 +9,7 @@ use std::{
 use futures::stream::StreamExt;
 use log::{debug, trace, warn};
 use sc_network::config::FullNetworkConfiguration;
-use sc_network_common::sync::SyncEvent;
-use sc_network_sync::{service::chain_sync::ToServiceCommand, SyncingService};
+use sc_network_sync::{service::syncing_service::ToServiceCommand, SyncEvent, SyncingService};
 use sc_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnboundedSender};
 use sp_runtime::traits::{Block, Header};
 
@@ -79,13 +78,11 @@ where
         use ToServiceCommand::*;
         match command {
             EventStream(events_for_user) => self.events_for_users.push(events_for_user),
-            PeersInfo(response) => {
-                if response.send(self.handler.peers_info()).is_err() {
-                    debug!(
-                        target: LOG_TARGET,
-                        "Failed to send response to peers info request."
-                    );
-                }
+            PeersInfo(_) => {
+                debug!(
+                    target: LOG_TARGET,
+                    "Failed to send response to peers info request - call unsupported."
+                );
             }
             BestSeenBlock(response) => {
                 if response.send(None).is_err() {

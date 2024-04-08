@@ -1,6 +1,6 @@
-use std::{default::Default, sync::Arc};
+use std::sync::Arc;
 
-use sc_block_builder::BlockBuilderProvider;
+use sc_block_builder::BlockBuilderBuilder;
 use sc_client_api::HeaderBackend;
 use sp_consensus::BlockOrigin;
 use sp_core::hash::H256;
@@ -72,9 +72,12 @@ impl ClientChainBuilder {
 
     pub async fn build_block_above(&mut self, parent: &H256) -> TBlock {
         let unique_bytes: Vec<u8> = self.get_unique_bytes();
-        let mut builder = self
-            .client_builder
-            .new_block_at(*parent, Default::default(), false)
+
+        let mut builder = BlockBuilderBuilder::new(&*self.client_builder)
+            .on_parent_block(*parent)
+            .fetch_parent_block_number(&*self.client_builder)
+            .unwrap()
+            .build()
             .unwrap();
         builder
             .push(

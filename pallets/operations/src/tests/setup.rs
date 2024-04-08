@@ -168,7 +168,7 @@ impl pallet_staking::Config for TestRuntime {
     type SessionInterface = ();
     type EraPayout = UniformEraPayout;
     type NextNewSession = ();
-    type MaxNominatorRewardedPerValidator = ConstU32<64>;
+    type MaxExposurePageSize = ConstU32<64>;
     type OffendingValidatorsThreshold = ();
     type ElectionProvider =
         frame_election_provider_support::NoElection<(AccountId, u64, Staking, ())>;

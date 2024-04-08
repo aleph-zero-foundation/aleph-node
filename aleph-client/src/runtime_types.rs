@@ -1,12 +1,12 @@
 pub use crate::aleph_zero::api::runtime_types::*;
 use crate::{
-    aleph_runtime::SessionKeys,
     api::runtime_types::{
         primitives::app::Public as AlephPublic,
         sp_consensus_aura::sr25519::app_sr25519::Public as AuraPublic,
         sp_core::{ed25519::Public as EdPublic, sr25519::Public as SrPublic},
     },
     pallet_staking::EraRewardPoints,
+    primitives::AlephNodeSessionKeys as SessionKeys,
     sp_weights::weight_v2::Weight,
 };
 

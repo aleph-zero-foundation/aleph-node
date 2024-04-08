@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use parity_scale_codec::{DecodeAll, Error as CodecError};
-use sc_network::{config::FullNetworkConfiguration, ExtendedPeerInfo, PeerId};
+use sc_network::{config::FullNetworkConfiguration, PeerId};
 use sc_network_common::{role::Roles, sync::message::BlockAnnouncesHandshake};
 use sp_runtime::traits::{Block, Header, Saturating};
 
@@ -78,28 +78,6 @@ where
             num_light_peers: 0,
             genesis_hash,
         }
-    }
-
-    /// Returns a list of connected peers with some additional information.
-    // TODO(A0-3886): This shouldn't need to return the substrate type after replacing RPCs.
-    pub fn peers_info(&self) -> Vec<(PeerId, ExtendedPeerInfo<B>)>
-    where
-        B: Block<Hash = BlockHash>,
-        B::Header: Header<Number = BlockNumber>,
-    {
-        self.peers
-            .iter()
-            .map(|(id, info)| {
-                (
-                    *id,
-                    ExtendedPeerInfo {
-                        roles: info.role,
-                        best_hash: Default::default(),
-                        best_number: 0,
-                    },
-                )
-            })
-            .collect()
     }
 
     fn verify_connection(

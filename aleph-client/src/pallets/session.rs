@@ -1,8 +1,8 @@
 use subxt::utils::Static;
 
 use crate::{
-    api, api::runtime_types::aleph_runtime::SessionKeys, connections::TxInfo, AccountId, BlockHash,
-    ConnectionApi, SessionIndex, SignedConnectionApi, TxStatus,
+    api, connections::TxInfo, primitives::AlephNodeSessionKeys as SessionKeys, AccountId,
+    BlockHash, ConnectionApi, SessionIndex, SignedConnectionApi, TxStatus,
 };
 
 /// Pallet session read-only api.

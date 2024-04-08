@@ -10,6 +10,10 @@ impl<T: pallet_staking::Config> ValidatorProvider for pallet_staking::Pallet<T> 
     type AccountId = T::AccountId;
 
     fn elected_validators(era: EraIndex) -> Vec<Self::AccountId> {
-        pallet_staking::ErasStakers::<T>::iter_key_prefix(era).collect()
+        pallet_staking::ErasStakers::<T>::iter_key_prefix(era)
+            .chain(pallet_staking::ErasStakersOverview::<T>::iter_key_prefix(
+                era,
+            ))
+            .collect()
     }
 }

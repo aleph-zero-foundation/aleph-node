@@ -40,8 +40,7 @@ type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 type FullPool = sc_transaction_pool::FullPool<Block, FullClient>;
 type FullImportQueue = sc_consensus::DefaultImportQueue<Block>;
-type FullProposerFactory =
-    ProposerFactory<FullPool, FullBackend, FullClient, DisableProofRecording>;
+type FullProposerFactory = ProposerFactory<FullPool, FullClient, DisableProofRecording>;
 type ServiceComponents = sc_service::PartialComponents<
     FullClient,
     FullBackend,

@@ -58,13 +58,12 @@ pub mod test {
 
     use crate::{
         metrics::transaction_pool::TransactionPoolWrapper,
-        testing::mocks::{Backend, TBlock, THash, TestClient},
+        testing::mocks::{TBlock, THash, TestClient},
     };
 
     type TChainApi = FullChainApi<TestClient, TBlock>;
     type FullTransactionPool = BasicPool<TChainApi, TBlock>;
-    type TProposerFactory =
-        ProposerFactory<FullTransactionPool, Backend, TestClient, DisableProofRecording>;
+    type TProposerFactory = ProposerFactory<FullTransactionPool, TestClient, DisableProofRecording>;
 
     pub struct TestTransactionPoolSetup {
         pub client: Arc<TestClient>,

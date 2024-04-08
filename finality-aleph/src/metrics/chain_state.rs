@@ -316,7 +316,7 @@ mod test {
 
     use futures::{FutureExt, Stream};
     use parity_scale_codec::Encode;
-    use sc_block_builder::BlockBuilderProvider;
+    use sc_block_builder::BlockBuilderBuilder;
     use sc_client_api::{BlockchainEvents, HeaderBackend};
     use substrate_test_runtime_client::AccountKeyring;
 
@@ -616,11 +616,12 @@ mod test {
         let sum_before = setup.transactions_histogram().get_sample_sum();
 
         // external fork block with xt1
-        let mut block_1b_builder = setup
-            .pool
-            .client
-            .new_block_at(genesis, Default::default(), false)
+        let mut block_1b_builder = BlockBuilderBuilder::new(&*setup.pool.client)
+            .on_parent_block(genesis)
+            .with_parent_block_number(0)
+            .build()
             .unwrap();
+
         block_1b_builder.push(xt1.into()).unwrap();
         let block_1b = block_1b_builder.build().unwrap().block;
         setup.pool.import_block(block_1b.clone()).await;

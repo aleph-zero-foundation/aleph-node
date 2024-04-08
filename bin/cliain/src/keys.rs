@@ -1,10 +1,10 @@
 use aleph_client::{
-    aleph_runtime::SessionKeys,
     pallets::{
         author::AuthorRpc,
         session::{SessionApi, SessionUserApi},
         staking::StakingUserApi,
     },
+    primitives::AlephNodeSessionKeys as SessionKeys,
     AccountId, Connection, RootConnection, SignedConnection, Ss58Codec, TxStatus,
 };
 use hex::ToHex;

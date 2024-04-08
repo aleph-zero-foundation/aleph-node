@@ -9,7 +9,7 @@ use sp_runtime::DispatchError;
 use crate::{
     pallet::{Config, Event, Pallet},
     traits::{AccountInfoProvider, BalancesProvider, BondedStashProvider, NextKeysSessionProvider},
-    LOG_TARGET, STAKING_ID, VESTING_ID,
+    LOG_TARGET, STAKING_ID,
 };
 
 impl<T: Config> Pallet<T> {
@@ -22,13 +22,9 @@ impl<T: Config> Pallet<T> {
         if Self::reserved_or_frozen_non_zero(&who) {
             expected_consumers += 1;
         }
-        let has_vesting_lock = Self::has_vesting_lock(&who);
         let has_staking_lock = Self::has_staking_lock(&who);
-        if has_staking_lock || has_vesting_lock {
+        if has_staking_lock {
             expected_consumers += 1;
-            if has_staking_lock {
-                expected_consumers += 1;
-            }
         }
         if Self::has_next_session_keys_and_account_is_controller(&who) {
             expected_consumers += 1;
@@ -53,11 +49,6 @@ impl<T: Config> Pallet<T> {
 
     fn reserved_or_frozen_non_zero(who: &T::AccountId) -> bool {
         !T::BalancesProvider::is_reserved_zero(who) || !T::BalancesProvider::is_frozen_zero(who)
-    }
-
-    fn has_vesting_lock(who: &T::AccountId) -> bool {
-        let locks = T::BalancesProvider::locks(who);
-        Self::has_lock(&locks, VESTING_ID)
     }
 
     fn has_staking_lock(who: &T::AccountId) -> bool {

@@ -1,7 +1,7 @@
 use codec::Decode;
 use subxt::{ext::sp_core::Bytes, rpc_params};
 
-use crate::{aleph_runtime::SessionKeys, connections::AsConnection};
+use crate::{connections::AsConnection, primitives::AlephNodeSessionKeys as SessionKeys};
 
 /// Implements RPC calls for  [`author`](https://paritytech.github.io/substrate/master/sc_rpc/author/struct.Author.html) pallet
 #[async_trait::async_trait]

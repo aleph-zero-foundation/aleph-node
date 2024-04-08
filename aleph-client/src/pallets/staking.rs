@@ -14,12 +14,12 @@ use crate::{
             ConfigOp,
             ConfigOp::{Noop, Set},
         },
-        EraRewardPoints, Exposure, IndividualExposure, RewardDestination, StakingLedger,
-        ValidatorPrefs,
+        EraRewardPoints, RewardDestination, StakingLedger, ValidatorPrefs,
     },
     pallet_sudo::pallet::Call::sudo_as,
     pallets::utility::UtilityApi,
     sp_arithmetic::per_things::Perbill,
+    sp_staking::{Exposure, IndividualExposure},
     AccountId, Balance, BlockHash,
     Call::{Staking, Sudo},
     ConnectionApi, EraIndex, RootConnection, SignedConnectionApi, SudoCall, TxStatus,
@@ -74,8 +74,20 @@ pub trait StakingApi {
     /// Returns [`minimum_validator_count`](https://paritytech.github.io/substrate/master/pallet_staking/struct.Pallet.html#method.minimum_validator_count).
     /// * `at` - optional hash of a block to query state from
     async fn get_minimum_validator_count(&self, at: Option<BlockHash>) -> u32;
+
     /// Returns [`SessionsPerEra`](https://paritytech.github.io/substrate/master/pallet_staking/trait.Config.html#associatedtype.SessionsPerEra) const.
     async fn get_session_per_era(&self) -> anyhow::Result<u32>;
+
+    /// Returns [`ClaimedRewards`](https://paritytech.github.io/polkadot-sdk/master/pallet_staking/type.ClaimedRewards.html) for a given era and validator.
+    /// * `era` - an era index
+    /// * `validator` - account ID of the validator
+    /// * `at` - optional hash of a block to query state from
+    async fn get_claimed_rewards(
+        &self,
+        era: u32,
+        validator: AccountId,
+        at: Option<BlockHash>,
+    ) -> Vec<u32>;
 }
 
 /// Pallet staking api
@@ -199,7 +211,7 @@ pub trait StakingSudoApi {
 /// Logic for retrieving raw storage keys or values from a pallet staking.
 #[async_trait::async_trait]
 pub trait StakingRawApi {
-    /// Returns all encoded [`eras_stakers`](https://paritytech.github.io/substrate/master/pallet_staking/struct.Pallet.html#method.eras_stakers).
+    /// Returns at most 10 encoded [`ErasStakers`](https://paritytech.github.io/substrate/master/pallet_staking/types.ErasStakers.html).
     /// storage keys for a given era
     /// * `era` - an era index
     /// * `at` - optional hash of a block to query state from
@@ -218,12 +230,43 @@ pub trait StakingRawApi {
         at: Option<BlockHash>,
     ) -> anyhow::Result<Vec<StorageKey>>;
 
-    /// Returns encoded [`eras_stakers`](https://paritytech.github.io/substrate/master/pallet_staking/struct.Pallet.html#method.eras_stakers).
+    /// Returns encoded [`ErasStakers`](https://paritytech.github.io/substrate/master/pallet_staking/types.ErasStakers).
     /// storage keys for a given era and given account ids
     /// * `era` - an era index
     /// * `accounts` - list of account ids
     /// * `at` - optional hash of a block to query state from
     async fn get_stakers_storage_keys_from_accounts(
+        &self,
+        era: EraIndex,
+        accounts: &[AccountId],
+        at: Option<BlockHash>,
+    ) -> Vec<StorageKey>;
+
+    /// Returns at most 10 encoded [`ErasStakersOverview`](https://paritytech.github.io/substrate/master/pallet_staking/types.ErasStakersOverview.html).
+    /// storage keys for a given era
+    /// * `era` - an era index
+    /// * `at` - optional hash of a block to query state from
+    ///
+    /// # Examples
+    /// ```ignore
+    /// let stakers = connection
+    ///         .get_stakers_overview_storage_keys(current_era, None)
+    ///         .await
+    ///         .into_iter()
+    ///         .map(|key| key.0);
+    /// ```
+    async fn get_stakers_overview_storage_keys(
+        &self,
+        era: EraIndex,
+        at: Option<BlockHash>,
+    ) -> anyhow::Result<Vec<StorageKey>>;
+
+    /// Returns encoded [`ErasStakersOverview`](https://paritytech.github.io/substrate/master/pallet_staking/types.ErasStakersOverview.html).
+    /// storage keys for a given era and given account ids
+    /// * `era` - an era index
+    /// * `accounts` - list of account ids
+    /// * `at` - optional hash of a block to query state from
+    async fn get_stakers_overview_storage_keys_from_accounts(
         &self,
         era: EraIndex,
         accounts: &[AccountId],
@@ -269,11 +312,48 @@ impl<C: ConnectionApi + AsConnection> StakingApi for C {
         account_id: &AccountId,
         at: Option<BlockHash>,
     ) -> Exposure<AccountId, Balance> {
-        let addrs = api::storage()
-            .staking()
-            .eras_stakers(era, Static(account_id.clone()));
+        let overview = self
+            .get_storage_entry_maybe(
+                &api::storage()
+                    .staking()
+                    .eras_stakers_overview(era, Static(account_id.clone())),
+                at,
+            )
+            .await;
 
-        let exposure = self.get_storage_entry(&addrs, at).await;
+        let exposure = match overview {
+            None => {
+                self.get_storage_entry(
+                    &api::storage()
+                        .staking()
+                        .eras_stakers(era, Static(account_id.clone())),
+                    at,
+                )
+                .await
+            }
+            Some(overview) => {
+                let mut others = Vec::with_capacity(overview.nominator_count as usize);
+                for page in 0..overview.page_count {
+                    let nominators = self
+                        .get_storage_entry_maybe(
+                            &api::storage().staking().eras_stakers_paged(
+                                era,
+                                Static(account_id.clone()),
+                                page,
+                            ),
+                            at,
+                        )
+                        .await;
+                    others.append(&mut nominators.map(|n| n.others).unwrap_or_default());
+                }
+                Exposure {
+                    total: overview.total,
+                    own: overview.own,
+                    others,
+                }
+            }
+        };
+
         Exposure {
             total: exposure.total,
             own: exposure.own,
@@ -320,6 +400,18 @@ impl<C: ConnectionApi + AsConnection> StakingApi for C {
             .constants()
             .at(&addrs)
             .map_err(|e| e.into())
+    }
+
+    async fn get_claimed_rewards(
+        &self,
+        era: u32,
+        validator: AccountId,
+        at: Option<BlockHash>,
+    ) -> Vec<u32> {
+        let addrs = api::storage()
+            .staking()
+            .claimed_rewards(era, Static(validator));
+        self.get_storage_entry(&addrs, at).await
     }
 }
 
@@ -455,6 +547,43 @@ impl<C: AsConnection + Sync> StakingRawApi for C {
         _: Option<BlockHash>,
     ) -> Vec<StorageKey> {
         let key_addrs = api::storage().staking().eras_stakers_root();
+        let mut key = key_addrs.to_root_bytes();
+        extend_with_twox64_concat_hash(&mut key, era);
+        accounts
+            .iter()
+            .map(|account| {
+                let mut key = key.clone();
+                extend_with_twox64_concat_hash(&mut key, account);
+
+                StorageKey(key)
+            })
+            .collect()
+    }
+
+    async fn get_stakers_overview_storage_keys(
+        &self,
+        era: EraIndex,
+        at: Option<BlockHash>,
+    ) -> anyhow::Result<Vec<StorageKey>> {
+        let key_addrs = api::storage().staking().eras_stakers_overview_root();
+        let mut key = key_addrs.to_root_bytes();
+        extend_with_twox64_concat_hash(&mut key, era);
+
+        let storage = self.as_connection().as_client().storage();
+        let block = match at {
+            Some(block_hash) => storage.at(block_hash),
+            None => storage.at_latest().await?,
+        };
+        block.fetch_keys(&key, 10, None).await.map_err(|e| e.into())
+    }
+
+    async fn get_stakers_overview_storage_keys_from_accounts(
+        &self,
+        era: EraIndex,
+        accounts: &[AccountId],
+        _: Option<BlockHash>,
+    ) -> Vec<StorageKey> {
+        let key_addrs = api::storage().staking().eras_stakers_overview_root();
         let mut key = key_addrs.to_root_bytes();
         extend_with_twox64_concat_hash(&mut key, era);
         accounts

@@ -24,21 +24,44 @@ use crate::{
 async fn assert_validators_are_elected_stakers<C: StakingRawApi>(
     connection: &C,
     current_era: EraIndex,
-    expected_validators_as_keys: Vec<Vec<u8>>,
+    accounts: &Vec<AccountId>,
 ) -> anyhow::Result<()> {
-    let stakers = connection
+    let expected_validators_as_keys_legacy: Vec<_> = connection
+        .get_stakers_storage_keys_from_accounts(current_era, accounts, None)
+        .await
+        .into_iter()
+        .map(|k| k.0)
+        .collect();
+    let expected_validators_as_keys: Vec<_> = connection
+        .get_stakers_overview_storage_keys_from_accounts(current_era, accounts, None)
+        .await
+        .into_iter()
+        .map(|k| k.0)
+        .collect();
+    assert_eq!(
+        expected_validators_as_keys_legacy.len(),
+        expected_validators_as_keys.len()
+    );
+    let stakers_legacy: Vec<_> = connection
         .get_stakers_storage_keys(current_era, None)
         .await?
         .into_iter()
-        .map(|key| key.0);
-    let stakers_tree = BTreeSet::from_iter(stakers);
-    let expected_validators_as_keys = BTreeSet::from_iter(expected_validators_as_keys);
-
-    assert_eq!(
-        expected_validators_as_keys, stakers_tree,
-        "Expected another set of staking validators.\n\tExpected: {expected_validators_as_keys:?}\n\tActual: {stakers_tree:?}"
-    );
-
+        .map(|key| key.0)
+        .collect();
+    let stakers: Vec<_> = connection
+        .get_stakers_overview_storage_keys(current_era, None)
+        .await?
+        .into_iter()
+        .map(|key| key.0)
+        .collect();
+    for (key_legacy, key) in expected_validators_as_keys_legacy
+        .iter()
+        .zip(expected_validators_as_keys.iter())
+    {
+        assert!(stakers_legacy.contains(key_legacy) || stakers.contains(key),
+        "Expected another set of staking validators.\n\tExpected: {expected_validators_as_keys:?}\n\tExpected legacy: {expected_validators_as_keys_legacy:?}\n\tActual: {stakers:?}\n\tActual legacy: {stakers_legacy:?}"
+        )
+    }
     Ok(())
 }
 
@@ -220,21 +243,8 @@ pub async fn authorities_are_staking() -> anyhow::Result<()> {
     let current_era = connection.get_current_era(None).await;
     info!("New validators are in force (era: {})", current_era);
 
-    assert_validators_are_elected_stakers(
-        &connection,
-        current_era,
-        connection
-            .get_stakers_storage_keys_from_accounts(
-                current_era,
-                accounts.get_stash_accounts(),
-                None,
-            )
-            .await
-            .into_iter()
-            .map(|k| k.0)
-            .collect(),
-    )
-    .await?;
+    assert_validators_are_elected_stakers(&connection, current_era, accounts.get_stash_accounts())
+        .await?;
 
     let min_num_sessions =
         min_num_sessions_to_see_all_non_reserved_validators(non_reserved_count, non_reserved_seats);
@@ -259,17 +269,7 @@ pub async fn authorities_are_staking() -> anyhow::Result<()> {
     left_stashes.remove(reserved_seats as usize);
     left_stashes.remove(0);
 
-    assert_validators_are_elected_stakers(
-        &connection,
-        current_era,
-        connection
-            .get_stakers_storage_keys_from_accounts(current_era, &left_stashes, None)
-            .await
-            .into_iter()
-            .map(|k| k.0)
-            .collect(),
-    )
-    .await?;
+    assert_validators_are_elected_stakers(&connection, current_era, &left_stashes).await?;
     assert_validators_are_used_as_authorities(
         &connection,
         &BTreeSet::from_iter(left_stashes.into_iter()),

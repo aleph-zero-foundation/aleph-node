@@ -36,7 +36,7 @@ use frame_try_runtime::UpgradeCheckSelect;
 pub use pallet_balances::Call as BalancesCall;
 use pallet_committee_management::SessionAndEraManager;
 pub use pallet_feature_control::Feature;
-use pallet_identity::simple::IdentityInfo;
+use pallet_identity::legacy::IdentityInfo;
 use pallet_session::QueuedKeys;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
@@ -456,7 +456,7 @@ parameter_types! {
     pub const SlashDeferDuration: EraIndex = 13;
     // this is coupled with weights for payout_stakers() call
     // see custom implementation of WeightInfo below
-    pub const MaxNominatorRewardedPerValidator: u32 = MAX_NOMINATORS_REWARDED_PER_VALIDATOR;
+    pub const MaxExposurePageSize: u32 = MAX_NOMINATORS_REWARDED_PER_VALIDATOR;
     pub const OffendingValidatorsThreshold: Perbill = Perbill::from_percent(33);
     pub const SessionsPerEra: EraIndex = DEFAULT_SESSIONS_PER_ERA;
     pub HistoryDepth: u32 = 84;
@@ -571,7 +571,7 @@ impl pallet_staking::Config for Runtime {
     type SessionInterface = Self;
     type EraPayout = UniformEraPayout;
     type NextNewSession = Session;
-    type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
+    type MaxExposurePageSize = MaxExposurePageSize;
     type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
     type VoterList = pallet_staking::UseNominatorsAndValidatorsMap<Runtime>;
     type MaxUnlockingChunks = ConstU32<16>;
@@ -757,13 +757,14 @@ impl pallet_contracts::Config for Runtime {
     type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
     type Debug = ();
     type Environment = ();
+    type Xcm = ();
 }
 
 parameter_types! {
     // bytes count taken from:
     // https://github.com/paritytech/polkadot/blob/016dc7297101710db0483ab6ef199e244dff711d/runtime/kusama/src/lib.rs#L995
     pub const BasicDeposit: Balance = 258 * LEGACY_DEPOSIT_PER_BYTE;
-    pub const FieldDeposit: Balance = 66 * LEGACY_DEPOSIT_PER_BYTE;
+    pub const ByteDeposit: Balance = 66 * LEGACY_DEPOSIT_PER_BYTE;
     pub const SubAccountDeposit: Balance = 53 * LEGACY_DEPOSIT_PER_BYTE;
     pub const MaxSubAccounts: u32 = 100;
     pub const MaxAdditionalFields: u32 = 100;
@@ -774,10 +775,9 @@ impl pallet_identity::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type BasicDeposit = BasicDeposit;
-    type FieldDeposit = FieldDeposit;
+    type ByteDeposit = ByteDeposit;
     type SubAccountDeposit = SubAccountDeposit;
     type MaxSubAccounts = MaxSubAccounts;
-    type MaxAdditionalFields = MaxAdditionalFields;
     type MaxRegistrars = MaxRegistrars;
     type Slashed = Treasury;
     type ForceOrigin = EnsureRoot<AccountId>;
@@ -1156,9 +1156,13 @@ impl_runtime_apis! {
         }
     }
 
-    impl pallet_staking_runtime_api::StakingApi<Block, Balance> for Runtime {
+    impl pallet_staking_runtime_api::StakingApi<Block, Balance, AccountId> for Runtime {
         fn nominations_quota(_balance: Balance) -> u32 {
             MAX_NOMINATORS
+        }
+
+        fn eras_stakers_page_count(era: sp_staking::EraIndex, account: AccountId) -> sp_staking::Page {
+            Staking::api_eras_stakers_page_count(era, account)
         }
     }
 
@@ -1370,6 +1374,11 @@ mod tests {
             pallet_staking::Call::chill_other { controller: _ } => {}
             pallet_staking::Call::force_apply_min_commission { validator_stash: _ } => {}
             pallet_staking::Call::set_min_commission { new: _ } => {}
+            pallet_staking::Call::payout_stakers_by_page {
+                validator_stash: _,
+                era: _,
+                page: _,
+            } => {}
             pallet_staking::Call::__Ignore(..) => {}
         }
     }
