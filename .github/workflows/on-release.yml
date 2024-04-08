@@ -67,7 +67,7 @@ jobs:
             *.tar.gz
 
       - name: Add runtime and binary to the release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             checksums-${{ steps.get-ref-properties.outputs.sha }}-linux-amd64.tar.gz.SHA256.txt
