@@ -164,9 +164,23 @@ try-runtime = [
 ]
 enable_treasury_proposals = []
 runtime-benchmarks = [
-    "frame-system/runtime-benchmarks",
-    "frame-benchmarking/runtime-benchmarks",
     "baby-liminal-extension/runtime-benchmarks",
+    "frame-benchmarking/runtime-benchmarks",
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "pallet-balances/runtime-benchmarks",
+    "pallet-contracts/runtime-benchmarks",
     "pallet-feature-control/runtime-benchmarks",
+    "pallet-identity/runtime-benchmarks",
+    "pallet-multisig/runtime-benchmarks",
+    "pallet-nomination-pools/runtime-benchmarks",
+    "pallet-proxy/runtime-benchmarks",
+    "pallet-scheduler/runtime-benchmarks",
+    "pallet-staking/runtime-benchmarks",
+    "pallet-sudo/runtime-benchmarks",
+    "pallet-timestamp/runtime-benchmarks",
+    "pallet-treasury/runtime-benchmarks",
+    "pallet-utility/runtime-benchmarks",
+    "pallet-vesting/runtime-benchmarks",
     "pallet-vk-storage/runtime-benchmarks",
 ]
