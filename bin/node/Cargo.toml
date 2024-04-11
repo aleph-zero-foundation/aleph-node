@@ -101,3 +101,4 @@ runtime-benchmarks = [
 only_legacy = [
     "finality-aleph/only_legacy"
 ]
+local-debugging = []

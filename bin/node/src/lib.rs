@@ -9,5 +9,10 @@ mod rpc;
 mod service;
 
 pub use cli::{Cli, Subcommand};
-pub use executor::ExecutorDispatch;
+#[cfg(any(
+    feature = "runtime-benchmarks",
+    feature = "local-debugging",
+    feature = "try-runtime"
+))]
+pub use executor::aleph_executor::ExecutorDispatch;
 pub use service::{new_authority, new_partial};

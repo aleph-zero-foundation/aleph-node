@@ -31,10 +31,11 @@ use sp_consensus_aura::{sr25519::AuthorityPair as AuraPair, Slot};
 use crate::{
     aleph_cli::AlephCli,
     chain_spec::DEFAULT_BACKUP_FOLDER,
-    executor::AlephExecutor,
+    executor::aleph_executor,
     rpc::{create_full as create_full_rpc, FullDeps as RpcFullDeps},
 };
 
+type AlephExecutor = aleph_executor::Executor;
 type FullClient = sc_service::TFullClient<Block, RuntimeApi, AlephExecutor>;
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
@@ -103,7 +104,7 @@ pub fn new_partial(config: &Configuration) -> Result<ServiceComponents, ServiceE
         })
         .transpose()?;
 
-    let executor = sc_service::new_native_or_wasm_executor(config);
+    let executor = aleph_executor::get_executor(config);
 
     let (client, backend, keystore_container, task_manager) =
         sc_service::new_full_parts::<Block, RuntimeApi, AlephExecutor>(
