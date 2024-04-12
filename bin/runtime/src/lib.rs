@@ -77,7 +77,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 71,
+    spec_version: 73,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 18,
@@ -100,8 +100,9 @@ pub const MICRO_AZERO: Balance = MILLI_AZERO / 1000;
 pub const NANO_AZERO: Balance = MICRO_AZERO / 1000;
 pub const PICO_AZERO: Balance = NANO_AZERO / 1000;
 
-// 75% block weight is dedicated to normal extrinsics
-pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
+// 99% block weight is dedicated to normal extrinsics leaving 1% reserved space for the operational
+// extrinsics.
+pub const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(99);
 // The whole process for a single block should take 1s, of which 400ms is for creation,
 // 200ms for propagation and 400ms for validation. Hence the block weight should be within 400ms.
 pub const MAX_BLOCK_WEIGHT: Weight =
