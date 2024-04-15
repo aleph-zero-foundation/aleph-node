@@ -6,7 +6,8 @@ use sc_cli::{
 use crate::{
     aleph_cli::AlephCli,
     chain_spec,
-    commands::{BootstrapChainCmd, BootstrapNodeCmd, ConvertChainspecToRawCmd},
+    chain_spec::{mainnet_config, testnet_config, BootstrapChainCmd},
+    commands::{BootstrapNodeCmd, ConvertChainspecToRawCmd},
 };
 
 #[derive(Debug, Parser)]
@@ -53,10 +54,10 @@ impl SubstrateCli for Cli {
         let id = if id.is_empty() { default_chain } else { id };
 
         let chainspec = match id {
-            "mainnet" => chain_spec::mainnet_config(),
+            "mainnet" => mainnet_config(),
 
-            "testnet" => chain_spec::testnet_config(),
-            _ => chain_spec::ChainSpec::from_json_file(id.into()),
+            "testnet" => testnet_config(),
+            _ => chain_spec::AlephNodeChainSpec::from_json_file(id.into()),
         };
         Ok(Box::new(chainspec?))
     }

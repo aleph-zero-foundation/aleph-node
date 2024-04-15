@@ -30,9 +30,9 @@ use sp_consensus_aura::{sr25519::AuthorityPair as AuraPair, Slot};
 
 use crate::{
     aleph_cli::AlephCli,
-    chain_spec::DEFAULT_BACKUP_FOLDER,
     executor::aleph_executor,
     rpc::{create_full as create_full_rpc, FullDeps as RpcFullDeps},
+    shared_params::DEFAULT_BACKUP_FOLDER,
 };
 
 type AlephExecutor = aleph_executor::Executor;

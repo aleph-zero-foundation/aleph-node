@@ -7,49 +7,19 @@ use std::{
 use libp2p::identity::{ed25519 as libp2p_ed25519, PublicKey};
 use primitives::{AccountId, AuraId, AuthorityId as AlephId};
 use sc_cli::{
-    clap::{self, Args, Parser},
+    clap::{self, Parser},
     Error, KeystoreParams,
 };
 use sc_keystore::LocalKeystore;
 use sc_service::config::{BasePath, KeystoreConfig};
+use serde::{Deserialize, Serialize};
 use sp_application_crypto::{key_types, Ss58Codec};
 use sp_keystore::Keystore;
 
-use crate::chain_spec::{
-    self, account_id_from_string, AuthorityKeys, ChainParams, ChainSpec, SerializablePeerId,
-    DEFAULT_BACKUP_FOLDER,
+use crate::{
+    chain_spec::{account_id_from_string, AlephNodeChainSpec, ChainParams, SerializablePeerId},
+    shared_params::SharedParams,
 };
-
-#[derive(Debug, Args)]
-pub struct NodeParams {
-    /// For `bootstrap-node` and `purge-chain` it works with this directory as base.
-    /// For `bootstrap-chain` the base path is appended with an account id for each node.
-    #[arg(long, short = 'd', value_name = "PATH")]
-    base_path: PathBuf,
-
-    /// Specify filename to write node private p2p keys to
-    /// Resulting keys will be stored at: base_path/account_id/node_key_file for each node
-    #[arg(long, default_value = "p2p_secret")]
-    node_key_file: String,
-
-    /// Directory under which AlephBFT backup is stored
-    #[arg(long, default_value = DEFAULT_BACKUP_FOLDER)]
-    backup_dir: String,
-}
-
-impl NodeParams {
-    pub fn base_path(&self) -> BasePath {
-        BasePath::new(&self.base_path)
-    }
-
-    pub fn node_key_file(&self) -> &str {
-        &self.node_key_file
-    }
-
-    pub fn backup_dir(&self) -> &str {
-        &self.backup_dir
-    }
-}
 
 /// returns Aura key, if absent a new key is generated
 fn aura_key(keystore: &impl Keystore) -> AuraId {
@@ -95,7 +65,7 @@ fn backup_path(base_path: &Path, backup_dir: &str) -> PathBuf {
     base_path.join(backup_dir)
 }
 
-fn open_keystore(
+pub fn open_keystore(
     keystore_params: &KeystoreParams,
     chain_id: &str,
     base_path: &BasePath,
@@ -112,7 +82,7 @@ fn open_keystore(
     }
 }
 
-fn bootstrap_backup(base_path_with_account_id: &Path, backup_dir: &str) {
+pub fn bootstrap_backup(base_path_with_account_id: &Path, backup_dir: &str) {
     let backup_path = backup_path(base_path_with_account_id, backup_dir);
 
     if backup_path.exists() {
@@ -124,7 +94,15 @@ fn bootstrap_backup(base_path_with_account_id: &Path, backup_dir: &str) {
     }
 }
 
-fn authority_keys(
+#[derive(Clone, Deserialize, Serialize)]
+pub struct AuthorityKeys {
+    pub account_id: AccountId,
+    pub aura_key: AuraId,
+    pub aleph_key: AlephId,
+    pub peer_id: SerializablePeerId,
+}
+
+pub fn authority_keys(
     keystore: &impl Keystore,
     base_path: &Path,
     node_key_file: &str,
@@ -140,61 +118,6 @@ fn authority_keys(
         aura_key,
         aleph_key,
         peer_id,
-    }
-}
-
-/// The `bootstrap-chain` command is used to generate private keys for the genesis authorities
-/// keys are written to the keystore of the authorities
-/// and the chain specification is printed to stdout in the JSON format
-#[derive(Debug, Parser)]
-pub struct BootstrapChainCmd {
-    /// Force raw genesis storage output.
-    #[arg(long = "raw")]
-    pub raw: bool,
-
-    #[clap(flatten)]
-    pub keystore_params: KeystoreParams,
-
-    #[clap(flatten)]
-    pub chain_params: ChainParams,
-
-    #[clap(flatten)]
-    pub node_params: NodeParams,
-}
-
-/// Assumes an input path: some_path/, which is appended to finally become: some_path/account_id
-impl BootstrapChainCmd {
-    pub fn run(&self) -> Result<(), Error> {
-        let base_path = self.node_params.base_path();
-        let backup_dir = self.node_params.backup_dir();
-        let node_key_file = self.node_params.node_key_file();
-        let chain_id = self.chain_params.chain_id();
-        let genesis_authorities = self
-            .chain_params
-            .account_ids()
-            .into_iter()
-            .map(|account_id| {
-                let account_base_path: BasePath =
-                    base_path.path().join(account_id.to_string()).into();
-                bootstrap_backup(account_base_path.path(), backup_dir);
-                let keystore = open_keystore(&self.keystore_params, chain_id, &account_base_path);
-                authority_keys(
-                    &keystore,
-                    account_base_path.path(),
-                    node_key_file,
-                    account_id,
-                )
-            })
-            .collect();
-
-        let chain_spec = chain_spec::config(self.chain_params.clone(), genesis_authorities)?;
-
-        let json = sc_service::chain_ops::build_spec(&chain_spec, self.raw)?;
-        if std::io::stdout().write_all(json.as_bytes()).is_err() {
-            let _ = std::io::stderr().write_all(b"Error writing to stdout\n");
-        }
-
-        Ok(())
     }
 }
 
@@ -220,18 +143,19 @@ pub struct BootstrapNodeCmd {
     pub chain_params: ChainParams,
 
     #[clap(flatten)]
-    pub node_params: NodeParams,
+    pub shared_params: SharedParams,
 }
 
 /// Assumes an input path: some_path/account_id/, which is not appended with an account id
 impl BootstrapNodeCmd {
     pub fn run(&self) -> Result<(), Error> {
-        let base_path = self.node_params.base_path();
-        let backup_dir = self.node_params.backup_dir();
-        let node_key_file = self.node_params.node_key_file();
+        let base_path = self.shared_params.base_path();
+        let backup_dir = self.shared_params.backup_dir();
+        let node_key_file = self.shared_params.node_key_file();
+        let chain_id = self.chain_params.chain_id();
 
         bootstrap_backup(base_path.path(), backup_dir);
-        let chain_id = self.chain_params.chain_id();
+
         let keystore = open_keystore(&self.keystore_params, chain_id, &base_path);
 
         // Does not rely on the account id in the path
@@ -267,7 +191,8 @@ pub struct ConvertChainspecToRawCmd {
 
 impl ConvertChainspecToRawCmd {
     pub fn run(&self) -> Result<(), Error> {
-        let spec = ChainSpec::from_json_file(self.chain.to_owned()).expect("Cannot read chainspec");
+        let spec = AlephNodeChainSpec::from_json_file(self.chain.to_owned())
+            .expect("Cannot read chainspec");
 
         let raw_chainspec = sc_service::chain_ops::build_spec(&spec, true)?;
         if std::io::stdout()

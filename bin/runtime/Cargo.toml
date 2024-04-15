@@ -56,6 +56,7 @@ sp-std = { workspace = true }
 sp-transaction-pool = { workspace = true }
 sp-version = { workspace = true }
 sp-application-crypto = { workspace = true }
+sp-genesis-builder = { workspace = true }
 
 # Benchmarking stuff
 frame-benchmarking = { workspace = true, optional = true }
@@ -117,6 +118,7 @@ std = [
     "sp-std/std",
     "sp-transaction-pool/std",
     "sp-version/std",
+    "sp-genesis-builder/std",
     "frame-system/std",
     "sp-offchain/std",
     "frame-system-rpc-runtime-api/std",
