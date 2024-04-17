@@ -24,7 +24,7 @@ jobs:
     secrets: inherit
     with:
       featurenet-name: 'ops-test-full-hash'
-      ref: '787c39186884aaf86ed48f46f575a8cd8cfd13e8'
+      ref: '87ebe7c4856b4f3365ddba55b55089713a96631a'
       expiration: '2h'
       validators: '5'
       internal: true
