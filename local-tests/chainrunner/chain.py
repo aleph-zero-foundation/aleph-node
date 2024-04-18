@@ -49,11 +49,13 @@ class Chain:
         All other flags are taken from kwargs"""
         self.new(binary, validators, nonvalidators)
         nonvalidators = nonvalidators or []
+        all_accounts = list(validators) + list(nonvalidators)
 
         binary = check_file(binary)
         cmd = [binary, 'bootstrap-chain',
                '--base-path', self.path,
-               '--account-ids', ','.join(validators)]
+               '--account-ids', ','.join(all_accounts),
+               '--authorities-account-ids', ','.join(validators)]
         if raw:
             cmd.append('--raw')
         cmd += flags_from_dict(kwargs)
@@ -62,11 +64,6 @@ class Chain:
         with open(chainspec, 'w', encoding='utf-8') as f:
             subprocess.run(cmd, stdout=f, check=True)
 
-        for nv in nonvalidators:
-            cmd = [binary, 'bootstrap-node',
-                   '--base-path', join(self.path, nv),
-                   '--account-id', nv]
-            subprocess.run(cmd, stdout=subprocess.DEVNULL, check=True)
 
     @staticmethod
     def _set_flags(nodes, *args, **kwargs):

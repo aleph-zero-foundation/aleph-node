@@ -19,7 +19,6 @@ fn main() -> sc_cli::Result<()> {
 
     match &cli.subcommand {
         Some(Subcommand::BootstrapChain(cmd)) => cmd.run(),
-        Some(Subcommand::BootstrapNode(cmd)) => cmd.run(),
         Some(Subcommand::ConvertChainspecToRaw(cmd)) => cmd.run(),
         Some(Subcommand::Key(cmd)) => cmd.run(&cli),
         Some(Subcommand::CheckBlock(cmd)) => {

@@ -1,20 +1,18 @@
 use std::string::ToString;
 
-use aleph_runtime::{Feature, Perbill, WASM_BINARY};
+use aleph_runtime::{Feature, WASM_BINARY};
 use pallet_staking::{Forcing, StakerStatus};
 use primitives::{
     staking::{MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND},
-    AccountId, AlephNodeSessionKeys as SessionKeys, Version as FinalityVersion, ADDRESSES_ENCODING,
+    AccountId, AlephNodeSessionKeys, Version as FinalityVersion, ADDRESSES_ENCODING,
     TOKEN_DECIMALS,
 };
 use serde_json::{Number, Value};
+use sp_runtime::Perbill;
 
-use crate::{
-    chain_spec::{cli::ChainParams, AlephNodeChainSpec},
-    commands::AuthorityKeys,
-};
+use crate::chain_spec::{cli::ChainSpecParams, keystore::AccountSessionKeys, AlephNodeChainSpec};
 
-fn to_account_ids(authorities: &[AuthorityKeys]) -> impl Iterator<Item = AccountId> + '_ {
+fn to_account_ids(authorities: &[AccountSessionKeys]) -> impl Iterator<Item = AccountId> + '_ {
     authorities.iter().map(|auth| auth.account_id.clone())
 }
 
@@ -37,13 +35,12 @@ fn system_properties(token_symbol: String) -> serde_json::map::Map<String, Value
 
 /// Generate chain spec for new AlephNode chains
 pub fn build_chain_spec(
-    chain_params: ChainParams,
-    authorities: Vec<AuthorityKeys>,
+    chain_params: &ChainSpecParams,
+    account_session_keys: Vec<AccountSessionKeys>,
 ) -> Result<AlephNodeChainSpec, String> {
     let token_symbol = String::from(chain_params.token_symbol());
     let sudo_account = chain_params.sudo_account_id();
     let rich_accounts = chain_params.rich_account_ids();
-    let faucet_account = chain_params.faucet_account_id();
     let finality_version = chain_params.finality_version();
 
     Ok(AlephNodeChainSpec::builder(
@@ -54,10 +51,9 @@ pub fn build_chain_spec(
     .with_id(chain_params.chain_id())
     .with_chain_type(chain_params.chain_type())
     .with_genesis_config_patch(generate_genesis_config(
-        authorities.clone(),    // Initial PoA authorities, will receive funds
-        sudo_account.clone(),   // Sudo account, will also be pre funded
-        rich_accounts.clone(),  // Pre-funded accounts
-        faucet_account.clone(), // Pre-funded faucet account
+        account_session_keys,
+        sudo_account,
+        rich_accounts,
         finality_version,
     ))
     .with_properties(system_properties(token_symbol))
@@ -67,21 +63,20 @@ pub fn build_chain_spec(
 /// Calculate initial endowments such that total issuance is kept approximately constant.
 fn calculate_initial_endowment(accounts: &[AccountId]) -> u128 {
     let total_issuance = 300_000_000u128 * 10u128.pow(TOKEN_DECIMALS);
-    // due to known issue https://github.com/paritytech/polkadot-sdk/pull/2987/files,
-    // we need to make sure returned number is un u64 range, otherwise serde_json::json macro fails
+    // (A0-4258) due to known issue https://github.com/paritytech/polkadot-sdk/pull/2987/files,
+    // we need to make sure returned number is in u64 range, otherwise serde_json::json macro fails
     // this is fixed in polkadot-sdk 1.6.0
     total_issuance / (accounts.len() as u128) / 10
 }
 
 /// Configure initial storage state for FRAME modules.
 fn generate_genesis_config(
-    authorities: Vec<AuthorityKeys>,
+    account_session_keys: Vec<AccountSessionKeys>,
     sudo_account: AccountId,
     rich_accounts: Option<Vec<AccountId>>,
-    faucet_account: Option<AccountId>,
     finality_version: FinalityVersion,
 ) -> serde_json::Value {
-    let mut endowed_accounts = to_account_ids(&authorities)
+    let mut endowed_accounts = to_account_ids(&account_session_keys)
         .chain(
             rich_accounts
                 .unwrap_or_default()
@@ -89,36 +84,31 @@ fn generate_genesis_config(
                 .chain([sudo_account.clone()]),
         )
         .collect::<Vec<_>>();
-    if let Some(faucet_account) = faucet_account {
-        endowed_accounts.push(faucet_account);
-    }
     endowed_accounts.sort();
     endowed_accounts.dedup();
     let initial_endowement = calculate_initial_endowment(&endowed_accounts);
 
-    let initial_balances = endowed_accounts
-        .into_iter()
-        .map(|account| (account, initial_endowement))
-        .collect::<Vec<_>>();
-
     serde_json::json!({
         "balances": {
-            "balances": initial_balances,
+            "balances": endowed_accounts
+                        .into_iter()
+                        .map(|account| (account, initial_endowement))
+                        .collect::<Vec<_>>(),
         },
         "sudo": {
             "key": Some(sudo_account),
         },
         "elections": {
-            "reservedValidators": to_account_ids(&authorities).collect::<Vec<_>>(),
+            "reservedValidators": to_account_ids(&account_session_keys).collect::<Vec<_>>(),
         },
         "session": {
-           "keys": authorities
+           "keys": account_session_keys
                     .iter()
                     .map(|auth| {
                         (
                             auth.account_id.clone(),
                             auth.account_id.clone(),
-                            SessionKeys {
+                            AlephNodeSessionKeys {
                                 aura: auth.aura_key.clone(),
                                 aleph: auth.aleph_key.clone(),
                             },
@@ -128,10 +118,10 @@ fn generate_genesis_config(
         },
         "staking": {
             "forceEra": Forcing::NotForcing,
-            "validatorCount":  authorities.len() as u32,
+            "validatorCount":  account_session_keys.len() as u32,
             "minimumValidatorCount": 4,
             "slashRewardFraction": Perbill::from_percent(10),
-            "stakers": authorities
+            "stakers": account_session_keys
                         .iter()
                         .enumerate()
                         .map(|(validator_idx, validator)| {
@@ -153,11 +143,20 @@ fn generate_genesis_config(
         },
         "committeeManagement": {
             "sessionValidators": {
-                "committee": to_account_ids(&authorities).collect::<Vec<_>>(),
+                "committee": to_account_ids(&account_session_keys).collect::<Vec<_>>(),
             },
         },
         "featureControl": {
             "activeFeatures": vec![Feature::OnChainVerifier],
         },
     })
+}
+
+pub fn build_chain_spec_json(
+    is_raw_chainspec: bool,
+    chain_params: &ChainSpecParams,
+    account_session_keys: Vec<AccountSessionKeys>,
+) -> sc_service::error::Result<String> {
+    let chain_spec = build_chain_spec(chain_params, account_session_keys)?;
+    sc_service::chain_ops::build_spec(&chain_spec, is_raw_chainspec)
 }

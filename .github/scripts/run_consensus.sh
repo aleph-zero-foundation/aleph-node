@@ -74,20 +74,15 @@ function generate_account_ids() {
 
 function generate_chainspec() {
   local account_ids=("$@")
-
-  # First array element is RPC node, so not a validator
+  local all_account_ids=${account_ids[@]}
+  local account_ids_comma_separated="${all_account_ids//${IFS:0:1}/,}"
+  # the first array element is RPC node, so not a validator
   local validators=${account_ids[@]:1}
-  # comma separated ids
-  validator_ids="${validators//${IFS:0:1}/,}"
+  local validator_ids_comma_separated="${validators//${IFS:0:1}/,}"
 
-  echo "Generate chainspec and keystores with sudo account //Alice for below validators..."
-  echo "${validator_ids}"
+  echo "Generate chainspec and keystores for accounts: ${account_ids_comma_separated[@]}"
   docker run --rm -v $(pwd)/docker/data:/data --entrypoint "/bin/sh" -e RUST_LOG=debug "${NODE_IMAGE}" \
-  -c "aleph-node bootstrap-chain --base-path /data --account-ids "${validator_ids}" > /data/chainspec.json"
-
-  echo "Generating keystore for RPC node ${account_ids[0]}..."
-  docker run --rm -v $(pwd)/docker/data:/data --entrypoint "/bin/sh" -e RUST_LOG=debug "${NODE_IMAGE}" \
-  -c "aleph-node bootstrap-node --base-path /data/${account_ids[0]} --account-id ${account_ids[0]}" > /dev/null
+  -c "aleph-node bootstrap-chain --base-path /data --account-ids ${account_ids_comma_separated} --authorities-account-ids ${validator_ids_comma_separated}  > /data/chainspec.json"
 }
 
 function generate_bootnode_peer_id() {

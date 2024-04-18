@@ -419,7 +419,7 @@ impl<S: AsSigned + Sync> SignedConnectionApi for S {
 
 impl Connection {
     const DEFAULT_RETRIES: u32 = 10;
-    const RETRY_WAIT_SECS: u64 = 3;
+    const RETRY_WAIT_SECS: u64 = 6;
 
     /// Creates new connection from a given url.
     /// By default, it tries to connect 10 times, waiting 1 second between each unsuccessful attempt.

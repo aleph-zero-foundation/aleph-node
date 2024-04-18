@@ -251,19 +251,24 @@ info "Validator nodes: ${validator_account_ids[@]}"
 if [[ -z "${DONT_BOOTSTRAP}" ]]; then
   info "Bootstrapping chain for ${NUMBER_OF_NODES_TO_BOOTSTRAP} nodes."
 
+  all_account_ids=(${validator_account_ids[@]} ${rpc_node_account_ids[@]})
+  # space separated ids
+  all_account_ids_string="${all_account_ids[*]}"
+  # comma separated ids
+  all_account_ids_string="${all_account_ids_string//${IFS:0:1}/,}"
+
   # space separated ids
   validator_ids_string="${validator_account_ids[*]}"
   # comma separated ids
   validator_ids_string="${validator_ids_string//${IFS:0:1}/,}"
 
-  info "Creating chainspec and generating keystore for validators accounts."
-  "${ALEPH_NODE}" bootstrap-chain --raw --base-path "${BASE_PATH}" --account-ids "${validator_ids_string}" --chain-type local > "${BASE_PATH}/chainspec.json"
-
-  info "Generating keystores for ${RPC_NODES} RPC nodes"
-  for i in $(seq 0 "$(( RPC_NODES - 1 ))"); do
-    rpc_node_account_id="${rpc_node_account_ids[$i]}"
-    "${ALEPH_NODE}" bootstrap-node --base-path "${BASE_PATH}/${rpc_node_account_id}" --account-id "${rpc_node_account_id}" --chain-type local > /dev/null
-  done
+  info "Populating keystore for all accounts with session keys and libp2p key, and generating chainspec"
+  "${ALEPH_NODE}" bootstrap-chain \
+    --raw \
+    --base-path "${BASE_PATH}" \
+    --account-ids "${all_account_ids_string}" \
+    --authorities-account-ids "${validator_ids_string}" \
+    --chain-type local > "${BASE_PATH}/chainspec.json"
 
   if [[ "${DONT_REMOVE_ABFT_BACKUPS}" == "true" ]]; then
     all_account_ids=(${validator_account_ids[@]} ${rpc_node_account_ids[@]})

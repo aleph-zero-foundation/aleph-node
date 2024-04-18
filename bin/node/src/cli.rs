@@ -6,8 +6,9 @@ use sc_cli::{
 use crate::{
     aleph_cli::AlephCli,
     chain_spec,
-    chain_spec::{mainnet_config, testnet_config, BootstrapChainCmd},
-    commands::{BootstrapNodeCmd, ConvertChainspecToRawCmd},
+    chain_spec::{
+        commands::BootstrapChainCmd, mainnet_config, testnet_config, ConvertChainspecToRawCmd,
+    },
 };
 
 #[derive(Debug, Parser)]
@@ -69,14 +70,10 @@ pub enum Subcommand {
     #[command(subcommand)]
     Key(sc_cli::KeySubcommand),
 
-    /// Populate authorities keystore and generate chainspec in JSON format (printed to stdout)
-    /// Use `--raw` to produce the so called raw chainspec
+    /// Generates keystore (libp2p key and session keys), and generates chainspec to stdout
     BootstrapChain(BootstrapChainCmd),
 
-    /// Generate and print to stdout keys for a single node
-    BootstrapNode(BootstrapNodeCmd),
-
-    /// Takes a chainspec and generates a corresponfing raw chainspec
+    /// Takes a chainspec and generates a corresponding raw chainspec
     ConvertChainspecToRaw(ConvertChainspecToRawCmd),
 
     /// Validate blocks.
