@@ -82,9 +82,8 @@ impl RequestTask {
                     MaybeHeader::Header(header) => {
                         PreRequest::new(header, branch_knowledge, know_most)
                     }
-                    MaybeHeader::Id(id) => {
-                        PreRequest::new_headerless(id, branch_knowledge, know_most)
-                    }
+                    // TODO(A0-3494): This should no longer be happening.
+                    MaybeHeader::Id(_) => return Action::Ignore,
                 };
                 Action::Request(
                     pre_request,

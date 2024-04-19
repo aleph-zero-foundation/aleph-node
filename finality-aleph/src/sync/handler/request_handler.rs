@@ -10,7 +10,7 @@ use crate::{
     },
     session::{SessionBoundaryInfo, SessionId},
     sync::{
-        data::{BranchKnowledge, MaybeHeader, ResponseItem, ResponseItems},
+        data::{BranchKnowledge, ResponseItem, ResponseItems},
         handler::Request,
     },
     BlockId,
@@ -199,7 +199,7 @@ where
     J: Justification,
     B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
-    RequestBlock(MaybeHeader<UnverifiedHeaderFor<J>>),
+    RequestBlock(UnverifiedHeaderFor<J>),
     Response(ResponseItems<B, J>),
     Noop,
 }
@@ -209,7 +209,7 @@ where
     J: Justification,
     B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
-    fn request_block(maybe_header: MaybeHeader<UnverifiedHeaderFor<J>>) -> Self {
+    fn request_block(maybe_header: UnverifiedHeaderFor<J>) -> Self {
         Action::RequestBlock(maybe_header)
     }
 

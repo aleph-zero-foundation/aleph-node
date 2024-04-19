@@ -6,47 +6,17 @@ use static_assertions::const_assert;
 
 use crate::{
     aleph_primitives::MAX_BLOCK_SIZE,
-    block::{
-        Block, Header, Justification, UnverifiedHeader, UnverifiedHeaderFor,
-        UnverifiedJustification,
-    },
+    block::{Block, Header, Justification, UnverifiedHeader, UnverifiedHeaderFor},
     network::GossipNetwork,
     sync::{PeerId, LOG_TARGET},
     BlockId, Version,
 };
 
 /// The representation of the database state to be sent to other nodes.
-/// In the first version this only contains the top justification.
-#[derive(Clone, Debug, Encode, Decode)]
-pub struct StateV1<J: Justification> {
-    top_justification: J::Unverified,
-}
-
-/// The representation of the database state to be sent to other nodes.
 #[derive(Clone, Debug, Encode, Decode)]
 pub struct State<J: Justification> {
     top_justification: J::Unverified,
     favourite_block: UnverifiedHeaderFor<J>,
-}
-
-impl<J: Justification> From<StateV1<J>> for State<J> {
-    fn from(other: StateV1<J>) -> Self {
-        let StateV1 { top_justification } = other;
-        let favourite_block = top_justification.header().clone();
-        State {
-            top_justification,
-            favourite_block,
-        }
-    }
-}
-
-impl<J: Justification> From<State<J>> for StateV1<J> {
-    fn from(other: State<J>) -> Self {
-        let State {
-            top_justification, ..
-        } = other;
-        StateV1 { top_justification }
-    }
 }
 
 impl<J: Justification> State<J> {
@@ -95,28 +65,6 @@ pub enum BranchKnowledge {
     TopImported(BlockId),
 }
 
-/// Request content, first version.
-#[derive(Clone, Debug, Encode, Decode)]
-pub struct RequestV1<J: Justification> {
-    target_id: BlockId,
-    branch_knowledge: BranchKnowledge,
-    state: StateV1<J>,
-}
-
-impl<J: Justification> RequestV1<J> {
-    /// A silly fallback to have old nodes respond with at least justifications
-    /// when we request a chain extension.
-    pub fn from_state_only(state: StateV1<J>) -> Self {
-        let target_id = state.top_justification.header().id();
-        let branch_knowledge = BranchKnowledge::TopImported(target_id.clone());
-        Self {
-            target_id,
-            branch_knowledge,
-            state,
-        }
-    }
-}
-
 // TODO(A0-3494): Only needed because old requests did not have headers, afterwards we will have headers always.
 #[derive(Clone, Debug, Encode, Decode)]
 pub enum MaybeHeader<UH: UnverifiedHeader> {
@@ -124,65 +72,65 @@ pub enum MaybeHeader<UH: UnverifiedHeader> {
     Id(BlockId),
 }
 
-impl<UH: UnverifiedHeader> MaybeHeader<UH> {
-    pub fn id(&self) -> BlockId {
-        use MaybeHeader::*;
-        match self {
-            Header(header) => header.id(),
-            Id(id) => id.clone(),
-        }
-    }
-}
-
-/// Request content, current version.
+/// Request content, version 2.
 #[derive(Clone, Debug, Encode, Decode)]
-pub struct Request<J: Justification> {
+pub struct RequestV2<J: Justification> {
     target: MaybeHeader<UnverifiedHeaderFor<J>>,
     branch_knowledge: BranchKnowledge,
     state: State<J>,
 }
 
-impl<J: Justification> From<RequestV1<J>> for Request<J> {
-    fn from(other: RequestV1<J>) -> Self {
-        let RequestV1 {
-            target_id,
+/// Request content, current version.
+#[derive(Clone, Debug, Encode, Decode)]
+pub struct Request<J: Justification> {
+    target: UnverifiedHeaderFor<J>,
+    branch_knowledge: BranchKnowledge,
+    state: State<J>,
+}
+
+impl<J: Justification> TryFrom<RequestV2<J>> for Request<J> {
+    type Error = ();
+
+    fn try_from(other: RequestV2<J>) -> Result<Self, Self::Error> {
+        let RequestV2 {
+            target,
             branch_knowledge,
             state,
         } = other;
-        Request {
-            target: MaybeHeader::Id(target_id),
+        let target = match target {
+            MaybeHeader::Header(header) => header,
+            MaybeHeader::Id(_) => return Err(()),
+        };
+        Ok(Request {
+            target,
             branch_knowledge,
-            state: state.into(),
-        }
+            state,
+        })
     }
 }
 
-impl<J: Justification> From<Request<J>> for RequestV1<J> {
+impl<J: Justification> From<Request<J>> for RequestV2<J> {
     fn from(other: Request<J>) -> Self {
         let Request {
             target,
             branch_knowledge,
             state,
         } = other;
-        let target_id = match target {
-            MaybeHeader::Header(header) => header.id(),
-            MaybeHeader::Id(id) => id,
-        };
-        RequestV1 {
-            target_id,
+        RequestV2 {
+            target: MaybeHeader::Header(target),
             branch_knowledge,
-            state: state.into(),
+            state,
         }
     }
 }
 
 impl<J: Justification> Request<J> {
     pub fn new(
-        target: MaybeHeader<UnverifiedHeaderFor<J>>,
+        target: UnverifiedHeaderFor<J>,
         branch_knowledge: BranchKnowledge,
         state: State<J>,
     ) -> Self {
-        Self {
+        Request {
             target,
             branch_knowledge,
             state,
@@ -194,7 +142,7 @@ impl<J: Justification> Request<J> {
     pub fn state(&self) -> &State<J> {
         &self.state
     }
-    pub fn target(&self) -> &MaybeHeader<UnverifiedHeaderFor<J>> {
+    pub fn target(&self) -> &UnverifiedHeaderFor<J> {
         &self.target
     }
     pub fn branch_knowledge(&self) -> &BranchKnowledge {
@@ -204,27 +152,15 @@ impl<J: Justification> Request<J> {
 
 /// Data that can be used to generate a request given our state.
 pub struct PreRequest<UH: UnverifiedHeader, I: PeerId> {
-    header: MaybeHeader<UH>,
+    header: UH,
     branch_knowledge: BranchKnowledge,
     know_most: HashSet<I>,
 }
 
 impl<UH: UnverifiedHeader, I: PeerId> PreRequest<UH, I> {
-    pub fn new_headerless(
-        id: BlockId,
-        branch_knowledge: BranchKnowledge,
-        know_most: HashSet<I>,
-    ) -> Self {
-        PreRequest {
-            header: MaybeHeader::Id(id),
-            branch_knowledge,
-            know_most,
-        }
-    }
-
     pub fn new(header: UH, branch_knowledge: BranchKnowledge, know_most: HashSet<I>) -> Self {
         PreRequest {
-            header: MaybeHeader::Header(header),
+            header,
             branch_knowledge,
             know_most,
         }
@@ -245,9 +181,9 @@ impl<UH: UnverifiedHeader, I: PeerId> PreRequest<UH, I> {
     }
 }
 
-/// Data to be sent over the network version 2.
+/// Data to be sent over the network, version 3.
 #[derive(Clone, Debug, Encode, Decode)]
-pub enum NetworkDataV2<B: Block, J: Justification>
+pub enum NetworkDataV3<B: Block, J: Justification>
 where
     J: Justification,
     B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
@@ -255,14 +191,16 @@ where
     /// A periodic state broadcast, so that neighbouring nodes can request what they are missing,
     /// send what we are missing, and sometimes just use the justifications to update their own
     /// state.
-    StateBroadcast(StateV1<J>),
+    StateBroadcast(State<J>),
     /// Response to a state broadcast. Contains at most two justifications that the peer will
     /// understand.
     StateBroadcastResponse(J::Unverified, Option<J::Unverified>),
     /// An explicit request for data, potentially a lot of it.
-    Request(RequestV1<J>),
+    Request(RequestV2<J>),
     /// Response to the request for data.
     RequestResponse(ResponseItems<B, J>),
+    /// A request for a chain extension.
+    ChainExtensionRequest(State<J>),
 }
 
 /// Data to be sent over the network, current version.
@@ -287,42 +225,47 @@ where
     ChainExtensionRequest(State<J>),
 }
 
-impl<B: Block, J: Justification> From<NetworkDataV2<B, J>> for NetworkData<B, J>
+impl<B: Block, J: Justification> TryFrom<NetworkDataV3<B, J>> for NetworkData<B, J>
 where
     J: Justification,
     B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
-    fn from(data: NetworkDataV2<B, J>) -> Self {
-        match data {
-            NetworkDataV2::StateBroadcast(state) => NetworkData::StateBroadcast(state.into()),
-            NetworkDataV2::StateBroadcastResponse(justification, maybe_justification) => {
+    type Error = ();
+
+    fn try_from(data: NetworkDataV3<B, J>) -> Result<Self, Self::Error> {
+        Ok(match data {
+            NetworkDataV3::StateBroadcast(state) => NetworkData::StateBroadcast(state),
+            NetworkDataV3::StateBroadcastResponse(justification, maybe_justification) => {
                 NetworkData::StateBroadcastResponse(justification, maybe_justification)
             }
-            NetworkDataV2::Request(request) => NetworkData::Request(request.into()),
-            NetworkDataV2::RequestResponse(response_items) => {
+            NetworkDataV3::Request(request) => NetworkData::Request(request.try_into()?),
+            NetworkDataV3::RequestResponse(response_items) => {
                 NetworkData::RequestResponse(response_items)
             }
-        }
+            NetworkDataV3::ChainExtensionRequest(state) => {
+                NetworkData::ChainExtensionRequest(state)
+            }
+        })
     }
 }
 
-impl<B: Block, J: Justification> From<NetworkData<B, J>> for NetworkDataV2<B, J>
+impl<B: Block, J: Justification> From<NetworkData<B, J>> for NetworkDataV3<B, J>
 where
     J: Justification,
     B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
 {
     fn from(data: NetworkData<B, J>) -> Self {
         match data {
-            NetworkData::StateBroadcast(state) => NetworkDataV2::StateBroadcast(state.into()),
+            NetworkData::StateBroadcast(state) => NetworkDataV3::StateBroadcast(state),
             NetworkData::StateBroadcastResponse(justification, maybe_justification) => {
-                NetworkDataV2::StateBroadcastResponse(justification, maybe_justification)
+                NetworkDataV3::StateBroadcastResponse(justification, maybe_justification)
             }
-            NetworkData::Request(request) => NetworkDataV2::Request(request.into()),
+            NetworkData::Request(request) => NetworkDataV3::Request(request.into()),
             NetworkData::RequestResponse(response_items) => {
-                NetworkDataV2::RequestResponse(response_items)
+                NetworkDataV3::RequestResponse(response_items)
             }
             NetworkData::ChainExtensionRequest(state) => {
-                NetworkDataV2::Request(RequestV1::from_state_only(state.into()))
+                NetworkDataV3::ChainExtensionRequest(state)
             }
         }
     }
@@ -337,8 +280,8 @@ where
 {
     // Most likely from the future.
     Other(Version, Vec<u8>),
-    V2(NetworkDataV2<B, J>),
-    V3(NetworkData<B, J>),
+    V3(NetworkDataV3<B, J>),
+    V4(NetworkData<B, J>),
 }
 
 // We need 32 bits, since blocks can be quite sizeable.
@@ -388,8 +331,8 @@ where
             + byte_count_size
             + match self {
                 Other(_, payload) => payload.len(),
-                V2(data) => data.size_hint(),
                 V3(data) => data.size_hint(),
+                V4(data) => data.size_hint(),
             }
     }
 
@@ -397,8 +340,8 @@ where
         use VersionedNetworkData::*;
         match self {
             Other(version, payload) => encode_with_version(*version, payload),
-            V2(data) => encode_with_version(Version(2), &data.encode()),
             V3(data) => encode_with_version(Version(3), &data.encode()),
+            V4(data) => encode_with_version(Version(4), &data.encode()),
         }
     }
 }
@@ -413,8 +356,8 @@ where
         let version = Version::decode(input)?;
         let num_bytes = ByteCount::decode(input)?;
         match version {
-            Version(2) => Ok(V2(NetworkDataV2::decode(input)?)),
-            Version(3) => Ok(V3(NetworkData::decode(input)?)),
+            Version(3) => Ok(V3(NetworkDataV3::decode(input)?)),
+            Version(4) => Ok(V4(NetworkData::decode(input)?)),
             _ => {
                 if num_bytes > MAX_SYNC_MESSAGE_SIZE {
                     Err("Sync message has unknown version and is encoded as more than the maximum size.")?;
@@ -469,10 +412,10 @@ where
         peer_id: Self::PeerId,
     ) -> Result<(), Self::Error> {
         self.inner.send_to(
-            VersionedNetworkData::V2(data.clone().into()),
+            VersionedNetworkData::V3(data.clone().into()),
             peer_id.clone(),
         )?;
-        self.inner.send_to(VersionedNetworkData::V3(data), peer_id)
+        self.inner.send_to(VersionedNetworkData::V4(data), peer_id)
     }
 
     fn send_to_random(
@@ -481,17 +424,17 @@ where
         peer_ids: HashSet<Self::PeerId>,
     ) -> Result<(), Self::Error> {
         self.inner.send_to_random(
-            VersionedNetworkData::V2(data.clone().into()),
+            VersionedNetworkData::V3(data.clone().into()),
             peer_ids.clone(),
         )?;
         self.inner
-            .send_to_random(VersionedNetworkData::V3(data), peer_ids)
+            .send_to_random(VersionedNetworkData::V4(data), peer_ids)
     }
 
     fn broadcast(&mut self, data: NetworkData<B, J>) -> Result<(), Self::Error> {
         self.inner
-            .broadcast(VersionedNetworkData::V2(data.clone().into()))?;
-        self.inner.broadcast(VersionedNetworkData::V3(data))
+            .broadcast(VersionedNetworkData::V3(data.clone().into()))?;
+        self.inner.broadcast(VersionedNetworkData::V4(data))
     }
 
     /// Retrieves next message from the network.
@@ -508,8 +451,14 @@ where
                         "Received sync data of unsupported version {:?}.", version
                     )
                 }
-                (VersionedNetworkData::V2(data), peer_id) => return Ok((data.into(), peer_id)),
-                (VersionedNetworkData::V3(data), peer_id) => return Ok((data, peer_id)),
+                (VersionedNetworkData::V3(data), peer_id) => match data.try_into() {
+                    Ok(data) => return Ok((data, peer_id)),
+                    Err(()) => warn!(
+                        target: LOG_TARGET,
+                        "Received request with no header in target, this should never happen.",
+                    ),
+                },
+                (VersionedNetworkData::V4(data), peer_id) => return Ok((data, peer_id)),
             }
         }
     }

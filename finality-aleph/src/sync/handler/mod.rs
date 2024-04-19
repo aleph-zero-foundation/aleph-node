@@ -14,7 +14,7 @@ use crate::{
     },
     session::{SessionBoundaryInfo, SessionId},
     sync::{
-        data::{BranchKnowledge, MaybeHeader, NetworkData, Request, State},
+        data::{BranchKnowledge, NetworkData, Request, State},
         forest::{
             Error as ForestError, ExtensionRequest, Forest,
             InitializationError as ForestInitializationError, Interest, Status as ForestStatus,
@@ -543,20 +543,16 @@ where
         let mut equivocation_proof = None;
 
         Ok(match request_handler.action(request)? {
-            Action::RequestBlock(maybe_header)
-                if match &maybe_header {
-                    MaybeHeader::Header(header) => {
-                        let VerifiedHeader {
-                            header,
-                            maybe_equivocation_proof,
-                        } = self.verify_header(header.clone(), false)?;
-                        equivocation_proof = maybe_equivocation_proof;
-                        !self.forest.update_header(&header, None, true)?
-                    }
-                    MaybeHeader::Id(id) => !self.forest.update_block_identifier(id, None, true)?,
-                } =>
-            {
-                (Action::Noop, equivocation_proof)
+            Action::RequestBlock(unverified_header) => {
+                let VerifiedHeader {
+                    header,
+                    maybe_equivocation_proof,
+                } = self.verify_header(unverified_header.clone(), false)?;
+                equivocation_proof = maybe_equivocation_proof;
+                match self.forest.update_header(&header, None, true)? {
+                    true => (Action::RequestBlock(unverified_header), equivocation_proof),
+                    false => (Action::Noop, equivocation_proof),
+                }
             }
             action => (action, equivocation_proof),
         })
@@ -573,7 +569,7 @@ where
         state: State<J>,
     ) -> Result<Action<B, J>, <Self as HandlerTypes>::Error> {
         let request = Request::new(
-            MaybeHeader::Header(self.forest.favourite_block().into_unverified()),
+            self.forest.favourite_block().into_unverified(),
             BranchKnowledge::TopImported(state.favourite_block().id()),
             state.clone(),
         );
@@ -585,7 +581,7 @@ where
             Ok((Action::Noop, _))
             | Err(Error::RequestHandlerError(RequestHandlerError::RootMismatch)) => {
                 let request = Request::new(
-                    MaybeHeader::Header(state.top_justification().header().clone()),
+                    state.top_justification().header().clone(),
                     BranchKnowledge::TopImported(state.top_justification().header().id()),
                     state,
                 );
@@ -895,10 +891,7 @@ mod tests {
         },
         session::{SessionBoundaryInfo, SessionId},
         sync::{
-            data::{
-                BranchKnowledge::*, MaybeHeader, NetworkData, Request, ResponseItem, ResponseItems,
-                State,
-            },
+            data::{BranchKnowledge::*, NetworkData, Request, ResponseItem, ResponseItems, State},
             forest::{ExtensionRequest, Interest},
             handler::Action,
             Justification, MockPeerId,
@@ -1732,7 +1725,7 @@ mod tests {
                 _ => panic!("should want to extend"),
             };
             let state = syncing_handler.state().expect("should work");
-            let request = Request::new(MaybeHeader::Header(header), branch_knowledge, state);
+            let request = Request::new(header, branch_knowledge, state);
 
             // peer responds
             let response_items = match handler.handle_request(request).expect("should work") {
@@ -2184,7 +2177,7 @@ mod tests {
 
         let requested_header = justifications.last().unwrap().header();
         let request = Request::new(
-            MaybeHeader::Header(requested_header.clone()),
+            requested_header.clone(),
             LowestId(requested_header.id()),
             initial_state,
         );
@@ -2227,11 +2220,7 @@ mod tests {
         let lowest_id = blocks[25].clone().id();
 
         // request block #31, with the last known header equal to block #26
-        let request = Request::new(
-            MaybeHeader::Header(requested_header),
-            LowestId(lowest_id),
-            initial_state,
-        );
+        let request = Request::new(requested_header, LowestId(lowest_id), initial_state);
 
         let expected_response_items = vec![
             J(1),
@@ -2304,30 +2293,6 @@ mod tests {
     }
 
     #[test]
-    fn handles_request_with_unknown_header() {
-        let (mut handler, mut backend, _keep, _genesis) = setup();
-        setup_request_tests(&mut handler, &mut backend, 100, 20);
-
-        let header = MockHeader::random_parentless(105);
-        let state = State::new(MockJustification::for_header(header.clone()), header);
-        let requested_header = BlockId::new_random(119).random_child();
-        let lowest_id = BlockId::new_random(110);
-
-        let request = Request::new(
-            MaybeHeader::Id(requested_header.id()),
-            LowestId(lowest_id),
-            state,
-        );
-
-        match handler.handle_request(request).expect("correct request") {
-            (Action::RequestBlock(MaybeHeader::Id(block_id)), None) => {
-                assert_eq!(block_id, requested_header.id())
-            }
-            other_action => panic!("expected a response with justifications, got {other_action:?}"),
-        }
-    }
-
-    #[test]
     fn handles_request_with_top_imported() {
         use SimplifiedItem::*;
         let (mut handler, mut backend, _keep, _genesis) = setup();
@@ -2339,11 +2304,7 @@ mod tests {
         let top_imported = blocks[25].clone().id();
 
         // request block #31, with the top imported block equal to block #26
-        let request = Request::new(
-            MaybeHeader::Header(requested_header),
-            TopImported(top_imported),
-            initial_state,
-        );
+        let request = Request::new(requested_header, TopImported(top_imported), initial_state);
 
         let expected_response_items = vec![
             J(1),
