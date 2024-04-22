@@ -1,9 +1,6 @@
-mod pruning_config;
-
-use aleph_node::{new_authority, new_partial, Cli, Subcommand};
+use aleph_node::{new_authority, new_partial, Cli, ConfigValidator, Subcommand};
 use log::info;
 use primitives::HEAP_PAGES;
-use pruning_config::PruningConfigValidator;
 use sc_cli::{clap::Parser, SubstrateCli};
 use sc_network::config::Role;
 use sc_service::{Configuration, PartialComponents};
@@ -15,7 +12,7 @@ fn enforce_heap_pages(config: &mut Configuration) {
 fn main() -> sc_cli::Result<()> {
     let mut cli = Cli::parse();
 
-    let pruning_config_validation_result = PruningConfigValidator::process(&mut cli);
+    let config_validation_result = ConfigValidator::process(&mut cli);
 
     match &cli.subcommand {
         Some(Subcommand::BootstrapChain(cmd)) => cmd.run(),
@@ -142,7 +139,7 @@ fn main() -> sc_cli::Result<()> {
         None => {
             let runner = cli.create_runner(&cli.run)?;
 
-            pruning_config_validation_result.report();
+            config_validation_result.report();
 
             let mut aleph_cli_config = cli.aleph;
             runner.run_node_until_exit(|mut config| async move {
