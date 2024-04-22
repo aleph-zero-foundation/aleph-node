@@ -1,4 +1,6 @@
-use legacy_aleph_bft::{default_config, Config, LocalIO, Terminator};
+use std::{pin::Pin, time::Duration};
+
+use legacy_aleph_bft::{create_config, default_delay_config, Config, LocalIO, Terminator};
 use log::debug;
 use network_clique::SpawnHandleT;
 
@@ -7,51 +9,55 @@ mod traits;
 
 pub use network::NetworkData;
 
-use super::common::{sanity_check_round_delays, unit_creation_delay_fn, MAX_ROUNDS};
 pub use crate::aleph_primitives::{BlockHash, BlockNumber, LEGACY_FINALITY_VERSION as VERSION};
 use crate::{
-    abft::NetworkWrapper,
-    block::{Header, HeaderBackend},
-    data_io::{
-        legacy::{AlephData, OrderedDataInterpreter},
-        SubstrateChainInfoProvider,
+    abft::{
+        common::{unit_creation_delay_fn, MAX_ROUNDS, SESSION_LEN_LOWER_BOUND_MS},
+        NetworkWrapper,
     },
+    block::{Header, HeaderBackend, HeaderVerifier},
+    crypto::Signature,
+    data_io::{AlephData, OrderedDataInterpreter, SubstrateChainInfoProvider},
     network::data::Network,
     oneshot,
     party::{
         backup::ABFTBackup,
         manager::{Task, TaskCommon},
     },
-    Keychain, LegacyNetworkData, NodeIndex, SessionId, UnitCreationDelay,
+    Hasher, Keychain, LegacyNetworkData, NodeIndex, SessionId, SignatureSet, UnitCreationDelay,
 };
 
-pub fn run_member<H, C, ADN>(
+type WrappedNetwork<H, ADN> = NetworkWrapper<
+    legacy_aleph_bft::NetworkData<Hasher, AlephData<H>, Signature, SignatureSet<Signature>>,
+    ADN,
+>;
+pub fn run_member<H, C, ADN, V>(
     subtask_common: TaskCommon,
     multikeychain: Keychain,
     config: Config,
-    network: NetworkWrapper<LegacyNetworkData, ADN>,
-    data_provider: impl legacy_aleph_bft::DataProvider<AlephData> + Send + 'static,
-    ordered_data_interpreter: OrderedDataInterpreter<SubstrateChainInfoProvider<H, C>>,
+    network: WrappedNetwork<H::Unverified, ADN>,
+    data_provider: impl legacy_aleph_bft::DataProvider<AlephData<H::Unverified>> + Send + 'static,
+    ordered_data_interpreter: OrderedDataInterpreter<SubstrateChainInfoProvider<H, C>, H, V>,
     backup: ABFTBackup,
 ) -> Task
 where
     H: Header,
-    C: HeaderBackend<H> + Send + 'static,
-    ADN: Network<LegacyNetworkData> + 'static,
+    C: HeaderBackend<H> + 'static,
+    ADN: Network<LegacyNetworkData<H::Unverified>> + 'static,
+    V: HeaderVerifier<H>,
 {
-    // Remove this check once we implement one on the AlephBFT side (A0-2583).
-    // Checks that the total time of a session is at least 7 days.
-    sanity_check_round_delays(
-        config.max_round,
-        config.delay_config.unit_creation_delay.clone(),
-    );
     let TaskCommon {
         spawn_handle,
         session_id,
     } = subtask_common;
     let (stop, exit) = oneshot::channel();
     let member_terminator = Terminator::create_root(exit, "member");
-    let local_io = LocalIO::new(data_provider, ordered_data_interpreter, backup.0, backup.1);
+    let local_io = LocalIO::new(
+        data_provider,
+        ordered_data_interpreter,
+        Pin::into_inner(backup.0),
+        Pin::into_inner(backup.1),
+    );
 
     let task = {
         let spawn_handle = spawn_handle.clone();
@@ -80,8 +86,10 @@ pub fn create_aleph_config(
     session_id: SessionId,
     unit_creation_delay: UnitCreationDelay,
 ) -> Config {
-    let mut config = default_config(n_members.into(), node_id.into(), session_id.0 as u64);
-    config.delay_config.unit_creation_delay = unit_creation_delay_fn(unit_creation_delay);
-    config.max_round = MAX_ROUNDS;
-    config
+    let mut delay_config = default_delay_config();
+    delay_config.unit_creation_delay = unit_creation_delay_fn(unit_creation_delay);
+    match create_config(n_members.into(), node_id.into(), session_id.0 as u64, MAX_ROUNDS, delay_config, Duration::from_millis(SESSION_LEN_LOWER_BOUND_MS as u64)) {
+        Ok(config) => config,
+        Err(_) => panic!("Incorrect setting of delays. Make sure the total AlephBFT session time is at least {} ms.", SESSION_LEN_LOWER_BOUND_MS),
+    }
 }

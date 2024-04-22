@@ -19,13 +19,7 @@ use crate::{
         BestBlockSelector, Block, Header, HeaderVerifier, UnverifiedHeader,
     },
     crypto::{AuthorityPen, AuthorityVerifier},
-    data_io::{
-        legacy::{
-            ChainTracker as LegacyChainTracker, DataStore as LegacyDataStore,
-            OrderedDataInterpreter as LegacyOrderedDataInterpreter,
-        },
-        ChainTracker, DataStore, OrderedDataInterpreter, SubstrateChainInfoProvider,
-    },
+    data_io::{ChainTracker, DataStore, OrderedDataInterpreter, SubstrateChainInfoProvider},
     metrics::AllBlockMetrics,
     mpsc,
     network::{
@@ -189,16 +183,17 @@ where
             backup,
             ..
         } = params;
-        let (chain_tracker, data_provider) = LegacyChainTracker::new(
+        let (chain_tracker, data_provider) = ChainTracker::new(
             self.best_block_selection_strategy.clone(),
             self.header_backend.clone(),
             session_boundaries.clone(),
             Default::default(),
             self.metrics.clone(),
         );
-        let ordered_data_interpreter = LegacyOrderedDataInterpreter::new(
+        let ordered_data_interpreter = OrderedDataInterpreter::new(
             blocks_for_aggregator,
             chain_info,
+            self.verifier.clone(),
             session_boundaries.clone(),
         );
         let consensus_config =
@@ -207,10 +202,11 @@ where
 
         let (unfiltered_aleph_network, rmc_network) =
             split(data_network, "aleph_network", "rmc_network");
-        let (data_store, aleph_network) = LegacyDataStore::new(
+        let (data_store, aleph_network) = DataStore::new(
             session_boundaries.clone(),
             self.header_backend.clone(),
             self.client.clone(),
+            self.verifier.clone(),
             self.block_requester.clone(),
             Default::default(),
             unfiltered_aleph_network,

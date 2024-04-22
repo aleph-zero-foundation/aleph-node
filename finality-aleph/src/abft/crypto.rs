@@ -60,7 +60,6 @@ impl legacy_aleph_bft::Index for Keychain {
     }
 }
 
-#[async_trait::async_trait]
 impl current_aleph_bft::Keychain for Keychain {
     type Signature = Signature;
 
@@ -77,7 +76,6 @@ impl current_aleph_bft::Keychain for Keychain {
     }
 }
 
-#[async_trait::async_trait]
 impl legacy_aleph_bft::Keychain for Keychain {
     type Signature = Signature;
 
@@ -85,7 +83,7 @@ impl legacy_aleph_bft::Keychain for Keychain {
         Keychain::node_count(self).into()
     }
 
-    async fn sign(&self, msg: &[u8]) -> Signature {
+    fn sign(&self, msg: &[u8]) -> Signature {
         Keychain::sign(self, msg)
     }
 

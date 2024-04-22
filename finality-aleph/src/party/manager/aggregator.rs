@@ -58,7 +58,7 @@ where
 }
 
 async fn process_new_block_data<CN, LN>(
-    aggregator: &mut Aggregator<'_, CN, LN>,
+    aggregator: &mut Aggregator<CN, LN>,
     block: BlockId,
     metrics: &mut AllBlockMetrics,
 ) where
@@ -104,7 +104,7 @@ where
 }
 
 async fn run_aggregator<H, C, CN, LN, JS>(
-    mut aggregator: Aggregator<'_, CN, LN>,
+    mut aggregator: Aggregator<CN, LN>,
     io: IO<JS>,
     client: C,
     session_boundaries: &SessionBoundaries,

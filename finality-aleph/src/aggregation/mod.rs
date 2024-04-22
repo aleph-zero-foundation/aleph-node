@@ -9,7 +9,6 @@ use crate::{
     abft::SignatureSet,
     aleph_primitives::BlockHash,
     crypto::Signature,
-    mpsc,
     network::{
         data::{Network, SendError},
         Data,
@@ -22,81 +21,52 @@ pub type LegacyRmcNetworkData =
 pub type CurrentRmcNetworkData =
     current_aleph_aggregator::RmcNetworkData<BlockHash, Signature, SignatureSet<Signature>>;
 
-pub type LegacySignableBlockHash = legacy_aleph_aggregator::SignableHash<BlockHash>;
-pub type LegacyRmc<'a> =
-    legacy_aleph_bft_rmc::ReliableMulticast<'a, LegacySignableBlockHash, Keychain>;
-
-pub struct NoopMetrics;
-
-impl legacy_aleph_aggregator::Metrics<BlockHash> for NoopMetrics {
-    fn report_aggregation_complete(&mut self, _: BlockHash) {}
-}
-
-pub type LegacyAggregator<'a, N> = legacy_aleph_aggregator::IO<
-    BlockHash,
-    LegacyRmcNetworkData,
-    NetworkWrapper<LegacyRmcNetworkData, N>,
-    SignatureSet<Signature>,
-    LegacyRmc<'a>,
-    NoopMetrics,
->;
+pub type LegacyAggregator<N> =
+    legacy_aleph_aggregator::IO<BlockHash, NetworkWrapper<LegacyRmcNetworkData, N>, Keychain>;
 
 pub type CurrentAggregator<N> =
     current_aleph_aggregator::IO<BlockHash, NetworkWrapper<CurrentRmcNetworkData, N>, Keychain>;
 
-enum EitherAggregator<'a, CN, LN>
+enum EitherAggregator<CN, LN>
 where
     LN: Network<LegacyRmcNetworkData>,
     CN: Network<CurrentRmcNetworkData>,
 {
     Current(Box<CurrentAggregator<CN>>),
-    Legacy(LegacyAggregator<'a, LN>),
+    Legacy(Box<LegacyAggregator<LN>>),
 }
 
 /// Wrapper on the aggregator, which is either current or legacy one. Depending on the inner variant
 /// it behaves runs the legacy one or the current.
-pub struct Aggregator<'a, CN, LN>
+pub struct Aggregator<CN, LN>
 where
     LN: Network<LegacyRmcNetworkData>,
     CN: Network<CurrentRmcNetworkData>,
 {
-    agg: EitherAggregator<'a, CN, LN>,
+    agg: EitherAggregator<CN, LN>,
 }
 
-impl<'a, CN, LN> Aggregator<'a, CN, LN>
+impl<'a, CN, LN> Aggregator<CN, LN>
 where
     LN: Network<LegacyRmcNetworkData>,
     CN: Network<CurrentRmcNetworkData>,
 {
-    pub fn new_legacy(multikeychain: &'a Keychain, rmc_network: LN) -> Self {
-        let (messages_for_rmc, messages_from_network) = mpsc::unbounded();
-        let (messages_for_network, messages_from_rmc) = mpsc::unbounded();
+    pub fn new_legacy(multikeychain: &Keychain, rmc_network: LN) -> Self {
         let scheduler = legacy_aleph_bft_rmc::DoublingDelayScheduler::new(
             tokio::time::Duration::from_millis(500),
         );
-        let rmc = legacy_aleph_bft_rmc::ReliableMulticast::new(
-            messages_from_network,
-            messages_for_network,
-            multikeychain,
-            legacy_aleph_bft::Keychain::node_count(multikeychain),
-            scheduler,
-        );
-        // For the compatibility with the legacy aggregator we need extra `Option` layer
-        let aggregator = legacy_aleph_aggregator::BlockSignatureAggregator::new(NoopMetrics);
-        let aggregator_io = LegacyAggregator::<LN>::new(
-            messages_for_rmc,
-            messages_from_rmc,
-            NetworkWrapper::new(rmc_network),
-            rmc,
-            aggregator,
-        );
+        let rmc_handler = legacy_aleph_bft_rmc::Handler::new(multikeychain.clone());
+        let rmc_service = legacy_aleph_bft_rmc::Service::new(scheduler, rmc_handler);
+        let aggregator = legacy_aleph_aggregator::BlockSignatureAggregator::new();
+        let aggregator_io =
+            LegacyAggregator::<LN>::new(NetworkWrapper::new(rmc_network), rmc_service, aggregator);
 
         Self {
-            agg: EitherAggregator::Legacy(aggregator_io),
+            agg: EitherAggregator::Legacy(Box::new(aggregator_io)),
         }
     }
 
-    pub fn new_current(multikeychain: &'a Keychain, rmc_network: CN) -> Self {
+    pub fn new_current(multikeychain: &Keychain, rmc_network: CN) -> Self {
         let scheduler = current_aleph_bft_rmc::DoublingDelayScheduler::new(
             tokio::time::Duration::from_millis(500),
         );

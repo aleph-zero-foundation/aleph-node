@@ -1,15 +1,16 @@
 use crate::{
     abft::SignatureSet,
+    block::UnverifiedHeader,
     crypto::Signature,
-    data_io::legacy::{AlephData, AlephNetworkMessage},
+    data_io::{AlephData, AlephNetworkMessage},
     Hasher,
 };
 
-pub type NetworkData =
-    legacy_aleph_bft::NetworkData<Hasher, AlephData, Signature, SignatureSet<Signature>>;
+pub type NetworkData<UH> =
+    legacy_aleph_bft::NetworkData<Hasher, AlephData<UH>, Signature, SignatureSet<Signature>>;
 
-impl AlephNetworkMessage for NetworkData {
-    fn included_data(&self) -> Vec<AlephData> {
+impl<UH: UnverifiedHeader> AlephNetworkMessage<UH> for NetworkData<UH> {
+    fn included_data(&self) -> Vec<AlephData<UH>> {
         self.included_data()
     }
 }

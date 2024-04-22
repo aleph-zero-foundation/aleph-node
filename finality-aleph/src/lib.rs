@@ -112,10 +112,10 @@ pub struct MillisecsPerBlock(pub u64);
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
 pub struct UnitCreationDelay(pub u64);
 
-type LegacySplitData = Split<LegacyNetworkData, LegacyRmcNetworkData>;
+type LegacySplitData<UH> = Split<LegacyNetworkData<UH>, LegacyRmcNetworkData>;
 type CurrentSplitData<UH> = Split<CurrentNetworkData<UH>, CurrentRmcNetworkData>;
 
-impl Versioned for LegacyNetworkData {
+impl<UH: UnverifiedHeader> Versioned for LegacyNetworkData<UH> {
     const VERSION: Version = Version(LEGACY_VERSION);
 }
 
@@ -171,7 +171,7 @@ impl<L: Versioned + Encode, R: Versioned + Encode> Encode for VersionedEitherMes
     }
 }
 
-type VersionedNetworkData<UH> = VersionedEitherMessage<LegacySplitData, CurrentSplitData<UH>>;
+type VersionedNetworkData<UH> = VersionedEitherMessage<LegacySplitData<UH>, CurrentSplitData<UH>>;
 
 #[derive(Debug, Display, Clone)]
 pub enum VersionedTryFromError {
@@ -179,7 +179,7 @@ pub enum VersionedTryFromError {
     ExpectedOldGotNew,
 }
 
-impl<UH: UnverifiedHeader> TryFrom<VersionedNetworkData<UH>> for LegacySplitData {
+impl<UH: UnverifiedHeader> TryFrom<VersionedNetworkData<UH>> for LegacySplitData<UH> {
     type Error = VersionedTryFromError;
 
     fn try_from(value: VersionedNetworkData<UH>) -> Result<Self, Self::Error> {
@@ -200,8 +200,8 @@ impl<UH: UnverifiedHeader> TryFrom<VersionedNetworkData<UH>> for CurrentSplitDat
     }
 }
 
-impl<UH: UnverifiedHeader> From<LegacySplitData> for VersionedNetworkData<UH> {
-    fn from(data: LegacySplitData) -> Self {
+impl<UH: UnverifiedHeader> From<LegacySplitData<UH>> for VersionedNetworkData<UH> {
+    fn from(data: LegacySplitData<UH>) -> Self {
         VersionedEitherMessage::Left(data)
     }
 }

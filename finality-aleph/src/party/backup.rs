@@ -4,9 +4,11 @@ use std::{
     io,
     io::{Cursor, Read, Write},
     path::{Path, PathBuf},
+    pin::Pin,
     str::FromStr,
 };
 
+use futures::io::{AllowStdIo, AsyncRead, AsyncWrite};
 use log::debug;
 
 const BACKUP_FILE_EXTENSION: &str = ".abfts";
@@ -41,8 +43,14 @@ impl From<io::Error> for BackupLoadError {
 
 impl std::error::Error for BackupLoadError {}
 
-pub type Saver = Box<dyn Write + Send + Sync>;
-pub type Loader = Box<dyn Read + Send + Sync>;
+pub trait BothRead: Read + AsyncRead {}
+impl<T: Read + AsyncRead> BothRead for T {}
+
+pub trait BothWrite: Write + AsyncWrite {}
+impl<T: Write + AsyncWrite> BothWrite for T {}
+
+pub type Saver = Pin<Box<dyn BothWrite + Send + Sync + Unpin>>;
+pub type Loader = Pin<Box<dyn BothRead + Send + Sync + Unpin>>;
 pub type ABFTBackup = (Saver, Loader);
 
 /// Find all `*.abfts` files at `session_path` and return their indexes sorted, if all are present.
@@ -67,7 +75,7 @@ fn load_backup(session_path: &Path, session_idxs: &[usize]) -> Result<Loader, Ba
         let load_path = session_path.join(format!("{index}{BACKUP_FILE_EXTENSION}"));
         File::open(load_path)?.read_to_end(&mut buffer)?;
     }
-    Ok(Box::new(Cursor::new(buffer)))
+    Ok(Box::pin(AllowStdIo::new(Cursor::new(buffer))))
 }
 
 /// Get path of next backup file in session.
@@ -102,7 +110,10 @@ pub fn rotate(
         path.join(format!("{session_id}"))
     } else {
         debug!(target: "aleph-party", "Passing empty backup for session {:?} as no backup argument was provided", session_id);
-        return Ok((Box::new(io::sink()), Box::new(io::empty())));
+        return Ok((
+            Box::pin(AllowStdIo::new(io::sink())),
+            Box::pin(AllowStdIo::new(io::empty())),
+        ));
     };
     debug!(target: "aleph-party", "Loading backup for session {:?} at path {:?}", session_id, session_path);
 
@@ -112,7 +123,7 @@ pub fn rotate(
 
     let next_backup_path = get_next_path(&session_path, &session_backup_idxs);
     debug!(target: "aleph-party", "Loaded backup for session {:?}. Creating new backup file at {:?}", session_id, next_backup_path);
-    let backup_saver = Box::new(File::create(next_backup_path)?);
+    let backup_saver = Box::pin(AllowStdIo::new(File::create(next_backup_path)?));
 
     debug!(target: "aleph-party", "Backup rotation done for session {:?}", session_id);
     Ok((backup_saver, backup_loader))

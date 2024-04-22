@@ -47,10 +47,10 @@ homepage = "https://alephzero.org"
 repository = "https://github.com/Cardinal-Cryptography/aleph-node"
 
 [workspace.dependencies]
-aleph-bft-crypto = { version = "0.8" }
-aleph-bft-mock = { version = "0.11.1" }
-aleph-bft-rmc = { version = "0.11" }
-aleph-bft-types = { version = "0.11" }
+aleph-bft-crypto = { version = "0.9" }
+aleph-bft-mock = { version = "0.14" }
+aleph-bft-rmc = { version = "0.13" }
+aleph-bft-types = { version = "0.13" }
 async-trait = { version = "0.1" }
 bytes = { version = "1.6" }
 derive_more = { version = "0.99" }

@@ -35,31 +35,3 @@ pub fn unit_creation_delay_fn(unit_creation_delay: UnitCreationDelay) -> DelaySc
 
 // 7 days (as milliseconds)
 pub const SESSION_LEN_LOWER_BOUND_MS: u128 = 1000 * 60 * 60 * 24 * 7;
-
-pub fn sanity_check_round_delays(max_rounds: u16, round_delays: DelaySchedule) {
-    let delays_ok = sanity_check_round_delays_inner(max_rounds, round_delays);
-    assert!(
-        delays_ok,
-        "Incorrect setting of delays. Make sure the total AlephBFT session time is at least {SESSION_LEN_LOWER_BOUND_MS}ms."
-    );
-}
-
-fn sanity_check_round_delays_inner(max_rounds: u16, round_delays: DelaySchedule) -> bool {
-    let mut total_delay = Duration::from_millis(0);
-    for t in 0..=max_rounds {
-        total_delay += round_delays(t as usize);
-    }
-    total_delay.as_millis() > SESSION_LEN_LOWER_BOUND_MS
-}
-
-#[test]
-fn sanity_check_fails_on_bad_config() {
-    let round_delays = unit_creation_delay_fn(UnitCreationDelay(300));
-    assert!(!sanity_check_round_delays_inner(5000, round_delays));
-}
-
-#[test]
-fn sanity_check_passes_on_good_config() {
-    let round_delays = unit_creation_delay_fn(UnitCreationDelay(300));
-    assert!(sanity_check_round_delays_inner(7000, round_delays));
-}
