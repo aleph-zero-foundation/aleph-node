@@ -65,9 +65,10 @@ pub enum BranchKnowledge {
     TopImported(BlockId),
 }
 
-// TODO(A0-3494): Only needed because old requests did not have headers, afterwards we will have headers always.
+// Only needed for backwards compatible decoding.
+// TODO(A0-4270): Remove this when removing v3 data.
 #[derive(Clone, Debug, Encode, Decode)]
-pub enum MaybeHeader<UH: UnverifiedHeader> {
+enum MaybeHeader<UH: UnverifiedHeader> {
     Header(UH),
     Id(BlockId),
 }

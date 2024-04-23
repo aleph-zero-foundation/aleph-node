@@ -48,7 +48,7 @@ pub use task::{Handle, Runnable, Task, TaskCommon};
 use crate::{
     abft::{CURRENT_VERSION, LEGACY_VERSION},
     block::{BlockchainEvents, HeaderBackend},
-    sync::{LegacyRequestBlocks, RequestBlocks},
+    sync::RequestBlocks,
 };
 
 #[cfg(feature = "only_legacy")]
@@ -95,7 +95,7 @@ where
     C::Api: AlephSessionApi<B>,
     HB: HeaderBackend<H> + Send + Sync + 'static,
     BBS: BestBlockSelector<H> + 'static,
-    RB: RequestBlocks<B::UnverifiedHeader> + LegacyRequestBlocks,
+    RB: RequestBlocks<B::UnverifiedHeader>,
     SM: SessionManager<VersionedNetworkData<B::UnverifiedHeader>> + 'static,
     JS: JustificationSubmissions<Justification> + Send + Sync + Clone,
     V: HeaderVerifier<H>,
@@ -125,7 +125,7 @@ where
     C::Api: AlephSessionApi<B>,
     HB: HeaderBackend<H> + Send + Sync + Clone + 'static,
     BBS: BestBlockSelector<H> + 'static,
-    RB: RequestBlocks<B::UnverifiedHeader> + LegacyRequestBlocks,
+    RB: RequestBlocks<B::UnverifiedHeader>,
     SM: SessionManager<VersionedNetworkData<B::UnverifiedHeader>> + 'static,
     JS: JustificationSubmissions<Justification> + Send + Sync + Clone,
     V: HeaderVerifier<H>,
@@ -429,7 +429,7 @@ where
     C::Api: AlephSessionApi<B>,
     HB: HeaderBackend<H> + Send + Sync + Clone + 'static,
     BBS: BestBlockSelector<H> + 'static,
-    RB: RequestBlocks<B::UnverifiedHeader> + LegacyRequestBlocks,
+    RB: RequestBlocks<B::UnverifiedHeader>,
     SM: SessionManager<VersionedNetworkData<B::UnverifiedHeader>> + 'static,
     JS: JustificationSubmissions<Justification> + Send + Sync + Clone,
     V: HeaderVerifier<H>,

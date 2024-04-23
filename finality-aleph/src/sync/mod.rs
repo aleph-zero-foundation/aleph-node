@@ -50,15 +50,5 @@ pub trait RequestBlocks<UH: UnverifiedHeader>: Clone + Send + Sync + 'static {
     fn request_block(&self, header: UH) -> Result<(), Self::Error>;
 }
 
-/// An interface for requesting specific blocks from the block sync.
-/// Required by the data availability mechanism in ABFT.
-// TODO(A0-3494): Remove this after support for headerless proposals gets dropped.
-pub trait LegacyRequestBlocks: Clone + Send + Sync + 'static {
-    type Error: Display;
-
-    /// Request the given block.
-    fn request_block(&self, block_id: BlockId) -> Result<(), Self::Error>;
-}
-
 #[cfg(test)]
 pub type MockPeerId = u32;

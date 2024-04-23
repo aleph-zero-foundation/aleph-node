@@ -10,11 +10,8 @@ use static_assertions::const_assert;
 
 use crate::{
     aleph_primitives::DEFAULT_SESSION_PERIOD,
-    block::{Block, ChainStatus, Header, Justification, UnverifiedHeader, UnverifiedHeaderFor},
-    sync::{
-        data::{BranchKnowledge, MaybeHeader},
-        BlockId, PeerId,
-    },
+    block::{Block, ChainStatus, Header, Justification, UnverifiedHeaderFor},
+    sync::{data::BranchKnowledge, BlockId, PeerId},
     BlockNumber,
 };
 
@@ -45,13 +42,12 @@ enum VertexHandle<'a, I: PeerId, J: Justification> {
 /// Our interest in a branch referred to by a vertex,
 /// including all the information required to prepare a request.
 #[derive(Clone, Debug)]
-pub enum Interest<UH: UnverifiedHeader, I: PeerId> {
+pub enum Interest<H: Header, I: PeerId> {
     /// We are not interested in requesting this branch.
     Uninterested,
     /// We would like to have this branch.
     Required {
-        // TODO(A0-3494): This should be a `Header` (no unverified).
-        header: MaybeHeader<UH>,
+        header: H,
         know_most: HashSet<I>,
         branch_knowledge: BranchKnowledge,
     },
@@ -361,20 +357,6 @@ where
         ))
     }
 
-    /// Updates the provider block identifier, returns whether it became a new explicitly required.
-    pub fn update_block_identifier(
-        &mut self,
-        id: &BlockId,
-        holder: Option<I>,
-        required: bool,
-    ) -> Result<bool, Error> {
-        self.insert_id(id.clone(), holder)?;
-        match required {
-            true => Ok(self.set_explicitly_required(id)),
-            false => Ok(false),
-        }
-    }
-
     /// Updates the provided header, returns:
     /// 1. If required is set whether it became a new explicitly required.
     /// 2. Otherwise whether it's a new descendant of the highest justified.
@@ -577,16 +559,12 @@ where
 
     /// Prepare additional info required to create a request for the branch.
     /// Returns `None` if we're not interested in the branch.
-    /// Can be forced to fake interest, but only for blocks we know about.
+    /// Can be forced to fake interest, but only for blocks we have headers for.
     fn prepare_request_info(
         &self,
         id: &BlockId,
         force: bool,
-    ) -> Option<(
-        MaybeHeader<UnverifiedHeaderFor<J>>,
-        HashSet<I>,
-        BranchKnowledge,
-    )> {
+    ) -> Option<(J::Header, HashSet<I>, BranchKnowledge)> {
         use VertexHandle::Candidate;
         match self.get(id) {
             Candidate(vertex) => {
@@ -594,14 +572,14 @@ where
                 if !(force || vertex.vertex.requestable()) {
                     return None;
                 }
-                let maybe_header = match vertex.vertex.header() {
-                    Some(header) => MaybeHeader::Header(header.into_unverified()),
-                    None => MaybeHeader::Id(id.clone()),
+                let header = match vertex.vertex.header() {
+                    Some(header) => header,
+                    None => return None,
                 };
                 let know_most = vertex.vertex.know_most();
                 // should always return Some, as the branch of a Candidate always exists
                 self.branch_knowledge(id.clone())
-                    .map(|branch_knowledge| (maybe_header, know_most, branch_knowledge))
+                    .map(|branch_knowledge| (header, know_most, branch_knowledge))
             }
             // request only Candidates
             _ => None,
@@ -609,7 +587,7 @@ where
     }
 
     /// How much interest we have for requesting the block.
-    pub fn request_interest(&self, id: &BlockId) -> Interest<UnverifiedHeaderFor<J>, I> {
+    pub fn request_interest(&self, id: &BlockId) -> Interest<J::Header, I> {
         match self.prepare_request_info(id, false) {
             Some((header, know_most, branch_knowledge)) => Interest::Required {
                 header,
@@ -730,10 +708,7 @@ mod tests {
             ChainStatus, Header,
         },
         session::SessionBoundaryInfo,
-        sync::{
-            data::{BranchKnowledge::*, MaybeHeader},
-            Justification, MockPeerId,
-        },
+        sync::{data::BranchKnowledge::*, Justification, MockPeerId},
         BlockNumber, SessionPeriod,
     };
 
@@ -764,55 +739,6 @@ mod tests {
         assert!(!forest.importable(&initial_header.id()));
         assert_eq!(forest.extension_request(), Noop);
         assert_eq!(forest.favourite_block(), initial_header);
-    }
-
-    #[test]
-    fn accepts_first_unimportant_id() {
-        let (initial_header, mut forest) = setup();
-        let child = initial_header.random_child();
-        let peer_id = rand::random();
-        assert!(!forest
-            .update_block_identifier(&child.id(), Some(peer_id), false)
-            .expect("it's not too high"));
-        assert!(forest.try_finalize(&1).is_none());
-        assert!(matches!(forest.request_interest(&child.id()), Uninterested));
-        // We don't know this is a descendant.
-        assert!(!forest.importable(&child.id()));
-        assert_eq!(forest.extension_request(), Noop);
-    }
-
-    #[test]
-    fn accepts_first_important_id() {
-        let (initial_header, mut forest) = setup();
-        let child = initial_header.random_child();
-        let peer_id = rand::random();
-        assert!(forest
-            .update_block_identifier(&child.id(), Some(peer_id), true)
-            .expect("it's not too high"));
-        assert!(forest.try_finalize(&1).is_none());
-        match forest.request_interest(&child.id()) {
-            Required { know_most, .. } => assert!(know_most.contains(&peer_id)),
-            other_state => panic!("Expected top required, got {other_state:?}."),
-        }
-        assert!(forest.importable(&child.id()));
-        assert_eq!(forest.extension_request(), Noop);
-        assert!(!forest
-            .update_block_identifier(&child.id(), Some(peer_id), true)
-            .expect("it's not too high"));
-    }
-
-    #[test]
-    fn rejects_too_high_id() {
-        let (initial_header, mut forest) = setup();
-        let too_high = initial_header
-            .random_branch()
-            .nth(MAX_DEPTH as usize)
-            .expect("the branch is infinite");
-        let peer_id = rand::random();
-        assert!(matches!(
-            forest.update_block_identifier(&too_high.id(), Some(peer_id), true),
-            Err(Error::TooNew)
-        ));
     }
 
     #[test]
@@ -880,9 +806,6 @@ mod tests {
             other_state => panic!("Expected top required, got {other_state:?}."),
         }
         assert!(forest.importable(&child.id()));
-        assert!(!forest
-            .update_block_identifier(&child.id(), Some(peer_id), true)
-            .expect("it's not too high"));
         let know_most = HashSet::from([peer_id]);
         assert_eq!(forest.extension_request(), FavouriteBlock { know_most });
     }
@@ -1416,12 +1339,7 @@ mod tests {
                 know_most,
                 branch_knowledge,
             } => {
-                match required_header {
-                    MaybeHeader::Header(required_header) => {
-                        assert_eq!(required_header, header.clone())
-                    }
-                    MaybeHeader::Id(_) => panic!("Expected required header, got id."),
-                }
+                assert_eq!(required_header, header.clone());
                 assert!(know_most.contains(&peer_id));
                 // we only know parent from branch[2], namely branch[1]
                 assert_eq!(branch_knowledge, LowestId(branch[1].id()));

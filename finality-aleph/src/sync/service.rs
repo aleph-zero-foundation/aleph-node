@@ -25,7 +25,7 @@ use crate::{
         task_queue::TaskQueue,
         tasks::{Action as TaskAction, RequestTask},
         ticker::Ticker,
-        BlockId, JustificationSubmissions, LegacyRequestBlocks, RequestBlocks, LOG_TARGET,
+        BlockId, JustificationSubmissions, RequestBlocks, LOG_TARGET,
     },
     SyncOracle, STATUS_REPORT_INTERVAL,
 };
@@ -87,7 +87,6 @@ pub enum Error<NetworkError, ChainEventError> {
     ChainEvent(ChainEventError),
     JustificationChannelClosed,
     BlockRequestChannelClosed,
-    LegacyBlockRequestChannelClosed,
     CreatorChannelClosed,
 }
 
@@ -107,12 +106,6 @@ where
             }
             Error::BlockRequestChannelClosed => {
                 write!(f, "Channel with internal block request from user closed.")
-            }
-            Error::LegacyBlockRequestChannelClosed => {
-                write!(
-                    f,
-                    "Channel with legacy internal block request from user closed."
-                )
             }
             Error::CreatorChannelClosed => write!(f, "Channel with own blocks closed."),
         }
@@ -139,7 +132,6 @@ where
     chain_events: CE,
     justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
     block_requests_from_user: mpsc::UnboundedReceiver<B::UnverifiedHeader>,
-    legacy_block_requests_from_user: mpsc::UnboundedReceiver<BlockId>,
     blocks_from_creator: mpsc::UnboundedReceiver<B>,
     metrics: Metrics,
 }
@@ -152,26 +144,11 @@ impl<J: Justification> JustificationSubmissions<J> for mpsc::UnboundedSender<J::
     }
 }
 
-// TODO(A0-3494): This will be unnecessary, just impl the trait for the sender.
-#[derive(Clone)]
-struct CompatibilityRequestBlocks<UH: UnverifiedHeader> {
-    current: mpsc::UnboundedSender<UH>,
-    legacy: mpsc::UnboundedSender<BlockId>,
-}
-
-impl<UH: UnverifiedHeader> LegacyRequestBlocks for CompatibilityRequestBlocks<UH> {
-    type Error = mpsc::TrySendError<BlockId>;
-
-    fn request_block(&self, block_id: BlockId) -> Result<(), Self::Error> {
-        self.legacy.unbounded_send(block_id)
-    }
-}
-
-impl<UH: UnverifiedHeader> RequestBlocks<UH> for CompatibilityRequestBlocks<UH> {
+impl<UH: UnverifiedHeader> RequestBlocks<UH> for mpsc::UnboundedSender<UH> {
     type Error = mpsc::TrySendError<UH>;
 
     fn request_block(&self, header: UH) -> Result<(), Self::Error> {
-        self.current.unbounded_send(header)
+        self.unbounded_send(header)
     }
 }
 
@@ -193,13 +170,7 @@ where
         session_info: SessionBoundaryInfo,
         io: IO<B, J, N, CE, CS, F, BI>,
         metrics_registry: Option<Registry>,
-    ) -> Result<
-        (
-            Self,
-            impl RequestBlocks<B::UnverifiedHeader> + LegacyRequestBlocks,
-        ),
-        HandlerError<B, J, CS, V, F>,
-    > {
+    ) -> Result<(Self, impl RequestBlocks<B::UnverifiedHeader>), HandlerError<B, J, CS, V, F>> {
         let IO {
             network,
             chain_events,
@@ -214,7 +185,6 @@ where
         let broadcast_ticker = Ticker::new(TICK_PERIOD, BROADCAST_COOLDOWN);
         let chain_extension_ticker = Ticker::new(TICK_PERIOD, CHAIN_EXTENSION_COOLDOWN);
         let (block_requests_for_sync, block_requests_from_user) = mpsc::unbounded();
-        let (legacy_block_requests_for_sync, legacy_block_requests_from_user) = mpsc::unbounded();
         let metrics = match Metrics::new(metrics_registry) {
             Ok(metrics) => metrics,
             Err(e) => {
@@ -234,13 +204,9 @@ where
                 justifications_from_user,
                 blocks_from_creator,
                 block_requests_from_user,
-                legacy_block_requests_from_user,
                 metrics,
             },
-            CompatibilityRequestBlocks {
-                current: block_requests_for_sync,
-                legacy: legacy_block_requests_for_sync,
-            },
+            block_requests_for_sync,
         ))
     }
 
@@ -673,28 +639,6 @@ where
         }
     }
 
-    fn handle_legacy_internal_request(&mut self, id: BlockId) {
-        trace!(
-            target: LOG_TARGET,
-            "Handling a legacy internal request for block {:?}.",
-            id,
-        );
-        self.metrics.report_event(Event::HandleInternalRequest);
-        match self.handler.handle_legacy_internal_request(&id) {
-            Ok(true) => self.request_block(id),
-
-            Ok(_) => debug!(target: LOG_TARGET, "Already requested block {:?}.", id),
-
-            Err(e) => {
-                self.metrics.report_event(Event::HandleInternalRequest);
-                warn!(
-                    target: LOG_TARGET,
-                    "Error handling legacy internal request for block {:?}: {}.", id, e
-                )
-            }
-        }
-    }
-
     fn handle_chain_extension_request(&mut self, state: State<J>, peer: N::PeerId) {
         self.metrics.report_event(Event::HandleExtensionRequest);
         match self.handler.handle_chain_extension_request(state) {
@@ -796,12 +740,6 @@ where
                     let header = maybe_header.ok_or(Error::BlockRequestChannelClosed)?;
                     debug!(target: LOG_TARGET, "Received new internal block request from user: {:?}.", header);
                     self.handle_internal_request(header);
-                },
-
-                maybe_block_id = self.legacy_block_requests_from_user.next() => {
-                    let block_id = maybe_block_id.ok_or(Error::LegacyBlockRequestChannelClosed)?;
-                    debug!(target: LOG_TARGET, "Received new internal block request from user: {:?}.", block_id);
-                    self.handle_legacy_internal_request(block_id);
                 },
 
                 maybe_own_block = self.blocks_from_creator.next() => {

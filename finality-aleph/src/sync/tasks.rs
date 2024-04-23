@@ -7,13 +7,8 @@ use std::{
 use rand::{thread_rng, Rng};
 
 use crate::{
-    block::{Justification, UnverifiedHeader, UnverifiedHeaderFor},
-    sync::{
-        data::{MaybeHeader, PreRequest},
-        forest::Interest,
-        handler::InterestProvider,
-        PeerId,
-    },
+    block::{Header, Justification, UnverifiedHeader, UnverifiedHeaderFor},
+    sync::{data::PreRequest, forest::Interest, handler::InterestProvider, PeerId},
     BlockId,
 };
 
@@ -78,13 +73,8 @@ impl RequestTask {
                     false => HashSet::new(),
                 };
                 let tries = tries + 1;
-                let pre_request = match header {
-                    MaybeHeader::Header(header) => {
-                        PreRequest::new(header, branch_knowledge, know_most)
-                    }
-                    // TODO(A0-3494): This should no longer be happening.
-                    MaybeHeader::Id(_) => return Action::Ignore,
-                };
+                let pre_request =
+                    PreRequest::new(header.into_unverified(), branch_knowledge, know_most);
                 Action::Request(
                     pre_request,
                     (

@@ -77,7 +77,7 @@ where
     I: PeerId,
     J: Justification,
 {
-    pub fn get(&self, id: &BlockId) -> Interest<UnverifiedHeaderFor<J>, I> {
+    pub fn get(&self, id: &BlockId) -> Interest<J::Header, I> {
         self.forest.request_interest(id)
     }
 }
@@ -830,18 +830,6 @@ where
         InterestProvider {
             forest: &self.forest,
         }
-    }
-
-    /// Handle an internal block request.
-    /// Returns `true` if this was the first time something indicated interest in this block.
-    // TODO(A0-3494): Only needed for compatibility.
-    pub fn handle_legacy_internal_request(
-        &mut self,
-        id: &BlockId,
-    ) -> Result<bool, <Self as HandlerTypes>::Error> {
-        let should_request = self.forest.update_block_identifier(id, None, true)?;
-
-        Ok(should_request)
     }
 
     /// Handle an internal block request.

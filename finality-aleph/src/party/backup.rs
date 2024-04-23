@@ -43,6 +43,9 @@ impl From<io::Error> for BackupLoadError {
 
 impl std::error::Error for BackupLoadError {}
 
+// Both the `Both` traits are only necessary for backwards compatibility with old ABFT.
+// TODO(A0-4271): Remove these when removing support for ABFT 0.33 and
+// check whether the implementations should also be replaced with purely async ones.
 pub trait BothRead: Read + AsyncRead {}
 impl<T: Read + AsyncRead> BothRead for T {}
 
