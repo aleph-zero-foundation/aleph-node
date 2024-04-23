@@ -1,10 +1,9 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
-use futures::{channel::mpsc, StreamExt};
+use futures::channel::mpsc;
 use parity_scale_codec::{Decode, Encode, Output};
 use sc_keystore::LocalKeystore;
 use sp_keystore::Keystore as _;
-use tokio::time::timeout;
 
 use crate::{
     aleph_primitives::KEY_TYPE,
@@ -67,28 +66,10 @@ pub struct Channel<T>(
     pub Arc<tokio::sync::Mutex<mpsc::UnboundedReceiver<T>>>,
 );
 
-const TIMEOUT_FAIL: Duration = Duration::from_secs(10);
-
 impl<T> Channel<T> {
     pub fn new() -> Self {
         let (tx, rx) = mpsc::unbounded();
         Channel(tx, Arc::new(tokio::sync::Mutex::new(rx)))
-    }
-
-    pub async fn next(&mut self) -> Option<T> {
-        timeout(TIMEOUT_FAIL, self.1.lock().await.next())
-            .await
-            .ok()
-            .flatten()
-    }
-
-    pub async fn take(&mut self, n: usize) -> Vec<T> {
-        timeout(
-            TIMEOUT_FAIL,
-            self.1.lock().await.by_ref().take(n).collect::<Vec<_>>(),
-        )
-        .await
-        .unwrap_or_default()
     }
 
     pub async fn try_next(&self) -> Option<T> {

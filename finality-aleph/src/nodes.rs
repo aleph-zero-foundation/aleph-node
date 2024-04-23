@@ -62,7 +62,6 @@ where
     TP: TransactionPool<Block = Block> + 'static,
 {
     let AlephConfig {
-        network,
         network_event_stream,
         client,
         chain_status,
@@ -132,12 +131,8 @@ where
         }
     });
 
-    let (gossip_network_service, authentication_network, block_sync_network) = GossipService::new(
-        network,
-        network_event_stream,
-        spawn_handle.clone(),
-        registry.clone(),
-    );
+    let (gossip_network_service, authentication_network, block_sync_network) =
+        GossipService::new(network_event_stream, spawn_handle.clone(), registry.clone());
     let gossip_network_task = async move {
         match gossip_network_service.run().await {
             Ok(_) => error!(target: LOG_TARGET, "GossipNetwork finished."),

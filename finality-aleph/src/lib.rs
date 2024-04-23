@@ -74,7 +74,8 @@ pub use crate::{
     metrics::{AllBlockMetrics, DefaultClock, FinalityRateMetrics, TimingBlockMetrics},
     network::{
         address_cache::{ValidatorAddressCache, ValidatorAddressingInfo},
-        Protocol, ProtocolNaming, SubstrateNetwork, SubstrateNetworkEventStream,
+        NotificationServices, Protocol, ProtocolNaming, SubstrateNetworkEventStream,
+        SubstratePeerId,
     },
     nodes::run_validator_node,
     session::SessionPeriod,
@@ -95,15 +96,18 @@ fn max_message_size(protocol: Protocol) -> u64 {
 pub fn peers_set_config(
     naming: ProtocolNaming,
     protocol: Protocol,
-) -> sc_network::config::NonDefaultSetConfig {
-    let mut config = sc_network::config::NonDefaultSetConfig::new(
+) -> (
+    sc_network::config::NonDefaultSetConfig,
+    Box<dyn sc_network::config::NotificationService>,
+) {
+    sc_network::config::NonDefaultSetConfig::new(
         naming.protocol_name(&protocol),
+        naming.fallback_protocol_names(&protocol),
         max_message_size(protocol),
-    );
-
-    config.set_config = sc_network::config::SetConfig::default();
-    config.add_fallback_names(naming.fallback_protocol_names(&protocol));
-    config
+        // we do not use custom handshake
+        None,
+        sc_network::config::SetConfig::default(),
+    )
 }
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
@@ -279,7 +283,6 @@ pub struct RateLimiterConfig {
 }
 
 pub struct AlephConfig<C, SC, T> {
-    pub network: SubstrateNetwork<AlephBlock, AlephHash>,
     pub network_event_stream: SubstrateNetworkEventStream<AlephBlock, AlephHash>,
     pub client: Arc<C>,
     pub chain_status: SubstrateChainStatus,

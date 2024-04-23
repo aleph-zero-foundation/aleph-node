@@ -69,9 +69,12 @@ pub trait NetworkSender: Send + Sync + 'static {
     ) -> Result<(), Self::SenderError>;
 }
 
-#[derive(Clone)]
 pub enum Event<P> {
-    StreamOpened(P, Protocol),
+    StreamOpened(
+        P,
+        Protocol,
+        Box<dyn sc_network::service::traits::MessageSink>,
+    ),
     StreamClosed(P, Protocol),
     Messages(P, Vec<(Protocol, Bytes)>),
 }
@@ -81,18 +84,4 @@ pub trait EventStream<P> {
     /// Retrieves next event from the stream or returns None if the stream is closed.
     /// This method's implementation must be cancellation safe.
     async fn next_event(&mut self) -> Option<Event<P>>;
-}
-
-/// Abstraction over a raw p2p network.
-pub trait RawNetwork: Clone + Send + Sync + 'static {
-    type SenderError: std::error::Error;
-    type NetworkSender: NetworkSender;
-    type PeerId: Clone + Debug + Eq + Hash + Send + 'static;
-
-    /// Returns a sender to the given peer using a given protocol. Returns Error if not connected to the peer.
-    fn sender(
-        &self,
-        peer_id: Self::PeerId,
-        protocol: Protocol,
-    ) -> Result<Self::NetworkSender, Self::SenderError>;
 }

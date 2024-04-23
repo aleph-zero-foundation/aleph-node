@@ -50,9 +50,8 @@ pub mod test {
     use sc_client_api::{BlockchainEvents, HeaderBackend};
     use sc_transaction_pool::{BasicPool, FullChainApi};
     use sc_transaction_pool_api::{MaintainedTransactionPool, TransactionPool};
-    use sp_api::BlockT;
     use sp_consensus::{BlockOrigin, DisableProofRecording, Environment, Proposer as _};
-    use sp_runtime::transaction_validity::TransactionSource;
+    use sp_runtime::{traits::Block as BlockT, transaction_validity::TransactionSource};
     use substrate_test_runtime::{Extrinsic, ExtrinsicBuilder, Transfer};
     use substrate_test_runtime_client::{AccountKeyring, ClientBlockImportExt, ClientExt};
 

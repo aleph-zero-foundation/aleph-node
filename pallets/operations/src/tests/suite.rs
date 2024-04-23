@@ -151,7 +151,7 @@ fn given_account_with_initial_balance_when_bonding_then_balances_data_and_counte
         assert_ok!(pallet_staking::Pallet::<TestRuntime>::bond(
             RuntimeOrigin::signed(authority_id),
             bonded,
-            RewardDestination::Controller
+            RewardDestination::Stash
         ));
         assert_eq!(total_balance(authority_id), total_balance_authority);
         assert_eq!(free_balance(authority_id), total_balance_authority);
@@ -170,7 +170,7 @@ fn given_account_with_initial_balance_when_bonding_then_balances_data_and_counte
         assert_ok!(pallet_staking::Pallet::<TestRuntime>::bond(
             RuntimeOrigin::signed(non_authority_id),
             bonded,
-            RewardDestination::Controller
+            RewardDestination::Stash
         ));
         assert_eq!(total_balance(non_authority_id), total_balance_non_authority);
         assert_eq!(free_balance(non_authority_id), total_balance_non_authority);
@@ -274,7 +274,7 @@ fn given_bonded_accounts_balance_when_fixing_consumers_then_accounts_do_not_chan
         assert_ok!(pallet_staking::Pallet::<TestRuntime>::bond(
             RuntimeOrigin::signed(authority_id),
             bonded,
-            RewardDestination::Controller
+            RewardDestination::Stash
         ));
 
         assert_eq!(consumers(authority_id), 3);
@@ -289,7 +289,7 @@ fn given_bonded_accounts_balance_when_fixing_consumers_then_accounts_do_not_chan
         assert_ok!(pallet_staking::Pallet::<TestRuntime>::bond(
             RuntimeOrigin::signed(non_authority_id),
             bonded,
-            RewardDestination::Controller
+            RewardDestination::Stash
         ));
         assert_eq!(consumers(non_authority_id), 2);
         assert_ok!(
@@ -390,7 +390,7 @@ fn given_nominator_account_with_staking_lock_when_fixing_consumers_then_consumer
         assert_ok!(pallet_staking::Pallet::<TestRuntime>::bond(
             RuntimeOrigin::signed(non_authority_id),
             bonded,
-            RewardDestination::Controller
+            RewardDestination::Stash
         ));
         frame_system::Pallet::<TestRuntime>::dec_consumers(&non_authority_id);
         assert_eq!(consumers(non_authority_id), 1);
@@ -426,7 +426,7 @@ fn given_validator_with_stash_equal_to_consumer_when_fixing_consumers_then_consu
         assert_ok!(pallet_staking::Pallet::<TestRuntime>::bond(
             RuntimeOrigin::signed(authority_id),
             bonded,
-            RewardDestination::Controller
+            RewardDestination::Stash
         ));
         frame_system::Pallet::<TestRuntime>::dec_consumers(&authority_id);
         assert_eq!(consumers(authority_id), 2);
@@ -463,7 +463,7 @@ fn given_validator_with_stash_not_equal_to_controller_when_fixing_consumers_then
         assert_ok!(pallet_staking::Pallet::<TestRuntime>::bond(
             RuntimeOrigin::signed(authority_id),
             bonded,
-            RewardDestination::Controller
+            RewardDestination::Stash
         ));
         // direct manipulation on pallet storage is not possible from end user perspective,
         // but to mimic that scenario we need to directly set Bonded so stash != controller,

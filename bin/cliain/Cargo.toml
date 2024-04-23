@@ -20,8 +20,8 @@ serde_json = "1.0.81"
 
 tokio = { version = "1.21.2", features = ["full"] }
 
-pallet-staking = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.4.0" }
-sp-core = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.4.0", features = ["full_crypto"] }
+pallet-staking = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0" }
+sp-core = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0", features = ["full_crypto"] }
 
 aleph_client = { path = "../../aleph-client" }
 primitives = { path = "../../primitives" }

@@ -9,7 +9,7 @@ use network_clique::mock::MockPublicKey;
 use parking_lot::Mutex;
 
 use crate::network::{
-    gossip::{Event, EventStream, NetworkSender, Protocol, RawNetwork},
+    gossip::{Event, EventStream, NetworkSender, Protocol},
     mock::Channel,
 };
 
@@ -67,30 +67,6 @@ impl fmt::Display for MockSenderError {
 
 impl std::error::Error for MockSenderError {}
 
-impl RawNetwork for MockRawNetwork {
-    type SenderError = MockSenderError;
-    type NetworkSender = MockNetworkSender;
-    type PeerId = MockPublicKey;
-
-    fn sender(
-        &self,
-        peer_id: Self::PeerId,
-        protocol: Protocol,
-    ) -> Result<Self::NetworkSender, Self::SenderError> {
-        self.create_sender_errors
-            .lock()
-            .pop_front()
-            .map_or(Ok(()), Err)?;
-        let error = self.send_errors.lock().pop_front().map_or(Ok(()), Err);
-        Ok(MockNetworkSender {
-            sender: self.send_message.0.clone(),
-            peer_id,
-            protocol,
-            error,
-        })
-    }
-}
-
 impl MockRawNetwork {
     pub fn new(oneshot_sender: oneshot::Sender<()>) -> Self {
         MockRawNetwork {
@@ -110,12 +86,6 @@ impl MockRawNetwork {
             tx.send(()).unwrap();
         }
         MockEventStream(rx)
-    }
-
-    pub fn emit_event(&mut self, event: MockEvent) {
-        for sink in &*self.event_sinks.lock() {
-            sink.unbounded_send(event.clone()).unwrap();
-        }
     }
 
     // Consumes the network asserting there are no unreceived messages in the channels.

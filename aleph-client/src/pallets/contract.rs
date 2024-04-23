@@ -1,5 +1,5 @@
 use codec::{Compact, Encode};
-use pallet_contracts_primitives::ContractExecResult;
+use pallet_contracts::ContractExecResult;
 use subxt::{ext::sp_core::Bytes, rpc_params, utils::Static};
 
 use crate::{

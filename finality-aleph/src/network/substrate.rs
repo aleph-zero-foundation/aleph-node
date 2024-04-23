@@ -1,18 +1,19 @@
-use std::{collections::HashMap, fmt, iter, pin::Pin, sync::Arc};
+use std::{collections::HashMap, iter, pin::Pin, sync::Arc};
 
 use async_trait::async_trait;
 use futures::stream::{Fuse, Stream, StreamExt};
 use log::{error, trace, warn};
+pub use sc_network::PeerId;
 use sc_network::{
-    multiaddr::Protocol as MultiaddressProtocol, Event as SubstrateEvent, Multiaddr,
-    NetworkEventStream as _, NetworkNotification, NetworkPeers, NetworkService,
-    NotificationSenderT, PeerId, ProtocolName,
+    multiaddr::Protocol as MultiaddressProtocol,
+    service::traits::{NotificationEvent as SubstrateEvent, ValidationResult},
+    Multiaddr, NetworkPeers, NetworkService, ProtocolName,
 };
 use sc_network_common::ExHashT;
 use sc_network_sync::{SyncEvent, SyncEventStream, SyncingService};
 use sp_runtime::traits::Block;
 
-use crate::network::gossip::{Event, EventStream, NetworkSender, Protocol, RawNetwork};
+use crate::network::gossip::{Event, EventStream, Protocol};
 
 /// Name of the network protocol used by Aleph Zero to disseminate validator
 /// authentications.
@@ -26,7 +27,6 @@ const BLOCK_SYNC_PROTOCOL_NAME: &str = "/sync/0";
 pub struct ProtocolNaming {
     authentication_name: ProtocolName,
     block_sync_name: ProtocolName,
-    protocols_by_name: HashMap<ProtocolName, Protocol>,
 }
 
 impl ProtocolNaming {
@@ -42,7 +42,6 @@ impl ProtocolNaming {
         ProtocolNaming {
             authentication_name,
             block_sync_name,
-            protocols_by_name,
         }
     }
 
@@ -59,114 +58,124 @@ impl ProtocolNaming {
     pub fn fallback_protocol_names(&self, _protocol: &Protocol) -> Vec<ProtocolName> {
         Vec::new()
     }
-
-    /// Attempts to convert the protocol name to a protocol.
-    fn to_protocol(&self, protocol_name: &str) -> Option<Protocol> {
-        self.protocols_by_name.get(protocol_name).copied()
-    }
 }
 
-#[derive(Debug)]
-pub enum SenderError {
-    CannotCreateSender(PeerId, Protocol),
-    LostConnectionToPeer(PeerId),
-    LostConnectionToPeerReady(PeerId),
-}
-
-impl fmt::Display for SenderError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            SenderError::CannotCreateSender(peer_id, protocol) => {
-                write!(
-                    f,
-                    "Can not create sender to peer {peer_id:?} with protocol {protocol:?}"
-                )
-            }
-            SenderError::LostConnectionToPeer(peer_id) => {
-                write!(
-                    f,
-                    "Lost connection to peer {peer_id:?} while preparing sender"
-                )
-            }
-            SenderError::LostConnectionToPeerReady(peer_id) => {
-                write!(
-                    f,
-                    "Lost connection to peer {peer_id:?} after sender was ready"
-                )
-            }
-        }
-    }
-}
-
-impl std::error::Error for SenderError {}
-
-pub struct SubstrateNetworkSender {
-    notification_sender: Box<dyn NotificationSenderT>,
-    peer_id: PeerId,
-}
-
-#[async_trait]
-impl NetworkSender for SubstrateNetworkSender {
-    type SenderError = SenderError;
-
-    async fn send<'a>(
-        &'a self,
-        data: impl Into<Vec<u8>> + Send + Sync + 'static,
-    ) -> Result<(), SenderError> {
-        self.notification_sender
-            .ready()
-            .await
-            .map_err(|_| SenderError::LostConnectionToPeer(self.peer_id))?
-            .send(data.into())
-            .map_err(|_| SenderError::LostConnectionToPeerReady(self.peer_id))
-    }
+/// A struct holding NotificationService per protocol we use.
+pub struct NotificationServices {
+    pub authentication: Box<dyn sc_network::config::NotificationService>,
+    pub sync: Box<dyn sc_network::config::NotificationService>,
 }
 
 pub struct NetworkEventStream<B: Block, H: ExHashT> {
-    stream: Fuse<Pin<Box<dyn Stream<Item = SubstrateEvent> + Send>>>,
     sync_stream: Fuse<Pin<Box<dyn Stream<Item = SyncEvent> + Send>>>,
+    notifications: NotificationServices,
     naming: ProtocolNaming,
     network: Arc<NetworkService<B, H>>,
+}
+
+impl<B: Block, H: ExHashT> NetworkEventStream<B, H> {
+    pub fn new(
+        network: Arc<NetworkService<B, H>>,
+        sync_network: Arc<SyncingService<B>>,
+        naming: ProtocolNaming,
+        notifications: NotificationServices,
+    ) -> Self {
+        Self {
+            sync_stream: sync_network.event_stream("aleph-syncing-network").fuse(),
+            notifications,
+            naming,
+            network,
+        }
+    }
 }
 
 #[async_trait]
 impl<B: Block, H: ExHashT> EventStream<PeerId> for NetworkEventStream<B, H> {
     async fn next_event(&mut self) -> Option<Event<PeerId>> {
         use Event::*;
-        use SubstrateEvent::*;
         use SyncEvent::*;
         loop {
             tokio::select! {
-                Some(event) = self.stream.next() => {
+                Some(event) = self.notifications.sync.next_event() => {
+                    use SubstrateEvent::*;
                     match event {
-                        NotificationStreamOpened {
-                            remote, protocol, ..
-                        } => match self.naming.to_protocol(protocol.as_ref()) {
-                            Some(protocol) => return Some(StreamOpened(remote, protocol)),
-                            None => continue,
+                        ValidateInboundSubstream {
+                            peer: _,
+                            handshake: _,
+                            result_tx,
+                        } => {
+                            let _ = result_tx.send(ValidationResult::Accept);
+                            continue
                         },
-                        NotificationStreamClosed { remote, protocol } => {
-                            match self.naming.to_protocol(protocol.as_ref()) {
-                                Some(protocol) => return Some(StreamClosed(remote, protocol)),
-                                None => continue,
+                        NotificationStreamOpened {
+                            peer,
+                            ..
+                        } => {
+                            match self.notifications.sync.message_sink(&peer) {
+                                Some(sink) => return Some(StreamOpened(peer, Protocol::BlockSync, sink)),
+                                None => {
+                                    warn!(target: "aleph-network", "Received NotificationStreamOpened from peer {peer:?} in BlockSync protocol, but could not create MessageSink.");
+                                    continue;
+                                }
                             }
-                        }
-                        NotificationsReceived { messages, remote } => {
+                        },
+                        NotificationStreamClosed {
+                            peer,
+                        } => {
+                            return Some(StreamClosed(peer, Protocol::BlockSync));
+                        },
+                        NotificationReceived {
+                            peer,
+                            notification,
+                        } => {
                             return Some(Messages(
-                                remote,
-                                messages
-                                    .into_iter()
-                                    .filter_map(|(protocol, data)| {
-                                        self.naming
-                                            .to_protocol(protocol.as_ref())
-                                            .map(|protocol| (protocol, data))
-                                    })
-                                    .collect(),
+                                peer,
+                                vec![(Protocol::BlockSync, notification.into())],
                             ));
-                        }
-                        Dht(_) => continue,
+                        },
                     }
                 },
+
+                Some(event) = self.notifications.authentication.next_event() => {
+                    use SubstrateEvent::*;
+                    match event {
+                        ValidateInboundSubstream {
+                            peer: _,
+                            handshake: _,
+                            result_tx,
+                        } => {
+                            let _ = result_tx.send(ValidationResult::Accept);
+                            continue
+                        },
+                        NotificationStreamOpened {
+                            peer,
+                            ..
+                        } => {
+                            match self.notifications.authentication.message_sink(&peer) {
+                                Some(sink) => return Some(StreamOpened(peer, Protocol::Authentication, sink)),
+                                None => {
+                                    warn!(target: "aleph-network", "Received NotificationStreamOpened from peer {peer:?} in Authentication protocol, but could not create MessageSink.");
+                                    continue;
+                                }
+                            }
+                        },
+                        NotificationStreamClosed {
+                            peer,
+                        } => {
+                            return Some(StreamClosed(peer, Protocol::Authentication));
+                        },
+                        NotificationReceived {
+                            peer,
+                            notification,
+                        } => {
+                            return Some(Messages(
+                                peer,
+                                vec![(Protocol::Authentication, notification.into())],
+                            ));
+                        },
+                    }
+                },
+
                 Some(event) = self.sync_stream.next() => {
                     match event {
                         PeerConnected(remote) => {
@@ -206,65 +215,9 @@ impl<B: Block, H: ExHashT> EventStream<PeerId> for NetworkEventStream<B, H> {
                         }
                     }
                 },
+
                 else => return None,
             }
         }
-    }
-}
-
-/// A wrapper around the substrate network that includes information about protocol names.
-#[derive(Clone)]
-pub struct SubstrateNetwork<B: Block, H: ExHashT> {
-    network: Arc<NetworkService<B, H>>,
-    sync_network: Arc<SyncingService<B>>,
-    naming: ProtocolNaming,
-}
-
-impl<B: Block, H: ExHashT> SubstrateNetwork<B, H> {
-    /// Create a new substrate network wrapper.
-    pub fn new(
-        network: Arc<NetworkService<B, H>>,
-        sync_network: Arc<SyncingService<B>>,
-        naming: ProtocolNaming,
-    ) -> Self {
-        SubstrateNetwork {
-            network,
-            sync_network,
-            naming,
-        }
-    }
-
-    pub fn event_stream(&self) -> NetworkEventStream<B, H> {
-        NetworkEventStream {
-            stream: self.network.event_stream("aleph-network").fuse(),
-            sync_stream: self
-                .sync_network
-                .event_stream("aleph-syncing-network")
-                .fuse(),
-            naming: self.naming.clone(),
-            network: self.network.clone(),
-        }
-    }
-}
-
-impl<B: Block, H: ExHashT> RawNetwork for SubstrateNetwork<B, H> {
-    type SenderError = SenderError;
-    type NetworkSender = SubstrateNetworkSender;
-    type PeerId = PeerId;
-
-    fn sender(
-        &self,
-        peer_id: Self::PeerId,
-        protocol: Protocol,
-    ) -> Result<Self::NetworkSender, Self::SenderError> {
-        Ok(SubstrateNetworkSender {
-            // Currently method `notification_sender` does not distinguish whether we are not connected to the peer
-            // or there is no such protocol so we need to have this worthless `SenderError::CannotCreateSender` error here
-            notification_sender: self
-                .network
-                .notification_sender(peer_id, self.naming.protocol_name(&protocol))
-                .map_err(|_| SenderError::CannotCreateSender(peer_id, protocol))?,
-            peer_id,
-        })
     }
 }

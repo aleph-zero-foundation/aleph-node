@@ -24,7 +24,6 @@ pallet-aura = { workspace = true }
 pallet-authorship = { workspace = true }
 pallet-balances = { workspace = true }
 pallet-contracts = { workspace = true }
-pallet-contracts-primitives = { workspace = true }
 pallet-identity = { workspace = true }
 pallet-multisig = { workspace = true }
 pallet-nomination-pools = { workspace = true }
@@ -123,7 +122,6 @@ std = [
     "sp-offchain/std",
     "frame-system-rpc-runtime-api/std",
     "primitives/std",
-    "pallet-contracts-primitives/std",
     "pallet-contracts/std",
     "pallet-nomination-pools/std",
     "pallet-nomination-pools-runtime-api/std",

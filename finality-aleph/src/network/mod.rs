@@ -16,7 +16,8 @@ pub use gossip::{
 };
 use network_clique::{AddressingInformation, NetworkIdentity, PeerId};
 pub use substrate::{
-    NetworkEventStream as SubstrateNetworkEventStream, ProtocolNaming, SubstrateNetwork,
+    NetworkEventStream as SubstrateNetworkEventStream, NotificationServices,
+    PeerId as SubstratePeerId, ProtocolNaming,
 };
 
 /// A basic alias for properties we expect basic data to satisfy.

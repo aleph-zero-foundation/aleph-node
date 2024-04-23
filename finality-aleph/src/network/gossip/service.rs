@@ -18,9 +18,7 @@ const MAX_QUEUE_SIZE: usize = 16;
 
 use crate::{
     network::{
-        gossip::{
-            metrics::Metrics, Event, EventStream, Network, NetworkSender, Protocol, RawNetwork,
-        },
+        gossip::{metrics::Metrics, Event, EventStream, Network, Protocol},
         Data,
     },
     SpawnHandle, STATUS_REPORT_INTERVAL,
@@ -40,19 +38,23 @@ enum Command<D: Data, P: Clone + Debug + Eq + Hash + Send + 'static> {
 ///   1. Messages are forwarded to the user.
 ///   2. Various forms of (dis)connecting, keeping track of all currently connected nodes.
 /// 3. Outgoing messages, sending them out, using 1.2. to broadcast.
-pub struct Service<N: RawNetwork, ES: EventStream<N::PeerId>, AD: Data, BSD: Data> {
-    network: N,
-    messages_from_authentication_user: mpsc::UnboundedReceiver<Command<AD, N::PeerId>>,
-    messages_from_block_sync_user: mpsc::UnboundedReceiver<Command<BSD, N::PeerId>>,
-    messages_for_authentication_user: mpsc::UnboundedSender<(AD, N::PeerId)>,
-    messages_for_block_sync_user: mpsc::UnboundedSender<(BSD, N::PeerId)>,
-    authentication_connected_peers: HashSet<N::PeerId>,
-    authentication_peer_senders: HashMap<N::PeerId, mpsc::Sender<AD>>,
-    block_sync_connected_peers: HashSet<N::PeerId>,
-    block_sync_peer_senders: HashMap<N::PeerId, mpsc::Sender<BSD>>,
+pub struct Service<
+    PeerId: Clone + Debug + Eq + Hash + Send + 'static,
+    ES: EventStream<PeerId>,
+    AD: Data,
+    BSD: Data,
+> {
+    messages_from_authentication_user: mpsc::UnboundedReceiver<Command<AD, PeerId>>,
+    messages_from_block_sync_user: mpsc::UnboundedReceiver<Command<BSD, PeerId>>,
+    messages_for_authentication_user: mpsc::UnboundedSender<(AD, PeerId)>,
+    messages_for_block_sync_user: mpsc::UnboundedSender<(BSD, PeerId)>,
+    authentication_connected_peers: HashSet<PeerId>,
+    authentication_peer_senders: HashMap<PeerId, mpsc::Sender<AD>>,
+    block_sync_connected_peers: HashSet<PeerId>,
+    block_sync_peer_senders: HashMap<PeerId, mpsc::Sender<BSD>>,
     spawn_handle: SpawnHandle,
     metrics: Metrics,
-    timestamp_of_last_log_that_channel_is_full: HashMap<(N::PeerId, Protocol), Instant>,
+    timestamp_of_last_log_that_channel_is_full: HashMap<(PeerId, Protocol), Instant>,
     network_event_stream: ES,
 }
 
@@ -144,16 +146,21 @@ enum SendError {
     SendingFailed,
 }
 
-impl<N: RawNetwork, ES: EventStream<N::PeerId>, AD: Data, BSD: Data> Service<N, ES, AD, BSD> {
+impl<
+        PeerId: Clone + Debug + Eq + Hash + Send + 'static,
+        ES: EventStream<PeerId>,
+        AD: Data,
+        BSD: Data,
+    > Service<PeerId, ES, AD, BSD>
+{
     pub fn new(
-        network: N,
         network_event_stream: ES,
         spawn_handle: SpawnHandle,
         metrics_registry: Option<Registry>,
     ) -> (
         Self,
-        impl Network<AD, Error = Error, PeerId = N::PeerId>,
-        impl Network<BSD, Error = Error, PeerId = N::PeerId>,
+        impl Network<AD, Error = Error, PeerId = PeerId>,
+        impl Network<BSD, Error = Error, PeerId = PeerId>,
     ) {
         let (messages_for_authentication_user, messages_from_authentication_service) =
             mpsc::unbounded();
@@ -170,7 +177,6 @@ impl<N: RawNetwork, ES: EventStream<N::PeerId>, AD: Data, BSD: Data> Service<N, 
         };
         (
             Service {
-                network,
                 messages_from_authentication_user,
                 messages_from_block_sync_user,
                 messages_for_authentication_user,
@@ -195,48 +201,32 @@ impl<N: RawNetwork, ES: EventStream<N::PeerId>, AD: Data, BSD: Data> Service<N, 
         )
     }
 
-    fn get_authentication_sender(&mut self, peer: &N::PeerId) -> Option<&mut mpsc::Sender<AD>> {
+    fn get_authentication_sender(&mut self, peer: &PeerId) -> Option<&mut mpsc::Sender<AD>> {
         self.authentication_peer_senders.get_mut(peer)
     }
 
-    fn get_block_sync_sender(&mut self, peer: &N::PeerId) -> Option<&mut mpsc::Sender<BSD>> {
+    fn get_block_sync_sender(&mut self, peer: &PeerId) -> Option<&mut mpsc::Sender<BSD>> {
         self.block_sync_peer_senders.get_mut(peer)
     }
 
     fn peer_sender<D: Data>(
         &self,
-        peer_id: N::PeerId,
+        peer_id: PeerId,
         mut receiver: mpsc::Receiver<D>,
         protocol: Protocol,
+        sink: Box<dyn sc_network::service::traits::MessageSink>,
     ) -> impl Future<Output = ()> + Send + 'static {
-        let network = self.network.clone();
         let metrics = self.metrics.clone();
         async move {
-            let mut sender = None;
             loop {
                 if let Some(data) = receiver.next().await {
                     metrics.report_message_popped_from_peer_sender_queue(protocol);
-                    let s = if let Some(s) = sender.as_mut() {
-                        s
-                    } else {
-                        match network.sender(peer_id.clone(), protocol) {
-                            Ok(s) => sender.insert(s),
-                            Err(e) => {
-                                debug!(
-                                    target: LOG_TARGET,
-                                    "Failed creating sender. Dropping message: {}", e
-                                );
-                                continue;
-                            }
-                        }
-                    };
                     let maybe_timer = metrics.start_sending_in(protocol);
-                    if let Err(e) = s.send(data.encode()).await {
+                    if let Err(e) = sink.send_async_notification(data.encode()).await {
                         debug!(
                             target: LOG_TARGET,
-                            "Failed sending data to peer. Dropping sender and message: {}", e
+                            "Failed sending data to peer. Waiting for the receiver to be closed: {}", e
                         );
-                        sender = None;
                     }
                     if let Some(timer) = maybe_timer {
                         timer.observe_duration();
@@ -252,7 +242,7 @@ impl<N: RawNetwork, ES: EventStream<N::PeerId>, AD: Data, BSD: Data> Service<N, 
         }
     }
 
-    fn possibly_log_that_channel_is_full(&mut self, peer: N::PeerId, protocol: Protocol) {
+    fn possibly_log_that_channel_is_full(&mut self, peer: PeerId, protocol: Protocol) {
         let peer_and_protocol = (peer, protocol);
         if self
             .timestamp_of_last_log_that_channel_is_full
@@ -271,7 +261,7 @@ impl<N: RawNetwork, ES: EventStream<N::PeerId>, AD: Data, BSD: Data> Service<N, 
         }
     }
 
-    fn send_to_authentication_peer(&mut self, data: AD, peer: N::PeerId) -> Result<(), SendError> {
+    fn send_to_authentication_peer(&mut self, data: AD, peer: PeerId) -> Result<(), SendError> {
         match self.get_authentication_sender(&peer) {
             Some(sender) => {
                 match sender.try_send(data) {
@@ -300,7 +290,7 @@ impl<N: RawNetwork, ES: EventStream<N::PeerId>, AD: Data, BSD: Data> Service<N, 
         }
     }
 
-    fn send_to_block_sync_peer(&mut self, data: BSD, peer: N::PeerId) -> Result<(), SendError> {
+    fn send_to_block_sync_peer(&mut self, data: BSD, peer: PeerId) -> Result<(), SendError> {
         match self.get_block_sync_sender(&peer) {
             Some(sender) => {
                 match sender.try_send(data) {
@@ -329,7 +319,7 @@ impl<N: RawNetwork, ES: EventStream<N::PeerId>, AD: Data, BSD: Data> Service<N, 
         }
     }
 
-    fn send_authentication_data(&mut self, data: AD, peer_id: N::PeerId) {
+    fn send_authentication_data(&mut self, data: AD, peer_id: PeerId) {
         trace!(
             target: LOG_TARGET,
             "Sending authentication data to peer {:?}.",
@@ -343,7 +333,7 @@ impl<N: RawNetwork, ES: EventStream<N::PeerId>, AD: Data, BSD: Data> Service<N, 
         }
     }
 
-    fn send_block_sync_data(&mut self, data: BSD, peer_id: N::PeerId) {
+    fn send_block_sync_data(&mut self, data: BSD, peer_id: PeerId) {
         trace!(
             target: LOG_TARGET,
             "Sending block sync data to peer {:?}.",
@@ -357,7 +347,7 @@ impl<N: RawNetwork, ES: EventStream<N::PeerId>, AD: Data, BSD: Data> Service<N, 
         }
     }
 
-    fn protocol_peers(&self, protocol: Protocol) -> &HashSet<N::PeerId> {
+    fn protocol_peers(&self, protocol: Protocol) -> &HashSet<PeerId> {
         match protocol {
             Protocol::Authentication => &self.authentication_connected_peers,
             Protocol::BlockSync => &self.block_sync_connected_peers,
@@ -366,9 +356,9 @@ impl<N: RawNetwork, ES: EventStream<N::PeerId>, AD: Data, BSD: Data> Service<N, 
 
     fn random_peer<'a>(
         &'a self,
-        peer_ids: &'a HashSet<N::PeerId>,
+        peer_ids: &'a HashSet<PeerId>,
         protocol: Protocol,
-    ) -> Option<&'a N::PeerId> {
+    ) -> Option<&'a PeerId> {
         peer_ids
             .intersection(self.protocol_peers(protocol))
             .choose(&mut thread_rng())
@@ -379,7 +369,7 @@ impl<N: RawNetwork, ES: EventStream<N::PeerId>, AD: Data, BSD: Data> Service<N, 
             })
     }
 
-    fn send_to_random_authentication(&mut self, data: AD, peer_ids: HashSet<N::PeerId>) {
+    fn send_to_random_authentication(&mut self, data: AD, peer_ids: HashSet<PeerId>) {
         trace!(
             target: LOG_TARGET,
             "Sending authentication data to random peer among {:?}.",
@@ -398,7 +388,7 @@ impl<N: RawNetwork, ES: EventStream<N::PeerId>, AD: Data, BSD: Data> Service<N, 
         self.send_authentication_data(data, peer_id);
     }
 
-    fn send_to_random_block_sync(&mut self, data: BSD, peer_ids: HashSet<N::PeerId>) {
+    fn send_to_random_block_sync(&mut self, data: BSD, peer_ids: HashSet<PeerId>) {
         trace!(
             target: LOG_TARGET,
             "Sending block sync data to random peer among {:?}.",
@@ -431,10 +421,10 @@ impl<N: RawNetwork, ES: EventStream<N::PeerId>, AD: Data, BSD: Data> Service<N, 
         }
     }
 
-    fn handle_network_event(&mut self, event: Event<N::PeerId>) -> Result<(), ()> {
+    fn handle_network_event(&mut self, event: Event<PeerId>) -> Result<(), ()> {
         use Event::*;
         match event {
-            StreamOpened(peer, protocol) => {
+            StreamOpened(peer, protocol, sink) => {
                 trace!(
                     target: LOG_TARGET,
                     "StreamOpened event for peer {:?} and the protocol {:?}.",
@@ -448,7 +438,7 @@ impl<N: RawNetwork, ES: EventStream<N::PeerId>, AD: Data, BSD: Data> Service<N, 
                         self.authentication_peer_senders.insert(peer.clone(), tx);
                         self.spawn_handle.spawn(
                             "aleph/network/authentication_peer_sender",
-                            self.peer_sender(peer, rx, Protocol::Authentication),
+                            self.peer_sender(peer, rx, Protocol::Authentication, sink),
                         );
                     }
                     Protocol::BlockSync => {
@@ -457,7 +447,7 @@ impl<N: RawNetwork, ES: EventStream<N::PeerId>, AD: Data, BSD: Data> Service<N, 
                         self.block_sync_peer_senders.insert(peer.clone(), tx);
                         self.spawn_handle.spawn(
                             "aleph/network/sync_peer_sender",
-                            self.peer_sender(peer, rx, Protocol::BlockSync),
+                            self.peer_sender(peer, rx, Protocol::BlockSync, sink),
                         );
                     }
                 };
@@ -563,7 +553,7 @@ impl<N: RawNetwork, ES: EventStream<N::PeerId>, AD: Data, BSD: Data> Service<N, 
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashSet, iter};
+    use std::collections::HashSet;
 
     use futures::channel::oneshot;
     use network_clique::mock::{random_peer_id, MockPublicKey};
@@ -574,7 +564,7 @@ mod tests {
     use super::{Error, SendError, Service};
     use crate::network::{
         gossip::{
-            mock::{MockEvent, MockEventStream, MockRawNetwork, MockSenderError},
+            mock::{MockEvent, MockEventStream, MockRawNetwork},
             Network,
         },
         mock::MockData,
@@ -586,7 +576,7 @@ mod tests {
     pub struct TestData {
         pub network: MockRawNetwork,
         gossip_network: Box<dyn Network<MockData, Error = Error, PeerId = MockPublicKey>>,
-        pub service: Service<MockRawNetwork, MockEventStream, MockData, MockData>,
+        pub service: Service<MockPublicKey, MockEventStream, MockData, MockData>,
         // `TaskManager` can't be dropped for `SpawnTaskHandle` to work
         _task_manager: TaskManager,
         // If we drop the sync network, the underlying network service dies, stopping the whole
@@ -603,7 +593,6 @@ mod tests {
             // Prepare service
             let network = MockRawNetwork::new(event_stream_oneshot_tx);
             let (service, gossip_network, other_network) = Service::new(
-                network.clone(),
                 network.event_stream(),
                 task_manager.spawn_handle().into(),
                 None,
@@ -657,172 +646,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_notification_stream_opened() {
-        let mut test_data = TestData::prepare();
-
-        let peer_ids: Vec<_> = (0..3).map(|_| random_peer_id()).collect();
-
-        peer_ids.iter().for_each(|peer_id| {
-            test_data
-                .service
-                .handle_network_event(MockEvent::StreamOpened(peer_id.clone(), PROTOCOL))
-                .expect("Should handle");
-        });
-
-        let message = message(1);
-        test_data.service.broadcast_authentication(message.clone());
-
-        let broadcasted_messages = HashSet::<_>::from_iter(
-            test_data
-                .network
-                .send_message
-                .take(peer_ids.len())
-                .await
-                .into_iter(),
-        );
-
-        let expected_messages = HashSet::from_iter(
-            peer_ids
-                .into_iter()
-                .map(|peer_id| (message.clone().encode(), peer_id, PROTOCOL)),
-        );
-
-        assert_eq!(broadcasted_messages, expected_messages);
-
-        test_data.cleanup().await
-    }
-
-    #[tokio::test]
-    async fn test_notification_stream_closed() {
-        let mut test_data = TestData::prepare();
-
-        let peer_ids: Vec<_> = (0..3).map(|_| random_peer_id()).collect();
-        let opened_authorities_n = 2;
-
-        peer_ids.iter().for_each(|peer_id| {
-            test_data
-                .service
-                .handle_network_event(MockEvent::StreamOpened(peer_id.clone(), PROTOCOL))
-                .expect("Should handle");
-        });
-
-        peer_ids
-            .iter()
-            .skip(opened_authorities_n)
-            .for_each(|peer_id| {
-                test_data
-                    .service
-                    .handle_network_event(MockEvent::StreamClosed(peer_id.clone(), PROTOCOL))
-                    .expect("Should handle");
-            });
-
-        let message = message(1);
-        test_data.service.broadcast_authentication(message.clone());
-
-        let broadcasted_messages = HashSet::<_>::from_iter(
-            test_data
-                .network
-                .send_message
-                .take(opened_authorities_n)
-                .await
-                .into_iter(),
-        );
-
-        let expected_messages = HashSet::from_iter(
-            peer_ids
-                .into_iter()
-                .take(opened_authorities_n)
-                .map(|peer_id| (message.clone().encode(), peer_id, PROTOCOL)),
-        );
-
-        assert_eq!(broadcasted_messages, expected_messages);
-
-        test_data.cleanup().await
-    }
-
-    #[tokio::test]
-    async fn test_create_sender_error() {
-        let mut test_data = TestData::prepare();
-
-        test_data
-            .network
-            .create_sender_errors
-            .lock()
-            .push_back(MockSenderError);
-
-        let peer_id = random_peer_id();
-
-        let message_1 = message(1);
-        let message_2 = message(4);
-
-        test_data
-            .service
-            .handle_network_event(MockEvent::StreamOpened(peer_id.clone(), PROTOCOL))
-            .expect("Should handle");
-
-        test_data.service.broadcast_authentication(message_1);
-
-        test_data
-            .service
-            .broadcast_authentication(message_2.clone());
-
-        let expected = (message_2.encode(), peer_id, PROTOCOL);
-
-        assert_eq!(
-            test_data
-                .network
-                .send_message
-                .next()
-                .await
-                .expect("Should receive message"),
-            expected,
-        );
-
-        test_data.cleanup().await
-    }
-
-    #[tokio::test]
-    async fn test_send_error() {
-        let mut test_data = TestData::prepare();
-
-        test_data
-            .network
-            .send_errors
-            .lock()
-            .push_back(MockSenderError);
-
-        let peer_id = random_peer_id();
-
-        let message_1 = message(1);
-        let message_2 = message(4);
-
-        test_data
-            .service
-            .handle_network_event(MockEvent::StreamOpened(peer_id.clone(), PROTOCOL))
-            .expect("Should handle");
-
-        test_data.service.broadcast_authentication(message_1);
-
-        test_data
-            .service
-            .broadcast_authentication(message_2.clone());
-
-        let expected = (message_2.encode(), peer_id, PROTOCOL);
-
-        assert_eq!(
-            test_data
-                .network
-                .send_message
-                .next()
-                .await
-                .expect("Should receive message"),
-            expected,
-        );
-
-        test_data.cleanup().await
-    }
-
-    #[tokio::test]
     async fn test_notification_received() {
         let mut test_data = TestData::prepare();
 
@@ -846,39 +669,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_send_to_connected() {
-        let mut test_data = TestData::prepare();
-
-        let peer_id = random_peer_id();
-
-        let message = message(1);
-
-        test_data
-            .service
-            .handle_network_event(MockEvent::StreamOpened(peer_id.clone(), PROTOCOL))
-            .expect("Should handle");
-
-        test_data
-            .service
-            .send_to_authentication_peer(message.clone(), peer_id.clone())
-            .expect("interface works");
-
-        let expected = (message.encode(), peer_id, PROTOCOL);
-
-        assert_eq!(
-            test_data
-                .network
-                .send_message
-                .next()
-                .await
-                .expect("Should receive message"),
-            expected,
-        );
-
-        test_data.cleanup().await
-    }
-
-    #[tokio::test]
     async fn test_no_send_to_disconnected() {
         let mut test_data = TestData::prepare();
 
@@ -892,71 +682,6 @@ mod tests {
                 .send_to_authentication_peer(message, peer_id),
             Err(SendError::MissingSender)
         ));
-
-        test_data.cleanup().await
-    }
-
-    #[tokio::test]
-    async fn test_send_to_random_connected() {
-        let mut test_data = TestData::prepare();
-
-        let peer_id = random_peer_id();
-
-        let message = message(1);
-
-        test_data
-            .service
-            .handle_network_event(MockEvent::StreamOpened(peer_id.clone(), PROTOCOL))
-            .expect("Should handle");
-
-        test_data
-            .service
-            .send_to_random_authentication(message.clone(), iter::once(peer_id.clone()).collect());
-
-        let expected = (message.encode(), peer_id, PROTOCOL);
-
-        assert_eq!(
-            test_data
-                .network
-                .send_message
-                .next()
-                .await
-                .expect("Should receive message"),
-            expected,
-        );
-
-        test_data.cleanup().await
-    }
-
-    #[tokio::test]
-    async fn test_send_to_random_disconnected() {
-        let mut test_data = TestData::prepare();
-
-        let peer_id = random_peer_id();
-        let other_peer_id = random_peer_id();
-
-        let message = message(1);
-
-        test_data
-            .service
-            .handle_network_event(MockEvent::StreamOpened(other_peer_id.clone(), PROTOCOL))
-            .expect("Should handle");
-
-        test_data
-            .service
-            .send_to_random_authentication(message.clone(), iter::once(peer_id.clone()).collect());
-
-        let expected = (message.encode(), other_peer_id, PROTOCOL);
-
-        assert_eq!(
-            test_data
-                .network
-                .send_message
-                .next()
-                .await
-                .expect("Should receive message"),
-            expected,
-        );
 
         test_data.cleanup().await
     }
