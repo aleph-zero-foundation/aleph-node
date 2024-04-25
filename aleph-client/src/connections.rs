@@ -183,6 +183,20 @@ pub trait SignedConnectionApi: ConnectionApi {
         status: TxStatus,
     ) -> anyhow::Result<TxInfo>;
 
+    /// Returns account id which signs this connection
+    fn account_id(&self) -> &AccountId;
+
+    /// Returns a [`KeyPair`] which signs this connection
+    fn signer(&self) -> &KeyPair;
+
+    /// Tries to convert [`SignedConnection`] as [`RootConnection`]
+    async fn try_as_root(&self) -> anyhow::Result<RootConnection> {
+        Err(anyhow!("This connenction is not upgradeable to root"))
+    }
+}
+
+/// Extensions to Signed Connections
+pub trait SignedConnectionApiExt: SignedConnectionApi {
     /// Lower level api: signs a transaction with given params and nonce.
     /// * `tx` - encoded transaction payload
     /// * `params` - optional tx params e.g. tip
@@ -195,15 +209,6 @@ pub trait SignedConnectionApi: ConnectionApi {
         params: ParamsBuilder,
         nonce: Nonce,
     ) -> anyhow::Result<SubmittableExtrinsic>;
-
-    /// Returns account id which signs this connection
-    fn account_id(&self) -> &AccountId;
-
-    /// Returns a [`KeyPair`] which signs this connection
-    fn signer(&self) -> &KeyPair;
-
-    /// Tries to convert [`SignedConnection`] as [`RootConnection`]
-    async fn try_as_root(&self) -> anyhow::Result<RootConnection>;
 }
 
 /// API for [sudo pallet](https://paritytech.github.io/substrate/master/pallet_sudo/index.html).
@@ -320,6 +325,9 @@ impl<C: AsConnection + Sync> ConnectionApi for C {
 }
 
 impl SubmittableExtrinsic {
+    /// Submits a given extrinsic to the chain.
+    /// * `status` - a [`TxStatus`] of a tx to wait for.
+    ///   In case of TxStatus::Submitted result.block_hash does not mean anything.
     pub async fn submit(&self, status: TxStatus) -> anyhow::Result<TxInfo> {
         Ok(match status {
             TxStatus::InBlock => self
@@ -338,7 +346,7 @@ impl SubmittableExtrinsic {
                 .wait_for_finalized_success()
                 .await?
                 .into(),
-            // In case of Submitted block hash does not mean anything
+
             TxStatus::Submitted => {
                 let tx_hash = self.submittable.submit().await?;
                 TxInfo {
@@ -389,6 +397,21 @@ impl<S: AsSigned + Sync> SignedConnectionApi for S {
         Ok(info)
     }
 
+    fn account_id(&self) -> &AccountId {
+        self.as_signed().signer().account_id()
+    }
+
+    fn signer(&self) -> &KeyPair {
+        &self.as_signed().signer
+    }
+
+    async fn try_as_root(&self) -> anyhow::Result<RootConnection> {
+        let temp = self.as_signed().clone();
+        RootConnection::try_from_connection(temp.connection, temp.signer).await
+    }
+}
+
+impl<S: AsSigned + Sync> SignedConnectionApiExt for S {
     fn sign_with_params<Call: TxPayload + Send + Sync>(
         &self,
         tx: Call,
@@ -401,19 +424,6 @@ impl<S: AsSigned + Sync> SignedConnectionApi for S {
             .tx()
             .create_signed_with_nonce(&tx, &self.as_signed().signer().inner, nonce.into(), params)?
             .into())
-    }
-
-    fn account_id(&self) -> &AccountId {
-        self.as_signed().signer().account_id()
-    }
-
-    fn signer(&self) -> &KeyPair {
-        &self.as_signed().signer
-    }
-
-    async fn try_as_root(&self) -> anyhow::Result<RootConnection> {
-        let temp = self.as_signed().clone();
-        RootConnection::try_from_connection(temp.connection, temp.signer).await
     }
 }
 

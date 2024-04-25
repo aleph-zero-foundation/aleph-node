@@ -6,7 +6,8 @@ use aleph_client::{
     },
     raw_keypair_from_string,
     utility::BlocksApi,
-    AccountId, Balance, KeyPair, Nonce, SignedConnection, SignedConnectionApi, TxStatus, TOKEN,
+    AccountId, Balance, KeyPair, Nonce, SignedConnection, SignedConnectionApi,
+    SignedConnectionApiExt, TxStatus, TOKEN,
 };
 use clap::Parser;
 use config::Config;

@@ -67,7 +67,7 @@ pub type SubxtClient = OnlineClient<AlephConfig>;
 
 pub use connections::{
     AsConnection, AsSigned, Connection, ConnectionApi, RootConnection, SignedConnection,
-    SignedConnectionApi, SudoCall, TxInfo,
+    SignedConnectionApi, SignedConnectionApiExt, SubmittableExtrinsic, SudoCall, TxInfo,
 };
 
 /// An alias for a configuration of live chain, e.g. block index type, hash type.
