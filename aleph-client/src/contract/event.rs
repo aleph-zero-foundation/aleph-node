@@ -56,7 +56,7 @@ pub struct ContractEvent {
 /// # async fn example(conn: Connection, signed_conn: SignedConnection, address: AccountId, path: &str) -> Result<()> {
 /// let contract = ContractInstance::new(address, path)?;
 ///
-/// let tx_info = contract.contract_exec0(&signed_conn, "some_method").await?;
+/// let tx_info = contract.exec0(&signed_conn, "some_method", Default::default()).await?;
 ///
 /// println!("Received events {:?}", get_contract_events(&conn, &contract, tx_info).await);
 ///
@@ -110,8 +110,8 @@ pub async fn get_contract_events(
 /// };
 /// let join = tokio::spawn(listen());
 ///
-/// contract1.contract_exec0(&signed_conn, "some_method").await?;
-/// contract2.contract_exec0(&signed_conn, "some_other_method").await?;
+/// contract1.exec0(&signed_conn, "some_method", Default::default()).await?;
+/// contract2.exec0(&signed_conn, "some_other_method", Default::default()).await?;
 ///
 /// println!("Received event {:?}", rx.next().await);
 ///

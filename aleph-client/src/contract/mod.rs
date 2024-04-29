@@ -1,6 +1,6 @@
 //! Contains types and functions simplifying common contract-related operations.
 //!
-//! For example, you could write this wrapper around (some of) the functionality of openbrush PSP22
+//! For example, you could write this wrapper around (some of) the functionality of PSP22
 //! contracts using the building blocks provided by this module:
 //!
 //! ```no_run
@@ -25,18 +25,20 @@
 //!     }
 //!
 //!     async fn transfer(&self, conn: &SignedConnection, to: AccountId, amount: Balance) -> Result<TxInfo> {
-//!         self.contract.contract_exec(
+//!         self.contract.exec(
 //!             conn,
 //!             "PSP22::transfer",
 //!             vec![to.to_string().as_str(), amount.to_string().as_str(), "0x00"].as_slice(),
+//!             Default::default()
 //!         ).await
 //!     }
 //!
 //!     async fn balance_of(&self, conn: &Connection, account: AccountId) -> Result<Balance> {
-//!         self.contract.contract_read(
+//!         self.contract.read(
 //!             conn,
 //!             "PSP22::balance_of",
 //!             &vec![account.to_string().as_str()],
+//!             Default::default()
 //!         ).await?
 //!     }
 //! }
@@ -52,27 +54,71 @@ use contract_transcode::ContractMessageTranscoder;
 pub use convertible_value::ConvertibleValue;
 use log::info;
 use pallet_contracts_primitives::ContractExecResult;
+use serde::__private::Clone;
 
 use crate::{
     connections::TxInfo,
     contract_transcode::Value,
     pallets::contract::{ContractCallArgs, ContractRpc, ContractsUserApi, EventRecord},
     sp_weights::weight_v2::Weight,
-    AccountId, Balance, ConnectionApi, SignedConnectionApi, TxStatus,
+    AccountId, Balance, BlockHash, ConnectionApi, SignedConnectionApi, TxStatus,
 };
-
-/// Default gas limit, which allows up to 25% of block time (62.5% of the actual block capacity).
-pub const DEFAULT_MAX_GAS: u64 = 250_000_000_000u64;
-/// Default proof size limit, which allows up to 25% of block time (62.5% of the actual block
-/// capacity).
-pub const DEFAULT_MAX_PROOF_SIZE: u64 = 250_000_000_000u64;
 
 /// Represents a contract instantiated on the chain.
 pub struct ContractInstance {
     address: AccountId,
     transcoder: ContractMessageTranscoder,
-    max_gas_override: Option<u64>,
-    max_proof_size_override: Option<u64>,
+}
+
+/// Builder for read only contract call
+#[derive(Debug, Clone, Default)]
+pub struct ReadonlyCallParams {
+    at: Option<BlockHash>,
+    sender: Option<AccountId>,
+}
+
+impl ReadonlyCallParams {
+    /// Creates a new instance of `ReadonlyCallParams`.
+    pub fn new() -> Self {
+        Default::default()
+    }
+    /// Sets the block hash to execute the call at. If not set, by default the latest block is used.
+    pub fn at(mut self, at: BlockHash) -> Self {
+        self.at = Some(at);
+        self
+    }
+
+    /// Overriders `sender` of the contract call as if it was executed by them. If not set,
+    /// by default the contract address is used.
+    pub fn sender(mut self, sender: AccountId) -> Self {
+        self.sender = Some(sender);
+        self
+    }
+}
+
+/// Builder for a contract call that will be submitted to chain
+#[derive(Debug, Clone, Default)]
+pub struct ExecCallParams {
+    value: Balance,
+    max_gas: Option<Weight>,
+}
+
+impl ExecCallParams {
+    /// Creates a new instance of `ExecCallParams`.
+    pub fn new() -> Self {
+        Default::default()
+    }
+    /// Sets the `value` balance to send with the call.
+    pub fn value(mut self, value: Balance) -> Self {
+        self.value = value;
+        self
+    }
+
+    /// Sets the `gas_limit` in the call.
+    pub fn gas_limit(mut self, max_gas: Weight) -> Self {
+        self.max_gas = Some(max_gas);
+        self
+    }
 }
 
 impl ContractInstance {
@@ -81,21 +127,7 @@ impl ContractInstance {
         Ok(Self {
             address,
             transcoder: ContractMessageTranscoder::load(metadata_path)?,
-            max_gas_override: None,
-            max_proof_size_override: None,
         })
-    }
-
-    /// From now on, the contract instance will use `limit_override` as the gas limit for all
-    /// contract calls. If `limit_override` is `None`, then [DEFAULT_MAX_GAS] will be used.
-    pub fn override_gas_limit(&mut self, limit_override: Option<u64>) {
-        self.max_gas_override = limit_override;
-    }
-
-    /// From now on, the contract instance will use `limit_override` as the proof size limit for all
-    /// contract calls. If `limit_override` is `None`, then [DEFAULT_MAX_PROOF_SIZE] will be used.
-    pub fn override_proof_size_limit(&mut self, limit_override: Option<u64>) {
-        self.max_proof_size_override = limit_override;
     }
 
     /// The address of this contract instance.
@@ -104,19 +136,17 @@ impl ContractInstance {
     }
 
     /// Reads the value of a read-only, 0-argument call via RPC.
-    pub async fn contract_read0<
-        T: TryFrom<ConvertibleValue, Error = anyhow::Error>,
-        C: ConnectionApi,
-    >(
+    pub async fn read0<T: TryFrom<ConvertibleValue, Error = anyhow::Error>, C: ConnectionApi>(
         &self,
         conn: &C,
         message: &str,
+        params: ReadonlyCallParams,
     ) -> Result<T> {
-        self.contract_read::<String, T, C>(conn, message, &[]).await
+        self.read::<String, T, C>(conn, message, &[], params).await
     }
 
     /// Reads the value of a read-only call via RPC.
-    pub async fn contract_read<
+    pub async fn read<
         S: AsRef<str> + Debug,
         T: TryFrom<ConvertibleValue, Error = anyhow::Error>,
         C: ConnectionApi,
@@ -125,25 +155,12 @@ impl ContractInstance {
         conn: &C,
         message: &str,
         args: &[S],
+        params: ReadonlyCallParams,
     ) -> Result<T> {
-        self.contract_read_as(conn, message, args, self.address.clone())
-            .await
-    }
+        let sender = params.sender.unwrap_or(self.address.clone());
 
-    /// Reads the value of a contract call via RPC as if it was executed by `sender`.
-    pub async fn contract_read_as<
-        S: AsRef<str> + Debug,
-        T: TryFrom<ConvertibleValue, Error = anyhow::Error>,
-        C: ConnectionApi,
-    >(
-        &self,
-        conn: &C,
-        message: &str,
-        args: &[S],
-        sender: AccountId,
-    ) -> Result<T> {
         let result = self
-            .dry_run(conn, message, args, sender, 0)
+            .dry_run_any(conn, message, args, sender, 0, None, params.at)
             .await?
             .result
             .map_err(|e| anyhow!("Contract exec failed {:?}", e))?;
@@ -152,57 +169,42 @@ impl ContractInstance {
         ConvertibleValue(decoded).try_into()?
     }
 
-    /// Executes a 0-argument contract call.
-    pub async fn contract_exec0<C: SignedConnectionApi>(
+    /// Executes a 0-argument contract call sending with a given params.
+    pub async fn exec0<C: SignedConnectionApi>(
         &self,
         conn: &C,
         message: &str,
+        params: ExecCallParams,
     ) -> Result<TxInfo> {
-        self.contract_exec::<C, String>(conn, message, &[]).await
+        self.exec::<C, String>(conn, message, &[], params).await
     }
 
     /// Executes a contract call.
-    pub async fn contract_exec<C: SignedConnectionApi, S: AsRef<str> + Debug>(
+    pub async fn exec<C: SignedConnectionApi, S: AsRef<str> + Debug>(
         &self,
         conn: &C,
         message: &str,
         args: &[S],
-    ) -> Result<TxInfo> {
-        self.contract_exec_value::<C, S>(conn, message, args, 0)
-            .await
-    }
-
-    /// Executes a 0-argument contract call sending the given amount of value with it.
-    pub async fn contract_exec_value0<C: SignedConnectionApi>(
-        &self,
-        conn: &C,
-        message: &str,
-        value: Balance,
-    ) -> Result<TxInfo> {
-        self.contract_exec_value::<C, String>(conn, message, &[], value)
-            .await
-    }
-
-    /// Executes a contract call sending the given amount of value with it.
-    pub async fn contract_exec_value<C: SignedConnectionApi, S: AsRef<str> + Debug>(
-        &self,
-        conn: &C,
-        message: &str,
-        args: &[S],
-        value: Balance,
+        params: ExecCallParams,
     ) -> Result<TxInfo> {
         let dry_run_result = self
-            .dry_run(conn, message, args, conn.account_id().clone(), value)
+            .exec_dry_run(
+                conn,
+                conn.account_id().clone(),
+                message,
+                args,
+                params.clone(),
+            )
             .await?;
 
         let data = self.encode(message, args)?;
         conn.call(
             self.address.clone(),
-            value,
-            Weight {
-                ref_time: dry_run_result.gas_required.ref_time(),
-                proof_size: dry_run_result.gas_required.proof_size(),
-            },
+            params.value,
+            params.max_gas.unwrap_or(Weight::new(
+                dry_run_result.gas_required.ref_time(),
+                dry_run_result.gas_required.proof_size(),
+            )),
             None,
             data,
             TxStatus::Finalized,
@@ -210,34 +212,51 @@ impl ContractInstance {
         .await
     }
 
-    fn encode<S: AsRef<str> + Debug>(&self, message: &str, args: &[S]) -> Result<Vec<u8>> {
-        self.transcoder.encode(message, args)
+    /// Dry-runs contract call with the given params. Useful to measure gas or to check if
+    /// the call will likely fail or not.
+    pub async fn exec_dry_run<C: ConnectionApi, S: AsRef<str> + Debug>(
+        &self,
+        conn: &C,
+        sender: AccountId,
+        message: &str,
+        args: &[S],
+        params: ExecCallParams,
+    ) -> Result<ContractExecResult<Balance, EventRecord>> {
+        self.dry_run_any(
+            conn,
+            message,
+            args,
+            sender,
+            params.value,
+            params.max_gas,
+            None,
+        )
+        .await
     }
 
-    fn decode(&self, message: &str, data: Vec<u8>) -> Result<Value> {
-        self.transcoder.decode_return(message, &mut data.as_slice())
-    }
-
-    async fn dry_run<S: AsRef<str> + Debug, C: ConnectionApi>(
+    #[allow(clippy::too_many_arguments)]
+    async fn dry_run_any<S: AsRef<str> + Debug, C: ConnectionApi>(
         &self,
         conn: &C,
         message: &str,
         args: &[S],
         sender: AccountId,
         value: Balance,
+        gas_limit: Option<Weight>,
+        at: Option<BlockHash>,
     ) -> Result<ContractExecResult<Balance, EventRecord>> {
         let payload = self.encode(message, args)?;
         let args = ContractCallArgs {
             origin: sender,
             dest: self.address.clone(),
             value,
-            gas_limit: None,
+            gas_limit,
             input_data: payload,
             storage_deposit_limit: None,
         };
 
         let contract_read_result = conn
-            .call_and_get(args)
+            .call_and_get(args, at)
             .await
             .context("RPC request error - there may be more info in node logs.")?;
 
@@ -265,6 +284,14 @@ impl ContractInstance {
         }
 
         Ok(contract_read_result)
+    }
+
+    fn encode<S: AsRef<str> + Debug>(&self, message: &str, args: &[S]) -> Result<Vec<u8>> {
+        self.transcoder.encode(message, args)
+    }
+
+    fn decode(&self, message: &str, data: Vec<u8>) -> Result<Value> {
+        self.transcoder.decode_return(message, &mut data.as_slice())
     }
 }
 

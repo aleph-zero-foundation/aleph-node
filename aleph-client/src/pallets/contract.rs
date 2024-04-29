@@ -97,9 +97,13 @@ pub trait ContractsUserApi {
 #[async_trait::async_trait]
 pub trait ContractRpc {
     /// API for [`call`](https://paritytech.github.io/substrate/master/pallet_contracts/trait.ContractsApi.html#method.call) call.
+    /// * `args` - Arguments for the call.
+    /// * `at` - Optional hash of a block, the state of which should be used.
+    ///          If `None`, state associated with the best block is queried.
     async fn call_and_get(
         &self,
         args: ContractCallArgs,
+        at: Option<BlockHash>,
     ) -> anyhow::Result<ContractExecResult<Balance, EventRecord>>;
 }
 
@@ -203,8 +207,9 @@ impl<C: ConnectionApi> ContractRpc for C {
     async fn call_and_get(
         &self,
         args: ContractCallArgs,
+        block_hash: Option<BlockHash>,
     ) -> anyhow::Result<ContractExecResult<Balance, EventRecord>> {
-        let params = rpc_params!["ContractsApi_call", Bytes(args.encode())];
+        let params = rpc_params!["ContractsApi_call", Bytes(args.encode()), block_hash];
         self.rpc_call("state_call".to_string(), params).await
     }
 }
