@@ -1,8 +1,15 @@
-use std::{collections::HashMap, iter, pin::Pin, sync::Arc};
+use std::{
+    collections::HashSet,
+    fmt::{Debug, Display, Error as FmtError, Formatter},
+    iter,
+    pin::Pin,
+    sync::Arc,
+};
 
-use async_trait::async_trait;
 use futures::stream::{Fuse, Stream, StreamExt};
-use log::{error, trace, warn};
+use log::{debug, error, info, trace, warn};
+use parity_scale_codec::DecodeAll;
+use rand::{seq::IteratorRandom, thread_rng};
 pub use sc_network::PeerId;
 use sc_network::{
     multiaddr::Protocol as MultiaddressProtocol,
@@ -12,211 +19,238 @@ use sc_network::{
 use sc_network_common::ExHashT;
 use sc_network_sync::{SyncEvent, SyncEventStream, SyncingService};
 use sp_runtime::traits::Block;
+use tokio::time;
 
-use crate::network::gossip::{Event, EventStream, Protocol};
+use crate::{
+    network::{Data, GossipNetwork},
+    STATUS_REPORT_INTERVAL,
+};
 
-/// Name of the network protocol used by Aleph Zero to disseminate validator
-/// authentications.
-const AUTHENTICATION_PROTOCOL_NAME: &str = "/auth/0";
+const LOG_TARGET: &str = "aleph-network";
 
-/// Name of the network protocol used by Aleph Zero to synchronize the block state.
-const BLOCK_SYNC_PROTOCOL_NAME: &str = "/sync/0";
-
-/// Convert protocols to their names and vice versa.
-#[derive(Clone)]
-pub struct ProtocolNaming {
-    authentication_name: ProtocolName,
-    block_sync_name: ProtocolName,
+#[derive(Debug)]
+pub enum SyncNetworkServiceError {
+    NetworkStreamTerminated,
 }
 
-impl ProtocolNaming {
-    /// Create a new protocol naming scheme with the given chain prefix.
-    pub fn new(chain_prefix: String) -> Self {
-        let authentication_name: ProtocolName =
-            format!("{chain_prefix}{AUTHENTICATION_PROTOCOL_NAME}").into();
-        let mut protocols_by_name = HashMap::new();
-        protocols_by_name.insert(authentication_name.clone(), Protocol::Authentication);
-        let block_sync_name: ProtocolName =
-            format!("{chain_prefix}{BLOCK_SYNC_PROTOCOL_NAME}").into();
-        protocols_by_name.insert(block_sync_name.clone(), Protocol::BlockSync);
-        ProtocolNaming {
-            authentication_name,
-            block_sync_name,
+impl Display for SyncNetworkServiceError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
+        match self {
+            Self::NetworkStreamTerminated => write!(f, "Network event stream ended."),
         }
     }
-
-    /// Returns the canonical name of the protocol.
-    pub fn protocol_name(&self, protocol: &Protocol) -> ProtocolName {
-        use Protocol::*;
-        match protocol {
-            Authentication => self.authentication_name.clone(),
-            BlockSync => self.block_sync_name.clone(),
-        }
-    }
-
-    /// Returns the fallback names of the protocol.
-    pub fn fallback_protocol_names(&self, _protocol: &Protocol) -> Vec<ProtocolName> {
-        Vec::new()
-    }
 }
 
-/// A struct holding NotificationService per protocol we use.
-pub struct NotificationServices {
-    pub authentication: Box<dyn sc_network::config::NotificationService>,
-    pub sync: Box<dyn sc_network::config::NotificationService>,
-}
-
-pub struct NetworkEventStream<B: Block, H: ExHashT> {
+/// Service responsible for handling network events emitted by the base sync protocol.
+pub struct SyncNetworkService<B: Block, H: ExHashT> {
     sync_stream: Fuse<Pin<Box<dyn Stream<Item = SyncEvent> + Send>>>,
-    notifications: NotificationServices,
-    naming: ProtocolNaming,
     network: Arc<NetworkService<B, H>>,
+    protocol_names: Vec<ProtocolName>,
 }
 
-impl<B: Block, H: ExHashT> NetworkEventStream<B, H> {
+impl<B: Block, H: ExHashT> SyncNetworkService<B, H> {
     pub fn new(
         network: Arc<NetworkService<B, H>>,
         sync_network: Arc<SyncingService<B>>,
-        naming: ProtocolNaming,
-        notifications: NotificationServices,
+        protocol_names: Vec<ProtocolName>,
     ) -> Self {
         Self {
             sync_stream: sync_network.event_stream("aleph-syncing-network").fuse(),
-            notifications,
-            naming,
             network,
+            protocol_names,
+        }
+    }
+
+    fn peer_connected(&mut self, remote: PeerId) {
+        let multiaddress: Multiaddr =
+            iter::once(MultiaddressProtocol::P2p(remote.into())).collect();
+        trace!(target: LOG_TARGET, "Connected event from address {:?}", multiaddress);
+
+        for name in &self.protocol_names {
+            if let Err(e) = self
+                .network
+                .add_peers_to_reserved_set(name.clone(), iter::once(multiaddress.clone()).collect())
+            {
+                error!(target: LOG_TARGET, "add_peers_to_reserved_set failed for {}: {}", name, e);
+            }
+        }
+    }
+
+    fn peer_disconnected(&mut self, remote: PeerId) {
+        trace!(target: LOG_TARGET, "Disconnected event for peer {:?}", remote);
+        let addresses: Vec<_> = iter::once(remote).collect();
+
+        for name in &self.protocol_names {
+            if let Err(e) = self
+                .network
+                .remove_peers_from_reserved_set(name.clone(), addresses.clone())
+            {
+                error!(target: LOG_TARGET, "remove_peers_from_reserved_set failed for {}: {}", name, e)
+            }
+        }
+    }
+
+    pub async fn run(mut self) -> Result<(), SyncNetworkServiceError> {
+        use SyncEvent::*;
+        loop {
+            match self.sync_stream.next().await {
+                Some(event) => match event {
+                    PeerConnected(remote) => self.peer_connected(remote),
+                    PeerDisconnected(remote) => self.peer_disconnected(remote),
+                },
+                None => return Err(SyncNetworkServiceError::NetworkStreamTerminated),
+            }
         }
     }
 }
 
-#[async_trait]
-impl<B: Block, H: ExHashT> EventStream<PeerId> for NetworkEventStream<B, H> {
-    async fn next_event(&mut self) -> Option<Event<PeerId>> {
-        use Event::*;
-        use SyncEvent::*;
+/// A thin wrapper around sc_network::config::NotificationService that stores a list
+/// of all currently connected peers, and introduces a few convenience methods to
+/// allow broadcasting messages and sending data to random peers.
+pub struct ProtocolNetwork {
+    service: Box<dyn sc_network::config::NotificationService>,
+    connected_peers: HashSet<PeerId>,
+    last_status_report: time::Instant,
+}
+
+impl ProtocolNetwork {
+    pub fn new(service: Box<dyn sc_network::config::NotificationService>) -> Self {
+        Self {
+            service,
+            connected_peers: HashSet::new(),
+            last_status_report: time::Instant::now(),
+        }
+    }
+
+    pub fn name(&self) -> ProtocolName {
+        self.service.protocol().clone()
+    }
+
+    fn random_peer<'a>(&'a self, peer_ids: &'a HashSet<PeerId>) -> Option<&'a PeerId> {
+        peer_ids
+            .intersection(&self.connected_peers)
+            .choose(&mut thread_rng())
+            .or_else(|| self.connected_peers.iter().choose(&mut thread_rng()))
+    }
+
+    fn handle_network_event(&mut self, event: SubstrateEvent) -> Option<(Vec<u8>, PeerId)> {
+        use SubstrateEvent::*;
+        match event {
+            ValidateInboundSubstream {
+                peer: _,
+                handshake: _,
+                result_tx,
+            } => {
+                let _ = result_tx.send(ValidationResult::Accept);
+                None
+            }
+            NotificationStreamOpened { peer, .. } => {
+                self.connected_peers.insert(peer);
+                None
+            }
+            NotificationStreamClosed { peer } => {
+                self.connected_peers.remove(&peer);
+                None
+            }
+            NotificationReceived { peer, notification } => Some((notification, peer)),
+        }
+    }
+
+    fn status_report(&self) {
+        let mut status = String::from("Network status report: ");
+        status.push_str(&format!(
+            "{} connected peers - {:?}; ",
+            self.service.protocol(),
+            self.connected_peers.len()
+        ));
+        info!(target: LOG_TARGET, "{}", status);
+    }
+}
+
+#[derive(Debug)]
+pub enum ProtocolNetworkError {
+    NetworkStreamTerminated,
+}
+
+impl Display for ProtocolNetworkError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
+        match self {
+            ProtocolNetworkError::NetworkStreamTerminated => {
+                write!(f, "Notifications event stream ended.")
+            }
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl<D: Data> GossipNetwork<D> for ProtocolNetwork {
+    type Error = ProtocolNetworkError;
+    type PeerId = PeerId;
+
+    fn send_to(&mut self, data: D, peer_id: PeerId) -> Result<(), Self::Error> {
+        trace!(
+            target: LOG_TARGET,
+            "Sending block sync data to peer {:?}.",
+            peer_id,
+        );
+        self.service.send_sync_notification(&peer_id, data.encode());
+        Ok(())
+    }
+
+    fn send_to_random(&mut self, data: D, peer_ids: HashSet<PeerId>) -> Result<(), Self::Error> {
+        trace!(
+            target: LOG_TARGET,
+            "Sending data to random peer among {:?}.",
+            peer_ids,
+        );
+        let peer_id = match self.random_peer(&peer_ids) {
+            Some(peer_id) => *peer_id,
+            None => {
+                debug!(
+                    target: LOG_TARGET,
+                    "Failed to send message to random peer, no peers are available."
+                );
+                return Ok(());
+            }
+        };
+        self.send_to(data, peer_id)
+    }
+
+    fn broadcast(&mut self, data: D) -> Result<(), Self::Error> {
+        for peer in self.connected_peers.clone() {
+            // in the current version send_to never returns an error
+            let _ = self.send_to(data.clone(), peer);
+        }
+        Ok(())
+    }
+
+    async fn next(&mut self) -> Result<(D, PeerId), Self::Error> {
+        let mut status_ticker = time::interval_at(
+            self.last_status_report
+                .checked_add(STATUS_REPORT_INTERVAL)
+                .unwrap_or(time::Instant::now()),
+            STATUS_REPORT_INTERVAL,
+        );
         loop {
             tokio::select! {
-                Some(event) = self.notifications.sync.next_event() => {
-                    use SubstrateEvent::*;
-                    match event {
-                        ValidateInboundSubstream {
-                            peer: _,
-                            handshake: _,
-                            result_tx,
-                        } => {
-                            let _ = result_tx.send(ValidationResult::Accept);
-                            continue
-                        },
-                        NotificationStreamOpened {
-                            peer,
-                            ..
-                        } => {
-                            match self.notifications.sync.message_sink(&peer) {
-                                Some(sink) => return Some(StreamOpened(peer, Protocol::BlockSync, sink)),
-                                None => {
-                                    warn!(target: "aleph-network", "Received NotificationStreamOpened from peer {peer:?} in BlockSync protocol, but could not create MessageSink.");
-                                    continue;
-                                }
-                            }
-                        },
-                        NotificationStreamClosed {
-                            peer,
-                        } => {
-                            return Some(StreamClosed(peer, Protocol::BlockSync));
-                        },
-                        NotificationReceived {
-                            peer,
-                            notification,
-                        } => {
-                            return Some(Messages(
-                                peer,
-                                vec![(Protocol::BlockSync, notification.into())],
-                            ));
-                        },
-                    }
-                },
-
-                Some(event) = self.notifications.authentication.next_event() => {
-                    use SubstrateEvent::*;
-                    match event {
-                        ValidateInboundSubstream {
-                            peer: _,
-                            handshake: _,
-                            result_tx,
-                        } => {
-                            let _ = result_tx.send(ValidationResult::Accept);
-                            continue
-                        },
-                        NotificationStreamOpened {
-                            peer,
-                            ..
-                        } => {
-                            match self.notifications.authentication.message_sink(&peer) {
-                                Some(sink) => return Some(StreamOpened(peer, Protocol::Authentication, sink)),
-                                None => {
-                                    warn!(target: "aleph-network", "Received NotificationStreamOpened from peer {peer:?} in Authentication protocol, but could not create MessageSink.");
-                                    continue;
-                                }
-                            }
-                        },
-                        NotificationStreamClosed {
-                            peer,
-                        } => {
-                            return Some(StreamClosed(peer, Protocol::Authentication));
-                        },
-                        NotificationReceived {
-                            peer,
-                            notification,
-                        } => {
-                            return Some(Messages(
-                                peer,
-                                vec![(Protocol::Authentication, notification.into())],
-                            ));
-                        },
-                    }
-                },
-
-                Some(event) = self.sync_stream.next() => {
-                    match event {
-                        PeerConnected(remote) => {
-                            let multiaddress: Multiaddr =
-                                iter::once(MultiaddressProtocol::P2p(remote.into())).collect();
-                            trace!(target: "aleph-network", "Connected event from address {:?}", multiaddress);
-                            if let Err(e) = self.network.add_peers_to_reserved_set(
-                                self.naming.protocol_name(&Protocol::Authentication),
-                                iter::once(multiaddress.clone()).collect(),
-                            ) {
-                                error!(target: "aleph-network", "add_reserved failed for authentications: {}", e);
-                            }
-                            if let Err(e) = self.network.add_peers_to_reserved_set(
-                                self.naming.protocol_name(&Protocol::BlockSync),
-                                iter::once(multiaddress).collect(),
-                            ) {
-                                error!(target: "aleph-network", "add_reserved failed for block sync: {}", e);
-                            }
-                            continue;
-                        }
-                        PeerDisconnected(remote) => {
-                            trace!(target: "aleph-network", "Disconnected event for peer {:?}", remote);
-                            let addresses: Vec<_> = iter::once(remote).collect();
-                            if let Err(e) = self.network.remove_peers_from_reserved_set(
-                                self.naming.protocol_name(&Protocol::Authentication),
-                                addresses.clone(),
-                            ) {
-                                warn!(target: "aleph-network", "Error while removing peer from Protocol::Authentication reserved set: {}", e)
-                            }
-                            if let Err(e) = self.network.remove_peers_from_reserved_set(
-                                self.naming.protocol_name(&Protocol::BlockSync),
-                                addresses,
-                            ) {
-                                warn!(target: "aleph-network", "Error while removing peer from Protocol::BlockSync reserved set: {}", e)
-                            }
-                            continue;
+                maybe_event = self.service.next_event() => {
+                    let event = maybe_event.ok_or(Self::Error::NetworkStreamTerminated)?;
+                    if let Some((message, peer_id)) = self.handle_network_event(event) {
+                        match D::decode_all(&mut &message[..]) {
+                            Ok(message) => return Ok((message, peer_id)),
+                            Err(e) => {
+                                warn!(
+                                    target: LOG_TARGET,
+                                    "Error decoding message: {}", e
+                                )
+                            },
                         }
                     }
                 },
-
-                else => return None,
+                _ = status_ticker.tick() => {
+                    self.status_report();
+                    self.last_status_report = time::Instant::now();
+                },
             }
         }
     }

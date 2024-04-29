@@ -35,9 +35,8 @@ use crate::{
     aggregation::{CurrentRmcNetworkData, LegacyRmcNetworkData},
     block::UnverifiedHeader,
     compatibility::{Version, Versioned},
-    network::{data::split::Split, session::MAX_MESSAGE_SIZE as MAX_AUTHENTICATION_MESSAGE_SIZE},
+    network::data::split::Split,
     session::{SessionBoundaries, SessionBoundaryInfo, SessionId},
-    sync::MAX_MESSAGE_SIZE as MAX_BLOCK_SYNC_MESSAGE_SIZE,
     VersionedTryFromError::{ExpectedNewGotOld, ExpectedOldGotNew},
 };
 
@@ -74,8 +73,7 @@ pub use crate::{
     metrics::{AllBlockMetrics, DefaultClock, FinalityRateMetrics, TimingBlockMetrics},
     network::{
         address_cache::{ValidatorAddressCache, ValidatorAddressingInfo},
-        NotificationServices, Protocol, ProtocolNaming, SubstrateNetworkEventStream,
-        SubstratePeerId,
+        NetConfig, ProtocolNetwork, SubstratePeerId, SyncNetworkService,
     },
     nodes::run_validator_node,
     session::SessionPeriod,
@@ -84,31 +82,6 @@ pub use crate::{
 
 /// Constant defining how often components of finality-aleph should report their state
 const STATUS_REPORT_INTERVAL: Duration = Duration::from_secs(20);
-
-fn max_message_size(protocol: Protocol) -> u64 {
-    match protocol {
-        Protocol::Authentication => MAX_AUTHENTICATION_MESSAGE_SIZE,
-        Protocol::BlockSync => MAX_BLOCK_SYNC_MESSAGE_SIZE,
-    }
-}
-
-/// Returns a NonDefaultSetConfig for the specified protocol.
-pub fn peers_set_config(
-    naming: ProtocolNaming,
-    protocol: Protocol,
-) -> (
-    sc_network::config::NonDefaultSetConfig,
-    Box<dyn sc_network::config::NotificationService>,
-) {
-    sc_network::config::NonDefaultSetConfig::new(
-        naming.protocol_name(&protocol),
-        naming.fallback_protocol_names(&protocol),
-        max_message_size(protocol),
-        // we do not use custom handshake
-        None,
-        sc_network::config::SetConfig::default(),
-    )
-}
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash, Ord, PartialOrd, Encode, Decode)]
 pub struct MillisecsPerBlock(pub u64);
@@ -283,7 +256,9 @@ pub struct RateLimiterConfig {
 }
 
 pub struct AlephConfig<C, SC, T> {
-    pub network_event_stream: SubstrateNetworkEventStream<AlephBlock, AlephHash>,
+    pub authentication_network: ProtocolNetwork,
+    pub block_sync_network: ProtocolNetwork,
+    pub sync_network_service: SyncNetworkService<AlephBlock, AlephHash>,
     pub client: Arc<C>,
     pub chain_status: SubstrateChainStatus,
     pub import_queue_handle: BlockImporter,
