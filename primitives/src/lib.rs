@@ -136,7 +136,7 @@ pub const TOKEN: u128 = 10u128.pow(TOKEN_DECIMALS);
 pub const ADDRESSES_ENCODING: u8 = 42;
 
 /// ABFT unit creation delay (in ms)
-pub const DEFAULT_UNIT_CREATION_DELAY: u64 = 300;
+pub const DEFAULT_UNIT_CREATION_DELAY: u64 = 200;
 
 /// Committee Size for new chains
 pub const DEFAULT_COMMITTEE_SIZE: u32 = 4;
