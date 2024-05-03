@@ -15,7 +15,7 @@ use futures::{
 };
 use parity_scale_codec::{Decode, Encode, Output};
 use primitives as aleph_primitives;
-use primitives::{AuthorityId, Block as AlephBlock, BlockHash, BlockNumber, Hash as AlephHash};
+use primitives::{AuthorityId, Block as AlephBlock, BlockHash, BlockNumber};
 use sc_client_api::{
     Backend, BlockBackend, BlockchainEvents, Finalizer, LockImportRun, StorageProvider,
 };
@@ -258,7 +258,7 @@ pub struct RateLimiterConfig {
 pub struct AlephConfig<C, SC, T> {
     pub authentication_network: ProtocolNetwork,
     pub block_sync_network: ProtocolNetwork,
-    pub sync_network_service: SyncNetworkService<AlephBlock, AlephHash>,
+    pub sync_network_service: SyncNetworkService<AlephBlock>,
     pub client: Arc<C>,
     pub chain_status: SubstrateChainStatus,
     pub import_queue_handle: BlockImporter,

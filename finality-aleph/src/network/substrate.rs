@@ -16,7 +16,6 @@ use sc_network::{
     service::traits::{NotificationEvent as SubstrateEvent, ValidationResult},
     Multiaddr, NetworkPeers, NetworkService, ProtocolName,
 };
-use sc_network_common::ExHashT;
 use sc_network_sync::{SyncEvent, SyncEventStream, SyncingService};
 use sp_runtime::traits::Block;
 use tokio::time;
@@ -42,15 +41,15 @@ impl Display for SyncNetworkServiceError {
 }
 
 /// Service responsible for handling network events emitted by the base sync protocol.
-pub struct SyncNetworkService<B: Block, H: ExHashT> {
+pub struct SyncNetworkService<B: Block> {
     sync_stream: Fuse<Pin<Box<dyn Stream<Item = SyncEvent> + Send>>>,
-    network: Arc<NetworkService<B, H>>,
+    network: Arc<NetworkService<B, B::Hash>>,
     protocol_names: Vec<ProtocolName>,
 }
 
-impl<B: Block, H: ExHashT> SyncNetworkService<B, H> {
+impl<B: Block> SyncNetworkService<B> {
     pub fn new(
-        network: Arc<NetworkService<B, H>>,
+        network: Arc<NetworkService<B, B::Hash>>,
         sync_network: Arc<SyncingService<B>>,
         protocol_names: Vec<ProtocolName>,
     ) -> Self {
