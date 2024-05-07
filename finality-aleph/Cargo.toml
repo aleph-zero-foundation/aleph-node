@@ -23,6 +23,7 @@ current-aleph-aggregator = { path = "../aggregator", package = "aggregator" }
 rate-limiter = { package = "rate-limiter", path = "../rate-limiter" }
 
 async-trait = { workspace = true }
+array-bytes = { workspace = true }
 bytes = { workspace = true }
 derive_more = { workspace = true }
 env_logger = { workspace = true }

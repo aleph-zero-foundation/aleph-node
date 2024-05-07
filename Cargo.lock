@@ -2406,6 +2406,7 @@ dependencies = [
  "aleph-bft-crypto 0.9.0",
  "aleph-bft-rmc 0.11.1",
  "aleph-bft-rmc 0.13.0",
+ "array-bytes 6.2.2",
  "async-trait",
  "bytes",
  "derive_more",
