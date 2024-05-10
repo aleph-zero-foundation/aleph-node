@@ -2700,4 +2700,183 @@ mod tests {
             }
         }
     }
+
+    #[tokio::test]
+    async fn handles_wide_fork_scenario() {
+        let (mut handler, mut backend, mut notifier, genesis) = setup();
+
+        // H0' H1' H2' ... H99'
+        // |   |   |       |
+        // H0  H1  H2  ... H99
+        // |   |   |       |
+        // G ---------------
+        //
+        // Make handler aware of headers H0, H0', ..., H99, H99', where Hi' is passed by peer i.
+        let branches: Vec<_> = (0..100)
+            .map(|i| grow_light_branch(&mut handler, &genesis, 2, i))
+            .collect();
+        let interest_provider = handler.interest_provider();
+
+        // Verify initial interests in H0, H0', ..., H99, H99'.
+        for (i, branch) in branches.iter().enumerate() {
+            assert!(matches!(
+                interest_provider.get(&branch[0].id()),
+                Interest::Uninterested
+            ));
+            match interest_provider.get(&branch[1].id()) {
+                Interest::Required {
+                    know_most,
+                    branch_knowledge,
+                    ..
+                } => {
+                    assert_eq!(know_most.len(), 1);
+                    assert!(know_most.contains(&(i as u32)));
+                    assert_eq!(branch_knowledge, TopImported(genesis.clone()))
+                }
+                _ => panic!("should be required"),
+            }
+        }
+
+        // Import H0, ..., H49.
+        for branch in branches.iter().take(50) {
+            let block = MockBlock::new(branch[0].clone(), true);
+            backend.import_block(block, false);
+            match notifier.next().await {
+                Ok(BlockImported(header)) => {
+                    handler
+                        .block_imported(header)
+                        .expect("block imported should succeed");
+                }
+                _ => panic!("should notify about imported block"),
+            }
+        }
+
+        // Verify interests in H0, H0', ..., H99, H99' after import.
+        let interest_provider = handler.interest_provider();
+        for (i, branch) in branches.iter().enumerate() {
+            assert!(matches!(
+                interest_provider.get(&branch[0].id()),
+                Interest::Uninterested
+            ));
+            match interest_provider.get(&branch[1].id()) {
+                Interest::Required {
+                    know_most,
+                    branch_knowledge,
+                    ..
+                } => {
+                    assert_eq!(know_most.len(), 1);
+                    assert!(know_most.contains(&(i as u32)));
+                    if i < 50 {
+                        assert_eq!(branch_knowledge, TopImported(branch[0].id()))
+                    } else {
+                        assert_eq!(branch_knowledge, TopImported(genesis.clone()))
+                    }
+                }
+                _ => panic!("should be required"),
+            }
+        }
+
+        // Import H0', ..., H24'.
+        for branch in branches.iter().take(25) {
+            let block = MockBlock::new(branch[1].clone(), true);
+            backend.import_block(block, false);
+            match notifier.next().await {
+                Ok(BlockImported(header)) => {
+                    handler
+                        .block_imported(header)
+                        .expect("block imported should succeed");
+                }
+                _ => panic!("should notify about imported block"),
+            }
+        }
+
+        // H0', ..., H24' shouldn't be required anymore
+        let interest_provider = handler.interest_provider();
+        for branch in branches.iter().take(25) {
+            assert!(matches!(
+                interest_provider.get(&branch[1].id()),
+                Interest::Uninterested
+            ));
+        }
+
+        // Verify responses to requests for H0', ..., H99'.
+        for (i, branch) in branches.iter().enumerate() {
+            let response = handler.handle_request(Request::new(
+                branch[1].clone(),
+                TopImported(branch[0].id()),
+                State::new(
+                    MockJustification::for_header(MockHeader::genesis()),
+                    branch[1].clone(),
+                ),
+            ));
+            if i < 25 {
+                // We have the block so we should respond with it.
+                match response {
+                    Ok((Action::Response(res), None)) => {
+                        assert_eq!(res.len(), 1);
+                        match res[0].clone() {
+                            ResponseItem::Block(block) => {
+                                assert_eq!(block, MockBlock::new(branches[i][1].clone(), true));
+                            }
+                            _ => panic!("should be block"),
+                        }
+                    }
+                    _ => panic!("should be action"),
+                }
+            } else {
+                // We don't have the block, and its corresponding vertex in forest has already been
+                // set to ExplicitlyRequired, so we take Action::None, instead of Action::RequestBlock.
+                assert!(matches!(response, Ok((Action::Noop, None))));
+            }
+        }
+
+        // Justification comes for H0.
+        assert!(matches!(
+            handler.handle_justification(
+                MockJustification::for_header(branches[0][0].clone()),
+                Some(0)
+            ),
+            Ok(true)
+        ));
+        consume_branch_finalized_notifications(&mut notifier, &vec![branches[0][0].clone()]).await;
+
+        // Verify responses to requests for H0', ..., H99'.
+        for (i, branch) in branches.iter().enumerate() {
+            let response = handler.handle_request(Request::new(
+                branch[1].clone(),
+                TopImported(branch[0].id()),
+                State::new(
+                    MockJustification::for_header(MockHeader::genesis()),
+                    branch[1].clone(),
+                ),
+            ));
+            if i == 0 {
+                // We have the requested block and the justification for its parent, so we respond with both.
+                match response {
+                    Ok((Action::Response(res), None)) => {
+                        assert_eq!(res.len(), 2);
+                        match &res[0] {
+                            ResponseItem::Justification(justification) => {
+                                assert_eq!(
+                                    *justification,
+                                    MockJustification::for_header(branches[0][0].clone())
+                                );
+                            }
+                            _ => panic!("should be justification"),
+                        }
+                        match &res[1] {
+                            ResponseItem::Block(block) => {
+                                assert_eq!(*block, MockBlock::new(branches[0][1].clone(), true));
+                            }
+                            _ => panic!("should be block"),
+                        }
+                    }
+                    _ => panic!("should be action"),
+                }
+            } else {
+                // The branch is conflicting with the previously finalized block on branch 0, so we take no action.
+                assert!(matches!(response, Ok((Action::Noop, None))));
+            }
+        }
+    }
 }
