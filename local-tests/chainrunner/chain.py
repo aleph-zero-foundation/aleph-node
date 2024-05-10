@@ -43,16 +43,16 @@ class Chain:
 
         self.nodes = self.validator_nodes + self.nonvalidator_nodes
 
-    def bootstrap(self, binary, validators, nonvalidators=None, raw=True, **kwargs):
+    def bootstrap(self, aleph_node_binary, chain_bootstrapper_binary, validators, nonvalidators=None, raw=True, **kwargs):
         """Bootstrap the chain. `validators` and `nonvalidators` should be lists of strings
         with public keys. Flags `--account-ids`, `--base-path` and `--raw` are added automatically.
         All other flags are taken from kwargs"""
-        self.new(binary, validators, nonvalidators)
+        self.new(aleph_node_binary, validators, nonvalidators)
         nonvalidators = nonvalidators or []
         all_accounts = list(validators) + list(nonvalidators)
 
-        binary = check_file(binary)
-        cmd = [binary, 'bootstrap-chain',
+        binary = check_file(chain_bootstrapper_binary)
+        cmd = [chain_bootstrapper_binary, 'bootstrap-chain',
                '--base-path', self.path,
                '--account-ids', ','.join(all_accounts),
                '--authorities-account-ids', ','.join(validators)]

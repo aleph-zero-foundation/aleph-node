@@ -1,6 +1,5 @@
 mod aleph_cli;
 mod aleph_node_rpc;
-mod chain_spec;
 mod cli;
 mod config;
 mod executor;
@@ -12,7 +11,7 @@ pub use cli::{Cli, Subcommand};
 pub use config::Validator as ConfigValidator;
 #[cfg(any(
     feature = "runtime-benchmarks",
-    feature = "local-debugging",
+    feature = "aleph-native-runtime",
     feature = "try-runtime"
 ))]
 pub use executor::aleph_executor::ExecutorDispatch;

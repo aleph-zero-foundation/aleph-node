@@ -15,8 +15,6 @@ fn main() -> sc_cli::Result<()> {
     let config_validation_result = ConfigValidator::process(&mut cli);
 
     match &cli.subcommand {
-        Some(Subcommand::BootstrapChain(cmd)) => cmd.run(),
-        Some(Subcommand::ConvertChainspecToRaw(cmd)) => cmd.run(),
         Some(Subcommand::Key(cmd)) => cmd.run(&cli),
         Some(Subcommand::CheckBlock(cmd)) => {
             let runner = cli.create_runner(cmd)?;

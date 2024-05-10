@@ -10,7 +10,6 @@ pub const CHAINTYPE_LOCAL: &str = "local";
 pub const CHAINTYPE_LIVE: &str = "live";
 
 pub const DEFAULT_CHAIN_ID: &str = "a0dnet1";
-pub const DEFAULT_BACKUP_FOLDER: &str = "backup-stash";
 pub const DEFAULT_SUDO_ACCOUNT_ALICE: &str = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
 
 pub type AlephNodeChainSpec = sc_service::GenericChainSpec<()>;
@@ -19,14 +18,6 @@ use primitives::AccountId;
 use sc_chain_spec::ChainType;
 use sc_cli::Error;
 use sp_application_crypto::Ss58Codec;
-
-pub fn mainnet_config() -> Result<AlephNodeChainSpec, String> {
-    AlephNodeChainSpec::from_json_bytes(crate::resources::mainnet_chainspec())
-}
-
-pub fn testnet_config() -> Result<AlephNodeChainSpec, String> {
-    AlephNodeChainSpec::from_json_bytes(crate::resources::testnet_chainspec())
-}
 
 fn parse_chaintype(s: &str) -> Result<ChainType, Error> {
     Ok(match s {

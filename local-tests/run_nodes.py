@@ -9,19 +9,21 @@ from chainrunner import Chain, Seq, generate_keys, check_finalized
 
 nodes = 4
 workdir = '.'
-binary = '../target/release/aleph-node'
+aleph_node_binary = '../target/release/aleph-node'
+chain_bootstrapper_binary = '../target/release/chain-bootstrapper'
 port = 30334
 rpc_port = 9944
 
 phrases = ['//Alice', '//Bob', '//Charlie', '//Dave', '//Ezekiel', '//Fanny', '//George', '//Hugo']
-keys_dict = generate_keys(binary, phrases)
+keys_dict = generate_keys(aleph_node_binary, phrases)
 keys = list(keys_dict.values())
 nodes = min(nodes, len(phrases))
 
 chain = Chain(workdir)
 
 print(f'Bootstrapping chain for {nodes} nodes')
-chain.bootstrap(binary,
+chain.bootstrap(aleph_node_binary,
+                chain_bootstrapper_binary,
                 keys[:nodes],
                 chain_type='local')
 chain.set_flags('validator',

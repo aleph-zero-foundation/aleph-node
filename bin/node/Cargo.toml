@@ -21,47 +21,35 @@ log = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 futures = { workspace = true }
-hex = { workspace = true }
-hex-literal = { workspace = true }
-libp2p = { workspace = true }
 static_assertions = { workspace = true }
 thiserror = { workspace = true }
 
-sc-basic-authorship = { workspace = true }
-sc-chain-spec = { workspace = true }
 sc-cli = { workspace = true }
+sc-basic-authorship = { workspace = true }
 sc-client-api = { workspace = true }
 sc-consensus = { workspace = true }
 sc-consensus-aura = { workspace = true }
 sc-consensus-slots = { workspace = true }
 sc-executor = { workspace = true }
-sc-keystore = { workspace = true }
 sc-network = { workspace = true }
 sc-network-sync = { workspace = true }
 sc-service = { workspace = true }
+sc-client-db = { workspace = true }
 sc-telemetry = { workspace = true }
 sc-transaction-pool = { workspace = true }
 sc-transaction-pool-api = { workspace = true }
-sp-application-crypto = { workspace = true }
 sp-arithmetic = { workspace = true }
 sp-block-builder = { workspace = true }
 sp-consensus = { workspace = true }
 sp-consensus-aura = { workspace = true }
 sp-core = { workspace = true }
 sp-io = { workspace = true }
-sp-keystore = { workspace = true }
 sp-runtime = { workspace = true }
 sp-timestamp = { workspace = true }
 sp-transaction-pool = { workspace = true }
 
-pallet-staking = { workspace = true }
-try-runtime-cli = { workspace = true, optional = true }
-
 frame-benchmarking-cli = { workspace = true, optional = true }
 frame-benchmarking = { workspace = true, optional = true }
-
-# this is only neeeded for chainspec generation
-aleph-runtime = { workspace = true }
 
 aleph-runtime-interfaces = { workspace = true }
 finality-aleph = { workspace = true }
@@ -77,28 +65,47 @@ sp-blockchain = { workspace = true }
 substrate-frame-rpc-system = { workspace = true }
 pallet-transaction-payment-rpc = { workspace = true }
 
+aleph-runtime = { workspace = true, optional = true }
+try-runtime-cli = { workspace = true, optional = true }
+
 [build-dependencies]
 substrate-build-script-utils = { workspace = true }
 
 [features]
-default = []
-short_session = [
-    "aleph-runtime/short_session",
-    "primitives/short_session",
-]
-try-runtime = [
-    "aleph-runtime/try-runtime",
-    "try-runtime-cli/try-runtime",
-]
-enable_treasury_proposals = [
-    "aleph-runtime/enable_treasury_proposals"
+default = ["std", "rocksdb"]
+std = [
+    "parity-scale-codec/std",
+    "sp-api/std",
+    "sp-block-builder/std",
+    "sp-consensus-aura/std",
+    "sp-core/std",
+    "sp-runtime/std",
+    "sp-transaction-pool/std",
+    "primitives/std",
+    "sp-io/std",
+    "aleph-runtime-interfaces/std",
 ]
 runtime-benchmarks = [
+    "aleph-runtime-native",
     "frame-benchmarking",
     "frame-benchmarking-cli/runtime-benchmarks",
-    "aleph-runtime/runtime-benchmarks",
+    "aleph-runtime?/runtime-benchmarks",
 ]
+rocksdb = [
+    "sc-cli/rocksdb",
+    "sc-client-db/rocksdb",
+    "sc-service/rocksdb",
+]
+try-runtime = [
+    "aleph-runtime-native",
+    "dep:try-runtime-cli",
+    "aleph-runtime?/try-runtime",
+    "try-runtime-cli?/try-runtime",
+]
+aleph-runtime-native = [
+    "dep:aleph-runtime"
+]
+
 only_legacy = [
     "finality-aleph/only_legacy"
 ]
-local-debugging = []

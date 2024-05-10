@@ -19,11 +19,18 @@ jobs:
     uses: ./.github/workflows/_check-vars-and-secrets.yml
     secrets: inherit
 
-  build-test-node-and-runtime:
+  build-test-node:
     name: Build test node and runtime
-    uses: ./.github/workflows/_build-test-node-and-runtime.yml
+    uses: ./.github/workflows/_build-test-node.yml
     with:
       ref: ${{ github.ref }}
+
+  build-chain-bootstrapper-test:
+    name: Build chain-bootstrapper
+    uses: ./.github/workflows/_build-chain-bootstrapper.yml
+    with:
+      ref: ${{ github.ref }}
+      production: false
 
   build-aleph-e2e-client-image:
     needs: [check-vars-and-secrets]
@@ -36,24 +43,33 @@ jobs:
 
   run-e2e-tests:
     name: Run e2e tests
-    needs: [build-test-node-and-runtime, build-aleph-e2e-client-image]
+    needs:
+      - build-test-node
+      - build-chain-bootstrapper-test
+      - build-aleph-e2e-client-image
     uses: ./.github/workflows/_run-e2e-tests.yml
     with:
       # yamllint disable-line rule:line-length
       aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
 
   run-recover-after-abft-update-test:
-    needs: [build-test-node-and-runtime]
+    needs: [build-test-node, build-chain-bootstrapper-test]
     name: Run recovery test after abft update
     runs-on: [self-hosted, Linux, X64, medium]
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Download release artifact
+      - name: Download test node from GH artifacts
         uses: actions/download-artifact@v4
         with:
           name: aleph-test-node
+          path: target/release/
+
+      - name: Download chain-bootstrapper from GH artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: chain-bootstrapper-test
           path: target/release/
 
       - name: Run test
@@ -61,6 +77,7 @@ jobs:
         run: |
           ./.github/scripts/test_python_general.sh \
             --aleph-node ../target/release/aleph-node \
+            --chain-bootstrapper ../target/release/chain-bootstrapper \
             --testcase test_recover_after_abft_update
 
   check-nightly-pipeline-completion:

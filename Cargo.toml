@@ -6,6 +6,7 @@ members = [
     "baby-liminal-extension",
     "bin/node",
     "bin/runtime",
+    "bin/chain-bootstrapper",
     "clique",
     "finality-aleph",
     "pallets/aleph",
@@ -116,7 +117,8 @@ pallet-proxy = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.gi
 sc-basic-authorship = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0" }
 sc-block-builder = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0" }
 sc-chain-spec = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0" }
-sc-cli = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0" }
+sc-cli = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", default-features = false, branch = "aleph-v1.5.0" }
+sc-client-db = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", default-features = false, branch = "aleph-v1.5.0" }
 sc-client-api = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0" }
 sc-consensus = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0" }
 sc-consensus-aura = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0" }
@@ -128,7 +130,7 @@ sc-network-common = { git = "https://github.com/Cardinal-Cryptography/polkadot-s
 sc-network-sync = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0" }
 sc-rpc = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0" }
 sc-rpc-api = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0" }
-sc-service = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0" }
+sc-service = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", default-features = false, branch = "aleph-v1.5.0" }
 sc-telemetry = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0" }
 sc-transaction-pool = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0" }
 sc-transaction-pool-api = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0" }

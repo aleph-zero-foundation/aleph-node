@@ -38,6 +38,10 @@ inputs:
   aleph-e2e-client-image:
     description: 'aleph-e2e-client image'
     required: true
+  chain-bootstrapper-image:
+    description: 'chain-bootstrapper image'
+    required: false
+    default: chain-bootstrapper-image-test
   timeout-minutes:
     description: 'The maximum number of minutes to let a test run before it is canceled and
       considered failed'
@@ -54,7 +58,7 @@ runs:
       id: get-ref-properties
       uses: Cardinal-Cryptography/github-actions/get-ref-properties@v5
 
-    - name: Download artifact with docker image
+    - name: Download node docker image
       uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.image-path }}
@@ -62,6 +66,15 @@ runs:
     - name: Load node docker image
       shell: bash
       run: docker load -i aleph-node.tar
+
+    - name: Download chain-bootstrapper image
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.chain-bootstrapper-image }}
+
+    - name: Load chain-bootstrapper image
+      shell: bash
+      run: docker load -i chain-bootstrapper.tar
 
     - name: Run consensus party
       shell: bash

@@ -1,0 +1,78 @@
+---
+# This workflow builds chain-bootstrapper binary, dedicated fer generating chainspecs for
+# test and dev chains
+name: Build chain-bootstrapper
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: 'git ref: hash, branch, tag to build chain-bootstrapper binary from'
+        type: string
+        required: true
+      production:
+        description: 'set to true to use production profile'
+        type: boolean
+        required: true
+
+jobs:
+  main:
+    name: Build chain-bootstrapper
+    runs-on: [self-hosted, Linux, X64, large]
+    env:
+      RUST_BACKTRACE: full
+      RUSTC_WRAPPER: sccache
+      CARGO_FOLDER: ${{ inputs.production == true && 'production' || 'release' }}
+      ARTIFACT_NAME_SUFFIX: ${{ inputs.production == true && 'release' || 'test' }}
+    steps:
+      - name: Checkout aleph-node source code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Call action get-ref-properties
+        id: get-ref-properties
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v6
+
+      - name: Install Rust toolchain
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v6
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Build without production profile
+        if: ${{ inputs.production != true }}
+        run: |
+          cargo build --release -p chain-bootstrapper \
+            --features "short_session enable_treasury_proposals"
+
+      - name: Build with production profile
+        if: ${{ inputs.production == true }}
+        run: |
+          cargo build --profile production -p chain-bootstrapper
+
+      - name: Upload binary to GH Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: chain-bootstrapper-${{ env.ARTIFACT_NAME_SUFFIX }}
+          path: target/${{ env.CARGO_FOLDER }}/chain-bootstrapper
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Build docker
+        id: build-image
+        run: |
+          chmod +x  target/${{ env.CARGO_FOLDER }}/chain-bootstrapper
+          if [[ ${{ inputs.production }} == true ]]; then
+            mkdir -p target/release
+            mv target/production/chain-bootstrapper target/release/
+          fi
+          docker build --tag chain-bootstrapper:latest -f ./bin/chain-bootstrapper/Dockerfile .
+          docker save -o chain-bootstrapper.tar chain-bootstrapper:latest
+
+      - name: Upload docker image to GH Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: chain-bootstrapper-image-${{ env.ARTIFACT_NAME_SUFFIX }}
+          path: chain-bootstrapper.tar
+          if-no-files-found: error
+          retention-days: 7

@@ -17,14 +17,16 @@ logging.basicConfig(
 # Path to working directory, where chainspec, logs and nodes' dbs are written:
 workdir = abspath(os.getenv('WORKDIR', '/tmp/workdir'))
 # Path to the aleph-node binary.
-binary = abspath(os.getenv('ALEPH_NODE_BINARY', join(workdir, 'aleph-node')))
+aleph_node_binary = abspath(os.getenv('ALEPH_NODE_BINARY', join(workdir, 'aleph-node')))
+chain_bootstrapper_binary = abspath(os.getenv('CHAIN_BOOTSTRAPPER', join(workdir, 'chain-bootstrapper')))
 
 phrases = [f'//{i}' for i in range(8)]
-keys = generate_keys(binary, phrases)
+keys = generate_keys(aleph_node_binary, phrases)
 chain = Chain(workdir)
 
 logging.info('Bootstrapping the chain with binary')
-chain.bootstrap(binary,
+chain.bootstrap(aleph_node_binary,
+                chain_bootstrapper_binary,
                 keys.values(),
                 sudo_account_id=keys[phrases[0]],
                 chain_type='local')

@@ -6,11 +6,10 @@ use std::{
 use libp2p::identity::ed25519 as libp2p_ed25519;
 use primitives::{AccountId, AuraId, AuthorityId};
 use sc_cli::KeystoreParams;
-use sc_keystore::LocalKeystore;
+use sc_keystore::{Keystore, LocalKeystore};
 use sc_service::{config::KeystoreConfig, BasePath};
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::key_types;
-use sp_keystore::Keystore;
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct AccountSessionKeys {

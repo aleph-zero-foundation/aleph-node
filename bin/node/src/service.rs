@@ -13,7 +13,8 @@ use finality_aleph::{
 };
 use log::warn;
 use primitives::{
-    fake_runtime_api::fake_runtime::RuntimeApi, AlephSessionApi, Block, MAX_BLOCK_SIZE,
+    fake_runtime_api::fake_runtime::RuntimeApi, AlephSessionApi, Block, DEFAULT_BACKUP_FOLDER,
+    MAX_BLOCK_SIZE,
 };
 use sc_basic_authorship::ProposerFactory;
 use sc_client_api::{BlockBackend, HeaderBackend};
@@ -29,7 +30,6 @@ use sp_consensus_aura::{sr25519::AuthorityPair as AuraPair, Slot};
 
 use crate::{
     aleph_cli::AlephCli,
-    chain_spec::DEFAULT_BACKUP_FOLDER,
     executor::aleph_executor,
     rpc::{create_full as create_full_rpc, FullDeps as RpcFullDeps},
 };

@@ -17,10 +17,10 @@ on:
         type: boolean
         required: true
 jobs:
-  build-test-node-and-runtime:
+  build-test-node:
     if: ${{ inputs.short-session == true }}
     name: Build test node and runtime
-    uses: ./.github/workflows/_build-test-node-and-runtime.yml
+    uses: ./.github/workflows/_build-test-node.yml
     with:
       ref: ${{ inputs.ref }}
 
@@ -33,8 +33,8 @@ jobs:
 
   build-and-push-featurnet-image-to-ecr:
     name: Build and push featurnet image
-    needs: [build-test-node-and-runtime, build-production-node-and-runtime]
-    # to prevent this job to be skipped as at least on of dependant jobs is skipped
+    needs: [build-test-node, build-production-node-and-runtime]
+    # this job should not be skipped in case one of its parent job is skipped
     if: ${{ !cancelled() }}
     runs-on: ubuntu-20.04
     steps:

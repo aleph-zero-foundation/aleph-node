@@ -1,0 +1,40 @@
+[package]
+name = "chain-bootstrapper"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+primitives = { workspace = true }
+aleph-runtime = { workspace = true }
+pallet-staking = { workspace = true }
+libp2p = { workspace = true }
+hex = { workspace = true }
+
+sc-cli = { workspace = true, default-features = false }
+sc-chain-spec = { workspace = true }
+sc-service = { workspace = true, default-features = false }
+sc-client-db = { workspace = true, default-features = false }
+sc-keystore = { workspace = true }
+
+sp-application-crypto = { workspace = true }
+sp-runtime = { workspace = true }
+sp-core = { workspace = true }
+
+serde_json = { workspace = true }
+serde = { workspace = true }
+
+[features]
+default = []
+short_session = [
+    "aleph-runtime/short_session",
+    "primitives/short_session",
+]
+enable_treasury_proposals = [
+    "aleph-runtime/enable_treasury_proposals"
+]
+try-runtime = [
+    "aleph-runtime/try-runtime",
+]

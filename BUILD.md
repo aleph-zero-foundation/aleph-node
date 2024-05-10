@@ -106,9 +106,9 @@ After a successful build the binary can be found in `target/release/aleph-node`.
 
 ### Local debugging
 
-If you'd like to use Rust debugger with aleph-node binary, built it with `local-debugging` feature:
+If you'd like to use Rust debugger with aleph-node binary, built it with `aleph-native-runtime` feature:
 ```
-cargo check --profile dev -p aleph-node --features local-debugging --locked
+cargo check --profile dev -p aleph-node --features aleph-native-runtime --locked
 ```
 
 [nix]: https://nixos.org/download.html

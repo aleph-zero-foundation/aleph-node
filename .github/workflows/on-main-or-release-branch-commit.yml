@@ -13,6 +13,25 @@ jobs:
     uses: ./.github/workflows/_check-vars-and-secrets.yml
     secrets: inherit
 
+  build-chain-bootstrapper:
+    needs: [check-vars-and-secrets]
+    name: Build chain-bootstrapper
+    uses: ./.github/workflows/_build-chain-bootstrapper.yml
+    with:
+      ref: ${{ github.ref }}
+      production: true
+
+  push-chain-bootstrapper-image-to-ecr:
+    name: Push chain-bootstrapper docker image to ECR
+    needs: [build-chain-bootstrapper]
+    uses: ./.github/workflows/_push-node-image-to-ecr.yml
+    secrets: inherit
+    with:
+      binary-artifact-name: chain-bootstrapper-release
+      docker-image-name: chain-bootstrapper
+      binary-name: chain-bootstrapper
+      docker-file-path: ./bin/chain-bootstrapper/Dockerfile
+
   build-and-push-cliain:
     needs: [check-vars-and-secrets]
     name: Build and push cliain
@@ -63,8 +82,10 @@ jobs:
     uses: ./.github/workflows/_push-node-image-to-ecr.yml
     secrets: inherit
     with:
-      node-binary: aleph-production-node
+      binary-artifact-name: aleph-production-node
       docker-image-name: aleph-node
+      binary-name: aleph-node
+      docker-file-path: ./docker/Dockerfile
 
   send-slack-notification-release:
     name: Send Slack notification about workflow status

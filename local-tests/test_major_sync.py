@@ -12,15 +12,19 @@ logging.basicConfig(
 
 workdir = abspath(os.getenv('WORKDIR', '/tmp/workdir'))
 logging.info(f"Workdir is {workdir}")
-binary = abspath(os.getenv('ALEPH_NODE_BINARY', join(workdir, 'aleph-node')))
-logging.info(f"aleph-node binary is {binary}")
+aleph_node_binary = abspath(os.getenv('ALEPH_NODE_BINARY', join(workdir, 'aleph-node')))
+chain_bootstrapper_binary = abspath(os.getenv('CHAIN_BOOTSTRAPPER', join(workdir, 'chain-bootstrapper')))
+logging.info(f"aleph-node binary is {aleph_node_binary}")
+logging.info(f"chain_bootstrapper binary is {chain_bootstrapper_binary}")
+
 
 phrases = [f'//{i}' for i in range(5)]
-keys = generate_keys(binary, phrases)
+keys = generate_keys(aleph_node_binary, phrases)
 chain = Chain(workdir)
 logging.info('Bootstrapping the chain with binary')
 
-chain.bootstrap(binary,
+chain.bootstrap(aleph_node_binary,
+                chain_bootstrapper_binary,
                 keys.values(),
                 sudo_account_id=keys[phrases[0]],
                 chain_type='local')

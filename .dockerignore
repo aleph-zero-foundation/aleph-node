@@ -1,6 +1,8 @@
 **/target
 target
 !target/release/aleph-node
+!target/release/chain-bootstrapper
+!target/production/chain-bootstrapper
 !target/production/aleph-node
 !bin/cliain/target/release/cliain
 

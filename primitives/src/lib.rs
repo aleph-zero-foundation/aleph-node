@@ -159,6 +159,9 @@ pub const LENIENT_THRESHOLD: Perquintill = Perquintill::from_percent(90);
 /// Number of non-finalized blocks that halts block production
 pub const DEFAULT_MAX_NON_FINALIZED_BLOCKS: u32 = 20;
 
+/// A relative folder where to store ABFT backups
+pub const DEFAULT_BACKUP_FOLDER: &str = "backup-stash";
+
 /// Hold set of validators that produce blocks and set of validators that participate in finality
 /// during session.
 #[derive(Decode, Encode, TypeInfo, Debug, Clone, PartialEq, Eq)]

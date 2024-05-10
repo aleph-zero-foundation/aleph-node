@@ -39,7 +39,8 @@ set -euo pipefail
 
 # ------------------------ constants --------------------------------------
 
-export ALEPH_NODE="target/release/aleph-node"
+ALEPH_NODE="target/release/aleph-node"
+CHAINSPEC_GENERATOR="target/release/chain-bootstrapper"
 NODE_P2P_PORT_RANGE_START=30333
 NODE_VALIDATOR_PORT_RANGE_START=30343
 NODE_RPC_PORT_RANGE_START=9944
@@ -193,8 +194,11 @@ function run_node() {
 
 # ------------------------- input checks ----------------------------------
 
+if [[ "${VALIDATORS}" -lt 1 ]]; then
+  error "Number of validators should be at least 1!"
+fi
 if [[ "${VALIDATORS}" -lt 4 ]]; then
-  error "Number of validators should be at least 4!"
+  warning "AlephBFT is only supported for more than 4 nodes."
 fi
 if [[ "${RPC_NODES}" -lt 1 ]]; then
   error "Number of RPC nodes should be at least 1!"
@@ -227,10 +231,13 @@ if ! killall -9 aleph-node 2> /dev/null; then
 fi
 
 if [[ -z "${DONT_BUILD_ALEPH_NODE}" ]]; then
-  info "Building testing aleph-node binary (short session)."
-  cargo build --release -p aleph-node --features "short_session enable_treasury_proposals"
-elif [[ ! -x "${ALEPH_NODE}" ]]; then
-  error "${ALEPH_NODE} does not exist or it's not an executable file!"
+  info "Building testing aleph-node binary (short session) and chain-bootstrapper binary."
+  cargo build --release -p aleph-node
+  if [[ -z "${DONT_BOOTSTRAP}" ]]; then
+    cargo build --release -p chain-bootstrapper --features "short_session enable_treasury_proposals"
+  fi
+elif [[ ! -x "${ALEPH_NODE}" || ! -x "${CHAINSPEC_GENERATOR}" ]]; then
+  error "${ALEPH_NODE} or ${CHAINSPEC_GENERATOR} does not exist or it's not an executable file!"
 fi
 
 NUMBER_OF_NODES_TO_BOOTSTRAP=$(( VALIDATORS + RPC_NODES ))
@@ -263,7 +270,7 @@ if [[ -z "${DONT_BOOTSTRAP}" ]]; then
   validator_ids_string="${validator_ids_string//${IFS:0:1}/,}"
 
   info "Populating keystore for all accounts with session keys and libp2p key, and generating chainspec"
-  "${ALEPH_NODE}" bootstrap-chain \
+  "${CHAINSPEC_GENERATOR}" bootstrap-chain \
     --raw \
     --base-path "${BASE_PATH}" \
     --account-ids "${all_account_ids_string}" \

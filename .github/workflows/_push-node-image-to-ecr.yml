@@ -1,21 +1,29 @@
 ---
-#  This workflow builds docker aleph-node image based on binary stored in GH artifacts
-name: Build and push node image to ECR
+#  This workflow builds arbitrary docker node image based on binary downloaded in GH artifacts
+name: Build and push docker image to ECR
 on:
   workflow_call:
     inputs:
-      node-binary:
-        description: 'Name of aleph-node binary stored in GH artifacts'
+      binary-artifact-name:
+        description: 'Name of a binary stored in GH artifacts'
+        required: true
+        type: string
+      binary-name:
+        description: 'Name of a binary to build docker image on top of'
         required: true
         type: string
       docker-image-name:
-        description: 'Name of node docker to be uploaded to ECR'
+        description: 'Name of node docker image to be uploaded to ECR'
+        required: true
+        type: string
+      docker-file-path:
+        description: 'Path to Dockerfile'
         required: true
         type: string
 
 jobs:
   main:
-    name: Push node docker image to the ECR
+    name: Push ${{ inputs.binary-name }} docker image to the ECR
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout aleph-node sources
@@ -25,17 +33,19 @@ jobs:
         id: get-ref-properties
         uses: Cardinal-Cryptography/github-actions/get-ref-properties@v6
 
-      - name: Download ${{ inputs.node-binary }} binary from artifacts
+      - name: Download ${{ inputs.binary-artifact-name }} from artifacts
         uses: actions/download-artifact@v4
         with:
-          name: ${{ inputs.node-binary }}
+          name: ${{ inputs.binary-artifact-name }}
           path: target/release/
 
-      - name: Build docker node image
+      - name: Build ${{ inputs.binary-name }} docker image
         id: build-image
         run: |
-          chmod +x target/release/aleph-node
-          docker build --tag ${{ inputs.docker-image-name }}:latest -f ./docker/Dockerfile .
+          chmod +x target/release/${{ inputs.binary-name }}
+          docker build \
+            --tag ${{ inputs.docker-image-name }}:latest \
+            -f ${{ inputs.docker-file-path }} .
 
       - name: Login to Public Amazon ECR
         id: login-public-ecr

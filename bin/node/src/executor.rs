@@ -6,7 +6,7 @@ use sc_service::Configuration;
 
 #[cfg(not(any(
     feature = "runtime-benchmarks",
-    feature = "local-debugging",
+    feature = "aleph-native-runtime",
     feature = "try-runtime"
 )))]
 pub mod aleph_executor {
@@ -27,7 +27,7 @@ pub mod aleph_executor {
 
 #[cfg(any(
     feature = "runtime-benchmarks",
-    feature = "local-debugging",
+    feature = "aleph-native-runtime",
     feature = "try-runtime"
 ))]
 pub mod aleph_executor {

@@ -25,5 +25,8 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
-      - name: Check production binary and runtime
+      - name: Check aleph-node
         run: cargo check --profile production -p aleph-node
+
+      - name: Check aleph-runtime
+        run: cargo check --profile production -p aleph-runtime

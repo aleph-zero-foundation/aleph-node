@@ -279,24 +279,19 @@ dependencies = [
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "futures",
- "hex",
- "hex-literal",
  "jsonrpsee",
- "libp2p",
  "log",
- "pallet-staking",
  "pallet-transaction-payment-rpc",
  "parity-scale-codec",
  "primitives",
  "sc-basic-authorship",
- "sc-chain-spec",
  "sc-cli",
  "sc-client-api",
+ "sc-client-db",
  "sc-consensus",
  "sc-consensus-aura",
  "sc-consensus-slots",
  "sc-executor",
- "sc-keystore",
  "sc-network",
  "sc-network-sync",
  "sc-rpc",
@@ -308,7 +303,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sp-api",
- "sp-application-crypto",
  "sp-arithmetic",
  "sp-block-builder",
  "sp-blockchain",
@@ -316,7 +310,6 @@ dependencies = [
  "sp-consensus-aura",
  "sp-core",
  "sp-io",
- "sp-keystore",
  "sp-runtime",
  "sp-timestamp",
  "sp-transaction-pool",
@@ -1265,6 +1258,27 @@ dependencies = [
  "cipher 0.4.4",
  "poly1305",
  "zeroize",
+]
+
+[[package]]
+name = "chain-bootstrapper"
+version = "0.1.0"
+dependencies = [
+ "aleph-runtime",
+ "hex",
+ "libp2p",
+ "pallet-staking",
+ "primitives",
+ "sc-chain-spec",
+ "sc-cli",
+ "sc-client-db",
+ "sc-keystore",
+ "sc-service",
+ "serde",
+ "serde_json",
+ "sp-application-crypto",
+ "sp-core",
+ "sp-runtime",
 ]
 
 [[package]]
@@ -3247,12 +3261,6 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
-
-[[package]]
-name = "hex-literal"
-version = "0.3.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ebdb29d2ea9ed0083cd8cece49bbd968021bd99b0849edb4a9a7ee0fdf6a4e0"
 
 [[package]]
 name = "hkdf"
