@@ -21,11 +21,9 @@ use sp_runtime::traits::Block;
 use tokio::time;
 
 use crate::{
-    network::{Data, GossipNetwork},
+    network::{Data, GossipNetwork, LOG_TARGET},
     STATUS_REPORT_INTERVAL,
 };
-
-const LOG_TARGET: &str = "aleph-network";
 
 #[derive(Debug)]
 pub enum SyncNetworkServiceError {
@@ -40,6 +38,7 @@ impl Display for SyncNetworkServiceError {
     }
 }
 
+// TODO(A0-3576): should no longer be needed, as it's purpose happens in base_protocol
 /// Service responsible for handling network events emitted by the base sync protocol.
 pub struct SyncNetworkService<B: Block> {
     sync_stream: Fuse<Pin<Box<dyn Stream<Item = SyncEvent> + Send>>>,

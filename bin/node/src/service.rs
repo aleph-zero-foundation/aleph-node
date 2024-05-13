@@ -17,10 +17,11 @@ use primitives::{
     MAX_BLOCK_SIZE,
 };
 use sc_basic_authorship::ProposerFactory;
-use sc_client_api::{BlockBackend, HeaderBackend};
+use sc_client_api::HeaderBackend;
 use sc_consensus::ImportQueue;
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
 use sc_consensus_slots::BackoffAuthoringBlocksStrategy;
+use sc_network::config::FullNetworkConfiguration;
 use sc_service::{error::Error as ServiceError, Configuration, TFullClient, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sp_api::ProvideRuntimeApi;
@@ -245,18 +246,6 @@ fn get_rate_limit_config(aleph_config: &AlephCli) -> RateLimiterConfig {
     }
 }
 
-fn chain_prefix(config: &Configuration, client: &Arc<FullClient>) -> String {
-    let genesis_hash = client
-        .block_hash(0)
-        .ok()
-        .flatten()
-        .expect("we should have a hash");
-    match config.chain_spec.fork_id() {
-        Some(fork_id) => format!("/{genesis_hash}/{fork_id}"),
-        None => format!("/{genesis_hash}"),
-    }
-}
-
 /// Builds a new service for a full client.
 pub fn new_authority(
     config: Configuration,
@@ -309,11 +298,17 @@ pub fn new_authority(
 
     let import_queue_handle = BlockImporter::new(service_components.import_queue.service());
 
+    let mut net_config = FullNetworkConfiguration::new(&config.network);
+    let genesis_hash = service_components
+        .client
+        .hash(0)
+        .ok()
+        .flatten()
+        .expect("Genesis block exists.");
     let NetConfig {
-        net_config,
         authentication_network,
         block_sync_network,
-    } = NetConfig::new(&config, &chain_prefix(&config, &service_components.client));
+    } = NetConfig::new(&mut net_config, &genesis_hash);
     let (network, system_rpc_tx, tx_handler_controller, network_starter, sync_network) =
         sc_service::build_network(sc_service::BuildNetworkParams {
             config: &config,

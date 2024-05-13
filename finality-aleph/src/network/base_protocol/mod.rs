@@ -1,5 +1,3 @@
-//TODO(A0-3750): This code should be used.
-#![allow(dead_code)]
 mod config;
 mod handler;
 mod service;

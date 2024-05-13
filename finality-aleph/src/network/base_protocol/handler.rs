@@ -10,11 +10,6 @@ use sp_runtime::traits::{Block, Header, Saturating};
 
 use crate::{BlockHash, BlockNumber};
 
-#[derive(Clone, Debug)]
-pub enum DisconnectError {
-    PeerWasNotConnected,
-}
-
 /// The role of the connected node.
 #[derive(Clone, Copy, Debug)]
 pub enum Role {
@@ -82,6 +77,22 @@ impl Display for ConnectError {
                 write!(f, "too many full nodes connected {:?}", direction)
             }
             TooManyLightPeers => write!(f, "too many light nodes connected"),
+        }
+    }
+}
+
+/// Problems when handling peer disconnecting.
+#[derive(Clone, Debug)]
+pub enum DisconnectError {
+    /// The peer was not connected as far as we know.
+    PeerWasNotConnected,
+}
+
+impl Display for DisconnectError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        use DisconnectError::*;
+        match self {
+            PeerWasNotConnected => write!(f, "peer was not connected"),
         }
     }
 }
