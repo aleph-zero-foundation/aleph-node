@@ -254,7 +254,7 @@ where
 
     fn single_block(block: B) -> Self {
         let mut result = Self::empty();
-        result.add_block_and_header(block);
+        result.add_block(block);
         result
     }
 
