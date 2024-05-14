@@ -1,106 +1,22 @@
 use std::{
     collections::HashSet,
     fmt::{Debug, Display, Error as FmtError, Formatter},
-    iter,
-    pin::Pin,
-    sync::Arc,
 };
 
-use futures::stream::{Fuse, Stream, StreamExt};
-use log::{debug, error, info, trace, warn};
+use log::{debug, info, trace, warn};
 use parity_scale_codec::DecodeAll;
 use rand::{seq::IteratorRandom, thread_rng};
 pub use sc_network::PeerId;
 use sc_network::{
-    multiaddr::Protocol as MultiaddressProtocol,
     service::traits::{NotificationEvent as SubstrateEvent, ValidationResult},
-    Multiaddr, NetworkPeers, NetworkService, ProtocolName,
+    ProtocolName,
 };
-use sc_network_sync::{SyncEvent, SyncEventStream, SyncingService};
-use sp_runtime::traits::Block;
 use tokio::time;
 
 use crate::{
     network::{Data, GossipNetwork, LOG_TARGET},
     STATUS_REPORT_INTERVAL,
 };
-
-#[derive(Debug)]
-pub enum SyncNetworkServiceError {
-    NetworkStreamTerminated,
-}
-
-impl Display for SyncNetworkServiceError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
-        match self {
-            Self::NetworkStreamTerminated => write!(f, "Network event stream ended."),
-        }
-    }
-}
-
-// TODO(A0-3576): should no longer be needed, as it's purpose happens in base_protocol
-/// Service responsible for handling network events emitted by the base sync protocol.
-pub struct SyncNetworkService<B: Block> {
-    sync_stream: Fuse<Pin<Box<dyn Stream<Item = SyncEvent> + Send>>>,
-    network: Arc<NetworkService<B, B::Hash>>,
-    protocol_names: Vec<ProtocolName>,
-}
-
-impl<B: Block> SyncNetworkService<B> {
-    pub fn new(
-        network: Arc<NetworkService<B, B::Hash>>,
-        sync_network: Arc<SyncingService<B>>,
-        protocol_names: Vec<ProtocolName>,
-    ) -> Self {
-        Self {
-            sync_stream: sync_network.event_stream("aleph-syncing-network").fuse(),
-            network,
-            protocol_names,
-        }
-    }
-
-    fn peer_connected(&mut self, remote: PeerId) {
-        let multiaddress: Multiaddr =
-            iter::once(MultiaddressProtocol::P2p(remote.into())).collect();
-        trace!(target: LOG_TARGET, "Connected event from address {:?}", multiaddress);
-
-        for name in &self.protocol_names {
-            if let Err(e) = self
-                .network
-                .add_peers_to_reserved_set(name.clone(), iter::once(multiaddress.clone()).collect())
-            {
-                error!(target: LOG_TARGET, "add_peers_to_reserved_set failed for {}: {}", name, e);
-            }
-        }
-    }
-
-    fn peer_disconnected(&mut self, remote: PeerId) {
-        trace!(target: LOG_TARGET, "Disconnected event for peer {:?}", remote);
-        let addresses: Vec<_> = iter::once(remote).collect();
-
-        for name in &self.protocol_names {
-            if let Err(e) = self
-                .network
-                .remove_peers_from_reserved_set(name.clone(), addresses.clone())
-            {
-                error!(target: LOG_TARGET, "remove_peers_from_reserved_set failed for {}: {}", name, e)
-            }
-        }
-    }
-
-    pub async fn run(mut self) -> Result<(), SyncNetworkServiceError> {
-        use SyncEvent::*;
-        loop {
-            match self.sync_stream.next().await {
-                Some(event) => match event {
-                    PeerConnected(remote) => self.peer_connected(remote),
-                    PeerDisconnected(remote) => self.peer_disconnected(remote),
-                },
-                None => return Err(SyncNetworkServiceError::NetworkStreamTerminated),
-            }
-        }
-    }
-}
 
 /// A thin wrapper around sc_network::config::NotificationService that stores a list
 /// of all currently connected peers, and introduces a few convenience methods to

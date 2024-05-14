@@ -5,6 +5,7 @@ use sc_client_api::Backend;
 use sc_network::{
     config::{NetworkConfiguration, ProtocolId},
     error::Error as NetworkError,
+    NetworkService,
 };
 use sc_network_sync::SyncingService;
 use sc_network_transactions::TransactionsHandlerController;
@@ -28,9 +29,8 @@ mod own_protocols;
 mod rpc;
 mod transactions;
 
-// TODO(A0-3576): should no longer be needed outside of here
 use base::network as base_network;
-pub use own_protocols::Networks;
+use own_protocols::Networks;
 use rpc::spawn_rpc_service;
 use transactions::spawn_transaction_handler;
 
@@ -38,6 +38,7 @@ const SPAWN_CATEGORY: Option<&str> = Some("networking");
 
 /// Components created when spawning the network.
 pub struct NetworkOutput<TP: TransactionPool + 'static> {
+    pub network: Arc<NetworkService<TP::Block, TP::Hash>>,
     pub authentication_network: ProtocolNetwork,
     pub block_sync_network: ProtocolNetwork,
     // names chosen for compatibility with SpawnTaskParams, get better ones if we ever stop using that
@@ -48,8 +49,6 @@ pub struct NetworkOutput<TP: TransactionPool + 'static> {
 
 /// Start everything necessary to run the inter-node network and return the interfaces for it.
 /// This includes everything in the base network, the base protocol service, and services for handling transactions and RPCs.
-// TODO(A0-3576): This code should be used.
-#[allow(dead_code)]
 pub fn network<TP, BE, C>(
     network_config: &NetworkConfiguration,
     protocol_id: ProtocolId,
@@ -60,7 +59,7 @@ pub fn network<TP, BE, C>(
     metrics_registry: Option<Registry>,
 ) -> Result<NetworkOutput<TP>, NetworkError>
 where
-    TP: TransactionPool + 'static,
+    TP: TransactionPool<Hash = BlockHash> + 'static,
     TP::Block: Block<Hash = BlockHash>,
     <TP::Block as Block>::Header: Header<Number = BlockNumber>,
     BE: Backend<TP::Block>,
@@ -111,8 +110,14 @@ where
         metrics_registry.as_ref(),
         spawn_handle,
     )?;
-    let rpc_interface = spawn_rpc_service(network, syncing_service.clone(), client, spawn_handle);
+    let rpc_interface = spawn_rpc_service(
+        network.clone(),
+        syncing_service.clone(),
+        client,
+        spawn_handle,
+    );
     Ok(NetworkOutput {
+        network,
         block_sync_network,
         authentication_network,
         sync_service: syncing_service,

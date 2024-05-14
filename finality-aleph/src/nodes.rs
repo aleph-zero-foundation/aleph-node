@@ -63,7 +63,6 @@ where
     let AlephConfig {
         authentication_network,
         block_sync_network,
-        sync_network_service,
         client,
         chain_status,
         mut import_queue_handle,
@@ -131,16 +130,6 @@ where
             ),
         }
     });
-
-    let sync_network_task = async move {
-        match sync_network_service.run().await {
-            Ok(_) => error!(target: LOG_TARGET, "SyncNetworkService finished."),
-            Err(err) => error!(
-                target: LOG_TARGET,
-                "SyncNetworkService finished with error: {err}."
-            ),
-        }
-    };
 
     let map_updater = SessionMapUpdater::new(
         AuthorityProviderImpl::new(client.clone(), RuntimeApiImpl::new(client.clone())),
@@ -245,7 +234,6 @@ where
     debug!(target: LOG_TARGET, "Sync has started.");
 
     spawn_handle.spawn("aleph/connection_manager", connection_manager_task);
-    spawn_handle.spawn("aleph/sync_network", sync_network_task);
     debug!(target: LOG_TARGET, "Sync network has started.");
 
     let party = ConsensusParty::new(ConsensusPartyParams {

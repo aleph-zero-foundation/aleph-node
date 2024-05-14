@@ -6,10 +6,10 @@ use std::{
 };
 
 use finality_aleph::{
-    run_validator_node, AlephBlockImport, AlephConfig, AllBlockMetrics, BlockImporter,
-    ChannelProvider, Justification, JustificationTranslator, MillisecsPerBlock, NetConfig,
-    RateLimiterConfig, RedirectingBlockImport, SessionPeriod, SubstrateChainStatus,
-    SyncNetworkService, SyncOracle, TracingBlockImport, ValidatorAddressCache,
+    build_network, run_validator_node, AlephBlockImport, AlephConfig, AllBlockMetrics,
+    BlockImporter, BuildNetworkOutput, ChannelProvider, Justification, JustificationTranslator,
+    MillisecsPerBlock, RateLimiterConfig, RedirectingBlockImport, SessionPeriod,
+    SubstrateChainStatus, SyncOracle, TracingBlockImport, ValidatorAddressCache,
 };
 use log::warn;
 use primitives::{
@@ -18,10 +18,9 @@ use primitives::{
 };
 use sc_basic_authorship::ProposerFactory;
 use sc_client_api::HeaderBackend;
-use sc_consensus::ImportQueue;
+use sc_consensus::{ImportQueue, Link};
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
 use sc_consensus_slots::BackoffAuthoringBlocksStrategy;
-use sc_network::config::FullNetworkConfiguration;
 use sc_service::{error::Error as ServiceError, Configuration, TFullClient, TaskManager};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sp_api::ProvideRuntimeApi;
@@ -246,6 +245,10 @@ fn get_rate_limit_config(aleph_config: &AlephCli) -> RateLimiterConfig {
     }
 }
 
+struct NoopLink;
+
+impl Link<Block> for NoopLink {}
+
 /// Builds a new service for a full client.
 pub fn new_authority(
     config: Configuration,
@@ -261,7 +264,7 @@ pub fn new_authority(
 
     let backoff_authoring_blocks = Some(LimitNonfinalized(aleph_config.max_nonfinalized_blocks()));
     let prometheus_registry = config.prometheus_registry().cloned();
-    let (sync_oracle, _) = SyncOracle::new();
+    let (sync_oracle, major_sync) = SyncOracle::new();
     let proposer_factory = get_proposer_factory(&service_components, &config);
     let slot_duration = sc_consensus_aura::slot_duration(&*service_components.client)?;
     let (block_import, block_rx) = RedirectingBlockImport::new(service_components.client.clone());
@@ -298,29 +301,25 @@ pub fn new_authority(
 
     let import_queue_handle = BlockImporter::new(service_components.import_queue.service());
 
-    let mut net_config = FullNetworkConfiguration::new(&config.network);
-    let genesis_hash = service_components
-        .client
-        .hash(0)
-        .ok()
-        .flatten()
-        .expect("Genesis block exists.");
-    let NetConfig {
+    let BuildNetworkOutput {
+        network,
         authentication_network,
         block_sync_network,
-    } = NetConfig::new(&mut net_config, &genesis_hash);
-    let (network, system_rpc_tx, tx_handler_controller, network_starter, sync_network) =
-        sc_service::build_network(sc_service::BuildNetworkParams {
-            config: &config,
-            net_config,
-            client: service_components.client.clone(),
-            transaction_pool: service_components.transaction_pool.clone(),
-            spawn_handle: service_components.task_manager.spawn_handle(),
-            import_queue: service_components.import_queue,
-            block_announce_validator_builder: None,
-            warp_sync_params: None,
-            block_relay: None,
-        })?;
+        sync_service,
+        tx_handler_controller,
+        system_rpc_tx,
+    } = build_network(
+        &config.network,
+        config.protocol_id(),
+        service_components.client.clone(),
+        major_sync,
+        service_components.transaction_pool.clone(),
+        &service_components.task_manager.spawn_handle(),
+        config
+            .prometheus_config
+            .as_ref()
+            .map(|config| config.registry.clone()),
+    )?;
 
     let chain_status = SubstrateChainStatus::new(service_components.backend.clone())
         .map_err(|e| ServiceError::Other(format!("failed to set up chain status: {e}")))?;
@@ -347,9 +346,15 @@ pub fn new_authority(
         })
     };
 
-    let _rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
-        network: network.clone(),
-        sync_service: sync_network.clone(),
+    service_components.task_manager.spawn_handle().spawn(
+        "import-queue",
+        None,
+        service_components.import_queue.run(Box::new(NoopLink)),
+    );
+
+    sc_service::spawn_tasks(sc_service::SpawnTasksParams {
+        network,
+        sync_service,
         client: service_components.client.clone(),
         keystore: service_components.keystore_container.local_keystore(),
         task_manager: &mut service_components.task_manager,
@@ -369,14 +374,6 @@ pub fn new_authority(
 
     let rate_limiter_config = get_rate_limit_config(&aleph_config);
 
-    // Network event stream needs to be created before starting the network,
-    // otherwise some events might be missed.
-    let sync_network_service = SyncNetworkService::new(
-        network,
-        sync_network,
-        vec![authentication_network.name(), block_sync_network.name()],
-    );
-
     let AlephRuntimeVars {
         millisecs_per_block,
         session_period,
@@ -385,7 +382,6 @@ pub fn new_authority(
     let aleph_config = AlephConfig {
         authentication_network,
         block_sync_network,
-        sync_network_service,
         client: service_components.client,
         chain_status,
         import_queue_handle,
@@ -413,6 +409,5 @@ pub fn new_authority(
         .spawn_essential_handle()
         .spawn_blocking("aleph", None, run_validator_node(aleph_config));
 
-    network_starter.start_network();
     Ok(service_components.task_manager)
 }
