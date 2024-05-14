@@ -85,7 +85,7 @@ impl ChainStateMetrics {
             reorgs: register(
                 Histogram::with_opts(
                     HistogramOpts::new("aleph_reorgs", "Number of reorgs by length")
-                        .buckets(vec![1., 2., 3., 5., 10.]),
+                        .buckets(vec![1., 2., 4., 9.]),
                 )?,
                 &registry,
             )?,
