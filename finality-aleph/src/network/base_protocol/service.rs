@@ -96,13 +96,13 @@ where
             EventStream(_) => {
                 warn!(target: LOG_TARGET, "We don't support sending downstream events to users, yet someone requested them.")
             }
-            PeersInfo(_) => {
-                // This unfortunately will happen when someone calls the appropriate RPC.
-                // Almost no one uses it though, and supporting it would be too much of a pain.
-                debug!(
-                    target: LOG_TARGET,
-                    "Failed to send response to peers info request - call unsupported."
-                );
+            PeersInfo(response) => {
+                if response.send(self.handler.peers_info()).is_err() {
+                    debug!(
+                        target: LOG_TARGET,
+                        "Failed to send response to peers info request."
+                    );
+                }
             }
             BestSeenBlock(response) => {
                 if response.send(None).is_err() {
