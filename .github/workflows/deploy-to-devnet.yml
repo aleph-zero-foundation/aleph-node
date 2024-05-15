@@ -59,7 +59,7 @@ jobs:
           kustomize-version: ${{ vars.KUSTOMIZE_VERSION }}
 
       - name: Setup kubectl
-        uses: azure/setup-kubectl@v3.2
+        uses: azure/setup-kubectl@v4
         with:
           version: 'v1.23.6'
 
