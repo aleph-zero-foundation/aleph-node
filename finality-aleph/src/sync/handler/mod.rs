@@ -1,7 +1,5 @@
 use core::marker::PhantomData;
 use std::{
-    cmp::max,
-    collections::VecDeque,
     fmt::{Debug, Display, Error as FmtError, Formatter},
     iter,
 };
@@ -22,7 +20,7 @@ use crate::{
         handler::request_handler::RequestHandler,
         PeerId,
     },
-    BlockId, BlockNumber, SyncOracle,
+    BlockId, SyncOracle,
 };
 
 mod request_handler;
@@ -88,113 +86,6 @@ pub trait HandlerTypes {
     type Error;
 }
 
-// This is only required because we don't control block imports
-// and thus we can get notifications about blocks being imported that
-// don't fit in the forest. This struct lets us work around this by
-// manually syncing the forest after such an event.
-//TODO(A0-2984): remove this after legacy sync is excised
-enum MissedImportData {
-    AllGood,
-    MissedImports {
-        highest_missed: BlockNumber,
-        last_sync: BlockNumber,
-    },
-}
-
-enum TrySyncError<B, J, CS>
-where
-    J: Justification,
-    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
-    CS: ChainStatus<B, J>,
-{
-    ChainStatus(CS::Error),
-    Forest(ForestError),
-}
-
-impl MissedImportData {
-    pub fn new() -> Self {
-        Self::AllGood
-    }
-
-    pub fn update<B, J, CS>(
-        &mut self,
-        missed: BlockNumber,
-        chain_status: &CS,
-    ) -> Result<(), CS::Error>
-    where
-        J: Justification,
-        B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
-        CS: ChainStatus<B, J>,
-    {
-        use MissedImportData::*;
-        match self {
-            AllGood => {
-                *self = MissedImports {
-                    highest_missed: missed,
-                    last_sync: chain_status.top_finalized()?.header().id().number(),
-                }
-            }
-            MissedImports { highest_missed, .. } => *highest_missed = max(*highest_missed, missed),
-        }
-        Ok(())
-    }
-
-    pub fn try_sync<B, I, J, CS>(
-        &mut self,
-        chain_status: &CS,
-        forest: &mut Forest<I, J>,
-    ) -> Result<(), TrySyncError<B, J, CS>>
-    where
-        J: Justification,
-        B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
-        I: PeerId,
-        CS: ChainStatus<B, J>,
-    {
-        use MissedImportData::*;
-        if let MissedImports {
-            highest_missed,
-            last_sync,
-        } = self
-        {
-            let top_finalized = chain_status
-                .top_finalized()
-                .map_err(TrySyncError::ChainStatus)?
-                .header()
-                .id();
-            // we don't want this to happen too often, but it also cannot be too close to the max forest size, thus semi-random weird looking threshold
-            if top_finalized.number() - *last_sync <= 1312 {
-                return Ok(());
-            }
-            let mut to_import = VecDeque::from(
-                chain_status
-                    .children(top_finalized.clone())
-                    .map_err(TrySyncError::ChainStatus)?,
-            );
-            while let Some(header) = to_import.pop_front() {
-                if header.id().number() > *highest_missed {
-                    break;
-                }
-                // we suppress all errors except `TooNew` since we are likely trying to mark things that are already marked and they would be throwing a lot of stuff
-                match forest.update_body(&header) {
-                    Ok(()) => (),
-                    Err(ForestError::TooNew) => {
-                        *last_sync = top_finalized.number();
-                        return Ok(());
-                    }
-                    Err(e) => return Err(TrySyncError::Forest(e)),
-                }
-                to_import.extend(
-                    chain_status
-                        .children(header.id())
-                        .map_err(TrySyncError::ChainStatus)?,
-                );
-            }
-            *self = AllGood;
-        }
-        Ok(())
-    }
-}
-
 /// Handler for data incoming from the network.
 pub struct Handler<B, I, J, CS, V, F, BI>
 where
@@ -212,7 +103,6 @@ where
     forest: Forest<I, J>,
     session_info: SessionBoundaryInfo,
     block_importer: BI,
-    missed_import_data: MissedImportData,
     sync_oracle: SyncOracle,
     phantom: PhantomData<B>,
 }
@@ -340,23 +230,6 @@ where
     }
 }
 
-impl<B, J, CS, V, F> From<TrySyncError<B, J, CS>> for Error<B, J, CS, V, F>
-where
-    J: Justification,
-    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
-    CS: ChainStatus<B, J>,
-    V: JustificationVerifier<J> + HeaderVerifier<J::Header>,
-    F: Finalizer<J>,
-{
-    fn from(e: TrySyncError<B, J, CS>) -> Self {
-        use TrySyncError::*;
-        match e {
-            ChainStatus(e) => Error::ChainStatus(e),
-            Forest(e) => Error::Forest(e),
-        }
-    }
-}
-
 impl<B, J, CS, V, F> From<RequestHandlerError<CS::Error>> for Error<B, J, CS, V, F>
 where
     J: Justification,
@@ -406,21 +279,7 @@ where
             block_importer,
             ..
         } = database_io;
-        let (forest, too_many_nonfinalized) =
-            Forest::new(&chain_status).map_err(Error::ForestInitialization)?;
-        let mut missed_import_data = MissedImportData::new();
-        if too_many_nonfinalized {
-            missed_import_data
-                .update(
-                    chain_status
-                        .best_block()
-                        .map_err(Error::ChainStatus)?
-                        .id()
-                        .number(),
-                    &chain_status,
-                )
-                .map_err(Error::ChainStatus)?;
-        }
+        let forest = Forest::new(&chain_status).map_err(Error::ForestInitialization)?;
         Ok(Handler {
             chain_status,
             verifier,
@@ -429,7 +288,6 @@ where
             session_info,
             block_importer,
             sync_oracle,
-            missed_import_data,
             phantom: PhantomData,
         })
     }
@@ -465,8 +323,6 @@ where
                     number += 1;
                 }
                 None => {
-                    self.missed_import_data
-                        .try_sync(&self.chain_status, &mut self.forest)?;
                     return Ok(());
                 }
             };
@@ -490,14 +346,7 @@ where
         &mut self,
         header: J::Header,
     ) -> Result<Option<ResponseItems<B, J>>, <Self as HandlerTypes>::Error> {
-        if let Err(e) = self.forest.update_body(&header) {
-            if matches!(e, ForestError::TooNew | ForestError::ParentNotImported) {
-                self.missed_import_data
-                    .update(header.id().number(), &self.chain_status)
-                    .map_err(Error::ChainStatus)?;
-            }
-            return Err(e.into());
-        }
+        self.forest.update_body(&header)?;
         self.try_finalize()?;
         Ok(match self.verifier.own_block(&header) {
             true => match self.chain_status.block(header.id()) {
@@ -2665,37 +2514,6 @@ mod tests {
             notifier.next().await.expect("should receive notification"),
             BlockImported(block.header().clone())
         );
-    }
-
-    //TODO(A0-2984): remove this after legacy sync is excised
-    #[tokio::test]
-    async fn works_with_overzealous_imports() {
-        let (mut handler, mut backend, mut notifier, genesis) = setup();
-        let branch: Vec<_> = genesis.random_branch().take(2137).collect();
-        for header in branch.iter() {
-            let block = MockBlock::new(header.clone(), true);
-            backend.import_block(block, false);
-            match notifier.next().await {
-                Ok(BlockImported(header)) => {
-                    // we ignore failures, as we expect some
-                    let _ = handler.block_imported(header);
-                }
-                _ => panic!("should notify about imported block"),
-            }
-        }
-        for header in branch.iter() {
-            let justification = MockJustification::for_header(header.clone());
-            handler
-                .handle_justification_from_user(justification)
-                .expect("should work");
-            match notifier.next().await {
-                Ok(BlockFinalized(finalized_header)) => assert_eq!(
-                    header, &finalized_header,
-                    "should finalize the current header"
-                ),
-                _ => panic!("should notify about finalized block"),
-            }
-        }
     }
 
     #[tokio::test]

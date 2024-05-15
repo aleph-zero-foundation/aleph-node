@@ -192,9 +192,8 @@ where
     I: PeerId,
     J: Justification,
 {
-    /// Creates a new forest and returns whether we have too many nonfinalized blocks in the DB.
-    //TODO(A0-2984): the latter part of the result should be removed after legacy sync is excised
-    pub fn new<B, CS>(chain_status: &CS) -> Result<(Self, bool), InitializationError<B, J, CS>>
+    /// Creates a new forest.
+    pub fn new<B, CS>(chain_status: &CS) -> Result<Self, InitializationError<B, J, CS>>
     where
         B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
         CS: ChainStatus<B, J>,
@@ -222,17 +221,14 @@ where
                 .children(id)
                 .map_err(InitializationError::ChainStatus)?;
             for header in children.iter() {
-                if let Err(e) = forest.update_body(header) {
-                    match e {
-                        Error::TooNew => return Ok((forest, true)),
-                        e => return Err(InitializationError::Error(e)),
-                    }
-                }
+                forest
+                    .update_body(header)
+                    .map_err(InitializationError::Error)?;
             }
             deque.extend(children.into_iter().map(|header| header.id()));
         }
 
-        Ok((forest, false))
+        Ok(forest)
     }
 
     fn special_state(&self, id: &BlockId) -> Option<SpecialState> {
@@ -723,8 +719,7 @@ mod tests {
             .expect("should return genesis")
             .header()
             .clone();
-        let (forest, too_many_nonfinalized) = Forest::new(&backend).expect("should initialize");
-        assert!(!too_many_nonfinalized);
+        let forest = Forest::new(&backend).expect("should initialize");
         (header, forest)
     }
 
