@@ -56,7 +56,7 @@ runs:
         path: target/${{ steps.get-local-envs.outputs.cargo_profile }}/wbuild/aleph-runtime
 
     - name: Configure AWS credentials for S3 AWS
-      uses: aws-actions/configure-aws-credentials@v2
+      uses: aws-actions/configure-aws-credentials@v4
       env:
         AWS_ACCESS_KEY_ID: ""
         AWS_SECRET_ACCESS_KEY: ""

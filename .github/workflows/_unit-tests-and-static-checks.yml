@@ -19,14 +19,9 @@ jobs:
         uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v6
 
       - name: Run clippy
-        uses: actions-rs/cargo@v1
-        env:
-          # https://github.com/mozilla/sccache/issues/966
-          RUSTC_WRAPPER: ""
-          RUSTC_WORKSPACE_WRAPPER: sccache
-        with:
-          command: clippy
-          args: --all-targets --workspace --exclude baby-liminal-extension -- --no-deps -D warnings
+        run: |
+          cargo clippy \
+            --all-targets --workspace --exclude baby-liminal-extension -- --no-deps -D warnings
 
       # Run clippy for the chain extension: it requires a different setup.
       - name: Run clippy for chain extension
@@ -47,10 +42,9 @@ jobs:
         uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v6
 
       - name: Run Unit Test Suite
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --workspace --exclude baby-liminal-extension -- --skip clique_network
+        run: |
+          cargo test \
+            --workspace --exclude baby-liminal-extension -- --skip clique_network
 
   unit-tests-chain-extension:
     name: Run unit tests for chain extension

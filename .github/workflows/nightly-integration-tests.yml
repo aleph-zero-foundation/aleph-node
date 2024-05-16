@@ -32,10 +32,8 @@ jobs:
         uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v6
 
       - name: Run Test Suite
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --workspace --exclude baby-liminal-extension
+        run: |
+          cargo test --workspace --exclude baby-liminal-extension
 
       - name: Install Rust Toolchain For Chain Extension Tests
         uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v6
