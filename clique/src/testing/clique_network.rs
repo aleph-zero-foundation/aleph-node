@@ -26,14 +26,6 @@ impl SpawnHandleT for Spawner {
     fn spawn(&self, name: &'static str, task: impl futures::Future<Output = ()> + Send + 'static) {
         SpawnHandle::spawn(self, name, task)
     }
-
-    fn spawn_essential(
-        &self,
-        name: &'static str,
-        task: impl futures::Future<Output = ()> + Send + 'static,
-    ) -> std::pin::Pin<Box<dyn futures::Future<Output = Result<(), ()>> + Send>> {
-        SpawnHandle::spawn_essential(self, name, task)
-    }
 }
 
 pub const LOG_TARGET: &str = "network-clique-test";

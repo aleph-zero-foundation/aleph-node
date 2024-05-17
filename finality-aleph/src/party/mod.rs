@@ -1,7 +1,9 @@
 use std::{default::Default, path::PathBuf, time::Duration};
 
+use futures::FutureExt;
 use futures_timer::Delay;
 use log::{debug, error, info, trace, warn};
+use primitives::AuthorityId;
 use tokio::{task::spawn_blocking, time::sleep};
 
 use crate::{
@@ -68,6 +70,32 @@ where
             chain_state,
             session_manager,
             session_info,
+        }
+    }
+
+    fn try_start_next_session(
+        &self,
+        next_session_id: SessionId,
+        next_session_authorities: &[AuthorityId],
+    ) {
+        match self.session_manager.node_idx(next_session_authorities) {
+            Some(next_session_node_id) => {
+                if let Err(e) = self.session_manager.early_start_validator_session(
+                    next_session_id,
+                    next_session_node_id,
+                    next_session_authorities,
+                ) {
+                    warn!(target: "aleph-party", "Failed to early start validator session{:?}: {}", next_session_id, e);
+                }
+            }
+            None => {
+                if let Err(e) = self
+                    .session_manager
+                    .start_nonvalidator_session(next_session_id, next_session_authorities)
+                {
+                    warn!(target: "aleph-party", "Failed to early start nonvalidator session{:?}: {}", next_session_id, e);
+                }
+            }
         }
     }
 
@@ -153,11 +181,12 @@ where
         };
         let mut check_session_status = Delay::new(SESSION_STATUS_CHECK_PERIOD);
         let next_session_id = SessionId(session_id.0 + 1);
-        let mut start_next_session_network = Some(
-            self.session_authorities
-                .subscribe_to_insertion(next_session_id)
-                .await,
-        );
+        let mut start_next_session_network = self
+            .session_authorities
+            .subscribe_to_insertion(next_session_id)
+            .await
+            .fuse();
+
         loop {
             tokio::select! {
                 _ = &mut check_session_status => {
@@ -166,47 +195,19 @@ where
                         debug!(target: "aleph-party", "Terminating session {:?}", session_id);
                         break;
                     }
-                    check_session_status = Delay::new(SESSION_STATUS_CHECK_PERIOD);
+                    check_session_status.reset(SESSION_STATUS_CHECK_PERIOD);
                 },
-                Some(next_session_authority_data) = async {
-                    match &mut start_next_session_network {
-                        Some(notification) => {
-                            match notification.await {
-                                Err(e) => {
-                                    warn!(target: "aleph-party", "Error with subscription {:?}", e);
-                                    start_next_session_network = Some(self.session_authorities.subscribe_to_insertion(next_session_id).await);
-                                    None
-                                },
-                                Ok(next_session_authority_data) => {
-                                    Some(next_session_authority_data)
-                                }
-                            }
+                next_session_authority_data = &mut start_next_session_network => {
+                    let next_session_authority_data = match next_session_authority_data {
+                        Ok(data) => data,
+                        Err(e) => {
+                            warn!(target: "aleph-party", "Error with subscription {:?}", e);
+                            start_next_session_network = self.session_authorities.subscribe_to_insertion(next_session_id).await.fuse();
+                            continue;
                         },
-                        None => None,
-                    }
-                } => {
+                    };
                     let next_session_authorities = next_session_authority_data.authorities();
-                    match self.session_manager.node_idx(next_session_authorities) {
-                         Some(next_session_node_id) => if let Err(e) = self
-                                .session_manager
-                                .early_start_validator_session(
-                                    next_session_id,
-                                    next_session_node_id,
-                                    next_session_authorities,
-                                )
-                            {
-                                warn!(target: "aleph-party", "Failed to early start validator session{:?}: {}", next_session_id, e);
-                            }
-                        None => {
-                            if let Err(e) = self
-                                .session_manager
-                                .start_nonvalidator_session(next_session_id, next_session_authorities)
-                            {
-                                warn!(target: "aleph-party", "Failed to early start nonvalidator session{:?}: {}", next_session_id, e);
-                            }
-                        }
-                    }
-                    start_next_session_network = None;
+                    self.try_start_next_session(next_session_id, next_session_authorities);
                 },
                 Some(_) = async {
                     match maybe_authority_task.as_mut() {

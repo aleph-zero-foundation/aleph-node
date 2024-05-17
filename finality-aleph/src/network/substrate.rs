@@ -149,16 +149,15 @@ impl<D: Data> GossipNetwork<D> for ProtocolNetwork {
             tokio::select! {
                 maybe_event = self.service.next_event() => {
                     let event = maybe_event.ok_or(Self::Error::NetworkStreamTerminated)?;
-                    if let Some((message, peer_id)) = self.handle_network_event(event) {
-                        match D::decode_all(&mut &message[..]) {
-                            Ok(message) => return Ok((message, peer_id)),
-                            Err(e) => {
-                                warn!(
-                                    target: LOG_TARGET,
-                                    "Error decoding message: {}", e
-                                )
-                            },
-                        }
+                    let Some((message, peer_id)) = self.handle_network_event(event) else { continue };
+                    match D::decode_all(&mut &message[..]) {
+                        Ok(message) => return Ok((message, peer_id)),
+                        Err(e) => {
+                            warn!(
+                                target: LOG_TARGET,
+                                "Error decoding message: {}", e
+                            )
+                        },
                     }
                 },
                 _ = status_ticker.tick() => {

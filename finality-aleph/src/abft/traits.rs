@@ -2,8 +2,8 @@
 
 use std::{cmp::Ordering, fmt::Debug, hash::Hash as StdHash, marker::PhantomData, pin::Pin};
 
-use futures::{channel::oneshot, Future, TryFutureExt};
-use network_clique::SpawnHandleT;
+use futures::{channel::oneshot, Future};
+use network_clique::{SpawnHandleExt, SpawnHandleT};
 use parity_scale_codec::{Codec, Decode, Encode};
 use sc_service::SpawnTaskHandle;
 use sp_runtime::traits::Hash as SpHash;
@@ -88,7 +88,7 @@ impl SpawnHandle {
             let result = task.await;
             let _ = tx.send(result);
         };
-        let result = <Self as SpawnHandleT>::spawn_essential(self, name, wrapped_task);
+        let result = <Self as SpawnHandleExt>::spawn_essential(self, name, wrapped_task);
         let wrapped_result = async move {
             let main_result = result.await;
             if main_result.is_err() {
@@ -111,19 +111,6 @@ impl SpawnHandleT for SpawnHandle {
     fn spawn(&self, name: &'static str, task: impl Future<Output = ()> + Send + 'static) {
         self.0.spawn(name, None, task)
     }
-
-    fn spawn_essential(
-        &self,
-        name: &'static str,
-        task: impl Future<Output = ()> + Send + 'static,
-    ) -> Pin<Box<dyn Future<Output = Result<(), ()>> + Send>> {
-        let (tx, rx) = oneshot::channel();
-        self.spawn(name, async move {
-            task.await;
-            let _ = tx.send(());
-        });
-        Box::pin(rx.map_err(|_| ()))
-    }
 }
 
 impl current_aleph_bft::SpawnHandle for SpawnHandle {
@@ -136,7 +123,7 @@ impl current_aleph_bft::SpawnHandle for SpawnHandle {
         name: &'static str,
         task: impl Future<Output = ()> + Send + 'static,
     ) -> current_aleph_bft::TaskHandle {
-        SpawnHandleT::spawn_essential(self, name, task)
+        SpawnHandleExt::spawn_essential(self, name, task)
     }
 }
 
@@ -150,6 +137,6 @@ impl legacy_aleph_bft::SpawnHandle for SpawnHandle {
         name: &'static str,
         task: impl Future<Output = ()> + Send + 'static,
     ) -> legacy_aleph_bft::TaskHandle {
-        SpawnHandleT::spawn_essential(self, name, task)
+        SpawnHandleExt::spawn_essential(self, name, task)
     }
 }

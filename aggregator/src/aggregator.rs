@@ -171,16 +171,12 @@ impl<
                         warn!(target: "aleph-aggregator", "failed broadcasting a message from rmc: {:?}", e);
                     }
                 }
-                message_from_network = self.network.next() => match message_from_network {
-                    Some(message) => {
-                        trace!(target: "aleph-aggregator", "Received message for rmc: {:?}", message);
-                        if let Some(multisigned) = self.rmc_service.process_message(message) {
-                            self.multisigned_events.push_back(multisigned);
-                        }
-                    },
-                    None => {
-                        // In case the network is down we can terminate (?).
-                        return Err(IOError::NetworkChannelClosed);
+                message_from_network = self.network.next() =>  {
+                    // In case the network is down we can terminate (?).
+                    let message = message_from_network.ok_or(IOError::NetworkChannelClosed)?;
+                    trace!(target: "aleph-aggregator", "Received message for rmc: {:?}", message);
+                    if let Some(multisigned) = self.rmc_service.process_message(message) {
+                        self.multisigned_events.push_back(multisigned);
                     }
                 }
             }

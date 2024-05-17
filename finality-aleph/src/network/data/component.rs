@@ -1,6 +1,6 @@
 use std::{fmt::Display, marker::PhantomData};
 
-use futures::{channel::mpsc, StreamExt};
+use futures::{channel::mpsc, stream::FusedStream, StreamExt};
 use log::warn;
 
 use crate::{
@@ -135,7 +135,11 @@ impl<D: Data> Sender<D> for mpsc::UnboundedSender<(D, Recipient)> {
 #[async_trait::async_trait]
 impl<D: Data> Receiver<D> for mpsc::UnboundedReceiver<D> {
     async fn next(&mut self) -> Option<D> {
-        StreamExt::next(self).await
+        if self.is_terminated() {
+            None
+        } else {
+            StreamExt::next(self).await
+        }
     }
 }
 

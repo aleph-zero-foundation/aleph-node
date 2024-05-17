@@ -2,7 +2,7 @@ use std::{pin::Pin, time::Duration};
 
 use legacy_aleph_bft::{create_config, default_delay_config, Config, LocalIO, Terminator};
 use log::debug;
-use network_clique::SpawnHandleT;
+use network_clique::SpawnHandleExt;
 
 mod network;
 mod traits;

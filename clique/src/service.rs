@@ -9,7 +9,7 @@ use futures::{
         mpsc::{self, UnboundedSender},
         oneshot,
     },
-    Future, StreamExt,
+    Future, StreamExt, TryFutureExt,
 };
 use log::{info, trace, warn};
 use substrate_prometheus_endpoint::Registry;
@@ -83,13 +83,35 @@ impl<PK: PublicKey, D: Data, A: Data> Network<PK, A, D> for ServiceInterface<PK,
 pub trait SpawnHandleT {
     /// Run task
     fn spawn(&self, name: &'static str, task: impl Future<Output = ()> + Send + 'static);
+}
 
+pub trait SpawnHandleExt: SpawnHandleT {
     /// Run an essential task
     fn spawn_essential(
         &self,
         name: &'static str,
         task: impl Future<Output = ()> + Send + 'static,
     ) -> Pin<Box<dyn Future<Output = Result<(), ()>> + Send>>;
+}
+
+impl<SH: SpawnHandleT> SpawnHandleExt for SH {
+    fn spawn_essential(
+        &self,
+        name: &'static str,
+        task: impl Future<Output = ()> + Send + 'static,
+    ) -> Pin<Box<dyn Future<Output = Result<(), ()>> + Send>> {
+        let (tx, rx) = oneshot::channel();
+        self.spawn(name, async move {
+            task.await;
+            let _ = tx.send(());
+        });
+        Box::pin(rx.map_err(move |_| {
+            warn!(
+                target: LOG_TARGET,
+                "Task '{name}' exited early."
+            )
+        }))
+    }
 }
 
 #[derive(Debug)]

@@ -142,7 +142,7 @@ async fn forward_or_wait<
     RightData: Data,
     R: Receiver<Split<LeftData, RightData>>,
 >(
-    receiver: &Arc<Mutex<R>>,
+    receiver: &Mutex<R>,
     left_sender: &mpsc::UnboundedSender<LeftData>,
     right_sender: &mpsc::UnboundedSender<RightData>,
     name: &str,
