@@ -10,7 +10,7 @@ Usage:
   $0
   This script allows you to run a custom .js script using the synthetic-network network simulation tool.
   IMPORTANT: first you need to call 'scripts/run_consensus_synthetic-network.sh' and let it run in background.
-             It spawns docker-compose configured with synthetic-network.
+             It spawns docker compose configured with synthetic-network.
              It requires node.js to run.
     --script-path scripts/vendor/synthetic-network/frontend/udp_rate_sine_demo.js
         path to a synthetic-network scrypt. Default is a demo scripts/vendor/synthetic-network/frontend/udp_rate_sine_demo.js

@@ -10,7 +10,7 @@ page, i.e. :3001 is Node1, ...).
 
 Main file in this folder is `run_consensus_synthetic-network.sh`. It builds a docker-image containing `aleph-node` and some
 arbitrary set of networking and debugging tools. It also consists of files required to spawn an instance of the
-synthetic-network. Its requirements are: docker, docker-compose, git, `aleph-node:latest` docker-image.
+synthetic-network. Its requirements are: docker, docker compose, git, `aleph-node:latest` docker-image.
 
 `set_defaults_synthetic-network.sh` allows you to reset settings of the synthetic-network to some sane defaults. You might need
 to use it when you set too restrictive values for some of its parameters, i.e. rate limit that make you unable to further

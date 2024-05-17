@@ -118,7 +118,7 @@ function run_containers() {
   for index in $(seq 0 "${authorities_count}"); do
     containers+=("Node${index}")
   done
-  docker-compose $(get_compose_file_list "${docker_compose_file}" "${override_file}") up -d "${containers[@]}"
+  docker compose $(get_compose_file_list "${docker_compose_file}" "${override_file}") up -d "${containers[@]}"
 }
 
 function archive_logs() {
@@ -133,7 +133,7 @@ function archive_logs() {
   pushd $(mktemp -d) > /dev/null
   for index in $(seq 0 "${node_count}"); do
     echo "Archiving "Node${index}" logs..."
-    docker-compose ${compose_file_list} logs --no-color --no-log-prefix "Node${index}" > "Node${index}.log"
+    docker compose ${compose_file_list} logs --no-color --no-log-prefix "Node${index}" > "Node${index}.log"
   done
   tar -czf "${tarball_output}" Node*
   popd > /dev/null
@@ -163,12 +163,12 @@ else
   exit 1
 fi
 
-if docker inspect ${NODE_IMAGE} > /dev/null; then
-  echo "aleph-node image tag ${NODE_IMAGE} found locally"
+if docker inspect ${CHAIN_BOOTSTRAPPER_IMAGE} > /dev/null; then
+  echo "chain-bootstrapper image tag ${CHAIN_BOOTSTRAPPER_IMAGE} found locally"
 else
-  echo "${NODE_IMAGE} not found locally."
+  echo "${CHAIN_BOOTSTRAPPER_IMAGE} not found locally."
   echo "Build image first with:"
-  echo "docker build -t ${NODE_IMAGE} -f docker/Dockerfile ."
+  echo "docker build -t ${CHAIN_BOOTSTRAPPER_IMAGE} -f ./bin/chain-bootstrapper/Dockerfile ."
   exit 1
 fi
 
