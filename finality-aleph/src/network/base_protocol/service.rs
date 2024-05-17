@@ -15,8 +15,10 @@ use sc_network::{
     service::traits::{NotificationEvent as SubstrateEvent, ValidationResult},
     Multiaddr, NetworkPeers, NetworkService, ProtocolName,
 };
-use sc_network_sync::{service::syncing_service::ToServiceCommand, SyncingService};
-use sc_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver};
+use sc_network_sync::{
+    service::syncing_service::ToServiceCommand, types::SyncEvent, SyncingService,
+};
+use sc_utils::mpsc::{tracing_unbounded, TracingUnboundedReceiver, TracingUnboundedSender};
 use sp_runtime::traits::{Block, Header};
 
 use crate::{
@@ -51,6 +53,7 @@ where
     protocol_names: Vec<ProtocolName>,
     network: Arc<NetworkService<B, B::Hash>>,
     commands_from_user: TracingUnboundedReceiver<ToServiceCommand<B>>,
+    events_for_users: Vec<TracingUnboundedSender<SyncEvent>>,
     events_from_network: Box<dyn NotificationService>,
 }
 
@@ -79,6 +82,7 @@ where
                 protocol_names,
                 network,
                 commands_from_user,
+                events_for_users: Vec::new(),
                 events_from_network,
             },
             Arc::new(SyncingService::new(
@@ -93,9 +97,7 @@ where
     fn handle_command(&mut self, command: ToServiceCommand<B>) {
         use ToServiceCommand::*;
         match command {
-            EventStream(_) => {
-                warn!(target: LOG_TARGET, "We don't support sending downstream events to users, yet someone requested them.")
-            }
+            EventStream(events_for_user) => self.events_for_users.push(events_for_user),
             PeersInfo(response) => {
                 if response.send(self.handler.peers_info()).is_err() {
                     debug!(
@@ -162,6 +164,11 @@ where
                             error!(target: LOG_TARGET, "Adding peer to the {} reserved set failed: {}.", name, e);
                         }
                     }
+                    self.events_for_users.retain(|for_user| {
+                        for_user
+                            .unbounded_send(SyncEvent::PeerConnected(peer))
+                            .is_ok()
+                    });
                 }
                 Err(e) => debug!(target:LOG_TARGET, "Failed to accept connection: {}.", e),
             },
@@ -179,6 +186,11 @@ where
                         warn!(target: LOG_TARGET, "Removing peer from the {} reserved set failed: {}", name, e)
                     }
                 }
+                self.events_for_users.retain(|for_user| {
+                    for_user
+                        .unbounded_send(SyncEvent::PeerDisconnected(peer))
+                        .is_ok()
+                });
             }
             NotificationReceived { peer, .. } => {
                 debug!(target: LOG_TARGET, "Received unexpected message in the base protocol from {}.", peer)
