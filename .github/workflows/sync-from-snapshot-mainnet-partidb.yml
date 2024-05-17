@@ -1,0 +1,26 @@
+---
+# This workflow performs sync to Mainnet from a ParityDB non-pruned snapshot using the latest
+# main version.
+#
+# For now, this test not quite correctly tests sync Mainnet from latest aleph-node binary,
+# for which we don't guarantee it will always happen to work.
+
+name: Sync from snapshot test, Mainnet, ParityDB non-pruned
+on:
+  # At 03:00 on Wednesday and Saturday
+  schedule:
+    - cron: '0 3 * * 3,6'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  main:
+    name: Test sync
+    uses: ./.github/workflows/_sync-from-snapshot.yml
+    secrets: inherit
+    with:
+      timeout: 300
+      args: --mainnet

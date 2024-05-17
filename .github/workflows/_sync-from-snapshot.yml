@@ -1,16 +1,19 @@
 ---
-# This workflow performs sync to Testnet from a pruned snapshot using the latest main version.
+# This workflow performs live chain (Mainnet or Testnet) sync from a ParityDB snapshot,
+# using the latest main version.
 
-name: Weekly sync from snapshot test, pruned
+name: Weekly sync from snapshot test
 on:
-  # At 03:00 on Tuesday
-  schedule:
-    - cron: '0 3 * * 2'
-  workflow_dispatch:
-
-concurrency:
-  group: ${{ github.ref }}-${{ github.workflow }}
-  cancel-in-progress: false
+  workflow_call:
+    inputs:
+      timeout:
+        description: "Test timeout in minutes"
+        type: number
+        required: true
+      args:
+        description: "Test arguments passed to bash test runner"
+        type: string
+        required: true
 
 jobs:
   check-vars-and-secrets:
@@ -38,12 +41,25 @@ jobs:
         with:
           name: aleph-production-node
 
-      - name: Download snapshot
-        timeout-minutes: 180
+      - name: Download snapshot and test sync
+        timeout-minutes: ${{ inputs.timeout }}
         run: |
-          ./.github/scripts/test_testnet_db_sync.sh \
-            --pruned
+          ./.github/scripts/test_parity_db_sync.sh ${{ inputs.args }}
 
+      - name: Archive logs from failed test
+        if: ${{ failure() }}
+        shell: bash
+        run: |
+          tar -czvf aleph-node-logs.tar.gz running/aleph-node.log
+
+      - name: Upload logs from failed e2e test
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          path: aleph-node-logs.tar.gz
+          name: aleph-node-logs.tar.gz
+          if-no-files-found: error
+          retention-days: 7
 
   slack-notification:
     name: Slack notification

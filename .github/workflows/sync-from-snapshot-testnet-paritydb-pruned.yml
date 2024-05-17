@@ -1,0 +1,23 @@
+---
+# This workflow performs sync to Testnet from a pruned ParityDB snapshot using the latest
+# main version.
+
+name: Sync from snapshot, Testnet, ParityDB pruned
+on:
+  # At 03:00 on Wednesday and Saturday
+  schedule:
+    - cron: '0 3 * * 3,6'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  main:
+    name: Test sync
+    uses: ./.github/workflows/_sync-from-snapshot.yml
+    secrets: inherit
+    with:
+      timeout: 60
+      args: --testnet --pruned
