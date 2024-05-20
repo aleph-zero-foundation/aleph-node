@@ -21,15 +21,16 @@ jobs:
     uses: ./.github/workflows/_check-vars-and-secrets.yml
     secrets: inherit
 
-  build-production-node-and-runtime:
+  build-production-aleph-node:
     needs: [check-vars-and-secrets]
-    name: Build production node and runtime
-    uses: ./.github/workflows/_build-production-node-and-runtime.yml
+    name: Build production aleph-node
+    uses: ./.github/workflows/_build-aleph-node.yml
     with:
       ref: ${{ github.ref }}
+      production: true
 
   get-snapshot-and-sync:
-    needs: [build-production-node-and-runtime]
+    needs: [build-production-aleph-node]
     name: Download snapshot and run
     runs-on: [self-hosted, Linux, X64, medium-1000GB]
     steps:
@@ -39,7 +40,7 @@ jobs:
       - name: Download release artifact
         uses: actions/download-artifact@v4
         with:
-          name: aleph-production-node
+          name: ${{ needs.build-production-aleph-node.outputs.artifact-name-binary }}
 
       - name: Download snapshot and test sync
         timeout-minutes: ${{ inputs.timeout }}
@@ -70,7 +71,7 @@ jobs:
       github.event_name != 'workflow_dispatch'
     steps:
       - name: Send Slack message
-        uses: Cardinal-Cryptography/github-actions/slack-notification@v6
+        uses: Cardinal-Cryptography/github-actions/slack-notification@v7
         with:
           notify-on: "failure"
         env:

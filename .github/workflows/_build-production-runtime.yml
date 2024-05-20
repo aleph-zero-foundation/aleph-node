@@ -1,21 +1,27 @@
 ---
-#  This workflow builds production version of aleph-node and aleph-runtime
-name: Build production node and runtime
+#  This workflow builds production version of aleph-runtime
+name: Build production runtime
 on:
   workflow_call:
     inputs:
       ref:
-        description: 'git ref: hash, branch, tag to build production aleph-node binary from'
+        description: 'git ref: hash, branch, tag to build production aleph-runtime from'
         type: string
         required: true
+    outputs:
+      aleph-runtime-artifact-name:
+        description: 'Name of artifact aleph-runtime'
+        value: ${{ jobs.main.outputs.aleph-runtime-artifact-name }}
 
 jobs:
   main:
-    name: Build production node and runtime
+    name: Build
     runs-on: [self-hosted, Linux, X64, large]
     env:
       RUST_BACKTRACE: full
       RUSTC_WRAPPER: sccache
+    outputs:
+      aleph-runtime-artifact-name: ${{ steps.get-artifact-name.outputs.name }}
     steps:
       - name: Checkout aleph-node source code
         uses: actions/checkout@v4
@@ -25,32 +31,25 @@ jobs:
 
       - name: Call action get-ref-properties
         id: get-ref-properties
-        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v6
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v7
 
       - name: Install Rust toolchain
-        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v6
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v7
         with:
           targets: wasm32-unknown-unknown
-
-      - name: Build production aleph-node
-        run: cargo build --profile production -p aleph-node
-
-      - name: Upload release binary to GH artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: aleph-production-node
-          path: target/production/aleph-node
-          if-no-files-found: error
-          retention-days: 7
 
       - name: Build production aleph-runtime
         run: cargo build --profile production -p aleph-runtime
 
-      # required by _check-runtime-determinism.yml workflow
+      - name: get aleph-runtime artifact name
+        id: get-artifact-name
+        run: |
+          echo "name=aleph-production-runtime" >> $GITHUB_OUTPUT
+
       - name: Upload release runtime to GH artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: aleph-production-runtime
+          name: ${{ steps.get-artifact-name.outputs.name }}
           path: target/production/wbuild/aleph-runtime/aleph_runtime.compact.compressed.wasm
           if-no-files-found: error
           retention-days: 7

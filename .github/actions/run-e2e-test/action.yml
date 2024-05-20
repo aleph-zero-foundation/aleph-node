@@ -23,12 +23,12 @@ inputs:
     description: 'Whether to deploy the adder sample contract to the node.'
     required: false
     default: 'false'
-  image-path:
-    description: 'Custom path to docker image for aleph-node'
+  aleph-node-image-artifact-name:
+    description: 'Name of aleph-node image stored in GH Artifacts'
     required: false
-    default: aleph-test-docker
-  node-image:
-    description: 'Custom name of aleph-node image'
+    default: aleph-node-image-test
+  aleph-node-image-tag:
+    description: 'Name of aleph-node docker image tag'
     required: false
     default: aleph-node:latest
   compose-file:
@@ -61,7 +61,7 @@ runs:
     - name: Download node docker image
       uses: actions/download-artifact@v4
       with:
-        name: ${{ inputs.image-path }}
+        name: ${{ inputs.aleph-node-image-artifact-name }}
 
     - name: Load node docker image
       shell: bash
@@ -79,7 +79,7 @@ runs:
     - name: Run consensus party
       shell: bash
       run: |
-        NODE_IMAGE='${{ inputs.node-image }}' \
+        NODE_IMAGE='${{ inputs.aleph-node-image-tag }}' \
         DOCKER_COMPOSE='${{ inputs.compose-file }}' \
           ./.github/scripts/run_consensus.sh -n '${{ inputs.node-count }}'
 

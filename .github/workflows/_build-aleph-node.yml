@@ -1,34 +1,33 @@
 ---
-# This workflow builds chain-bootstrapper binary, dedicated fer generating chainspecs for
-# test and dev chains
-name: Build chain-bootstrapper
+#  This workflow builds aleph-node binary. It outputs name of artifacts uploaded to GH Artifacts.
+name: Build aleph-node
 on:
   workflow_call:
     inputs:
       ref:
-        description: 'git ref: hash, branch, tag to build chain-bootstrapper binary from'
+        description: 'git ref: hash, branch, tag to build aleph-node binary from'
         type: string
         required: true
       production:
-        description: 'set to true to use production profile'
+        description: 'Set to true to build production binary, otherwise set to false'
         type: boolean
         required: true
     outputs:
       artifact-name-binary:
-        description: 'Name of artifact chain-bootstrapper binary'
+        description: 'Name of artifact aleph-node binary'
         value: ${{ jobs.main.outputs.artifact-name-binary }}
       artifact-name-image:
-        description: 'Name of artifact chain-bootstrapper image'
+        description: 'Name of artifact aleph-node image'
         value: ${{ jobs.main.outputs.artifact-name-image }}
 jobs:
   main:
-    name: Build chain-bootstrapper
+    name: Build aleph-node (production=${{ inputs.production }})
     runs-on: [self-hosted, Linux, X64, large]
     env:
       RUST_BACKTRACE: full
       RUSTC_WRAPPER: sccache
       CARGO_FOLDER: ${{ inputs.production == true && 'production' || 'release' }}
-      ARTIFACT_NAME_SUFFIX: ${{ inputs.production == true && 'release' || 'test' }}
+      ARTIFACT_NAME_SUFFIX: ${{ inputs.production == true && 'production' || 'test' }}
     outputs:
       artifact-name-binary: ${{ steps.get-artifact-name-binary.outputs.name }}
       artifact-name-image: ${{ steps.get-artifact-name-image.outputs.name }}
@@ -45,53 +44,48 @@ jobs:
 
       - name: Install Rust toolchain
         uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v7
-        with:
-          targets: wasm32-unknown-unknown
 
-      - name: Build without production profile
+      - name: Build test aleph-node
         if: ${{ inputs.production != true }}
         run: |
-          cargo build --release -p chain-bootstrapper \
-            --features "short_session enable_treasury_proposals"
+          cargo build --release -p aleph-node --features only_legacy
 
-      - name: Build with production profile
+      - name: Build production aleph-node
         if: ${{ inputs.production == true }}
-        run: |
-          cargo build --profile production -p chain-bootstrapper
+        run: cargo build --profile production -p aleph-node
 
       - name: Get binary artifact name
         id: get-artifact-name-binary
         run: |
-          echo "name=chain-bootstrapper-${{ env.ARTIFACT_NAME_SUFFIX }}" >> $GITHUB_OUTPUT
+          echo "name=aleph-node-${{ env.ARTIFACT_NAME_SUFFIX }}" >> $GITHUB_OUTPUT
 
       - name: Upload binary to GH Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.get-artifact-name-binary.outputs.name }}
-          path: target/${{ env.CARGO_FOLDER }}/chain-bootstrapper
+          path: target/${{ env.CARGO_FOLDER }}/aleph-node
           if-no-files-found: error
           retention-days: 7
 
-      - name: Build docker
-        id: build-image
+      - name: Build aleph-node docker image
         run: |
-          chmod +x target/${{ env.CARGO_FOLDER }}/chain-bootstrapper
+          chmod +x target/${{ env.CARGO_FOLDER }}/aleph-node
           if [[ ${{ inputs.production }} == true ]]; then
             mkdir -p target/release
-            mv target/production/chain-bootstrapper target/release/
+            mv target/production/aleph-node target/release/
           fi
-          docker build --tag chain-bootstrapper:latest -f ./bin/chain-bootstrapper/Dockerfile .
-          docker save -o chain-bootstrapper.tar chain-bootstrapper:latest
+          docker build --tag aleph-node:latest -f ./docker/Dockerfile .
+          docker save -o aleph-node.tar aleph-node:latest
 
       - name: Get image artifact name
         id: get-artifact-name-image
         run: |
-          echo "name=chain-bootstrapper-image-${{ env.ARTIFACT_NAME_SUFFIX }}" >> $GITHUB_OUTPUT
+          echo "name=aleph-node-image-${{ env.ARTIFACT_NAME_SUFFIX }}" >> $GITHUB_OUTPUT
 
-      - name: Upload docker image to GH Artifacts
+      - name: Upload docker to GH Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.get-artifact-name-image.outputs.name }}
-          path: chain-bootstrapper.tar
+          path: aleph-node.tar
           if-no-files-found: error
           retention-days: 7

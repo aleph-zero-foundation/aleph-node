@@ -21,7 +21,7 @@ jobs:
 
       - name: Call action get-ref-properties
         id: get-ref-properties
-        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v6
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v7
 
       - name: Read node version
         id: read-node-version
@@ -72,7 +72,7 @@ jobs:
       # fail, as there would be no aleph-node-<sha> image on ECR for <sha> that is not on main
       # or release branch, see on-main-or-release-branch-commit.yml
       - name: Check release candidate docker image existence
-        uses: Cardinal-Cryptography/github-actions/check-image-existence-ecr@v6
+        uses: Cardinal-Cryptography/github-actions/check-image-existence-ecr@v7
         with:
           ecr-image: ${{ steps.get-docker-image-names.outputs.ecr-rc-image }}
 
@@ -93,7 +93,7 @@ jobs:
     if: always()
     steps:
       - name: Send Slack message
-        uses: Cardinal-Cryptography/github-actions/slack-notification@v6
+        uses: Cardinal-Cryptography/github-actions/slack-notification@v7
         with:
           notify-on: "always"
         env:

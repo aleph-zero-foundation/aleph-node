@@ -25,17 +25,21 @@ jobs:
       push: true
     secrets: inherit
 
-  build-production-node-and-runtime:
+  build-production-aleph-node:
     needs: [check-vars-and-secrets]
-    name: Build production node and runtime
-    uses: ./.github/workflows/_build-production-node-and-runtime.yml
+    name: Build production aleph-node
+    uses: ./.github/workflows/_build-aleph-node.yml
     with:
       ref: ${{ github.ref }}
+      production: true
 
   build-synthetic-node:
-    needs: [build-production-node-and-runtime]
+    needs: [build-production-aleph-node]
     name: Build synthetic node
     uses: ./.github/workflows/_build-synthetic-node.yml
+    with:
+      # yamllint disable-line rule:line-length
+      aleph-node-image-artifact-name: ${{ needs.build-production-aleph-node.outputs.artifact-name-image }}
 
   build-chain-bootstrapper-production:
     name: Build chain-bootstrapper
@@ -59,8 +63,9 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: high_out_latency_for_all
-          image-path: aleph-release-synthetic-docker
-          node-image: aleph-node:syntheticnet
+          # yamllint disable-line rule:line-length
+          aleph-node-image-artifact-name: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
+          aleph-node-image-tag: aleph-node:syntheticnet
           chain-bootstrapper-image: chain-bootstrapper-image-release
           compose-file: docker/docker-compose.synthetic-network.yml
           # yamllint disable-line rule:line-length
@@ -87,8 +92,9 @@ jobs:
           VALIDATOR_COUNT: 7
         with:
           test-case: test::sync::one_node_catching_up_and_then_becoming_necessary_for_consensus
-          image-path: aleph-release-synthetic-docker
-          node-image: aleph-node:syntheticnet
+          # yamllint disable-line rule:line-length
+          aleph-node-image-artifact-name: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
+          aleph-node-image-tag: aleph-node:syntheticnet
           chain-bootstrapper-image: chain-bootstrapper-image-release
           compose-file: docker/docker-compose.synthetic-network_sync-tests.yml
           node-count: 7
@@ -115,8 +121,9 @@ jobs:
           VALIDATOR_COUNT: 7
         with:
           test-case: test::sync::one_node_catching_up
-          image-path: aleph-release-synthetic-docker
-          node-image: aleph-node:syntheticnet
+          # yamllint disable-line rule:line-length
+          aleph-node-image-artifact-name: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
+          aleph-node-image-tag: aleph-node:syntheticnet
           chain-bootstrapper-image: chain-bootstrapper-image-release
           compose-file: docker/docker-compose.synthetic-network_sync-tests.yml
           node-count: 7
@@ -144,8 +151,9 @@ jobs:
           VALIDATOR_COUNT: 7
         with:
           test-case: test::sync::into_two_groups_and_one_quorum_and_switch_quorum_between_them
-          image-path: aleph-release-synthetic-docker
-          node-image: aleph-node:syntheticnet
+          # yamllint disable-line rule:line-length
+          aleph-node-image-artifact-name: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
+          aleph-node-image-tag: aleph-node:syntheticnet
           chain-bootstrapper-image: chain-bootstrapper-image-release
           compose-file: docker/docker-compose.synthetic-network_sync-tests.yml
           node-count: 7
@@ -172,8 +180,9 @@ jobs:
           VALIDATOR_COUNT: 7
         with:
           test-case: test::sync::into_multiple_groups_of_two
-          image-path: aleph-release-synthetic-docker
-          node-image: aleph-node:syntheticnet
+          # yamllint disable-line rule:line-length
+          aleph-node-image-artifact-name: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
+          aleph-node-image-tag: aleph-node:syntheticnet
           chain-bootstrapper-image: chain-bootstrapper-image-release
           compose-file: docker/docker-compose.synthetic-network_sync-tests.yml
           node-count: 7
@@ -201,8 +210,9 @@ jobs:
           VALIDATOR_COUNT: 7
         with:
           test-case: test::sync::into_two_equal_size_groups_with_no_quorum
-          image-path: aleph-release-synthetic-docker
-          node-image: aleph-node:syntheticnet
+          # yamllint disable-line rule:line-length
+          aleph-node-image-artifact-name: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
+          aleph-node-image-tag: aleph-node:syntheticnet
           chain-bootstrapper-image: chain-bootstrapper-image-release
           compose-file: docker/docker-compose.synthetic-network_sync-tests.yml
           node-count: 7
@@ -230,8 +240,9 @@ jobs:
           VALIDATOR_COUNT: 7
         with:
           test-case: test::sync::into_two_groups_one_with_quorum
-          image-path: aleph-release-synthetic-docker
-          node-image: aleph-node:syntheticnet
+          # yamllint disable-line rule:line-length
+          aleph-node-image-artifact-name: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
+          aleph-node-image-tag: aleph-node:syntheticnet
           chain-bootstrapper-image: chain-bootstrapper-image-release
           compose-file: docker/docker-compose.synthetic-network_sync-tests.yml
           node-count: 7
@@ -259,8 +270,9 @@ jobs:
           TIMEOUT_MINUTES: "60m"
         with:
           test-case: test::sync::large_finalization_stall
-          image-path: aleph-release-synthetic-docker
-          node-image: aleph-node:syntheticnet
+          # yamllint disable-line rule:line-length
+          aleph-node-image-artifact-name: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
+          aleph-node-image-tag: aleph-node:syntheticnet
           chain-bootstrapper-image: chain-bootstrapper-image-release
           compose-file: docker/docker-compose.finalization_stall_with_pruning.yml
           # yamllint disable-line rule:line-length
@@ -268,7 +280,9 @@ jobs:
           timeout-minutes: 60
 
   run-major-sync-test:
-    needs: [build-production-node-and-runtime, build-chain-bootstrapper-production]
+    needs:
+      - build-production-aleph-node
+      - build-chain-bootstrapper-production
     name: Run major sync test
     runs-on: ubuntu-20.04
     steps:
@@ -278,13 +292,13 @@ jobs:
       - name: Download node binary from GH artifact
         uses: actions/download-artifact@v4
         with:
-          name: aleph-production-node
+          name: ${{ needs.build-production-aleph-node.outputs.artifact-name-binary }}
           path: target/release/
 
       - name: Download chain-bootstrapper from GH artifacts
         uses: actions/download-artifact@v4
         with:
-          name: chain-bootstrapper-release
+          name: ${{ needs.build-chain-bootstrapper-production.outputs.artifact-name-binary }}
           path: target/release/
 
       - name: Run test
@@ -296,7 +310,9 @@ jobs:
             --testcase test_major_sync
 
   run-force-reorg-test:
-    needs: [build-production-node-and-runtime, build-chain-bootstrapper-production]
+    needs:
+      - build-production-aleph-node
+      - build-chain-bootstrapper-production
     name: Run force reorgs test
     runs-on: [self-hosted, Linux, X64, medium]
     steps:
@@ -306,13 +322,13 @@ jobs:
       - name: Download node binary from GH artifact
         uses: actions/download-artifact@v4
         with:
-          name: aleph-production-node
+          name: ${{ needs.build-production-aleph-node.outputs.artifact-name-binary }}
           path: target/release/
 
       - name: Download chain-bootstrapper from GH artifacts
         uses: actions/download-artifact@v4
         with:
-          name: chain-bootstrapper-release
+          name: ${{ needs.build-chain-bootstrapper-production.outputs.artifact-name-binary }}
           path: target/release/
 
       - name: Run test
@@ -338,8 +354,9 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: high_out_latency_for_each_quorum
-          image-path: aleph-release-synthetic-docker
-          node-image: aleph-node:syntheticnet
+          # yamllint disable-line rule:line-length
+          aleph-node-image-artifact-name: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
+          aleph-node-image-tag: aleph-node:syntheticnet
           compose-file: docker/docker-compose.synthetic-network.yml
           chain-bootstrapper-image: chain-bootstrapper-image-release
           # yamllint disable-line rule:line-length
@@ -376,7 +393,7 @@ jobs:
       github.event_name != 'workflow_dispatch'
     steps:
       - name: Send Slack message
-        uses: Cardinal-Cryptography/github-actions/slack-notification@v6
+        uses: Cardinal-Cryptography/github-actions/slack-notification@v7
         with:
           notify-on: "failure"
         env:

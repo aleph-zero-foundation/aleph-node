@@ -19,4 +19,4 @@ jobs:
     steps:
       - name: LINT | Execute YAML linter
         # yamllint disable-line rule:line-length
-        uses: Cardinal-Cryptography/github-actions/yaml-lint@v6
+        uses: Cardinal-Cryptography/github-actions/yaml-lint@v7

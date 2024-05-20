@@ -29,14 +29,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Rust Toolchain
-        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v6
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v7
 
       - name: Run Test Suite
         run: |
           cargo test --workspace --exclude baby-liminal-extension
 
       - name: Install Rust Toolchain For Chain Extension Tests
-        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v6
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v7
         with:
           channel: nightly-2024-02-14
           targets: wasm32-unknown-unknown
@@ -52,7 +52,7 @@ jobs:
     if: ${{ !cancelled() }}
     steps:
       - name: Send Slack message
-        uses: Cardinal-Cryptography/github-actions/slack-notification@v6
+        uses: Cardinal-Cryptography/github-actions/slack-notification@v7
         with:
           notify-on: "failure"
         env:

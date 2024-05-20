@@ -38,11 +38,12 @@ jobs:
     name: Check production node and runtime
     uses: ./.github/workflows/_check-production-node-and-runtime.yml
 
-  build-test-node:
-    name: Build test node
-    uses: ./.github/workflows/_build-test-node.yml
+  build-test-aleph-node:
+    name: Build test aleph-node
+    uses: ./.github/workflows/_build-aleph-node.yml
     with:
       ref: ${{ github.ref }}
+      production: false
 
   build-chain-bootstrapper:
     name: Build chain-bootstrapper
@@ -61,7 +62,7 @@ jobs:
   run-e2e-finalization-test:
     name: Run e2e finalization test
     needs:
-      - build-test-node
+      - build-test-aleph-node
       - build-aleph-e2e-client-image
       - build-chain-bootstrapper
     runs-on: ubuntu-20.04
@@ -79,7 +80,7 @@ jobs:
   run-e2e-token-transfer-test:
     name: Run e2e token transfer test
     needs:
-      - build-test-node
+      - build-test-aleph-node
       - build-aleph-e2e-client-image
       - build-chain-bootstrapper
     runs-on: ubuntu-20.04

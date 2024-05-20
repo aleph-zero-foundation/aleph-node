@@ -393,7 +393,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Rust toolchain
-        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v6
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v7
         with:
           targets: wasm32-unknown-unknown
           components: rust-src

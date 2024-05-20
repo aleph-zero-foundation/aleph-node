@@ -19,4 +19,4 @@ jobs:
     steps:
       - name: VALIDATE | Execute github-actions-validator
         # yamllint disable-line rule:line-length
-        uses: Cardinal-Cryptography/github-actions/yaml-validate@v6
+        uses: Cardinal-Cryptography/github-actions/yaml-validate@v7

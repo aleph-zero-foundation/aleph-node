@@ -1,28 +1,35 @@
 ---
-#  This workflow builds synthetic network aleph-node docker
-# it requires base aleph-node image
+#  This workflow builds synthetic network aleph-node docker, based on aleph-node:latest image
 name: Build production node image and e2e client image
 on:
   workflow_call:
-
+    inputs:
+      aleph-node-image-artifact-name:
+        description: 'Name of aleph-node image stored in GH Artifacts'
+        type: string
+        required: true
+    outputs:
+      artifact-name-image:
+        description: 'Name of artifact aleph-node synthetic network image'
+        value: ${{ jobs.main.outputs.artifact-name-image }}
 jobs:
   main:
     name: Build synthetic node docker image
     runs-on: ubuntu-20.04
+    outputs:
+      artifact-name-image: ${{ steps.get-synthetic-network-artifact-image-name.outputs.name }}
     steps:
       - name: Checkout Source code
         uses: actions/checkout@v4
 
-      - name: Download release artifact
+      - name: Download node docker image
         uses: actions/download-artifact@v4
         with:
-          name: aleph-production-node
-          path: target/release/
+          name: ${{ inputs.aleph-node-image-artifact-name }}
 
-      - name: Build release docker image
-        run: |
-          chmod +x target/release/aleph-node
-          docker build --tag aleph-node:latest -f ./docker/Dockerfile .
+      - name: Load node docker image
+        shell: bash
+        run: docker load -i aleph-node.tar
 
       - name: Build synthetic aleph-node image
         shell: bash
@@ -31,10 +38,15 @@ jobs:
           scripts/synthetic-network/build_synthetic-network.sh
           docker save -o aleph-node.tar aleph-node:syntheticnet
 
+      - name: Get synthetic aleph-node image name
+        id: get-synthetic-network-artifact-image-name
+        run: |
+          echo "name=aleph-release-synthetic-docker" >> $GITHUB_OUTPUT
+
       - name: Upload synthetic aleph-node image
         uses: actions/upload-artifact@v4
         with:
-          name: aleph-release-synthetic-docker
+          name: ${{ steps.get-synthetic-network-artifact-image-name.outputs.name }}
           path: aleph-node.tar
           if-no-files-found: error
           retention-days: 7

@@ -1,5 +1,5 @@
 ---
-#  This workflow builds arbitrary docker node image based on binary downloaded in GH artifacts
+#  This workflow builds arbitrary docker image based on binary downloaded in GH artifacts
 name: Build and push docker image to ECR
 on:
   workflow_call:
@@ -13,12 +13,16 @@ on:
         required: true
         type: string
       docker-image-name:
-        description: 'Name of node docker image to be uploaded to ECR'
+        description: 'Name of docker image to be uploaded to ECR'
         required: true
         type: string
       docker-file-path:
         description: 'Path to Dockerfile'
         required: true
+        type: string
+      docker-image-name-latest:
+        description: 'Name of latest docker image to be uploaded to ECR'
+        required: false
         type: string
 
 jobs:
@@ -31,7 +35,7 @@ jobs:
 
       - name: Call action get-ref-properties
         id: get-ref-properties
-        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v6
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v7
 
       - name: Download ${{ inputs.binary-artifact-name }} from artifacts
         uses: actions/download-artifact@v4
@@ -44,7 +48,7 @@ jobs:
         run: |
           chmod +x target/release/${{ inputs.binary-name }}
           docker build \
-            --tag ${{ inputs.docker-image-name }}:latest \
+            --tag ${{ inputs.docker-image-name }} \
             -f ${{ inputs.docker-file-path }} .
 
       - name: Login to Public Amazon ECR
@@ -55,15 +59,11 @@ jobs:
           username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
           password: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
 
-      - name: Push ${{ inputs.docker-image-name }} image to ECR
-        env:
-          CURRENT_IMAGE: ${{ inputs.docker-image-name }}
-          ECR_PUSH_IMAGE: ${{ vars.ECR_PUBLIC_REGISTRY }}${{ inputs.docker-image-name }}
+      - name: Push image to ECR
         run: |
-          docker tag '${{ env.CURRENT_IMAGE }}' \
-            '${{ env.ECR_PUSH_IMAGE }}:${{ steps.get-ref-properties.outputs.sha }}'
-          docker push '${{ env.ECR_PUSH_IMAGE }}:${{ steps.get-ref-properties.outputs.sha }}'
-          if [[ '${{ steps.get-ref-properties.outputs.branch }}' -eq 'main' ]]; then
-            docker tag '${{ env.CURRENT_IMAGE }}' '${{ env.ECR_PUSH_IMAGE }}:latest'
-            docker push '${{ env.ECR_PUSH_IMAGE }}:latest'
+          docker push '${{ inputs.docker-image-name }}'
+          if [[ '${{ steps.get-ref-properties.outputs.branch }}' -eq 'main' && \
+                 '${{ inputs.docker-image-name-latest }}' != '' ]]; then
+            docker tag '${{ inputs.docker-image-name }}' '${{ inputs.docker-image-name-latest }}'
+            docker push '${{ inputs.docker-image-name-latest }}'
           fi

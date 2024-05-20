@@ -24,7 +24,7 @@ jobs:
   delete-featurenet:
     needs: [check-vars-and-secrets]
     name: Delete featurenet
-    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-delete.yml@v6
+    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-delete.yml@v7
     secrets: inherit
     with:
       featurenet-name: ${{ inputs.featurenet-name }}

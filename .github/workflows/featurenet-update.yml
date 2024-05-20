@@ -74,36 +74,52 @@ jobs:
     needs: [check-vars-and-secrets]
     runs-on: ubuntu-20.04
     outputs:
-      fqdn-image: ${{ steps.get-aleph-node-fqdn-image.outputs.fqdn-image }}
-      ref: ${{ steps.get-aleph-node-fqdn-image.outputs.ref }}
-      image-exists: ${{ steps.get-aleph-node-fqdn-image.outputs.image-exists }}
+      fqdn-image: ${{ steps.get-fqdns.outputs.fqdn-image }}
+      ref: ${{ steps.get-fqdns.outputs.ref }}
+      image-exists: ${{ steps.get-fqdns.outputs.image-exists }}
     steps:
       - name: Get aleph-node fqdn path
-        id: get-aleph-node-fqdn-image
-        uses: Cardinal-Cryptography/github-actions/get-aleph-node-fqdn-image@v6
+        id: get-fqdns
+        uses: Cardinal-Cryptography/github-actions/get-aleph-node-fqdn-image@v7
         with:
           ref: ${{ inputs.ref }}
           test-binary: ${{ inputs.short-session == true && 'true' || 'false' }}
           ecr-dev-node-repo: ${{ vars.ECR_DEV_ALEPH_NODE_REPO }}
           ecr-prod-node-repo: ${{ vars.ECR_ALEPH_NODE_REPO }}
+          ecr-chain-bootstrapper-repo: ${{ vars.ECR_CHAIN_BOOTSTRAPPER_REPO }}
+          only-aleph-nope-production-repo: 'false'
 
-  build-and-push-featurenet-node-image:
-    needs: [get-full-docker-image-path]
+  build-aleph-node:
+    name: Build aleph-node
     if: ${{ needs.get-full-docker-image-path.outputs.image-exists != 'true' }}
-    name: Build and push PR test docker image
-    uses: ./.github/workflows/_build-and-push-featurenet-node-image.yml
+    needs: [get-full-docker-image-path]
+    uses: ./.github/workflows/_build-aleph-node.yml
     with:
       ref: ${{ needs.get-full-docker-image-path.outputs.ref }}
-      fqdn-image: ${{ needs.get-full-docker-image-path.outputs.fqdn-image }}
-      short-session: ${{ inputs.short-session }}
+      production: ${{ !inputs.short-session }}
+
+  push-aleph-node-image-to-ecr:
+    name: Build and push aleph-node image to ECR
+    if: ${{ needs.get-full-docker-image-path.outputs.image-exists != 'true' }}
+    needs:
+      - get-full-docker-image-path
+      - build-aleph-node
+    uses: ./.github/workflows/_push-image-to-ecr.yml
     secrets: inherit
+    with:
+      binary-artifact-name: ${{ needs.build-aleph-node.outputs.artifact-name-binary }}
+      docker-image-name: ${{ needs.get-full-docker-image-path.outputs.fqdn-image }}
+      binary-name: aleph-node
+      docker-file-path: ./docker/Dockerfile
 
   update-featurenet:
-    needs: [get-full-docker-image-path, build-and-push-featurenet-node-image]
+    needs:
+      - get-full-docker-image-path
+      - push-aleph-node-image-to-ecr
     # to prevent this job to be skipped when on of the parent jobs is skipped
     if: ${{ !cancelled() }}
     name: Update featurenet
-    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-update.yml@v6
+    uses: Cardinal-Cryptography/github-actions/.github/workflows/_featurenet-update.yml@v7
     secrets: inherit
     with:
       featurenet-name: ${{ inputs.featurenet-name }}

@@ -20,7 +20,7 @@ jobs:
       # by this worfklow. Action install-rust-toolchain should have optional parameter path
       # in which we pass relative path to aleph-client to read its rust-toolchain.toml file
       - name: Install Rust Toolchain
-        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v6
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v7
 
       # aleph-client and all its dependees still require nightly Rust version
       - name: Read aleph-client toolchain

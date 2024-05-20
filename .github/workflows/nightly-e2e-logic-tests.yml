@@ -19,11 +19,12 @@ jobs:
     uses: ./.github/workflows/_check-vars-and-secrets.yml
     secrets: inherit
 
-  build-test-node:
-    name: Build test node and runtime
-    uses: ./.github/workflows/_build-test-node.yml
+  build-test-aleph-node:
+    name: Build test aleph-node
+    uses: ./.github/workflows/_build-aleph-node.yml
     with:
       ref: ${{ github.ref }}
+      production: false
 
   build-chain-bootstrapper-test:
     name: Build chain-bootstrapper
@@ -44,7 +45,7 @@ jobs:
   run-e2e-tests:
     name: Run e2e tests
     needs:
-      - build-test-node
+      - build-test-aleph-node
       - build-chain-bootstrapper-test
       - build-aleph-e2e-client-image
     uses: ./.github/workflows/_run-e2e-tests.yml
@@ -53,7 +54,9 @@ jobs:
       aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
 
   run-recover-after-abft-update-test:
-    needs: [build-test-node, build-chain-bootstrapper-test]
+    needs:
+      - build-test-aleph-node
+      - build-chain-bootstrapper-test
     name: Run recovery test after abft update
     runs-on: [self-hosted, Linux, X64, medium]
     steps:
@@ -63,13 +66,13 @@ jobs:
       - name: Download test node from GH artifacts
         uses: actions/download-artifact@v4
         with:
-          name: aleph-test-node
+          name: ${{ needs.build-test-aleph-node.outputs.artifact-name-binary }}
           path: target/release/
 
       - name: Download chain-bootstrapper from GH artifacts
         uses: actions/download-artifact@v4
         with:
-          name: chain-bootstrapper-test
+          name: ${{ needs.build-chain-bootstrapper-test.outputs.artifact-name-binary }}
           path: target/release/
 
       - name: Run test
@@ -101,7 +104,7 @@ jobs:
       github.event_name != 'workflow_dispatch'
     steps:
       - name: Send Slack message
-        uses: Cardinal-Cryptography/github-actions/slack-notification@v6
+        uses: Cardinal-Cryptography/github-actions/slack-notification@v7
         with:
           notify-on: "failure"
         env:
