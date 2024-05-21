@@ -33,6 +33,7 @@ jobs:
       validators: '8'
       internal: true
       short-session: false
+      finality-version: '3'
 
   update-featurenet-to-main:
     needs: [create-featurenet-from-testnet]
