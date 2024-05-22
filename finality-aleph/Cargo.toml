@@ -21,6 +21,8 @@ primitives = { workspace = true }
 legacy-aleph-aggregator = { package = "aggregator", git = "https://github.com/Cardinal-Cryptography/aleph-node.git", tag = "r-13.3" }
 current-aleph-aggregator = { path = "../aggregator", package = "aggregator" }
 rate-limiter = { package = "rate-limiter", path = "../rate-limiter" }
+fake-runtime-api = { workspace = true, features = ["std"] }
+pallet-aleph-runtime-api = { workspace = true, features = ["std"] }
 
 async-trait = { workspace = true }
 array-bytes = { workspace = true }

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use primitives::{fake_runtime_api, BlockHash, BlockNumber};
+use fake_runtime_api::fake_runtime;
+use primitives::{BlockHash, BlockNumber};
 use sp_blockchain::HeaderBackend;
 use substrate_test_client::{client, sc_client_db, sc_executor};
 use substrate_test_runtime_client::{GenesisParameters, LocalExecutorDispatch};
@@ -26,7 +27,7 @@ pub type TestClient = client::Client<
     Backend,
     client::LocalCallExecutor<TBlock, Backend, ExecutorDispatch>,
     TBlock,
-    fake_runtime_api::fake_runtime::RuntimeApi,
+    fake_runtime::RuntimeApi,
 >;
 
 /// A `test-runtime` extensions to `TestClientBuilder`.

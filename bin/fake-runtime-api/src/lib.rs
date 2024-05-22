@@ -4,8 +4,14 @@
 //! the native runtimes.
 
 use frame_support::weights::Weight;
+use pallet_aleph_runtime_api::*;
 use pallet_transaction_payment::FeeDetails;
 use pallet_transaction_payment_rpc_runtime_api::RuntimeDispatchInfo;
+use primitives::{
+    AccountId, ApiError as AlephApiError, AuraId, AuthorityId as AlephId, Balance, Block, Nonce,
+    SessionAuthorityData, SessionCommittee, SessionIndex, SessionValidatorError,
+    Version as FinalityVersion,
+};
 use sp_consensus_aura::SlotDuration;
 use sp_core::OpaqueMetadata;
 use sp_runtime::{
@@ -15,12 +21,6 @@ use sp_runtime::{
 };
 use sp_std::vec::Vec;
 use sp_version::RuntimeVersion;
-
-use crate::{
-    AccountId, ApiError as AlephApiError, AuraId, AuthorityId as AlephId, Balance, Block, Nonce,
-    SessionAuthorityData, SessionCommittee, SessionIndex, SessionValidatorError,
-    Version as FinalityVersion,
-};
 
 #[cfg(feature = "std")]
 pub mod fake_runtime {

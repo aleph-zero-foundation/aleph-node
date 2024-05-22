@@ -3,7 +3,6 @@ use frame_benchmarking::v2::*;
 #[benchmarks]
 mod benchmarks {
     use frame_system::RawOrigin;
-    use sp_std::vec;
 
     use crate::{ActiveFeatures, Call, Config, Feature, Pallet};
 

@@ -61,6 +61,7 @@ sp-genesis-builder = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
 
 pallet-aleph = { workspace = true }
+pallet-aleph-runtime-api = { workspace = true }
 pallet-committee-management = { workspace = true }
 pallet-elections = { workspace = true }
 pallet-feature-control = { workspace = true }
@@ -85,6 +86,7 @@ std = [
     "frame-support/std",
     "frame-try-runtime/std",
     "pallet-aleph/std",
+    "pallet-aleph-runtime-api/std",
     "pallet-aura/std",
     "pallet-authorship/std",
     "pallet-balances/std",

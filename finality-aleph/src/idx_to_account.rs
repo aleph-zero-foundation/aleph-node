@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use primitives::{AccountId, AlephSessionApi, AuraId, BlockHash, BlockNumber};
+use pallet_aleph_runtime_api::AlephSessionApi;
+use primitives::{AccountId, AuraId, BlockHash, BlockNumber};
 use sc_client_api::Backend;
 use sp_consensus_aura::AuraApi;
 use sp_runtime::traits::{Block, Header};
@@ -20,7 +21,7 @@ pub trait ValidatorIndexToAccountIdConverter {
 pub struct ValidatorIndexToAccountIdConverterImpl<C, B, BE, RA>
 where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: crate::aleph_primitives::AlephSessionApi<B> + AuraApi<B, AuraId>,
+    C::Api: AlephSessionApi<B> + AuraApi<B, AuraId>,
     B: Block<Hash = BlockHash>,
     BE: Backend<B> + 'static,
     RA: RuntimeApi,
@@ -33,7 +34,7 @@ where
 impl<C, B, BE, RA> ValidatorIndexToAccountIdConverterImpl<C, B, BE, RA>
 where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: crate::aleph_primitives::AlephSessionApi<B> + AuraApi<B, AuraId>,
+    C::Api: AlephSessionApi<B> + AuraApi<B, AuraId>,
     B: Block<Hash = BlockHash>,
     B::Header: Header<Number = BlockNumber>,
     BE: Backend<B> + 'static,
@@ -52,7 +53,7 @@ impl<C, B, BE, RA> ValidatorIndexToAccountIdConverter
     for ValidatorIndexToAccountIdConverterImpl<C, B, BE, RA>
 where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: crate::aleph_primitives::AlephSessionApi<B> + AuraApi<B, AuraId>,
+    C::Api: AlephSessionApi<B> + AuraApi<B, AuraId>,
     B: Block<Hash = BlockHash>,
     B::Header: Header<Number = BlockNumber>,
     BE: Backend<B> + 'static,

@@ -4,6 +4,7 @@ use bip39::{Language, Mnemonic, MnemonicType};
 use futures::channel::oneshot;
 use log::{debug, error};
 use network_clique::{RateLimitingDialer, RateLimitingListener, Service, SpawnHandleT};
+use pallet_aleph_runtime_api::AlephSessionApi;
 use rate_limiter::SleepingRateLimiter;
 use sc_client_api::Backend;
 use sc_keystore::{Keystore, LocalKeystore};
@@ -12,7 +13,7 @@ use sp_consensus::SelectChain;
 use sp_consensus_aura::AuraApi;
 
 use crate::{
-    aleph_primitives::{AlephSessionApi, AuraId, Block},
+    aleph_primitives::{AuraId, Block},
     block::{
         substrate::{JustificationTranslator, SubstrateFinalizationInfo, VerifierCache},
         BlockchainEvents, ChainStatus, FinalizationStatus, Justification,

@@ -2,6 +2,7 @@ use std::{collections::HashMap, marker::PhantomData, ops::Deref, sync::Arc};
 
 use futures::StreamExt;
 use log::{debug, error, trace};
+use pallet_aleph_runtime_api::AlephSessionApi;
 use sc_client_api::{Backend, FinalityNotification};
 use sc_utils::mpsc::TracingUnboundedReceiver;
 use sp_consensus_aura::AuraApi;
@@ -12,9 +13,7 @@ use tokio::sync::{
 };
 
 use crate::{
-    aleph_primitives::{
-        AccountId, AlephSessionApi, AuraId, BlockHash, BlockNumber, SessionAuthorityData,
-    },
+    aleph_primitives::{AccountId, AuraId, BlockHash, BlockNumber, SessionAuthorityData},
     runtime_api::RuntimeApi,
     session::SessionBoundaryInfo,
     ClientForAleph, SessionId, SessionPeriod,
@@ -41,7 +40,7 @@ pub trait AuthorityProvider: Clone + Send + Sync + 'static {
 pub struct AuthorityProviderImpl<C, B, BE, RA>
 where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: crate::aleph_primitives::AlephSessionApi<B> + AuraApi<B, AuraId>,
+    C::Api: AlephSessionApi<B> + AuraApi<B, AuraId>,
     B: Block<Hash = BlockHash>,
     BE: Backend<B> + 'static,
     RA: RuntimeApi,
@@ -54,7 +53,7 @@ where
 impl<C, B, BE, RA> Clone for AuthorityProviderImpl<C, B, BE, RA>
 where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: crate::aleph_primitives::AlephSessionApi<B> + AuraApi<B, AuraId>,
+    C::Api: AlephSessionApi<B> + AuraApi<B, AuraId>,
     B: Block<Hash = BlockHash>,
     B::Header: Header<Number = BlockNumber>,
     BE: Backend<B> + 'static,
@@ -68,7 +67,7 @@ where
 impl<C, B, BE, RA> AuthorityProviderImpl<C, B, BE, RA>
 where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: crate::aleph_primitives::AlephSessionApi<B> + AuraApi<B, AuraId>,
+    C::Api: AlephSessionApi<B> + AuraApi<B, AuraId>,
     B: Block<Hash = BlockHash>,
     B::Header: Header<Number = BlockNumber>,
     BE: Backend<B> + 'static,
@@ -162,7 +161,7 @@ pub trait FinalityNotifier {
 pub struct FinalityNotifierImpl<C, B, BE>
 where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: crate::aleph_primitives::AlephSessionApi<B>,
+    C::Api: AlephSessionApi<B>,
     B: Block,
     B::Header: Header<Number = BlockNumber>,
     BE: Backend<B> + 'static,
@@ -175,7 +174,7 @@ where
 impl<C, B, BE> FinalityNotifierImpl<C, B, BE>
 where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: crate::aleph_primitives::AlephSessionApi<B>,
+    C::Api: AlephSessionApi<B>,
     B: Block,
     B::Header: Header<Number = BlockNumber>,
     BE: Backend<B> + 'static,
@@ -193,7 +192,7 @@ where
 impl<C, B, BE> FinalityNotifier for FinalityNotifierImpl<C, B, BE>
 where
     C: ClientForAleph<B, BE> + Send + Sync + 'static,
-    C::Api: crate::aleph_primitives::AlephSessionApi<B>,
+    C::Api: AlephSessionApi<B>,
     B: Block,
     B::Header: Header<Number = BlockNumber>,
     BE: Backend<B> + 'static,

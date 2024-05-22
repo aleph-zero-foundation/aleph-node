@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use futures::channel::oneshot;
 use log::{debug, info, trace, warn};
 use network_clique::SpawnHandleExt;
+use pallet_aleph_runtime_api::AlephSessionApi;
 use sc_keystore::{Keystore, LocalKeystore};
 use sp_application_crypto::RuntimeAppPublic;
 use sp_runtime::traits::{Block as BlockT, Header as HeaderT};
@@ -13,7 +14,7 @@ use crate::{
         current_create_aleph_config, legacy_create_aleph_config, run_current_member,
         run_legacy_member, SpawnHandle,
     },
-    aleph_primitives::{AlephSessionApi, BlockHash, BlockNumber, KEY_TYPE},
+    aleph_primitives::{BlockHash, BlockNumber, KEY_TYPE},
     block::{
         substrate::{Justification, JustificationTranslator},
         BestBlockSelector, Block, Header, HeaderVerifier, UnverifiedHeader,

@@ -1,0 +1,39 @@
+[package]
+name = "fake-runtime-api"
+version = "0.1.0"
+license = "Apache 2.0"
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+sp-api = { workspace = true }
+sp-core = { workspace = true }
+sp-std = { workspace = true }
+sp-runtime = { workspace = true }
+sp-consensus-aura = { workspace = true }
+
+frame-support = { workspace = true }
+frame-system-rpc-runtime-api = { workspace = true }
+
+pallet-transaction-payment = { workspace = true }
+pallet-transaction-payment-rpc-runtime-api = { workspace = true }
+
+sp-version = { workspace = true }
+sp-block-builder = { workspace = true }
+sp-offchain = { workspace = true }
+sp-transaction-pool = { workspace = true }
+sp-session = { workspace = true }
+sp-inherents = { workspace = true }
+
+primitives = { workspace = true }
+pallet-aleph-runtime-api = { workspace = true }
+
+[features]
+default = ["std"]
+std = [
+    "primitives/std",
+    "pallet-aleph-runtime-api/std",
+]
+short_session = []

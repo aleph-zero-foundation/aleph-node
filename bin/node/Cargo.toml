@@ -54,6 +54,8 @@ frame-benchmarking = { workspace = true, optional = true }
 aleph-runtime-interfaces = { workspace = true }
 finality-aleph = { workspace = true }
 primitives = { workspace = true }
+fake-runtime-api = { workspace = true, features = ["std"] }
+pallet-aleph-runtime-api = { workspace = true, features = ["std"] }
 
 # These dependencies are used for the node's RPCs
 jsonrpsee = { workspace = true, features = ["server"] }

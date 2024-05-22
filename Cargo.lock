@@ -275,12 +275,14 @@ version = "14.0.0+dev"
 dependencies = [
  "aleph-runtime",
  "aleph-runtime-interfaces",
+ "fake-runtime-api",
  "finality-aleph",
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "futures",
  "jsonrpsee",
  "log",
+ "pallet-aleph-runtime-api",
  "pallet-transaction-payment-rpc",
  "parity-scale-codec",
  "primitives",
@@ -332,6 +334,7 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
  "pallet-aleph",
+ "pallet-aleph-runtime-api",
  "pallet-aura",
  "pallet-authorship",
  "pallet-balances",
@@ -2344,6 +2347,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "fake-runtime-api"
+version = "0.1.0"
+dependencies = [
+ "frame-support",
+ "frame-system-rpc-runtime-api",
+ "pallet-aleph-runtime-api",
+ "pallet-transaction-payment",
+ "pallet-transaction-payment-rpc-runtime-api",
+ "primitives",
+ "sp-api",
+ "sp-block-builder",
+ "sp-consensus-aura",
+ "sp-core",
+ "sp-inherents",
+ "sp-offchain",
+ "sp-runtime",
+ "sp-session",
+ "sp-std",
+ "sp-transaction-pool",
+ "sp-version",
+]
+
+[[package]]
 name = "fake-simd"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2426,6 +2452,7 @@ dependencies = [
  "bytes",
  "derive_more",
  "env_logger",
+ "fake-runtime-api",
  "frame-support",
  "futures",
  "futures-timer",
@@ -2435,6 +2462,7 @@ dependencies = [
  "log",
  "lru",
  "network-clique",
+ "pallet-aleph-runtime-api",
  "parity-scale-codec",
  "parking_lot 0.12.2",
  "primitives",
@@ -5405,6 +5433,16 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-aleph-runtime-api"
+version = "0.1.0"
+dependencies = [
+ "primitives",
+ "sp-api",
+ "sp-consensus-aura",
  "sp-std",
 ]
 

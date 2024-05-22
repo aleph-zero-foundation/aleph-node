@@ -7,9 +7,11 @@ members = [
     "bin/node",
     "bin/runtime",
     "bin/chain-bootstrapper",
+    "bin/fake-runtime-api",
     "clique",
     "finality-aleph",
     "pallets/aleph",
+    "pallets/aleph-runtime-api",
     "pallets/elections",
     "pallets/feature-control",
     "pallets/committee-management",
@@ -177,6 +179,7 @@ halo2_proofs = { git = "https://github.com/Cardinal-Cryptography/pse-halo2", bra
 
 # Local crates
 
+fake-runtime-api = { path = "bin/fake-runtime-api", default-features = false }
 aleph-runtime = { path = "bin/runtime" }
 aleph-runtime-interfaces = { path = "runtime-interfaces", default-features = false }
 baby-liminal-extension = { path = "baby-liminal-extension", default-features = false }
@@ -184,6 +187,7 @@ finality-aleph = { path = "finality-aleph" }
 network-clique = { path = "clique" }
 rate-limiter = { path = "rate-limiter" }
 pallet-aleph = { path = "pallets/aleph", default-features = false }
+pallet-aleph-runtime-api = { path = "pallets/aleph-runtime-api", default-features = false }
 pallet-committee-management = { path = "pallets/committee-management", default-features = false }
 pallet-elections = { path = "pallets/elections", default-features = false }
 pallet-feature-control = { path = "pallets/feature-control", default-features = false }

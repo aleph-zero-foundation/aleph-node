@@ -1085,7 +1085,7 @@ impl_runtime_apis! {
         }
     }
 
-    impl primitives::AlephSessionApi<Block> for Runtime {
+    impl pallet_aleph_runtime_api::AlephSessionApi<Block> for Runtime {
         fn millisecs_per_block() -> u64 {
             MILLISECS_PER_BLOCK
         }
