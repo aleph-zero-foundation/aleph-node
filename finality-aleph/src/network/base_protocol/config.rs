@@ -19,6 +19,11 @@ const DUMMY_SET_CONFIG: SetConfig = SetConfig {
     reserved_nodes: Vec::new(),
     non_reserved_mode: NonReservedPeerMode::Deny,
 };
+// Setting the message size too low makes it impossible to establish notification streams,
+// which is expected by the base protocol to inform other protocols about peers.
+// Other than that we send no messages.
+// This value provides a wide margin, I tested it works with just 1024, but 4KB is not a problem.
+const MAX_MESSAGE_SIZE: u64 = 4 * 1024;
 
 /// Generate a config for the base protocol and the notification service that should be passed to its service.
 pub fn setup<B>(genesis_hash: B::Hash) -> (NonDefaultSetConfig, Box<dyn NotificationService>)
@@ -34,10 +39,7 @@ where
     NonDefaultSetConfig::new(
         base_protocol_name.into(),
         iter::once(legacy_block_announces_protocol.into()).collect(),
-        // This is the maximum message size. We don't need messages at all,
-        // but we want to avoid tripping some magic value,
-        // which 0 might suddenly become, so 1.
-        1,
+        MAX_MESSAGE_SIZE,
         Some(NotificationHandshake::new(
             BlockAnnouncesHandshake::<B>::build(
                 // All nodes are full nodes.
