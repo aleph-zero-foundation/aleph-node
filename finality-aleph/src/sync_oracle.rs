@@ -13,6 +13,8 @@ const OFFLINE_THRESHOLD: Duration = Duration::from_secs(6);
 const FAR_BEHIND_THRESHOLD: u32 = 15;
 const MAJOR_SYNC_THRESHOLD: Duration = Duration::from_secs(10);
 
+pub type MajorSyncIndicator = Arc<AtomicBool>;
+
 /// A sync oracle implementation tracking how recently the node was far behind the highest known justification.
 /// It defines being in major sync as being more than 15 blocks behind the highest known justification less than 10 seconds ago.
 /// It defines being offline as not getting any update for at least 6 seconds (or never at all).
@@ -25,7 +27,7 @@ pub struct SyncOracle {
 }
 
 impl SyncOracle {
-    pub fn new() -> (Self, Arc<AtomicBool>) {
+    pub fn new() -> (Self, MajorSyncIndicator) {
         let is_major_syncing = Arc::new(AtomicBool::new(true));
         let oracle = SyncOracle {
             last_update: Arc::new(Mutex::new(Instant::now() - OFFLINE_THRESHOLD)),
@@ -45,7 +47,8 @@ impl SyncOracle {
     }
 
     pub fn major_sync(&self) -> bool {
-        let is_major_syncing = self.last_far_behind.lock().elapsed() < MAJOR_SYNC_THRESHOLD;
+        let last_far_behind = self.last_far_behind.lock();
+        let is_major_syncing = last_far_behind.elapsed() < MAJOR_SYNC_THRESHOLD;
         self.is_major_syncing
             .store(is_major_syncing, Ordering::Relaxed);
         is_major_syncing

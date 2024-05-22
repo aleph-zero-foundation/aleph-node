@@ -712,6 +712,10 @@ where
         self.block_importer.import_block(block, true);
         Ok(maybe_equivocation_proof)
     }
+
+    pub fn major_sync(&self) -> bool {
+        self.sync_oracle.major_sync()
+    }
 }
 
 #[cfg(test)]

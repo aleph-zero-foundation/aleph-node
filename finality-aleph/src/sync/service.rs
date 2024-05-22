@@ -133,6 +133,7 @@ where
     justifications_from_user: mpsc::UnboundedReceiver<J::Unverified>,
     block_requests_from_user: mpsc::UnboundedReceiver<B::UnverifiedHeader>,
     blocks_from_creator: mpsc::UnboundedReceiver<B>,
+    major_sync_last_status: bool,
     metrics: Metrics,
 }
 
@@ -204,6 +205,7 @@ where
                 justifications_from_user,
                 blocks_from_creator,
                 block_requests_from_user,
+                major_sync_last_status: false,
                 metrics,
             },
             block_requests_for_sync,
@@ -706,6 +708,17 @@ where
         };
     }
 
+    fn report_sync_state_change(&mut self) {
+        let prev_status = self.major_sync_last_status;
+        let new_status = self.handler.major_sync();
+        match (prev_status, new_status) {
+            (false, true) => info!(target: LOG_TARGET, "Switched to major sync state."),
+            (true, false) => info!(target: LOG_TARGET, "No longer in major sync state."),
+            _ => {}
+        }
+        self.major_sync_last_status = new_status;
+    }
+
     /// Stay synchronized.
     pub async fn run(mut self) -> Result<(), Error<N::Error, CE::Error>> {
         if self.blocks_from_creator.is_terminated() {
@@ -714,6 +727,8 @@ where
 
         let mut status_ticker = time::interval(STATUS_REPORT_INTERVAL);
         loop {
+            self.report_sync_state_change();
+
             tokio::select! {
                 maybe_data = self.network.next() => {
                     let (data, peer) = maybe_data.map_err(Error::Network)?;
