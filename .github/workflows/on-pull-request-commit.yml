@@ -16,6 +16,7 @@ jobs:
   check-pr-title:
     name: Check PR title
     runs-on: ubuntu-20.04
+    if: github.event_name == 'pull_request'
     steps:
       - name: Check PR title
         uses: Cardinal-Cryptography/github-actions/check-pr-title@v7
