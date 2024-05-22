@@ -5,7 +5,7 @@
 # For now, this test not quite correctly tests sync Mainnet from latest aleph-node binary,
 # for which we don't guarantee it will always happen to work.
 
-name: Weekly sync from snapshot, Mainnet, ParityDB pruned
+name: Sync from snapshot, Mainnet, ParityDB pruned
 on:
   # At 03:00 on Wednesday and Saturday
   schedule:

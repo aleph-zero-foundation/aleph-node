@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-20.04
     outputs:
       fqdn-image: ${{ steps.get-fqdns.outputs.fqdn-image }}
+      fqdn-image-latest: ${{ steps.get-fqdns.outputs.fqdn-image-latest }}
       ref: ${{ steps.get-fqdns.outputs.ref }}
       image-exists: ${{ steps.get-fqdns.outputs.image-exists }}
       # yamllint disable-line rule:line-length
