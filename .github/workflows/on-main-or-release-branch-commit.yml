@@ -71,15 +71,6 @@ jobs:
     with:
       check-only: false
 
-  build-aleph-e2e-client-image:
-    needs: [check-vars-and-secrets]
-    name: Build aleph-e2e-client image
-    uses: ./.github/workflows/_build-aleph-e2e-client-image.yml
-    with:
-      ref: ${{ github.ref }}
-      push: true
-    secrets: inherit
-
   build-production-aleph-node:
     needs: [check-vars-and-secrets]
     name: Build production aleph-node

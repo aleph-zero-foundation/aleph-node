@@ -1,0 +1,83 @@
+---
+#  This workflow builds aleph-e2e-client binary and docker image.
+#  It outputs name of artifacts uploaded to GH Artifacts.
+name: Build aleph-e2e-client
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: "git ref: hash, branch, tag or 'mainnet' or 'testnet'"
+        type: string
+        required: true
+    outputs:
+      artifact-name-binary:
+        description: 'Name of artifact aleph-e2e-client binary'
+        value: ${{ jobs.main.outputs.artifact-name-binary }}
+      artifact-name-image:
+        description: 'Name of artifact aleph-e2e-client image'
+        value: ${{ jobs.main.outputs.artifact-name-image }}
+jobs:
+  main:
+    name: Build aleph-e2e-client
+    runs-on: [self-hosted, Linux, X64, large]
+    outputs:
+      artifact-name-binary: ${{ steps.get-artifact-name-binary.outputs.name }}
+      artifact-name-image: ${{ steps.get-artifact-name-image.outputs.name }}
+    env:
+      RUST_BACKTRACE: full
+      RUSTC_WRAPPER: sccache
+    steps:
+      - name: Checkout aleph-node source code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Call action get-ref-properties
+        id: get-ref-properties
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v7
+
+      - name: Install Rust toolchain
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v7
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Build aleph-e2e-client
+        shell: bash
+        run: |
+          cd e2e-tests/
+          rm -f target/release/deps/aleph_e2e_client*
+          cp $(cargo test --no-run --release --message-format=json | jq -r .executable | \
+          grep aleph_e2e_client) target/release/aleph-e2e-client
+
+      - name: Get binary artifact name
+        id: get-artifact-name-binary
+        run: |
+          echo "name=aleph-e2e-client" >> $GITHUB_OUTPUT
+
+      - name: Upload binary to GH Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.get-artifact-name-binary.outputs.name }}
+          path: e2e-tests/target/release/aleph-e2e-client
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Build aleph-e2e-cli docker image
+        run: |
+          cd e2e-tests/
+          docker build --tag aleph-e2e-client:latest -f Dockerfile .
+          docker save -o aleph-e2e-client.tar aleph-e2e-client:latest
+
+      - name: Get image artifact name
+        id: get-artifact-name-image
+        run: |
+          echo "name=aleph-e2e-client-image" >> $GITHUB_OUTPUT
+
+      - name: Upload docker to GH Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.get-artifact-name-image.outputs.name }}
+          path: e2e-tests/aleph-e2e-client.tar
+          if-no-files-found: error
+          retention-days: 7

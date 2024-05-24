@@ -33,13 +33,12 @@ jobs:
       ref: ${{ github.ref }}
       production: false
 
-  build-aleph-e2e-client-image:
+  build-aleph-e2e-client:
     needs: [check-vars-and-secrets]
     name: Build aleph-e2e-client image
-    uses: ./.github/workflows/_build-aleph-e2e-client-image.yml
+    uses: ./.github/workflows/_build-aleph-e2e-client.yml
     with:
       ref: ${{ github.ref }}
-      push: true
     secrets: inherit
 
   run-e2e-tests:
@@ -47,11 +46,14 @@ jobs:
     needs:
       - build-test-aleph-node
       - build-chain-bootstrapper-test
-      - build-aleph-e2e-client-image
+      - build-aleph-e2e-client
     uses: ./.github/workflows/_run-e2e-tests.yml
     with:
       # yamllint disable-line rule:line-length
-      aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
+      artifact-aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client.outputs.artifact-name-image }}
+      artifact-aleph-node-image: ${{ needs.build-test-aleph-node.outputs.artifact-name-image }}
+      # yamllint disable-line rule:line-length
+      artifact-chain-bootstrapper-image: ${{ needs.build-chain-bootstrapper-test.outputs.artifact-name-image }}
 
   run-recover-after-abft-update-test:
     needs:

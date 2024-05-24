@@ -22,7 +22,7 @@ on:
         value: ${{ jobs.main.outputs.artifact-name-image }}
 jobs:
   main:
-    name: Build chain-bootstrapper
+    name: Build chain-bootstrapper (production=${{ inputs.production }})
     runs-on: [self-hosted, Linux, X64, large]
     env:
       RUST_BACKTRACE: full

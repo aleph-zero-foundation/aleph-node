@@ -37,7 +37,7 @@ MAX_VALIDATOR_COUNT=20
 
 NODE_URL=${NODE_URL:-"ws://127.0.0.1:9944"}
 NETWORK=${NETWORK:-"container:Node0"}
-ALEPH_E2E_CLIENT_IMAGE=${ALEPH_E2E_CLIENT_IMAGE:-"aleph-e2e-client:dev"}
+ALEPH_E2E_CLIENT_IMAGE=${ALEPH_E2E_CLIENT_IMAGE:-"aleph-e2e-client:latest"}
 
 ARGS=(
   --network "${NETWORK}"

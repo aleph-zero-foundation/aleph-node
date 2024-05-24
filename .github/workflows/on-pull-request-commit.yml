@@ -65,10 +65,9 @@ jobs:
 
   build-aleph-e2e-client-image:
     name: Build aleph-e2e-client image
-    uses: ./.github/workflows/_build-aleph-e2e-client-image.yml
+    uses: ./.github/workflows/_build-aleph-e2e-client.yml
     with:
       ref: ${{ github.ref }}
-      push: false
 
   run-e2e-finalization-test:
     name: Run e2e finalization test
@@ -86,7 +85,10 @@ jobs:
         with:
           test-case: finalization::finalization
           # yamllint disable-line rule:line-length
-          aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
+          artifact-aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.artifact-name-image }}
+          artifact-aleph-node-image: ${{ needs.build-test-aleph-node.outputs.artifact-name-image }}
+          # yamllint disable-line rule:line-length
+          artifact-chain-bootstrapper-image: ${{ needs.build-chain-bootstrapper.outputs.artifact-name-image }}
 
   run-e2e-token-transfer-test:
     name: Run e2e token transfer test
@@ -104,4 +106,7 @@ jobs:
         with:
           test-case: token_transfer
           # yamllint disable-line rule:line-length
-          aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
+          artifact-aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.artifact-name-image }}
+          artifact-aleph-node-image: ${{ needs.build-test-aleph-node.outputs.artifact-name-image }}
+          # yamllint disable-line rule:line-length
+          artifact-chain-bootstrapper-image: ${{ needs.build-chain-bootstrapper.outputs.artifact-name-image }}

@@ -19,10 +19,9 @@ jobs:
   build-aleph-e2e-client-image:
     needs: [check-vars-and-secrets]
     name: Build aleph-e2e-client image
-    uses: ./.github/workflows/_build-aleph-e2e-client-image.yml
+    uses: ./.github/workflows/_build-aleph-e2e-client.yml
     with:
       ref: ${{ github.ref }}
-      push: true
     secrets: inherit
 
   build-production-aleph-node:
@@ -39,7 +38,7 @@ jobs:
     uses: ./.github/workflows/_build-synthetic-node.yml
     with:
       # yamllint disable-line rule:line-length
-      aleph-node-image-artifact-name: ${{ needs.build-production-aleph-node.outputs.artifact-name-image }}
+      artifact-aleph-node-image: ${{ needs.build-production-aleph-node.outputs.artifact-name-image }}
 
   build-chain-bootstrapper-production:
     name: Build chain-bootstrapper
@@ -64,12 +63,13 @@ jobs:
         with:
           test-case: high_out_latency_for_all
           # yamllint disable-line rule:line-length
-          aleph-node-image-artifact-name: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
+          artifact-aleph-node-image: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
           aleph-node-image-tag: aleph-node:syntheticnet
-          chain-bootstrapper-image: chain-bootstrapper-image-release
+          # yamllint disable-line rule:line-length
+          artifact-chain-bootstrapper-image: ${{ needs.build-chain-bootstrapper-production.outputs.artifact-name-image }}
           compose-file: docker/docker-compose.synthetic-network.yml
           # yamllint disable-line rule:line-length
-          aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
+          artifact-aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.artifact-name-image }}
           timeout-minutes: 40
 
   run-e2e-sync-test-one_node_catching_up_and_then_becoming_necessary_for_consensus:
@@ -93,13 +93,14 @@ jobs:
         with:
           test-case: test::sync::one_node_catching_up_and_then_becoming_necessary_for_consensus
           # yamllint disable-line rule:line-length
-          aleph-node-image-artifact-name: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
+          artifact-aleph-node-image: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
           aleph-node-image-tag: aleph-node:syntheticnet
-          chain-bootstrapper-image: chain-bootstrapper-image-release
+          # yamllint disable-line rule:line-length
+          artifact-chain-bootstrapper-image: ${{ needs.build-chain-bootstrapper-production.outputs.artifact-name-image }}
           compose-file: docker/docker-compose.synthetic-network_sync-tests.yml
           node-count: 7
           # yamllint disable-line rule:line-length
-          aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
+          artifact-aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.artifact-name-image }}
           timeout-minutes: 35
 
   run-e2e-sync-test-one_node_catching_up:
@@ -122,13 +123,14 @@ jobs:
         with:
           test-case: test::sync::one_node_catching_up
           # yamllint disable-line rule:line-length
-          aleph-node-image-artifact-name: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
+          artifact-aleph-node-image: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
           aleph-node-image-tag: aleph-node:syntheticnet
-          chain-bootstrapper-image: chain-bootstrapper-image-release
+          # yamllint disable-line rule:line-length
+          artifact-chain-bootstrapper-image: ${{ needs.build-chain-bootstrapper-production.outputs.artifact-name-image }}
           compose-file: docker/docker-compose.synthetic-network_sync-tests.yml
           node-count: 7
           # yamllint disable-line rule:line-length
-          aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
+          artifact-aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.artifact-name-image }}
           timeout-minutes: 35
 
   run-e2e-sync-test-into_two_groups_and_one_quorum_and_switch_quorum_between_them:
@@ -152,13 +154,14 @@ jobs:
         with:
           test-case: test::sync::into_two_groups_and_one_quorum_and_switch_quorum_between_them
           # yamllint disable-line rule:line-length
-          aleph-node-image-artifact-name: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
+          artifact-aleph-node-image: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
           aleph-node-image-tag: aleph-node:syntheticnet
-          chain-bootstrapper-image: chain-bootstrapper-image-release
+          # yamllint disable-line rule:line-length
+          artifact-chain-bootstrapper-image: ${{ needs.build-chain-bootstrapper-production.outputs.artifact-name-image }}
           compose-file: docker/docker-compose.synthetic-network_sync-tests.yml
           node-count: 7
           # yamllint disable-line rule:line-length
-          aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
+          artifact-aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.artifact-name-image }}
           timeout-minutes: 35
 
   run-e2e-sync-test-into_multiple_groups_of_two:
@@ -181,13 +184,14 @@ jobs:
         with:
           test-case: test::sync::into_multiple_groups_of_two
           # yamllint disable-line rule:line-length
-          aleph-node-image-artifact-name: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
+          artifact-aleph-node-image: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
           aleph-node-image-tag: aleph-node:syntheticnet
-          chain-bootstrapper-image: chain-bootstrapper-image-release
+          # yamllint disable-line rule:line-length
+          artifact-chain-bootstrapper-image: ${{ needs.build-chain-bootstrapper-production.outputs.artifact-name-image }}
           compose-file: docker/docker-compose.synthetic-network_sync-tests.yml
           node-count: 7
           # yamllint disable-line rule:line-length
-          aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
+          artifact-aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.artifact-name-image }}
           timeout-minutes: 35
 
   run-e2e-sync-test-into_two_equal_size_groups_with_no_quorum:
@@ -211,13 +215,14 @@ jobs:
         with:
           test-case: test::sync::into_two_equal_size_groups_with_no_quorum
           # yamllint disable-line rule:line-length
-          aleph-node-image-artifact-name: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
+          artifact-aleph-node-image: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
           aleph-node-image-tag: aleph-node:syntheticnet
-          chain-bootstrapper-image: chain-bootstrapper-image-release
+          # yamllint disable-line rule:line-length
+          artifact-chain-bootstrapper-image: ${{ needs.build-chain-bootstrapper-production.outputs.artifact-name-image }}
           compose-file: docker/docker-compose.synthetic-network_sync-tests.yml
           node-count: 7
           # yamllint disable-line rule:line-length
-          aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
+          artifact-aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.artifact-name-image }}
           timeout-minutes: 35
 
   run-e2e-sync-test-into_two_groups_one_with_quorum:
@@ -241,13 +246,14 @@ jobs:
         with:
           test-case: test::sync::into_two_groups_one_with_quorum
           # yamllint disable-line rule:line-length
-          aleph-node-image-artifact-name: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
+          artifact-aleph-node-image: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
           aleph-node-image-tag: aleph-node:syntheticnet
-          chain-bootstrapper-image: chain-bootstrapper-image-release
+          # yamllint disable-line rule:line-length
+          artifact-chain-bootstrapper-image: ${{ needs.build-chain-bootstrapper-production.outputs.artifact-name-image }}
           compose-file: docker/docker-compose.synthetic-network_sync-tests.yml
           node-count: 7
           # yamllint disable-line rule:line-length
-          aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
+          artifact-aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.artifact-name-image }}
           timeout-minutes: 35
 
   run-e2e-finalization-stall:
@@ -271,12 +277,13 @@ jobs:
         with:
           test-case: test::sync::large_finalization_stall
           # yamllint disable-line rule:line-length
-          aleph-node-image-artifact-name: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
+          artifact-aleph-node-image: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
           aleph-node-image-tag: aleph-node:syntheticnet
-          chain-bootstrapper-image: chain-bootstrapper-image-release
+          # yamllint disable-line rule:line-length
+          artifact-chain-bootstrapper-image: ${{ needs.build-chain-bootstrapper-production.outputs.artifact-name-image }}
           compose-file: docker/docker-compose.finalization_stall_with_pruning.yml
           # yamllint disable-line rule:line-length
-          aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
+          artifact-aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.artifact-name-image }}
           timeout-minutes: 60
 
   run-major-sync-test:
@@ -355,12 +362,13 @@ jobs:
         with:
           test-case: high_out_latency_for_each_quorum
           # yamllint disable-line rule:line-length
-          aleph-node-image-artifact-name: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
+          artifact-aleph-node-image: ${{ needs.build-synthetic-node.outputs.artifact-name-image }}
           aleph-node-image-tag: aleph-node:syntheticnet
           compose-file: docker/docker-compose.synthetic-network.yml
-          chain-bootstrapper-image: chain-bootstrapper-image-release
           # yamllint disable-line rule:line-length
-          aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}
+          artifact-chain-bootstrapper-image: ${{ needs.build-chain-bootstrapper-production.outputs.artifact-name-image }}
+          # yamllint disable-line rule:line-length
+          artifact-aleph-e2e-client-image: ${{ needs.build-aleph-e2e-client-image.outputs.artifact-name-image }}
           timeout-minutes: 35
 
   check-nightly-pipeline-completion:

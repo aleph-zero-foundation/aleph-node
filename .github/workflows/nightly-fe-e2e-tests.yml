@@ -18,10 +18,9 @@ jobs:
   build-aleph-e2e-client-image:
     needs: [check-vars-and-secrets]
     name: Build aleph-e2e-client image
-    uses: ./.github/workflows/_build-aleph-e2e-client-image.yml
+    uses: ./.github/workflows/_build-aleph-e2e-client.yml
     with:
       ref: ${{ github.ref }}
-      push: true
     secrets: inherit
 
   get-full-docker-image-path:
@@ -118,17 +117,14 @@ jobs:
       - build-aleph-e2e-client-image
     name: Runs finalization e2e on FE
     if: ${{ !cancelled() }}
-    env:
-      # yamllint disable-line rule:line-length
-      ALEPH_E2E_CLIENT_IMAGE: '${{ needs.build-aleph-e2e-client-image.outputs.aleph-e2e-client-image }}'
     runs-on: [self-hosted, Linux, X64, small]
     steps:
-      - name: Download aleph-e2e-client artifact
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: aleph-e2e-client
+          name: ${{ needs.build-aleph-e2e-client-image.outputs.artifact-name-image }}
 
-      - name: Load test suite docker image
+      - name: Load aleph-e2e-client image
         shell: bash
         run: docker load -i aleph-e2e-client.tar
 
@@ -139,7 +135,7 @@ jobs:
             -e NODE_URL='wss://${{ needs.create-featurenet.outputs.ws-hostname }}:443' \
             -e TEST_CASES='finalization::finalization' \
             -e RUST_LOG=info \
-            '${{ env.ALEPH_E2E_CLIENT_IMAGE }}'
+            aleph-e2e-client:latest
         timeout-minutes: 15
 
   delete-featurenet:

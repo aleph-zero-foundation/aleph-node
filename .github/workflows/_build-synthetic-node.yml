@@ -4,7 +4,7 @@ name: Build production node image and e2e client image
 on:
   workflow_call:
     inputs:
-      aleph-node-image-artifact-name:
+      artifact-aleph-node-image:
         description: 'Name of aleph-node image stored in GH Artifacts'
         type: string
         required: true
@@ -25,7 +25,7 @@ jobs:
       - name: Download node docker image
         uses: actions/download-artifact@v4
         with:
-          name: ${{ inputs.aleph-node-image-artifact-name }}
+          name: ${{ inputs.artifact-aleph-node-image }}
 
       - name: Load node docker image
         shell: bash

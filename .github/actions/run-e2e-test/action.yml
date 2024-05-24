@@ -3,13 +3,22 @@ name: 'Run e2e test'
 description: 'Run single e2e test.'
 
 inputs:
+  test-case:
+    description: 'Name of test to run.'
+    required: true
+  artifact-aleph-e2e-client-image:
+    description: 'aleph-e2e-client image name in GH artifacts'
+    required: true
+  artifact-aleph-node-image:
+    description: 'Name of aleph-node image stored in GH Artifacts'
+    required: true
+  artifact-chain-bootstrapper-image:
+    description: 'chain-bootstrapper image name in GH artifacts'
+    required: true
   node-count:
     description: 'Number of nodes to run.'
     required: false
     default: '5'
-  test-case:
-    description: 'Name of test to run.'
-    required: true
   reserved-seats:
     description: 'Number of reserved seats available to validators.'
     required: false
@@ -23,10 +32,6 @@ inputs:
     description: 'Whether to deploy the adder sample contract to the node.'
     required: false
     default: 'false'
-  aleph-node-image-artifact-name:
-    description: 'Name of aleph-node image stored in GH Artifacts'
-    required: false
-    default: aleph-node-image-test
   aleph-node-image-tag:
     description: 'Name of aleph-node docker image tag'
     required: false
@@ -35,19 +40,11 @@ inputs:
     description: 'Custom docker-compose configuration'
     required: false
     default: ''
-  aleph-e2e-client-image:
-    description: 'aleph-e2e-client image'
-    required: true
-  chain-bootstrapper-image:
-    description: 'chain-bootstrapper image'
-    required: false
-    default: chain-bootstrapper-image-test
   timeout-minutes:
     description: 'The maximum number of minutes to let a test run before it is canceled and
       considered failed'
     required: false
     default: 15
-
 runs:
   using: 'composite'
   steps:
@@ -56,12 +53,12 @@ runs:
 
     - name: Call action get-ref-properties
       id: get-ref-properties
-      uses: Cardinal-Cryptography/github-actions/get-ref-properties@v5
+      uses: Cardinal-Cryptography/github-actions/get-ref-properties@v7
 
     - name: Download node docker image
       uses: actions/download-artifact@v4
       with:
-        name: ${{ inputs.aleph-node-image-artifact-name }}
+        name: ${{ inputs.artifact-aleph-node-image }}
 
     - name: Load node docker image
       shell: bash
@@ -70,7 +67,7 @@ runs:
     - name: Download chain-bootstrapper image
       uses: actions/download-artifact@v4
       with:
-        name: ${{ inputs.chain-bootstrapper-image }}
+        name: ${{ inputs.artifact-chain-bootstrapper-image }}
 
     - name: Load chain-bootstrapper image
       shell: bash
@@ -83,10 +80,10 @@ runs:
         DOCKER_COMPOSE='${{ inputs.compose-file }}' \
           ./.github/scripts/run_consensus.sh -n '${{ inputs.node-count }}'
 
-    - name: Download aleph-e2e-client artifact
+    - name: Download aleph-e2e-client image
       uses: actions/download-artifact@v4
       with:
-        name: aleph-e2e-client
+        name: ${{ inputs.artifact-aleph-e2e-client-image }}
 
     - name: Load test suite docker image
       shell: bash
@@ -98,7 +95,7 @@ runs:
       run: |
         ARGS=(
           -t '${{ inputs.test-case }}'
-          -a '${{ inputs.aleph-e2e-client-image }}'
+          -a aleph-e2e-client:latest
         )
 
         RESERVED_SEATS='${{ inputs.reserved-seats }}'
@@ -152,4 +149,4 @@ runs:
       shell: bash
       run: |
         ./.github/scripts/run_e2e_test.sh -t finalization::finalization \
-          -a '${{ inputs.aleph-e2e-client-image }}'
+          -a aleph-e2e-client:latest

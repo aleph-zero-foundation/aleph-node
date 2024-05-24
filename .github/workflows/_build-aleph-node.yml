@@ -1,5 +1,6 @@
 ---
-#  This workflow builds aleph-node binary. It outputs name of artifacts uploaded to GH Artifacts.
+#  This workflow builds aleph-node binary and docker image.
+#  It outputs name of artifacts uploaded to GH Artifacts.
 name: Build aleph-node
 on:
   workflow_call:
