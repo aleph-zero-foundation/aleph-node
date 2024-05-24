@@ -9,7 +9,6 @@ use rate_limiter::SleepingRateLimiter;
 use sc_client_api::Backend;
 use sc_keystore::{Keystore, LocalKeystore};
 use sc_transaction_pool_api::TransactionPool;
-use sp_consensus::SelectChain;
 use sp_consensus_aura::AuraApi;
 
 use crate::{
@@ -53,12 +52,11 @@ pub fn new_pen(mnemonic: &str, keystore: Arc<LocalKeystore>) -> AuthorityPen {
         .expect("we just generated this key so everything should work")
 }
 
-pub async fn run_validator_node<C, BE, SC, TP>(aleph_config: AlephConfig<C, SC, TP>)
+pub async fn run_validator_node<C, BE, TP>(aleph_config: AlephConfig<C, TP>)
 where
     C: crate::ClientForAleph<Block, BE> + Send + Sync + 'static,
     C::Api: AlephSessionApi<Block> + AuraApi<Block, AuraId>,
     BE: Backend<Block> + 'static,
-    SC: SelectChain<Block> + 'static,
     TP: TransactionPool<Block = Block> + 'static,
 {
     let AlephConfig {
@@ -67,7 +65,7 @@ where
         client,
         chain_status,
         mut import_queue_handle,
-        select_chain,
+        select_chain_provider,
         spawn_handle,
         keystore,
         metrics,
@@ -190,11 +188,14 @@ where
         justification_channel_provider.into_receiver(),
         block_rx,
     );
+    let select_chain = select_chain_provider.select_chain();
+    let favourite_block_user_requests = select_chain_provider.favourite_block_user_requests();
     let (sync_service, request_block) = match SyncService::new(
         verifier.clone(),
         session_info.clone(),
         sync_io,
         registry.clone(),
+        favourite_block_user_requests,
     ) {
         Ok(x) => x,
         Err(e) => panic!("Failed to initialize Sync service: {e}"),

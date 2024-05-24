@@ -1,6 +1,10 @@
 use std::{collections::HashSet, fmt::Display, time::Duration};
 
-use futures::{channel::mpsc, stream::FusedStream, StreamExt};
+use futures::{
+    channel::{mpsc, oneshot},
+    stream::FusedStream,
+    StreamExt,
+};
 use log::{debug, error, info, trace, warn};
 use substrate_prometheus_endpoint::Registry;
 use tokio::time;
@@ -88,6 +92,7 @@ pub enum Error<NetworkError, ChainEventError> {
     JustificationChannelClosed,
     BlockRequestChannelClosed,
     CreatorChannelClosed,
+    FavouriteRequestChannelClosed,
 }
 
 impl<NetworkError, ChainEventError> Display for Error<NetworkError, ChainEventError>
@@ -108,6 +113,9 @@ where
                 write!(f, "Channel with internal block request from user closed.")
             }
             Error::CreatorChannelClosed => write!(f, "Channel with own blocks closed."),
+            Error::FavouriteRequestChannelClosed => {
+                write!(f, "Channel with favourite requests closed.")
+            }
         }
     }
 }
@@ -135,6 +143,7 @@ where
     blocks_from_creator: mpsc::UnboundedReceiver<B>,
     major_sync_last_status: bool,
     metrics: Metrics,
+    favourite_block_request: mpsc::UnboundedReceiver<oneshot::Sender<J::Header>>,
 }
 
 impl<J: Justification> JustificationSubmissions<J> for mpsc::UnboundedSender<J::Unverified> {
@@ -171,6 +180,7 @@ where
         session_info: SessionBoundaryInfo,
         io: IO<B, J, N, CE, CS, F, BI>,
         metrics_registry: Option<Registry>,
+        favourite_block_request: mpsc::UnboundedReceiver<oneshot::Sender<J::Header>>,
     ) -> Result<(Self, impl RequestBlocks<B::UnverifiedHeader>), HandlerError<B, J, CS, V, F>> {
         let IO {
             network,
@@ -207,6 +217,7 @@ where
                 block_requests_from_user,
                 major_sync_last_status: false,
                 metrics,
+                favourite_block_request,
             },
             block_requests_for_sync,
         ))
@@ -708,6 +719,16 @@ where
         };
     }
 
+    fn send_favourite_block(&self, favourite_block_sender: oneshot::Sender<J::Header>) {
+        let favourite = self.handler.favourite_block();
+        if favourite_block_sender.send(favourite).is_err() {
+            warn!(
+                target: LOG_TARGET,
+                "Failed to respond with favourite header to user."
+            );
+        }
+    }
+
     fn report_sync_state_change(&mut self) {
         let prev_status = self.major_sync_last_status;
         let new_status = self.handler.major_sync();
@@ -763,6 +784,12 @@ where
                     debug!(target: LOG_TARGET, "Received new own block: {:?}.", block.header().id());
                     self.handle_own_block(block);
                 },
+
+                maybe_favourite_block_sender = self.favourite_block_request.next() => {
+                    let favourite_block_sender = maybe_favourite_block_sender
+                        .ok_or(Error::FavouriteRequestChannelClosed)?;
+                    self.send_favourite_block(favourite_block_sender);
+                }
 
                 _ = status_ticker.tick() => {
                     info!(target: LOG_TARGET, "{}", self.handler.status());

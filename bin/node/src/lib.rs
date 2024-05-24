@@ -15,4 +15,4 @@ pub use config::Validator as ConfigValidator;
     feature = "try-runtime"
 ))]
 pub use executor::aleph_executor::ExecutorDispatch;
-pub use service::{new_authority, new_partial};
+pub use service::{new_authority, new_partial, ServiceComponents};

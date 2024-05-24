@@ -713,6 +713,11 @@ where
         Ok(maybe_equivocation_proof)
     }
 
+    /// Returns the current favourite block
+    pub fn favourite_block(&self) -> J::Header {
+        self.forest.favourite_block()
+    }
+
     pub fn major_sync(&self) -> bool {
         self.sync_oracle.major_sync()
     }

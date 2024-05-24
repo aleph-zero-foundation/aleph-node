@@ -1,9 +1,9 @@
-use aleph_node::{new_authority, new_partial, Cli, ConfigValidator, Subcommand};
+use aleph_node::{new_authority, new_partial, Cli, ConfigValidator, ServiceComponents, Subcommand};
 use log::info;
 use primitives::HEAP_PAGES;
 use sc_cli::{clap::Parser, SubstrateCli};
 use sc_network::config::Role;
-use sc_service::{Configuration, PartialComponents};
+use sc_service::Configuration;
 
 fn enforce_heap_pages(config: &mut Configuration) {
     config.default_heap_pages = Some(HEAP_PAGES);
@@ -19,7 +19,7 @@ fn main() -> sc_cli::Result<()> {
         Some(Subcommand::CheckBlock(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             runner.async_run(|config| {
-                let PartialComponents {
+                let ServiceComponents {
                     client,
                     task_manager,
                     import_queue,
@@ -31,7 +31,7 @@ fn main() -> sc_cli::Result<()> {
         Some(Subcommand::ExportBlocks(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             runner.async_run(|config| {
-                let PartialComponents {
+                let ServiceComponents {
                     client,
                     task_manager,
                     ..
@@ -42,7 +42,7 @@ fn main() -> sc_cli::Result<()> {
         Some(Subcommand::ExportState(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             runner.async_run(|config| {
-                let PartialComponents {
+                let ServiceComponents {
                     client,
                     task_manager,
                     ..
@@ -53,7 +53,7 @@ fn main() -> sc_cli::Result<()> {
         Some(Subcommand::ImportBlocks(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             runner.async_run(|config| {
-                let PartialComponents {
+                let ServiceComponents {
                     client,
                     task_manager,
                     import_queue,
@@ -69,7 +69,7 @@ fn main() -> sc_cli::Result<()> {
         Some(Subcommand::Revert(cmd)) => {
             let runner = cli.create_runner(cmd)?;
             runner.async_run(|config| {
-                let PartialComponents {
+                let ServiceComponents {
                     client,
                     task_manager,
                     backend,
