@@ -7,11 +7,10 @@ use std::{
 
 use fake_runtime_api::fake_runtime::RuntimeApi;
 use finality_aleph::{
-    build_network, run_validator_node, AlephBlockImport, AlephConfig, AllBlockMetrics,
+    build_network, get_aleph_block_import, run_validator_node, AlephConfig, AllBlockMetrics,
     BlockImporter, BuildNetworkOutput, ChannelProvider, FavouriteSelectChainProvider,
     Justification, JustificationTranslator, MillisecsPerBlock, RateLimiterConfig,
-    RedirectingBlockImport, SessionPeriod, SubstrateChainStatus, SyncOracle, TracingBlockImport,
-    ValidatorAddressCache,
+    RedirectingBlockImport, SessionPeriod, SubstrateChainStatus, SyncOracle, ValidatorAddressCache,
 };
 use log::warn;
 use pallet_aleph_runtime_api::AlephSessionApi;
@@ -130,19 +129,18 @@ pub fn new_partial(config: &Configuration) -> Result<ServiceComponents, ServiceE
         task_manager.spawn_essential_handle(),
         client.clone(),
     );
-
-    let metrics = AllBlockMetrics::new(config.prometheus_registry());
-
-    let justification_channel_provider = ChannelProvider::new();
-    let tracing_block_import = TracingBlockImport::new(client.clone(), metrics.clone());
     let justification_translator = JustificationTranslator::new(
         SubstrateChainStatus::new(backend.clone())
             .map_err(|e| ServiceError::Other(format!("failed to set up chain status: {e}")))?,
     );
-    let aleph_block_import = AlephBlockImport::new(
-        tracing_block_import,
+    let metrics = AllBlockMetrics::new(config.prometheus_registry());
+    let justification_channel_provider = ChannelProvider::new();
+    let aleph_block_import = get_aleph_block_import(
+        client.clone(),
         justification_channel_provider.get_sender(),
         justification_translator,
+        select_chain_provider.select_chain(),
+        metrics.clone(),
     );
 
     let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
