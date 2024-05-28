@@ -147,7 +147,7 @@ dependencies = [
  "itertools 0.12.1",
  "log",
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "rand 0.8.5",
  "thiserror",
 ]
@@ -168,7 +168,7 @@ dependencies = [
  "itertools 0.12.1",
  "log",
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "rand 0.8.5",
  "thiserror",
 ]
@@ -210,7 +210,7 @@ dependencies = [
  "futures",
  "log",
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "rand 0.8.5",
  "tokio",
 ]
@@ -2464,7 +2464,7 @@ dependencies = [
  "network-clique",
  "pallet-aleph-runtime-api",
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "primitives",
  "rand 0.8.5",
  "rate-limiter",
@@ -2521,7 +2521,7 @@ dependencies = [
  "log",
  "num-traits",
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "scale-info",
 ]
 
@@ -3991,7 +3991,7 @@ dependencies = [
  "globset",
  "hyper",
  "jsonrpsee-types",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "rand 0.8.5",
  "rustc-hash",
  "serde",
@@ -4126,7 +4126,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf7a85fe66f9ff9cd74e169fdd2c94c6e1e74c412c99a73b4df3200b5d3760b2"
 dependencies = [
  "kvdb",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
 ]
 
 [[package]]
@@ -4137,7 +4137,7 @@ checksum = "b644c70b92285f66bfc2032922a79000ea30af7bc2ab31902992a5dcb9b434f6"
 dependencies = [
  "kvdb",
  "num_cpus",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "regex",
  "rocksdb",
  "smallvec",
@@ -4171,7 +4171,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.5",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -4254,7 +4254,7 @@ dependencies = [
  "multihash",
  "multistream-select",
  "once_cell",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "pin-project",
  "quick-protobuf",
  "rand 0.8.5",
@@ -4274,7 +4274,7 @@ dependencies = [
  "futures",
  "libp2p-core",
  "log",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "smallvec",
  "trust-dns-resolver",
 ]
@@ -4436,7 +4436,7 @@ dependencies = [
  "libp2p-identity",
  "libp2p-tls",
  "log",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "quinn-proto",
  "rand 0.8.5",
  "rustls 0.20.9",
@@ -4552,7 +4552,7 @@ dependencies = [
  "futures-rustls",
  "libp2p-core",
  "log",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "quicksink",
  "rw-stream-sink",
  "soketto",
@@ -5000,7 +5000,7 @@ dependencies = [
  "hashlink",
  "lioness",
  "log",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
  "rand_distr",
@@ -5994,7 +5994,7 @@ dependencies = [
  "log",
  "lz4",
  "memmap2",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "rand 0.8.5",
  "siphasher",
  "snap",
@@ -6059,9 +6059,9 @@ dependencies = [
 
 [[package]]
 name = "parking_lot"
-version = "0.12.2"
+version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e4af0ca4f6caed20e900d564c242b8e5d4903fdacf31d3daf527b66fe6f42fb"
+checksum = "f1bf18183cf54e8d6059647fc3063646a1801cf30896933ec2311622cc4b9a27"
 dependencies = [
  "lock_api",
  "parking_lot_core 0.9.10",
@@ -6561,7 +6561,7 @@ dependencies = [
  "fnv",
  "lazy_static",
  "memchr",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "thiserror",
 ]
 
@@ -6573,7 +6573,7 @@ checksum = "5d6fa99d535dd930d1249e6c79cb3c2915f9172a540fe2b02a4c8f9ca954721e"
 dependencies = [
  "dtoa",
  "itoa",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "prometheus-client-derive-encode",
 ]
 
@@ -7387,7 +7387,7 @@ dependencies = [
  "futures",
  "log",
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "sc-executor",
  "sc-transaction-pool-api",
  "sc-utils",
@@ -7418,7 +7418,7 @@ dependencies = [
  "log",
  "parity-db",
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "sc-client-api",
  "sc-state-db",
  "schnellru",
@@ -7442,7 +7442,7 @@ dependencies = [
  "libp2p-identity",
  "log",
  "mockall",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "sc-client-api",
  "sc-utils",
  "serde",
@@ -7514,7 +7514,7 @@ version = "0.10.0-dev"
 source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.5.0#32405b4deea77edca89a2bed412ef28995d0c3f3"
 dependencies = [
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "sc-executor-common",
  "sc-executor-wasmtime",
  "schnellru",
@@ -7551,7 +7551,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "log",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "rustix 0.36.17",
  "sc-allocator",
  "sc-executor-common",
@@ -7583,7 +7583,7 @@ version = "4.0.0-dev"
 source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.5.0#32405b4deea77edca89a2bed412ef28995d0c3f3"
 dependencies = [
  "array-bytes 6.2.3",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "serde_json",
  "sp-application-crypto",
  "sp-core",
@@ -7607,7 +7607,7 @@ dependencies = [
  "mixnet",
  "multiaddr",
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "sc-client-api",
  "sc-network",
  "sc-transaction-pool-api",
@@ -7640,7 +7640,7 @@ dependencies = [
  "log",
  "mockall",
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "partial_sort",
  "pin-project",
  "rand 0.8.5",
@@ -7793,7 +7793,7 @@ dependencies = [
  "num_cpus",
  "once_cell",
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "rand 0.8.5",
  "sc-client-api",
  "sc-network",
@@ -7828,7 +7828,7 @@ dependencies = [
  "jsonrpsee",
  "log",
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "sc-block-builder",
  "sc-chain-spec",
  "sc-client-api",
@@ -7898,7 +7898,7 @@ dependencies = [
  "jsonrpsee",
  "log",
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "sc-chain-spec",
  "sc-client-api",
  "sc-transaction-pool-api",
@@ -7928,7 +7928,7 @@ dependencies = [
  "jsonrpsee",
  "log",
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "pin-project",
  "rand 0.8.5",
  "sc-chain-spec",
@@ -7985,7 +7985,7 @@ source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=a
 dependencies = [
  "log",
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "sp-core",
 ]
 
@@ -8018,7 +8018,7 @@ dependencies = [
  "futures",
  "libp2p",
  "log",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "pin-project",
  "rand 0.8.5",
  "sc-utils",
@@ -8040,7 +8040,7 @@ dependencies = [
  "libc",
  "log",
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "regex",
  "rustc-hash",
  "sc-client-api",
@@ -8080,7 +8080,7 @@ dependencies = [
  "linked-hash-map",
  "log",
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "sc-client-api",
  "sc-transaction-pool-api",
  "sc-utils",
@@ -8121,7 +8121,7 @@ dependencies = [
  "futures-timer",
  "lazy_static",
  "log",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "prometheus",
  "sp-arithmetic",
 ]
@@ -8418,9 +8418,9 @@ checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
 name = "serde"
-version = "1.0.202"
+version = "1.0.203"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "226b61a0d411b2ba5ff6d7f73a476ac4f8bb900373459cd00fab8512828ba395"
+checksum = "7253ab4de971e72fb7be983802300c30b5a7f0c2e56fab8abfc6a214307c0094"
 dependencies = [
  "serde_derive",
 ]
@@ -8436,9 +8436,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.202"
+version = "1.0.203"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6048858004bcff69094cd972ed40a32500f153bd3be9f716b2eed2e8217c4838"
+checksum = "500cbc0ebeb6f46627f50f3f5811ccf6bf00643be300b4c3eabc0ef55dc5b5ba"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -8767,7 +8767,7 @@ dependencies = [
  "futures",
  "log",
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "schnellru",
  "sp-api",
  "sp-consensus",
@@ -8880,7 +8880,7 @@ dependencies = [
  "log",
  "merlin 2.0.1",
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "paste",
  "primitive-types",
  "rand 0.8.5",
@@ -8932,7 +8932,7 @@ version = "4.0.0-dev"
 source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.5.0#32405b4deea77edca89a2bed412ef28995d0c3f3"
 dependencies = [
  "kvdb",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
 ]
 
 [[package]]
@@ -9022,7 +9022,7 @@ version = "0.27.0"
 source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.5.0#32405b4deea77edca89a2bed412ef28995d0c3f3"
 dependencies = [
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "sp-core",
  "sp-externalities",
  "thiserror",
@@ -9196,7 +9196,7 @@ dependencies = [
  "hash-db",
  "log",
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "rand 0.8.5",
  "smallvec",
  "sp-core",
@@ -9312,7 +9312,7 @@ dependencies = [
  "memory-db",
  "nohash-hasher",
  "parity-scale-codec",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "rand 0.8.5",
  "scale-info",
  "schnellru",
@@ -10014,7 +10014,7 @@ dependencies = [
  "libc",
  "mio",
  "num_cpus",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "pin-project-lite 0.2.14",
  "signal-hook-registry",
  "socket2 0.5.7",
@@ -10335,7 +10335,7 @@ dependencies = [
  "ipconfig",
  "lazy_static",
  "lru-cache",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "resolv-conf",
  "smallvec",
  "thiserror",
@@ -11397,7 +11397,7 @@ dependencies = [
  "futures",
  "log",
  "nohash-hasher",
- "parking_lot 0.12.2",
+ "parking_lot 0.12.3",
  "rand 0.8.5",
  "static_assertions",
 ]
