@@ -40,6 +40,8 @@ pallet-transaction-payment-rpc-runtime-api = { workspace = true }
 pallet-treasury = { workspace = true }
 pallet-utility = { workspace = true }
 pallet-vesting = { workspace = true }
+pallet-safe-mode = { workspace = true }
+pallet-tx-pause = { workspace = true }
 
 sp-api = { workspace = true }
 sp-block-builder = { workspace = true }
@@ -132,6 +134,8 @@ std = [
     "scale-info/std",
     "sp-application-crypto/std",
     "baby-liminal-extension/runtime-std",
+    "pallet-safe-mode/std",
+    "pallet-tx-pause/std",
 ]
 short_session = ["primitives/short_session"]
 try-runtime = [
@@ -163,6 +167,8 @@ try-runtime = [
     "pallet-proxy/try-runtime",
     "pallet-feature-control/try-runtime",
     "pallet-vk-storage/try-runtime",
+    "pallet-safe-mode/try-runtime",
+    "pallet-tx-pause/try-runtime",
 ]
 enable_treasury_proposals = []
 runtime-benchmarks = [
@@ -185,4 +191,6 @@ runtime-benchmarks = [
     "pallet-utility/runtime-benchmarks",
     "pallet-vesting/runtime-benchmarks",
     "pallet-vk-storage/runtime-benchmarks",
+    "pallet-safe-mode/runtime-benchmarks",
+    "pallet-tx-pause/runtime-benchmarks",
 ]

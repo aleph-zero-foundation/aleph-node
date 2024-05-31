@@ -115,6 +115,8 @@ pallet-treasury = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk
 pallet-utility = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0", default-features = false }
 pallet-vesting = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0", default-features = false }
 pallet-proxy = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0", default-features = false }
+pallet-safe-mode = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0", default-features = false }
+pallet-tx-pause = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0", default-features = false }
 
 sc-basic-authorship = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0" }
 sc-block-builder = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.5.0" }

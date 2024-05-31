@@ -349,6 +349,7 @@ dependencies = [
  "pallet-nomination-pools-runtime-api",
  "pallet-operations",
  "pallet-proxy",
+ "pallet-safe-mode",
  "pallet-scheduler",
  "pallet-session",
  "pallet-staking",
@@ -358,6 +359,7 @@ dependencies = [
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-treasury",
+ "pallet-tx-pause",
  "pallet-utility",
  "pallet-vesting",
  "pallet-vk-storage",
@@ -5753,6 +5755,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pallet-safe-mode"
+version = "4.0.0-dev"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.5.0#32405b4deea77edca89a2bed412ef28995d0c3f3"
+dependencies = [
+ "docify",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-proxy",
+ "pallet-utility",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-arithmetic",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "pallet-scheduler"
 version = "4.0.0-dev"
 source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.5.0#32405b4deea77edca89a2bed412ef28995d0c3f3"
@@ -5920,6 +5941,24 @@ dependencies = [
  "scale-info",
  "serde",
  "sp-core",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
+name = "pallet-tx-pause"
+version = "4.0.0-dev"
+source = "git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.5.0#32405b4deea77edca89a2bed412ef28995d0c3f3"
+dependencies = [
+ "docify",
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-proxy",
+ "pallet-utility",
+ "parity-scale-codec",
+ "scale-info",
  "sp-runtime",
  "sp-std",
 ]

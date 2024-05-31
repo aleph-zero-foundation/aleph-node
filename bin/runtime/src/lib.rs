@@ -26,13 +26,13 @@ use frame_support::{
     sp_runtime::Perquintill,
     traits::{
         tokens::{PayFromAccount, UnityAssetBalanceConversion},
-        ConstBool, ConstU32, Contains, EqualPrivilegeOnly, EstimateNextSessionRotation,
+        ConstBool, ConstU32, Contains, EqualPrivilegeOnly, EstimateNextSessionRotation, InsideBoth,
         InstanceFilter, SortedMembers, WithdrawReasons,
     },
     weights::{constants::WEIGHT_REF_TIME_PER_MILLIS, WeightToFee},
     PalletId,
 };
-use frame_system::{EnsureRoot, EnsureSignedBy};
+use frame_system::{EnsureRoot, EnsureRootWithSuccess, EnsureSignedBy};
 #[cfg(feature = "try-runtime")]
 use frame_try_runtime::UpgradeCheckSelect;
 pub use pallet_balances::Call as BalancesCall;
@@ -42,6 +42,7 @@ use pallet_identity::legacy::IdentityInfo;
 use pallet_session::QueuedKeys;
 pub use pallet_timestamp::Call as TimestampCall;
 use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
+use pallet_tx_pause::RuntimeCallNameOf;
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use primitives::{
     staking::MAX_NOMINATORS_REWARDED_PER_VALIDATOR, wrap_methods, Address,
@@ -144,7 +145,7 @@ impl Contains<RuntimeCall> for CallFilter {
 
 impl frame_system::Config for Runtime {
     /// The basic call filter to use in dispatchable.
-    type BaseCallFilter = CallFilter;
+    type BaseCallFilter = InsideBoth<CallFilter, InsideBoth<SafeMode, TxPause>>;
     /// Block & extrinsics weights: base values and limits.
     type BlockWeights = BlockWeights;
     /// The maximum length of a block (in bytes).
@@ -895,6 +896,71 @@ impl pallet_feature_control::Config for Runtime {
     type Supervisor = EnsureRoot<AccountId>;
 }
 
+parameter_types! {
+    pub const DisallowPermissionlessEnterDuration: AlephBlockNumber = 0;
+    pub const DisallowPermissionlessExtendDuration: AlephBlockNumber = 0;
+
+    // Safe mode on enter will last 1 session
+    pub const RootEnterDuration: AlephBlockNumber = DEFAULT_SESSION_PERIOD;
+    // Safe mode on extend will 1 session
+    pub const RootExtendDuration: AlephBlockNumber = DEFAULT_SESSION_PERIOD;
+
+    pub const DisallowPermissionlessEntering: Option<Balance> = None;
+    pub const DisallowPermissionlessExtending: Option<Balance> = None;
+    pub const DisallowPermissionlessRelease: Option<AlephBlockNumber> = None;
+}
+
+/// Calls that can bypass the safe-mode pallet.
+pub struct SafeModeWhitelistedCalls;
+impl Contains<RuntimeCall> for SafeModeWhitelistedCalls {
+    fn contains(call: &RuntimeCall) -> bool {
+        matches!(
+            call,
+            RuntimeCall::Sudo(_)
+                | RuntimeCall::System(_)
+                | RuntimeCall::SafeMode(_)
+                | RuntimeCall::Timestamp(_)
+        )
+    }
+}
+
+impl pallet_safe_mode::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type Currency = Balances;
+    type RuntimeHoldReason = RuntimeHoldReason;
+    type WhitelistedCalls = SafeModeWhitelistedCalls;
+    type EnterDuration = DisallowPermissionlessEnterDuration;
+    type ExtendDuration = DisallowPermissionlessExtendDuration;
+    type EnterDepositAmount = DisallowPermissionlessEntering;
+    type ExtendDepositAmount = DisallowPermissionlessExtending;
+    type ForceEnterOrigin = EnsureRootWithSuccess<AccountId, RootEnterDuration>;
+    type ForceExtendOrigin = EnsureRootWithSuccess<AccountId, RootExtendDuration>;
+    type ForceExitOrigin = EnsureRoot<AccountId>;
+    type ForceDepositOrigin = EnsureRoot<AccountId>;
+    type Notify = ();
+    type ReleaseDelay = DisallowPermissionlessRelease;
+    type WeightInfo = pallet_safe_mode::weights::SubstrateWeight<Runtime>;
+}
+
+/// Calls that can bypass the tx-pause pallet.
+/// We always allow system calls and timestamp since it is required for block production
+pub struct TxPauseWhitelistedCalls;
+impl Contains<RuntimeCallNameOf<Runtime>> for TxPauseWhitelistedCalls {
+    fn contains(full_name: &RuntimeCallNameOf<Runtime>) -> bool {
+        matches!(full_name.0.as_slice(), b"Sudo" | b"System" | b"Timestamp")
+    }
+}
+
+impl pallet_tx_pause::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
+    type PauseOrigin = EnsureRoot<AccountId>;
+    type UnpauseOrigin = EnsureRoot<AccountId>;
+    type WhitelistedCalls = TxPauseWhitelistedCalls;
+    type MaxNameLen = ConstU32<256>;
+    type WeightInfo = pallet_tx_pause::weights::SubstrateWeight<Runtime>;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
     pub struct Runtime {
@@ -923,6 +989,8 @@ construct_runtime!(
         Proxy: pallet_proxy = 22,
         FeatureControl: pallet_feature_control = 23,
         VkStorage: pallet_vk_storage = 24,
+        SafeMode: pallet_safe_mode = 25,
+        TxPause: pallet_tx_pause = 26,
         Operations: pallet_operations = 255,
     }
 );
