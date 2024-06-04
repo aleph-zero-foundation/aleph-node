@@ -1,3 +1,5 @@
+use std::{fmt::Debug, str::FromStr, sync::Arc};
+
 use aleph_client::{
     contract::{
         event::{get_contract_events, listen_contract_events},
@@ -12,7 +14,6 @@ use aleph_client::{
 use anyhow::{anyhow, Context, Result};
 use assert2::assert;
 use futures::{channel::mpsc::unbounded, StreamExt};
-use std::{fmt::Debug, str::FromStr, sync::Arc};
 
 use crate::{config::setup_test, test::helpers::basic_test_context};
 

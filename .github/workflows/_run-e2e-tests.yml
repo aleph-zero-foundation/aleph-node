@@ -737,3 +737,37 @@ jobs:
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
+
+  run-e2e-safe-mode-operations-are-disabled-for-users:
+    name: Run safe mode operations are disabled for users
+    needs: [run-e2e-finalization-test]
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: safe_mode_operations_are_disabled_for_users
+          follow-up-finalization-check: true
+          artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
+          artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
+          artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
+
+  run-e2e-safe-mode-configured-correctly:
+    name: Run safe mode configured correctly
+    needs: [run-e2e-finalization-test]
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Run e2e test
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: safe_mode_is_configured_correctly
+          follow-up-finalization-check: true
+          artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
+          artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
+          artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
