@@ -63,7 +63,7 @@ use sp_runtime::{
     create_runtime_str, generic,
     traits::{
         AccountIdLookup, BlakeTwo256, Block as BlockT, Bounded, Convert, ConvertInto,
-        IdentityLookup, One, OpaqueKeys,
+        IdentityLookup, One, OpaqueKeys, Verify,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, FixedU128, RuntimeDebug, SaturatedConversion,
@@ -95,6 +95,8 @@ pub fn native_version() -> NativeVersion {
         can_author_with: Default::default(),
     }
 }
+
+pub const DAYS: u32 = 24 * 60 * 60 * 1000 / (MILLISECS_PER_BLOCK as u32);
 
 pub const BLOCKS_PER_HOUR: u32 = 60 * 60 * 1000 / (MILLISECS_PER_BLOCK as u32);
 
@@ -154,6 +156,8 @@ impl frame_system::Config for Runtime {
     type AccountId = AccountId;
     /// The aggregated dispatch type that is available for extrinsics.
     type RuntimeCall = RuntimeCall;
+    /// The aggregated Task type.
+    type RuntimeTask = RuntimeTask;
     /// The lookup mechanism to get account ID from whatever is passed in dispatchers.
     type Lookup = AccountIdLookup<AccountId, ()>;
     /// The type for storing how many extrinsics an account has signed.
@@ -509,6 +513,7 @@ impl pallet_staking::WeightInfo for PayoutStakersDecreasedWeightInfo {
         (force_new_era(), SubstrateStakingWeights, Weight),
         (force_new_era_always(), SubstrateStakingWeights, Weight),
         (set_invulnerables(v: u32), SubstrateStakingWeights, Weight),
+        (deprecate_controller_batch(i: u32), SubstrateStakingWeights, Weight),
         (force_unstake(s: u32), SubstrateStakingWeights, Weight),
         (
             cancel_deferred_slash(s: u32),
@@ -575,6 +580,7 @@ impl pallet_staking::Config for Runtime {
     type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
     type VoterList = pallet_staking::UseNominatorsAndValidatorsMap<Runtime>;
     type MaxUnlockingChunks = ConstU32<16>;
+    type MaxControllersInDeprecationBatch = ConstU32<4084>;
     type BenchmarkingConfig = StakingBenchmarkingConfig;
     type WeightInfo = PayoutStakersDecreasedWeightInfo;
     type CurrencyBalance = Balance;
@@ -616,6 +622,7 @@ impl pallet_vesting::Config for Runtime {
     type MinVestedTransfer = MinVestedTransfer;
     type WeightInfo = pallet_vesting::weights::SubstrateWeight<Runtime>;
     type UnvestedFundsAllowedWithdrawReasons = UnvestedFundsAllowedWithdrawReasons;
+    type BlockNumberProvider = System;
     // Maximum number of vesting schedules an account may have at a given moment
     // follows polkadot https://github.com/paritytech/polkadot/blob/9ce5f7ef5abb1a4291454e8c9911b304d80679f9/runtime/polkadot/src/lib.rs#L980
     const MAX_VESTING_SCHEDULES: u32 = 28;
@@ -784,6 +791,12 @@ impl pallet_identity::Config for Runtime {
     type Slashed = Treasury;
     type ForceOrigin = EnsureRoot<AccountId>;
     type RegistrarOrigin = EnsureRoot<AccountId>;
+    type OffchainSignature = Signature;
+    type SigningPublicKey = <Signature as Verify>::Signer;
+    type UsernameAuthorityOrigin = EnsureRoot<AccountId>;
+    type PendingUsernameExpiration = ConstU32<{ 7 * DAYS }>;
+    type MaxSuffixLength = ConstU32<7>;
+    type MaxUsernameLength = ConstU32<32>;
     type WeightInfo = pallet_identity::weights::SubstrateWeight<Self>;
     type IdentityInformation = IdentityInfo<MaxAdditionalFields>;
 }
@@ -1459,6 +1472,7 @@ mod tests {
                 page: _,
             } => {}
             pallet_staking::Call::update_payee { controller: _ } => {}
+            pallet_staking::Call::deprecate_controller_batch { controllers: _ } => {}
             pallet_staking::Call::__Ignore(..) => {}
         }
     }

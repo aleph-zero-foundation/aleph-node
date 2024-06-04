@@ -40,6 +40,7 @@ impl frame_system::Config for TestRuntime {
     type BlockLength = ();
     type RuntimeOrigin = RuntimeOrigin;
     type RuntimeCall = RuntimeCall;
+    type RuntimeTask = RuntimeTask;
     type Nonce = u64;
     type Block = MockBlock<TestRuntime>;
     type Hash = H256;
@@ -177,6 +178,7 @@ impl pallet_staking::Config for TestRuntime {
     type TargetList = pallet_staking::UseValidatorsMap<Self>;
     type NominationsQuota = pallet_staking::FixedNominationsQuota<16>;
     type MaxUnlockingChunks = ConstU32<32>;
+    type MaxControllersInDeprecationBatch = ConstU32<64>;
     type HistoryDepth = ConstU32<84>;
     type EventListeners = ();
     type BenchmarkingConfig = pallet_staking::TestBenchmarkingConfig;
