@@ -25,9 +25,10 @@ inputs:
   non-reserved-seats:
     description: 'Number of non-reserved seats available to validators.'
     required: false
-  follow-up-finalization-check:
-    description: 'Whether to run a follow-up finalization check.'
+  check-finalization-after-test:
+    description: 'Whether to check finalization after e2e case run.'
     required: false
+    default: 'true'
   deploy-adder:
     description: 'Whether to deploy the adder sample contract to the node.'
     required: false
@@ -89,6 +90,13 @@ runs:
       shell: bash
       run: docker load -i aleph-e2e-client.tar
 
+    - name: Wait for the finalization before e2e test
+      shell: bash
+      run: |
+        export TIMEOUT_MINUTES="5m"
+        ./.github/scripts/run_e2e_test.sh -t finalization::finalization \
+          -a aleph-e2e-client:latest
+
     - name: Run single e2e test
       id: run-single-e2e-test
       shell: bash
@@ -144,9 +152,10 @@ runs:
         if-no-files-found: error
         retention-days: 7
 
-    - name: Run finalization e2e test
-      if: inputs.follow-up-finalization-check == 'true'
+    - name: Check finalization after e2e test
+      if: inputs.check-finalization-after-test == 'true'
       shell: bash
       run: |
+        export TIMEOUT_MINUTES="5m"
         ./.github/scripts/run_e2e_test.sh -t finalization::finalization \
           -a aleph-e2e-client:latest

@@ -45,7 +45,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: rewards::disable_node
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -142,7 +141,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: staking_era_payouts
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -159,7 +157,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: staking_new_validator
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -176,7 +173,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: change_validators
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -193,7 +189,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: fail_changing_validators
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -210,7 +205,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: validators_rotate
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -227,7 +221,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: era_payout::era_payout
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -244,7 +237,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: era_validators
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -261,7 +253,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: rewards::force_new_era
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -278,7 +269,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: rewards::points_stake_change
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -295,7 +285,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: rewards::change_stake_and_force_new_era
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -312,7 +301,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: points_basic
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -332,7 +320,6 @@ jobs:
           node-count: 6
           reserved-seats: 3
           non-reserved-seats: 3
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -349,7 +336,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: ban_automatic
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -366,7 +352,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: ban_manual
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -383,7 +368,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: clearing_session_count
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -400,7 +384,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: ban_threshold
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -417,7 +400,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: permissionless_ban
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -477,26 +459,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: finality_version::finality_version_change
-          follow-up-finalization-check: true
-          artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
-          artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
-          artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
-
-  run-e2e-committee-split-reserved-01:
-    name: Run committee split test with node-0 and node-1 dead
-    needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
-
-      - name: Run e2e test
-        env:
-          VALIDATOR_COUNT: 7
-        uses: ./.github/actions/run-e2e-test
-        with:
-          test-case: committee_split::split_test_reserved_01
-          node-count: 7
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -516,12 +478,13 @@ jobs:
         with:
           test-case: committee_split::split_test_reserved_12
           node-count: 7
+          check-finalization-after-test: 'false'
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
 
-  run-e2e-committee-split-reserved-02:
-    name: Run committee split test with node-0 and node-2 dead
+  run-e2e-committee-split-reserved-23:
+    name: Run committee split test with node-2 and node-3 dead
     needs: [run-e2e-finalization-test]
     runs-on: ubuntu-20.04
     steps:
@@ -533,8 +496,29 @@ jobs:
           VALIDATOR_COUNT: 7
         uses: ./.github/actions/run-e2e-test
         with:
-          test-case: committee_split::split_test_reserved_02
+          test-case: committee_split::split_test_reserved_23
           node-count: 7
+          check-finalization-after-test: 'false'
+          artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
+          artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
+          artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
+
+  run-e2e-committee-split-reserved-13:
+    name: Run committee split test with node-1 and node-3 dead
+    needs: [run-e2e-finalization-test]
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Run e2e test
+        env:
+          VALIDATOR_COUNT: 7
+        uses: ./.github/actions/run-e2e-test
+        with:
+          test-case: committee_split::split_test_reserved_13
+          node-count: 7
+          check-finalization-after-test: 'false'
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -553,7 +537,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: committee_split::split_test_success_without_any_deads
-          follow-up-finalization-check: true
           node-count: 7
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
@@ -573,7 +556,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: committee_split::split_test_success_with_one_dead
-          follow-up-finalization-check: true
           node-count: 7
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
@@ -591,7 +573,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: set_emergency_finalizer_test
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -608,7 +589,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: set_lenient_threshold_test
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -627,7 +607,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: chain_dead_scenario
-          follow-up-finalization-check: true
           node-count: 6
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
@@ -647,7 +626,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: committee_split::split_test_success_with_all_non_reserved_dead
-          follow-up-finalization-check: true
           node-count: 7
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
@@ -665,7 +643,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: any_proxy_works
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -682,7 +659,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: staking_proxy_works
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -699,7 +675,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: non_transfer_proxy_works
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -716,7 +691,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: fresh_chain_has_verifier_enabled
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -733,7 +707,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: verifier_can_be_disabled
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -750,7 +723,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: safe_mode_operations_are_disabled_for_users
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -767,7 +739,6 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: safe_mode_is_configured_correctly
-          follow-up-finalization-check: true
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
