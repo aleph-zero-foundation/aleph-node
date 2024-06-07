@@ -2,6 +2,8 @@
 
 from chain_operations import *
 from aleph_chain_version import *
+from utils import *
+from total_issuance import *
 
 import substrateinterface
 import argparse
@@ -21,6 +23,7 @@ Script for maintenance operations on AlephNode chain with regards to pallet bala
 It has following functionality: 
 * checking pallet balances and account reference counters invariants.
 * calling pallet operations for maintenance actions
+* checking total issuance 
 
 By default, it connects to a AlephZero Testnet and performs sanity checks only ie not changing state of the chain at all.
 Accounts that do not satisfy those checks are written to accounts-with-failed-invariants.json file.
@@ -49,6 +52,15 @@ Accounts that do not satisfy those checks are written to accounts-with-failed-in
                         type=str,
                         default='',
                         help='Block hash from which this script should query state from. Default: chain tip.')
+    parser.add_argument('--start-range-block-hash',
+                        type=str,
+                        default='',
+                        help='A block hash which denotes starting interval when searching for total issuance '
+                             'imbalance. Must be present when --check-total-issuance is set.')
+    parser.add_argument('--check-total-issuance',
+                        action='store_true',
+                        help='Specify this switch if script should compare total issuance aggregated over all '
+                             'accounts with StorageValue balances.total_issuance')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--fix-consumers-counter-underflow',
                        action='store_true',
@@ -268,9 +280,9 @@ def batch_fix_accounts_consumers_underflow(chain_connection,
     :return: None. Can raise exception in case of SubstrateRequestException thrown
     """
     for (i, account_ids_chunk) in tqdm(iterable=enumerate(chunks(accounts, input_args.fix_consumers_calls_in_batch)),
-                                        desc="Accounts checked",
-                                        unit="",
-                                        file=sys.stdout):
+                                       desc="Accounts checked",
+                                       unit="",
+                                       file=sys.stdout):
         operations_calls = list(map(lambda account: chain_connection.compose_call(
             call_module='Operations',
             call_function='fix_accounts_consumers_underflow',
@@ -296,7 +308,6 @@ def batch_fix_accounts_consumers_underflow(chain_connection,
 def perform_accounts_sanity_checks(chain_connection,
                                    ed,
                                    chain_major_version,
-                                   total_issuance_from_chain,
                                    block_hash=None):
     """
     Checks whether all accounts on a chain matches pallet balances invariants
@@ -305,26 +316,17 @@ def perform_accounts_sanity_checks(chain_connection,
     :param chain_major_version: enum ChainMajorVersion
     :return:None
     """
-    invalid_accounts, total_issuance_from_accounts = \
-        filter_accounts(chain_connection=chain_connection,
-                        ed=ed,
-                        chain_major_version=chain_major_version,
-                        check_accounts_predicate=lambda x, y, z: not check_account_invariants(x, y, z),
-                        check_accounts_predicate_name="\'incorrect account invariants\'",
-                        block_hash=block_hash)
+    invalid_accounts = filter_accounts(chain_connection=chain_connection,
+                                       ed=ed,
+                                       chain_major_version=chain_major_version,
+                                       check_accounts_predicate=lambda x, y, z: not check_account_invariants(x, y, z),
+                                       check_accounts_predicate_name="\'incorrect account invariants\'",
+                                       block_hash=block_hash)
     if len(invalid_accounts) > 0:
         log.warning(f"Found {len(invalid_accounts)} accounts that do not meet balances invariants!")
         save_accounts_to_json_file("accounts-with-failed-invariants.json", invalid_accounts)
     else:
         log.info(f"All accounts on chain {chain_connection.chain} meet balances invariants.")
-    total_issuance_from_accounts_human = format_balance(chain_connection, total_issuance_from_accounts)
-    log.info(f"Total issuance computed from accounts: {total_issuance_from_accounts_human}")
-    if total_issuance_from_accounts != total_issuance_from_chain:
-        total_issuance_from_chain_human = format_balance(chain_connection, total_issuance_from_chain)
-        delta_human = format_balance(chain_connection,
-                                     total_issuance_from_chain - total_issuance_from_accounts)
-        log.warning(f"TotalIssuance from chain: {total_issuance_from_chain_human} is different from computed: "
-                    f"{total_issuance_from_accounts_human}, delta: {delta_human}")
 
 
 if __name__ == "__main__":
@@ -357,11 +359,6 @@ if __name__ == "__main__":
                 f"13.2 version. Exiting.")
             exit(5)
 
-    total_issuance_from_chain = chain_ws_connection.query(module='Balances',
-                                                          storage_function='TotalIssuance',
-                                                          block_hash=state_block_hash).value
-    log.info(f"Chain total issuance is {format_balance(chain_ws_connection, total_issuance_from_chain)}")
-
     existential_deposit = chain_ws_connection.get_constant(module_name="Balances",
                                                            constant_name="ExistentialDeposit",
                                                            block_hash=state_block_hash).value
@@ -393,10 +390,31 @@ if __name__ == "__main__":
                                                    input_args=args,
                                                    sender_keypair=sender_origin_account_keypair,
                                                    accounts=list(accounts_with_consumers_underflow_set))
+    if args.check_total_issuance:
+        log.info(f"Comparing total issuance aggregated over all accounts with storage value balances.total_issuance")
+        total_issuance_from_chain, total_issuance_from_accounts = \
+            get_total_issuance_imbalance(chain_connection=chain_ws_connection,
+                                         block_hash=state_block_hash)
+        log_total_issuance_imbalance(chain_connection=chain_ws_connection,
+                                     total_issuance_from_chain=total_issuance_from_chain,
+                                     total_issuance_from_accounts=total_issuance_from_accounts,
+                                     block_hash=state_block_hash)
+        delta = total_issuance_from_chain - total_issuance_from_accounts
+        if delta != 0:
+            if not args.start_range_block_hash:
+                log.error(f"--start-range-block-hash must be set when --check-total-issuance is set "
+                          f"to perform further actions. Exiting.")
+                sys.exit(2)
+            log.warning(f"Total issuance retrieved from the chain storage is different than aggregated sum over"
+                        f" all accounts. Finding first block when it happened.")
+            first_block_hash_imbalance = find_block_hash_with_imbalance(chain_connection=chain_ws_connection,
+                                                                        start_block_hash=args.start_range_block_hash,
+                                                                        end_block_hash=state_block_hash)
+            log.info(f"The first block where it happened is {first_block_hash_imbalance}")
+
     log.info(f"Performing pallet balances sanity checks.")
     perform_accounts_sanity_checks(chain_connection=chain_ws_connection,
                                    ed=existential_deposit,
                                    chain_major_version=aleph_chain_version,
-                                   total_issuance_from_chain=total_issuance_from_chain,
                                    block_hash=state_block_hash)
     log.info(f"DONE")

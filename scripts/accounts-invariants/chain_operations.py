@@ -1,10 +1,7 @@
-#!/bin/python3
-
 import substrateinterface
-import json
-import logging
 from tqdm import tqdm
 import sys
+import logging
 
 log = logging.getLogger()
 
@@ -32,23 +29,19 @@ def filter_accounts(chain_connection,
                                                page_size=1000,
                                                block_hash=block_hash)
     total_accounts_count = 0
-    total_issuance = 0
 
     for (i, (account_id, info)) in tqdm(iterable=enumerate(account_query),
                                         desc="Accounts checked",
                                         unit="",
                                         file=sys.stdout):
         total_accounts_count += 1
-        free = info['data']['free'].value
-        reserved = info['data']['reserved'].value
-        total_issuance += free + reserved
         if check_accounts_predicate(info, chain_major_version, ed):
             accounts_that_do_meet_predicate.append([account_id.value, info.serialize()])
 
     log.info(
         f"Total accounts that match given predicate {check_accounts_predicate_name} is {len(accounts_that_do_meet_predicate)}")
     log.info(f"Total accounts checked: {total_accounts_count}")
-    return accounts_that_do_meet_predicate, total_issuance
+    return accounts_that_do_meet_predicate
 
 
 def format_balance(chain_connection, amount):
@@ -108,18 +101,4 @@ def get_all_accounts(chain_connection, block_hash=None):
                            chain_major_version=None,
                            check_accounts_predicate=lambda x, y, z: True,
                            check_accounts_predicate_name="\'all accounts\'",
-                           block_hash=block_hash)[0]
-
-
-def save_accounts_to_json_file(json_file_name, accounts):
-    with open(json_file_name, 'w') as f:
-        json.dump(accounts, f)
-        log.info(f"Wrote file '{json_file_name}'")
-
-
-def chunks(list_of_elements, n):
-    """
-    Lazily split 'list_of_elements' into 'n'-sized chunks.
-    """
-    for i in range(0, len(list_of_elements), n):
-        yield list_of_elements[i:i + n]
+                           block_hash=block_hash)
