@@ -71,6 +71,7 @@ pallet-operations = { workspace = true }
 primitives = { workspace = true }
 pallet-proxy = { workspace = true }
 pallet-vk-storage = { workspace = true }
+pallet_pink_scorpion = { workspace = true }
 
 baby-liminal-extension = { workspace = true, features = ["runtime"] }
 
@@ -110,6 +111,7 @@ std = [
     "pallet-proxy/std",
     "pallet-utility/std",
     "pallet-vk-storage/std",
+    "pallet_pink_scorpion/std",
     "sp-api/std",
     "sp-block-builder/std",
     "sp-consensus-aura/std",
@@ -167,6 +169,7 @@ try-runtime = [
     "pallet-proxy/try-runtime",
     "pallet-feature-control/try-runtime",
     "pallet-vk-storage/try-runtime",
+    "pallet_pink_scorpion/try-runtime",
     "pallet-safe-mode/try-runtime",
     "pallet-tx-pause/try-runtime",
 ]
@@ -191,6 +194,7 @@ runtime-benchmarks = [
     "pallet-utility/runtime-benchmarks",
     "pallet-vesting/runtime-benchmarks",
     "pallet-vk-storage/runtime-benchmarks",
+    "pallet_pink_scorpion/runtime-benchmarks",
     "pallet-safe-mode/runtime-benchmarks",
     "pallet-tx-pause/runtime-benchmarks",
 ]
