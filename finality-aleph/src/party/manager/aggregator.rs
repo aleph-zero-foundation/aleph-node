@@ -19,7 +19,7 @@ use crate::{
     },
     crypto::Signature,
     justification::AlephJustification,
-    metrics::{AllBlockMetrics, Checkpoint},
+    metrics::{Checkpoint, TimingBlockMetrics},
     network::data::Network,
     party::{
         manager::aggregator::AggregatorVersion::{Current, Legacy},
@@ -60,15 +60,14 @@ where
 async fn process_new_block_data<CN, LN>(
     aggregator: &mut Aggregator<CN, LN>,
     block: BlockId,
-    metrics: &mut AllBlockMetrics,
+    metrics: &mut TimingBlockMetrics,
 ) where
     CN: Network<CurrentRmcNetworkData>,
     LN: Network<LegacyRmcNetworkData>,
 {
     trace!(target: "aleph-party", "Received unit {:?} in aggregator.", block);
     let hash = block.hash();
-    metrics.report_block(block, Checkpoint::Ordered, None);
-
+    metrics.report_block(hash, Checkpoint::Ordered);
     aggregator.start_aggregation(hash).await;
 }
 
@@ -108,7 +107,7 @@ async fn run_aggregator<H, C, CN, LN, JS>(
     io: IO<JS>,
     client: C,
     session_boundaries: &SessionBoundaries,
-    mut metrics: AllBlockMetrics,
+    mut metrics: TimingBlockMetrics,
     mut exit_rx: oneshot::Receiver<()>,
 ) -> Result<(), Error>
 where
@@ -191,7 +190,7 @@ pub fn task<H, C, CN, LN, JS>(
     client: C,
     io: IO<JS>,
     session_boundaries: SessionBoundaries,
-    metrics: AllBlockMetrics,
+    metrics: TimingBlockMetrics,
     multikeychain: Keychain,
     version: AggregatorVersion<CN, LN>,
 ) -> Task

@@ -11,7 +11,6 @@ use sp_runtime::{
 
 use crate::{
     aleph_primitives::{BlockHash, BlockNumber},
-    metrics::{AllBlockMetrics, Checkpoint},
     BlockId,
 };
 
@@ -26,7 +25,6 @@ where
     C: HeaderBackend<B> + LockImportRun<B, BE> + Finalizer<B, BE>,
 {
     client: Arc<C>,
-    metrics: AllBlockMetrics,
     phantom: PhantomData<(B, BE)>,
 }
 
@@ -36,10 +34,9 @@ where
     BE: Backend<B>,
     C: HeaderBackend<B> + LockImportRun<B, BE> + Finalizer<B, BE>,
 {
-    pub(crate) fn new(client: Arc<C>, metrics: AllBlockMetrics) -> Self {
+    pub(crate) fn new(client: Arc<C>) -> Self {
         AlephFinalizer {
             client,
-            metrics,
             phantom: PhantomData,
         }
     }
@@ -74,8 +71,6 @@ where
         match &update_res {
             Ok(_) => {
                 debug!(target: "aleph-finality", "Successfully finalized block with hash {:?} and number {:?}. Current best: #{:?}.", hash, number, status.best_number);
-                self.metrics
-                    .report_block(block, Checkpoint::Finalized, None);
             }
             Err(_) => {
                 debug!(target: "aleph-finality", "Failed to finalize block with hash {:?} and number {:?}. Current best: #{:?}.", hash, number, status.best_number)

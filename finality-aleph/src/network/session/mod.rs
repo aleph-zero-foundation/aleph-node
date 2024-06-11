@@ -32,7 +32,7 @@ pub use discovery::Discovery;
 #[cfg(test)]
 pub use handler::tests::authentication;
 pub use handler::{Handler as SessionHandler, HandlerError as SessionHandlerError};
-pub use service::{Config as ConnectionManagerConfig, ManagerError, Service as ConnectionManager};
+pub use service::{Config as ConnectionManagerConfig, Service as ConnectionManager};
 
 /// The maximum size an authentication can have and be accepted.
 /// This leaves a generous margin of error, as the signature is 64 bytes,

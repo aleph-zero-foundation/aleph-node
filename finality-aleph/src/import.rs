@@ -9,14 +9,13 @@ use sc_consensus::{
     BlockCheckParams, BlockImport, BlockImportParams, ForkChoiceStrategy, ImportResult,
     JustificationImport,
 };
-use sp_consensus::{BlockOrigin, Error as ConsensusError, SelectChain};
+use sp_consensus::{Error as ConsensusError, SelectChain};
 use sp_runtime::{traits::Header as HeaderT, Justification as SubstrateJustification};
 
 use crate::{
     aleph_primitives::{Block, BlockHash, BlockNumber, ALEPH_ENGINE_ID},
     block::substrate::{Justification, JustificationTranslator, TranslateError},
     justification::{backwards_compatible_decode, DecodeError},
-    metrics::{AllBlockMetrics, Checkpoint},
     BlockId,
 };
 
@@ -26,14 +25,12 @@ pub fn get_aleph_block_import<I, SC>(
     justification_tx: UnboundedSender<Justification>,
     translator: JustificationTranslator,
     select_chain: SC,
-    metrics: AllBlockMetrics,
 ) -> impl BlockImport<Block, Error = I::Error> + JustificationImport<Block, Error = ConsensusError> + Clone
 where
     I: BlockImport<Block> + Send + Sync + Clone,
     SC: SelectChain<Block> + Send + Sync,
 {
-    let tracing_import = TracingBlockImport::new(inner, metrics);
-    let favourite_marker_import = FavouriteMarkerBlockImport::new(tracing_import, select_chain);
+    let favourite_marker_import = FavouriteMarkerBlockImport::new(inner, select_chain);
 
     AlephBlockImport::new(favourite_marker_import, justification_tx, translator)
 }
@@ -89,68 +86,6 @@ where
         }
 
         self.inner.import_block(block).await
-    }
-}
-
-/// A wrapper around a block import that also marks the start and end of the import of every block
-/// in the metrics, if provided.
-#[derive(Clone)]
-struct TracingBlockImport<I>
-where
-    I: BlockImport<Block> + Send + Sync,
-{
-    inner: I,
-    metrics: AllBlockMetrics,
-}
-
-impl<I> TracingBlockImport<I>
-where
-    I: BlockImport<Block> + Send + Sync,
-{
-    pub fn new(inner: I, metrics: AllBlockMetrics) -> Self {
-        TracingBlockImport { inner, metrics }
-    }
-}
-
-#[async_trait::async_trait]
-impl<I> BlockImport<Block> for TracingBlockImport<I>
-where
-    I: BlockImport<Block> + Send + Sync,
-{
-    type Error = I::Error;
-
-    async fn check_block(
-        &mut self,
-        block: BlockCheckParams<Block>,
-    ) -> Result<ImportResult, Self::Error> {
-        self.inner.check_block(block).await
-    }
-
-    async fn import_block(
-        &mut self,
-        block: BlockImportParams<Block>,
-    ) -> Result<ImportResult, Self::Error> {
-        let post_hash = block.post_hash();
-        let number = *block.post_header().number();
-        let is_own = block.origin == BlockOrigin::Own;
-        // Self-created blocks are imported without using the import queue,
-        // so we need to report them here.
-        self.metrics.report_block(
-            BlockId::new(post_hash, number),
-            Checkpoint::Importing,
-            Some(is_own),
-        );
-
-        let result = self.inner.import_block(block).await;
-
-        if let Ok(ImportResult::Imported(_)) = &result {
-            self.metrics.report_block(
-                BlockId::new(post_hash, number),
-                Checkpoint::Imported,
-                Some(is_own),
-            );
-        }
-        result
     }
 }
 

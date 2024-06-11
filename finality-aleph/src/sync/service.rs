@@ -15,6 +15,7 @@ use crate::{
         EquivocationProof, Finalizer, Header, HeaderVerifier, Justification, JustificationVerifier,
         UnverifiedHeader, UnverifiedHeaderFor,
     },
+    metrics::SloMetrics,
     network::GossipNetwork,
     session::SessionBoundaryInfo,
     sync::{
@@ -143,6 +144,7 @@ where
     blocks_from_creator: mpsc::UnboundedReceiver<B>,
     major_sync_last_status: bool,
     metrics: Metrics,
+    slo_metrics: SloMetrics,
     favourite_block_request: mpsc::UnboundedReceiver<oneshot::Sender<J::Header>>,
 }
 
@@ -180,6 +182,7 @@ where
         session_info: SessionBoundaryInfo,
         io: IO<B, J, N, CE, CS, F, BI>,
         metrics_registry: Option<Registry>,
+        slo_metrics: SloMetrics,
         favourite_block_request: mpsc::UnboundedReceiver<oneshot::Sender<J::Header>>,
     ) -> Result<(Self, impl RequestBlocks<B::UnverifiedHeader>), HandlerError<B, J, CS, V, F>> {
         let IO {
@@ -196,13 +199,10 @@ where
         let broadcast_ticker = Ticker::new(TICK_PERIOD, BROADCAST_COOLDOWN);
         let chain_extension_ticker = Ticker::new(TICK_PERIOD, CHAIN_EXTENSION_COOLDOWN);
         let (block_requests_for_sync, block_requests_from_user) = mpsc::unbounded();
-        let metrics = match Metrics::new(metrics_registry) {
-            Ok(metrics) => metrics,
-            Err(e) => {
-                warn!(target: LOG_TARGET, "Failed to create metrics: {}.", e);
-                Metrics::noop()
-            }
-        };
+        let metrics = Metrics::new(metrics_registry).unwrap_or_else(|e| {
+            warn!(target: LOG_TARGET, "Failed to create metrics: {}.", e);
+            Metrics::noop()
+        });
 
         Ok((
             Service {
@@ -217,6 +217,7 @@ where
                 block_requests_from_user,
                 major_sync_last_status: false,
                 metrics,
+                slo_metrics,
                 favourite_block_request,
             },
             block_requests_for_sync,
@@ -585,9 +586,12 @@ where
         match event {
             BlockImported(header) => {
                 trace!(target: LOG_TARGET, "Handling a new imported block.");
+                let mut own_block = false;
+                let id = header.id();
                 self.metrics.report_event(Event::HandleBlockImported);
                 match self.handler.block_imported(header) {
                     Ok(Some(broadcast)) => {
+                        own_block = true;
                         if let Err(e) = self
                             .network
                             .broadcast(NetworkData::RequestResponse(broadcast))
@@ -607,10 +611,14 @@ where
                         );
                     }
                 }
+                let is_new_best = id == self.handler.favourite_block().id();
+                self.slo_metrics
+                    .report_block_imported(id, is_new_best, own_block);
             }
-            BlockFinalized(_) => {
+            BlockFinalized(header) => {
                 trace!(target: LOG_TARGET, "Handling a new finalized block.");
                 self.metrics.report_event(Event::HandleBlockFinalized);
+                self.slo_metrics.report_block_finalized(header.id())
             }
         }
         // We either learned about a new finalized or best block, so we

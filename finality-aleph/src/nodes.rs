@@ -5,6 +5,7 @@ use futures::channel::oneshot;
 use log::{debug, error};
 use network_clique::{RateLimitingDialer, RateLimitingListener, Service, SpawnHandleT};
 use pallet_aleph_runtime_api::AlephSessionApi;
+use primitives::TransactionHash;
 use rate_limiter::SleepingRateLimiter;
 use sc_client_api::Backend;
 use sc_keystore::{Keystore, LocalKeystore};
@@ -20,7 +21,7 @@ use crate::{
     crypto::AuthorityPen,
     finalization::AlephFinalizer,
     idx_to_account::ValidatorIndexToAccountIdConverterImpl,
-    metrics::{run_chain_state_metrics, transaction_pool::TransactionPoolWrapper},
+    metrics::{run_metrics_service, SloMetrics},
     network::{
         address_cache::validator_address_cache_updater,
         session::{ConnectionManager, ConnectionManagerConfig},
@@ -57,7 +58,7 @@ where
     C: crate::ClientForAleph<Block, BE> + Send + Sync + 'static,
     C::Api: AlephSessionApi<Block> + AuraApi<Block, AuraId>,
     BE: Backend<Block> + 'static,
-    TP: TransactionPool<Block = Block> + 'static,
+    TP: TransactionPool<Block = Block, Hash = TransactionHash> + 'static,
 {
     let AlephConfig {
         authentication_network,
@@ -68,7 +69,6 @@ where
         select_chain_provider,
         spawn_handle,
         keystore,
-        metrics,
         registry,
         unit_creation_delay,
         session_period,
@@ -144,22 +144,17 @@ where
 
     let chain_events = client.chain_status_notifier();
 
-    let client_for_slo_metrics = client.clone();
-    let registry_for_slo_metrics = registry.clone();
-    spawn_handle.spawn("aleph/slo-metrics", async move {
-        if let Err(err) = run_chain_state_metrics(
-            client_for_slo_metrics.as_ref(),
-            client_for_slo_metrics.every_import_notification_stream(),
-            client_for_slo_metrics.finality_notification_stream(),
-            registry_for_slo_metrics,
-            TransactionPoolWrapper::new(transaction_pool),
-        )
-        .await
-        {
-            error!(
-                target: LOG_TARGET,
-                "ChainStateMetrics service finished with err: {err}."
-            );
+    let slo_metrics = SloMetrics::new(registry.as_ref(), chain_status.clone());
+    let timing_metrics = slo_metrics.timing_metrics().clone();
+
+    spawn_handle.spawn("aleph/slo-metrics", {
+        let slo_metrics = slo_metrics.clone();
+        async move {
+            run_metrics_service(
+                &slo_metrics,
+                &mut transaction_pool.import_notification_stream(),
+            )
+            .await;
         }
     });
 
@@ -177,8 +172,8 @@ where
         VERIFIER_CACHE_SIZE,
         genesis_header,
     );
-    let finalizer = AlephFinalizer::new(client.clone(), metrics.clone());
-    import_queue_handle.attach_metrics(metrics.clone());
+    let finalizer = AlephFinalizer::new(client.clone());
+    import_queue_handle.attach_metrics(timing_metrics.clone());
     let justifications_for_sync = justification_channel_provider.get_sender();
     let sync_io = SyncIO::new(
         SyncDatabaseIO::new(chain_status.clone(), finalizer, import_queue_handle),
@@ -195,6 +190,7 @@ where
         session_info.clone(),
         sync_io,
         registry.clone(),
+        slo_metrics,
         favourite_block_user_requests,
     ) {
         Ok(x) => x,
@@ -256,7 +252,7 @@ where
             justifications_for_sync,
             JustificationTranslator::new(chain_status.clone()),
             request_block,
-            metrics,
+            timing_metrics,
             spawn_handle,
             connection_manager,
             keystore,

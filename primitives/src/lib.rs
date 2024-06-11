@@ -86,6 +86,9 @@ pub type BlockId = generic::BlockId<Block>;
 /// Block Hash type
 pub type BlockHash = <Header as HeaderT>::Hash;
 
+/// A hash of extrinsic.
+pub type TransactionHash = Hash;
+
 /// The address format for describing accounts.
 pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
 

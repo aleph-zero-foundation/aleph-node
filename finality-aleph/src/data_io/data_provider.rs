@@ -9,7 +9,7 @@ use crate::{
     aleph_primitives::BlockNumber,
     block::{BestBlockSelector, Header, HeaderBackend, UnverifiedHeader},
     data_io::{proposal::UnvalidatedAlephProposal, AlephData, MAX_DATA_BRANCH_LEN},
-    metrics::{AllBlockMetrics, Checkpoint},
+    metrics::{Checkpoint, TimingBlockMetrics},
     party::manager::Runnable,
     BlockId, SessionBoundaries,
 };
@@ -161,7 +161,7 @@ where
         client: C,
         session_boundaries: SessionBoundaries,
         config: ChainTrackerConfig,
-        metrics: AllBlockMetrics,
+        metrics: TimingBlockMetrics,
     ) -> (Self, DataProvider<H::Unverified>) {
         let data_to_propose = Arc::new(Mutex::new(None));
         (
@@ -317,7 +317,7 @@ where
 #[derive(Clone)]
 pub struct DataProvider<UH: UnverifiedHeader> {
     data_to_propose: Arc<Mutex<Option<AlephData<UH>>>>,
-    metrics: AllBlockMetrics,
+    metrics: TimingBlockMetrics,
 }
 
 // Honest nodes propose data in session `k` as follows:
@@ -335,7 +335,7 @@ impl<UH: UnverifiedHeader> DataProvider<UH> {
         if let Some(data) = &data_to_propose {
             let top_block = data.head_proposal.top_block();
             self.metrics
-                .report_block(top_block, Checkpoint::Proposed, None);
+                .report_block(top_block.hash(), Checkpoint::Proposed);
             debug!(target: LOG_TARGET, "Outputting {:?} in get_data", data);
         };
 
@@ -355,7 +355,7 @@ mod tests {
             data_provider::{ChainTracker, ChainTrackerConfig},
             AlephData, DataProvider, MAX_DATA_BRANCH_LEN,
         },
-        metrics::AllBlockMetrics,
+        metrics::TimingBlockMetrics,
         party::manager::Runnable,
         testing::{
             client_chain_builder::ClientChainBuilder,
@@ -394,7 +394,7 @@ mod tests {
             client,
             session_boundaries,
             config,
-            AllBlockMetrics::new(None),
+            TimingBlockMetrics::noop(),
         );
 
         let (exit_chain_tracker_tx, exit_chain_tracker_rx) = oneshot::channel();

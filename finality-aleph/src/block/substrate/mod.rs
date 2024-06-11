@@ -5,7 +5,7 @@ use sp_runtime::traits::{CheckedSub, Header as _, One};
 use crate::{
     aleph_primitives::{Block, Header},
     block::{Block as BlockT, BlockId, BlockImport, Header as HeaderT, UnverifiedHeader},
-    metrics::{AllBlockMetrics, Checkpoint},
+    metrics::TimingBlockMetrics,
 };
 
 mod chain_status;
@@ -19,9 +19,12 @@ pub use justification::{
     InnerJustification, Justification, JustificationTranslator, TranslateError,
 };
 pub use status_notifier::SubstrateChainStatusNotifier;
-pub use verification::{SessionVerifier, SubstrateFinalizationInfo, VerifierCache};
+pub use verification::{SubstrateFinalizationInfo, VerifierCache};
 
-use crate::block::{BestBlockSelector, BlockchainEvents};
+use crate::{
+    block::{BestBlockSelector, BlockchainEvents},
+    metrics::Checkpoint,
+};
 
 const LOG_TARGET: &str = "aleph-substrate";
 
@@ -60,18 +63,18 @@ impl HeaderT for Header {
 /// Wrapper around the trait object that we get from Substrate.
 pub struct BlockImporter {
     importer: Box<dyn ImportQueueService<Block>>,
-    metrics: AllBlockMetrics,
+    metrics: TimingBlockMetrics,
 }
 
 impl BlockImporter {
     pub fn new(importer: Box<dyn ImportQueueService<Block>>) -> Self {
         Self {
             importer,
-            metrics: AllBlockMetrics::new(None),
+            metrics: TimingBlockMetrics::noop(),
         }
     }
 
-    pub fn attach_metrics(&mut self, metrics: AllBlockMetrics) {
+    pub fn attach_metrics(&mut self, metrics: TimingBlockMetrics) {
         self.metrics = metrics;
     }
 }
@@ -85,7 +88,6 @@ impl BlockImport<Block> for BlockImporter {
             false => BlockOrigin::NetworkBroadcast,
         };
         let hash = block.header.hash();
-        let number = *block.header.number();
         let incoming_block = IncomingBlock::<Block> {
             hash,
             header: Some(block.header),
@@ -98,8 +100,7 @@ impl BlockImport<Block> for BlockImporter {
             import_existing: false,
             state: None,
         };
-        self.metrics
-            .report_block(BlockId::new(hash, number), Checkpoint::Importing, Some(own));
+        self.metrics.report_block(hash, Checkpoint::Importing);
         self.importer.import_blocks(origin, vec![incoming_block]);
     }
 }
