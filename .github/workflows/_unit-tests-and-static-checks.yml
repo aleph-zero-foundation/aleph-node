@@ -21,12 +21,7 @@ jobs:
       - name: Run clippy
         run: |
           cargo clippy \
-            --all-targets --workspace --exclude baby-liminal-extension -- --no-deps -D warnings
-
-      # Run clippy for the chain extension: it requires a different setup.
-      - name: Run clippy for chain extension
-        working-directory: baby-liminal-extension
-        run: make clippy
+            --all-targets --workspace -- --no-deps -D warnings
 
   unit-tests:
     name: Run unit tests
@@ -44,25 +39,4 @@ jobs:
       - name: Run Unit Test Suite
         run: |
           cargo test \
-            --workspace --exclude baby-liminal-extension -- --skip clique_network
-
-  unit-tests-chain-extension:
-    name: Run unit tests for chain extension
-    runs-on: [self-hosted, Linux, X64, large]
-    env:
-      CARGO_INCREMENTAL: 0
-      RUSTC_WRAPPER: sccache
-    steps:
-      - name: Checkout Source code
-        uses: actions/checkout@v4
-
-      - name: Install Nightly Rust Toolchain
-        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v7
-        with:
-          channel: nightly-2024-02-14
-          targets: wasm32-unknown-unknown
-          components: rust-src
-
-      - name: Run unit tests for chain extension
-        working-directory: baby-liminal-extension
-        run: make test
+            --workspace -- --skip clique_network

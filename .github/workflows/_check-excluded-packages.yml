@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       # TODO this is not ideal, as we need this step only to have rustup in the path
-      # This step install Rust wfrom root rust-toolchain.toml, which is not used later
+      # This step installs Rust from root rust-toolchain.toml, which is not used later
       # by this worfklow. Action install-rust-toolchain should have optional parameter path
       # in which we pass relative path to aleph-client to read its rust-toolchain.toml file
       - name: Install Rust Toolchain

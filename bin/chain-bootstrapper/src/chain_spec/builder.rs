@@ -1,6 +1,6 @@
 use std::string::ToString;
 
-use aleph_runtime::{Feature, WASM_BINARY};
+use aleph_runtime::WASM_BINARY;
 use pallet_staking::{Forcing, StakerStatus};
 use primitives::{
     staking::{MIN_NOMINATOR_BOND, MIN_VALIDATOR_BOND},
@@ -145,9 +145,6 @@ fn generate_genesis_config(
             "sessionValidators": {
                 "committee": to_account_ids(&account_session_keys).collect::<Vec<_>>(),
             },
-        },
-        "featureControl": {
-            "activeFeatures": vec![Feature::OnChainVerifier],
         },
     })
 }

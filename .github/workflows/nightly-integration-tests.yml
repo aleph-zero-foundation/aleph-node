@@ -33,17 +33,13 @@ jobs:
 
       - name: Run Test Suite
         run: |
-          cargo test --workspace --exclude baby-liminal-extension
+          cargo test --workspace
 
       - name: Install Rust Toolchain For Chain Extension Tests
         uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v7
         with:
           channel: nightly-2024-02-14
           targets: wasm32-unknown-unknown
-
-      - name: Run Unit Tests For Chain Extension
-        working-directory: baby-liminal-extension
-        run: make test
 
   slack-notification:
     name: Slack notification

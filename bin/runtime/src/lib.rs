@@ -37,7 +37,6 @@ use frame_system::{EnsureRoot, EnsureRootWithSuccess, EnsureSignedBy};
 use frame_try_runtime::UpgradeCheckSelect;
 pub use pallet_balances::Call as BalancesCall;
 use pallet_committee_management::SessionAndEraManager;
-pub use pallet_feature_control::Feature;
 use pallet_identity::legacy::IdentityInfo;
 use pallet_session::QueuedKeys;
 pub use pallet_timestamp::Call as TimestampCall;
@@ -129,25 +128,11 @@ parameter_types! {
     pub const SS58Prefix: u8 = ADDRESSES_ENCODING;
 }
 
-pub enum CallFilter {}
-impl Contains<RuntimeCall> for CallFilter {
-    fn contains(call: &RuntimeCall) -> bool {
-        match call {
-            RuntimeCall::VkStorage(_) => {
-                pallet_feature_control::Pallet::<Runtime>::is_feature_enabled(
-                    Feature::OnChainVerifier,
-                )
-            }
-            _ => true,
-        }
-    }
-}
-
 // Configure FRAME pallets to include in runtime.
 
 impl frame_system::Config for Runtime {
     /// The basic call filter to use in dispatchable.
-    type BaseCallFilter = InsideBoth<CallFilter, InsideBoth<SafeMode, TxPause>>;
+    type BaseCallFilter = InsideBoth<SafeMode, TxPause>;
     /// Block & extrinsics weights: base values and limits.
     type BlockWeights = BlockWeights;
     /// The maximum length of a block (in bytes).
@@ -348,21 +333,6 @@ impl pallet_aleph::Config for Runtime {
         Runtime,
     >;
     type NextSessionAuthorityProvider = Session;
-}
-
-use pallet_vk_storage::StorageCharge;
-parameter_types! {
-    // We allow 10kB keys, proofs and public inputs. This is a 100% blind guess.
-    pub const MaximumVerificationKeyLength: u32 = 10_000;
-    // We always charge (10 + `key_length`) mAZERO for storing a key. This is a 100% blind guess.
-    pub const VkStorageCharge: StorageCharge = StorageCharge::linear(10 * MILLI_AZERO as u64, MILLI_AZERO as u64);
-}
-
-impl pallet_vk_storage::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = pallet_vk_storage::AlephWeight<Runtime>;
-    type MaximumKeyLength = MaximumVerificationKeyLength;
-    type StorageCharge = VkStorageCharge;
 }
 
 parameter_types! {
@@ -749,7 +719,7 @@ impl pallet_contracts::Config for Runtime {
     type CallFilter = ContractsCallRuntimeFilter;
     type WeightPrice = pallet_transaction_payment::Pallet<Self>;
     type WeightInfo = pallet_contracts::weights::SubstrateWeight<Self>;
-    type ChainExtension = baby_liminal_extension::BabyLiminalChainExtension<Runtime>;
+    type ChainExtension = ();
     type Schedule = Schedule;
     type CallStack = [pallet_contracts::Frame<Self>; 16];
     type DepositPerByte = DepositPerByte;
@@ -903,12 +873,6 @@ impl pallet_proxy::Config for Runtime {
     type AnnouncementDepositFactor = AnnouncementDepositFactor;
 }
 
-impl pallet_feature_control::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = pallet_feature_control::AlephWeight<Runtime>;
-    type Supervisor = EnsureRoot<AccountId>;
-}
-
 parameter_types! {
     pub const DisallowPermissionlessEnterDuration: AlephBlockNumber = 0;
     pub const DisallowPermissionlessExtendDuration: AlephBlockNumber = 0;
@@ -1000,10 +964,8 @@ construct_runtime!(
         Identity: pallet_identity = 20,
         CommitteeManagement: pallet_committee_management = 21,
         Proxy: pallet_proxy = 22,
-        FeatureControl: pallet_feature_control = 23,
-        VkStorage: pallet_vk_storage = 24,
-        SafeMode: pallet_safe_mode = 25,
-        TxPause: pallet_tx_pause = 26,
+        SafeMode: pallet_safe_mode = 23,
+        TxPause: pallet_tx_pause = 24,
         Operations: pallet_operations = 255,
     }
 );
@@ -1042,11 +1004,7 @@ pub type Executive = frame_executive::Executive<
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benches {
-    frame_benchmarking::define_benchmarks!(
-        [pallet_feature_control, FeatureControl]
-        [pallet_vk_storage, VkStorage]
-        [baby_liminal_extension, baby_liminal_extension::ChainExtensionBenchmarking<Runtime>]
-    );
+    frame_benchmarking::define_benchmarks!();
 }
 
 type EventRecord = frame_system::EventRecord<RuntimeEvent, Hash>;

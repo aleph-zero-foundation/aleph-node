@@ -3,7 +3,9 @@
 AT_TEST_CONTRACT = --manifest-path test_contract/Cargo.toml
 TEST_TOOLCHAIN = nightly-2024-02-14 # needed for unstable features regarding const generics
 
-test: test-frontend test-backend ## Run all tests
+# test-backend is disabled as when this package was moving out of the workspace, it was removed from the aleph-runtime
+# alongisde with vk-storage and feature-control pallets; test-backend depends on aleph-runtime having those two pallets
+test: test-frontend
 
 test-frontend: ## Run frontend tests
 	cargo test --release $(AT_TEST_CONTRACT) || exit 1

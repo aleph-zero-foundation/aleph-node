@@ -53,8 +53,17 @@ for p in ${packages[@]}; do
       --name ink_builder \
       --platform linux/amd64 \
       --rm public.ecr.aws/p6e8q1z1/ink-dev:2.0.0 cargo contract check
+  elif [[ "$p" =~ baby-liminal-extension ]]; then
+    make clippy
+    make test
   else
     cargo clippy -- --no-deps -D warnings
+  fi
+
+  # for some particular packages, run unit tests
+  # those packages had been a port of workspace previously
+  if [[ "$p" == "pallets/feature-control" || "$p" == "pallets/vk-storage" ]]; then
+    cargo test
   fi
   popd
 done

@@ -3,7 +3,6 @@ resolver = "2"
 
 members = [
     "aggregator",
-    "baby-liminal-extension",
     "bin/node",
     "bin/runtime",
     "bin/chain-bootstrapper",
@@ -13,11 +12,9 @@ members = [
     "pallets/aleph",
     "pallets/aleph-runtime-api",
     "pallets/elections",
-    "pallets/feature-control",
     "pallets/committee-management",
     "pallets/operations",
     "pallets/support",
-    "pallets/vk-storage",
     "primitives",
     "rate-limiter",
     "runtime-interfaces",
@@ -25,12 +22,15 @@ members = [
 
 exclude = [
     "aleph-client",
+    "baby-liminal-extension",
     "benches/payout-stakers",
     "bin/cliain",
     "bin/finalizer",
     "contracts/adder",
     "e2e-tests",
     "flooder",
+    "pallets/feature-control",
+    "pallets/vk-storage",
     "scripts/synthetic-network/synthetic-link",
 ]
 
