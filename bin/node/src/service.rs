@@ -7,10 +7,10 @@ use std::{
 
 use fake_runtime_api::fake_runtime::RuntimeApi;
 use finality_aleph::{
-    build_network, get_aleph_block_import, run_validator_node, AlephConfig, AllBlockMetrics,
-    BlockImporter, BuildNetworkOutput, ChannelProvider, FavouriteSelectChainProvider,
-    Justification, JustificationTranslator, MillisecsPerBlock, RateLimiterConfig,
-    RedirectingBlockImport, SessionPeriod, SubstrateChainStatus, SyncOracle, ValidatorAddressCache,
+    build_network, get_aleph_block_import, run_validator_node, AlephConfig, BlockImporter,
+    BuildNetworkOutput, ChannelProvider, FavouriteSelectChainProvider, Justification,
+    JustificationTranslator, MillisecsPerBlock, RateLimiterConfig, RedirectingBlockImport,
+    SessionPeriod, SubstrateChainStatus, SyncOracle, ValidatorAddressCache,
 };
 use log::warn;
 use pallet_aleph_runtime_api::AlephSessionApi;
@@ -51,7 +51,6 @@ pub struct ServiceComponents {
     pub keystore_container: KeystoreContainer,
     pub justification_channel_provider: ChannelProvider<Justification>,
     pub telemetry: Option<Telemetry>,
-    pub metrics: AllBlockMetrics,
 }
 struct LimitNonfinalized(u32);
 
@@ -133,14 +132,12 @@ pub fn new_partial(config: &Configuration) -> Result<ServiceComponents, ServiceE
         SubstrateChainStatus::new(backend.clone())
             .map_err(|e| ServiceError::Other(format!("failed to set up chain status: {e}")))?,
     );
-    let metrics = AllBlockMetrics::new(config.prometheus_registry());
     let justification_channel_provider = ChannelProvider::new();
     let aleph_block_import = get_aleph_block_import(
         client.clone(),
         justification_channel_provider.get_sender(),
         justification_translator,
         select_chain_provider.select_chain(),
-        metrics.clone(),
     );
 
     let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
@@ -182,7 +179,6 @@ pub fn new_partial(config: &Configuration) -> Result<ServiceComponents, ServiceE
         transaction_pool,
         justification_channel_provider,
         telemetry,
-        metrics,
     })
 }
 
@@ -394,7 +390,6 @@ pub fn new_authority(
         keystore: service_components.keystore_container.local_keystore(),
         justification_channel_provider: service_components.justification_channel_provider,
         block_rx,
-        metrics: service_components.metrics,
         registry: prometheus_registry,
         unit_creation_delay: aleph_config.unit_creation_delay(),
         backup_saving_path: backup_path,

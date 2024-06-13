@@ -64,6 +64,8 @@ impl Display for Error {
     }
 }
 
+impl std::error::Error for Error {}
+
 impl From<BackendError> for Error {
     fn from(value: BackendError) -> Self {
         Error::Backend(value)
@@ -158,6 +160,17 @@ impl SubstrateChainStatus {
 
     fn finalized_hash(&self) -> AlephHash {
         self.info().finalized_hash
+    }
+
+    /// Computes lowest common ancestor between two blocks. Warning: complexity
+    /// O(distance between blocks).
+    pub fn lowest_common_ancestor(&self, from: &BlockId, to: &BlockId) -> Result<BlockId, Error> {
+        let result = sp_blockchain::lowest_common_ancestor(
+            self.backend.blockchain(),
+            from.hash(),
+            to.hash(),
+        )?;
+        Ok((result.hash, result.number).into())
     }
 }
 

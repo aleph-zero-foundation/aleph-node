@@ -8,8 +8,7 @@ use sc_service::Arc;
 use sp_core::{bounded_vec::BoundedVec, ConstU32};
 use substrate_prometheus_endpoint::{register, Counter, PrometheusError, Registry, U64};
 
-use super::Checkpoint;
-use crate::metrics::LOG_TARGET;
+use crate::{metrics::LOG_TARGET, BlockId};
 
 const MAX_CACHE_SIZE: usize = 1800;
 const MAX_INNER_SIZE: u32 = 64;
@@ -36,11 +35,11 @@ impl FinalityRateMetrics {
 
         Ok(FinalityRateMetrics::Prometheus {
             own_finalized: register(
-                Counter::new("aleph_own_finalized_blocks", "no help")?,
+                Counter::new("aleph_own_finalized_blocks", "Number of self-produced blocks that became finalized")?,
                 registry,
             )?,
             own_hopeless: register(
-                Counter::new("aleph_own_hopeless_blocks", "no help")?,
+                Counter::new("aleph_own_hopeless_blocks", "Number of self-produced blocks, such that some alternative block with the same block number was finalized")?,
                 registry,
             )?,
             imported_cache: Arc::new(Mutex::new(LruCache::new(
@@ -49,39 +48,21 @@ impl FinalityRateMetrics {
         })
     }
 
-    pub fn report_block(
-        &self,
-        block_hash: BlockHash,
-        block_number: BlockNumber,
-        checkpoint: Checkpoint,
-        own: Option<bool>,
-    ) {
-        match checkpoint {
-            Checkpoint::Imported => {
-                if let Some(true) = own {
-                    self.report_own_imported(block_hash, block_number);
-                }
-            }
-            Checkpoint::Finalized => self.report_finalized(block_hash, block_number),
-            _ => {}
-        }
-    }
-
     /// Stores the imported block's hash. Assumes that the imported block is own.
-    fn report_own_imported(&self, hash: BlockHash, number: BlockNumber) {
+    pub fn report_own_imported(&self, id: BlockId) {
         let mut imported_cache = match self {
             FinalityRateMetrics::Prometheus { imported_cache, .. } => imported_cache.lock(),
             FinalityRateMetrics::Noop => return,
         };
 
         let entry = imported_cache
-            .get_or_insert_mut(number, BoundedVec::<_, ConstU32<MAX_INNER_SIZE>>::new);
+            .get_or_insert_mut(id.number(), BoundedVec::<_, ConstU32<MAX_INNER_SIZE>>::new);
 
-        if entry.try_push(hash).is_err() {
+        if entry.try_push(id.hash()).is_err() {
             warn!(
                 target: LOG_TARGET,
                 "Finality Rate Metrics encountered too many own imported blocks at level {}",
-                number
+                id.number()
             );
         }
     }
@@ -89,7 +70,7 @@ impl FinalityRateMetrics {
     /// Counts the blocks at the level of `number` different than the passed block
     /// and reports them as hopeless. If `hash` is a hash of own block it will be found
     /// in `imported_cache` and reported as finalized.
-    fn report_finalized(&self, hash: BlockHash, number: BlockNumber) {
+    pub fn report_finalized(&self, id: BlockId) {
         let (own_finalized, own_hopeless, imported_cache) = match self {
             FinalityRateMetrics::Prometheus {
                 own_finalized,
@@ -100,12 +81,12 @@ impl FinalityRateMetrics {
         };
 
         let mut imported_cache = imported_cache.lock();
-        if let Some(hashes) = imported_cache.get_mut(&number) {
-            let new_hopeless_count = hashes.iter().filter(|h| **h != hash).count();
+        if let Some(hashes) = imported_cache.get_mut(&id.number()) {
+            let new_hopeless_count = hashes.iter().filter(|h| **h != id.hash()).count();
             own_hopeless.inc_by(new_hopeless_count as u64);
             own_finalized.inc_by((hashes.len() - new_hopeless_count) as u64);
         }
-        imported_cache.pop(&number);
+        imported_cache.pop(&id.number());
     }
 }
 
@@ -116,7 +97,7 @@ mod tests {
     use primitives::{BlockHash, BlockNumber};
     use substrate_prometheus_endpoint::{Counter, Registry, U64};
 
-    use crate::{metrics::finality_rate::ImportedHashesCache, FinalityRateMetrics};
+    use super::{FinalityRateMetrics, ImportedHashesCache};
 
     type FinalityRateMetricsInternals = (Counter<U64>, Counter<U64>, ImportedHashesCache);
 
@@ -158,12 +139,12 @@ mod tests {
         verify_state(&metrics, 0, 0, HashMap::new());
 
         let hash0 = BlockHash::random();
-        metrics.report_own_imported(hash0, 0);
+        metrics.report_own_imported((hash0, 0).into());
 
         verify_state(&metrics, 0, 0, HashMap::from([(0, vec![hash0])]));
 
         let hash1 = BlockHash::random();
-        metrics.report_own_imported(hash1, 1);
+        metrics.report_own_imported((hash1, 1).into());
 
         verify_state(
             &metrics,
@@ -173,7 +154,7 @@ mod tests {
         );
 
         let hash2 = BlockHash::random();
-        metrics.report_own_imported(hash2, 1);
+        metrics.report_own_imported((hash2, 1).into());
 
         verify_state(
             &metrics,
@@ -182,11 +163,11 @@ mod tests {
             HashMap::from([(0, vec![hash0]), (1, vec![hash1, hash2])]),
         );
 
-        metrics.report_finalized(hash0, 0);
+        metrics.report_finalized((hash0, 0).into());
 
         verify_state(&metrics, 1, 0, HashMap::from([(1, vec![hash1, hash2])]));
 
-        metrics.report_finalized(BlockHash::random(), 1);
+        metrics.report_finalized((BlockHash::random(), 1).into());
 
         verify_state(&metrics, 1, 2, HashMap::new());
     }

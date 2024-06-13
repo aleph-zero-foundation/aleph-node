@@ -18,7 +18,6 @@ members = [
     "pallets/operations",
     "pallets/support",
     "pallets/vk-storage",
-    "pallets/pink-scorpion",
     "primitives",
     "rate-limiter",
     "runtime-interfaces",
@@ -84,7 +83,6 @@ thiserror = { version = "1.0" }
 tiny-bip39 = { version = "1.0" }
 tokio = { version = "1.38" }
 rand_pcg = { version = "0.3.1", default-features = false }
-
 
 frame-benchmarking = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.6.0", default-features = false }
 frame-benchmarking-cli = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.6.0", default-features = false }
@@ -199,4 +197,3 @@ pallet-operations = { path = "pallets/operations", default-features = false }
 pallets-support = { path = "pallets/support", default-features = false }
 pallet-vk-storage = { path = "pallets/vk-storage", default-features = false }
 primitives = { path = "primitives", default-features = false }
-pallet_pink_scorpion = { path = "pallets/pink-scorpion", default-features = false }

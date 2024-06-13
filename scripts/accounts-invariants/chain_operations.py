@@ -1,60 +1,9 @@
-#!/bin/python3
-
-import enum
-import logging
-import datetime
-
 import substrateinterface
-import json
+from tqdm import tqdm
+import sys
+import logging
 
-def get_global_logger():
-    log_formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
-    root_logger = logging.getLogger()
-    root_logger.setLevel('DEBUG')
-
-    time_now = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
-    file_handler = logging.FileHandler(f"pallet-balances-maintenance-{time_now}.log")
-    file_handler.setFormatter(log_formatter)
-    file_handler.setLevel(logging.DEBUG)
-    root_logger.addHandler(file_handler)
-
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(log_formatter)
-    console_handler.setLevel(logging.INFO)
-    root_logger.addHandler(console_handler)
-
-    return logging
-
-
-log = get_global_logger()
-
-
-class ChainMajorVersion(enum.Enum):
-    PRE_12_MAJOR_VERSION = 65,
-    AT_LEAST_12_MAJOR_VERSION = 68,
-    AT_LEAST_13_2_VERSION = 71,
-
-    @classmethod
-    def from_spec_version(cls, spec_version):
-        if spec_version <= 65:
-            return cls(ChainMajorVersion.PRE_12_MAJOR_VERSION)
-        elif 68 <= spec_version < 71 or spec_version == 72:
-            return cls(ChainMajorVersion.AT_LEAST_12_MAJOR_VERSION)
-        elif spec_version >= 71:
-            return cls(ChainMajorVersion.AT_LEAST_13_2_VERSION)
-
-
-def get_chain_major_version(chain_connection, block_hash):
-    """
-    Retrieves spec_version from chain and returns an enum whether this is pre 12 version or at least 12 version
-    :param chain_connection: WS handler
-    :param block_hash: Block hash to query state from
-    :return: ChainMajorVersion
-    """
-    runtime_version = chain_connection.get_block_runtime_version(block_hash)
-    spec_version = runtime_version['specVersion']
-    major_version = ChainMajorVersion.from_spec_version(spec_version)
-    return major_version
+log = logging.getLogger()
 
 
 def filter_accounts(chain_connection,
@@ -80,22 +29,19 @@ def filter_accounts(chain_connection,
                                                page_size=1000,
                                                block_hash=block_hash)
     total_accounts_count = 0
-    total_issuance = 0
 
-    for (i, (account_id, info)) in enumerate(account_query):
+    for (i, (account_id, info)) in tqdm(iterable=enumerate(account_query),
+                                        desc="Accounts checked",
+                                        unit="",
+                                        file=sys.stdout):
         total_accounts_count += 1
-        free = info['data']['free'].value
-        reserved = info['data']['reserved'].value
-        total_issuance += free + reserved
         if check_accounts_predicate(info, chain_major_version, ed):
             accounts_that_do_meet_predicate.append([account_id.value, info.serialize()])
-        if i % 5000 == 0 and i > 0:
-            log.info(f"Checked {i} accounts")
 
     log.info(
         f"Total accounts that match given predicate {check_accounts_predicate_name} is {len(accounts_that_do_meet_predicate)}")
     log.info(f"Total accounts checked: {total_accounts_count}")
-    return accounts_that_do_meet_predicate, total_issuance
+    return accounts_that_do_meet_predicate
 
 
 def format_balance(chain_connection, amount):
@@ -109,44 +55,6 @@ def format_balance(chain_connection, amount):
     amount = format(amount / 10 ** decimals)
     token = chain_connection.token_symbol
     return f"{amount} {token}"
-
-
-def batch_transfer(chain_connection,
-                   input_args,
-                   accounts,
-                   amount,
-                   sender_keypair):
-    """
-    Send Balance.Transfer calls in a batch
-    :param chain_connection: WS connection handler
-    :param input_args: script input arguments returned from argparse
-    :param accounts: transfer beneficents
-    :param amount: amount to be transferred
-    :param sender_keypair: keypair of sender account
-    :return: None. Can raise exception in case of SubstrateRequestException thrown
-    """
-    for (i, account_ids_chunk) in enumerate(chunks(accounts, input_args.transfer_calls_in_batch)):
-        balance_calls = list(map(lambda account: chain_connection.compose_call(
-            call_module='Balances',
-            call_function='transfer',
-            call_params={
-                'dest': account,
-                'value': amount,
-            }), account_ids_chunk))
-        batch_call = chain_connection.compose_call(
-            call_module='Utility',
-            call_function='batch',
-            call_params={
-                'calls': balance_calls
-            }
-        )
-
-        extrinsic = chain_connection.create_signed_extrinsic(call=batch_call, keypair=sender_keypair)
-        log.info(f"About to send {len(balance_calls)} transfers, each with {format_balance(chain_connection, amount)} "
-                 f"from {sender_keypair.ss58_address} to below accounts: "
-                 f"{account_ids_chunk}")
-
-        submit_extrinsic(chain_connection, extrinsic, len(balance_calls), args.dry_run)
 
 
 def submit_extrinsic(chain_connection,
@@ -193,18 +101,4 @@ def get_all_accounts(chain_connection, block_hash=None):
                            chain_major_version=None,
                            check_accounts_predicate=lambda x, y, z: True,
                            check_accounts_predicate_name="\'all accounts\'",
-                           block_hash=block_hash)[0]
-
-
-def save_accounts_to_json_file(json_file_name, accounts):
-    with open(json_file_name, 'w') as f:
-        json.dump(accounts, f)
-        log.info(f"Wrote file '{json_file_name}'")
-
-
-def chunks(list_of_elements, n):
-    """
-    Lazily split 'list_of_elements' into 'n'-sized chunks.
-    """
-    for i in range(0, len(list_of_elements), n):
-        yield list_of_elements[i:i + n]
+                           block_hash=block_hash)

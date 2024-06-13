@@ -24,7 +24,7 @@ pub trait Clock {
     fn now(&self) -> Instant;
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct DefaultClock;
 impl Clock for DefaultClock {
     fn now(&self) -> Instant {
@@ -166,7 +166,7 @@ impl<C: Clock> TimingBlockMetrics<C> {
                 let duration = checkpoint_time
                     .checked_duration_since(*start)
                     .unwrap_or_else(|| {
-                        Self::warn_about_monotonicity_violation(
+                        warn_about_monotonicity_violation(
                             *start,
                             checkpoint_time,
                             checkpoint_type,
@@ -190,7 +190,7 @@ impl<C: Clock> TimingBlockMetrics<C> {
                 let duration = checkpoint_time
                     .checked_duration_since(*start)
                     .unwrap_or_else(|| {
-                        Self::warn_about_monotonicity_violation(
+                        warn_about_monotonicity_violation(
                             *start,
                             checkpoint_time,
                             checkpoint_type,
@@ -201,23 +201,6 @@ impl<C: Clock> TimingBlockMetrics<C> {
                 imported_to_finalized.observe(duration.as_secs_f64() * 1000.);
             }
         }
-    }
-
-    fn warn_about_monotonicity_violation(
-        start: Instant,
-        checkpoint_time: Instant,
-        checkpoint_type: Checkpoint,
-        hash: BlockHash,
-    ) {
-        warn!(
-            target: LOG_TARGET,
-            "Earlier metrics time {:?} is later that current one \
-        {:?}. Checkpoint type {:?}, block: {:?}",
-            start,
-            checkpoint_time,
-            checkpoint_type,
-            hash
-        );
     }
 }
 
@@ -241,6 +224,23 @@ impl Checkpoint {
             Finalized => Some(Ordered),
         }
     }
+}
+
+fn warn_about_monotonicity_violation(
+    start: Instant,
+    checkpoint_time: Instant,
+    checkpoint_type: Checkpoint,
+    hash: BlockHash,
+) {
+    warn!(
+        target: LOG_TARGET,
+        "Earlier metrics time {:?} is later that current one \
+    {:?}. Checkpoint type {:?}, block: {:?}",
+        start,
+        checkpoint_time,
+        checkpoint_type,
+        hash
+    );
 }
 
 #[cfg(test)]

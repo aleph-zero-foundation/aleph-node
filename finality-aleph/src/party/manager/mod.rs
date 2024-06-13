@@ -21,7 +21,7 @@ use crate::{
     },
     crypto::{AuthorityPen, AuthorityVerifier},
     data_io::{ChainTracker, DataStore, OrderedDataInterpreter, SubstrateChainInfoProvider},
-    metrics::AllBlockMetrics,
+    metrics::TimingBlockMetrics,
     mpsc,
     network::{
         data::{
@@ -110,7 +110,7 @@ where
     justifications_for_sync: JS,
     justification_translator: JustificationTranslator,
     block_requester: RB,
-    metrics: AllBlockMetrics,
+    metrics: TimingBlockMetrics,
     spawn_handle: SpawnHandle,
     session_manager: SM,
     keystore: Arc<LocalKeystore>,
@@ -142,7 +142,7 @@ where
         justifications_for_sync: JS,
         justification_translator: JustificationTranslator,
         block_requester: RB,
-        metrics: AllBlockMetrics,
+        metrics: TimingBlockMetrics,
         spawn_handle: SpawnHandle,
         session_manager: SM,
         keystore: Arc<LocalKeystore>,
