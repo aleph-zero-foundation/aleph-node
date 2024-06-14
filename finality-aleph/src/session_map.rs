@@ -1,4 +1,4 @@
-use std::{collections::HashMap, marker::PhantomData, ops::Deref, sync::Arc};
+use std::{cmp::min, collections::HashMap, marker::PhantomData, ops::Deref, sync::Arc};
 
 use futures::StreamExt;
 use log::{debug, error, trace};
@@ -14,6 +14,7 @@ use tokio::sync::{
 
 use crate::{
     aleph_primitives::{AccountId, AuraId, BlockHash, BlockNumber, SessionAuthorityData},
+    block::substrate::FinalizationInfo,
     runtime_api::RuntimeApi,
     session::SessionBoundaryInfo,
     ClientForAleph, SessionId, SessionPeriod,
@@ -32,6 +33,11 @@ pub trait AuthorityProvider: Clone + Send + Sync + 'static {
     fn aura_authorities(&self, block_number: BlockNumber) -> Option<Vec<AuraId>>;
     /// returns list of next session Aura authorities for a given block number
     fn next_aura_authorities(&self, block_number: BlockNumber) -> Option<Vec<(AccountId, AuraId)>>;
+}
+
+/// Returns number of some available (i.e. we are should be able to read its state) finalized block withing a given session.
+pub trait FinalizedBlocksProvider: Clone + Sync + Send + 'static {
+    fn available_finalized_block(&self, session_id: SessionId) -> Option<BlockNumber>;
 }
 
 /// Default implementation of authority provider trait.
@@ -148,6 +154,43 @@ where
                 .ok()
                 .flatten(),
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct FinalizedBlockProviderImpl<FI>
+where
+    FI: FinalizationInfo,
+{
+    session_info: SessionBoundaryInfo,
+    finalization_info: FI,
+}
+
+impl<FI> FinalizedBlockProviderImpl<FI>
+where
+    FI: FinalizationInfo,
+{
+    pub fn new(finalization_info: FI, session_info: SessionBoundaryInfo) -> Self {
+        Self {
+            session_info,
+            finalization_info,
+        }
+    }
+}
+
+impl<FI> FinalizedBlocksProvider for FinalizedBlockProviderImpl<FI>
+where
+    FI: FinalizationInfo,
+{
+    fn available_finalized_block(&self, session_id: SessionId) -> Option<BlockNumber> {
+        let first_block_in_session = self.session_info.first_block_of_session(session_id);
+        let last_finalized = self.finalization_info.finalized_number();
+        if first_block_in_session > last_finalized {
+            return None;
+        }
+        let last_block_in_session = self.session_info.last_block_of_session(session_id);
+        let best_finalized_block_within_session = min(last_block_in_session, last_finalized);
+        Some(best_finalized_block_within_session)
     }
 }
 

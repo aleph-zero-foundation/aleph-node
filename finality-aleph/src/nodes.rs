@@ -33,7 +33,9 @@ use crate::{
     },
     runtime_api::RuntimeApiImpl,
     session::SessionBoundaryInfo,
-    session_map::{AuthorityProviderImpl, FinalityNotifierImpl, SessionMapUpdater},
+    session_map::{
+        AuthorityProviderImpl, FinalityNotifierImpl, FinalizedBlockProviderImpl, SessionMapUpdater,
+    },
     sync::{DatabaseIO as SyncDatabaseIO, Service as SyncService, IO as SyncIO},
     AlephConfig,
 };
@@ -165,10 +167,18 @@ where
         }
         _ => panic!("the genesis block should be finalized"),
     };
+    let session_block_availability_provider = FinalizedBlockProviderImpl::new(
+        SubstrateFinalizationInfo::new(client.clone()),
+        session_info.clone(),
+    );
+
+    let session_authority_provider =
+        AuthorityProviderImpl::new(client.clone(), RuntimeApiImpl::new(client.clone()));
     let verifier = VerifierCache::new(
         session_info.clone(),
         SubstrateFinalizationInfo::new(client.clone()),
-        AuthorityProviderImpl::new(client.clone(), RuntimeApiImpl::new(client.clone())),
+        session_authority_provider,
+        session_block_availability_provider,
         VERIFIER_CACHE_SIZE,
         genesis_header,
     );

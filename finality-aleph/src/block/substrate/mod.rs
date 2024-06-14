@@ -1,3 +1,4 @@
+use primitives::BlockNumber;
 use sc_consensus::import_queue::{ImportQueueService, IncomingBlock};
 use sp_consensus::BlockOrigin;
 use sp_runtime::traits::{CheckedSub, Header as _, One};
@@ -131,4 +132,9 @@ impl<SC: sp_consensus::SelectChain<Block>> BestBlockSelector<Header> for SC {
     async fn select_best(&self) -> Result<Header, Self::Error> {
         self.best_chain().await
     }
+}
+
+/// Supplies finalized number. Will be unified together with other traits we used in A0-1839.
+pub trait FinalizationInfo: Clone + Send + Sync + 'static {
+    fn finalized_number(&self) -> BlockNumber;
 }

@@ -5,13 +5,16 @@ use std::{
 
 use hex::ToHex;
 use sc_client_api::HeaderBackend;
-use sc_consensus_aura::standalone::PreDigestLookupError;
+use sc_consensus_aura::standalone::{PreDigestLookupError, SealVerificationError};
 use sp_consensus_slots::Slot;
 
 use crate::{
     aleph_primitives::{AccountId, AuraId, Block, BlockNumber, Header},
     block::{
-        substrate::verification::{cache::CacheError, verifier::SessionVerificationError},
+        substrate::{
+            verification::{cache::CacheError, verifier::SessionVerificationError},
+            FinalizationInfo,
+        },
         EquivocationProof as EquivocationProofT, Header as HeaderT,
     },
 };
@@ -21,11 +24,6 @@ mod verifier;
 
 pub use cache::VerifierCache;
 pub use verifier::SessionVerifier;
-
-/// Supplies finalized number. Will be unified together with other traits we used in A0-1839.
-pub trait FinalizationInfo: Clone + Send + Sync + 'static {
-    fn finalized_number(&self) -> BlockNumber;
-}
 
 /// Substrate specific implementation of `FinalizationInfo`
 pub struct SubstrateFinalizationInfo<BE: HeaderBackend<Block>>(Arc<BE>);
@@ -70,6 +68,19 @@ impl Display for HeaderVerificationError {
             IncorrectSeal => write!(f, "incorrect seal"),
             MissingAuthorityData => write!(f, "missing authority data"),
             IncorrectAuthority => write!(f, "incorrect authority"),
+        }
+    }
+}
+
+impl<Header> From<SealVerificationError<Header>> for HeaderVerificationError {
+    fn from(value: SealVerificationError<Header>) -> Self {
+        match value {
+            SealVerificationError::Deferred(_, slot) => Self::HeaderTooNew(slot),
+            SealVerificationError::Unsealed => Self::MissingSeal,
+            SealVerificationError::BadSeal => Self::IncorrectSeal,
+            SealVerificationError::BadSignature => Self::IncorrectAuthority,
+            SealVerificationError::SlotAuthorNotFound => Self::MissingAuthorityData,
+            SealVerificationError::InvalidPreDigest(err) => Self::PreDigestLookupError(err),
         }
     }
 }
@@ -126,6 +137,12 @@ impl From<SessionVerificationError> for VerificationError {
 impl From<CacheError> for VerificationError {
     fn from(e: CacheError) -> Self {
         VerificationError::Cache(e)
+    }
+}
+
+impl From<HeaderVerificationError> for VerificationError {
+    fn from(value: HeaderVerificationError) -> Self {
+        Self::HeaderVerification(value)
     }
 }
 
