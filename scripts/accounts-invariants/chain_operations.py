@@ -2,59 +2,29 @@ import substrateinterface
 from tqdm import tqdm
 import sys
 import logging
+from utils import chunks, format_balance
+import pprint
 
 log = logging.getLogger()
 
 
-def filter_accounts(chain_connection,
-                    ed,
-                    chain_major_version,
-                    check_accounts_predicate,
-                    check_accounts_predicate_name="",
-                    block_hash=None):
+def get_all_accounts(chain_connection, block_hash):
     """
-    Filters out all chain accounts by given predicate.
+    Retrieves all accounts from an AlephNode chain (ie System.Account storage map)
     :param chain_connection: WS handler
-    :param ed: existential deposit
-    :param chain_major_version: enum ChainMajorVersion
-    :param check_accounts_predicate: a function that takes three arguments predicate(account, chain_major_version, ed)
-    :param check_accounts_predicate_name: name of the predicate, used for logging reasons only
     :param block_hash: A block hash to query state from
-    :return: a list which has those chain accounts which returns True on check_accounts_predicate
+    :return: A list of two elem lists (AccountId, AccountInfo)
     """
-    accounts_that_do_meet_predicate = []
-    # query_map reads state from the **single** block, if block_hash is not None this is top of the chain
-    account_query = chain_connection.query_map(module='System',
-                                               storage_function='Account',
-                                               page_size=1000,
-                                               block_hash=block_hash)
-    total_accounts_count = 0
-
-    for (i, (account_id, info)) in tqdm(iterable=enumerate(account_query),
-                                        desc="Accounts checked",
-                                        unit="",
-                                        file=sys.stdout):
-        total_accounts_count += 1
-        if check_accounts_predicate(info, chain_major_version, ed):
-            accounts_that_do_meet_predicate.append([account_id.value, info.serialize()])
-
-    log.info(
-        f"Total accounts that match given predicate {check_accounts_predicate_name} is {len(accounts_that_do_meet_predicate)}")
-    log.info(f"Total accounts checked: {total_accounts_count}")
-    return accounts_that_do_meet_predicate
-
-
-def format_balance(chain_connection, amount):
-    """
-    Helper method to display underlying U128 Balance type in human-readable form
-    :param chain_connection: WS connection handler (for retrieving token symbol metadata)
-    :param amount: ammount to be formatted
-    :return: balance in human-readable form
-    """
-    decimals = chain_connection.token_decimals or 12
-    amount = format(amount / 10 ** decimals)
-    token = chain_connection.token_symbol
-    return f"{amount} {token}"
+    all_accounts = []
+    query_storage_map(chain_connection=chain_connection,
+                      pallet="System",
+                      storage_map="Account",
+                      block_hash=block_hash,
+                      output_container=all_accounts,
+                      output_functor=lambda account_id, storage_value, output_container:
+                      output_container.append((account_id.value, storage_value.serialize()))
+                      )
+    return all_accounts
 
 
 def submit_extrinsic(chain_connection,
@@ -95,10 +65,56 @@ def submit_extrinsic(chain_connection,
         raise e
 
 
-def get_all_accounts(chain_connection, block_hash=None):
-    return filter_accounts(chain_connection=chain_connection,
-                           ed=None,
-                           chain_major_version=None,
-                           check_accounts_predicate=lambda x, y, z: True,
-                           check_accounts_predicate_name="\'all accounts\'",
-                           block_hash=block_hash)
+def batch_fix_accounts_consumers_counter(chain_connection,
+                                         input_args,
+                                         accounts,
+                                         sender_keypair):
+    """
+    Send operations.fix_accounts_consumers_counter call in a batch
+    :param chain_connection: WS connection handler
+    :param input_args: script input arguments returned from argparse
+    :param accounts: list of accounts to fix their consumers counter
+    :param sender_keypair: keypair of sender account
+    :return: None. Can raise exception in case of SubstrateRequestException thrown
+    """
+    for (i, account_ids_chunk) in tqdm(iterable=enumerate(chunks(accounts, input_args.fix_accounts_in_batch)),
+                                       desc="Accounts checked",
+                                       unit="",
+                                       file=sys.stdout):
+        operations_calls = list(map(lambda account: chain_connection.compose_call(
+            call_module='Operations',
+            call_function='fix_accounts_consumers_counter',
+            call_params={
+                'who': account
+            }), account_ids_chunk))
+        batch_call = chain_connection.compose_call(
+            call_module='Utility',
+            call_function='batch_all',
+            call_params={
+                'calls': operations_calls
+            }
+        )
+
+        extrinsic = chain_connection.create_signed_extrinsic(call=batch_call, keypair=sender_keypair)
+        log.info(f"About to send {len(operations_calls)} Operations.fix_accounts_consumers_counter, "
+                 f"from {sender_keypair.ss58_address} to below accounts: "
+                 f"{account_ids_chunk}")
+
+        submit_extrinsic(chain_connection, extrinsic, len(operations_calls), input_args.dry_run)
+
+
+def query_storage_map(chain_connection, pallet, storage_map, block_hash, output_container, output_functor):
+    log.info(f"Querying {pallet}.{storage_map}")
+    query_map_request = chain_connection.query_map(module=pallet,
+                                                   storage_function=storage_map,
+                                                   page_size=1000,
+                                                   block_hash=block_hash)
+    for account_id, storage_value in tqdm(iterable=query_map_request,
+                                          desc="Entries checked",
+                                          unit="",
+                                          file=sys.stdout):
+        output_functor(account_id, storage_value, output_container)
+    log.debug(f"{pallet}.{storage_map} size: {len(output_container)}")
+    log.info(f"Generating pretty print for {pallet}.{storage_map}...")
+    pretty_json_str = pprint.pformat(output_container, compact=True).replace("'",'"')
+    log.debug(f"{pallet}.{storage_map} data: {pretty_json_str}")
