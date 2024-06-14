@@ -6,9 +6,9 @@ use cliain::{
     bond, call, change_validators, code_info, finalize, force_new_era, instantiate,
     instantiate_with_code, next_session_keys, nominate, prepare_keys, prompt_password_hidden,
     remove_code, rotate_keys, schedule_upgrade, set_emergency_finalizer, set_keys,
-    set_staking_limits, store_key, transfer_keep_alive, treasury_approve, treasury_propose,
+    set_staking_limits, transfer_keep_alive, treasury_approve, treasury_propose,
     treasury_reject, update_runtime, upload_code, validate, vest, vest_other, vested_transfer,
-    Command, ConnectionConfig, VkStorage,
+    Command, ConnectionConfig,
 };
 use log::{error, info};
 
@@ -232,14 +232,6 @@ async fn main() -> anyhow::Result<()> {
         {
             Ok(_) => {}
             Err(why) => error!("Unable to schedule an upgrade {:?}", why),
-        },
-
-        Command::VkStorage(cmd) => match cmd {
-            VkStorage::StoreKey { vk_file } => {
-                if let Err(why) = store_key(cfg.get_signed_connection().await, vk_file).await {
-                    error!("Unable to store key: {why:?}")
-                }
-            }
         },
     }
     Ok(())

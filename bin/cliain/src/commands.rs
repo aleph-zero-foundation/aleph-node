@@ -140,16 +140,6 @@ impl From<ExtrinsicState> for TxStatus {
 }
 
 #[derive(Debug, Clone, Subcommand)]
-pub enum VkStorage {
-    /// Store a verification key under an identifier in the pallet's storage.
-    StoreKey {
-        /// Path to a file containing the verification key.
-        #[clap(long)]
-        vk_file: PathBuf,
-    },
-}
-
-#[derive(Debug, Clone, Subcommand)]
 pub enum Command {
     /// Staking call to bond stash with controller
     Bond {
@@ -366,8 +356,4 @@ pub enum Command {
         #[clap(long, value_enum, default_value_t=ExtrinsicState::Finalized)]
         expected_state: ExtrinsicState,
     },
-
-    /// Interact with `pallet_vk_storage`.
-    #[clap(subcommand)]
-    VkStorage(VkStorage),
 }

@@ -10,10 +10,9 @@ mod treasury;
 mod validators;
 mod version_upgrade;
 mod vesting;
-mod vk_storage;
 
 use aleph_client::{keypair_from_string, Connection, RootConnection, SignedConnection};
-pub use commands::{Command, VkStorage};
+pub use commands::{Command};
 pub use contracts::{
     call, code_info, instantiate, instantiate_with_code, remove_code, upload_code,
 };
@@ -29,7 +28,6 @@ pub use treasury::{
 pub use validators::change_validators;
 pub use version_upgrade::schedule_upgrade;
 pub use vesting::{vest, vest_other, vested_transfer};
-pub use vk_storage::store_key;
 
 pub struct ConnectionConfig {
     node_endpoint: String,
