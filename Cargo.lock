@@ -3801,6 +3801,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
 
 [[package]]
+name = "leb128"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "884e2677b40cc8c339eaefcb701c32ef1fd2493d71118dc0ca4b6a736c93bd67"
+
+[[package]]
 name = "libc"
 version = "0.2.155"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5305,11 +5311,13 @@ dependencies = [
 name = "pallet-operations"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "frame-election-provider-support",
  "frame-support",
  "frame-system",
  "log",
  "pallet-balances",
+ "pallet-contracts",
  "pallet-session",
  "pallet-staking",
  "pallet-timestamp",
@@ -5319,6 +5327,8 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-staking",
+ "sp-std",
+ "wat",
 ]
 
 [[package]]
@@ -10072,6 +10082,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af190c94f2773fdb3729c55b007a722abb5384da03bc0986df4c289bf5567e96"
 
 [[package]]
+name = "wasm-encoder"
+version = "0.31.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41763f20eafed1399fff1afb466496d3a959f58241436cfdc17e3f5ca954de16"
+dependencies = [
+ "leb128",
+]
+
+[[package]]
 name = "wasm-instrument"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10387,6 +10406,27 @@ dependencies = [
  "serde",
  "thiserror",
  "wasmparser",
+]
+
+[[package]]
+name = "wast"
+version = "63.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2560471f60a48b77fccefaf40796fda61c97ce1e790b59dfcec9dc3995c9f63a"
+dependencies = [
+ "leb128",
+ "memchr",
+ "unicode-width",
+ "wasm-encoder",
+]
+
+[[package]]
+name = "wat"
+version = "1.0.70"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3bdc306c2c4c2f2bf2ba69e083731d0d2a77437fc6a350a19db139636e7e416c"
+dependencies = [
+ "wast",
 ]
 
 [[package]]

@@ -27,7 +27,8 @@ pub mod pallet {
 
     use crate::{
         traits::{
-            AccountInfoProvider, BalancesProvider, BondedStashProvider, NextKeysSessionProvider,
+            AccountInfoProvider, BalancesProvider, BondedStashProvider, ContractInfoProvider,
+            NextKeysSessionProvider,
         },
         STORAGE_VERSION,
     };
@@ -43,6 +44,8 @@ pub mod pallet {
         type NextKeysSessionProvider: NextKeysSessionProvider<AccountId = Self::AccountId>;
         /// Something that provides information about an account's controller
         type BondedStashProvider: BondedStashProvider<AccountId = Self::AccountId>;
+        /// Something that tells whether an account is contract one
+        type ContractInfoProvider: ContractInfoProvider<AccountId = Self::AccountId>;
     }
 
     #[pallet::pallet]
@@ -53,22 +56,29 @@ pub mod pallet {
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// An account has fixed its consumers counter underflow
-        ConsumersUnderflowFixed { who: T::AccountId },
+        /// A consumers counter was incremented for an account
+        ConsumersCounterIncremented { who: T::AccountId },
+
+        /// A consumers counter was decremented for an account
+        ConsumersCounterDecremented { who: T::AccountId },
     }
 
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// An account can have an underflow of a `consumers` counter.
-        /// Account categories that are impacted by this issue depends on a chain runtime,
-        /// but specifically for AlephNode runtime are as follows:
+        /// An account can have an underflow or overflow of a `consumers` counter.
+        /// Expected consumers counter depends on a chain runtime,
+        /// but specifically for AlephNode runtime is as follows:
         /// +1 consumers if reserved > 0 || frozen > 0
-        /// +1 consumers if there is at least one lock (staking or vesting)
-        /// +1 consumers if there's session.nextKeys set, for controller account
+        /// +1 if the account is a contract one
+        /// +1 consumers for a controller account that is in session.next_keys
         /// +1 consumers if account bonded
         ///
-        ///	`fix_accounts_consumers_underflow` calculates expected consumers counter and comperes
+        ///	`fix_accounts_consumers_counter` calculates expected consumers counter and compares
         /// it with current consumers counter, incrementing by one in case of an underflow
+        /// or decrementing it by one in case of an overflow
+        ///
+        /// When expected is different from current by more than one, you might want to
+        /// call this extrinsic more than once.
         ///
         /// - `origin`: Must be `Signed`.
         /// - `who`: An account to be fixed
@@ -77,12 +87,12 @@ pub mod pallet {
         #[pallet::weight(
         Weight::from_parts(WEIGHT_REF_TIME_PER_MILLIS.saturating_mul(8), 0)
         )]
-        pub fn fix_accounts_consumers_underflow(
+        pub fn fix_accounts_consumers_counter(
             origin: OriginFor<T>,
             who: T::AccountId,
         ) -> DispatchResult {
             ensure_signed(origin)?;
-            Self::fix_underflow_consumer_counter(who)?;
+            Self::fix_consumer_counter(who)?;
             Ok(())
         }
     }

@@ -355,6 +355,7 @@ impl pallet_operations::Config for Runtime {
     type BalancesProvider = Balances;
     type NextKeysSessionProvider = Session;
     type BondedStashProvider = Staking;
+    type ContractInfoProvider = Contracts;
 }
 
 impl pallet_committee_management::Config for Runtime {

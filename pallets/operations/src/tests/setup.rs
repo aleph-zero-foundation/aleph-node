@@ -2,17 +2,21 @@ use frame_support::{
     construct_runtime,
     pallet_prelude::ConstU32,
     parameter_types,
-    traits::{ConstU64, OneSessionHandler},
+    traits::{ConstBool, ConstU64, Contains, OneSessionHandler, Randomness},
     weights::{RuntimeDbWeight, Weight},
 };
-use frame_system::mocking::MockBlock;
+use frame_system::{mocking::MockBlock, pallet_prelude::BlockNumberFor};
+use pallet_staking::BalanceOf;
 use sp_runtime::{
     testing::{UintAuthorityId, H256},
-    traits::{ConvertInto, IdentityLookup},
-    BuildStorage,
+    traits::{Convert, ConvertInto, IdentityLookup},
+    BuildStorage, Perbill,
 };
+use sp_staking::StakerStatus;
+use sp_std::prelude::*;
 
 use crate as pallet_operations;
+
 pub(crate) type AccountId = u64;
 
 construct_runtime!(
@@ -22,6 +26,8 @@ construct_runtime!(
         Operations: pallet_operations,
         Session: pallet_session,
         Staking: pallet_staking,
+        Contracts: pallet_contracts,
+        Timestamp: pallet_timestamp,
     }
 );
 
@@ -81,13 +87,14 @@ impl pallet_balances::Config for TestRuntime {
     type WeightInfo = ();
     type MaxLocks = ();
     type FreezeIdentifier = ();
-    type MaxHolds = ConstU32<0>;
+    type MaxHolds = ConstU32<1>;
     type MaxFreezes = ConstU32<0>;
-    type RuntimeHoldReason = ();
+    type RuntimeHoldReason = RuntimeHoldReason;
     type RuntimeFreezeReason = ();
 }
 
 pub struct OtherSessionHandler;
+
 impl OneSessionHandler<AccountId> for OtherSessionHandler {
     type Key = UintAuthorityId;
 
@@ -172,7 +179,7 @@ impl pallet_staking::Config for TestRuntime {
     type MaxExposurePageSize = ConstU32<64>;
     type OffendingValidatorsThreshold = ();
     type ElectionProvider =
-        frame_election_provider_support::NoElection<(AccountId, u64, Staking, ())>;
+        frame_election_provider_support::NoElection<(AccountId, u64, Staking, ConstU32<1>)>;
     type GenesisElectionProvider = Self::ElectionProvider;
     type VoterList = pallet_staking::UseNominatorsAndValidatorsMap<TestRuntime>;
     type TargetList = pallet_staking::UseValidatorsMap<Self>;
@@ -184,6 +191,73 @@ impl pallet_staking::Config for TestRuntime {
     type BenchmarkingConfig = pallet_staking::TestBenchmarkingConfig;
     type WeightInfo = ();
 }
+pub const UNITS: u128 = 10_000_000_000;
+
+pub const CENTS: u128 = UNITS / 100; // 100_00
+pub const fn deposit(items: u32, bytes: u32) -> u128 {
+    items as u128 * CENTS + (bytes as u128) * CENTS
+}
+
+parameter_types! {
+    pub const DepositPerItem: u128 = deposit(1, 0);
+    pub const DepositPerByte: u128 = deposit(0, 1);
+    pub const DefaultDepositLimit: u128 = deposit(1024, 1024 * 1024);
+    pub Schedule: pallet_contracts::Schedule<TestRuntime> = Default::default();
+    pub const CodeHashLockupDepositPercent: Perbill = Perbill::from_percent(0);
+    pub const MaxDelegateDependencies: u32 = 32;
+}
+
+pub struct DummyRandomness<T: pallet_contracts::Config>(sp_std::marker::PhantomData<T>);
+
+impl<T: pallet_contracts::Config> Randomness<T::Hash, BlockNumberFor<T>> for DummyRandomness<T> {
+    fn random(_subject: &[u8]) -> (T::Hash, BlockNumberFor<T>) {
+        (Default::default(), Default::default())
+    }
+}
+
+#[derive(Clone, Default)]
+pub struct Filters;
+
+impl Contains<RuntimeCall> for Filters {
+    fn contains(_: &RuntimeCall) -> bool {
+        todo!()
+    }
+}
+
+impl Convert<Weight, BalanceOf<Self>> for TestRuntime {
+    fn convert(w: Weight) -> BalanceOf<Self> {
+        w.ref_time().into()
+    }
+}
+
+impl pallet_contracts::Config for TestRuntime {
+    type Time = pallet_timestamp::Pallet<Self>;
+    type Randomness = DummyRandomness<Self>;
+    type Currency = Balances;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
+    type CallFilter = Filters;
+    type WeightPrice = Self;
+    type WeightInfo = ();
+    type ChainExtension = ();
+    type Schedule = Schedule;
+    type CallStack = [pallet_contracts::Frame<Self>; 5];
+    type DepositPerByte = DepositPerByte;
+    type DefaultDepositLimit = DefaultDepositLimit;
+    type DepositPerItem = DepositPerItem;
+    type CodeHashLockupDepositPercent = CodeHashLockupDepositPercent;
+    type AddressGenerator = pallet_contracts::DefaultAddressGenerator;
+    type MaxCodeLen = ConstU32<{ 123 * 1024 }>;
+    type MaxStorageKeyLen = ConstU32<128>;
+    type MaxDelegateDependencies = MaxDelegateDependencies;
+    type UnsafeUnstableInterface = ConstBool<true>;
+    type MaxDebugBufferLen = ConstU32<{ 2 * 1024 * 1024 }>;
+    type RuntimeHoldReason = RuntimeHoldReason;
+    type Migrations = ();
+    type Debug = ();
+    type Environment = ();
+    type Xcm = ();
+}
 
 impl pallet_operations::Config for TestRuntime {
     type RuntimeEvent = RuntimeEvent;
@@ -191,6 +265,7 @@ impl pallet_operations::Config for TestRuntime {
     type BalancesProvider = Balances;
     type NextKeysSessionProvider = Session;
     type BondedStashProvider = Staking;
+    type ContractInfoProvider = Contracts;
 }
 
 pub fn new_test_ext(accounts_and_balances: &[(u64, bool, u128)]) -> sp_io::TestExternalities {
@@ -198,6 +273,8 @@ pub fn new_test_ext(accounts_and_balances: &[(u64, bool, u128)]) -> sp_io::TestE
         &frame_system::GenesisConfig::default(),
     )
     .expect("Storage should be build.");
+
+    assert!(!accounts_and_balances.is_empty());
 
     let balances: Vec<_> = accounts_and_balances
         .iter()
@@ -207,6 +284,29 @@ pub fn new_test_ext(accounts_and_balances: &[(u64, bool, u128)]) -> sp_io::TestE
     pallet_balances::GenesisConfig::<TestRuntime> { balances }
         .assimilate_storage(&mut t)
         .unwrap();
+
+    pallet_staking::GenesisConfig::<TestRuntime> {
+        validator_count: accounts_and_balances
+            .iter()
+            .filter(|(_, is_authority, _)| *is_authority)
+            .count() as u32,
+        minimum_validator_count: 1,
+        invulnerables: vec![],
+        force_era: Default::default(),
+        slash_reward_fraction: Default::default(),
+        canceled_payout: 0,
+        stakers: accounts_and_balances
+            .iter()
+            .filter(|(_, is_authority, _)| *is_authority)
+            .map(|(id, _, balance)| (*id, *id, *balance / 2, StakerStatus::<AccountId>::Validator))
+            .collect(),
+        min_nominator_bond: 1,
+        min_validator_bond: 1,
+        max_validator_count: None,
+        max_nominator_count: None,
+    }
+    .assimilate_storage(&mut t)
+    .unwrap();
 
     pallet_session::GenesisConfig::<TestRuntime> {
         keys: accounts_and_balances
