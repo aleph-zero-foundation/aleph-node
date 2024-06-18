@@ -29,7 +29,7 @@ pallet-timestamp = { workspace = true }
 frame-election-provider-support = { workspace = true }
 anyhow = "1.0.86"
 # Version compatible with Rust 1.74.X
-wat = "=1.0.70"
+wat = "=1.210.0"
 
 [features]
 default = ["std"]
