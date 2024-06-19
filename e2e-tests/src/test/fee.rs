@@ -9,6 +9,7 @@ use aleph_client::{
     waiting::{AlephWaiting, BlockStatus},
     AccountId, SignedConnection, TxStatus,
 };
+use log::info;
 use once_cell::sync::Lazy;
 use primitives::Balance;
 
@@ -37,6 +38,7 @@ pub async fn fee_calculation() -> anyhow::Result<()> {
     let minimal_multiplier = FixedU128::from(1);
 
     let (no_traffic_fee, no_traffic_multiplier) = current_fees(&connection).await;
+    info!("No traffic fee (multiplier): {no_traffic_fee} ({no_traffic_multiplier}).");
     assert_eq!(
         no_traffic_multiplier, minimal_multiplier,
         "In the beginning the fee multiplier should be equal to the minimal value",
@@ -45,6 +47,7 @@ pub async fn fee_calculation() -> anyhow::Result<()> {
     fill_blocks(BlockOccupancy::Low, 10, &connection).await;
 
     let (low_traffic_fee, low_traffic_multiplier) = current_fees(&connection).await;
+    info!("Low traffic fee (multiplier): {low_traffic_fee} ({low_traffic_multiplier}).");
     assert_eq!(
         low_traffic_multiplier, no_traffic_multiplier,
         "Low traffic shouldn't affect the fee multiplier",
@@ -58,6 +61,7 @@ pub async fn fee_calculation() -> anyhow::Result<()> {
     fill_blocks(BlockOccupancy::High, 10, &connection).await;
 
     let (high_traffic_fee, high_traffic_multiplier) = current_fees(&connection).await;
+    info!("High traffic fee (multiplier): {high_traffic_fee} ({high_traffic_multiplier}).");
     assert!(
         high_traffic_multiplier > low_traffic_multiplier,
         "High traffic should lead to higher fee multiplier",
@@ -70,13 +74,16 @@ pub async fn fee_calculation() -> anyhow::Result<()> {
     fill_blocks(BlockOccupancy::High, 10, &connection).await;
 
     let (highest_traffic_fee, highest_traffic_multiplier) = current_fees(&connection).await;
+    info!(
+        "Highest traffic fee (multiplier): {highest_traffic_fee} ({highest_traffic_multiplier})."
+    );
     assert!(
         highest_traffic_multiplier > high_traffic_multiplier,
-        "High traffic should lead to higher fee multiplier",
+        "Sustained high traffic should lead to higher fee multiplier",
     );
     assert!(
         highest_traffic_fee > high_traffic_fee,
-        "High traffic should lead to higher fee"
+        "Sustained high traffic should lead to higher fee"
     );
 
     let now = connection.get_best_block().await.unwrap().unwrap();
@@ -85,6 +92,7 @@ pub async fn fee_calculation() -> anyhow::Result<()> {
         .await;
 
     let (after_traffic_fee, after_traffic_multiplier) = current_fees(&connection).await;
+    info!("After traffic fee (multiplier): {after_traffic_fee} ({after_traffic_multiplier}).");
     assert!(
         after_traffic_multiplier < highest_traffic_multiplier,
         "Lower traffic should lead to lower fee multiplier",
