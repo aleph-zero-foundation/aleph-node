@@ -1,0 +1,109 @@
+---
+#  This workflow builds subxt-cli, starts local one-node consensus chain and
+#  uses subxt codegen to compare live chain data with what is versioned in git
+name: Check runtime metadata
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: "git ref: hash, branch, tag or 'mainnet' or 'testnet'"
+        type: string
+        required: true
+      artifact-aleph-node-image:
+        description: 'Name of aleph-node image stored in GH Artifacts'
+        type: string
+        required: true
+      artifact-chain-bootstrapper-image:
+        description: 'chain-bootstrapper image name in GH artifacts'
+        type: string
+        required: true
+jobs:
+  build-subxt:
+    name: Build subxt
+    runs-on: [self-hosted, Linux, X64, large]
+    env:
+      RUST_BACKTRACE: full
+      RUSTC_WRAPPER: sccache
+    steps:
+      - name: Checkout aleph-node source code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Call action get-ref-properties
+        id: get-ref-properties
+        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v7
+
+      - name: Install Rust toolchain
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v7
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Build subxt-cli
+        shell: bash
+        run: |
+          # same version as in aleph-client's Cargo.toml
+          cargo install subxt-cli --version 0.30.1
+
+      - name: Get subxt-cli path
+        id: get-subxt-path
+        shell: bash
+        run: |
+          subxt_path=$(which subxt)
+          echo "path=${subxt_path}" >> $GITHUB_OUTPUT
+
+      - name: Upload subxt binary to GH artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: subxt-binary
+          path: ${{ steps.get-subxt-path.outputs.path }}
+          if-no-files-found: error
+          retention-days: 7
+
+  check-metadata:
+    name: Check runtime metadata
+    needs: [build-subxt]
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout aleph-node source code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Download node docker image
+        uses: actions/download-artifact@v4
+        with:
+          name: subxt-binary
+
+      - name: Download node docker image
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact-aleph-node-image }}
+
+      - name: Load node docker image
+        shell: bash
+        run: docker load -i aleph-node.tar
+
+      - name: Download chain-bootstrapper image
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact-chain-bootstrapper-image }}
+
+      - name: Load chain-bootstrapper image
+        shell: bash
+        run: docker load -i chain-bootstrapper.tar
+
+      - name: Run consensus party
+        shell: bash
+        run: |
+          ./.github/scripts/run_consensus.sh -n 1
+          sleep 30
+
+      - name: Check metadata
+        shell: bash
+        run: |
+          chmod +x subxt
+          cd aleph-client
+          SUBXT_BINARY=../subxt ./check-runtime-metadata.sh

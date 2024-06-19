@@ -83,7 +83,7 @@ function generate_chainspec() {
 
   echo "Generate chainspec and keystores for accounts: ${account_ids_comma_separated[@]}"
   docker run --rm -v $(pwd)/docker/data:/data --entrypoint "/bin/sh" -e RUST_LOG=debug "${CHAIN_BOOTSTRAPPER_IMAGE}" \
-  -c "chain-bootstrapper bootstrap-chain --base-path /data --account-ids ${account_ids_comma_separated} --authorities-account-ids ${validator_ids_comma_separated}  > /data/chainspec.json"
+  -c "chain-bootstrapper bootstrap-chain --base-path /data --account-ids ${account_ids_comma_separated} --authorities-account-ids ${validator_ids_comma_separated} --raw > /data/chainspec.json"
 }
 
 function generate_bootnode_peer_id() {

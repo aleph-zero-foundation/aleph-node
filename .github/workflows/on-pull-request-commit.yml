@@ -49,6 +49,18 @@ jobs:
     name: Check production node and runtime
     uses: ./.github/workflows/_check-production-node-and-runtime.yml
 
+  check-runtime-metadata:
+    name: Check runtime metadata
+    needs:
+      - build-test-aleph-node
+      - build-chain-bootstrapper
+    uses: ./.github/workflows/_check-runtime-metadata.yml
+    with:
+      ref: ${{ github.ref }}
+      artifact-aleph-node-image: ${{ needs.build-test-aleph-node.outputs.artifact-name-image }}
+      # yamllint disable-line rule:line-length
+      artifact-chain-bootstrapper-image: ${{ needs.build-chain-bootstrapper.outputs.artifact-name-image }}
+
   build-test-aleph-node:
     name: Build test aleph-node
     uses: ./.github/workflows/_build-aleph-node.yml
