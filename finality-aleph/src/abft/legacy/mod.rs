@@ -9,7 +9,7 @@ mod traits;
 
 pub use network::NetworkData;
 
-pub use crate::aleph_primitives::{BlockHash, BlockNumber, LEGACY_FINALITY_VERSION as VERSION};
+pub use crate::aleph_primitives::LEGACY_FINALITY_VERSION as VERSION;
 use crate::{
     abft::{
         common::{unit_creation_delay_fn, MAX_ROUNDS, SESSION_LEN_LOWER_BOUND_MS},

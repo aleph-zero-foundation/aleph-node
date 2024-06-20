@@ -28,7 +28,7 @@ pub use legacy::{
 };
 pub use network::NetworkWrapper;
 use parity_scale_codec::{Decode, Encode};
-pub use traits::{Hash, SpawnHandle, Wrapper as HashWrapper};
+pub use traits::{SpawnHandle, Wrapper as HashWrapper};
 pub use types::{NodeCount, NodeIndex, Recipient};
 
 /// Wrapper for `SignatureSet` to be able to implement both legacy and current `PartialMultisignature` trait.

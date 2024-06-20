@@ -1,5 +1,3 @@
-#![cfg(test)]
-
 use frame_support::{storage_alias, traits::OneSessionHandler};
 use primitives::VersionChange;
 

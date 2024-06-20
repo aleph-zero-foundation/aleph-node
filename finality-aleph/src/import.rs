@@ -222,8 +222,9 @@ where
         debug!(target: "aleph-justification", "import_justification called on {:?}", justification);
         self.send_justification(BlockId::new(hash, number), justification)
             .map_err(|error| match error {
-                Send(_) => ConsensusError::ClientImport(String::from(
-                    "Could not send justification to ConsensusParty",
+                Send(e) => ConsensusError::ClientImport(format!(
+                    "Could not send justification {:?} to ConsensusParty ",
+                    (*e).into_inner()
                 )),
                 Consensus(e) => *e,
                 Decode(e) => ConsensusError::ClientImport(format!(

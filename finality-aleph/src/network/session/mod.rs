@@ -26,8 +26,6 @@ mod service;
 
 pub use compatibility::{DiscoveryMessage, VersionedAuthentication};
 use connections::Connections;
-#[cfg(test)]
-pub use data::DataInSession;
 pub use discovery::Discovery;
 #[cfg(test)]
 pub use handler::tests::authentication;

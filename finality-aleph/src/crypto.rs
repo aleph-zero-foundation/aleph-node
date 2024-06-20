@@ -1,4 +1,4 @@
-use std::{convert::TryInto, sync::Arc};
+use std::sync::Arc;
 
 use parity_scale_codec::{Decode, Encode};
 use sc_keystore::{Keystore, LocalKeystore};
@@ -15,7 +15,6 @@ use crate::{
 pub enum Error {
     KeyMissing(AuthorityId),
     Keystore(KeystoreError),
-    Conversion,
 }
 
 #[derive(PartialEq, Eq, Clone, Debug, Hash, Decode, Encode)]
@@ -51,8 +50,7 @@ impl AuthorityPen {
             .ed25519_sign(key_type, &authority_id.clone().into(), b"test")
             .map_err(Error::Keystore)?
             .ok_or_else(|| Error::KeyMissing(authority_id.clone()))?
-            .try_into()
-            .map_err(|_| Error::Conversion)?;
+            .into();
         Ok(AuthorityPen {
             key_type_id: key_type,
             authority_id,
@@ -75,8 +73,7 @@ impl AuthorityPen {
                 .ed25519_sign(self.key_type_id, &self.authority_id.clone().into(), msg)
                 .expect("the keystore works")
                 .expect("we have the required key")
-                .try_into()
-                .expect("the bytes encode a signature"),
+                .into(),
         )
     }
 

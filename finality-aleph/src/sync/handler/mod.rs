@@ -171,7 +171,7 @@ where
     Finalizer(F::Error),
     Forest(ForestError),
     ForestInitialization(ForestInitializationError<B, J, CS>),
-    RequestHandlerError(RequestHandlerError<CS::Error>),
+    RequestHandler(RequestHandlerError<CS::Error>),
     MissingJustification,
     BlockNotImportable(BlockId),
     HeaderNotRequired(BlockId),
@@ -195,7 +195,7 @@ where
             Finalizer(e) => write!(f, "finalized error: {e}"),
             Forest(e) => write!(f, "forest error: {e}"),
             ForestInitialization(e) => write!(f, "forest initialization error: {e}"),
-            RequestHandlerError(e) => write!(f, "request handler error: {e}"),
+            RequestHandler(e) => write!(f, "request handler error: {e}"),
             MissingJustification => write!(
                 f,
                 "justification for the last block of a past session missing"
@@ -239,7 +239,7 @@ where
     F: Finalizer<J>,
 {
     fn from(e: RequestHandlerError<CS::Error>) -> Self {
-        Error::RequestHandlerError(e)
+        Error::RequestHandler(e)
     }
 }
 
@@ -408,7 +408,7 @@ where
             // or our favourite is not a descendant of theirs.
             // Either way, at least try sending some justifications.
             Ok((Action::Noop, _))
-            | Err(Error::RequestHandlerError(RequestHandlerError::RootMismatch)) => {
+            | Err(Error::RequestHandler(RequestHandlerError::RootMismatch)) => {
                 let request = Request::new(
                     state.top_justification().header().clone(),
                     BranchKnowledge::TopImported(state.top_justification().header().id()),

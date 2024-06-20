@@ -268,7 +268,7 @@ where
 
     fn slot_author(
         slot: Slot,
-        aura_authorities: &Vec<AuraId>,
+        aura_authorities: &[AuraId],
         authority_accounts: Option<&Vec<AccountId>>,
     ) -> Result<(AuraId, Option<AccountId>), ()> {
         let expected_author = slot_author::<AuthorityPair>(slot, aura_authorities).ok_or(())?;

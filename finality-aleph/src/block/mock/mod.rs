@@ -13,7 +13,7 @@ use crate::{
 mod backend;
 mod status_notifier;
 
-pub use backend::{Backend, EquivocationProof as MockEquivocationProof};
+pub use backend::Backend;
 
 impl BlockId {
     pub fn new_random(number: BlockNumber) -> Self {

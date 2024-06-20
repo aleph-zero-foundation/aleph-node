@@ -1,5 +1,3 @@
-#![cfg(test)]
-
 use frame_support::{
     construct_runtime,
     pallet_prelude::ConstU32,
