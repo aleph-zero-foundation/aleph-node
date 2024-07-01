@@ -51,7 +51,6 @@ sp-transaction-pool = { workspace = true }
 frame-benchmarking-cli = { workspace = true, optional = true }
 frame-benchmarking = { workspace = true, optional = true }
 
-aleph-runtime-interfaces = { workspace = true }
 finality-aleph = { workspace = true }
 primitives = { workspace = true }
 fake-runtime-api = { workspace = true, features = ["std"] }
@@ -85,7 +84,6 @@ std = [
     "sp-transaction-pool/std",
     "primitives/std",
     "sp-io/std",
-    "aleph-runtime-interfaces/std",
 ]
 runtime-benchmarks = [
     "aleph-runtime-native",

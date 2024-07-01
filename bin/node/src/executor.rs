@@ -14,10 +14,7 @@ pub mod aleph_executor {
 
     use super::Configuration;
 
-    type ExtendHostFunctions = (
-        sp_io::SubstrateHostFunctions,
-        aleph_runtime_interfaces::snark_verifier::HostFunctions,
-    );
+    type ExtendHostFunctions = (sp_io::SubstrateHostFunctions,);
     pub type Executor = WasmExecutor<ExtendHostFunctions>;
 
     pub fn get_executor(config: &Configuration) -> Executor {
@@ -39,13 +36,10 @@ pub mod aleph_executor {
 
     impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
         #[cfg(feature = "runtime-benchmarks")]
-        type ExtendHostFunctions = (
-            aleph_runtime_interfaces::snark_verifier::HostFunctions,
-            frame_benchmarking::benchmarking::HostFunctions,
-        );
+        type ExtendHostFunctions = (frame_benchmarking::benchmarking::HostFunctions,);
 
         #[cfg(not(feature = "runtime-benchmarks"))]
-        type ExtendHostFunctions = (aleph_runtime_interfaces::snark_verifier::HostFunctions,);
+        type ExtendHostFunctions = ();
 
         fn dispatch(method: &str, data: &[u8]) -> Option<Vec<u8>> {
             aleph_runtime::api::dispatch(method, data)

@@ -17,20 +17,16 @@ members = [
     "pallets/support",
     "primitives",
     "rate-limiter",
-    "runtime-interfaces",
 ]
 
 exclude = [
     "aleph-client",
-    "baby-liminal-extension",
     "benches/payout-stakers",
     "bin/cliain",
     "bin/finalizer",
     "contracts/adder",
     "e2e-tests",
     "flooder",
-    "pallets/feature-control",
-    "pallets/vk-storage",
     "scripts/synthetic-network/synthetic-link",
 ]
 
@@ -177,14 +173,10 @@ substrate-wasm-builder = { git = "https://github.com/Cardinal-Cryptography/polka
 
 try-runtime-cli = { git = "https://github.com/Cardinal-Cryptography/polkadot-sdk.git", branch = "aleph-v1.6.0" }
 
-halo2_proofs = { git = "https://github.com/Cardinal-Cryptography/pse-halo2", branch = "aleph", default-features = false }
-
 # Local crates
 
 fake-runtime-api = { path = "bin/fake-runtime-api", default-features = false }
 aleph-runtime = { path = "bin/runtime" }
-aleph-runtime-interfaces = { path = "runtime-interfaces", default-features = false }
-baby-liminal-extension = { path = "baby-liminal-extension", default-features = false }
 finality-aleph = { path = "finality-aleph" }
 network-clique = { path = "clique" }
 rate-limiter = { path = "rate-limiter" }
@@ -192,8 +184,6 @@ pallet-aleph = { path = "pallets/aleph", default-features = false }
 pallet-aleph-runtime-api = { path = "pallets/aleph-runtime-api", default-features = false }
 pallet-committee-management = { path = "pallets/committee-management", default-features = false }
 pallet-elections = { path = "pallets/elections", default-features = false }
-pallet-feature-control = { path = "pallets/feature-control", default-features = false }
 pallet-operations = { path = "pallets/operations", default-features = false }
 pallets-support = { path = "pallets/support", default-features = false }
-pallet-vk-storage = { path = "pallets/vk-storage", default-features = false }
 primitives = { path = "primitives", default-features = false }
