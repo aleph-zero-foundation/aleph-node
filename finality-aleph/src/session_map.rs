@@ -555,7 +555,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn genesis_catch_up() {
-        let (_sender, receiver) = tracing_unbounded("test", 1_000);
+        let (_, receiver) = tracing_unbounded("test", 1_000);
         let mut mock_provider = MockProvider::new();
         let mock_notifier = MockNotifier::new(receiver);
 
@@ -564,10 +564,7 @@ mod tests {
         let updater = SessionMapUpdater::new(mock_provider, mock_notifier, SessionPeriod(1));
         let session_map = updater.readonly_session_map();
 
-        let _handle = tokio::spawn(updater.run());
-
-        // wait a bit
-        Delay::new(Duration::from_millis(50)).await;
+        updater.run().await;
 
         assert_eq!(
             session_map.get(SessionId(0)).await,
@@ -596,10 +593,8 @@ mod tests {
             sender.unbounded_send(n).unwrap();
         }
 
-        let _handle = tokio::spawn(updater.run());
-
-        // wait a bit
-        Delay::new(Duration::from_millis(50)).await;
+        drop(sender);
+        updater.run().await;
 
         assert_eq!(
             session_map.get(SessionId(0)).await,
@@ -621,7 +616,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn catch_up() {
-        let (_sender, receiver) = tracing_unbounded("test", 1_000);
+        let (_, receiver) = tracing_unbounded("test", 1_000);
         let mut mock_provider = MockProvider::new();
         let mut mock_notificator = MockNotifier::new(receiver);
 
@@ -634,10 +629,7 @@ mod tests {
         let updater = SessionMapUpdater::new(mock_provider, mock_notificator, SessionPeriod(1));
         let session_map = updater.readonly_session_map();
 
-        let _handle = tokio::spawn(updater.run());
-
-        // wait a bit
-        Delay::new(Duration::from_millis(50)).await;
+        updater.run().await;
 
         assert_eq!(
             session_map.get(SessionId(0)).await,
@@ -659,7 +651,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn catch_up_old_sessions() {
-        let (_sender, receiver) = tracing_unbounded("test", 1_000);
+        let (_, receiver) = tracing_unbounded("test", 1_000);
         let mut mock_provider = MockProvider::new();
         let mut mock_notificator = MockNotifier::new(receiver);
 
@@ -672,10 +664,7 @@ mod tests {
         let updater = SessionMapUpdater::new(mock_provider, mock_notificator, SessionPeriod(1));
         let session_map = updater.readonly_session_map();
 
-        let _handle = tokio::spawn(updater.run());
-
-        // wait a bit
-        Delay::new(Duration::from_millis(50)).await;
+        updater.run().await;
 
         for i in 0..FIRST_THRESHOLD {
             assert_eq!(
@@ -695,7 +684,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn deals_with_database_pruned_authorities() {
-        let (_sender, receiver) = tracing_unbounded("test", 1_000);
+        let (_, receiver) = tracing_unbounded("test", 1_000);
         let mut mock_provider = MockProvider::new();
         let mut mock_notificator = MockNotifier::new(receiver);
 
@@ -705,10 +694,7 @@ mod tests {
         let updater = SessionMapUpdater::new(mock_provider, mock_notificator, SessionPeriod(1));
         let session_map = updater.readonly_session_map();
 
-        let _handle = tokio::spawn(updater.run());
-
-        // wait a bit
-        Delay::new(Duration::from_millis(50)).await;
+        updater.run().await;
 
         for i in 0..5 {
             assert_eq!(
@@ -741,14 +727,14 @@ mod tests {
         let updater = SessionMapUpdater::new(mock_provider, mock_notificator, SessionPeriod(1));
         let session_map = updater.readonly_session_map();
 
-        let _handle = tokio::spawn(updater.run());
+        let handle = tokio::spawn(updater.run());
 
         for n in 1..FIRST_THRESHOLD {
             sender.unbounded_send(n).unwrap();
         }
 
         // wait a bit
-        Delay::new(Duration::from_millis(50)).await;
+        Delay::new(Duration::from_millis(100)).await;
 
         for i in 0..=FIRST_THRESHOLD {
             assert_eq!(
@@ -762,7 +748,7 @@ mod tests {
             assert_eq!(
                 session_map.get(SessionId(i)).await,
                 None,
-                "Session {i:?} should not be avalable yet"
+                "Session {i:?} should not be available yet"
             );
         }
 
@@ -770,7 +756,8 @@ mod tests {
             sender.unbounded_send(n).unwrap();
         }
 
-        Delay::new(Duration::from_millis(50)).await;
+        drop(sender);
+        handle.await.unwrap();
 
         for i in 0..(FIRST_THRESHOLD - 1) {
             assert_eq!(
@@ -784,7 +771,7 @@ mod tests {
             assert_eq!(
                 session_map.get(SessionId(i)).await,
                 Some(authority_data_for_session(i)),
-                "Session {i:?} should be avalable"
+                "Session {i:?} should be available"
             );
         }
     }
