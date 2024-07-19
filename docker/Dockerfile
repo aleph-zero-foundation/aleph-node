@@ -7,12 +7,12 @@ RUN apt update && \
 
 EXPOSE 30333 30343 9944
 
-WORKDIR node
+WORKDIR /node
 
-COPY target/release/aleph-node /usr/local/bin
+COPY ../target/release/aleph-node /usr/local/bin
 RUN chmod +x /usr/local/bin/aleph-node
 
-COPY docker/docker_entrypoint.sh /node/docker_entrypoint.sh
+COPY docker_entrypoint.sh /node/docker_entrypoint.sh
 RUN chmod +x /node/docker_entrypoint.sh
 
 ENTRYPOINT ["./docker_entrypoint.sh"]
