@@ -54,7 +54,19 @@ impl BootstrapChainCmd {
         let account_ids = self.chain_spec_params.account_ids();
         let mut authorities = self.chain_spec_params.authorities_account_ids();
         if authorities.is_empty() {
+            if account_ids.is_empty() {
+                return Err(
+                    ("Both --account-ids and --authorities-account-ids are empty. \
+                              Please specify at least one account.")
+                        .into(),
+                );
+            }
             authorities = account_ids.clone();
+        } else if !authorities
+            .iter()
+            .all(|authority| account_ids.contains(authority))
+        {
+            return Err("--authorities-account-ids must be a subset of --accounts-ids.".into());
         }
 
         let account_session_keys = self

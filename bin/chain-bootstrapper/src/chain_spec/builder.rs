@@ -66,7 +66,7 @@ fn calculate_initial_endowment(accounts: &[AccountId]) -> u128 {
     // (A0-4258) due to known issue https://github.com/paritytech/polkadot-sdk/pull/2987/files,
     // we need to make sure returned number is in u64 range, otherwise serde_json::json macro fails
     // this is fixed in polkadot-sdk 1.6.0
-    total_issuance / (accounts.len() as u128) / 10
+    total_issuance / (accounts.len() as u128) / 100
 }
 
 /// Configure initial storage state for FRAME modules.

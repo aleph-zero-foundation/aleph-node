@@ -25,13 +25,13 @@ pub struct ChainSpecParams {
     token_symbol: String,
 
     /// all account ids that needs to have session keys generated when bootstraping chain (comma delimited)
-    #[arg(long, value_delimiter = ',', value_parser = parse_account_id, num_args = 1..)]
+    #[arg(long, value_delimiter = ',', value_parser = parse_account_id)]
     account_ids: Vec<AccountId>,
 
     /// AccountIds of authorities forming the committee at the genesis (comma delimited)
     /// If empty, then `--account-ids` are used as authorities.
-    /// If not empty, it should ba a subset of `--account-ids`.
-    #[arg(long, value_delimiter = ',', value_parser = parse_account_id, num_args = 1..)]
+    /// If not empty, it should be a subset of `--account-ids`.
+    #[arg(long, value_delimiter = ',', value_parser = parse_account_id)]
     authorities_account_ids: Vec<AccountId>,
 
     /// AccountId of the sudo account
@@ -39,7 +39,7 @@ pub struct ChainSpecParams {
     sudo_account_id: AccountId,
 
     /// Accounts that will receive initial endowment in genesis block
-    #[arg(long, value_delimiter = ',', value_parser = parse_account_id, num_args = 1..)]
+    #[arg(long, value_delimiter = ',', value_parser = parse_account_id)]
     rich_account_ids: Option<Vec<AccountId>>,
 
     /// Finality version at chain inception.
