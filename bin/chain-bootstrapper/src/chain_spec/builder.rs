@@ -63,10 +63,7 @@ pub fn build_chain_spec(
 /// Calculate initial endowments such that total issuance is kept approximately constant.
 fn calculate_initial_endowment(accounts: &[AccountId]) -> u128 {
     let total_issuance = 300_000_000u128 * 10u128.pow(TOKEN_DECIMALS);
-    // (A0-4258) due to known issue https://github.com/paritytech/polkadot-sdk/pull/2987/files,
-    // we need to make sure returned number is in u64 range, otherwise serde_json::json macro fails
-    // this is fixed in polkadot-sdk 1.6.0
-    total_issuance / (accounts.len() as u128) / 100
+    total_issuance / (accounts.len() as u128)
 }
 
 /// Configure initial storage state for FRAME modules.
