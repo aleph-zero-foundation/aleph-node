@@ -1637,6 +1637,7 @@ pub mod pallet_template {
 
     #[derive(Encode, Decode, MaxEncodedLen, TypeInfo, Debug, Clone, PartialEq, Eq)]
     pub struct FSEvent {
+        pub eventtype: [u8; 64],
         pub creationtime: [u8; 64],
         pub filepath: [u8; 256],
         pub eventkey: [u8; 128],
@@ -1644,7 +1645,12 @@ pub mod pallet_template {
 
     #[pallet::storage]
     #[pallet::getter(fn info)]
-    pub(super) type DisReAssembly<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, FSEvent, OptionQuery>;
+    // pub(super) type DisReAssembly<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, FSEvent, OptionQuery>;
+    pub(super) type DisReAssembly<T: Config> = StorageDoubleMap< _, Blake2_128Concat, T::AccountId, Blake2_128Concat, u64, FSEvent, OptionQuery>;
+
+    #[pallet::storage]
+    #[pallet::getter(fn nonces)]
+    pub(super) type Nonces<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, u64, ValueQuery>;
 
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
@@ -1655,6 +1661,7 @@ pub mod pallet_template {
 
     #[pallet::error]
     pub enum Error<T> {
+        EventTypeTooLong,
         CreationTimeTooLong,
         FilePathTooLong,
         EventKeyTooLong,
@@ -1666,17 +1673,24 @@ pub mod pallet_template {
         #[pallet::weight((Weight::from_parts(10_000, 0) + T::DbWeight::get().writes(1), DispatchClass::Operational))]
         pub fn disassembled(
             origin: OriginFor<T>,
+            event_type: Vec<u8>,
             creation_time: Vec<u8>,
             file_path: Vec<u8>,
             event_key: Vec<u8>,
         ) -> DispatchResult {
             let sender = ensure_signed(origin)?;
 
+            ensure!(event_type.len() <= 64, Error::<T>::EventTypeTooLong);
             ensure!(creation_time.len() <= 64, Error::<T>::CreationTimeTooLong);
             ensure!(file_path.len() <= 256, Error::<T>::FilePathTooLong);
             ensure!(event_key.len() <= 128, Error::<T>::EventKeyTooLong);
 
             let event = FSEvent {
+                eventtype: {
+                    let mut arr = [0u8; 64];
+                    arr[..event_type.len()].copy_from_slice(&event_type);
+                    arr
+                },
                 creationtime: {
                     let mut arr = [0u8; 64];
                     arr[..creation_time.len()].copy_from_slice(&creation_time);
@@ -1694,7 +1708,11 @@ pub mod pallet_template {
                 },
             };
 
-            <DisReAssembly<T>>::insert(&sender, &event);
+            let nonce = Nonces::<T>::get(&sender);
+            <DisReAssembly<T>>::insert(&sender, nonce, &event);
+            Nonces::<T>::insert(&sender, nonce + 1);
+
+            // <DisReAssembly<T>>::insert(&sender, &event);
 
             Self::deposit_event(Event::<T>::FileDisassembled { who: sender.clone(), event: event.clone() });
 
@@ -1705,17 +1723,24 @@ pub mod pallet_template {
         #[pallet::weight((Weight::from_parts(10_000, 0) + T::DbWeight::get().writes(1), DispatchClass::Operational))]
         pub fn reassembled(
             origin: OriginFor<T>,
+            event_type: Vec<u8>,
             creation_time: Vec<u8>,
             file_path: Vec<u8>,
             event_key: Vec<u8>,
         ) -> DispatchResult {
             let sender = ensure_signed(origin)?;
 
+            ensure!(event_type.len() <= 64, Error::<T>::EventTypeTooLong);
             ensure!(creation_time.len() <= 64, Error::<T>::CreationTimeTooLong);
             ensure!(file_path.len() <= 256, Error::<T>::FilePathTooLong);
             ensure!(event_key.len() <= 128, Error::<T>::EventKeyTooLong);
 
             let event = FSEvent {
+                eventtype: {
+                    let mut arr = [0u8; 64];
+                    arr[..event_type.len()].copy_from_slice(&event_type);
+                    arr
+                },
                 creationtime: {
                     let mut arr = [0u8; 64];
                     arr[..creation_time.len()].copy_from_slice(&creation_time);
@@ -1733,7 +1758,11 @@ pub mod pallet_template {
                 },
             };
 
-            <DisReAssembly<T>>::insert(&sender, &event);
+            let nonce = Nonces::<T>::get(&sender);
+            <DisReAssembly<T>>::insert(&sender, nonce, &event);
+            Nonces::<T>::insert(&sender, nonce + 1);
+            
+            // <DisReAssembly<T>>::insert(&sender, &event);
 
             Self::deposit_event(Event::<T>::FileReassembled { who: sender.clone(), event: event.clone() });
 
