@@ -1,0 +1,39 @@
+FROM node:20.3.0-bookworm
+
+# Rust nightly
+RUN apt-get update && apt-get install -y curl build-essential
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+    | sh -s -- --default-toolchain nightly-2022-10-30 -y
+ENV PATH=${PATH}:/root/.cargo/bin
+
+# Add and build rush (synthetic network backend / userspace proxy)
+ADD rush /opt/src/rush
+WORKDIR /opt/src/rush
+RUN cargo +nightly-2022-10-30 build --release
+RUN mkdir -p /opt/lib/ && cp /opt/src/rush/target/release/rush /opt/lib/rush
+
+FROM node:20.3.0-bookworm
+
+# Linux networking tools
+RUN apt-get update && apt-get install -y \
+    iproute2 ethtool iputils-ping iperf3 python3 lsof tcpdump net-tools
+
+# TigerVNC and ratposion
+# build with `--build-arg VNC=true`
+# (you can run for example:
+#    /opt/lib/run-in-vnc.sh chromium --disable-gpu --no-sandbox
+#  to have a VNC server with chromium listening on port 5901)
+ADD run-in-vnc.sh /opt/lib/
+ARG VNC
+RUN if [ -n "$VNC" ] ; then apt-get install -y tigervnc-standalone-server ratpoison ; else echo "No VNC for you" ; fi
+
+# Copy rush
+COPY --from=0 /opt/lib/rush /opt/lib/rush
+
+# Add frontend (synthetic network web UI)
+ADD frontend /opt/lib/frontend
+
+# Entrypoint / test setup
+ADD setup.sh /opt/lib/
+WORKDIR /opt/lib
+CMD ["/opt/lib/setup.sh"]
