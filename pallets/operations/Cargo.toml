@@ -27,7 +27,7 @@ sp-std = { workspace = true }
 sp-io = { workspace = true }
 pallet-timestamp = { workspace = true }
 frame-election-provider-support = { workspace = true }
-anyhow = "1.0.86"
+anyhow = "1.0.89"
 wat = "1"
 
 [features]
