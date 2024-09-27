@@ -152,9 +152,9 @@ parameter_types! {
     pub static BondingDuration: u32 = 3;
 }
 
-pub struct UniformEraPayout;
+pub struct ZeroEraPayout;
 
-impl pallet_staking::EraPayout<u128> for UniformEraPayout {
+impl pallet_staking::EraPayout<u128> for ZeroEraPayout {
     fn era_payout(_: u128, _: u128, _: u64) -> (u128, u128) {
         (0, 0)
     }
@@ -174,7 +174,7 @@ impl pallet_staking::Config for TestRuntime {
     type AdminOrigin = frame_system::EnsureRoot<Self::AccountId>;
     type BondingDuration = BondingDuration;
     type SessionInterface = ();
-    type EraPayout = UniformEraPayout;
+    type EraPayout = ZeroEraPayout;
     type NextNewSession = ();
     type MaxExposurePageSize = ConstU32<64>;
     type OffendingValidatorsThreshold = ();

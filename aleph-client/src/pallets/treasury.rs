@@ -1,12 +1,10 @@
-use primitives::{staking::era_payout, MILLISECS_PER_BLOCK};
 use subxt::utils::{MultiAddress, Static};
 
 use crate::{
     api,
-    connections::{AsConnection, TxInfo},
+    connections::TxInfo,
     frame_support::PalletId,
     pallet_treasury::pallet::Call::{approve_proposal, reject_proposal},
-    pallets::{committee_management::CommitteeManagementApi, staking::StakingApi},
     sp_core::TypeId,
     sp_runtime::traits::AccountIdConversion,
     AccountId, Balance, BlockHash,
@@ -50,14 +48,6 @@ pub trait TreasuryUserApi {
 
     /// API for [`reject_proposal`](https://paritytech.github.io/substrate/master/pallet_treasury/pallet/struct.Pallet.html#method.reject_proposal) call.
     async fn reject(&self, proposal_id: u32, status: TxStatus) -> anyhow::Result<TxInfo>;
-}
-
-/// Pallet treasury funcionality that is not directly related to any pallet call.
-#[async_trait::async_trait]
-pub trait TreasureApiExt {
-    /// When `staking.payout_stakers` is done, what amount of AZERO is transferred to.
-    /// the treasury
-    async fn possible_treasury_payout(&self) -> anyhow::Result<Balance>;
 }
 
 /// Pallet treasury api issued by the sudo account.
@@ -131,16 +121,5 @@ impl TreasurySudoApi for RootConnection {
         let call = Treasury(reject_proposal { proposal_id });
 
         self.sudo_unchecked(call, status).await
-    }
-}
-
-#[async_trait::async_trait]
-impl<C: AsConnection + Sync> TreasureApiExt for C {
-    async fn possible_treasury_payout(&self) -> anyhow::Result<Balance> {
-        let session_period = self.get_session_period().await?;
-        let sessions_per_era = self.get_session_per_era().await?;
-        let millisecs_per_era =
-            MILLISECS_PER_BLOCK * session_period as u64 * sessions_per_era as u64;
-        Ok(era_payout(millisecs_per_era).1)
     }
 }

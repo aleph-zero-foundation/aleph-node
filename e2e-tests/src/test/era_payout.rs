@@ -8,8 +8,7 @@ use aleph_client::{
     TxStatus,
 };
 use primitives::{
-    staking::era_payout, EraIndex, DEFAULT_SESSIONS_PER_ERA, DEFAULT_SESSION_PERIOD,
-    MILLISECS_PER_BLOCK,
+    EraIndex, DEFAULT_SESSIONS_PER_ERA, DEFAULT_SESSION_PERIOD, MILLISECS_PER_BLOCK, TOKEN,
 };
 
 use crate::config::{setup_test, Config};
@@ -66,7 +65,12 @@ async fn force_era_payout(config: &Config) -> anyhow::Result<()> {
     let payout = root_connection.get_payout_for_era(active_era, None).await;
 
     let expected_era_duration = (3 * DEFAULT_SESSION_PERIOD) as u64 * MILLISECS_PER_BLOCK;
-    let expected_payout = era_payout(expected_era_duration).0;
+
+    // These must be adjusted every time we change the default values of:
+    // * AzeroCap
+    // * ExponentialInflationHorizon
+    let expected_payout = 1776 * TOKEN;
+    let delta = 3 * TOKEN;
 
     assert_within_delta_interval(
         expected_era_duration,
@@ -75,13 +79,7 @@ async fn force_era_payout(config: &Config) -> anyhow::Result<()> {
         "era duration",
         "Probably chain hasn't started correctly, try rerunning the test",
     );
-    assert_within_delta_interval(
-        expected_payout,
-        payout,
-        era_payout(2 * MILLISECS_PER_BLOCK).0,
-        "payout",
-        "",
-    );
+    assert_within_delta_interval(expected_payout, payout, delta, "payout", "");
     Ok(())
 }
 
@@ -94,11 +92,17 @@ async fn normal_era_payout(config: &Config) -> anyhow::Result<()> {
     let payout = root_connection
         .get_payout_for_era(active_era - 1, None)
         .await;
+
     let actual_duration = get_era_duration(active_era - 1, &root_connection).await;
 
     let expected_era_duration =
         (DEFAULT_SESSIONS_PER_ERA * DEFAULT_SESSION_PERIOD) as u64 * MILLISECS_PER_BLOCK;
-    let expected_payout = era_payout(expected_era_duration).0;
+
+    // These must be adjusted every time we change the default values of:
+    // * AzeroCap
+    // * ExponentialInflationHorizon
+    let expected_payout = 1776 * TOKEN;
+    let delta = 3 * TOKEN;
 
     assert_within_delta_interval(
         expected_era_duration,
@@ -107,13 +111,7 @@ async fn normal_era_payout(config: &Config) -> anyhow::Result<()> {
         "era duration",
         "Probably chain hasn't started correctly, try rerunning the test",
     );
-    assert_within_delta_interval(
-        expected_payout,
-        payout,
-        era_payout(2 * MILLISECS_PER_BLOCK).0,
-        "payout",
-        "",
-    );
+    assert_within_delta_interval(expected_payout, payout, delta, "payout", "");
 
     Ok(())
 }
@@ -133,7 +131,7 @@ fn assert_within_delta_interval<T>(
 {
     let start = expected - delta;
     let end = expected + delta;
-    let within_delta = start <= expected && expected <= end;
+    let within_delta = start <= actual && actual <= end;
     assert!(
         within_delta,
         "{quantity_name} should fall within range: [{start}, {end}] but was {actual}. {extra_msg_on_fail}",
