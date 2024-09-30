@@ -138,6 +138,7 @@ chmod +x aleph-node
     --node-key-file "${BASE_PATH}/p2p_secret" \
     ${DB_ARG[*]} \
     --no-mdns 1>/dev/null 2> "${BASE_PATH}/aleph-node.log" &
+ALEPH_NODE_PID=$!
 
 get_current_block
 echo "Syncing to ${TARGET_BLOCK} starting at ${CURRENT_BLOCK}."
@@ -153,4 +154,6 @@ if [[ "${MARK_SNAPSHOT_AS_LATEST}" == "true" ]]; then
     aws s3 cp - "s3://${S3_BUCKET}/${LATEST_SNAPSHOT_NAME}" \
       --website-redirect "${S3_URL}/${SNAPSHOT_DAY}/${S3_SNAPSHOT_PREFIX}_${SNAPSHOT_DAY}.tar.gz"
 fi
+
+kill -9 $ALEPH_NODE_PID
 
