@@ -1362,6 +1362,7 @@ impl_runtime_apis! {
 #[cfg(test)]
 mod tests {
     use frame_support::traits::Get;
+    use pallet_staking::EraPayout;
     use primitives::HEAP_PAGES;
     use smallvec::Array;
 
@@ -1588,5 +1589,169 @@ mod tests {
         let rhs = MAX_RUNTIME_MEM * 3 / 4;
 
         assert!(lhs < rhs);
+    }
+
+    /// `EraPayout::era_payout` ignores the first argument, we set it to zero.
+    const DUMMY_TOTAL_STAKED: Balance = 0;
+    const MILLISECS_PER_DAY: u64 = 24 * 60 * 60 * 1000;
+
+    struct EraPayoutInputs {
+        azero_cap: Balance,
+        horizon: u64,
+        total_issuance: Balance,
+        era_duration_millis: u64,
+    }
+
+    struct EraPayoutOutputs {
+        validators_payout: Balance,
+        rest: Balance,
+    }
+
+    fn assert_era_payout(inputs: EraPayoutInputs, outputs: EraPayoutOutputs) {
+        use sp_io::TestExternalities;
+        TestExternalities::default().execute_with(|| {
+            pallet_aleph::AzeroCap::<Runtime>::put(inputs.azero_cap);
+            pallet_aleph::ExponentialInflationHorizon::<Runtime>::put(inputs.horizon);
+            let (validators_payout, rest) =
+                <Runtime as pallet_staking::Config>::EraPayout::era_payout(
+                    DUMMY_TOTAL_STAKED,
+                    inputs.total_issuance,
+                    inputs.era_duration_millis,
+                );
+            assert_eq!(validators_payout, outputs.validators_payout);
+            assert_eq!(rest, outputs.rest);
+        });
+    }
+
+    fn era_payout_multiple_eras(
+        inputs: EraPayoutInputs,
+        n_eras: usize,
+    ) -> (Vec<EraPayoutOutputs>, Balance) {
+        use sp_io::TestExternalities;
+        let mut outputs = vec![];
+        let mut total_issuance = inputs.total_issuance;
+        for _ in 0..n_eras {
+            TestExternalities::default().execute_with(|| {
+                pallet_aleph::AzeroCap::<Runtime>::put(inputs.azero_cap);
+                pallet_aleph::ExponentialInflationHorizon::<Runtime>::put(inputs.horizon);
+                let (validators_payout, rest) =
+                    <Runtime as pallet_staking::Config>::EraPayout::era_payout(
+                        DUMMY_TOTAL_STAKED,
+                        total_issuance,
+                        inputs.era_duration_millis,
+                    );
+                outputs.push(EraPayoutOutputs {
+                    validators_payout,
+                    rest,
+                });
+                total_issuance += validators_payout + rest;
+            });
+        }
+        (outputs, total_issuance)
+    }
+
+    #[test]
+    fn era_payout_standard_case() {
+        assert_era_payout(
+            EraPayoutInputs {
+                azero_cap: 100_000_000 * TOKEN,
+                horizon: 365 * MILLISECS_PER_DAY,
+                total_issuance: 50_000_000 * TOKEN,
+                era_duration_millis: MILLISECS_PER_DAY,
+            },
+            EraPayoutOutputs {
+                validators_payout: 123_118 * TOKEN + 920_000_000_000,
+                rest: 13_679 * TOKEN + 880_000_000_000,
+            },
+        );
+    }
+
+    #[test]
+    /// Simulate long run by calling `era_payout` multiple times,
+    /// and keeping track of `total_issuance` between calls.
+    /// After 3 * horizon milliseconds the gap should be reduced by ~95%.
+    fn era_payout_long_run() {
+        let (_, total_issuance) = era_payout_multiple_eras(
+            EraPayoutInputs {
+                azero_cap: 150_000_000 * TOKEN,
+                horizon: 365 * MILLISECS_PER_DAY,
+                total_issuance: 50_000_000 * TOKEN,
+                era_duration_millis: MILLISECS_PER_DAY,
+            },
+            3 * 365,
+        );
+        assert_eq!(total_issuance, 145_021_290 * TOKEN + 959_387_724_274);
+    }
+
+    #[test]
+    /// Era longer than horizon.
+    /// Perbill will saturate, (era_duration_millis / horizon) == 1,
+    /// even if horizon == 0.
+    /// The actual values do not matter, only the ratio is used.
+    /// We expect the gap to be reduced by ~63%.
+    fn era_payout_horizon_too_short() {
+        assert_era_payout(
+            EraPayoutInputs {
+                azero_cap: 100_000_000 * TOKEN,
+                horizon: 0,
+                total_issuance: 50_000_000 * TOKEN,
+                era_duration_millis: MILLISECS_PER_DAY,
+            },
+            EraPayoutOutputs {
+                validators_payout: 28_499_999 * TOKEN + 985_000_000_000,
+                rest: 3_166_666 * TOKEN + 665_000_000_000,
+            },
+        );
+    }
+
+    #[test]
+    /// AZERO cap equal to total issuance, we expect no payout.
+    fn era_payout_cap_reached() {
+        assert_era_payout(
+            EraPayoutInputs {
+                azero_cap: 100_000_000 * TOKEN,
+                horizon: 365 * MILLISECS_PER_DAY,
+                total_issuance: 100_000_000 * TOKEN,
+                era_duration_millis: MILLISECS_PER_DAY,
+            },
+            EraPayoutOutputs {
+                validators_payout: 0,
+                rest: 0,
+            },
+        );
+    }
+
+    #[test]
+    /// Total issuance larger than AZERO cap, we expect no payout.
+    fn era_payout_cap_exceeded() {
+        assert_era_payout(
+            EraPayoutInputs {
+                azero_cap: 50_000_000 * TOKEN,
+                horizon: 365 * MILLISECS_PER_DAY,
+                total_issuance: 100_000_000 * TOKEN,
+                era_duration_millis: MILLISECS_PER_DAY,
+            },
+            EraPayoutOutputs {
+                validators_payout: 0,
+                rest: 0,
+            },
+        );
+    }
+
+    #[test]
+    /// Zero-length era, we expect no payout (as it depends on era lenght).
+    fn era_payout_zero_lenght_era() {
+        assert_era_payout(
+            EraPayoutInputs {
+                azero_cap: 100_000_000 * TOKEN,
+                horizon: 365 * MILLISECS_PER_DAY,
+                total_issuance: 50_000_000 * TOKEN,
+                era_duration_millis: 0,
+            },
+            EraPayoutOutputs {
+                validators_payout: 0,
+                rest: 0,
+            },
+        );
     }
 }
