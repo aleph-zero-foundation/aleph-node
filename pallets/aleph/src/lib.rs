@@ -73,15 +73,14 @@ pub mod pallet {
     /// Default AZERO Cap. Relevant for eras before we set this value by hand.
     #[pallet::type_value]
     pub fn DefaultAzeroCap() -> Balance {
-        1_000_000_000 * TOKEN
+        520_000_000 * TOKEN
     }
 
     /// Default length of the exponential inflation horizon.
     /// Relevant for eras before we set this value by hand.
     #[pallet::type_value]
     pub fn DefaultExponentialInflationHorizon() -> u64 {
-        const MILLISECS_PER_YEAR: u64 = 1000 * 3600 * 24 * 36525 / 100;
-        MILLISECS_PER_YEAR
+        154_283_512_497
     }
 
     #[pallet::storage]
