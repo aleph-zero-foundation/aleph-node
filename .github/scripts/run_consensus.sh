@@ -122,7 +122,7 @@ function run_containers() {
   for index in $(seq 0 "${authorities_count}"); do
     containers+=("Node${index}")
   done
-  docker-compose $(get_compose_file_list "${docker_compose_file}" "${override_file}") up -d "${containers[@]}"
+  docker compose $(get_compose_file_list "${docker_compose_file}" "${override_file}") up -d "${containers[@]}"
 }
 
 function archive_logs() {
@@ -137,7 +137,7 @@ function archive_logs() {
   pushd $(mktemp -d) > /dev/null
   for index in $(seq 0 "${node_count}"); do
     echo "Archiving "Node${index}" logs..."
-    docker-compose ${compose_file_list} logs --no-color --no-log-prefix "Node${index}" > "Node${index}.log"
+    docker compose ${compose_file_list} logs --no-color --no-log-prefix "Node${index}" > "Node${index}.log"
   done
   tar -czf "${tarball_output}" Node*
   popd > /dev/null

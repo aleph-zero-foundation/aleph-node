@@ -13,6 +13,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-pr-title:
+    name: Check PR title
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Check PR title
+        uses: Cardinal-Cryptography/github-actions/check-pr-title@v7
+        with:
+          pr-title: ${{ github.event.pull_request.title }}
+          regexp: '(A0|L1)-[0-9]+'
+
   run-liminal-ci-cd:
     if: contains(github.event.pull_request.labels.*.name, 'liminal-CI')
     name: Run liminal checks on PR

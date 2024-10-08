@@ -346,7 +346,7 @@ dependencies = [
 
 [[package]]
 name = "aleph-node"
-version = "0.13.3"
+version = "0.13.4"
 dependencies = [
  "aleph-runtime",
  "finality-aleph",
@@ -405,7 +405,7 @@ dependencies = [
 
 [[package]]
 name = "aleph-runtime"
-version = "0.13.3"
+version = "0.13.4"
 dependencies = [
  "baby-liminal-extension",
  "frame-benchmarking",
