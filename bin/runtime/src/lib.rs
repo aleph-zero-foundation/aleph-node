@@ -42,7 +42,8 @@ use primitives::{
     staking::MAX_NOMINATORS_REWARDED_PER_VALIDATOR, wrap_methods, ApiError as AlephApiError,
     AuraId, AuthorityId as AlephId, Block as AlephBlock, BlockId as AlephBlockId,
     BlockNumber as AlephBlockNumber, Header as AlephHeader, SessionAuthorityData, SessionCommittee,
-    SessionIndex, SessionInfoProvider, SessionValidatorError, Version as FinalityVersion,
+    SessionIndex, SessionInfoProvider, SessionValidatorError,
+    TotalIssuanceProvider as TotalIssuanceProviderT, Version as FinalityVersion,
     ADDRESSES_ENCODING, DEFAULT_BAN_REASON_LENGTH, DEFAULT_MAX_WINNERS, DEFAULT_SESSIONS_PER_ERA,
     DEFAULT_SESSION_PERIOD, MAX_BLOCK_SIZE, MILLISECS_PER_BLOCK, TOKEN,
 };
@@ -335,6 +336,13 @@ impl SessionInfoProvider<AlephBlockNumber> for SessionInfoImpl {
     }
 }
 
+pub struct TotalIssuanceProvider;
+impl TotalIssuanceProviderT for TotalIssuanceProvider {
+    fn get() -> Balance {
+        pallet_balances::Pallet::<Runtime>::total_issuance()
+    }
+}
+
 impl pallet_aleph::Config for Runtime {
     type AuthorityId = AlephId;
     type RuntimeEvent = RuntimeEvent;
@@ -346,6 +354,7 @@ impl pallet_aleph::Config for Runtime {
         Runtime,
     >;
     type NextSessionAuthorityProvider = Session;
+    type TotalIssuanceProvider = TotalIssuanceProvider;
 }
 
 #[cfg(feature = "liminal")]
