@@ -15,7 +15,8 @@ use frame_support::{
 };
 pub use pallet::*;
 use primitives::{
-    SessionIndex, Version, VersionChange, DEFAULT_FINALITY_VERSION, LEGACY_FINALITY_VERSION,
+    Balance, SessionIndex, Version, VersionChange, DEFAULT_FINALITY_VERSION,
+    LEGACY_FINALITY_VERSION, TOKEN,
 };
 use sp_std::prelude::*;
 
@@ -55,6 +56,7 @@ pub mod pallet {
         ChangeEmergencyFinalizer(T::AuthorityId),
         ScheduleFinalityVersionChange(VersionChange),
         FinalityVersionChange(VersionChange),
+        InflationParametersChange(Balance, u64),
     }
 
     #[pallet::pallet]
@@ -73,6 +75,27 @@ pub mod pallet {
     pub(crate) fn DefaultNextAuthorities<T: Config>() -> Vec<T::AuthorityId> {
         T::NextSessionAuthorityProvider::next_authorities()
     }
+
+    /// Default AZERO Cap. Relevant for eras before we set this value by hand.
+    #[pallet::type_value]
+    pub fn DefaultAzeroCap() -> Balance {
+        1_000_000_000 * TOKEN
+    }
+
+    /// Default length of the exponential inflation horizon.
+    /// Relevant for eras before we set this value by hand.
+    #[pallet::type_value]
+    pub fn DefaultExponentialInflationHorizon() -> u64 {
+        const MILLISECS_PER_YEAR: u64 = 1000 * 3600 * 24 * 36525 / 100;
+        MILLISECS_PER_YEAR
+    }
+
+    #[pallet::storage]
+    pub type AzeroCap<T: Config> = StorageValue<_, Balance, ValueQuery, DefaultAzeroCap>;
+
+    #[pallet::storage]
+    pub type ExponentialInflationHorizon<T: Config> =
+        StorageValue<_, u64, ValueQuery, DefaultExponentialInflationHorizon>;
 
     #[pallet::storage]
     #[pallet::getter(fn authorities)]
@@ -262,6 +285,31 @@ pub mod pallet {
             }
 
             Self::deposit_event(Event::ScheduleFinalityVersionChange(version_change));
+            Ok(())
+        }
+
+        /// Sets the values of inflation parameters.
+        #[pallet::call_index(2)]
+        #[pallet::weight((T::BlockWeights::get().max_block, DispatchClass::Operational))]
+        pub fn set_inflation_parameters(
+            origin: OriginFor<T>,
+            azero_cap: Option<Balance>,
+            horizon_millisecs: Option<u64>,
+        ) -> DispatchResult {
+            ensure_root(origin)?;
+
+            let azero_cap = azero_cap.unwrap_or_else(AzeroCap::<T>::get);
+            let horizon_millisecs =
+                horizon_millisecs.unwrap_or_else(ExponentialInflationHorizon::<T>::get);
+
+            AzeroCap::<T>::put(azero_cap);
+            ExponentialInflationHorizon::<T>::put(horizon_millisecs);
+
+            Self::deposit_event(Event::InflationParametersChange(
+                azero_cap,
+                horizon_millisecs,
+            ));
+
             Ok(())
         }
     }

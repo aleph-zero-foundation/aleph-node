@@ -50,7 +50,7 @@ runs:
       uses: Cardinal-Cryptography/github-actions/get-ref-properties@v5
 
     - name: Download artifact with docker image
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: ${{ inputs.image-path }}
 

@@ -61,7 +61,7 @@ use sp_runtime::{
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, FixedU128, RuntimeDebug, SaturatedConversion,
 };
-pub use sp_runtime::{FixedPointNumber, Perbill, Permill};
+pub use sp_runtime::{FixedPointNumber, Perbill, Permill, Saturating};
 use sp_staking::{currency_to_vote::U128CurrencyToVote, EraIndex};
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -479,11 +479,35 @@ parameter_types! {
     pub HistoryDepth: u32 = 84;
 }
 
-pub struct UniformEraPayout;
+pub struct ExponentialEraPayout;
 
-impl pallet_staking::EraPayout<Balance> for UniformEraPayout {
-    fn era_payout(_: Balance, _: Balance, era_duration_millis: u64) -> (Balance, Balance) {
-        primitives::staking::era_payout(era_duration_millis)
+/// Calculates 1 - exp(-x) for small positive x
+fn exp_helper(x: Perbill) -> Perbill {
+    let x2 = x * x;
+    let x3 = x2 * x;
+    let x4 = x2 * x2;
+    let x5 = x4 * x;
+    (x - x2 / 2 + x3 / 6 - x4 / 24 + x5 / 120).min(x)
+}
+
+impl pallet_staking::EraPayout<Balance> for ExponentialEraPayout {
+    fn era_payout(
+        _: Balance,
+        total_issuance: Balance,
+        era_duration_millis: u64,
+    ) -> (Balance, Balance) {
+        const VALIDATOR_REWARD: Perbill = Perbill::from_percent(90);
+
+        let azero_cap = pallet_aleph::AzeroCap::<Runtime>::get();
+        let horizon = pallet_aleph::ExponentialInflationHorizon::<Runtime>::get();
+
+        let total_payout: Balance =
+            exp_helper(Perbill::from_rational(era_duration_millis, horizon))
+                * (azero_cap.saturating_sub(total_issuance));
+        let validators_payout = VALIDATOR_REWARD * total_payout;
+        let rest = total_payout - validators_payout;
+
+        (validators_payout, rest)
     }
 }
 
@@ -586,7 +610,7 @@ impl pallet_staking::Config for Runtime {
     type BondingDuration = BondingDuration;
     type SlashDeferDuration = SlashDeferDuration;
     type SessionInterface = Self;
-    type EraPayout = UniformEraPayout;
+    type EraPayout = ExponentialEraPayout;
     type NextNewSession = Session;
     type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
     type OffendingValidatorsThreshold = OffendingValidatorsThreshold;
