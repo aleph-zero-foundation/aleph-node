@@ -490,6 +490,23 @@ parameter_types! {
 
 pub struct ExponentialEraPayout;
 
+impl ExponentialEraPayout {
+    fn era_payout(total_issuance: Balance, era_duration_millis: u64) -> (Balance, Balance) {
+        const VALIDATOR_REWARD: Perbill = Perbill::from_percent(90);
+
+        let azero_cap = pallet_aleph::AzeroCap::<Runtime>::get();
+        let horizon = pallet_aleph::ExponentialInflationHorizon::<Runtime>::get();
+
+        let total_payout: Balance =
+            exp_helper(Perbill::from_rational(era_duration_millis, horizon))
+                * (azero_cap.saturating_sub(total_issuance));
+        let validators_payout = VALIDATOR_REWARD * total_payout;
+        let rest = total_payout - validators_payout;
+
+        (validators_payout, rest)
+    }
+}
+
 /// Calculates 1 - exp(-x) for small positive x
 fn exp_helper(x: Perbill) -> Perbill {
     let x2 = x * x;
@@ -505,18 +522,7 @@ impl pallet_staking::EraPayout<Balance> for ExponentialEraPayout {
         total_issuance: Balance,
         era_duration_millis: u64,
     ) -> (Balance, Balance) {
-        const VALIDATOR_REWARD: Perbill = Perbill::from_percent(90);
-
-        let azero_cap = pallet_aleph::AzeroCap::<Runtime>::get();
-        let horizon = pallet_aleph::ExponentialInflationHorizon::<Runtime>::get();
-
-        let total_payout: Balance =
-            exp_helper(Perbill::from_rational(era_duration_millis, horizon))
-                * (azero_cap.saturating_sub(total_issuance));
-        let validators_payout = VALIDATOR_REWARD * total_payout;
-        let rest = total_payout - validators_payout;
-
-        (validators_payout, rest)
+        ExponentialEraPayout::era_payout(total_issuance, era_duration_millis)
     }
 }
 
@@ -1221,6 +1227,24 @@ impl_runtime_apis! {
 
         fn key_owner(key: AlephId) -> Option<AccountId> {
             Session::key_owner(primitives::KEY_TYPE, key.as_ref())
+        }
+
+        fn yearly_inflation() -> Perbill {
+            // Milliseconds per year for the Julian year (365.25 days).
+            const MILLISECONDS_PER_YEAR: u64 = 1000 * 3600 * 24 * 36525 / 100;
+            let total_issuance = pallet_balances::Pallet::<Runtime>::total_issuance();
+
+            let (validator_payout, rest)
+                = ExponentialEraPayout::era_payout(total_issuance, MILLISECONDS_PER_YEAR);
+
+            Perbill::from_rational(validator_payout + rest, total_issuance)
+        }
+
+        fn current_era_payout() -> (Balance, Balance) {
+            const MILLISECONDS_PER_ERA: u64 = 1000 * 3600 * 24;
+            let total_issuance = pallet_balances::Pallet::<Runtime>::total_issuance();
+
+            ExponentialEraPayout::era_payout(total_issuance, MILLISECONDS_PER_ERA)
         }
     }
 
