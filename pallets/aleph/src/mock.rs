@@ -6,7 +6,9 @@ use frame_support::{
     weights::{RuntimeDbWeight, Weight},
 };
 use frame_system::pallet_prelude::BlockNumberFor;
-use primitives::{AuthorityId, SessionInfoProvider};
+use primitives::{
+    AuthorityId, SessionInfoProvider, TotalIssuanceProvider as TotalIssuanceProviderT,
+};
 use sp_core::H256;
 use sp_runtime::{
     impl_opaque_keys,
@@ -147,12 +149,20 @@ impl pallet_timestamp::Config for Test {
     type WeightInfo = ();
 }
 
+pub struct TotalIssuanceProvider;
+impl TotalIssuanceProviderT for TotalIssuanceProvider {
+    fn get() -> Balance {
+        pallet_balances::Pallet::<Test>::total_issuance()
+    }
+}
+
 impl Config for Test {
     type AuthorityId = AuthorityId;
     type RuntimeEvent = RuntimeEvent;
     type SessionInfoProvider = SessionInfoImpl;
     type SessionManager = ();
     type NextSessionAuthorityProvider = Session;
+    type TotalIssuanceProvider = TotalIssuanceProvider;
 }
 
 pub fn to_authority(id: &u64) -> AuthorityId {

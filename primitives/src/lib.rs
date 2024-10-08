@@ -371,6 +371,12 @@ pub trait EraManager {
     fn on_new_era(era: EraIndex);
 }
 
+/// Provides the current total issuance.
+pub trait TotalIssuanceProvider {
+    /// Get the current total issuance.
+    fn get() -> Balance;
+}
+
 pub mod staking {
     use crate::TOKEN;
 
