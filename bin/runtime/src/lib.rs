@@ -1241,7 +1241,7 @@ impl_runtime_apis! {
         }
 
         fn current_era_payout() -> (Balance, Balance) {
-            const MILLISECONDS_PER_ERA: u64 = 1000 * 3600 * 24;
+            const MILLISECONDS_PER_ERA: u64 = MILLISECS_PER_BLOCK * (DEFAULT_SESSION_PERIOD * DEFAULT_SESSIONS_PER_ERA) as u64;
             let total_issuance = pallet_balances::Pallet::<Runtime>::total_issuance();
 
             ExponentialEraPayout::era_payout(total_issuance, MILLISECONDS_PER_ERA)
