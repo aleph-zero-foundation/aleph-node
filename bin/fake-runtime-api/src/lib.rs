@@ -9,7 +9,7 @@ use pallet_transaction_payment::FeeDetails;
 use pallet_transaction_payment_rpc_runtime_api::RuntimeDispatchInfo;
 use primitives::{
     AccountId, ApiError as AlephApiError, AuraId, AuthorityId as AlephId, Balance, Block, Nonce,
-    SessionAuthorityData, SessionCommittee, SessionIndex, SessionValidatorError,
+    Perbill, SessionAuthorityData, SessionCommittee, SessionIndex, SessionValidatorError,
     Version as FinalityVersion,
 };
 use sp_consensus_aura::SlotDuration;
@@ -185,6 +185,14 @@ pub mod fake_runtime {
             }
 
             fn key_owner(_key: AlephId) -> Option<AccountId> {
+                unimplemented!()
+            }
+
+            fn yearly_inflation() -> Perbill {
+                unimplemented!()
+            }
+
+            fn current_era_payout() -> (Balance, Balance) {
                 unimplemented!()
             }
         }

@@ -1173,6 +1173,42 @@ pub mod api {
                         ],
                     )
                 }
+                #[doc = " Returns inflation from now to now + 1 year. Capped at 100%"]
+                pub fn yearly_inflation(
+                    &self,
+                ) -> ::subxt::runtime_api::Payload<
+                    types::YearlyInflation,
+                    runtime_types::sp_arithmetic::per_things::Perbill,
+                > {
+                    ::subxt::runtime_api::Payload::new_static(
+                        "AlephSessionApi",
+                        "yearly_inflation",
+                        types::YearlyInflation {},
+                        [
+                            139u8, 25u8, 143u8, 190u8, 127u8, 191u8, 235u8, 69u8, 16u8, 116u8,
+                            112u8, 112u8, 54u8, 191u8, 49u8, 113u8, 139u8, 52u8, 66u8, 37u8, 43u8,
+                            81u8, 15u8, 144u8, 77u8, 17u8, 224u8, 107u8, 178u8, 227u8, 171u8, 52u8,
+                        ],
+                    )
+                }
+                #[doc = " Returns payout. First tuple item is a validators payout, 2nd is the rest."]
+                pub fn current_era_payout(
+                    &self,
+                ) -> ::subxt::runtime_api::Payload<
+                    types::CurrentEraPayout,
+                    (::core::primitive::u128, ::core::primitive::u128),
+                > {
+                    ::subxt::runtime_api::Payload::new_static(
+                        "AlephSessionApi",
+                        "current_era_payout",
+                        types::CurrentEraPayout {},
+                        [
+                            55u8, 146u8, 5u8, 196u8, 176u8, 34u8, 184u8, 92u8, 198u8, 150u8, 212u8,
+                            142u8, 203u8, 99u8, 146u8, 45u8, 21u8, 125u8, 209u8, 88u8, 98u8, 5u8,
+                            10u8, 63u8, 48u8, 176u8, 68u8, 234u8, 115u8, 19u8, 64u8, 10u8,
+                        ],
+                    )
+                }
             }
             pub mod types {
                 use super::runtime_types;
@@ -1334,6 +1370,34 @@ pub mod api {
                 pub struct KeyOwner {
                     pub key: runtime_types::primitives::app::Public,
                 }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct YearlyInflation {}
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct CurrentEraPayout {}
             }
         }
         pub mod nomination_pools_api {
