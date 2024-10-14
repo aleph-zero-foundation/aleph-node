@@ -19,25 +19,6 @@ Additional options are passed to the tests via env variables. See `src/config.rs
 
 See [readme](../scripts/synthetic-network/README.md).
 
-## Running on devnet (or other-net)
-
-You can also run the tests on some other network. For example, to run the contract test for the `adder` contract on
-devnet:
-
-1. Prepare an account with some money, note the seed of the account.
-2. Deploy the contract to devnet:
-
-```bash
-contracts/adder$ NODE_URL=wss://ws.dev.azero.dev AUTHORITY="$THE_SEED" ./deploy.sh
-```
-
-3. Run the tests:
-
-```bash
-e2e-tests$ RUST_BACKTRACE=1 SUDO_SEED="$THE_SEED" NODE_URL=wss://ws.dev.azero.dev:443 \
-  ADDER=$DEPLOY_ADDRESS ADDER_METADATA=../contracts/adder/target/ink/metadata.json cargo test adder -- --nocapture
-```
-
 ## Running on feature net
 
 Run a feature net by adding an appropriate label to a pull request, ie `trigger:create-featurenet`
