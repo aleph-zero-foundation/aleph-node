@@ -80,7 +80,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 14_000_000,
+    spec_version: 15_000_000,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 18,
