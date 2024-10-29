@@ -10,6 +10,10 @@ use aleph_client::{
     AccountId, Balance, ConnectionApi, KeyPair, RootConnection, SignedConnection,
     SignedConnectionApi, TxStatus,
 };
+use aleph_client::pallets::author::AuthorRpc;
+use aleph_client::pallets::elections::ElectionsSudoApi;
+use aleph_client::pallets::session::{SessionUserApi};
+use aleph_client::primitives::CommitteeSeats;
 use clap::{ArgGroup, Parser};
 use futures::future::join_all;
 use log::{info, trace, warn};
@@ -21,7 +25,12 @@ use rand::{thread_rng, Rng};
 use sp_keyring::AccountKeyring;
 
 // testcase parameters
-const NOMINATOR_COUNT: u32 = MAX_NOMINATORS_REWARDED_PER_VALIDATOR;
+
+// MAX_NOMINATORS_REWARDED_PER_VALIDATOR is what either
+// * in pallet staking version <= 13, is a limit of nominators for a single validator that are paid
+// * in pallet staking version > 13, is a number of nominators that are paid in a single
+//   payout_stakers call (so all nominators can be paid, but in multiple blocks)
+const NOMINATOR_COUNT: u32 = 2 * MAX_NOMINATORS_REWARDED_PER_VALIDATOR;
 const ERAS_TO_WAIT: u32 = 100;
 
 // we need to schedule batches for limited call count, otherwise we'll exhaust a block max weight
@@ -34,6 +43,8 @@ const TRANSFER_CALL_BATCH_LIMIT: usize = 1024;
 #[clap(group(ArgGroup::new("valid").required(true)))]
 struct Config {
     /// WS endpoint address of the node to connect to. Use IP:port syntax, e.g. 127.0.0.1:9944
+    /// If validator_count is greater than 0, subsequent validator addresses are assumed to have
+    /// subsequent port numbers, e.g. 127.0.0.1:9945, ...
     #[clap(long, default_value = "ws://127.0.0.1:9944")]
     pub address: String,
 
@@ -43,7 +54,7 @@ struct Config {
     pub root_seed_file: Option<String>,
 
     /// A path to a file that contains seeds of validators, each in a separate line.
-    /// If not given, validators 0, 1, ..., validator_count are assumed
+    /// If not given, validators seeds are assumed to be developer ones, ie //0, //1, ...
     /// Only valid if validator count is not provided.
     #[clap(long, group = "valid")]
     pub validators_seed_file: Option<String>,
@@ -70,7 +81,7 @@ async fn main() -> anyhow::Result<()> {
 
     let sudoer = get_sudoer_keypair(root_seed_file);
 
-    let connection = RootConnection::new(&address, sudoer).await.unwrap();
+    let root_connection = RootConnection::new(&address, sudoer).await.unwrap();
 
     let validators = match validators_seed_file {
         Some(validators_seed_file) => {
@@ -91,22 +102,41 @@ async fn main() -> anyhow::Result<()> {
 
     let controllers = generate_controllers_for_validators(validator_count);
 
-    bond_validators_funds_and_choose_controllers(
-        &address,
+    bond_validators_funds_and_rotate_keys(
+        "ws://127.0.0.1",
         controllers
             .iter()
             .map(|k| KeyPair::new(k.signer().clone()))
             .collect(),
     )
     .await;
+    info!("wait until our node is forced to use new keys, i.e. current session + 2");
+    root_connection
+        .wait_for_n_sessions(2, BlockStatus::Best)
+        .await;
+    info!("Sending validate transactions.");
     send_validate_txs(&address, controllers).await;
 
     let validators_and_nominator_stashes =
-        setup_test_validators_and_nominator_stashes(&connection, validators).await;
+        setup_test_validators_and_nominator_stashes(&root_connection, validators.clone()).await;
+
+    info!("Changing validators via elections API");
+    root_connection
+        .change_validators(
+            Some(validators.iter().map(|keypair| keypair.account_id().clone()).collect()),
+            None,
+            Some(CommitteeSeats{
+                reserved_seats: validators.len() as u32,
+                non_reserved_seats: 0,
+                non_reserved_finality_seats: 0
+            }),
+            TxStatus::Finalized,
+        )
+        .await?;
 
     wait_for_successive_eras(
         &address,
-        &connection,
+        &root_connection,
         validators_and_nominator_stashes,
         ERAS_TO_WAIT,
     )
@@ -114,6 +144,19 @@ async fn main() -> anyhow::Result<()> {
 
     let elapsed = Instant::now().duration_since(start);
     println!("Ok! Elapsed time {}ms", elapsed.as_millis());
+
+    Ok(())
+}
+
+async fn rotate_validator_keys<C: ConnectionApi + WaitingExt + SessionUserApi + AuthorRpc>(
+    controller_connection: &C,
+) -> anyhow::Result<()> {
+    info!("Rotating keys for new validator...");
+    let validator_keys = controller_connection.author_rotate_keys().await?;
+    controller_connection
+        .set_keys(validator_keys, TxStatus::InBlock)
+        .await
+        .unwrap();
 
     Ok(())
 }
@@ -133,7 +176,7 @@ fn get_sudoer_keypair(root_seed_file: Option<String>) -> KeyPair {
 /// For a given set of validators, generates key pairs for the corresponding controllers.
 fn generate_controllers_for_validators(validator_count: u32) -> Vec<KeyPair> {
     (0..validator_count)
-        .map(|seed| keypair_from_string(&format!("//{seed}//Controller")))
+        .map(|seed| keypair_from_string(&format!("//{seed}")))
         .collect::<Vec<_>>()
 }
 
@@ -184,6 +227,7 @@ async fn wait_for_successive_eras<C: ConnectionApi + WaitingExt + StakingApi>(
     // in order to have over 8k nominators we need to wait around 60 seconds all calls to be processed
     // that means not all 8k nominators we'll make i to era 1st, hence we need to wait to 2nd era
     // then we wait another full era to test rewards
+    info!("Waiting for next 3 eras...");
     connection.wait_for_n_eras(3, BlockStatus::Finalized).await;
     let mut current_era = connection.get_current_era(None).await;
     for _ in 0..eras_to_wait {
@@ -213,7 +257,7 @@ async fn wait_for_successive_eras<C: ConnectionApi + WaitingExt + StakingApi>(
 
 /// Nominates a specific validator based on the nominator controller and stash accounts.
 async fn nominate_validator(
-    connection: &RootConnection,
+    root_connection: &RootConnection,
     nominator_stash_accounts: Vec<AccountId>,
     nominee_account: AccountId,
 ) {
@@ -224,8 +268,8 @@ async fn nominate_validator(
         .map(|c| c.to_vec())
     {
         let stake = (rng.gen::<Balance>() % 100) * TOKEN + MIN_NOMINATOR_BOND;
-        connection
-            .batch_bond(&chunk, stake, TxStatus::Submitted)
+        root_connection
+            .batch_bond(&chunk, stake, TxStatus::InBlock)
             .await
             .unwrap();
     }
@@ -236,33 +280,35 @@ async fn nominate_validator(
         .zip(iter::repeat(&nominee_account).cloned())
         .collect::<Vec<_>>();
     for chunks in nominator_nominee_accounts.chunks(NOMINATE_CALL_BATCH_LIMIT) {
-        connection
+        root_connection
             .batch_nominate(chunks, TxStatus::InBlock)
             .await
             .unwrap();
     }
 }
 
+
+
 /// Bonds the funds of the validators.
 /// Chooses controller accounts for the corresponding validators.
-/// We assume stash == validator != controller.
-async fn bond_validators_funds_and_choose_controllers(address: &str, validators: Vec<KeyPair>) {
-    let mut handles = vec![];
-    for validator in validators {
-        let validator_address = address.to_string();
-        handles.push(tokio::spawn(async move {
-            let connection = SignedConnection::new(&validator_address, validator).await;
-            connection
-                .bond(MIN_VALIDATOR_BOND, TxStatus::InBlock)
-                .await
-                .unwrap();
-        }));
+/// We assume stash == validator == controller.
+async fn bond_validators_funds_and_rotate_keys(address_ip_without_port: &str, validators: Vec<KeyPair>) {
+    for (i, validator) in validators.into_iter().enumerate() {
+        let validator_address = format!("{}:{}", address_ip_without_port, i + 9944);
+        let connection = SignedConnection::new(&validator_address, validator).await;
+        info!("Bonding validator {}", i);
+        connection
+            .bond(MIN_VALIDATOR_BOND, TxStatus::InBlock)
+            .await
+            .unwrap();
+        rotate_validator_keys(&connection)
+            .await
+            .unwrap();
     }
-    join_all(handles).await;
 }
 
 /// Submits candidate validators via controller accounts.
-/// We assume stash == validator != controller.
+/// We assume stash == validator == controller.
 async fn send_validate_txs(address: &str, controllers: Vec<KeyPair>) {
     let mut handles = vec![];
     for controller in controllers {

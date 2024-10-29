@@ -275,7 +275,8 @@ if [[ -z "${DONT_BOOTSTRAP}" ]]; then
     --base-path "${BASE_PATH}" \
     --account-ids "${all_account_ids_string}" \
     --authorities-account-ids "${validator_ids_string}" \
-    --chain-type local > "${BASE_PATH}/chainspec.json"
+    --chain-type local > "${BASE_PATH}/chainspec.json" \
+    --rich-account-ids "${all_account_ids_string}"
 
   if [[ "${DONT_REMOVE_ABFT_BACKUPS}" == "true" ]]; then
     all_account_ids=(${validator_account_ids[@]} ${rpc_node_account_ids[@]})

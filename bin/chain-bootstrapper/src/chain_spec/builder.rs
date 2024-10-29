@@ -116,7 +116,7 @@ fn generate_genesis_config(
         "staking": {
             "forceEra": Forcing::NotForcing,
             "validatorCount":  account_session_keys.len() as u32,
-            "minimumValidatorCount": 4,
+            "minimumValidatorCount": 1,
             "slashRewardFraction": Perbill::from_percent(10),
             "stakers": account_session_keys
                         .iter()
