@@ -1,9 +1,4 @@
-use std::{
-    fmt::{Debug, Display},
-    hash::Hash,
-    path::PathBuf,
-    sync::Arc,
-};
+use std::{fmt::Debug, hash::Hash, path::PathBuf, sync::Arc};
 
 use derive_more::Display;
 use futures::{

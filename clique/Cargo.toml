@@ -13,7 +13,6 @@ rate-limiter = { workspace = true }
 async-trait = { workspace = true }
 bytes = { workspace = true }
 parity-scale-codec = { workspace = true, features = ["std", "derive"] }
-derive_more = { workspace = true }
 env_logger = { workspace = true }
 futures = { workspace = true }
 futures-timer = { workspace = true }

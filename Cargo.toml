@@ -53,7 +53,7 @@ aleph-bft-types = { version = "0.13" }
 async-trait = { version = "0.1" }
 array-bytes = { version = "6" }
 bytes = { version = "1.8" }
-derive_more = { version = "0.99" }
+derive_more = { version = "1.0", features = ["from", "into", "as_ref", "display"] }
 env_logger = { version = "0.10" }
 futures = { version = "0.3" }
 futures-timer = { version = "3.0" }
