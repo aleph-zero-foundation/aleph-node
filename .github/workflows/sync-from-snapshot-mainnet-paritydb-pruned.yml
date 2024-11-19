@@ -7,10 +7,10 @@
 
 name: Sync from snapshot, Mainnet, ParityDB pruned
 on:
-  # At 20:00 on Wednesday and Saturday
+  # At 20:00 on Wednesday
   # Time corresponds with a snapshot creation time
   schedule:
-    - cron: '0 20 * * 3,6'
+    - cron: '0 20 * * 3'
   workflow_dispatch:
 
 concurrency:
