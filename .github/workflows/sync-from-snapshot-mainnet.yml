@@ -7,10 +7,10 @@
 
 name: Sync from snapshot test, Mainnet, RocksDB
 on:
-  # At 22:00 on Wednesday
+  # At 22:00 on Saturday
   # Time corresponds with a snapshot creation time
   schedule:
-    - cron: '0 22 * * 3'
+    - cron: '0 22 * * 6'
   workflow_dispatch:
 
 concurrency:
