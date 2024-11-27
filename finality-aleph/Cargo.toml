@@ -44,6 +44,7 @@ serde = { workspace = true }
 static_assertions = { workspace = true }
 tiny-bip39 = { workspace = true }
 tokio = { workspace = true, features = ["sync", "macros", "time", "rt-multi-thread"] }
+libp2p = { workspace = true }
 
 substrate-prometheus-endpoint = { workspace = true }
 

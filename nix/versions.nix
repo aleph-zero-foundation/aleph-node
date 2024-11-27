@@ -3,7 +3,7 @@ rec {
   rustToolchain =
     let
       # use Rust toolchain declared by the rust-toolchain.toml file
-      rustToolchain = with nixpkgs; overrideRustTarget ( rustChannelOf { channel = "1.70"; } );
+      rustToolchain = with nixpkgs; overrideRustTarget ( rustChannelOf { channel = "1.77"; } );
 
       overrideRustTarget = rustChannel: rustChannel // {
         rust = rustChannel.rust.override {

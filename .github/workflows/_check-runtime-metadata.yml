@@ -44,7 +44,7 @@ jobs:
         shell: bash
         run: |
           # same version as in aleph-client's Cargo.toml
-          cargo install subxt-cli --version 0.30.1
+          cargo install subxt-cli --version 0.30.1 --locked
 
       - name: Get subxt-cli path
         id: get-subxt-path

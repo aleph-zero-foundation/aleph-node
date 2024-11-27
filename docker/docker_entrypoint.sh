@@ -35,6 +35,8 @@ MAX_RUNTIME_INSTANCES=${MAX_RUNTIME_INSTANCES:-8}
 BACKUP_PATH=${BACKUP_PATH:-${BASE_PATH}/backup-stash}
 DATABASE_ENGINE=${DATABASE_ENGINE:-}
 PRUNING_ENABLED=${PRUNING_ENABLED:-false}
+ALEPHBFT_NETWORK_BIT_RATE=${ALEPHBFT_NETWORK_BIT_RATE:-}
+SUBSTRATE_NETWORK_BIT_RATE=${SUBSTRATE_NETWORK_BIT_RATE:-}
 
 if [[ "true" == "$PURGE_BEFORE_START" ]]; then
   echo "Purging chain (${CHAIN}) at path ${BASE_PATH}"
@@ -139,6 +141,14 @@ fi
 
 if [[ -n "${MAX_SUBSCRIPTIONS_PER_CONNECTION:-}" ]]; then
   ARGS+=(--rpc-max-subscriptions-per-connection ${MAX_SUBSCRIPTIONS_PER_CONNECTION})
+fi
+
+if [[ -n "${ALEPHBFT_NETWORK_BIT_RATE}" ]]; then
+    ARGS+=(--alephbft-network-bit-rate ${ALEPHBFT_NETWORK_BIT_RATE})
+fi
+
+if [[ -n "${SUBSTRATE_NETWORK_BIT_RATE}" ]]; then
+    ARGS+=(--substrate-network-bit-rate ${SUBSTRATE_NETWORK_BIT_RATE})
 fi
 
 echo "${CUSTOM_ARGS}" | xargs aleph-node "${ARGS[@]}"
