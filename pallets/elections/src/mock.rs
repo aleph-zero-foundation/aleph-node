@@ -1,5 +1,3 @@
-#![cfg(test)]
-
 use frame_election_provider_support::{
     data_provider, DataProviderBounds, ElectionDataProvider, VoteWeight,
 };

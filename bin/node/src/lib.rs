@@ -9,10 +9,6 @@ mod service;
 
 pub use cli::{Cli, Subcommand};
 pub use config::Validator as ConfigValidator;
-#[cfg(any(
-    feature = "runtime-benchmarks",
-    feature = "aleph-native-runtime",
-    feature = "try-runtime"
-))]
+#[cfg(any(feature = "runtime-benchmarks", feature = "aleph-native-runtime"))]
 pub use executor::aleph_executor::ExecutorDispatch;
 pub use service::{new_authority, new_partial, ServiceComponents};

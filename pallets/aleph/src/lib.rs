@@ -7,7 +7,7 @@ mod mock;
 mod tests;
 
 mod impls;
-mod traits;
+pub mod traits;
 
 use frame_support::{
     sp_runtime::BoundToRuntimeAppPublic,
@@ -378,9 +378,9 @@ pub mod pallet {
     impl<T: Config> OneSessionHandler<T::AccountId> for Pallet<T> {
         type Key = T::AuthorityId;
 
-        fn on_genesis_session<'a, I: 'a>(validators: I)
+        fn on_genesis_session<'a, I>(validators: I)
         where
-            I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
+            I: 'a + Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
             T::AccountId: 'a,
         {
             let (_, authorities): (Vec<_>, Vec<_>) = validators.unzip();
@@ -388,9 +388,9 @@ pub mod pallet {
             Self::initialize_authorities(authorities.as_slice(), authorities.as_slice());
         }
 
-        fn on_new_session<'a, I: 'a>(changed: bool, _: I, queued_validators: I)
+        fn on_new_session<'a, I>(changed: bool, _: I, queued_validators: I)
         where
-            I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
+            I: 'a + Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
             T::AccountId: 'a,
         {
             Self::update_emergency_finalizer();

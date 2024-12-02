@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::{
+    fmt::{Display, Error as FmtError, Formatter},
+    sync::Arc,
+};
 
 use parity_scale_codec::{Decode, Encode};
 use sc_keystore::{Keystore, LocalKeystore};
@@ -15,6 +18,20 @@ use crate::{
 pub enum Error {
     KeyMissing(AuthorityId),
     Keystore(KeystoreError),
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
+        use Error::*;
+        match self {
+            KeyMissing(auth_id) => {
+                write!(f, "no key for authority {auth_id:?}")
+            }
+            Keystore(err) => {
+                write!(f, "keystore error: {err}")
+            }
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Clone, Debug, Hash, Decode, Encode)]

@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use futures::channel::mpsc;
 use sc_keystore::LocalKeystore;
 use sp_keystore::Keystore as _;
 
@@ -9,25 +8,6 @@ use crate::{
     crypto::{AuthorityPen, AuthorityVerifier},
     AuthorityId, NodeIndex,
 };
-
-#[derive(Clone)]
-pub struct Channel<T>(
-    pub mpsc::UnboundedSender<T>,
-    pub Arc<tokio::sync::Mutex<mpsc::UnboundedReceiver<T>>>,
-);
-
-impl<T> Channel<T> {
-    pub fn new() -> Self {
-        let (tx, rx) = mpsc::unbounded();
-        Channel(tx, Arc::new(tokio::sync::Mutex::new(rx)))
-    }
-}
-
-impl<T> Default for Channel<T> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 pub fn crypto_basics(
     num_crypto_basics: usize,

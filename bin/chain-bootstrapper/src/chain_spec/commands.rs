@@ -61,7 +61,7 @@ impl BootstrapChainCmd {
                         .into(),
                 );
             }
-            authorities = account_ids.clone();
+            authorities.clone_from(&account_ids);
         } else if !authorities
             .iter()
             .all(|authority| account_ids.contains(authority))

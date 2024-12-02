@@ -154,10 +154,6 @@ impl SubstrateChainStatus {
         }
     }
 
-    fn best_hash(&self) -> AlephHash {
-        self.info().best_hash
-    }
-
     fn finalized_hash(&self) -> AlephHash {
         self.info().finalized_hash
     }
@@ -223,13 +219,6 @@ impl ChainStatus<Block, Justification> for SubstrateChainStatus {
         } else {
             Ok(BlockStatus::Present(header))
         }
-    }
-
-    fn best_block(&self) -> Result<AlephHeader, Self::Error> {
-        let best_hash = self.best_hash();
-
-        self.header_for_hash(best_hash)?
-            .ok_or(Error::MissingHash(best_hash))
     }
 
     fn top_finalized(&self) -> Result<Justification, Self::Error> {

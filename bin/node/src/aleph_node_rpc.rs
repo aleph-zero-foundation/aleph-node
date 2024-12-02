@@ -166,7 +166,7 @@ pub trait AlephNodeApi<BE> {
     #[method(name = "getBlockAuthor")]
     fn block_author(&self, hash: BlockHash) -> RpcResult<Option<AccountId>>;
 
-    ///
+    /// Whether the node is ready for operation.
     #[method(name = "ready")]
     fn ready(&self) -> RpcResult<bool>;
 

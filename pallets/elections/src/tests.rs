@@ -1,5 +1,3 @@
-#![cfg(test)]
-
 use frame_election_provider_support::{ElectionProvider, Support};
 use primitives::CommitteeSeats;
 use sp_core::bounded_vec;

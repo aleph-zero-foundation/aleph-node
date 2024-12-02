@@ -67,7 +67,6 @@ substrate-frame-rpc-system = { workspace = true }
 pallet-transaction-payment-rpc = { workspace = true }
 
 aleph-runtime = { workspace = true, optional = true }
-try-runtime-cli = { workspace = true, optional = true }
 
 [build-dependencies]
 substrate-build-script-utils = { workspace = true }
@@ -95,12 +94,6 @@ rocksdb = [
     "sc-cli/rocksdb",
     "sc-client-db/rocksdb",
     "sc-service/rocksdb",
-]
-try-runtime = [
-    "aleph-runtime-native",
-    "dep:try-runtime-cli",
-    "aleph-runtime?/try-runtime",
-    "try-runtime-cli?/try-runtime",
 ]
 aleph-runtime-native = [
     "dep:aleph-runtime"

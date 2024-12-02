@@ -36,7 +36,7 @@ pub fn run_member<H, C, ADN, V>(
     multikeychain: Keychain,
     config: Config,
     network: WrappedNetwork<H::Unverified, ADN>,
-    data_provider: impl legacy_aleph_bft::DataProvider<AlephData<H::Unverified>> + Send + 'static,
+    data_provider: impl legacy_aleph_bft::DataProvider<AlephData<H::Unverified>> + 'static,
     ordered_data_interpreter: OrderedDataInterpreter<SubstrateChainInfoProvider<H, C>, H, V>,
     backup: ABFTBackup,
 ) -> Task

@@ -71,6 +71,7 @@ impl SubstrateCli for Cli {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, ClapSubcommand)]
 pub enum Subcommand {
     /// Key management cli utilities
@@ -94,14 +95,6 @@ pub enum Subcommand {
 
     /// Revert the chain to a previous state.
     Revert(sc_cli::RevertCmd),
-
-    /// Try some command against runtime state.
-    #[cfg(feature = "try-runtime")]
-    TryRuntime(try_runtime_cli::TryRuntimeCmd),
-
-    /// Try some command against runtime state. Note: `try-runtime` feature must be enabled.
-    #[cfg(not(feature = "try-runtime"))]
-    TryRuntime,
 
     /// The custom benchmark subcommand benchmarking runtime pallets.
     #[cfg(feature = "runtime-benchmarks")]

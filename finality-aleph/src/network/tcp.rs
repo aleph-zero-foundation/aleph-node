@@ -1,4 +1,9 @@
-use std::{io::Error as IoError, iter, net::ToSocketAddrs as _};
+use std::{
+    fmt::{Display as FmtDisplay, Error as FmtError, Formatter},
+    io::Error as IoError,
+    iter,
+    net::ToSocketAddrs as _,
+};
 
 use derive_more::{AsRef, Display};
 use log::info;
@@ -175,6 +180,20 @@ impl Dialer<SignedTcpAddressingInformation> for TcpDialer {
 pub enum Error {
     Io(IoError),
     AddressingInformation(AddressingInformationError),
+}
+
+impl FmtDisplay for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), FmtError> {
+        use Error::*;
+        match self {
+            Io(err) => {
+                write!(f, "IO error: {err}")
+            }
+            AddressingInformation(err) => {
+                write!(f, "problem with addressing information: {err:?}")
+            }
+        }
+    }
 }
 
 impl From<IoError> for Error {

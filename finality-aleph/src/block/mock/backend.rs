@@ -172,7 +172,7 @@ impl Finalizer<MockJustification> for Backend {
             None => panic!("finalizing block without specified parent: {header:?}"),
         };
 
-        if storage.blockchain.get(&parent_id).is_none() {
+        if !storage.blockchain.contains_key(&parent_id) {
             panic!("finalizing block without imported parent: {header:?}")
         }
 
@@ -350,10 +350,6 @@ impl ChainStatus<MockBlock, MockJustification> for Backend {
         }
 
         Ok(FinalizedByDescendant(block.header.clone()))
-    }
-
-    fn best_block(&self) -> Result<MockHeader, Self::Error> {
-        Err(Self::Error {})
     }
 
     fn top_finalized(&self) -> Result<MockJustification, Self::Error> {

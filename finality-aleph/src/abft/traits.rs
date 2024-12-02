@@ -4,14 +4,9 @@ use std::{cmp::Ordering, fmt::Debug, hash::Hash as StdHash, marker::PhantomData,
 
 use futures::{channel::oneshot, Future};
 use network_clique::{SpawnHandleExt, SpawnHandleT};
-use parity_scale_codec::{Codec, Decode, Encode};
+use parity_scale_codec::{Decode, Encode};
 use sc_service::SpawnTaskHandle;
 use sp_runtime::traits::Hash as SpHash;
-
-/// A convenience trait for gathering all of the desired hash characteristics.
-pub trait Hash: AsRef<[u8]> + StdHash + Eq + Clone + Codec + Debug + Send + Sync {}
-
-impl<T: AsRef<[u8]> + StdHash + Eq + Clone + Codec + Debug + Send + Sync> Hash for T {}
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Wrapper<H: SpHash> {

@@ -419,7 +419,7 @@ pub struct U256ToBalance;
 
 impl Convert<sp_core::U256, Balance> for U256ToBalance {
     fn convert(n: sp_core::U256) -> Balance {
-        n.try_into().unwrap_or(Balance::max_value())
+        n.try_into().unwrap_or(Balance::MAX)
     }
 }
 

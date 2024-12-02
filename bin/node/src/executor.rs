@@ -1,14 +1,10 @@
 //! This module declares an `AlephExecutor` which is either a
 //! * `WasmExecutor`, for production and test build (when no local debugging is required)
-//! * `NativeElseWasmExecutor` for `try-runtime`, `runtime-benchmarks` and local debugging builds
+//! * `NativeElseWasmExecutor` for `runtime-benchmarks` and local debugging builds
 
 use sc_service::Configuration;
 
-#[cfg(not(any(
-    feature = "runtime-benchmarks",
-    feature = "aleph-native-runtime",
-    feature = "try-runtime"
-)))]
+#[cfg(not(any(feature = "runtime-benchmarks", feature = "aleph-native-runtime",)))]
 pub mod aleph_executor {
     use sc_executor::WasmExecutor;
 
@@ -22,11 +18,7 @@ pub mod aleph_executor {
     }
 }
 
-#[cfg(any(
-    feature = "runtime-benchmarks",
-    feature = "aleph-native-runtime",
-    feature = "try-runtime"
-))]
+#[cfg(any(feature = "runtime-benchmarks", feature = "aleph-native-runtime",))]
 pub mod aleph_executor {
     use sc_executor::NativeElseWasmExecutor;
 
