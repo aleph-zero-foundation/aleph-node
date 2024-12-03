@@ -11,14 +11,15 @@ repository.workspace = true
 # fixed version to 'freeze' some types used in abft, mainly `SignatureSet` used in justification and signature aggregation
 aleph-bft-crypto = { workspace = true }
 
-current-aleph-bft = { package = "aleph-bft", version = "0.36" }
-current-aleph-bft-rmc = { package = "aleph-bft-rmc", version = "0.13" }
-legacy-aleph-bft = { package = "aleph-bft", version = "0.33" }
-legacy-aleph-bft-rmc = { package = "aleph-bft-rmc", version = "0.11" }
+current-aleph-bft = { package = "aleph-bft", version = "0.39" }
+current-aleph-bft-rmc = { package = "aleph-bft-rmc", version = "0.14" }
+legacy-aleph-bft = { package = "aleph-bft", version = "0.36" }
+legacy-aleph-bft-rmc = { package = "aleph-bft-rmc", version = "0.13" }
 
 network-clique = { workspace = true }
 primitives = { workspace = true }
-legacy-aleph-aggregator = { package = "aggregator", git = "https://github.com/Cardinal-Cryptography/aleph-node.git", tag = "r-13.3" }
+# TODO: update this to the appropriate release tag once it exists
+legacy-aleph-aggregator = { package = "aggregator", git = "https://github.com/Cardinal-Cryptography/aleph-node.git", tag = "r-14.0-rc1" }
 current-aleph-aggregator = { path = "../aggregator", package = "aggregator" }
 rate-limiter = { package = "rate-limiter", path = "../rate-limiter" }
 fake-runtime-api = { workspace = true, features = ["std"] }

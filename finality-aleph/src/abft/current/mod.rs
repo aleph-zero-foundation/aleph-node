@@ -37,7 +37,7 @@ pub fn run_member<H, C, ADN, V>(
     multikeychain: Keychain,
     config: Config,
     network: WrappedNetwork<H::Unverified, ADN>,
-    data_provider: impl current_aleph_bft::DataProvider<AlephData<H::Unverified>> + 'static,
+    data_provider: impl current_aleph_bft::DataProvider<Output = AlephData<H::Unverified>> + 'static,
     ordered_data_interpreter: OrderedDataInterpreter<SubstrateChainInfoProvider<H, C>, H, V>,
     backup: ABFTBackup,
 ) -> Task
@@ -53,7 +53,12 @@ where
     } = subtask_common;
     let (stop, exit) = oneshot::channel();
     let member_terminator = Terminator::create_root(exit, "member");
-    let local_io = LocalIO::new(data_provider, ordered_data_interpreter, backup.0, backup.1);
+    let local_io = LocalIO::new_with_unit_finalization_handler(
+        data_provider,
+        ordered_data_interpreter,
+        backup.0,
+        backup.1,
+    );
 
     let task = {
         let spawn_handle = spawn_handle.clone();

@@ -72,6 +72,7 @@ impl<S: 'static> IntoIterator for SignatureSet<S> {
     }
 }
 
+// Currently the traits for legacy and current match, so only one implementation needed.
 impl<S: Signature> legacy_aleph_bft::PartialMultisignature for SignatureSet<S> {
     type Signature = S;
 
@@ -79,18 +80,6 @@ impl<S: Signature> legacy_aleph_bft::PartialMultisignature for SignatureSet<S> {
         self,
         signature: &Self::Signature,
         index: legacy_aleph_bft::NodeIndex,
-    ) -> Self {
-        SignatureSet::add_signature(self, signature, index.into())
-    }
-}
-
-impl<S: Signature> current_aleph_bft::PartialMultisignature for SignatureSet<S> {
-    type Signature = S;
-
-    fn add_signature(
-        self,
-        signature: &Self::Signature,
-        index: current_aleph_bft::NodeIndex,
     ) -> Self {
         SignatureSet::add_signature(self, signature, index.into())
     }

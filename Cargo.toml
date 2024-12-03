@@ -47,9 +47,9 @@ repository = "https://github.com/Cardinal-Cryptography/aleph-node"
 
 [workspace.dependencies]
 aleph-bft-crypto = { version = "0.9" }
-aleph-bft-mock = { version = "0.14" }
-aleph-bft-rmc = { version = "0.13" }
-aleph-bft-types = { version = "0.13" }
+aleph-bft-mock = { version = "0.15" }
+aleph-bft-rmc = { version = "0.14" }
+aleph-bft-types = { version = "0.14" }
 async-trait = { version = "0.1" }
 array-bytes = { version = "6" }
 bytes = { version = "1.8" }

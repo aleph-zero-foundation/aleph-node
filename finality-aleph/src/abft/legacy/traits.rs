@@ -18,11 +18,7 @@ where
     H: Header,
     V: HeaderVerifier<H>,
 {
-    fn data_finalized(
-        &mut self,
-        data: AlephData<H::Unverified>,
-        _creator: legacy_aleph_bft::NodeIndex,
-    ) {
+    fn data_finalized(&mut self, data: AlephData<H::Unverified>) {
         OrderedDataInterpreter::data_finalized(self, data)
     }
 }

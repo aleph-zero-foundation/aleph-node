@@ -38,7 +38,7 @@ impl<D: Data, DN: Network<D>> NetworkWrapper<D, DN> {
 }
 
 #[async_trait::async_trait]
-impl<D: Data, DN: Network<D>> current_aleph_bft::Network<D> for NetworkWrapper<D, DN> {
+impl<D: Data, DN: Network<D> + 'static> current_aleph_bft::Network<D> for NetworkWrapper<D, DN> {
     fn send(&self, data: D, recipient: current_aleph_bft::Recipient) {
         NetworkWrapper::send(self, data, recipient)
     }

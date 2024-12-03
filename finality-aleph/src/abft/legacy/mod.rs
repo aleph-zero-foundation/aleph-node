@@ -1,4 +1,4 @@
-use std::{pin::Pin, time::Duration};
+use std::time::Duration;
 
 use legacy_aleph_bft::{create_config, default_delay_config, Config, LocalIO, Terminator};
 use log::debug;
@@ -52,12 +52,7 @@ where
     } = subtask_common;
     let (stop, exit) = oneshot::channel();
     let member_terminator = Terminator::create_root(exit, "member");
-    let local_io = LocalIO::new(
-        data_provider,
-        ordered_data_interpreter,
-        Pin::into_inner(backup.0),
-        Pin::into_inner(backup.1),
-    );
+    let local_io = LocalIO::new(data_provider, ordered_data_interpreter, backup.0, backup.1);
 
     let task = {
         let spawn_handle = spawn_handle.clone();

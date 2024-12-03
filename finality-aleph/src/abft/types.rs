@@ -49,49 +49,30 @@ impl From<current_aleph_bft::Recipient> for Recipient {
     }
 }
 
-impl From<NodeCount> for current_aleph_bft::NodeCount {
-    fn from(count: NodeCount) -> Self {
-        current_aleph_bft::NodeCount(count.0)
-    }
-}
+// Currently the traits for legacy and current match, so only one implementation needed.
 impl From<NodeCount> for legacy_aleph_bft::NodeCount {
     fn from(count: NodeCount) -> Self {
         legacy_aleph_bft::NodeCount(count.0)
     }
 }
 
+// Currently the traits for legacy and current match, so only one implementation needed.
 impl From<legacy_aleph_bft::NodeCount> for NodeCount {
     fn from(count: legacy_aleph_bft::NodeCount) -> Self {
         Self(count.0)
     }
 }
 
-impl From<current_aleph_bft::NodeCount> for NodeCount {
-    fn from(count: current_aleph_bft::NodeCount) -> Self {
-        Self(count.0)
-    }
-}
-
-impl From<NodeIndex> for current_aleph_bft::NodeIndex {
-    fn from(idx: NodeIndex) -> Self {
-        current_aleph_bft::NodeIndex(idx.0)
-    }
-}
-
+// Currently the traits for legacy and current match, so only one implementation needed.
 impl From<NodeIndex> for legacy_aleph_bft::NodeIndex {
     fn from(idx: NodeIndex) -> Self {
         legacy_aleph_bft::NodeIndex(idx.0)
     }
 }
 
+// Currently the traits for legacy and current match, so only one implementation needed.
 impl From<legacy_aleph_bft::NodeIndex> for NodeIndex {
     fn from(idx: legacy_aleph_bft::NodeIndex) -> Self {
-        Self(idx.0)
-    }
-}
-
-impl From<current_aleph_bft::NodeIndex> for NodeIndex {
-    fn from(idx: current_aleph_bft::NodeIndex) -> Self {
         Self(idx.0)
     }
 }
