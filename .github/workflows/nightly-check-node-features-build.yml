@@ -26,18 +26,12 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
-      - name: aleph-runtime with try-runtime
-        run: cargo check --profile production -p aleph-runtime --features try-runtime --locked
-
       - name: aleph-runtime with runtime-benchmarks
         # yamllint disable-line rule:line-length
         run: cargo check --profile production -p aleph-runtime --features runtime-benchmarks --locked
 
       - name: aleph-node with runtime-benchmarks
         run: cargo check --profile production -p aleph-node --features runtime-benchmarks --locked
-
-      - name: aleph-node with try-runtime
-        run: cargo check --profile production -p aleph-node --features try-runtime --locked
 
       - name: aleph-node with aleph-runtime-native
         run: cargo check --profile dev -p aleph-node --features aleph-runtime-native --locked
