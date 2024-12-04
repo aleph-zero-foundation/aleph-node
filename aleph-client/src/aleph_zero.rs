@@ -2140,9 +2140,9 @@ pub mod api {
             .hash();
         runtime_metadata_hash
             == [
-                46u8, 76u8, 121u8, 124u8, 214u8, 182u8, 28u8, 12u8, 114u8, 169u8, 159u8, 10u8,
-                128u8, 9u8, 179u8, 188u8, 124u8, 56u8, 110u8, 108u8, 24u8, 15u8, 236u8, 3u8, 213u8,
-                142u8, 207u8, 48u8, 23u8, 113u8, 170u8, 43u8,
+                215u8, 214u8, 136u8, 251u8, 152u8, 78u8, 98u8, 58u8, 80u8, 188u8, 2u8, 21u8, 206u8,
+                234u8, 19u8, 30u8, 163u8, 128u8, 7u8, 43u8, 216u8, 246u8, 5u8, 46u8, 207u8, 1u8,
+                142u8, 26u8, 146u8, 247u8, 88u8, 215u8,
             ]
     }
     pub mod system {
@@ -9776,6 +9776,29 @@ pub mod api {
                             122u8, 237u8, 87u8, 189u8, 86u8, 250u8, 173u8, 110u8, 47u8, 118u8,
                             119u8, 158u8, 48u8, 114u8, 45u8, 107u8, 109u8, 208u8, 129u8, 41u8,
                             217u8, 195u8,
+                        ],
+                    )
+                }
+                pub fn abft_signature(
+                    &self,
+                ) -> ::subxt::storage::address::Address<
+                    ::subxt::storage::address::StaticStorageMapKey,
+                    runtime_types::primitives::crypto::SignatureSet<
+                        runtime_types::primitives::app::Signature,
+                    >,
+                    ::subxt::storage::address::Yes,
+                    (),
+                    (),
+                > {
+                    ::subxt::storage::address::Address::new_static(
+                        "Aleph",
+                        "AbftSignature",
+                        vec![],
+                        [
+                            41u8, 250u8, 192u8, 238u8, 20u8, 36u8, 104u8, 19u8, 70u8, 209u8, 234u8,
+                            162u8, 46u8, 123u8, 202u8, 47u8, 238u8, 233u8, 157u8, 52u8, 235u8,
+                            122u8, 239u8, 163u8, 195u8, 235u8, 201u8, 183u8, 117u8, 178u8, 236u8,
+                            16u8,
                         ],
                     )
                 }
@@ -27135,6 +27158,56 @@ pub mod api {
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct Public(pub runtime_types::sp_core::ed25519::Public);
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct Signature(pub runtime_types::sp_core::ed25519::Signature);
+            }
+            pub mod crypto {
+                use super::runtime_types;
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct IndexedSignature<_0> {
+                    pub index: ::core::primitive::u64,
+                    pub signature: _0,
+                }
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct SignatureSet<_0>(
+                    pub ::std::vec::Vec<runtime_types::primitives::crypto::IndexedSignature<_0>>,
+                );
             }
             #[derive(
                 :: subxt :: ext :: codec :: Decode,

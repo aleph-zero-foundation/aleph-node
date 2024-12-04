@@ -413,3 +413,91 @@ pub mod staking {
         };
     }
 }
+
+pub mod crypto {
+    use core::marker::PhantomData;
+
+    use parity_scale_codec::{Decode, Encode};
+    use scale_info::TypeInfo;
+    use sp_runtime::RuntimeAppPublic;
+    use sp_std::vec::Vec;
+
+    use super::AuthoritySignature;
+
+    #[derive(Decode, Encode, TypeInfo, Debug, Clone)]
+    pub struct IndexedSignature<S> {
+        pub index: u64,
+        pub signature: S,
+    }
+
+    #[derive(Decode, Encode, TypeInfo, Debug, Clone)]
+    pub struct SignatureSet<S>(pub Vec<IndexedSignature<S>>);
+
+    #[cfg_attr(feature = "std", derive(Hash))]
+    #[derive(PartialEq, Eq, Clone, Debug, Decode, Encode, TypeInfo)]
+    pub struct Signature(pub AuthoritySignature);
+
+    impl From<AuthoritySignature> for Signature {
+        fn from(authority_signature: AuthoritySignature) -> Signature {
+            Signature(authority_signature)
+        }
+    }
+
+    impl From<Signature> for AuthoritySignature {
+        fn from(signature: Signature) -> AuthoritySignature {
+            signature.0
+        }
+    }
+
+    /// Holds the public authority keys for a session allowing for verification of messages from that
+    /// session.
+    #[derive(PartialEq, Clone, Debug, Default, Decode, Encode, TypeInfo)]
+    pub struct AuthorityVerifier<AID, S> {
+        authorities: Vec<AID>,
+        _phantom: PhantomData<S>,
+    }
+
+    impl<AID: RuntimeAppPublic<Signature = S>, S> AuthorityVerifier<AID, S> {
+        /// Constructs a new authority verifier from a set of public keys.
+        pub fn new(authorities: Vec<AID>) -> Self {
+            AuthorityVerifier {
+                authorities,
+                _phantom: PhantomData,
+            }
+        }
+
+        /// Verifies whether the message is correctly signed with the signature assumed to be made by a
+        /// node of the given index.
+        pub fn verify(&self, msg: &Vec<u8>, sgn: &S, index: u64) -> bool {
+            match self.authorities.get(index as usize) {
+                Some(authority) => authority.verify(msg, sgn),
+                None => false,
+            }
+        }
+
+        pub fn node_count(&self) -> usize {
+            self.authorities.len()
+        }
+
+        fn threshold(&self) -> usize {
+            2 * self.node_count() / 3 + 1
+        }
+
+        /// Verifies whether the given signature set is a correct and complete multisignature of the
+        /// message. Completeness requires more than 2/3 of all authorities.
+        pub fn is_complete(
+            verifier: &AuthorityVerifier<AID, S>,
+            msg: &Vec<u8>,
+            partial: &SignatureSet<S>,
+        ) -> bool {
+            let signature_count = partial.0.len();
+            if signature_count < verifier.threshold() {
+                return false;
+            }
+            partial
+                .0
+                .iter()
+                .all(|i_sgn| verifier.verify(msg, &i_sgn.signature, i_sgn.index))
+        }
+    }
+}

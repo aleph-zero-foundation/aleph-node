@@ -16,7 +16,7 @@ mod types;
 
 use std::fmt::Debug;
 
-use aleph_bft_crypto::{PartialMultisignature, Signature};
+use aleph_bft_crypto::{PartialMultisignature, Signature as AbftSignature};
 pub use crypto::Keychain;
 pub use current::{
     create_aleph_config as current_create_aleph_config, run_member as run_current_member,
@@ -28,8 +28,14 @@ pub use legacy::{
 };
 pub use network::NetworkWrapper;
 use parity_scale_codec::{Decode, Encode};
+use primitives::{
+    crypto::{IndexedSignature, SignatureSet as PrimitivesSignatureSet},
+    AuthoritySignature,
+};
 pub use traits::{SpawnHandle, Wrapper as HashWrapper};
 pub use types::{NodeCount, NodeIndex, Recipient};
+
+use crate::crypto::Signature;
 
 /// Wrapper for `SignatureSet` to be able to implement both legacy and current `PartialMultisignature` trait.
 /// Inner `SignatureSet` is imported from `aleph_bft_crypto` with fixed version for compatibility reasons:
@@ -57,7 +63,7 @@ impl<S: Clone> SignatureSet<S> {
 
     pub fn add_signature(self, signature: &S, index: NodeIndex) -> Self
     where
-        S: Signature,
+        S: AbftSignature,
     {
         SignatureSet(self.0.add_signature(signature, index.into()))
     }
@@ -72,8 +78,22 @@ impl<S: 'static> IntoIterator for SignatureSet<S> {
     }
 }
 
+impl From<SignatureSet<Signature>> for PrimitivesSignatureSet<AuthoritySignature> {
+    fn from(signature_set: SignatureSet<Signature>) -> PrimitivesSignatureSet<AuthoritySignature> {
+        let score_sigantures: Vec<IndexedSignature<AuthoritySignature>> = signature_set
+            .0
+            .into_iter()
+            .map(|(idx, s)| IndexedSignature {
+                index: idx.0 as u64,
+                signature: s.0,
+            })
+            .collect();
+        PrimitivesSignatureSet(score_sigantures)
+    }
+}
+
 // Currently the traits for legacy and current match, so only one implementation needed.
-impl<S: Signature> legacy_aleph_bft::PartialMultisignature for SignatureSet<S> {
+impl<S: AbftSignature> legacy_aleph_bft::PartialMultisignature for SignatureSet<S> {
     type Signature = S;
 
     fn add_signature(
