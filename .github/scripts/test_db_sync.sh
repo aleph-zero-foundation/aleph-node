@@ -57,7 +57,7 @@ if [[ "${ENV}" == "mainnet" ]]; then
     S3_BUCKET="db.azero.dev"
 else
     SOURCE_CHAINSPEC="./bin/node/src/resources/testnet_chainspec.json"
-    BOOT_NODES=/dns4/bootnode-eu-central-1-0.test.azero.dev/tcp/30333/p2p/12D3KooWRkGLz4YbVmrsWK75VjFTs8NvaBu42xhAmQaP4KeJpw1L/dns4/bootnode-eu-west-1-0.test.azero.dev/tcp/30333/p2p/12D3KooWFVXnvJdPuGnGYMPn5qLQAQYwmRBgo6SmEQsKZSrDoo2k/dns4/bootnode-eu-west-2-0.test.azero.dev/tcp/30333/p2p/12D3KooWAkqYFFKMEJn6fnPjYnbuBBsBZq6fRFJZYR6rxnuCZWCC/dns4/bootnode-us-east-1-0.test.azero.dev/tcp/30333/p2p/12D3KooWQFkkFr5aM5anGEiUCQiGUdRyWgrdpvSjBgWAUS9srLE4/dns4/bootnode-us-east-2-0.test.azero.dev/tcp/30333/p2p/12D3KooWD5s2dkifJua69RbLwEREDdJjsNHvavNRGxdCvzhoeaLc
+    BOOT_NODES=/dns4/bootnode-eu-central-1-0.test.azero.dev/tcp/30333/p2p/12D3KooWRkGLz4YbVmrsWK75VjFTs8NvaBu42xhAmQaP4KeJpw1L/dns4/bootnode-us-east-1-0.test.azero.dev/tcp/30333/p2p/12D3KooWSv1nApKkcnq8ZVHJQLK5GJ4NKS9ebag9QrRTzksLTGUy
     DB_PATH="chains/testnet/"
     TARGET_CHAIN="wss://ws.test.azero.dev"
     S3_URL="http://db.test.azero.dev.s3-website.eu-central-1.amazonaws.com"
