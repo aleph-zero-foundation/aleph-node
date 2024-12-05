@@ -85,6 +85,14 @@ jobs:
               "aleph-node-validator-image-placeholder=${{ env.DEPLOY_IMAGE }}"
           done
 
+      - name: Configure signing key
+        # yamllint disable rule:line-length
+        run: |
+          echo ${{ secrets.AUTOCOMMIT_GPG_KEY_B64 }} | base64 -d > key.gpg
+          gpg --import key.gpg
+          rm key.gpg
+          git config --global user.signingkey $(echo ${{ secrets.AUTOCOMMIT_GPG_KEY_FINGERPRINT }} | tail -c 17)
+
       - name: GIT | Commit changes to argocd apps repository.
         uses: EndBug/add-and-commit@v9.1.4
         env:
@@ -94,4 +102,5 @@ jobs:
           author_email: ${{ secrets.AUTOCOMMIT_EMAIL }}
           message: "Update ${{ inputs.env }} aleph-node tag ${{ env.TAG }}"
           add: "*.yaml"
+          commit: -S
           cwd: ${{ secrets.REPO_ARGOCD_APPS_NAME }}

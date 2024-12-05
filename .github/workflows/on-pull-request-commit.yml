@@ -22,7 +22,7 @@ jobs:
         uses: Cardinal-Cryptography/github-actions/check-pr-title@v7
         with:
           pr-title: ${{ github.event.pull_request.title }}
-          regexp: '(A0|L1|CW)-[0-9]+'
+          regexp: '(A0|L1|CW|INFRA)-[0-9]+'
 
   code-formatting:
     name: Check code formatting
