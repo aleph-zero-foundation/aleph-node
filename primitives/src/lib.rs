@@ -414,6 +414,15 @@ pub mod staking {
     }
 }
 
+pub type ScoreNonce = u32;
+
+#[derive(PartialEq, Decode, Encode, TypeInfo, Debug, Clone)]
+pub struct Score {
+    pub session_id: SessionIndex,
+    pub nonce: ScoreNonce,
+    pub points: Vec<u32>,
+}
+
 pub mod crypto {
     use core::marker::PhantomData;
 
@@ -424,13 +433,13 @@ pub mod crypto {
 
     use super::AuthoritySignature;
 
-    #[derive(Decode, Encode, TypeInfo, Debug, Clone)]
+    #[derive(PartialEq, Decode, Encode, TypeInfo, Debug, Clone)]
     pub struct IndexedSignature<S> {
         pub index: u64,
         pub signature: S,
     }
 
-    #[derive(Decode, Encode, TypeInfo, Debug, Clone)]
+    #[derive(PartialEq, Decode, Encode, TypeInfo, Debug, Clone)]
     pub struct SignatureSet<S>(pub Vec<IndexedSignature<S>>);
 
     #[cfg_attr(feature = "std", derive(Hash))]

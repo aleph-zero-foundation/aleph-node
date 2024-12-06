@@ -44,13 +44,13 @@ use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustm
 use pallet_tx_pause::RuntimeCallNameOf;
 use parity_scale_codec::{Decode, Encode, MaxEncodedLen};
 use primitives::{
-    staking::MAX_NOMINATORS_REWARDED_PER_VALIDATOR, wrap_methods, Address,
+    crypto::SignatureSet, staking::MAX_NOMINATORS_REWARDED_PER_VALIDATOR, wrap_methods, Address,
     AlephNodeSessionKeys as SessionKeys, ApiError as AlephApiError, AuraId, AuthorityId as AlephId,
-    BlockNumber as AlephBlockNumber, Header as AlephHeader, SessionAuthorityData, SessionCommittee,
-    SessionIndex, SessionInfoProvider, SessionValidatorError,
-    TotalIssuanceProvider as TotalIssuanceProviderT, Version as FinalityVersion,
-    ADDRESSES_ENCODING, DEFAULT_BAN_REASON_LENGTH, DEFAULT_MAX_WINNERS, DEFAULT_SESSIONS_PER_ERA,
-    DEFAULT_SESSION_PERIOD, MAX_BLOCK_SIZE, MILLISECS_PER_BLOCK, TOKEN,
+    AuthoritySignature, BlockNumber as AlephBlockNumber, Header as AlephHeader, Score,
+    SessionAuthorityData, SessionCommittee, SessionIndex, SessionInfoProvider,
+    SessionValidatorError, TotalIssuanceProvider as TotalIssuanceProviderT,
+    Version as FinalityVersion, ADDRESSES_ENCODING, DEFAULT_BAN_REASON_LENGTH, DEFAULT_MAX_WINNERS,
+    DEFAULT_SESSIONS_PER_ERA, DEFAULT_SESSION_PERIOD, MAX_BLOCK_SIZE, MILLISECS_PER_BLOCK, TOKEN,
 };
 pub use primitives::{AccountId, AccountIndex, Balance, Hash, Nonce, Signature};
 use sp_api::impl_runtime_apis;
@@ -80,10 +80,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     spec_name: create_runtime_str!("aleph-node"),
     impl_name: create_runtime_str!("aleph-node"),
     authoring_version: 1,
-    spec_version: 15_000_000,
+    spec_version: 16_000_000,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
-    transaction_version: 18,
+    transaction_version: 19,
     state_version: 0,
 };
 
@@ -1237,6 +1237,10 @@ impl_runtime_apis! {
             let total_issuance = pallet_balances::Pallet::<Runtime>::total_issuance();
 
             ExponentialEraPayout::era_payout(total_issuance, MILLISECONDS_PER_ERA)
+        }
+
+        fn submit_abft_score(score: Score, signature: SignatureSet<AuthoritySignature>) -> Option<()> {
+            Aleph::submit_abft_score(score, signature)
         }
     }
 

@@ -8,9 +8,9 @@ use pallet_aleph_runtime_api::*;
 use pallet_transaction_payment::FeeDetails;
 use pallet_transaction_payment_rpc_runtime_api::RuntimeDispatchInfo;
 use primitives::{
-    AccountId, ApiError as AlephApiError, AuraId, AuthorityId as AlephId, Balance, Block, Nonce,
-    Perbill, SessionAuthorityData, SessionCommittee, SessionIndex, SessionValidatorError,
-    Version as FinalityVersion,
+    crypto::SignatureSet, AccountId, ApiError as AlephApiError, AuraId, AuthorityId as AlephId,
+    AuthoritySignature, Balance, Block, Nonce, Perbill, Score, SessionAuthorityData,
+    SessionCommittee, SessionIndex, SessionValidatorError, Version as FinalityVersion,
 };
 use sp_consensus_aura::SlotDuration;
 use sp_core::OpaqueMetadata;
@@ -193,6 +193,10 @@ pub mod fake_runtime {
             }
 
             fn current_era_payout() -> (Balance, Balance) {
+                unimplemented!()
+            }
+
+            fn submit_abft_score(_score: Score, _signature: SignatureSet<AuthoritySignature>) -> Option<()>{
                 unimplemented!()
             }
         }

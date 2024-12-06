@@ -80,7 +80,7 @@ impl<S: 'static> IntoIterator for SignatureSet<S> {
 
 impl From<SignatureSet<Signature>> for PrimitivesSignatureSet<AuthoritySignature> {
     fn from(signature_set: SignatureSet<Signature>) -> PrimitivesSignatureSet<AuthoritySignature> {
-        let score_sigantures: Vec<IndexedSignature<AuthoritySignature>> = signature_set
+        let score_signatures: Vec<IndexedSignature<AuthoritySignature>> = signature_set
             .0
             .into_iter()
             .map(|(idx, s)| IndexedSignature {
@@ -88,7 +88,7 @@ impl From<SignatureSet<Signature>> for PrimitivesSignatureSet<AuthoritySignature
                 signature: s.0,
             })
             .collect();
-        PrimitivesSignatureSet(score_sigantures)
+        PrimitivesSignatureSet(score_signatures)
     }
 }
 
