@@ -1,14 +1,13 @@
 use std::{
     fmt, fs,
     fs::File,
-    io,
-    io::{Cursor, Read, Write},
+    io::{Error as IoError, Read, Result as IoResult},
     path::{Path, PathBuf},
     pin::Pin,
     str::FromStr,
 };
 
-use futures::io::{AllowStdIo, AsyncRead, AsyncWrite};
+use futures::io::{empty, sink, AllowStdIo, AsyncRead, AsyncWrite, Cursor};
 use log::debug;
 
 const BACKUP_FILE_EXTENSION: &str = ".abfts";
@@ -16,7 +15,7 @@ const BACKUP_FILE_EXTENSION: &str = ".abfts";
 #[derive(Debug)]
 pub enum BackupLoadError {
     BackupIncomplete(Vec<usize>),
-    IOError(io::Error),
+    IOError(IoError),
 }
 
 impl fmt::Display for BackupLoadError {
@@ -35,25 +34,16 @@ impl fmt::Display for BackupLoadError {
     }
 }
 
-impl From<io::Error> for BackupLoadError {
-    fn from(err: io::Error) -> Self {
+impl From<IoError> for BackupLoadError {
+    fn from(err: IoError) -> Self {
         Self::IOError(err)
     }
 }
 
 impl std::error::Error for BackupLoadError {}
 
-// Both the `Both` traits are only necessary for backwards compatibility with old ABFT.
-// TODO(A0-4271): Remove these when removing support for ABFT 0.33 and
-// check whether the implementations should also be replaced with purely async ones.
-pub trait BothRead: Read + AsyncRead {}
-impl<T: Read + AsyncRead> BothRead for T {}
-
-pub trait BothWrite: Write + AsyncWrite {}
-impl<T: Write + AsyncWrite> BothWrite for T {}
-
-pub type Saver = Pin<Box<dyn BothWrite + Send + Sync + Unpin>>;
-pub type Loader = Pin<Box<dyn BothRead + Send + Sync + Unpin>>;
+pub type Saver = Pin<Box<dyn AsyncWrite + Send + Sync + Unpin>>;
+pub type Loader = Pin<Box<dyn AsyncRead + Send + Sync + Unpin>>;
 pub type ABFTBackup = (Saver, Loader);
 
 /// Find all `*.abfts` files at `session_path` and return their indexes sorted, if all are present.
@@ -78,7 +68,7 @@ fn load_backup(session_path: &Path, session_idxs: &[usize]) -> Result<Loader, Ba
         let load_path = session_path.join(format!("{index}{BACKUP_FILE_EXTENSION}"));
         File::open(load_path)?.read_to_end(&mut buffer)?;
     }
-    Ok(Box::pin(AllowStdIo::new(Cursor::new(buffer))))
+    Ok(Box::pin(Cursor::new(buffer)))
 }
 
 /// Get path of next backup file in session.
@@ -113,10 +103,7 @@ pub fn rotate(
         path.join(format!("{session_id}"))
     } else {
         debug!(target: "aleph-party", "Passing empty backup for session {:?} as no backup argument was provided", session_id);
-        return Ok((
-            Box::pin(AllowStdIo::new(io::sink())),
-            Box::pin(AllowStdIo::new(io::empty())),
-        ));
+        return Ok((Box::pin(sink()), Box::pin(empty())));
     };
     debug!(target: "aleph-party", "Loading backup for session {:?} at path {:?}", session_id, session_path);
 
@@ -140,7 +127,7 @@ pub fn rotate(
 /// Any filesystem errors are returned.
 ///
 /// This should be done at the beginning of the new session.
-pub fn remove_old_backups(path: Option<PathBuf>, current_session: u32) -> io::Result<()> {
+pub fn remove_old_backups(path: Option<PathBuf>, current_session: u32) -> IoResult<()> {
     if let Some(path) = path {
         if !path.exists() {
             return Ok(());
