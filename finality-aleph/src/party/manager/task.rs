@@ -61,6 +61,16 @@ pub trait Runnable: Send + 'static {
     async fn run(self, exit: oneshot::Receiver<()>);
 }
 
+/// Will run waiting on an exit signal and doing nothing otherwise.
+pub struct NoopRunnable;
+
+#[async_trait::async_trait]
+impl Runnable for NoopRunnable {
+    async fn run(self, exit: oneshot::Receiver<()>) {
+        let _ = exit.await;
+    }
+}
+
 /// Runs the given task within a single session.
 pub fn task<R: Runnable>(subtask_common: TaskCommon, runnable: R, name: &'static str) -> Task {
     let TaskCommon {

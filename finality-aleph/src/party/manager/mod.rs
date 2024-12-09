@@ -12,7 +12,7 @@ use sp_runtime::traits::{Block as BlockT, Header as HeaderT};
 use crate::{
     abft::{
         current_create_aleph_config, legacy_create_aleph_config, run_current_member,
-        run_legacy_member, SpawnHandle,
+        run_legacy_member, CurrentPerformanceService, SpawnHandle,
     },
     aleph_primitives::{BlockHash, BlockNumber, KEY_TYPE},
     block::{
@@ -44,7 +44,7 @@ mod authority;
 mod task;
 
 pub use authority::{Subtasks, Task as AuthorityTask};
-pub use task::{Handle, Runnable, Task, TaskCommon};
+pub use task::{Handle, NoopRunnable, Runnable, Task, TaskCommon};
 
 use crate::{
     abft::{CURRENT_VERSION, LEGACY_VERSION},
@@ -223,6 +223,11 @@ where
                 ordered_data_interpreter,
                 backup,
             ),
+            task::task(
+                subtask_common.clone(),
+                NoopRunnable,
+                "noop abft performance",
+            ),
             aggregator::task(
                 subtask_common.clone(),
                 self.header_backend.clone(),
@@ -269,6 +274,8 @@ where
             self.verifier.clone(),
             session_boundaries.clone(),
         );
+        let (abft_performance, abft_batch_handler) =
+            CurrentPerformanceService::new(ordered_data_interpreter);
         let consensus_config =
             current_create_aleph_config(n_members, node_id, session_id, self.unit_creation_delay);
         let data_network = data_network.map();
@@ -292,9 +299,10 @@ where
                 consensus_config,
                 aleph_network.into(),
                 data_provider,
-                ordered_data_interpreter,
+                abft_batch_handler,
                 backup,
             ),
+            task::task(subtask_common.clone(), abft_performance, "abft performance"),
             aggregator::task(
                 subtask_common.clone(),
                 self.header_backend.clone(),

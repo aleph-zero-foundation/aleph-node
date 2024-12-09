@@ -40,6 +40,7 @@ impl Task {
 pub struct Subtasks {
     exit: oneshot::Receiver<()>,
     member: PureTask,
+    abft_performance: PureTask,
     aggregator: PureTask,
     refresher: PureTask,
     data_store: PureTask,
@@ -50,6 +51,7 @@ impl Subtasks {
     pub fn new(
         exit: oneshot::Receiver<()>,
         member: PureTask,
+        abft_performance: PureTask,
         aggregator: PureTask,
         refresher: PureTask,
         data_store: PureTask,
@@ -57,6 +59,7 @@ impl Subtasks {
         Subtasks {
             exit,
             member,
+            abft_performance,
             aggregator,
             refresher,
             data_store,
@@ -66,6 +69,7 @@ impl Subtasks {
     async fn stop(self) -> Result<(), ()> {
         // both member and aggregator are implicitly using forwarder,
         // so we should force them to exit first to avoid any panics, i.e. `send on closed channel`
+        // abft_performance also uses aggregator, so it should be stopped before that
         debug!(target: "aleph-party", "Started to stop all tasks");
         let mut result = Ok(());
         if self.member.stop().await.is_err() {
@@ -73,6 +77,11 @@ impl Subtasks {
             result = Err(());
         }
         trace!(target: "aleph-party", "Member stopped");
+        if self.abft_performance.stop().await.is_err() {
+            warn!(target: "aleph-party", "ABFT performance scorer stopped with en error");
+            result = Err(());
+        }
+        trace!(target: "aleph-party", "ABFT performance scorer stopped");
         if self.aggregator.stop().await.is_err() {
             warn!(target: "aleph-party", "Aggregator stopped with en error");
             result = Err(());
@@ -96,6 +105,7 @@ impl Subtasks {
         let result = tokio::select! {
             _ = &mut self.exit => Ok(()),
             res = self.member.stopped() => { debug!(target: "aleph-party", "Member stopped early"); res },
+            res = self.abft_performance.stopped() => { debug!(target: "aleph-party", "ABFT performance scorer stopped early"); res },
             res = self.aggregator.stopped() => { debug!(target: "aleph-party", "Aggregator stopped early"); res },
             res = self.refresher.stopped() => { debug!(target: "aleph-party", "Refresher stopped early"); res },
             res = self.data_store.stopped() => { debug!(target: "aleph-party", "DataStore stopped early"); res },

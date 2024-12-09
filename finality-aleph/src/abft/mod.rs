@@ -20,7 +20,8 @@ use aleph_bft_crypto::{PartialMultisignature, Signature as AbftSignature};
 pub use crypto::Keychain;
 pub use current::{
     create_aleph_config as current_create_aleph_config, run_member as run_current_member,
-    NetworkData as CurrentNetworkData, VERSION as CURRENT_VERSION,
+    NetworkData as CurrentNetworkData, PerformanceService as CurrentPerformanceService,
+    VERSION as CURRENT_VERSION,
 };
 pub use legacy::{
     create_aleph_config as legacy_create_aleph_config, run_member as run_legacy_member,
@@ -36,6 +37,8 @@ pub use traits::{SpawnHandle, Wrapper as HashWrapper};
 pub use types::{NodeCount, NodeIndex, Recipient};
 
 use crate::crypto::Signature;
+
+const LOG_TARGET: &str = "aleph-abft";
 
 /// Wrapper for `SignatureSet` to be able to implement both legacy and current `PartialMultisignature` trait.
 /// Inner `SignatureSet` is imported from `aleph_bft_crypto` with fixed version for compatibility reasons:

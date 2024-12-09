@@ -5,9 +5,11 @@ use log::debug;
 use network_clique::SpawnHandleExt;
 
 mod network;
+mod performance;
 mod traits;
 
 pub use network::NetworkData;
+pub use performance::Service as PerformanceService;
 
 pub use crate::aleph_primitives::CURRENT_FINALITY_VERSION as VERSION;
 use crate::{
@@ -15,9 +17,9 @@ use crate::{
         common::{unit_creation_delay_fn, MAX_ROUNDS, SESSION_LEN_LOWER_BOUND_MS},
         NetworkWrapper,
     },
-    block::{Header, HeaderBackend, HeaderVerifier},
+    block::UnverifiedHeader,
     crypto::Signature,
-    data_io::{AlephData, OrderedDataInterpreter, SubstrateChainInfoProvider},
+    data_io::AlephData,
     network::data::Network,
     oneshot,
     party::{
@@ -32,20 +34,21 @@ type WrappedNetwork<H, ADN> = NetworkWrapper<
     ADN,
 >;
 
-pub fn run_member<H, C, ADN, V>(
+pub fn run_member<UH, ADN>(
     subtask_common: TaskCommon,
     multikeychain: Keychain,
     config: Config,
-    network: WrappedNetwork<H::Unverified, ADN>,
-    data_provider: impl current_aleph_bft::DataProvider<Output = AlephData<H::Unverified>> + 'static,
-    ordered_data_interpreter: OrderedDataInterpreter<SubstrateChainInfoProvider<H, C>, H, V>,
+    network: WrappedNetwork<UH, ADN>,
+    data_provider: impl current_aleph_bft::DataProvider<Output = AlephData<UH>> + 'static,
+    ordered_data_interpreter: impl current_aleph_bft::UnitFinalizationHandler<
+        Data = AlephData<UH>,
+        Hasher = Hasher,
+    >,
     backup: ABFTBackup,
 ) -> Task
 where
-    H: Header,
-    C: HeaderBackend<H> + 'static,
-    ADN: Network<CurrentNetworkData<H::Unverified>> + 'static,
-    V: HeaderVerifier<H>,
+    UH: UnverifiedHeader,
+    ADN: Network<CurrentNetworkData<UH>> + 'static,
 {
     let TaskCommon {
         spawn_handle,
