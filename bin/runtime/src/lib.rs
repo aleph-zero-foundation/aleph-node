@@ -376,6 +376,7 @@ impl pallet_committee_management::Config for Runtime {
     type ValidatorExtractor = Staking;
     type FinalityCommitteeManager = Aleph;
     type SessionPeriod = SessionPeriod;
+    type AbftScoresProvider = Aleph;
 }
 
 impl pallet_insecure_randomness_collective_flip::Config for Runtime {}

@@ -1,7 +1,7 @@
 use frame_system::pallet_prelude::BlockNumberFor;
 use log::debug;
 use pallet_session::SessionManager;
-use primitives::{EraManager, FinalityCommitteeManager, SessionCommittee};
+use primitives::{AbftScoresProvider, EraManager, FinalityCommitteeManager, SessionCommittee};
 use sp_staking::{EraIndex, SessionIndex};
 use sp_std::{marker::PhantomData, vec::Vec};
 
@@ -121,19 +121,20 @@ where
         }
 
         let SessionCommittee {
-            finality_committee,
-            block_producers,
+            producers,
+            finalizers,
         } = Pallet::<C>::rotate_committee(new_index)?;
         // Notify about elected next session finality committee
-        C::FinalityCommitteeManager::on_next_session_finality_committee(finality_committee);
+        C::FinalityCommitteeManager::on_next_session_finality_committee(finalizers);
 
-        Some(block_producers)
+        Some(producers)
     }
 
     fn end_session(end_index: SessionIndex) {
         T::end_session(end_index);
         Pallet::<C>::adjust_rewards_for_session();
         Pallet::<C>::calculate_underperforming_validators();
+        Pallet::<C>::calculate_underperforming_finalizers(end_index);
         // clear block count after calculating stats for underperforming validators, as they use
         // SessionValidatorBlockCount for that
         let result = SessionValidatorBlockCount::<C>::clear(u32::MAX, None);
@@ -142,6 +143,8 @@ where
             "Result of clearing the `SessionValidatorBlockCount`, {:?}",
             result.deconstruct()
         );
+
+        C::AbftScoresProvider::clear_nonce();
     }
 
     fn start_session(start_index: SessionIndex) {

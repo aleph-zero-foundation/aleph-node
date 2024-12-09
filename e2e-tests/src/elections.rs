@@ -29,7 +29,7 @@ pub async fn compute_session_committee<C: AsConnection + Sync>(
         .get_session_committee(session, first_block_in_era)
         .await?
         .expect("Committee should be known at this point")
-        .block_producers;
+        .producers;
 
     Ok(committee
         .into_iter()

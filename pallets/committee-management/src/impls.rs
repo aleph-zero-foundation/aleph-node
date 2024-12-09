@@ -2,8 +2,8 @@ use frame_support::pallet_prelude::Get;
 use log::info;
 use parity_scale_codec::Encode;
 use primitives::{
-    BanHandler, BanInfo, BanReason, BannedValidators, CommitteeSeats, EraValidators,
-    SessionCommittee, SessionValidatorError, SessionValidators, ValidatorProvider,
+    AbftScoresProvider, BanHandler, BanInfo, BanReason, BannedValidators, CommitteeSeats,
+    EraValidators, SessionCommittee, SessionValidatorError, SessionValidators, ValidatorProvider,
 };
 use rand::{seq::SliceRandom, SeedableRng};
 use rand_pcg::Pcg32;
@@ -11,17 +11,19 @@ use sp_runtime::{Perbill, Perquintill};
 use sp_staking::{EraIndex, SessionIndex};
 use sp_std::{
     collections::{btree_map::BTreeMap, btree_set::BTreeSet},
+    vec,
     vec::Vec,
 };
 
 use crate::{
     pallet::{
         BanConfig, Banned, Config, CurrentAndNextSessionValidatorsStorage, Event, Pallet,
-        SessionValidatorBlockCount, UnderperformedValidatorSessionCount, ValidatorEraTotalReward,
+        SessionValidatorBlockCount, UnderperformedFinalizerSessionCount,
+        UnderperformedValidatorSessionCount, ValidatorEraTotalReward,
     },
     traits::{EraInfoProvider, ValidatorRewardsHandler},
-    BanConfigStruct, CurrentAndNextSessionValidators, LenientThreshold, ValidatorExtractor,
-    ValidatorTotalRewards, LOG_TARGET,
+    BanConfigStruct, CurrentAndNextSessionValidators, FinalityBanConfig, LenientThreshold,
+    ValidatorExtractor, ValidatorTotalRewards, LOG_TARGET,
 };
 
 const MAX_REWARD: u32 = 1_000_000_000;
@@ -104,14 +106,14 @@ fn select_committee_inner<AccountId: Clone + PartialEq>(
     let non_reserved_committee =
         choose_for_session(non_reserved, non_reserved_seats, current_session as usize);
 
-    let mut finality_committee = choose_finality_committee(
+    let mut finalizers = choose_finality_committee(
         &reserved_committee,
         &non_reserved_committee,
         non_reserved_finality_seats,
         current_session as usize,
     );
 
-    let mut block_producers = match (reserved_committee, non_reserved_committee) {
+    let mut producers = match (reserved_committee, non_reserved_committee) {
         (Some(rc), Some(nrc)) => Some(rc.into_iter().chain(nrc.into_iter()).collect()),
         (Some(rc), _) => Some(rc),
         (_, Some(nrc)) => Some(nrc),
@@ -119,15 +121,11 @@ fn select_committee_inner<AccountId: Clone + PartialEq>(
     }?;
 
     // randomize order of the producers and committee
-    shuffle_order_for_session(
-        &mut block_producers,
-        &mut finality_committee,
-        current_session,
-    );
+    shuffle_order_for_session(&mut producers, &mut finalizers, current_session);
 
     Some(SessionCommittee {
-        block_producers,
-        finality_committee,
+        producers,
+        finalizers,
     })
 }
 
@@ -241,8 +239,9 @@ impl<T: Config> Pallet<T> {
         let CurrentAndNextSessionValidators {
             current:
                 SessionValidators {
-                    committee,
+                    producers,
                     non_committee,
+                    ..
                 },
             ..
         } = CurrentAndNextSessionValidatorsStorage::<T>::get();
@@ -263,7 +262,7 @@ impl<T: Config> Pallet<T> {
         )
         .into_iter()
         .chain(Self::reward_for_session_committee(
-            committee,
+            producers,
             nr_of_sessions,
             blocks_per_session,
             &validator_total_rewards,
@@ -274,23 +273,25 @@ impl<T: Config> Pallet<T> {
     }
 
     fn store_session_validators(
-        committee: &[T::AccountId],
+        producers: &[T::AccountId],
+        finalizers: &[T::AccountId],
         reserved: Vec<T::AccountId>,
         non_reserved: Vec<T::AccountId>,
     ) {
-        let committee: BTreeSet<T::AccountId> = committee.iter().cloned().collect();
+        let producers_set: BTreeSet<T::AccountId> = producers.iter().cloned().collect();
 
         let non_committee = non_reserved
             .into_iter()
             .chain(reserved)
-            .filter(|a| !committee.contains(a))
+            .filter(|a| !producers_set.contains(a))
             .collect();
 
         let mut session_validators = CurrentAndNextSessionValidatorsStorage::<T>::get();
 
         session_validators.current = session_validators.next;
         session_validators.next = SessionValidators {
-            committee: committee.into_iter().collect(),
+            producers: producers.to_vec(),
+            finalizers: finalizers.to_vec(),
             non_committee,
         };
 
@@ -336,7 +337,8 @@ impl<T: Config> Pallet<T> {
 
         if let Some(c) = &committee {
             Self::store_session_validators(
-                &c.block_producers,
+                &c.producers,
+                &c.finalizers,
                 era_validators.reserved,
                 era_validators.non_reserved,
             );
@@ -345,18 +347,48 @@ impl<T: Config> Pallet<T> {
         committee
     }
 
+    pub(crate) fn calculate_underperforming_finalizers(session_id: SessionIndex) {
+        let CurrentAndNextSessionValidators {
+            current: SessionValidators { finalizers, .. },
+            ..
+        } = CurrentAndNextSessionValidatorsStorage::<T>::get();
+
+        let underperformed_session_count_threshold =
+            FinalityBanConfig::<T>::get().underperformed_session_count_threshold;
+        let minimal_expected_performance =
+            FinalityBanConfig::<T>::get().minimal_expected_performance;
+
+        let is_underperforming = |score| score > minimal_expected_performance;
+
+        let finalizers_perf = T::AbftScoresProvider::scores_for_session(session_id)
+            .map(|score| score.points)
+            .unwrap_or(vec![minimal_expected_performance; finalizers.len()])
+            .into_iter()
+            .map(is_underperforming);
+
+        for (underperf, validator) in finalizers_perf.zip(finalizers.iter()) {
+            if underperf {
+                let counter =
+                    UnderperformedFinalizerSessionCount::<T>::mutate(validator, |count| {
+                        *count += 1;
+                        *count
+                    });
+                if counter >= underperformed_session_count_threshold {
+                    // In future, additionally ban underperforming validator
+                    Self::deposit_event(Event::ValidatorUnderperforming(validator.clone()));
+                }
+            }
+        }
+    }
+
     pub(crate) fn calculate_underperforming_validators() {
         let thresholds = BanConfig::<T>::get();
         let CurrentAndNextSessionValidators {
-            current:
-                SessionValidators {
-                    committee: current_committee,
-                    ..
-                },
+            current: SessionValidators { producers, .. },
             ..
         } = CurrentAndNextSessionValidatorsStorage::<T>::get();
         let expected_blocks_per_validator = Self::blocks_to_produce_per_session();
-        for validator in current_committee {
+        for validator in producers {
             let underperformance = match SessionValidatorBlockCount::<T>::try_get(&validator) {
                 Ok(block_count) => {
                     Perbill::from_rational(block_count, expected_blocks_per_validator)
@@ -390,6 +422,8 @@ impl<T: Config> Pallet<T> {
                 "Clearing UnderperformedValidatorSessionCount"
             );
             let _result = UnderperformedValidatorSessionCount::<T>::clear(u32::MAX, None);
+            let _result = UnderperformedFinalizerSessionCount::<T>::clear(u32::MAX, None);
+            T::AbftScoresProvider::clear_scores();
         }
     }
 
@@ -610,7 +644,7 @@ mod tests {
                     &non_reserved,
                 )
                 .expect("Expected non-empty rotated committee!")
-                .block_producers,
+                .producers,
             );
 
             assert_eq!(expected_committee, committee,);

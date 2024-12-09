@@ -1,8 +1,9 @@
-use primitives::{FinalityCommitteeManager, SessionIndex};
+use primitives::{AbftScoresProvider, FinalityCommitteeManager, Score, SessionIndex};
 use sp_std::vec::Vec;
 
 use crate::{
-    Config, Event, FinalityScheduledVersionChange, FinalityVersion, NextFinalityCommittee, Pallet,
+    AbftScores, Config, Event, FinalityScheduledVersionChange, FinalityVersion, LastScoreNonce,
+    NextFinalityCommittee, Pallet,
 };
 
 impl<T> pallet_session::SessionManager<T::AccountId> for Pallet<T>
@@ -56,5 +57,19 @@ where
 impl<T: Config> FinalityCommitteeManager<T::AccountId> for Pallet<T> {
     fn on_next_session_finality_committee(committee: Vec<T::AccountId>) {
         NextFinalityCommittee::<T>::put(committee);
+    }
+}
+
+impl<T: Config> AbftScoresProvider for Pallet<T> {
+    fn scores_for_session(session_id: SessionIndex) -> Option<Score> {
+        AbftScores::<T>::get(session_id)
+    }
+
+    fn clear_scores() {
+        let _result = AbftScores::<T>::clear(u32::MAX, None);
+    }
+
+    fn clear_nonce() {
+        LastScoreNonce::<T>::kill();
     }
 }

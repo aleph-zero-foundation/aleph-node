@@ -167,8 +167,8 @@ pub const DEFAULT_BACKUP_FOLDER: &str = "backup-stash";
 /// during session.
 #[derive(Decode, Encode, TypeInfo, Debug, Clone, PartialEq, Eq)]
 pub struct SessionCommittee<T> {
-    pub finality_committee: Vec<T>,
-    pub block_producers: Vec<T>,
+    pub finalizers: Vec<T>,
+    pub producers: Vec<T>,
 }
 
 /// Openness of the process of the elections
@@ -209,6 +209,36 @@ impl Default for CommitteeSeats {
 pub trait FinalityCommitteeManager<T> {
     /// `committee` is the set elected for finality committee for the next session
     fn on_next_session_finality_committee(committee: Vec<T>);
+}
+
+pub trait AbftScoresProvider {
+    fn scores_for_session(session_id: SessionIndex) -> Option<Score>;
+    fn clear_scores();
+    fn clear_nonce();
+}
+
+/// Configurable parameters for ban validator mechanism
+#[derive(Decode, Encode, TypeInfo, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FinalityBanConfig {
+    /// Number representing how many rounds a parent of a head of an abft round is allowed to be behind the head.
+    pub minimal_expected_performance: u32,
+    /// How many bad sessions force validator to be removed from the committee
+    pub underperformed_session_count_threshold: SessionCount,
+    /// how many eras a validator is banned for
+    pub ban_period: EraIndex,
+}
+
+pub const DEFAULT_FINALITY_BAN_MINIMAL_EXPECTED_PERFORMANCE: u32 = 11;
+pub const DEFAULT_FINALITY_BAN_SESSION_COUNT_THRESHOLD: SessionCount = 2;
+
+impl Default for FinalityBanConfig {
+    fn default() -> Self {
+        FinalityBanConfig {
+            minimal_expected_performance: DEFAULT_FINALITY_BAN_MINIMAL_EXPECTED_PERFORMANCE,
+            underperformed_session_count_threshold: DEFAULT_FINALITY_BAN_SESSION_COUNT_THRESHOLD,
+            ban_period: DEFAULT_BAN_PERIOD,
+        }
+    }
 }
 
 /// Configurable parameters for ban validator mechanism
@@ -293,7 +323,7 @@ pub enum SessionValidatorError {
     Other(Vec<u8>),
 }
 
-/// All the data needed to verify block finalization justifications.
+/// All the data needed to verify block finality justifications.
 #[derive(Clone, Debug, TypeInfo, Encode, Decode, PartialEq, Eq)]
 pub struct SessionAuthorityData {
     authorities: Vec<AuthorityId>,
@@ -341,14 +371,16 @@ pub trait ValidatorProvider {
 
 #[derive(Decode, Encode, TypeInfo, Clone, Serialize, Deserialize)]
 pub struct SessionValidators<T> {
-    pub committee: Vec<T>,
+    pub producers: Vec<T>,
+    pub finalizers: Vec<T>,
     pub non_committee: Vec<T>,
 }
 
 impl<T> Default for SessionValidators<T> {
     fn default() -> Self {
         Self {
-            committee: Vec::new(),
+            producers: Vec::new(),
+            finalizers: Vec::new(),
             non_committee: Vec::new(),
         }
     }
