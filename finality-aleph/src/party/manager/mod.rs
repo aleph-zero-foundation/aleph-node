@@ -275,7 +275,7 @@ where
             session_boundaries.clone(),
         );
         let (abft_performance, abft_batch_handler) =
-            CurrentPerformanceService::new(ordered_data_interpreter);
+            CurrentPerformanceService::new(n_members, ordered_data_interpreter);
         let consensus_config =
             current_create_aleph_config(n_members, node_id, session_id, self.unit_creation_delay);
         let data_network = data_network.map();

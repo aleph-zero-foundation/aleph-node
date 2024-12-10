@@ -50,6 +50,13 @@ impl<H: SpHash> Wrapper<H> {
             inner: <H as SpHash>::hash(s),
         }
     }
+
+    #[cfg(test)]
+    pub fn random_hash() -> OrdForHash<H::Output> {
+        use rand::distributions::{Alphanumeric, DistString};
+        let string = Alphanumeric.sample_string(&mut rand::thread_rng(), 137);
+        Self::hash(string.as_ref())
+    }
 }
 
 impl<H: SpHash> current_aleph_bft::Hasher for Wrapper<H> {

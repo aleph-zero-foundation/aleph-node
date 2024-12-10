@@ -274,7 +274,7 @@ pub mod pallet {
         #[pallet::weight((T::BlockWeights::get().max_block, DispatchClass::Operational))]
         pub fn set_finality_ban_config(
             origin: OriginFor<T>,
-            minimal_expected_performance: Option<u32>,
+            minimal_expected_performance: Option<u16>,
             underperformed_session_count_threshold: Option<u32>,
             ban_period: Option<EraIndex>,
         ) -> DispatchResult {

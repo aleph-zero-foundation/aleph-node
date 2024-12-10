@@ -221,14 +221,14 @@ pub trait AbftScoresProvider {
 #[derive(Decode, Encode, TypeInfo, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FinalityBanConfig {
     /// Number representing how many rounds a parent of a head of an abft round is allowed to be behind the head.
-    pub minimal_expected_performance: u32,
+    pub minimal_expected_performance: u16,
     /// How many bad sessions force validator to be removed from the committee
     pub underperformed_session_count_threshold: SessionCount,
     /// how many eras a validator is banned for
     pub ban_period: EraIndex,
 }
 
-pub const DEFAULT_FINALITY_BAN_MINIMAL_EXPECTED_PERFORMANCE: u32 = 11;
+pub const DEFAULT_FINALITY_BAN_MINIMAL_EXPECTED_PERFORMANCE: u16 = 11;
 pub const DEFAULT_FINALITY_BAN_SESSION_COUNT_THRESHOLD: SessionCount = 2;
 
 impl Default for FinalityBanConfig {
@@ -448,11 +448,13 @@ pub mod staking {
 
 pub type ScoreNonce = u32;
 
+pub type RawScore = Vec<u16>;
+
 #[derive(PartialEq, Decode, Encode, TypeInfo, Debug, Clone)]
 pub struct Score {
     pub session_id: SessionIndex,
     pub nonce: ScoreNonce,
-    pub points: Vec<u32>,
+    pub points: RawScore,
 }
 
 pub mod crypto {

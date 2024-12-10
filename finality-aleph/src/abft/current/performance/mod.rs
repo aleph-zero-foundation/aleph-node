@@ -1,5 +1,6 @@
 use crate::{data_io::AlephData, Hasher};
 
+mod scorer;
 mod service;
 
 pub use service::Service;

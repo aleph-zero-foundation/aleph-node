@@ -1,11 +1,15 @@
+use current_aleph_bft::NodeCount;
 use futures::{
     channel::{mpsc, oneshot},
     StreamExt,
 };
-use log::{debug, warn};
+use log::{debug, error, warn};
 
 use crate::{
-    abft::{current::performance::Batch, LOG_TARGET},
+    abft::{
+        current::performance::{scorer::Scorer, Batch},
+        LOG_TARGET,
+    },
     data_io::AlephData,
     party::manager::Runnable,
     Hasher, UnverifiedHeader,
@@ -59,6 +63,7 @@ where
     UH: UnverifiedHeader,
 {
     batches_from_abft: mpsc::UnboundedReceiver<Batch<UH>>,
+    scorer: Scorer,
 }
 
 impl<UH> Service<UH>
@@ -68,6 +73,7 @@ where
     /// Create a new service, together with a unit finalization handler that should be passed to
     /// ABFT. It will wrap the provided finalization handler and call it in the background.
     pub fn new<FH>(
+        n_members: usize,
         finalization_handler: FH,
     ) -> (
         Self,
@@ -78,7 +84,10 @@ where
     {
         let (batches_for_us, batches_from_abft) = mpsc::unbounded();
         (
-            Service { batches_from_abft },
+            Service {
+                batches_from_abft,
+                scorer: Scorer::new(NodeCount(n_members)),
+            },
             FinalizationWrapper::new(finalization_handler, batches_for_us),
         )
     }
@@ -92,8 +101,16 @@ where
     async fn run(mut self, mut exit: oneshot::Receiver<()>) {
         loop {
             tokio::select! {
-                _maybe_batch = self.batches_from_abft.next() => {
-                    // TODO(A0-4575): actually compute the score form batches etc
+                maybe_batch = self.batches_from_abft.next() => {
+                    let score = match maybe_batch {
+                        Some(batch) => self.scorer.process_batch(batch),
+                        None => {
+                            error!(target: LOG_TARGET, "Batches' channel closed, ABFT performance scoring terminating.");
+                            break;
+                        },
+                    };
+                    debug!(target: LOG_TARGET, "Received ABFT score: {:?}.", score);
+                    // TODO(A0-4339): sometimes submit these scores to the chain.
                 }
                 _ = &mut exit => {
                     debug!(target: LOG_TARGET, "ABFT performance scoring task received exit signal. Terminating.");
