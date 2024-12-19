@@ -241,9 +241,9 @@ impl Default for FinalityBanConfig {
     }
 }
 
-/// Configurable parameters for ban validator mechanism
+/// Configurable parameters for ban validator mechanism related to block production
 #[derive(Decode, Encode, TypeInfo, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct BanConfig {
+pub struct ProductionBanConfig {
     /// performance ratio threshold in a session
     /// calculated as ratio of number of blocks produced to expected number of blocks for a single validator
     pub minimal_expected_performance: Perbill,
@@ -260,9 +260,9 @@ pub const DEFAULT_BAN_SESSION_COUNT_THRESHOLD: SessionCount = 3;
 pub const DEFAULT_BAN_REASON_LENGTH: u32 = 300;
 pub const DEFAULT_MAX_WINNERS: u32 = u32::MAX;
 
-impl Default for BanConfig {
+impl Default for ProductionBanConfig {
     fn default() -> Self {
-        BanConfig {
+        ProductionBanConfig {
             minimal_expected_performance: DEFAULT_BAN_MINIMAL_EXPECTED_PERFORMANCE,
             underperformed_session_count_threshold: DEFAULT_BAN_SESSION_COUNT_THRESHOLD,
             clean_session_counter_delay: DEFAULT_CLEAN_SESSION_COUNTER_DELAY,
@@ -292,7 +292,7 @@ pub struct BanInfo {
 }
 
 /// Represent committee, ie set of nodes that produce and finalize blocks in the session
-#[derive(Eq, PartialEq, Decode, Encode, TypeInfo)]
+#[derive(Eq, Clone, PartialEq, Decode, Encode, TypeInfo)]
 pub struct EraValidators<AccountId> {
     /// Validators that are chosen to be in committee every single session.
     pub reserved: Vec<AccountId>,

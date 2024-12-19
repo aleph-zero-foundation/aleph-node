@@ -5,6 +5,10 @@ extern crate core;
 
 mod impls;
 mod manager;
+#[cfg(test)]
+mod mock;
+#[cfg(test)]
+mod tests;
 mod traits;
 
 use frame_support::{pallet_prelude::Get, traits::StorageVersion};
@@ -12,8 +16,8 @@ pub use manager::SessionAndEraManager;
 pub use pallet::*;
 use parity_scale_codec::{Decode, Encode};
 use primitives::{
-    BanConfig as BanConfigStruct, BanInfo, FinalityBanConfig as FinalityBanConfigStruct,
-    SessionValidators, LENIENT_THRESHOLD,
+    BanInfo, FinalityBanConfig as FinalityBanConfigStruct,
+    ProductionBanConfig as ProductionBanConfigStruct, SessionValidators, LENIENT_THRESHOLD,
 };
 use scale_info::TypeInfo;
 use sp_runtime::Perquintill;
@@ -25,7 +29,7 @@ pub type TotalReward = u32;
 pub struct ValidatorTotalRewards<T>(pub BTreeMap<T, TotalReward>);
 
 #[derive(Decode, Encode, TypeInfo)]
-struct CurrentAndNextSessionValidators<T> {
+pub struct CurrentAndNextSessionValidators<T> {
     pub next: SessionValidators<T>,
     pub current: SessionValidators<T>,
 }
@@ -47,7 +51,7 @@ impl Get<Perquintill> for DefaultLenientThreshold {
     }
 }
 
-const STORAGE_VERSION: StorageVersion = StorageVersion::new(0);
+const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
 pub(crate) const LOG_TARGET: &str = "pallet-committee-management";
 
 #[frame_support::pallet]
@@ -67,8 +71,8 @@ pub mod pallet {
 
     use crate::{
         traits::{EraInfoProvider, ValidatorRewardsHandler},
-        BanConfigStruct, BanInfo, CurrentAndNextSessionValidators, DefaultLenientThreshold,
-        FinalityBanConfigStruct, ValidatorExtractor, ValidatorTotalRewards, STORAGE_VERSION,
+        BanInfo, CurrentAndNextSessionValidators, DefaultLenientThreshold, FinalityBanConfigStruct,
+        ProductionBanConfigStruct, ValidatorExtractor, ValidatorTotalRewards, STORAGE_VERSION,
     };
 
     #[pallet::config]
@@ -112,10 +116,12 @@ pub mod pallet {
 
     /// Current era config for ban functionality related to block production.
     #[pallet::storage]
-    pub type BanConfig<T> = StorageValue<_, BanConfigStruct, ValueQuery>;
+    #[pallet::getter(fn production_ban_config)]
+    pub type ProductionBanConfig<T> = StorageValue<_, ProductionBanConfigStruct, ValueQuery>;
 
     /// A lookup for a number of underperformance sessions in block production for a given validator
     #[pallet::storage]
+    #[pallet::getter(fn underperformed_producer_session_count)]
     pub type UnderperformedValidatorSessionCount<T: Config> =
         StorageMap<_, Twox64Concat, T::AccountId, SessionCount, ValueQuery>;
 
@@ -125,7 +131,8 @@ pub mod pallet {
 
     /// SessionValidators in the current session.
     #[pallet::storage]
-    pub(crate) type CurrentAndNextSessionValidatorsStorage<T: Config> =
+    #[pallet::getter(fn current_session_validators)]
+    pub(super) type CurrentAndNextSessionValidatorsStorage<T: Config> =
         StorageValue<_, CurrentAndNextSessionValidators<T::AccountId>, ValueQuery>;
 
     /// A lookup for a number of underperformance sessions in block finalization for a given validator
@@ -135,11 +142,12 @@ pub mod pallet {
 
     /// Current era config for ban functionality related to block finality.
     #[pallet::storage]
+    #[pallet::getter(fn finality_ban_config)]
     pub type FinalityBanConfig<T> = StorageValue<_, FinalityBanConfigStruct, ValueQuery>;
 
     #[pallet::error]
     pub enum Error<T> {
-        /// Raised in any scenario [`BanConfig`] is invalid
+        /// Raised in any scenario [`ProductionBanConfig`] is invalid
         /// * `performance_ratio_threshold` must be a number in range [0; 100]
         /// * `underperformed_session_count_threshold` must be a positive number,
         /// * `clean_session_counter_delay` must be a positive number.
@@ -157,7 +165,7 @@ pub mod pallet {
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
         /// Ban thresholds for the next era has changed
-        SetBanConfig(BanConfigStruct),
+        SetBanConfig(ProductionBanConfigStruct),
 
         /// Ban thresholds for the next era has changed
         SetFinalityBanConfig(FinalityBanConfigStruct),
@@ -183,7 +191,7 @@ pub mod pallet {
         ) -> DispatchResult {
             ensure_root(origin)?;
 
-            let mut current_committee_ban_config = BanConfig::<T>::get();
+            let mut current_committee_ban_config = Self::production_ban_config();
 
             if let Some(minimal_expected_performance) = minimal_expected_performance {
                 ensure!(
@@ -216,7 +224,7 @@ pub mod pallet {
                 current_committee_ban_config.ban_period = ban_period;
             }
 
-            BanConfig::<T>::put(current_committee_ban_config.clone());
+            ProductionBanConfig::<T>::put(current_committee_ban_config.clone());
             Self::deposit_event(Event::SetBanConfig(current_committee_ban_config));
 
             Ok(())
@@ -280,7 +288,7 @@ pub mod pallet {
         ) -> DispatchResult {
             ensure_root(origin)?;
 
-            let mut current_committee_ban_config = FinalityBanConfig::<T>::get();
+            let mut current_committee_ban_config = Self::finality_ban_config();
 
             if let Some(minimal_expected_performance) = minimal_expected_performance {
                 ensure!(
@@ -317,7 +325,7 @@ pub mod pallet {
     #[pallet::genesis_config]
     #[derive(frame_support::DefaultNoBound)]
     pub struct GenesisConfig<T: Config> {
-        pub committee_ban_config: BanConfigStruct,
+        pub committee_ban_config: ProductionBanConfigStruct,
         pub finality_ban_config: FinalityBanConfigStruct,
         pub session_validators: SessionValidators<T::AccountId>,
     }
@@ -325,7 +333,7 @@ pub mod pallet {
     #[pallet::genesis_build]
     impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
-            <BanConfig<T>>::put(self.committee_ban_config.clone());
+            <ProductionBanConfig<T>>::put(self.committee_ban_config.clone());
             <FinalityBanConfig<T>>::put(self.finality_ban_config.clone());
             <CurrentAndNextSessionValidatorsStorage<T>>::put(CurrentAndNextSessionValidators {
                 current: self.session_validators.clone(),

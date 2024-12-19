@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use aleph_client::{
     api::committee_management::events::BanValidators,
     pallets::{committee_management::CommitteeManagementApi, elections::ElectionsSudoApi},
-    primitives::{BanConfig, BanInfo, CommitteeSeats, EraValidators},
+    primitives::{ProductionBanConfig, BanInfo, CommitteeSeats, EraValidators},
     utility::BlocksApi,
     waiting::{AlephWaiting, BlockStatus, WaitingExt},
     AccountId, AsConnection, RootConnection, TxStatus,
@@ -82,7 +82,7 @@ pub async fn check_ban_config<C: CommitteeManagementApi>(
     expected_minimal_expected_performance: Perbill,
     expected_session_count_threshold: SessionCount,
     expected_clean_session_counter_delay: SessionCount,
-) -> BanConfig {
+) -> ProductionBanConfig {
     let ban_config = connection.get_ban_config(None).await;
 
     assert_eq!(

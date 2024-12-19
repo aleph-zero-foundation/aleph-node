@@ -17,12 +17,12 @@ use sp_std::{
 
 use crate::{
     pallet::{
-        BanConfig, Banned, Config, CurrentAndNextSessionValidatorsStorage, Event, Pallet,
+        Banned, Config, CurrentAndNextSessionValidatorsStorage, Event, Pallet,
         SessionValidatorBlockCount, UnderperformedFinalizerSessionCount,
         UnderperformedValidatorSessionCount, ValidatorEraTotalReward,
     },
     traits::{EraInfoProvider, ValidatorRewardsHandler},
-    BanConfigStruct, CurrentAndNextSessionValidators, FinalityBanConfig, LenientThreshold,
+    CurrentAndNextSessionValidators, LenientThreshold, ProductionBanConfigStruct,
     ValidatorExtractor, ValidatorTotalRewards, LOG_TARGET,
 };
 
@@ -33,7 +33,7 @@ impl<T: Config> BannedValidators for Pallet<T> {
 
     fn banned() -> Vec<Self::AccountId> {
         let active_era = T::EraInfoProvider::active_era().unwrap_or(0);
-        let ban_period = BanConfig::<T>::get().ban_period;
+        let ban_period = Self::production_ban_config().ban_period;
 
         Banned::<T>::iter()
             .filter(|(_, info)| !ban_expired(info.start, ban_period, active_era + 1))
@@ -230,7 +230,7 @@ impl<T: Config> Pallet<T> {
         })
     }
 
-    fn blocks_to_produce_per_session() -> u32 {
+    pub(crate) fn blocks_to_produce_per_session() -> u32 {
         T::SessionPeriod::get()
             .saturating_div(T::ValidatorProvider::current_era_committee_size().size())
     }
@@ -353,10 +353,10 @@ impl<T: Config> Pallet<T> {
             ..
         } = CurrentAndNextSessionValidatorsStorage::<T>::get();
 
+        let finality_ban_config = Self::finality_ban_config();
         let underperformed_session_count_threshold =
-            FinalityBanConfig::<T>::get().underperformed_session_count_threshold;
-        let minimal_expected_performance =
-            FinalityBanConfig::<T>::get().minimal_expected_performance;
+            finality_ban_config.underperformed_session_count_threshold;
+        let minimal_expected_performance = finality_ban_config.minimal_expected_performance;
 
         let is_underperforming = |score| score > minimal_expected_performance;
 
@@ -382,7 +382,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub(crate) fn calculate_underperforming_validators() {
-        let thresholds = BanConfig::<T>::get();
+        let thresholds = Self::production_ban_config();
         let CurrentAndNextSessionValidators {
             current: SessionValidators { producers, .. },
             ..
@@ -402,7 +402,10 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    fn mark_validator_underperformance(thresholds: &BanConfigStruct, validator: &T::AccountId) {
+    pub(crate) fn mark_validator_underperformance(
+        thresholds: &ProductionBanConfigStruct,
+        validator: &T::AccountId,
+    ) {
         let counter = UnderperformedValidatorSessionCount::<T>::mutate(validator, |count| {
             *count += 1;
             *count
@@ -415,7 +418,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub(crate) fn clear_underperformance_session_counter(session: SessionIndex) {
-        let clean_session_counter_delay = BanConfig::<T>::get().clean_session_counter_delay;
+        let clean_session_counter_delay = Self::production_ban_config().clean_session_counter_delay;
         if session % clean_session_counter_delay == 0 {
             info!(
                 target: LOG_TARGET,
@@ -428,7 +431,7 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn clear_expired_bans(active_era: EraIndex) {
-        let ban_period = BanConfig::<T>::get().ban_period;
+        let ban_period = Self::production_ban_config().ban_period;
         let unban = Banned::<T>::iter().filter_map(|(v, ban_info)| {
             if ban_expired(ban_info.start, ban_period, active_era) {
                 return Some(v);

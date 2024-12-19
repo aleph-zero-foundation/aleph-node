@@ -12,7 +12,7 @@ use crate::{
     pallet_committee_management::pallet::Call::{
         ban_from_committee, set_ban_config, set_lenient_threshold,
     },
-    primitives::{BanConfig, BanInfo, BanReason},
+    primitives::{ProductionBanConfig, BanInfo, BanReason},
     AccountId, AsConnection, BlockHash, ConnectionApi, EraIndex, RootConnection, SessionCount,
     SessionIndex, SudoCall, TxInfo, TxStatus,
 };
@@ -22,7 +22,7 @@ use crate::{
 pub trait CommitteeManagementApi {
     /// Returns `committee-management.ban_config` storage of the committee-management pallet.
     /// * `at` - optional hash of a block to query state from
-    async fn get_ban_config(&self, at: Option<BlockHash>) -> BanConfig;
+    async fn get_ban_config(&self, at: Option<BlockHash>) -> ProductionBanConfig;
 
     /// Returns `committee-management.session_validator_block_count` of a given validator.
     /// * `validator` - a validator stash account id
@@ -115,8 +115,8 @@ pub trait CommitteeManagementSudoApi {
 
 #[async_trait::async_trait]
 impl<C: ConnectionApi + AsConnection> CommitteeManagementApi for C {
-    async fn get_ban_config(&self, at: Option<BlockHash>) -> BanConfig {
-        let addrs = api::storage().committee_management().ban_config();
+    async fn get_ban_config(&self, at: Option<BlockHash>) -> ProductionBanConfig {
+        let addrs = api::storage().committee_management().production_ban_config();
 
         self.get_storage_entry(&addrs, at).await
     }

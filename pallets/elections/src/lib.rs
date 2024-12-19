@@ -92,6 +92,7 @@ pub mod pallet {
 
     /// Current era's list of reserved validators.
     #[pallet::storage]
+    #[pallet::getter(fn current_era_validators)]
     pub type CurrentEraValidators<T: Config> =
         StorageValue<_, EraValidators<T::AccountId>, ValueQuery>;
 

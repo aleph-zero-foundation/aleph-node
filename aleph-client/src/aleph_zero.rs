@@ -2182,9 +2182,9 @@ pub mod api {
             .hash();
         runtime_metadata_hash
             == [
-                181u8, 58u8, 203u8, 79u8, 62u8, 47u8, 91u8, 201u8, 90u8, 151u8, 65u8, 10u8, 7u8,
-                43u8, 151u8, 98u8, 47u8, 70u8, 191u8, 228u8, 11u8, 90u8, 230u8, 47u8, 159u8, 15u8,
-                195u8, 212u8, 89u8, 77u8, 211u8, 66u8,
+                38u8, 216u8, 17u8, 228u8, 165u8, 206u8, 209u8, 62u8, 138u8, 131u8, 22u8, 187u8,
+                86u8, 180u8, 170u8, 171u8, 83u8, 9u8, 71u8, 17u8, 117u8, 132u8, 198u8, 240u8, 97u8,
+                88u8, 240u8, 156u8, 138u8, 201u8, 116u8, 209u8,
             ]
     }
     pub mod system {
@@ -18561,7 +18561,7 @@ pub mod api {
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             #[doc = "Ban thresholds for the next era has changed"]
-            pub struct SetBanConfig(pub runtime_types::primitives::BanConfig);
+            pub struct SetBanConfig(pub runtime_types::primitives::ProductionBanConfig);
             impl ::subxt::events::StaticEvent for SetBanConfig {
                 const PALLET: &'static str = "CommitteeManagement";
                 const EVENT: &'static str = "SetBanConfig";
@@ -18727,24 +18727,24 @@ pub mod api {
                     )
                 }
                 #[doc = " Current era config for ban functionality related to block production."]
-                pub fn ban_config(
+                pub fn production_ban_config(
                     &self,
                 ) -> ::subxt::storage::address::Address<
                     ::subxt::storage::address::StaticStorageMapKey,
-                    runtime_types::primitives::BanConfig,
+                    runtime_types::primitives::ProductionBanConfig,
                     ::subxt::storage::address::Yes,
                     ::subxt::storage::address::Yes,
                     (),
                 > {
                     ::subxt::storage::address::Address::new_static(
                         "CommitteeManagement",
-                        "BanConfig",
+                        "ProductionBanConfig",
                         vec![],
                         [
-                            192u8, 154u8, 113u8, 98u8, 112u8, 155u8, 249u8, 127u8, 155u8, 187u8,
-                            221u8, 219u8, 255u8, 68u8, 176u8, 48u8, 53u8, 186u8, 213u8, 31u8,
-                            103u8, 208u8, 118u8, 174u8, 20u8, 106u8, 70u8, 113u8, 13u8, 251u8,
-                            52u8, 1u8,
+                            237u8, 143u8, 142u8, 190u8, 254u8, 146u8, 35u8, 173u8, 131u8, 40u8,
+                            223u8, 112u8, 71u8, 60u8, 241u8, 238u8, 67u8, 207u8, 176u8, 211u8,
+                            190u8, 50u8, 232u8, 192u8, 216u8, 171u8, 185u8, 53u8, 148u8, 9u8,
+                            214u8, 104u8,
                         ],
                     )
                 }
@@ -22322,7 +22322,7 @@ pub mod api {
                 #[doc = "The `Error` enum of this pallet."]
                 pub enum Error {
                     #[codec(index = 0)]
-                    #[doc = "Raised in any scenario [`BanConfig`] is invalid"]
+                    #[doc = "Raised in any scenario [`ProductionBanConfig`] is invalid"]
                     #[doc = "* `performance_ratio_threshold` must be a number in range [0; 100]"]
                     #[doc = "* `underperformed_session_count_threshold` must be a positive number,"]
                     #[doc = "* `clean_session_counter_delay` must be a positive number."]
@@ -22352,7 +22352,7 @@ pub mod api {
                 pub enum Event {
                     #[codec(index = 0)]
                     #[doc = "Ban thresholds for the next era has changed"]
-                    SetBanConfig(runtime_types::primitives::BanConfig),
+                    SetBanConfig(runtime_types::primitives::ProductionBanConfig),
                     #[codec(index = 1)]
                     #[doc = "Ban thresholds for the next era has changed"]
                     SetFinalityBanConfig(runtime_types::primitives::FinalityBanConfig),
@@ -27559,25 +27559,6 @@ pub mod api {
             # [codec (crate = :: subxt :: ext :: codec)]
             #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
             #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-            pub struct BanConfig {
-                pub minimal_expected_performance: runtime_types::sp_arithmetic::per_things::Perbill,
-                pub underperformed_session_count_threshold: ::core::primitive::u32,
-                pub clean_session_counter_delay: ::core::primitive::u32,
-                pub ban_period: ::core::primitive::u32,
-            }
-            #[derive(
-                :: subxt :: ext :: codec :: Decode,
-                :: subxt :: ext :: codec :: Encode,
-                :: subxt :: ext :: scale_decode :: DecodeAsType,
-                :: subxt :: ext :: scale_encode :: EncodeAsType,
-                Clone,
-                Debug,
-                Eq,
-                PartialEq,
-            )]
-            # [codec (crate = :: subxt :: ext :: codec)]
-            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
             pub struct BanInfo {
                 pub reason: runtime_types::primitives::BanReason,
                 pub start: ::core::primitive::u32,
@@ -27675,6 +27656,25 @@ pub mod api {
             pub struct FinalityBanConfig {
                 pub minimal_expected_performance: ::core::primitive::u16,
                 pub underperformed_session_count_threshold: ::core::primitive::u32,
+                pub ban_period: ::core::primitive::u32,
+            }
+            #[derive(
+                :: subxt :: ext :: codec :: Decode,
+                :: subxt :: ext :: codec :: Encode,
+                :: subxt :: ext :: scale_decode :: DecodeAsType,
+                :: subxt :: ext :: scale_encode :: EncodeAsType,
+                Clone,
+                Debug,
+                Eq,
+                PartialEq,
+            )]
+            # [codec (crate = :: subxt :: ext :: codec)]
+            #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+            #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+            pub struct ProductionBanConfig {
+                pub minimal_expected_performance: runtime_types::sp_arithmetic::per_things::Perbill,
+                pub underperformed_session_count_threshold: ::core::primitive::u32,
+                pub clean_session_counter_delay: ::core::primitive::u32,
                 pub ban_period: ::core::primitive::u32,
             }
             #[derive(

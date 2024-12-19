@@ -1,6 +1,6 @@
 use frame_support::sp_runtime::{traits::OpaqueKeys, RuntimeAppPublic};
 use primitives::AuthorityId;
-use sp_std::prelude::*;
+use sp_std::{prelude::*, vec};
 
 use crate::Config;
 
