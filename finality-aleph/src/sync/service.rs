@@ -20,8 +20,8 @@ use crate::{
     session::SessionBoundaryInfo,
     sync::{
         data::{
-            NetworkData, PreRequest, Request, ResponseItem, ResponseItems, State, VersionWrapper,
-            VersionedNetworkData,
+            BranchKnowledge, NetworkData, PreRequest, Request, ResponseItem, ResponseItems, State,
+            VersionWrapper, VersionedNetworkData,
         },
         forest::ExtensionRequest,
         handler::{Action, DatabaseIO, Error as HandlerError, HandleStateAction, Handler},
@@ -713,7 +713,25 @@ where
         }
     }
 
+    fn hacky_workaround_for_cooperation_with_version_13_during_update(
+        &mut self,
+        own_new_header: UnverifiedHeaderFor<J>,
+    ) {
+        let branch_knowledge = BranchKnowledge::LowestId(own_new_header.id());
+        // send the request for our newest block to 10 random peers, as long as at least one of
+        // them is running v13, all the v13s will eventually get the block
+        for _ in 0..10 {
+            let pre_request = PreRequest::new(
+                own_new_header.clone(),
+                branch_knowledge.clone(),
+                HashSet::new(),
+            );
+            self.send_request(pre_request);
+        }
+    }
+
     fn handle_own_block(&mut self, block: B) {
+        self.hacky_workaround_for_cooperation_with_version_13_during_update(block.header().clone());
         match self.handler.handle_own_block(block) {
             Ok(maybe_proof) => {
                 self.process_equivocation_proofs(maybe_proof);
