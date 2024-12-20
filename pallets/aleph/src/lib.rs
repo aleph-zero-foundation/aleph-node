@@ -40,7 +40,7 @@ pub mod pallet {
     };
     use pallet_session::SessionManager;
     use primitives::{Score, ScoreNonce, SessionInfoProvider, TotalIssuanceProvider};
-    use sp_runtime::traits::ValidateUnsigned;
+    use sp_runtime::traits::{Hash, ValidateUnsigned};
     use sp_std::collections::btree_map::BTreeMap;
     #[cfg(feature = "std")]
     use sp_std::marker::PhantomData;
@@ -344,7 +344,7 @@ pub mod pallet {
             score: &Score,
             signature: &SignatureSet<Signature<T>>,
         ) -> Result<(), TransactionValidityError> {
-            let msg = score.encode();
+            let msg = T::Hashing::hash_of(&score.encode()).encode();
             let authority_verifier = AuthorityVerifier::new(Self::authorities());
             if !AuthorityVerifier::is_complete(&authority_verifier, &msg, signature) {
                 return Err(InvalidTransaction::BadProof.into());
