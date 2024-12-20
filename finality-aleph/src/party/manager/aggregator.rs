@@ -11,7 +11,7 @@ use tokio::time;
 
 use crate::{
     abft::SignatureSet,
-    aggregation::Aggregator,
+    aggregation::{Aggregator, SignableTypedHash},
     aleph_primitives::BlockHash,
     block::{
         substrate::{Justification, JustificationTranslator},
@@ -68,10 +68,12 @@ async fn process_new_block_data<CN, LN>(
     trace!(target: "aleph-party", "Received unit {:?} in aggregator.", block);
     let hash = block.hash();
     metrics.report_block(hash, Checkpoint::Ordered);
-    aggregator.start_aggregation(hash).await;
+    aggregator
+        .start_aggregation(SignableTypedHash::Block(hash))
+        .await;
 }
 
-fn process_hash<H, C, JS>(
+fn process_block_hash<H, C, JS>(
     hash: BlockHash,
     multisignature: SignatureSet<Signature>,
     justifications_for_chain: &mut JS,
@@ -117,6 +119,7 @@ where
     LN: Network<LegacyRmcNetworkData>,
     CN: Network<CurrentRmcNetworkData>,
 {
+    use SignableTypedHash::*;
     let IO {
         blocks_from_interpreter,
         mut justifications_for_chain,
@@ -157,9 +160,14 @@ where
             },
             multisigned_hash = aggregator.next_multisigned_hash() => {
                 let (hash, multisignature) = multisigned_hash.ok_or(Error::MultisignaturesStreamTerminated)?;
-                process_hash(hash, multisignature, &mut justifications_for_chain, &justification_translator, &client).map_err(|_| Error::UnableToProcessHash)?;
-                if Some(hash) == hash_of_last_block {
-                    hash_of_last_block = None;
+                match hash {
+                    Block(hash) => {
+                        process_block_hash(hash, multisignature, &mut justifications_for_chain, &justification_translator, &client).map_err(|_| Error::UnableToProcessHash)?;
+                        if Some(hash) == hash_of_last_block {
+                            hash_of_last_block = None;
+                        }
+                    },
+                    Performance(_) => unimplemented!("we don't gather multisignatures under performance reports yet"),
                 }
             },
             _ = status_ticker.tick() => {

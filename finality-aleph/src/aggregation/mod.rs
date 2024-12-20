@@ -1,13 +1,14 @@
 //! Module to glue legacy and current version of the aggregator;
 
-use std::marker::PhantomData;
+use std::{hash::Hash as StdHash, marker::PhantomData};
 
 use current_aleph_aggregator::NetworkError as CurrentNetworkError;
 use legacy_aleph_aggregator::NetworkError as LegacyNetworkError;
+use parity_scale_codec::{Decode, Encode};
 
 use crate::{
     abft::SignatureSet,
-    aleph_primitives::BlockHash,
+    aleph_primitives::Hash,
     crypto::Signature,
     network::{
         data::{Network, SendError},
@@ -16,16 +17,40 @@ use crate::{
     Keychain,
 };
 
+/// Either a block hash or a performance report hash. They should never overlap. We assume that
+/// BlockHash and Hash are the same, it has always been this way, but if it ever changes this place
+/// will cause trouble.
+#[derive(PartialEq, Eq, StdHash, Copy, Clone, Debug, Encode, Decode)]
+pub enum SignableTypedHash {
+    /// The hash corresponds to a block.
+    Block(Hash),
+    /// The hash corresponds to an ABFT performance report.
+    Performance(Hash),
+}
+
+impl AsRef<[u8]> for SignableTypedHash {
+    fn as_ref(&self) -> &[u8] {
+        use SignableTypedHash::*;
+        match self {
+            Block(hash) => hash.as_ref(),
+            Performance(hash) => hash.as_ref(),
+        }
+    }
+}
+
 pub type LegacyRmcNetworkData =
-    legacy_aleph_aggregator::RmcNetworkData<BlockHash, Signature, SignatureSet<Signature>>;
+    legacy_aleph_aggregator::RmcNetworkData<Hash, Signature, SignatureSet<Signature>>;
 pub type CurrentRmcNetworkData =
-    current_aleph_aggregator::RmcNetworkData<BlockHash, Signature, SignatureSet<Signature>>;
+    current_aleph_aggregator::RmcNetworkData<SignableTypedHash, Signature, SignatureSet<Signature>>;
 
 pub type LegacyAggregator<N> =
-    legacy_aleph_aggregator::IO<BlockHash, NetworkWrapper<LegacyRmcNetworkData, N>, Keychain>;
+    legacy_aleph_aggregator::IO<Hash, NetworkWrapper<LegacyRmcNetworkData, N>, Keychain>;
 
-pub type CurrentAggregator<N> =
-    current_aleph_aggregator::IO<BlockHash, NetworkWrapper<CurrentRmcNetworkData, N>, Keychain>;
+pub type CurrentAggregator<N> = current_aleph_aggregator::IO<
+    SignableTypedHash,
+    NetworkWrapper<CurrentRmcNetworkData, N>,
+    Keychain,
+>;
 
 enum EitherAggregator<CN, LN>
 where
@@ -72,7 +97,7 @@ where
         );
         let rmc_handler = current_aleph_bft_rmc::Handler::new(multikeychain.clone());
         let rmc_service = current_aleph_bft_rmc::Service::new(scheduler, rmc_handler);
-        let aggregator = current_aleph_aggregator::BlockSignatureAggregator::new();
+        let aggregator = current_aleph_aggregator::HashSignatureAggregator::new();
         let aggregator_io =
             CurrentAggregator::<CN>::new(NetworkWrapper::new(rmc_network), rmc_service, aggregator);
 
@@ -81,17 +106,26 @@ where
         }
     }
 
-    pub async fn start_aggregation(&mut self, h: BlockHash) {
+    pub async fn start_aggregation(&mut self, h: SignableTypedHash) {
+        use SignableTypedHash::*;
         match &mut self.agg {
             EitherAggregator::Current(agg) => agg.start_aggregation(h).await,
-            EitherAggregator::Legacy(agg) => agg.start_aggregation(h).await,
+            EitherAggregator::Legacy(agg) => match h {
+                Block(h) => agg.start_aggregation(h).await,
+                Performance(_) => { /* should never happen, but ignoring is fine */ }
+            },
         }
     }
 
-    pub async fn next_multisigned_hash(&mut self) -> Option<(BlockHash, SignatureSet<Signature>)> {
+    pub async fn next_multisigned_hash(
+        &mut self,
+    ) -> Option<(SignableTypedHash, SignatureSet<Signature>)> {
         match &mut self.agg {
             EitherAggregator::Current(agg) => agg.next_multisigned_hash().await,
-            EitherAggregator::Legacy(agg) => agg.next_multisigned_hash().await,
+            EitherAggregator::Legacy(agg) => agg
+                .next_multisigned_hash()
+                .await
+                .map(|(h, sig)| (SignableTypedHash::Block(h), sig)),
         }
     }
 
