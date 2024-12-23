@@ -64,6 +64,8 @@ Usage:
     [-p|--base-path BASE_PATH]
         if specified, use given base path (keystore, db, AlephBFT backups)
         if not specified, base path is ./run-nodes-local
+    [--finality-version]
+      which finality version should be used, default = legacy
     [--dont-bootstrap]
       set if you don't want to bootstrap chain, ie generate keystore and chainspec
     [--dont-build]
@@ -85,6 +87,7 @@ DONT_BOOTSTRAP=${DONT_BOOTSTRAP:-""}
 DONT_BUILD_ALEPH_NODE=${DONT_BUILD_ALEPH_NODE:-""}
 DONT_DELETE_DB=${DONT_DELETE_DB:-""}
 DONT_REMOVE_ABFT_BACKUPS=${DONT_REMOVE_ABFT_BACKUPS:-""}
+FINALITY_VERSION=${FINALITY_VERSION:-"legacy"}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -98,6 +101,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     -p|--base-path)
       BASE_PATH="$2"
+      shift;shift
+      ;;
+    --finality-version)
+      FINALITY_VERSION="$2"
       shift;shift
       ;;
     --dont-bootstrap)
@@ -219,6 +226,9 @@ fi
 if ! command -v jq &> /dev/null; then
     error "jq could not be found on PATH!"
 fi
+if [[ "${FINALITY_VERSION}" != "current" && "${FINALITY_VERSION}" != "legacy" ]]; then
+  error "Flag finality-version should be either current or legacy."
+fi
 
 # ------------------- main script starts here ------------------------------
 
@@ -276,7 +286,8 @@ if [[ -z "${DONT_BOOTSTRAP}" ]]; then
     --account-ids "${all_account_ids_string}" \
     --authorities-account-ids "${validator_ids_string}" \
     --chain-type local > "${BASE_PATH}/chainspec.json" \
-    --rich-account-ids "${all_account_ids_string}"
+    --rich-account-ids "${all_account_ids_string}" \
+    --finality-version "${FINALITY_VERSION}"
 
   if [[ "${DONT_REMOVE_ABFT_BACKUPS}" == "true" ]]; then
     all_account_ids=(${validator_account_ids[@]} ${rpc_node_account_ids[@]})

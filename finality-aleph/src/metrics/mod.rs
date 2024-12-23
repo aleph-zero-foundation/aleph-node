@@ -1,9 +1,11 @@
+mod abft_score;
 mod best_block;
 mod finality_rate;
 mod slo;
 mod timing;
 pub mod transaction_pool;
 
+pub use abft_score::ScoreMetrics;
 pub use slo::{run_metrics_service, SloMetrics};
 pub use timing::{Checkpoint, DefaultClock};
 pub type TimingBlockMetrics = timing::TimingBlockMetrics<DefaultClock>;

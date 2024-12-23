@@ -21,7 +21,7 @@ use crate::{
     },
     crypto::{AuthorityPen, AuthorityVerifier},
     data_io::{ChainTracker, DataStore, OrderedDataInterpreter, SubstrateChainInfoProvider},
-    metrics::TimingBlockMetrics,
+    metrics::{ScoreMetrics, TimingBlockMetrics},
     mpsc,
     network::{
         data::{
@@ -32,6 +32,7 @@ use crate::{
     },
     party::{
         backup::ABFTBackup, manager::aggregator::AggregatorVersion, traits::NodeSessionManager,
+        LOG_TARGET,
     },
     sync::JustificationSubmissions,
     AuthorityId, BlockId, CurrentRmcNetworkData, Keychain, LegacyRmcNetworkData, NodeIndex,
@@ -114,6 +115,7 @@ where
     spawn_handle: SpawnHandle,
     session_manager: SM,
     keystore: Arc<LocalKeystore>,
+    score_metrics: ScoreMetrics,
     _phantom: PhantomData<(B, H)>,
 }
 
@@ -146,6 +148,7 @@ where
         spawn_handle: SpawnHandle,
         session_manager: SM,
         keystore: Arc<LocalKeystore>,
+        score_metrics: ScoreMetrics,
     ) -> Self {
         Self {
             client,
@@ -161,6 +164,7 @@ where
             spawn_handle,
             session_manager,
             keystore,
+            score_metrics,
             _phantom: PhantomData,
         }
     }
@@ -274,8 +278,12 @@ where
             self.verifier.clone(),
             session_boundaries.clone(),
         );
-        let (abft_performance, abft_batch_handler) =
-            CurrentPerformanceService::new(n_members, ordered_data_interpreter);
+        let (abft_performance, abft_batch_handler) = CurrentPerformanceService::new(
+            node_id.into(),
+            n_members,
+            ordered_data_interpreter,
+            self.score_metrics.clone(),
+        );
         let consensus_config =
             current_create_aleph_config(n_members, node_id, session_id, self.unit_creation_delay);
         let data_network = data_network.map();
@@ -325,7 +333,7 @@ where
         exit_rx: oneshot::Receiver<()>,
         backup: ABFTBackup,
     ) -> Subtasks {
-        debug!(target: "afa", "Authority task {:?}", session_id);
+        debug!(target: LOG_TARGET, "Authority task {:?}", session_id);
 
         let authority_verifier = AuthorityVerifier::new(authorities.to_vec());
         let authority_pen =
@@ -389,17 +397,17 @@ where
         {
             #[cfg(feature = "only_legacy")]
             _ if self.only_legacy() => {
-                info!(target: "aleph-party", "Running session with legacy-only AlephBFT version.");
+                info!(target: LOG_TARGET, "Running session with legacy-only AlephBFT version.");
                 self.legacy_subtasks(params)
             }
             // The `as`es here should be removed, but this would require a pallet migration and I
             // am lazy.
             Ok(version) if version == CURRENT_VERSION as u32 => {
-                info!(target: "aleph-party", "Running session with AlephBFT version {}, which is current.", version);
+                info!(target: LOG_TARGET, "Running session with AlephBFT version {}, which is current.", version);
                 self.current_subtasks(params)
             }
             Ok(version) if version == LEGACY_VERSION as u32 => {
-                info!(target: "aleph-party", "Running session with AlephBFT version {}, which is legacy.", version);
+                info!(target: LOG_TARGET, "Running session with AlephBFT version {}, which is legacy.", version);
                 self.legacy_subtasks(params)
             }
             Ok(version) if version > CURRENT_VERSION as u32 => {
@@ -408,8 +416,8 @@ where
                 )
             }
             Ok(version) => {
-                info!(target: "aleph-party", "Attempting to run session with too old version {}, likely because we are synchronizing old sessions for which we have keys. This will not work, but it doesn't matter.", version);
-                info!(target: "aleph-party", "Running session with AlephBFT version {}, which is legacy.", LEGACY_VERSION);
+                info!(target: LOG_TARGET, "Attempting to run session with too old version {}, likely because we are synchronizing old sessions for which we have keys. This will not work, but it doesn't matter.", version);
+                info!(target: LOG_TARGET, "Running session with AlephBFT version {}, which is legacy.", LEGACY_VERSION);
                 self.legacy_subtasks(params)
             }
             _ => {
@@ -461,7 +469,7 @@ where
             self.spawn_handle
                 .spawn_essential("aleph/session_authority", async move {
                     if subtasks.wait_completion().await.is_err() {
-                        warn!(target: "aleph-party", "Authority subtasks failed.");
+                        warn!(target: LOG_TARGET, "Authority subtasks failed.");
                     }
                 }),
             node_id,

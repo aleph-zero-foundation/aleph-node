@@ -21,7 +21,7 @@ use crate::{
     crypto::AuthorityPen,
     finalization::AlephFinalizer,
     idx_to_account::ValidatorIndexToAccountIdConverterImpl,
-    metrics::{run_metrics_service, SloMetrics},
+    metrics::{run_metrics_service, ScoreMetrics, SloMetrics},
     network::{
         address_cache::validator_address_cache_updater,
         session::{ConnectionManager, ConnectionManagerConfig},
@@ -146,6 +146,11 @@ where
 
     let chain_events = client.chain_status_notifier();
 
+    let score_metrics = ScoreMetrics::new(registry.clone()).unwrap_or_else(|e| {
+        debug!(target: LOG_TARGET, "Failed to create metrics: {}.", e);
+        ScoreMetrics::noop()
+    });
+
     let slo_metrics = SloMetrics::new(registry.as_ref(), chain_status.clone());
     let timing_metrics = slo_metrics.timing_metrics().clone();
 
@@ -199,7 +204,7 @@ where
         verifier.clone(),
         session_info.clone(),
         sync_io,
-        registry.clone(),
+        registry,
         slo_metrics,
         favourite_block_user_requests,
     ) {
@@ -266,6 +271,7 @@ where
             spawn_handle,
             connection_manager,
             keystore,
+            score_metrics,
         ),
         session_info,
     });

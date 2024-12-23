@@ -24,6 +24,8 @@ pub mod traits;
 #[cfg(test)]
 mod mocks;
 
+const LOG_TARGET: &str = "aleph-party";
+
 pub(crate) struct ConsensusPartyParams<CS, NSM> {
     pub session_authorities: ReadOnlySessionMap,
     pub chain_state: CS,

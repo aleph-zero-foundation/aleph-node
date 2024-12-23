@@ -152,7 +152,7 @@ pub const DEFAULT_FINALITY_VERSION: Version = 0;
 pub const CURRENT_FINALITY_VERSION: u16 = LEGACY_FINALITY_VERSION + 1;
 
 /// Legacy version of abft.
-pub const LEGACY_FINALITY_VERSION: u16 = 3;
+pub const LEGACY_FINALITY_VERSION: u16 = 4;
 
 /// Percentage of validator performance that is treated as 100% performance
 pub const LENIENT_THRESHOLD: Perquintill = Perquintill::from_percent(90);
