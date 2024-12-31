@@ -211,9 +211,7 @@ fn get_aleph_runtime_vars(client: &Arc<FullClient>) -> AlephRuntimeVars {
 }
 
 fn get_validator_address_cache(aleph_config: &AlephCli) -> Option<ValidatorAddressCache> {
-    aleph_config
-        .no_collection_of_extra_debugging_data()
-        .then(ValidatorAddressCache::new)
+    (!aleph_config.no_collection_of_extra_debugging_data()).then(ValidatorAddressCache::new)
 }
 
 fn get_proposer_factory(
