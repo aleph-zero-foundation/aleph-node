@@ -57,8 +57,8 @@ pub struct AlephCli {
 
     /// Don't spend some extra time to collect more debugging data (e.g. validator network details).
     /// By default collecting is enabled, as the impact on performance is negligible, if any.
-    #[clap(long, default_value_t = false)]
-    no_collection_of_extra_debugging_data: bool,
+    #[clap(long, default_value_t = true)]
+    collect_validator_network_data: bool,
 }
 
 impl AlephCli {
@@ -105,7 +105,7 @@ impl AlephCli {
         self.substrate_network_bit_rate
     }
 
-    pub fn no_collection_of_extra_debugging_data(&self) -> bool {
-        self.no_collection_of_extra_debugging_data
+    pub fn collect_validator_network_data(&self) -> bool {
+        self.collect_validator_network_data
     }
 }
