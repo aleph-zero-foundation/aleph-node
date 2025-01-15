@@ -44,6 +44,7 @@ CHAINSPEC_GENERATOR="target/release/chain-bootstrapper"
 NODE_P2P_PORT_RANGE_START=30333
 NODE_VALIDATOR_PORT_RANGE_START=30343
 NODE_RPC_PORT_RANGE_START=9944
+PROMETHEUS_PORT_RANGE_START=9615
 
 # ------------------------ argument parsing and usage -----------------------
 
@@ -174,6 +175,7 @@ function run_node() {
     --name "${node_name}"
     --rpc-port $((NODE_RPC_PORT_RANGE_START + index))
     --port $((NODE_P2P_PORT_RANGE_START + index))
+    --prometheus-port $((PROMETHEUS_PORT_RANGE_START + index))
     --validator-port "${validator_port}"
     --node-key-file "${BASE_PATH}/${account_id}/p2p_secret"
     --backup-path "${BASE_PATH}/${account_id}/backup-stash"
@@ -193,6 +195,7 @@ function run_node() {
     -laleph-data-store=debug
     -laleph-updater=debug
     -laleph-metrics=debug
+    -laleph-abft=debug
   )
 
   info "Running node ${index}..."

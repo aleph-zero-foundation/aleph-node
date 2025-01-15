@@ -21,7 +21,7 @@ pub use crypto::Keychain;
 pub use current::{
     create_aleph_config as current_create_aleph_config, run_member as run_current_member,
     NetworkData as CurrentNetworkData, PerformanceService as CurrentPerformanceService,
-    VERSION as CURRENT_VERSION,
+    PerformanceServiceIO as CurrentPerformanceServiceIO, VERSION as CURRENT_VERSION,
 };
 pub use legacy::{
     create_aleph_config as legacy_create_aleph_config, run_member as run_legacy_member,

@@ -9,7 +9,7 @@ mod performance;
 mod traits;
 
 pub use network::NetworkData;
-pub use performance::Service as PerformanceService;
+pub use performance::{Service as PerformanceService, ServiceIO as PerformanceServiceIO};
 
 pub use crate::aleph_primitives::CURRENT_FINALITY_VERSION as VERSION;
 use crate::{

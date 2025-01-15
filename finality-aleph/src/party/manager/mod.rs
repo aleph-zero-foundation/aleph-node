@@ -12,9 +12,11 @@ use sp_runtime::traits::{Block as BlockT, Header as HeaderT};
 use crate::{
     abft::{
         current_create_aleph_config, legacy_create_aleph_config, run_current_member,
-        run_legacy_member, CurrentPerformanceService, SpawnHandle,
+        run_legacy_member, CurrentPerformanceService, CurrentPerformanceServiceIO, SpawnHandle,
     },
-    aleph_primitives::{BlockHash, BlockNumber, KEY_TYPE},
+    aleph_primitives::{
+        crypto::SignatureSet, AuthoritySignature, BlockHash, BlockNumber, Hash, KEY_TYPE,
+    },
     block::{
         substrate::{Justification, JustificationTranslator},
         BestBlockSelector, Block, Header, HeaderVerifier, UnverifiedHeader,
@@ -34,6 +36,7 @@ use crate::{
         backup::ABFTBackup, manager::aggregator::AggregatorVersion, traits::NodeSessionManager,
         LOG_TARGET,
     },
+    runtime_api::RuntimeApi,
     sync::JustificationSubmissions,
     AuthorityId, BlockId, CurrentRmcNetworkData, Keychain, LegacyRmcNetworkData, NodeIndex,
     ProvideRuntimeApi, SessionBoundaries, SessionBoundaryInfo, SessionId, SessionPeriod,
@@ -81,6 +84,9 @@ where
     session_boundaries: SessionBoundaries,
     subtask_common: TaskCommon,
     blocks_for_aggregator: mpsc::UnboundedSender<BlockId>,
+    performance_for_aggregator: mpsc::UnboundedSender<Hash>,
+    signed_performance_from_aggregator:
+        mpsc::UnboundedReceiver<(Hash, SignatureSet<AuthoritySignature>)>,
     chain_info: SubstrateChainInfoProvider<H, HB>,
     aggregator_io: aggregator::IO<JS>,
     multikeychain: Keychain,
@@ -88,7 +94,7 @@ where
     backup: ABFTBackup,
 }
 
-pub struct NodeSessionManagerImpl<H, C, HB, BBS, B, RB, SM, JS, V>
+pub struct NodeSessionManagerImpl<H, C, HB, BBS, B, RB, SM, JS, V, RA>
 where
     H: Header,
     B: Block<UnverifiedHeader = H::Unverified> + BlockT<Hash = BlockHash>,
@@ -101,6 +107,7 @@ where
     SM: SessionManager<VersionedNetworkData<B::UnverifiedHeader>> + 'static,
     JS: JustificationSubmissions<Justification> + Send + Sync + Clone,
     V: HeaderVerifier<H>,
+    RA: RuntimeApi,
 {
     client: Arc<C>,
     header_backend: HB,
@@ -115,11 +122,13 @@ where
     spawn_handle: SpawnHandle,
     session_manager: SM,
     keystore: Arc<LocalKeystore>,
+    runtime_api: RA,
     score_metrics: ScoreMetrics,
     _phantom: PhantomData<(B, H)>,
 }
 
-impl<H, C, HB, BBS, B, RB, SM, JS, V> NodeSessionManagerImpl<H, C, HB, BBS, B, RB, SM, JS, V>
+impl<H, C, HB, BBS, B, RB, SM, JS, V, RA>
+    NodeSessionManagerImpl<H, C, HB, BBS, B, RB, SM, JS, V, RA>
 where
     H: Header,
     B: Block<UnverifiedHeader = H::Unverified> + BlockT<Hash = BlockHash>,
@@ -132,6 +141,7 @@ where
     SM: SessionManager<VersionedNetworkData<B::UnverifiedHeader>> + 'static,
     JS: JustificationSubmissions<Justification> + Send + Sync + Clone,
     V: HeaderVerifier<H>,
+    RA: RuntimeApi,
 {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -148,6 +158,7 @@ where
         spawn_handle: SpawnHandle,
         session_manager: SM,
         keystore: Arc<LocalKeystore>,
+        runtime_api: RA,
         score_metrics: ScoreMetrics,
     ) -> Self {
         Self {
@@ -164,6 +175,7 @@ where
             spawn_handle,
             session_manager,
             keystore,
+            runtime_api,
             score_metrics,
             _phantom: PhantomData,
         }
@@ -258,6 +270,8 @@ where
             session_boundaries,
             subtask_common,
             blocks_for_aggregator,
+            performance_for_aggregator,
+            signed_performance_from_aggregator,
             chain_info,
             aggregator_io,
             multikeychain,
@@ -281,7 +295,13 @@ where
         let (abft_performance, abft_batch_handler) = CurrentPerformanceService::new(
             node_id.into(),
             n_members,
+            session_id,
             ordered_data_interpreter,
+            CurrentPerformanceServiceIO {
+                hashes_for_aggregator: performance_for_aggregator,
+                signatures_from_aggregator: signed_performance_from_aggregator,
+            },
+            self.runtime_api.clone(),
             self.score_metrics.clone(),
         );
         let consensus_config =
@@ -351,10 +371,14 @@ where
             spawn_handle: self.spawn_handle.clone(),
             session_id: session_id.0,
         };
+        let (performance_for_aggregator, performance_from_scorer) = mpsc::unbounded();
+        let (signed_performance_for_scorer, signed_performance_from_aggregator) = mpsc::unbounded();
         let aggregator_io = aggregator::IO {
             blocks_from_interpreter,
             justifications_for_chain: self.justifications_for_sync.clone(),
             justification_translator: self.justification_translator.clone(),
+            performance_from_scorer,
+            signed_performance_for_scorer,
         };
 
         let data_network = match self
@@ -383,6 +407,8 @@ where
             session_boundaries,
             subtask_common,
             blocks_for_aggregator,
+            performance_for_aggregator,
+            signed_performance_from_aggregator,
             chain_info,
             aggregator_io,
             multikeychain,
@@ -436,8 +462,8 @@ where
 }
 
 #[async_trait]
-impl<H, C, HB, BBS, B, RB, SM, JS, V> NodeSessionManager
-    for NodeSessionManagerImpl<H, C, HB, BBS, B, RB, SM, JS, V>
+impl<H, C, HB, BBS, B, RB, SM, JS, V, RA> NodeSessionManager
+    for NodeSessionManagerImpl<H, C, HB, BBS, B, RB, SM, JS, V, RA>
 where
     H: Header,
     B: Block<UnverifiedHeader = H::Unverified> + BlockT<Hash = BlockHash>,
@@ -450,6 +476,7 @@ where
     SM: SessionManager<VersionedNetworkData<B::UnverifiedHeader>> + 'static,
     JS: JustificationSubmissions<Justification> + Send + Sync + Clone,
     V: HeaderVerifier<H>,
+    RA: RuntimeApi,
 {
     type Error = SM::Error;
 
