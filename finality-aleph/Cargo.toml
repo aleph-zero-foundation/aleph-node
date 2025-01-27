@@ -27,18 +27,13 @@ pallet-aleph-runtime-api = { workspace = true, features = ["std"] }
 
 async-trait = { workspace = true }
 array-bytes = { workspace = true }
-bytes = { workspace = true }
 derive_more = { workspace = true }
-env_logger = { workspace = true }
 futures = { workspace = true }
 futures-timer = { workspace = true }
-hash-db = { workspace = true }
 hex = { workspace = true }
-ip_network = { workspace = true }
 log = { workspace = true }
 lru = { workspace = true }
 parity-scale-codec = { workspace = true, features = ["derive"] }
-scale-info = { workspace = true, features = ["derive"] }
 parking_lot = { workspace = true }
 rand = { workspace = true }
 serde = { workspace = true }
@@ -62,7 +57,6 @@ sc-network-light = { workspace = true }
 sc-network-transactions = { workspace = true }
 sc-rpc = { workspace = true }
 sc-service = { workspace = true }
-sc-telemetry = { workspace = true }
 sc-transaction-pool = { workspace = true }
 sc-transaction-pool-api = { workspace = true }
 sc-utils = { workspace = true }
@@ -74,12 +68,9 @@ sp-consensus = { workspace = true }
 sp-consensus-aura = { workspace = true }
 sp-consensus-slots = { workspace = true }
 sp-core = { workspace = true }
-sp-io = { workspace = true }
 sp-keystore = { workspace = true }
 sp-runtime = { workspace = true }
-sp-state-machine = { workspace = true }
 sp-timestamp = { workspace = true }
-sp-trie = { workspace = true }
 
 [dev-dependencies]
 substrate-test-runtime-client = { workspace = true }

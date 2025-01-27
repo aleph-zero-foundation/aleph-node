@@ -1,6 +1,14 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+};
 
-use substrate_prometheus_endpoint::{register, Counter, PrometheusError, Registry, U64};
+use substrate_prometheus_endpoint::{
+    register, Counter, MetricSource, Opts, PrometheusError, Registry, SourcedGauge, U64,
+};
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum Event {
@@ -82,8 +90,39 @@ pub enum Metrics {
     Noop,
 }
 
+#[derive(Clone)]
+pub struct MajorSyncingGauge(Arc<AtomicBool>);
+
+impl MajorSyncingGauge {
+    fn register(registry: &Registry, value: Arc<AtomicBool>) -> Result<(), PrometheusError> {
+        register(
+            SourcedGauge::new(
+                &Opts::new(
+                    "aleph_sync_is_major_syncing",
+                    "Whether the node is performing a major sync or not.",
+                ),
+                MajorSyncingGauge(value),
+            )?,
+            registry,
+        )?;
+
+        Ok(())
+    }
+}
+
+impl MetricSource for MajorSyncingGauge {
+    type N = u64;
+
+    fn collect(&self, mut set: impl FnMut(&[&str], Self::N)) {
+        set(&[], self.0.load(Ordering::Relaxed) as u64);
+    }
+}
+
 impl Metrics {
-    pub fn new(registry: Option<Registry>) -> Result<Self, PrometheusError> {
+    pub fn new(
+        is_major_syncing: Arc<AtomicBool>,
+        registry: Option<Registry>,
+    ) -> Result<Self, PrometheusError> {
         let registry = match registry {
             Some(registry) => registry,
             None => return Ok(Metrics::Noop),
@@ -114,6 +153,9 @@ impl Metrics {
                 )?,
             );
         }
+
+        MajorSyncingGauge::register(&registry, is_major_syncing)?;
+
         Ok(Metrics::Prometheus {
             event_calls,
             event_errors,

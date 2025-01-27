@@ -194,12 +194,13 @@ where
             database_io,
         } = io;
         let network = VersionWrapper::new(network);
+        let is_major_syncing = sync_oracle.underlying_atomic();
         let handler = Handler::new(database_io, verifier, sync_oracle, session_info)?;
         let tasks = TaskQueue::new();
         let broadcast_ticker = Ticker::new(TICK_PERIOD, BROADCAST_COOLDOWN);
         let chain_extension_ticker = Ticker::new(TICK_PERIOD, CHAIN_EXTENSION_COOLDOWN);
         let (block_requests_for_sync, block_requests_from_user) = mpsc::unbounded();
-        let metrics = Metrics::new(metrics_registry).unwrap_or_else(|e| {
+        let metrics = Metrics::new(is_major_syncing, metrics_registry).unwrap_or_else(|e| {
             warn!(target: LOG_TARGET, "Failed to create metrics: {}.", e);
             Metrics::noop()
         });
