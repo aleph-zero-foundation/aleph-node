@@ -5,6 +5,7 @@ extern crate core;
 
 mod impls;
 mod manager;
+pub mod migration;
 #[cfg(test)]
 mod mock;
 #[cfg(test)]
@@ -51,7 +52,7 @@ impl Get<Perquintill> for DefaultLenientThreshold {
     }
 }
 
-const STORAGE_VERSION: StorageVersion = StorageVersion::new(1);
+const STORAGE_VERSION: StorageVersion = StorageVersion::new(2);
 pub(crate) const LOG_TARGET: &str = "pallet-committee-management";
 
 #[frame_support::pallet]

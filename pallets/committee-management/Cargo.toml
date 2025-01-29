@@ -28,7 +28,6 @@ sp-std = { workspace = true }
 
 pallet-aleph = { workspace = true }
 pallet-elections = { workspace = true }
-pallets-support = { workspace = true }
 primitives = { workspace = true }
 
 [features]
@@ -52,7 +51,6 @@ std = [
     "sp-staking/std",
     "sp-std/std",
     "primitives/std",
-    "pallets-support/std",
     "pallet-aleph/std",
     "pallet-elections/std",
 ]
