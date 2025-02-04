@@ -173,9 +173,6 @@ pub mod pallet {
 
         /// Validators have been banned from the committee
         BanValidators(Vec<(T::AccountId, BanInfo)>),
-
-        /// Validator is underperforimg in finality committee
-        ValidatorUnderperforming(T::AccountId),
     }
 
     #[pallet::call]
@@ -286,6 +283,7 @@ pub mod pallet {
             minimal_expected_performance: Option<u16>,
             underperformed_session_count_threshold: Option<u32>,
             ban_period: Option<EraIndex>,
+            clean_session_counter_delay: Option<u32>,
         ) -> DispatchResult {
             ensure_root(origin)?;
 
@@ -314,6 +312,15 @@ pub mod pallet {
             if let Some(ban_period) = ban_period {
                 ensure!(ban_period > 0, Error::<T>::InvalidBanConfig);
                 current_committee_ban_config.ban_period = ban_period;
+            }
+
+            if let Some(clean_session_counter_delay) = clean_session_counter_delay {
+                ensure!(
+                    clean_session_counter_delay > 0,
+                    Error::<T>::InvalidBanConfig
+                );
+                current_committee_ban_config.clean_session_counter_delay =
+                    clean_session_counter_delay;
             }
 
             FinalityBanConfig::<T>::put(current_committee_ban_config.clone());

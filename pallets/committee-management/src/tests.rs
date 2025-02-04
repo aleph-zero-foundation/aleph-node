@@ -9,7 +9,8 @@ use crate::{
         CommitteeManagement, Elections, SessionPeriod, TestBuilderConfig, TestExtBuilder,
         TestRuntime,
     },
-    CurrentAndNextSessionValidatorsStorage, Event, ProductionBanConfig, SessionValidatorBlockCount,
+    CurrentAndNextSessionValidatorsStorage, Event, FinalityBanConfig, ProductionBanConfig,
+    SessionValidatorBlockCount,
 };
 
 fn gen_config() -> TestBuilderConfig {
@@ -129,7 +130,7 @@ fn ban_underperforming_producers() {
         let banned = vec![underperformer];
         assert_eq!(CommitteeManagement::banned(), banned);
         let ban_info = BanInfo {
-            reason: primitives::BanReason::InsufficientUptime(
+            reason: primitives::BanReason::InsufficientProduction(
                 underperformed_session_count_threshold,
             ),
             start: active_era() + 1,
@@ -157,10 +158,11 @@ fn ban_underperforming_producers() {
 fn ban_underperforming_finalizers() {
     TestExtBuilder::new(gen_config()).build().execute_with(|| {
         let underperformer = 10;
-        let ban_config = CommitteeManagement::finality_ban_config();
+        let mut ban_config = CommitteeManagement::finality_ban_config();
         let minimal_expected_performance = ban_config.minimal_expected_performance;
-        let underperformed_session_count_threshold =
-            ban_config.underperformed_session_count_threshold;
+        let underperformed_session_count_threshold = 2;
+        ban_config.underperformed_session_count_threshold = underperformed_session_count_threshold;
+        FinalityBanConfig::<TestRuntime>::put(ban_config.clone());
         let reserved: BTreeSet<AccountId> = Elections::current_era_validators()
             .reserved
             .into_iter()
@@ -195,9 +197,33 @@ fn ban_underperforming_finalizers() {
             session_index += 1;
         }
 
+        let banned = vec![underperformer];
+        assert_eq!(CommitteeManagement::banned(), banned);
+        let ban_info = BanInfo {
+            reason: primitives::BanReason::InsufficientFinalization(
+                underperformed_session_count_threshold,
+            ),
+            start: active_era() + 1,
+        };
+
+        // Make sure there are no more bans.
+        ban_config.clean_session_counter_delay = 1;
+        let ban_period = 2;
+        ban_config.ban_period = ban_period;
+        FinalityBanConfig::<TestRuntime>::put(ban_config);
+        let mut ban_config = CommitteeManagement::production_ban_config();
+        ban_config.clean_session_counter_delay = 1;
+        ban_config.ban_period = ban_period;
+        ProductionBanConfig::<TestRuntime>::put(ban_config);
+        advance_era();
+
+        let banned_info = vec![(underperformer, ban_info)];
         assert_eq!(
             *committee_management_events().last().unwrap(),
-            Event::ValidatorUnderperforming(underperformer)
+            Event::BanValidators(banned_info)
         );
+        assert_eq!(CommitteeManagement::banned(), banned);
+        advance_era();
+        assert_eq!(CommitteeManagement::banned(), Vec::<AccountId>::new());
     })
 }

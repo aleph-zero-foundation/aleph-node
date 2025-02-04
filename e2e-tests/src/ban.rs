@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use aleph_client::{
     api::committee_management::events::BanValidators,
     pallets::{committee_management::CommitteeManagementApi, elections::ElectionsSudoApi},
-    primitives::{ProductionBanConfig, BanInfo, CommitteeSeats, EraValidators},
+    primitives::{BanInfo, CommitteeSeats, EraValidators, ProductionBanConfig},
     utility::BlocksApi,
     waiting::{AlephWaiting, BlockStatus, WaitingExt},
     AccountId, AsConnection, RootConnection, TxStatus,

@@ -12,7 +12,7 @@ use crate::{
     pallet_committee_management::pallet::Call::{
         ban_from_committee, set_ban_config, set_lenient_threshold,
     },
-    primitives::{ProductionBanConfig, BanInfo, BanReason},
+    primitives::{BanInfo, BanReason, ProductionBanConfig},
     AccountId, AsConnection, BlockHash, ConnectionApi, EraIndex, RootConnection, SessionCount,
     SessionIndex, SudoCall, TxInfo, TxStatus,
 };
@@ -116,7 +116,9 @@ pub trait CommitteeManagementSudoApi {
 #[async_trait::async_trait]
 impl<C: ConnectionApi + AsConnection> CommitteeManagementApi for C {
     async fn get_ban_config(&self, at: Option<BlockHash>) -> ProductionBanConfig {
-        let addrs = api::storage().committee_management().production_ban_config();
+        let addrs = api::storage()
+            .committee_management()
+            .production_ban_config();
 
         self.get_storage_entry(&addrs, at).await
     }

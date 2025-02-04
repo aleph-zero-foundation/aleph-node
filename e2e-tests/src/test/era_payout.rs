@@ -70,7 +70,7 @@ async fn force_era_payout(config: &Config) -> anyhow::Result<()> {
     // * AzeroCap
     // * ExponentialInflationHorizon
     let expected_payout = 114 * TOKEN;
-    let delta =  TOKEN;
+    let delta = TOKEN;
 
     assert_within_delta_interval(
         expected_era_duration,

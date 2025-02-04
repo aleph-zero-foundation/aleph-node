@@ -229,10 +229,13 @@ pub struct FinalityBanConfig {
     pub underperformed_session_count_threshold: SessionCount,
     /// how many eras a validator is banned for
     pub ban_period: EraIndex,
+    /// underperformed session counter is cleared every subsequent `clean_session_counter_delay` sessions
+    pub clean_session_counter_delay: SessionCount,
 }
 
 pub const DEFAULT_FINALITY_BAN_MINIMAL_EXPECTED_PERFORMANCE: u16 = 11;
-pub const DEFAULT_FINALITY_BAN_SESSION_COUNT_THRESHOLD: SessionCount = 2;
+// The value of the following param effectively turns off bans and rewords.
+pub const DEFAULT_FINALITY_BAN_SESSION_COUNT_THRESHOLD: SessionCount = SessionCount::MAX;
 
 impl Default for FinalityBanConfig {
     fn default() -> Self {
@@ -240,6 +243,7 @@ impl Default for FinalityBanConfig {
             minimal_expected_performance: DEFAULT_FINALITY_BAN_MINIMAL_EXPECTED_PERFORMANCE,
             underperformed_session_count_threshold: DEFAULT_FINALITY_BAN_SESSION_COUNT_THRESHOLD,
             ban_period: DEFAULT_BAN_PERIOD,
+            clean_session_counter_delay: DEFAULT_CLEAN_SESSION_COUNTER_DELAY,
         }
     }
 }
@@ -277,9 +281,11 @@ impl Default for ProductionBanConfig {
 /// Represent any possible reason a validator can be removed from the committee due to
 #[derive(PartialEq, Eq, Clone, Encode, Decode, TypeInfo, Debug)]
 pub enum BanReason {
-    /// Validator has been removed from the committee due to insufficient uptime in a given number
-    /// of sessions
-    InsufficientUptime(u32),
+    /// Validator has been removed from the committee due to insufficient production in a given number of sessions
+    InsufficientProduction(u32),
+
+    /// Validator has been removed from the committee due to insufficient abft performance in a given number of sessions
+    InsufficientFinalization(u32),
 
     /// Any arbitrary reason
     OtherReason(BoundedVec<u8, ConstU32<DEFAULT_BAN_REASON_LENGTH>>),

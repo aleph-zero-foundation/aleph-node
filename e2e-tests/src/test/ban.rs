@@ -102,7 +102,7 @@ pub async fn ban_automatic() -> anyhow::Result<()> {
     // threshold.
     check_underperformed_validator_session_count(&root_connection, validator_to_disable, 0).await;
 
-    let reason = BanReason::InsufficientUptime(DEFAULT_BAN_SESSION_COUNT_THRESHOLD);
+    let reason = BanReason::InsufficientProduction(DEFAULT_BAN_SESSION_COUNT_THRESHOLD);
     let start = root_connection.get_current_era(None).await + 1;
     let expected_ban_info = BanInfo { reason, start };
 

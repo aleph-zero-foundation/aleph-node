@@ -132,9 +132,9 @@ where
 
     fn end_session(end_index: SessionIndex) {
         T::end_session(end_index);
-        Pallet::<C>::adjust_rewards_for_session();
         Pallet::<C>::calculate_underperforming_validators();
-        Pallet::<C>::calculate_underperforming_finalizers(end_index);
+        let underperfs = Pallet::<C>::calculate_underperforming_finalizers(end_index);
+        Pallet::<C>::adjust_rewards_for_session(underperfs);
         // clear block count after calculating stats for underperforming validators, as they use
         // SessionValidatorBlockCount for that
         let result = SessionValidatorBlockCount::<C>::clear(u32::MAX, None);
