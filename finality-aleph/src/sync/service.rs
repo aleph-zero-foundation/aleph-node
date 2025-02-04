@@ -576,7 +576,10 @@ where
         if let TaskAction::Request(pre_request, (task, delay)) =
             task.process(self.handler.interest_provider())
         {
-            self.send_request(pre_request);
+            if !self.major_sync_last_status {
+                // don't actually send requests if we are in major sync anyway, but keep them
+                self.send_request(pre_request);
+            }
             self.tasks.schedule_in(task, delay);
         }
         self.metrics.report_event(Event::HandleTask);
