@@ -87,7 +87,7 @@ dependencies = [
 [[package]]
 name = "aggregator"
 version = "0.7.0"
-source = "git+https://github.com/Cardinal-Cryptography/aleph-node.git?tag=r-14.0-rc1#98091cd2d64d312db08a491f71b3a7bf321d2f5c"
+source = "git+https://github.com/Cardinal-Cryptography/aleph-node.git?tag=r-14.0.0#0788bc518ffefb7084cb3401149b696f1ba37a2c"
 dependencies = [
  "aleph-bft-rmc 0.13.0",
  "aleph-bft-types 0.13.0",
@@ -154,9 +154,9 @@ dependencies = [
 
 [[package]]
 name = "aleph-bft"
-version = "0.39.0"
+version = "0.42.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2fdb6ff0490653cec91cc602dbc711c37e1f088e1b2232f5f0fd4c1d084b3a6"
+checksum = "6c89b5ad70909935424ee13421e1a98ddef96d24a9af4525461826e57328da6a"
 dependencies = [
  "aleph-bft-rmc 0.14.0",
  "aleph-bft-types 0.14.0",
@@ -2280,9 +2280,9 @@ name = "finality-aleph"
 version = "0.11.0"
 dependencies = [
  "aggregator 0.7.0",
- "aggregator 0.7.0 (git+https://github.com/Cardinal-Cryptography/aleph-node.git?tag=r-14.0-rc1)",
+ "aggregator 0.7.0 (git+https://github.com/Cardinal-Cryptography/aleph-node.git?tag=r-14.0.0)",
  "aleph-bft 0.36.5",
- "aleph-bft 0.39.0",
+ "aleph-bft 0.42.1",
  "aleph-bft-crypto",
  "aleph-bft-rmc 0.13.0",
  "aleph-bft-rmc 0.14.0",
