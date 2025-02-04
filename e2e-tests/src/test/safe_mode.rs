@@ -11,7 +11,7 @@ use aleph_client::{
         staking::{StakingSudoApi, StakingUserApi},
         vesting::VestingUserApi,
     },
-    AccountId, AsSigned, SignedConnectionApi, TxStatus,
+    AccountId, AsSigned, TxStatus,
 };
 
 use crate::config::setup_test;

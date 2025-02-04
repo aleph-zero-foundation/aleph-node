@@ -3566,7 +3566,6 @@ dependencies = [
  "pallet-authorship",
  "pallet-balances",
  "pallet-staking",
- "pallets-support",
  "parity-scale-codec",
  "primitives",
  "rand 0.8.5",
@@ -3669,14 +3668,6 @@ dependencies = [
  "sp-api",
  "sp-runtime 24.0.0 (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.6.0)",
  "sp-weights 20.0.0 (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.6.0)",
-]
-
-[[package]]
-name = "pallets-support"
-version = "0.1.4"
-dependencies = [
- "frame-support",
- "sp-std 8.0.0 (git+https://github.com/Cardinal-Cryptography/polkadot-sdk.git?branch=aleph-v1.6.0)",
 ]
 
 [[package]]

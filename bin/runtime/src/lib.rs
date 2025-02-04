@@ -50,7 +50,8 @@ use primitives::{
     SessionAuthorityData, SessionCommittee, SessionIndex, SessionInfoProvider,
     SessionValidatorError, TotalIssuanceProvider as TotalIssuanceProviderT,
     Version as FinalityVersion, ADDRESSES_ENCODING, DEFAULT_BAN_REASON_LENGTH, DEFAULT_MAX_WINNERS,
-    DEFAULT_SESSIONS_PER_ERA, DEFAULT_SESSION_PERIOD, MAX_BLOCK_SIZE, MILLISECS_PER_BLOCK, TOKEN,
+    DEFAULT_SESSIONS_PER_ERA, DEFAULT_SESSION_PERIOD, MAX_BLOCK_SIZE, MILLISECS_PER_BLOCK,
+    SCORE_SUBMISSION_PERIOD, TOKEN,
 };
 pub use primitives::{AccountId, AccountIndex, Balance, Hash, Nonce, Signature};
 use sp_api::impl_runtime_apis;
@@ -330,6 +331,10 @@ impl TotalIssuanceProviderT for TotalIssuanceProvider {
     }
 }
 
+parameter_types! {
+    pub const ScoreSubmissionPeriod: u32 = SCORE_SUBMISSION_PERIOD;
+}
+
 impl pallet_aleph::Config for Runtime {
     type AuthorityId = AlephId;
     type RuntimeEvent = RuntimeEvent;
@@ -342,6 +347,7 @@ impl pallet_aleph::Config for Runtime {
     >;
     type NextSessionAuthorityProvider = Session;
     type TotalIssuanceProvider = TotalIssuanceProvider;
+    type ScoreSubmissionPeriod = ScoreSubmissionPeriod;
 }
 
 parameter_types! {
@@ -1169,6 +1175,10 @@ impl_runtime_apis! {
     impl pallet_aleph_runtime_api::AlephSessionApi<Block> for Runtime {
         fn millisecs_per_block() -> u64 {
             MILLISECS_PER_BLOCK
+        }
+
+        fn score_submission_period() -> u32 {
+            ScoreSubmissionPeriod::get()
         }
 
         fn session_period() -> u32 {

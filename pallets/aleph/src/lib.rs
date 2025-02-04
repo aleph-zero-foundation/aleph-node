@@ -58,6 +58,8 @@ pub mod pallet {
         type SessionManager: SessionManager<<Self as frame_system::Config>::AccountId>;
         type NextSessionAuthorityProvider: NextSessionAuthorityProvider<Self>;
         type TotalIssuanceProvider: TotalIssuanceProvider;
+        #[pallet::constant]
+        type ScoreSubmissionPeriod: Get<u32>;
     }
 
     pub type Signature<T> = <<T as Config>::AuthorityId as RuntimeAppPublic>::Signature;

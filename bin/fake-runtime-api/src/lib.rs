@@ -146,6 +146,10 @@ pub mod fake_runtime {
                 unimplemented!()
             }
 
+            fn score_submission_period() -> u32 {
+                unimplemented!()
+            }
+
             fn session_period() -> u32 {
                 unimplemented!()
             }

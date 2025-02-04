@@ -33,6 +33,7 @@ pub(crate) struct ConsensusPartyParams<CS, NSM> {
     pub backup_saving_path: Option<PathBuf>,
     pub session_manager: NSM,
     pub session_info: SessionBoundaryInfo,
+    pub score_submission_period: u32,
 }
 
 pub(crate) struct ConsensusParty<CS, NSM>
@@ -46,6 +47,7 @@ where
     backup_saving_path: Option<PathBuf>,
     session_manager: NSM,
     session_info: SessionBoundaryInfo,
+    score_submission_period: u32,
 }
 
 const SESSION_STATUS_CHECK_PERIOD: Duration = Duration::from_millis(1000);
@@ -63,6 +65,7 @@ where
             chain_state,
             session_manager,
             session_info,
+            score_submission_period,
             ..
         } = params;
         Self {
@@ -72,6 +75,7 @@ where
             chain_state,
             session_manager,
             session_info,
+            score_submission_period,
         }
     }
 
@@ -155,6 +159,7 @@ where
                         self.session_manager
                             .spawn_authority_task_for_session(
                                 session_id,
+                                self.score_submission_period,
                                 node_id,
                                 backup,
                                 authorities,
@@ -482,6 +487,7 @@ mod tests {
     }
 
     const SESSION_PERIOD: u32 = 30;
+    const SCORE_SUBMISSION_PERIOD: u32 = 15;
 
     #[derive(Debug)]
     struct MockController {
@@ -518,6 +524,7 @@ mod tests {
             backup_saving_path: None,
             session_manager,
             session_info,
+            score_submission_period: SCORE_SUBMISSION_PERIOD,
         };
 
         (ConsensusParty::new(params), controller)

@@ -188,6 +188,10 @@ impl pallet_session::Config for TestRuntime {
     type WeightInfo = ();
 }
 
+parameter_types! {
+    pub const ScoreSubmissionPeriod: u32 = 15;
+}
+
 impl pallet_aleph::Config for TestRuntime {
     type AuthorityId = AuthorityId;
     type RuntimeEvent = RuntimeEvent;
@@ -200,6 +204,7 @@ impl pallet_aleph::Config for TestRuntime {
     >;
     type NextSessionAuthorityProvider = Session;
     type TotalIssuanceProvider = TotalIssuanceProvider;
+    type ScoreSubmissionPeriod = ScoreSubmissionPeriod;
 }
 
 impl<C> frame_system::offchain::SendTransactionTypes<C> for TestRuntime

@@ -18,6 +18,7 @@ sp_api::decl_runtime_apis! {
         fn millisecs_per_block() -> u64;
         fn finality_version() -> Version;
         fn next_session_finality_version() -> Version;
+        fn score_submission_period() -> u32;
         /// Predict finality committee and block producers for the given session. `session` must be
         /// within the current era (current, in the staking context).
         ///

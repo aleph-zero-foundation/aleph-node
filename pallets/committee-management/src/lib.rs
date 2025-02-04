@@ -138,6 +138,7 @@ pub mod pallet {
 
     /// A lookup for a number of underperformance sessions in block finalization for a given validator
     #[pallet::storage]
+    #[pallet::getter(fn underperformed_finalizer_session_count)]
     pub type UnderperformedFinalizerSessionCount<T: Config> =
         StorageMap<_, Twox64Concat, T::AccountId, SessionCount, ValueQuery>;
 

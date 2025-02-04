@@ -118,6 +118,10 @@ pub const DEFAULT_SESSION_PERIOD: u32 = 30;
 /// How many sessions is in single era
 #[cfg(feature = "short_session")]
 pub const DEFAULT_SESSIONS_PER_ERA: SessionIndex = 3;
+
+/// Gather ABFT score every SCORE_SUBMISSION_PERIOD rounds
+#[cfg(feature = "short_session")]
+pub const SCORE_SUBMISSION_PERIOD: u32 = 15;
 // --------------- Test build end  ---------------------
 
 // --------------- Production build ---------------------
@@ -128,6 +132,10 @@ pub const DEFAULT_SESSION_PERIOD: u32 = 900;
 /// How many sessions is in single era
 #[cfg(not(feature = "short_session"))]
 pub const DEFAULT_SESSIONS_PER_ERA: SessionIndex = 96;
+
+/// Gather ABFT score every SCORE_SUBMISSION_PERIOD rounds
+#[cfg(not(feature = "short_session"))]
+pub const SCORE_SUBMISSION_PERIOD: u32 = 300;
 // --------------- Production build end ---------------------
 
 /// How many decimals AZERO coin has

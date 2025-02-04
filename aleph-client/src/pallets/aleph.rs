@@ -9,6 +9,7 @@ use crate::{
     },
     connections::TxInfo,
     pallet_aleph::pallet::Call::schedule_finality_version_change,
+    primitives::Score,
     sp_core::Bytes,
     AccountId, AlephKeyPair, BlockHash, BlockNumber,
     Call::Aleph,
@@ -25,6 +26,8 @@ pub trait AlephApi {
     async fn next_session_finality_version(&self, at: Option<BlockHash>) -> Version;
     /// Gets the emergency finalizer
     async fn emergency_finalizer(&self, at: Option<BlockHash>) -> Option<[u8; 32]>;
+    /// Gets the abft score.
+    async fn abft_scores(&self, session_id: SessionIndex, at: Option<BlockHash>) -> Option<Score>;
 }
 
 /// Pallet aleph API that requires sudo.
@@ -91,6 +94,12 @@ impl<C: ConnectionApi> AlephApi for C {
         self.get_storage_entry_maybe(&addrs, at)
             .await
             .map(|public| public.0 .0)
+    }
+
+    async fn abft_scores(&self, session_id: SessionIndex, at: Option<BlockHash>) -> Option<Score> {
+        let addrs = api::storage().aleph().abft_scores(session_id);
+
+        self.get_storage_entry_maybe(&addrs, at).await
     }
 }
 

@@ -1100,6 +1100,23 @@ pub mod api {
                         ],
                     )
                 }
+                pub fn score_submission_period(
+                    &self,
+                ) -> ::subxt::runtime_api::Payload<
+                    types::ScoreSubmissionPeriod,
+                    ::core::primitive::u32,
+                > {
+                    ::subxt::runtime_api::Payload::new_static(
+                        "AlephSessionApi",
+                        "score_submission_period",
+                        types::ScoreSubmissionPeriod {},
+                        [
+                            87u8, 156u8, 198u8, 129u8, 27u8, 133u8, 122u8, 92u8, 85u8, 201u8, 66u8,
+                            114u8, 146u8, 114u8, 181u8, 232u8, 15u8, 5u8, 36u8, 62u8, 183u8, 71u8,
+                            54u8, 113u8, 127u8, 182u8, 249u8, 158u8, 127u8, 181u8, 170u8, 230u8,
+                        ],
+                    )
+                }
                 #[doc = " Predict finality committee and block producers for the given session. `session` must be"]
                 #[doc = " within the current era (current, in the staking context)."]
                 #[doc = ""]
@@ -1346,6 +1363,20 @@ pub mod api {
                 #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
                 #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
                 pub struct NextSessionFinalityVersion {}
+                #[derive(
+                    :: subxt :: ext :: codec :: Decode,
+                    :: subxt :: ext :: codec :: Encode,
+                    :: subxt :: ext :: scale_decode :: DecodeAsType,
+                    :: subxt :: ext :: scale_encode :: EncodeAsType,
+                    Clone,
+                    Debug,
+                    Eq,
+                    PartialEq,
+                )]
+                # [codec (crate = :: subxt :: ext :: codec)]
+                #[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
+                #[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
+                pub struct ScoreSubmissionPeriod {}
                 #[derive(
                     :: subxt :: ext :: codec :: Decode,
                     :: subxt :: ext :: codec :: Encode,
@@ -1992,6 +2023,9 @@ pub mod api {
         pub fn staking(&self) -> staking::constants::ConstantsApi {
             staking::constants::ConstantsApi
         }
+        pub fn aleph(&self) -> aleph::constants::ConstantsApi {
+            aleph::constants::ConstantsApi
+        }
         pub fn elections(&self) -> elections::constants::ConstantsApi {
             elections::constants::ConstantsApi
         }
@@ -2181,9 +2215,9 @@ pub mod api {
             .hash();
         runtime_metadata_hash
             == [
-                227u8, 116u8, 235u8, 114u8, 231u8, 55u8, 16u8, 204u8, 70u8, 252u8, 227u8, 46u8,
-                40u8, 253u8, 182u8, 250u8, 97u8, 225u8, 161u8, 118u8, 245u8, 169u8, 17u8, 150u8,
-                163u8, 9u8, 164u8, 191u8, 93u8, 239u8, 121u8, 63u8,
+                251u8, 194u8, 197u8, 15u8, 225u8, 178u8, 217u8, 55u8, 57u8, 20u8, 176u8, 89u8,
+                103u8, 117u8, 49u8, 78u8, 87u8, 144u8, 217u8, 18u8, 209u8, 183u8, 203u8, 14u8,
+                245u8, 26u8, 5u8, 207u8, 103u8, 12u8, 134u8, 122u8,
             ]
     }
     pub mod system {
@@ -9923,6 +9957,26 @@ pub mod api {
                             47u8, 152u8, 177u8, 250u8, 49u8, 166u8, 1u8, 46u8, 232u8, 177u8, 38u8,
                             247u8, 238u8, 52u8, 217u8, 129u8, 225u8, 112u8, 253u8, 20u8, 236u8,
                             215u8, 88u8, 224u8, 173u8, 47u8, 47u8, 44u8, 40u8, 13u8, 12u8, 202u8,
+                        ],
+                    )
+                }
+            }
+        }
+        pub mod constants {
+            use super::runtime_types;
+            pub struct ConstantsApi;
+            impl ConstantsApi {
+                pub fn score_submission_period(
+                    &self,
+                ) -> ::subxt::constants::Address<::core::primitive::u32> {
+                    ::subxt::constants::Address::new_static(
+                        "Aleph",
+                        "ScoreSubmissionPeriod",
+                        [
+                            98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
+                            125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
+                            178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
+                            145u8,
                         ],
                     )
                 }

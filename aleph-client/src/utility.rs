@@ -20,6 +20,13 @@ pub trait BlocksApi {
         session: SessionIndex,
     ) -> anyhow::Result<Option<BlockHash>>;
 
+    /// Returns the last block of a session.
+    /// * `session` - number of the session to query the last block from
+    async fn last_block_of_session(
+        &self,
+        session: SessionIndex,
+    ) -> anyhow::Result<Option<BlockHash>>;
+
     /// Returns hash of a given block if the given block exists, otherwise `None`
     /// * `block` - number of the block
     async fn get_block_hash(&self, block: BlockNumber) -> anyhow::Result<Option<BlockHash>>;
@@ -65,6 +72,16 @@ impl<C: AsConnection + Sync> BlocksApi for C {
     ) -> anyhow::Result<Option<BlockHash>> {
         let period = self.get_session_period().await?;
         let block_num = period * session;
+
+        self.get_block_hash(block_num).await
+    }
+
+    async fn last_block_of_session(
+        &self,
+        session: SessionIndex,
+    ) -> anyhow::Result<Option<BlockHash>> {
+        let period = self.get_session_period().await?;
+        let block_num = period * session + (period - 1);
 
         self.get_block_hash(block_num).await
     }

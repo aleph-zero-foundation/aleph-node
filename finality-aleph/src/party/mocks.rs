@@ -98,6 +98,7 @@ impl NodeSessionManager for Arc<MockNodeSessionManager> {
     async fn spawn_authority_task_for_session(
         &self,
         session: SessionId,
+        _period: u32,
         node_id: NodeIndex,
         _backup: ABFTBackup,
         _authorities: &[AuthorityId],

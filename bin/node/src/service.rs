@@ -185,6 +185,7 @@ pub fn new_partial(config: &Configuration) -> Result<ServiceComponents, ServiceE
 struct AlephRuntimeVars {
     pub session_period: SessionPeriod,
     pub millisecs_per_block: MillisecsPerBlock,
+    pub score_submission_period: u32,
 }
 
 fn get_aleph_runtime_vars(client: &Arc<FullClient>) -> AlephRuntimeVars {
@@ -204,9 +205,15 @@ fn get_aleph_runtime_vars(client: &Arc<FullClient>) -> AlephRuntimeVars {
             .expect("should always be available"),
     );
 
+    let score_submission_period = client
+        .runtime_api()
+        .score_submission_period(finalized)
+        .expect("should always be available");
+
     AlephRuntimeVars {
         session_period,
         millisecs_per_block,
+        score_submission_period,
     }
 }
 
@@ -376,6 +383,7 @@ pub fn new_authority(
     let AlephRuntimeVars {
         millisecs_per_block,
         session_period,
+        score_submission_period,
     } = get_aleph_runtime_vars(&service_components.client);
 
     let aleph_config = AlephConfig {
@@ -387,6 +395,7 @@ pub fn new_authority(
         select_chain_provider: service_components.select_chain_provider,
         session_period,
         millisecs_per_block,
+        score_submission_period,
         spawn_handle: service_components.task_manager.spawn_handle().into(),
         keystore: service_components.keystore_container.local_keystore(),
         justification_channel_provider: service_components.justification_channel_provider,

@@ -77,6 +77,7 @@ where
         unit_creation_delay,
         session_period,
         millisecs_per_block,
+        score_submission_period,
         justification_channel_provider,
         block_rx,
         backup_saving_path,
@@ -279,6 +280,7 @@ where
             score_metrics,
         ),
         session_info,
+        score_submission_period,
     });
 
     debug!(target: LOG_TARGET, "Consensus party has started.");

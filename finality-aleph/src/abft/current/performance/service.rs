@@ -24,8 +24,6 @@ use crate::{
     Hasher, SessionId, UnverifiedHeader,
 };
 
-const SCORE_SUBMISSION_PERIOD: usize = 300;
-
 struct FinalizationWrapper<UH, FH>
 where
     UH: UnverifiedHeader,
@@ -76,6 +74,7 @@ where
 {
     my_index: usize,
     session_id: SessionId,
+    score_submission_period: u32,
     batches_from_abft: mpsc::UnboundedReceiver<Batch<UH>>,
     hashes_for_aggregator: mpsc::UnboundedSender<Hash>,
     signatures_from_aggregator: mpsc::UnboundedReceiver<(Hash, SignatureSet<AuthoritySignature>)>,
@@ -99,10 +98,12 @@ where
 {
     /// Create a new service, together with a unit finalization handler that should be passed to
     /// ABFT. It will wrap the provided finalization handler and call it in the background.
+    #[allow(clippy::too_many_arguments)]
     pub fn new<FH>(
         my_index: usize,
         n_members: usize,
         session_id: SessionId,
+        score_submission_period: u32,
         finalization_handler: FH,
         io: ServiceIO,
         runtime_api: RA,
@@ -123,6 +124,7 @@ where
             Service {
                 my_index,
                 session_id,
+                score_submission_period,
                 batches_from_abft,
                 hashes_for_aggregator,
                 signatures_from_aggregator,
@@ -166,7 +168,7 @@ where
                         },
                     };
                     self.metrics.report_score(points[self.my_index]);
-                    if batch_counter % SCORE_SUBMISSION_PERIOD == 0 {
+                    if batch_counter % self.score_submission_period == 0 {
                         let score = self.make_score(points);
                         let score_hash = Hashing::hash_of(&score.encode());
                         debug!(target: LOG_TARGET, "Gathering signature under ABFT score: {:?}.", score);

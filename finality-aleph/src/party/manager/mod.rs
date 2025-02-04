@@ -80,6 +80,7 @@ where
     n_members: usize,
     node_id: NodeIndex,
     session_id: SessionId,
+    score_submission_period: u32,
     data_network: N,
     session_boundaries: SessionBoundaries,
     subtask_common: TaskCommon,
@@ -266,6 +267,7 @@ where
             n_members,
             node_id,
             session_id,
+            score_submission_period,
             data_network,
             session_boundaries,
             subtask_common,
@@ -296,6 +298,7 @@ where
             node_id.into(),
             n_members,
             session_id,
+            score_submission_period,
             ordered_data_interpreter,
             CurrentPerformanceServiceIO {
                 hashes_for_aggregator: performance_for_aggregator,
@@ -348,6 +351,7 @@ where
     async fn spawn_subtasks(
         &self,
         session_id: SessionId,
+        score_submission_period: u32,
         authorities: &[AuthorityId],
         node_id: NodeIndex,
         exit_rx: oneshot::Receiver<()>,
@@ -403,6 +407,7 @@ where
             n_members: authorities.len(),
             node_id,
             session_id,
+            score_submission_period,
             data_network,
             session_boundaries,
             subtask_common,
@@ -483,13 +488,21 @@ where
     async fn spawn_authority_task_for_session(
         &self,
         session: SessionId,
+        score_submission_period: u32,
         node_id: NodeIndex,
         backup: ABFTBackup,
         authorities: &[AuthorityId],
     ) -> AuthorityTask {
         let (exit, exit_rx) = futures::channel::oneshot::channel();
         let subtasks = self
-            .spawn_subtasks(session, authorities, node_id, exit_rx, backup)
+            .spawn_subtasks(
+                session,
+                score_submission_period,
+                authorities,
+                node_id,
+                exit_rx,
+                backup,
+            )
             .await;
 
         AuthorityTask::new(

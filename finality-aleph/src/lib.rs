@@ -271,6 +271,7 @@ pub struct AlephConfig<C, T> {
     pub registry: Option<Registry>,
     pub session_period: SessionPeriod,
     pub millisecs_per_block: MillisecsPerBlock,
+    pub score_submission_period: u32,
     pub unit_creation_delay: UnitCreationDelay,
     pub backup_saving_path: Option<PathBuf>,
     pub external_addresses: Vec<String>,

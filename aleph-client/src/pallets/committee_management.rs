@@ -12,7 +12,7 @@ use crate::{
     pallet_committee_management::pallet::Call::{
         ban_from_committee, set_ban_config, set_lenient_threshold,
     },
-    primitives::{BanInfo, BanReason, ProductionBanConfig},
+    primitives::{BanInfo, BanReason, FinalityBanConfig, ProductionBanConfig},
     AccountId, AsConnection, BlockHash, ConnectionApi, EraIndex, RootConnection, SessionCount,
     SessionIndex, SudoCall, TxInfo, TxStatus,
 };
@@ -24,6 +24,11 @@ pub trait CommitteeManagementApi {
     /// * `at` - optional hash of a block to query state from
     async fn get_ban_config(&self, at: Option<BlockHash>) -> ProductionBanConfig;
 
+    /// Returns `committee-management.finality_ban_config` storage of the committee-management pallet.
+    /// * `at` - optional hash of a block to query state from
+    async fn get_finality_ban_config(&self, at: Option<BlockHash>) -> FinalityBanConfig;
+
+    /// Returns `committee-management.session_validator_block_count` of a given validator.
     /// Returns `committee-management.session_validator_block_count` of a given validator.
     /// * `validator` - a validator stash account id
     /// * `at` - optional hash of a block to query state from
@@ -37,6 +42,15 @@ pub trait CommitteeManagementApi {
     /// * `validator` - a validator stash account id
     /// * `at` - optional hash of a block to query state from
     async fn get_underperformed_validator_session_count(
+        &self,
+        validator: AccountId,
+        at: Option<BlockHash>,
+    ) -> Option<SessionCount>;
+
+    /// Returns `committee-management.underperformed_finalizer_session_count` storage of a given validator.
+    /// * `validator` - a validator stash account id
+    /// * `at` - optional hash of a block to query state from
+    async fn get_underperformed_finalizer_session_count(
         &self,
         validator: AccountId,
         at: Option<BlockHash>,
@@ -123,6 +137,12 @@ impl<C: ConnectionApi + AsConnection> CommitteeManagementApi for C {
         self.get_storage_entry(&addrs, at).await
     }
 
+    async fn get_finality_ban_config(&self, at: Option<BlockHash>) -> FinalityBanConfig {
+        let addrs = api::storage().committee_management().finality_ban_config();
+
+        self.get_storage_entry(&addrs, at).await
+    }
+
     async fn get_validator_block_count(
         &self,
         validator: AccountId,
@@ -143,6 +163,18 @@ impl<C: ConnectionApi + AsConnection> CommitteeManagementApi for C {
         let addrs = api::storage()
             .committee_management()
             .underperformed_validator_session_count(Static::from(validator));
+
+        self.get_storage_entry_maybe(&addrs, at).await
+    }
+
+    async fn get_underperformed_finalizer_session_count(
+        &self,
+        validator: AccountId,
+        at: Option<BlockHash>,
+    ) -> Option<SessionCount> {
+        let addrs = api::storage()
+            .committee_management()
+            .underperformed_finalizer_session_count(Static::from(validator));
 
         self.get_storage_entry_maybe(&addrs, at).await
     }

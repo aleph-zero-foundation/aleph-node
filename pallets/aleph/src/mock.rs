@@ -156,6 +156,10 @@ impl TotalIssuanceProviderT for TotalIssuanceProvider {
     }
 }
 
+parameter_types! {
+    pub const ScoreSubmissionPeriod: u32 = 15;
+}
+
 impl Config for Test {
     type AuthorityId = AuthorityId;
     type RuntimeEvent = RuntimeEvent;
@@ -163,6 +167,7 @@ impl Config for Test {
     type SessionManager = ();
     type NextSessionAuthorityProvider = Session;
     type TotalIssuanceProvider = TotalIssuanceProvider;
+    type ScoreSubmissionPeriod = ScoreSubmissionPeriod;
 }
 
 pub fn to_authority(id: &u64) -> AuthorityId {

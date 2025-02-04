@@ -25,6 +25,7 @@ pub trait NodeSessionManager {
     async fn spawn_authority_task_for_session(
         &self,
         session: SessionId,
+        score_submission_period: u32,
         node_id: NodeIndex,
         backup: ABFTBackup,
         authorities: &[AuthorityId],
