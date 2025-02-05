@@ -10,7 +10,7 @@ inputs:
     type: string
     required: true
   snapshot-day:
-    description: "Day in date format %Y-%m-%d. If not given, current date is assumed."
+    description: "Day in date format %Y-%m-%d. If not given, current date - 1 day is assumed."
     type: string
     required: false
   aws-access-key-id:
@@ -47,7 +47,7 @@ runs:
       shell: bash
       run: |
         if [[ '${{ inputs.snapshot-day }}' == "" ]]; then
-          snapshot_day=$(date "+%Y-%m-%d")
+          snapshot_day=$(date "+%Y-%m-%d" -d "1 day ago")
         else
           snapshot_day='${{ inputs.snapshot-day }}'
         fi

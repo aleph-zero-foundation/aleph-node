@@ -4,11 +4,17 @@
 
 name: Sync from snapshot test, Testnet, RocksDB
 on:
-  # At 22:00 on Saturday
+  # At 15:00 on Sunday
   # Time corresponds with a snapshot creation time
   schedule:
-    - cron: '0 22 * * 6'
+    - cron: '0 15 * * 0'
   workflow_dispatch:
+    inputs:
+      snapshot-day:
+        description: "Day in date format %Y-%m-%d. If not given, current date - 1 day is assumed."
+        type: string
+        required: false
+        default: ''
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -45,6 +51,7 @@ jobs:
           args: --testnet
           aws-access-key-id: ${{ secrets.AWS_TESTNET_S3_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_TESTNET_S3_SECRET_ACCESS_KEY }}
+          snapshot-day: ${{ inputs.snapshot-day }}
 
   slack-notification:
     name: Slack notification
