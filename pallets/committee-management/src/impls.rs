@@ -4,8 +4,6 @@ use primitives::{
     AbftScoresProvider, BanHandler, BanInfo, BanReason, BannedValidators, CommitteeSeats,
     EraValidators, SessionCommittee, SessionValidatorError, SessionValidators, ValidatorProvider,
 };
-use rand::{seq::SliceRandom, SeedableRng};
-use rand_pcg::Pcg32;
 use sp_runtime::{traits::Get, Perbill, Perquintill};
 use sp_staking::{EraIndex, SessionIndex};
 use sp_std::{
@@ -57,17 +55,6 @@ fn choose_for_session<T: Clone>(validators: &[T], count: usize, session: usize) 
     Some(chosen)
 }
 
-fn shuffle_order_for_session<T>(
-    producers: &mut Vec<T>,
-    validators: &mut Vec<T>,
-    session: SessionIndex,
-) {
-    let mut rng = Pcg32::seed_from_u64(session as u64);
-
-    producers.shuffle(&mut rng);
-    validators.shuffle(&mut rng);
-}
-
 /// Choose all items from `reserved` if present and extend it by #`non_reserved_seats` from
 /// `non_reserved` if present.
 fn choose_finality_committee<T: Clone>(
@@ -105,22 +92,19 @@ fn select_committee_inner<AccountId: Clone + PartialEq>(
     let non_reserved_committee =
         choose_for_session(non_reserved, non_reserved_seats, current_session as usize);
 
-    let mut finalizers = choose_finality_committee(
+    let finalizers = choose_finality_committee(
         &reserved_committee,
         &non_reserved_committee,
         non_reserved_finality_seats,
         current_session as usize,
     );
 
-    let mut producers = match (reserved_committee, non_reserved_committee) {
+    let producers = match (reserved_committee, non_reserved_committee) {
         (Some(rc), Some(nrc)) => Some(rc.into_iter().chain(nrc.into_iter()).collect()),
         (Some(rc), _) => Some(rc),
         (_, Some(nrc)) => Some(nrc),
         _ => None,
     }?;
-
-    // randomize order of the producers and committee
-    shuffle_order_for_session(&mut producers, &mut finalizers, current_session);
 
     Some(SessionCommittee {
         producers,

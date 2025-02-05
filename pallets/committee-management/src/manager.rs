@@ -2,6 +2,9 @@ use frame_system::pallet_prelude::BlockNumberFor;
 use log::debug;
 use pallet_session::SessionManager;
 use primitives::{AbftScoresProvider, EraManager, FinalityCommitteeManager, SessionCommittee};
+use rand::{prelude::SliceRandom, SeedableRng};
+use rand_pcg::Pcg32;
+use sp_runtime::traits::Get;
 use sp_staking::{EraIndex, SessionIndex};
 use sp_std::{marker::PhantomData, vec::Vec};
 
@@ -127,7 +130,14 @@ where
         // Notify about elected next session finality committee
         C::FinalityCommitteeManager::on_next_session_finality_committee(finalizers);
 
-        Some(producers)
+        // Prepare a list of all block authors for the next session. We shuffle to minimize
+        // the impact of slow producer on his followers.
+        let full_size = C::SessionPeriod::get() as usize;
+        let mut full_aura: Vec<_> = producers.into_iter().cycle().take(full_size).collect();
+        let mut rng = Pcg32::seed_from_u64(new_index as u64);
+        full_aura.shuffle(&mut rng);
+
+        Some(full_aura)
     }
 
     fn end_session(end_index: SessionIndex) {
