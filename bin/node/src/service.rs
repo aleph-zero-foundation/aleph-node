@@ -208,7 +208,7 @@ fn get_aleph_runtime_vars(client: &Arc<FullClient>) -> AlephRuntimeVars {
     let score_submission_period = client
         .runtime_api()
         .score_submission_period(finalized)
-        .expect("should always be available");
+        .unwrap_or(u32::MAX);
 
     AlephRuntimeVars {
         session_period,
