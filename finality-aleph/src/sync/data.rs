@@ -65,64 +65,12 @@ pub enum BranchKnowledge {
     TopImported(BlockId),
 }
 
-// Only needed for backwards compatible decoding.
-// TODO(A0-4270): Remove this when removing v3 data.
-#[derive(Clone, Debug, Encode, Decode)]
-enum MaybeHeader<UH: UnverifiedHeader> {
-    Header(UH),
-    Id(BlockId),
-}
-
-/// Request content, version 2.
-#[derive(Clone, Debug, Encode, Decode)]
-pub struct RequestV2<J: Justification> {
-    target: MaybeHeader<UnverifiedHeaderFor<J>>,
-    branch_knowledge: BranchKnowledge,
-    state: State<J>,
-}
-
 /// Request content, current version.
 #[derive(Clone, Debug, Encode, Decode)]
 pub struct Request<J: Justification> {
     target: UnverifiedHeaderFor<J>,
     branch_knowledge: BranchKnowledge,
     state: State<J>,
-}
-
-impl<J: Justification> TryFrom<RequestV2<J>> for Request<J> {
-    type Error = ();
-
-    fn try_from(other: RequestV2<J>) -> Result<Self, Self::Error> {
-        let RequestV2 {
-            target,
-            branch_knowledge,
-            state,
-        } = other;
-        let target = match target {
-            MaybeHeader::Header(header) => header,
-            MaybeHeader::Id(_) => return Err(()),
-        };
-        Ok(Request {
-            target,
-            branch_knowledge,
-            state,
-        })
-    }
-}
-
-impl<J: Justification> From<Request<J>> for RequestV2<J> {
-    fn from(other: Request<J>) -> Self {
-        let Request {
-            target,
-            branch_knowledge,
-            state,
-        } = other;
-        RequestV2 {
-            target: MaybeHeader::Header(target),
-            branch_knowledge,
-            state,
-        }
-    }
 }
 
 impl<J: Justification> Request<J> {
@@ -182,28 +130,6 @@ impl<UH: UnverifiedHeader, I: PeerId> PreRequest<UH, I> {
     }
 }
 
-/// Data to be sent over the network, version 3.
-#[derive(Clone, Debug, Encode, Decode)]
-pub enum NetworkDataV3<B: Block, J: Justification>
-where
-    J: Justification,
-    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
-{
-    /// A periodic state broadcast, so that neighbouring nodes can request what they are missing,
-    /// send what we are missing, and sometimes just use the justifications to update their own
-    /// state.
-    StateBroadcast(State<J>),
-    /// Response to a state broadcast. Contains at most two justifications that the peer will
-    /// understand.
-    StateBroadcastResponse(J::Unverified, Option<J::Unverified>),
-    /// An explicit request for data, potentially a lot of it.
-    Request(RequestV2<J>),
-    /// Response to the request for data.
-    RequestResponse(ResponseItems<B, J>),
-    /// A request for a chain extension.
-    ChainExtensionRequest(State<J>),
-}
-
 /// Data to be sent over the network, current version.
 #[derive(Clone, Debug, Encode, Decode)]
 pub enum NetworkData<B: Block, J: Justification>
@@ -226,52 +152,6 @@ where
     ChainExtensionRequest(State<J>),
 }
 
-impl<B: Block, J: Justification> TryFrom<NetworkDataV3<B, J>> for NetworkData<B, J>
-where
-    J: Justification,
-    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
-{
-    type Error = ();
-
-    fn try_from(data: NetworkDataV3<B, J>) -> Result<Self, Self::Error> {
-        Ok(match data {
-            NetworkDataV3::StateBroadcast(state) => NetworkData::StateBroadcast(state),
-            NetworkDataV3::StateBroadcastResponse(justification, maybe_justification) => {
-                NetworkData::StateBroadcastResponse(justification, maybe_justification)
-            }
-            NetworkDataV3::Request(request) => NetworkData::Request(request.try_into()?),
-            NetworkDataV3::RequestResponse(response_items) => {
-                NetworkData::RequestResponse(response_items)
-            }
-            NetworkDataV3::ChainExtensionRequest(state) => {
-                NetworkData::ChainExtensionRequest(state)
-            }
-        })
-    }
-}
-
-impl<B: Block, J: Justification> From<NetworkData<B, J>> for NetworkDataV3<B, J>
-where
-    J: Justification,
-    B: Block<UnverifiedHeader = UnverifiedHeaderFor<J>>,
-{
-    fn from(data: NetworkData<B, J>) -> Self {
-        match data {
-            NetworkData::StateBroadcast(state) => NetworkDataV3::StateBroadcast(state),
-            NetworkData::StateBroadcastResponse(justification, maybe_justification) => {
-                NetworkDataV3::StateBroadcastResponse(justification, maybe_justification)
-            }
-            NetworkData::Request(request) => NetworkDataV3::Request(request.into()),
-            NetworkData::RequestResponse(response_items) => {
-                NetworkDataV3::RequestResponse(response_items)
-            }
-            NetworkData::ChainExtensionRequest(state) => {
-                NetworkDataV3::ChainExtensionRequest(state)
-            }
-        }
-    }
-}
-
 /// Version wrapper around the network data.
 #[derive(Clone, Debug)]
 pub enum VersionedNetworkData<B: Block, J: Justification>
@@ -281,7 +161,6 @@ where
 {
     // Most likely from the future.
     Other(Version, Vec<u8>),
-    V3(NetworkDataV3<B, J>),
     V4(NetworkData<B, J>),
 }
 
@@ -332,7 +211,6 @@ where
             + byte_count_size
             + match self {
                 Other(_, payload) => payload.len(),
-                V3(data) => data.size_hint(),
                 V4(data) => data.size_hint(),
             }
     }
@@ -341,7 +219,6 @@ where
         use VersionedNetworkData::*;
         match self {
             Other(version, payload) => encode_with_version(*version, payload),
-            V3(data) => encode_with_version(Version(3), &data.encode()),
             V4(data) => encode_with_version(Version(4), &data.encode()),
         }
     }
@@ -357,7 +234,6 @@ where
         let version = Version::decode(input)?;
         let num_bytes = ByteCount::decode(input)?;
         match version {
-            Version(3) => Ok(V3(NetworkDataV3::decode(input)?)),
             Version(4) => Ok(V4(NetworkData::decode(input)?)),
             _ => {
                 if num_bytes > MAX_SYNC_MESSAGE_SIZE {
@@ -412,10 +288,6 @@ where
         data: NetworkData<B, J>,
         peer_id: Self::PeerId,
     ) -> Result<(), Self::Error> {
-        self.inner.send_to(
-            VersionedNetworkData::V3(data.clone().into()),
-            peer_id.clone(),
-        )?;
         self.inner.send_to(VersionedNetworkData::V4(data), peer_id)
     }
 
@@ -424,17 +296,11 @@ where
         data: NetworkData<B, J>,
         peer_ids: HashSet<Self::PeerId>,
     ) -> Result<(), Self::Error> {
-        self.inner.send_to_random(
-            VersionedNetworkData::V3(data.clone().into()),
-            peer_ids.clone(),
-        )?;
         self.inner
             .send_to_random(VersionedNetworkData::V4(data), peer_ids)
     }
 
     fn broadcast(&mut self, data: NetworkData<B, J>) -> Result<(), Self::Error> {
-        self.inner
-            .broadcast(VersionedNetworkData::V3(data.clone().into()))?;
         self.inner.broadcast(VersionedNetworkData::V4(data))
     }
 
@@ -452,13 +318,6 @@ where
                         "Received sync data of unsupported version {:?}.", version
                     )
                 }
-                (VersionedNetworkData::V3(data), peer_id) => match data.try_into() {
-                    Ok(data) => return Ok((data, peer_id)),
-                    Err(()) => warn!(
-                        target: LOG_TARGET,
-                        "Received request with no header in target, this should never happen.",
-                    ),
-                },
                 (VersionedNetworkData::V4(data), peer_id) => return Ok((data, peer_id)),
             }
         }
