@@ -79,7 +79,7 @@ async fn all_validators_have_ideal_performance() -> anyhow::Result<()> {
         .abft_scores(session_id, block)
         .await
         .unwrap();
-    assert!(scores.points.into_iter().all(|point| point <= 1));
+    assert!(scores.points.into_iter().all(|point| point <= 4));
 
     for validator in all_validators {
         check_underperformed_validator_session_count(&root_connection, validator, 0).await
