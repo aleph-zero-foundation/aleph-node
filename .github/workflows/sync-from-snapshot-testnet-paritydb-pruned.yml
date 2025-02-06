@@ -38,7 +38,7 @@ jobs:
     needs: [build-production-aleph-node]
     name: Download snapshot and run
     runs-on: [self-hosted, Linux, X64, euc1-med-xldisk]
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
