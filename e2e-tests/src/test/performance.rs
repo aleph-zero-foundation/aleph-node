@@ -135,7 +135,7 @@ async fn one_validator_is_dead() -> anyhow::Result<()> {
         .await
         .unwrap();
 
-    assert!(scores.points.into_iter().any(|p| p >= 100));
+    assert!(scores.points.iter().any(|p| *p >= 100), "Points {:?}", scores.points);
 
     Ok(())
 }
