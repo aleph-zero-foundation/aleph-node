@@ -48,6 +48,7 @@ on:
         If not specified, it will be generated from the runtime.'
         type: string
         required: false
+        deprecationMessage: "This input is not supported in aleph-node 15 version"
   workflow_call:
     inputs:
       featurenet-name:

@@ -24,7 +24,7 @@ jobs:
     secrets: inherit
     with:
       featurenet-name: 'ops-test-tag'
-      ref: 'r-13.3'
+      ref: 'r-14.0.0'
       expiration: '5h'
       validators: '7'
       internal: true
