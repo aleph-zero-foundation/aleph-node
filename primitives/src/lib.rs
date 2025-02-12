@@ -149,7 +149,7 @@ pub const DEFAULT_BAN_PERIOD: EraIndex = 10;
 pub const DEFAULT_FINALITY_VERSION: Version = 0;
 
 /// Current version of abft.
-pub const CURRENT_FINALITY_VERSION: u16 = 5;
+pub const CURRENT_FINALITY_VERSION: u16 = LEGACY_FINALITY_VERSION + 1;
 
 /// Legacy version of abft.
 pub const LEGACY_FINALITY_VERSION: u16 = 3;
