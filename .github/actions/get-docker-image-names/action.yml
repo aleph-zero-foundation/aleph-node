@@ -13,6 +13,9 @@ inputs:
   dockerhub-repo:
     required: true
     description: URL to public aleph-node repo in DockerHub
+  tag:
+    required: true
+    description: aleph-node git tag to run this action on
 outputs:
   ecr-rc-image:
     description: ECR release candidate image name
@@ -37,28 +40,20 @@ runs:
   using: composite
   steps:
     - name: Checkout source code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.tag }}
 
     - name: Call action get-ref-properties
       id: get-ref-properties
-      # yamllint disable-line rule:line-length
-      uses: Cardinal-Cryptography/github-actions/get-ref-properties@v1
-
-    - name: Check if tag push was a trigger
-      shell: bash
-      run: |
-        if [[ -z '${{ steps.get-ref-properties.outputs.tag }}' ]]; then
-          echo 'Error: did you forgot to run this workflow from tag?'
-          echo 'Instead, it was run from branch ${{ steps.get-ref-properties.outputs.branch }}'
-          exit 1
-        fi
+      uses: Cardinal-Cryptography/github-actions/get-ref-properties@v7
 
     - name: Get node image names
       id: get-docker-image-names
       shell: bash
       env:
         COMMIT_SHA: ${{ steps.get-ref-properties.outputs.sha }}
-        COMMIT_TAG: ${{ steps.get-ref-properties.outputs.tag }}
+        COMMIT_TAG: ${{ inputs.tag }}
         ECR: ${{ inputs.ecr-repo }}
         DOCKERHUB: ${{ inputs.dockerhub-repo }}
       # yamllint disable rule:line-length

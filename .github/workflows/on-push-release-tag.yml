@@ -50,15 +50,13 @@ jobs:
     needs: [check-node-version]
     runs-on: ubuntu-20.04
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
-
       - name: Get docker image names
         id: get-docker-image-names
-        uses: ./.github/actions/get-docker-image-names
+        uses: Cardinal-Cryptography/aleph-node/.github/actions/get-docker-image-names@main
         with:
           ecr-repo: ${{ vars.ECR_ALEPH_NODE_REPO }}
           dockerhub-repo: ${{ vars.DOCKERHUB_ALEPH_NODE_REPO }}
+          tag: ${{ github.ref }}
 
       - name: Login to Public Amazon ECR
         id: login-public-ecr

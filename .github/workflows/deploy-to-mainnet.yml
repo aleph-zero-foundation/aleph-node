@@ -9,6 +9,10 @@ on:
         required: false
         type: boolean
         default: false
+      tag:
+        description: 'aleph-node git tag to deploy to Mainnet'
+        type: string
+        required: true
 
 # there might be only one deployment to the Mainnet at a time
 concurrency:
@@ -27,6 +31,8 @@ jobs:
     steps:
       - name: Checkout aleph-node sources
         uses: actions/checkout@v4
+        with:
+          fetch-depth: '0'
 
       - name: Get Testnet node commit SHA
         id: get-testnet-node-commit-sha
@@ -36,7 +42,6 @@ jobs:
 
       - name: Call action get-ref-properties
         id: get-ref-properties
-        # yamllint disable-line rule:line-length
         uses: Cardinal-Cryptography/github-actions/get-ref-properties@v7
 
       - name: Compare Testnet node SHA version with currently deployed SHA
@@ -58,21 +63,20 @@ jobs:
     uses: ./.github/workflows/_update-node-image-infra.yml
     with:
       env: mainnet
+      tag: ${{ inputs.tag }}
     secrets: inherit
 
   push-dockerhub-image-mainnet:
     needs: [deploy-to-mainnet]
     runs-on: ubuntu-20.04
     steps:
-      - name: Checkout aleph-node sources
-        uses: actions/checkout@v4
-
       - name: Get docker image names
         id: get-docker-image-names
-        uses: ./.github/actions/get-docker-image-names
+        uses: Cardinal-Cryptography/aleph-node/.github/actions/get-docker-image-names@main
         with:
           ecr-repo: ${{ vars.ECR_ALEPH_NODE_REPO }}
           dockerhub-repo: ${{ vars.DOCKERHUB_ALEPH_NODE_REPO }}
+          tag: ${{ inputs.tag }}
 
       - name: Build and push Docker Hub image for Mainnet
         uses: ./.github/actions/build-and-push-dockerhub-image

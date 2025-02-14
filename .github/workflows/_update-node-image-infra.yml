@@ -7,6 +7,10 @@ on:
         required: true
         type: string
         description: mainnet or testnet
+      tag:
+        description: aleph-node git tag to deploy
+        type: string
+        required: true
 
 jobs:
   main:
@@ -22,20 +26,18 @@ jobs:
             echo 'Error: inputs.env should be either mainnet or testnet!'
             exit 1
           fi
-
-      - name: Checkout source code
-        uses: actions/checkout@v4
-
-      - name: Call action get-ref-properties
-        id: get-ref-properties
-        uses: Cardinal-Cryptography/github-actions/get-ref-properties@v7
+          if [[ '${{ inputs.tag }}' == '' ]]; then
+            echo 'Error: inputs.tag should be set!'
+            exit 2
+          fi
 
       - name: Call action Get ECR image names
         id: get-docker-image-names
-        uses: ./.github/actions/get-docker-image-names
+        uses: Cardinal-Cryptography/aleph-node/.github/actions/get-docker-image-names@main
         with:
           ecr-repo: ${{ vars.ECR_ALEPH_NODE_REPO }}
           dockerhub-repo: ${{ vars.DOCKERHUB_ALEPH_NODE_REPO }}
+          tag: ${{ inputs.tag }}
 
       # this step checks indirectly as well that git HEAD has an r-* tag
       # otherwise ECR image would not exist
@@ -67,7 +69,7 @@ jobs:
       - name: Update aleph-node docker image and trigger ArgoCD deploy for ${{ inputs.env }}
         env:
           DEPLOY_IMAGE: ${{ steps.get-docker-image-names.outputs.ecr-deploy-image }}
-          REGIONS_AWS: 'eu-central-1,eu-west-1,eu-west-2,us-east-1,us-east-2'
+          REGIONS_AWS: 'eu-central-1,us-east-1'
         shell: bash
         run: |
           IFS="," read -a region_array <<< ${{ env.REGIONS_AWS }}
@@ -96,7 +98,7 @@ jobs:
       - name: GIT | Commit changes to argocd apps repository.
         uses: EndBug/add-and-commit@v9.1.4
         env:
-          TAG: ${{ steps.get-ref-properties.outputs.tag }}
+          TAG: ${{ inputs.tag }}
         with:
           author_name: ${{ secrets.AUTOCOMMIT_AUTHOR }}
           author_email: ${{ secrets.AUTOCOMMIT_EMAIL }}
