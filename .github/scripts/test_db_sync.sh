@@ -38,8 +38,8 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ "${PRUNING}" == "true" && "${PARITY_DB}" == "false" ]]; then
-    echo "Error! Passed '--pruned' without '--parity-db'"
+if [[ "${PRUNING}" == "true" && "${PARITY_DB}" == "true" ]]; then
+    echo "Error! Passed '--pruned' with'--parity-db'"
     echo "That is an unsupported argument combination."
     exit 1
 fi
@@ -74,10 +74,10 @@ if [[ "${PARITY_DB}" == "true" ]]; then
 fi
 if [[ "${PRUNING}" == "true" ]]; then
     DB_ARG+=("--enable-pruning")
-    S3_SNAPSHOT_PREFIX="db_backup_parity_pruned"
-    LATEST_SNAPSHOT_NAME="latest-parity-pruned.html"
+    S3_SNAPSHOT_PREFIX="db_backup_rocksdb_pruned"
+    LATEST_SNAPSHOT_NAME="latest-rocksdb-pruned.html"
 fi
-if [[ "${PARITY_DB}" != "true" && "${PRUNING}" != "true" ]]; then
+if [[ "${PRUNING}" != "true" ]]; then
     S3_SNAPSHOT_PREFIX="db_backup"
     LATEST_SNAPSHOT_NAME="latest.html"
 fi
