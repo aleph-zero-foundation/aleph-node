@@ -1,11 +1,11 @@
 ---
-# This workflow performs sync to Mainnet from a pruned RocksDB snapshot using the latest
+# This workflow performs sync to Mainnet from a RocksDB pruned snapshot using the latest
 # main version.
 #
 # For now, this test not quite correctly tests sync Mainnet from latest aleph-node binary,
 # for which we don't guarantee it will always happen to work.
 
-name: Sync from snapshot, Mainnet, RocksDB pruned
+name: Sync from snapshot test, Mainnet, RocksDB pruned
 on:
   # At 15:00 on Sunday
   # Time corresponds with a snapshot creation time

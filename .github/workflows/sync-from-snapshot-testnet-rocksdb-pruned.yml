@@ -1,8 +1,8 @@
 ---
-# This workflow performs sync to Testnet from a pruned RocksDB snapshot using the latest
+# This workflow performs sync to Testnet from a RocksDB pruned snapshot using the latest
 # main version.
 
-name: Sync from snapshot, Testnet, RocksDB pruned
+name: Sync from snapshot test, Testnet, RocksDB pruned
 on:
   # At 15:00 on Sunday
   # Time corresponds with a snapshot creation time

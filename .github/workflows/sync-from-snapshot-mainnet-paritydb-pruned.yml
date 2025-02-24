@@ -1,8 +1,11 @@
 ---
-# This workflow performs sync to Testnet from a ParityDB non-pruned snapshot using the latest
+# This workflow performs sync to Mainnet from a pruned ParityDB snapshot using the latest
 # main version.
+#
+# For now, this test not quite correctly tests sync Mainnet from latest aleph-node binary,
+# for which we don't guarantee it will always happen to work.
 
-name: Sync from snapshot test, Testnet, ParityDB non-pruned
+name: Sync from snapshot, Mainnet, ParityDB pruned
 on:
   # At 15:00 on Sunday
   # Time corresponds with a snapshot creation time
@@ -38,7 +41,7 @@ jobs:
     needs: [build-production-aleph-node]
     name: Download snapshot and run
     runs-on: [self-hosted, Linux, X64, euc1-med-xldisk]
-    timeout-minutes: 360
+    timeout-minutes: 120
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -48,9 +51,9 @@ jobs:
         with:
           # yamllint disable-line rule:line-length
           aleph-node-artifact-name: ${{ needs.build-production-aleph-node.outputs.artifact-name-binary }}
-          args: --testnet --parity-db
-          aws-access-key-id: ${{ secrets.AWS_TESTNET_S3_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_TESTNET_S3_SECRET_ACCESS_KEY }}
+          args: --mainnet --parity-db --pruned
+          aws-access-key-id: ${{ secrets.AWS_MAINNET_S3_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_MAINNET_S3_SECRET_ACCESS_KEY }}
           snapshot-day: ${{ inputs.snapshot-day }}
 
   slack-notification:
