@@ -571,6 +571,7 @@ where
                         );
                     }
                     last_imported = Some(b.header().id());
+                    self.forest.start_import(&b.header().id());
                     self.block_importer.import_block(b, false);
                 }
             }

@@ -573,14 +573,16 @@ where
 
     fn handle_task(&mut self, task: RequestTask) {
         trace!(target: LOG_TARGET, "Handling task {}.", task);
-        if let TaskAction::Request(pre_request, (task, delay)) =
-            task.process(self.handler.interest_provider())
-        {
-            if !self.major_sync_last_status {
-                // don't actually send requests if we are in major sync anyway, but keep them
-                self.send_request(pre_request);
+        match task.process(self.handler.interest_provider()) {
+            TaskAction::Request(pre_request, (task, delay)) => {
+                if !self.major_sync_last_status {
+                    // don't actually send requests if we are in major sync anyway, but keep them
+                    self.send_request(pre_request);
+                }
+                self.tasks.schedule_in(task, delay);
             }
-            self.tasks.schedule_in(task, delay);
+            TaskAction::Delay((task, delay)) => self.tasks.schedule_in(task, delay),
+            TaskAction::Ignore => (),
         }
         self.metrics.report_event(Event::HandleTask);
     }

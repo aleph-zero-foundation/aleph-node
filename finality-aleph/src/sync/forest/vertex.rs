@@ -1,4 +1,8 @@
-use std::{collections::HashSet, num::NonZeroUsize};
+use std::{
+    collections::HashSet,
+    num::NonZeroUsize,
+    time::{Duration, Instant},
+};
 
 use lru::LruCache;
 
@@ -9,6 +13,27 @@ use crate::{
 };
 
 const MAX_KNOW_MOST: usize = 200;
+const EXPECTED_MAX_IMPORT_TIME: Duration = Duration::from_secs(5);
+
+#[derive(Clone, Debug, Copy, PartialEq, Eq)]
+struct Importing {
+    since: Instant,
+}
+
+impl Importing {
+    /// A new importing state that started just now.
+    pub fn new() -> Self {
+        Importing {
+            since: Instant::now(),
+        }
+    }
+
+    /// We consider the block optimistically imported, unless it's taking suspiciously long
+    /// to actually finalize the import.
+    pub fn imported(&self) -> bool {
+        Instant::now().duration_since(self.since) <= EXPECTED_MAX_IMPORT_TIME
+    }
+}
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq)]
 enum Importance {
@@ -17,10 +42,132 @@ enum Importance {
     ExplicitlyRequired,
 }
 
+impl Importance {
+    /// We want to import all required blocks.
+    pub fn importable(&self) -> bool {
+        use Importance::*;
+        matches!(self, Required | ExplicitlyRequired)
+    }
+
+    /// We want to request only explicitly required blocks.
+    pub fn requestable(&self) -> bool {
+        use Importance::*;
+        matches!(self, ExplicitlyRequired)
+    }
+
+    /// Set the importance to be explicitly required, returns whether anything changed.
+    pub fn set_explicitly_required(&mut self) -> bool {
+        use Importance::*;
+        match self {
+            ExplicitlyRequired => false,
+            _ => {
+                *self = ExplicitlyRequired;
+                true
+            }
+        }
+    }
+
+    /// Set the importance to be required, returns whether anything changed.
+    pub fn set_required(&mut self) -> bool {
+        use Importance::*;
+        match self {
+            Auxiliary => {
+                *self = Required;
+                true
+            }
+            _ => false,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Copy, PartialEq, Eq)]
 enum HeaderImportance {
     Imported,
+    Importing(Importance, Importing),
     Unimported(Importance),
+}
+
+impl HeaderImportance {
+    /// Whether the related block should be imported.
+    pub fn importable(&self) -> bool {
+        use HeaderImportance::*;
+        match self {
+            Imported => false,
+            Importing(importance, importing) => importance.importable() && !importing.imported(),
+            Unimported(importance) => importance.importable(),
+        }
+    }
+
+    /// Whether the related block should be actively requested.
+    pub fn requestable(&self) -> bool {
+        use HeaderImportance::*;
+        match self {
+            Imported => false,
+            Importing(importance, importing) => importance.requestable() && !importing.imported(),
+            Unimported(importance) => importance.requestable(),
+        }
+    }
+
+    /// Whether we consider the related block to be imported.
+    pub fn imported(&self) -> bool {
+        use HeaderImportance::*;
+        match self {
+            Imported => true,
+            Importing(_, importing) => importing.imported(),
+            Unimported(_) => false,
+        }
+    }
+
+    /// Mark the start of an import.
+    pub fn start_import(&mut self) {
+        match self {
+            HeaderImportance::Imported => (),
+            HeaderImportance::Unimported(importance)
+            | HeaderImportance::Importing(importance, _) => {
+                *self = HeaderImportance::Importing(*importance, Importing::new())
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug, Copy, PartialEq, Eq)]
+enum JustificationImportance {
+    Imported,
+    Importing(Importing),
+    Unimported,
+}
+
+impl JustificationImportance {
+    /// Whether we consider the related block to be imported.
+    pub fn imported(&self) -> bool {
+        use JustificationImportance::*;
+        match self {
+            Imported => true,
+            Importing(importing) => importing.imported(),
+            Unimported => false,
+        }
+    }
+
+    /// Mark the start of an import.
+    pub fn start_import(&mut self) {
+        match self {
+            JustificationImportance::Imported => (),
+            JustificationImportance::Unimported | JustificationImportance::Importing(_) => {
+                *self = JustificationImportance::Importing(Importing::new())
+            }
+        }
+    }
+}
+
+impl From<HeaderImportance> for JustificationImportance {
+    fn from(importance: HeaderImportance) -> Self {
+        use JustificationImportance::*;
+        match importance {
+            HeaderImportance::Imported => Imported,
+            HeaderImportance::Importing(_, importing) => Importing(importing),
+            HeaderImportance::Unimported(_) => Unimported,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -34,7 +181,7 @@ enum InnerVertex<J: Justification> {
     },
     /// Vertex with added Header and Justification.
     Justification {
-        imported: bool,
+        importance: JustificationImportance,
         justification: J,
         parent: BlockId,
     },
@@ -64,18 +211,14 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
     pub fn importable(&self) -> bool {
         use Importance::*;
         use InnerVertex::*;
-        matches!(
-            self.inner,
+        match self.inner {
             Empty {
-                required: Required | ExplicitlyRequired
-            } | Header {
-                importance: HeaderImportance::Unimported(Required | ExplicitlyRequired),
-                ..
-            } | Justification {
-                imported: false,
-                ..
-            }
-        )
+                required: Required | ExplicitlyRequired,
+            } => true,
+            Header { importance, .. } => importance.importable(),
+            Justification { importance, .. } => !importance.imported(),
+            _ => false,
+        }
     }
 
     /// Whether the referenced block should be requested.
@@ -83,34 +226,50 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
     pub fn requestable(&self) -> bool {
         use Importance::*;
         use InnerVertex::*;
-        matches!(
-            self.inner,
+        match self.inner {
             Empty {
-                required: ExplicitlyRequired
-            } | Header {
-                importance: HeaderImportance::Unimported(ExplicitlyRequired),
-                ..
-            }
-        )
+                required: ExplicitlyRequired,
+            } => true,
+            Header { importance, .. } => importance.requestable(),
+            _ => false,
+        }
     }
 
     /// Whether the vertex is imported.
     pub fn imported(&self) -> bool {
         use InnerVertex::*;
-        matches!(
-            self.inner,
+        match self.inner {
+            Justification { importance, .. } => importance.imported(),
+            Header { importance, .. } => importance.imported(),
+            _ => false,
+        }
+    }
+
+    /// Whether the vertex is currently importing.
+    pub fn importing(&self) -> bool {
+        use InnerVertex::*;
+        match self.inner {
             Header {
-                importance: HeaderImportance::Imported,
+                importance: HeaderImportance::Importing(_, importing),
                 ..
-            } | Justification { imported: true, .. }
-        )
+            }
+            | Justification {
+                importance: JustificationImportance::Importing(importing),
+                ..
+            } => importing.imported(),
+            _ => false,
+        }
     }
 
     /// Whether the vertex represents imported justified block.
+    /// Note that we want fully imported blocks, not just optimistically considered to be imported.
     pub fn justified_block(&self) -> bool {
         matches!(
             self.inner,
-            InnerVertex::Justification { imported: true, .. }
+            InnerVertex::Justification {
+                importance: JustificationImportance::Imported,
+                ..
+            }
         )
     }
 
@@ -119,7 +278,7 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
     pub fn ready(self) -> Result<J, Self> {
         match self.inner {
             InnerVertex::Justification {
-                imported: true,
+                importance: JustificationImportance::Imported,
                 justification,
                 ..
             } => Ok(justification),
@@ -160,27 +319,13 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
     /// was not explicitly required or imported before.
     pub fn set_explicitly_required(&mut self) -> bool {
         use HeaderImportance::*;
-        use Importance::*;
         use InnerVertex::*;
-        match &self.inner {
-            Empty {
-                required: Required | Auxiliary,
-            } => {
-                self.inner = Empty {
-                    required: ExplicitlyRequired,
-                };
-                true
-            }
-            Header {
-                importance: Unimported(Required | Auxiliary),
-                header,
-            } => {
-                self.inner = Header {
-                    importance: Unimported(ExplicitlyRequired),
-                    header: header.clone(),
-                };
-                true
-            }
+        match &mut self.inner {
+            Empty { required }
+            | Header {
+                importance: Unimported(required) | Importing(required, _),
+                ..
+            } => required.set_explicitly_required(),
             _ => false,
         }
     }
@@ -189,26 +334,24 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
     /// required or imported before.
     pub fn set_required(&mut self) -> bool {
         use HeaderImportance::*;
-        use Importance::*;
         use InnerVertex::*;
-        match &self.inner {
-            Empty {
-                required: Auxiliary,
-            } => {
-                self.inner = Empty { required: Required };
-                true
-            }
-            Header {
-                importance: Unimported(Auxiliary),
-                header,
-            } => {
-                self.inner = Header {
-                    importance: Unimported(Required),
-                    header: header.clone(),
-                };
-                true
-            }
+        match &mut self.inner {
+            Empty { required }
+            | Header {
+                importance: Unimported(required) | Importing(required, _),
+                ..
+            } => required.set_required(),
             _ => false,
+        }
+    }
+
+    /// Mark the start of the related block being imported, if possible.
+    pub fn start_import(&mut self) {
+        use InnerVertex::*;
+        match &mut self.inner {
+            Header { importance, .. } => importance.start_import(),
+            Justification { importance, .. } => importance.start_import(),
+            _ => (),
         }
     }
 
@@ -245,7 +388,7 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
         match &self.inner {
             Empty { .. }
             | Header {
-                importance: HeaderImportance::Unimported(_),
+                importance: HeaderImportance::Unimported(_) | HeaderImportance::Importing(_, _),
                 ..
             } => {
                 self.inner = Header {
@@ -255,12 +398,13 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
                 true
             }
             Justification {
-                imported: false,
+                importance:
+                    JustificationImportance::Unimported | JustificationImportance::Importing(_),
                 parent,
                 justification,
             } => {
                 self.inner = Justification {
-                    imported: true,
+                    importance: JustificationImportance::Imported,
                     parent: parent.clone(),
                     justification: justification.clone(),
                 };
@@ -274,13 +418,9 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
     pub fn insert_justification(&mut self, parent: BlockId, justification: J, holder: Option<I>) {
         use InnerVertex::*;
         match self.inner {
-            Empty { .. }
-            | Header {
-                importance: HeaderImportance::Unimported(_),
-                ..
-            } => {
+            Empty { .. } => {
                 self.inner = Justification {
-                    imported: false,
+                    importance: JustificationImportance::Unimported,
                     parent,
                     justification,
                 };
@@ -289,12 +429,9 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
                     self.know_most.put(peer, ());
                 }
             }
-            Header {
-                importance: HeaderImportance::Imported,
-                ..
-            } => {
+            Header { importance, .. } => {
                 self.inner = Justification {
-                    imported: true,
+                    importance: importance.into(),
                     parent,
                     justification,
                 };
@@ -314,6 +451,8 @@ impl<I: PeerId, J: Justification> Vertex<I, J> {
 
 #[cfg(test)]
 mod tests {
+    use tokio::time::{sleep, Duration};
+
     use super::Vertex;
     use crate::{
         block::{
@@ -552,6 +691,42 @@ mod tests {
         assert!(vertex.insert_body(header));
         assert!(!vertex.importable());
         assert!(!vertex.requestable());
+    }
+
+    #[test]
+    fn importing_considered_imported() {
+        let mut vertex = MockVertex::new();
+        assert!(vertex.set_explicitly_required());
+        let parent = BlockId::new_random(43);
+        let header = parent.random_child();
+        vertex.insert_header(header, None);
+        assert!(vertex.importable());
+        assert!(vertex.requestable());
+        assert!(!vertex.importing());
+        vertex.start_import();
+        assert!(!vertex.importable());
+        assert!(!vertex.requestable());
+        assert!(vertex.importing());
+    }
+
+    #[tokio::test]
+    async fn importing_fails_after_delay() {
+        let mut vertex = MockVertex::new();
+        assert!(vertex.set_explicitly_required());
+        let parent = BlockId::new_random(43);
+        let header = parent.random_child();
+        vertex.insert_header(header, None);
+        assert!(vertex.importable());
+        assert!(vertex.requestable());
+        assert!(!vertex.importing());
+        vertex.start_import();
+        assert!(!vertex.importable());
+        assert!(!vertex.requestable());
+        assert!(vertex.importing());
+        sleep(Duration::from_secs(6)).await;
+        assert!(vertex.importable());
+        assert!(vertex.requestable());
+        assert!(!vertex.importing());
     }
 
     #[test]
