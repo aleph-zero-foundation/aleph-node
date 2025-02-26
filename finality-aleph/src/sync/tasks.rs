@@ -38,9 +38,10 @@ impl Display for RequestTask {
 
 type DelayedTask = (RequestTask, Duration);
 
-/// What do to with the task, either ignore or perform a request and add a delayed task.
+/// What do to with the task, either ignore or add a delayed task, usually also performing a request.
 pub enum Action<UH: UnverifiedHeader, I: PeerId> {
     Ignore,
+    Delay(DelayedTask),
     Request(PreRequest<UH, I>, DelayedTask),
 }
 
@@ -85,6 +86,9 @@ impl RequestTask {
                         delay_for_attempt(tries),
                     ),
                 )
+            }
+            Interest::MaybeLater => {
+                Action::Delay((RequestTask { id, tries }, delay_for_attempt(tries)))
             }
             Interest::Uninterested => Action::Ignore,
         }

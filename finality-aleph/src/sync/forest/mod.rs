@@ -45,6 +45,8 @@ enum VertexHandle<'a, I: PeerId, J: Justification> {
 pub enum Interest<H: Header, I: PeerId> {
     /// We are not interested in requesting this branch.
     Uninterested,
+    /// We might be interested in requesting this later.
+    MaybeLater,
     /// We would like to have this branch.
     Required {
         header: H,
@@ -555,43 +557,44 @@ where
 
     /// Prepare additional info required to create a request for the branch.
     /// Returns `None` if we're not interested in the branch.
-    /// Can be forced to fake interest, but only for blocks we have headers for.
-    fn prepare_request_info(
-        &self,
-        id: &BlockId,
-        force: bool,
-    ) -> Option<(J::Header, HashSet<I>, BranchKnowledge)> {
+    /// Can be forced to fake interest, but only for blocks we have headers for, that are not
+    /// importing.
+    fn prepare_request_info(&self, id: &BlockId, force: bool) -> Interest<J::Header, I> {
+        use Interest::*;
         use VertexHandle::Candidate;
         match self.get(id) {
             Candidate(vertex) => {
+                // if we are currently importing this vertex don't send a request, but don't drop
+                // the task in case there is an error
+                if vertex.vertex.importing() {
+                    return MaybeLater;
+                }
                 // request only requestable blocks, unless forced
                 if !(force || vertex.vertex.requestable()) {
-                    return None;
+                    return Uninterested;
                 }
                 let header = match vertex.vertex.header() {
                     Some(header) => header,
-                    None => return None,
+                    None => return Uninterested,
                 };
                 let know_most = vertex.vertex.know_most();
                 // should always return Some, as the branch of a Candidate always exists
                 self.branch_knowledge(id.clone())
-                    .map(|branch_knowledge| (header, know_most, branch_knowledge))
+                    .map(|branch_knowledge| Required {
+                        header,
+                        know_most,
+                        branch_knowledge,
+                    })
+                    .unwrap_or(Uninterested)
             }
             // request only Candidates
-            _ => None,
+            _ => Uninterested,
         }
     }
 
     /// How much interest we have for requesting the block.
     pub fn request_interest(&self, id: &BlockId) -> Interest<J::Header, I> {
-        match self.prepare_request_info(id, false) {
-            Some((header, know_most, branch_knowledge)) => Interest::Required {
-                header,
-                know_most,
-                branch_knowledge,
-            },
-            None => Interest::Uninterested,
-        }
+        self.prepare_request_info(id, false)
     }
 
     /// Whether we would like to eventually import this block.
@@ -602,6 +605,13 @@ where
                 vertex.vertex.importable() || vertex.vertex.parent() == Some(self.favourite.id())
             }
             _ => false,
+        }
+    }
+
+    pub fn start_import(&mut self, id: &BlockId) {
+        use VertexHandleMut::Candidate;
+        if let Candidate(mut vertex) = self.get_mut(id) {
+            vertex.get_mut().vertex.start_import();
         }
     }
 
@@ -628,8 +638,11 @@ where
         use VertexHandle::*;
         if self.behind_finalization() > 0 {
             // This should always happen, but if it doesn't falling back to other forms of extension requests is acceptable.
-            if let Some((_, know_most, branch_knowledge)) =
-                self.prepare_request_info(&self.highest_justified.id(), true)
+            if let Interest::Required {
+                know_most,
+                branch_knowledge,
+                ..
+            } = self.prepare_request_info(&self.highest_justified.id(), true)
             {
                 return HighestJustified {
                     header: self.highest_justified.clone(),
