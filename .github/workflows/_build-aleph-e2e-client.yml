@@ -38,9 +38,9 @@ jobs:
         uses: Cardinal-Cryptography/github-actions/get-ref-properties@v7
 
       - name: Install Rust toolchain
-        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v7
+        uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v7.3.0
         with:
-          targets: wasm32-unknown-unknown
+          directory: './e2e-tests/'
 
       - name: Build aleph-e2e-client
         shell: bash
