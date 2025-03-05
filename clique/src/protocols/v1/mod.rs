@@ -16,7 +16,7 @@ use crate::{
         handshake::{v0_handshake_incoming, v0_handshake_outgoing},
         ProtocolError, ResultForService,
     },
-    Data, PublicKey, SecretKey, Splittable, LOG_TARGET,
+    Data, PublicKey, SecretKey, Splittable, LOG_TARGET, SEND_DATA_BUFFER,
 };
 
 const HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(5);
@@ -43,7 +43,7 @@ async fn check_authorization<SK: SecretKey>(
 
 async fn sending<PK: PublicKey, D: Data, S: AsyncWrite + Unpin + Send>(
     mut sender: S,
-    mut data_from_user: mpsc::UnboundedReceiver<D>,
+    mut data_from_user: mpsc::Receiver<D>,
 ) -> Result<(), ProtocolError<PK>> {
     use Message::*;
     loop {
@@ -94,7 +94,7 @@ async fn manage_connection<
 >(
     sender: S,
     receiver: R,
-    data_from_user: mpsc::UnboundedReceiver<D>,
+    data_from_user: mpsc::Receiver<D>,
     data_for_user: mpsc::UnboundedSender<D>,
 ) -> Result<(), ProtocolError<PK>> {
     let sending = sending(sender, data_from_user);
@@ -122,7 +122,7 @@ pub async fn outgoing<SK: SecretKey, D: Data, S: Splittable>(
         target: LOG_TARGET,
         "Outgoing handshake with {} finished successfully.", public_key
     );
-    let (data_for_network, data_from_user) = mpsc::unbounded();
+    let (data_for_network, data_from_user) = mpsc::channel(SEND_DATA_BUFFER);
     result_for_parent
         .unbounded_send((public_key.clone(), Some(data_for_network)))
         .map_err(|_| ProtocolError::NoParentConnection)?;
@@ -160,7 +160,7 @@ pub async fn incoming<SK: SecretKey, D: Data, S: Splittable>(
         return Err(ProtocolError::NotAuthorized);
     }
 
-    let (data_for_network, data_from_user) = mpsc::unbounded();
+    let (data_for_network, data_from_user) = mpsc::channel(SEND_DATA_BUFFER);
     result_for_parent
         .unbounded_send((public_key.clone(), Some(data_for_network)))
         .map_err(|_| ProtocolError::NoParentConnection)?;
@@ -288,12 +288,12 @@ mod tests {
             _ = &mut outgoing_handle => panic!("outgoing process unexpectedly finished"),
             result = result_from_outgoing.next() => {
                 let (_, maybe_data_for_outgoing) = result.expect("the channel shouldn't be dropped");
-                let data_for_outgoing = maybe_data_for_outgoing.expect("successfully connected");
+                let mut data_for_outgoing = maybe_data_for_outgoing.expect("successfully connected");
                 data_for_outgoing
-                    .unbounded_send(vec![4, 3, 43])
+                    .try_send(vec![4, 3, 43])
                     .expect("should send");
                 data_for_outgoing
-                    .unbounded_send(vec![2, 1, 3, 7])
+                    .try_send(vec![2, 1, 3, 7])
                     .expect("should send");
                 data_for_outgoing
             },
@@ -303,12 +303,12 @@ mod tests {
             _ = &mut outgoing_handle => panic!("outgoing process unexpectedly finished"),
             result = result_from_incoming.next() => {
                 let (_, maybe_data_for_incoming) = result.expect("the channel shouldn't be dropped");
-                let data_for_incoming = maybe_data_for_incoming.expect("successfully connected");
+                let mut data_for_incoming = maybe_data_for_incoming.expect("successfully connected");
                 data_for_incoming
-                    .unbounded_send(vec![5, 4, 44])
+                    .try_send(vec![5, 4, 44])
                     .expect("should send");
                 data_for_incoming
-                    .unbounded_send(vec![3, 2, 4, 8])
+                    .try_send(vec![3, 2, 4, 8])
                     .expect("should send");
                 data_for_incoming
             },
@@ -426,9 +426,9 @@ mod tests {
             _ = &mut outgoing_handle => panic!("outgoing process unexpectedly finished"),
             result = result_from_outgoing.next() => {
                 let (_, maybe_data_for_outgoing) = result.expect("the channel shouldn't be dropped");
-                let data_for_outgoing = maybe_data_for_outgoing.expect("successfully connected");
+                let mut data_for_outgoing = maybe_data_for_outgoing.expect("successfully connected");
                 data_for_outgoing
-                    .unbounded_send(vec![2, 1, 3, 7])
+                    .try_send(vec![2, 1, 3, 7])
                     .expect("should send");
                 data_for_outgoing
             },
