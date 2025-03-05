@@ -26,6 +26,8 @@ pub use crypto::{PublicKey, SecretKey};
 pub use rate_limiting::{RateLimitingDialer, RateLimitingListener};
 pub use service::{Service, SpawnHandleExt, SpawnHandleT};
 
+const SEND_DATA_BUFFER: usize = 10;
+
 const LOG_TARGET: &str = "network-clique";
 /// A basic alias for properties we expect basic data to satisfy.
 pub trait Data: Clone + Codec + Send + Sync + 'static {}

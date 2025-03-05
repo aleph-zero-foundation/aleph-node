@@ -15,6 +15,8 @@ use direction::DirectedPeers;
 pub enum SendError {
     /// Outgoing network connection closed
     ConnectionClosed,
+    /// The underlying network is not keeping up with sending.
+    FullChannel,
     /// Peer not added to the manager
     PeerNotFound,
 }
@@ -24,6 +26,7 @@ impl Display for SendError {
         use SendError::*;
         match self {
             ConnectionClosed => write!(f, "worker dead"),
+            FullChannel => write!(f, "too many messages"),
             PeerNotFound => write!(f, "peer not found"),
         }
     }
@@ -158,7 +161,7 @@ pub struct Manager<PK: PublicKey + PeerId, A: Data, D: Data> {
     // Which peers we want to be connected with, and which way.
     wanted: DirectedPeers<PK, A>,
     // This peers we are connected with. We ensure that this is always a subset of what we want.
-    have: HashMap<PK, mpsc::UnboundedSender<D>>,
+    have: HashMap<PK, mpsc::Sender<D>>,
 }
 
 impl<PK: PublicKey + PeerId, A: Data, D: Data> Manager<PK, A, D> {
@@ -192,11 +195,7 @@ impl<PK: PublicKey + PeerId, A: Data, D: Data> Manager<PK, A, D> {
     }
 
     /// Add an established connection with a known peer, but only if the peer is among the peers we want to be connected to.
-    pub fn add_connection(
-        &mut self,
-        peer_id: PK,
-        data_for_network: mpsc::UnboundedSender<D>,
-    ) -> AddResult {
+    pub fn add_connection(&mut self, peer_id: PK, data_for_network: mpsc::Sender<D>) -> AddResult {
         use AddResult::*;
         if !self.wanted.interested(&peer_id) {
             return Uninterested;
@@ -219,10 +218,13 @@ impl<PK: PublicKey + PeerId, A: Data, D: Data> Manager<PK, A, D> {
     /// or if the connection is dead.
     pub fn send_to(&mut self, peer_id: &PK, data: D) -> Result<(), SendError> {
         self.have
-            .get(peer_id)
+            .get_mut(peer_id)
             .ok_or(SendError::PeerNotFound)?
-            .unbounded_send(data)
-            .map_err(|_| SendError::ConnectionClosed)
+            .try_send(data)
+            .map_err(|e| match e.is_full() {
+                true => SendError::FullChannel,
+                false => SendError::ConnectionClosed,
+            })
     }
 
     /// A status of the manager, to be displayed somewhere.
@@ -243,6 +245,7 @@ mod tests {
     use crate::{
         metrics::Metrics,
         mock::{key, MockPublicKey},
+        SEND_DATA_BUFFER,
     };
 
     type Data = String;
@@ -286,7 +289,7 @@ mod tests {
             Manager::<MockPublicKey, Address, Data>::new(listening_id.clone(), Metrics::noop());
         let data = String::from("DATA");
         let address = String::from("43.43.43.43:43000");
-        let (tx, _rx) = mpsc::unbounded();
+        let (tx, _rx) = mpsc::channel(SEND_DATA_BUFFER);
         // try add unknown peer
         assert_eq!(
             connecting_manager.add_connection(listening_id.clone(), tx),
@@ -308,7 +311,7 @@ mod tests {
             assert!(connecting_manager.add_peer(listening_id.clone(), address.clone()));
         }
         // add outgoing to connecting
-        let (tx, mut rx) = mpsc::unbounded();
+        let (tx, mut rx) = mpsc::channel(SEND_DATA_BUFFER);
         assert_eq!(
             connecting_manager.add_connection(listening_id.clone(), tx),
             Added
@@ -319,7 +322,7 @@ mod tests {
             .is_ok());
         assert_eq!(data, rx.next().await.expect("should receive"));
         // add incoming to listening
-        let (tx, mut rx) = mpsc::unbounded();
+        let (tx, mut rx) = mpsc::channel(SEND_DATA_BUFFER);
         assert_eq!(
             listening_manager.add_connection(connecting_id.clone(), tx),
             Added

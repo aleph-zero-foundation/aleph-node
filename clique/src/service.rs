@@ -5,10 +5,7 @@ use std::{
 };
 
 use futures::{
-    channel::{
-        mpsc::{self, UnboundedSender},
-        oneshot,
-    },
+    channel::{mpsc, oneshot},
     Future, StreamExt, TryFutureExt,
 };
 use log::{info, trace, warn};
@@ -250,7 +247,7 @@ where
     fn add_connection(
         &mut self,
         public_key: SK::PublicKey,
-        data_for_network: mpsc::UnboundedSender<D>,
+        data_for_network: mpsc::Sender<D>,
     ) -> AddResult {
         self.manager.add_connection(public_key, data_for_network)
     }
@@ -258,10 +255,7 @@ where
     fn handle_command(
         &mut self,
         command: ServiceCommand<<SK as SecretKey>::PublicKey, D, A>,
-        result_for_parent: &UnboundedSender<(
-            <SK as SecretKey>::PublicKey,
-            Option<UnboundedSender<D>>,
-        )>,
+        result_for_parent: &mpsc::UnboundedSender<ResultForService<SK::PublicKey, D>>,
     ) {
         use ServiceCommand::*;
         match command {
@@ -306,11 +300,8 @@ where
     fn handle_data_for_network(
         &mut self,
         public_key: <SK as SecretKey>::PublicKey,
-        maybe_data_for_network: Option<UnboundedSender<D>>,
-        result_for_parent: &UnboundedSender<(
-            <SK as SecretKey>::PublicKey,
-            Option<UnboundedSender<D>>,
-        )>,
+        maybe_data_for_network: Option<mpsc::Sender<D>>,
+        result_for_parent: &mpsc::UnboundedSender<ResultForService<SK::PublicKey, D>>,
     ) {
         use AddResult::*;
         match maybe_data_for_network {

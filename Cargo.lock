@@ -258,7 +258,7 @@ dependencies = [
 
 [[package]]
 name = "aleph-node"
-version = "15.0.0"
+version = "15.1.0"
 dependencies = [
  "aleph-runtime",
  "fake-runtime-api",
