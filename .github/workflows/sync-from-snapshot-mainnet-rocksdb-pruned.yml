@@ -29,12 +29,30 @@ jobs:
     uses: ./.github/workflows/_check-vars-and-secrets.yml
     secrets: inherit
 
-  build-production-aleph-node:
+  translate-git-ref:
+    name: Get full aleph-node git ref from possibly net names
     needs: [check-vars-and-secrets]
+    runs-on: ubuntu-20.04
+    outputs:
+      ref: ${{ steps.get-ref.outputs.ref }}
+    steps:
+      - name: Get aleph-node git ref
+        id: get-ref
+        uses: Cardinal-Cryptography/github-actions/get-aleph-node-fqdn-image@v7
+        with:
+          ref: 'testnet'
+          test-binary: 'false'
+          ecr-dev-node-repo: ${{ vars.ECR_DEV_ALEPH_NODE_REPO }}
+          ecr-prod-node-repo: ${{ vars.ECR_ALEPH_NODE_REPO }}
+          ecr-chain-bootstrapper-repo: ${{ vars.ECR_CHAIN_BOOTSTRAPPER_REPO }}
+          only-aleph-nope-production-repo: 'false'
+
+  build-production-aleph-node:
+    needs: [translate-git-ref]
     name: Build production aleph-node
     uses: ./.github/workflows/_build-aleph-node.yml
     with:
-      ref: ${{ github.ref }}
+      ref: ${{ needs.translate-git-ref.outputs.ref }}
       production: true
 
   test-sync:
