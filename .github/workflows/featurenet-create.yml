@@ -44,11 +44,11 @@ on:
         required: false
         default: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
       finality-version:
-        description: 'Finality version to start FE with. If specified, it must be a cardinal number.
-        If not specified, it will be generated from the runtime.'
+        description: >
+          Finality version to start FE with. If specified, it must be a cardinal number,
+          or 'legacy' or 'current'. If not specified, `legacy` is the default.
         type: string
         required: false
-        deprecationMessage: "This input is not supported in aleph-node 15 version"
   workflow_call:
     inputs:
       featurenet-name:
@@ -84,7 +84,9 @@ on:
         required: false
         default: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
       finality-version:
-        description: 'Finality version to start FE with. Must be a cardinal number'
+        description: >
+          Finality version to start FE with. Can be a cardinal number,
+          or 'legacy' or 'current'.
         type: string
         required: false
 jobs:
