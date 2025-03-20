@@ -33,6 +33,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: '0'
+          ref: ${{ inputs.tag }}
 
       - name: Get Testnet node commit SHA
         id: get-testnet-node-commit-sha
