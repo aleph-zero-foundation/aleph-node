@@ -570,8 +570,15 @@ where
                             }),
                         );
                     }
-                    last_imported = Some(b.header().id());
-                    self.forest.start_import(&b.header().id());
+                    let block_id = b.header().id();
+                    if !self.forest.start_import(&block_id) {
+                        return (
+                            new_highest,
+                            equivocation_proofs,
+                            Some(Error::BlockNotImportable(block_id)),
+                        );
+                    }
+                    last_imported = Some(block_id);
                     self.block_importer.import_block(b, false);
                 }
             }
@@ -2564,6 +2571,20 @@ mod tests {
             notifier.next().await.expect("should receive notification"),
             BlockImported(block.header().clone())
         );
+    }
+
+    #[tokio::test]
+    async fn rejects_parentless_block() {
+        let (mut handler, _backend, _notifier, genesis) = setup();
+
+        // Create 2 new blocks and make the handler aware of them.
+        let mut branch = grow_light_branch(&mut handler, &genesis, 2, 0);
+
+        // Give only the latter to handler.
+        let parentless_block = MockBlock::new(branch.pop().expect("just created"), true);
+        let (_, _, e) =
+            handler.handle_request_response(vec![ResponseItem::Block(parentless_block)], 1);
+        assert!(matches!(e, Some(Error::BlockNotImportable(_))));
     }
 
     #[tokio::test]

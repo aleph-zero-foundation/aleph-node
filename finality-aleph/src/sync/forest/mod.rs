@@ -608,11 +608,29 @@ where
         }
     }
 
-    pub fn start_import(&mut self, id: &BlockId) {
+    /// Start an import of a block. Returns whether this is possible, i.e. the parent block is
+    /// imported.
+    pub fn start_import(&mut self, id: &BlockId) -> bool {
+        let parent_id = match self.get(id) {
+            VertexHandle::Candidate(vertex) => vertex.vertex.parent(),
+            _ => return false,
+        };
+        let parent_id = match parent_id {
+            Some(parent_id) => parent_id,
+            None => return false,
+        };
+        // At this point this is equivalent to being imported, as we never get here for blocks that
+        // are below minimal.
+        if !self.skippable(&parent_id) {
+            return false;
+        }
         use VertexHandleMut::Candidate;
         if let Candidate(mut vertex) = self.get_mut(id) {
             vertex.get_mut().vertex.start_import();
+            return true;
         }
+        // This should never happen in practice.
+        false
     }
 
     fn know_most(&self, id: &BlockId) -> HashSet<I> {
@@ -1008,6 +1026,16 @@ mod tests {
     }
 
     #[test]
+    fn accepts_first_import() {
+        let (initial_header, mut forest) = setup();
+        let child = initial_header.random_child();
+        assert!(forest
+            .update_header(&child, None, true)
+            .expect("header was correct"));
+        assert!(forest.start_import(&child.id()));
+    }
+
+    #[test]
     fn accepts_first_body() {
         let (initial_header, mut forest) = setup();
         let child = initial_header.random_child();
@@ -1017,6 +1045,17 @@ mod tests {
         assert!(!forest.importable(&child.id()));
         assert_eq!(forest.favourite_block(), child);
         assert_eq!(forest.extension_request(), Noop);
+    }
+
+    #[test]
+    fn rejects_import_when_parent_unimported() {
+        let (initial_header, mut forest) = setup();
+        let child = initial_header.random_child();
+        let grandchild = child.random_child();
+        assert!(forest
+            .update_header(&child, None, false)
+            .expect("header was correct"));
+        assert!(!forest.start_import(&grandchild.id()));
     }
 
     #[test]
