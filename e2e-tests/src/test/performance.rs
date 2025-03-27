@@ -12,6 +12,7 @@ use aleph_client::{
     waiting::{AlephWaiting, BlockStatus, WaitingExt},
     AccountId, RootConnection, SignedConnection, TxStatus,
 };
+use aleph_client::pallets::committee_management::CommitteeManagementSudoApi;
 use log::info;
 use primitives::{
     SessionCount, DEFAULT_FINALITY_BAN_MINIMAL_EXPECTED_PERFORMANCE,
@@ -25,11 +26,17 @@ use crate::{
     validators::get_test_validators,
 };
 
+// all below consts are related to each other, and they correspond to local chain setup:
+// there are exactly 4 validator nodes run locally, //1 and //2 are reserved and //3 and //4 are non-reserved
+// we're going to disable in one of the tests exactly validator with seed //3, which has RPC address port 9948
 const RESERVED_SEATS: u32 = 2;
 const NON_RESERVED_SEATS: u32 = 2;
-const DEAD_INDEX: usize = 1;
+// since we keep non-reserved account ids in a separate array, node //3 is the first account on that list
+const NON_RESERVED_DEAD_INDEX: usize = 0;
 const NODE_TO_DISABLE_ADDRESS: &str = "ws://127.0.0.1:9948";
 const VALIDATOR_TO_DISABLE_OVERALL_INDEX: u32 = 3;
+
+// version which is required for scores to be enabled
 const ABFT_PERFORMANCE_VERSION: u32 = 5;
 
 #[tokio::test]
@@ -41,15 +48,7 @@ async fn all_validators_have_ideal_performance() -> anyhow::Result<()> {
         .iter()
         .chain(non_reserved_validators.iter());
 
-    let current_finality_version = root_connection.finality_version(None).await;
-    if current_finality_version < ABFT_PERFORMANCE_VERSION {
-        change_finality_version(&root_connection).await?
-    }
-    // In this session first performance metrics are sent, we have to wait some time
-    // to make sure that we don't check storage before first score is sent.
-    root_connection
-        .wait_for_n_sessions(1, BlockStatus::Best)
-        .await;
+    set_finality_version(ABFT_PERFORMANCE_VERSION, &root_connection).await?;
 
     check_validators(
         &reserved_validators,
@@ -57,7 +56,7 @@ async fn all_validators_have_ideal_performance() -> anyhow::Result<()> {
         root_connection.get_current_era_validators(None).await,
     );
 
-    check_ban_config(
+    check_finality_ban_config(
         &root_connection,
         DEFAULT_FINALITY_BAN_MINIMAL_EXPECTED_PERFORMANCE,
         DEFAULT_FINALITY_BAN_SESSION_COUNT_THRESHOLD,
@@ -93,35 +92,34 @@ async fn one_validator_is_dead() -> anyhow::Result<()> {
     let (root_connection, reserved_validators, non_reserved_validators, _) =
         setup_test(config).await?;
 
-    let current_finality_version = root_connection.finality_version(None).await;
-    if current_finality_version < ABFT_PERFORMANCE_VERSION {
-        change_finality_version(&root_connection).await?
-    }
-
-    // In this session first performance metrics are sent, we have to wait some time
-    // to make sure that we don't check storage before first score is sent.
-    root_connection
-        .wait_for_n_sessions(1, BlockStatus::Best)
-        .await;
+    set_finality_version(ABFT_PERFORMANCE_VERSION, &root_connection).await?;
 
     check_validators(
         &reserved_validators,
         &non_reserved_validators,
         root_connection.get_current_era_validators(None).await,
     );
-    check_ban_config(
+
+    let production_underperformed_threshold = 9;
+    info!("Increasing production ban config threshold to {} sessions", production_underperformed_threshold);
+    root_connection
+        .set_ban_config(None, Some(production_underperformed_threshold), None, None, TxStatus::InBlock)
+        .await?;
+    let ban_config = root_connection.get_ban_config(None).await;
+    assert_eq!(
+        ban_config.underperformed_session_count_threshold,
+        production_underperformed_threshold
+    );
+    check_finality_ban_config(
         &root_connection,
         DEFAULT_FINALITY_BAN_MINIMAL_EXPECTED_PERFORMANCE,
         DEFAULT_FINALITY_BAN_SESSION_COUNT_THRESHOLD,
     )
     .await;
 
-    let validator_to_disable = &non_reserved_validators[DEAD_INDEX];
-
+    let validator_to_disable = &non_reserved_validators[NON_RESERVED_DEAD_INDEX];
     info!("Validator to disable: {}", validator_to_disable);
-
     check_underperformed_validator_session_count(&root_connection, validator_to_disable, 0).await;
-
     disable_validator( NODE_TO_DISABLE_ADDRESS, VALIDATOR_TO_DISABLE_OVERALL_INDEX).await?;
 
     // Validator has been disabled, let's wait one session in which it's disabled.
@@ -140,6 +138,20 @@ async fn one_validator_is_dead() -> anyhow::Result<()> {
     Ok(())
 }
 
+async fn set_finality_version(finality_version: u32, root_connection: &RootConnection) -> anyhow::Result<()> {
+    let current_finality_version = root_connection.finality_version(None).await;
+    if current_finality_version < ABFT_PERFORMANCE_VERSION {
+        change_finality_version(finality_version, root_connection).await?
+    }
+
+    // In this session first performance metrics are sent, we have to wait some time
+    // to make sure that we don't check storage before first score is sent.
+    root_connection
+        .wait_for_n_sessions(1, BlockStatus::Best)
+        .await;
+    Ok(())
+}
+
 async fn setup_test(
     config: &Config,
 ) -> anyhow::Result<(
@@ -152,7 +164,7 @@ async fn setup_test(
 
     let validator_keys = get_test_validators(config);
     let reserved_validators = account_ids_from_keys(&validator_keys.reserved);
-    let non_reserved_validators = account_ids_from_keys(&validator_keys.non_reserved);
+    let non_reserved_validators = account_ids_from_keys(&validator_keys.non_reserved).into_iter().take(2).collect::<Vec<_>>();
     let seats = CommitteeSeats {
         reserved_seats: RESERVED_SEATS,
         non_reserved_seats: NON_RESERVED_SEATS,
@@ -199,7 +211,7 @@ async fn setup_test(
             )
             .await?;
 
-        root_connection.wait_for_n_eras(2, BlockStatus::Best).await;
+        root_connection.wait_for_n_eras(1, BlockStatus::Best).await;
         info!("Validators are changed.");
     }
 
@@ -229,26 +241,27 @@ fn check_validators(
 }
 
 async fn change_finality_version<C: SessionApi + AlephSudoApi + AlephWaiting>(
+    finality_version: u32,
     connection: &C,
 ) -> anyhow::Result<()> {
     info!("Changing finality version to 5.");
-    let session_for_upgrade = connection.get_session(None).await + 3;
+    let session_for_upgrade = connection.get_session(None).await + 2;
     connection
         .schedule_finality_version_change(
-            ABFT_PERFORMANCE_VERSION,
+            finality_version,
             session_for_upgrade,
             TxStatus::InBlock,
         )
         .await?;
     connection
-        .wait_for_session(session_for_upgrade + 1, BlockStatus::Best)
+        .wait_for_session(session_for_upgrade, BlockStatus::Best)
         .await;
     info!("Finality version is changed.");
 
     Ok(())
 }
 
-async fn check_ban_config<C: CommitteeManagementApi>(
+async fn check_finality_ban_config<C: CommitteeManagementApi>(
     connection: &C,
     expected_minimal_expected_performance: u16,
     expected_session_count_threshold: SessionCount,

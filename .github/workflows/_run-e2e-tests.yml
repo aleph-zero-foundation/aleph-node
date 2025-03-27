@@ -707,6 +707,7 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: all_validators_have_ideal_performance
+          node-count: '4'
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
@@ -723,6 +724,7 @@ jobs:
         uses: ./.github/actions/run-e2e-test
         with:
           test-case: one_validator_is_dead
+          node-count: '4'
           artifact-aleph-e2e-client-image: ${{ inputs.artifact-aleph-e2e-client-image }}
           artifact-aleph-node-image: ${{ inputs.artifact-aleph-node-image }}
           artifact-chain-bootstrapper-image: ${{ inputs.artifact-chain-bootstrapper-image }}
