@@ -31,7 +31,7 @@ jobs:
 
   push-dockerhub-image-testnet:
     needs: [deploy-to-testnet]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Get docker image names
         id: get-docker-image-names
@@ -53,7 +53,7 @@ jobs:
 
   slack:
     name: Slack notification
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: [push-dockerhub-image-testnet]
     if: always()
     steps:

@@ -32,7 +32,7 @@ jobs:
   translate-git-ref:
     name: Get full aleph-node git ref from possibly net names
     needs: [check-vars-and-secrets]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     outputs:
       ref: ${{ steps.get-ref.outputs.ref }}
     steps:
@@ -76,7 +76,7 @@ jobs:
 
   slack-notification:
     name: Slack notification
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: [test-sync]
     if: >
       !cancelled() &&

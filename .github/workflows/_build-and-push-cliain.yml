@@ -47,7 +47,7 @@ jobs:
     name: Build and push cliain docker image to ecr
     needs: [build-or-check-cliain]
     if: ${{ inputs.check-only != true && inputs.push == true }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     env:
       ECR_PUBLIC_HOST: ${{ vars.ECR_PUBLIC_HOST }}
       ECR_PUBLIC_REGISTRY: ${{ vars.ECR_PUBLIC_REGISTRY }}

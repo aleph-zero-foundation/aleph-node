@@ -15,7 +15,7 @@ concurrency:
 jobs:
   main:
     name: YAML Validate
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: VALIDATE | Execute github-actions-validator
         # yamllint disable-line rule:line-length

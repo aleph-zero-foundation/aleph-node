@@ -17,7 +17,7 @@ jobs:
 
   sync-main:
     needs: [check-vars-and-secrets]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     if: >
       github.repository == 'Cardinal-Cryptography/aleph-node' &&
       startsWith(github.ref, 'refs/heads/') &&
@@ -36,7 +36,7 @@ jobs:
 
   sync-release-branch:
     needs: [check-vars-and-secrets]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     if: >
       github.repository == 'Cardinal-Cryptography/aleph-node' &&
       startsWith(github.ref, 'refs/heads/') &&
@@ -63,7 +63,7 @@ jobs:
 
   sync-release-tag:
     needs: [check-vars-and-secrets]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     if: github.repository == 'Cardinal-Cryptography/aleph-node' && startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Checkout

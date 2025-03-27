@@ -15,7 +15,7 @@ on:
 jobs:
   main:
     name: Build synthetic node docker image
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     outputs:
       artifact-name-image: ${{ steps.get-synthetic-network-artifact-image-name.outputs.name }}
     steps:

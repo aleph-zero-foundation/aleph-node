@@ -20,7 +20,7 @@ jobs:
   add-ci-artifacts-to-release:
     needs: [check-vars-and-secrets]
     name: Add CI artifacts to the release
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -88,7 +88,7 @@ jobs:
 
   slack:
     name: Slack notification
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: [add-ci-artifacts-to-release]
     if: always()
     steps:
