@@ -39,7 +39,7 @@ jobs:
           ecr-chain-bootstrapper-repo: ${{ vars.ECR_CHAIN_BOOTSTRAPPER_REPO }}
           test-binary: 'false'
 
-  build-chain-bootstrapper:
+  build-production-chain-bootstrapper:
     needs: [check-vars-and-secrets]
     name: Build chain-bootstrapper
     uses: ./.github/workflows/_build-chain-bootstrapper.yml
@@ -49,17 +49,17 @@ jobs:
 
   push-chain-bootstrapper-image-to-ecr:
     needs:
-      - build-chain-bootstrapper
+      - build-production-chain-bootstrapper
       - get-full-docker-image-path
     name: Push chain-bootstrapper docker image to ECR
     uses: ./.github/workflows/_push-image-to-ecr.yml
     secrets: inherit
     with:
-      binary-artifact-name: ${{ needs.build-chain-bootstrapper.outputs.artifact-name-binary }}
-      # yamllint disable-line rule:line-length
+      # yamllint disable rule:line-length
+      binary-artifact-name: ${{ needs.build-production-chain-bootstrapper.outputs.artifact-name-binary }}
       docker-image-name: ${{ needs.get-full-docker-image-path.outputs.chain-bootstrapper-fqdn-image }}
-      # yamllint disable-line rule:line-length
       docker-image-name-latest: ${{ needs.get-full-docker-image-path.outputs.chain-bootstrapper-fqdn-image-latest }}
+      # yamllint enable rule:line-length
       binary-name: chain-bootstrapper
       docker-file-path: ./bin/chain-bootstrapper/Dockerfile
 
@@ -90,24 +90,25 @@ jobs:
     needs: [build-production-runtime]
     uses: ./.github/workflows/_check-runtime-determimism.yml
 
-  store-production-node-and-runtime-in-mainnet-s3:
-    name: Store production node and runtime in Mainnet bucket
+  store-ci-artifacts-in-mainnet-s3:
+    name: Store CI artifacts in Mainnet bucket
     runs-on: ubuntu-20.04
     needs:
       - build-production-aleph-node
       - build-production-runtime
+      - build-production-chain-bootstrapper
     steps:
       - name: Checkout aleph-node source code
         uses: actions/checkout@v4
 
       - name: Store production node and runtime
-        uses: ./.github/actions/store-node-and-runtime
+        uses: ./.github/actions/store-artifacts-in-s3
         with:
-          profile: production
-          # yamllint disable-line rule:line-length
+          # yamllint disable rule:line-length
           aleph-node-artifact-name: ${{ needs.build-production-aleph-node.outputs.artifact-name-binary }}
-          # yamllint disable-line rule:line-length
           aleph-runtime-artifact-name: ${{ needs.build-production-runtime.outputs.aleph-runtime-artifact-name }}
+          chain-bootstrapper-artifact-name: ${{ needs.build-production-chain-bootstrapper.outputs.artifact-name-binary }}
+          # yamllint enable rule:line-length
           aws-access-key-id: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_MAINNET_SECRET_ACCESS_KEY }}
           aws-bucket: ${{ secrets.CI_MAINNET_S3BUCKET_NAME }}

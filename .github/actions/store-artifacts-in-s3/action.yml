@@ -1,7 +1,6 @@
 ---
-name: Store node and runtime
-description: This workflow stores test or release version of aleph-node and aleph-runtime in S3, in
-             a given bucket
+name: Store build artifacts in S3
+description: This workflow stores production version of CI build artifacts in S3
 inputs:
   aleph-node-artifact-name:
     required: true
@@ -9,9 +8,9 @@ inputs:
   aleph-runtime-artifact-name:
     required: true
     description: 'Name of artifact aleph-runtime'
-  profile:
+  chain-bootstrapper-artifact-name:
     required: true
-    description: 'test or production'
+    description: 'Name of artifact chain-bootstrapper'
   aws-access-key-id:
     required: true
     description: 'AWS Access Key ID to be used when storing artifacts'
@@ -25,14 +24,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Validate workflow inputs
-      shell: bash
-      run: |
-        if [[ '${{ inputs.profile }}' != 'test' && '${{ inputs.profile }}' != 'production' ]]; then
-          echo 'Error: inputs.profile should be either test or production!'
-          exit 1
-        fi
-
     - name: Checkout aleph-node source code
       uses: actions/checkout@v4
 
@@ -50,6 +41,12 @@ runs:
       uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.aleph-runtime-artifact-name }}
+        path: target
+
+    - name: Download chain-bootstrapper from GH artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.chain-bootstrapper-artifact-name }}
         path: target
 
     - name: Configure AWS credentials for S3 AWS
@@ -72,19 +69,31 @@ runs:
         source-filename: aleph-node
         s3-bucket-path:
           # yamllint disable-line rule:line-length
-          builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-${{ inputs.profile }}-node
+          builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-production-node
         s3-bucket-filename:
-          aleph-${{ inputs.profile }}-node-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
+          aleph-production-node-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
         s3-bucket-name: ${{ inputs.aws-bucket }}
 
     - name: Copy runtime to S3 AWS bucket
-      uses: Cardinal-Cryptography/github-actions/copy-file-to-s3@v1
+      uses: Cardinal-Cryptography/github-actions/copy-file-to-s3@v7
       with:
         source-path: target
         source-filename: aleph_runtime.compact.compressed.wasm
         s3-bucket-path:
           # yamllint disable-line rule:line-length
-          builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-${{ inputs.profile }}-runtime
+          builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/aleph-production-runtime
         s3-bucket-filename:
-          aleph-${{ inputs.profile }}-runtime-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
+          aleph-production-runtime-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
+        s3-bucket-name: ${{ inputs.aws-bucket }}
+
+    - name: Copy chain-bootstrapper to S3 AWS bucket
+      uses: Cardinal-Cryptography/github-actions/copy-file-to-s3@v7
+      with:
+        source-path: target
+        source-filename: chain-bootstrapper
+        s3-bucket-path:
+          # yamllint disable-line rule:line-length
+          builds/aleph-node/commits/${{ steps.get-ref-properties.outputs.sha }}/chain-bootstrapper-production
+        s3-bucket-filename:
+          chain-bootstrapper-production-${{ steps.get-ref-properties.outputs.sha }}.tar.gz
         s3-bucket-name: ${{ inputs.aws-bucket }}
