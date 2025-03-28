@@ -23,7 +23,7 @@ jobs:
 
   check-if-image-deployed-to-testnet:
     needs: [check-vars-and-secrets]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout aleph-node sources
         uses: actions/checkout@v4
@@ -62,7 +62,7 @@ jobs:
 
   push-dockerhub-image-mainnet:
     needs: [deploy-to-mainnet]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout aleph-node sources
         uses: actions/checkout@v4
@@ -86,7 +86,7 @@ jobs:
 
   slack:
     name: Slack notification
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: [push-dockerhub-image-mainnet]
     if: always()
     steps:

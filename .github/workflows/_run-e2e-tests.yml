@@ -20,7 +20,7 @@ on:
 jobs:
   run-e2e-finalization-test:
     name: Run e2e finalization test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -36,7 +36,7 @@ jobs:
   run-e2e-rewards-disable-node-test:
     name: Run e2e reward points - disable node test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -52,7 +52,7 @@ jobs:
   run-e2e-token-transfer-test:
     name: Run e2e token transfer test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -68,7 +68,7 @@ jobs:
   run-e2e-channeling-fee-test:
     name: Run e2e channeling fee test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -84,7 +84,7 @@ jobs:
   run-e2e-treasury-access-test:
     name: Run e2e treasury access test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -100,7 +100,7 @@ jobs:
   run-e2e-batch-transactions-test:
     name: Run e2e batch transactions test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -116,7 +116,7 @@ jobs:
   run-e2e-staking-era-payouts-test:
     name: Run e2e staking era payouts test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -132,7 +132,7 @@ jobs:
   run-e2e-staking-new-validator-test:
     name: Run e2e staking new validator test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -148,7 +148,7 @@ jobs:
   run-e2e-change-validators-test:
     name: Run e2e change validators test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -164,7 +164,7 @@ jobs:
   run-e2e-fail-change-validators-test:
     name: Run e2e fail change validators test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -180,7 +180,7 @@ jobs:
   run-e2e-validators-rotate:
     name: Run validators rotation test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -196,7 +196,7 @@ jobs:
   run-e2e-era-payout:
     name: Run era payout test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -212,7 +212,7 @@ jobs:
   run-e2e-era-validators:
     name: Run era validators test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -228,7 +228,7 @@ jobs:
   run-e2e-rewards-force-new-era:
     name: Run force new era test to check rewards
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -244,7 +244,7 @@ jobs:
   run-e2e-rewards-stake-change:
     name: Run reward points with stake changed test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -260,7 +260,7 @@ jobs:
   run-e2e-rewards-change-stake-force-new-era:
     name: Run reward points with stake changed and new era forced test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -276,7 +276,7 @@ jobs:
   run-e2e-rewards-points-basic:
     name: Run basic reward points calculation test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -292,7 +292,7 @@ jobs:
   run-e2e-authorities-are-staking:
     name: Run authorities are staking test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -311,7 +311,7 @@ jobs:
   run-e2e-ban-automatic:
     name: Run ban automatic test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -327,7 +327,7 @@ jobs:
   run-e2e-ban-manual:
     name: Run ban manual test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -343,7 +343,7 @@ jobs:
   run-e2e-ban-counter-clearing:
     name: Run ban counter clearing test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -359,7 +359,7 @@ jobs:
   run-e2e-ban-threshold:
     name: Run ban threshold test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -375,7 +375,7 @@ jobs:
   run-e2e-permissionless-ban:
     name: Run permissionless ban test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -391,7 +391,7 @@ jobs:
   run-e2e-version-upgrade:
     name: Run basic (positive) version-upgrade test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -411,7 +411,7 @@ jobs:
   run-e2e-adder-contract-test:
     name: Run e2e adder contract test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -434,7 +434,7 @@ jobs:
   run-e2e-finality-version-change:
     name: Run finality version change test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -450,7 +450,7 @@ jobs:
   run-e2e-committee-split-reserved-12:
     name: Run committee split test with node-1 and node-2 dead
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -470,7 +470,7 @@ jobs:
   run-e2e-committee-split-reserved-23:
     name: Run committee split test with node-2 and node-3 dead
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -490,7 +490,7 @@ jobs:
   run-e2e-committee-split-reserved-13:
     name: Run committee split test with node-1 and node-3 dead
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -510,7 +510,7 @@ jobs:
   run-e2e-committee-split-test-success-without-any-deads:
     name: Run committee split test without any deads
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -529,7 +529,7 @@ jobs:
   run-e2e-committee-split-test-success-with-one-dead:
     name: Run committee split test with one node dead
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -548,7 +548,7 @@ jobs:
   run-e2e-set-emergency-finalizer:
     name: Run set emergency finalizer test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -564,7 +564,7 @@ jobs:
   run-e2e-set-lenient-threshold:
     name: Run set lenient threshold test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -580,7 +580,7 @@ jobs:
   run-e2e-chain-dead-scenario:
     needs: [run-e2e-finalization-test]
     name: Run chain dead scenario
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -599,7 +599,7 @@ jobs:
   run-e2e-committee-split-test-success-with-all-non-reserved-dead:
     name: Run committee split test with all non-reserved nodes dead
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -618,7 +618,7 @@ jobs:
   run-e2e-any-proxy:
     name: Run any proxy test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -634,7 +634,7 @@ jobs:
   run-e2e-staking-proxy:
     name: Run staking proxy test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -650,7 +650,7 @@ jobs:
   run-e2e-non-transfer-proxy:
     name: Run non-transfer proxy test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -666,7 +666,7 @@ jobs:
   run-e2e-safe-mode-operations-are-disabled-for-users:
     name: Run safe mode operations are disabled for users
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -682,7 +682,7 @@ jobs:
   run-e2e-safe-mode-configured-correctly:
     name: Run safe mode configured correctly
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -698,7 +698,7 @@ jobs:
   run-e2e-all-validators-have-ideal-performance:
     name: Run all validators have ideal performance test.
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -714,7 +714,7 @@ jobs:
   run-e2e-one-validator-is-dead:
     name: Run one validator is dead performance test
     needs: [run-e2e-finalization-test]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4

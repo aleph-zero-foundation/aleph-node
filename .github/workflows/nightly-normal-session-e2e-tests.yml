@@ -53,7 +53,7 @@ jobs:
       - build-aleph-e2e-client-image
       - build-chain-bootstrapper-production
     name: Run high out-latency test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -79,7 +79,7 @@ jobs:
       - build-chain-bootstrapper-production
     name: Sync test using synthetic-network - one node catching up and then
           becoming necessary for consensus
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -109,7 +109,7 @@ jobs:
       - build-aleph-e2e-client-image
       - build-chain-bootstrapper-production
     name: Sync test using synthetic-network - one node catching up
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -140,7 +140,7 @@ jobs:
       - build-chain-bootstrapper-production
     name: Sync test using synthetic-network - into two groups and one quorum
           and switch quorum between them
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -170,7 +170,7 @@ jobs:
       - build-aleph-e2e-client-image
       - build-chain-bootstrapper-production
     name: Sync test using synthetic-network - into multiple groups of two
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -201,7 +201,7 @@ jobs:
       - build-chain-bootstrapper-production
     name: Sync test using synthetic-network - into two equal size groups
           with no quorum
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -232,7 +232,7 @@ jobs:
       - build-chain-bootstrapper-production
     name: Sync test using synthetic-network - into two groups one with
           quorum
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -262,7 +262,7 @@ jobs:
       - build-aleph-e2e-client-image
       - build-chain-bootstrapper-production
     name: Finalization-stall test using synthetic-network
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -291,7 +291,7 @@ jobs:
       - build-production-aleph-node
       - build-chain-bootstrapper-production
     name: Run major sync test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -352,7 +352,7 @@ jobs:
       - build-aleph-e2e-client-image
       - build-chain-bootstrapper-production
     name: Run high out-latency for every quorum
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -384,7 +384,7 @@ jobs:
             run-e2e-no-quorum-without-high-out-latency]
     name: Check nightly test suite completion
     if: ${{ !cancelled() }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: All nightly tests completed
         run: |
@@ -394,7 +394,7 @@ jobs:
 
   slack:
     name: Slack notification
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs: [check-nightly-pipeline-completion]
     if: >
       !cancelled() &&

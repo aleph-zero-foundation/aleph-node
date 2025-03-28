@@ -15,7 +15,7 @@ concurrency:
 jobs:
   check-pr-title:
     name: Check PR title
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     if: github.event_name == 'pull_request'
     steps:
       - name: Check PR title
@@ -87,7 +87,7 @@ jobs:
       - build-test-aleph-node
       - build-aleph-e2e-client-image
       - build-chain-bootstrapper
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -108,7 +108,7 @@ jobs:
       - build-test-aleph-node
       - build-aleph-e2e-client-image
       - build-chain-bootstrapper
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4

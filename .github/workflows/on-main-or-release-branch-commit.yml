@@ -16,7 +16,7 @@ jobs:
   get-full-docker-image-path:
     name: Get aleph-node and chain-bootstrapper fqdn paths
     needs: [check-vars-and-secrets]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     outputs:
       fqdn-image: ${{ steps.get-fqdns.outputs.fqdn-image }}
       fqdn-image-latest: ${{ steps.get-fqdns.outputs.fqdn-image-latest }}
@@ -92,7 +92,7 @@ jobs:
 
   store-production-node-and-runtime-in-mainnet-s3:
     name: Store production node and runtime in Mainnet bucket
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     needs:
       - build-production-aleph-node
       - build-production-runtime
@@ -128,7 +128,7 @@ jobs:
 
   send-slack-notification-release:
     name: Send Slack notification about workflow status
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     if: always() && startsWith(github.ref_name, 'release-')
     needs: [push-production-node-image-to-ecr]
     steps:
@@ -144,7 +144,7 @@ jobs:
 
   send-slack-notification-main:
     name: Send Slack notification about workflow status
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     if: always() && github.ref_name == 'main'
     needs: [push-production-node-image-to-ecr]
     steps:
