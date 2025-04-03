@@ -1,13 +1,8 @@
 ---
-# This workflow performs sync to Testnet from a RocksDB snapshot using the latest
-# main version.
+# This workflow performs sync to Testnet from a RocksDB snapshot
 
 name: Sync from snapshot test, Testnet, RocksDB
 on:
-  # At 15:00 on Sunday
-  # Time corresponds with a snapshot creation time
-  schedule:
-    - cron: '0 15 * * 0'
   workflow_dispatch:
     inputs:
       snapshot-day:

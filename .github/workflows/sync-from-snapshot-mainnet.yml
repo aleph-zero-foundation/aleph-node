@@ -1,16 +1,8 @@
 ---
-# This workflow performs sync to Mainnet from a RocksDB snapshot using the latest
-# main version.
-#
-# For now, this test not quite correctly tests sync Mainnet from latest aleph-node binary,
-# for which we don't guarantee it will always happen to work.
+# This workflow performs sync to Mainnet from a RocksDB snapshot
 
 name: Sync from snapshot test, Mainnet, RocksDB
 on:
-  # At 15:00 on Sunday
-  # Time corresponds with a snapshot creation time
-  schedule:
-    - cron: '0 15 * * 0'
   workflow_dispatch:
     inputs:
       snapshot-day:
