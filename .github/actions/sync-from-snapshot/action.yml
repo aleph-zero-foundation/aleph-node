@@ -58,8 +58,7 @@ runs:
       run: |
         ./.github/scripts/test_db_sync.sh \
           ${{ inputs.args }} \
-          --snapshot-day ${{ steps.get-snapshot-day.outputs.snapshot-day }} \
-          --mark-snapshot-as-latest
+          --snapshot-day ${{ steps.get-snapshot-day.outputs.snapshot-day }}
 
     - name: Archive logs from failed test
       if: ${{ failure() }}

@@ -6,8 +6,6 @@ PARITY_DB="false"
 PRUNING="false"
 ENV="mainnet"
 SNAPSHOT_DAY=""
-MARK_SNAPSHOT_AS_LATEST=""
-S3_BUCKET=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -29,9 +27,6 @@ while [[ $# -gt 0 ]]; do
             SNAPSHOT_DAY="$2"
             shift; shift
             ;;
-        --mark-snapshot-as-latest)
-            MARK_SNAPSHOT_AS_LATEST="true"
-            shift;;
         *)
             echo "Unrecognized argument: $1"
             exit 1;;
@@ -53,41 +48,35 @@ if [[ "${ENV}" == "mainnet" ]]; then
     BOOT_NODES=/dns4/bootnode-eu-central-1-0.azero.dev/tcp/30333/p2p/12D3KooWEF1Eo7uFZWdqFsTPP7CehpRt5NeXFwCe3157qpoU5aqd/dns4/bootnode-eu-central-1-1.azero.dev/tcp/30333/p2p/12D3KooWSeKnKHwumcVuWz2g5wn5xyWZpZJzuZXHJrEdpi8bj4HR/dns4/bootnode-us-east-1-0.azero.dev/tcp/30333/p2p/12D3KooWFQSGvQii2gRGB5T4M6TXhM83JV4bTEhubCBpdoR6Rkwk/dns4/bootnode-us-east-1-1.azero.dev/tcp/30333/p2p/12D3KooWSX2TbzpengsKsXdNPs6g2aQpp91qduL5FPax2SqgCaxa
     DB_PATH="chains/mainnet/"
     TARGET_CHAIN="wss://ws.azero.dev"
-    S3_URL="http://db.azero.dev.s3-website.eu-central-1.amazonaws.com"
-    S3_BUCKET="db.azero.dev"
+    BASE_SNAPSHOT_URL="https://azero-snapshots.dev/mainnet"
 else
     SOURCE_CHAINSPEC="./bin/node/src/resources/testnet_chainspec.json"
     BOOT_NODES=/dns4/bootnode-eu-central-1-0.test.azero.dev/tcp/30333/p2p/12D3KooWRkGLz4YbVmrsWK75VjFTs8NvaBu42xhAmQaP4KeJpw1L/dns4/bootnode-us-east-1-0.test.azero.dev/tcp/30333/p2p/12D3KooWSv1nApKkcnq8ZVHJQLK5GJ4NKS9ebag9QrRTzksLTGUy
     DB_PATH="chains/testnet/"
     TARGET_CHAIN="wss://ws.test.azero.dev"
-    S3_URL="http://db.test.azero.dev.s3-website.eu-central-1.amazonaws.com"
-    S3_BUCKET="db.test.azero.dev"
+    BASE_SNAPSHOT_URL="https://azero-snapshots.dev/testnet"
 fi
 
 declare -a DB_ARG
 S3_SNAPSHOT_PREFIX=""
-LATEST_SNAPSHOT_NAME=""
 if [[ "${PARITY_DB}" == "true" && "${PRUNING}" == "true" ]]; then
     DB_ARG+=("--database paritydb")
     DB_ARG+=("--enable-pruning")
-    S3_SNAPSHOT_PREFIX="db_backup_parity_pruned"
-    LATEST_SNAPSHOT_NAME="latest-parity-pruned.html"
+    S3_SNAPSHOT_PREFIX="paritydb-pruned"
 fi
 if [[ "${PARITY_DB}" == "false" && "${PRUNING}" == "true"  ]]; then
     DB_ARG+=("--enable-pruning")
-    S3_SNAPSHOT_PREFIX="db_backup_rocksdb_pruned"
-    LATEST_SNAPSHOT_NAME="latest-rocksdb-pruned.html"
+    S3_SNAPSHOT_PREFIX="rocksdb-pruned"
 fi
 if [[ "${PARITY_DB}" == "false" && "${PRUNING}" == "false" ]]; then
-    S3_SNAPSHOT_PREFIX="db_backup"
-    LATEST_SNAPSHOT_NAME="latest.html"
+    S3_SNAPSHOT_PREFIX="rocksdb"
 fi
 
 if [[ -z "${SNAPSHOT_DAY}" ]]; then
     SNAPSHOT_DAY=$(date "+%Y-%m-%d")
 fi
 
-DB_SNAPSHOT_URL="${S3_URL}/${SNAPSHOT_DAY}/${S3_SNAPSHOT_PREFIX}_${SNAPSHOT_DAY}.tar.gz"
+DB_SNAPSHOT_URL="${BASE_SNAPSHOT_URL}/${S3_SNAPSHOT_PREFIX}/db_${SNAPSHOT_DAY}.tar.gz"
 
 initialize() {
     pip install substrate-interface
@@ -149,12 +138,6 @@ while [ $CURRENT_BLOCK -le $TARGET_BLOCK ]; do
     get_current_block
     echo "Sync status: ${CURRENT_BLOCK}/${TARGET_BLOCK}".
 done
-
-if [[ "${MARK_SNAPSHOT_AS_LATEST}" == "true" ]]; then
-  echo "<meta http-equiv=\"refresh\" content=\"0;url=${S3_URL}/${SNAPSHOT_DAY}/${S3_SNAPSHOT_PREFIX}_${SNAPSHOT_DAY}.tar.gz\">" | \
-    aws s3 cp - "s3://${S3_BUCKET}/${LATEST_SNAPSHOT_NAME}" \
-      --website-redirect "${S3_URL}/${SNAPSHOT_DAY}/${S3_SNAPSHOT_PREFIX}_${SNAPSHOT_DAY}.tar.gz"
-fi
 
 kill -9 $ALEPH_NODE_PID
 
