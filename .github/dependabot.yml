@@ -1,26 +1,6 @@
 ---
 version: 2
 updates:
-  - package-ecosystem: cargo
-    directory: /
-    schedule:
-      interval: daily
-      # UTC time
-      time: "06:00"
-    rebase-strategy: disabled
-    commit-message:
-      prefix: "A0-3951: "
-    groups:
-      all-rust-deps:
-        patterns:
-          - "*"
-    pull-request-branch-name:
-      separator: "-"
-    ignore:
-      - dependency-name: "aleph-bft"
-      - dependency-name: "aleph-bft-rmc"
-      - dependency-name: "aleph-bft-types"
-
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -39,5 +19,3 @@ updates:
       separator: "-"
     reviewers:
       - "Marcin-Radecki"
-      - "Mikolaj Gasior"
-

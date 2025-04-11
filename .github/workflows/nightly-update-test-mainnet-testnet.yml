@@ -7,9 +7,6 @@
 name: Nightly update net test from Mainnet to Testnet
 on:
   workflow_dispatch:
-  # Daily at 02:00
-  schedule:
-    - cron: '00 02 * * *'
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}

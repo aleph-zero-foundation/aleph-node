@@ -3,8 +3,6 @@
 name: Nightly feature-gated builds
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '00 20 * * *'
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}

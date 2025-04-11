@@ -2,9 +2,6 @@
 name: Weekly test featurenets create (short session, tag)
 
 on:
-  # At 03:40 on Wednesday
-  schedule:
-    - cron: '40 3 * * 3'
   workflow_dispatch:
 
 concurrency:
@@ -24,7 +21,7 @@ jobs:
     secrets: inherit
     with:
       featurenet-name: 'ops-test-tag'
-      ref: 'r-14.0.0'
+      ref: 'r-15.2.0'
       expiration: '5h'
       validators: '7'
       internal: true

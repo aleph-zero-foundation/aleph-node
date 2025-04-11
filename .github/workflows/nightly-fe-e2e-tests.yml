@@ -2,8 +2,6 @@
 name: Nightly pipeline e2e tests on featurenet
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '00 23 * * *'
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
