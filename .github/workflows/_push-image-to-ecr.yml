@@ -38,7 +38,7 @@ jobs:
         uses: Cardinal-Cryptography/github-actions/get-ref-properties@v7
 
       - name: Download ${{ inputs.binary-artifact-name }} from artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: ${{ inputs.binary-artifact-name }}
           path: target/release/

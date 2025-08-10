@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download node docker image
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: ${{ inputs.artifact-aleph-node-image }}
 
