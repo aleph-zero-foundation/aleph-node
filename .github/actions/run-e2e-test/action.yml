@@ -50,7 +50,7 @@ runs:
   using: 'composite'
   steps:
     - name: Checkout aleph-node sources
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Call action get-ref-properties
       id: get-ref-properties
