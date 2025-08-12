@@ -23,7 +23,7 @@ jobs:
       CARGO_COMMAND: ${{ inputs.check-only && 'check' || 'build' }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install Rust toolchain
         uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v7.3.0
@@ -56,7 +56,7 @@ jobs:
       CI_DEVNET_S3BUCKET_NAME: ${{ secrets.CI_DEVNET_S3BUCKET_NAME }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Call action get-ref-properties
         id: get-ref-properties

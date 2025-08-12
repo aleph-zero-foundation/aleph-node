@@ -20,7 +20,7 @@ jobs:
       artifact-name-image: ${{ steps.get-synthetic-network-artifact-image-name.outputs.name }}
     steps:
       - name: Checkout Source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download node docker image
         uses: actions/download-artifact@v4

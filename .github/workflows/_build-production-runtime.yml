@@ -24,7 +24,7 @@ jobs:
       aleph-runtime-artifact-name: ${{ steps.get-artifact-name.outputs.name }}
     steps:
       - name: Checkout aleph-node source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
