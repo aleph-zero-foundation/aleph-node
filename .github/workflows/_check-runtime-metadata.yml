@@ -26,7 +26,7 @@ jobs:
       RUSTC_WRAPPER: sccache
     steps:
       - name: Checkout aleph-node source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
@@ -67,18 +67,18 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout aleph-node source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
 
       - name: Download node docker image
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: subxt-binary
 
       - name: Download node docker image
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: ${{ inputs.artifact-aleph-node-image }}
 
@@ -87,7 +87,7 @@ jobs:
         run: docker load -i aleph-node.tar
 
       - name: Download chain-bootstrapper image
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: ${{ inputs.artifact-chain-bootstrapper-image }}
 

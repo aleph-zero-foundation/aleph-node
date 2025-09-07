@@ -62,16 +62,16 @@ jobs:
     runs-on: [self-hosted, Linux, X64, medium]
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download test node from GH artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: ${{ needs.build-test-aleph-node.outputs.artifact-name-binary }}
           path: target/release/
 
       - name: Download chain-bootstrapper from GH artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: ${{ needs.build-chain-bootstrapper-test.outputs.artifact-name-binary }}
           path: target/release/

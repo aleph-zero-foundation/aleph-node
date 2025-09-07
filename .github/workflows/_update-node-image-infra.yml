@@ -53,7 +53,7 @@ jobs:
           echo "repo-owner=$GITHUB_REPOSITORY_OWNER" >> $GITHUB_OUTPUT
 
       - name: GIT | Checkout argocd apps repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ inputs.env }}
           # yamllint disable-line rule:line-length
