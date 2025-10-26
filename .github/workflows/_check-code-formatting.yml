@@ -13,7 +13,7 @@ jobs:
       RUSTC_WRAPPER: sccache
     steps:
       - name: Checkout Source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install Nightly Rust Toolchain
         uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v7

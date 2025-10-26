@@ -34,7 +34,7 @@ jobs:
       artifact-name-image: ${{ steps.get-artifact-name-image.outputs.name }}
     steps:
       - name: Checkout aleph-node source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
@@ -65,7 +65,7 @@ jobs:
           echo "name=chain-bootstrapper-${{ env.ARTIFACT_NAME_SUFFIX }}" >> $GITHUB_OUTPUT
 
       - name: Upload binary to GH Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ steps.get-artifact-name-binary.outputs.name }}
           path: target/${{ env.CARGO_FOLDER }}/chain-bootstrapper
@@ -89,7 +89,7 @@ jobs:
           echo "name=chain-bootstrapper-image-${{ env.ARTIFACT_NAME_SUFFIX }}" >> $GITHUB_OUTPUT
 
       - name: Upload docker image to GH Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ steps.get-artifact-name-image.outputs.name }}
           path: chain-bootstrapper.tar

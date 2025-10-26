@@ -13,7 +13,7 @@ jobs:
       RUSTC_WRAPPER: sccache
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # TODO this is not ideal, as we need this step only to have rustup in the path
       # This step installs Rust from root rust-toolchain.toml, which is not used later

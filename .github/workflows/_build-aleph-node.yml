@@ -34,7 +34,7 @@ jobs:
       artifact-name-image: ${{ steps.get-artifact-name-image.outputs.name }}
     steps:
       - name: Checkout aleph-node source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
@@ -61,7 +61,7 @@ jobs:
           echo "name=aleph-node-${{ env.ARTIFACT_NAME_SUFFIX }}" >> $GITHUB_OUTPUT
 
       - name: Upload binary to GH Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ steps.get-artifact-name-binary.outputs.name }}
           path: target/${{ env.CARGO_FOLDER }}/aleph-node
@@ -84,7 +84,7 @@ jobs:
           echo "name=aleph-node-image-${{ env.ARTIFACT_NAME_SUFFIX }}" >> $GITHUB_OUTPUT
 
       - name: Upload docker to GH Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ steps.get-artifact-name-image.outputs.name }}
           path: aleph-node.tar
