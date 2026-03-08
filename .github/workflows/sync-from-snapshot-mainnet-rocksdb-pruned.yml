@@ -54,7 +54,7 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Test sync
         uses: ./.github/actions/sync-from-snapshot

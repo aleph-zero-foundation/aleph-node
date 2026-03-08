@@ -20,10 +20,10 @@ jobs:
       artifact-name-image: ${{ steps.get-synthetic-network-artifact-image-name.outputs.name }}
     steps:
       - name: Checkout Source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download node docker image
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.artifact-aleph-node-image }}
 
@@ -44,7 +44,7 @@ jobs:
           echo "name=aleph-release-synthetic-docker" >> $GITHUB_OUTPUT
 
       - name: Upload synthetic aleph-node image
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.get-synthetic-network-artifact-image-name.outputs.name }}
           path: aleph-node.tar
