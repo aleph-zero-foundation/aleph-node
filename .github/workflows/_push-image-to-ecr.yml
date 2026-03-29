@@ -31,14 +31,14 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout aleph-node sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Call action get-ref-properties
         id: get-ref-properties
         uses: Cardinal-Cryptography/github-actions/get-ref-properties@v7
 
       - name: Download ${{ inputs.binary-artifact-name }} from artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.binary-artifact-name }}
           path: target/release/
@@ -53,7 +53,7 @@ jobs:
 
       - name: Login to Public Amazon ECR
         id: login-public-ecr
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ vars.ECR_PUBLIC_HOST }}
           username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}

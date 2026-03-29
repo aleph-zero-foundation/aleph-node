@@ -23,14 +23,14 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Call action get-ref-properties
         id: get-ref-properties
         uses: Cardinal-Cryptography/github-actions/get-ref-properties@v7
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         env:
           AWS_REGION: us-east-1
         with:
