@@ -24,7 +24,7 @@ jobs:
       aleph-runtime-artifact-name: ${{ steps.get-artifact-name.outputs.name }}
     steps:
       - name: Checkout aleph-node source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
@@ -47,7 +47,7 @@ jobs:
           echo "name=aleph-production-runtime" >> $GITHUB_OUTPUT
 
       - name: Upload release runtime to GH artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.get-artifact-name.outputs.name }}
           path: target/production/wbuild/aleph-runtime/aleph_runtime.compact.compressed.wasm
