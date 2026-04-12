@@ -23,7 +23,7 @@ jobs:
       CARGO_COMMAND: ${{ inputs.check-only && 'check' || 'build' }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Rust toolchain
         uses: Cardinal-Cryptography/github-actions/install-rust-toolchain@v7.3.0
@@ -36,7 +36,7 @@ jobs:
 
       - name: Upload cliain binary to GH artifacts
         if: ${{ inputs.check-only != true }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cliain
           path: bin/cliain/target/release/cliain
@@ -56,20 +56,20 @@ jobs:
       CI_DEVNET_S3BUCKET_NAME: ${{ secrets.CI_DEVNET_S3BUCKET_NAME }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Call action get-ref-properties
         id: get-ref-properties
         uses: Cardinal-Cryptography/github-actions/get-ref-properties@v7
 
       - name: Download cliain from GH artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: cliain
           path: bin/cliain/target/release/cliain
 
       - name: Login to Public Amazon ECR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ vars.ECR_PUBLIC_HOST }}
           username: ${{ secrets.AWS_MAINNET_ACCESS_KEY_ID }}
@@ -92,7 +92,7 @@ jobs:
 
       - name: Configure AWS credentials for S3 AWS
         if: ${{ inputs.check-only != true }}
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         env:
           AWS_ACCESS_KEY_ID: ""
           AWS_SECRET_ACCESS_KEY: ""
