@@ -53,7 +53,7 @@ jobs:
           echo "repo-owner=$GITHUB_REPOSITORY_OWNER" >> $GITHUB_OUTPUT
 
       - name: GIT | Checkout argocd apps repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.env }}
           # yamllint disable-line rule:line-length
@@ -62,7 +62,7 @@ jobs:
           path: ${{ secrets.REPO_ARGOCD_APPS_NAME }}
 
       - name: Init kustomize
-        uses: imranismail/setup-kustomize@v2
+        uses: imranismail/setup-kustomize@v3
         with:
           kustomize-version: ${{ vars.KUSTOMIZE_VERSION }}
 
@@ -96,7 +96,7 @@ jobs:
           git config --global user.signingkey $(echo ${{ secrets.AUTOCOMMIT_GPG_KEY_FINGERPRINT }} | tail -c 17)
 
       - name: GIT | Commit changes to argocd apps repository.
-        uses: EndBug/add-and-commit@v9.1.4
+        uses: EndBug/add-and-commit@v10.0.0
         env:
           TAG: ${{ inputs.tag }}
         with:

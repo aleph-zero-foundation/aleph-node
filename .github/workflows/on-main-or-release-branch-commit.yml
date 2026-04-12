@@ -99,7 +99,7 @@ jobs:
       - build-production-chain-bootstrapper
     steps:
       - name: Checkout aleph-node source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Store production node and runtime
         uses: ./.github/actions/store-artifacts-in-s3
@@ -134,7 +134,7 @@ jobs:
     needs: [push-production-node-image-to-ecr]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Send Slack message
         uses: Cardinal-Cryptography/github-actions/slack-notification@v7
